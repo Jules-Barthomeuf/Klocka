@@ -1,0 +1,81 @@
+{
+  "name": "Resource",
+  "type": "object",
+  "properties": {
+    "titre": {
+      "type": "string",
+      "description": "Titre de la ressource"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description de la ressource"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "video",
+        "pdf",
+        "article",
+        "guide",
+        "webinar"
+      ],
+      "description": "Type de ressource"
+    },
+    "categorie": {
+      "type": "string",
+      "enum": [
+        "acculturation",
+        "strategie",
+        "analyse",
+        "financement",
+        "juridique",
+        "fiscalite"
+      ],
+      "description": "Cat\u00e9gorie de la ressource"
+    },
+    "url_fichier": {
+      "type": "string",
+      "description": "URL du fichier ou de la vid\u00e9o"
+    },
+    "duree_minutes": {
+      "type": "integer",
+      "description": "Dur\u00e9e en minutes (pour vid\u00e9os/webinars)"
+    },
+    "image_miniature": {
+      "type": "string",
+      "description": "URL de l'image miniature"
+    },
+    "ordre": {
+      "type": "integer",
+      "description": "Ordre d'affichage"
+    },
+    "visible": {
+      "type": "boolean",
+      "default": true,
+      "description": "La ressource est visible par les clients"
+    }
+  },
+  "required": [
+    "titre",
+    "type",
+    "url_fichier"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

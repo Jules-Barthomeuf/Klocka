@@ -1,0 +1,26 @@
+/* Mobile native feel */
+html, body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hide scrollbars but keep scrolling */
+*::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+p, h1, h2, h3, h4, h5, h6, span, input, textarea, [contenteditable], label {
+  -webkit-user-select: text;
+  user-select: text;
+}

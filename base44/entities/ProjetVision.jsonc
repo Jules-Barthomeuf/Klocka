@@ -1,0 +1,87 @@
+{
+  "name": "ProjetVision",
+  "type": "object",
+  "properties": {
+    "nom_projet": {
+      "type": "string",
+      "description": "Nom du projet"
+    },
+    "date_acquisition": {
+      "type": "string",
+      "format": "date",
+      "description": "Date d'acquisition pr\u00e9vue"
+    },
+    "prix_achat_total": {
+      "type": "number",
+      "description": "Prix d'achat incluant frais de notaire"
+    },
+    "rendement_brut": {
+      "type": "number",
+      "description": "Rendement brut annuel en %"
+    },
+    "taux_apport": {
+      "type": "number",
+      "description": "Pourcentage d'apport personnel en %"
+    },
+    "duree_credit": {
+      "type": "integer",
+      "description": "Dur\u00e9e du cr\u00e9dit en ann\u00e9es",
+      "default": 20
+    },
+    "taux_credit": {
+      "type": "number",
+      "description": "Taux d'int\u00e9r\u00eat du cr\u00e9dit en %",
+      "default": 3.7
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email du propri\u00e9taire du projet"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "previsionnel",
+        "en_cours",
+        "acquis"
+      ],
+      "default": "previsionnel",
+      "description": "Statut du projet"
+    }
+  },
+  "required": [
+    "nom_projet",
+    "date_acquisition",
+    "prix_achat_total",
+    "rendement_brut",
+    "taux_apport"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

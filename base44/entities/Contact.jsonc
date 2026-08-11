@@ -1,0 +1,112 @@
+{
+  "name": "Contact",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string",
+      "description": "Nom complet"
+    },
+    "sous_elements": {
+      "type": "string",
+      "description": "Sous-\u00e9l\u00e9ments"
+    },
+    "personnes": {
+      "type": "string",
+      "description": "Personnes associ\u00e9es"
+    },
+    "entreprise": {
+      "type": "string",
+      "description": "Nom de l'entreprise"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email"
+    },
+    "telephone": {
+      "type": "string",
+      "description": "Num\u00e9ro de t\u00e9l\u00e9phone"
+    },
+    "statut_client": {
+      "type": "string",
+      "description": "Statut client"
+    },
+    "mandat_signe": {
+      "type": "boolean",
+      "default": false,
+      "description": "Mandat sign\u00e9"
+    },
+    "patrimoine": {
+      "type": "string",
+      "description": "Patrimoine"
+    },
+    "revenu": {
+      "type": "number",
+      "description": "Revenu annuel"
+    },
+    "fond_propre": {
+      "type": "number",
+      "description": "Fonds propres"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Budget total"
+    },
+    "localisation": {
+      "type": "string",
+      "description": "Localisation"
+    },
+    "formation_lcdi": {
+      "type": "string",
+      "description": "Formation LCDI"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source"
+    },
+    "remarque": {
+      "type": "string",
+      "description": "Remarques"
+    },
+    "proprietes": {
+      "type": "string",
+      "description": "Propri\u00e9t\u00e9s"
+    },
+    "chiffres": {
+      "type": "string",
+      "description": "Chiffres cl\u00e9s"
+    },
+    "information": {
+      "type": "string",
+      "description": "Informations suppl\u00e9mentaires"
+    },
+    "fonction": {
+      "type": "string",
+      "description": "Fonction professionnelle"
+    }
+  },
+  "required": [
+    "nom"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

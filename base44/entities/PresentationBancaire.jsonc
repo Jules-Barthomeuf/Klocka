@@ -1,0 +1,87 @@
+{
+  "name": "PresentationBancaire",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email du client"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nom du client"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "ID du projet associ\u00e9"
+    },
+    "project_title": {
+      "type": "string",
+      "description": "Titre du projet"
+    },
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object"
+          }
+        }
+      },
+      "description": "Donn\u00e9es des slides de la pr\u00e9sentation"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "brouillon",
+        "publie"
+      ],
+      "default": "publie",
+      "description": "Statut de la pr\u00e9sentation"
+    },
+    "pptx_url": {
+      "type": "string",
+      "description": "URL du fichier .pptx upload\u00e9 (depuis Genspark ou autre)"
+    }
+  },
+  "required": [
+    "client_email",
+    "project_id",
+    "project_title"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

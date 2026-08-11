@@ -1,0 +1,63 @@
+{
+  "name": "Suggestion",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email du client qui a soumis la suggestion"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nom du client"
+    },
+    "contenu": {
+      "type": "string",
+      "description": "Contenu de la suggestion"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "nouveau",
+        "en_cours",
+        "accepte",
+        "refuse",
+        "termine"
+      ],
+      "default": "nouveau",
+      "description": "Statut de la suggestion"
+    },
+    "note_admin": {
+      "type": "string",
+      "description": "Note interne de l'admin"
+    }
+  },
+  "required": [
+    "client_email",
+    "contenu"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

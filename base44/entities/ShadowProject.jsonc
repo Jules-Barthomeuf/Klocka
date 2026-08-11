@@ -1,0 +1,43 @@
+{
+  "name": "ShadowProject",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "ID du projet original associ\u00e9"
+    },
+    "shadow_data": {
+      "type": "object",
+      "description": "Donn\u00e9es shadow compl\u00e8tes du projet (m\u00eames champs que Project)"
+    },
+    "created_by_admin": {
+      "type": "string",
+      "description": "Email de l'admin qui a cr\u00e9\u00e9 le shadow"
+    }
+  },
+  "required": [
+    "project_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

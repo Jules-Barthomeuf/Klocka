@@ -1,0 +1,56 @@
+{
+  "name": "Brouillon",
+  "type": "object",
+  "properties": {
+    "titre": {
+      "type": "string",
+      "description": "Titre / r\u00e9f\u00e9rence du double check"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "en_cours",
+        "valide",
+        "converti"
+      ],
+      "default": "en_cours"
+    },
+    "projet_id": {
+      "type": "string",
+      "description": "ID du projet cr\u00e9\u00e9 \u00e0 partir de ce check"
+    },
+    "check_data": {
+      "type": "object",
+      "description": "Donn\u00e9es du tableau double check: { field_key: { ia: string, human: string } }"
+    },
+    "notes_libres": {
+      "type": "string",
+      "description": "Notes libres"
+    }
+  },
+  "required": [
+    "titre"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

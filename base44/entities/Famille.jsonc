@@ -1,0 +1,47 @@
+{
+  "name": "Famille",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string",
+      "description": "Nom de la famille/groupe"
+    },
+    "user_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Liste des IDs des utilisateurs dans cette famille"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description optionnelle"
+    }
+  },
+  "required": [
+    "nom",
+    "user_ids"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

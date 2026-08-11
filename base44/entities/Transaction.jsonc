@@ -1,0 +1,91 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nom de la transaction"
+    },
+    "subitems": {
+      "type": "string",
+      "description": "Sous-\u00e9l\u00e9ments"
+    },
+    "personne": {
+      "type": "string",
+      "description": "Personnes associ\u00e9es"
+    },
+    "client": {
+      "type": "string",
+      "description": "Client"
+    },
+    "entreprise": {
+      "type": "string",
+      "description": "Entreprise"
+    },
+    "proprietes": {
+      "type": "string",
+      "description": "Propri\u00e9t\u00e9s"
+    },
+    "prix_affiche": {
+      "type": "number",
+      "description": "Prix affich\u00e9"
+    },
+    "prix_negocie": {
+      "type": "number",
+      "description": "Prix n\u00e9goci\u00e9"
+    },
+    "agent_immobilier": {
+      "type": "string",
+      "description": "Agent immobilier"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "compromis",
+        "financement_obtenu",
+        "offre_acceptee"
+      ],
+      "default": "offre_acceptee",
+      "description": "Statut de la transaction"
+    },
+    "honoraires": {
+      "type": "number",
+      "description": "Honoraires"
+    },
+    "categorie": {
+      "type": "string",
+      "enum": [
+        "en_cours",
+        "finalisee",
+        "avortee"
+      ],
+      "default": "en_cours",
+      "description": "Cat\u00e9gorie de la transaction"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

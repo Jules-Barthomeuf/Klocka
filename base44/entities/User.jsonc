@@ -1,0 +1,80 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "profil_investisseur": {
+      "type": "string",
+      "enum": [
+        "equilibriste",
+        "risk_taker",
+        "collectionneur",
+        "visionnaire"
+      ],
+      "description": "Profil d'investisseur du client"
+    },
+    "etape_actuelle": {
+      "type": "integer",
+      "description": "\u00c9tape actuelle du client (0-5)"
+    },
+    "revenus_annuels": {
+      "type": "number",
+      "description": "Revenus annuels du client"
+    },
+    "epargne_annuelle": {
+      "type": "number",
+      "description": "\u00c9pargne annuelle disponible"
+    },
+    "apport_disponible": {
+      "type": "number",
+      "description": "Apport disponible pour investissement"
+    },
+    "duree_emprunt": {
+      "type": "integer",
+      "description": "Dur\u00e9e d'emprunt pr\u00e9f\u00e9r\u00e9e en ann\u00e9es"
+    },
+    "dossier_bancaire_url": {
+      "type": "string",
+      "description": "URL du dossier bancaire du client"
+    },
+    "projet_selectionne_id": {
+      "type": "string",
+      "description": "ID du projet s\u00e9lectionn\u00e9 pour les clients en \u00e9tape 4+"
+    },
+    "viewed_resources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs des ressources consult\u00e9es par le client"
+    },
+    "est_compte_shadow": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indique si c'est un compte shadow (conjoint)"
+    },
+    "compte_maitre_email": {
+      "type": "string",
+      "description": "Email du compte ma\u00eetre pour les comptes shadow"
+    },
+    "comptes_lies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Liste des emails des comptes li\u00e9s (conjoints)"
+    }
+  },
+  "required": [
+    "profil_investisseur",
+    "etape_actuelle",
+    "revenus_annuels",
+    "epargne_annuelle",
+    "apport_disponible",
+    "duree_emprunt",
+    "dossier_bancaire_url",
+    "projet_selectionne_id",
+    "viewed_resources",
+    "compte_maitre_email",
+    "comptes_lies"
+  ]
+}

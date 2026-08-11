@@ -1,0 +1,127 @@
+{
+  "name": "Propriete",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string",
+      "description": "Nom de la propri\u00e9t\u00e9"
+    },
+    "adresse": {
+      "type": "string",
+      "description": "Adresse compl\u00e8te"
+    },
+    "ville": {
+      "type": "string",
+      "description": "Ville"
+    },
+    "code_postal": {
+      "type": "string",
+      "description": "Code postal"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "commerce",
+        "bureau",
+        "entrepot",
+        "mixte",
+        "autre"
+      ],
+      "description": "Type de propri\u00e9t\u00e9"
+    },
+    "surface": {
+      "type": "number",
+      "description": "Surface en m\u00b2"
+    },
+    "prix_acquisition": {
+      "type": "number",
+      "description": "Prix d'acquisition"
+    },
+    "valeur_actuelle": {
+      "type": "number",
+      "description": "Valeur actuelle estim\u00e9e"
+    },
+    "proprietaire_email": {
+      "type": "string",
+      "description": "Email du propri\u00e9taire"
+    },
+    "projet_id": {
+      "type": "string",
+      "description": "ID du projet associ\u00e9"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "disponible",
+        "sous_offre",
+        "vendu",
+        "loue"
+      ],
+      "default": "disponible",
+      "description": "Statut de la propri\u00e9t\u00e9"
+    },
+    "loyer_mensuel": {
+      "type": "number",
+      "description": "Loyer mensuel si lou\u00e9e"
+    },
+    "date_acquisition": {
+      "type": "string",
+      "format": "date",
+      "description": "Date d'acquisition"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs des photos"
+    }
+  },
+  "required": [
+    "nom",
+    "type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.proprietaire_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.proprietaire_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.proprietaire_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

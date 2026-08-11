@@ -1,0 +1,69 @@
+{
+  "name": "Strategy",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email du client associ\u00e9"
+    },
+    "budget_max": {
+      "type": "number",
+      "description": "Budget maximum d'investissement"
+    },
+    "apport": {
+      "type": "number",
+      "description": "Apport disponible"
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "is_nogo": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "description": "Liste des champs de strat\u00e9gie suppl\u00e9mentaires"
+    }
+  },
+  "required": [
+    "client_email"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

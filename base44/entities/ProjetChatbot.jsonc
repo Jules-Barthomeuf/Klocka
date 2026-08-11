@@ -1,0 +1,79 @@
+{
+  "name": "ProjetChatbot",
+  "type": "object",
+  "properties": {
+    "titre": {
+      "type": "string",
+      "description": "Titre du projet"
+    },
+    "adresse": {
+      "type": "string",
+      "description": "Adresse compl\u00e8te du projet"
+    },
+    "prix_revient": {
+      "type": "number",
+      "description": "Prix de revient total"
+    },
+    "ville_secteur": {
+      "type": "string",
+      "description": "Description de la ville et du secteur"
+    },
+    "marche_residentiel": {
+      "type": "string",
+      "description": "Informations sur le march\u00e9 immobilier r\u00e9sidentiel"
+    },
+    "marche_commercial": {
+      "type": "string",
+      "description": "Informations sur le march\u00e9 immobilier commercial"
+    },
+    "indicateurs": {
+      "type": "string",
+      "description": "Indicateurs cl\u00e9s (rendement, apport, r\u00e9cup\u00e9ration apport, loyer moyen)"
+    },
+    "budget_detail": {
+      "type": "string",
+      "description": "D\u00e9tail du budget (prix n\u00e9goci\u00e9, droits, honoraires, frais)"
+    },
+    "revenus_locatifs": {
+      "type": "string",
+      "description": "Revenus locatifs pr\u00e9visionnels"
+    },
+    "synthese_revente": {
+      "type": "string",
+      "description": "Synth\u00e8se \u00e0 la revente"
+    },
+    "donnees_supplementaires": {
+      "type": "string",
+      "description": "Toutes autres donn\u00e9es importantes du projet"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "ID du projet original (optionnel)"
+    }
+  },
+  "required": [
+    "titre"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

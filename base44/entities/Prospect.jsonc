@@ -1,0 +1,67 @@
+{
+  "name": "Prospect",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string",
+      "description": "Nom du prospect"
+    },
+    "sous_elements": {
+      "type": "string",
+      "description": "Sous-\u00e9l\u00e9ments"
+    },
+    "spoc": {
+      "type": "string",
+      "description": "SPOC"
+    },
+    "email": {
+      "type": "string",
+      "description": "E-mail"
+    },
+    "telephone": {
+      "type": "string",
+      "description": "T\u00e9l\u00e9phone"
+    },
+    "ville": {
+      "type": "string",
+      "description": "Ville"
+    },
+    "proprietes": {
+      "type": "string",
+      "description": "Propri\u00e9t\u00e9s"
+    },
+    "entreprise": {
+      "type": "string",
+      "description": "Entreprise"
+    },
+    "remarques": {
+      "type": "string",
+      "description": "Remarques"
+    }
+  },
+  "required": [
+    "nom"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

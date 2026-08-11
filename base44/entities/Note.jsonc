@@ -1,0 +1,67 @@
+{
+  "name": "Note",
+  "type": "object",
+  "properties": {
+    "titre": {
+      "type": "string",
+      "description": "Titre de la note"
+    },
+    "contenu": {
+      "type": "string",
+      "description": "Contenu de la note"
+    },
+    "categorie": {
+      "type": "string",
+      "description": "Cat\u00e9gorie ou espace personnel"
+    },
+    "shared_with_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails des utilisateurs avec qui la note est partag\u00e9e"
+    }
+  },
+  "required": [
+    "titre"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.shared_with_emails": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.shared_with_emails": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.shared_with_emails": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}

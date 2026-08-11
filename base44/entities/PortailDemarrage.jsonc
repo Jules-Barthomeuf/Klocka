@@ -1,0 +1,80 @@
+{
+  "name": "PortailDemarrage",
+  "type": "object",
+  "properties": {
+    "nom_prospect": {
+      "type": "string",
+      "description": "Pr\u00e9nom et nom du prospect"
+    },
+    "email_prospect": {
+      "type": "string",
+      "description": "Email du prospect"
+    },
+    "lien_paiement": {
+      "type": "string",
+      "description": "Lien de paiement externe (legacy)"
+    },
+    "lien_paiement_qonto": {
+      "type": "string",
+      "description": "Lien de paiement Qonto"
+    },
+    "lien_mandat_yousign": {
+      "type": "string",
+      "description": "Lien de signature du mandat YouSign"
+    },
+    "token": {
+      "type": "string",
+      "description": "Token unique pour l'acc\u00e8s public au portail"
+    },
+    "cgv_acceptees": {
+      "type": "boolean",
+      "default": false,
+      "description": "Le prospect a accept\u00e9 les CGV"
+    },
+    "etape_presentation_validee": {
+      "type": "boolean",
+      "default": false,
+      "description": "La pr\u00e9sentation a \u00e9t\u00e9 valid\u00e9e par le prospect"
+    },
+    "etape_paiement_effectue": {
+      "type": "boolean",
+      "default": false,
+      "description": "Le paiement a \u00e9t\u00e9 effectu\u00e9"
+    },
+    "etape_mandat_signe": {
+      "type": "boolean",
+      "default": false,
+      "description": "Le mandat a \u00e9t\u00e9 sign\u00e9"
+    },
+    "email_envoye": {
+      "type": "boolean",
+      "default": false,
+      "description": "L'email d'invitation a \u00e9t\u00e9 envoy\u00e9"
+    }
+  },
+  "required": [
+    "nom_prospect"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

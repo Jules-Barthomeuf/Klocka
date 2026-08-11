@@ -1,0 +1,137 @@
+{
+  "name": "ClientCRM",
+  "type": "object",
+  "properties": {
+    "nom": {
+      "type": "string",
+      "description": "Nom complet du client"
+    },
+    "sous_elements": {
+      "type": "string",
+      "description": "Sous-\u00e9l\u00e9ments"
+    },
+    "personnes": {
+      "type": "string",
+      "description": "Personnes associ\u00e9es"
+    },
+    "entreprise": {
+      "type": "string",
+      "description": "Nom de l'entreprise"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email du client"
+    },
+    "telephone": {
+      "type": "string",
+      "description": "Num\u00e9ro de t\u00e9l\u00e9phone"
+    },
+    "statut_client": {
+      "type": "string",
+      "enum": [
+        "negociation",
+        "recherche",
+        "compromis",
+        "def_strategie"
+      ],
+      "description": "Statut actuel du client"
+    },
+    "mandat_signe": {
+      "type": "boolean",
+      "default": false,
+      "description": "Mandat sign\u00e9 (Oui/Non)"
+    },
+    "patrimoine": {
+      "type": "string",
+      "description": "Patrimoine du client"
+    },
+    "revenu": {
+      "type": "number",
+      "description": "Revenu annuel"
+    },
+    "fond_propre": {
+      "type": "number",
+      "description": "Fonds propres"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Budget total"
+    },
+    "localisation": {
+      "type": "string",
+      "description": "Localisation recherch\u00e9e"
+    },
+    "formation_lcdi": {
+      "type": "string",
+      "description": "Formation LCDI"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source du client"
+    },
+    "remarque": {
+      "type": "string",
+      "description": "Remarques sur le client"
+    },
+    "proprietes": {
+      "type": "string",
+      "description": "Propri\u00e9t\u00e9s recherch\u00e9es"
+    },
+    "chiffres": {
+      "type": "string",
+      "description": "Chiffres cl\u00e9s"
+    },
+    "information": {
+      "type": "string",
+      "description": "Informations suppl\u00e9mentaires"
+    },
+    "fonction": {
+      "type": "string",
+      "description": "Fonction professionnelle"
+    },
+    "categorie": {
+      "type": "string",
+      "enum": [
+        "en_cours",
+        "signe",
+        "stand_by"
+      ],
+      "default": "en_cours",
+      "description": "Cat\u00e9gorie du client"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "URL de la photo de profil"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes internes"
+    }
+  },
+  "required": [
+    "nom",
+    "categorie"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

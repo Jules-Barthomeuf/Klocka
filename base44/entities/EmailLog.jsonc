@@ -1,0 +1,62 @@
+{
+  "name": "EmailLog",
+  "type": "object",
+  "properties": {
+    "to": {
+      "type": "string",
+      "description": "Email du destinataire"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Sujet de l'email"
+    },
+    "body": {
+      "type": "string",
+      "description": "Contenu de l'email"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "ID du projet associ\u00e9 (optionnel)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "failed"
+      ],
+      "default": "sent",
+      "description": "Statut de l'envoi"
+    },
+    "resend_id": {
+      "type": "string",
+      "description": "ID de l'email dans Resend"
+    }
+  },
+  "required": [
+    "to",
+    "subject",
+    "body"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

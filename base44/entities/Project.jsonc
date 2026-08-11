@@ -1,0 +1,1024 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "titre": {
+      "type": "string"
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Projet archiv\u00e9"
+    },
+    "client_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Liste des emails des clients assign\u00e9s au projet"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "admin_principal": {
+      "type": "string",
+      "description": "Email de l'admin principal du projet"
+    },
+    "prix_acquisition": {
+      "type": "number"
+    },
+    "rendement_locatif": {
+      "type": "number"
+    },
+    "adresse_complete": {
+      "type": "string"
+    },
+    "statut": {
+      "type": "string",
+      "enum": [
+        "prospect",
+        "analyse",
+        "negociation",
+        "financement",
+        "signe"
+      ],
+      "default": "prospect"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fichiers_projet": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Fichiers du projet t\u00e9l\u00e9chargeables par le client"
+    },
+    "docs_checklist": {
+      "type": "object",
+      "description": "Checklist des documents import\u00e9s: {bail: bool, pv_ag: bool, diagnostics: bool, quittances: bool, rcp: bool}"
+    },
+    "ville_secteur_champ1": {
+      "type": "string"
+    },
+    "ville_secteur_champ2": {
+      "type": "string"
+    },
+    "ville_secteur_champ3": {
+      "type": "string"
+    },
+    "description_ville": {
+      "type": "string"
+    },
+    "description_secteur": {
+      "type": "string"
+    },
+    "secteur_transports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ligne": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "distance_metres": {
+            "type": "number"
+          },
+          "temps_marche_min": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "secteur_flux_routier": {
+      "type": "number"
+    },
+    "secteur_temps_aeroport": {
+      "type": "number"
+    },
+    "secteur_temps_gare": {
+      "type": "number"
+    },
+    "secteur_temps_centre_ville": {
+      "type": "number"
+    },
+    "secteur_walk_score": {
+      "type": "number"
+    },
+    "secteur_bike_score": {
+      "type": "number"
+    },
+    "secteur_pct_bureaux": {
+      "type": "number"
+    },
+    "secteur_pct_commerces": {
+      "type": "number"
+    },
+    "secteur_pct_residentiel": {
+      "type": "number"
+    },
+    "secteur_entreprises_majeures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "secteur_taux_vacance": {
+      "type": "number"
+    },
+    "secteur_projets_urbains": {
+      "type": "string"
+    },
+    "secteur_nb_restaurants": {
+      "type": "number"
+    },
+    "secteur_services_proximite": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "secteur_nb_parkings": {
+      "type": "number"
+    },
+    "secteur_bassin_emploi": {
+      "type": "number"
+    },
+    "secteur_revenu_median": {
+      "type": "number"
+    },
+    "secteur_csp_dominante": {
+      "type": "string"
+    },
+    "bien_champ1": {
+      "type": "string"
+    },
+    "bien_champ2": {
+      "type": "string"
+    },
+    "bien_champ3": {
+      "type": "string"
+    },
+    "description_bien": {
+      "type": "string"
+    },
+    "nom_locataire": {
+      "type": "string"
+    },
+    "activite_locataire": {
+      "type": "string"
+    },
+    "locataire_depuis": {
+      "type": "string",
+      "format": "date"
+    },
+    "loyer_annuel_ht": {
+      "type": "number"
+    },
+    "echeance_bail": {
+      "type": "string",
+      "format": "date"
+    },
+    "statut_bail": {
+      "type": "string",
+      "enum": [
+        "en_cours",
+        "tacite_prolongation",
+        "en_cours_renouvellement"
+      ],
+      "default": "en_cours"
+    },
+    "vente_fonds_commerce": {
+      "type": "boolean",
+      "default": false
+    },
+    "montant_vente_fonds_commerce": {
+      "type": "number"
+    },
+    "date_vente_fonds_commerce": {
+      "type": "string",
+      "format": "date"
+    },
+    "loyer_m2_an": {
+      "type": "number"
+    },
+    "analyse_bail": {
+      "type": "string"
+    },
+    "bail_admin_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "bilans_locataire": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "annee": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "liens_locataire": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "instagram",
+              "facebook",
+              "google_avis",
+              "tripadvisor",
+              "site_web",
+              "linkedin",
+              "autre"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "swot_liens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "swot_data": {
+      "type": "object"
+    },
+    "env_data": {
+      "type": "object"
+    },
+    "quote_part_lot": {
+      "type": "number"
+    },
+    "charges_copropriete": {
+      "type": "number"
+    },
+    "provision_charges": {
+      "type": "number"
+    },
+    "activites_autorisees": {
+      "type": "string"
+    },
+    "activites_interdites": {
+      "type": "string"
+    },
+    "resolutions_votees": {
+      "type": "string"
+    },
+    "resolutions_refusees": {
+      "type": "string"
+    },
+    "assemblees_generales": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "annee": {
+            "type": "integer"
+          },
+          "synthese": {
+            "type": "string"
+          },
+          "resolutions_votees": {
+            "type": "string"
+          },
+          "resolutions_refusees": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes_libres": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titre": {
+            "type": "string"
+          },
+          "contenu": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes_secteur": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titre": {
+            "type": "string"
+          },
+          "contenu": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes_bien": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titre": {
+            "type": "string"
+          },
+          "contenu": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes_locataire": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titre": {
+            "type": "string"
+          },
+          "contenu": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes_marche": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titre": {
+            "type": "string"
+          },
+          "contenu": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes_diagnostique": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titre": {
+            "type": "string"
+          },
+          "contenu": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "marche_quartier_nom": {
+      "type": "string"
+    },
+    "marche_prix_m2_median": {
+      "type": "number"
+    },
+    "marche_prix_m2_bas": {
+      "type": "number"
+    },
+    "marche_prix_m2_haut": {
+      "type": "number"
+    },
+    "marche_evolution_1an": {
+      "type": "number"
+    },
+    "marche_evolution_5ans": {
+      "type": "number"
+    },
+    "marche_offre_bas": {
+      "type": "number"
+    },
+    "marche_offre_moyenne": {
+      "type": "number"
+    },
+    "marche_offre_haut": {
+      "type": "number"
+    },
+    "marche_baux_bas": {
+      "type": "number"
+    },
+    "marche_baux_moyenne": {
+      "type": "number"
+    },
+    "marche_baux_haut": {
+      "type": "number"
+    },
+    "marche_secteurs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string"
+          },
+          "estimation_basse": {
+            "type": "number"
+          },
+          "estimation_haute": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Secteurs de comparaison avec estimations basse et haute"
+    },
+    "marche_masquer_residentiel": {
+      "type": "boolean",
+      "default": false,
+      "description": "Masquer la section March\u00e9 immobilier r\u00e9sidentiel c\u00f4t\u00e9 client"
+    },
+    "marche_masquer_commercial": {
+      "type": "boolean",
+      "default": false,
+      "description": "Masquer la section March\u00e9 immobilier commercial c\u00f4t\u00e9 client"
+    },
+    "marche_masquer_secteurs": {
+      "type": "boolean",
+      "default": false,
+      "description": "Masquer la section Secteurs & Localisation c\u00f4t\u00e9 client"
+    },
+    "dpe_note": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+      ]
+    },
+    "dpe_consommation": {
+      "type": "number"
+    },
+    "ges_note": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+      ]
+    },
+    "ges_emission": {
+      "type": "number"
+    },
+    "bail_loyer_actuel": {
+      "type": "number"
+    },
+    "bail_loyer_initial": {
+      "type": "number"
+    },
+    "bail_taxe_fonciere": {
+      "type": "number"
+    },
+    "bail_charges_montant": {
+      "type": "number"
+    },
+    "bail_charges_redevable": {
+      "type": "string",
+      "enum": [
+        "preneur",
+        "bailleur"
+      ]
+    },
+    "bail_depot_garantie": {
+      "type": "number"
+    },
+    "bail_pas_de_porte": {
+      "type": "number"
+    },
+    "bail_droit_entree": {
+      "type": "number"
+    },
+    "bail_provisions_charges": {
+      "type": "number"
+    },
+    "bail_date_debut": {
+      "type": "string",
+      "format": "date"
+    },
+    "bail_date_echeance": {
+      "type": "string",
+      "format": "date"
+    },
+    "bail_type": {
+      "type": "string"
+    },
+    "bail_periodicite_paiement": {
+      "type": "string"
+    },
+    "bail_infos_importantes": {
+      "type": "string"
+    },
+    "sim_prix_bien_fai": {
+      "type": "number"
+    },
+    "sim_surface": {
+      "type": "number"
+    },
+    "sim_prix_bien_negocie": {
+      "type": "number"
+    },
+    "sim_mode_prix_net_vendeur": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si true, le prix FAI est calcul\u00e9 depuis le prix net vendeur + honoraires agent"
+    },
+    "sim_prix_net_vendeur": {
+      "type": "number",
+      "description": "Prix net vendeur (hors honoraires agent)"
+    },
+    "sim_honoraires_agent_mode": {
+      "type": "string",
+      "enum": [
+        "pct_ttc",
+        "pct_ht",
+        "fixe_ttc",
+        "fixe_ht"
+      ],
+      "description": "Mode de calcul des honoraires agent (% ou fixe, HT ou TTC)"
+    },
+    "sim_honoraires_agent_montant": {
+      "type": "number",
+      "description": "Montant ou taux des honoraires agent (selon le mode)"
+    },
+    "sim_loyer_initial_ht": {
+      "type": "number"
+    },
+    "sim_indexation_loyers": {
+      "type": "number",
+      "default": 2
+    },
+    "sim_loyer_soumis_tva": {
+      "type": "boolean",
+      "default": false
+    },
+    "sim_charges_copropriete": {
+      "type": "number"
+    },
+    "sim_charges_refacturable": {
+      "type": "boolean",
+      "default": true
+    },
+    "sim_taxe_fonciere": {
+      "type": "number"
+    },
+    "sim_taxe_refacturable": {
+      "type": "boolean",
+      "default": true
+    },
+    "sim_annee_revalorisation": {
+      "type": "integer"
+    },
+    "sim_loyer_revalorise": {
+      "type": "number"
+    },
+    "sim_loyer_revalorise_tva": {
+      "type": "boolean",
+      "default": false
+    },
+    "sim_vacance_locative": {
+      "type": "number",
+      "default": 0
+    },
+    "sim_apport": {
+      "type": "number"
+    },
+    "sim_duree_credit": {
+      "type": "integer",
+      "default": 20
+    },
+    "sim_taux_interet": {
+      "type": "number",
+      "default": 3.7
+    },
+    "sim_taux_assurance": {
+      "type": "number",
+      "default": 0.25
+    },
+    "sim_pret_in_fine": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si true, pr\u00eat in fine : remboursement des int\u00e9r\u00eats seulement chaque mois, capital rembours\u00e9 la derni\u00e8re ann\u00e9e"
+    },
+    "sim_annee_renegociation": {
+      "type": "integer"
+    },
+    "sim_taux_renegocie": {
+      "type": "number"
+    },
+    "sim_ira_mois": {
+      "type": "integer",
+      "default": 0
+    },
+    "sim_cout_creation_societe": {
+      "type": "number",
+      "default": 1000
+    },
+    "sim_frais_dossier_bancaire": {
+      "type": "number",
+      "default": 1000
+    },
+    "sim_frais_courtage": {
+      "type": "number",
+      "default": 0
+    },
+    "sim_comptabilite": {
+      "type": "number",
+      "default": 600
+    },
+    "sim_assurance_pne": {
+      "type": "number",
+      "default": 400
+    },
+    "sim_gestion_locative": {
+      "type": "number",
+      "default": 0
+    },
+    "sim_charges_diverses": {
+      "type": "number",
+      "default": 0
+    },
+    "sim_travaux_annee1": {
+      "type": "integer"
+    },
+    "sim_travaux_montant1": {
+      "type": "number"
+    },
+    "sim_travaux_annee2": {
+      "type": "integer"
+    },
+    "sim_travaux_montant2": {
+      "type": "number"
+    },
+    "sim_travaux_annee3": {
+      "type": "integer"
+    },
+    "sim_travaux_montant3": {
+      "type": "number"
+    },
+    "sim_travaux_annee4": {
+      "type": "integer"
+    },
+    "sim_travaux_montant4": {
+      "type": "number"
+    },
+    "sim_travaux_annee5": {
+      "type": "integer"
+    },
+    "sim_travaux_montant5": {
+      "type": "number"
+    },
+    "sim_travaux_annee6": {
+      "type": "integer"
+    },
+    "sim_travaux_montant6": {
+      "type": "number"
+    },
+    "sim_travaux_annee7": {
+      "type": "integer"
+    },
+    "sim_travaux_montant7": {
+      "type": "number"
+    },
+    "sim_travaux_annee8": {
+      "type": "integer"
+    },
+    "sim_travaux_montant8": {
+      "type": "number"
+    },
+    "sim_travaux_annee9": {
+      "type": "integer"
+    },
+    "sim_travaux_montant9": {
+      "type": "number"
+    },
+    "sim_travaux_annee10": {
+      "type": "integer"
+    },
+    "sim_travaux_montant10": {
+      "type": "number"
+    },
+    "sim_travaux_annee11": {
+      "type": "integer"
+    },
+    "sim_travaux_montant11": {
+      "type": "number"
+    },
+    "sim_travaux_annee12": {
+      "type": "integer"
+    },
+    "sim_travaux_montant12": {
+      "type": "number"
+    },
+    "sim_travaux_annee13": {
+      "type": "integer"
+    },
+    "sim_travaux_montant13": {
+      "type": "number"
+    },
+    "sim_travaux_annee14": {
+      "type": "integer"
+    },
+    "sim_travaux_montant14": {
+      "type": "number"
+    },
+    "sim_travaux_annee15": {
+      "type": "integer"
+    },
+    "sim_travaux_montant15": {
+      "type": "number"
+    },
+    "sim_travaux_annee16": {
+      "type": "integer"
+    },
+    "sim_travaux_montant16": {
+      "type": "number"
+    },
+    "sim_travaux_annee17": {
+      "type": "integer"
+    },
+    "sim_travaux_montant17": {
+      "type": "number"
+    },
+    "sim_travaux_annee18": {
+      "type": "integer"
+    },
+    "sim_travaux_montant18": {
+      "type": "number"
+    },
+    "sim_travaux_annee19": {
+      "type": "integer"
+    },
+    "sim_travaux_montant19": {
+      "type": "number"
+    },
+    "sim_travaux_annee20": {
+      "type": "integer"
+    },
+    "sim_travaux_montant20": {
+      "type": "number"
+    },
+    "sim_annee_revente": {
+      "type": "integer",
+      "default": 20
+    },
+    "sim_commission_agent_revente": {
+      "type": "number",
+      "default": 5
+    },
+    "sim_rendement_capital": {
+      "type": "number",
+      "default": 6.5
+    },
+    "sim_commission_agent_active": {
+      "type": "boolean",
+      "default": false
+    },
+    "sim_commission_agent": {
+      "type": "number",
+      "default": 5
+    },
+    "sim_commission_agent_type": {
+      "type": "string",
+      "enum": [
+        "pourcentage",
+        "fixe"
+      ],
+      "default": "pourcentage"
+    },
+    "sim_commission_agent_inclus_fai": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si true, les honoraires sont inclus dans le prix FAI. Si false, ils s'ajoutent au prix."
+    },
+    "sim_droits_enregistrement": {
+      "type": "number",
+      "default": 8
+    },
+    "sim_fees_klocka": {
+      "type": "number",
+      "default": 8
+    },
+    "sim_fees_klocka_type": {
+      "type": "string",
+      "enum": [
+        "pourcentage",
+        "fixe"
+      ],
+      "default": "pourcentage"
+    },
+    "sim_incentive_klocka": {
+      "type": "number",
+      "default": 20
+    },
+    "sim_no_fees_klocka": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si true, pas d'honoraires Klocka sur ce projet"
+    },
+    "sim_taux_tva": {
+      "type": "number",
+      "default": 20
+    },
+    "sim_etage": {
+      "type": "integer"
+    },
+    "sim_type_detention": {
+      "type": "string"
+    },
+    "sim_prix_hors_droits": {
+      "type": "number"
+    },
+    "sim_total_frais_klocka": {
+      "type": "number"
+    },
+    "sim_frais_divers_acquisition": {
+      "type": "number",
+      "default": 2000
+    },
+    "sim_prix_revient": {
+      "type": "number"
+    },
+    "sim_montant_credit": {
+      "type": "number"
+    },
+    "sim_total_financement": {
+      "type": "number"
+    },
+    "sim_type_revente": {
+      "type": "string"
+    },
+    "sim_surface_revente": {
+      "type": "number"
+    },
+    "sim_loyer_ht_revente": {
+      "type": "number"
+    },
+    "sim_valeur_net_comptable": {
+      "type": "number"
+    },
+    "sim_prix_vente_fai": {
+      "type": "number"
+    },
+    "sim_prix_vente_net": {
+      "type": "number"
+    },
+    "sim_rendement_locatif_global_net": {
+      "type": "number"
+    },
+    "sim_rendement_global": {
+      "type": "number"
+    },
+    "sim_cashflow_cumule": {
+      "type": "number"
+    },
+    "sim_marge_brute_revente": {
+      "type": "number"
+    },
+    "sim_creation_richesse_brute": {
+      "type": "number"
+    },
+    "sim_creation_richesse_nette": {
+      "type": "number"
+    },
+    "sim_multiple_fonds_propres": {
+      "type": "number"
+    },
+    "sim_rendement_brut_fonds_propres": {
+      "type": "number"
+    },
+    "sim_rendement_net_fonds_propres": {
+      "type": "number"
+    },
+    "sim_fichier_excel": {
+      "type": "string"
+    },
+    "sim_lien_google_sheets": {
+      "type": "string"
+    },
+    "sim_fichier_pdf": {
+      "type": "string"
+    },
+    "type_construction": {
+      "type": "string"
+    },
+    "taxe_fonciere_an": {
+      "type": "number"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "surface_m2": {
+      "type": "number"
+    },
+    "synthese_assemblee_generale": {
+      "type": "string"
+    },
+    "presentation_google_slides": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "titre"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "data.client_emails": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

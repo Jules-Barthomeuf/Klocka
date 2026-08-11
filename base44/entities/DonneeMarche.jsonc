@@ -1,0 +1,82 @@
+{
+  "name": "DonneeMarche",
+  "type": "object",
+  "properties": {
+    "ville": {
+      "type": "string",
+      "description": "Nom de la ville"
+    },
+    "secteur": {
+      "type": "string",
+      "description": "Nom du secteur/quartier"
+    },
+    "code_postal": {
+      "type": "string",
+      "description": "Code postal"
+    },
+    "prix_m2_median": {
+      "type": "number",
+      "description": "Prix m\u00e9dian au m\u00b2 (\u20ac)"
+    },
+    "prix_m2_bas": {
+      "type": "number",
+      "description": "Prix bas au m\u00b2 (\u20ac)"
+    },
+    "prix_m2_haut": {
+      "type": "number",
+      "description": "Prix haut au m\u00b2 (\u20ac)"
+    },
+    "evolution_1an": {
+      "type": "number",
+      "description": "\u00c9volution sur 1 an (%)"
+    },
+    "evolution_5ans": {
+      "type": "number",
+      "description": "\u00c9volution sur 5 ans (%)"
+    },
+    "offre_bas": {
+      "type": "number",
+      "description": "Loyer offre bas (\u20ac/m\u00b2/an)"
+    },
+    "offre_moyenne": {
+      "type": "number",
+      "description": "Loyer offre moyen (\u20ac/m\u00b2/an)"
+    },
+    "offre_haut": {
+      "type": "number",
+      "description": "Loyer offre haut (\u20ac/m\u00b2/an)"
+    },
+    "baux_bas": {
+      "type": "number",
+      "description": "Loyer baux constat\u00e9s bas (\u20ac/m\u00b2/an)"
+    },
+    "baux_moyenne": {
+      "type": "number",
+      "description": "Loyer baux constat\u00e9s moyen (\u20ac/m\u00b2/an)"
+    },
+    "baux_haut": {
+      "type": "number",
+      "description": "Loyer baux constat\u00e9s haut (\u20ac/m\u00b2/an)"
+    },
+    "description_marche": {
+      "type": "string",
+      "description": "Description g\u00e9n\u00e9rale du march\u00e9 local"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes compl\u00e9mentaires"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source des donn\u00e9es"
+    },
+    "date_maj": {
+      "type": "string",
+      "format": "date",
+      "description": "Date de mise \u00e0 jour des donn\u00e9es"
+    }
+  },
+  "required": [
+    "ville"
+  ]
+}

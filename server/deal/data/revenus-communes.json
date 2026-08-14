@@ -1,0 +1,28 @@
+{
+  "_lisez_moi": [
+    "Revenu médian disponible par unité de consommation, au niveau communal.",
+    "Source à utiliser : INSEE — dispositif FiLoSoFi, base « Revenus et pauvreté des ménages »",
+    "https://www.insee.fr/fr/statistiques/  (indicateur MED de la table communale).",
+    "",
+    "Ce fichier est VOLONTAIREMENT VIDE au départ : je n'ai pas inventé de valeurs.",
+    "Un chiffre approximatif inséré ici produirait un flag ville_riche faux, donc un verdict",
+    "faux — exactement ce que l'architecture cherche à éviter.",
+    "",
+    "Format : la clé est le code INSEE de la commune (5 caractères, celui que renvoie",
+    "geo.api.gouv.fr), pas le code postal — plusieurs communes peuvent partager un code postal.",
+    "Le champ 'commune' n'est là que pour la relecture humaine.",
+    "",
+    "Commune absente de ce fichier => revenu_median inconnu => le flag ville_riche vaut null.",
+    "Le moteur ne transforme jamais un 'inconnu' en 'non' : il pose une réserve."
+  ],
+  "version": 1,
+  "unite": "euros par unite de consommation, par an",
+  "millesime": null,
+
+  "communes": {
+    "_exemple_a_supprimer": {
+      "commune": "Exemple-sur-Loire",
+      "revenu_median": 24500
+    }
+  }
+}

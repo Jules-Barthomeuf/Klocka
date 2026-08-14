@@ -84,18 +84,31 @@ export function createClient(config = {}) {
     me: () => request('GET', '/api/auth/me'),
     updateMe: (data) => request('POST', '/api/auth/updateMe', { body: data }),
     updateMyUserData: (data) => request('POST', '/api/auth/updateMe', { body: data }),
-    logout: (redirectUrl) => {
-      request('POST', '/api/auth/logout').catch(() => {});
-      if (typeof window !== 'undefined' && redirectUrl) {
-        window.location.href = redirectUrl;
+    logout: async (redirectUrl) => {
+      // Await the call so the session cookie is cleared before we navigate,
+      // otherwise the reload can land back on an authenticated page.
+      try {
+        await request('POST', '/api/auth/logout');
+      } catch {
+        /* logging out is best-effort */
       }
-      return Promise.resolve({ success: true });
+      if (typeof window !== 'undefined') {
+        window.location.href = redirectUrl || '/Home';
+      }
+      return { success: true };
     },
     redirectToLogin: (fromUrl) => {
-      // Local mode auto-authenticates as admin; just return to the app.
-      if (typeof window !== 'undefined') {
-        window.location.href = fromUrl || '/';
+      // Google sign-in: it authenticates the user AND grants mail sending.
+      if (typeof window === 'undefined') return;
+      let returnTo = '/Dashboard';
+      try {
+        if (fromUrl) returnTo = new URL(fromUrl, window.location.origin).pathname || '/Dashboard';
+      } catch {
+        /* keep the default */
       }
+      // Never bounce back to the landing page — it would look like a no-op.
+      if (returnTo === '/' || returnTo === '/Home') returnTo = '/Dashboard';
+      window.location.href = `/api/auth/google/login?returnTo=${encodeURIComponent(returnTo)}`;
     },
     isAuthenticated: async () => {
       try {
@@ -178,6 +191,8 @@ export function createClient(config = {}) {
     functions,
     agents,
     appLogs,
+    // Accès direct pour les endpoints hors surface Base44 (préanalyse, etc.).
+    request,
   };
 }
 

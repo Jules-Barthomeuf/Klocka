@@ -34,3 +34,6 @@ base44/.app.jsonc
 # Local backend runtime data
 server/data
 server/uploads
+
+# Exported user data (contains real emails/names)
+data-import/

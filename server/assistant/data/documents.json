@@ -1,0 +1,233 @@
+{
+  "_lisez_moi": [
+    "Grille de dépouillement documentaire d'Alexis, reprise de la feuille Google",
+    "« Commercial Real Estate Investment Due Diligence Checklist ».",
+    "",
+    "Chaque type de document liste les champs à relever. Pour chaque champ :",
+    "  id        : clé technique, ne pas changer une fois des dossiers analysés",
+    "  libelle   : intitulé affiché dans le tableau",
+    "  ou        : où l'information se trouve habituellement (guide le modèle)",
+    "  format    : forme attendue de la valeur restituée",
+    "  remarque  : point de vigilance affiché à côté de la donnée",
+    "",
+    "Ajouter un champ ici suffit : ni le code d'extraction ni l'interface n'ont",
+    "à être modifiés."
+  ],
+  "version": 1,
+
+  "types": [
+    {
+      "code": "bail",
+      "libelle": "Bail commercial",
+      "indices": ["bail", "preneur", "bailleur", "loyer annuel", "destination des lieux", "3/6/9", "article 606", "trienn"],
+      "champs": [
+        {
+          "id": "type_bail",
+          "libelle": "Type de bail",
+          "ou": "Souvent révélé dans le titre du document, ou dans l'objet avant ou après la présentation des parties.",
+          "format": "Ex. « Bail commercial 3/6/9 », « Bail dérogatoire », « Bail professionnel »."
+        },
+        {
+          "id": "echeance_bail",
+          "libelle": "Échéance du bail",
+          "ou": "Article dédié aux durées. Si la date de début ou de fin manque, la déduire de l'autre et/ou de la date de signature (début du bail ou page de signature).",
+          "format": "« du JJ/MM/AAAA au JJ/MM/AAAA » puis la durée « Bail 3/6/9 », « 6 ans ferme », « 9 ans ferme », « 10 ans ferme »…",
+          "remarque": "Vérifier l'option de sortie triennale. Si le bail est arrivé à échéance, indiquer depuis combien de temps il est en tacite reconduction."
+        },
+        {
+          "id": "parties",
+          "libelle": "Les parties",
+          "ou": "Indiquées au début du bail.",
+          "format": "Ex. « SARL TARTANPION ». Préciser personne physique ou morale.",
+          "remarque": "Identifier précisément le locataire, et si la prise à bail a été faite par le locataire actuellement en place."
+        },
+        {
+          "id": "loyer_signature",
+          "libelle": "Loyer de signature",
+          "ou": "Article « Loyer » ou « Conditions locatives ».",
+          "format": "« XXXXX € / an »"
+        },
+        {
+          "id": "conditions_exceptionnelles",
+          "libelle": "Conditions financières exceptionnelles",
+          "ou": "Article « Loyer » ou « Conditions locatives ».",
+          "format": "Si franchise : « X mois de franchise de loyer ». Si paliers : « XXXX € / an pendant X ans ».",
+          "remarque": "Franchise de loyer accordée, ou loyer ventilé par paliers sur une période donnée."
+        },
+        {
+          "id": "mode_reglement",
+          "libelle": "Mode de règlement des loyers",
+          "ou": "Article « Loyer », « Conditions locatives » ou l'article suivant.",
+          "format": "« Mensuel » ou « Trimestriel », d'avance ou à terme échu si précisé."
+        },
+        {
+          "id": "loyer_tva",
+          "libelle": "Loyer assujetti à TVA",
+          "ou": "Article « Loyer », « Conditions locatives » ou l'article suivant.",
+          "format": "« Oui » ou « Non », avec le taux si mentionné."
+        },
+        {
+          "id": "destination",
+          "libelle": "Destination du bail",
+          "ou": "Article « Destination du bail » ou « Activités autorisées ».",
+          "format": "Reprise littérale des activités mentionnées. Ex. « Toutes activités de restauration à l'exception de la vente à emporter »."
+        },
+        {
+          "id": "conditions_cession",
+          "libelle": "Conditions de cession",
+          "ou": "Partie « Cession ou sous-location ».",
+          "format": "Reprise littérale des clauses de cession et de sous-location."
+        },
+        {
+          "id": "indexation",
+          "libelle": "Indexation",
+          "ou": "Article « Indexation ».",
+          "format": "« ILC / ICC / ILAT » puis l'indice de référence « TRIMESTRE ANNEE ». Ex. « ILC 1T 2024 »."
+        },
+        {
+          "id": "depot_garantie",
+          "libelle": "Dépôt de garantie",
+          "ou": "Article « Dépôt de garantie », en général après les conditions locatives.",
+          "format": "« XXXX € » puis « soit X mois du loyer de signature ». Ex. « 3 000 € soit 3 mois du loyer de signature »."
+        },
+        {
+          "id": "pas_de_porte",
+          "libelle": "Pas de porte",
+          "ou": "Article indépendant nommé « Pas de porte » ou « Droit d'entrée », souvent après les conditions locatives.",
+          "format": "« XXXX € » puis « soit X mois du loyer de signature ».",
+          "masquer_si_absent": true
+        },
+        {
+          "id": "charges",
+          "libelle": "Charges",
+          "ou": "Article « Charges et taxes ».",
+          "format": "« Refacturées au locataire : Oui / Non ». Si oui, lister les charges refacturées au locataire et celles restant à la charge du bailleur."
+        },
+        {
+          "id": "taxes",
+          "libelle": "Taxes",
+          "ou": "Article « Charges et taxes ».",
+          "format": "« Taxe foncière refacturée : Oui / Non ». Si oui, lister les taxes refacturées au locataire et celles restant à la charge du bailleur."
+        }
+      ]
+    },
+
+    {
+      "code": "pv_ag",
+      "libelle": "PV d'assemblée générale",
+      "indices": ["assemblée générale", "procès-verbal", "résolution", "copropriété", "syndic", "tantièmes", "voté"],
+      "champs": [
+        {
+          "id": "travaux_votes",
+          "libelle": "Travaux votés",
+          "ou": "Résolutions adoptées.",
+          "format": "Travaux relevant de l'article 606. Ex. « Ravalement de façade voté AG 2023, 45 000 € ».",
+          "remarque": "Vérifier s'il existe un appel de fonds en cours et la quote-part concernée."
+        },
+        {
+          "id": "travaux_discussion",
+          "libelle": "Travaux en discussion",
+          "ou": "Résolutions débattues sans vote, questions diverses.",
+          "format": "Nature des travaux évoqués et montant estimé si mentionné."
+        },
+        {
+          "id": "resolutions_non_votees",
+          "libelle": "Résolutions non votées",
+          "ou": "Résolutions rejetées ou ajournées.",
+          "format": "Nature de la résolution et année.",
+          "remarque": "Signaler celles qui reviennent chaque année, en particulier les travaux de copropriété pouvant peser sur la trésorerie du bailleur."
+        }
+      ]
+    },
+
+    {
+      "code": "rcp",
+      "libelle": "Règlement de copropriété",
+      "indices": ["règlement de copropriété", "état descriptif de division", "tantièmes", "lot n", "parties communes", "millièmes"],
+      "champs": [
+        {
+          "id": "activites_autorisees",
+          "libelle": "Activités autorisées",
+          "ou": "Clauses d'usage et de destination des lots.",
+          "format": "Reprise des activités autorisées. Ex. « Commerces, bureaux autorisés en RDC ».",
+          "remarque": "Vérifier la destination exacte du lot concerné."
+        },
+        {
+          "id": "activites_non_autorisees",
+          "libelle": "Activités non autorisées",
+          "ou": "Clauses d'interdiction.",
+          "format": "Reprise des activités interdites."
+        },
+        {
+          "id": "quote_part",
+          "libelle": "Quote-part et tantièmes",
+          "ou": "État descriptif de division, tableau des lots.",
+          "format": "« XXX / 10 000èmes » puis « soit X % ».",
+          "remarque": "Détermine la part du bailleur dans la copropriété."
+        }
+      ]
+    },
+
+    {
+      "code": "quittance",
+      "libelle": "Quittance de loyer",
+      "indices": ["quittance", "appel de loyer", "période du", "acquitté", "reçu de", "avis d'échéance"],
+      "champs": [
+        {
+          "id": "loyer_hc_ht",
+          "libelle": "Loyer HC HT",
+          "ou": "Corps de la quittance.",
+          "format": "« XXXX € », en précisant la périodicité.",
+          "remarque": "Confirmer la cohérence avec le bail."
+        },
+        {
+          "id": "provision_charges",
+          "libelle": "Provision pour charges et taxes",
+          "ou": "Ligne de charges de la quittance.",
+          "format": "« XXXX € » si mentionné."
+        },
+        {
+          "id": "loyer_tva_quittance",
+          "libelle": "Loyer assujetti à la TVA",
+          "ou": "Ligne de TVA de la quittance.",
+          "format": "« XXXX € + 20 % (TVA) »."
+        }
+      ]
+    },
+
+    {
+      "code": "diagnostics",
+      "libelle": "Diagnostics techniques",
+      "indices": ["diagnostic", "dpe", "amiante", "termites", "plomb", "erp", "état des risques", "dtg"],
+      "champs": [
+        { "id": "dtg", "libelle": "DTG", "ou": "Diagnostic technique global.", "format": "Présence et conclusions principales." },
+        {
+          "id": "dpe",
+          "libelle": "DPE",
+          "ou": "Diagnostic de performance énergétique.",
+          "format": "Classe (lettre) et note de consommation du local. Ex. « D — 187 kWh/m²/an »."
+        },
+        {
+          "id": "amiante",
+          "libelle": "Amiante",
+          "ou": "État d'amiante ou DTG.",
+          "format": "Présence ou absence. Si présence, reprise littérale du constat."
+        },
+        { "id": "erp", "libelle": "ERP", "ou": "État des risques et pollutions.", "format": "Risques identifiés." },
+        {
+          "id": "termites",
+          "libelle": "Termites",
+          "ou": "État parasitaire ou DTG.",
+          "format": "Présence ou absence. Si présence, reprise littérale du constat."
+        },
+        {
+          "id": "plomb",
+          "libelle": "Plomb",
+          "ou": "CREP ou DTG.",
+          "format": "Présence ou absence. Si présence, reprise littérale du constat."
+        },
+        { "id": "electricite", "libelle": "Électricité", "ou": "Diagnostic électrique.", "format": "Anomalies relevées, ou conformité." }
+      ]
+    }
+  ]
+}

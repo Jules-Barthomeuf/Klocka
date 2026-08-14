@@ -31,7 +31,7 @@ import {
   ExternalLink,
   Pin,
   PinOff,
-
+  Bot,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,10 @@ const globalTooltipStyles = `
     color: #fff !important;
   }
 `;
+
+// Onglet Double Check masqué du menu. La page /AdminBrouillons reste en place et
+// accessible par son URL : passez ce drapeau à true pour la remontrer.
+const AFFICHER_DOUBLE_CHECK = false;
 
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
   return (
@@ -244,21 +248,21 @@ function LayoutContent({ children, currentPageName }) {
               <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#2A9D8F]/20 text-[#2A9D8F]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to="/Preanalyse" icon={Search} label="Préanalyse" isActive={isActivePage("Preanalyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+              <NavItem to="/Alexis" icon={Bot} label="Alexis" badge="DOCS" badgeColor="bg-[#2A9D8F]/20 text-[#2A9D8F]" isActive={isActivePage("Alexis")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to="/Recherche" icon={Search} label="Recherche" isActive={isActivePage("Recherche")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to="/Investisseurs" icon={Users} label="Investisseurs" isActive={isActivePage("Investisseurs")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+              {/* Double Check — masqué du menu, la page reste accessible via
+                  /AdminBrouillons. Repassez AFFICHER_DOUBLE_CHECK à true pour
+                  la faire réapparaître. */}
+              {AFFICHER_DOUBLE_CHECK && (
+                <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+              )}
               <NavItem to="/Mails" icon={Mail} label="Mails" isActive={isActivePage("Mails")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to="/AssistantExterne" icon={ExternalLink} label="Assistant IA" isActive={isActivePage("AssistantExterne")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to="/AdminNotes" icon={FileText} label="Notes" isActive={isActivePage("AdminNotes")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             </NavSection>
 
             <NavSection title="Autre" collapsed={sidebarCollapsed && !isMobile}>
               <NavItem to={createPageUrl("Familles")} icon={Users} label="Familles" isActive={isActivePage("Familles")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("Leads")} icon={UserPlus} label="Leads" isActive={isActivePage("Leads")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("ProjectAssistant")} icon={Brain} label="Assistant" badge="BETA" badgeColor="bg-[#2A9D8F]/20 text-[#2A9D8F]" isActive={isActivePage("ProjectAssistant")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("AdminAnalyse")} icon={FileText} label="Analyse Docs" isActive={isActivePage("AdminAnalyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("AdminRessources")} icon={BookOpen} label="Ressources" isActive={isActivePage("AdminRessources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("AdminPortail")} icon={UserPlus} label="Portails" isActive={isActivePage("AdminPortail")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />

@@ -1,0 +1,160 @@
+{
+  "_lisez_moi": [
+    "Fichier de règles du moteur de préanalyse. Éditable sans toucher au code.",
+    "Le moteur est strictement déterministe : aucune valeur ici n'est interprétée par un LLM.",
+    "Les entrées marquées A_CALER portent des valeurs provisoires issues de la spécification.",
+    "Ordre d'évaluation : knock_outs -> donnees_requises -> profils -> reserves."
+  ],
+  "version": 1,
+
+  "parametres_aem": {
+    "_commentaire": "Repris des valeurs par défaut du simulateur Klocka. Le prix AEM (acte en main) est le prix de revient : prix négocié + droits + honoraires Klocka + incentive + frais divers.",
+    "taux_droits_enregistrement": 8,
+    "taux_fees_klocka": 8,
+    "taux_incentive_klocka": 20,
+    "frais_dossier_bancaire": 1000,
+    "cout_creation_societe": 1000,
+    "frais_courtage": 0,
+    "taux_commission_agent": 5,
+    "commission_agent_incluse_fai": true
+  },
+
+  "typologie_ville": {
+    "_commentaire": "A_CALER — seuils de population INSEE.",
+    "seuils": [
+      { "code": "petite_ville", "population_max": 20000 },
+      { "code": "ville_moyenne", "population_max": 100000 },
+      { "code": "grande_ville", "population_max": 300000 },
+      { "code": "metropole", "population_max": null }
+    ]
+  },
+
+  "ville_riche": {
+    "_commentaire": "A_CALER — revenu médian par unité de consommation (INSEE, communal).",
+    "seuil_revenu_median": 28000
+  },
+
+  "knock_outs": [
+    {
+      "id": "KO-VACANT",
+      "champ": "occupe",
+      "condition": "egal",
+      "valeur": false,
+      "verdict": "NO-GO",
+      "motif": "Nous n'achetons que de l'occupé."
+    },
+    {
+      "id": "KO-ACTIVITE",
+      "champ": "categorie_activite",
+      "condition": "dans",
+      "valeur": ["etablissement_de_nuit", "profession_liberale", "restauration_rapide_kebab"],
+      "verdict": "NO-GO",
+      "motif": "Activité exclue du périmètre."
+    },
+    {
+      "id": "KO-PLAFOND",
+      "champ": "prix_fai",
+      "condition": "superieur",
+      "valeur": 2000000,
+      "verdict": "NO-GO",
+      "motif": "Hors périmètre : au-delà du plafond d'acquisition."
+    }
+  ],
+
+  "donnees_requises": {
+    "_commentaire": "Absence d'un seul de ces champs => INSUFFISANT, et déclenche le mail de relance agent.",
+    "id": "KO-DONNEES",
+    "verdict": "INSUFFISANT",
+    "champs": ["adresse", "prix_fai", "loyer_annuel_ht_hc", "locataire_nom", "bail_echeance"],
+    "libelles": {
+      "adresse": "l'adresse complète du bien",
+      "prix_fai": "le prix de vente FAI",
+      "loyer_annuel_ht_hc": "le loyer annuel HT HC",
+      "locataire_nom": "le nom du locataire en place",
+      "bail_echeance": "l'échéance du bail"
+    }
+  },
+
+  "profils": {
+    "_commentaire": [
+      "A_CALER — les critères des profils 01/02/03 n'étaient pas fournis dans la spécification.",
+      "Chaque profil liste des critères ET (tous doivent passer). Un deal reçoit le premier profil",
+      "dont tous les critères sont satisfaits, dans l'ordre de cette liste.",
+      "Opérateurs disponibles : entre, superieur, superieur_ou_egal, inferieur, inferieur_ou_egal,",
+      "egal, dans, pas_dans, vrai, faux.",
+      "Tant qu'un profil n'a aucun critère, il est ignoré par le moteur (et signalé au démarrage)."
+    ],
+    "liste": [
+      {
+        "code": "01",
+        "libelle": "Profil 01 — à définir",
+        "actif": false,
+        "criteres": []
+      },
+      {
+        "code": "02",
+        "libelle": "Profil 02 — à définir",
+        "actif": false,
+        "criteres": [],
+        "_note": "La spécification indique que le flag ville_riche autorise une petite ville à entrer dans ce profil."
+      },
+      {
+        "code": "03",
+        "libelle": "Profil 03 — à définir",
+        "actif": false,
+        "criteres": [],
+        "_note": "La spécification mentionne une dérogation d'emplacement propre à ce profil, activée par le flag paris."
+      }
+    ],
+    "exemple_non_actif": {
+      "code": "EXEMPLE",
+      "libelle": "Exemple de syntaxe — ne pas activer",
+      "actif": false,
+      "criteres": [
+        { "champ": "rendement_aem", "condition": "entre", "valeur": [5, 7] },
+        { "champ": "prix_fai", "condition": "entre", "valeur": [100000, 3000000] },
+        { "champ": "type_actif", "condition": "dans", "valeur": ["murs_commerciaux"] },
+        { "champ": "signature", "condition": "dans", "valeur": ["nationale_premium", "nationale_standard"] },
+        { "champ": "typologie_ville", "condition": "pas_dans", "valeur": ["petite_ville"] }
+      ]
+    }
+  },
+
+  "reserves": {
+    "_commentaire": [
+      "Un deal qui passe les knock-outs et matche un profil est GO.",
+      "Si l'une de ces conditions est vraie, il passe en GO SOUS RÉSERVE avec le motif associé.",
+      "L'emplacement non qualifié est toujours une réserve : par construction il n'est jamais automatisé."
+    ],
+    "liste": [
+      {
+        "id": "RES-EMPLACEMENT",
+        "champ": "emplacement",
+        "condition": "egal",
+        "valeur": "a_qualifier",
+        "motif": "Emplacement non qualifié : à valider visuellement avant décision."
+      },
+      {
+        "id": "RES-SIGNATURE-INCONNUE",
+        "champ": "signature_confiance",
+        "condition": "egal",
+        "valeur": "basse",
+        "motif": "Enseigne absente du référentiel : qualification de signature à confirmer."
+      },
+      {
+        "id": "RES-BAIL-COURT",
+        "champ": "annees_bail_restantes",
+        "condition": "inferieur",
+        "valeur": 3,
+        "motif": "Échéance de bail rapprochée : risque de vacance à court terme."
+      },
+      {
+        "id": "RES-CONFIANCE-EXTRACTION",
+        "champ": "extraction_confiance_basse",
+        "condition": "vrai",
+        "valeur": true,
+        "motif": "Certaines valeurs ont été extraites avec une confiance basse : à recouper avec la fiche."
+      }
+    ]
+  }
+}

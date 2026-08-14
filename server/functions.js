@@ -2,7 +2,10 @@
 // Each takes (params, ctx) where ctx carries the current user + helpers.
 
 import { Records } from './db.js';
-import { sendEmail } from './email.js';
+import { sendEmail, mailStatus, listAccounts } from './email.js';
+import { composeMail } from './mail.js';
+import { llmEnabled, llmStatus } from './llm.js';
+import { googleStatus, disconnectAccount } from './google-oauth.js';
 
 function normalize(str) {
   return (str || '')
@@ -112,8 +115,47 @@ export const functions = {
 
   async sendCustomEmail(params) {
     const { to, subject, body, html } = params || {};
-    await sendEmail({ to, subject, body: body || html });
-    return { success: true };
+    return sendEmail({ to, subject, body: body || html });
+  },
+
+  // --- Mails page ---------------------------------------------------------
+
+  // Turn "envoie le template présentation à Marc" into a ready-to-send draft.
+  composeMail(params, ctx) {
+    return composeMail(params, ctx);
+  },
+
+  // Send a (possibly hand-edited) draft and record it in the history.
+  async sendMail(params, { user }) {
+    const { from, to, cc, subject, body, template_id, template_titre, replyTo } = params || {};
+    if (!subject || !subject.trim()) return { success: false, error: 'Objet manquant' };
+    if (!body || !body.trim()) return { success: false, error: 'Corps du mail vide' };
+    // `owner` restricts the sendable mailboxes to the caller's own.
+    return sendEmail({
+      from,
+      owner: user?.email,
+      to,
+      cc,
+      subject,
+      body,
+      replyTo,
+      template_id,
+      template_titre,
+    });
+  },
+
+  // Sender accounts + config banner on the Mails page.
+  async getMailStatus(params, { user }) {
+    return { ...(await mailStatus(user?.email)), llm: llmEnabled, ia: llmStatus(), google: googleStatus() };
+  },
+
+  // Unlink a Google mailbox (revokes nothing on Google's side, just forgets it).
+  disconnectMailAccount({ email } = {}, { user }) {
+    if (!email) return { success: false, error: 'Adresse manquante' };
+    // Never let someone unlink a colleague's mailbox.
+    const mine = listAccounts(user?.email).some((a) => a.id === String(email).toLowerCase());
+    if (!mine) return { success: false, error: 'Ce compte ne vous appartient pas.' };
+    return disconnectAccount(email);
   },
 
   // External-integration functions require OAuth to Google/GitHub which isn't

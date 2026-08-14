@@ -1,12 +1,14 @@
-import React from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useState } from "react";
 import { ArrowRight, Linkedin, BarChart3 } from "lucide-react";
-
-const redirectToLogin = () => base44.auth.redirectToLogin(window.location.origin + '/Dashboard');
+import ConnexionDialog from "@/components/auth/ConnexionDialog";
 
 export default function Home() {
+  const [connexionOuverte, setConnexionOuverte] = useState(false);
+  const ouvrirConnexion = () => setConnexionOuverte(true);
+
   return (
     <div className="min-h-screen bg-black text-white">
+      <ConnexionDialog ouvert={connexionOuverte} onClose={() => setConnexionOuverte(false)} />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&display=swap');`}</style>
 
       {/* Navbar */}
@@ -35,13 +37,14 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <button onClick={redirectToLogin} className="flex items-center gap-2 bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white font-semibold px-8 py-4 rounded-xl transition-all text-base group">
+                <button onClick={ouvrirConnexion} className="flex items-center gap-2 bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white font-semibold px-8 py-4 rounded-xl transition-all text-base group">
                   Commencer <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
-                <button onClick={redirectToLogin} className="flex items-center gap-2 border border-white/20 hover:border-white/40 text-white font-medium px-8 py-4 rounded-xl transition-all text-base">
+                <button onClick={ouvrirConnexion} className="flex items-center gap-2 border border-white/20 hover:border-white/40 text-white font-medium px-8 py-4 rounded-xl transition-all text-base">
                   Se connecter
                 </button>
               </div>
+
             </div>
 
             {/* Right - Visual */}

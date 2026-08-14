@@ -4,7 +4,9 @@
 
 import { Records, Meta } from './db.js';
 
-export const ADMIN_EMAIL = process.env.KLOCKA_ADMIN_EMAIL || 'jules.btmf@gmail.com';
+// Adresse de l'admin créé au premier démarrage. À définir dans .env : le
+// repli ci-dessous n'existe que pour qu'une installation vierge démarre.
+export const ADMIN_EMAIL = process.env.KLOCKA_ADMIN_EMAIL || 'admin@klocka.local';
 
 function ensureAdmin() {
   const existing = Records.filter('User', { email: ADMIN_EMAIL });

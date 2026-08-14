@@ -16,19 +16,68 @@ import fs from 'fs';
 import path from 'path';
 import { Records } from './db.js';
 
+// Les exports Base44 sortent parfois en UTF-8 relu comme du Latin-1 :
+// « Théo » devient « ThÃ©o ». On répare quand la réinterprétation produit un
+// texte valide, sinon on laisse la chaîne intacte.
+function reparerEncodage(str) {
+  if (typeof str !== 'string' || !/[ÃÂ]/.test(str)) return str;
+  try {
+    const repare = Buffer.from(str, 'latin1').toString('utf8');
+    // Le caractère de remplacement signale une réinterprétation ratée.
+    return repare.includes('�') ? str : repare;
+  } catch {
+    return str;
+  }
+}
+
+function nettoyerRecord(rec) {
+  const out = {};
+  for (const [k, v] of Object.entries(rec || {})) out[k] = reparerEncodage(v);
+  return out;
+}
+
 function importArray(entity, arr) {
   let created = 0;
   let updated = 0;
-  for (const rec of arr) {
-    if (rec && rec.id && Records.get(entity, rec.id)) {
+  let fusionnes = 0;
+
+  // Pour les comptes, l'email est la vraie clé d'identité : deux enregistrements
+  // partageant une adresse rendraient la connexion imprévisible.
+  const parEmail = new Map();
+  if (entity === 'User') {
+    for (const u of Records.list('User')) {
+      if (u.email) parEmail.set(String(u.email).toLowerCase(), u);
+    }
+  }
+
+  for (const brut of arr) {
+    const rec = nettoyerRecord(brut);
+    if (entity === 'User' && rec.email) {
+      rec.email = String(rec.email).trim().toLowerCase();
+      const existant = parEmail.get(rec.email);
+      if (existant) {
+        // On conserve l'enregistrement en place (et donc son mot de passe déjà
+        // défini), on ne fait qu'actualiser ses informations.
+        const { id, mot_de_passe, ...champs } = rec;
+        Records.update('User', existant.id, champs);
+        fusionnes++;
+        continue;
+      }
+    }
+
+    if (rec.id && Records.get(entity, rec.id)) {
       Records.update(entity, rec.id, rec);
       updated++;
     } else {
       Records.create(entity, rec);
       created++;
+      if (entity === 'User' && rec.email) parEmail.set(rec.email, rec);
     }
   }
-  console.log(`  ${entity}: +${created} créés, ${updated} mis à jour`);
+
+  const detail = [`+${created} créés`, `${updated} mis à jour`];
+  if (fusionnes) detail.push(`${fusionnes} fusionnés sur l'email`);
+  console.log(`  ${entity}: ${detail.join(', ')}`);
 }
 
 function main() {

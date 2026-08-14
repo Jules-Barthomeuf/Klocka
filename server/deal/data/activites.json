@@ -1,0 +1,42 @@
+{
+  "_lisez_moi": [
+    "Mapping du texte libre d'activité vers une taxonomie fermée.",
+    "Le rapprochement est fait en code : normalisation (minuscules, accents retirés) puis",
+    "recherche des mots-clés. Le premier code dont un mot-clé apparaît gagne, les catégories",
+    "exclues étant testées en premier.",
+    "Une activité non reconnue sort en 'a_qualifier' — jamais en NO-GO."
+  ],
+
+  "exclues": [
+    {
+      "code": "etablissement_de_nuit",
+      "libelle": "Établissement de nuit",
+      "mots_cles": ["boite de nuit", "boîte de nuit", "discotheque", "discothèque", "night club", "nightclub", "bar de nuit", "club libertin"]
+    },
+    {
+      "code": "profession_liberale",
+      "libelle": "Profession libérale",
+      "mots_cles": ["profession liberale", "cabinet medical", "cabinet dentaire", "cabinet d'avocat", "avocat", "notaire", "medecin", "médecin", "dentiste", "kinesitherapeute", "kinésithérapeute", "infirmier", "osteopathe", "ostéopathe", "expert-comptable", "expert comptable", "architecte", "psychologue", "orthophoniste"]
+    },
+    {
+      "code": "restauration_rapide_kebab",
+      "libelle": "Restauration rapide type kebab",
+      "mots_cles": ["kebab", "tacos", "snack", "sandwicherie", "friterie", "grec"]
+    }
+  ],
+
+  "categories": [
+    { "code": "alimentaire", "libelle": "Alimentaire / supérette", "mots_cles": ["supermarche", "supérette", "superette", "epicerie", "épicerie", "alimentation", "primeur", "boucherie", "boulangerie", "patisserie", "pâtisserie", "caviste", "poissonnerie", "fromagerie", "supermarché"] },
+    { "code": "restauration", "libelle": "Restauration assise", "mots_cles": ["restaurant", "brasserie", "pizzeria", "creperie", "crêperie", "bistrot", "traiteur", "salon de the", "salon de thé", "cafe", "café"] },
+    { "code": "pret_a_porter", "libelle": "Prêt-à-porter / mode", "mots_cles": ["pret-a-porter", "prêt-à-porter", "pret a porter", "vetement", "vêtement", "mode", "chaussure", "maroquinerie", "bijouterie", "lingerie", "friperie"] },
+    { "code": "beaute", "libelle": "Beauté / bien-être", "mots_cles": ["coiffure", "coiffeur", "salon de beaute", "salon de beauté", "esthetique", "esthétique", "institut", "barbier", "onglerie", "spa", "parfumerie"] },
+    { "code": "sante_commerce", "libelle": "Santé commerce (pharmacie, optique)", "mots_cles": ["pharmacie", "parapharmacie", "opticien", "optique", "audioprothesiste", "audioprothésiste", "orthopedie", "orthopédie"] },
+    { "code": "services", "libelle": "Services", "mots_cles": ["agence immobiliere", "agence immobilière", "banque", "assurance", "pressing", "laverie", "cordonnerie", "agence de voyage", "auto-ecole", "auto-école", "interim", "intérim", "poste", "mutuelle"] },
+    { "code": "equipement_maison", "libelle": "Équipement de la maison", "mots_cles": ["ameublement", "meuble", "decoration", "décoration", "literie", "cuisine", "bricolage", "electromenager", "électroménager", "quincaillerie"] },
+    { "code": "sport_loisirs", "libelle": "Sport et loisirs", "mots_cles": ["salle de sport", "fitness", "sport", "jouet", "librairie", "papeterie", "musique", "jeux video", "jeux vidéo", "fleuriste", "animalerie"] },
+    { "code": "automobile", "libelle": "Automobile", "mots_cles": ["garage", "concession", "carrosserie", "pneu", "controle technique", "contrôle technique", "station-service", "lavage auto"] },
+    { "code": "tabac_presse", "libelle": "Tabac / presse / jeux", "mots_cles": ["tabac", "presse", "fdj", "française des jeux", "francaise des jeux", "pmu", "loto"] },
+    { "code": "bureaux", "libelle": "Bureaux", "mots_cles": ["bureau", "coworking", "plateau de bureaux"] },
+    { "code": "logistique", "libelle": "Entrepôt / logistique", "mots_cles": ["entrepot", "entrepôt", "logistique", "local d'activite", "local d'activité", "stockage"] }
+  ]
+}

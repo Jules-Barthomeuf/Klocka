@@ -1,26 +1,23 @@
 import React, { useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertTriangle, Bot, FileText, FolderOpen, Loader2, Quote, Trash2, Upload, X,
+  AlertTriangle, FileText, FolderOpen, Loader2, Plus, Quote, Trash2, Upload, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Alexis — dépouillement documentaire.
+// Dépouillement documentaire (onglet « Documents » de la Préanalyse).
 // Le principe : à gauche les données relevées, à droite le document ouvert à la
 // page exacte d'où vient la donnée sélectionnée.
 
-export default function Alexis() {
+export default function DepouillementDocuments() {
   const queryClient = useQueryClient();
   const inputFichier = useRef(null);
 
   const [dossierId, setDossierId] = useState(null);
   const [source, setSource] = useState(null); // { url, page, citation, libelle }
-  const [typeImpose, setTypeImpose] = useState("auto");
 
   const { data: grille } = useQuery({
     queryKey: ["alexis-grille"],
@@ -49,7 +46,8 @@ export default function Alexis() {
       const form = new FormData();
       form.append("fichier", fichier);
       if (dossierId) form.append("dossier_id", dossierId);
-      if (typeImpose !== "auto") form.append("type", typeImpose);
+      // Le type est toujours détecté automatiquement ; il reste corrigeable
+      // ensuite sur chaque carte de document.
       return base44.request("POST", "/api/alexis/documents", { body: form, isForm: true });
     },
     onSuccess: (r) => {
@@ -92,130 +90,24 @@ export default function Alexis() {
   const types = grille?.types || [];
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8">
-      <div className="max-w-[1600px] mx-auto">
-        <EnTete
-          dossier={dossier}
-          dossiers={dossiers}
-          onChoisir={(id) => {
-            setDossierId(id);
-            setSource(null);
-          }}
-          onNouveau={() => {
-            setDossierId(null);
-            setSource(null);
-          }}
-        />
-
-        {/* Dépôt */}
-        <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-5 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-            <div className="flex-1">
-              <p className="text-gray-400 text-xs mb-2">
-                Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
-              </p>
-              <button
-                onClick={() => inputFichier.current?.click()}
-                disabled={deposer.isPending}
-                className="w-full h-20 border border-dashed border-white/15 rounded-xl flex items-center justify-center gap-3 hover:border-[#2A9D8F]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
-              >
-                {deposer.isPending ? (
-                  <>
-                    <Loader2 className="w-5 h-5 text-[#2A9D8F] animate-spin" />
-                    <span className="text-gray-400 text-sm">Lecture et dépouillement…</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-5 h-5 text-[#2A9D8F]" />
-                    <span className="text-gray-400 text-sm">PDF, image ou .eml — plusieurs à la fois</span>
-                  </>
-                )}
-              </button>
-              <input
-                ref={inputFichier}
-                type="file"
-                multiple
-                accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.txt"
-                onChange={onFichiers}
-                className="hidden"
-              />
-            </div>
-            <div className="sm:w-56">
-              <p className="text-gray-400 text-xs mb-2">Type</p>
-              <Select value={typeImpose} onValueChange={setTypeImpose}>
-                <SelectTrigger className="bg-neutral-800 border-white/[0.08] text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
-                  <SelectItem value="auto">Détection automatique</SelectItem>
-                  {types.map((t) => (
-                    <SelectItem key={t.code} value={t.code}>
-                      {t.libelle}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        {/* Données à gauche, document à droite */}
-        {dossier?.documents?.length > 0 ? (
-          <div className="grid lg:grid-cols-[1fr_1fr] gap-6 items-start">
-            <div className="space-y-5">
-              {dossier.documents.map((doc) => (
-                <CarteDocument
-                  key={doc.doc_id}
-                  doc={doc}
-                  types={types}
-                  sourceActive={source}
-                  onVoirSource={setSource}
-                  onReclasser={(type) => reclasser.mutate({ docId: doc.doc_id, type })}
-                  onSupprimer={() => {
-                    if (confirm(`Retirer « ${doc.nom_fichier} » du dossier ?`)) supprimer.mutate(doc.doc_id);
-                  }}
-                  enCours={reclasser.isPending}
-                />
-              ))}
-            </div>
-
-            <div className="lg:sticky lg:top-6">
-              <Visionneuse source={source} onFermer={() => setSource(null)} />
-            </div>
-          </div>
-        ) : (
-          !deposer.isPending && (
-            <div className="text-center py-16">
-              <Bot className="w-12 h-12 text-[#2A9D8F]/30 mx-auto mb-4" />
-              <p className="text-gray-500 text-sm">
-                Déposez les documents d'un deal : Alexis les classe, en extrait les données et vous montre d'où
-                vient chaque information.
-              </p>
-            </div>
-          )
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EnTete({ dossier, dossiers, onChoisir, onNouveau }) {
-  return (
-    <div className="mb-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 bg-[#2A9D8F]/20 rounded-xl flex items-center justify-center">
-          <Bot className="w-5 h-5 text-[#2A9D8F]" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl md:text-3xl font-light tracking-tight">Alexis</h1>
-          <p className="text-gray-500 text-sm">
-            {dossier ? dossier.titre : "Dépouillement des documents d'un deal"}
-          </p>
-        </div>
+    <div className="max-w-[1600px] mx-auto">
+      {/* Barre dossier : sélection + nouveau, dans l'esprit des pilules du simulateur */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <p className="text-gray-500 text-xs flex-1">
+          {dossier
+            ? dossier.titre
+            : "Déposez les documents d'un deal : ils sont classés, dépouillés, et chaque donnée renvoie à sa page source."}
+        </p>
         <div className="flex items-center gap-2 flex-shrink-0">
           {dossiers.length > 0 && (
-            <Select value={dossier?.dossier_id || ""} onValueChange={onChoisir}>
-              <SelectTrigger className="bg-neutral-900 border-white/[0.08] text-white w-56">
+            <Select
+              value={dossier?.dossier_id || ""}
+              onValueChange={(id) => {
+                setDossierId(id);
+                setSource(null);
+              }}
+            >
+              <SelectTrigger className="bg-transparent border-white/[0.12] text-gray-300 hover:text-white hover:border-white/[0.25] rounded-full h-8 w-56 text-xs">
                 <SelectValue placeholder="Ouvrir un dossier" />
               </SelectTrigger>
               <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
@@ -231,18 +123,91 @@ function EnTete({ dossier, dossiers, onChoisir, onNouveau }) {
             </Select>
           )}
           {dossier && (
-            <Button variant="ghost" onClick={onNouveau} className="text-gray-400 hover:text-white hover:bg-white/5">
-              Nouveau dossier
-            </Button>
+            <button
+              onClick={() => {
+                setDossierId(null);
+                setSource(null);
+              }}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-white/[0.12] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Nouveau dossier
+            </button>
           )}
         </div>
       </div>
-      <div className="h-px w-16 bg-[#2A9D8F]" />
+
+      {/* Dépôt */}
+      <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-5 mb-6">
+        <p className="text-gray-400 text-xs mb-2">
+          Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
+        </p>
+        <button
+          onClick={() => inputFichier.current?.click()}
+          disabled={deposer.isPending}
+          className="w-full h-20 border border-dashed border-white/15 rounded-xl flex items-center justify-center gap-3 hover:border-[#2A9D8F]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
+        >
+          {deposer.isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 text-[#2A9D8F] animate-spin" />
+              <span className="text-gray-400 text-sm">Lecture et dépouillement…</span>
+            </>
+          ) : (
+            <>
+              <Upload className="w-5 h-5 text-[#2A9D8F]" />
+              <span className="text-gray-400 text-sm">PDF, image ou .eml — plusieurs à la fois</span>
+            </>
+          )}
+        </button>
+        <input
+          ref={inputFichier}
+          type="file"
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.txt"
+          onChange={onFichiers}
+          className="hidden"
+        />
+      </div>
+
+      {/* Données à gauche, document à droite */}
+      {dossier?.documents?.length > 0 ? (
+        <div className="grid lg:grid-cols-[1fr_1fr] gap-6 items-start">
+          <div className="space-y-5">
+            {dossier.documents.map((doc) => (
+              <CarteDocument
+                key={doc.doc_id}
+                doc={doc}
+                types={types}
+                sourceActive={source}
+                onVoirSource={setSource}
+                onReclasser={(type) => reclasser.mutate({ docId: doc.doc_id, type })}
+                onSupprimer={() => {
+                  if (confirm(`Retirer « ${doc.nom_fichier} » du dossier ?`)) supprimer.mutate(doc.doc_id);
+                }}
+                enCours={reclasser.isPending}
+              />
+            ))}
+          </div>
+
+          <div className="lg:sticky lg:top-16">
+            <Visionneuse source={source} onFermer={() => setSource(null)} />
+          </div>
+        </div>
+      ) : (
+        !deposer.isPending && (
+          <div className="text-center py-16">
+            <FolderOpen className="w-10 h-10 text-[#2A9D8F]/30 mx-auto mb-4" />
+            <p className="text-gray-500 text-sm">
+              Déposez les documents d'un deal : ils sont classés, leurs données extraites, et chaque
+              information indique d'où elle vient.
+            </p>
+          </div>
+        )
+      )}
     </div>
   );
 }
 
-function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclasser, onSupprimer, enCours }) {
+export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclasser, onSupprimer, enCours }) {
   const type = types.find((t) => t.code === doc.classement?.code);
   const champs = type?.champs || [];
 
@@ -376,7 +341,7 @@ function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclasser, on
   );
 }
 
-function Visionneuse({ source, onFermer }) {
+export function Visionneuse({ source, onFermer }) {
   if (!source) {
     return (
       <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl h-[70vh] flex flex-col items-center justify-center text-center px-8">

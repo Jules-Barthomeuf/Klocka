@@ -25,7 +25,7 @@ import Recherche from '@/pages/Recherche';
 import Investisseurs from '@/pages/Investisseurs';
 import Mails from '@/pages/Mails';
 import AdminNotes from '@/pages/AdminNotes';
-import Preanalyse from '@/pages/Preanalyse';
+import Analyse from '@/pages/Analyse';
 import AssistantExterne from '@/pages/AssistantExterne';
 import AdminPresentations from '@/pages/AdminPresentations';
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
@@ -38,6 +38,12 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+// /Preanalyse → /Analyse en conservant la query (?deal_id=, ?tab=).
+const RedirectionAnalyse = () => {
+  const location = useLocation();
+  return <Navigate to={`/Analyse${location.search}`} replace />;
+};
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
@@ -121,7 +127,10 @@ const AuthenticatedApp = () => {
       <Route path="/Investisseurs" element={<LayoutWrapper currentPageName="Investisseurs"><Investisseurs /></LayoutWrapper>} />
       <Route path="/Mails" element={<LayoutWrapper currentPageName="Mails"><Mails /></LayoutWrapper>} />
       <Route path="/AdminNotes" element={<LayoutWrapper currentPageName="AdminNotes"><AdminNotes /></LayoutWrapper>} />
-      <Route path="/Preanalyse" element={<LayoutWrapper currentPageName="Preanalyse"><Preanalyse /></LayoutWrapper>} />
+      <Route path="/Analyse" element={<LayoutWrapper currentPageName="Analyse"><Analyse /></LayoutWrapper>} />
+      {/* Anciennes URL : Préanalyse est devenue Analyse ; Alexis, son onglet Documents. */}
+      <Route path="/Preanalyse" element={<RedirectionAnalyse />} />
+      <Route path="/Alexis" element={<Navigate to="/Analyse?tab=documents" replace />} />
       <Route path="/AssistantExterne" element={<LayoutWrapper currentPageName="AssistantExterne"><AssistantExterne /></LayoutWrapper>} />
       <Route path="/AdminPresentations" element={<LayoutWrapper currentPageName="AdminPresentations"><AdminPresentations /></LayoutWrapper>} />
 

@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
+import BoiteReception from "@/components/mails/BoiteReception";
+import ComposerChat from "@/components/mails/ComposerChat";
+import { BoutonConnecterGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 import {
   AlertTriangle,
   Check,
@@ -31,19 +34,12 @@ const EMPTY_TEMPLATE = { titre: "", description: "", objet: "", contenu: "" };
 // sa propre adresse présélectionnée.
 const LAST_SENDER_KEY = "klocka:dernier-expediteur";
 
-const EXAMPLES = [
-  "Envoie le template présentation à Marc Dupont",
-  "Envoie la demande de documents à contact@agence-centrale.fr",
-  "Envoie le cahier des charges à Sophie de l'agence Lyon Centre",
-];
-
 export default function Mails() {
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
 
   // --- Composer ---
   const [from, setFrom] = useState("");
-  const [prompt, setPrompt] = useState("");
   const [draft, setDraft] = useState(null); // { to, cc, subject, body, template_id, template_titre }
   const [warnings, setWarnings] = useState([]);
   const [recipientLabel, setRecipientLabel] = useState("");
@@ -73,6 +69,8 @@ export default function Mails() {
   });
 
   const accounts = useMemo(() => status?.accounts || [], [status]);
+  // Connexion Gmail en fenêtre surgissante : le brouillon en cours reste à l'écran.
+  const { connecter: connecterGmail } = useConnexionGmail();
   const selectedAccount = accounts.find((a) => a.id === from) || null;
 
   // Default to the account matching the logged-in user, else the first one.
@@ -93,28 +91,6 @@ export default function Mails() {
 
   // --- Mutations ---------------------------------------------------------
 
-  const composeMutation = useMutation({
-    mutationFn: (p) => base44.functions.invoke("composeMail", { prompt: p, from }),
-    onSuccess: (res) => {
-      if (!res?.success) {
-        toast.error(res?.error || "Impossible de préparer le mail");
-        return;
-      }
-      setDraft({
-        to: (res.draft.to || []).join(", "),
-        cc: (res.draft.cc || []).join(", "),
-        subject: res.draft.subject || "",
-        body: res.draft.body || "",
-        template_id: res.draft.template_id,
-        template_titre: res.draft.template_titre,
-      });
-      setWarnings(res.warnings || []);
-      setRecipientLabel(res.recipient_label || "");
-      toast.success(res.ai ? "Brouillon généré" : "Template préparé (sans IA)");
-    },
-    onError: (e) => toast.error(e?.message || "Erreur lors de la génération"),
-  });
-
   const sendMutation = useMutation({
     mutationFn: (d) =>
       base44.functions.invoke("sendMail", {
@@ -132,7 +108,6 @@ export default function Mails() {
         toast.success("Mail envoyé");
         setDraft(null);
         setWarnings([]);
-        setPrompt("");
       } else {
         toast.error(res?.error || "Envoi impossible");
       }
@@ -172,12 +147,6 @@ export default function Mails() {
   });
 
   // --- Handlers ----------------------------------------------------------
-
-  const handleGenerate = (e) => {
-    e?.preventDefault();
-    if (!prompt.trim()) return;
-    composeMutation.mutate(prompt.trim());
-  };
 
   const handleUseTemplate = (t) => {
     setDraft({
@@ -231,11 +200,12 @@ export default function Mails() {
             </div>
             <h2 className="text-white font-medium mb-1.5">Connectez votre adresse pour envoyer</h2>
             <p className="text-gray-400 text-sm mb-5 max-w-md mx-auto">
-              Klocka enverra les mails depuis votre boîte Gmail. L'autorisation demandée permet uniquement
-              d'envoyer — vos mails reçus restent inaccessibles à l'application.
+              {status.google?.gmail_read
+                ? "Klocka enverra les mails depuis votre boîte Gmail et pourra relever votre boîte de réception pour préanalyser les fiches reçues."
+                : "Klocka enverra les mails depuis votre boîte Gmail. L'autorisation demandée permet uniquement d'envoyer — vos mails reçus restent inaccessibles à l'application."}
             </p>
             {status.google?.enabled ? (
-              <ConnectGoogleButton />
+              <BoutonConnecterGmail libelle="Se connecter avec Google" />
             ) : (
               <div className="text-left max-w-md mx-auto rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
                 <p className="font-medium mb-1">Connexion Google pas encore configurée</p>
@@ -265,21 +235,25 @@ export default function Mails() {
         <Tabs defaultValue="composer" className="w-full">
           <TabsList className="bg-neutral-900 border border-white/[0.08] mb-6">
             <TabsTrigger value="composer">Composer</TabsTrigger>
+            <TabsTrigger value="reception">Boîte de réception</TabsTrigger>
             <TabsTrigger value="templates">Templates ({templates.length})</TabsTrigger>
             <TabsTrigger value="historique">Historique</TabsTrigger>
           </TabsList>
 
           {/* ---------------------------------------------------------- */}
+          {/* BOÎTE DE RÉCEPTION                                          */}
+          {/* ---------------------------------------------------------- */}
+          <TabsContent value="reception">
+            <BoiteReception comptes={accounts} gmailReadActif={!!status?.google?.gmail_read} />
+          </TabsContent>
+
+          {/* ---------------------------------------------------------- */}
           {/* COMPOSER                                                    */}
           {/* ---------------------------------------------------------- */}
           <TabsContent value="composer" className="space-y-6" id="mail-composer">
-            <form
-              onSubmit={handleGenerate}
-              className="bg-neutral-900 border border-white/[0.08] rounded-2xl p-5"
-            >
+            <div className="bg-neutral-900 border border-white/[0.08] rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-[#2A9D8F]" />
-                <span className="text-white text-sm font-medium">Que voulez-vous envoyer ?</span>
+                <span className="text-white text-sm font-medium">Envoyer depuis</span>
                 {status &&
                   (status.llm ? (
                     <Badge className="bg-[#2A9D8F]/15 text-[#71CCBA] border-[#2A9D8F]/20 text-[10px]">
@@ -289,94 +263,70 @@ export default function Mails() {
                     <Badge className="bg-white/5 text-gray-400 border-white/10 text-[10px]">IA non configurée</Badge>
                   ))}
               </div>
-
-              <div className="mb-3">
-                <Label className="text-gray-400 text-xs mb-1.5 block">Envoyer depuis</Label>
-                {accounts.length > 0 ? (
-                  <Select value={from} onValueChange={selectSender}>
-                    <SelectTrigger className="bg-neutral-800 border-white/[0.08] text-white">
-                      <SelectValue placeholder="Choisir une adresse" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
-                      {accounts.map((a) => (
-                        <SelectItem key={a.id} value={a.id} className="focus:bg-white/5 focus:text-white">
-                          <span className="flex items-center gap-2">
-                            {a.name} <span className="text-gray-500">&lt;{a.email}&gt;</span>
-                            {!a.verified && <span className="text-amber-400 text-[10px]">à reconnecter</span>}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-gray-500 text-sm bg-neutral-800 border border-white/[0.08] rounded-md px-3 py-2">
-                    Aucune adresse connectée
-                  </p>
-                )}
-                <div className="flex items-center gap-3 mt-1.5">
-                  <p className="text-gray-600 text-[11px]">
-                    La signature du mail reprend le nom de l'adresse choisie.
-                  </p>
-                  {status?.google?.enabled && (
-                    <a
-                      href="/api/mail/google/connect"
-                      className="text-[11px] text-[#71CCBA] hover:underline ml-auto flex-shrink-0"
-                    >
-                      + Connecter une autre adresse
-                    </a>
-                  )}
-                  {selectedAccount?.provider === "google" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`Déconnecter ${selectedAccount.email} de Klocka ?`))
-                          disconnectMutation.mutate(selectedAccount.email);
-                      }}
-                      className="text-[11px] text-gray-500 hover:text-red-400 flex-shrink-0"
-                    >
-                      Déconnecter
-                    </button>
-                  )}
-                </div>
-              </div>
-              <Textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate(e);
-                }}
-                placeholder="Envoie le template présentation à Marc Dupont de l'agence Centrale…"
-                rows={3}
-                className="bg-neutral-800 border-white/[0.08] text-white placeholder:text-gray-600 resize-none"
-              />
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                {EXAMPLES.map((ex) => (
+              {accounts.length > 0 ? (
+                <Select value={from} onValueChange={selectSender}>
+                  <SelectTrigger className="bg-neutral-800 border-white/[0.08] text-white">
+                    <SelectValue placeholder="Choisir une adresse" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
+                    {accounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id} className="focus:bg-white/5 focus:text-white">
+                        <span className="flex items-center gap-2">
+                          {a.name} <span className="text-gray-500">&lt;{a.email}&gt;</span>
+                          {!a.verified && <span className="text-amber-400 text-[10px]">à reconnecter</span>}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-gray-500 text-sm bg-neutral-800 border border-white/[0.08] rounded-md px-3 py-2">
+                  Aucune adresse connectée
+                </p>
+              )}
+              <div className="flex items-center gap-3 mt-1.5">
+                <p className="text-gray-600 text-[11px]">
+                  La signature du mail reprend le nom de l'adresse choisie.
+                </p>
+                {status?.google?.enabled && (
                   <button
-                    key={ex}
                     type="button"
-                    onClick={() => setPrompt(ex)}
-                    className="text-[11px] text-gray-500 hover:text-gray-300 border border-white/[0.08] rounded-full px-3 py-1 transition-colors"
+                    onClick={connecterGmail}
+                    className="text-[11px] text-[#71CCBA] hover:underline ml-auto flex-shrink-0"
                   >
-                    {ex}
+                    + Connecter une autre adresse
                   </button>
-                ))}
-                <Button
-                  type="submit"
-                  disabled={!prompt.trim() || composeMutation.isPending}
-                  className="ml-auto bg-[#2A9D8F] hover:bg-[#238277] text-white"
-                >
-                  {composeMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Génération…
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" /> Préparer le mail
-                    </>
-                  )}
-                </Button>
+                )}
+                {selectedAccount?.provider === "google" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(`Déconnecter ${selectedAccount.email} de Klocka ?`))
+                        disconnectMutation.mutate(selectedAccount.email);
+                    }}
+                    className="text-[11px] text-gray-500 hover:text-red-400 flex-shrink-0"
+                  >
+                    Déconnecter
+                  </button>
+                )}
               </div>
-            </form>
+            </div>
+
+            {/* Conversation avec l'assistant : chaque tour révise le brouillon. */}
+            <ComposerChat
+              onBrouillon={(b) => {
+                setDraft({
+                  to: b.to || "",
+                  cc: b.cc || "",
+                  subject: b.subject || "",
+                  body: b.body || "",
+                  template_id: b.template_id || null,
+                  template_titre: templates.find((t) => t.id === b.template_id)?.titre || null,
+                });
+                setWarnings([]);
+                setRecipientLabel("");
+              }}
+            />
 
             {/* Brouillon */}
             {draft && (
@@ -743,34 +693,6 @@ export default function Mails() {
   );
 }
 
-function ConnectGoogleButton() {
-  return (
-    <a
-      href="/api/mail/google/connect"
-      className="inline-flex items-center gap-3 bg-white text-[#3c4043] font-medium text-sm rounded-lg pl-3 pr-5 py-2.5 hover:bg-gray-100 transition-colors"
-    >
-      <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          fill="#4285F4"
-          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        />
-        <path
-          fill="#34A853"
-          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.76c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
-        />
-        <path
-          fill="#FBBC05"
-          d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84z"
-        />
-        <path
-          fill="#EA4335"
-          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.05l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
-        />
-      </svg>
-      Se connecter avec Google
-    </a>
-  );
-}
 
 function StatusBadge({ statut }) {
   const map = {

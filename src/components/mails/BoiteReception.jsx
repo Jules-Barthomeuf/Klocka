@@ -1,0 +1,178 @@
+import React, { useEffect, useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Inbox, Loader2, Microscope, Paperclip, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+
+// Boîte de réception : relève Gmail (portée lecture) déclenchée à l'ouverture
+// et via le bouton Actualiser — jamais de polling. Un clic sur « Préanalyser »
+// télécharge le mail complet (pièces jointes incluses) et le passe au pipeline
+// de préanalyse, puis redirige vers le dossier créé.
+
+export default function BoiteReception({ comptes = [], gmailReadActif }) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const lisibles = comptes.filter((c) => c.peut_lire);
+  const [compte, setCompte] = useState(null);
+  const compteActif = compte || lisibles[0]?.id || null;
+
+  const { data: mails = [], isLoading } = useQuery({
+    queryKey: ["inbox", compteActif],
+    queryFn: () => base44.request("GET", `/api/mails/inbox?compte=${encodeURIComponent(compteActif)}`),
+    enabled: !!compteActif,
+    initialData: [],
+  });
+
+  const relever = useMutation({
+    mutationFn: () =>
+      base44.request("POST", "/api/mails/inbox/relever", { body: { compte: compteActif } }),
+    onSuccess: (r) => {
+      queryClient.invalidateQueries({ queryKey: ["inbox", compteActif] });
+      toast.success(r.nouveaux ? `${r.nouveaux} nouveau(x) mail(s)` : "Boîte à jour");
+    },
+    onError: (e) => toast.error(e?.message || "Relève impossible"),
+  });
+
+  // Relève automatique à l'ouverture de l'onglet (une fois par compte).
+  useEffect(() => {
+    if (compteActif) relever.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compteActif]);
+
+  const preanalyser = useMutation({
+    mutationFn: (mailId) => base44.request("POST", `/api/mails/inbox/${mailId}/preanalyser`),
+    onSuccess: (dossier) => {
+      toast.success("Mail préanalysé");
+      navigate(`/Analyse?deal_id=${dossier.deal_id}`);
+    },
+    onError: (e) => toast.error(e?.message || "Préanalyse impossible"),
+  });
+
+  if (!lisibles.length) {
+    return (
+      <div className="text-center py-16 max-w-lg mx-auto">
+        <Inbox className="w-10 h-10 text-[#2A9D8F]/30 mx-auto mb-4" />
+        {!gmailReadActif ? (
+          <p className="text-gray-500 text-sm leading-relaxed">
+            La lecture de la boîte n'est pas activée. Ajoutez{" "}
+            <code className="text-gray-300">GOOGLE_GMAIL_READ=true</code> dans{" "}
+            <code className="text-gray-300">.env</code>, redémarrez, puis reconnectez votre compte
+            Google : l'écran de consentement demandera l'accès en lecture.
+          </p>
+        ) : (
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Aucun compte n'a autorisé la lecture de sa boîte.{" "}
+            {comptes.length > 0
+              ? "Reconnectez votre compte Google : le nouveau consentement inclura la lecture."
+              : "Connectez votre compte Google depuis le bouton en haut de page."}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        {lisibles.length > 1 && (
+          <Select value={compteActif} onValueChange={setCompte}>
+            <SelectTrigger className="bg-neutral-800 border-white/[0.08] text-white w-72">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
+              {lisibles.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {lisibles.length === 1 && (
+          <span className="text-gray-400 text-sm">{lisibles[0].label}</span>
+        )}
+        <Button
+          size="sm"
+          onClick={() => relever.mutate()}
+          disabled={relever.isPending}
+          className="bg-white/5 hover:bg-white/10 text-gray-300 border-0 ml-auto"
+        >
+          {relever.isPending ? (
+            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+          )}
+          Actualiser
+        </Button>
+      </div>
+
+      {isLoading || (relever.isPending && !mails.length) ? (
+        <p className="text-gray-500 text-sm py-8 text-center">Relève de la boîte…</p>
+      ) : mails.length === 0 ? (
+        <div className="text-center py-16">
+          <Inbox className="w-10 h-10 text-[#2A9D8F]/30 mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Aucun mail relevé pour l'instant.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {mails.map((m) => (
+            <div
+              key={m.id}
+              className="bg-neutral-900 border border-white/[0.08] rounded-xl px-4 py-3 flex items-center gap-3"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{m.objet}</p>
+                  {m.pieces_jointes?.length > 0 && (
+                    <span className="text-gray-500 text-xs flex items-center gap-1 flex-shrink-0">
+                      <Paperclip className="w-3 h-3" />
+                      {m.pieces_jointes.length}
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-500 text-xs truncate">
+                  {m.de} · {m.date ? new Date(m.date).toLocaleString("fr-FR") : ""}
+                </p>
+                {m.extrait && <p className="text-gray-600 text-xs truncate mt-0.5">{m.extrait}</p>}
+              </div>
+              <div className="flex-shrink-0">
+                {m.deal_id ? (
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(`/Analyse?deal_id=${m.deal_id}`)}
+                    className="bg-[#2A9D8F]/15 hover:bg-[#2A9D8F]/25 text-[#71CCBA] border-0"
+                  >
+                    Voir le deal
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => preanalyser.mutate(m.id)}
+                    disabled={preanalyser.isPending}
+                    className="bg-[#2A9D8F] hover:bg-[#238277] text-white"
+                  >
+                    {preanalyser.isPending && preanalyser.variables === m.id ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Microscope className="w-3.5 h-3.5 mr-1.5" />
+                    )}
+                    Préanalyser
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="text-gray-600 text-[11px]">
+        La préanalyse lit le mail et ses pièces jointes (PDF, images) puis crée un deal dans la page
+        Analyse. Comptez 30 à 60 secondes.
+      </p>
+    </div>
+  );
+}

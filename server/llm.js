@@ -130,6 +130,46 @@ function geminiParts(data) {
   return data?.candidates?.[0]?.content?.parts || [];
 }
 
+// ---------------------------------------------------------------------------
+// Génération avec recherche web (grounding Google Search).
+//
+// Gemini uniquement : le grounding est incompatible avec responseMimeType
+// JSON strict, la réponse est donc du texte libre accompagné des sources
+// consultées (groundingMetadata). Renvoie null si le fournisseur ne le
+// supporte pas — l'appelant traite l'étape comme simplement absente.
+// ---------------------------------------------------------------------------
+export async function invokeLLMGrounded({ prompt } = {}) {
+  if (provider !== 'gemini') return null;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    tools: [{ google_search: {} }],
+    generationConfig: { maxOutputTokens: 2048 },
+  };
+
+  const resp = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'x-goog-api-key': GEMINI_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(data?.error?.message || `Gemini a répondu ${resp.status}`);
+  }
+
+  const meta = data?.candidates?.[0]?.groundingMetadata;
+  const sources = (meta?.groundingChunks || [])
+    .map((c) => c?.web)
+    .filter(Boolean)
+    .map((w) => ({ titre: w.title || w.uri, url: w.uri }))
+    // Dédupliqué par URL : un même site est souvent cité plusieurs fois.
+    .filter((s, i, arr) => arr.findIndex((x) => x.url === s.url) === i);
+
+  const text = geminiText(data);
+  if (!text) return null;
+  return { text, sources };
+}
+
 function geminiText(data) {
   return geminiParts(data)
     .filter((p) => typeof p.text === 'string')

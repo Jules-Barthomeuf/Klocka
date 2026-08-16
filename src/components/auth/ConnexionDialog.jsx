@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, ArrowLeft, ArrowRight, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { LogoGoogle } from "@/components/mails/ConnexionGmail";
 
 // Connexion en deux temps : on saisit son adresse, l'app reconnaît le compte,
 // puis on saisit son mot de passe — ou on le choisit s'il s'agit de la première
-// connexion. Aucun compte ne se crée librement : seules les adresses déjà
-// enregistrées par Klocka peuvent entrer.
+// connexion. La connexion Google est proposée en alternative : même règle,
+// aucun compte ne se crée librement, seules les adresses déjà enregistrées
+// par Klocka peuvent entrer.
 
 const ETAPES = { EMAIL: "email", MOT_DE_PASSE: "mot_de_passe", CREATION: "creation", INCONNU: "inconnu" };
 
@@ -21,7 +23,21 @@ export default function ConnexionDialog({ ouvert, onClose }) {
   const [confirmation, setConfirmation] = useState("");
   const [erreur, setErreur] = useState(null);
   const [enCours, setEnCours] = useState(false);
+  // La connexion Google n'est proposée que si le serveur est configuré pour.
+  const [googleDispo, setGoogleDispo] = useState(false);
   const champMotDePasse = useRef(null);
+
+  useEffect(() => {
+    if (!ouvert) return;
+    let vivant = true;
+    base44
+      .request("GET", "/api/health")
+      .then((r) => vivant && setGoogleDispo(!!r?.google))
+      .catch(() => {});
+    return () => {
+      vivant = false;
+    };
+  }, [ouvert]);
 
   useEffect(() => {
     if (etape === ETAPES.MOT_DE_PASSE || etape === ETAPES.CREATION) {
@@ -124,6 +140,12 @@ export default function ConnexionDialog({ ouvert, onClose }) {
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Continuer <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
+            {googleDispo && (
+              <>
+                <Separateur />
+                <BoutonGoogle />
+              </>
+            )}
           </form>
         )}
 
@@ -155,6 +177,12 @@ export default function ConnexionDialog({ ouvert, onClose }) {
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Se connecter
             </Button>
+            {googleDispo && (
+              <>
+                <Separateur />
+                <BoutonGoogle />
+              </>
+            )}
             <BoutonRetour onClick={reinitialiser} />
           </form>
         )}
@@ -213,6 +241,30 @@ export default function ConnexionDialog({ ouvert, onClose }) {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Redirection pleine page : c'est une connexion, il n'y a pas de saisie à
+// préserver, et la session doit être posée avant que l'app ne s'amorce.
+function BoutonGoogle() {
+  return (
+    <a
+      href="/api/auth/google/login?returnTo=%2FDashboard"
+      className="w-full inline-flex items-center justify-center gap-2.5 bg-white text-[#3c4043] font-medium text-sm rounded-md px-4 py-2 hover:bg-gray-100 transition-colors"
+    >
+      <LogoGoogle />
+      Se connecter avec Google
+    </a>
+  );
+}
+
+function Separateur() {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="h-px flex-1 bg-white/[0.08]" />
+      <span className="text-gray-600 text-[11px]">ou</span>
+      <span className="h-px flex-1 bg-white/[0.08]" />
+    </div>
   );
 }
 

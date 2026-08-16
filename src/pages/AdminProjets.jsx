@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -69,6 +69,8 @@ export default function AdminProjets() {
     rendement_locatif: 0,
     adresse_complete: "",
     statut: "prospect",
+    suivi_message_envoye: false,
+    suivi_retour_client: null,
     latitude: null,
     longitude: null,
     documents: [],
@@ -238,6 +240,17 @@ export default function AdminProjets() {
     initialData: []
   });
 
+  // ?id=<projectId> ouvre directement l'éditeur sur ce projet (utilisé par le
+  // bouton « Créer le projet » de la préanalyse). Attend que la liste et les
+  // utilisateurs soient chargés pour que handleEdit remplisse tout.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const idDemande = params.get('id');
+    if (!idDemande || editingProject || !projects.length || !users.length) return;
+    const projet = projects.find((p) => p.id === idDemande);
+    if (projet) handleEdit(projet);
+  }, [projects, users]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const getShadowForProject = (projectId) => shadowProjects.find(s => s.project_id === projectId);
 
   const [shadowInitialTab, setShadowInitialTab] = useState(null);
@@ -284,7 +297,8 @@ export default function AdminProjets() {
     
     setFormData({
       titre: "", admin_principal: "", client_email: "", client_emails: adminEmails, prix_acquisition: 0, rendement_locatif: 0,
-      adresse_complete: "", statut: "prospect", latitude: null, longitude: null, documents: [],
+      adresse_complete: "", statut: "prospect", suivi_message_envoye: false, suivi_retour_client: null,
+      latitude: null, longitude: null, documents: [],
       ville_secteur_champ1: "", ville_secteur_champ2: "", ville_secteur_champ3: "",
       description_ville: "", description_secteur: "",
       env_data: {},
@@ -357,7 +371,10 @@ export default function AdminProjets() {
       titre: project.titre || "", admin_principal: project.admin_principal || "", client_email: project.client_email || "",
       client_emails: updatedClientEmails, prix_acquisition: project.prix_acquisition || 0,
       rendement_locatif: project.rendement_locatif || 0, adresse_complete: project.adresse_complete || "",
-      statut: project.statut || "prospect", latitude: project.latitude || null,
+      statut: project.statut || "prospect",
+      suivi_message_envoye: !!project.suivi_message_envoye,
+      suivi_retour_client: project.suivi_retour_client || null,
+      latitude: project.latitude || null,
       longitude: project.longitude || null, documents: project.documents || [],
       ville_secteur_champ1: project.ville_secteur_champ1 || "", ville_secteur_champ2: project.ville_secteur_champ2 || "",
       ville_secteur_champ3: project.ville_secteur_champ3 || "", description_ville: project.description_ville || "",

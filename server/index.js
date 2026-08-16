@@ -28,6 +28,13 @@ import {
   tropDeTentatives, enregistrerEchec, reinitialiserTentatives, minutesDAttente,
 } from './passwords.js';
 import { analyserFiche, reevaluerLot, listerDossiers, obtenirDossier } from './deal/index.js';
+import { changerStatut, statutDe, ajouterSuivi as ajouterSuiviDeal, STATUTS, LIBELLES_STATUTS } from './deal/lifecycle.js';
+import { redigerMailIntention, INTENTIONS } from './deal/mails-cycle.js';
+import { alimenterBaseMarche } from './deal/marche.js';
+import { releverBoite, listerBoite, telechargerRaw } from './gmail-inbox.js';
+import { classerDansDrive } from './google-drive.js';
+import { syntheseDocuments } from './deal/synthese-docs.js';
+import { creerProjetDepuisDeal } from './deal/projet.js';
 import { ajouterAuReferentiel } from './deal/enrich.js';
 import { profilsConfigures } from './deal/rules.js';
 import {
@@ -286,30 +293,62 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
     });
   }
 
+  // Une session déjà ouverte signifie « rattacher une boîte », pas « se
+  // connecter » : son identité ne doit pas changer en cours de route.
+  const sessionAvant = sessionEmail(req);
+
   let profile;
   try {
-    // An existing session means "connect an extra mailbox", not "sign in".
-    profile = await handleCallback({ code, state, owner: sessionEmail(req) || undefined });
+    profile = await handleCallback({ code, state, owner: sessionAvant || undefined });
   } catch (e) {
     console.error('[auth] connexion Google échouée:', e?.message || e);
     return authResultPage(res, { ok: false, title: 'Connexion impossible', detail: String(e?.message || e) });
   }
 
-  // Create the app account on first sign-in.
+  // Une session déjà ouverte = rattachement d'une boîte d'envoi. L'adresse
+  // Gmail rattachée n'a alors pas à être un compte Klocka.
+  const rattachement = !!sessionAvant;
+
   let user = Records.filter('User', { email: profile.email })[0];
-  if (!user) {
-    const isFirstUser = Records.count('User') === 0;
+  if (!user && !rattachement) {
+    // Même règle que la connexion par mot de passe : aucun compte ne se crée
+    // librement. Seuls l'amorçage (toute première personne) et l'adresse
+    // administrateur déclarée entrent sans avoir été enregistrés au préalable.
+    const amorcage = Records.count('User') === 0 || profile.email === ADMIN_EMAIL;
+    if (!amorcage) {
+      console.log(`[auth] refusé, adresse inconnue : ${profile.email}`);
+      return authResultPage(res, {
+        ok: false,
+        title: 'Adresse non reconnue',
+        detail: `${profile.email} ne correspond à aucun compte Klocka. Les accès sont créés par Klocka : vérifiez le compte Google choisi, ou rapprochez-vous de votre interlocuteur.`,
+      });
+    }
     user = Records.create('User', {
       email: profile.email,
       full_name: profile.name,
       picture: profile.picture,
-      // The very first person to sign in, and the configured admin, are admins.
-      role: isFirstUser || profile.email === ADMIN_EMAIL ? 'admin' : 'user',
+      role: 'admin',
       etape_actuelle: 0,
     });
     console.log(`[auth] nouveau compte : ${profile.email} (${user.role})`);
-  } else if (!user.full_name || !user.picture) {
+  } else if (user && (!user.full_name || !user.picture)) {
     user = Records.update('User', user.id, { full_name: user.full_name || profile.name, picture: profile.picture });
+  }
+
+  if (profile.returnTo === RETOUR_POPUP) {
+    // Rattachement d'une boîte d'envoi : on ne crée une session que si
+    // personne n'était connecté (cas d'une première connexion en popup).
+    if (!sessionAvant) createSession(res, profile.email);
+    console.log(`[auth] boîte rattachée : ${profile.email} (envoi ${profile.peut_envoyer ? 'autorisé' : 'REFUSÉ'})`);
+    if (!profile.peut_envoyer) {
+      return authResultPage(res, {
+        ok: false,
+        title: "Autorisation d'envoi refusée",
+        detail:
+          "Vous n'avez pas accordé l'autorisation d'envoyer des mails : la boîte ne peut pas servir d'expéditeur. Réessayez en cochant la case demandée par Google.",
+      });
+    }
+    return popupConnectePage(res, profile);
   }
 
   createSession(res, profile.email);
@@ -329,7 +368,7 @@ const PUBLIC_FUNCTIONS = new Set(['getPublicProject']);
 
 app.use((req, res, next) => {
   if (!googleEnabled) return next();
-  if (!/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis)\b/.test(req.path)) return next();
+  if (!/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails)\b/.test(req.path)) return next();
   if (req.path.startsWith('/api/functions/')) {
     const name = req.path.split('/')[3];
     if (PUBLIC_FUNCTIONS.has(name)) return next();
@@ -460,6 +499,13 @@ app.post('/api/integrations/extract-data', wrap(async (req, res) => {
 // ---------------------------------------------------------------------------
 
 // Small HTML page used to report the outcome of the OAuth round-trip.
+// Canal de dialogue entre la fenêtre surgissante de connexion et la page qui
+// l'a ouverte : elle garde ainsi son brouillon de mail intact.
+const CANAL_POPUP = 'klocka-google';
+const RETOUR_POPUP = '__popup__';
+
+const echapper = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => `&#${c.charCodeAt(0)};`);
+
 function authResultPage(res, { ok, title, detail }) {
   const color = ok ? '#2A9D8F' : '#e76f51';
   res.status(ok ? 200 : 400).send(`<!doctype html>
@@ -469,8 +515,44 @@ function authResultPage(res, { ok, title, detail }) {
     <div style="font-size:40px;margin-bottom:12px">${ok ? '✓' : '⚠'}</div>
     <h1 style="color:${color};font-size:20px;margin:0 0 12px">${title}</h1>
     <p style="color:#9ca3af;font-size:14px;line-height:1.6;margin:0 0 24px">${detail}</p>
-    <a href="/Mails" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:14px">Retour à la page Mails</a>
+    <a href="/Mails" id="retour" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:14px">Retour à la page Mails</a>
   </div>
+  <script>
+    // Ouverte en fenêtre surgissante : prévenir la page appelante et proposer
+    // de fermer plutôt que de naviguer.
+    if (window.opener) {
+      window.opener.postMessage(
+        { type: ${JSON.stringify(CANAL_POPUP)}, ok: false, error: ${JSON.stringify(String(detail || title))} },
+        window.location.origin
+      );
+      var b = document.getElementById('retour');
+      b.textContent = 'Fermer cette fenêtre';
+      b.href = '#';
+      b.onclick = function (e) { e.preventDefault(); window.close(); };
+    }
+  </script>
+</body></html>`);
+}
+
+// Fin de parcours en fenêtre surgissante : on prévient la page appelante que
+// la boîte est connectée, puis on se referme.
+function popupConnectePage(res, { email }) {
+  res.send(`<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Boîte connectée</title></head>
+<body style="margin:0;background:#000;color:#fff;font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
+  <div style="text-align:center">
+    <div style="font-size:40px;margin-bottom:12px">✓</div>
+    <p style="color:#9ca3af;font-size:14px">${echapper(email)} connectée. Cette fenêtre se referme…</p>
+  </div>
+  <script>
+    if (window.opener) {
+      window.opener.postMessage(
+        { type: ${JSON.stringify(CANAL_POPUP)}, ok: true, email: ${JSON.stringify(email)} },
+        window.location.origin
+      );
+    }
+    setTimeout(function () { window.close(); }, 600);
+  </script>
 </body></html>`);
 }
 
@@ -478,6 +560,70 @@ function authResultPage(res, { ok, title, detail }) {
 app.get('/api/mail/google/connect', (req, res) =>
   res.redirect('/api/auth/google/login?returnTo=%2FMails')
 );
+
+// Variante en fenêtre surgissante : la page appelante (et son brouillon de
+// mail en cours de rédaction) n'est jamais quittée.
+app.get('/api/mail/google/connect-popup', (req, res) =>
+  res.redirect(`/api/auth/google/login?returnTo=${encodeURIComponent(RETOUR_POPUP)}`)
+);
+
+// ---------------------------------------------------------------------------
+// Boîte de réception (relève Gmail, sur action utilisateur — pas de polling)
+// ---------------------------------------------------------------------------
+// Un utilisateur ne peut relever que les boîtes qu'il a lui-même connectées.
+function compteAutorise(req, compte) {
+  const user = currentUser(req);
+  return listAccounts(user?.email).some((a) => a.id === String(compte || '').toLowerCase());
+}
+
+app.post('/api/mails/inbox/relever', wrap(async (req, res) => {
+  const { compte } = req.body || {};
+  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
+  if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
+  ok(res, await releverBoite(compte));
+}));
+
+app.get('/api/mails/inbox', wrap((req, res) => {
+  const compte = req.query.compte;
+  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
+  if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
+  ok(res, listerBoite(compte));
+}));
+
+// Préanalyse d'un mail reçu : téléchargement RFC 822 → pipeline .eml existant
+// (texte + pièces jointes), puis liaison mail ↔ deal et mémorisation de
+// l'expéditeur comme contact agent.
+app.post('/api/mails/inbox/:id/preanalyser', wrap(async (req, res) => {
+  const mailRecu = Records.get('MailRecu', req.params.id);
+  if (!mailRecu) return res.status(404).json({ error: 'Mail introuvable' });
+  if (!compteAutorise(req, mailRecu.compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
+  if (mailRecu.deal_id) {
+    return res.status(409).json({ error: 'Ce mail a déjà été préanalysé.', deal_id: mailRecu.deal_id });
+  }
+
+  const user = currentUser(req);
+  const buffer = await telechargerRaw(mailRecu.compte, mailRecu.gmail_message_id);
+  const dossier = await analyserFiche(
+    {
+      buffer,
+      filename: `${(mailRecu.objet || 'mail').slice(0, 60)}.eml`,
+      mimetype: 'message/rfc822',
+      contactEmail: mailRecu.de_email || null,
+    },
+    { user, uploadDir: UPLOAD_DIR }
+  );
+
+  Records.update('MailRecu', mailRecu.id, { deal_id: dossier.deal_id });
+  Records.update('Deal', Records.filter('Deal', { deal_id: dossier.deal_id })[0].id, {
+    source_mail: {
+      mail_recu_id: mailRecu.id,
+      de: mailRecu.de,
+      objet: mailRecu.objet,
+      date: mailRecu.date,
+    },
+  });
+  ok(res, dossier);
+}));
 
 // ---------------------------------------------------------------------------
 // Préanalyse de fiches commerciales
@@ -517,6 +663,141 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index', wrap(async (req, res) =
 // Valide une enseigne qualifiée par l'IA et l'inscrit au référentiel.
 app.post('/api/preanalyse/enseignes', wrap((req, res) => {
   ok(res, ajouterAuReferentiel(req.body || {}));
+}));
+
+// Vue pipeline : tous les dossiers avec statut + compteurs par étape.
+app.get('/api/preanalyse/pipeline', wrap((req, res) => {
+  const dossiers = listerDossiers(200);
+  const compteurs = {};
+  for (const s of STATUTS) compteurs[s] = 0;
+  let aRelancerTotal = 0;
+  for (const d of dossiers) {
+    compteurs[d.statut] = (compteurs[d.statut] || 0) + 1;
+    if (d.a_relancer) aRelancerTotal++;
+  }
+  ok(res, { dossiers, compteurs, a_relancer: aRelancerTotal, libelles: LIBELLES_STATUTS });
+}));
+
+// Brouillon de mail d'intention (refus, demande de documents, relance,
+// abandon, présentation client). Rien n'est envoyé ici.
+app.post('/api/preanalyse/dossiers/:dealId/mail', wrap(async (req, res) => {
+  const { intention, lot_index = 0, raisons } = req.body || {};
+  if (!INTENTIONS.includes(intention)) {
+    return res.status(400).json({ error: `Intention inconnue : ${intention}` });
+  }
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const lot = dossier.lots?.[Number(lot_index)] || dossier.lots?.[0];
+  if (!lot) return res.status(404).json({ error: 'Lot introuvable' });
+
+  const user = currentUser(req);
+  const mail = await redigerMailIntention(lot, intention, {
+    signature: user?.full_name || user?.email,
+    raisons,
+  });
+  ok(res, { ...mail, intention, destinataire: dossier.contact_agent_email || '' });
+}));
+
+// Dépôt d'un document sur le deal : dépouillement via le pipeline Alexis,
+// liaison Deal ↔ DossierDoc, avancement du statut et synthèse recalculée.
+app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'), wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  if (!req.file) return res.status(400).json({ error: 'Fichier manquant' });
+
+  const user = currentUser(req);
+  const r = await analyserDocument(
+    {
+      buffer: fs.readFileSync(req.file.path),
+      filename: req.file.originalname,
+      mimetype: req.file.mimetype,
+      url: `/uploads/${req.file.filename}`,
+    },
+    { dossierId: dossier.dossier_doc_id || undefined, typeForce: req.body?.type || undefined, user }
+  );
+
+  const patch = {};
+  if (!dossier.dossier_doc_id) {
+    patch.dossier_doc_id = r.dossier_id;
+    // Le dossier documentaire porte le titre du deal pour s'y retrouver.
+    const titre = dossier.lots?.[0]?.synthese?.titre;
+    if (titre) renommerDossier(r.dossier_id, titre);
+  }
+
+  // La synthèse « points à vérifier » est recalculée à chaque dépôt.
+  const dossierDoc = obtenirDossierDoc(r.dossier_id);
+  const synthese = await syntheseDocuments(dossier.lots?.[0], dossierDoc);
+  if (synthese) patch.synthese_documents = synthese;
+  if (Object.keys(patch).length) Records.update('Deal', dossier.id, patch);
+
+  // Avancement : demandes → reçus → dépouillé (les transitions invalides sont
+  // ignorées, un dépôt sur un deal déjà dépouillé ne change rien).
+  const enrichi = { ...dossier, ...patch };
+  if (statutDe(enrichi) === 'documents_demandes' || statutDe(enrichi) === 'analyse') {
+    changerStatut(enrichi, 'documents_recus', { user, note: `Document reçu : ${req.file.originalname}` });
+    enrichi.statut = 'documents_recus';
+    enrichi.suivi = Records.get('Deal', dossier.id)?.suivi || enrichi.suivi;
+  }
+  if (statutDe(enrichi) === 'documents_recus') {
+    changerStatut(enrichi, 'depouille', { user, note: 'Dépouillement effectué' });
+  }
+
+  ok(res, { ...r, deal: { deal_id: dossier.deal_id, statut: statutDe(Records.get('Deal', dossier.id)), dossier_doc_id: patch.dossier_doc_id || dossier.dossier_doc_id, synthese_documents: patch.synthese_documents || dossier.synthese_documents } });
+}));
+
+// Classement des documents du deal dans le Drive du compte connecté.
+app.post('/api/preanalyse/dossiers/:dealId/drive', wrap(async (req, res) => {
+  const { compte } = req.body || {};
+  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
+  if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
+
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+
+  const fichiers = [];
+  // Les documents dépouillés, plus la fiche commerciale d'origine.
+  const dossierDoc = dossier.dossier_doc_id ? obtenirDossierDoc(dossier.dossier_doc_id) : null;
+  for (const d of dossierDoc?.documents || []) {
+    if (d.url) fichiers.push({ nom: d.nom_fichier, chemin: d.url });
+  }
+  if (dossier.source?.url) {
+    fichiers.push({ nom: dossier.source.nom_fichier || 'fiche-commerciale', chemin: dossier.source.url });
+  }
+  if (!fichiers.length) return res.status(400).json({ error: 'Aucun fichier à classer.' });
+
+  const titre = dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || dossier.deal_id;
+  const r = await classerDansDrive(compte, titre, fichiers, UPLOAD_DIR);
+
+  Records.update('Deal', dossier.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+  const user = currentUser(req);
+  const dealMaj = Records.get('Deal', dossier.id);
+  ajouterSuiviDeal(dealMaj, { type: 'documents_recus', detail: `${r.envoyes.length} fichier(s) classé(s) dans le Drive` }, user);
+  ok(res, r);
+}));
+
+// Création d'un projet pré-rempli depuis un lot du deal.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap((req, res) => {
+  const user = currentUser(req);
+  const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user);
+  if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });
+  ok(res, { project_id: r.project.id, titre: r.project.titre });
+}));
+
+// Changement de statut manuel (décision sans mail, réception de documents…).
+app.post('/api/preanalyse/dossiers/:dealId/statut', wrap((req, res) => {
+  const { statut, note } = req.body || {};
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+
+  const user = currentUser(req);
+  const r = changerStatut(dossier, statut, { user, note });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+
+  // Un abandon capitalise l'observation dans la base marché.
+  if (statut === 'abandonne' && statutDe(dossier) !== 'abandonne') {
+    for (const lot of dossier.lots || []) alimenterBaseMarche(dossier, lot, user);
+  }
+  ok(res, { deal_id: dossier.deal_id, statut: r.deal.statut, suivi: r.deal.suivi });
 }));
 
 // ---------------------------------------------------------------------------

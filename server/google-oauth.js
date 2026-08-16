@@ -29,7 +29,27 @@ const ALLOWED_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || '').trim().toLowerCa
 const GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 export const gmailSendDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_GMAIL_SEND || '');
 
-const SCOPES = ['openid', 'email', 'profile', ...(gmailSendDemande ? [GMAIL_SEND_SCOPE] : [])];
+// Lecture de la boîte (relève des fiches d'agents) : portée « restricted »
+// chez Google, encore plus lourde à déclarer — même mécanique d'opt-in.
+const GMAIL_READ_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
+export const gmailReadDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_GMAIL_READ || '');
+
+// Classement des documents d'un deal dans le Drive : drive.file ne donne accès
+// qu'aux fichiers créés par l'app, jamais au reste du Drive.
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+export const driveDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_DRIVE || '');
+
+const SCOPES = [
+  'openid',
+  'email',
+  'profile',
+  ...(gmailSendDemande ? [GMAIL_SEND_SCOPE] : []),
+  ...(gmailReadDemande ? [GMAIL_READ_SCOPE] : []),
+  ...(driveDemande ? [DRIVE_SCOPE] : []),
+];
+
+// Un refresh token est nécessaire dès qu'une portée d'API long-terme est demandée.
+const besoinOffline = gmailSendDemande || gmailReadDemande || driveDemande;
 
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
@@ -80,8 +100,8 @@ export function buildAuthUrl({ returnTo, req } = {}) {
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: SCOPES.join(' '),
-    // Le refresh token n'a d'intérêt que pour envoyer des mails plus tard.
-    ...(gmailSendDemande ? { access_type: 'offline', prompt: 'consent select_account' } : { prompt: 'select_account' }),
+    // Le refresh token n'a d'intérêt que pour utiliser les API plus tard.
+    ...(besoinOffline ? { access_type: 'offline', prompt: 'consent select_account' } : { prompt: 'select_account' }),
     state: rememberState(returnTo, redirectUri),
   });
   if (ALLOWED_DOMAIN) params.set('hd', ALLOWED_DOMAIN);
@@ -145,8 +165,10 @@ export async function handleCallback({ code, state, owner }) {
   // « Envoyer depuis ».
   const portees = String(tokens.scope || '').split(/\s+/);
   const peutEnvoyer = portees.includes(GMAIL_SEND_SCOPE);
+  const peutLire = portees.includes(GMAIL_READ_SCOPE);
+  const peutDrive = portees.includes(DRIVE_SCOPE);
 
-  if (peutEnvoyer) {
+  if (peutEnvoyer || peutLire || peutDrive) {
     const existing = Records.filter('MailAccount', { email })[0] || null;
     const record = {
       provider: 'google',
@@ -160,6 +182,9 @@ export async function handleCallback({ code, state, owner }) {
       // one when reconnecting an already-linked mailbox.
       refresh_token: tokens.refresh_token || existing?.refresh_token || null,
       connected_at: new Date().toISOString(),
+      peut_envoyer: peutEnvoyer,
+      peut_lire: peutLire,
+      peut_drive: peutDrive,
     };
     if (existing) Records.update('MailAccount', existing.id, record);
     else Records.create('MailAccount', record);
@@ -170,6 +195,7 @@ export async function handleCallback({ code, state, owner }) {
     name: profile.name || email.split('@')[0],
     picture: profile.picture || null,
     peut_envoyer: peutEnvoyer,
+    peut_lire: peutLire,
     returnTo: stateValue.returnTo,
   };
 }
@@ -193,6 +219,10 @@ export function listGoogleAccounts(ownerEmail) {
       label: `${a.name} <${a.email}>`,
       // A mailbox with no refresh token can't be used once the hour is up.
       needs_reconnect: !a.refresh_token,
+      // Les comptes connectés avant l'ajout du champ savaient forcément envoyer.
+      peut_envoyer: a.peut_envoyer !== false,
+      peut_lire: !!a.peut_lire,
+      peut_drive: !!a.peut_drive,
     }));
 }
 
@@ -203,12 +233,12 @@ export function disconnectAccount(email) {
   return { success: found.length > 0 };
 }
 
-function storedAccount(email) {
+export function storedAccount(email) {
   return Records.filter('MailAccount', { email: String(email || '').toLowerCase() })[0] || null;
 }
 
 // Access tokens last an hour; refresh transparently when needed.
-async function accessTokenFor(account) {
+export async function accessTokenFor(account) {
   const stillValid = account.expires_at && new Date(account.expires_at).getTime() - Date.now() > 60_000;
   if (stillValid && account.access_token) return account.access_token;
 
@@ -267,6 +297,8 @@ export function googleStatus() {
     redirect_uri: REDIRECT_URI,
     app_url: APP_URL,
     gmail_send: gmailSendDemande,
+    gmail_read: gmailReadDemande,
+    drive: driveDemande,
     scopes: SCOPES,
   };
 }

@@ -31,7 +31,6 @@ import {
   ExternalLink,
   Pin,
   PinOff,
-  Bot,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -232,6 +231,7 @@ function LayoutContent({ children, currentPageName }) {
           <>
             <NavSection title="Principal" collapsed={sidebarCollapsed && !isMobile}>
               <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+              <NavItem to="/Analyse" icon={Search} label="Analyse" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             </NavSection>
 
             <NavSection title="Gestion" collapsed={sidebarCollapsed && !isMobile}>
@@ -247,8 +247,6 @@ function LayoutContent({ children, currentPageName }) {
             <NavSection title="Outils" collapsed={sidebarCollapsed && !isMobile}>
               <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#2A9D8F]/20 text-[#2A9D8F]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to="/Preanalyse" icon={Search} label="Préanalyse" isActive={isActivePage("Preanalyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to="/Alexis" icon={Bot} label="Alexis" badge="DOCS" badgeColor="bg-[#2A9D8F]/20 text-[#2A9D8F]" isActive={isActivePage("Alexis")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               {/* Double Check — masqué du menu, la page reste accessible via

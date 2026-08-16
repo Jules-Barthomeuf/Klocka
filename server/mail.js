@@ -151,7 +151,7 @@ function normalize(str) {
 }
 
 // Flatten the two address books into one slim list for matching.
-function addressBook() {
+export function addressBook() {
   const out = [];
   for (const c of Records.list('Contact')) {
     if (!c.email) continue;

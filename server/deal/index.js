@@ -16,6 +16,8 @@ import { enrichir } from './enrich.js';
 import { evaluer, profilsConfigures } from './rules.js';
 import { calculerAEM, parametresSimulateur } from './aem.js';
 import { redigerSynthese, redigerMailAgent } from './redact.js';
+import { statutDe, aRelancer } from './lifecycle.js';
+import { contexteMarcheLocal } from './contexte-marche.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 
@@ -60,6 +62,15 @@ export async function analyserFiche(entree, ctx = {}) {
         ? await redigerMailAgent(dossierLot, { signature: ctx.user?.full_name })
         : null;
 
+    // Contexte marché web sourcé — informatif seulement, jamais dans le
+    // verdict ni la synthèse. Une seule exécution : reevaluerLot ne le rejoue
+    // pas.
+    const contexteMarche = await contexteMarcheLocal({
+      ville: enrichissement?.commune?.nom || val(lot.adresse)?.ville,
+      code_postal: val(lot.adresse)?.code_postal,
+      type_actif: val(lot.type_actif),
+    });
+
     lots.push({
       index: i,
       intitule: lot.intitule_lot || (lotsExtraits.length > 1 ? `Lot ${i + 1}` : ''),
@@ -68,6 +79,7 @@ export async function analyserFiche(entree, ctx = {}) {
       evaluation,
       synthese,
       mail_agent: mailAgent,
+      contexte_marche: contexteMarche,
       simulateur: parametresSimulateur({
         prixFai: val(lot.prix_fai),
         loyerAnnuel: val(lot.loyer_annuel_ht_hc),
@@ -81,6 +93,21 @@ export async function analyserFiche(entree, ctx = {}) {
     deal_id: dealId,
     cree_le: new Date().toISOString(),
     cree_par: ctx.user?.email || null,
+    // Cycle de vie (géré par lifecycle.js) — à plat, merge shallow oblige.
+    statut: 'analyse',
+    archived: false,
+    relance_prevue_le: null,
+    contact_agent_email: entree.contactEmail || null,
+    dossier_doc_id: null,
+    projet_id: null,
+    suivi: [
+      {
+        le: new Date().toISOString(),
+        par: ctx.user?.email || null,
+        type: 'analyse',
+        detail: lots.map((l) => l.evaluation?.verdict).filter(Boolean).join(', ') || 'Analyse effectuée',
+      },
+    ],
     source: {
       nom_fichier: entree.filename || null,
       type: ingestion.source,
@@ -145,6 +172,15 @@ export function listerDossiers(limit = 50) {
     cree_le: d.cree_le,
     nom_fichier: d.source?.nom_fichier,
     multi_lots: d.multi_lots,
+    // Les deals antérieurs au cycle de vie n'ont pas de statut : ils sont
+    // considérés « analyse » (migration paresseuse, aucun script).
+    statut: statutDe(d),
+    archived: !!d.archived,
+    relance_prevue_le: d.relance_prevue_le || null,
+    a_relancer: aRelancer(d),
+    contact_agent_email: d.contact_agent_email || null,
+    projet_id: d.projet_id || null,
+    dernier_suivi: (d.suivi || [])[d.suivi?.length - 1] || null,
     lots: (d.lots || []).map((l) => ({
       index: l.index,
       intitule: l.intitule,

@@ -61,18 +61,20 @@ export async function resoudreCommune(codePostal, nomVille) {
   if (!/^\d{5}$/.test(cp)) return null;
 
   const cle = `${cp}|${normaliser(nomVille)}`;
-  if (cache[cle]) return cache[cle];
+  // Les entrées mises en cache avant l'ajout des coordonnées (champ `centre`)
+  // sont re-résolues une fois, pour que la carte fonctionne aussi sur elles.
+  if (cache[cle] && cache[cle].centre !== undefined) return cache[cle];
 
   let communes = [];
   try {
     const resp = await fetch(
-      `https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,population,codesPostaux&format=json`
+      `https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,code,population,codesPostaux,centre&format=json`
     );
     if (resp.ok) communes = await resp.json();
   } catch {
-    return null; // hors ligne : on ne bloque pas, la donnée sortira inconnue
+    return cache[cle] || null; // hors ligne : on ne bloque pas
   }
-  if (!communes.length) return null;
+  if (!communes.length) return cache[cle] || null;
 
   // Un code postal peut couvrir plusieurs communes : on départage par le nom.
   const cible = normaliser(nomVille);
@@ -86,6 +88,11 @@ export async function resoudreCommune(codePostal, nomVille) {
     code_insee: trouvee.code,
     nom: trouvee.nom,
     population: trouvee.population ?? null,
+    // Coordonnées du centre de la commune (GeoJSON [lon, lat]) : repli de la
+    // carte quand l'adresse précise manque.
+    centre: trouvee.centre?.coordinates
+      ? { lon: trouvee.centre.coordinates[0], lat: trouvee.centre.coordinates[1] }
+      : null,
     ambigu: communes.length > 1 && !communes.some((c) => normaliser(c.nom) === cible),
   };
   cache[cle] = resultat;
@@ -282,7 +289,13 @@ export async function enrichir(lot, saisieHumaine = {}) {
 
   return {
     commune: commune
-      ? { code_insee: commune.code_insee, nom: commune.nom, population: commune.population, ambigu: commune.ambigu }
+      ? {
+          code_insee: commune.code_insee,
+          nom: commune.nom,
+          population: commune.population,
+          centre: commune.centre || null,
+          ambigu: commune.ambigu,
+        }
       : null,
     typologie_ville: commune ? typologieVille(commune.population) : null,
     revenu_median: revenuMedian,

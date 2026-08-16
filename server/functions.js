@@ -6,6 +6,45 @@ import { sendEmail, mailStatus, listAccounts } from './email.js';
 import { composeMail } from './mail.js';
 import { llmEnabled, llmStatus } from './llm.js';
 import { googleStatus, disconnectAccount } from './google-oauth.js';
+import { changerStatut, repousserRelance, ajouterSuivi, statutDe } from './deal/lifecycle.js';
+import { alimenterBaseMarche } from './deal/marche.js';
+
+// Fait avancer le cycle de vie d'un deal après l'envoi d'un mail d'intention :
+// trace l'envoi dans `suivi`, applique la transition de statut correspondante
+// et capitalise dans la base marché quand le deal se clôt.
+async function avancerDealApresMail(dealId, intention, sujet, destinataire, user) {
+  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!deal) return;
+
+  ajouterSuivi(
+    deal,
+    {
+      type: 'mail_envoye',
+      intention: intention || null,
+      detail: sujet,
+      destinataire: Array.isArray(destinataire) ? destinataire.join(', ') : destinataire || null,
+    },
+    user
+  );
+
+  // Mémorise le contact agent si on ne le connaissait pas encore.
+  const premierDest = (Array.isArray(destinataire) ? destinataire[0] : destinataire) || null;
+  if (premierDest && !deal.contact_agent_email) {
+    Records.update('Deal', deal.id, { contact_agent_email: premierDest });
+  }
+
+  if (intention === 'demande_documents') {
+    changerStatut(deal, 'documents_demandes', { user, note: 'Demande de documents envoyée' });
+  } else if (intention === 'relance' && statutDe(deal) === 'documents_demandes') {
+    repousserRelance(deal, user);
+  } else if (intention === 'refus' || intention === 'abandon') {
+    for (const lot of deal.lots || []) alimenterBaseMarche(deal, lot, user);
+    changerStatut(deal, 'abandonne', {
+      user,
+      note: intention === 'refus' ? 'Refusé après préanalyse' : 'Abandonné après étude des documents',
+    });
+  }
+}
 
 function normalize(str) {
   return (str || '')
@@ -113,11 +152,6 @@ export const functions = {
     return { success: true };
   },
 
-  async sendCustomEmail(params) {
-    const { to, subject, body, html } = params || {};
-    return sendEmail({ to, subject, body: body || html });
-  },
-
   // --- Mails page ---------------------------------------------------------
 
   // Turn "envoie le template présentation à Marc" into a ready-to-send draft.
@@ -127,11 +161,12 @@ export const functions = {
 
   // Send a (possibly hand-edited) draft and record it in the history.
   async sendMail(params, { user }) {
-    const { from, to, cc, subject, body, template_id, template_titre, replyTo } = params || {};
+    const { from, to, cc, subject, body, template_id, template_titre, replyTo, deal_id, intention } =
+      params || {};
     if (!subject || !subject.trim()) return { success: false, error: 'Objet manquant' };
     if (!body || !body.trim()) return { success: false, error: 'Corps du mail vide' };
     // `owner` restricts the sendable mailboxes to the caller's own.
-    return sendEmail({
+    const resultat = await sendEmail({
       from,
       owner: user?.email,
       to,
@@ -141,7 +176,20 @@ export const functions = {
       replyTo,
       template_id,
       template_titre,
+      deal_id,
+      intention,
     });
+
+    // Un envoi lié à un deal fait avancer son cycle de vie. Le mode simulé
+    // (aucun compte connecté) avance aussi : en local, le flux prime.
+    if (deal_id && (resultat.success || resultat.simulated)) {
+      try {
+        await avancerDealApresMail(deal_id, intention, subject, to, user);
+      } catch (e) {
+        console.error('[deal] suivi après envoi impossible :', e?.message || e);
+      }
+    }
+    return resultat;
   },
 
   // Sender accounts + config banner on the Mails page.
@@ -158,19 +206,14 @@ export const functions = {
     return disconnectAccount(email);
   },
 
-  // External-integration functions require OAuth to Google/GitHub which isn't
-  // available in the local recreation. They return an explanatory stub.
+  // Import Drive « à l'ancienne » de la page Projets : conservé tant que le
+  // bouton existe côté admin. Le vrai classement Drive du workflow d'analyse
+  // passe, lui, par /api/preanalyse/dossiers/:dealId/drive.
   importFromGoogleDrive() {
-    return { success: false, error: 'Intégration Google Drive non disponible en local.' };
-  },
-  searchGoogleDrive() {
-    return { success: false, error: 'Intégration Google Drive non disponible en local.' };
-  },
-  syncGitHub() {
-    return { success: false, error: 'Intégration GitHub non disponible en local.' };
-  },
-  uploadImage() {
-    return { success: false, error: "Utilisez l'upload de fichier standard en local." };
+    return {
+      success: false,
+      error: "Import Drive indisponible ici : utilisez « Classer dans le Drive » depuis l'analyse du deal.",
+    };
   },
 };
 

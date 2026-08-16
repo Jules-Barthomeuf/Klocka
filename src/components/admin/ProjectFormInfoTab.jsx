@@ -124,6 +124,74 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
         </div>
       </div>
 
+      {/* Statut + Suivi client */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className={fieldWrap}>
+          <div className={flabel}>Statut du projet</div>
+          <div className="relative">
+            <select
+              value={formData.statut || "prospect"}
+              onChange={(e) => setFormData({ ...formData, statut: e.target.value })}
+              className={`${fieldInput} text-[15px] appearance-none cursor-pointer pr-8`}
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value} className="bg-[#171A21]">
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-[#5B616C] absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+        <div className={fieldWrap}>
+          <div className={flabel}>Suivi client</div>
+          <div className="flex items-center gap-4 mt-1 flex-wrap">
+            <label className="flex items-center gap-2 cursor-pointer text-[13px] text-[#EAECEF]">
+              <input
+                type="checkbox"
+                checked={!!formData.suivi_message_envoye}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    suivi_message_envoye: e.target.checked,
+                    // Décocher le message remet le retour client à zéro.
+                    ...(e.target.checked ? {} : { suivi_retour_client: null }),
+                  })
+                }
+                className="w-4 h-4 accent-[#2A9D8F]"
+              />
+              Message envoyé au client
+            </label>
+            {formData.suivi_message_envoye && (
+              <div className="flex items-center gap-1.5 text-[13px]">
+                <span className="text-[#8D93A0]">Retour :</span>
+                {["oui", "non"].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        suivi_retour_client: formData.suivi_retour_client === v ? null : v,
+                      })
+                    }
+                    className={`px-2.5 py-1 rounded-lg border text-[12px] transition-colors ${
+                      formData.suivi_retour_client === v
+                        ? v === "oui"
+                          ? "bg-[#2A9D8F]/25 border-[#2A9D8F] text-[#71CCBA]"
+                          : "bg-red-500/20 border-red-400/60 text-red-300"
+                        : "border-white/15 text-[#8D93A0] hover:border-white/30"
+                    }`}
+                  >
+                    {v === "oui" ? "Oui" : "Non"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Adresse + Surface */}
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-4">
         <div className={fieldWrap}>

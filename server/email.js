@@ -82,15 +82,19 @@ export const hasAnyAccount = () => allAccounts().length > 0;
 
 // Public (credential-free) view of the sender accounts.
 export function listAccounts(ownerEmail) {
-  return allAccounts(ownerEmail).map(({ id, name, email, provider, picture, needs_reconnect }) => ({
-    id,
-    name,
-    email,
-    provider,
-    picture: picture || null,
-    needs_reconnect: !!needs_reconnect,
-    label: `${name} <${email}>`,
-  }));
+  return allAccounts(ownerEmail).map(
+    ({ id, name, email, provider, picture, needs_reconnect, peut_lire, peut_drive }) => ({
+      id,
+      name,
+      email,
+      provider,
+      picture: picture || null,
+      needs_reconnect: !!needs_reconnect,
+      peut_lire: !!peut_lire,
+      peut_drive: !!peut_drive,
+      label: `${name} <${email}>`,
+    })
+  );
 }
 
 function findAccount(from, ownerEmail) {
@@ -203,6 +207,8 @@ function logEmail(fields) {
  * @param {string} [opts.replyTo]
  * @param {string} [opts.template_id] - stored on the log for traceability
  * @param {string} [opts.template_titre]
+ * @param {string} [opts.deal_id] - deal de préanalyse concerné (traçabilité)
+ * @param {string} [opts.intention] - intention du cycle de vie (refus, relance…)
  */
 export async function sendEmail({
   from,
@@ -216,6 +222,8 @@ export async function sendEmail({
   replyTo,
   template_id,
   template_titre,
+  deal_id,
+  intention,
 } = {}) {
   const toList = normalizeRecipients(to);
   const ccList = normalizeRecipients(cc);
@@ -236,6 +244,9 @@ export async function sendEmail({
     contenu: text,
     template_id: template_id || null,
     template_titre: template_titre || null,
+    deal_id: deal_id || null,
+    intention: intention || null,
+    direction: 'sortant',
     sent_at: new Date().toISOString(),
   };
 

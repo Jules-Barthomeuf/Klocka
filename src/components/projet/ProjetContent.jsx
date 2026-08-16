@@ -184,10 +184,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
     { name: 'Frais divers', value: fraisDivers, fill: '#EF4444' }
   ];
 
-  const mapUrl = project.latitude && project.longitude ?
-    `https://www.google.com/maps/embed/v1/place?key=AIzaSyCoRCDQXfS0uX13cAP8iLrpUyXsmcm4Ws8&q=${project.latitude},${project.longitude}&zoom=15` :
+  // Clé Embed API extraite en variable d'environnement (VITE_GOOGLE_MAPS_API_KEY).
+  const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+  const mapUrl = !mapsKey ? null :
+    project.latitude && project.longitude ?
+    `https://www.google.com/maps/embed/v1/place?key=${mapsKey}&q=${project.latitude},${project.longitude}&zoom=15` :
     project.adresse_complete ?
-    `https://www.google.com/maps/embed/v1/place?key=AIzaSyCoRCDQXfS0uX13cAP8iLrpUyXsmcm4Ws8&q=${encodeURIComponent(project.adresse_complete)}&zoom=15` :
+    `https://www.google.com/maps/embed/v1/place?key=${mapsKey}&q=${encodeURIComponent(project.adresse_complete)}&zoom=15` :
     null;
 
   const googleMapsLink = project.latitude && project.longitude ?

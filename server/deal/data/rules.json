@@ -5,7 +5,7 @@
     "Les entrées marquées A_CALER portent des valeurs provisoires issues de la spécification.",
     "Ordre d'évaluation : knock_outs -> donnees_requises -> profils -> reserves."
   ],
-  "version": 1,
+  "version": 2,
 
   "parametres_aem": {
     "_commentaire": "Repris des valeurs par défaut du simulateur Klocka. Le prix AEM (acte en main) est le prix de revient : prix négocié + droits + honoraires Klocka + incentive + frais divers.",
@@ -77,33 +77,145 @@
 
   "profils": {
     "_commentaire": [
-      "A_CALER — les critères des profils 01/02/03 n'étaient pas fournis dans la spécification.",
+      "Source : plaquette « Klocka — profils acquéreurs » (4 profils, 15+ investisseurs).",
       "Chaque profil liste des critères ET (tous doivent passer). Un deal reçoit le premier profil",
-      "dont tous les critères sont satisfaits, dans l'ordre de cette liste.",
+      "dont tous les critères sont satisfaits, dans l'ordre de cette liste. Les alternatives d'un",
+      "même profil (ex. « petite ville exclue SAUF ville riche ») sont encodées en variantes",
+      "successives portant le même code.",
+      "L'emplacement 'a_qualifier' est accepté partout où un rang est exigé : tant que l'humain n'a",
+      "pas qualifié l'adresse, le deal matche le profil et la réserve RES-EMPLACEMENT le signale ;",
+      "une fois qualifié en dessous du rang exigé, il sort du profil (NO-GO).",
       "Opérateurs disponibles : entre, superieur, superieur_ou_egal, inferieur, inferieur_ou_egal,",
-      "egal, dans, pas_dans, vrai, faux.",
-      "Tant qu'un profil n'a aucun critère, il est ignoré par le moteur (et signalé au démarrage)."
+      "egal, dans, pas_dans, vrai, faux."
     ],
     "liste": [
       {
         "code": "01",
-        "libelle": "Profil 01 — à définir",
-        "actif": false,
-        "criteres": []
+        "libelle": "Profil 01 — Petites villes (autofinancement)",
+        "actif": true,
+        "_note": "≤ 200 K€ FAI, 7 % min AEM. Variante petite ville : emplacement premium exigé.",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "inferieur_ou_egal", "valeur": 200000 },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 7 },
+          { "champ": "typologie_ville", "condition": "egal", "valeur": "petite_ville" },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "n1_bis", "a_qualifier"] }
+        ]
+      },
+      {
+        "code": "01",
+        "libelle": "Profil 01 — Petites villes (autofinancement)",
+        "actif": true,
+        "_note": "Variante villes plus grandes : « les villes plus grandes restent possibles », exigence d'emplacement assouplie.",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "inferieur_ou_egal", "valeur": 200000 },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 7 },
+          { "champ": "typologie_ville", "condition": "pas_dans", "valeur": ["petite_ville"] }
+        ]
       },
       {
         "code": "02",
-        "libelle": "Profil 02 — à définir",
-        "actif": false,
-        "criteres": [],
-        "_note": "La spécification indique que le flag ville_riche autorise une petite ville à entrer dans ce profil."
+        "libelle": "Profil 02 — Villes moyennes (l'adresse prime)",
+        "actif": true,
+        "_note": "200–400 K€, 6,5 % AEM (A_CALER : « variable selon l'emplacement » non modélisé, minimum fixe). Ville moyenne : n°1 impératif. Signature standard possible.",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "entre", "valeur": [200000, 400000] },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "typologie_ville", "condition": "egal", "valeur": "ville_moyenne" },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "a_qualifier"] }
+        ]
+      },
+      {
+        "code": "02",
+        "libelle": "Profil 02 — Villes moyennes (l'adresse prime)",
+        "actif": true,
+        "_note": "Variante petite ville « riche » : petites villes exclues SAUF commune à fort pouvoir d'achat.",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "entre", "valeur": [200000, 400000] },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "typologie_ville", "condition": "egal", "valeur": "petite_ville" },
+          { "champ": "ville_riche", "condition": "vrai", "valeur": true },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "a_qualifier"] }
+        ]
+      },
+      {
+        "code": "02",
+        "libelle": "Profil 02 — Villes moyennes (l'adresse prime)",
+        "actif": true,
+        "_note": "Variante grande ville : emplacement intermédiaire accepté.",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "entre", "valeur": [200000, 400000] },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "typologie_ville", "condition": "dans", "valeur": ["grande_ville", "metropole"] },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "n1_bis", "intermediaire", "a_qualifier"] }
+        ]
       },
       {
         "code": "03",
-        "libelle": "Profil 03 — à définir",
-        "actif": false,
-        "criteres": [],
-        "_note": "La spécification mentionne une dérogation d'emplacement propre à ce profil, activée par le flag paris."
+        "libelle": "Profil 03 — Signature solide",
+        "actif": true,
+        "_note": "400–800 K€, 6,5 % min AEM, locataire premium exigé (« pas de ville moyenne associée à un locataire moyen »). Ville moyenne : n°1.",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "entre", "valeur": [400000, 800000] },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "typologie_ville", "condition": "egal", "valeur": "ville_moyenne" },
+          { "champ": "signature", "condition": "egal", "valeur": "nationale_premium" },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "a_qualifier"] }
+        ]
+      },
+      {
+        "code": "03",
+        "libelle": "Profil 03 — Signature solide",
+        "actif": true,
+        "_note": "Variante petite ville « riche ».",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "entre", "valeur": [400000, 800000] },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "typologie_ville", "condition": "egal", "valeur": "petite_ville" },
+          { "champ": "ville_riche", "condition": "vrai", "valeur": true },
+          { "champ": "signature", "condition": "egal", "valeur": "nationale_premium" },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "a_qualifier"] }
+        ]
+      },
+      {
+        "code": "03",
+        "libelle": "Profil 03 — Signature solide",
+        "actif": true,
+        "_note": "Variante Paris : un emplacement intermédiaire est accepté.",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "entre", "valeur": [400000, 800000] },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "paris", "condition": "vrai", "valeur": true },
+          { "champ": "signature", "condition": "egal", "valeur": "nationale_premium" },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "n1_bis", "intermediaire", "a_qualifier"] }
+        ]
+      },
+      {
+        "code": "04",
+        "libelle": "Profil 04 — Enseigne engagée",
+        "actif": true,
+        "_note": "800 K€–2 M€, 6 % AEM, grandes villes/métropoles, n°1 ou n°1 bis, signature nationale premium, bail ferme. Le type d'actif (retail park) n'est pas un critère : champ extrait en texte libre, trop fragile pour un ET strict.",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "entre", "valeur": [800000, 2000000] },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6 },
+          { "champ": "typologie_ville", "condition": "dans", "valeur": ["grande_ville", "metropole"] },
+          { "champ": "signature", "condition": "egal", "valeur": "nationale_premium" },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "n1_bis", "a_qualifier"] },
+          { "champ": "bail_type", "condition": "egal", "valeur": "ferme" }
+        ]
+      },
+      {
+        "code": "04",
+        "libelle": "Profil 04 — Enseigne engagée",
+        "actif": true,
+        "_note": "Variante « durée résiduelle sécurisante » : à défaut de bail ferme, ≥ 6 ans de bail restants (A_CALER).",
+        "criteres": [
+          { "champ": "prix_fai", "condition": "entre", "valeur": [800000, 2000000] },
+          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6 },
+          { "champ": "typologie_ville", "condition": "dans", "valeur": ["grande_ville", "metropole"] },
+          { "champ": "signature", "condition": "egal", "valeur": "nationale_premium" },
+          { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "n1_bis", "a_qualifier"] },
+          { "champ": "annees_bail_restantes", "condition": "superieur_ou_egal", "valeur": 6 }
+        ]
       }
     ],
     "exemple_non_actif": {

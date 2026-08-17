@@ -23,6 +23,63 @@ import {
   DialogTitle } from
 "@/components/ui/dialog";
 
+// Import d'un export Base44 (tableau JSON d'utilisateurs). Idempotent côté
+// serveur : les adresses déjà en base ne sont jamais écrasées.
+function BoutonImportUtilisateurs() {
+  const queryClient = useQueryClient();
+  const inputRef = React.useRef(null);
+
+  const importer = useMutation({
+    mutationFn: async (fichier) => {
+      const texte = await fichier.text();
+      let utilisateurs;
+      try {
+        utilisateurs = JSON.parse(texte);
+      } catch {
+        throw new Error("Ce fichier n'est pas un JSON valide.");
+      }
+      return base44.request("POST", "/api/admin/import-utilisateurs", { body: { utilisateurs } });
+    },
+    onSuccess: (r) => {
+      queryClient.invalidateQueries({ queryKey: ["all-users"] });
+      const parts = [`${r.crees.length} compte(s) créé(s)`];
+      if (r.existants.length) parts.push(`${r.existants.length} déjà présent(s)`);
+      if (r.invalides.length) parts.push(`${r.invalides.length} invalide(s)`);
+      window.alert(`Import terminé : ${parts.join(", ")}.\n\nLes nouveaux comptes n'ont pas de mot de passe : chacun le définit à sa première connexion.`);
+    },
+    onError: (e) => window.alert(e?.message || "Import impossible"),
+  });
+
+  return (
+    <>
+      <Button
+        onClick={() => inputRef.current?.click()}
+        disabled={importer.isPending}
+        variant="outline"
+        className="h-10 text-sm border-[#24312f] bg-transparent text-[#93aca7] hover:border-[#33d6c0] hover:text-white"
+      >
+        {importer.isPending ? (
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        ) : (
+          <Upload className="w-4 h-4 mr-2" />
+        )}
+        Importer (JSON)
+      </Button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) importer.mutate(f);
+          e.target.value = "";
+        }}
+      />
+    </>
+  );
+}
+
 const profilColors = {
   equilibriste: "bg-blue-100 text-blue-800",
   risk_taker: "bg-red-100 text-red-800",
@@ -449,11 +506,14 @@ export default function AdminClients() {
   return (
     <div className="min-h-screen bg-[#050807] text-white">
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12">
-      <div className="mb-8">
-        <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-3">Administration</p>
-        <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">Utilisateurs</h1>
-        <div className="h-px w-16 bg-[#33d6c0] mt-3" />
-        <p className="text-white/30 text-sm mt-3">Gérez tous les utilisateurs de la plateforme</p>
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-3">Administration</p>
+          <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">Utilisateurs</h1>
+          <div className="h-px w-16 bg-[#33d6c0] mt-3" />
+          <p className="text-white/30 text-sm mt-3">Gérez tous les utilisateurs de la plateforme</p>
+        </div>
+        <BoutonImportUtilisateurs />
       </div>
 
       <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-4 md:p-5 mb-6">

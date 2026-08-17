@@ -395,7 +395,7 @@ app.use((req, res, next) => {
   // AUTH_DESACTIVEE (dev local uniquement) l'assouplit — jamais l'absence de
   // configuration Google, qui n'a rien à voir avec l'identité.
   if (AUTH_DESACTIVEE) return next();
-  if (!/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails)\b/.test(req.path)) return next();
+  if (!/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails|admin)\b/.test(req.path)) return next();
   if (req.path.startsWith('/api/functions/')) {
     const name = req.path.split('/')[3];
     if (PUBLIC_FUNCTIONS.has(name)) return next();
@@ -403,6 +403,24 @@ app.use((req, res, next) => {
   if (currentUser(req)) return next();
   res.status(401).json({ error: 'Not authenticated' });
 });
+
+// ---------------------------------------------------------------------------
+// Administration
+// ---------------------------------------------------------------------------
+
+// Import d'utilisateurs depuis un export Base44 (page Admin Clients).
+// Idempotent : les adresses déjà en base ne sont pas touchées.
+app.post('/api/admin/import-utilisateurs', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { importerUtilisateurs } = await import('./utilisateurs-import.js');
+  const r = importerUtilisateurs(req.body?.utilisateurs, { par: user.email });
+  if (r.error) return res.status(400).json(r);
+  console.log(
+    `[admin] import utilisateurs par ${user.email} : ${r.crees.length} créés, ${r.existants.length} existants, ${r.invalides.length} invalides`
+  );
+  ok(res, r);
+}));
 
 // ---------------------------------------------------------------------------
 // Entities (generic CRUD)

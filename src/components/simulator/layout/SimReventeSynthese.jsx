@@ -36,7 +36,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
     { label: "Capital restant", value: formatCurrency(ind.capitalARemboursserRevente) },
     { label: "Apport initial", value: formatCurrency(ind.apportInitial) },
     { label: "Cash-flow cumulé", value: formatCurrency(ind.cashFlowCumule) },
-    { label: "Création richesse", value: formatCurrency(ind.creationRichesseBrute), accent: "text-[#2A9D8F]", info: "La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial." },
+    { label: "Création richesse", value: formatCurrency(ind.creationRichesseBrute), accent: "text-[#33d6c0]", info: "La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial." },
   ];
 
   const barData = [
@@ -47,17 +47,17 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
   ];
 
   return (
-    <div className="border border-white/[0.08] rounded-md bg-[#0c0c0c]">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+    <div className="border border-[#1c2725] rounded-md bg-[#0c0c0c]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#16201f]">
         <p className="text-white text-sm font-medium">Synthèse à la revente</p>
-        <p className="text-[#2A9D8F] text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
+        <p className="text-[#33d6c0] text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-white/[0.06]">
+      <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-[#16201f]">
         {items.map((it, i) => (
           <Item key={i} label={it.label} value={it.value} accent={it.accent} info={it.info} />
         ))}
       </div>
-      <div className="h-72 px-2 pt-6 pb-4 border-t border-white/[0.06]">
+      <div className="h-72 px-2 pt-6 pb-4 border-t border-[#16201f]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 8 }}>
             <CartesianGrid horizontal={false} stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />

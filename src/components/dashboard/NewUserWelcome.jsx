@@ -47,7 +47,7 @@ export default function NewUserWelcome({ user }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen bg-[#050807] text-white flex flex-col">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap');`}</style>
 
       {/* Navbar simple */}
@@ -69,7 +69,7 @@ export default function NewUserWelcome({ user }) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-3xl mx-auto w-full text-center">
 
         {/* Greeting */}
-        <div className="w-10 h-0.5 bg-[#2A9D8F] mb-8 mx-auto"></div>
+        <div className="w-10 h-0.5 bg-[#33d6c0] mb-8 mx-auto"></div>
         <h1
           style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 400 }}
           className="text-4xl md:text-5xl text-white mb-4 leading-tight"
@@ -85,7 +85,7 @@ export default function NewUserWelcome({ user }) {
           href="https://dpe3smipjxh.typeform.com/to/GD7sREFs"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white font-semibold px-8 py-4 rounded-lg transition-all duration-200 text-sm group mb-12"
+          className="flex items-center gap-2 bg-[#33d6c0] hover:bg-[#33d6c0]/90 text-white font-semibold px-8 py-4 rounded-lg transition-all duration-200 text-sm group mb-12"
         >
           Remplir le questionnaire
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -95,7 +95,7 @@ export default function NewUserWelcome({ user }) {
         <div className="w-full border-t border-white/[0.07] mb-12"></div>
 
         {/* Message appel découverte */}
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl px-8 py-6 mb-12 max-w-lg w-full">
+        <div className="bg-white/[0.03] border border-[#1c2725] rounded-md px-8 py-6 mb-12 max-w-lg w-full">
           <p className="text-gray-300 text-sm leading-relaxed">
             <span className="text-white font-medium">Vous avez déjà effectué votre appel de découverte ?</span>
             <br />
@@ -114,9 +114,9 @@ export default function NewUserWelcome({ user }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.4 }}
-                className="absolute inset-0 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-8 py-6 flex flex-col items-center justify-center text-center"
+                className="absolute inset-0 bg-white/[0.03] border border-[#1c2725] rounded-md px-8 py-6 flex flex-col items-center justify-center text-center"
               >
-                {React.createElement(features[current].icon, { className: "w-6 h-6 text-[#2A9D8F] mb-3" })}
+                {React.createElement(features[current].icon, { className: "w-6 h-6 text-[#33d6c0] mb-3" })}
                 <h3 className="text-white font-medium mb-2">{features[current].titre}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{features[current].description}</p>
               </motion.div>
@@ -129,7 +129,7 @@ export default function NewUserWelcome({ user }) {
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-[#2A9D8F]" : "w-1.5 bg-white/20"}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-[#33d6c0]" : "w-1.5 bg-white/20"}`}
               />
             ))}
           </div>

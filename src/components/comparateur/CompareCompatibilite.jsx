@@ -173,7 +173,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
 
   if (!userProfil || !config) {
     return (
-      <div className="text-center py-16 bg-[#0A0A0A] rounded-2xl border border-white/[0.06]">
+      <div className="text-center py-16 bg-[#0a0f0e] rounded-md border border-[#16201f]">
         <AlertTriangle className="w-10 h-10 text-yellow-500/50 mx-auto mb-4" />
         <p className="text-white/40 text-sm">Aucun profil investisseur n'est défini pour votre compte.</p>
         <p className="text-white/20 text-xs mt-1">Contactez votre conseiller pour le configurer.</p>
@@ -194,9 +194,9 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
   return (
     <div className="space-y-6">
       {/* Profil header */}
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-6">
+      <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-6">
         <div className="flex items-center gap-4 mb-3">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: config.color + "20" }}>
+          <div className="w-12 h-12 rounded-md flex items-center justify-center" style={{ backgroundColor: config.color + "20" }}>
             <Icon className="w-6 h-6" style={{ color: config.color }} />
           </div>
           <div>
@@ -204,7 +204,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             <h3 className="text-xl text-white font-light">{config.label}</h3>
           </div>
           {budgetMax > 0 && (
-            <Badge className="ml-auto bg-white/5 text-white/60 border border-white/[0.08] text-xs">
+            <Badge className="ml-auto bg-white/5 text-white/60 border border-[#1c2725] text-xs">
               Budget max : {Math.round(budgetMax).toLocaleString("fr-FR")} €
             </Badge>
           )}
@@ -219,7 +219,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             { key: "cashflow", label: "Cashflow" },
             { key: "budget", label: "Budget" },
           ].map(({ key, label }) => (
-            <div key={key} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs">
+            <div key={key} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-[#16201f] text-xs">
               <span className="text-white/40">{label}</span>
               <span className="text-white ml-2 font-medium">{Math.round(config.weights[key] * 100)}%</span>
             </div>
@@ -230,7 +230,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
       {/* Pie chart + détails */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie chart */}
-        <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-6">
+        <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-6">
           <p className="text-white/40 text-xs uppercase tracking-[0.15em] mb-4">Compatibilité relative</p>
           <div className="relative">
             <ResponsiveContainer width="100%" height={280}>
@@ -297,8 +297,8 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             return (
               <div
                 key={i}
-                className={`bg-[#0A0A0A] rounded-2xl border p-5 transition-all ${
-                  isBest ? "border-[#2A9D8F]/50 ring-1 ring-[#2A9D8F]/20" : "border-white/[0.06]"
+                className={`bg-[#0a0f0e] rounded-md border p-5 transition-all ${
+                  isBest ? "border-[#33d6c0]/50 ring-1 ring-[#33d6c0]/20" : "border-[#16201f]"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -306,7 +306,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
                     <h4 className="text-white font-light">{sc.titre}</h4>
                     {isBest && (
-                      <Badge className="bg-[#2A9D8F]/20 text-[#2A9D8F] text-[10px] border-0">
+                      <Badge className="bg-[#33d6c0]/20 text-[#33d6c0] text-[10px] border-0">
                         <CheckCircle2 className="w-3 h-3 mr-1" />
                         Meilleur choix
                       </Badge>

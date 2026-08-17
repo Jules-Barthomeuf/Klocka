@@ -82,12 +82,12 @@ export default function SlideViewer({ slides, title }) {
   if (!slides || slides.length === 0) return null;
 
   return (
-    <div ref={containerRef} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-[9999] bg-black' : ''}`}>
+    <div ref={containerRef} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-[9999] bg-[#050807]' : ''}`}>
       {/* Slide area */}
       <div className={`relative ${isFullscreen ? 'flex-1' : ''}`}>
         <div
           ref={slideRef}
-          className="bg-black overflow-hidden"
+          className="bg-[#050807] overflow-hidden"
           style={{ aspectRatio: "16/9", width: "100%" }}
         >
           <SlideRenderer slide={slides[current]} />
@@ -95,25 +95,25 @@ export default function SlideViewer({ slides, title }) {
 
         {/* Navigation arrows */}
         {current > 0 && (
-          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors">
+          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#050807]/60 hover:bg-[#050807]/80 rounded-full flex items-center justify-center text-white transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </button>
         )}
         {current < slides.length - 1 && (
-          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors">
+          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#050807]/60 hover:bg-[#050807]/80 rounded-full flex items-center justify-center text-white transition-colors">
             <ChevronRight className="w-5 h-5" />
           </button>
         )}
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#0A0A0A] border-t border-white/[0.06]">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#0a0f0e] border-t border-[#16201f]">
         <div className="flex items-center gap-2">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#2A9D8F] w-6' : 'bg-gray-700 hover:bg-gray-500'}`}
+              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#33d6c0] w-6' : 'bg-gray-700 hover:bg-gray-500'}`}
             />
           ))}
         </div>
@@ -126,7 +126,7 @@ export default function SlideViewer({ slides, title }) {
             size="sm"
             onClick={exportPDF}
             disabled={isExporting}
-            className="bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/25 text-white text-xs h-8"
+            className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white text-xs h-8"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
             {isExporting ? "Export..." : "PDF"}

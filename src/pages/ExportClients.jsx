@@ -42,10 +42,10 @@ export default function ExportClients() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-8">
-      <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-10 max-w-md w-full text-center space-y-6">
-        <div className="w-16 h-16 bg-[#2A9D8F]/10 rounded-2xl flex items-center justify-center mx-auto">
-          <Download className="w-8 h-8 text-[#2A9D8F]" />
+    <div className="min-h-screen bg-[#050807] flex items-center justify-center p-8">
+      <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-10 max-w-md w-full text-center space-y-6">
+        <div className="w-16 h-16 bg-[#33d6c0]/10 rounded-md flex items-center justify-center mx-auto">
+          <Download className="w-8 h-8 text-[#33d6c0]" />
         </div>
         <div>
           <h1 className="text-2xl font-light text-white mb-2">Export Clients</h1>
@@ -62,7 +62,7 @@ export default function ExportClients() {
         <Button
           onClick={handleExport}
           disabled={loading}
-          className="w-full h-12 bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/25 text-white text-sm"
+          className="w-full h-12 bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white text-sm"
         >
           {loading ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Chargement en cours...</>

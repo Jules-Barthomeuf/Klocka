@@ -30,7 +30,7 @@ export default function CompareKPICard({ label, values, projectNames, format = "
   };
 
   return (
-    <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-5">
+    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
       <div className="flex items-center mb-4">
         <p className="text-white/40 text-xs uppercase tracking-[0.15em]">{label}</p>
         {tooltip && <InfoTooltip text={tooltip} />}

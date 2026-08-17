@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
  */
 export default function MobileRecordCard({ title, fields = [], onEdit, onDelete }) {
   return (
-    <div className="rounded-xl border border-gray-700 bg-gray-800/60 p-4">
+    <div className="rounded-md border border-gray-700 bg-gray-800/60 p-4">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="text-white font-semibold text-sm break-words flex-1 min-w-0">{title || "-"}</div>
         {(onEdit || onDelete) && (

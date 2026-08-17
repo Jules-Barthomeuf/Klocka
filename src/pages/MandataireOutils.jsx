@@ -26,13 +26,13 @@ export default function MandataireOutils() {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-[#050807] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-geist tracking-tighter text-white mb-2">
             Outils & Plateformes
           </h1>
-          <div className="h-0.5 w-32 bg-[#2A9D8F]"></div>
+          <div className="h-0.5 w-32 bg-[#33d6c0]"></div>
           <p className="text-gray-400 mt-4">
             Accédez rapidement à tous vos outils professionnels
           </p>
@@ -50,7 +50,7 @@ export default function MandataireOutils() {
                 >
                   <CardContent className="p-8">
                     <div className="flex items-start justify-between mb-6">
-                      <div className={`w-16 h-16 ${outil.iconBg} rounded-xl flex items-center justify-center`}>
+                      <div className={`w-16 h-16 ${outil.iconBg} rounded-md flex items-center justify-center`}>
                         <Icon className={`w-8 h-8 ${outil.iconColor}`} />
                       </div>
                       <ExternalLink className="w-5 h-5 text-gray-400" />

@@ -182,13 +182,13 @@ export default function CRM() {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-[#050807] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-geist tracking-tighter text-white mb-2">
             CRM
           </h1>
-          <div className="h-0.5 w-32 bg-[#2A9D8F]"></div>
+          <div className="h-0.5 w-32 bg-[#33d6c0]"></div>
           <p className="text-gray-400 mt-4">
             Vue d'ensemble de votre activité commerciale
           </p>
@@ -284,7 +284,7 @@ export default function CRM() {
 
           <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-[#2A9D8F]/20 to-[#71CCBA]/20 border-none">
+            <Card className="relative bg-gradient-to-br from-[#33d6c0]/20 to-[#5ee7d4]/20 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -296,9 +296,9 @@ export default function CRM() {
                         maximumFractionDigits: 0 
                       }).format(totalHonoraires)}
                     </p>
-                    <p className="text-xs text-[#2A9D8F] mt-1">Toutes catégories</p>
+                    <p className="text-xs text-[#33d6c0] mt-1">Toutes catégories</p>
                   </div>
-                  <DollarSign className="w-10 h-10 text-[#2A9D8F]" />
+                  <DollarSign className="w-10 h-10 text-[#33d6c0]" />
                 </div>
               </CardContent>
             </Card>
@@ -335,7 +335,7 @@ export default function CRM() {
             <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-[#2A9D8F]" />
+                  <MapPin className="w-5 h-5 text-[#33d6c0]" />
                   Agents Immobiliers
                 </CardTitle>
               </CardHeader>
@@ -499,7 +499,7 @@ export default function CRM() {
                 >
                   <CardContent className="p-8">
                     <div className="flex items-start justify-between mb-6">
-                      <div className={`w-16 h-16 ${section.iconBg} rounded-xl flex items-center justify-center`}>
+                      <div className={`w-16 h-16 ${section.iconBg} rounded-md flex items-center justify-center`}>
                         <Icon className={`w-8 h-8 ${section.iconColor}`} />
                       </div>
                     </div>

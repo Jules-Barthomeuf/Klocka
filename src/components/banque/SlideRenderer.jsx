@@ -23,14 +23,14 @@ function SlideTitle({ title, subtitle }) {
   return (
     <div className="mb-6">
       <h2 className="text-[2.8vw] font-extrabold text-white leading-tight tracking-tight uppercase">{title}</h2>
-      {subtitle && <p className="text-[#2A9D8F] text-[1.2vw] mt-1">{subtitle}</p>}
-      <div className="w-[6%] h-[3px] bg-[#2A9D8F] mt-3 rounded-full" />
+      {subtitle && <p className="text-[#33d6c0] text-[1.2vw] mt-1">{subtitle}</p>}
+      <div className="w-[6%] h-[3px] bg-[#33d6c0] mt-3 rounded-full" />
     </div>
   );
 }
 
 // Icon circle (colored bg with icon)
-function IconCircle({ icon: Icon, color = "#2A9D8F", size = "w-10 h-10" }) {
+function IconCircle({ icon: Icon, color = "#33d6c0", size = "w-10 h-10" }) {
   return (
     <div className={`${size} rounded-full flex items-center justify-center`} style={{ backgroundColor: color + '25' }}>
       <Icon className="w-[55%] h-[55%]" style={{ color }} />
@@ -39,9 +39,9 @@ function IconCircle({ icon: Icon, color = "#2A9D8F", size = "w-10 h-10" }) {
 }
 
 // Card with colored top border
-function InfoCard({ color = "#2A9D8F", children, className = "" }) {
+function InfoCard({ color = "#33d6c0", children, className = "" }) {
   return (
-    <div className={`relative rounded-xl bg-[#1E1E1E]/80 border border-white/[0.06] overflow-hidden ${className}`}>
+    <div className={`relative rounded-md bg-[#1E1E1E]/80 border border-[#16201f] overflow-hidden ${className}`}>
       <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ backgroundColor: color }} />
       <div className="p-5 pt-6">{children}</div>
     </div>
@@ -110,8 +110,8 @@ function SommaireSlide({ slide }) {
       <SlideTitle title="Sommaire" />
       <div className="flex-1 grid grid-cols-3 gap-3 mt-2">
         {slide.content.sections.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-[#1E1E1E]/60 border border-white/[0.06] hover:bg-[#1E1E1E] transition-colors">
-            <span className="text-[#2A9D8F] text-[1.4vw] font-bold w-8">{s.num}</span>
+          <div key={i} className="flex items-center gap-3 p-4 rounded-md bg-[#1E1E1E]/60 border border-[#16201f] hover:bg-[#1E1E1E] transition-colors">
+            <span className="text-[#33d6c0] text-[1.4vw] font-bold w-8">{s.num}</span>
             <span className="text-gray-300 text-[1vw]">{s.label}</span>
           </div>
         ))}
@@ -124,7 +124,7 @@ function SommaireSlide({ slide }) {
 function VilleSlide({ slide }) {
   const c = slide.content;
   const BULLET_ICONS = [Globe, Briefcase, Users, Star];
-  const BULLET_COLORS = ["#2A9D8F", "#2A9D8F", "#2A9D8F", "#F59E0B"];
+  const BULLET_COLORS = ["#33d6c0", "#33d6c0", "#33d6c0", "#F59E0B"];
 
   // Split description into bullet points
   const bullets = c.description ? c.description.split(/[.!]\s+/).filter(s => s.trim().length > 15).slice(0, 4) : [];
@@ -141,15 +141,15 @@ function VilleSlide({ slide }) {
         <p className="text-[#F59E0B] text-[1.1vw] uppercase tracking-wider mt-2">
           {c.badges?.[0] ? `SUR ${c.badges[0].toUpperCase()}` : "SUR LE QUARTIER"}
         </p>
-        <div className="mt-8 p-5 rounded-xl bg-[#1E1E1E]/80 border border-white/[0.06] border-t-2 border-t-[#F59E0B]">
+        <div className="mt-8 p-5 rounded-md bg-[#1E1E1E]/80 border border-[#16201f] border-t-2 border-t-[#F59E0B]">
           <p className="text-gray-500 text-[0.8vw] uppercase tracking-wider mb-1">ADRESSE STRATÉGIQUE</p>
           <p className="text-white text-[1.2vw] font-semibold">{slide.content.badges?.[0] || "Le quartier"}</p>
-          <p className="text-gray-400 text-[0.9vw] mt-1 flex items-center gap-1"><MapPin className="w-3 h-3 text-[#2A9D8F]" /> Cœur du secteur</p>
+          <p className="text-gray-400 text-[0.9vw] mt-1 flex items-center gap-1"><MapPin className="w-3 h-3 text-[#33d6c0]" /> Cœur du secteur</p>
         </div>
       </div>
       {/* Right panel - bullet cards */}
       <div className="w-[55%] p-[4%] flex flex-col justify-center">
-        <div className="bg-[#1E1E1E]/60 rounded-2xl border border-white/[0.06] p-6 relative">
+        <div className="bg-[#1E1E1E]/60 rounded-md border border-[#16201f] p-6 relative">
           <p className="text-gray-500 text-[3vw] leading-none mb-4">"</p>
           <div className="space-y-5">
             {bullets.map((text, i) => (
@@ -180,7 +180,7 @@ function TransitionSlide({ slide }) {
         <h2 className="text-[3.5vw] font-extrabold text-white tracking-tight uppercase">{slide.title}</h2>
         {c.subtitle && (
           <div className="mt-4 inline-flex items-center gap-2 bg-white/[0.08] border border-white/[0.1] rounded-lg px-4 py-2">
-            <MapPin className="w-4 h-4 text-[#2A9D8F]" />
+            <MapPin className="w-4 h-4 text-[#33d6c0]" />
             <span className="text-white text-[1.1vw]">{c.subtitle}</span>
           </div>
         )}
@@ -262,7 +262,7 @@ function TensionSlide({ slide }) {
         {c.logos?.length > 0 ? (
           <div className="grid grid-cols-3 gap-4" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
             {c.logos.slice(0, 5).map((url, i) => (
-              <div key={i} className="bg-white rounded-2xl flex items-center justify-center p-4 shadow-lg">
+              <div key={i} className="bg-white rounded-md flex items-center justify-center p-4 shadow-lg">
                 <img src={url} alt="" className="max-w-full max-h-full object-contain" />
               </div>
             ))}
@@ -274,7 +274,7 @@ function TensionSlide({ slide }) {
               c.bassin_emploi > 0 ? [`Bassin d'emploi: ${fmt(c.bassin_emploi)} emplois`] : [],
               c.pct_commerces > 0 ? [`${c.pct_commerces}% commerces`] : [],
             ).map((item, i) => (
-              <div key={i} className="bg-[#1E1E1E]/80 rounded-xl border border-white/[0.06] p-5">
+              <div key={i} className="bg-[#1E1E1E]/80 rounded-md border border-[#16201f] p-5">
                 <p className="text-gray-300 text-[0.95vw]">{item}</p>
               </div>
             ))}
@@ -291,7 +291,7 @@ function LocalSlide({ slide }) {
   const loyer = c.loyer_mensuel || (c.loyer_annuel_ht ? fmtEur(Math.round(c.loyer_annuel_ht / 12)) + " /mois" : null);
 
   const cards = [
-    { icon: MapPin, color: "#2A9D8F", label: "ADRESSE", value: c.adresse?.split(',')[0] || "—", detail: c.adresse?.split(',').slice(1).join(',').trim() },
+    { icon: MapPin, color: "#33d6c0", label: "ADRESSE", value: c.adresse?.split(',')[0] || "—", detail: c.adresse?.split(',').slice(1).join(',').trim() },
     { icon: Home, color: "#3B82F6", label: "SURFACE TOTALE", value: c.surface || "—", detail: c.type_construction },
     { icon: Building2, color: "#F59E0B", label: "ACCÈS & VISIBILITÉ", value: "Accès Rue", detail: c.badges?.join(', ') },
     { icon: Key, color: "#EF4444", label: "LOCATAIRE EN PLACE", value: c.locataire || "—", detail: c.activite || "Activité pérenne" },
@@ -307,17 +307,17 @@ function LocalSlide({ slide }) {
         {cards.map((card, i) => {
           if (card.isInfo) {
             return (
-              <div key={i} className="rounded-xl border border-dashed border-white/[0.1] bg-[#1E1E1E]/40 flex flex-col items-center justify-center p-4 text-center">
+              <div key={i} className="rounded-md border border-dashed border-white/[0.1] bg-[#1E1E1E]/40 flex flex-col items-center justify-center p-4 text-center">
                 <IconCircle icon={Info} color="#6B7280" size="w-10 h-10" />
                 <p className="text-gray-400 text-[0.85vw] mt-2">{card.detail}</p>
               </div>
             );
           }
           return (
-            <div key={i} className="rounded-xl bg-[#1E1E1E]/80 border border-white/[0.06] p-5">
+            <div key={i} className="rounded-md bg-[#1E1E1E]/80 border border-[#16201f] p-5">
               <IconCircle icon={card.icon} color={card.color} size="w-10 h-10" />
               <p className="text-gray-500 text-[0.7vw] uppercase tracking-wider mt-3">{card.label}</p>
-              <p className="text-white text-[1.2vw] font-semibold mt-1" style={{ color: card.color === "#2A9D8F" ? "#2A9D8F" : undefined }}>{card.value}</p>
+              <p className="text-white text-[1.2vw] font-semibold mt-1" style={{ color: card.color === "#33d6c0" ? "#33d6c0" : undefined }}>{card.value}</p>
               {card.detail && <p className="text-gray-400 text-[0.8vw] mt-1">{card.detail}</p>}
             </div>
           );
@@ -337,18 +337,18 @@ function LocalPhotosSlide({ slide }) {
       <SlideTitle title="PRÉSENTATION VISUELLE DU LOCAL" subtitle={c.adresse ? `${c.adresse}${c.surface ? ` - ${c.surface}` : ''}` : null} />
       <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-3">
         {photos.length > 0 ? photos.slice(0, 3).map((p, i) => (
-          <div key={i} className={`rounded-xl overflow-hidden border border-white/[0.06] ${i === 0 ? 'col-span-2 row-span-2' : ''}`}>
+          <div key={i} className={`rounded-md overflow-hidden border border-[#16201f] ${i === 0 ? 'col-span-2 row-span-2' : ''}`}>
             <img src={p} alt="" className="w-full h-full object-cover" />
           </div>
         )) : (
           <>
-            <div className="col-span-2 row-span-2 rounded-xl bg-[#1E2A3A] border border-white/[0.06] flex items-center justify-center">
+            <div className="col-span-2 row-span-2 rounded-md bg-[#1E2A3A] border border-[#16201f] flex items-center justify-center">
               <p className="text-gray-500 text-[1vw]">Façade Principale et Vitrine</p>
             </div>
-            <div className="rounded-xl bg-[#1E2A3A] border border-white/[0.06] flex items-center justify-center">
+            <div className="rounded-md bg-[#1E2A3A] border border-[#16201f] flex items-center justify-center">
               <p className="text-gray-500 text-[0.9vw]">Vue Intérieure 2</p>
             </div>
-            <div className="rounded-xl bg-[#1E2A3A] border border-white/[0.06] flex items-center justify-center">
+            <div className="rounded-md bg-[#1E2A3A] border border-[#16201f] flex items-center justify-center">
               <p className="text-gray-500 text-[0.9vw]">Vue Intérieure 3</p>
             </div>
           </>
@@ -366,9 +366,9 @@ function MarcheSlide({ slide }) {
       <DecoArcs />
       <SlideTitle title="MARCHÉ IMMOBILIER - INDICATEURS CLÉS" subtitle="Analyse comparative des valeurs sectorielles" />
       <div className="flex-1 grid grid-cols-2 gap-5 mt-2">
-        <InfoCard color="#2A9D8F" className="flex flex-col items-center justify-center text-center">
-          <span className="text-gray-500 text-[0.7vw] uppercase bg-[#2D2D2D] px-3 py-1 rounded-full border border-white/[0.06] mb-4">SOURCE : EQUIMMOX / DVF</span>
-          <IconCircle icon={Home} color="#2A9D8F" size="w-14 h-14" />
+        <InfoCard color="#33d6c0" className="flex flex-col items-center justify-center text-center">
+          <span className="text-gray-500 text-[0.7vw] uppercase bg-[#2D2D2D] px-3 py-1 rounded-full border border-[#16201f] mb-4">SOURCE : EQUIMMOX / DVF</span>
+          <IconCircle icon={Home} color="#33d6c0" size="w-14 h-14" />
           <p className="text-gray-400 text-[0.85vw] uppercase tracking-wider mt-4">VALEUR MOYENNE DES MURS</p>
           <p className="mt-2">
             <span className="text-white text-[3.5vw] font-bold">{c.prix_m2_median > 0 ? fmt(c.prix_m2_median) : "—"}</span>
@@ -378,7 +378,7 @@ function MarcheSlide({ slide }) {
         </InfoCard>
 
         <InfoCard color="#F59E0B" className="flex flex-col items-center justify-center text-center">
-          <span className="text-gray-500 text-[0.7vw] uppercase bg-[#2D2D2D] px-3 py-1 rounded-full border border-white/[0.06] mb-4">SOURCE : EQUIMMOX</span>
+          <span className="text-gray-500 text-[0.7vw] uppercase bg-[#2D2D2D] px-3 py-1 rounded-full border border-[#16201f] mb-4">SOURCE : EQUIMMOX</span>
           <IconCircle icon={Key} color="#F59E0B" size="w-14 h-14" />
           <p className="text-gray-400 text-[0.85vw] uppercase tracking-wider mt-4">VALEUR LOCATIVE MOYENNE</p>
           <p className="mt-2">
@@ -388,8 +388,8 @@ function MarcheSlide({ slide }) {
           <p className="text-gray-500 text-[0.75vw] italic mt-3 max-w-xs">Basé sur les baux commerciaux en cours pour des actifs similaires dans le secteur.</p>
         </InfoCard>
       </div>
-      <div className="mt-4 flex items-center gap-3 bg-[#1E1E1E]/60 rounded-xl border-l-3 border-[#2A9D8F] p-4" style={{ borderLeft: '3px solid #F59E0B' }}>
-        <CheckCircle2 className="w-5 h-5 text-[#2A9D8F] flex-shrink-0" />
+      <div className="mt-4 flex items-center gap-3 bg-[#1E1E1E]/60 rounded-md border-l-3 border-[#33d6c0] p-4" style={{ borderLeft: '3px solid #F59E0B' }}>
+        <CheckCircle2 className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
         <p className="text-gray-300 text-[0.9vw]">Potentiel commercial confirmé par les niveaux de loyers et valorisations du secteur.</p>
       </div>
     </div>
@@ -402,7 +402,7 @@ function BailSlide({ slide }) {
   const dateFormat = (d) => { if (!d) return null; try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return d; } };
 
   const cards = [
-    { icon: FileText, color: "#2A9D8F", label: "TYPE DE BAIL", value: c.bail_type || "Commercial 3/6/9", detail: "Bail classique offrant sécurité et visibilité à long terme." },
+    { icon: FileText, color: "#33d6c0", label: "TYPE DE BAIL", value: c.bail_type || "Commercial 3/6/9", detail: "Bail classique offrant sécurité et visibilité à long terme." },
     { icon: Calendar, color: "#F59E0B", label: "DURÉE ET ÉCHÉANCE", value: `${dateFormat(c.date_debut) || "—"} - ${dateFormat(c.echeance) || "—"}`, detail: c.statut_bail ? `Statut: ${c.statut_bail}` : null },
     { icon: Building2, color: "#3B82F6", label: "DESTINATION", value: c.activite || "Activité commerciale", detail: "La destination des locaux loués." },
     { icon: Euro, color: "#EF4444", label: "LOYER ANNUEL", value: c.loyer_annuel || "—", detail: `Indexation: ${c.indexation || "ILC"}` },
@@ -421,7 +421,7 @@ function BailSlide({ slide }) {
       </div>
       <div className="flex-1 grid grid-cols-3 gap-4 mt-1">
         {cards.map((card, i) => (
-          <div key={i} className="rounded-xl bg-[#1E1E1E]/80 border border-white/[0.06] overflow-hidden">
+          <div key={i} className="rounded-md bg-[#1E1E1E]/80 border border-[#16201f] overflow-hidden">
             <div className="h-[3px]" style={{ backgroundColor: card.color }} />
             <div className="p-4 flex items-start gap-3">
               <IconCircle icon={card.icon} color={card.color} size="w-9 h-9" />
@@ -454,9 +454,9 @@ function AcquisitionVsMarcheSlide({ slide }) {
       <SlideTitle title="PRIX D'ACQUISITION ET LOYERS VS MARCHÉ" subtitle="Analyse comparative du positionnement de l'actif" />
       <div className="flex-1 grid grid-cols-2 gap-5 mt-2">
         {/* Marché */}
-        <InfoCard color="#2A9D8F">
+        <InfoCard color="#33d6c0">
           <div className="flex items-center gap-3 mb-5">
-            <IconCircle icon={TrendingUp} color="#2A9D8F" size="w-9 h-9" />
+            <IconCircle icon={TrendingUp} color="#33d6c0" size="w-9 h-9" />
             <div>
               <p className="text-white text-[1.1vw] font-bold">PRIX DE MARCHÉ</p>
               <p className="text-gray-500 text-[0.8vw]">Secteur Centre-Ville</p>
@@ -470,7 +470,7 @@ function AcquisitionVsMarcheSlide({ slide }) {
               </div>
               <p className="text-white text-[2.5vw] font-bold mt-1">{c.prix_m2_marche_median > 0 ? fmt(c.prix_m2_marche_median) : "—"} <span className="text-gray-400 text-[1vw]">€ / m²</span></p>
               <div className="h-[2px] bg-gray-700 mt-2" />
-              <span className="inline-block mt-2 text-[#2A9D8F] text-[0.7vw] border border-[#2A9D8F]/30 rounded-full px-3 py-0.5">Référence Marché</span>
+              <span className="inline-block mt-2 text-[#33d6c0] text-[0.7vw] border border-[#33d6c0]/30 rounded-full px-3 py-0.5">Référence Marché</span>
             </div>
             <div>
               <div className="flex items-center justify-between">
@@ -479,7 +479,7 @@ function AcquisitionVsMarcheSlide({ slide }) {
               </div>
               <p className="text-white text-[2.5vw] font-bold mt-1">{c.offre_moyenne_marche > 0 ? fmt(c.offre_moyenne_marche) : c.baux_moyenne_marche > 0 ? fmt(c.baux_moyenne_marche) : "—"} <span className="text-gray-400 text-[1vw]">€ / m² / an</span></p>
               <div className="h-[2px] bg-gray-700 mt-2" />
-              <span className="inline-block mt-2 text-[#2A9D8F] text-[0.7vw] border border-[#2A9D8F]/30 rounded-full px-3 py-0.5">Référence Marché</span>
+              <span className="inline-block mt-2 text-[#33d6c0] text-[0.7vw] border border-[#33d6c0]/30 rounded-full px-3 py-0.5">Référence Marché</span>
             </div>
           </div>
         </InfoCard>
@@ -498,9 +498,9 @@ function AcquisitionVsMarcheSlide({ slide }) {
               <div className="flex items-center justify-between">
                 <p className="text-gray-400 text-[0.8vw]">Prix d'Acquisition hors droits {c.prix_negocie ? `(${c.prix_negocie})` : ''}</p>
                 {prixDiff !== null && (
-                  <div className="flex items-center gap-1 border-2 border-[#2A9D8F] rounded-lg px-2 py-1">
-                    <ArrowDown className="w-3 h-3 text-[#2A9D8F]" />
-                    <span className="text-[#2A9D8F] text-[0.9vw] font-bold">{prixDiff}%</span>
+                  <div className="flex items-center gap-1 border-2 border-[#33d6c0] rounded-lg px-2 py-1">
+                    <ArrowDown className="w-3 h-3 text-[#33d6c0]" />
+                    <span className="text-[#33d6c0] text-[0.9vw] font-bold">{prixDiff}%</span>
                   </div>
                 )}
               </div>
@@ -511,9 +511,9 @@ function AcquisitionVsMarcheSlide({ slide }) {
               <div className="flex items-center justify-between">
                 <p className="text-gray-400 text-[0.8vw]">Loyer Annuel</p>
                 {loyerDiff !== null && (
-                  <div className="flex items-center gap-1 border-2 border-[#2A9D8F] rounded-lg px-2 py-1">
-                    <ArrowDown className="w-3 h-3 text-[#2A9D8F]" />
-                    <span className="text-[#2A9D8F] text-[0.9vw] font-bold">{loyerDiff}%</span>
+                  <div className="flex items-center gap-1 border-2 border-[#33d6c0] rounded-lg px-2 py-1">
+                    <ArrowDown className="w-3 h-3 text-[#33d6c0]" />
+                    <span className="text-[#33d6c0] text-[0.9vw] font-bold">{loyerDiff}%</span>
                   </div>
                 )}
               </div>
@@ -523,8 +523,8 @@ function AcquisitionVsMarcheSlide({ slide }) {
           </div>
         </InfoCard>
       </div>
-      <div className="mt-4 flex items-center gap-3 p-4 rounded-xl bg-[#1E1E1E]/60" style={{ borderLeft: '3px solid #F59E0B' }}>
-        <CheckCircle2 className="w-5 h-5 text-[#2A9D8F] flex-shrink-0" />
+      <div className="mt-4 flex items-center gap-3 p-4 rounded-md bg-[#1E1E1E]/60" style={{ borderLeft: '3px solid #F59E0B' }}>
+        <CheckCircle2 className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
         <p className="text-gray-300 text-[0.85vw]">Point d'entrée attractif avec potentiel de valorisation long terme.</p>
       </div>
     </div>
@@ -535,11 +535,11 @@ function AcquisitionVsMarcheSlide({ slide }) {
 function ProjectionSlide({ slide }) {
   const c = slide.content;
   const cards = [
-    { icon: Euro, color: "#2A9D8F", label: "LOYER INITIAL", value: c.loyer_initial || "—", detail: "Montant annuel HT HC\n(Base de calcul An 1)" },
+    { icon: Euro, color: "#33d6c0", label: "LOYER INITIAL", value: c.loyer_initial || "—", detail: "Montant annuel HT HC\n(Base de calcul An 1)" },
     { icon: Building2, color: "#3B82F6", label: "CHARGES DE COPROPRIÉTÉ", value: "Locataire", detail: "Entièrement refacturées\n(Impact net nul)" },
     { icon: Wrench, color: "#F59E0B", label: "TRAVAUX (ARTICLE 606)", value: "10 000 €", detail: "Provision décennale\n(Tous les 10 ans)" },
     { icon: LandmarkIcon, color: "#EF4444", label: "TAXE FONCIÈRE", value: "Bailleur", detail: "Charge propriétaire" },
-    { icon: TrendingUp, color: "#2A9D8F", label: "INDEXATION ILC", value: `+ ${c.indexation || 2} %`, detail: "Évolution théorique annuelle\n(Indice des Loyers Commerciaux)" },
+    { icon: TrendingUp, color: "#33d6c0", label: "INDEXATION ILC", value: `+ ${c.indexation || 2} %`, detail: "Évolution théorique annuelle\n(Indice des Loyers Commerciaux)" },
     { icon: Info, color: "#6B7280", label: null, value: null, isInfo: true },
   ];
 
@@ -551,17 +551,17 @@ function ProjectionSlide({ slide }) {
         {cards.map((card, i) => {
           if (card.isInfo) {
             return (
-              <div key={i} className="rounded-xl border border-dashed border-white/[0.1] bg-[#1E1E1E]/40 flex flex-col items-center justify-center p-4 text-center">
+              <div key={i} className="rounded-md border border-dashed border-white/[0.1] bg-[#1E1E1E]/40 flex flex-col items-center justify-center p-4 text-center">
                 <IconCircle icon={Info} color="#6B7280" size="w-10 h-10" />
                 <p className="text-gray-500 text-[0.8vw] mt-3 leading-snug">Ces hypothèses servent de base<br/>aux projections sur 20 ans.</p>
               </div>
             );
           }
           return (
-            <div key={i} className="rounded-xl bg-[#1E1E1E]/80 border border-white/[0.06] p-5">
+            <div key={i} className="rounded-md bg-[#1E1E1E]/80 border border-[#16201f] p-5">
               <IconCircle icon={card.icon} color={card.color} size="w-10 h-10" />
               <p className="text-gray-500 text-[0.7vw] uppercase tracking-wider mt-3">{card.label}</p>
-              <p className="text-[#2A9D8F] text-[1.3vw] font-bold mt-1">{card.value}</p>
+              <p className="text-[#33d6c0] text-[1.3vw] font-bold mt-1">{card.value}</p>
               {card.detail && <p className="text-gray-400 text-[0.75vw] mt-1 whitespace-pre-line leading-snug">{card.detail}</p>}
             </div>
           );
@@ -579,7 +579,7 @@ function ConditionsSlide({ slide }) {
   const montant = items.find(i => i.label?.toLowerCase().includes('emprunt') || i.label?.toLowerCase().includes('montant'))?.value || "—";
 
   const condCards = [
-    { icon: Calendar, color: "#2A9D8F", label: "DURÉE DU PRÊT", value: duree.replace(/\D*(\d+)\D*/, '$1'), suffix: "ANS" },
+    { icon: Calendar, color: "#33d6c0", label: "DURÉE DU PRÊT", value: duree.replace(/\D*(\d+)\D*/, '$1'), suffix: "ANS" },
     { icon: Percent, color: "#6366F1", label: "TYPE DE TAUX", value: "TAUX FIXE", suffix: null },
     { icon: HandCoins, color: "#10B981", label: "MONTANT MAXIMUM EMPRUNTÉ", value: montant, suffix: null },
   ];
@@ -594,7 +594,7 @@ function ConditionsSlide({ slide }) {
             <IconCircle icon={card.icon} color={card.color} size="w-16 h-16" />
             <p className="text-gray-400 text-[0.8vw] uppercase tracking-wider mt-5">{card.label}</p>
             <p className="mt-3">
-              <span className="text-[#2A9D8F] text-[3vw] font-extrabold">{card.value}</span>
+              <span className="text-[#33d6c0] text-[3vw] font-extrabold">{card.value}</span>
               {card.suffix && <span className="text-gray-400 text-[1.2vw] ml-1 align-super">{card.suffix}</span>}
             </p>
           </InfoCard>
@@ -613,8 +613,8 @@ function CVSlide({ slide }) {
       <SlideTitle title="STRUCTURATION DE L'OPÉRATION" subtitle="ORGANISATION JURIDIQUE ET CAPITALISTIQUE" />
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="flex gap-8 mb-8">
-          <InfoCard color="#2A9D8F" className="w-56 text-center py-6">
-            <IconCircle icon={Users} color="#2A9D8F" size="w-12 h-12" />
+          <InfoCard color="#33d6c0" className="w-56 text-center py-6">
+            <IconCircle icon={Users} color="#33d6c0" size="w-12 h-12" />
             <p className="text-white text-[1.1vw] font-semibold mt-3">{c.nom || "Investisseur"}</p>
             <p className="text-gray-500 text-[0.75vw] uppercase tracking-wider mt-1">PERSONNE PHYSIQUE</p>
           </InfoCard>
@@ -628,7 +628,7 @@ function CVSlide({ slide }) {
           <p className="text-white text-[1.1vw] font-bold mt-3">SOCIÉTÉ CIVILE</p>
           <p className="text-gray-500 text-[0.75vw] uppercase tracking-wider mt-1">STRUCTURE MORALE & SUPPORT<br/>D'INVESTISSEMENT</p>
         </InfoCard>
-        <div className="mt-6 bg-[#2A2210] border border-[#F59E0B]/30 rounded-xl p-4 flex items-center gap-3 max-w-md">
+        <div className="mt-6 bg-[#2A2210] border border-[#F59E0B]/30 rounded-md p-4 flex items-center gap-3 max-w-md">
           <FileText className="w-5 h-5 text-[#F59E0B] flex-shrink-0" />
           <div>
             <p className="text-[#F59E0B] text-[0.8vw] font-bold uppercase">EN COURS DE FINALISATION</p>
@@ -687,7 +687,7 @@ function ContactSlide({ slide }) {
         <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center mx-auto mb-8">
           <Building2 className="w-4 h-4 text-white/60" />
         </div>
-        <div className="w-20 h-[2px] bg-[#2A9D8F] mx-auto mb-8" />
+        <div className="w-20 h-[2px] bg-[#33d6c0] mx-auto mb-8" />
         <h2 className="text-[3vw] font-extrabold text-white uppercase">{c.message || "Merci pour votre attention"}</h2>
         {c.client_name && <p className="text-white text-[1.4vw] font-light mt-4">{c.client_name}</p>}
         {c.client_email && (
@@ -695,7 +695,7 @@ function ContactSlide({ slide }) {
             <Mail className="w-4 h-4" /> {c.client_email}
           </p>
         )}
-        <div className="w-20 h-[2px] bg-[#2A9D8F] mx-auto mt-8" />
+        <div className="w-20 h-[2px] bg-[#33d6c0] mx-auto mt-8" />
       </div>
     </div>
   );

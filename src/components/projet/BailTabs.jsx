@@ -12,14 +12,14 @@ moment.locale("fr");
 const tabStyle = (active) =>
   `px-4 py-2 text-sm transition-all duration-200 border-b-2 ${
     active
-      ? "text-white border-[#2A9D8F]"
+      ? "text-white border-[#33d6c0]"
       : "text-gray-500 border-transparent hover:text-gray-300"
   }`;
 
 function InfoCard({ label, value, accent, badge, note, onDelete, showDelete }) {
   if (!value && value !== 0) return null;
   return (
-    <div className="bg-gray-800/30 border border-gray-700/40 rounded-xl p-4 flex flex-col gap-2 hover:border-gray-600/50 transition-colors relative">
+    <div className="bg-gray-800/30 border border-gray-700/40 rounded-md p-4 flex flex-col gap-2 hover:border-gray-600/50 transition-colors relative">
       {showDelete && (
         <Button
           variant="ghost"

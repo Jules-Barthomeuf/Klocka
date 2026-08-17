@@ -19,12 +19,12 @@ export default function SimKpiRow({ calculs, anneeRevente, formatCurrency }) {
   { label: `TRI brut sur ${anneeRevente} ans`, value: `${ind.triBrut}%` }];
 
   return (
-    <div className="border border-white/[0.08] rounded-md bg-[#0c0c0c] overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+    <div className="border border-[#1c2725] rounded-md bg-[#0c0c0c] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#16201f] flex items-center justify-between">
         <p className="text-white text-sm font-medium">Indicateurs clés</p>
         <p className="text-[11px] text-gray-500">sur {anneeRevente} ans</p>
       </div>
-      <div className="flex divide-x divide-white/[0.06]">
+      <div className="flex divide-x divide-[#16201f]">
         {cards.map((c, i) =>
         <Kpi key={i} label={c.label} value={c.value} accent={c.accent} />
         )}

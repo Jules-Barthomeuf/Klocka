@@ -62,7 +62,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
           <Button
             size="sm"
             onClick={() => setShowForm(!showForm)}
-            className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/80 text-white gap-1.5"
+            className="bg-[#33d6c0] hover:bg-[#33d6c0]/80 text-white gap-1.5"
           >
             <Plus className="w-4 h-4" />
             Ajouter une AG
@@ -72,7 +72,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
 
       {/* Formulaire d'ajout */}
       {showForm && (
-        <div className="mb-6 p-5 bg-gray-800/50 rounded-xl border border-[#2A9D8F]/30 space-y-4">
+        <div className="mb-6 p-5 bg-gray-800/50 rounded-md border border-[#33d6c0]/30 space-y-4">
           <div>
             <label className="text-sm text-gray-400 mb-1 block">Année</label>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -120,7 +120,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                 <Button
                   onClick={handleAdd}
                   disabled={saving}
-                  className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/80 text-white gap-1.5"
+                  className="bg-[#33d6c0] hover:bg-[#33d6c0]/80 text-white gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? "Enregistrement..." : "Enregistrer"}
@@ -146,15 +146,15 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
             return (
               <div
                 key={idx}
-                className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden"
+                className="bg-gray-800/50 rounded-md border border-gray-700 overflow-hidden"
               >
                 <button
                   onClick={() => setExpandedAG(isExpanded ? null : idx)}
                   className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-800/80 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#2A9D8F]/20 flex items-center justify-center">
-                      <CalendarDays className="w-5 h-5 text-[#2A9D8F]" />
+                    <div className="w-10 h-10 rounded-lg bg-[#33d6c0]/20 flex items-center justify-center">
+                      <CalendarDays className="w-5 h-5 text-[#33d6c0]" />
                     </div>
                     <span className="text-white font-medium">AG {ag.annee}</span>
                   </div>

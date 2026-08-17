@@ -14,7 +14,7 @@ export default function ProjectFormDiagnosticsTab({ formData, setFormData }) {
       <h3 className="text-xl text-white mb-6">Diagnostiques énergétiques</h3>
       
       {/* DPE */}
-      <div className="p-6 bg-white/[0.015] rounded-xl border border-white/[0.05]">
+      <div className="p-6 bg-white/[0.015] rounded-md border border-[#131c1b]">
         <h4 className="text-lg text-white mb-4">DPE - Diagnostic de Performance Énergétique</h4>
         <div className="grid grid-cols-2 gap-6">
           <VerificationField fieldKey="dpe_note" formData={formData} setFormData={setFormData}>
@@ -53,7 +53,7 @@ export default function ProjectFormDiagnosticsTab({ formData, setFormData }) {
       </div>
 
       {/* GES */}
-      <div className="p-6 bg-white/[0.015] rounded-xl border border-white/[0.05]">
+      <div className="p-6 bg-white/[0.015] rounded-md border border-[#131c1b]">
         <h4 className="text-lg text-white mb-4">GES - Émissions de gaz à effet de serre</h4>
         <div className="grid grid-cols-2 gap-6">
           <VerificationField fieldKey="ges_note" formData={formData} setFormData={setFormData}>
@@ -92,10 +92,10 @@ export default function ProjectFormDiagnosticsTab({ formData, setFormData }) {
       </div>
 
       {/* Notes diagnostique */}
-      <div className="space-y-4 pt-6 border-t border-white/[0.06]">
+      <div className="space-y-4 pt-6 border-t border-[#16201f]">
         <div className="flex items-center justify-between">
           <Label className="text-white">Notes diagnostique (autres informations)</Label>
-          <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_diagnostique: [...(formData.notes_diagnostique || []), { titre: "", contenu: "" }]})} className="border-white/[0.06] text-white/30 hover:text-white hover:border-[#2A9D8F]/30">
+          <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_diagnostique: [...(formData.notes_diagnostique || []), { titre: "", contenu: "" }]})} className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30">
             <Plus className="w-4 h-4 mr-1" /> Ajouter une note
           </Button>
         </div>

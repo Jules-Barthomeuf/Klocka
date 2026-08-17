@@ -179,45 +179,45 @@ Réponds UNIQUEMENT avec le JSON.`;
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#050807] text-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
             <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">Double Check</h1>
-            <div className="h-px w-16 bg-[#2A9D8F] mt-3" />
+            <div className="h-px w-16 bg-[#33d6c0] mt-3" />
           </div>
           <button onClick={openCreate}
-          className="group flex items-center gap-3 bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/20 hover:border-[#2A9D8F]/50 text-white px-6 py-3 rounded-xl transition-all duration-300">
-            <div className="w-9 h-9 bg-[#2A9D8F]/20 rounded-lg flex items-center justify-center group-hover:bg-[#2A9D8F]/30 transition-colors">
-              <Plus className="w-5 h-5 text-[#2A9D8F]" />
+          className="group flex items-center gap-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 hover:border-[#33d6c0]/50 text-white px-6 py-3 rounded-md transition-all duration-300">
+            <div className="w-9 h-9 bg-[#33d6c0]/20 rounded-lg flex items-center justify-center group-hover:bg-[#33d6c0]/30 transition-colors">
+              <Plus className="w-5 h-5 text-[#33d6c0]" />
             </div>
             <span className="text-sm font-medium">Nouveau check</span>
           </button>
         </div>
 
         {/* Stats */}
-        <div className="bg-[#0A0A0A] rounded-xl border border-white/[0.06] px-5 py-3 mb-6 inline-flex items-center gap-2">
-          <ClipboardCheck className="w-4 h-4 text-[#2A9D8F]" />
+        <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] px-5 py-3 mb-6 inline-flex items-center gap-2">
+          <ClipboardCheck className="w-4 h-4 text-[#33d6c0]" />
           <span className="text-gray-400 text-sm">{items.length} check{items.length !== 1 ? "s" : ""} en cours</span>
         </div>
 
         {/* List */}
         {isLoading ?
         <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 text-[#2A9D8F] animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin" />
           </div> :
         items.length === 0 ?
         <div className="text-center py-20">
-            <div className="w-20 h-20 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-white/[0.03] rounded-md flex items-center justify-center mx-auto mb-6">
               <ClipboardCheck className="w-10 h-10 text-gray-700" />
             </div>
             <h2 className="text-xl font-light text-white mb-2">Aucun double check</h2>
             <p className="text-gray-600 mb-6 text-sm">Créez un check pour analyser un nouveau bien</p>
             <button onClick={openCreate}
-          className="inline-flex items-center gap-2 bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/20 text-white px-5 py-2.5 rounded-xl transition-all text-sm">
-              <Plus className="w-4 h-4 text-[#2A9D8F]" /> Nouveau check
+          className="inline-flex items-center gap-2 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white px-5 py-2.5 rounded-md transition-all text-sm">
+              <Plus className="w-4 h-4 text-[#33d6c0]" /> Nouveau check
             </button>
           </div> :
 
@@ -230,7 +230,7 @@ Réponds UNIQUEMENT avec le JSON.`;
             const date = new Date(item.created_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 
             return (
-              <div key={item.id} className="bg-[#0A0A0A] rounded-xl border border-white/[0.06] hover:border-white/[0.10] transition-all p-5">
+              <div key={item.id} className="bg-[#0a0f0e] rounded-md border border-[#16201f] hover:border-white/[0.10] transition-all p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3 mb-1">
@@ -240,7 +240,7 @@ Réponds UNIQUEMENT avec le JSON.`;
                       <p className="text-gray-500 text-xs mb-3">{adresse}</p>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="h-1.5 flex-1 max-w-[200px] bg-white/[0.04] rounded-full overflow-hidden">
-                          <div className="h-full bg-[#2A9D8F] rounded-full transition-all" style={{ width: `${filledCount / totalCount * 100}%` }} />
+                          <div className="h-full bg-[#33d6c0] rounded-full transition-all" style={{ width: `${filledCount / totalCount * 100}%` }} />
                         </div>
                         <span className="text-gray-600 text-[10px]">{filledCount}/{totalCount}</span>
                       </div>
@@ -255,7 +255,7 @@ Réponds UNIQUEMENT avec le JSON.`;
                           Check IA
                         </button>}
                         <button onClick={() => handleConvert(item)} disabled={isConverting === item.id}
-                      className="flex items-center gap-1.5 text-[#2A9D8F] hover:text-[#2A9D8F]/80 text-xs px-3 py-1.5 rounded-lg bg-[#2A9D8F]/10 hover:bg-[#2A9D8F]/15 transition-all disabled:opacity-50">
+                      className="flex items-center gap-1.5 text-[#33d6c0] hover:text-[#33d6c0]/80 text-xs px-3 py-1.5 rounded-lg bg-[#33d6c0]/10 hover:bg-[#33d6c0]/15 transition-all disabled:opacity-50">
                           {isConverting === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
                           Créer projet
                         </button>
@@ -275,7 +275,7 @@ Réponds UNIQUEMENT avec le JSON.`;
 
       {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {if (!open) closeDialog();else setIsDialogOpen(true);}}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#050505] border-white/[0.08]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#050505] border-[#1c2725]">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle className="text-xl font-light text-white">
@@ -290,7 +290,7 @@ Réponds UNIQUEMENT avec le JSON.`;
             <div className="space-y-2">
               <label className="text-white text-sm font-medium">Titre / Référence</label>
               <Input value={titre} onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex: 45 rue de la République - Lyon" className="bg-slate-800 text-white px-3 py-1 text-base rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-white/[0.08] h-11" />
+              placeholder="Ex: 45 rue de la République - Lyon" className="bg-slate-800 text-white px-3 py-1 text-base rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#1c2725] h-11" />
               
             </div>
 
@@ -300,15 +300,15 @@ Réponds UNIQUEMENT avec le JSON.`;
               <label className="text-white text-sm font-medium">Notes libres</label>
               <Textarea value={notesLibres} onChange={(e) => setNotesLibres(e.target.value)}
               placeholder="Ajoutez vos notes ici..."
-              className="bg-[#0A0A0A] text-white border-white/[0.08] min-h-[150px]" rows={8} />
+              className="bg-[#0a0f0e] text-white border-[#1c2725] min-h-[150px]" rows={8} />
             </div>
           </div>
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/[0.06]">
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#16201f]">
             <Button variant="ghost" onClick={closeDialog} className="text-gray-400 hover:text-white">Annuler</Button>
             <Button onClick={handleSave} disabled={!titre.trim() || createMutation.isPending || updateMutation.isPending}
-            className="bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/25 text-white">
+            className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white">
               {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              <CheckCircle2 className="w-4 h-4 mr-1 text-[#2A9D8F]" />
+              <CheckCircle2 className="w-4 h-4 mr-1 text-[#33d6c0]" />
               {editingItem ? "Mettre à jour" : "Créer"}
             </Button>
           </div>

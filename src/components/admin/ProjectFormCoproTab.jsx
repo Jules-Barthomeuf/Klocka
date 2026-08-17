@@ -55,21 +55,21 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
         </div>
 
         {/* Assemblées Générales */}
-        <div className="space-y-4 pt-4 border-t border-white/[0.06]">
+        <div className="space-y-4 pt-4 border-t border-[#16201f]">
           <div className="flex items-center justify-between">
             <Label className="text-white">Assemblées Générales</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, assemblees_generales: [...(formData.assemblees_generales || []), { annee: new Date().getFullYear(), synthese: "", resolutions_votees: "", resolutions_refusees: "" }]})} className="border-white/[0.06] text-white/30 hover:text-white hover:border-[#2A9D8F]/30">
+            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, assemblees_generales: [...(formData.assemblees_generales || []), { annee: new Date().getFullYear(), synthese: "", resolutions_votees: "", resolutions_refusees: "" }]})} className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30">
               <Plus className="w-4 h-4 mr-1" /> Ajouter une AG
             </Button>
           </div>
           {(formData.assemblees_generales || []).map((ag, idx) => (
-            <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3 border border-white/[0.06]">
+            <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3 border border-[#16201f]">
               <div className="flex items-center gap-3">
                 <div className="space-y-1 w-32">
                   <Label className="text-gray-400 text-xs">Année</Label>
                   <Select value={String(ag.annee || new Date().getFullYear())} onValueChange={(value) => { const updated = [...formData.assemblees_generales]; updated[idx].annee = parseInt(value); setFormData({...formData, assemblees_generales: updated}); }}>
-                    <SelectTrigger className="bg-[#161616] text-white border-white/[0.08]"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-[#161616] text-white border-white/[0.08] max-h-60">
+                    <SelectTrigger className="bg-[#161616] text-white border-[#1c2725]"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[#161616] text-white border-[#1c2725] max-h-60">
                       {Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - i).map((y) => (<SelectItem key={y} value={String(y)}>{y}</SelectItem>))}
                     </SelectContent>
                   </Select>
@@ -92,10 +92,10 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
         </div>
 
         {/* Notes libres */}
-        <div className="space-y-4 pt-4 border-t border-white/[0.06]">
+        <div className="space-y-4 pt-4 border-t border-[#16201f]">
           <div className="flex items-center justify-between">
             <Label className="text-white">Notes libres</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_libres: [...(formData.notes_libres || []), { titre: "", contenu: "" }]})} className="border-white/[0.06] text-white/30 hover:text-white hover:border-[#2A9D8F]/30">
+            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_libres: [...(formData.notes_libres || []), { titre: "", contenu: "" }]})} className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30">
               <Plus className="w-4 h-4 mr-1" /> Ajouter une note
             </Button>
           </div>

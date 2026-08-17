@@ -178,8 +178,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   }
 
   const pieDataBudget = [
-    { name: 'Prix négocié', value: prixBienNegocie, fill: '#2A9D8F' },
-    { name: "Droits enreg.", value: droitsEnregistrement, fill: '#71CCBA' },
+    { name: 'Prix négocié', value: prixBienNegocie, fill: '#33d6c0' },
+    { name: "Droits enreg.", value: droitsEnregistrement, fill: '#5ee7d4' },
     { name: 'Honoraires', value: totalFraisKlocka, fill: '#F59E0B' },
     { name: 'Frais divers', value: fraisDivers, fill: '#EF4444' }
   ];
@@ -244,11 +244,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="min-h-screen bg-black overflow-x-hidden">
+      className="min-h-screen bg-[#050807] overflow-x-hidden">
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-black border-none [&>button]:hidden">
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-[#050807] border-none [&>button]:hidden">
           <div className="relative w-full h-full flex items-center justify-center">
             <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white hover:bg-white/20 z-10 w-14 h-14">
               <X className="w-8 h-8" />
@@ -259,14 +259,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   const currentIndex = project.photos.indexOf(selectedImage);
                   const prevIndex = (currentIndex - 1 + project.photos.length) % project.photos.length;
                   setSelectedImage(project.photos[prevIndex]);
-                }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full w-16 h-16 z-10">
+                }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-[#050807]/50 hover:bg-[#050807]/70 text-white rounded-full w-16 h-16 z-10">
                   <ChevronLeft className="w-10 h-10" />
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => {
                   const currentIndex = project.photos.indexOf(selectedImage);
                   const nextIndex = (currentIndex + 1) % project.photos.length;
                   setSelectedImage(project.photos[nextIndex]);
-                }} className="absolute right-6 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full w-16 h-16 z-10">
+                }} className="absolute right-6 top-1/2 -translate-y-1/2 bg-[#050807]/50 hover:bg-[#050807]/70 text-white rounded-full w-16 h-16 z-10">
                   <ChevronRight className="w-10 h-10" />
                 </Button>
               </>
@@ -277,7 +277,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       </Dialog>
 
       {/* Banner */}
-      <div className="w-full bg-black h-48 md:h-72 lg:h-96 overflow-hidden px-2 md:px-6">
+      <div className="w-full bg-[#050807] h-48 md:h-72 lg:h-96 overflow-hidden px-2 md:px-6">
         <div className="flex h-full gap-2 md:gap-3 overflow-hidden py-2 md:py-3">
           <div className="flex-1 min-w-0">
             <div className="w-full h-full rounded-lg overflow-hidden relative">
@@ -288,7 +288,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   <p className="text-white/30 text-sm">Aucune adresse renseignée</p>
                 </div>
               )}
-              <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded pointer-events-none">Carte</div>
+              <div className="absolute bottom-2 left-2 bg-[#050807]/60 text-white text-xs px-2 py-0.5 rounded pointer-events-none">Carte</div>
             </div>
           </div>
           {project.photos && project.photos.length > 0 && (
@@ -303,7 +303,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       </div>
 
       {project.photos && project.photos.length > 0 && (
-        <div className="md:hidden flex gap-2 overflow-x-auto px-3 py-2 bg-black" style={{ scrollbarWidth: 'none' }}>
+        <div className="md:hidden flex gap-2 overflow-x-auto px-3 py-2 bg-[#050807]" style={{ scrollbarWidth: 'none' }}>
           {project.photos.map((photo, idx) => (
             <img key={idx} src={photo} alt={`Photo ${idx + 1}`} onClick={() => setSelectedImage(photo)}
               className="h-20 w-32 object-cover rounded-lg flex-shrink-0 cursor-pointer" />
@@ -325,17 +325,17 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     <NeonButton variant="solid" className="md:min-w-[280px] max-md:w-full" onClick={() => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}>
                       Voir le simulateur complet
                     </NeonButton>
-                    <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] rounded-full text-white text-sm transition-all max-md:w-full max-md:justify-center"
+                    <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-[#131c1b] rounded-full text-white text-sm transition-all max-md:w-full max-md:justify-center"
                       onClick={() => navigate(`${createPageUrl("Comparateur")}?preselect=${project.id}`)}>
                       <Calculator className="w-4 h-4" />
                       Comparer
                     </button>
-                    <button className="inline-flex items-center justify-center w-9 h-9 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] rounded-full text-white transition-all max-md:hidden"
+                    <button className="inline-flex items-center justify-center w-9 h-9 bg-white/[0.02] hover:bg-white/[0.05] border border-[#131c1b] rounded-full text-white transition-all max-md:hidden"
                       onClick={() => window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank')}>
                       <ExternalLink className="w-4 h-4" />
                     </button>
                     {project.documents && project.documents.length > 0 && (
-                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] rounded-full text-[#2A9D8F] text-sm transition-all max-md:w-full max-md:justify-center"
+                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-[#131c1b] rounded-full text-[#33d6c0] text-sm transition-all max-md:w-full max-md:justify-center"
                         onClick={() => window.open(project.documents[0], '_blank')}>
                         <Download className="w-4 h-4" />
                         Documents ({project.documents.length})
@@ -349,7 +349,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       Voir le simulateur complet
                     </NeonButton>
                     {project.documents && project.documents.length > 0 && (
-                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] rounded-full text-[#2A9D8F] text-sm transition-all max-md:w-full max-md:justify-center"
+                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-[#131c1b] rounded-full text-[#33d6c0] text-sm transition-all max-md:w-full max-md:justify-center"
                         onClick={() => window.open(project.documents[0], '_blank')}>
                         <Download className="w-4 h-4" />
                         Documents ({project.documents.length})
@@ -367,7 +367,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         </motion.div>
 
         <Tabs defaultValue="secteur" className="w-full mt-8 max-md:mt-6">
-          <TabsList className="w-full flex justify-start gap-4 max-md:gap-2 bg-transparent border-b border-white/[0.05] mb-8 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <TabsList className="w-full flex justify-start gap-4 max-md:gap-2 bg-transparent border-b border-[#131c1b] mb-8 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               { v: "secteur", l: "Secteur" },
               { v: "marche", l: "Marché" },
@@ -378,7 +378,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               { v: "diagnostique", l: "Diagnostique" },
               { v: "documents_projet", l: "Documents" },
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="relative bg-transparent border-0 text-white/30 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2A9D8F] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              <TabsTrigger key={v} value={v} className="relative bg-transparent border-0 text-white/30 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
                 {l}
               </TabsTrigger>
             ))}
@@ -387,11 +387,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <TabsContent value="secteur" className="space-y-6 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               {(project.description_ville || project.description_secteur || project.ville_secteur_champ1) && (
-                <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8 mb-6">
+                <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8 mb-6">
                   {(project.ville_secteur_champ1 || project.ville_secteur_champ2 || project.ville_secteur_champ3) && (
                     <div className="flex gap-2 mb-5 flex-wrap">
-                      {project.ville_secteur_champ1 && <Badge className="bg-[#2A9D8F] text-white py-1 px-4">{project.ville_secteur_champ1}</Badge>}
-                      {project.ville_secteur_champ2 && <Badge className="bg-[#71CCBA] text-white py-1 px-4">{project.ville_secteur_champ2}</Badge>}
+                      {project.ville_secteur_champ1 && <Badge className="bg-[#33d6c0] text-white py-1 px-4">{project.ville_secteur_champ1}</Badge>}
+                      {project.ville_secteur_champ2 && <Badge className="bg-[#5ee7d4] text-white py-1 px-4">{project.ville_secteur_champ2}</Badge>}
                       {project.ville_secteur_champ3 && <Badge className="bg-white/10 text-white py-1 px-4">{project.ville_secteur_champ3}</Badge>}
                     </div>
                   )}
@@ -418,7 +418,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="marche" className="space-y-8 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
                 {project.marche_quartier_nom && (
                   <div className="mb-8">
                     <p className="text-xs text-white/30 uppercase tracking-wider mb-1">Quartier / Secteur</p>
@@ -428,12 +428,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 {!project.marche_masquer_secteurs && project.marche_secteurs && project.marche_secteurs.length > 0 && (
                   <div className="mb-10">
                     <h3 className="text-xl max-md:text-lg text-white mb-4 flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-[#2A9D8F]" />
+                      <MapPin className="w-5 h-5 text-[#33d6c0]" />
                       Secteurs & Localisation
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {project.marche_secteurs.map((secteur, idx) => (
-                        <div key={idx} className="p-5 bg-white/[0.03]/50 rounded-xl border border-white/[0.05]">
+                        <div key={idx} className="p-5 bg-white/[0.03]/50 rounded-md border border-[#131c1b]">
                           <p className="text-white font-medium mb-3">{secteur.nom || `Secteur ${idx + 1}`}</p>
                           <div className="flex items-center gap-4">
                             <div className="flex-1">
@@ -477,13 +477,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     )}
                     <div className="grid grid-cols-2 gap-4 max-md:gap-3">
                       {project.marche_evolution_1an != null && project.marche_evolution_1an !== 0 && (
-                        <div className="p-4 bg-white/[0.03]/50 rounded-xl">
+                        <div className="p-4 bg-white/[0.03]/50 rounded-md">
                           <p className="text-xs text-white/30 mb-1">Évolution 1 an</p>
                           <p className={`text-2xl font-semibold ${project.marche_evolution_1an >= 0 ? 'text-green-400' : 'text-red-400'}`}>{project.marche_evolution_1an >= 0 ? '+' : ''}{project.marche_evolution_1an}%</p>
                         </div>
                       )}
                       {project.marche_evolution_5ans != null && project.marche_evolution_5ans !== 0 && (
-                        <div className="p-4 bg-white/[0.03]/50 rounded-xl">
+                        <div className="p-4 bg-white/[0.03]/50 rounded-md">
                           <p className="text-xs text-white/30 mb-1">Évolution 5 ans</p>
                           <p className={`text-2xl font-semibold ${project.marche_evolution_5ans >= 0 ? 'text-green-400' : 'text-red-400'}`}>{project.marche_evolution_5ans >= 0 ? '+' : ''}{project.marche_evolution_5ans}%</p>
                         </div>
@@ -541,11 +541,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   </div>
                 )}
                 {project.notes_marche && project.notes_marche.length > 0 && (
-                  <div className="mt-8 max-md:mt-6 pt-6 max-md:pt-4 border-t border-white/[0.05]">
+                  <div className="mt-8 max-md:mt-6 pt-6 max-md:pt-4 border-t border-[#131c1b]">
                     <h3 className="font-light text-white mb-4 max-md:mb-2 text-lg">Notes</h3>
                     <div className="space-y-3">
                       {project.notes_marche.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
                           {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
                           <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
                         </div>
@@ -559,12 +559,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="bien" className="space-y-8 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
                 <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Le bien</h2>
                 {(project.bien_champ1 || project.bien_champ2 || project.bien_champ3) &&
                   <div className="flex gap-3 max-md:gap-2 mb-6 max-md:mb-4 flex-wrap">
-                    {project.bien_champ1 && <Badge className="bg-[#2A9D8F] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ1}</Badge>}
-                    {project.bien_champ2 && <Badge className="bg-[#71CCBA] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ2}</Badge>}
+                    {project.bien_champ1 && <Badge className="bg-[#33d6c0] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ1}</Badge>}
+                    {project.bien_champ2 && <Badge className="bg-[#5ee7d4] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ2}</Badge>}
                     {project.bien_champ3 && <Badge className="bg-gray-700 text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ3}</Badge>}
                   </div>
                 }
@@ -573,11 +573,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   <div className="text-center py-12 max-md:py-6"><p className="text-white/30 max-md:text-sm">Aucune information dans cette partie</p></div>
                 }
                 {project.notes_bien && project.notes_bien.length > 0 &&
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-white/[0.05]">
+                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
                     <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Notes</h3>
                     <div className="space-y-4">
                       {project.notes_bien.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
                           {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
                           <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
                         </div>
@@ -591,12 +591,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="locataire" className="space-y-8 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
                 <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Le locataire</h2>
                 <div className="grid md:grid-cols-2 gap-6 max-md:gap-4 mb-6 max-md:mb-4">
                   {project.nom_locataire && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Nom</p><p className="text-lg max-md:text-base font-semibold text-white">{project.nom_locataire}</p></div>}
                   {project.activite_locataire && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Activité</p><p className="text-lg max-md:text-base font-semibold text-white">{project.activite_locataire}</p></div>}
-                  {(project.sim_loyer_initial_ht > 0 || project.loyer_annuel_ht > 0) && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Loyer annuel</p><p className="text-lg max-md:text-base font-semibold text-[#2A9D8F]">{(project.sim_loyer_initial_ht || project.loyer_annuel_ht)?.toLocaleString()}€ HT HC</p></div>}
+                  {(project.sim_loyer_initial_ht > 0 || project.loyer_annuel_ht > 0) && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Loyer annuel</p><p className="text-lg max-md:text-base font-semibold text-[#33d6c0]">{(project.sim_loyer_initial_ht || project.loyer_annuel_ht)?.toLocaleString()}€ HT HC</p></div>}
                   {project.echeance_bail && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Échéance du bail</p><p className="text-lg max-md:text-base font-semibold text-white">{moment(project.echeance_bail).format('DD MMMM YYYY')}</p></div>}
                   {(project.sim_surface > 0 || project.loyer_m2_an > 0) && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Loyer par m²</p><p className="text-lg max-md:text-base font-semibold text-white">{project.sim_surface > 0 && project.sim_loyer_initial_ht > 0 ? Math.round(project.sim_loyer_initial_ht / project.sim_surface) : project.loyer_m2_an} €/m²/an</p></div>}
                   {!project.nom_locataire && !project.activite_locataire && (project.sim_loyer_initial_ht <= 0 && project.loyer_annuel_ht <= 0) && !project.echeance_bail && (project.sim_surface <= 0 && !project.loyer_m2_an) &&
@@ -605,25 +605,25 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 </div>
                 <LocataireLiensSociaux liens={project.liens_locataire} />
                 {project.bilans_locataire && project.bilans_locataire.length > 0 && (
-                  <div className="mt-6 max-md:mt-4 pt-6 max-md:pt-4 border-t border-white/[0.05]">
+                  <div className="mt-6 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
                     <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Bilans financiers</h3>
                     <div className="grid md:grid-cols-2 gap-3">
                       {project.bilans_locataire.sort((a, b) => (b.annee || "").localeCompare(a.annee || "")).map((bilan, idx) => (
-                        <a key={idx} href={bilan.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-white/[0.02] rounded-xl border border-white/[0.05] hover:border-[#2A9D8F]/50 hover:bg-white/[0.03] transition-all duration-300 group">
-                          <div className="w-10 h-10 bg-[#2A9D8F]/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-[#2A9D8F]/30 transition-colors"><FileText className="w-5 h-5 text-[#2A9D8F]" /></div>
+                        <a key={idx} href={bilan.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-white/[0.02] rounded-md border border-[#131c1b] hover:border-[#33d6c0]/50 hover:bg-white/[0.03] transition-all duration-300 group">
+                          <div className="w-10 h-10 bg-[#33d6c0]/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-[#33d6c0]/30 transition-colors"><FileText className="w-5 h-5 text-[#33d6c0]" /></div>
                           <div className="flex-1 min-w-0"><p className="text-white text-sm font-medium truncate">{bilan.nom}</p>{bilan.annee && <p className="text-white/20 text-xs">Année {bilan.annee}</p>}</div>
-                          <Download className="w-4 h-4 text-white/20 group-hover:text-[#2A9D8F] transition-colors flex-shrink-0" />
+                          <Download className="w-4 h-4 text-white/20 group-hover:text-[#33d6c0] transition-colors flex-shrink-0" />
                         </a>
                       ))}
                     </div>
                   </div>
                 )}
                 {project.notes_locataire && project.notes_locataire.length > 0 &&
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-white/[0.05]">
+                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
                     <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Notes</h3>
                     <div className="space-y-4">
                       {project.notes_locataire.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
                           {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
                           <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
                         </div>
@@ -637,7 +637,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="bail" className="space-y-8 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
                 <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Analyse du bail</h2>
                 <BailTabs project={project} />
               </div>
@@ -646,7 +646,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="copropriete" className="space-y-8 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
                 <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">La copropriété</h2>
                 <div className="grid md:grid-cols-2 gap-6 max-md:gap-4">
                   {project.charges_copropriete > 0 && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Charges de la copro</p><p className="text-lg max-md:text-base font-semibold text-white">{project.charges_copropriete} €</p></div>}
@@ -661,13 +661,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 {(project.activites_autorisees || project.activites_interdites) &&
                   <div className="grid md:grid-cols-2 gap-6 max-md:gap-4 mt-6">
                     {project.activites_autorisees &&
-                      <div className="p-4 bg-green-900/20 rounded-xl border border-green-500/30">
+                      <div className="p-4 bg-green-900/20 rounded-md border border-green-500/30">
                         <p className="text-sm max-md:text-xs text-green-400 mb-3 font-semibold">✓ Activités autorisées</p>
                         <ul className="space-y-1">{project.activites_autorisees.split(',').map((activite, idx) => (<li key={idx} className="text-sm text-white/60">• {activite.trim()}</li>))}</ul>
                       </div>
                     }
                     {project.activites_interdites &&
-                      <div className="p-4 bg-red-900/20 rounded-xl border border-red-500/30">
+                      <div className="p-4 bg-red-900/20 rounded-md border border-red-500/30">
                         <p className="text-sm max-md:text-xs text-red-400 mb-3 font-semibold">✗ Activités interdites</p>
                         <ul className="space-y-1">{project.activites_interdites.split(',').map((activite, idx) => (<li key={idx} className="text-sm text-white/60">• {activite.trim()}</li>))}</ul>
                       </div>
@@ -675,7 +675,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   </div>
                 }
                 {project.synthese_assemblee_generale && project.synthese_assemblee_generale.trim() && (
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-white/[0.05]">
+                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
                     <h3 className="font-light text-white mb-3 max-md:mb-2 max-md:text-lg">Synthèse de l'assemblée générale</h3>
                     <div className="text-white/60 leading-relaxed whitespace-pre-wrap max-md:text-sm">{project.synthese_assemblee_generale}</div>
                   </div>
@@ -683,13 +683,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 {(project.resolutions_votees || project.resolutions_refusees) &&
                   <div className="grid md:grid-cols-2 gap-6 max-md:gap-4 mt-6">
                     {project.resolutions_votees &&
-                      <div className="p-4 bg-green-900/20 rounded-xl border border-green-500/30">
+                      <div className="p-4 bg-green-900/20 rounded-md border border-green-500/30">
                         <p className="text-sm max-md:text-xs text-green-400 mb-3 font-semibold">✓ Résolutions votées</p>
                         <div className="text-sm text-white/60 whitespace-pre-wrap">{project.resolutions_votees}</div>
                       </div>
                     }
                     {project.resolutions_refusees &&
-                      <div className="p-4 bg-red-900/20 rounded-xl border border-red-500/30">
+                      <div className="p-4 bg-red-900/20 rounded-md border border-red-500/30">
                         <p className="text-sm max-md:text-xs text-red-400 mb-3 font-semibold">✗ Résolutions non acceptées</p>
                         <div className="text-sm text-white/60 whitespace-pre-wrap">{project.resolutions_refusees}</div>
                       </div>
@@ -698,11 +698,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 }
                 <AssembleesGeneralesSection project={project} isAdmin={isAdmin && !showAsClient} showAsClient={showAsClient} />
                 {project.notes_libres && project.notes_libres.length > 0 &&
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-white/[0.05]">
+                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
                     <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Notes</h3>
                     <div className="space-y-4">
                       {project.notes_libres.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
                           {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
                           <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
                         </div>
@@ -716,7 +716,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="diagnostique" className="space-y-8 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
                 <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Diagnostiques énergétiques</h2>
                 <div className="grid md:grid-cols-2 gap-8 max-md:gap-6">
                   {project.dpe_note && (
@@ -761,11 +761,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   )}
                 </div>
                 {project.notes_diagnostique && project.notes_diagnostique.length > 0 && (
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-white/[0.05]">
+                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
                     <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Notes</h3>
                     <div className="space-y-4">
                       {project.notes_diagnostique.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
                           {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
                           <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
                         </div>
@@ -782,15 +782,15 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="documents_projet" className="space-y-8 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
                 <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Documents du projet</h2>
                 {project.fichiers_projet && project.fichiers_projet.length > 0 ? (
                   <div className="grid md:grid-cols-2 gap-4">
                     {project.fichiers_projet.map((fichier, idx) => (
-                      <a key={idx} href={fichier.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-white/[0.02] rounded-xl border border-white/[0.05] hover:border-[#2A9D8F]/50 hover:bg-white/[0.03] transition-all duration-300 group">
-                        <div className="w-12 h-12 bg-[#2A9D8F]/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-[#2A9D8F]/30 transition-colors"><FileText className="w-6 h-6 text-[#2A9D8F]" /></div>
+                      <a key={idx} href={fichier.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-white/[0.02] rounded-md border border-[#131c1b] hover:border-[#33d6c0]/50 hover:bg-white/[0.03] transition-all duration-300 group">
+                        <div className="w-12 h-12 bg-[#33d6c0]/20 rounded-md flex items-center justify-center flex-shrink-0 group-hover:bg-[#33d6c0]/30 transition-colors"><FileText className="w-6 h-6 text-[#33d6c0]" /></div>
                         <div className="flex-1 min-w-0"><p className="text-white font-medium truncate">{fichier.nom}</p><p className="text-white/20 text-xs">Cliquez pour télécharger</p></div>
-                        <Download className="w-5 h-5 text-white/20 group-hover:text-[#2A9D8F] transition-colors flex-shrink-0" />
+                        <Download className="w-5 h-5 text-white/20 group-hover:text-[#33d6c0] transition-colors flex-shrink-0" />
                       </a>
                     ))}
                   </div>
@@ -808,19 +808,19 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         {/* Synthèse financière */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="mt-12 max-md:mt-6 pt-10 max-md:pt-6">
           <div className="mb-8">
-            <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">Finances</p>
+            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">Finances</p>
             <h2 className="text-2xl md:text-3xl font-light text-white tracking-tight">Synthèse financière</h2>
-            <div className="h-px w-12 bg-[#2A9D8F] mt-3" />
+            <div className="h-px w-12 bg-[#33d6c0] mt-3" />
           </div>
           <div className="grid lg:grid-cols-2 gap-6 max-md:grid-cols-1 max-md:gap-4 mb-8 max-md:mb-4">
-            <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
               <h3 className="text-white text-lg mb-4 font-light">Budget total</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-md:gap-4 max-w-full">
                 <div className="relative flex items-center justify-center w-full order-2 md:order-1">
                   <ResponsiveContainer width="100%" height={200} className="max-w-full">
                     <PieChart>
-                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#2A9D8F' }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
-                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#2A9D8F' }]).map((entry, index) => (
+                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#33d6c0' }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
+                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#33d6c0' }]).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />
                         ))}
                       </Pie>
@@ -852,32 +852,32 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 </div>
               </div>
               {!isPublic ? (
-                <button onClick={() => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)} className="w-full mt-6 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/20 text-white text-sm rounded-full transition-all">
+                <button onClick={() => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)} className="w-full mt-6 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white text-sm rounded-full transition-all">
                   Accéder au simulateur complet
                 </button>
               ) : (
-                <button onClick={openPublicSimulator} className="w-full mt-6 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/20 text-white text-sm rounded-full transition-all">
+                <button onClick={openPublicSimulator} className="w-full mt-6 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white text-sm rounded-full transition-all">
                   Accéder au simulateur complet
                 </button>
               )}
             </div>
 
-            <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
               <h3 className="text-white text-lg mb-6 font-light">Indicateurs clés</h3>
               <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
-                <div className="p-5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                <div className="p-5 bg-white/[0.02] rounded-md border border-[#131c1b]">
                   <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] mb-2">Rendement locatif net</p>
-                  <p className="text-2xl font-light text-[#2A9D8F]">{rendementLocatifNetCalcule.toFixed(2)}%</p>
+                  <p className="text-2xl font-light text-[#33d6c0]">{rendementLocatifNetCalcule.toFixed(2)}%</p>
                 </div>
-                <div className="p-5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                <div className="p-5 bg-white/[0.02] rounded-md border border-[#131c1b]">
                   <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] mb-2">Apport initial</p>
                   <p className="text-2xl font-light text-white">{formatCurrency(apport)}</p>
                 </div>
-                <div className="p-5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                <div className="p-5 bg-white/[0.02] rounded-md border border-[#131c1b]">
                   <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] mb-2">Récupération apport</p>
                   <p className="text-2xl font-light text-white">{anneeRecuperationApport ? `Année ${anneeRecuperationApport}` : 'N/A'}</p>
                 </div>
-                <div className="p-5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                <div className="p-5 bg-white/[0.02] rounded-md border border-[#131c1b]">
                   <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] mb-2">Loyer moyen net</p>
                   <p className="text-2xl font-light text-white">{formatCurrency(loyerMoyenNet)}/an</p>
                 </div>
@@ -888,7 +888,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
         {/* Graphique Création de richesse */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-8 max-md:mt-6">
-          <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-6 md:p-8">
+          <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
             <h3 className="text-white text-lg mb-6 font-light">Création de richesse cumulée</h3>
             <div className="h-80 max-md:h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -934,8 +934,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 })()} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <defs>
                     <linearGradient id="colorTotalShared" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2A9D8F" stopOpacity={0.9} />
-                      <stop offset="95%" stopColor="#2A9D8F" stopOpacity={0.3} />
+                      <stop offset="5%" stopColor="#33d6c0" stopOpacity={0.9} />
+                      <stop offset="95%" stopColor="#33d6c0" stopOpacity={0.3} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -955,7 +955,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     return null;
                   }} />
                   <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  <Area type="monotone" dataKey="totalCumule" stroke="#2A9D8F" strokeWidth={3} fill="url(#colorTotalShared)" name="Richesse cumulée" />
+                  <Area type="monotone" dataKey="totalCumule" stroke="#33d6c0" strokeWidth={3} fill="url(#colorTotalShared)" name="Richesse cumulée" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

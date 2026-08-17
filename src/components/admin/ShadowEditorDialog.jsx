@@ -173,7 +173,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-[#050505] border-white/[0.08]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-[#050505] border-[#1c2725]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -192,10 +192,10 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setViewMode("current")}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md border text-sm transition-all ${
               viewMode === "current"
                 ? "bg-blue-500/15 border-blue-500/40 text-blue-400"
-                : "bg-[#0A0A0A] border-white/[0.06] text-gray-500 hover:text-white"
+                : "bg-[#0a0f0e] border-[#16201f] text-gray-500 hover:text-white"
             }`}
           >
             <Eye className="w-4 h-4" />
@@ -204,10 +204,10 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
           </button>
           <button
             onClick={() => setViewMode("shadow")}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md border text-sm transition-all ${
               viewMode === "shadow"
                 ? "bg-purple-500/15 border-purple-500/40 text-purple-400"
-                : "bg-[#0A0A0A] border-white/[0.06] text-gray-500 hover:text-white"
+                : "bg-[#0a0f0e] border-[#16201f] text-gray-500 hover:text-white"
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -223,7 +223,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
               setTravauxList([...currentTravauxList]);
               toast.success("Données du projet actuel copiées dans le Shadow");
             }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mb-4 rounded-xl border border-dashed border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 text-purple-400 text-xs transition-all"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mb-4 rounded-md border border-dashed border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 text-purple-400 text-xs transition-all"
           >
             <ClipboardPaste className="w-3.5 h-3.5" />
             Copier les données du projet actuel dans le Shadow
@@ -233,7 +233,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
         {/* Form tabs */}
         <div>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-10 bg-[#0A0A0A] border border-white/[0.06] rounded-xl p-1">
+            <TabsList className="grid w-full grid-cols-10 bg-[#0a0f0e] border border-[#16201f] rounded-md p-1">
               <TabsTrigger value="informations" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Infos</TabsTrigger>
               <TabsTrigger value="environnement" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Env.</TabsTrigger>
               <TabsTrigger value="secteur" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Secteur</TabsTrigger>
@@ -265,13 +265,13 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
         </div>
 
         {/* Save button */}
-        <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-white/[0.06]">
+        <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-[#16201f]">
           <button onClick={() => onOpenChange(false)} className="px-5 py-2.5 text-gray-400 hover:text-white text-sm transition-colors">Annuler</button>
           {viewMode === "shadow" ? (
             <button
               onClick={handleSaveShadow}
               disabled={saveShadowMutation.isPending}
-              className="flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25 text-white px-6 py-2.5 rounded-xl transition-all text-sm disabled:opacity-40"
+              className="flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25 text-white px-6 py-2.5 rounded-md transition-all text-sm disabled:opacity-40"
             >
               {saveShadowMutation.isPending
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</>
@@ -282,7 +282,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             <button
               onClick={handleSaveCurrent}
               disabled={saveCurrentMutation.isPending}
-              className="flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 hover:bg-blue-500/25 text-white px-6 py-2.5 rounded-xl transition-all text-sm disabled:opacity-40"
+              className="flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 hover:bg-blue-500/25 text-white px-6 py-2.5 rounded-md transition-all text-sm disabled:opacity-40"
             >
               {saveCurrentMutation.isPending
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</>

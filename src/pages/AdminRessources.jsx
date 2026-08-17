@@ -190,25 +190,25 @@ export default function AdminRessources() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A9D8F]"></div>
+      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black p-4 md:p-8">
+    <div className="min-h-screen bg-[#050807] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">
+            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">
               Administration
             </p>
             <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Ressources</h1>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/20 text-white h-9 px-4 text-sm"
+            className="bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white h-9 px-4 text-sm"
           >
             <Plus className="w-4 h-4 mr-2" />
             Ajouter
@@ -216,9 +216,9 @@ export default function AdminRessources() {
         </div>
 
         {/* Import Google Drive */}
-        <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] mb-6 p-5">
+        <div className="bg-white/[0.015] rounded-md border border-[#131c1b] mb-6 p-5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-[#F59E0B]/[0.07] flex items-center justify-center">
+              <div className="w-9 h-9 rounded-md bg-[#F59E0B]/[0.07] flex items-center justify-center">
                 <FolderOpen className="w-[18px] h-[18px] text-[#F59E0B]" />
               </div>
               <div>
@@ -231,19 +231,19 @@ export default function AdminRessources() {
                 <Input
                   value={driveName}
                   onChange={(e) => setDriveeName(e.target.value)}
-                  className="bg-white/[0.03] border-white/[0.06] text-white h-9 text-sm"
+                  className="bg-white/[0.03] border-[#16201f] text-white h-9 text-sm"
                   placeholder="Nom de la ressource"
                 />
                 <Input
                   value={driveLink}
                   onChange={(e) => setDriveLink(e.target.value)}
-                  className="bg-white/[0.03] border-white/[0.06] text-white h-9 text-sm"
+                  className="bg-white/[0.03] border-[#16201f] text-white h-9 text-sm"
                   placeholder="https://drive.google.com/..."
                 />
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <Select value={driveType} onValueChange={setDriveType}>
-                  <SelectTrigger className="bg-white/[0.03] border-white/[0.06] text-white h-9 w-[140px] text-sm">
+                  <SelectTrigger className="bg-white/[0.03] border-[#16201f] text-white h-9 w-[140px] text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -255,7 +255,7 @@ export default function AdminRessources() {
                   </SelectContent>
                 </Select>
                 <Select value={driveCategorie} onValueChange={setDriveCategorie}>
-                  <SelectTrigger className="bg-white/[0.03] border-white/[0.06] text-white h-9 w-[160px] text-sm">
+                  <SelectTrigger className="bg-white/[0.03] border-[#16201f] text-white h-9 w-[160px] text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,15 +280,15 @@ export default function AdminRessources() {
         </div>
 
         {resources.length === 0 ? (
-          <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-12 text-center">
-              <div className="w-14 h-14 bg-[#2A9D8F]/[0.07] rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <BookOpen className="w-6 h-6 text-[#2A9D8F]" />
+          <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-12 text-center">
+              <div className="w-14 h-14 bg-[#33d6c0]/[0.07] rounded-md flex items-center justify-center mx-auto mb-5">
+                <BookOpen className="w-6 h-6 text-[#33d6c0]" />
               </div>
               <h3 className="text-lg font-light text-white mb-2">Aucune ressource</h3>
               <p className="text-white/20 text-sm mb-6">Commencez par ajouter votre première ressource.</p>
               <Button
                 onClick={() => handleOpenDialog()}
-                className="bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/20 text-white text-sm h-9 px-4"
+                className="bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white text-sm h-9 px-4"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter une ressource
@@ -301,7 +301,7 @@ export default function AdminRessources() {
               return (
                 <div 
                   key={resource.id} 
-                  className="bg-white/[0.015] rounded-2xl border border-white/[0.05] hover:border-[#2A9D8F]/20 transition-all duration-300 cursor-pointer p-4"
+                  className="bg-white/[0.015] rounded-md border border-[#131c1b] hover:border-[#33d6c0]/20 transition-all duration-300 cursor-pointer p-4"
                   onClick={() => handleOpenDialog(resource)}
                 >
                     <div className="flex items-center gap-4">
@@ -323,16 +323,16 @@ export default function AdminRessources() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full bg-[#2A9D8F]/[0.07] flex items-center justify-center">
-                            <Icon className="w-5 h-5 text-[#2A9D8F]" />
+                          <div className="w-full h-full bg-[#33d6c0]/[0.07] flex items-center justify-center">
+                            <Icon className="w-5 h-5 text-[#33d6c0]" />
                           </div>
                         )}
                         {uploadingThumbnailId === resource.id ? (
-                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-[#050807]/70 flex items-center justify-center">
                             <Loader2 className="w-5 h-5 text-white animate-spin" />
                           </div>
                         ) : (
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="absolute inset-0 bg-[#050807]/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
                             <ImagePlus className="w-5 h-5 text-white" />
                           </div>
                         )}
@@ -344,7 +344,7 @@ export default function AdminRessources() {
                             {typeLabels[resource.type]}
                           </span>
                           {resource.categorie && (
-                            <span className="text-[10px] text-[#2A9D8F] bg-[#2A9D8F]/[0.07] px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] text-[#33d6c0] bg-[#33d6c0]/[0.07] px-2 py-0.5 rounded-full">
                               {categorieLabels[resource.categorie]}
                             </span>
                           )}
@@ -375,7 +375,7 @@ export default function AdminRessources() {
                             e.stopPropagation();
                             handleOpenDialog(resource);
                           }}
-                          className="text-white/20 hover:text-[#2A9D8F] hover:bg-white/[0.03] h-8 w-8"
+                          className="text-white/20 hover:text-[#33d6c0] hover:bg-white/[0.03] h-8 w-8"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
@@ -400,7 +400,7 @@ export default function AdminRessources() {
 
         {/* Dialog d'édition */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="bg-[#0a0a0a] border-white/[0.06] max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="bg-[#0a0a0a] border-[#16201f] max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-white font-light text-lg">
                 {editingResource ? "Modifier la ressource" : "Nouvelle ressource"}
@@ -413,7 +413,7 @@ export default function AdminRessources() {
                 <Input
                   value={formData.titre}
                   onChange={(e) => setFormData({ ...formData, titre: e.target.value })}
-                  className="bg-white/[0.03] border-white/[0.06] text-white mt-1 h-9 text-sm"
+                  className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm"
                   placeholder="Titre de la ressource"
                 />
               </div>
@@ -423,7 +423,7 @@ export default function AdminRessources() {
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="bg-white/[0.03] border-white/[0.06] text-white mt-1 text-sm"
+                  className="bg-white/[0.03] border-[#16201f] text-white mt-1 text-sm"
                   placeholder="Description de la ressource"
                   rows={3}
                 />
@@ -436,7 +436,7 @@ export default function AdminRessources() {
                     value={formData.type}
                     onValueChange={(value) => setFormData({ ...formData, type: value })}
                   >
-                    <SelectTrigger className="bg-white/[0.03] border-white/[0.06] text-white mt-1 h-9 text-sm">
+                    <SelectTrigger className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -455,7 +455,7 @@ export default function AdminRessources() {
                     value={formData.categorie}
                     onValueChange={(value) => setFormData({ ...formData, categorie: value })}
                   >
-                    <SelectTrigger className="bg-white/[0.03] border-white/[0.06] text-white mt-1 h-9 text-sm">
+                    <SelectTrigger className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -476,7 +476,7 @@ export default function AdminRessources() {
                   <Input
                     value={formData.url_fichier}
                     onChange={(e) => setFormData({ ...formData, url_fichier: e.target.value })}
-                    className="bg-white/[0.03] border-white/[0.06] text-white flex-1 h-9 text-sm"
+                    className="bg-white/[0.03] border-[#16201f] text-white flex-1 h-9 text-sm"
                     placeholder="URL ou importer un fichier"
                   />
                   <label className="cursor-pointer">
@@ -488,7 +488,7 @@ export default function AdminRessources() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="border-white/[0.06] text-white/30 hover:text-white hover:bg-white/[0.03] h-9"
+                      className="border-[#16201f] text-white/30 hover:text-white hover:bg-white/[0.03] h-9"
                       disabled={uploading}
                     >
                       <Upload className="w-4 h-4" />
@@ -504,7 +504,7 @@ export default function AdminRessources() {
                     <img 
                       src={formData.image_miniature} 
                       alt="Aperçu" 
-                      className="w-40 h-28 object-cover rounded-lg border border-white/[0.06]"
+                      className="w-40 h-28 object-cover rounded-lg border border-[#16201f]"
                     />
                     <button
                       type="button"
@@ -515,7 +515,7 @@ export default function AdminRessources() {
                     </button>
                   </div>
                 ) : (
-                  <label className="mt-2 flex items-center justify-center w-40 h-28 rounded-lg border-2 border-dashed border-white/[0.1] hover:border-[#2A9D8F]/50 bg-white/[0.02] hover:bg-[#2A9D8F]/5 cursor-pointer transition-all">
+                  <label className="mt-2 flex items-center justify-center w-40 h-28 rounded-lg border-2 border-dashed border-white/[0.1] hover:border-[#33d6c0]/50 bg-white/[0.02] hover:bg-[#33d6c0]/5 cursor-pointer transition-all">
                     <input
                       type="file"
                       accept="image/*"
@@ -523,7 +523,7 @@ export default function AdminRessources() {
                       onChange={(e) => handleFileUpload(e, 'image_miniature')}
                     />
                     {uploading ? (
-                      <Loader2 className="w-6 h-6 text-[#2A9D8F] animate-spin" />
+                      <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin" />
                     ) : (
                       <div className="flex flex-col items-center gap-1">
                         <ImagePlus className="w-6 h-6 text-gray-500" />
@@ -541,7 +541,7 @@ export default function AdminRessources() {
                     type="number"
                     value={formData.duree_minutes}
                     onChange={(e) => setFormData({ ...formData, duree_minutes: e.target.value })}
-                    className="bg-white/[0.03] border-white/[0.06] text-white mt-1 h-9 text-sm"
+                    className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm"
                     placeholder="Ex: 15"
                   />
                 </div>
@@ -551,7 +551,7 @@ export default function AdminRessources() {
                     type="number"
                     value={formData.ordre}
                     onChange={(e) => setFormData({ ...formData, ordre: e.target.value })}
-                    className="bg-white/[0.03] border-white/[0.06] text-white mt-1 h-9 text-sm"
+                    className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm"
                   />
                 </div>
               </div>
@@ -569,13 +569,13 @@ export default function AdminRessources() {
               <Button
                 variant="outline"
                 onClick={handleCloseDialog}
-                className="border-white/[0.06] text-white/30 hover:text-white hover:bg-white/[0.03] h-9 text-sm"
+                className="border-[#16201f] text-white/30 hover:text-white hover:bg-white/[0.03] h-9 text-sm"
               >
                 Annuler
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/20 text-white h-9 text-sm"
+                className="bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white h-9 text-sm"
                 disabled={!formData.titre || !formData.url_fichier || createMutation.isPending || updateMutation.isPending}
               >
                 {(createMutation.isPending || updateMutation.isPending) ? "Enregistrement..." : "Enregistrer"}

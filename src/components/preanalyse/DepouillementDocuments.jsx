@@ -107,10 +107,10 @@ export default function DepouillementDocuments() {
                 setSource(null);
               }}
             >
-              <SelectTrigger className="bg-transparent border-white/[0.12] text-gray-300 hover:text-white hover:border-white/[0.25] rounded-full h-8 w-56 text-xs">
+              <SelectTrigger className="bg-transparent border-[#24312f] text-gray-300 hover:text-white hover:border-white/[0.25] rounded-full h-8 w-56 text-xs">
                 <SelectValue placeholder="Ouvrir un dossier" />
               </SelectTrigger>
-              <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
+              <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
                 {dossiers.map((d) => (
                   <SelectItem key={d.dossier_id} value={d.dossier_id}>
                     <span className="flex items-center gap-2">
@@ -128,7 +128,7 @@ export default function DepouillementDocuments() {
                 setDossierId(null);
                 setSource(null);
               }}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-white/[0.12] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Nouveau dossier
             </button>
@@ -137,23 +137,23 @@ export default function DepouillementDocuments() {
       </div>
 
       {/* Dépôt */}
-      <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-5 mb-6">
+      <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-5 mb-6">
         <p className="text-gray-400 text-xs mb-2">
           Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
         </p>
         <button
           onClick={() => inputFichier.current?.click()}
           disabled={deposer.isPending}
-          className="w-full h-20 border border-dashed border-white/15 rounded-xl flex items-center justify-center gap-3 hover:border-[#2A9D8F]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
+          className="w-full h-20 border border-dashed border-white/15 rounded-md flex items-center justify-center gap-3 hover:border-[#33d6c0]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
         >
           {deposer.isPending ? (
             <>
-              <Loader2 className="w-5 h-5 text-[#2A9D8F] animate-spin" />
+              <Loader2 className="w-5 h-5 text-[#33d6c0] animate-spin" />
               <span className="text-gray-400 text-sm">Lecture et dépouillement…</span>
             </>
           ) : (
             <>
-              <Upload className="w-5 h-5 text-[#2A9D8F]" />
+              <Upload className="w-5 h-5 text-[#33d6c0]" />
               <span className="text-gray-400 text-sm">PDF, image ou .eml — plusieurs à la fois</span>
             </>
           )}
@@ -195,7 +195,7 @@ export default function DepouillementDocuments() {
       ) : (
         !deposer.isPending && (
           <div className="text-center py-16">
-            <FolderOpen className="w-10 h-10 text-[#2A9D8F]/30 mx-auto mb-4" />
+            <FolderOpen className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
             <p className="text-gray-500 text-sm">
               Déposez les documents d'un deal : ils sont classés, leurs données extraites, et chaque
               information indique d'où elle vient.
@@ -225,9 +225,9 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
   const renseignes = lignes.filter((c) => doc.champs?.[c.id] && !doc.champs[c.id].absent).length;
 
   return (
-    <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/[0.06] flex items-start gap-3">
-        <FileText className="w-4 h-4 text-[#2A9D8F] flex-shrink-0 mt-0.5" />
+    <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#16201f] flex items-start gap-3">
+        <FileText className="w-4 h-4 text-[#33d6c0] flex-shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
           <p className="text-white text-sm font-medium truncate">{doc.nom_fichier}</p>
           <p className="text-gray-500 text-xs">
@@ -237,10 +237,10 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Select value={doc.classement?.code || ""} onValueChange={onReclasser} disabled={enCours}>
-            <SelectTrigger className="bg-neutral-800 border-white/[0.08] text-white h-8 w-44 text-xs">
+            <SelectTrigger className="bg-[#101715] border-[#1c2725] text-white h-8 w-44 text-xs">
               <SelectValue placeholder="Type inconnu" />
             </SelectTrigger>
-            <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
+            <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
               {types.map((t) => (
                 <SelectItem key={t.code} value={t.code}>
                   {t.libelle}
@@ -283,14 +283,14 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
           Type non reconnu. Choisissez-le ci-dessus pour lancer le dépouillement.
         </p>
       ) : (
-        <div className="divide-y divide-white/[0.04]">
+        <div className="divide-y divide-[#131c1b]">
           {lignes.map((c) => {
             const v = doc.champs?.[c.id];
             const absent = !v || v.absent;
             const actif =
               sourceActive?.url === doc.url && !absent && sourceActive?.page === v.page && sourceActive?.champ === c.id;
             return (
-              <div key={c.id} className={`px-5 py-3 ${actif ? "bg-[#2A9D8F]/[0.07]" : ""}`}>
+              <div key={c.id} className={`px-5 py-3 ${actif ? "bg-[#33d6c0]/[0.07]" : ""}`}>
                 <div className="flex items-start gap-3">
                   <span className="text-gray-500 text-xs w-44 flex-shrink-0 pt-0.5">{c.libelle}</span>
                   <div className="min-w-0 flex-1">
@@ -317,7 +317,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                       }
                       className={`flex-shrink-0 text-[11px] px-2 py-1 rounded-lg border transition-colors ${
                         actif
-                          ? "border-[#2A9D8F]/40 bg-[#2A9D8F]/20 text-[#71CCBA]"
+                          ? "border-[#33d6c0]/40 bg-[#33d6c0]/20 text-[#5ee7d4]"
                           : "border-white/10 text-gray-500 hover:text-white hover:border-white/25"
                       }`}
                       title={v.citation}
@@ -344,8 +344,8 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
 export function Visionneuse({ source, onFermer }) {
   if (!source) {
     return (
-      <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl h-[70vh] flex flex-col items-center justify-center text-center px-8">
-        <Quote className="w-8 h-8 text-[#2A9D8F]/30 mb-3" />
+      <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md h-[70vh] flex flex-col items-center justify-center text-center px-8">
+        <Quote className="w-8 h-8 text-[#33d6c0]/30 mb-3" />
         <p className="text-gray-500 text-sm">
           Cliquez sur le repère de page à côté d'une donnée : le document s'ouvrira ici, à la bonne page.
         </p>
@@ -356,8 +356,8 @@ export function Visionneuse({ source, onFermer }) {
   const estPdf = /\.pdf($|\?)/i.test(source.url || "");
 
   return (
-    <div className="bg-[#0A0A0A] border border-[#2A9D8F]/25 rounded-2xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/[0.06] flex items-start gap-3">
+    <div className="bg-[#0a0f0e] border border-[#33d6c0]/25 rounded-md overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#16201f] flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-white text-sm font-medium truncate">
             {source.libelle} <span className="text-gray-500">— page {source.page}</span>
@@ -378,8 +378,8 @@ export function Visionneuse({ source, onFermer }) {
       </div>
 
       {source.citation && (
-        <div className="px-4 py-3 bg-[#2A9D8F]/[0.07] border-b border-[#2A9D8F]/20">
-          <p className="text-[#71CCBA] text-xs leading-relaxed">
+        <div className="px-4 py-3 bg-[#33d6c0]/[0.07] border-b border-[#33d6c0]/20">
+          <p className="text-[#5ee7d4] text-xs leading-relaxed">
             <Quote className="w-3 h-3 inline mr-1.5" />
             {source.citation}
           </p>
@@ -392,10 +392,10 @@ export function Visionneuse({ source, onFermer }) {
           key={`${source.url}#${source.page}`}
           src={`${source.url}#page=${source.page}&view=FitH`}
           title={`${source.fichier} page ${source.page}`}
-          className="w-full h-[70vh] bg-neutral-900"
+          className="w-full h-[70vh] bg-[#0a0f0e]"
         />
       ) : (
-        <img src={source.url} alt={source.fichier} className="w-full max-h-[70vh] object-contain bg-neutral-900" />
+        <img src={source.url} alt={source.fichier} className="w-full max-h-[70vh] object-contain bg-[#0a0f0e]" />
       )}
     </div>
   );

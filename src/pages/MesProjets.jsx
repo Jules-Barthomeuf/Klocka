@@ -56,9 +56,9 @@ export default function MesProjets() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
         <div className="relative w-16 h-4">
-          <div className="absolute w-3 h-3 bg-[#2A9D8F] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
+          <div className="absolute w-3 h-3 bg-[#33d6c0] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
         </div>
         <style>{`
           @keyframes bounce-horizontal {
@@ -78,10 +78,10 @@ export default function MesProjets() {
   // Étape 1 - Accès bloqué
   if (showAsClient && userEtape === 1) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white/[0.015] rounded-2xl border border-white/[0.05] p-8 text-center">
-          <div className="w-16 h-16 bg-[#2A9D8F]/[0.07] rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-8 h-8 text-[#2A9D8F]" />
+      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white/[0.015] rounded-md border border-[#131c1b] p-8 text-center">
+          <div className="w-16 h-16 bg-[#33d6c0]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <Building2 className="w-8 h-8 text-[#33d6c0]" />
           </div>
           <h2 className="text-xl font-light text-white mb-3">Accès en attente</h2>
           <p className="text-white/30 text-sm">Cette section sera débloquée par votre conseiller.</p>
@@ -93,10 +93,10 @@ export default function MesProjets() {
   // Étape 2 - Prendre rendez-vous
   if (showAsClient && userEtape === 2) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white/[0.015] rounded-2xl border border-white/[0.05] p-8 text-center">
-          <div className="w-16 h-16 bg-[#2A9D8F]/[0.07] rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Calendar className="w-8 h-8 text-[#2A9D8F]" />
+      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white/[0.015] rounded-md border border-[#131c1b] p-8 text-center">
+          <div className="w-16 h-16 bg-[#33d6c0]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <Calendar className="w-8 h-8 text-[#33d6c0]" />
           </div>
           <h2 className="text-xl font-light text-white mb-3">Définissons votre stratégie</h2>
           <p className="text-white/30 text-sm mb-6">
@@ -117,7 +117,7 @@ export default function MesProjets() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[#050807]">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
 
         {/* Header */}
@@ -127,13 +127,13 @@ export default function MesProjets() {
           transition={{ duration: 0.6 }}
           className="mb-10"
         >
-          <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[10px] font-medium mb-3">
+          <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-3">
             Portfolio
           </p>
           <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">
             Mes projets
           </h1>
-          <div className="h-px w-16 bg-[#2A9D8F] mt-3" />
+          <div className="h-px w-16 bg-[#33d6c0] mt-3" />
           <p className="text-white/30 text-sm mt-3">
             {projects.length} projet{projects.length > 1 ? 's' : ''} en cours
           </p>
@@ -148,7 +148,7 @@ export default function MesProjets() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher un projet..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#2A9D8F]/40 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-[#1c2725] rounded-md text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#33d6c0]/40 transition-colors"
             />
           </div>
         )}
@@ -181,7 +181,7 @@ export default function MesProjets() {
             animate={{ opacity: 1 }}
             className="text-center py-20"
           >
-            <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <div className="w-16 h-16 bg-white/[0.03] rounded-md flex items-center justify-center mx-auto mb-5">
               <Building2 className="w-7 h-7 text-white/10" />
             </div>
             <p className="text-white/30 text-sm">Aucun projet pour le moment</p>

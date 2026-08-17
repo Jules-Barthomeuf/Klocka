@@ -315,14 +315,14 @@ function SlideBlock({ slide, index }) {
   };
 
   return (
-    <div className="border border-white/[0.07] rounded-xl overflow-hidden bg-[#0A0A0A]">
+    <div className="border border-white/[0.07] rounded-md overflow-hidden bg-[#0a0f0e]">
       {/* Header */}
       <button
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] transition-colors"
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-3">
-          <span className="text-[#2A9D8F] text-sm font-bold w-8">{slide.num}</span>
+          <span className="text-[#33d6c0] text-sm font-bold w-8">{slide.num}</span>
           <span className="text-white text-sm font-light">{slide.title}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -333,7 +333,7 @@ function SlideBlock({ slide, index }) {
               className={`h-7 px-3 text-xs transition-all ${
                 copied
                   ? "bg-green-500/20 border border-green-500/40 text-green-400"
-                  : "bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/25 text-white"
+                  : "bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white"
               }`}
             >
               {copied ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
@@ -351,7 +351,7 @@ function SlideBlock({ slide, index }) {
       {/* Content */}
       {open && (
         <div className="px-5 pb-5">
-          <div className="bg-black/50 border border-white/[0.05] rounded-lg p-4">
+          <div className="bg-[#050807]/50 border border-[#131c1b] rounded-lg p-4">
             <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-mono">
               {slide.text}
             </pre>

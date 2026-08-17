@@ -43,7 +43,7 @@ export default function DashboardProfileCard({ user }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="bg-white/[0.04] rounded-2xl border border-white/[0.3] overflow-hidden h-full"
+      className="bg-white/[0.04] rounded-md border border-white/[0.3] overflow-hidden h-full"
     >
       <div
         className="p-5 cursor-pointer hover:bg-white/[0.01] transition-colors h-full flex flex-col"
@@ -55,7 +55,7 @@ export default function DashboardProfileCard({ user }) {
         </div>
         
         <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-          <div className="w-20 h-20 rounded-2xl overflow-hidden border border-white/[0.3] mb-4 flex-shrink-0">
+          <div className="w-20 h-20 rounded-md overflow-hidden border border-white/[0.3] mb-4 flex-shrink-0">
             <img src={image} alt="" className="w-full h-full object-cover" />
           </div>
           <p className="text-white text-base font-medium mb-0.5">{profil.label}</p>
@@ -71,7 +71,7 @@ export default function DashboardProfileCard({ user }) {
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="pt-3 border-t border-white/[0.04]">
+              <div className="pt-3 border-t border-[#131c1b]">
                 <p className="text-white text-xs leading-relaxed">{profil.description}</p>
               </div>
             </motion.div>

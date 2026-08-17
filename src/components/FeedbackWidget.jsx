@@ -50,9 +50,9 @@ export default function FeedbackWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-16 right-0 w-80 bg-[#0A0A0A] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
+            className="absolute bottom-16 right-0 w-80 bg-[#0a0f0e] border border-[#1c2725] rounded-md shadow-2xl overflow-hidden"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#16201f]">
               <span className="text-white text-sm font-medium">Votre feedback</span>
               <button onClick={() => setIsOpen(false)} className="text-white/30 hover:text-white transition-colors">
                 <X className="w-4 h-4" />
@@ -61,8 +61,8 @@ export default function FeedbackWidget() {
             <div className="p-4">
               {sent ? (
                 <div className="flex flex-col items-center justify-center py-6 gap-2">
-                  <div className="w-10 h-10 rounded-full bg-[#2A9D8F]/20 flex items-center justify-center">
-                    <Check className="w-5 h-5 text-[#2A9D8F]" />
+                  <div className="w-10 h-10 rounded-full bg-[#33d6c0]/20 flex items-center justify-center">
+                    <Check className="w-5 h-5 text-[#33d6c0]" />
                   </div>
                   <p className="text-white text-sm">Merci pour votre retour !</p>
                 </div>
@@ -74,13 +74,13 @@ export default function FeedbackWidget() {
                     onChange={(e) => setText(e.target.value)}
                     placeholder="Décrivez votre suggestion, problème ou idée..."
                     rows={4}
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 resize-none focus:outline-none focus:border-[#2A9D8F]/40 transition-colors"
+                    className="w-full bg-white/[0.03] border border-[#16201f] rounded-md px-3 py-2.5 text-white text-sm placeholder:text-white/20 resize-none focus:outline-none focus:border-[#33d6c0]/40 transition-colors"
                     onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(); }}
                   />
                   <button
                     onClick={handleSubmit}
                     disabled={!text.trim() || sending}
-                    className="mt-3 w-full h-10 bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/25 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="mt-3 w-full h-10 bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white rounded-md text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     {sending ? "Envoi..." : "Envoyer"}
@@ -96,7 +96,7 @@ export default function FeedbackWidget() {
         onClick={() => { if (sent) return; setIsOpen(!isOpen); }}
         className={`h-10 rounded-full shadow-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 ${
           isOpen
-            ? "bg-[#2A9D8F] text-white px-4"
+            ? "bg-[#33d6c0] text-white px-4"
             : "bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-700 px-4"
         }`}
       >

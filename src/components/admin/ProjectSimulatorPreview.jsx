@@ -68,8 +68,8 @@ export default function ProjectSimulatorPreview({ formData, travauxList }) {
   }, [formData, travauxList]);
 
   return (
-    <div className="mt-6 rounded-2xl border border-white/[0.08] bg-black overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/[0.08] flex items-center justify-between">
+    <div className="mt-6 rounded-md border border-[#1c2725] bg-[#050807] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#1c2725] flex items-center justify-between">
         <div>
           <h3 className="text-white text-sm font-medium">Preview simulateur client</h3>
           <p className="text-white/35 text-xs">Aperçu complet basé sur les données du formulaire.</p>
@@ -79,7 +79,7 @@ export default function ProjectSimulatorPreview({ formData, travauxList }) {
         key={previewUrl}
         src={previewUrl}
         title="Preview simulateur client"
-        className="w-full h-[72vh] bg-black"
+        className="w-full h-[72vh] bg-[#050807]"
       />
     </div>
   );

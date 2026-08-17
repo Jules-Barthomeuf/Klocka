@@ -31,11 +31,11 @@ function CompareBar({ label, local, national, unit = "%" }) {
       <div className="flex items-end gap-3 mb-1">
         <div className="flex-1">
           <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="text-[#2A9D8F]">Ville</span>
+            <span className="text-[#33d6c0]">Ville</span>
             <span className="text-white font-semibold">{local}{unit}</span>
           </div>
           <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-[#2A9D8F]" style={{ width: `${((local || 0) / max) * 100}%` }} />
+            <div className="h-full rounded-full bg-[#33d6c0]" style={{ width: `${((local || 0) / max) * 100}%` }} />
           </div>
         </div>
       </div>
@@ -71,12 +71,12 @@ export default function EmploiSection({ data }) {
     data.pct_emploi_agriculture > 0 && { name: "Agriculture", value: data.pct_emploi_agriculture, fill: "#22C55E" },
     data.pct_emploi_industrie > 0 && { name: "Industrie", value: data.pct_emploi_industrie, fill: "#3B82F6" },
     data.pct_emploi_construction > 0 && { name: "Construction", value: data.pct_emploi_construction, fill: "#F59E0B" },
-    data.pct_emploi_commerce_services > 0 && { name: "Commerce/Services", value: data.pct_emploi_commerce_services, fill: "#2A9D8F" },
+    data.pct_emploi_commerce_services > 0 && { name: "Commerce/Services", value: data.pct_emploi_commerce_services, fill: "#33d6c0" },
     data.pct_emploi_admin_public > 0 && { name: "Admin publique", value: data.pct_emploi_admin_public, fill: "#6366F1" },
   ].filter(Boolean);
 
   return (
-    <SectionCard icon={<Briefcase className="w-5 h-5 text-[#2A9D8F]" />} title="Emploi et Activité">
+    <SectionCard icon={<Briefcase className="w-5 h-5 text-[#33d6c0]" />} title="Emploi et Activité">
       {/* Comparaison avec la France */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {data.taux_activite > 0 && <CompareBar label="Taux d'activité" local={data.taux_activite} national={FR.taux_activite} />}

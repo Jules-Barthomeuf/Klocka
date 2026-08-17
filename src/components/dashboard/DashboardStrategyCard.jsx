@@ -15,7 +15,7 @@ export default function DashboardStrategyCard({ userStrategy }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="bg-white/[0.04] rounded-2xl border border-white/[0.3] p-5 h-full"
+      className="bg-white/[0.04] rounded-md border border-white/[0.3] p-5 h-full"
     >
       <p className="text-white uppercase tracking-[0.2em] text-[9px] font-medium mb-5">Stratégie</p>
       
@@ -23,7 +23,7 @@ export default function DashboardStrategyCard({ userStrategy }) {
         {/* Budget */}
         {hasBudget && (
           <div className="flex items-start gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#2A9D8F] mt-1.5 flex-shrink-0" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#33d6c0] mt-1.5 flex-shrink-0" />
             <div>
               <p className="text-white text-xs font-medium mb-0.5">Budget max</p>
               <p className="text-white text-sm">{fmt(userStrategy.budget_max)}€</p>
@@ -34,7 +34,7 @@ export default function DashboardStrategyCard({ userStrategy }) {
         {/* Apport */}
         {hasApport && (
           <div className="flex items-start gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#2A9D8F] mt-1.5 flex-shrink-0" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#33d6c0] mt-1.5 flex-shrink-0" />
             <div>
               <p className="text-white text-xs font-medium mb-0.5">Apport</p>
               <p className="text-white text-sm">{fmt(userStrategy.apport)}€</p>
@@ -46,7 +46,7 @@ export default function DashboardStrategyCard({ userStrategy }) {
         {hasFields && userStrategy.fields.map((field, i) => (
           <div key={i} className="flex items-start gap-3">
             <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
-              field.is_nogo ? 'bg-red-400' : 'bg-[#2A9D8F]'
+              field.is_nogo ? 'bg-red-400' : 'bg-[#33d6c0]'
             }`} />
             <div>
               <p className={`text-xs font-medium mb-0.5 ${

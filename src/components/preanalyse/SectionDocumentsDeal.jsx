@@ -34,7 +34,7 @@ export function SyntheseView({ synthese }) {
             const g = GRAVITES[p.gravite] || GRAVITES.attention;
             const Icone = g.icone;
             return (
-              <div key={i} className={`rounded-xl border px-4 py-3 ${g.bord}`}>
+              <div key={i} className={`rounded-md border px-4 py-3 ${g.bord}`}>
                 <p className={`text-xs font-medium flex items-center gap-2 ${g.classe}`}>
                   <Icone className="w-3.5 h-3.5 flex-shrink-0" />
                   {p.titre}
@@ -58,6 +58,9 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
   const queryClient = useQueryClient();
   const inputFichier = useRef(null);
   const [source, setSource] = useState(null);
+  // Deal de test : le dépôt réel est remplacé par une simulation serveur, les
+  // documents affichés sont la fixture de démonstration.
+  const test = !!dossier.test;
 
   // La grille est chargée même en aperçu : lecture seule, et c'est elle qui
   // donne les libellés des champs des documents de démonstration.
@@ -140,18 +143,35 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
       }),
     onSuccess: (r) => {
       rafraichir();
-      if (r.erreurs?.length) toast.warning(`Classé avec ${r.erreurs.length} erreur(s)`);
+      if (r.simulated) toast.info("Classement Drive simulé (mode test) — aucun appel Google");
+      else if (r.erreurs?.length) toast.warning(`Classé avec ${r.erreurs.length} erreur(s)`);
       else toast.success(`${r.envoyes.length} fichier(s) classé(s) dans le Drive`);
     },
     onError: (e) => toast.error(e?.message || "Classement Drive impossible"),
   });
 
-  const documents = apercu ? documentsDemo : dossierDoc?.documents || [];
+  const simuler = useMutation({
+    mutationFn: () =>
+      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/documents/simuler`),
+    onSuccess: () => {
+      rafraichir();
+      toast.success("Documents simulés : dépouillement et synthèse posés");
+    },
+    onError: (e) => toast.error(e?.message || "Simulation impossible"),
+  });
+
+  const documents = apercu
+    ? documentsDemo
+    : test
+      ? dossier.documents_simules
+        ? documentsDemo
+        : []
+      : dossierDoc?.documents || [];
   const synthese = dossier.synthese_documents;
 
   return (
-    <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/[0.06] flex flex-wrap items-center gap-3">
+    <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#16201f] flex flex-wrap items-center gap-3">
         <p className="text-white text-sm font-medium">Documents du deal</p>
         {documents.length > 0 && (
           <Badge className="bg-white/5 text-gray-400 border-white/10 text-[10px]">
@@ -164,7 +184,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             href={dossier.drive_folder_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#71CCBA] hover:text-white text-xs flex items-center gap-1.5 transition-colors"
+            className="text-[#5ee7d4] hover:text-white text-xs flex items-center gap-1.5 transition-colors"
           >
             <CheckCircle2 className="w-3.5 h-3.5" /> Dossier Drive <ExternalLink className="w-3 h-3" />
           </a>
@@ -173,7 +193,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             <Button
               size="sm"
               onClick={() => classerDrive.mutate()}
-              disabled={apercu || !compteDrive || classerDrive.isPending}
+              disabled={apercu || (!test && !compteDrive) || classerDrive.isPending}
               title={!compteDrive ? "Aucun compte Google avec l'accès Drive (GOOGLE_DRIVE + reconnexion)" : undefined}
               className="bg-white/5 hover:bg-white/10 text-gray-300 border-0"
             >
@@ -190,7 +210,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
 
       <div className="p-5">
         <Tabs defaultValue={documents.length ? "depouillement" : "depot"}>
-          <TabsList className="bg-neutral-900 border border-white/[0.08] mb-4">
+          <TabsList className="bg-[#0a0f0e] border border-[#1c2725] mb-4">
             <TabsTrigger value="depot">Dépôt</TabsTrigger>
             <TabsTrigger value="depouillement" disabled={!documents.length}>
               Dépouillement
@@ -204,6 +224,28 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
           </TabsList>
 
           <TabsContent value="depot">
+            {test ? (
+              <>
+                <p className="text-gray-400 text-xs mb-2">
+                  Deal de test : pas de vrai dépôt. La simulation pose trois documents fictifs
+                  (bail, PV d'AG, diagnostics), la synthèse des points à vérifier, et avance le
+                  statut jusqu'à « Dépouillé » — sans appel API.
+                </p>
+                <Button
+                  onClick={() => simuler.mutate()}
+                  disabled={simuler.isPending || dossier.documents_simules}
+                  className="bg-transparent border border-[#33d6c0] text-[#33d6c0] hover:bg-[#33d6c0]/10"
+                >
+                  {simuler.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  {dossier.documents_simules ? "Documents déjà simulés" : "Simuler la réception des documents"}
+                </Button>
+              </>
+            ) : (
+              <>
             <p className="text-gray-400 text-xs mb-2">
               Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
               Chaque dépôt met à jour la synthèse.
@@ -211,16 +253,16 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             <button
               onClick={() => inputFichier.current?.click()}
               disabled={apercu || deposer.isPending}
-              className="w-full h-20 border border-dashed border-white/15 rounded-xl flex items-center justify-center gap-3 hover:border-[#2A9D8F]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
+              className="w-full h-20 border border-dashed border-white/15 rounded-md flex items-center justify-center gap-3 hover:border-[#33d6c0]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
             >
               {deposer.isPending ? (
                 <>
-                  <Loader2 className="w-5 h-5 text-[#2A9D8F] animate-spin" />
+                  <Loader2 className="w-5 h-5 text-[#33d6c0] animate-spin" />
                   <span className="text-gray-400 text-sm">Lecture et dépouillement…</span>
                 </>
               ) : (
                 <>
-                  <Upload className="w-5 h-5 text-[#2A9D8F]" />
+                  <Upload className="w-5 h-5 text-[#33d6c0]" />
                   <span className="text-gray-400 text-sm">PDF, image ou .eml — plusieurs à la fois</span>
                 </>
               )}
@@ -233,6 +275,8 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
               onChange={onFichiers}
               className="hidden"
             />
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="depouillement">
@@ -250,7 +294,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                       onSupprimer={() => {
                         if (confirm(`Retirer « ${doc.nom_fichier} » du dossier ?`)) supprimer.mutate(doc.doc_id);
                       }}
-                      enCours={apercu || reclasser.isPending}
+                      enCours={apercu || test || reclasser.isPending}
                     />
                   ))}
                 </div>

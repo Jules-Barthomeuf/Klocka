@@ -13,7 +13,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Cash-flow annuel",
         subtitle: `Projection sur ${anneeRevente} ans`,
         bigValue: formatCurrency(calculs.indicateurs.cashFlowMoyenAn),
-        color: "#2A9D8F",
+        color: "#33d6c0",
         data: rows.map((r) => ({ annee: `${r.annee}`, value: Math.round(r.cashFlowAnnuel) })),
       };
     }
@@ -38,7 +38,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Patrimoine net",
         subtitle: `Valeur à la revente année ${anneeRevente}`,
         bigValue: formatCurrency(calculs.revente.prixVenteNet),
-        color: "#2A9D8F",
+        color: "#33d6c0",
         data,
         markers: { recupApport, doubleApport },
       };
@@ -79,13 +79,13 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
   };
 
   return (
-    <div className="border border-white/[0.08] rounded-md bg-[#0c0c0c] p-4">
+    <div className="border border-[#1c2725] rounded-md bg-[#0c0c0c] p-4">
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-white text-sm font-medium">{config.title}</p>
           <p className="text-gray-500 text-xs mt-0.5">{config.subtitle}</p>
         </div>
-        <p className="text-[#2A9D8F] text-xl font-medium tabular-nums">{config.bigValue}</p>
+        <p className="text-[#33d6c0] text-xl font-medium tabular-nums">{config.bigValue}</p>
       </div>
       <div className="h-[26rem]">
         <ResponsiveContainer width="100%" height="100%">
@@ -125,7 +125,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
       {config.markers && (config.markers.recupApport || config.markers.doubleApport) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
           {config.markers.recupApport && (
-            <div className="flex items-center gap-2 border border-white/[0.08] rounded-md px-3 py-2">
+            <div className="flex items-center gap-2 border border-[#1c2725] rounded-md px-3 py-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#F5A623] flex-shrink-0" />
               <div>
                 <p className="text-white text-xs font-medium">Récupération de l'apport</p>
@@ -134,7 +134,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
             </div>
           )}
           {config.markers.doubleApport && (
-            <div className="flex items-center gap-2 border border-white/[0.08] rounded-md px-3 py-2">
+            <div className="flex items-center gap-2 border border-[#1c2725] rounded-md px-3 py-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6] flex-shrink-0" />
               <div>
                 <p className="text-white text-xs font-medium">Double de l'apport</p>

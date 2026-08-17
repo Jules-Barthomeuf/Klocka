@@ -42,7 +42,7 @@ export default function SimWhatsNewDialog({ onClose }) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#050807]/70 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
@@ -50,14 +50,14 @@ export default function SimWhatsNewDialog({ onClose }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 24 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-lg bg-gradient-to-br from-neutral-900 to-black border border-white/[0.1] rounded-2xl overflow-hidden"
+        className="relative w-full max-w-lg bg-gradient-to-br from-neutral-900 to-black border border-white/[0.1] rounded-md overflow-hidden"
       >
         <button onClick={onClose} className="absolute top-4 right-4 z-10 text-gray-500 hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
 
         <div className="p-8 text-center">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-[#2A9D8F] mb-2">Nouveautés</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[#33d6c0] mb-2">Nouveautés</p>
           <h2 className="text-2xl font-light text-white mb-8">Le simulateur fait peau neuve</h2>
 
           <AnimatePresence mode="wait">
@@ -69,8 +69,8 @@ export default function SimWhatsNewDialog({ onClose }) {
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="min-h-[180px] flex flex-col items-center justify-center"
             >
-              <div className="w-16 h-16 rounded-2xl bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 flex items-center justify-center mb-5">
-                <Icon className="w-7 h-7 text-[#2A9D8F]" />
+              <div className="w-16 h-16 rounded-md bg-[#33d6c0]/15 border border-[#33d6c0]/30 flex items-center justify-center mb-5">
+                <Icon className="w-7 h-7 text-[#33d6c0]" />
               </div>
               <h3 className="text-lg text-white font-medium mb-3">{slide.title}</h3>
               <p className="text-sm text-gray-400 leading-relaxed max-w-sm">{slide.desc}</p>
@@ -82,7 +82,7 @@ export default function SimWhatsNewDialog({ onClose }) {
               <button
                 key={i}
                 onClick={() => setIndex(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-6 bg-[#2A9D8F]" : "w-1.5 bg-white/20 hover:bg-white/40"}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-6 bg-[#33d6c0]" : "w-1.5 bg-white/20 hover:bg-white/40"}`}
               />
             ))}
           </div>

@@ -7,8 +7,8 @@ import SimSlider from "./SimSlider";
 
 function Card({ title, children }) {
   return (
-    <div className="border border-white/[0.08] rounded-md bg-[#0c0c0c] overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/[0.06]">
+    <div className="border border-[#1c2725] rounded-md bg-[#0c0c0c] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#16201f]">
         <p className="text-white text-sm font-medium">{title}</p>
       </div>
       <div className="p-4">{children}</div>
@@ -29,7 +29,7 @@ function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-[13px] text-gray-300">{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#2A9D8F] h-4 w-7" />
+      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#33d6c0] h-4 w-7" />
     </div>
   );
 }
@@ -47,14 +47,14 @@ export default function SimParametresAvances({ values, advanced, calculs, format
   return (
     <div className="space-y-4">
       {/* Impacts chiffrés */}
-      <div className="border border-white/[0.08] rounded-md bg-[#0c0c0c] overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/[0.06]">
+      <div className="border border-[#1c2725] rounded-md bg-[#0c0c0c] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#16201f]">
           <p className="text-white text-sm font-medium">Impact sur les indicateurs</p>
         </div>
-        <div className="flex flex-wrap divide-x divide-white/[0.06]">
+        <div className="flex flex-wrap divide-x divide-[#16201f]">
           <Kpi label="Cash-flow / mois" value={formatCurrency(ind.cashFlowMoyenMois)} />
           <Kpi label="Cash-flow cumulé" value={formatCurrency(ind.cashFlowCumule)} />
-          <Kpi label="Création de richesse" value={formatCurrency(ind.creationRichesseBrute)} accent="text-[#2A9D8F]" />
+          <Kpi label="Création de richesse" value={formatCurrency(ind.creationRichesseBrute)} accent="text-[#33d6c0]" />
           <Kpi label="Rendement net" value={`${ind.rendementLocatifGlobalNet}%`} />
           <Kpi label="Mois de vacance" value={`${nbVacance} mois`} accent={nbVacance > 0 ? "text-[#E8836B]" : "text-white"} />
           <Kpi label="Total travaux" value={formatCurrency(totalTravaux)} accent={totalTravaux > 0 ? "text-[#E8836B]" : "text-white"} />
@@ -91,15 +91,15 @@ export default function SimParametresAvances({ values, advanced, calculs, format
       <Card title="Vacance locative">
         <div className="flex items-center gap-2">
           <Select value={String(vacYear)} onValueChange={(v) => setVacYear(Number(v))}>
-            <SelectTrigger className="bg-[#161616] text-white border-white/[0.08] h-8 text-xs w-20 rounded-md"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="bg-[#161616] text-white border-[#1c2725] h-8 text-xs w-20 rounded-md"><SelectValue /></SelectTrigger>
             <SelectContent className="bg-[#161616] text-white border-white/[0.1]">
               {Array.from({ length: 25 }, (_, i) => i + 1).map((y) => <SelectItem key={y} value={String(y)}>An {y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input type="number" min="0" max="12" placeholder="mois" value={vacMois} onChange={(e) => setVacMois(e.target.value)} className="bg-[#161616] text-white border-white/[0.08] h-8 text-xs w-24 rounded-md" />
+          <Input type="number" min="0" max="12" placeholder="mois" value={vacMois} onChange={(e) => setVacMois(e.target.value)} className="bg-[#161616] text-white border-[#1c2725] h-8 text-xs w-24 rounded-md" />
           <button
             onClick={() => { if (vacMois) { const n = [...advanced.vacancesLocatives]; n[vacYear - 1] = Number(vacMois); advanced.setVacancesLocatives(n); setVacMois(""); } }}
-            className="w-8 h-8 rounded-md bg-[#2A9D8F] text-black flex items-center justify-center"
+            className="w-8 h-8 rounded-md bg-[#33d6c0] text-black flex items-center justify-center"
           ><Plus className="w-4 h-4" /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">
@@ -114,15 +114,15 @@ export default function SimParametresAvances({ values, advanced, calculs, format
       <Card title="Travaux bailleur">
         <div className="flex items-center gap-2">
           <Select value={String(travauxYear)} onValueChange={(v) => setTravauxYear(Number(v))}>
-            <SelectTrigger className="bg-[#161616] text-white border-white/[0.08] h-8 text-xs w-20 rounded-md"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="bg-[#161616] text-white border-[#1c2725] h-8 text-xs w-20 rounded-md"><SelectValue /></SelectTrigger>
             <SelectContent className="bg-[#161616] text-white border-white/[0.1]">
               {Array.from({ length: 25 }, (_, i) => i + 1).map((y) => <SelectItem key={y} value={String(y)}>An {y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input type="number" placeholder="€" value={travauxMontant} onChange={(e) => setTravauxMontant(e.target.value)} className="bg-[#161616] text-white border-white/[0.08] h-8 text-xs w-28 rounded-md" />
+          <Input type="number" placeholder="€" value={travauxMontant} onChange={(e) => setTravauxMontant(e.target.value)} className="bg-[#161616] text-white border-[#1c2725] h-8 text-xs w-28 rounded-md" />
           <button
             onClick={() => { if (travauxMontant) { const n = [...advanced.travauxBailleur]; n[travauxYear - 1] = Number(travauxMontant); advanced.setTravauxBailleur(n); setTravauxMontant(""); } }}
-            className="w-8 h-8 rounded-md bg-[#2A9D8F] text-black flex items-center justify-center"
+            className="w-8 h-8 rounded-md bg-[#33d6c0] text-black flex items-center justify-center"
           ><Plus className="w-4 h-4" /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">

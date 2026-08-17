@@ -8,13 +8,13 @@ const sliderStyle = `
 .sim-slider-input::-webkit-slider-thumb{
   -webkit-appearance:none; appearance:none;
   width:14px; height:14px; border-radius:50%;
-  background:#2A9D8F; border:2px solid #0c0c0c;
+  background:#33d6c0; border:2px solid #0c0c0c;
   cursor:pointer; margin-top:0;
-  box-shadow:0 0 0 1px #2A9D8F;
+  box-shadow:0 0 0 1px #33d6c0;
 }
 .sim-slider-input::-moz-range-thumb{
   width:14px; height:14px; border-radius:50%;
-  background:#2A9D8F; border:2px solid #0c0c0c; cursor:pointer;
+  background:#33d6c0; border:2px solid #0c0c0c; cursor:pointer;
 }
 .sim-slider-input:disabled{ opacity:0.4; cursor:not-allowed; }
 .sim-num-input::-webkit-outer-spin-button,
@@ -52,12 +52,12 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-            className="sim-num-input bg-[#161616] text-white text-right text-[13px] w-24 px-1.5 py-0.5 rounded border border-[#2A9D8F]/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
+            className="sim-num-input bg-[#161616] text-white text-right text-[13px] w-24 px-1.5 py-0.5 rounded border border-[#33d6c0]/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
           />
         ) : (
           <button
             onClick={beginEdit}
-            className={`tabular-nums font-medium transition-all duration-300 ease-out ${muted ? "text-gray-300" : "text-white"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-[#2A9D8F]"}`}
+            className={`tabular-nums font-medium transition-all duration-300 ease-out ${muted ? "text-gray-300" : "text-white"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-[#33d6c0]"}`}
             title="Cliquer pour modifier"
           >
             {display}{unit}
@@ -73,7 +73,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
         className="sim-slider-input w-full mt-1.5"
-        style={{ background: `linear-gradient(to right, #2A9D8F ${pct}%, #262626 ${pct}%)` }}
+        style={{ background: `linear-gradient(to right, #33d6c0 ${pct}%, #262626 ${pct}%)` }}
       />
       <style>{sliderStyle}</style>
     </div>

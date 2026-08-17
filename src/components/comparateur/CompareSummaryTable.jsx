@@ -26,11 +26,11 @@ export default function CompareSummaryTable({ metrics }) {
   ];
 
   return (
-    <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] overflow-hidden">
+    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-[#16201f]">
               <th className="text-left text-white/30 text-xs uppercase tracking-wider py-3 px-4 min-w-[160px]">Indicateur</th>
               {metrics.map((m, i) => (
                 <th key={i} className="text-left py-3 px-4 min-w-[140px]">

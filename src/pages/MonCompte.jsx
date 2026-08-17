@@ -56,10 +56,10 @@ export default function MonCompte() {
   // Bloquer l'accès en étape 1
   if (showAsClient && userEtape === 1) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30">
+      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
+        <Card className="max-w-md w-full bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
           <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-[#2A9D8F] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-[#33d6c0] rounded-full flex items-center justify-center mx-auto mb-6">
               <Users className="w-10 h-10 text-white" />
             </div>
             <h2 className="text-2xl text-white mb-4">
@@ -75,7 +75,7 @@ export default function MonCompte() {
   }
 
   return (
-    <div className="min-h-screen bg-black p-6 md:p-10">
+    <div className="min-h-screen bg-[#050807] p-6 md:p-10">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -85,7 +85,7 @@ export default function MonCompte() {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-4xl font-montserrat text-white mb-2">Mon Compte</h1>
-              <div className="h-0.5 w-32 bg-[#2A9D8F] mb-2"></div>
+              <div className="h-0.5 w-32 bg-[#33d6c0] mb-2"></div>
               <p className="text-gray-400 text-lg">
                 Gérez vos informations personnelles
               </p>
@@ -98,7 +98,7 @@ export default function MonCompte() {
                   {user.full_name || user.email.split('@')[0]}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#2A9D8F] to-[#71CCBA] rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#33d6c0] to-[#5ee7d4] rounded-full flex items-center justify-center">
                 <span className="text-white font-montserrat text-lg">
                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                 </span>
@@ -113,10 +113,10 @@ export default function MonCompte() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <Card className="bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30 hover:border-[#2A9D8F]/60 transition-all duration-300">
+              <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30 hover:border-[#33d6c0]/60 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <User className="w-5 h-5 text-[#2A9D8F]" />
+                    <User className="w-5 h-5 text-[#33d6c0]" />
                     Informations personnelles
                   </CardTitle>
                 </CardHeader>
@@ -164,7 +164,7 @@ export default function MonCompte() {
                     <Button
                       type="submit"
                       disabled={updateMutation.isPending}
-                      className="w-full bg-gradient-to-r from-[#2A9D8F] to-[#71CCBA] hover:from-[#2A9D8F]/90 hover:to-[#71CCBA]/90 transition-all duration-300"
+                      className="w-full bg-gradient-to-r from-[#33d6c0] to-[#5ee7d4] hover:from-[#33d6c0]/90 hover:to-[#5ee7d4]/90 transition-all duration-300"
                     >
                       {updateMutation.isPending ? (
                         <>
@@ -190,10 +190,10 @@ export default function MonCompte() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Card className="bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30">
+                <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
-                      <Users className="w-5 h-5 text-[#2A9D8F]" />
+                      <Users className="w-5 h-5 text-[#33d6c0]" />
                       Investir à deux
                     </CardTitle>
                   </CardHeader>
@@ -207,7 +207,7 @@ export default function MonCompte() {
                         {user.comptes_lies.map((email) => (
                           <div key={email} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4 text-[#2A9D8F]" />
+                              <Mail className="w-4 h-4 text-[#33d6c0]" />
                               <span className="text-white">{email}</span>
                             </div>
                           </div>
@@ -219,7 +219,7 @@ export default function MonCompte() {
 
                     <Button
                       onClick={() => setLinkDialogOpen(true)}
-                      className="w-full bg-[#2A9D8F]/20 text-[#2A9D8F] hover:bg-[#2A9D8F]/30 border border-[#2A9D8F]/50"
+                      className="w-full bg-[#33d6c0]/20 text-[#33d6c0] hover:bg-[#33d6c0]/30 border border-[#33d6c0]/50"
                     >
                       <Users className="w-4 h-4 mr-2" />
                       Gérer les partenaires
@@ -255,14 +255,14 @@ export default function MonCompte() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <Card className="bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30">
+              <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
                 <CardHeader>
                   <CardTitle className="text-white">Votre profil investisseur</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {user.profil_investisseur ? (
-                    <div className="p-4 bg-[#2A9D8F]/10 rounded-lg border border-[#2A9D8F]/30">
-                      <p className="text-lg font-semibold text-[#2A9D8F] capitalize">
+                    <div className="p-4 bg-[#33d6c0]/10 rounded-lg border border-[#33d6c0]/30">
+                      <p className="text-lg font-semibold text-[#33d6c0] capitalize">
                         {user.profil_investisseur.replace('_', ' ')}
                       </p>
                     </div>

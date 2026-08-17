@@ -20,7 +20,7 @@ const fmtEur = (v) => new Intl.NumberFormat("fr-FR", { style: "currency", curren
 function SectionTitle({ children, accent }) {
   return (
     <div className="flex items-center gap-3 pt-2">
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || "#2A9D8F" }} />
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || "#33d6c0" }} />
       <h3 className="text-[15px] font-semibold text-white tracking-tight">{children}</h3>
       <div className="flex-1 h-px bg-white/[0.06]" />
     </div>
@@ -30,7 +30,7 @@ function SectionTitle({ children, accent }) {
 // Toggle stylé "IMMO OS"
 function ToggleRow({ checked, onCheckedChange, title, description }) {
   return (
-    <div className="flex items-center gap-3 bg-[#171A21] border border-white/[0.08] rounded-[14px] px-[18px] py-3.5">
+    <div className="flex items-center gap-3 bg-[#171A21] border border-[#1c2725] rounded-[14px] px-[18px] py-3.5">
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
       <div>
         <Label className="text-[#EAECEF] text-[14px] font-medium cursor-pointer">{title}</Label>
@@ -43,11 +43,11 @@ function ToggleRow({ checked, onCheckedChange, title, description }) {
 // Select stylé "IMMO OS"
 function FSelect({ label, value, onValueChange, children }) {
   return (
-    <div className="bg-[#171A21] border border-white/[0.08] rounded-[14px] px-[18px] py-3 transition-all focus-within:border-[#2A9D8F]">
+    <div className="bg-[#171A21] border border-[#1c2725] rounded-[14px] px-[18px] py-3 transition-all focus-within:border-[#33d6c0]">
       {label && <div className="text-[12px] text-[#8D93A0] font-semibold mb-1.5">{label}</div>}
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger className="bg-transparent border-none h-auto p-0 text-[15px] text-[#EAECEF] focus:ring-0"><SelectValue /></SelectTrigger>
-        <SelectContent className="bg-[#171A21] text-white border-white/[0.08]">{children}</SelectContent>
+        <SelectContent className="bg-[#171A21] text-white border-[#1c2725]">{children}</SelectContent>
       </Select>
     </div>
   );
@@ -108,7 +108,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
       />
 
       {modeNetVendeur ? (
-        <div className="space-y-4 p-4 bg-white/[0.02] rounded-[14px] border border-white/[0.06]">
+        <div className="space-y-4 p-4 bg-white/[0.02] rounded-[14px] border border-[#16201f]">
           <div className="grid md:grid-cols-2 gap-4">
             <FField label="Prix net vendeur (€)">
               <FInput type="number" value={formData.sim_prix_net_vendeur || ''} onChange={(e) => handleNetVendeurChange("sim_prix_net_vendeur", parseFloat(e.target.value) || 0)} />
@@ -131,9 +131,9 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
               <FField label={(formData.sim_honoraires_agent_mode || "pct_ttc").startsWith("pct") ? "Taux (%)" : "Montant HT (€)"}>
                 <FInput type="number" step="0.1" value={formData.sim_honoraires_agent_montant || ''} onChange={(e) => handleNetVendeurChange("sim_honoraires_agent_montant", parseFloat(e.target.value) || 0)} />
               </FField>
-              <div className="bg-[#171A21] border border-white/[0.08] rounded-[14px] px-[18px] py-3">
+              <div className="bg-[#171A21] border border-[#1c2725] rounded-[14px] px-[18px] py-3">
                 <div className="text-[12px] text-[#8D93A0] font-semibold mb-1.5">Honoraires TTC calculés</div>
-                <span className="text-[#2A9D8F] font-semibold text-[15px]">
+                <span className="text-[#33d6c0] font-semibold text-[15px]">
                   {honorairesAgent > 0 ? fmtEur(honorairesAgent) : "—"}
                 </span>
               </div>
@@ -141,7 +141,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
           </div>
 
           {/* Récap Prix FAI calculé */}
-          <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
+          <div className="pt-3 border-t border-[#16201f] flex items-center justify-between">
             <span className="text-[#8D93A0] text-[13px]">Prix FAI calculé (net vendeur + honoraires) :</span>
             <span className="text-white font-semibold text-[16px]">
               {prixFAI > 0 ? fmtEur(prixFAI) : "—"}

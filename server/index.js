@@ -647,6 +647,33 @@ app.post('/api/preanalyse/analyser', upload.single('fichier'), wrap(async (req, 
 
 app.get('/api/preanalyse/dossiers', wrap((req, res) => ok(res, listerDossiers())));
 
+// Mode test : crée un deal fictif réel (statut 'analyse') pour parcourir tout
+// le cycle sans appel API — mails simulés, documents fictifs, marché intact.
+app.post('/api/preanalyse/test', wrap(async (req, res) => {
+  const { creerDealTest } = await import('./deal/test.js');
+  ok(res, creerDealTest(currentUser(req)));
+}));
+
+// Simule la réception + le dépouillement des documents d'un deal de test.
+app.post('/api/preanalyse/dossiers/:dealId/documents/simuler', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { simulerDocumentsTest } = await import('./deal/test.js');
+  const r = simulerDocumentsTest(dossier, currentUser(req));
+  if (r.error) return res.status(400).json(r);
+  ok(res, r);
+}));
+
+// Suppression — réservée aux deals de test (nettoyage après le parcours).
+app.delete('/api/preanalyse/dossiers/:dealId', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { supprimerDealTest } = await import('./deal/test.js');
+  const r = supprimerDealTest(dossier);
+  if (r.error) return res.status(403).json(r);
+  ok(res, r);
+}));
+
 app.get('/api/preanalyse/dossiers/:dealId', wrap((req, res) => {
   const d = obtenirDossier(req.params.dealId);
   if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
@@ -694,6 +721,8 @@ app.post('/api/preanalyse/dossiers/:dealId/mail', wrap(async (req, res) => {
   const mail = await redigerMailIntention(lot, intention, {
     signature: user?.full_name || user?.email,
     raisons,
+    // Deal de test : texte de secours directement, aucun appel LLM.
+    sansIA: !!dossier.test,
   });
   ok(res, { ...mail, intention, destinataire: dossier.contact_agent_email || '' });
 }));
@@ -703,6 +732,9 @@ app.post('/api/preanalyse/dossiers/:dealId/mail', wrap(async (req, res) => {
 app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'), wrap(async (req, res) => {
   const dossier = obtenirDossier(req.params.dealId);
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  if (dossier.test) {
+    return res.status(400).json({ error: 'Deal de test : utilisez « Simuler la réception des documents ».' });
+  }
   if (!req.file) return res.status(400).json({ error: 'Fichier manquant' });
 
   const user = currentUser(req);
@@ -747,6 +779,18 @@ app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'),
 
 // Classement des documents du deal dans le Drive du compte connecté.
 app.post('/api/preanalyse/dossiers/:dealId/drive', wrap(async (req, res) => {
+  // Deal de test : classement simulé, aucun appel Google.
+  const dossierTest = obtenirDossier(req.params.dealId);
+  if (dossierTest?.test) {
+    ajouterSuiviDeal(dossierTest, { type: 'documents_recus', detail: 'Classement Drive simulé (mode test)' }, currentUser(req));
+    return ok(res, {
+      simulated: true,
+      envoyes: [{ nom: 'bail-commercial.pdf' }, { nom: 'pv-ag-2025.pdf' }, { nom: 'diagnostics.pdf' }],
+      erreurs: [],
+      folder_url: null,
+    });
+  }
+
   const { compte } = req.body || {};
   if (!compte) return res.status(400).json({ error: 'Compte manquant' });
   if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
@@ -793,8 +837,8 @@ app.post('/api/preanalyse/dossiers/:dealId/statut', wrap((req, res) => {
   const r = changerStatut(dossier, statut, { user, note });
   if (!r.ok) return res.status(400).json({ error: r.error });
 
-  // Un abandon capitalise l'observation dans la base marché.
-  if (statut === 'abandonne' && statutDe(dossier) !== 'abandonne') {
+  // Un abandon capitalise l'observation dans la base marché (hors deal de test).
+  if (statut === 'abandonne' && statutDe(dossier) !== 'abandonne' && !dossier.test) {
     for (const lot of dossier.lots || []) alimenterBaseMarche(dossier, lot, user);
   }
   ok(res, { deal_id: dossier.deal_id, statut: r.deal.statut, suivi: r.deal.suivi });

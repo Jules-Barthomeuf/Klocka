@@ -51,16 +51,16 @@ const cityCoordinates = {
   "Frejus": [43.4333, 6.7333]
 };
 
-function StatCard({ icon: Icon, value, label, color = "text-[#2A9D8F]", delay = 0 }) {
+function StatCard({ icon: Icon, value, label, color = "text-[#33d6c0]", delay = 0 }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-4"
+      className="bg-white/[0.015] rounded-md border border-[#131c1b] p-4"
     >
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-md bg-white/[0.03] flex items-center justify-center flex-shrink-0">
           <Icon className={`w-4 h-4 ${color}`} />
         </div>
         <div>
@@ -72,11 +72,11 @@ function StatCard({ icon: Icon, value, label, color = "text-[#2A9D8F]", delay = 
   );
 }
 
-function QuickAccessButton({ icon: Icon, label, onClick, color = "text-[#2A9D8F]" }) {
+function QuickAccessButton({ icon: Icon, label, onClick, color = "text-[#33d6c0]" }) {
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-center gap-2 p-4 bg-white/[0.015] rounded-2xl border border-white/[0.05] hover:border-white/[0.1] hover:bg-white/[0.025] transition-all"
+      className="group flex flex-col items-center gap-2 p-4 bg-white/[0.015] rounded-md border border-[#131c1b] hover:border-white/[0.1] hover:bg-white/[0.025] transition-all"
     >
       <Icon className={`w-5 h-5 ${color}`} />
       <span className="text-white/60 text-xs group-hover:text-white transition-colors">{label}</span>
@@ -166,15 +166,15 @@ export default function AdminDashboardView({ user }) {
   ];
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[#050807]">
       <FeedbackWidget />
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8 md:mb-10">
-          <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">Administration</p>
+          <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">Administration</p>
           <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Dashboard</h1>
-          <div className="h-px w-12 bg-[#2A9D8F] mt-3" />
+          <div className="h-px w-12 bg-[#33d6c0] mt-3" />
         </motion.div>
 
         {/* Stats principales */}
@@ -188,9 +188,9 @@ export default function AdminDashboardView({ user }) {
         {/* Pipeline + Clients par étape */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-5">
+            className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
             <p className="text-white/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
-              <Target className="w-3.5 h-3.5 text-[#2A9D8F]" /> Pipeline Projets
+              <Target className="w-3.5 h-3.5 text-[#33d6c0]" /> Pipeline Projets
             </p>
             <div className="space-y-2.5">
               {pipelineItems.map(({ key, label, color }) => (
@@ -204,14 +204,14 @@ export default function AdminDashboardView({ user }) {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-            className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-5">
+            className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
             <p className="text-white/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-[#2A9D8F]" /> Clients par étape
+              <Clock className="w-3.5 h-3.5 text-[#33d6c0]" /> Clients par étape
             </p>
             <div className="space-y-2.5">
               {etapes.map(etape => (
                 <div key={etape.numero} className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[#2A9D8F]/15 flex items-center justify-center text-[10px] text-[#2A9D8F] font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#33d6c0]/15 flex items-center justify-center text-[10px] text-[#33d6c0] font-medium">
                     {etape.numero}
                   </div>
                   <span className="text-white/40 text-xs flex-1 truncate">{etape.titre}</span>
@@ -233,9 +233,9 @@ export default function AdminDashboardView({ user }) {
         {/* CRM Section */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="mb-6">
-            <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">CRM</p>
+            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">CRM</p>
             <h2 className="text-xl font-light text-white">Activité commerciale</h2>
-            <div className="h-px w-10 bg-[#2A9D8F] mt-3" />
+            <div className="h-px w-10 bg-[#33d6c0] mt-3" />
           </div>
 
           {/* CRM Stats */}
@@ -248,7 +248,7 @@ export default function AdminDashboardView({ user }) {
 
           {/* CRM Financials */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-            <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-5">
+            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white/25 text-[9px] uppercase tracking-[0.15em] mb-1">Vol. Transactions Finalisées</p>
@@ -258,17 +258,17 @@ export default function AdminDashboardView({ user }) {
                 <DollarSign className="w-7 h-7 text-green-400/30" />
               </div>
             </div>
-            <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-5">
+            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white/25 text-[9px] uppercase tracking-[0.15em] mb-1">Total Honoraires</p>
                   <p className="text-white text-lg font-medium">{fmtCur(crmTotalHonoraires)}</p>
-                  <p className="text-[#2A9D8F]/60 text-[10px] mt-1">Toutes catégories</p>
+                  <p className="text-[#33d6c0]/60 text-[10px] mt-1">Toutes catégories</p>
                 </div>
-                <DollarSign className="w-7 h-7 text-[#2A9D8F]/30" />
+                <DollarSign className="w-7 h-7 text-[#33d6c0]/30" />
               </div>
             </div>
-            <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-5">
+            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white/25 text-[9px] uppercase tracking-[0.15em] mb-1">Honoraires Finalisées</p>
@@ -282,11 +282,11 @@ export default function AdminDashboardView({ user }) {
 
           {/* Map */}
           {contactsByCity.length > 0 && (
-            <div className="bg-white/[0.015] rounded-2xl border border-white/[0.05] p-5 mb-6">
+            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5 mb-6">
               <p className="text-white/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-[#2A9D8F]" /> Agents Immobiliers
+                <MapPin className="w-3.5 h-3.5 text-[#33d6c0]" /> Agents Immobiliers
               </p>
-              <div style={{ height: '400px' }} className="rounded-xl overflow-hidden">
+              <div style={{ height: '400px' }} className="rounded-md overflow-hidden">
                 <MapContainer center={[46.603354, 1.888334]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   {contactsByCity.map(([city, contacts]) => {
@@ -326,9 +326,9 @@ export default function AdminDashboardView({ user }) {
               <button
                 key={item.page}
                 onClick={() => navigate(createPageUrl(item.page))}
-                className="group bg-white/[0.015] rounded-2xl border border-white/[0.05] p-5 text-left hover:border-white/[0.1] hover:bg-white/[0.025] transition-all"
+                className="group bg-white/[0.015] rounded-md border border-[#131c1b] p-5 text-left hover:border-white/[0.1] hover:bg-white/[0.025] transition-all"
               >
-                <div className="w-10 h-10 rounded-xl bg-white/[0.03] flex items-center justify-center mb-3 group-hover:bg-white/[0.05] transition-colors">
+                <div className="w-10 h-10 rounded-md bg-white/[0.03] flex items-center justify-center mb-3 group-hover:bg-white/[0.05] transition-colors">
                   <item.icon className={`w-5 h-5 ${item.color}`} />
                 </div>
                 <p className="text-white text-sm font-medium mb-0.5">{item.label}</p>

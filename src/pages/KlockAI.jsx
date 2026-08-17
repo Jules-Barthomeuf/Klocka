@@ -149,10 +149,10 @@ export default function KlockAI() {
   
   if (isInitializing) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
         <div className="text-center">
           <div className="relative w-16 h-4 mx-auto mb-4">
-            <div className="absolute w-3 h-3 bg-[#2A9D8F] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
+            <div className="absolute w-3 h-3 bg-[#33d6c0] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
           </div>
           <style>{`
             @keyframes bounce-horizontal {
@@ -216,7 +216,7 @@ export default function KlockAI() {
                 transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                 className="flex justify-end"
               >
-                <div className="max-w-[80%] rounded-2xl rounded-br-sm px-4 py-2.5 bg-white/[0.06] border border-white/10 text-white">
+                <div className="max-w-[80%] rounded-md rounded-br-sm px-4 py-2.5 bg-white/[0.06] border border-white/10 text-white">
                   <p className="text-sm leading-relaxed">{stripEmojis(message.content)}</p>
                 </div>
               </motion.div>
@@ -228,7 +228,7 @@ export default function KlockAI() {
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className="flex justify-start"
               >
-                <div className="flex-1 min-w-0 rounded-md border border-[#2A9D8F]/25 bg-[#2A9D8F]/[0.06] px-4 py-2.5">
+                <div className="flex-1 min-w-0 rounded-md border border-[#33d6c0]/25 bg-[#33d6c0]/[0.06] px-4 py-2.5">
                   <div className="prose prose-sm prose-invert max-w-none">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -240,18 +240,18 @@ export default function KlockAI() {
                         ),
                         thead: ({ children }) => <thead className="bg-white/[0.04]">{children}</thead>,
                         th: ({ children }) => <th className="text-left font-semibold text-white px-3 py-2 border-b border-white/10">{children}</th>,
-                        td: ({ children }) => <td className="text-gray-200 px-3 py-2 border-b border-white/[0.06] align-top">{children}</td>,
+                        td: ({ children }) => <td className="text-gray-200 px-3 py-2 border-b border-[#16201f] align-top">{children}</td>,
                         tr: ({ children }) => <tr>{children}</tr>,
                         p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-gray-200">{children}</p>,
                         ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-gray-200">{children}</ul>,
                         ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-gray-200">{children}</ol>,
                         li: ({ children }) => <li className="text-sm">{children}</li>,
-                        strong: ({ children }) => <strong className="font-semibold text-[#71CCBA]">{children}</strong>,
+                        strong: ({ children }) => <strong className="font-semibold text-[#5ee7d4]">{children}</strong>,
                         h1: ({ children }) => <h1 className="text-lg mb-2 text-white">{children}</h1>,
                         h2: ({ children }) => <h2 className="text-base mb-2 text-white">{children}</h2>,
                         h3: ({ children }) => <h3 className="text-sm mb-1 text-white">{children}</h3>,
                         code: ({ children }) => (
-                          <code className="bg-white/5 px-1 py-0.5 rounded text-[#71CCBA] text-xs">{children}</code>
+                          <code className="bg-white/5 px-1 py-0.5 rounded text-[#5ee7d4] text-xs">{children}</code>
                         ),
                       }}
                     >
@@ -269,7 +269,7 @@ export default function KlockAI() {
                               {[0, 1, 2].map((i) => (
                                 <motion.span
                                   key={i}
-                                  className="w-1.5 h-1.5 rounded-full bg-[#2A9D8F]"
+                                  className="w-1.5 h-1.5 rounded-full bg-[#33d6c0]"
                                   animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
                                   transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut", delay: i * 0.18 }}
                                 />
@@ -278,7 +278,7 @@ export default function KlockAI() {
                             </span>
                           ) : (
                             <span className="flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#2A9D8F]"></span>
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#33d6c0]"></span>
                               Données récupérées
                             </span>
                           )}
@@ -304,7 +304,7 @@ export default function KlockAI() {
                   {[0, 1, 2].map((i) => (
                     <motion.span
                       key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-[#2A9D8F]"
+                      className="w-1.5 h-1.5 rounded-full bg-[#33d6c0]"
                       animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
                       transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut", delay: i * 0.18 }}
                     />

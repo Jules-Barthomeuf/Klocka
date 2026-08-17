@@ -21,7 +21,7 @@ function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-[12px] text-gray-400">{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#2A9D8F] h-4 w-7" />
+      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#33d6c0] h-4 w-7" />
     </div>
   );
 }
@@ -102,20 +102,20 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#0c0c0c] border-r border-white/[0.08]">
+    <div className="flex flex-col h-full bg-[#0c0c0c] border-r border-[#1c2725]">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 h-11 border-b border-white/[0.06] flex-shrink-0">
-        <div className="w-5 h-5 rounded bg-[#2A9D8F]/15 flex items-center justify-center">
-          <div className="w-2 h-2 rounded-sm bg-[#2A9D8F]" />
+      <div className="flex items-center gap-2 px-3 h-11 border-b border-[#16201f] flex-shrink-0">
+        <div className="w-5 h-5 rounded bg-[#33d6c0]/15 flex items-center justify-center">
+          <div className="w-2 h-2 rounded-sm bg-[#33d6c0]" />
         </div>
         <span className="text-white text-sm font-medium">Simulateur</span>
       </div>
 
       {/* Scenario select */}
-      <div className="px-3 pt-3 pb-2 border-b border-white/[0.06]">
+      <div className="px-3 pt-3 pb-2 border-b border-[#16201f]">
         <p className="text-[9px] uppercase tracking-[0.18em] text-gray-600 font-medium mb-1.5">Scénario</p>
         <Select value={selectedProjectId || "default"} onValueChange={onSelectProject}>
-          <SelectTrigger className="bg-[#161616] text-white border-white/[0.08] h-8 text-xs rounded-md">
+          <SelectTrigger className="bg-[#161616] text-white border-[#1c2725] h-8 text-xs rounded-md">
             <SelectValue placeholder="Mode par défaut" />
           </SelectTrigger>
           <SelectContent className="bg-[#161616] text-white border-white/[0.1]">
@@ -161,8 +161,8 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <div className="mt-3 rounded-lg border border-[#2A9D8F]/40 bg-[#2A9D8F]/[0.06] p-2.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[#2A9D8F] font-semibold pb-1">Champs revente</p>
+              <div className="mt-3 rounded-lg border border-[#33d6c0]/40 bg-[#33d6c0]/[0.06] p-2.5">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[#33d6c0] font-semibold pb-1">Champs revente</p>
                 {reventeMainItems.map((it) => (
                   <SimSlider
                     key={it.key}

@@ -81,7 +81,7 @@ function InstagramPreview({ url }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rounded-2xl overflow-hidden border border-pink-500/30 hover:border-pink-500/60 transition-all duration-300 group"
+      className="block rounded-md overflow-hidden border border-pink-500/30 hover:border-pink-500/60 transition-all duration-300 group"
     >
       <div className="bg-gradient-to-br from-purple-900/40 via-pink-900/40 to-orange-900/40 p-5">
         <div className="flex items-center gap-4 mb-4">
@@ -101,7 +101,7 @@ function InstagramPreview({ url }) {
             Voir le profil
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-1.5 rounded-xl overflow-hidden">
+        <div className="grid grid-cols-3 gap-1.5 rounded-md overflow-hidden">
           {[1,2,3].map((i) => (
             <div key={i} className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
               <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -145,7 +145,7 @@ export default function LocataireLiensSociaux({ liens }) {
                 href={lien.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-4 p-4 bg-gray-800/50 rounded-xl border ${config.borderColor} transition-all duration-300 group`}
+                className={`flex items-center gap-4 p-4 bg-gray-800/50 rounded-md border ${config.borderColor} transition-all duration-300 group`}
               >
                 <div className={`w-10 h-10 bg-gradient-to-br ${config.color} rounded-lg flex items-center justify-center text-white flex-shrink-0 shadow-lg`}>
                   {config.icon}

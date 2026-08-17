@@ -7,7 +7,7 @@ function SectionBlock({ section, color }) {
       <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-4 font-medium">{section.titre}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {section.items.map((item, idx) => (
-          <div key={idx} className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div key={idx} className="p-3 rounded-md bg-white/[0.03] border border-[#16201f]">
             <p className="text-sm font-medium text-white mb-1">{item.label}</p>
             <p className="text-xs text-white/50 whitespace-pre-line leading-relaxed">{item.desc}</p>
           </div>

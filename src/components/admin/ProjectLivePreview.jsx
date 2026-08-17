@@ -4,7 +4,7 @@ const statutLabels = { prospect: "Prospect", analyse: "Analyse", negociation: "N
 
 function Row({ label, value, empty = "—" }) {
   return (
-    <div className="flex justify-between text-[13px] text-[#8D93A0] py-1.5 border-t border-white/[0.06]">
+    <div className="flex justify-between text-[13px] text-[#8D93A0] py-1.5 border-t border-[#16201f]">
       <span className="flex-shrink-0">{label}</span>
       <span className="text-[#EAECEF] truncate max-w-[190px] text-right ml-2">{value || empty}</span>
     </div>
@@ -13,7 +13,7 @@ function Row({ label, value, empty = "—" }) {
 
 function Shell({ children, formData }) {
   return (
-    <div className="bg-[#12151C] border border-white/[0.08] rounded-[18px] overflow-hidden max-w-[360px] shadow-[0_24px_50px_rgba(0,0,0,0.5)]">
+    <div className="bg-[#12151C] border border-[#1c2725] rounded-[18px] overflow-hidden max-w-[360px] shadow-[0_24px_50px_rgba(0,0,0,0.5)]">
       <div
         className="h-[130px] bg-[#1B1F29] bg-cover bg-center"
         style={formData.photos?.[0]
@@ -23,7 +23,7 @@ function Shell({ children, formData }) {
       <div className="px-[18px] pt-[18px] pb-5">
         <div className="flex justify-between items-center mb-3">
           <span className="font-bold text-[17px] truncate">{formData.titre || "Sans titre"}</span>
-          <span className="text-[12px] font-semibold text-[#2A9D8F] bg-[#2A9D8F]/[0.15] px-2.5 py-1 rounded-full flex-shrink-0 ml-2">
+          <span className="text-[12px] font-semibold text-[#33d6c0] bg-[#33d6c0]/[0.15] px-2.5 py-1 rounded-full flex-shrink-0 ml-2">
             {statutLabels[formData.statut] || "Prospect"}
           </span>
         </div>

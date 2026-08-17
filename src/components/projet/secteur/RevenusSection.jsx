@@ -27,10 +27,10 @@ export default function RevenusSection({ data }) {
   if (!data.revenu_median && !data.taux_pauvrete) return null;
 
   return (
-    <SectionCard icon={<Euro className="w-5 h-5 text-[#2A9D8F]" />} title="Revenus et Niveau de vie">
+    <SectionCard icon={<Euro className="w-5 h-5 text-[#33d6c0]" />} title="Revenus et Niveau de vie">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {data.revenu_median > 0 && (
-          <div className="p-5 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-xl border border-emerald-500/30">
+          <div className="p-5 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-md border border-emerald-500/30">
             <p className="text-sm text-gray-400 mb-1">Revenu médian disponible par UC</p>
             <p className="text-3xl font-semibold text-emerald-400">{Math.round(data.revenu_median).toLocaleString()} €</p>
             <p className="text-xs text-gray-500 mt-1">par an</p>
@@ -38,7 +38,7 @@ export default function RevenusSection({ data }) {
           </div>
         )}
         {data.taux_pauvrete > 0 && (
-          <div className="p-5 bg-gradient-to-br from-amber-500/20 to-transparent rounded-xl border border-amber-500/30">
+          <div className="p-5 bg-gradient-to-br from-amber-500/20 to-transparent rounded-md border border-amber-500/30">
             <p className="text-sm text-gray-400 mb-1">Taux de pauvreté</p>
             <p className={`text-3xl font-semibold ${data.taux_pauvrete > 15 ? 'text-red-400' : 'text-amber-400'}`}>{data.taux_pauvrete}%</p>
             <p className="text-xs text-gray-500 mt-1">seuil à 60% du revenu médian</p>
@@ -53,7 +53,7 @@ export default function RevenusSection({ data }) {
           </div>
         )}
         {data.part_menages_imposes > 0 && (
-          <div className="p-5 bg-gradient-to-br from-blue-500/20 to-transparent rounded-xl border border-blue-500/30">
+          <div className="p-5 bg-gradient-to-br from-blue-500/20 to-transparent rounded-md border border-blue-500/30">
             <p className="text-sm text-gray-400 mb-1">Ménages imposés</p>
             <p className="text-3xl font-semibold text-blue-400">{data.part_menages_imposes}%</p>
             <p className="text-xs text-gray-500 mt-1">des ménages fiscaux</p>
@@ -84,7 +84,7 @@ export default function RevenusSection({ data }) {
 
       {/* Rapport interdécile */}
       {data.rapport_interdecile > 0 && (
-        <div className="mt-4 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
+        <div className="mt-4 p-4 bg-gray-800/50 rounded-md border border-gray-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-400">Rapport interdécile (D9/D1)</p>

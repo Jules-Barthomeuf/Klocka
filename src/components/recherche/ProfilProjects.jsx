@@ -64,7 +64,7 @@ export default function ProfilProjects({ budgetMin, budgetMax, color }) {
         const activite = getActivite(project);
 
         return (
-          <Card key={project.id} className="bg-white/[0.03] border-white/[0.06]">
+          <Card key={project.id} className="bg-white/[0.03] border-[#16201f]">
             <CardContent className="p-5">
               {/* Photo */}
               {project.photos && project.photos.length > 0 ? (

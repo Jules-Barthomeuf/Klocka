@@ -62,10 +62,10 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
             onClick={() => onToggle(project.id)}
             className="text-left group"
           >
-            <div className={`relative bg-[#0A0A0A] rounded-2xl border overflow-hidden transition-all duration-300 ${
+            <div className={`relative bg-[#0a0f0e] rounded-md border overflow-hidden transition-all duration-300 ${
               isSelected
                 ? `${BORDER_COLORS[colorIdx]} ring-2 ${RING_COLORS[colorIdx]}`
-                : "border-white/[0.06] hover:border-white/[0.12]"
+                : "border-[#16201f] hover:border-[#24312f]"
             }`}>
               {/* Image */}
               <div className="relative h-48 md:h-52 overflow-hidden">
@@ -80,11 +80,11 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
                     <MapPin className="w-12 h-12 text-white/[0.05]" />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f0e] via-[#0a0f0e]/30 to-transparent" />
 
                 {/* Status badge */}
                 <div className="absolute top-4 left-4">
-                  <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-[#2A9D8F] border border-[#2A9D8F]/20">
+                  <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#050807]/60 backdrop-blur-sm text-[#33d6c0] border border-[#33d6c0]/20">
                     {statutLabels[project.statut] || project.statut}
                   </span>
                 </div>
@@ -94,7 +94,7 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                     isSelected
                       ? `${DOT_COLORS[colorIdx]} shadow-lg`
-                      : "bg-black/50 backdrop-blur-sm border border-white/20"
+                      : "bg-[#050807]/50 backdrop-blur-sm border border-white/20"
                   }`}>
                     {isSelected ? (
                       <Check className="w-4 h-4 text-black" />
@@ -120,7 +120,7 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
                 <div className="flex gap-8">
                   <div>
                     <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1">Prix de revient</p>
-                    <p className="text-[#2A9D8F] text-lg font-light">{formatPrice(prixRevient)}</p>
+                    <p className="text-[#33d6c0] text-lg font-light">{formatPrice(prixRevient)}</p>
                   </div>
                   <div>
                     <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1">Rendement</p>

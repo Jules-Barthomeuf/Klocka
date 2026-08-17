@@ -103,12 +103,12 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
     return `${Math.round(val)} €`;
   };
 
-  const actionBtn = "w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/70 transition-colors";
+  const actionBtn = "w-8 h-8 rounded-full bg-[#050807]/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/70 transition-colors";
 
   return (
     <div>
       <div
-        className="group relative cursor-pointer bg-[#0A0A0A] rounded-2xl border border-white/[0.06] overflow-hidden hover:border-[#2A9D8F]/20 transition-all duration-500"
+        className="group relative cursor-pointer bg-[#0a0f0e] rounded-md border border-[#16201f] overflow-hidden hover:border-[#33d6c0]/20 transition-all duration-500"
         onClick={() => onEdit(project)}
       >
         {/* Image band */}
@@ -120,11 +120,11 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
               <Eye className="w-12 h-12 text-white/[0.05]" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f0e] via-[#0a0f0e]/30 to-transparent" />
 
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className={`text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm border ${statutColors[project.statut] || 'text-gray-400'} border-white/10`}>
+            <span className={`text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#050807]/60 backdrop-blur-sm border ${statutColors[project.statut] || 'text-gray-400'} border-white/10`}>
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -145,17 +145,17 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
 
           {/* Actions — apparaissent au survol */}
           <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#2A9D8F] hover:border-[#2A9D8F]/40`} title="Simulateur">
+            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#33d6c0] hover:border-[#33d6c0]/40`} title="Simulateur">
               <Calculator className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-[#2A9D8F] hover:border-[#2A9D8F]/40`} title="Modifier">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-[#33d6c0] hover:border-[#33d6c0]/40`} title="Modifier">
               <Pencil className="w-3.5 h-3.5" />
             </button>
             <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-purple-400 hover:border-purple-400/40`} title="Preview client">
               <Eye className="w-3.5 h-3.5" />
             </button>
-            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-[#2A9D8F] hover:border-[#2A9D8F]/40`} title="Copier le lien public (accessible sans compte)">
-              {copied ? <Check className="w-3.5 h-3.5 text-[#2A9D8F]" /> : <Share2 className="w-3.5 h-3.5" />}
+            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-[#33d6c0] hover:border-[#33d6c0]/40`} title="Copier le lien public (accessible sans compte)">
+              {copied ? <Check className="w-3.5 h-3.5 text-[#33d6c0]" /> : <Share2 className="w-3.5 h-3.5" />}
             </button>
             <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-blue-400 hover:border-blue-400/40`} title="Dupliquer">
               <Copy className="w-3.5 h-3.5" />
@@ -174,7 +174,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
           <div className="flex flex-wrap gap-x-6 gap-y-2 min-w-0">
             <div className="min-w-0">
               <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Prix de revient</p>
-              <p className="text-[#2A9D8F] text-lg font-light">{formatPrice(prixRevient)}</p>
+              <p className="text-[#33d6c0] text-lg font-light">{formatPrice(prixRevient)}</p>
             </div>
             <div className="min-w-0">
               <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Rendement</p>
@@ -194,7 +194,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
       {hasShadow && (
         <button
           onClick={() => setReportOpen(true)}
-          className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 text-purple-400 text-xs transition-all"
+          className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 text-purple-400 text-xs transition-all"
         >
           <FileSearch className="w-3.5 h-3.5" />
           Voir le rapport

@@ -34,11 +34,11 @@ function CompareBar({ label, local, national, unit = "", suffix = "", invert = f
       <div className="space-y-1.5">
         <div>
           <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="text-[#2A9D8F]">Ville</span>
+            <span className="text-[#33d6c0]">Ville</span>
             <span className="text-white font-semibold">{local}{suffix}{unit}</span>
           </div>
           <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-[#2A9D8F]" style={{ width: `${((local || 0) / max) * 100}%` }} />
+            <div className="h-full rounded-full bg-[#33d6c0]" style={{ width: `${((local || 0) / max) * 100}%` }} />
           </div>
         </div>
         <div>
@@ -73,7 +73,7 @@ export default function PopulationSection({ data }) {
   const historique = (data.pop_historique || []).filter(d => d.annee && d.population > 0);
 
   return (
-    <SectionCard icon={<Users className="w-5 h-5 text-[#2A9D8F]" />} title="Population">
+    <SectionCard icon={<Users className="w-5 h-5 text-[#33d6c0]" />} title="Population">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPI label="Population" value={data.population?.toLocaleString()} color="teal" />
         {data.evolution_annuelle_pct != null && (
@@ -99,7 +99,7 @@ export default function PopulationSection({ data }) {
                   <XAxis type="number" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 'auto']} />
                   <YAxis type="category" dataKey="tranche" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 11 }} width={70} />
                   <Tooltip formatter={v => `${v}%`} contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" fill="#2A9D8F" radius={[0, 4, 4, 0]} barSize={16} />
+                  <Bar dataKey="value" fill="#33d6c0" radius={[0, 4, 4, 0]} barSize={16} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -117,7 +117,7 @@ export default function PopulationSection({ data }) {
                   <XAxis dataKey="annee" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 11 }} />
                   <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
                   <Tooltip formatter={v => v.toLocaleString()} contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="population" stroke="#2A9D8F" strokeWidth={2} dot={{ fill: '#2A9D8F', r: 3 }} />
+                  <Line type="monotone" dataKey="population" stroke="#33d6c0" strokeWidth={2} dot={{ fill: '#33d6c0', r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

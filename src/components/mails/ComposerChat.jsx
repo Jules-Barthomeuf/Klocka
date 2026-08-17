@@ -75,9 +75,9 @@ export default function ComposerChat({ onBrouillon }) {
   };
 
   return (
-    <div className="bg-neutral-900 border border-white/[0.08] rounded-2xl p-5">
+    <div className="bg-[#0a0f0e] border border-[#1c2725] rounded-md p-5">
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="w-4 h-4 text-[#2A9D8F]" />
+        <Sparkles className="w-4 h-4 text-[#33d6c0]" />
         <span className="text-white text-sm font-medium">Décrivez le mail, affinez-le en discutant</span>
         {conversation && (
           <button
@@ -94,23 +94,23 @@ export default function ComposerChat({ onBrouillon }) {
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[85%] rounded-md px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
                   m.role === "user"
-                    ? "bg-[#2A9D8F]/20 text-[#D8F3EE]"
-                    : "bg-neutral-800 text-gray-300"
+                    ? "bg-[#33d6c0]/20 text-[#D8F3EE]"
+                    : "bg-[#101715] text-gray-300"
                 }`}
               >
                 {m.content}
                 {m.role === "assistant" && m.brouillon && (
-                  <p className="text-[#71CCBA] text-[11px] mt-1.5">→ Brouillon mis à jour ci-dessous</p>
+                  <p className="text-[#5ee7d4] text-[11px] mt-1.5">→ Brouillon mis à jour ci-dessous</p>
                 )}
               </div>
             </div>
           ))}
           {enCours && (
             <div className="flex justify-start">
-              <div className="bg-neutral-800 rounded-xl px-3 py-2">
-                <Loader2 className="w-4 h-4 text-[#2A9D8F] animate-spin" />
+              <div className="bg-[#101715] rounded-md px-3 py-2">
+                <Loader2 className="w-4 h-4 text-[#33d6c0] animate-spin" />
               </div>
             </div>
           )}
@@ -134,7 +134,7 @@ export default function ComposerChat({ onBrouillon }) {
         }
         rows={2}
         disabled={enCours}
-        className="bg-neutral-800 border-white/[0.08] text-white placeholder:text-gray-600 resize-none"
+        className="bg-[#101715] border-[#1c2725] text-white placeholder:text-gray-600 resize-none"
       />
       <div className="flex flex-wrap items-center gap-2 mt-3">
         {!messages.length &&
@@ -143,7 +143,7 @@ export default function ComposerChat({ onBrouillon }) {
               key={ex}
               type="button"
               onClick={() => envoyer(ex)}
-              className="text-[11px] text-gray-500 hover:text-gray-300 border border-white/[0.08] rounded-full px-3 py-1 transition-colors"
+              className="text-[11px] text-gray-500 hover:text-gray-300 border border-[#1c2725] rounded-full px-3 py-1 transition-colors"
             >
               {ex}
             </button>
@@ -151,7 +151,7 @@ export default function ComposerChat({ onBrouillon }) {
         <Button
           onClick={() => envoyer()}
           disabled={!texte.trim() || enCours}
-          className="ml-auto bg-[#2A9D8F] hover:bg-[#238277] text-white"
+          className="ml-auto bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
         >
           {enCours ? (
             <>

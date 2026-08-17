@@ -160,20 +160,20 @@ export default function BaseDonneesMarche() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A9D8F]"></div>
+      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black p-3 md:p-10">
+    <div className="min-h-screen bg-[#050807] p-3 md:p-10">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-4xl font-montserrat text-white mb-2">
             Base de Données Marché
           </h1>
-          <div className="h-0.5 w-24 md:w-32 bg-[#2A9D8F] mb-2"></div>
+          <div className="h-0.5 w-24 md:w-32 bg-[#33d6c0] mb-2"></div>
           <p className="text-gray-400 text-sm md:text-lg">
             Gérez les données de marché pour l'auto-complétion des projets
           </p>
@@ -196,7 +196,7 @@ export default function BaseDonneesMarche() {
                 </div>
                 <Button
                   onClick={() => handleOpenDialog()}
-                  className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white h-10 md:h-12"
+                  className="bg-[#33d6c0] hover:bg-[#33d6c0]/90 text-white h-10 md:h-12"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Ajouter une donnée
@@ -217,8 +217,8 @@ export default function BaseDonneesMarche() {
                     <div className="flex-1">
                       {/* En-tête */}
                       <div className="flex items-start gap-3 mb-4">
-                        <div className="w-10 h-10 bg-[#2A9D8F]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-5 h-5 text-[#2A9D8F]" />
+                        <div className="w-10 h-10 bg-[#33d6c0]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <MapPin className="w-5 h-5 text-[#33d6c0]" />
                         </div>
                         <div>
                           <h3 className="text-white text-lg font-semibold">{item.ville}</h3>
@@ -291,7 +291,7 @@ export default function BaseDonneesMarche() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleOpenDialog(item)}
-                        className="text-[#2A9D8F] hover:bg-[#2A9D8F]/10 h-9 w-9"
+                        className="text-[#33d6c0] hover:bg-[#33d6c0]/10 h-9 w-9"
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
@@ -322,7 +322,7 @@ export default function BaseDonneesMarche() {
               {!searchTerm && (
                 <Button
                   onClick={() => handleOpenDialog()}
-                  className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white"
+                  className="bg-[#33d6c0] hover:bg-[#33d6c0]/90 text-white"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Ajouter ma première donnée
@@ -335,10 +335,10 @@ export default function BaseDonneesMarche() {
 
       {/* Dialog d'ajout/édition */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-black border-gray-700 max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[#050807] border-gray-700 max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
-              <Database className="w-5 h-5 text-[#2A9D8F]" />
+              <Database className="w-5 h-5 text-[#33d6c0]" />
               {editingItem ? "Modifier la donnée de marché" : "Ajouter une donnée de marché"}
             </DialogTitle>
             <DialogDescription className="text-gray-400">
@@ -348,8 +348,8 @@ export default function BaseDonneesMarche() {
 
           <div className="space-y-6">
             {/* Localisation */}
-            <div className="p-4 bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 rounded-lg space-y-4">
-              <h4 className="text-[#2A9D8F] font-medium">Localisation</h4>
+            <div className="p-4 bg-[#33d6c0]/10 border border-[#33d6c0]/30 rounded-lg space-y-4">
+              <h4 className="text-[#33d6c0] font-medium">Localisation</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label className="text-gray-400 text-sm">Ville *</Label>
@@ -567,7 +567,7 @@ export default function BaseDonneesMarche() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white"
+              className="bg-[#33d6c0] hover:bg-[#33d6c0]/90 text-white"
               disabled={!formData.ville || createMutation.isPending || updateMutation.isPending}
             >
               {createMutation.isPending || updateMutation.isPending ? "Enregistrement..." : editingItem ? "Mettre à jour" : "Ajouter"}

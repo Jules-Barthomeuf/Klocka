@@ -37,23 +37,23 @@ export default function MandataireClients() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A9D8F]"></div>
+      <div className="min-h-screen bg-[#050807] text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-[#050807] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-geist tracking-tighter text-white mb-2">
               Mes Clients
             </h1>
-            <div className="h-0.5 w-32 bg-[#2A9D8F]"></div>
+            <div className="h-0.5 w-32 bg-[#33d6c0]"></div>
           </div>
-          <Badge className="bg-[#2A9D8F] text-white text-lg px-4 py-2">
+          <Badge className="bg-[#33d6c0] text-white text-lg px-4 py-2">
             {clients.length} clients
           </Badge>
         </div>
@@ -74,10 +74,10 @@ export default function MandataireClients() {
           {filteredClients.map((client) => (
             <div key={client.id} className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
               <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-              <Card className="relative bg-gradient-to-br from-gray-900/95 via-[#2A9D8F]/5 to-gray-900/95 border-none">
+              <Card className="relative bg-gradient-to-br from-gray-900/95 via-[#33d6c0]/5 to-gray-900/95 border-none">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="w-12 h-12 bg-[#2A9D8F] rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 bg-[#33d6c0] rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-semibold text-lg">
                         {(client.full_name || client.email).charAt(0).toUpperCase()}
                       </span>
@@ -86,7 +86,7 @@ export default function MandataireClients() {
                       <h3 className="text-white font-semibold mb-1 truncate">
                         {client.full_name || 'Utilisateur'}
                       </h3>
-                      <Badge className="bg-[#2A9D8F]/20 text-[#2A9D8F] text-xs">
+                      <Badge className="bg-[#33d6c0]/20 text-[#33d6c0] text-xs">
                         {etapeLabels[client.etape_actuelle || 0]}
                       </Badge>
                     </div>

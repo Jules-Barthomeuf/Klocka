@@ -5,7 +5,7 @@ const RADIAN = Math.PI / 180;
 
 export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrency }) {
   const items = useMemo(() => [
-  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: "#2A9D8F" },
+  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: "#33d6c0" },
   { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: "#F5A623" },
   { name: "Honoraires Klocka TTC", value: Math.round(calculs.totalFraisKlocka || 0), color: "#48C7A5" },
   { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: "#E76F51" }].
@@ -26,8 +26,8 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
   };
 
   return (
-    <div className="border border-white/[0.08] rounded-lg bg-black">
-      <div className="px-5 py-3 border-b border-white/[0.06]">
+    <div className="border border-[#1c2725] rounded-lg bg-[#050807]">
+      <div className="px-5 py-3 border-b border-[#16201f]">
         <p className="text-white text-sm font-medium">Budget total</p>
       </div>
       <div className="flex items-center gap-8 p-5">

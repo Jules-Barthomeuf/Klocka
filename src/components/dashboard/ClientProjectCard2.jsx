@@ -59,7 +59,7 @@ export default function ClientProjectCard2({ project }) {
       className="group cursor-pointer"
       onClick={() => navigate(`/ProjetDetail?id=${project.id}`)}
     >
-      <div className="relative bg-[#0A0A0A] rounded-2xl border border-white/[0.06] overflow-hidden hover:border-[#2A9D8F]/20 transition-all duration-500">
+      <div className="relative bg-[#0a0f0e] rounded-md border border-[#16201f] overflow-hidden hover:border-[#33d6c0]/20 transition-all duration-500">
         {/* Image band */}
         <div className="relative h-48 md:h-56 overflow-hidden">
           {project.photos && project.photos.length > 0 ? (
@@ -73,11 +73,11 @@ export default function ClientProjectCard2({ project }) {
               <MapPin className="w-12 h-12 text-white/[0.05]" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f0e] via-[#0a0f0e]/30 to-transparent" />
           
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-[#2A9D8F] border border-[#2A9D8F]/20">
+            <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#050807]/60 backdrop-blur-sm text-[#33d6c0] border border-[#33d6c0]/20">
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -107,7 +107,7 @@ export default function ClientProjectCard2({ project }) {
           <div className="flex flex-wrap gap-x-6 gap-y-2 min-w-0">
             <div className="min-w-0">
               <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Prix de revient</p>
-              <p className="text-[#2A9D8F] text-lg font-light">{formatPrice(prixRevient)}</p>
+              <p className="text-[#33d6c0] text-lg font-light">{formatPrice(prixRevient)}</p>
             </div>
             <div className="min-w-0">
               <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Rendement</p>
@@ -120,8 +120,8 @@ export default function ClientProjectCard2({ project }) {
               </div>
             )}
           </div>
-          <div className="w-10 h-10 flex-shrink-0 rounded-full border border-white/[0.06] flex items-center justify-center group-hover:border-[#2A9D8F]/30 group-hover:bg-[#2A9D8F]/5 transition-all">
-            <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-[#2A9D8F] transition-colors" />
+          <div className="w-10 h-10 flex-shrink-0 rounded-full border border-[#16201f] flex items-center justify-center group-hover:border-[#33d6c0]/30 group-hover:bg-[#33d6c0]/5 transition-all">
+            <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-[#33d6c0] transition-colors" />
           </div>
         </div>
       </div>

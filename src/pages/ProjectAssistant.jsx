@@ -36,9 +36,9 @@ return (
 
 {!isUser && (
 
-<div className="h-7 w-7 rounded-lg bg-[#2A9D8F]/20 flex items-center justify-center mt-0.5 flex-shrink-0">
+<div className="h-7 w-7 rounded-lg bg-[#33d6c0]/20 flex items-center justify-center mt-0.5 flex-shrink-0">
 
-<div className="h-1.5 w-1.5 rounded-full bg-[#2A9D8F]" />
+<div className="h-1.5 w-1.5 rounded-full bg-[#33d6c0]" />
 
 </div>
 
@@ -48,9 +48,9 @@ return (
 
 {message.content && (
 
-<div className={`rounded-2xl px-4 py-2.5 ${
+<div className={`rounded-md px-4 py-2.5 ${
 
-isUser ? "bg-[#2A9D8F] text-white" : "bg-gray-800 border border-gray-700"
+isUser ? "bg-[#33d6c0] text-white" : "bg-gray-800 border border-gray-700"
 
 }`}>
 
@@ -74,13 +74,13 @@ ol: ({ children }) => <ol className="my-1 ml-4 list-decimal text-white">{childre
 
 li: ({ children }) => <li className="my-0.5 text-white">{children}</li>,
 
-strong: ({ children }) => <strong className="text-[#71CCBA]">{children}</strong>,
+strong: ({ children }) => <strong className="text-[#5ee7d4]">{children}</strong>,
 
 code: ({ inline, children }) =>
 
 inline ?
 
-<code className="px-1 py-0.5 rounded bg-gray-900 text-[#71CCBA] text-xs">{children}</code> :
+<code className="px-1 py-0.5 rounded bg-gray-900 text-[#5ee7d4] text-xs">{children}</code> :
 
 <code className="block p-2 rounded bg-gray-900 text-white text-xs">{children}</code>
 
@@ -382,11 +382,11 @@ if (!isInitialized) {
 
 return (
 
-<div className="flex items-center justify-center min-h-screen bg-neutral-900">
+<div className="flex items-center justify-center min-h-screen bg-[#0a0f0e]">
 
 <div className="relative w-16 h-4">
 
-<div className="absolute w-3 h-3 bg-[#2A9D8F] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
+<div className="absolute w-3 h-3 bg-[#33d6c0] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
 
 </div>
 
@@ -411,10 +411,10 @@ return (
 
 return (
 
-<div className="min-h-screen bg-neutral-900 flex">
+<div className="min-h-screen bg-[#0a0f0e] flex">
 
 {/* Lumière en haut */}
-<div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-gradient-to-br from-[#2A9D8F] via-indigo-500 to-blue-500 opacity-20 blur-[120px] pointer-events-none" />
+<div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-gradient-to-br from-[#33d6c0] via-indigo-500 to-blue-500 opacity-20 blur-[120px] pointer-events-none" />
 
 <div className="flex-1 transition-all duration-300">
 
@@ -457,7 +457,7 @@ Nouvelle conversation
 
 <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
 
-<Card className="relative bg-gradient-to-br from-gray-900/95 via-[#2A9D8F]/5 to-gray-900/95 border-none h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col">
+<Card className="relative bg-gradient-to-br from-gray-900/95 via-[#33d6c0]/5 to-gray-900/95 border-none h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col">
 
 {/* Messages */}
 
@@ -467,9 +467,9 @@ Nouvelle conversation
 
 <div className="flex flex-col items-center justify-center h-full text-center">
 
-<div className="w-16 h-16 bg-[#2A9D8F]/20 rounded-full flex items-center justify-center mb-4">
+<div className="w-16 h-16 bg-[#33d6c0]/20 rounded-full flex items-center justify-center mb-4">
 
-<div className="w-8 h-8 bg-[#2A9D8F] rounded-full" />
+<div className="w-8 h-8 bg-[#33d6c0] rounded-full" />
 
 </div>
 
@@ -497,13 +497,13 @@ Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer l
 
 <div className="flex gap-3 justify-start">
 
-<div className="h-7 w-7 rounded-lg bg-[#2A9D8F]/20 flex items-center justify-center mt-0.5">
+<div className="h-7 w-7 rounded-lg bg-[#33d6c0]/20 flex items-center justify-center mt-0.5">
 
-<Loader2 className="h-4 w-4 text-[#2A9D8F] animate-spin" />
+<Loader2 className="h-4 w-4 text-[#33d6c0] animate-spin" />
 
 </div>
 
-<div className="bg-gray-800 border border-gray-700 rounded-2xl px-4 py-2.5">
+<div className="bg-gray-800 border border-gray-700 rounded-md px-4 py-2.5">
 
 <p className="text-sm text-gray-400">En train d'analyser...</p>
 
@@ -526,7 +526,7 @@ Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer l
 
 <div className="p-4 md:p-6 bg-gray-900/50">
 
-<div className="bg-gray-900 rounded-xl border border-gray-700">
+<div className="bg-gray-900 rounded-md border border-gray-700">
 
 <div className="overflow-y-auto">
 
@@ -607,7 +607,7 @@ className={cn(
 
 inputValue.trim() && !isLoading
 
-? "bg-[#2A9D8F] text-white hover:bg-[#2A9D8F]/90"
+? "bg-[#33d6c0] text-white hover:bg-[#33d6c0]/90"
 
 : "bg-gray-800 text-gray-500 cursor-not-allowed"
 

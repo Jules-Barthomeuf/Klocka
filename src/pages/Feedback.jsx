@@ -19,7 +19,7 @@ const statutConfig = {
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300", icon: Loader2 },
   accepte: { label: "Accepté", color: "bg-green-500/20 text-green-300", icon: CheckCircle2 },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300", icon: XCircle },
-  termine: { label: "Terminé", color: "bg-[#2A9D8F]/20 text-[#2A9D8F]", icon: CheckCircle2 }
+  termine: { label: "Terminé", color: "bg-[#33d6c0]/20 text-[#33d6c0]", icon: CheckCircle2 }
 };
 
 export default function Feedback() {
@@ -89,10 +89,10 @@ export default function Feedback() {
   // Bloquer l'accès en étape 1
   if (showAsClient && userEtape === 1) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30">
+      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
+        <Card className="max-w-md w-full bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
           <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-[#2A9D8F] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-[#33d6c0] rounded-full flex items-center justify-center mx-auto mb-6">
               <MessageSquare className="w-10 h-10 text-white" />
             </div>
             <h2 className="text-2xl text-white mb-4">
@@ -108,7 +108,7 @@ export default function Feedback() {
   }
 
   return (
-    <div className="min-h-screen bg-black p-6 md:p-10">
+    <div className="min-h-screen bg-[#050807] p-6 md:p-10">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -118,7 +118,7 @@ export default function Feedback() {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-4xl font-montserrat text-white mb-2">Suggestions</h1>
-              <div className="h-0.5 w-32 bg-[#2A9D8F] mb-2"></div>
+              <div className="h-0.5 w-32 bg-[#33d6c0] mb-2"></div>
               <p className="text-gray-400 text-lg">
                 Proposez vos idées d'amélioration
               </p>
@@ -130,7 +130,7 @@ export default function Feedback() {
                   {user.full_name || user.email.split('@')[0]}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#2A9D8F] to-[#71CCBA] rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#33d6c0] to-[#5ee7d4] rounded-full flex items-center justify-center">
                 <span className="text-white font-montserrat text-lg">
                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                 </span>
@@ -144,10 +144,10 @@ export default function Feedback() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <Card className="bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30 hover:border-[#2A9D8F]/60 transition-all duration-300 mb-8">
+            <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30 hover:border-[#33d6c0]/60 transition-all duration-300 mb-8">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#2A9D8F]" />
+                  <MessageSquare className="w-5 h-5 text-[#33d6c0]" />
                   Nouvelle suggestion
                 </CardTitle>
               </CardHeader>
@@ -166,7 +166,7 @@ export default function Feedback() {
                                               animate={{ scale: 1 }}
                                               transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
                                             >
-                                              <CheckCircle2 className="w-20 h-20 text-[#2A9D8F] mx-auto mb-4" />
+                                              <CheckCircle2 className="w-20 h-20 text-[#33d6c0] mx-auto mb-4" />
                                             </motion.div>
                                             <h3 className="text-2xl text-white mb-2">Merci pour votre retour !</h3>
                                             <p className="text-gray-400">Votre suggestion a été enregistrée</p>

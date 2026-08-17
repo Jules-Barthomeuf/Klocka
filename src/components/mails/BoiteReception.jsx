@@ -55,7 +55,7 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
   if (!lisibles.length) {
     return (
       <div className="text-center py-16 max-w-lg mx-auto">
-        <Inbox className="w-10 h-10 text-[#2A9D8F]/30 mx-auto mb-4" />
+        <Inbox className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
         {!gmailReadActif ? (
           <p className="text-gray-500 text-sm leading-relaxed">
             La lecture de la boîte n'est pas activée. Ajoutez{" "}
@@ -80,10 +80,10 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
       <div className="flex items-center gap-3">
         {lisibles.length > 1 && (
           <Select value={compteActif} onValueChange={setCompte}>
-            <SelectTrigger className="bg-neutral-800 border-white/[0.08] text-white w-72">
+            <SelectTrigger className="bg-[#101715] border-[#1c2725] text-white w-72">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
+            <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
               {lisibles.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.label}
@@ -114,7 +114,7 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
         <p className="text-gray-500 text-sm py-8 text-center">Relève de la boîte…</p>
       ) : mails.length === 0 ? (
         <div className="text-center py-16">
-          <Inbox className="w-10 h-10 text-[#2A9D8F]/30 mx-auto mb-4" />
+          <Inbox className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
           <p className="text-gray-500 text-sm">Aucun mail relevé pour l'instant.</p>
         </div>
       ) : (
@@ -122,7 +122,7 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
           {mails.map((m) => (
             <div
               key={m.id}
-              className="bg-neutral-900 border border-white/[0.08] rounded-xl px-4 py-3 flex items-center gap-3"
+              className="bg-[#0a0f0e] border border-[#1c2725] rounded-md px-4 py-3 flex items-center gap-3"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 min-w-0">
@@ -144,7 +144,7 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
                   <Button
                     size="sm"
                     onClick={() => navigate(`/Analyse?deal_id=${m.deal_id}`)}
-                    className="bg-[#2A9D8F]/15 hover:bg-[#2A9D8F]/25 text-[#71CCBA] border-0"
+                    className="bg-[#33d6c0]/15 hover:bg-[#33d6c0]/25 text-[#5ee7d4] border-0"
                   >
                     Voir le deal
                   </Button>
@@ -153,7 +153,7 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
                     size="sm"
                     onClick={() => preanalyser.mutate(m.id)}
                     disabled={preanalyser.isPending}
-                    className="bg-[#2A9D8F] hover:bg-[#238277] text-white"
+                    className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
                   >
                     {preanalyser.isPending && preanalyser.variables === m.id ? (
                       <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />

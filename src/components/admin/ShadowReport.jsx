@@ -143,7 +143,7 @@ Réponds UNIQUEMENT en JSON.`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-[#050505] border-white/[0.08]">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-[#050505] border-[#1c2725]">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>

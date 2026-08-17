@@ -22,7 +22,7 @@ import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/Conn
 // WorkflowDeal (la page Analyse) et PipelineDeals (la liste des deals).
 
 export const VERDICTS = {
-  "GO": { classe: "bg-[#2A9D8F]/15 text-[#71CCBA] border-[#2A9D8F]/30", bord: "border-[#2A9D8F]/40" },
+  "GO": { classe: "bg-[#33d6c0]/15 text-[#5ee7d4] border-[#33d6c0]/30", bord: "border-[#33d6c0]/40" },
   "GO SOUS RÉSERVE": { classe: "bg-amber-500/15 text-amber-300 border-amber-500/30", bord: "border-amber-500/30" },
   "INSUFFISANT": { classe: "bg-sky-500/15 text-sky-300 border-sky-500/30", bord: "border-sky-500/30" },
   "NO-GO": { classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
@@ -32,9 +32,9 @@ export const STATUTS_DEAL = {
   analyse: { libelle: "Analysé", classe: "bg-white/10 text-gray-300 border-white/20" },
   documents_demandes: { libelle: "Docs demandés", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
   documents_recus: { libelle: "Docs reçus", classe: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
-  depouille: { libelle: "Dépouillé", classe: "bg-[#2A9D8F]/15 text-[#71CCBA] border-[#2A9D8F]/30" },
+  depouille: { libelle: "Dépouillé", classe: "bg-[#33d6c0]/15 text-[#5ee7d4] border-[#33d6c0]/30" },
   abandonne: { libelle: "Abandonné", classe: "bg-red-500/15 text-red-300 border-red-500/30" },
-  projet_cree: { libelle: "Projet créé", classe: "bg-[#2A9D8F]/20 text-[#71CCBA] border-[#2A9D8F]/40" },
+  projet_cree: { libelle: "Projet créé", classe: "bg-[#33d6c0]/20 text-[#5ee7d4] border-[#33d6c0]/40" },
 };
 
 const EMPLACEMENTS = [
@@ -80,7 +80,7 @@ export function Bandeau({ type, items }) {
       ? "border-amber-500/25 bg-amber-500/10 text-amber-200/90"
       : "border-white/10 bg-white/[0.03] text-gray-400";
   return (
-    <div className={`rounded-xl border px-4 py-3 text-sm ${styles}`}>
+    <div className={`rounded-md border px-4 py-3 text-sm ${styles}`}>
       {items.map((t, i) => (
         <p key={i} className="flex items-start gap-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
@@ -104,6 +104,26 @@ const TITRES_INTENTION = {
   complement: "Mail de relance à l'agent",
 };
 
+// Raisons d'abandon proposées en un clic ; le texte libre reste possible.
+const RAISONS_ABANDON = [
+  "Rendement insuffisant",
+  "Prix au-dessus du marché",
+  "Travaux trop lourds",
+  "Vacance locative",
+  "Copropriété fragile",
+  "Zone peu tendue",
+];
+
+// Ce que l'envoi déclenche côté pipeline, affiché sous le brouillon pour que
+// la conséquence soit lisible avant de cliquer.
+const EFFETS_INTENTION = {
+  refus: "Statut → Abandonné. Le deal alimente la base de données marché puis part aux archives.",
+  demande_documents: "Statut → Documents en attente. Relance automatique programmée à J+7.",
+  relance: "La prochaine relance est reprogrammée à J+7.",
+  abandon: "Statut → Abandonné. Le deal alimente la base de données marché puis part aux archives.",
+  presentation_client: "Décision actée. L'étape Plateforme s'ouvre pour créer le projet.",
+};
+
 export function DialogMailIntention({ dossier, intention, mailInitial, onClose, onDone, onArchiverSansMail }) {
   const [objet, setObjet] = useState(mailInitial?.objet || "");
   const [corps, setCorps] = useState(mailInitial?.corps || "");
@@ -112,6 +132,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
     () => localStorage.getItem("klocka:dernier-expediteur") || ""
   );
   const [raisons, setRaisons] = useState("");
+  const [raisonsChoisies, setRaisonsChoisies] = useState([]);
   // Le mail d'abandon attend d'abord les raisons ; les autres se génèrent seuls.
   const [etape, setEtape] = useState(intention === "abandon" && !mailInitial ? "raisons" : "brouillon");
 
@@ -176,10 +197,12 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
   });
   const sansCompte = comptes.length === 0;
   const googleConfigure = statutMail?.google?.enabled !== false;
+  // Deal de test : l'envoi est simulé côté serveur, aucune boîte requise.
+  const test = !!dossier.test;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-neutral-900 border-white/[0.08] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-[#0a0f0e] border-[#1c2725] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{TITRES_INTENTION[intention] || "Mail à l'agent"}</DialogTitle>
         </DialogHeader>
@@ -187,15 +210,38 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
         {etape === "raisons" ? (
           <div className="space-y-3">
             <div>
-              <Label className="text-gray-400 text-xs mb-1.5 block">
+              <Label className="text-gray-400 text-xs mb-2 block">
                 Raisons de l'abandon (reformulées professionnellement dans le mail)
               </Label>
+              <div className="flex flex-wrap gap-[7px] mb-3">
+                {RAISONS_ABANDON.map((r) => {
+                  const choisie = raisonsChoisies.includes(r);
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() =>
+                        setRaisonsChoisies((prev) =>
+                          choisie ? prev.filter((x) => x !== r) : [...prev, r]
+                        )
+                      }
+                      className={`px-3 py-[6px] rounded text-[11.5px] border transition-colors ${
+                        choisie
+                          ? "border-[#e2564d] text-[#e2564d] bg-[#e2564d]/10"
+                          : "border-[#24312f] text-[#93aca7] hover:border-[#e2564d]/60"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  );
+                })}
+              </div>
               <Textarea
                 value={raisons}
                 onChange={(e) => setRaisons(e.target.value)}
-                rows={4}
-                placeholder="Ex : travaux de toiture votés en AG non provisionnés, loyer 30 % au-dessus du marché…"
-                className="bg-neutral-800 border-white/[0.08] text-white"
+                rows={3}
+                placeholder="Précisions libres — ex : travaux de toiture votés en AG non provisionnés, loyer 30 % au-dessus du marché…"
+                className="bg-[#101715] border-[#1c2725] text-white"
               />
             </div>
             <DialogFooter>
@@ -208,9 +254,11 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                 Annuler
               </Button>
               <Button
-                onClick={() => generer.mutate({ raisons })}
-                disabled={!raisons.trim() || generer.isPending}
-                className="bg-[#2A9D8F] hover:bg-[#238277] text-white"
+                onClick={() =>
+                  generer.mutate({ raisons: [...raisonsChoisies, raisons.trim()].filter(Boolean).join(" ; ") })
+                }
+                disabled={(!raisons.trim() && raisonsChoisies.length === 0) || generer.isPending}
+                className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-[#050807]"
               >
                 {generer.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Rédiger le mail
@@ -219,7 +267,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
           </div>
         ) : generer.isPending ? (
           <div className="py-10 text-center">
-            <Loader2 className="w-6 h-6 text-[#2A9D8F] animate-spin mx-auto mb-3" />
+            <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin mx-auto mb-3" />
             <p className="text-gray-400 text-sm">Rédaction du mail…</p>
           </div>
         ) : (
@@ -235,10 +283,10 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                       localStorage.setItem("klocka:dernier-expediteur", v);
                     }}
                   >
-                    <SelectTrigger className="bg-neutral-800 border-white/[0.08] text-white">
+                    <SelectTrigger className="bg-[#101715] border-[#1c2725] text-white">
                       <SelectValue placeholder="Choisir un compte" />
                     </SelectTrigger>
-                    <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
+                    <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
                       {comptes.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name ? `${c.name} — ${c.id}` : c.id}
@@ -248,7 +296,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                   </Select>
                 </div>
               )}
-              {sansCompte && (
+              {sansCompte && !test && (
                 <EncartConnexionGmail
                   googleConfigure={googleConfigure}
                   onConnecte={(email) => {
@@ -263,12 +311,12 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                   value={destinataire}
                   onChange={(e) => setDestinataire(e.target.value)}
                   placeholder="agent@agence.fr"
-                  className="bg-neutral-800 border-white/[0.08] text-white"
+                  className="bg-[#101715] border-[#1c2725] text-white"
                 />
               </div>
               <div>
                 <Label className="text-gray-400 text-xs mb-1.5 block">Objet</Label>
-                <Input value={objet} onChange={(e) => setObjet(e.target.value)} className="bg-neutral-800 border-white/[0.08] text-white" />
+                <Input value={objet} onChange={(e) => setObjet(e.target.value)} className="bg-[#101715] border-[#1c2725] text-white" />
               </div>
               <div>
                 <Label className="text-gray-400 text-xs mb-1.5 block">Corps</Label>
@@ -276,9 +324,14 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                   value={corps}
                   onChange={(e) => setCorps(e.target.value)}
                   rows={12}
-                  className="bg-neutral-800 border-white/[0.08] text-white leading-relaxed"
+                  className="bg-[#101715] border-[#1c2725] text-white leading-relaxed"
                 />
               </div>
+              {EFFETS_INTENTION[intention] && (
+                <p className="text-[11.5px] text-[#5e7672] border-t border-[#16201f] pt-3">
+                  À l'envoi : {EFFETS_INTENTION[intention]}
+                </p>
+              )}
             </div>
             <DialogFooter>
               {onArchiverSansMail && (
@@ -290,18 +343,18 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                 <X className="w-4 h-4 mr-1.5" /> Fermer
               </Button>
               <Button
-                onClick={() => (sansCompte && googleConfigure ? connecter() : envoyer.mutate())}
+                onClick={() => (sansCompte && googleConfigure && !test ? connecter() : envoyer.mutate())}
                 disabled={
                   !destinataire.trim() || !objet.trim() || !corps.trim() || envoyer.isPending || connexionEnCours
                 }
-                className="bg-[#2A9D8F] hover:bg-[#238277] text-white"
+                className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-[#050807] font-medium"
               >
                 {envoyer.isPending || connexionEnCours ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Send className="w-4 h-4 mr-2" />
                 )}
-                {sansCompte && googleConfigure ? "Connecter Gmail et envoyer" : "Envoyer"}
+                {test ? "Envoyer (simulé)" : sansCompte && googleConfigure ? "Connecter Gmail et envoyer" : "Envoyer"}
               </Button>
             </DialogFooter>
           </>
@@ -328,7 +381,7 @@ const LIBELLES_SUIVI = {
 export function JournalSuivi({ suivi }) {
   if (!suivi?.length) return null;
   return (
-    <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl px-5 py-4">
+    <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4">
       <p className="text-gray-400 text-xs mb-3">Historique du dossier</p>
       <div className="space-y-2">
         {[...suivi].reverse().map((e, i) => (
@@ -356,16 +409,17 @@ export function JournalSuivi({ suivi }) {
 // ---------------------------------------------------------------------------
 
 export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
-  const [ongletsOuverts, setOngletsOuverts] = useState(false);
+  // Ouvert d'emblée, sur la carte : situer le bien est le premier réflexe.
+  const [ongletsOuverts, setOngletsOuverts] = useState(true);
   const [mailOuvert, setMailOuvert] = useState(false);
   const v = VERDICTS[lot.evaluation.verdict] || {};
   const aem = lot.evaluation.aem;
   const enr = lot.enrichissement;
 
   return (
-    <div className={`bg-[#0A0A0A] border rounded-2xl overflow-hidden ${v.bord || "border-white/[0.06]"}`}>
+    <div className={`bg-[#0a0f0e] border rounded-md overflow-hidden ${v.bord || "border-[#16201f]"}`}>
       {/* En-tête */}
-      <div className="p-5 border-b border-white/[0.06]">
+      <div className="p-5 border-b border-[#16201f]">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="min-w-0">
             {lot.intitule && <p className="text-gray-500 text-xs mb-1">{lot.intitule}</p>}
@@ -377,7 +431,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
         <p className="text-gray-400 text-sm leading-relaxed">{lot.synthese?.synthese}</p>
 
         {lot.evaluation.profil && (
-          <p className="text-[#71CCBA] text-xs mt-2">Profil : {lot.evaluation.profil.libelle}</p>
+          <p className="text-[#5ee7d4] text-xs mt-2">Profil : {lot.evaluation.profil.libelle}</p>
         )}
 
         {lot.evaluation.reserves?.length > 0 && (
@@ -405,7 +459,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
 
       {/* Rendement : annoncé vs AEM */}
       {aem && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/[0.06] border-b border-white/[0.06]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#16201f] border-b border-[#16201f]">
           <Metrique label="Prix FAI" valeur={euros(aem.prix_fai)} />
           <Metrique label="Prix AEM" valeur={euros(aem.prix_aem)} accent sousTitre={`+${euros(aem.surcout_vs_fai)}`} />
           <Metrique label="Rendement annoncé" valeur={aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—"} />
@@ -414,7 +468,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       )}
 
       {/* Emplacement : saisie humaine */}
-      <div className="px-5 py-4 border-b border-white/[0.06]">
+      <div className="px-5 py-4 border-b border-[#16201f]">
         <div className="flex items-center gap-2 mb-2">
           <MapPin className="w-3.5 h-3.5 text-gray-500" />
           <span className="text-gray-400 text-xs">Emplacement — qualification humaine</span>
@@ -430,7 +484,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               onClick={() => onSaisie?.({ emplacement: e.code })}
               className={`px-3 py-1.5 rounded-lg text-xs border transition-all disabled:opacity-50 ${
                 enr?.emplacement === e.code
-                  ? "bg-[#2A9D8F]/20 border-[#2A9D8F]/40 text-[#71CCBA]"
+                  ? "bg-[#33d6c0]/20 border-[#33d6c0]/40 text-[#5ee7d4]"
                   : "border-white/10 text-gray-400 hover:border-white/25 hover:text-white"
               }`}
             >
@@ -454,7 +508,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       </div>
 
       {/* Simulateur pré-rempli */}
-      <div className="px-5 py-5 border-b border-white/[0.06]">
+      <div className="px-5 py-5 border-b border-[#16201f]">
         <p className="text-gray-400 text-xs mb-3">Simulateur — pré-rempli avec ce dossier</p>
         <SimulateurRapide parametres={lot.simulateur} />
       </div>
@@ -470,8 +524,8 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
 
       {ongletsOuverts && (
         <div className="px-5 pb-5">
-          <Tabs defaultValue="extraction">
-            <TabsList className="bg-neutral-900 border border-white/[0.08] mb-4">
+          <Tabs defaultValue="carte">
+            <TabsList className="bg-[#0a0f0e] border border-[#1c2725] mb-4">
               <TabsTrigger value="extraction">Données extraites</TabsTrigger>
               <TabsTrigger value="enrichissement">Enrichissement</TabsTrigger>
               <TabsTrigger value="calcul">Calcul AEM</TabsTrigger>
@@ -498,7 +552,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                   const c = lot.lot[champ];
                   const absent = !c || c.absent;
                   return (
-                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-white/[0.04]">
+                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-[#131c1b]">
                       <span className="text-gray-500 text-xs w-40 flex-shrink-0">{libelle}</span>
                       <span className={`text-xs flex-1 ${absent ? "text-gray-600 italic" : "text-white"}`}>
                         {absent ? "non renseigné dans la fiche" : afficherValeur(champ, c.valeur)}
@@ -592,7 +646,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                               href={s.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[#71CCBA] hover:text-white text-xs underline underline-offset-2 transition-colors"
+                              className="text-[#5ee7d4] hover:text-white text-xs underline underline-offset-2 transition-colors"
                             >
                               {s.titre}
                             </a>
@@ -629,7 +683,7 @@ function Metrique({ label, valeur, sousTitre, accent }) {
   return (
     <div className="px-4 py-3">
       <p className="text-gray-500 text-[11px] mb-1">{label}</p>
-      <p className={`text-lg font-light ${accent ? "text-[#71CCBA]" : "text-white"}`}>{valeur}</p>
+      <p className={`text-lg font-light ${accent ? "text-[#5ee7d4]" : "text-white"}`}>{valeur}</p>
       {sousTitre && <p className="text-gray-600 text-[11px]">{sousTitre}</p>}
     </div>
   );
@@ -637,9 +691,9 @@ function Metrique({ label, valeur, sousTitre, accent }) {
 
 function LigneDetail({ label, valeur, fort }) {
   return (
-    <div className="flex justify-between gap-3 py-1.5 border-b border-white/[0.04]">
+    <div className="flex justify-between gap-3 py-1.5 border-b border-[#131c1b]">
       <span className="text-gray-500">{label}</span>
-      <span className={fort ? "text-[#71CCBA]" : "text-gray-200"}>{valeur}</span>
+      <span className={fort ? "text-[#5ee7d4]" : "text-gray-200"}>{valeur}</span>
     </div>
   );
 }
@@ -656,7 +710,7 @@ function ValidationEnseigne({ nom, signature, apercu }) {
     },
   });
 
-  if (fait) return <p className="text-[#71CCBA] text-xs mt-3">Enseigne ajoutée au référentiel.</p>;
+  if (fait) return <p className="text-[#5ee7d4] text-xs mt-3">Enseigne ajoutée au référentiel.</p>;
 
   return (
     <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2.5">

@@ -26,22 +26,22 @@ export default function ProjetPublic() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#2A9D8F]/30 border-t-[#2A9D8F] rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-[#050807] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#33d6c0]/30 border-t-[#33d6c0] rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (status === "error" || !project) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
         <p className="text-white/30">Ce projet est introuvable ou le lien n'est plus valide.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[#050807]">
       <ProjetContent project={project} isPublic />
       <div className="max-w-7xl mx-auto px-3 md:px-6 pb-10 flex justify-center">
         <img

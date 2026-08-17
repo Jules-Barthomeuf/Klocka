@@ -213,7 +213,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="w-10 h-10 text-[#2A9D8F] animate-spin" />
+        <Loader2 className="w-10 h-10 text-[#33d6c0] animate-spin" />
         <p className="text-gray-400 text-sm">Récupération des données INSEE...</p>
         <p className="text-gray-500 text-xs">{adresse}</p>
       </div>
@@ -240,7 +240,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
         <div>
           <h2 className="text-2xl font-montserrat text-white">{data.ville}</h2>
           <div className="flex items-center gap-3 mt-1">
-            <Badge className="bg-[#2A9D8F]/20 text-[#2A9D8F] border-0">INSEE {data.code_insee}</Badge>
+            <Badge className="bg-[#33d6c0]/20 text-[#33d6c0] border-0">INSEE {data.code_insee}</Badge>
             <span className="text-sm text-gray-400">Données {data.annee_donnees || 2022}</span>
           </div>
         </div>
@@ -260,7 +260,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
         <SectionCard title="Notes">
           <div className="space-y-4">
             {project.notes_secteur.map((note, idx) => (
-              <div key={idx} className="p-4 bg-gray-800/50 rounded-xl border border-gray-700">
+              <div key={idx} className="p-4 bg-gray-800/50 rounded-md border border-gray-700">
                 {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
                 <p className="text-sm text-gray-300 whitespace-pre-wrap">{note.contenu}</p>
               </div>

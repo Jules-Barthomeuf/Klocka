@@ -69,7 +69,7 @@ export default function DashboardSuggestedResources({ user }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.25 }}
-      className="bg-white/[0.04] rounded-2xl border border-white/[0.3] p-4"
+      className="bg-white/[0.04] rounded-md border border-white/[0.3] p-4"
     >
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
@@ -78,7 +78,7 @@ export default function DashboardSuggestedResources({ user }) {
         </div>
         <button
           onClick={() => navigate(createPageUrl("Ressources"))}
-          className="flex items-center gap-1 text-[#2A9D8F] text-[10px] hover:underline"
+          className="flex items-center gap-1 text-[#33d6c0] text-[10px] hover:underline"
         >
           Toutes les ressources
           <ArrowRight className="w-3 h-3" />
@@ -87,7 +87,7 @@ export default function DashboardSuggestedResources({ user }) {
 
       <div
         onClick={handleOpen}
-        className="group cursor-pointer flex gap-4 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-[#2A9D8F]/20 hover:bg-white/[0.04] transition-all duration-300 overflow-hidden"
+        className="group cursor-pointer flex gap-4 rounded-md bg-white/[0.02] border border-[#131c1b] hover:border-[#33d6c0]/20 hover:bg-white/[0.04] transition-all duration-300 overflow-hidden"
       >
         {/* Thumbnail */}
         <div className="relative w-40 md:w-52 flex-shrink-0 overflow-hidden bg-white/[0.02]">
@@ -100,21 +100,21 @@ export default function DashboardSuggestedResources({ user }) {
             />
           ) : (
             <div className="w-full h-full min-h-[100px] flex items-center justify-center">
-              <Play className="w-10 h-10 text-[#2A9D8F]/30" />
+              <Play className="w-10 h-10 text-[#33d6c0]/30" />
             </div>
           )}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/20 transition-colors">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#050807]/30 group-hover:bg-[#050807]/20 transition-colors">
             <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
               <Play className="w-4 h-4 text-white fill-white ml-0.5" />
             </div>
           </div>
           {viewedResources.includes(resource.id) && (
-            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#2A9D8F] flex items-center justify-center">
+            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#33d6c0] flex items-center justify-center">
               <CheckCircle2 className="w-3 h-3 text-white" />
             </div>
           )}
           {resource.duree_minutes && (
-            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-1">
+            <div className="absolute bottom-2 left-2 bg-[#050807]/70 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-1">
               <Clock className="w-2.5 h-2.5 text-white/70" />
               <span className="text-[9px] text-white/70">{resource.duree_minutes} min</span>
             </div>
@@ -123,14 +123,14 @@ export default function DashboardSuggestedResources({ user }) {
 
         {/* Info */}
         <div className="flex-1 py-3 pr-4 flex flex-col justify-center">
-          <h3 className="text-white text-sm md:text-base font-medium mb-1.5 group-hover:text-[#2A9D8F] transition-colors leading-snug">
+          <h3 className="text-white text-sm md:text-base font-medium mb-1.5 group-hover:text-[#33d6c0] transition-colors leading-snug">
             {resource.titre}
           </h3>
           <p className="text-white/50 text-[11px] md:text-xs leading-relaxed">
             {reason}
           </p>
           {allViewed && (
-            <p className="text-[#2A9D8F]/60 text-[10px] mt-2 italic">Déjà vue — un petit rappel ne fait jamais de mal !</p>
+            <p className="text-[#33d6c0]/60 text-[10px] mt-2 italic">Déjà vue — un petit rappel ne fait jamais de mal !</p>
           )}
         </div>
       </div>

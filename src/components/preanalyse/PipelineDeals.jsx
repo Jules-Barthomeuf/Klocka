@@ -2,25 +2,37 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import { Clock, FileText, Inbox } from "lucide-react";
-import { STATUTS_DEAL, VERDICTS } from "@/components/preanalyse/DealResultat";
+import { Inbox } from "lucide-react";
 
-// Onglet « Suivi » : le pipeline des deals, groupé par statut, avec les
-// relances en attente. Un clic ouvre le dossier dans l'onglet Annonces.
+// Liste des deals, groupés par statut : intitulé de section + compteur + filet,
+// puis une ligne par deal — pastille d'état, adresse, ville · contact, prix en
+// chiffres tabulaires, note de relance et fraîcheur. Un clic ouvre le workflow.
 
-const ORDRE_STATUTS = [
-  "analyse",
-  "documents_demandes",
-  "documents_recus",
-  "depouille",
-  "projet_cree",
-  "abandonne",
+const GROUPES = [
+  { statut: "analyse", nom: "Pré-analyse" },
+  { statut: "documents_demandes", nom: "Documents en attente" },
+  { statut: "documents_recus", nom: "Documents reçus" },
+  { statut: "depouille", nom: "Décision" },
+  { statut: "projet_cree", nom: "Plateforme" },
+  { statut: "abandonne", nom: "Abandonné" },
 ];
+
+const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
+
+function fraicheur(iso) {
+  if (!iso) return "";
+  const jours = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (jours <= 0) return "aujourd'hui";
+  if (jours === 1) return "hier";
+  return `il y a ${jours} j`;
+}
+
+function joursDepuis(iso) {
+  return iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)) : null;
+}
 
 export default function PipelineDeals() {
   const [params, setParams] = useSearchParams();
-  const [filtre, setFiltre] = useState(null); // statut sélectionné ou null (tous)
   const [voirArchives, setVoirArchives] = useState(false);
 
   const { data: pipeline, isLoading } = useQuery({
@@ -36,138 +48,104 @@ export default function PipelineDeals() {
     setParams(suivant);
   };
 
-  if (isLoading) {
-    return <p className="text-gray-500 text-sm">Chargement du pipeline…</p>;
-  }
+  if (isLoading) return <p className="text-gray-500 text-sm">Chargement du pipeline…</p>;
 
-  const dossiers = (pipeline?.dossiers || []).filter((d) =>
-    voirArchives ? true : d.statut !== "abandonne"
-  );
-  const filtres = filtre ? dossiers.filter((d) => d.statut === filtre) : dossiers;
-  const aRelancer = dossiers.filter((d) => d.a_relancer);
+  const dossiers = pipeline?.dossiers || [];
+  const groupes = GROUPES.map((g) => ({
+    ...g,
+    deals: dossiers.filter((d) => d.statut === g.statut),
+  })).filter((g) => g.deals.length && (voirArchives || g.statut !== "abandonne"));
+
+  if (!groupes.length) {
+    return (
+      <div className="text-center py-16">
+        <Inbox className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
+        <p className="text-gray-500 text-sm">
+          Aucun deal en cours. Lancez « Nouveau deal » ou préanalysez un mail reçu depuis la page Mails.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <p className="text-gray-500 text-xs mb-4">
-        Tous les deals en cours, du premier mail à la création du projet — cliquez pour ouvrir le
-        workflow.
-      </p>
-
-      {/* Compteurs par statut, cliquables pour filtrer */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        <FiltreChip
-          actif={filtre === null}
-          onClick={() => setFiltre(null)}
-          libelle="Tous"
-          compte={dossiers.length}
-        />
-        {ORDRE_STATUTS.map((s) => {
-          const compte = (pipeline?.compteurs || {})[s] || 0;
-          if (s === "abandonne" && !voirArchives) return null;
-          if (!compte) return null;
-          return (
-            <FiltreChip
-              key={s}
-              actif={filtre === s}
-              onClick={() => setFiltre(filtre === s ? null : s)}
-              libelle={STATUTS_DEAL[s]?.libelle || s}
-              compte={compte}
-            />
-          );
-        })}
-        <button
-          onClick={() => setVoirArchives((v) => !v)}
-          className="ml-auto text-gray-500 hover:text-white text-xs px-3 py-1.5 rounded-full border border-white/10 hover:border-white/25 transition-colors"
-        >
-          {voirArchives ? "Masquer les abandonnés" : "Voir les abandonnés"}
-        </button>
-      </div>
-
-      {/* Relances en attente, en tête */}
-      {aRelancer.length > 0 && !filtre && (
-        <div className="mb-5 rounded-xl border border-red-500/25 bg-red-500/[0.06] px-4 py-3">
-          <p className="text-red-300 text-xs font-medium mb-2 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> {aRelancer.length} dossier(s) à relancer
-          </p>
-          <div className="space-y-1.5">
-            {aRelancer.map((d) => (
-              <button
-                key={d.deal_id}
-                onClick={() => ouvrir(d.deal_id)}
-                className="w-full text-left text-red-200/80 hover:text-white text-xs truncate transition-colors"
-              >
-                {d.lots?.[0]?.titre || d.nom_fichier || "Fiche"} — documents demandés le{" "}
-                {d.dernier_suivi?.le ? new Date(d.dernier_suivi.le).toLocaleDateString("fr-FR") : "?"}
-              </button>
-            ))}
+      {groupes.map((g) => (
+        <div key={g.statut} className="mt-9 first:mt-0">
+          <div className="flex items-center gap-3.5 mb-3.5">
+            <div className="text-[11.5px] tracking-[.1em] uppercase text-[#c4d5d1]">{g.nom}</div>
+            <div className="text-[11.5px] text-[#5e7672] tabular-nums">
+              {String(g.deals.length).padStart(2, "0")}
+            </div>
+            <div className="h-px flex-1 bg-[#1c2725]" />
+          </div>
+          <div className="flex flex-col gap-2">
+            {g.deals.map((d) => {
+              const lot = d.lots?.[0] || {};
+              const enRetard = d.a_relancer;
+              const attente =
+                d.statut === "documents_demandes" ? joursDepuis(d.dernier_suivi?.le) : null;
+              const note =
+                d.statut === "abandonne"
+                  ? d.dernier_suivi?.detail || ""
+                  : enRetard
+                    ? `relance en retard · J+${attente ?? "?"}`
+                    : d.statut === "documents_demandes" && d.relance_prevue_le
+                      ? `relance le ${new Date(d.relance_prevue_le).toLocaleDateString("fr-FR")}`
+                      : lot.verdict || "";
+              return (
+                <button
+                  key={d.deal_id}
+                  onClick={() => ouvrir(d.deal_id)}
+                  className={`flex items-center gap-4 w-full px-4 py-3.5 bg-[#0a0f0e] border rounded-[5px] text-left transition-colors hover:border-[#33d6c0] ${
+                    enRetard ? "border-[#e2564d]/40" : "border-[#1c2725]"
+                  }`}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-none"
+                    style={{
+                      background:
+                        d.statut === "abandonne" ? "#4a5b58" : enRetard ? "#e2564d" : "#33d6c0",
+                    }}
+                  />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm text-[#e6efed] truncate mb-0.5">
+                      {d.test && (
+                        <span className="inline-block mr-2 px-1.5 py-px rounded border border-amber-500/40 text-amber-300/90 text-[9.5px] tracking-[.08em] uppercase align-middle">
+                          Test
+                        </span>
+                      )}
+                      {lot.adresse || lot.titre || d.nom_fichier || "Fiche"}
+                    </span>
+                    <span className="block text-xs text-[#7f9995] truncate">
+                      {[lot.ville, d.contact_agent_email].filter(Boolean).join(" · ") || "—"}
+                    </span>
+                  </span>
+                  <span className="flex-none w-[110px] text-right text-[12.5px] text-[#c4d5d1] tabular-nums">
+                    {euros(lot.prix_fai)}
+                  </span>
+                  <span
+                    className={`hidden sm:block flex-none w-[190px] text-right text-[11px] truncate ${
+                      enRetard ? "text-[#e2564d]" : "text-[#5e7672]"
+                    }`}
+                  >
+                    {note}
+                  </span>
+                  <span className="hidden md:block flex-none w-[84px] text-right text-[11px] text-[#5e7672] whitespace-nowrap">
+                    {fraicheur(d.dernier_suivi?.le || d.cree_le)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
+      ))}
 
-      {/* Liste */}
-      {filtres.length === 0 ? (
-        <div className="text-center py-16">
-          <Inbox className="w-10 h-10 text-[#2A9D8F]/30 mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">
-            Aucun deal {filtre ? `au statut « ${STATUTS_DEAL[filtre]?.libelle} »` : "en cours"}. Analysez
-            une fiche ci-dessus ou préanalysez un mail reçu depuis la page Mails.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtres.map((d) => {
-            const s = STATUTS_DEAL[d.statut] || STATUTS_DEAL.analyse;
-            return (
-              <button
-                key={d.deal_id}
-                onClick={() => ouvrir(d.deal_id)}
-                className="w-full text-left bg-[#0A0A0A] border border-white/[0.06] rounded-xl px-4 py-3 hover:border-[#2A9D8F]/30 transition-all flex items-center gap-3"
-              >
-                <FileText className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-white text-sm truncate">
-                    {d.lots?.[0]?.titre || d.nom_fichier || "Fiche"}
-                  </p>
-                  <p className="text-gray-600 text-xs truncate">
-                    {new Date(d.cree_le).toLocaleDateString("fr-FR")}
-                    {d.lots?.[0]?.ville ? ` · ${d.lots[0].ville}` : ""}
-                    {d.contact_agent_email ? ` · ${d.contact_agent_email}` : ""}
-                    {d.dernier_suivi?.detail ? ` · ${d.dernier_suivi.detail}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {d.a_relancer && (
-                    <Badge className="bg-red-500/15 text-red-300 border-red-500/30 text-[10px] flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> À relancer
-                    </Badge>
-                  )}
-                  {(d.lots || []).slice(0, 2).map((l) => (
-                    <Badge key={l.index} className={`${VERDICTS[l.verdict]?.classe || ""} text-[10px]`}>
-                      {l.verdict}
-                    </Badge>
-                  ))}
-                  <Badge className={`${s.classe} text-[10px]`}>{s.libelle}</Badge>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <button
+        onClick={() => setVoirArchives((v) => !v)}
+        className="mt-7 text-[#5e7672] hover:text-white text-xs px-3 py-1.5 rounded border border-[#24312f] hover:border-[#33d6c0] transition-colors"
+      >
+        {voirArchives ? "Masquer les abandonnés" : "Voir les abandonnés"}
+      </button>
     </div>
-  );
-}
-
-function FiltreChip({ actif, onClick, libelle, compte }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-        actif
-          ? "bg-[#2A9D8F]/20 border-[#2A9D8F]/40 text-[#71CCBA]"
-          : "border-white/10 text-gray-400 hover:border-white/25 hover:text-white"
-      }`}
-    >
-      {libelle} <span className="opacity-60">({compte})</span>
-    </button>
   );
 }

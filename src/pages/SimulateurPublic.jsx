@@ -370,10 +370,10 @@ export default function SimulateurPublic() {
     { id: "avance", label: "Paramètres avancés" },
   ];
 
-  if (!loaded) return <div className="min-h-screen bg-black flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#2A9D8F]/30 border-t-[#2A9D8F] rounded-full animate-spin" /></div>;
+  if (!loaded) return <div className="min-h-screen bg-[#050807] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#33d6c0]/30 border-t-[#33d6c0] rounded-full animate-spin" /></div>;
 
   return (
-    <div className="bg-black min-h-screen relative w-full max-w-full overflow-x-hidden">
+    <div className="bg-[#050807] min-h-screen relative w-full max-w-full overflow-x-hidden">
       <div className="flex flex-col min-h-screen">
         <div className="flex flex-1 min-h-0">
           {/* Left control rail */}
@@ -394,13 +394,13 @@ export default function SimulateurPublic() {
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between border-b border-white/[0.08] px-4 h-11 sticky top-0 bg-black z-10">
+            <div className="flex items-center justify-between border-b border-[#1c2725] px-4 h-11 sticky top-0 bg-[#050807] z-10">
               <div className="flex items-center gap-5 h-full">
                 {tabs.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#2A9D8F] text-white" : "border-transparent text-gray-500 hover:text-gray-300"}`}
+                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#33d6c0] text-white" : "border-transparent text-gray-500 hover:text-gray-300"}`}
                   >
                     {t.label}
                   </button>
@@ -408,7 +408,7 @@ export default function SimulateurPublic() {
               </div>
               <div className="flex items-center gap-2">
                 <ExportExcelFullButton params={exportParams} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
-                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-white/[0.12] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors">
+                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors">
                   {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Link2 className="w-3.5 h-3.5" />}
                   {linkCopied ? 'Copié' : 'Partager'}
                 </button>
@@ -417,7 +417,7 @@ export default function SimulateurPublic() {
 
             <div key={activeTab} className="p-4 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
               {negoActive && (
-                <div className="flex items-center gap-2 text-xs text-[#2A9D8F] bg-[#2A9D8F]/10 border border-[#2A9D8F]/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
+                <div className="flex items-center gap-2 text-xs text-[#33d6c0] bg-[#33d6c0]/10 border border-[#33d6c0]/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.
                 </div>
               )}

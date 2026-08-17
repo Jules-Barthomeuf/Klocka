@@ -60,7 +60,7 @@ function ProjectCard({ project }) {
       className="group cursor-pointer"
       onClick={() => navigate(`/ProjetDetail?id=${project.id}`)}
     >
-      <div className="relative bg-white/[0.04] rounded-2xl overflow-hidden transition-all duration-500">
+      <div className="relative bg-white/[0.04] rounded-md overflow-hidden transition-all duration-500">
         {/* Image */}
         <div className="relative h-44 md:h-52 overflow-hidden">
           {project.photos && project.photos.length > 0 ? (
@@ -78,15 +78,15 @@ function ProjectCard({ project }) {
           
           {/* Status */}
           <div className="absolute top-3.5 left-4">
-            <span className="text-[9px] uppercase tracking-[0.15em] px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-[#2A9D8F] border border-[#2A9D8F]/15 font-medium">
+            <span className="text-[9px] uppercase tracking-[0.15em] px-2.5 py-1 rounded-full bg-[#050807]/50 backdrop-blur-sm text-[#33d6c0] border border-[#33d6c0]/15 font-medium">
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
 
           {/* Arrow */}
           <div className="absolute top-3.5 right-4">
-            <div className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm border border-white/[0.06] flex items-center justify-center group-hover:border-[#2A9D8F]/20 group-hover:bg-[#2A9D8F]/[0.08] transition-all">
-              <ArrowUpRight className="w-3.5 h-3.5 text-white/30 group-hover:text-[#2A9D8F] transition-colors" />
+            <div className="w-8 h-8 rounded-full bg-[#050807]/30 backdrop-blur-sm border border-[#16201f] flex items-center justify-center group-hover:border-[#33d6c0]/20 group-hover:bg-[#33d6c0]/[0.08] transition-all">
+              <ArrowUpRight className="w-3.5 h-3.5 text-white/30 group-hover:text-[#33d6c0] transition-colors" />
             </div>
           </div>
 
@@ -116,7 +116,7 @@ function ProjectCard({ project }) {
             {rendementLocatifMoyen > 0 && (
               <div>
                 <p className="text-white/40 text-[9px] uppercase tracking-[0.15em] mb-0.5">Rendement</p>
-                <p className="text-[#2A9D8F] text-base font-medium tabular-nums">{rendementLocatifMoyen.toFixed(2)}%</p>
+                <p className="text-[#33d6c0] text-base font-medium tabular-nums">{rendementLocatifMoyen.toFixed(2)}%</p>
               </div>
             )}
             {surface > 0 && (
@@ -176,7 +176,7 @@ export default function DashboardProjectCard({ projects }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => manualNav((current - 1 + projects.length) % projects.length)}
-              className="w-6 h-6 rounded-full border border-white/[0.06] flex items-center justify-center text-white/20 hover:text-white/40 hover:border-white/10 transition-all"
+              className="w-6 h-6 rounded-full border border-[#16201f] flex items-center justify-center text-white/20 hover:text-white/40 hover:border-white/10 transition-all"
             >
               <ChevronLeft className="w-3 h-3" />
             </button>
@@ -185,7 +185,7 @@ export default function DashboardProjectCard({ projects }) {
             </span>
             <button
               onClick={() => manualNav((current + 1) % projects.length)}
-              className="w-6 h-6 rounded-full border border-white/[0.06] flex items-center justify-center text-white/20 hover:text-white/40 hover:border-white/10 transition-all"
+              className="w-6 h-6 rounded-full border border-[#16201f] flex items-center justify-center text-white/20 hover:text-white/40 hover:border-white/10 transition-all"
             >
               <ChevronRight className="w-3 h-3" />
             </button>
@@ -213,7 +213,7 @@ export default function DashboardProjectCard({ projects }) {
               key={i}
               onClick={() => manualNav(i)}
               className={`h-1 rounded-full transition-all duration-300 ${
-                i === current ? 'w-5 bg-[#2A9D8F]' : 'w-1.5 bg-white/10 hover:bg-white/20'
+                i === current ? 'w-5 bg-[#33d6c0]' : 'w-1.5 bg-white/10 hover:bg-white/20'
               }`}
             />
           ))}

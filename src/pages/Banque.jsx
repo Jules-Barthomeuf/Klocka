@@ -25,28 +25,28 @@ export default function Banque() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#050807] text-white p-4 md:p-8">
       <FeedbackWidget />
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-[#2A9D8F]/20 rounded-xl flex items-center justify-center">
-              <Landmark className="w-5 h-5 text-[#2A9D8F]" />
+            <div className="w-10 h-10 bg-[#33d6c0]/20 rounded-md flex items-center justify-center">
+              <Landmark className="w-5 h-5 text-[#33d6c0]" />
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Banque</h1>
               <p className="text-gray-500 text-sm">Vos présentations bancaires</p>
             </div>
           </div>
-          <div className="h-px w-16 bg-[#2A9D8F] mt-3" />
+          <div className="h-px w-16 bg-[#33d6c0] mt-3" />
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#2A9D8F]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#33d6c0]" />
           </div>
         ) : presentations.length === 0 ? (
-          <Card className="bg-[#0A0A0A] border-white/[0.06]">
+          <Card className="bg-[#0a0f0e] border-[#16201f]">
             <CardContent className="py-16 text-center">
               <Landmark className="w-12 h-12 text-gray-700 mx-auto mb-4" />
               <h2 className="text-white text-lg mb-2">Aucune présentation disponible</h2>
@@ -61,7 +61,7 @@ export default function Banque() {
                 <button
                   key={pres.id}
                   onClick={() => setViewPres(pres)}
-                  className="text-left bg-[#0A0A0A] rounded-2xl border border-white/[0.06] overflow-hidden hover:border-[#2A9D8F]/30 transition-all group"
+                  className="text-left bg-[#0a0f0e] rounded-md border border-[#16201f] overflow-hidden hover:border-[#33d6c0]/30 transition-all group"
                 >
                   {/* Slide preview thumbnail */}
                   <div className="relative w-full aspect-video overflow-hidden pointer-events-none">
@@ -81,7 +81,7 @@ export default function Banque() {
                    <p className="text-white font-light text-lg truncate">{pres.project_title}</p>
                    <div className="flex items-center justify-between mt-1">
                      <p className="text-gray-500 text-xs">{pres.slides?.length || 0} slides — {new Date(pres.created_date).toLocaleDateString('fr-FR')}</p>
-                     <p className="text-[#2A9D8F] text-xs group-hover:underline">Voir →</p>
+                     <p className="text-[#33d6c0] text-xs group-hover:underline">Voir →</p>
                    </div>
                    {pres.pptx_url && (
                      <a
@@ -104,7 +104,7 @@ export default function Banque() {
 
         {/* Viewer dialog */}
         <Dialog open={!!viewPres} onOpenChange={() => setViewPres(null)}>
-          <DialogContent className="max-w-4xl p-0 bg-black border-white/[0.08] overflow-hidden">
+          <DialogContent className="max-w-4xl p-0 bg-[#050807] border-[#1c2725] overflow-hidden">
             <DialogHeader className="px-6 pt-6 pb-0">
               <DialogTitle className="text-white font-light">{viewPres?.project_title}</DialogTitle>
             </DialogHeader>

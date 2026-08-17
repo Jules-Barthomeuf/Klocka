@@ -270,7 +270,7 @@ export function BeamsBackground({
 
             className={cn(
 
-                "fixed inset-0 w-full h-full overflow-hidden bg-neutral-800 pointer-events-none",
+                "fixed inset-0 w-full h-full overflow-hidden bg-[#101715] pointer-events-none",
 
                 className
 
@@ -291,7 +291,7 @@ export function BeamsBackground({
 
             <motion.div
 
-                className="absolute inset-0 bg-neutral-800/5"
+                className="absolute inset-0 bg-[#101715]/5"
 
                 animate={{
 

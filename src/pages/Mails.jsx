@@ -194,9 +194,9 @@ export default function Mails() {
 
         {/* Aucun compte connecté : on met la connexion Google en avant */}
         {status && accounts.length === 0 && (
-          <div className="mb-6 rounded-2xl border border-white/[0.08] bg-neutral-900 p-6 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-[#2A9D8F]/15 flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-5 h-5 text-[#2A9D8F]" />
+          <div className="mb-6 rounded-md border border-[#1c2725] bg-[#0a0f0e] p-6 text-center">
+            <div className="w-12 h-12 rounded-md bg-[#33d6c0]/15 flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-5 h-5 text-[#33d6c0]" />
             </div>
             <h2 className="text-white font-medium mb-1.5">Connectez votre adresse pour envoyer</h2>
             <p className="text-gray-400 text-sm mb-5 max-w-md mx-auto">
@@ -207,7 +207,7 @@ export default function Mails() {
             {status.google?.enabled ? (
               <BoutonConnecterGmail libelle="Se connecter avec Google" />
             ) : (
-              <div className="text-left max-w-md mx-auto rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
+              <div className="text-left max-w-md mx-auto rounded-md border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
                 <p className="font-medium mb-1">Connexion Google pas encore configurée</p>
                 <p className="text-amber-200/70 text-xs leading-relaxed">
                   Ajoutez <code className="text-amber-100">GOOGLE_CLIENT_ID</code> et{" "}
@@ -223,7 +223,7 @@ export default function Mails() {
 
         {/* Compte sélectionné en erreur */}
         {status && accounts.length > 0 && !smtpReady && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3">
+          <div className="mb-6 flex items-start gap-3 rounded-md border border-amber-500/25 bg-amber-500/10 px-4 py-3">
             <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-amber-200/90">
               <span className="font-medium">{selectedAccount?.email} n'est pas utilisable :</span>{" "}
@@ -233,7 +233,7 @@ export default function Mails() {
         )}
 
         <Tabs defaultValue="composer" className="w-full">
-          <TabsList className="bg-neutral-900 border border-white/[0.08] mb-6">
+          <TabsList className="bg-[#0a0f0e] border border-[#1c2725] mb-6">
             <TabsTrigger value="composer">Composer</TabsTrigger>
             <TabsTrigger value="reception">Boîte de réception</TabsTrigger>
             <TabsTrigger value="templates">Templates ({templates.length})</TabsTrigger>
@@ -251,12 +251,12 @@ export default function Mails() {
           {/* COMPOSER                                                    */}
           {/* ---------------------------------------------------------- */}
           <TabsContent value="composer" className="space-y-6" id="mail-composer">
-            <div className="bg-neutral-900 border border-white/[0.08] rounded-2xl p-5">
+            <div className="bg-[#0a0f0e] border border-[#1c2725] rounded-md p-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-white text-sm font-medium">Envoyer depuis</span>
                 {status &&
                   (status.llm ? (
-                    <Badge className="bg-[#2A9D8F]/15 text-[#71CCBA] border-[#2A9D8F]/20 text-[10px]">
+                    <Badge className="bg-[#33d6c0]/15 text-[#5ee7d4] border-[#33d6c0]/20 text-[10px]">
                       {status.ia?.label || "IA active"}
                     </Badge>
                   ) : (
@@ -265,10 +265,10 @@ export default function Mails() {
               </div>
               {accounts.length > 0 ? (
                 <Select value={from} onValueChange={selectSender}>
-                  <SelectTrigger className="bg-neutral-800 border-white/[0.08] text-white">
+                  <SelectTrigger className="bg-[#101715] border-[#1c2725] text-white">
                     <SelectValue placeholder="Choisir une adresse" />
                   </SelectTrigger>
-                  <SelectContent className="bg-neutral-900 border-white/[0.08] text-white">
+                  <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
                     {accounts.map((a) => (
                       <SelectItem key={a.id} value={a.id} className="focus:bg-white/5 focus:text-white">
                         <span className="flex items-center gap-2">
@@ -280,7 +280,7 @@ export default function Mails() {
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-gray-500 text-sm bg-neutral-800 border border-white/[0.08] rounded-md px-3 py-2">
+                <p className="text-gray-500 text-sm bg-[#101715] border border-[#1c2725] rounded-md px-3 py-2">
                   Aucune adresse connectée
                 </p>
               )}
@@ -292,7 +292,7 @@ export default function Mails() {
                   <button
                     type="button"
                     onClick={connecterGmail}
-                    className="text-[11px] text-[#71CCBA] hover:underline ml-auto flex-shrink-0"
+                    className="text-[11px] text-[#5ee7d4] hover:underline ml-auto flex-shrink-0"
                   >
                     + Connecter une autre adresse
                   </button>
@@ -330,11 +330,11 @@ export default function Mails() {
 
             {/* Brouillon */}
             {draft && (
-              <div className="bg-neutral-900 border border-white/[0.08] rounded-2xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+              <div className="bg-[#0a0f0e] border border-[#1c2725] rounded-md overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-[#16201f]">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-[#2A9D8F]/15 flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-4 h-4 text-[#2A9D8F]" />
+                    <div className="w-8 h-8 rounded-lg bg-[#33d6c0]/15 flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-4 h-4 text-[#33d6c0]" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-white text-sm font-medium truncate">
@@ -370,7 +370,7 @@ export default function Mails() {
                 <div className="p-5 space-y-4">
                   <div>
                     <Label className="text-gray-400 text-xs mb-1.5 block">De</Label>
-                    <div className="bg-neutral-800/60 border border-white/[0.08] rounded-md px-3 py-2 text-sm text-gray-300">
+                    <div className="bg-[#101715]/60 border border-[#1c2725] rounded-md px-3 py-2 text-sm text-gray-300">
                       {selectedAccount ? (
                         <>
                           {selectedAccount.name}{" "}
@@ -395,7 +395,7 @@ export default function Mails() {
                         value={draft.to}
                         onChange={(e) => setDraft({ ...draft, to: e.target.value })}
                         placeholder="destinataire@exemple.fr"
-                        className="bg-neutral-800 border-white/[0.08] text-white"
+                        className="bg-[#101715] border-[#1c2725] text-white"
                       />
                     </div>
                     <div>
@@ -404,7 +404,7 @@ export default function Mails() {
                         value={draft.cc}
                         onChange={(e) => setDraft({ ...draft, cc: e.target.value })}
                         placeholder="copie@exemple.fr"
-                        className="bg-neutral-800 border-white/[0.08] text-white"
+                        className="bg-[#101715] border-[#1c2725] text-white"
                       />
                     </div>
                   </div>
@@ -414,7 +414,7 @@ export default function Mails() {
                     <Input
                       value={draft.subject}
                       onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                      className="bg-neutral-800 border-white/[0.08] text-white"
+                      className="bg-[#101715] border-[#1c2725] text-white"
                     />
                   </div>
 
@@ -424,7 +424,7 @@ export default function Mails() {
                       value={draft.body}
                       onChange={(e) => setDraft({ ...draft, body: e.target.value })}
                       rows={16}
-                      className="bg-neutral-800 border-white/[0.08] text-white leading-relaxed font-sans"
+                      className="bg-[#101715] border-[#1c2725] text-white leading-relaxed font-sans"
                     />
                   </div>
 
@@ -447,7 +447,7 @@ export default function Mails() {
                     <Button
                       onClick={() => sendMutation.mutate(draft)}
                       disabled={!draft.to.trim() || (accounts.length > 0 && !from) || sendMutation.isPending}
-                      className="bg-[#2A9D8F] hover:bg-[#238277] text-white"
+                      className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
                     >
                       {sendMutation.isPending ? (
                         <>
@@ -475,7 +475,7 @@ export default function Mails() {
                 <code className="text-gray-300">{"{{nom}}"}</code> ou{" "}
                 <code className="text-gray-300">{"{{adresse}}"}</code> comme variables.
               </p>
-              <Button onClick={() => openEditor(null)} className="bg-[#2A9D8F] hover:bg-[#238277] text-white">
+              <Button onClick={() => openEditor(null)} className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white">
                 <Plus className="w-4 h-4 mr-2" /> Nouveau
               </Button>
             </div>
@@ -489,11 +489,11 @@ export default function Mails() {
                 {templates.map((t) => (
                   <div
                     key={t.id}
-                    className="bg-neutral-800 border border-white/[0.10] rounded-2xl p-5 hover:border-[#2A9D8F]/40 transition-all"
+                    className="bg-[#101715] border border-white/[0.10] rounded-md p-5 hover:border-[#33d6c0]/40 transition-all"
                   >
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#2A9D8F]/15 flex items-center justify-center flex-shrink-0">
-                        <Mail className="w-4 h-4 text-[#2A9D8F]" />
+                      <div className="w-9 h-9 rounded-md bg-[#33d6c0]/15 flex items-center justify-center flex-shrink-0">
+                        <Mail className="w-4 h-4 text-[#33d6c0]" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-white font-medium text-sm truncate">{t.titre}</h3>
@@ -507,7 +507,7 @@ export default function Mails() {
                       <Button
                         size="sm"
                         onClick={() => handleUseTemplate(t)}
-                        className="bg-[#2A9D8F]/15 hover:bg-[#2A9D8F]/25 text-[#71CCBA] border-0 h-8"
+                        className="bg-[#33d6c0]/15 hover:bg-[#33d6c0]/25 text-[#5ee7d4] border-0 h-8"
                       >
                         <Send className="w-3.5 h-3.5 mr-1.5" /> Utiliser
                       </Button>
@@ -555,7 +555,7 @@ export default function Mails() {
                 {history.map((h) => (
                   <div
                     key={h.id}
-                    className="bg-neutral-900 border border-white/[0.08] rounded-xl px-4 py-3 flex items-start gap-3"
+                    className="bg-[#0a0f0e] border border-[#1c2725] rounded-md px-4 py-3 flex items-start gap-3"
                   >
                     <StatusBadge statut={h.statut} />
                     <div className="min-w-0 flex-1">
@@ -580,7 +580,7 @@ export default function Mails() {
 
       {/* Éditeur de template */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-neutral-900 border-white/[0.08] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[#0a0f0e] border-[#1c2725] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Modifier le template" : "Nouveau template"}</DialogTitle>
           </DialogHeader>
@@ -591,7 +591,7 @@ export default function Mails() {
                 value={form.titre}
                 onChange={(e) => setForm({ ...form, titre: e.target.value })}
                 placeholder="Présentation Klocka"
-                className="bg-neutral-800 border-white/[0.08] text-white"
+                className="bg-[#101715] border-[#1c2725] text-white"
               />
             </div>
             <div>
@@ -602,7 +602,7 @@ export default function Mails() {
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Présenter l'activité à un agent rencontré au téléphone"
-                className="bg-neutral-800 border-white/[0.08] text-white"
+                className="bg-[#101715] border-[#1c2725] text-white"
               />
             </div>
             <div>
@@ -610,7 +610,7 @@ export default function Mails() {
               <Input
                 value={form.objet}
                 onChange={(e) => setForm({ ...form, objet: e.target.value })}
-                className="bg-neutral-800 border-white/[0.08] text-white"
+                className="bg-[#101715] border-[#1c2725] text-white"
               />
             </div>
             <div>
@@ -619,7 +619,7 @@ export default function Mails() {
                 value={form.contenu}
                 onChange={(e) => setForm({ ...form, contenu: e.target.value })}
                 rows={14}
-                className="bg-neutral-800 border-white/[0.08] text-white leading-relaxed"
+                className="bg-[#101715] border-[#1c2725] text-white leading-relaxed"
               />
             </div>
           </div>
@@ -639,7 +639,7 @@ export default function Mails() {
                 })
               }
               disabled={!form.titre.trim() || !form.contenu.trim() || saveTemplate.isPending}
-              className="bg-[#2A9D8F] hover:bg-[#238277] text-white"
+              className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
             >
               {saveTemplate.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Enregistrer
@@ -650,7 +650,7 @@ export default function Mails() {
 
       {/* Aperçu */}
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="bg-neutral-900 border-white/[0.08] text-white max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-[#0a0f0e] border-[#1c2725] text-white max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{preview?.titre}</DialogTitle>
           </DialogHeader>
@@ -673,7 +673,7 @@ export default function Mails() {
                 )}
               </Button>
             </div>
-            <div className="bg-neutral-800 rounded-xl p-5 border border-white/[0.04]">
+            <div className="bg-[#101715] rounded-md p-5 border border-[#131c1b]">
               <pre className="text-white text-sm leading-relaxed whitespace-pre-wrap font-sans">
                 {preview?.contenu}
               </pre>
@@ -682,7 +682,7 @@ export default function Mails() {
           <DialogFooter>
             <Button
               onClick={() => handleUseTemplate(preview)}
-              className="bg-[#2A9D8F] hover:bg-[#238277] text-white"
+              className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
             >
               <Send className="w-4 h-4 mr-2" /> Utiliser ce template
             </Button>

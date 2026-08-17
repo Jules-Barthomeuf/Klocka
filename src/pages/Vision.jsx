@@ -205,14 +205,14 @@ function AnimatedStatCard({ icon: Icon, title, value, suffix, description, delay
       className="relative h-fit rounded-[1.25rem] border-[0.75px] border-gray-700 p-2 md:rounded-[1.5rem] md:p-3 transition-all duration-500">
 
       <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-      <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-8">
+      <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-8">
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={isInView ? { x: 0, opacity: 1 } : { x: -20, opacity: 0 }}
           transition={{ delay: delay + 0.2, duration: 0.4 }}
           className="flex items-center gap-3 mb-6">
 
-          <Icon className="w-6 h-6 text-[#2A9D8F]" />
+          <Icon className="w-6 h-6 text-[#33d6c0]" />
           <h3 className="text-xl text-white font-normal font-medium">{title}</h3>
         </motion.div>
         <motion.div
@@ -476,7 +476,7 @@ export default function Vision() {
 
   return (
     <div
-      className="min-h-screen bg-black text-white">
+      className="min-h-screen bg-[#050807] text-white">
 
       {/* Écran de chargement */}
       <AnimatePresence>
@@ -486,7 +486,7 @@ export default function Vision() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl">
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050807]/95 backdrop-blur-3xl">
 
               <style>{`
                 .loader-wrapper {
@@ -608,37 +608,37 @@ export default function Vision() {
             <TabsList className="w-full flex justify-center gap-4 max-md:gap-2 bg-transparent border-b border-gray-800 mb-6 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto max-md:overflow-x-scroll scrollbar-hide">
               <TabsTrigger
               value="tab-0"
-              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2A9D8F] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Vue d'ensemble
               </TabsTrigger>
               <TabsTrigger
               value="tab-1"
-              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2A9D8F] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Timeline
               </TabsTrigger>
               <TabsTrigger
               value="tab-2"
-              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2A9D8F] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Evolution
               </TabsTrigger>
               <TabsTrigger
               value="tab-3"
-              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2A9D8F] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Projets
               </TabsTrigger>
               <TabsTrigger
               value="tab-4"
-              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2A9D8F] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Comparatif
               </TabsTrigger>
               <TabsTrigger
               value="tab-5"
-              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#2A9D8F] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative bg-transparent border-0 text-gray-400 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Chiffres détaillés
               </TabsTrigger>
@@ -652,7 +652,7 @@ export default function Vision() {
           <div ref={resultsContainerRef} className="relative min-h-screen flex flex-col">
               {/* Éléments de background colorés pour les résultats */}
               <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-                <div className="absolute top-40 right-10 w-96 h-96 bg-[#2A9D8F] rounded-full blur-[120px] opacity-10"></div>
+                <div className="absolute top-40 right-10 w-96 h-96 bg-[#33d6c0] rounded-full blur-[120px] opacity-10"></div>
                 <div className="absolute bottom-20 left-20 w-80 h-80 bg-[#f4be7e] rounded-full blur-[100px] opacity-10"></div>
               </div>
 
@@ -705,7 +705,7 @@ export default function Vision() {
                     disabled={currentSlide === 0}
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 bg-neutral-900/50 border-neutral-800 text-white hover:bg-neutral-900 disabled:opacity-30">
+                    className="h-10 w-10 bg-[#0a0f0e]/50 border-neutral-800 text-white hover:bg-[#0a0f0e] disabled:opacity-30">
 
                       <ChevronLeft className="w-5 h-5" />
                     </Button>
@@ -714,7 +714,7 @@ export default function Vision() {
                     disabled={currentSlide === 5}
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 bg-neutral-900/50 border-neutral-800 text-white hover:bg-neutral-900 disabled:opacity-30">
+                    className="h-10 w-10 bg-[#0a0f0e]/50 border-neutral-800 text-white hover:bg-[#0a0f0e] disabled:opacity-30">
 
                       <ChevronRight className="w-5 h-5" />
                     </Button>
@@ -748,7 +748,7 @@ export default function Vision() {
                       <div className="text-center">
                         <h2 className="text-5xl md:text-6xl font-light font-medium leading-tight mb-4">
                           <span className="text-white">Vue d'ensemble</span><br />
-                          <span className="text-[#2A9D8F] font-serif italic">Votre stratégie en chiffres</span>
+                          <span className="text-[#33d6c0] font-serif italic">Votre stratégie en chiffres</span>
                         </h2>
                       </div>
 
@@ -785,7 +785,7 @@ export default function Vision() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4, duration: 0.6 }}
-                    className="py-8 px-6 rounded-xl bg-black/30 backdrop-blur-sm text-center border-l-4 border-[#2A9D8F] max-w-4xl mx-auto">
+                    className="py-8 px-6 rounded-md bg-[#050807]/30 backdrop-blur-sm text-center border-l-4 border-[#33d6c0] max-w-4xl mx-auto">
 
                         <p className="text-white font-normal text-base leading-relaxed">
                           {(() => {
@@ -816,7 +816,7 @@ export default function Vision() {
     {/* Container principal de la Timeline */}
     <div className="relative rounded-[2rem] border border-neutral-800 bg-neutral-950/50 shadow-2xl overflow-hidden">
       {/* Effet de lueur en arrière-plan */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[#2A9D8F]/5 blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[#33d6c0]/5 blur-[120px] pointer-events-none" />
 
       <div className="relative p-6 md:p-10">
         
@@ -825,7 +825,7 @@ export default function Vision() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 }}
-                        className="mb-12 p-6 rounded-2xl bg-gradient-to-br from-neutral-900/80 to-black border border-neutral-800/50 shadow-inner">
+                        className="mb-12 p-6 rounded-md bg-gradient-to-br from-neutral-900/80 to-black border border-neutral-800/50 shadow-inner">
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-1">
@@ -841,10 +841,10 @@ export default function Vision() {
                               <button
                                 key={val}
                                 onClick={() => setRevenusMensuels(val)}
-                                className={`h-10 rounded-xl border font-normal font-medium text-xs transition-all duration-300 ${
+                                className={`h-10 rounded-md border font-normal font-medium text-xs transition-all duration-300 ${
                                 revenusMensuels === val ?
-                                'bg-[#2A9D8F] border-[#2A9D8F] text-white shadow-[0_0_15px_rgba(42,157,143,0.4)]' :
-                                'bg-neutral-900/50 border-neutral-800 text-neutral-400 hover:border-neutral-600'}`
+                                'bg-[#33d6c0] border-[#33d6c0] text-white shadow-[0_0_15px_rgba(42,157,143,0.4)]' :
+                                'bg-[#0a0f0e]/50 border-neutral-800 text-neutral-400 hover:border-neutral-600'}`
                                 }>
 
                     {parseInt(val).toLocaleString()}€
@@ -858,9 +858,9 @@ export default function Vision() {
                                 value={revenusMensuels}
                                 onChange={(e) => setRevenusMensuels(e.target.value)}
                                 placeholder="Montant personnalisé..."
-                                className="w-full h-11 px-4 pr-12 rounded-xl bg-black border border-neutral-800 group-hover:border-[#2A9D8F]/50 focus:border-[#2A9D8F] text-white font-normal text-sm transition-all outline-none" />
+                                className="w-full h-11 px-4 pr-12 rounded-md bg-[#050807] border border-neutral-800 group-hover:border-[#33d6c0]/50 focus:border-[#33d6c0] text-white font-normal text-sm transition-all outline-none" />
 
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-600 font-normal text-xs group-focus-within:text-[#2A9D8F]">€ / mois</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-600 font-normal text-xs group-focus-within:text-[#33d6c0]">€ / mois</span>
               </div>
             </div>
           </div>
@@ -896,31 +896,31 @@ export default function Vision() {
                         <div className="space-y-4">
                           <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-gray-700 p-2 md:rounded-[1.5rem] md:p-3">
                             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-                            <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                            <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                               <PatrimoineChart data={resultat.chartData} />
                             </div>
                           </div>
                           <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-gray-700 p-2 md:rounded-[1.5rem] md:p-3">
                             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-                            <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                            <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                               <div className="flex items-center gap-3 mb-4">
-                                <div className="w-5 h-5 text-[#2A9D8F]">📈</div>
+                                <div className="w-5 h-5 text-[#33d6c0]">📈</div>
                                 <h3 className="text-lg text-white font-normal font-medium">Évolution du patrimoine financier et immobilier</h3>
                               </div>
                               <p className="text-white text-sm font-normal leading-relaxed mb-6">
                                 Construction progressive de votre richesse immobilière sur 30 ans.
                               </p>
                               <div className="space-y-3">
-                                <div className="p-3 rounded-lg bg-black/50 border border-neutral-800">
+                                <div className="p-3 rounded-lg bg-[#050807]/50 border border-neutral-800">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#2A9D8F]"></div>
+                                    <div className="w-3 h-3 rounded-full bg-[#33d6c0]"></div>
                                     <span className="text-xs text-white font-normal">Patrimoine net</span>
                                   </div>
                                   <p className="text-xs text-white font-normal leading-relaxed">
                                     Valeur réelle de votre richesse (biens - dettes).
                                   </p>
                                 </div>
-                                <div className="p-3 rounded-lg bg-black/50 border border-neutral-800">
+                                <div className="p-3 rounded-lg bg-[#050807]/50 border border-neutral-800">
                                   <div className="flex items-center gap-2 mb-2">
                                     <div className="w-3 h-3 rounded-full bg-red-400"></div>
                                     <span className="text-xs text-white font-normal">Dette restante</span>
@@ -938,13 +938,13 @@ export default function Vision() {
                         <div className="space-y-4">
                           <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-gray-700 p-2 md:rounded-[1.5rem] md:p-3">
                             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-                            <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                            <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                               <CashflowChart data={resultat.chartData} />
                             </div>
                           </div>
                           <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-gray-700 p-2 md:rounded-[1.5rem] md:p-3">
                             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-                            <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                            <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                               <div className="flex items-center gap-3 mb-4">
                                 <div className="w-5 h-5 text-[#3b82f6]">💰</div>
                                 <h3 className="text-lg text-white font-normal font-medium">Revenus locatifs nets</h3>
@@ -953,7 +953,7 @@ export default function Vision() {
                                 Revenu disponible réel après toutes les charges.
                               </p>
                               <div className="space-y-3">
-                                <div className="p-3 rounded-lg bg-black/50 border border-neutral-800">
+                                <div className="p-3 rounded-lg bg-[#050807]/50 border border-neutral-800">
                                   <div className="flex items-center gap-2 mb-2">
                                     <div className="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
                                     <span className="text-xs text-white font-normal">Phase 1-20 • Construction</span>
@@ -962,7 +962,7 @@ export default function Vision() {
                                     Investissement pour construire un patrimoine durable.
                                   </p>
                                 </div>
-                                <div className="p-3 rounded-lg bg-black/50 border border-neutral-800">
+                                <div className="p-3 rounded-lg bg-[#050807]/50 border border-neutral-800">
                                   <div className="flex items-center gap-2 mb-2">
                                     <div className="w-3 h-3 rounded-full bg-green-400"></div>
                                     <span className="text-xs text-white font-normal">Phase 20-30 • Liberté</span>
@@ -1019,11 +1019,11 @@ export default function Vision() {
 
                         <div className="bg-gray-950 p-2 rounded-[1.25rem] relative border-[0.75px] border-gray-700 md:rounded-[1.5rem] md:p-3">
                           <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-                          <Card className="relative bg-gradient-to-br from-gray-900/95 via-[#2A9D8F]/5 to-gray-900/95 overflow-hidden h-[320px] border-none">
+                          <Card className="relative bg-gradient-to-br from-gray-900/95 via-[#33d6c0]/5 to-gray-900/95 overflow-hidden h-[320px] border-none">
                             <CardContent className="p-0 h-full">
                               <div className="h-full p-8 flex flex-col justify-center">
                                 <div className="mb-6">
-                                  <div className="text-xs text-[#2A9D8F] font-bold uppercase mb-2 font-normal">
+                                  <div className="text-xs text-[#33d6c0] font-bold uppercase mb-2 font-normal">
                                     Année {currentProjIndex * frequence + 1}
                                   </div>
                                   <div className="text-5xl font-bold text-white mb-4 font-light">
@@ -1032,14 +1032,14 @@ export default function Vision() {
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-gray-950 p-5 rounded-lg border border-[#2A9D8F]/30">
+                                  <div className="bg-gray-950 p-5 rounded-lg border border-[#33d6c0]/30">
                                     <p className="text-gray-400 text-xs mb-2 font-normal">Apport nécessaire</p>
                                     <p className="text-[#ffe98a] text-2xl font-light font-bold">
                                       {Math.round(apportData[projets[currentProjIndex].taille] / 1000)}K€
                                     </p>
                                   </div>
                                   
-                                  <div className="bg-[#71CCBA]/10 rounded-lg p-5 border border-[#71CCBA]/30">
+                                  <div className="bg-[#5ee7d4]/10 rounded-lg p-5 border border-[#5ee7d4]/30">
                                     <p className="text-gray-400 text-xs mb-2 font-normal">Stratégie</p>
                                     <p className="text-white text-2xl font-light font-bold">
                                       {typeStrategie === 'patrimoniale' ? 'Patrimoniale' : typeStrategie === 'agressive' ? 'Agressive' : 'Mixte'}
@@ -1055,7 +1055,7 @@ export default function Vision() {
                                       onClick={() => setCurrentProjIndex(idx)}
                                       className={`h-1 rounded-full transition-all ${
                                         idx === currentProjIndex ?
-                                        'w-6 bg-[#2A9D8F]' :
+                                        'w-6 bg-[#33d6c0]' :
                                         'w-1 bg-gray-600 hover:bg-gray-500'
                                       }`}
                                     />
@@ -1080,7 +1080,7 @@ export default function Vision() {
 
                       <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-gray-700 p-2 md:rounded-[1.5rem] md:p-3">
                         <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-                        <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                        <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                           <ComparatifChart 
                             chartData={resultat.chartData}
                             projets={projets}
@@ -1094,9 +1094,9 @@ export default function Vision() {
                           
                           {/* Annotations */}
                           <div className="grid md:grid-cols-2 gap-4 mt-6">
-                            <div className="p-4 rounded-lg bg-black/50 border border-[#71CCBA]/30">
+                            <div className="p-4 rounded-lg bg-[#050807]/50 border border-[#5ee7d4]/30">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="px-2 py-1 rounded-full bg-[#2A9D8F] text-white text-xs font-bold">
+                                <div className="px-2 py-1 rounded-full bg-[#33d6c0] text-white text-xs font-bold">
                                   {(resultat.chartData[9].patrimoine / resultat.apportTotal).toFixed(1)}x
                                 </div>
                                 <span className="text-xs text-white font-normal">An 10</span>
@@ -1105,9 +1105,9 @@ export default function Vision() {
                                 Votre patrimoine vaut déjà {(resultat.chartData[9].patrimoine / resultat.apportTotal).toFixed(1)} fois votre investissement initial
                               </p>
                             </div>
-                            <div className="p-4 rounded-lg bg-black/50 border border-[#71CCBA]/30">
+                            <div className="p-4 rounded-lg bg-[#050807]/50 border border-[#5ee7d4]/30">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="px-2 py-1 rounded-full bg-[#2A9D8F] text-white text-xs font-bold">
+                                <div className="px-2 py-1 rounded-full bg-[#33d6c0] text-white text-xs font-bold">
                                   {(resultat.chartData[19].patrimoine / resultat.apportTotal).toFixed(1)}x
                                 </div>
                                 <span className="text-xs text-white font-normal">An 20</span>
@@ -1136,7 +1136,7 @@ export default function Vision() {
                         <motion.div
                       initial={{ opacity: 0, y: 40 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm">
+                      className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm">
                        
                         <div className="p-6 border-b border-neutral-800 bg-white/5"> 
                           <div className="flex items-center gap-2"> 
@@ -1229,7 +1229,7 @@ export default function Vision() {
                 onClick={() => setCurrentSlide(index)}
                 className={`h-2 rounded-full transition-all ${
                 currentSlide === index ?
-                'w-8 bg-[#2A9D8F]' :
+                'w-8 bg-[#33d6c0]' :
                 'w-2 bg-neutral-700 hover:bg-neutral-600'}`
                 } />
 
@@ -1246,9 +1246,9 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6 }}
-                  className="py-8 px-6 rounded-xl bg-black/30 backdrop-blur-sm text-center border-l-4 border-[#2A9D8F]">
+                  className="py-8 px-6 rounded-md bg-[#050807]/30 backdrop-blur-sm text-center border-l-4 border-[#33d6c0]">
 
-                  <div className="text-xs text-[#2A9D8F] font-bold uppercase tracking-wider mb-3">Étape clé • An 20</div>
+                  <div className="text-xs text-[#33d6c0] font-bold uppercase tracking-wider mb-3">Étape clé • An 20</div>
                   <p className="text-white font-normal text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
                     {(() => {
                       const patrimoine = resultat.patrimoine20 >= 1000000 ? `${(resultat.patrimoine20 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine20 / 1000)}K€`;
@@ -1328,9 +1328,9 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="py-8 px-6 rounded-xl bg-black/30 backdrop-blur-sm text-center border-l-4 border-[#71CCBA]">
+                  className="py-8 px-6 rounded-md bg-[#050807]/30 backdrop-blur-sm text-center border-l-4 border-[#5ee7d4]">
 
-                  <div className="text-xs text-[#71CCBA] font-bold uppercase tracking-wider mb-3">Accélération • An 25</div>
+                  <div className="text-xs text-[#5ee7d4] font-bold uppercase tracking-wider mb-3">Accélération • An 25</div>
                   <p className="text-white font-normal text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
                     {(() => {
                       const patrimoine = resultat.patrimoine25 >= 1000000 ? `${(resultat.patrimoine25 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine25 / 1000)}K€`;
@@ -1349,9 +1349,9 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="py-8 px-6 rounded-xl bg-gradient-to-br from-[#2A9D8F]/20 to-[#71CCBA]/10 backdrop-blur-sm text-center border-2 border-[#2A9D8F]">
+                  className="py-8 px-6 rounded-md bg-gradient-to-br from-[#33d6c0]/20 to-[#5ee7d4]/10 backdrop-blur-sm text-center border-2 border-[#33d6c0]">
 
-                  <div className="text-xs text-[#2A9D8F] font-bold uppercase tracking-wider mb-3">Objectif atteint • An 30</div>
+                  <div className="text-xs text-[#33d6c0] font-bold uppercase tracking-wider mb-3">Objectif atteint • An 30</div>
                   <p className="text-white font-normal text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
                     {(() => {
                       const patrimoine = resultat.patrimoine30 >= 1000000 ? `${(resultat.patrimoine30 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine30 / 1000)}K€`;
@@ -1438,13 +1438,13 @@ export default function Vision() {
                 transition={{ duration: 0.7, ease: "easeOut" }}
                 className="mb-12 relative h-fit rounded-[1.25rem] p-2 md:rounded-[1.5rem] md:p-3 transition-all duration-500">
 
-                <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6 pt-10">
+                <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6 pt-10">
                   {/* Question revenus mensuels souhaités */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="mb-6 p-4 rounded-lg bg-gradient-to-br from-[#2A9D8F]/10 to-black/30 border border-[#2A9D8F]/30">
+                    className="mb-6 p-4 rounded-lg bg-gradient-to-br from-[#33d6c0]/10 to-black/30 border border-[#33d6c0]/30">
 
                     <Label className="text-sm text-white mb-3 block font-normal font-medium">
                       💰 Revenus mensuels souhaités
@@ -1461,8 +1461,8 @@ export default function Vision() {
                         onClick={() => setRevenusMensuels(option.value)}
                         className={`h-9 rounded-lg border-2 font-normal font-medium text-xs transition-all ${
                         revenusMensuels === option.value ?
-                        'bg-[#2A9D8F] border-[#2A9D8F] text-white' :
-                        'bg-neutral-900/30 border-neutral-800 text-neutral-400 hover:border-neutral-700'}`
+                        'bg-[#33d6c0] border-[#33d6c0] text-white' :
+                        'bg-[#0a0f0e]/30 border-neutral-800 text-neutral-400 hover:border-neutral-700'}`
                         }>
 
                           {option.label}
@@ -1475,7 +1475,7 @@ export default function Vision() {
                         value={revenusMensuels}
                         onChange={(e) => setRevenusMensuels(e.target.value)}
                         placeholder="Personnalisé"
-                        className="w-full h-9 px-3 pr-12 rounded-lg bg-neutral-900/50 border-2 border-neutral-800 hover:border-[#2A9D8F] focus:border-[#2A9D8F] text-white font-normal text-xs transition-colors outline-none" />
+                        className="w-full h-9 px-3 pr-12 rounded-lg bg-[#0a0f0e]/50 border-2 border-neutral-800 hover:border-[#33d6c0] focus:border-[#33d6c0] text-white font-normal text-xs transition-colors outline-none" />
 
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 font-normal text-xs">€/mois</span>
                     </div>
@@ -1508,8 +1508,8 @@ export default function Vision() {
                 transition={{ duration: 0.6 }}
                 className="mb-12">
 
-                <div className="relative h-fit rounded-[1.5rem] border border-neutral-800 bg-black backdrop-blur-md overflow-hidden">
-                  <div className="p-6 border-b border-neutral-800 bg-black">
+                <div className="relative h-fit rounded-[1.5rem] border border-neutral-800 bg-[#050807] backdrop-blur-md overflow-hidden">
+                  <div className="p-6 border-b border-neutral-800 bg-[#050807]">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-[#f4be7e]" />
                       <h3 className="text-lg text-white font-medium">Investissement vs Patrimoine</h3>
@@ -1520,8 +1520,8 @@ export default function Vision() {
                       <LineChart data={resultat.chartData}>
                         <defs>
                           <linearGradient id="patrimoineGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#2A9D8F" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#2A9D8F" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#33d6c0" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#33d6c0" stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="investGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#f4be7e" stopOpacity={0.3} />
@@ -1562,7 +1562,7 @@ export default function Vision() {
                         <Area
                           type="monotone"
                           dataKey="patrimoine"
-                          stroke="#2A9D8F"
+                          stroke="#33d6c0"
                           strokeWidth={3}
                           fill="url(#patrimoineGradient)"
                           name="Patrimoine net" />
@@ -1570,7 +1570,7 @@ export default function Vision() {
                         <Line
                           type="monotone"
                           dataKey="patrimoine"
-                          stroke="#2A9D8F"
+                          stroke="#33d6c0"
                           strokeWidth={4}
                           name=""
                           dot={false}
@@ -1604,7 +1604,7 @@ export default function Vision() {
                     transition={{ duration: 0.6 }}
                     className="relative h-fit rounded-[1.25rem] p-2 md:rounded-[1.5rem] md:p-3 transition-all duration-500">
 
-                    <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                    <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -1612,7 +1612,7 @@ export default function Vision() {
                         transition={{ delay: 0.2, duration: 0.4 }}
                         className="flex items-center gap-3 mb-4">
 
-                        <div className="w-5 h-5 text-[#2A9D8F]">📈</div>
+                        <div className="w-5 h-5 text-[#33d6c0]">📈</div>
                         <h3 className="text-lg text-white font-normal font-medium">Évolution du patrimoine</h3>
                       </motion.div>
                       <motion.p
@@ -1630,10 +1630,10 @@ export default function Vision() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: 0.4, duration: 0.5 }}
-                          className="p-4 rounded-lg bg-black/50 border border-neutral-800">
+                          className="p-4 rounded-lg bg-[#050807]/50 border border-neutral-800">
 
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-[#2A9D8F]"></div>
+                            <div className="w-3 h-3 rounded-full bg-[#33d6c0]"></div>
                             <span className="text-xs text-white font-normal uppercase tracking-wider">Courbe verte • Patrimoine net</span>
                           </div>
                           <p className="text-xs text-white font-normal leading-relaxed">
@@ -1645,7 +1645,7 @@ export default function Vision() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: 0.5, duration: 0.5 }}
-                          className="p-4 rounded-lg bg-black/50 border border-neutral-800">
+                          className="p-4 rounded-lg bg-[#050807]/50 border border-neutral-800">
 
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-3 h-3 rounded-full bg-red-400"></div>
@@ -1667,7 +1667,7 @@ export default function Vision() {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="relative h-fit rounded-[1.25rem] p-2 md:rounded-[1.5rem] md:p-3 transition-all duration-500">
 
-                    <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                    <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                       <PatrimoineChart data={resultat.chartData} />
                     </div>
                   </motion.div>
@@ -1682,7 +1682,7 @@ export default function Vision() {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="relative h-fit rounded-[1.25rem] p-2 md:rounded-[1.5rem] md:p-3 transition-all duration-500">
 
-                    <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                    <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -1708,7 +1708,7 @@ export default function Vision() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: 0.4, duration: 0.5 }}
-                          className="p-4 rounded-lg bg-black/50 border border-neutral-800">
+                          className="p-4 rounded-lg bg-[#050807]/50 border border-neutral-800">
 
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
@@ -1723,7 +1723,7 @@ export default function Vision() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: 0.5, duration: 0.5 }}
-                          className="p-4 rounded-lg bg-black/50 border border-neutral-800">
+                          className="p-4 rounded-lg bg-[#050807]/50 border border-neutral-800">
 
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-3 h-3 rounded-full bg-green-400"></div>
@@ -1745,7 +1745,7 @@ export default function Vision() {
                     transition={{ duration: 0.6, delay: 0.4 }}
                     className="relative h-fit rounded-[1.25rem] p-2 md:rounded-[1.5rem] md:p-3 transition-all duration-500">
 
-                    <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6">
+                    <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6">
                       <CashflowChart data={resultat.chartData} />
                     </div>
                   </motion.div>
@@ -1769,9 +1769,9 @@ export default function Vision() {
 
     {/* Éléments de background colorés */}
     <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-      <div className="absolute top-20 left-10 w-96 h-96 bg-[#2A9D8F] rounded-full blur-[120px] opacity-10"></div>
+      <div className="absolute top-20 left-10 w-96 h-96 bg-[#33d6c0] rounded-full blur-[120px] opacity-10"></div>
       <div className="absolute bottom-10 right-20 w-80 h-80 bg-[#f4be7e] rounded-full blur-[100px] opacity-10"></div>
-      <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-[#71CCBA] rounded-full blur-[80px] opacity-5"></div>
+      <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-[#5ee7d4] rounded-full blur-[80px] opacity-5"></div>
     </div>
     {/* --- PARTIE GAUCHE : Titre et CTA --- */}
     <div className="space-y-8 max-w-md">
@@ -1788,14 +1788,14 @@ export default function Vision() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 text-center">
+        <div className="bg-[#0a0f0e]/50 border border-neutral-800 rounded-md p-6 text-center">
           <div className="mb-3 flex justify-center">
             <TrendingUp className="w-8 h-8 text-white" />
           </div>
           <div className="text-white font-semibold text-base mb-1 font-normal">Patrimoine net</div>
           <div className="text-xs text-neutral-400 font-normal">Évolution sur 30 ans</div>
         </div>
-        <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 text-center">
+        <div className="bg-[#0a0f0e]/50 border border-neutral-800 rounded-md p-6 text-center">
           <div className="mb-3 flex justify-center">
             <DollarSign className="w-8 h-8 text-white" />
           </div>
@@ -1811,16 +1811,16 @@ export default function Vision() {
       {/* Colonne : Configuration (S'étire pour remplir l'espace) */}
       <div className="relative h-fit rounded-[1.25rem] p-2 md:rounded-[1.5rem] md:p-3 transition-all duration-500" style={{ borderWidth: '0.75px', borderStyle: 'solid', borderColor }}>
         <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-        <div className="relative rounded-xl overflow-hidden bg-black/80 backdrop-blur-sm p-6 md:p-8">
+        <div className="relative rounded-md overflow-hidden bg-[#050807]/80 backdrop-blur-sm p-6 md:p-8">
           {/* Progress Bar */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-neutral-400 font-normal uppercase tracking-wider">Étape {currentStep} sur 4</span>
-              <span className="text-xs text-[#2A9D8F] font-normal font-medium">{Math.round(currentStep / 4 * 100)}%</span>
+              <span className="text-xs text-[#33d6c0] font-normal font-medium">{Math.round(currentStep / 4 * 100)}%</span>
             </div>
-            <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[#101715] rounded-full overflow-hidden">
               <motion.div
-                        className="h-full bg-gradient-to-r from-[#2A9D8F] to-[#71CCBA]"
+                        className="h-full bg-gradient-to-r from-[#33d6c0] to-[#5ee7d4]"
                         initial={{ width: 0 }}
                         animate={{ width: `${currentStep / 4 * 100}%` }}
                         transition={{ duration: 0.5, ease: "easeOut" }} />
@@ -1853,7 +1853,7 @@ export default function Vision() {
                             value={age}
                             onChange={(e) => setAge(e.target.value)}
                             placeholder="Ex: 35"
-                            className="w-full h-14 px-5 rounded-xl bg-neutral-900/50 border-2 border-neutral-800 hover:border-[#2A9D8F] focus:border-[#2A9D8F] text-white text-lg font-normal transition-colors outline-none" />
+                            className="w-full h-14 px-5 rounded-md bg-[#0a0f0e]/50 border-2 border-neutral-800 hover:border-[#33d6c0] focus:border-[#33d6c0] text-white text-lg font-normal transition-colors outline-none" />
 
                   </div>
 
@@ -1868,10 +1868,10 @@ export default function Vision() {
                             <button
                               key={option.value}
                               onClick={() => setTypeInvestissement(option.value)}
-                              className={`h-14 rounded-xl border-2 font-normal font-medium text-sm transition-all ${
+                              className={`h-14 rounded-md border-2 font-normal font-medium text-sm transition-all ${
                               typeInvestissement === option.value ?
-                              'bg-[#2A9D8F] border-[#2A9D8F] text-white' :
-                              'bg-neutral-900/30 border-neutral-800 text-neutral-400 hover:border-neutral-700'}`
+                              'bg-[#33d6c0] border-[#33d6c0] text-white' :
+                              'bg-[#0a0f0e]/30 border-neutral-800 text-neutral-400 hover:border-neutral-700'}`
                               }>
 
                           {option.label}
@@ -1908,17 +1908,17 @@ export default function Vision() {
                         <button
                           key={option.value}
                           onClick={() => setObjectif(option.value)}
-                          className={`w-full p-5 rounded-xl border-2 text-left transition-all ${
+                          className={`w-full p-5 rounded-md border-2 text-left transition-all ${
                           objectif === option.value ?
-                          'bg-[#2A9D8F]/10 border-[#2A9D8F]' :
-                          'bg-neutral-900/30 border-neutral-800 hover:border-neutral-700'}`
+                          'bg-[#33d6c0]/10 border-[#33d6c0]' :
+                          'bg-[#0a0f0e]/30 border-neutral-800 hover:border-neutral-700'}`
                           }>
 
                       <div className="flex items-start gap-4">
                         <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            objectif === option.value ? 'border-[#2A9D8F]' : 'border-neutral-700'}`
+                            objectif === option.value ? 'border-[#33d6c0]' : 'border-neutral-700'}`
                             }>
-                          {objectif === option.value && <div className="w-3 h-3 rounded-full bg-[#2A9D8F]" />}
+                          {objectif === option.value && <div className="w-3 h-3 rounded-full bg-[#33d6c0]" />}
                         </div>
                         <div>
                           <div className={`font-normal font-medium mb-1 ${
@@ -1960,18 +1960,18 @@ export default function Vision() {
                         <button
                           key={option.value}
                           onClick={() => setTypeStrategie(option.value)}
-                          className={`w-full p-5 rounded-xl border-2 text-left transition-all ${
+                          className={`w-full p-5 rounded-md border-2 text-left transition-all ${
                           typeStrategie === option.value ?
-                          'bg-[#2A9D8F]/10 border-[#2A9D8F]' :
-                          'bg-neutral-900/30 border-neutral-800 hover:border-neutral-700'}`
+                          'bg-[#33d6c0]/10 border-[#33d6c0]' :
+                          'bg-[#0a0f0e]/30 border-neutral-800 hover:border-neutral-700'}`
                           }>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-start gap-4">
                           <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              typeStrategie === option.value ? 'border-[#2A9D8F]' : 'border-neutral-700'}`
+                              typeStrategie === option.value ? 'border-[#33d6c0]' : 'border-neutral-700'}`
                               }>
-                            {typeStrategie === option.value && <div className="w-3 h-3 rounded-full bg-[#2A9D8F]" />}
+                            {typeStrategie === option.value && <div className="w-3 h-3 rounded-full bg-[#33d6c0]" />}
                           </div>
                           <div>
                             <div className={`font-normal font-medium mb-1 ${
@@ -1983,7 +1983,7 @@ export default function Vision() {
                           </div>
                         </div>
                         <div className={`text-2xl font-bold font-normal ${
-                            typeStrategie === option.value ? 'text-[#2A9D8F]' : 'text-neutral-600'}`
+                            typeStrategie === option.value ? 'text-[#33d6c0]' : 'text-neutral-600'}`
                             }>
                           {option.rate}
                         </div>
@@ -2021,18 +2021,18 @@ export default function Vision() {
                                 size="icon"
                                 onClick={() => projets.length > 1 && supprimerProjet(projets.length - 1)}
                                 disabled={projets.length <= 1}
-                                className="h-10 w-10 bg-neutral-900/50 border-2 border-neutral-800 text-white hover:bg-neutral-900 disabled:opacity-30">
+                                className="h-10 w-10 bg-[#0a0f0e]/50 border-2 border-neutral-800 text-white hover:bg-[#0a0f0e] disabled:opacity-30">
 
                           <span className="text-lg">-</span>
                         </Button>
-                        <div className="flex-1 text-center border-2 rounded-lg py-2 px-3 bg-neutral-900/30 border-neutral-800">
+                        <div className="flex-1 text-center border-2 rounded-lg py-2 px-3 bg-[#0a0f0e]/30 border-neutral-800">
                           <span className="text-xl font-bold text-white font-normal">{projets.length}</span>
                         </div>
                         <Button
                                 variant="outline"
                                 size="icon"
                                 onClick={ajouterProjet}
-                                className="h-10 w-10 bg-[#2A9D8F] hover:bg-[#238276] text-white border-0">
+                                className="h-10 w-10 bg-[#33d6c0] hover:bg-[#238276] text-white border-0">
 
                           <span className="text-lg">+</span>
                         </Button>
@@ -2050,10 +2050,10 @@ export default function Vision() {
                               <button
                                 key={option.value}
                                 onClick={() => setFrequence(Number(option.value))}
-                                className={`h-14 rounded-xl border-2 font-normal font-medium text-sm transition-all ${
+                                className={`h-14 rounded-md border-2 font-normal font-medium text-sm transition-all ${
                                 frequence === Number(option.value) ?
-                                'bg-[#2A9D8F] border-[#2A9D8F] text-white' :
-                                'bg-neutral-900/30 border-neutral-800 text-neutral-400 hover:border-neutral-700'}`
+                                'bg-[#33d6c0] border-[#33d6c0] text-white' :
+                                'bg-[#0a0f0e]/30 border-neutral-800 text-neutral-400 hover:border-neutral-700'}`
                                 }>
 
                             {option.label}
@@ -2077,17 +2077,17 @@ export default function Vision() {
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: 10 }}
-                              className="p-3 rounded-xl border border-neutral-800 bg-neutral-900/30 flex items-center gap-2">
+                              className="p-3 rounded-md border border-neutral-800 bg-[#0a0f0e]/30 flex items-center gap-2">
 
                           <div className="flex-1 min-w-0">
-                            <div className="text-[10px] text-[#2A9D8F] font-bold uppercase mb-1">
+                            <div className="text-[10px] text-[#33d6c0] font-bold uppercase mb-1">
                               An {index * frequence + 1}
                             </div>
                             <Select
                                   value={projet.taille}
                                   onValueChange={(v) => modifierTailleProjet(index, v)}>
 
-                              <SelectTrigger className="h-8 text-xs bg-black/50 text-white border-neutral-800 font-normal">
+                              <SelectTrigger className="h-8 text-xs bg-[#050807]/50 text-white border-neutral-800 font-normal">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -2105,7 +2105,7 @@ export default function Vision() {
                             variant="ghost"
                             size="icon"
                             onClick={() => dupliquerProjet(index)}
-                            className="h-7 w-7 text-[#2A9D8F] hover:bg-[#2A9D8F]/10 shrink-0"
+                            className="h-7 w-7 text-[#33d6c0] hover:bg-[#33d6c0]/10 shrink-0"
                             title="Dupliquer ce projet">
 
                             <Copy className="w-3.5 h-3.5" />
@@ -2135,7 +2135,7 @@ export default function Vision() {
                     <Button
                       onClick={() => setCurrentStep(currentStep - 1)}
                       variant="outline"
-                      className="h-12 px-6 bg-neutral-900/50 border-neutral-800 text-white hover:bg-neutral-900 font-normal">
+                      className="h-12 px-6 bg-[#0a0f0e]/50 border-neutral-800 text-white hover:bg-[#0a0f0e] font-normal">
 
                 Précédent
               </Button> :
@@ -2143,7 +2143,7 @@ export default function Vision() {
 
             {currentStep < 4 ?
                     <Button
-                      onClick={() => setCurrentStep(currentStep + 1)} className="bg-[#2A9D8F] text-gray-50 px-8 py-2 text-sm font-medium rounded-full inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-12 hover:bg-[#238276] shadow-lg">
+                      onClick={() => setCurrentStep(currentStep + 1)} className="bg-[#33d6c0] text-gray-50 px-8 py-2 text-sm font-medium rounded-full inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-12 hover:bg-[#238276] shadow-lg">
 
 
                 Continuer

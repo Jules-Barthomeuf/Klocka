@@ -115,7 +115,7 @@ export default function ConnexionDialog({ ouvert, onClose }) {
         }
       }}
     >
-      <DialogContent className="bg-neutral-900 border-white/[0.08] text-white max-w-md">
+      <DialogContent className="bg-[#0a0f0e] border-[#1c2725] text-white max-w-md">
         {/* Étape 1 — adresse */}
         {etape === ETAPES.EMAIL && (
           <form onSubmit={verifierEmail} className="space-y-4">
@@ -128,14 +128,14 @@ export default function ConnexionDialog({ ouvert, onClose }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="vous@exemple.fr"
-                className="bg-neutral-800 border-white/[0.08] text-white"
+                className="bg-[#101715] border-[#1c2725] text-white"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!email.trim() || enCours}
-              className="w-full bg-[#2A9D8F] hover:bg-[#238277] text-white"
+              className="w-full bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Continuer <ArrowRight className="w-4 h-4 ml-2" />
@@ -165,14 +165,14 @@ export default function ConnexionDialog({ ouvert, onClose }) {
                 type="password"
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}
-                className="bg-neutral-800 border-white/[0.08] text-white"
+                className="bg-[#101715] border-[#1c2725] text-white"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!motDePasse || enCours}
-              className="w-full bg-[#2A9D8F] hover:bg-[#238277] text-white"
+              className="w-full bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Se connecter
@@ -203,7 +203,7 @@ export default function ConnexionDialog({ ouvert, onClose }) {
                 type="password"
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}
-                className="bg-neutral-800 border-white/[0.08] text-white"
+                className="bg-[#101715] border-[#1c2725] text-white"
               />
             </div>
             <div>
@@ -212,14 +212,14 @@ export default function ConnexionDialog({ ouvert, onClose }) {
                 type="password"
                 value={confirmation}
                 onChange={(e) => setConfirmation(e.target.value)}
-                className="bg-neutral-800 border-white/[0.08] text-white"
+                className="bg-[#101715] border-[#1c2725] text-white"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!motDePasse || !confirmation || enCours}
-              className="w-full bg-[#2A9D8F] hover:bg-[#238277] text-white"
+              className="w-full bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Enregistrer et entrer
@@ -271,13 +271,13 @@ function Separateur() {
 function EnTete({ icone: Icone, titre, sousTitre, badge }) {
   return (
     <div className="text-center pb-1">
-      <div className="w-11 h-11 rounded-2xl bg-[#2A9D8F]/15 flex items-center justify-center mx-auto mb-3">
-        <Icone className="w-5 h-5 text-[#2A9D8F]" />
+      <div className="w-11 h-11 rounded-md bg-[#33d6c0]/15 flex items-center justify-center mx-auto mb-3">
+        <Icone className="w-5 h-5 text-[#33d6c0]" />
       </div>
       <h2 className="text-white text-lg font-medium">{titre}</h2>
       {sousTitre && <p className="text-gray-500 text-xs mt-1 break-all">{sousTitre}</p>}
       {badge && (
-        <span className="inline-block mt-2 text-[10px] text-[#71CCBA] bg-[#2A9D8F]/15 border border-[#2A9D8F]/25 rounded-full px-2 py-0.5">
+        <span className="inline-block mt-2 text-[10px] text-[#5ee7d4] bg-[#33d6c0]/15 border border-[#33d6c0]/25 rounded-full px-2 py-0.5">
           {badge}
         </span>
       )}

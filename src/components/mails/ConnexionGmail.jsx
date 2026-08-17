@@ -103,7 +103,7 @@ export function BoutonConnecterGmail({ onConnecte, libelle = "Connecter Gmail", 
 export function EncartConnexionGmail({ onConnecte, googleConfigure = true }) {
   if (!googleConfigure) {
     return (
-      <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3">
+      <div className="rounded-md border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3">
         <p className="text-amber-200/90 text-xs leading-relaxed">
           La connexion Google n'est pas configurée : ajoutez <code>GOOGLE_CLIENT_ID</code> et{" "}
           <code>GOOGLE_CLIENT_SECRET</code> dans <code>.env</code>, puis redémarrez. En attendant,
@@ -113,7 +113,7 @@ export function EncartConnexionGmail({ onConnecte, googleConfigure = true }) {
     );
   }
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 flex flex-wrap items-center gap-3">
+    <div className="rounded-md border border-[#1c2725] bg-white/[0.02] px-4 py-3 flex flex-wrap items-center gap-3">
       <p className="text-gray-400 text-xs flex-1 min-w-48 leading-relaxed">
         Aucune boîte d'envoi connectée. Connectez votre adresse Gmail pour envoyer réellement ce mail —
         votre brouillon est conservé.

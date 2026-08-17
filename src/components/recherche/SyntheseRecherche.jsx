@@ -6,9 +6,9 @@ function BudgetColumn({ profil }) {
   const { color, label, titre, sections, typesCommerceExclus, rendements } = profil;
 
   return (
-    <div className="bg-white/[0.015] rounded-2xl border border-white/[0.06] overflow-hidden">
+    <div className="bg-white/[0.015] rounded-md border border-[#16201f] overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-white/[0.06]" style={{ backgroundColor: `${color}10` }}>
+      <div className="px-5 py-4 border-b border-[#16201f]" style={{ backgroundColor: `${color}10` }}>
         <span
           className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full inline-block mb-2"
           style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}40` }}
@@ -28,7 +28,7 @@ function BudgetColumn({ profil }) {
             </div>
             <div className="space-y-2">
               {section.items.map((item, idx) => (
-                <div key={idx} className="pl-3 border-l-2 border-white/[0.06]">
+                <div key={idx} className="pl-3 border-l-2 border-[#16201f]">
                   <p className="text-xs font-medium text-white/80">{item.label}</p>
                   <p className="text-[11px] text-white/35 leading-relaxed whitespace-pre-line">{item.desc}</p>
                 </div>
@@ -87,10 +87,10 @@ export default function SyntheseRecherche() {
   return (
     <div className="space-y-6">
       {/* Intro */}
-      <div className="bg-white/[0.015] rounded-2xl border border-white/[0.06] p-5">
+      <div className="bg-white/[0.015] rounded-md border border-[#16201f] p-5">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-9 h-9 rounded-xl bg-[#2A9D8F]/10 flex items-center justify-center">
-            <Building2 className="w-5 h-5 text-[#2A9D8F]" />
+          <div className="w-9 h-9 rounded-md bg-[#33d6c0]/10 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-[#33d6c0]" />
           </div>
           <div>
             <h3 className="text-white text-sm font-medium">Vue synthétique</h3>

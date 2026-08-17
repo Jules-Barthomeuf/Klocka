@@ -65,7 +65,7 @@ export default function CompareMap({ metrics }) {
 
   if (projectsWithCoords.length === 0 && !loading) {
     return (
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-5">
+      <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
         <div className="flex items-center mb-4">
           <p className="text-white/40 text-xs uppercase tracking-[0.15em]">
             Localisation des projets
@@ -82,7 +82,7 @@ export default function CompareMap({ metrics }) {
 
   if (loading && projectsWithCoords.length === 0) {
     return (
-      <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-5">
+      <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
         <div className="flex items-center mb-4">
           <p className="text-white/40 text-xs uppercase tracking-[0.15em]">Localisation des projets</p>
         </div>
@@ -98,14 +98,14 @@ export default function CompareMap({ metrics }) {
   const centerLng = projectsWithCoords.reduce((s, m) => s + m.lng, 0) / projectsWithCoords.length;
 
   return (
-    <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-5">
+    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
       <div className="flex items-center mb-4">
         <p className="text-white/40 text-xs uppercase tracking-[0.15em]">
           Localisation des projets
         </p>
         <InfoTooltip text="Carte montrant la position géographique de chaque projet comparé. La distance entre les projets peut influencer la diversification de votre portefeuille immobilier." />
       </div>
-      <div className="h-[500px] rounded-xl overflow-hidden">
+      <div className="h-[500px] rounded-md overflow-hidden">
         <MapContainer
           center={[centerLat, centerLng]}
           zoom={6}

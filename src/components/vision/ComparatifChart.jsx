@@ -14,7 +14,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
           refY="4"
           orient="auto-start-reverse"
         >
-          <polygon points="0 0, 8 4, 0 8" fill="#71CCBA" />
+          <polygon points="0 0, 8 4, 0 8" fill="#5ee7d4" />
         </marker>
       </defs>
       
@@ -24,7 +24,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         y1={y + 40}
         x2={x}
         y2={y - 40}
-        stroke="#71CCBA"
+        stroke="#5ee7d4"
         strokeWidth="2"
         markerEnd={`url(#arrowhead-${year})`}
       />
@@ -36,7 +36,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         width="60"
         height="30"
         rx="15"
-        fill="#2A9D8F"
+        fill="#33d6c0"
       />
       <text
         x={x}
@@ -56,8 +56,8 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
       <LineChart data={chartData}>
         <defs>
           <linearGradient id="patrimoineGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#2A9D8F" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#2A9D8F" stopOpacity={0} />
+            <stop offset="5%" stopColor="#33d6c0" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#33d6c0" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -111,7 +111,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         <Area
           type="monotone"
           dataKey="patrimoine"
-          stroke="#2A9D8F"
+          stroke="#33d6c0"
           strokeWidth={3}
           fill="url(#patrimoineGradient)"
           name="Patrimoine net"
@@ -120,7 +120,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         <Line
           type="monotone"
           dataKey="patrimoine"
-          stroke="#2A9D8F"
+          stroke="#33d6c0"
           strokeWidth={4}
           name=""
           dot={false}

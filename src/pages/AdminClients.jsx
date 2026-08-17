@@ -440,23 +440,23 @@ export default function AdminClients() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-[#2A9D8F] animate-spin" />
+      <div className="min-h-screen bg-[#050807] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#050807] text-white">
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12">
       <div className="mb-8">
-        <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[10px] font-medium mb-3">Administration</p>
+        <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-3">Administration</p>
         <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">Utilisateurs</h1>
-        <div className="h-px w-16 bg-[#2A9D8F] mt-3" />
+        <div className="h-px w-16 bg-[#33d6c0] mt-3" />
         <p className="text-white/30 text-sm mt-3">Gérez tous les utilisateurs de la plateforme</p>
       </div>
 
-      <div className="bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-4 md:p-5 mb-6">
+      <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-4 md:p-5 mb-6">
             <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/30 w-4 h-4" />
@@ -464,13 +464,13 @@ export default function AdminClients() {
                   placeholder="Rechercher..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-10 text-sm bg-black border-white/[0.08] text-white placeholder:text-white/20" />
+                  className="pl-10 h-10 text-sm bg-[#050807] border-[#1c2725] text-white placeholder:text-white/20" />
 
               </div>
               {selectedUsersForCompare.length >= 2 &&
               <Button
                 onClick={handleCompareUsers}
-                className="h-10 text-sm bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/25 text-white">
+                className="h-10 text-sm bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white">
                   <GitCompare className="w-4 h-4 mr-2" />
                   Comparer ({selectedUsersForCompare.length})
                 </Button>
@@ -484,7 +484,7 @@ export default function AdminClients() {
                 return u ?
                 <Badge
                   key={userId}
-                  className="bg-[#2A9D8F]/10 text-[#2A9D8F] border border-[#2A9D8F]/20 cursor-pointer hover:bg-[#2A9D8F]/20 text-xs"
+                  className="bg-[#33d6c0]/10 text-[#33d6c0] border border-[#33d6c0]/20 cursor-pointer hover:bg-[#33d6c0]/20 text-xs"
                   onClick={() => toggleUserSelection(userId)}>
                       {u.full_name || u.email.split('@')[0]} ✕
                     </Badge> :
@@ -515,7 +515,7 @@ export default function AdminClients() {
           </button>
           {!pendingCollapsed && <div className="space-y-2">
             {pendingUsers.map((user) => (
-              <div key={user.id} className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4">
+              <div key={user.id} className="bg-amber-500/5 border border-amber-500/20 rounded-md p-4 flex items-center gap-4">
                 <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-medium text-amber-400">
                     {user.full_name?.charAt(0)?.toUpperCase() || "?"}
@@ -529,7 +529,7 @@ export default function AdminClients() {
                   size="sm"
                   onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
                   disabled={updateUserMutation.isPending}
-                  className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90 text-white text-xs px-4 flex-shrink-0"
+                  className="bg-[#33d6c0] hover:bg-[#33d6c0]/90 text-white text-xs px-4 flex-shrink-0"
                 >
                   Activer
                 </Button>
@@ -553,9 +553,9 @@ export default function AdminClients() {
             const isAdmin = user.role === "admin";
 
             return (
-              <div key={user.id} className={`bg-[#0A0A0A] border rounded-2xl p-4 md:p-5 transition-all hover:border-white/[0.12] ${
-              isAdmin ? 'border-l-2 border-l-amber-500/60 border-t-white/[0.06] border-r-white/[0.06] border-b-white/[0.06]' : 'border-white/[0.06]'} ${
-              selectedUsersForCompare.includes(user.id) ? 'ring-1 ring-[#2A9D8F]/50' : ''}`}>
+              <div key={user.id} className={`bg-[#0a0f0e] border rounded-md p-4 md:p-5 transition-all hover:border-[#24312f] ${
+              isAdmin ? 'border-l-2 border-l-amber-500/60 border-t-white/[0.06] border-r-white/[0.06] border-b-white/[0.06]' : 'border-[#16201f]'} ${
+              selectedUsersForCompare.includes(user.id) ? 'ring-1 ring-[#33d6c0]/50' : ''}`}>
                   {/* Ligne principale - mobile: colonne, desktop: ligne */}
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                     {/* Ligne 1: Checkbox, Avatar, Nom/Email */}
@@ -569,8 +569,8 @@ export default function AdminClients() {
                       
                       {/* Avatar */}
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      isAdmin ? 'bg-amber-500/20' : 'bg-[#2A9D8F]/20'}`}>
-                        <span className={`text-xs font-medium ${isAdmin ? 'text-amber-400' : 'text-[#2A9D8F]'}`}>
+                      isAdmin ? 'bg-amber-500/20' : 'bg-[#33d6c0]/20'}`}>
+                        <span className={`text-xs font-medium ${isAdmin ? 'text-amber-400' : 'text-[#33d6c0]'}`}>
                           {user.full_name?.charAt(0)?.toUpperCase() || "U"}
                         </span>
                       </div>
@@ -585,7 +585,7 @@ export default function AdminClients() {
 
                       {/* Actions mobile */}
                       <div className="flex md:hidden items-center gap-1 flex-shrink-0">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenStrategyDialog(user)} className="h-8 w-8 text-white/40 hover:text-[#2A9D8F] hover:bg-white/[0.04]">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenStrategyDialog(user)} className="h-8 w-8 text-white/40 hover:text-[#33d6c0] hover:bg-white/[0.04]">
                           <FileText className="w-4 h-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)} className="h-8 w-8 text-white/40 hover:text-red-400 hover:bg-white/[0.04]">
@@ -603,7 +603,7 @@ export default function AdminClients() {
                         </Badge>
                       }
                       {user.profil_investisseur &&
-                      <Badge className="bg-white/[0.04] text-white/60 border border-white/[0.08] text-[10px]">
+                      <Badge className="bg-white/[0.04] text-white/60 border border-[#1c2725] text-[10px]">
                           {profilLabels[user.profil_investisseur]}
                         </Badge>
                       }
@@ -640,8 +640,8 @@ export default function AdminClients() {
                                 onClick={() => handleChangeProfil(user.id, profil.value)}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                                 isSelected ?
-                                'bg-[#2A9D8F]/15 text-[#2A9D8F] border border-[#2A9D8F]/30' :
-                                'bg-white/[0.03] text-white/30 border border-white/[0.06] hover:text-white/60 hover:border-white/[0.12]'}`
+                                'bg-[#33d6c0]/15 text-[#33d6c0] border border-[#33d6c0]/30' :
+                                'bg-white/[0.03] text-white/30 border border-[#16201f] hover:text-white/60 hover:border-[#24312f]'}`
                                 }>
 
                                 <Icon className="w-3 h-3" />
@@ -668,13 +668,13 @@ export default function AdminClients() {
                     {/* Ligne 4: Progression */}
                     <div className="w-full md:w-24 md:flex-shrink-0">
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-[#2A9D8F] text-[10px] font-medium">
+                        <span className="text-[#33d6c0] text-[10px] font-medium">
                           {Math.round((user.etape_actuelle ?? 0) / 5 * 100)}%
                         </span>
                       </div>
                       <div className="w-full bg-white/[0.06] rounded-full h-1">
                         <div
-                          className="bg-[#2A9D8F] h-1 rounded-full transition-all duration-500"
+                          className="bg-[#33d6c0] h-1 rounded-full transition-all duration-500"
                           style={{ width: `${(user.etape_actuelle ?? 0) / 5 * 100}%` }} />
 
                       </div>
@@ -682,22 +682,22 @@ export default function AdminClients() {
 
                     {/* Informations financières */}
                     {(user.revenus_annuels || user.epargne_annuelle || user.apport_disponible) &&
-                    <div className="w-full md:w-auto flex-shrink-0 flex flex-wrap gap-3 text-xs text-white/40 bg-white/[0.02] border border-white/[0.04] p-2.5 rounded-xl">
+                    <div className="w-full md:w-auto flex-shrink-0 flex flex-wrap gap-3 text-xs text-white/40 bg-white/[0.02] border border-[#131c1b] p-2.5 rounded-md">
                        {user.revenus_annuels &&
                       <div className="flex items-center gap-1">
-                           <span className="text-[#2A9D8F]">Revenus:</span>
+                           <span className="text-[#33d6c0]">Revenus:</span>
                            <span>{(user.revenus_annuels / 1000).toFixed(0)}K€/an</span>
                          </div>
                       }
                        {user.epargne_annuelle &&
                       <div className="flex items-center gap-1">
-                           <span className="text-[#2A9D8F]/70">Épargne:</span>
+                           <span className="text-[#33d6c0]/70">Épargne:</span>
                            <span>{(user.epargne_annuelle / 1000).toFixed(0)}K€/an</span>
                          </div>
                       }
                        {user.apport_disponible &&
                       <div className="flex items-center gap-1">
-                           <span className="text-[#2A9D8F]">Apport:</span>
+                           <span className="text-[#33d6c0]">Apport:</span>
                            <span>{(user.apport_disponible / 1000).toFixed(0)}K€</span>
                          </div>
                       }
@@ -737,14 +737,14 @@ export default function AdminClients() {
                             <Button
                             variant="ghost"
                             size="icon"
-                            className={`h-8 w-8 ${user.dossier_bancaire_url ? 'text-green-400' : 'text-white/20'} hover:text-[#2A9D8F] hover:bg-white/[0.04]`}
+                            className={`h-8 w-8 ${user.dossier_bancaire_url ? 'text-green-400' : 'text-white/20'} hover:text-[#33d6c0] hover:bg-white/[0.04]`}
                             title={user.dossier_bancaire_url ? "Dossier bancaire uploadé" : "Uploader dossier bancaire"}
                             disabled={uploadingDossier === user.id}
                             asChild>
 
                               <span>
                                 {uploadingDossier === user.id ?
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#2A9D8F]" /> :
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#33d6c0]" /> :
 
                               <Upload className="w-4 h-4" />
                               }
@@ -756,7 +756,7 @@ export default function AdminClients() {
                               <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-[#2A9D8F] hover:bg-white/[0.04]"
+                            className="h-8 w-8 text-[#33d6c0] hover:bg-white/[0.04]"
                             title="Télécharger dossier">
 
                                 <Download className="w-4 h-4" />
@@ -770,7 +770,7 @@ export default function AdminClients() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleOpenStrategyDialog(user)}
-                        className="h-8 w-8 text-white/20 hover:text-[#2A9D8F] hover:bg-white/[0.04]"
+                        className="h-8 w-8 text-white/20 hover:text-[#33d6c0] hover:bg-white/[0.04]"
                         title="Définir la stratégie">
 
                         <FileText className="w-4 h-4" />
@@ -849,7 +849,7 @@ export default function AdminClients() {
 
         {filteredUsers.length === 0 &&
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-white/[0.03] rounded-md flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-white/10" />
             </div>
             <p className="text-white/20 text-sm">
@@ -862,7 +862,7 @@ export default function AdminClients() {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="bg-[#050505] border-white/[0.08]">
+        <DialogContent className="bg-[#050505] border-[#1c2725]">
           <DialogHeader>
             <DialogTitle className="text-white">Confirmer la suppression</DialogTitle>
             <DialogDescription className="text-gray-400">
@@ -875,7 +875,7 @@ export default function AdminClients() {
               }
             </DialogDescription>
           </DialogHeader>
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 my-4">
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-md p-4 my-4">
             <p className="text-sm text-amber-400/80">
               ⚠️ Cette action est irréversible. L'utilisateur devra recréer un compte pour accéder à l'application.
             </p>
@@ -900,7 +900,7 @@ export default function AdminClients() {
 
       {/* Dialog de stratégie */}
       <Dialog open={strategyDialogOpen} onOpenChange={setStrategyDialogOpen}>
-        <DialogContent className="bg-[#050505] border-white/[0.08] max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#050505] border-[#1c2725] max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">
               Stratégie de {selectedUser?.full_name || selectedUser?.email}
@@ -911,9 +911,9 @@ export default function AdminClients() {
           </DialogHeader>
 
           {/* Champs obligatoires Budget et Apport */}
-          <div className="grid grid-cols-2 gap-4 my-4 p-4 bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 rounded-lg">
+          <div className="grid grid-cols-2 gap-4 my-4 p-4 bg-[#33d6c0]/10 border border-[#33d6c0]/30 rounded-lg">
             <div>
-              <Label className="text-[#2A9D8F] text-sm font-medium">Budget max (€)</Label>
+              <Label className="text-[#33d6c0] text-sm font-medium">Budget max (€)</Label>
               <Input
                 type="number"
                 placeholder="Ex: 500000"
@@ -923,7 +923,7 @@ export default function AdminClients() {
 
             </div>
             <div>
-              <Label className="text-[#2A9D8F] text-sm font-medium">Apport (€)</Label>
+              <Label className="text-[#33d6c0] text-sm font-medium">Apport (€)</Label>
               <Input
                 type="number"
                 placeholder="Ex: 100000"
@@ -942,7 +942,7 @@ export default function AdminClients() {
               className={`flex items-start gap-3 p-3 rounded-lg ${
               field.is_nogo ?
               'bg-red-500/10 border border-red-500/30' :
-              'bg-[#2A9D8F]/10 border border-[#2A9D8F]/30'}`
+              'bg-[#33d6c0]/10 border border-[#33d6c0]/30'}`
               }>
 
                 <div className="flex-1">
@@ -1005,7 +1005,7 @@ export default function AdminClients() {
             <Button
               onClick={handleAddField}
               disabled={!newFieldLabel.trim() || !newFieldValue.trim()}
-              className="w-full bg-gradient-to-r from-[#2A9D8F] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0">
+              className="w-full bg-gradient-to-r from-[#33d6c0] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0">
 
               <Plus className="w-4 h-4 mr-2" />
               Ajouter ce critère
@@ -1022,7 +1022,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleSaveStrategy}
-              className="bg-gradient-to-r from-[#2A9D8F] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
+              className="bg-gradient-to-r from-[#33d6c0] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
               disabled={createStrategyMutation.isPending || updateStrategyMutation.isPending}>
 
               {createStrategyMutation.isPending || updateStrategyMutation.isPending ? "Enregistrement..." : "Enregistrer"}
@@ -1033,7 +1033,7 @@ export default function AdminClients() {
 
       {/* Dialog liaison de comptes */}
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
-        <DialogContent className="bg-[#050505] border-white/[0.08]">
+        <DialogContent className="bg-[#050505] border-[#1c2725]">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Link className="w-5 h-5 text-blue-500" />
@@ -1087,7 +1087,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleLinkAccounts}
-              className="bg-gradient-to-r from-[#2A9D8F] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
+              className="bg-gradient-to-r from-[#33d6c0] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
               disabled={!masterEmail}>
 
               Lier les comptes
@@ -1098,7 +1098,7 @@ export default function AdminClients() {
 
       {/* Dialog nom de la famille */}
       <Dialog open={familleNameDialogOpen} onOpenChange={setFamilleNameDialogOpen}>
-        <DialogContent className="bg-[#050505] border-white/[0.08]">
+        <DialogContent className="bg-[#050505] border-[#1c2725]">
           <DialogHeader>
             <DialogTitle className="text-white">Créer une famille</DialogTitle>
             <DialogDescription className="text-gray-400">
@@ -1124,7 +1124,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleCreateFamille}
-              className="bg-gradient-to-r from-[#2A9D8F] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
+              className="bg-gradient-to-r from-[#33d6c0] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
               disabled={!newFamilleName.trim()}>
 
               Créer et comparer
@@ -1135,7 +1135,7 @@ export default function AdminClients() {
 
       {/* Dialog édition fiche client */}
       <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
-        <DialogContent className="bg-[#050505] border-white/[0.08] max-w-2xl">
+        <DialogContent className="bg-[#050505] border-[#1c2725] max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Edit className="w-5 h-5 text-blue-500" />
@@ -1149,8 +1149,8 @@ export default function AdminClients() {
           <div className="space-y-4 my-4">
             {/* Profil investisseur - en lecture seule mais visible */}
             {editingUser?.profil_investisseur &&
-            <div className="p-3 bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 rounded-lg">
-                <Label className="text-[#2A9D8F] text-sm font-medium">Profil investisseur</Label>
+            <div className="p-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 rounded-lg">
+                <Label className="text-[#33d6c0] text-sm font-medium">Profil investisseur</Label>
                 <p className="text-white mt-1">{profilLabels[editingUser.profil_investisseur] || editingUser.profil_investisseur}</p>
                 <p className="text-xs text-gray-400 mt-1">Ce champ se remplit automatiquement lors du changement de profil</p>
               </div>
@@ -1224,7 +1224,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleSaveEditUser}
-              className="bg-gradient-to-r from-[#2A9D8F] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
+              className="bg-gradient-to-r from-[#33d6c0] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
               disabled={updateUserMutation.isPending}>
 
               {updateUserMutation.isPending ? "Enregistrement..." : "Enregistrer"}
@@ -1235,10 +1235,10 @@ export default function AdminClients() {
 
       {/* Dialog sélection projet pour étape 4 */}
       <Dialog open={etapeDialogOpen} onOpenChange={setEtapeDialogOpen}>
-        <DialogContent className="bg-[#050505] border-white/[0.08]">
+        <DialogContent className="bg-[#050505] border-[#1c2725]">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-[#2A9D8F]" />
+              <Building2 className="w-5 h-5 text-[#33d6c0]" />
               Sélectionner le projet à poursuivre
             </DialogTitle>
             <DialogDescription className="text-gray-400">
@@ -1275,7 +1275,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleConfirmEtapeChange}
-              className="bg-gradient-to-r from-[#2A9D8F] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
+              className="bg-gradient-to-r from-[#33d6c0] to-[#f4be7e] hover:from-[#238276] hover:to-[#e5a968] text-white border-0"
               disabled={!selectedProjectId}>
 
               Confirmer

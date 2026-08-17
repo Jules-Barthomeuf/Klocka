@@ -168,7 +168,7 @@ export default function Famille() {
 
   if (selectedUsers.length === 0) {
     return (
-      <div className="min-h-screen bg-black p-6 md:p-10">
+      <div className="min-h-screen bg-[#050807] p-6 md:p-10">
         <div className="max-w-7xl mx-auto text-center py-20">
           <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h2 className="text-2xl text-white mb-4">Aucun utilisateur sélectionné</h2>
@@ -187,7 +187,7 @@ export default function Famille() {
   }
 
   return (
-    <div className="min-h-screen bg-black p-6 md:p-10">
+    <div className="min-h-screen bg-[#050807] p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -202,10 +202,10 @@ export default function Famille() {
           <h1 className="text-4xl font-montserrat text-white mb-2">
             Comparaison Famille
           </h1>
-          <div className="h-0.5 w-32 bg-[#2A9D8F] mb-4"></div>
+          <div className="h-0.5 w-32 bg-[#33d6c0] mb-4"></div>
           <div className="flex flex-wrap gap-2">
             {selectedUsers.map(u => (
-              <Badge key={u.id} className="bg-[#2A9D8F]/20 text-[#2A9D8F] border border-[#2A9D8F]/50">
+              <Badge key={u.id} className="bg-[#33d6c0]/20 text-[#33d6c0] border border-[#33d6c0]/50">
                 {u.full_name || u.email}
               </Badge>
             ))}
@@ -213,10 +213,10 @@ export default function Famille() {
         </div>
 
         {/* Résumé des profils */}
-        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30 mb-6">
+        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30 mb-6">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <User className="w-5 h-5 text-[#2A9D8F]" />
+              <User className="w-5 h-5 text-[#33d6c0]" />
               Profils des investisseurs
             </CardTitle>
           </CardHeader>
@@ -312,7 +312,7 @@ export default function Famille() {
         )}
 
         {/* Tableau comparatif détaillé */}
-        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30">
+        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
           <CardHeader>
             <CardTitle className="text-white">Comparaison détaillée des réponses</CardTitle>
           </CardHeader>

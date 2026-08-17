@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 
 const UserNotRegisteredError = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#050807]">
       <div className="max-w-md w-full px-8 py-12 text-center">
         {/* Logo */}
         <img
@@ -13,8 +13,8 @@ const UserNotRegisteredError = () => {
         />
 
         {/* Icône horloge/attente */}
-        <div className="w-16 h-16 rounded-full bg-[#2A9D8F]/10 border border-[#2A9D8F]/20 flex items-center justify-center mx-auto mb-6">
-          <svg className="w-8 h-8 text-[#2A9D8F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-16 h-16 rounded-full bg-[#33d6c0]/10 border border-[#33d6c0]/20 flex items-center justify-center mx-auto mb-6">
+          <svg className="w-8 h-8 text-[#33d6c0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -33,7 +33,7 @@ const UserNotRegisteredError = () => {
         </p>
         <button
           onClick={() => base44.auth.logout(window.location.origin)}
-          className="text-[#2A9D8F] text-sm hover:text-[#2A9D8F]/80 transition-colors underline underline-offset-4"
+          className="text-[#33d6c0] text-sm hover:text-[#33d6c0]/80 transition-colors underline underline-offset-4"
         >
           Se déconnecter
         </button>

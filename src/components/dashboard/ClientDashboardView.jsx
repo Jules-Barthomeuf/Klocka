@@ -25,7 +25,7 @@ function StepProgressBar({ etapes, userEtape }) {
   const steps = etapes.filter(e => e.numero !== 0);
 
   return (
-    <div className="bg-white/[0.04] rounded-2xl border border-white/[0.3] px-5 py-4">
+    <div className="bg-white/[0.04] rounded-md border border-white/[0.3] px-5 py-4">
       <div className="flex items-center justify-between mb-4">
         <span className="text-white text-[10px] uppercase tracking-[0.2em] font-medium">
           Étape en cours
@@ -49,9 +49,9 @@ function StepProgressBar({ etapes, userEtape }) {
                 transition={{ delay: i * 0.08, duration: 0.3 }}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all duration-500 ${
                   isCurrent
-                    ? 'bg-[#2A9D8F] text-white shadow-[0_0_12px_rgba(42,157,143,0.4)]'
+                    ? 'bg-[#33d6c0] text-white shadow-[0_0_12px_rgba(42,157,143,0.4)]'
                     : isCompleted
-                      ? 'bg-[#2A9D8F]/80 text-white'
+                      ? 'bg-[#33d6c0]/80 text-white'
                       : 'bg-white/[0.06] text-white/20'
                 }`}
               >
@@ -77,18 +77,18 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
       onClick={onClick}
-      className="group cursor-pointer bg-white/[0.04] rounded-2xl border border-white/[0.3] p-5 md:p-6 hover:border-[#2A9D8F]/15 hover:bg-white/[0.06] transition-all duration-500"
+      className="group cursor-pointer bg-white/[0.04] rounded-md border border-white/[0.3] p-5 md:p-6 hover:border-[#33d6c0]/15 hover:bg-white/[0.06] transition-all duration-500"
     >
       <div className="flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-[#2A9D8F]/[0.07] flex items-center justify-center flex-shrink-0 group-hover:bg-[#2A9D8F]/[0.12] transition-colors">
-          <Icon className="w-[18px] h-[18px] text-[#2A9D8F]" />
+        <div className="w-10 h-10 rounded-md bg-[#33d6c0]/[0.07] flex items-center justify-center flex-shrink-0 group-hover:bg-[#33d6c0]/[0.12] transition-colors">
+          <Icon className="w-[18px] h-[18px] text-[#33d6c0]" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-white text-sm font-medium mb-1">{title}</h3>
           <p className="text-white/70 text-xs leading-relaxed mb-4">{description}</p>
           <div className="flex items-center gap-1.5">
-            <span className="text-[#2A9D8F] text-[11px] font-medium">{cta}</span>
-            <ArrowRight className="w-3 h-3 text-[#2A9D8F]/50 group-hover:text-[#2A9D8F] group-hover:translate-x-0.5 transition-all" />
+            <span className="text-[#33d6c0] text-[11px] font-medium">{cta}</span>
+            <ArrowRight className="w-3 h-3 text-[#33d6c0]/50 group-hover:text-[#33d6c0] group-hover:translate-x-0.5 transition-all" />
           </div>
         </div>
       </div>
@@ -103,7 +103,7 @@ export default function ClientDashboardView({
   const firstName = (user.full_name || user.email.split('@')[0]).split(' ')[0];
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[#050807]">
       <FeedbackWidget />
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
 
@@ -170,7 +170,7 @@ export default function ClientDashboardView({
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white/[0.04] rounded-2xl border border-white/[0.3] p-8 flex flex-col items-center justify-center min-h-[240px]"
+                    className="bg-white/[0.04] rounded-md border border-white/[0.3] p-8 flex flex-col items-center justify-center min-h-[240px]"
                   >
                     <Building2 className="w-10 h-10 text-white/[0.06] mb-3" />
                     <p className="text-white/20 text-sm mb-1">Aucun projet en cours</p>

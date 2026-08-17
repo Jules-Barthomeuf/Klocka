@@ -22,20 +22,20 @@ export default function Leads() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A9D8F]"></div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0f0e]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 p-6 md:p-10">
+    <div className="min-h-screen bg-[#0a0f0e] p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-montserrat text-white mb-2">
             Leads
           </h1>
-          <div className="h-0.5 w-32 bg-[#2A9D8F] mb-2"></div>
+          <div className="h-0.5 w-32 bg-[#33d6c0] mb-2"></div>
           <p className="text-gray-400 text-lg">
             Liste de tous les emails des personnes inscrites
           </p>
@@ -46,8 +46,8 @@ export default function Leads() {
           <Card className="bg-gradient-to-br from-gray-900 to-black border-black">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#2A9D8F]/20 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-[#2A9D8F]" />
+                <div className="w-12 h-12 rounded-full bg-[#33d6c0]/20 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-[#33d6c0]" />
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Total inscrits</p>
@@ -85,7 +85,7 @@ export default function Leads() {
         </div>
 
         {/* Search */}
-        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30 mb-6">
+        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30 mb-6">
           <CardContent className="p-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -100,10 +100,10 @@ export default function Leads() {
         </Card>
 
         {/* Table */}
-        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#2A9D8F]/30">
+        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#2A9D8F]" />
+              <Mail className="w-5 h-5 text-[#33d6c0]" />
               Liste des emails ({filteredUsers.length})
             </CardTitle>
           </CardHeader>
@@ -123,7 +123,7 @@ export default function Leads() {
                     <tr key={user.id} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-[#2A9D8F]" />
+                          <Mail className="w-4 h-4 text-[#33d6c0]" />
                           <span className="text-white">{user.email}</span>
                         </div>
                       </td>

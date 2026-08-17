@@ -74,14 +74,14 @@ const AFFICHER_DOUBLE_CHECK = false;
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
   return (
     <Link to={to} onClick={onClick}>
-      <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group
+      <div className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-200 group
         ${isActive 
-          ? "bg-[#2A9D8F]/15 text-white border border-[#2A9D8F]/30" 
+          ? "bg-[#33d6c0]/15 text-white border border-[#33d6c0]/30" 
           : "text-gray-400 hover:text-white hover:bg-white/5"
         }
         ${collapsed ? "justify-center px-2" : ""}
       `}>
-        <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-[#2A9D8F]" : "text-gray-500 group-hover:text-gray-300"}`} />
+        <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-[#33d6c0]" : "text-gray-500 group-hover:text-gray-300"}`} />
         {!collapsed && (
           <>
             <span className="flex-1 truncate">{label}</span>
@@ -143,7 +143,7 @@ function LayoutContent({ children, currentPageName }) {
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className={`flex items-center ${sidebarCollapsed && !isMobile ? "justify-center py-5" : "gap-3 px-4 py-5"} border-b border-white/[0.06]`}>
+      <div className={`flex items-center ${sidebarCollapsed && !isMobile ? "justify-center py-5" : "gap-3 px-4 py-5"} border-b border-[#16201f]`}>
         {!(sidebarCollapsed && !isMobile) && (
           <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2">
             <img
@@ -167,13 +167,13 @@ function LayoutContent({ children, currentPageName }) {
             onClick={() => setSidebarPinned((v) => !v)}
             className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-all text-xs
               ${sidebarPinned
-                ? "bg-[#2A9D8F]/15 border-[#2A9D8F]/30 text-[#2A9D8F]"
-                : "bg-white/[0.03] border-white/[0.06] text-gray-400 hover:text-white"}`}
+                ? "bg-[#33d6c0]/15 border-[#33d6c0]/30 text-[#33d6c0]"
+                : "bg-white/[0.03] border-[#16201f] text-gray-400 hover:text-white"}`}
             title={sidebarPinned ? "La barre reste ouverte" : "Garder la barre ouverte"}
           >
             {sidebarPinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
             <span className="flex-1 text-left">Rester ouvert</span>
-            <span className={`w-8 h-4 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-[#2A9D8F]" : "bg-white/10"}`}>
+            <span className={`w-8 h-4 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-[#33d6c0]" : "bg-white/10"}`}>
               <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${sidebarPinned ? "left-4" : "left-0.5"}`} />
             </span>
           </button>
@@ -183,7 +183,7 @@ function LayoutContent({ children, currentPageName }) {
       {/* Admin view switcher */}
       {isAdmin && !(sidebarCollapsed && !isMobile) && (
         <div className="px-3 pt-4 pb-2">
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-[#16201f]">
             <Eye className="w-3.5 h-3.5 text-gray-500" />
             <AnimatedDropdown
               value={previewClientMode ? 'client' : 'admin'}
@@ -245,7 +245,7 @@ function LayoutContent({ children, currentPageName }) {
             </NavSection>
 
             <NavSection title="Outils" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#2A9D8F]/20 text-[#2A9D8F]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+              <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#33d6c0]/20 text-[#33d6c0]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
               <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
@@ -270,11 +270,11 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       {/* User & Logout */}
-      <div className="border-t border-white/[0.06] px-3 py-3">
+      <div className="border-t border-[#16201f] px-3 py-3">
         {!(sidebarCollapsed && !isMobile) ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#2A9D8F]/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs text-[#2A9D8F] font-medium">
+            <div className="w-8 h-8 rounded-full bg-[#33d6c0]/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-xs text-[#33d6c0] font-medium">
                 {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
               </span>
             </div>
@@ -308,17 +308,17 @@ function LayoutContent({ children, currentPageName }) {
   );
 
   return (
-    <div className="min-h-screen flex w-full bg-neutral-900 relative overflow-x-hidden">
+    <div className="min-h-screen flex w-full bg-[#0a0f0e] relative overflow-x-hidden">
       <style>{globalTooltipStyles}</style>
 
       {/* Desktop Sidebar */}
       {!hideNavbar && (
-        <aside className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 bg-black/60 backdrop-blur-xl border-r border-white/[0.06] transition-all duration-300 ${sidebarCollapsed ? "w-[56px]" : "w-[200px]"}`} style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <aside className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 bg-[#050807]/60 backdrop-blur-xl border-r border-[#16201f] transition-all duration-300 ${sidebarCollapsed ? "w-[56px]" : "w-[200px]"}`} style={{ paddingTop: "env(safe-area-inset-top)" }}>
           {sidebarContent(false)}
           <button
             onClick={() => { if (!sidebarPinned) setSidebarCollapsed(!sidebarCollapsed); }}
             disabled={sidebarPinned}
-            className={`hidden md:flex absolute -right-3 top-20 z-50 w-6 h-6 rounded-full bg-[#0c0c0c] border border-white/[0.12] items-center justify-center text-gray-400 hover:text-white hover:border-white/[0.3] transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`hidden md:flex absolute -right-3 top-20 z-50 w-6 h-6 rounded-full bg-[#0c0c0c] border border-[#24312f] items-center justify-center text-gray-400 hover:text-white hover:border-white/[0.3] transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
             title={sidebarPinned ? "Désépinglez pour fermer" : sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
           >
             <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
@@ -328,7 +328,7 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Mobile Top Bar */}
       {!hideNavbar && (
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-black/80 backdrop-blur-xl border-b border-white/[0.06] flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-[#050807]/80 backdrop-blur-xl border-b border-[#16201f] flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
           {isChildPage ? (
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-white -ml-2">
               <ChevronLeft className="w-5 h-5" />
@@ -351,8 +351,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && !hideNavbar && (
         <>
-          <div className="md:hidden fixed inset-0 bg-black/60 z-40" onClick={closeMobile} />
-          <aside className="md:hidden fixed top-0 left-0 h-screen w-[260px] z-50 bg-black border-r border-white/[0.06]">
+          <div className="md:hidden fixed inset-0 bg-[#050807]/60 z-40" onClick={closeMobile} />
+          <aside className="md:hidden fixed top-0 left-0 h-screen w-[260px] z-50 bg-[#050807] border-r border-[#16201f]">
             {sidebarContent(true)}
           </aside>
         </>

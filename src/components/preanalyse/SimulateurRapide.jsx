@@ -70,11 +70,11 @@ export default function SimulateurRapide({ parametres, rendementCible = [5, 7] }
       </div>
 
       {/* Rendement AEM — l'indicateur qui décide */}
-      <div className={`rounded-xl border p-4 ${dansCible ? "border-[#2A9D8F]/40 bg-[#2A9D8F]/10" : "border-amber-500/30 bg-amber-500/[0.07]"}`}>
+      <div className={`rounded-md border p-4 ${dansCible ? "border-[#33d6c0]/40 bg-[#33d6c0]/10" : "border-amber-500/30 bg-amber-500/[0.07]"}`}>
         <div className="flex items-baseline justify-between gap-4">
           <div>
             <p className="text-gray-400 text-xs mb-1">Rendement AEM</p>
-            <p className={`text-3xl font-light ${dansCible ? "text-[#71CCBA]" : "text-amber-300"}`}>
+            <p className={`text-3xl font-light ${dansCible ? "text-[#5ee7d4]" : "text-amber-300"}`}>
               {rendementAem.toFixed(2)} %
             </p>
           </div>
@@ -83,7 +83,7 @@ export default function SimulateurRapide({ parametres, rendementCible = [5, 7] }
             <p className="text-white text-xl font-light">{euros(resultat.prixRevient)}</p>
           </div>
         </div>
-        <p className={`text-xs mt-2 ${dansCible ? "text-[#71CCBA]/80" : "text-amber-300/80"}`}>
+        <p className={`text-xs mt-2 ${dansCible ? "text-[#5ee7d4]/80" : "text-amber-300/80"}`}>
           {dansCible
             ? `Dans la cible ${rendementCible[0]}–${rendementCible[1]} % AEM.`
             : rendementAem < rendementCible[0]
@@ -137,7 +137,7 @@ function Champ({ label, value, onChange, step, suffixe }) {
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
-        className="bg-neutral-800 border-white/[0.08] text-white h-9"
+        className="bg-[#101715] border-[#1c2725] text-white h-9"
       />
     </div>
   );
@@ -145,7 +145,7 @@ function Champ({ label, value, onChange, step, suffixe }) {
 
 function Ligne({ label, valeur }) {
   return (
-    <div className="flex justify-between gap-2 border-b border-white/[0.05] py-1.5">
+    <div className="flex justify-between gap-2 border-b border-[#131c1b] py-1.5">
       <span className="text-gray-500 text-xs">{label}</span>
       <span className="text-gray-200 text-xs">{valeur}</span>
     </div>
@@ -154,11 +154,11 @@ function Ligne({ label, valeur }) {
 
 function Kpi({ label, valeur, positif }) {
   return (
-    <div className="bg-neutral-800/60 border border-white/[0.06] rounded-xl px-3 py-2.5">
+    <div className="bg-[#101715]/60 border border-[#16201f] rounded-md px-3 py-2.5">
       <p className="text-gray-500 text-[11px] mb-0.5 flex items-center gap-1">
         <TrendingUp className="w-3 h-3" /> {label}
       </p>
-      <p className={`text-sm ${positif === undefined ? "text-white" : positif ? "text-[#71CCBA]" : "text-red-400"}`}>
+      <p className={`text-sm ${positif === undefined ? "text-white" : positif ? "text-[#5ee7d4]" : "text-red-400"}`}>
         {valeur}
       </p>
     </div>

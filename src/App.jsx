@@ -69,8 +69,8 @@ const AuthenticatedApp = () => {
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black">
-        <div className="w-8 h-8 border-4 border-[#2A9D8F]/30 border-t-[#2A9D8F] rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-[#050807]">
+        <div className="w-8 h-8 border-4 border-[#33d6c0]/30 border-t-[#33d6c0] rounded-full animate-spin"></div>
       </div>
     );
   }

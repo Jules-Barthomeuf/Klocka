@@ -93,7 +93,9 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     .filter(Boolean);
 
   const projet = {
-    titre: lot.synthese?.titre || `Deal ${ville || dealId.slice(0, 8)}`,
+    // Un projet issu d'un deal de test est marqué pour être repérable (et
+    // supprimé avec le deal).
+    titre: `${deal.test ? '[TEST] ' : ''}${lot.synthese?.titre || `Deal ${ville || dealId.slice(0, 8)}`}`,
     statut: 'analyse',
     archived: false,
     admin_principal: user?.email || adminEmails[0] || null,

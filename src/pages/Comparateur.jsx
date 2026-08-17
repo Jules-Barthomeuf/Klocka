@@ -99,20 +99,20 @@ export default function Comparateur() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#050807] text-white">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-[#2A9D8F]/10 rounded-xl flex items-center justify-center">
-              <GitCompareArrows className="w-5 h-5 text-[#2A9D8F]" />
+            <div className="w-10 h-10 bg-[#33d6c0]/10 rounded-md flex items-center justify-center">
+              <GitCompareArrows className="w-5 h-5 text-[#33d6c0]" />
             </div>
             <div>
-              <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
+              <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
               <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Comparer mes projets</h1>
             </div>
           </div>
-          <div className="h-px w-16 bg-[#2A9D8F] mt-3 mb-8" />
+          <div className="h-px w-16 bg-[#33d6c0] mt-3 mb-8" />
 
           <div className="flex items-center justify-between mb-4">
             <p className="text-white/30 text-sm">
@@ -160,7 +160,7 @@ export default function Comparateur() {
             className="mt-10"
           >
             {/* Onglets */}
-            <div className="flex gap-1 border-b border-white/[0.06] mb-8 overflow-x-auto">
+            <div className="flex gap-1 border-b border-[#16201f] mb-8 overflow-x-auto">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 const isActive = activeTab === t.id;
@@ -170,7 +170,7 @@ export default function Comparateur() {
                     onClick={() => setActiveTab(t.id)}
                     className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
                       isActive
-                        ? "text-[#2A9D8F] border-[#2A9D8F]"
+                        ? "text-[#33d6c0] border-[#33d6c0]"
                         : "text-white/30 border-transparent hover:text-white/60"
                     }`}
                   >
@@ -238,7 +238,7 @@ export default function Comparateur() {
 
         {/* Message si < 2 projets sélectionnés */}
         {metrics.length < 2 && selectedIds.length > 0 && (
-          <div className="mt-10 text-center py-12 bg-[#0A0A0A] rounded-2xl border border-white/[0.06]">
+          <div className="mt-10 text-center py-12 bg-[#0a0f0e] rounded-md border border-[#16201f]">
             <p className="text-white/30 text-sm">Sélectionnez au moins 2 projets pour voir la comparaison.</p>
           </div>
         )}

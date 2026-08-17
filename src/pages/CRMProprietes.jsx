@@ -97,14 +97,14 @@ export default function CRMProprietes() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2A9D8F]"></div>
+      <div className="min-h-screen bg-[#050807] text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-[#050807] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex items-center gap-4">
           <Button
@@ -119,9 +119,9 @@ export default function CRMProprietes() {
             <h1 className="text-4xl font-geist tracking-tighter text-white mb-2">
               Propriétés CRM
             </h1>
-            <div className="h-0.5 w-32 bg-[#2A9D8F]"></div>
+            <div className="h-0.5 w-32 bg-[#33d6c0]"></div>
           </div>
-          <Badge className="bg-[#2A9D8F] text-white text-lg px-4 py-2">
+          <Badge className="bg-[#33d6c0] text-white text-lg px-4 py-2">
             {new Intl.NumberFormat('fr-FR', { 
               style: 'currency', 
               currency: 'EUR',
@@ -143,7 +143,7 @@ export default function CRMProprietes() {
           </div>
           <Button
             onClick={() => setDialogOpen(true)}
-            className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90"
+            className="bg-[#33d6c0] hover:bg-[#33d6c0]/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouvelle propriété
@@ -155,7 +155,7 @@ export default function CRMProprietes() {
           {filteredProprietes.map((propriete) => (
             <div key={propriete.id} className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
               <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-              <Card className="relative bg-gradient-to-br from-gray-900/95 via-[#2A9D8F]/5 to-gray-900/95 border-none">
+              <Card className="relative bg-gradient-to-br from-gray-900/95 via-[#33d6c0]/5 to-gray-900/95 border-none">
                 <CardContent className="p-6">
                   <div className="mb-4">
                     <div className="flex items-start justify-between mb-3">
@@ -187,7 +187,7 @@ export default function CRMProprietes() {
                     {propriete.valeur_actuelle && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400 text-xs">Valeur actuelle</span>
-                        <span className="text-[#2A9D8F] font-semibold">
+                        <span className="text-[#33d6c0] font-semibold">
                           {new Intl.NumberFormat('fr-FR', { 
                             style: 'currency', 
                             currency: 'EUR',
@@ -199,7 +199,7 @@ export default function CRMProprietes() {
                     {propriete.loyer_mensuel && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400 text-xs">Loyer mensuel</span>
-                        <span className="text-[#71CCBA] font-semibold">
+                        <span className="text-[#5ee7d4] font-semibold">
                           {new Intl.NumberFormat('fr-FR', { 
                             style: 'currency', 
                             currency: 'EUR',
@@ -225,7 +225,7 @@ export default function CRMProprietes() {
 
       {/* Dialog création */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-black border-gray-700 max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#050807] border-gray-700 max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">Nouvelle propriété</DialogTitle>
           </DialogHeader>
@@ -337,7 +337,7 @@ export default function CRMProprietes() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-gray-700">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#2A9D8F] hover:bg-[#2A9D8F]/90">
+            <Button onClick={handleSubmit} className="bg-[#33d6c0] hover:bg-[#33d6c0]/90">
               Créer
             </Button>
           </DialogFooter>

@@ -114,14 +114,14 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
   const toggle = (title) => setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }));
 
   return (
-    <div className="border border-white/[0.08] rounded-md bg-[#0c0c0c] overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/[0.06]">
+    <div className="border border-[#1c2725] rounded-md bg-[#0c0c0c] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#16201f]">
         <p className="text-white text-sm font-medium">Tableau annuel détaillé</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-white/[0.08]">
+            <tr className="border-b border-[#1c2725]">
               <th className="sticky left-0 z-10 bg-[#0c0c0c] px-3 py-2 text-left text-[9px] uppercase tracking-[0.14em] text-gray-600 font-medium whitespace-nowrap">Ligne</th>
               {years.map((y) => (
                 <th key={y} className="px-2 py-2 text-right text-[9px] uppercase tracking-[0.14em] text-gray-600 font-medium whitespace-nowrap">An {y}</th>
@@ -139,7 +139,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                   onClick={() => toggle(sec.title)}
                 >
                   <td
-                    className="sticky left-0 z-10 px-3 py-2 text-[10px] uppercase tracking-[0.18em] font-semibold border-b border-white/[0.06] whitespace-nowrap"
+                    className="sticky left-0 z-10 px-3 py-2 text-[10px] uppercase tracking-[0.18em] font-semibold border-b border-[#16201f] whitespace-nowrap"
                     style={{ backgroundColor: sec.headerBg, color: sec.color }}
                   >
                     <span className="inline-flex items-center gap-1.5">
@@ -152,7 +152,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                     const val = sum != null ? fmtCur(sum) : "";
                     const isNeg = typeof val === "string" && val.trim().startsWith("-");
                     return (
-                      <td key={r.annee} className="px-2 py-2 text-right tabular-nums text-xs font-semibold whitespace-nowrap border-b border-white/[0.06]" style={{ color: isNeg ? "#E8836B" : sec.color }}>{val}</td>
+                      <td key={r.annee} className="px-2 py-2 text-right tabular-nums text-xs font-semibold whitespace-nowrap border-b border-[#16201f]" style={{ color: isNeg ? "#E8836B" : sec.color }}>{val}</td>
                     );
                   })}
                 </tr>

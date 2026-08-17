@@ -121,7 +121,7 @@ function IndividualProjectChart({ donneesProjet }) {
           <path
             d={generatePath('patrimoine', getYPatrimoine)}
             fill="none"
-            stroke="#2A9D8F"
+            stroke="#33d6c0"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -162,7 +162,7 @@ function IndividualProjectChart({ donneesProjet }) {
               cx={getX(displayIndex)}
               cy={getYPatrimoine(data[displayIndex].patrimoine)}
               r="5"
-              fill="#2A9D8F"
+              fill="#33d6c0"
             />
             <circle
               cx={getX(displayIndex)}
@@ -292,7 +292,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
       type: 'apport',
       label: 'Apport récupéré',
       montant: formatValue(apportTotal),
-      color: '#2A9D8F'
+      color: '#33d6c0'
     });
   }
 
@@ -338,7 +338,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
           
           {/* Progress bar */}
           <motion.div 
-            className="absolute left-6 top-0 w-[2px] bg-gradient-to-b from-[#2A9D8F] to-[#71CCBA]"
+            className="absolute left-6 top-0 w-[2px] bg-gradient-to-b from-[#33d6c0] to-[#5ee7d4]"
             initial={{ height: 0 }}
             animate={{ height: `${(selectedYear / 30) * 100}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -366,7 +366,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
                   {/* Point */}
                   <div className="relative flex-shrink-0">
                     {isSelected ? (
-                      <div className="w-12 h-12 rounded-full bg-[#2A9D8F] border-4 border-black flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-[#33d6c0] border-4 border-black flex items-center justify-center">
                         <span className="text-white text-sm font-bold">{annee}</span>
                       </div>
                     ) : milestone ? (
@@ -417,16 +417,16 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
               </div>
 
               {/* Patrimoine */}
-              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+              <div className="p-6 bg-white/5 rounded-md border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-white/60 text-sm uppercase tracking-wider">Patrimoine net</p>
-                  <div className="w-2 h-2 rounded-full bg-[#2A9D8F]"></div>
+                  <div className="w-2 h-2 rounded-full bg-[#33d6c0]"></div>
                 </div>
-                <p className="text-3xl font-bold text-[#2A9D8F]">{formatValue(animatedPatrimoine)}</p>
+                <p className="text-3xl font-bold text-[#33d6c0]">{formatValue(animatedPatrimoine)}</p>
               </div>
 
               {/* Cashflow annuel */}
-              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+              <div className="p-6 bg-white/5 rounded-md border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-white/60 text-sm uppercase tracking-wider">Cashflow annuel</p>
                   <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}></div>
@@ -437,7 +437,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
               </div>
 
               {/* Cashflow mensuel */}
-              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+              <div className="p-6 bg-white/5 rounded-md border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-white/60 text-sm uppercase tracking-wider">Cashflow mensuel</p>
                   <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}></div>
@@ -448,7 +448,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
               </div>
 
               {/* Dette restante */}
-              <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+              <div className="p-6 bg-white/5 rounded-md border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-white/60 text-sm uppercase tracking-wider">Dette restante</p>
                   <div className="w-2 h-2 rounded-full bg-red-400"></div>

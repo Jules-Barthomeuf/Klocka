@@ -29,8 +29,8 @@ export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" 
 
   if (!MAPS_KEY) {
     return (
-      <div className={`${hauteur} rounded-xl border border-white/[0.06] bg-neutral-900 flex flex-col items-center justify-center gap-3 text-center px-6`}>
-        <MapPin className="w-6 h-6 text-[#2A9D8F]/50" />
+      <div className={`${hauteur} rounded-md border border-[#16201f] bg-[#0a0f0e] flex flex-col items-center justify-center gap-3 text-center px-6`}>
+        <MapPin className="w-6 h-6 text-[#33d6c0]/50" />
         <p className="text-gray-500 text-xs max-w-sm">
           Carte intégrée indisponible : renseignez <code className="text-gray-300">VITE_GOOGLE_MAPS_API_KEY</code>{" "}
           dans <code className="text-gray-300">.env</code> (clé Maps Embed API).
@@ -39,7 +39,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" 
           href={lienExterne}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#71CCBA] hover:text-white text-xs flex items-center gap-1.5 transition-colors"
+          className="text-[#5ee7d4] hover:text-white text-xs flex items-center gap-1.5 transition-colors"
         >
           Ouvrir dans Google Maps <ExternalLink className="w-3 h-3" />
         </a>
@@ -54,7 +54,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" 
       <iframe
         src={src}
         title={`Carte — ${query}`}
-        className={`w-full ${hauteur} rounded-xl border-0 bg-neutral-900`}
+        className={`w-full ${hauteur} rounded-md border-0 bg-[#0a0f0e]`}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
         allowFullScreen

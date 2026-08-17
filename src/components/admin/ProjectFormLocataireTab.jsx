@@ -123,7 +123,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
         </VerificationField>
 
         {/* Section Résumé */}
-        <div className="space-y-4 pt-4 border-t border-white/[0.06]">
+        <div className="space-y-4 pt-4 border-t border-[#16201f]">
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white text-lg">Champs personnalisés du résumé</Label>
@@ -139,7 +139,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData, 
                 bail_admin_fields: [...(formData.bail_admin_fields || []), { label: "", value: "" }]
               })}
-              className="border-white/[0.06] text-white/30 hover:text-white hover:border-[#2A9D8F]/30"
+              className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter un champ
@@ -174,7 +174,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
         </div>
 
         {/* Liens réseaux sociaux / avis */}
-        <div className="space-y-4 pt-4 border-t border-white/[0.06]">
+        <div className="space-y-4 pt-4 border-t border-[#16201f]">
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white text-lg">Réseaux sociaux & Avis</Label>
@@ -188,7 +188,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData,
                 liens_locataire: [...(formData.liens_locataire || []), { type: "instagram", url: "", label: "" }]
               })}
-              className="border-white/[0.06] text-white/30 hover:text-white hover:border-[#2A9D8F]/30"
+              className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter un lien
@@ -205,7 +205,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                     setFormData({...formData, liens_locataire: updated});
                   }}
                 >
-                  <SelectTrigger className="bg-[#171A21] border border-white/[0.08] rounded-[14px] text-[#EAECEF] w-40 h-[52px] px-[18px]">
+                  <SelectTrigger className="bg-[#171A21] border border-[#1c2725] rounded-[14px] text-[#EAECEF] w-40 h-[52px] px-[18px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -244,7 +244,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
         </div>
 
         {/* Bilans du locataire */}
-        <div className="space-y-4 pt-4 border-t border-white/[0.06]">
+        <div className="space-y-4 pt-4 border-t border-[#16201f]">
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white text-lg">Bilans du locataire</Label>
@@ -252,7 +252,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </div>
             <label className="cursor-pointer">
               <input type="file" className="hidden" onChange={handleBilanUpload} accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls" />
-              <Button type="button" variant="outline" size="sm" className="border-white/[0.06] text-white/30 hover:text-white hover:border-[#2A9D8F]/30" asChild disabled={uploadingBilan}>
+              <Button type="button" variant="outline" size="sm" className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30" asChild disabled={uploadingBilan}>
                 <span>
                   {uploadingBilan ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
                   Importer un bilan
@@ -261,8 +261,8 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </label>
           </div>
           {(formData.bilans_locataire || []).map((bilan, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/[0.06]">
-              <FileText className="w-5 h-5 text-[#2A9D8F] flex-shrink-0" />
+            <div key={idx} className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-lg border border-[#16201f]">
+              <FileText className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm truncate">{bilan.nom}</p>
               </div>
@@ -288,7 +288,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
         </div>
 
         {/* Notes locataire */}
-        <div className="space-y-4 pt-4 border-t border-white/[0.06]">
+        <div className="space-y-4 pt-4 border-t border-[#16201f]">
           <div className="flex items-center justify-between">
             <Label className="text-white">Notes locataire</Label>
             <Button
@@ -299,7 +299,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData, 
                 notes_locataire: [...(formData.notes_locataire || []), { titre: "", contenu: "" }]
               })}
-              className="border-white/[0.06] text-white/30 hover:text-white hover:border-[#2A9D8F]/30"
+              className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter une note

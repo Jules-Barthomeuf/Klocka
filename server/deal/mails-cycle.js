@@ -106,12 +106,13 @@ const CONSIGNES_INTENTION = {
  * @param {object} opts       - { signature, raisons }
  * @returns {Promise<{objet, corps, ia} | null>}
  */
-export async function redigerMailIntention(dossierLot, intention, { signature, raisons } = {}) {
+export async function redigerMailIntention(dossierLot, intention, { signature, raisons, sansIA } = {}) {
   if (!INTENTIONS.includes(intention)) return null;
   const vue = vueRedacteur(dossierLot);
   const secours = mailDeSecours(intention, vue, { signature, raisons });
 
-  if (!llmEnabled) return { ...secours, ia: false };
+  // `sansIA` : mode test — le texte de secours suffit, aucun appel API.
+  if (!llmEnabled || sansIA) return { ...secours, ia: false };
 
   const donnees = {
     bien: vue.bien,

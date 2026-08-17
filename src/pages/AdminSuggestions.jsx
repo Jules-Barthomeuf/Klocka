@@ -28,7 +28,7 @@ const statutConfig = {
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
   accepte: { label: "Accepté", color: "bg-green-500/20 text-green-300 border-green-500/30" },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300 border-red-500/30" },
-  termine: { label: "Terminé", color: "bg-[#2A9D8F]/20 text-[#2A9D8F] border-[#2A9D8F]/30" }
+  termine: { label: "Terminé", color: "bg-[#33d6c0]/20 text-[#33d6c0] border-[#33d6c0]/30" }
 };
 
 export default function AdminSuggestions() {
@@ -129,26 +129,26 @@ export default function AdminSuggestions() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <Loader2 className="w-6 h-6 text-[#2A9D8F] animate-spin" />
+      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
+        <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#050807] text-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
             <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">Feedback</h1>
-            <div className="h-px w-16 bg-[#2A9D8F] mt-3" />
+            <div className="h-px w-16 bg-[#33d6c0] mt-3" />
           </div>
           <button onClick={() => { resetForm(); setShowDialog(true); }}
-            className="group flex items-center gap-3 bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/20 hover:border-[#2A9D8F]/50 text-white px-6 py-3 rounded-xl transition-all duration-300">
-            <div className="w-9 h-9 bg-[#2A9D8F]/20 rounded-lg flex items-center justify-center group-hover:bg-[#2A9D8F]/30 transition-colors">
-              <Plus className="w-5 h-5 text-[#2A9D8F]" />
+            className="group flex items-center gap-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 hover:border-[#33d6c0]/50 text-white px-6 py-3 rounded-md transition-all duration-300">
+            <div className="w-9 h-9 bg-[#33d6c0]/20 rounded-lg flex items-center justify-center group-hover:bg-[#33d6c0]/30 transition-colors">
+              <Plus className="w-5 h-5 text-[#33d6c0]" />
             </div>
             <span className="text-sm font-medium">Nouvelle amélioration</span>
           </button>
@@ -160,9 +160,9 @@ export default function AdminSuggestions() {
             { label: "Total", value: stats.total, color: "text-white" },
             { label: "Nouvelles", value: stats.nouveau, color: "text-gray-400" },
             { label: "En cours", value: stats.en_cours, color: "text-blue-400" },
-            { label: "Terminées", value: stats.termine, color: "text-[#2A9D8F]" }
+            { label: "Terminées", value: stats.termine, color: "text-[#33d6c0]" }
           ].map((s) => (
-            <div key={s.label} className="bg-[#0A0A0A] rounded-xl border border-white/[0.06] px-4 py-3">
+            <div key={s.label} className="bg-[#0a0f0e] rounded-md border border-[#16201f] px-4 py-3">
               <p className="text-gray-500 text-[10px] uppercase tracking-[0.15em] mb-1">{s.label}</p>
               <p className={`text-xl font-light ${s.color}`}>{s.value}</p>
             </div>
@@ -177,15 +177,15 @@ export default function AdminSuggestions() {
               placeholder="Rechercher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-[#0A0A0A] border-white/[0.06] text-white placeholder:text-gray-600 h-10"
+              className="pl-10 bg-[#0a0f0e] border-[#16201f] text-white placeholder:text-gray-600 h-10"
             />
           </div>
           <Select value={filterStatut} onValueChange={setFilterStatut}>
-            <SelectTrigger className="w-full md:w-48 bg-[#0A0A0A] border-white/[0.06] text-white h-10">
+            <SelectTrigger className="w-full md:w-48 bg-[#0a0f0e] border-[#16201f] text-white h-10">
               <Filter className="w-3.5 h-3.5 mr-2 text-gray-500" />
               <SelectValue placeholder="Filtrer par statut" />
             </SelectTrigger>
-            <SelectContent className="bg-[#0A0A0A] border-white/[0.08] text-white">
+            <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
               <SelectItem value="all">Tous les statuts</SelectItem>
               <SelectItem value="nouveau">Nouveau</SelectItem>
               <SelectItem value="en_cours">En cours</SelectItem>
@@ -200,7 +200,7 @@ export default function AdminSuggestions() {
         <div className="space-y-3">
           {filteredSuggestions.length === 0 ? (
             <div className="text-center py-20">
-              <div className="w-20 h-20 bg-white/[0.03] rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-white/[0.03] rounded-md flex items-center justify-center mx-auto mb-6">
                 <Lightbulb className="w-10 h-10 text-gray-700" />
               </div>
               <h2 className="text-xl font-light text-white mb-2">Aucune suggestion</h2>
@@ -211,13 +211,13 @@ export default function AdminSuggestions() {
               const config = statutConfig[suggestion.statut] || statutConfig.nouveau;
               const isAdmin = suggestion.client_email === "admin@klocka.fr";
               return (
-                <div key={suggestion.id} className="bg-[#0A0A0A] rounded-xl border border-white/[0.06] hover:border-white/[0.10] transition-all p-5">
+                <div key={suggestion.id} className="bg-[#0a0f0e] rounded-md border border-[#16201f] hover:border-white/[0.10] transition-all p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-gray-600 text-xs flex-shrink-0">{moment(suggestion.created_date).format('DD/MM/YY')}</span>
                         <Badge className={`${config.color} text-[10px] px-2 py-0 border`}>{config.label}</Badge>
-                        {isAdmin && <Badge className="bg-[#2A9D8F]/10 text-[#2A9D8F] text-[10px] px-2 py-0 border border-[#2A9D8F]/20">Admin</Badge>}
+                        {isAdmin && <Badge className="bg-[#33d6c0]/10 text-[#33d6c0] text-[10px] px-2 py-0 border border-[#33d6c0]/20">Admin</Badge>}
                       </div>
                       <p className="text-white/80 text-sm mb-2 leading-relaxed">{suggestion.contenu}</p>
                       <div className="flex items-center gap-3">
@@ -225,7 +225,7 @@ export default function AdminSuggestions() {
                         {!isAdmin && <p className="text-gray-600 text-xs">{suggestion.client_email}</p>}
                       </div>
                       {suggestion.note_admin && (
-                        <div className="mt-3 px-3 py-2 bg-white/[0.02] rounded-lg border border-white/[0.04]">
+                        <div className="mt-3 px-3 py-2 bg-white/[0.02] rounded-lg border border-[#131c1b]">
                           <p className="text-gray-500 text-xs"><span className="text-gray-400">Note :</span> {suggestion.note_admin}</p>
                         </div>
                       )}
@@ -249,7 +249,7 @@ export default function AdminSuggestions() {
 
         {/* Dialog ajout/édition */}
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent className="max-w-lg bg-[#050505] border-white/[0.08]">
+          <DialogContent className="max-w-lg bg-[#050505] border-[#1c2725]">
             <DialogHeader>
               <DialogTitle className="text-xl font-light text-white">
                 {editingSuggestion ? "Modifier la suggestion" : "Nouvelle amélioration"}
@@ -262,16 +262,16 @@ export default function AdminSuggestions() {
                   value={formData.contenu}
                   onChange={(e) => setFormData({ ...formData, contenu: e.target.value })}
                   placeholder="Décrivez l'amélioration..."
-                  className="bg-[#0A0A0A] text-white border-white/[0.08] min-h-[120px]"
+                  className="bg-[#0a0f0e] text-white border-[#1c2725] min-h-[120px]"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-white text-sm font-medium">Statut</label>
                 <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                  <SelectTrigger className="bg-[#0A0A0A] border-white/[0.08] text-white">
+                  <SelectTrigger className="bg-[#0a0f0e] border-[#1c2725] text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0A0A0A] border-white/[0.08] text-white">
+                  <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
                     <SelectItem value="nouveau">Nouveau</SelectItem>
                     <SelectItem value="en_cours">En cours</SelectItem>
                     <SelectItem value="accepte">Accepté</SelectItem>
@@ -286,14 +286,14 @@ export default function AdminSuggestions() {
                   value={formData.note_admin}
                   onChange={(e) => setFormData({ ...formData, note_admin: e.target.value })}
                   placeholder="Notes internes..."
-                  className="bg-[#0A0A0A] text-white border-white/[0.08]"
+                  className="bg-[#0a0f0e] text-white border-[#1c2725]"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/[0.06]">
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#16201f]">
               <Button variant="ghost" onClick={() => setShowDialog(false)} className="text-gray-400 hover:text-white">Annuler</Button>
               <Button onClick={handleSubmit} disabled={!formData.contenu.trim() || createMutation.isPending || updateMutation.isPending}
-                className="bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/25 text-white">
+                className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white">
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {editingSuggestion ? "Mettre à jour" : "Ajouter"}
               </Button>

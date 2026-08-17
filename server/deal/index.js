@@ -137,6 +137,11 @@ export async function analyserFiche(entree, ctx = {}) {
 export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   const dossier = Records.filter('Deal', { deal_id: dealId })[0];
   if (!dossier) return { error: 'Dossier introuvable' };
+  // Deal de test : réévaluation hors ligne (enrichissement stocké réutilisé).
+  if (dossier.test) {
+    const { reevaluerLotTest } = await import('./test.js');
+    return reevaluerLotTest(dossier, indexLot, saisie);
+  }
   const entree = dossier.lots?.[indexLot];
   if (!entree) return { error: 'Lot introuvable' };
 
@@ -176,6 +181,7 @@ export function listerDossiers(limit = 50) {
     // considérés « analyse » (migration paresseuse, aucun script).
     statut: statutDe(d),
     archived: !!d.archived,
+    test: !!d.test,
     relance_prevue_le: d.relance_prevue_le || null,
     a_relancer: aRelancer(d),
     contact_agent_email: d.contact_agent_email || null,
@@ -187,6 +193,8 @@ export function listerDossiers(limit = 50) {
       verdict: l.evaluation?.verdict,
       titre: l.synthese?.titre,
       ville: l.enrichissement?.commune?.nom || l.lot?.adresse?.valeur?.ville || null,
+      adresse: l.lot?.adresse?.valeur?.rue || null,
+      prix_fai: l.lot?.prix_fai?.absent === false ? l.lot.prix_fai.valeur : null,
     })),
   }));
 }

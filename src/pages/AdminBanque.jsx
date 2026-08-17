@@ -54,19 +54,19 @@ export default function AdminBanque() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#050807] text-white p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[#2A9D8F] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+          <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
           <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">Présentations bancaires</h1>
-          <div className="h-px w-16 bg-[#2A9D8F] mt-3" />
+          <div className="h-px w-16 bg-[#33d6c0] mt-3" />
         </div>
 
         {/* Générateur de texte pour présentation */}
-        <div className="bg-[#0A0A0A] rounded-2xl border border-white/[0.06] p-6 mb-8">
+        <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-6 mb-8">
           <h2 className="text-white text-lg font-light mb-1 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#2A9D8F]" /> Générer le contenu des slides
+            <FileText className="w-4 h-4 text-[#33d6c0]" /> Générer le contenu des slides
           </h2>
           <p className="text-gray-500 text-xs mb-5">Sélectionnez un client et un projet — le contenu prêt-à-copier pour chaque slide est généré automatiquement.</p>
 
@@ -74,7 +74,7 @@ export default function AdminBanque() {
             <div>
               <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Client</p>
               <Select value={selectedClient} onValueChange={(v) => { setSelectedClient(v); setSelectedProject(""); }}>
-                <SelectTrigger className="bg-black border-white/[0.06] text-white h-11">
+                <SelectTrigger className="bg-[#050807] border-[#16201f] text-white h-11">
                   <SelectValue placeholder="Sélectionner un client" />
                 </SelectTrigger>
                 <SelectContent>
@@ -89,7 +89,7 @@ export default function AdminBanque() {
             <div>
               <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Projet</p>
               <Select value={selectedProject} onValueChange={setSelectedProject} disabled={!selectedClient}>
-                <SelectTrigger className="bg-black border-white/[0.06] text-white h-11">
+                <SelectTrigger className="bg-[#050807] border-[#16201f] text-white h-11">
                   <SelectValue placeholder={selectedClient ? "Sélectionner un projet" : "Choisir un client d'abord"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -106,7 +106,7 @@ export default function AdminBanque() {
           {selectedProjectData ? (
             <BankPitchGenerator project={selectedProjectData} client={selectedClientData} />
           ) : (
-            <div className="text-center py-10 border border-dashed border-white/[0.06] rounded-xl text-gray-600 text-sm">
+            <div className="text-center py-10 border border-dashed border-[#16201f] rounded-md text-gray-600 text-sm">
               Sélectionnez un client et un projet pour générer le contenu
             </div>
           )}
@@ -117,10 +117,10 @@ export default function AdminBanque() {
           <h2 className="text-white text-lg font-light mb-4">Présentations existantes</h2>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-[#2A9D8F]" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#33d6c0]" />
             </div>
           ) : presentations.length === 0 ? (
-            <div className="text-center py-16 bg-[#0A0A0A] rounded-2xl border border-white/[0.06]">
+            <div className="text-center py-16 bg-[#0a0f0e] rounded-md border border-[#16201f]">
               <Landmark className="w-10 h-10 text-gray-700 mx-auto mb-3" />
               <p className="text-gray-500 text-sm">Aucune présentation créée</p>
               <p className="text-gray-600 text-xs mt-1">Générez un prompt ci-dessus pour commencer.</p>
@@ -128,7 +128,7 @@ export default function AdminBanque() {
           ) : (
             <div className="space-y-3">
               {presentations.map((pres) => (
-                <div key={pres.id} className="bg-[#0A0A0A] rounded-xl border border-white/[0.06] p-4 hover:border-white/[0.12] transition-all">
+                <div key={pres.id} className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-4 hover:border-[#24312f] transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-light truncate">{pres.project_title}</p>
@@ -142,7 +142,7 @@ export default function AdminBanque() {
                           href={pres.pptx_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[#2A9D8F] hover:text-[#2A9D8F]/80 h-8 w-8 inline-flex items-center justify-center"
+                          className="text-[#33d6c0] hover:text-[#33d6c0]/80 h-8 w-8 inline-flex items-center justify-center"
                           title="Ouvrir la présentation"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -155,7 +155,7 @@ export default function AdminBanque() {
                           setEditLinkId(pres.id);
                           setLinkValue(pres.pptx_url || "");
                         }}
-                        className={`h-8 w-8 ${pres.pptx_url ? "text-[#2A9D8F]" : "text-gray-400 hover:text-[#F59E0B]"}`}
+                        className={`h-8 w-8 ${pres.pptx_url ? "text-[#33d6c0]" : "text-gray-400 hover:text-[#F59E0B]"}`}
                         title={pres.pptx_url ? "Modifier le lien" : "Ajouter un lien de présentation"}
                       >
                         {pres.pptx_url ? <Pencil className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
@@ -173,9 +173,9 @@ export default function AdminBanque() {
 
                   {/* Lien de la présentation */}
                   {pres.pptx_url && editLinkId !== pres.id && (
-                    <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2A9D8F]/10 border border-[#2A9D8F]/20">
-                      <Link2 className="w-3.5 h-3.5 text-[#2A9D8F] flex-shrink-0" />
-                      <a href={pres.pptx_url} target="_blank" rel="noopener noreferrer" className="text-[#2A9D8F] text-xs truncate hover:underline">
+                    <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#33d6c0]/10 border border-[#33d6c0]/20">
+                      <Link2 className="w-3.5 h-3.5 text-[#33d6c0] flex-shrink-0" />
+                      <a href={pres.pptx_url} target="_blank" rel="noopener noreferrer" className="text-[#33d6c0] text-xs truncate hover:underline">
                         {pres.pptx_url}
                       </a>
                     </div>
@@ -188,13 +188,13 @@ export default function AdminBanque() {
                         value={linkValue}
                         onChange={(e) => setLinkValue(e.target.value)}
                         placeholder="Coller le lien Google Slides ou .pptx ici..."
-                        className="bg-black border-white/[0.1] text-white text-xs h-9 flex-1"
+                        className="bg-[#050807] border-white/[0.1] text-white text-xs h-9 flex-1"
                       />
                       <Button
                         size="sm"
                         onClick={() => handleSaveLink(pres.id)}
                         disabled={!linkValue.trim()}
-                        className="bg-[#2A9D8F]/15 border border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/25 text-white text-xs h-9 px-4"
+                        className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white text-xs h-9 px-4"
                       >
                         Enregistrer
                       </Button>

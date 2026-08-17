@@ -132,7 +132,7 @@ export default function InteractiveFranceMap({ projets }) {
 
   if (projetsAvecCoords.length === 0) {
     return (
-      <div className="rounded-xl bg-gray-900/50 border border-gray-800 p-8 text-center">
+      <div className="rounded-md bg-gray-900/50 border border-gray-800 p-8 text-center">
         <p className="text-gray-400">Aucun projet avec localisation disponible</p>
       </div>
     );
@@ -143,7 +143,7 @@ export default function InteractiveFranceMap({ projets }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="rounded-xl overflow-hidden border border-gray-800 shadow-2xl w-full h-full"
+      className="rounded-md overflow-hidden border border-gray-800 shadow-2xl w-full h-full"
     >
       <div className="relative w-full h-full bg-[#aad3df]">
         <MapContainer

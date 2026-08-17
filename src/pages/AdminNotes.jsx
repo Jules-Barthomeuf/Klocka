@@ -72,7 +72,7 @@ export default function AdminNotes() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowShared(s => !s)}
-              className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[14px] font-semibold transition-all border ${showShared ? "bg-[#2A9D8F]/15 border-[#2A9D8F]/40 text-white" : "bg-[#171A21] border-white/[0.08] text-[#8D93A0] hover:text-[#EAECEF] hover:border-white/20"}`}
+              className={`inline-flex items-center gap-2 rounded-md px-5 py-3 text-[14px] font-semibold transition-all border ${showShared ? "bg-[#33d6c0]/15 border-[#33d6c0]/40 text-white" : "bg-[#171A21] border-[#1c2725] text-[#8D93A0] hover:text-[#EAECEF] hover:border-white/20"}`}
             >
               <Users className="w-4 h-4" /> Partagés avec moi
               {sharedNotes.length > 0 && <span className="ml-0.5 text-[10px] bg-white/20 rounded-full px-1.5 py-0.5">{sharedNotes.length}</span>}
@@ -80,8 +80,8 @@ export default function AdminNotes() {
             {!showShared && (
               <button
                 onClick={() => setShowForm(true)}
-                className="inline-flex items-center gap-2 text-white rounded-xl px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all"
-                style={{ background: "linear-gradient(120deg,#2A9D8F,#238B7E)" }}
+                className="inline-flex items-center gap-2 text-white rounded-md px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all"
+                style={{ background: "linear-gradient(120deg,#33d6c0,#238B7E)" }}
               >
                 <Plus className="w-[18px] h-[18px]" strokeWidth={2.4} /> Nouvelle note
               </button>
@@ -95,16 +95,16 @@ export default function AdminNotes() {
               initial={{ opacity: 0, y: -8, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative overflow-hidden rounded-[18px] border border-[#2A9D8F]/25 bg-[#12151B] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)]"
+              className="relative overflow-hidden rounded-[18px] border border-[#33d6c0]/25 bg-[#12151B] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)]"
             >
               {/* Accent bar */}
-              <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: "linear-gradient(90deg,#2A9D8F,#238B7E,transparent)" }} />
+              <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: "linear-gradient(90deg,#33d6c0,#238B7E,transparent)" }} />
 
               <div className="p-5 md:p-6">
                 {/* En-tête */}
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#2A9D8F]/12 border border-[#2A9D8F]/25">
-                    <StickyNote className="w-5 h-5 text-[#2A9D8F]" />
+                  <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[#33d6c0]/12 border border-[#33d6c0]/25">
+                    <StickyNote className="w-5 h-5 text-[#33d6c0]" />
                   </div>
                   <div>
                     <h3 className="text-[15px] font-semibold text-white leading-tight">Nouvelle note</h3>
@@ -126,7 +126,7 @@ export default function AdminNotes() {
                       placeholder="Ex. Idée pour le projet…"
                       value={newTitre}
                       onChange={(e) => setNewTitre(e.target.value)}
-                      className="h-11 bg-[#0B0D0F] text-white text-[15px] border-white/[0.08] rounded-xl focus-visible:border-[#2A9D8F] focus-visible:ring-0 placeholder:text-[#5B616E]"
+                      className="h-11 bg-[#0B0D0F] text-white text-[15px] border-[#1c2725] rounded-md focus-visible:border-[#33d6c0] focus-visible:ring-0 placeholder:text-[#5B616E]"
                       autoFocus
                     />
                   </div>
@@ -136,17 +136,17 @@ export default function AdminNotes() {
                       placeholder="Écrivez votre note ici…"
                       value={newContenu}
                       onChange={(e) => setNewContenu(e.target.value)}
-                      className="bg-[#0B0D0F] text-white border-white/[0.08] rounded-xl focus-visible:border-[#2A9D8F] focus-visible:ring-0 min-h-[130px] leading-relaxed placeholder:text-[#5B616E] resize-none"
+                      className="bg-[#0B0D0F] text-white border-[#1c2725] rounded-md focus-visible:border-[#33d6c0] focus-visible:ring-0 min-h-[130px] leading-relaxed placeholder:text-[#5B616E] resize-none"
                     />
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 justify-end mt-5 pt-4 border-t border-white/[0.06]">
+                <div className="flex gap-2 justify-end mt-5 pt-4 border-t border-[#16201f]">
                   <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setNewTitre(""); setNewContenu(""); }} className="text-[#8D93A0] hover:text-white">
                     Annuler
                   </Button>
-                  <button onClick={handleCreate} disabled={!newTitre.trim() || createMutation.isPending} className="inline-flex items-center gap-2 text-white rounded-xl px-5 py-2.5 text-[13px] font-bold hover:brightness-110 transition-all disabled:opacity-50" style={{ background: "linear-gradient(120deg,#2A9D8F,#238B7E)" }}>
+                  <button onClick={handleCreate} disabled={!newTitre.trim() || createMutation.isPending} className="inline-flex items-center gap-2 text-white rounded-md px-5 py-2.5 text-[13px] font-bold hover:brightness-110 transition-all disabled:opacity-50" style={{ background: "linear-gradient(120deg,#33d6c0,#238B7E)" }}>
                     <Plus className="w-4 h-4" strokeWidth={2.6} /> Créer la note
                   </button>
                 </div>
@@ -156,7 +156,7 @@ export default function AdminNotes() {
 
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="w-6 h-6 border-2 border-[#2A9D8F]/30 border-t-[#2A9D8F] rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[#33d6c0]/30 border-t-[#33d6c0] rounded-full animate-spin" />
             </div>
           ) : displayedNotes.length === 0 ? (
             <div className="text-center py-16 text-gray-500">

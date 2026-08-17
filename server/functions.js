@@ -38,7 +38,8 @@ async function avancerDealApresMail(dealId, intention, sujet, destinataire, user
   } else if (intention === 'relance' && statutDe(deal) === 'documents_demandes') {
     repousserRelance(deal, user);
   } else if (intention === 'refus' || intention === 'abandon') {
-    for (const lot of deal.lots || []) alimenterBaseMarche(deal, lot, user);
+    // Un deal de test n'alimente jamais la base marché.
+    if (!deal.test) for (const lot of deal.lots || []) alimenterBaseMarche(deal, lot, user);
     changerStatut(deal, 'abandonne', {
       user,
       note: intention === 'refus' ? 'Refusé après préanalyse' : 'Abandonné après étude des documents',
@@ -165,6 +166,17 @@ export const functions = {
       params || {};
     if (!subject || !subject.trim()) return { success: false, error: 'Objet manquant' };
     if (!body || !body.trim()) return { success: false, error: 'Corps du mail vide' };
+
+    // Deal de test : rien ne part jamais, même avec une boîte connectée.
+    // Le cycle de vie avance comme pour un envoi simulé.
+    if (deal_id) {
+      const deal = Records.filter('Deal', { deal_id })[0];
+      if (deal?.test) {
+        await avancerDealApresMail(deal_id, intention, subject, to, user);
+        return { success: false, simulated: true, test: true };
+      }
+    }
+
     // `owner` restricts the sendable mailboxes to the caller's own.
     const resultat = await sendEmail({
       from,

@@ -85,10 +85,34 @@ function retirerChampsProteges(patch) {
   return copie;
 }
 
+// APP_URL en https = déploiement : cookies Secure (sessions.js), CORS fermé,
+// pas de données de démo. Derrière un proxy (Render, etc.), les en-têtes
+// x-forwarded-* font foi.
+const APP_URL_PROD = (process.env.APP_URL || '').replace(/\/$/, '');
+const EN_PRODUCTION = APP_URL_PROD.startsWith('https://');
+
 const app = express();
-app.use(cors());
+app.set('trust proxy', 1);
+// En production, seule l'origine de l'application est admise ; les cookies de
+// session restant SameSite, le CORS ouvert du dev ne doit pas suivre en prod.
+app.use(EN_PRODUCTION ? cors({ origin: APP_URL_PROD, credentials: true }) : cors());
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'same-origin');
+  next();
+});
 app.use(express.json({ limit: '25mb' }));
-app.use('/uploads', express.static(UPLOAD_DIR));
+// Les fichiers déposés (fiches, baux, photos) sont réservés aux personnes
+// connectées : rien de tout cela n'est public.
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    if (AUTH_DESACTIVEE || currentUser(req)) return next();
+    res.status(401).json({ error: 'Not authenticated' });
+  },
+  express.static(UPLOAD_DIR)
+);
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -367,7 +391,10 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
 const PUBLIC_FUNCTIONS = new Set(['getPublicProject']);
 
 app.use((req, res, next) => {
-  if (!googleEnabled) return next();
+  // L'authentification est TOUJOURS exigée sur l'API métier. Seule la variable
+  // AUTH_DESACTIVEE (dev local uniquement) l'assouplit — jamais l'absence de
+  // configuration Google, qui n'a rien à voir avec l'identité.
+  if (AUTH_DESACTIVEE) return next();
   if (!/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails)\b/.test(req.path)) return next();
   if (req.path.startsWith('/api/functions/')) {
     const name = req.path.split('/')[3];
@@ -389,39 +416,80 @@ const estUser = (entity) => entity === 'User';
 const nettoyer = (entity, data) =>
   !estUser(entity) ? data : Array.isArray(data) ? data.map(sansSecret) : sansSecret(data);
 
+// Ces entités portent des jetons (sessions, refresh tokens Google) : elles ne
+// transitent JAMAIS par le CRUD HTTP, quel que soit le rôle. Les modules
+// serveur y accèdent en direct.
+const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
+// Outils internes : pipeline de deals, boîte mail, CRM, base marché. Les pages
+// qui les consomment sont toutes réservées aux admins.
+const ENTITES_ADMIN = new Set(['Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'ClientCRM']);
+
+// Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
+// avoir répondu 403.
+function accesEntite(req, res, entity) {
+  if (ENTITES_INTERDITES.has(entity)) {
+    res.status(403).json({ error: 'Cette entité n’est pas accessible par l’API.' });
+    return null;
+  }
+  const user = currentUser(req) || {};
+  if (ENTITES_ADMIN.has(entity) && user.role !== 'admin') {
+    res.status(403).json({ error: 'Réservé aux administrateurs.' });
+    return null;
+  }
+  return user;
+}
+
+// Un non-admin ne voit que les projets où il figure, jamais les archivés.
+const projetVisiblePar = (user) => (p) =>
+  !p.archived &&
+  (p.admin_principal === user.email ||
+    p.client_email === user.email ||
+    (Array.isArray(p.client_emails) && p.client_emails.includes(user.email)) ||
+    p.created_by === user.email);
+
+const filtrerProjets = (user, data) =>
+  user.role === 'admin' ? data : (Array.isArray(data) ? data.filter(projetVisiblePar(user)) : data);
+
 app.get('/api/entities/:entity', wrap((req, res) => {
   const { entity } = req.params;
+  const user = accesEntite(req, res, entity);
+  if (!user) return;
   const { sort, limit, skip } = req.query;
-  ok(
-    res,
-    nettoyer(
-      entity,
-      Records.list(entity, {
-        sort,
-        limit: limit != null ? Number(limit) : undefined,
-        skip: skip != null ? Number(skip) : undefined,
-      })
-    )
-  );
+  let data = Records.list(entity, {
+    sort,
+    limit: limit != null ? Number(limit) : undefined,
+    skip: skip != null ? Number(skip) : undefined,
+  });
+  if (entity === 'Project') data = filtrerProjets(user, data);
+  ok(res, nettoyer(entity, data));
 }));
 
 app.post('/api/entities/:entity/filter', wrap((req, res) => {
   const { entity } = req.params;
+  const user = accesEntite(req, res, entity);
+  if (!user) return;
   const { query, sort, limit } = req.body || {};
-  ok(
-    res,
-    nettoyer(entity, Records.filter(entity, query, { sort, limit: limit != null ? Number(limit) : undefined }))
-  );
+  let data = Records.filter(entity, query, { sort, limit: limit != null ? Number(limit) : undefined });
+  if (entity === 'Project') data = filtrerProjets(user, data);
+  ok(res, nettoyer(entity, data));
 }));
 
 app.get('/api/entities/:entity/:id', wrap((req, res) => {
+  const user = accesEntite(req, res, req.params.entity);
+  if (!user) return;
   const rec = Records.get(req.params.entity, req.params.id);
   if (!rec) return res.status(404).json({ error: 'Not found' });
+  // Même réponse qu'un enregistrement inexistant : ne pas révéler l'existence
+  // d'un projet auquel on n'a pas accès.
+  if (req.params.entity === 'Project' && user.role !== 'admin' && !projetVisiblePar(user)(rec)) {
+    return res.status(404).json({ error: 'Not found' });
+  }
   ok(res, nettoyer(req.params.entity, rec));
 }));
 
 app.post('/api/entities/:entity', wrap((req, res) => {
-  const user = currentUser(req);
+  const user = accesEntite(req, res, req.params.entity);
+  if (!user) return;
   if (estUser(req.params.entity) && user?.role !== 'admin') {
     return res.status(403).json({ error: 'Seul un administrateur peut créer un compte.' });
   }
@@ -433,10 +501,11 @@ app.post('/api/entities/:entity', wrap((req, res) => {
 
 app.put('/api/entities/:entity/:id', wrap((req, res) => {
   const { entity, id } = req.params;
+  const user = accesEntite(req, res, entity);
+  if (!user) return;
   let patch = req.body || {};
 
   if (estUser(entity)) {
-    const user = currentUser(req);
     const estAdmin = user?.role === 'admin';
     if (!estAdmin && user?.id !== id) {
       return res.status(403).json({ error: 'Vous ne pouvez modifier que votre propre compte.' });
@@ -446,12 +515,24 @@ app.put('/api/entities/:entity/:id', wrap((req, res) => {
     if (estAdmin && (req.body?.role === 'admin' || req.body?.role === 'user')) patch.role = req.body.role;
   }
 
+  // Un non-admin ne modifie que les projets où il figure.
+  if (entity === 'Project' && user.role !== 'admin') {
+    const rec = Records.get(entity, id);
+    if (!rec || !projetVisiblePar(user)(rec)) return res.status(404).json({ error: 'Not found' });
+  }
+
   const rec = Records.update(entity, id, patch);
   if (!rec) return res.status(404).json({ error: 'Not found' });
   ok(res, nettoyer(entity, rec));
 }));
 
 app.delete('/api/entities/:entity/:id', wrap((req, res) => {
+  const user = accesEntite(req, res, req.params.entity);
+  if (!user) return;
+  // La suppression est un geste d'administrateur, quelle que soit l'entité.
+  if (user.role !== 'admin') {
+    return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  }
   ok(res, Records.delete(req.params.entity, req.params.id));
 }));
 
@@ -469,7 +550,9 @@ app.post('/api/integrations/upload-file', upload.single('file'), wrap((req, res)
 }));
 
 app.post('/api/integrations/send-email', wrap(async (req, res) => {
-  ok(res, await sendEmail(req.body || {}));
+  // `owner` borne les boîtes d'envoi à celles de l'appelant — même règle que
+  // sendMail, et jamais surchargée par le corps de la requête.
+  ok(res, await sendEmail({ ...(req.body || {}), owner: currentUser(req)?.email }));
 }));
 
 app.post('/api/integrations/send-sms', wrap(async (req, res) => {

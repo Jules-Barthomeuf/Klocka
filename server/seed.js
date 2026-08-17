@@ -144,7 +144,10 @@ export function runSeedIfEmpty() {
     return;
   }
   const admin = ensureAdmin();
-  seedDemoData(admin.email);
+  // Les données de démonstration (client fictif, projets d'exemple) n'ont pas
+  // leur place sur un serveur de production : APP_URL en https signale la prod.
+  const production = (process.env.APP_URL || '').startsWith('https://');
+  if (!production) seedDemoData(admin.email);
   Meta.set('seeded', 'true');
-  console.log(`[seed] Base initialisée. Admin: ${admin.email}`);
+  console.log(`[seed] Base initialisée${production ? ' (production, sans données de démo)' : ''}. Admin: ${admin.email}`);
 }

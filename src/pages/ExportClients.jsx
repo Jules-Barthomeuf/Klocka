@@ -53,7 +53,7 @@ export default function ExportClients() {
         </div>
 
         {done && count !== null && (
-          <div className="flex items-center gap-2 justify-center text-green-400 text-sm">
+          <div className="flex items-center gap-2 justify-center text-[#5ee7d4] text-sm">
             <CheckCircle2 className="w-4 h-4" />
             <span>{count} client(s) exporté(s) avec succès</span>
           </div>

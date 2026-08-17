@@ -23,7 +23,7 @@ const typeLabels = {
 };
 
 const statutConfig = {
-  disponible: { label: "Disponible", color: "bg-green-100 text-green-800" },
+  disponible: { label: "Disponible", color: "bg-[#33d6c0]/15 text-[#2bb8a5]" },
   sous_offre: { label: "Sous offre", color: "bg-blue-100 text-blue-800" },
   vendu: { label: "Vendu", color: "bg-gray-100 text-gray-800" },
   loue: { label: "Loué", color: "bg-purple-100 text-purple-800" }

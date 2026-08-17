@@ -10,7 +10,7 @@ const statutColors = {
   analyse: "text-blue-400",
   negociation: "text-amber-400",
   financement: "text-purple-400",
-  signe: "text-green-400"
+  signe: "text-[#5ee7d4]"
 };
 
 const statutLabels = {

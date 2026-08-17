@@ -410,7 +410,7 @@ export default function PortailLanding({ onContinue }) {
             <div className="h-7 bg-[#0a0f0e] flex items-center gap-1.5 px-3 border-b border-[#16201f]">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
               <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#33d6c0]/60" />
             </div>
             <img src="https://media.base44.com/images/public/68f0bd18555df3520e1740ca/fbcc895a0_Capturedecran2026-03-25a165004.png" alt="Plateforme Klocka" className="w-full h-[260px] md:h-[340px] object-cover" />
           </div>

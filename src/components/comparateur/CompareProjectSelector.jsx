@@ -1,9 +1,9 @@
 import React from "react";
 import { Check, MapPin, Plus } from "lucide-react";
 
-const BORDER_COLORS = ["border-red-800", "border-emerald-400", "border-yellow-500", "border-purple-400"];
-const RING_COLORS = ["ring-red-800/30", "ring-emerald-400/30", "ring-yellow-500/30", "ring-purple-400/30"];
-const DOT_COLORS = ["bg-red-800", "bg-emerald-400", "bg-yellow-500", "bg-purple-400"];
+const BORDER_COLORS = ["border-red-800", "border-[#5ee7d4]", "border-yellow-500", "border-purple-400"];
+const RING_COLORS = ["ring-red-800/30", "ring-[#5ee7d4]/30", "ring-yellow-500/30", "ring-purple-400/30"];
+const DOT_COLORS = ["bg-red-800", "bg-[#5ee7d4]", "bg-yellow-500", "bg-purple-400"];
 
 const statutLabels = {
   prospect: "Prospect",

@@ -15,7 +15,7 @@ function RevenuCompare({ label, local, national, unit = "", prefix = "", suffix 
     <div className="mt-2 flex items-center gap-2 text-xs">
       <span className="text-gray-500">France : {prefix}{typeof national === 'number' && !unit ? Math.round(national).toLocaleString() : national}{suffix}{unit}</span>
       {diff !== null && (
-        <span className={`font-medium ${diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+        <span className={`font-medium ${diff > 0 ? 'text-[#5ee7d4]' : diff < 0 ? 'text-red-400' : 'text-gray-500'}`}>
           ({diff > 0 ? '+' : ''}{diff.toFixed(1)}%)
         </span>
       )}
@@ -30,9 +30,9 @@ export default function RevenusSection({ data }) {
     <SectionCard icon={<Euro className="w-5 h-5 text-[#33d6c0]" />} title="Revenus et Niveau de vie">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {data.revenu_median > 0 && (
-          <div className="p-5 bg-gradient-to-br from-emerald-500/20 to-transparent rounded-md border border-emerald-500/30">
+          <div className="p-5 bg-gradient-to-br from-[#33d6c0]/20 to-transparent rounded-md border border-[#33d6c0]/30">
             <p className="text-sm text-gray-400 mb-1">Revenu médian disponible par UC</p>
-            <p className="text-3xl font-semibold text-emerald-400">{Math.round(data.revenu_median).toLocaleString()} €</p>
+            <p className="text-3xl font-semibold text-[#5ee7d4]">{Math.round(data.revenu_median).toLocaleString()} €</p>
             <p className="text-xs text-gray-500 mt-1">par an</p>
             <RevenuCompare local={data.revenu_median} national={FR_REVENUS.revenu_median} suffix=" €" />
           </div>
@@ -45,7 +45,7 @@ export default function RevenusSection({ data }) {
             <div className="mt-2 flex items-center gap-2 text-xs">
               <span className="text-gray-500">France : {FR_REVENUS.taux_pauvrete}%</span>
               {(() => { const d = data.taux_pauvrete - FR_REVENUS.taux_pauvrete; return (
-                <span className={`font-medium ${d < 0 ? 'text-emerald-400' : d > 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                <span className={`font-medium ${d < 0 ? 'text-[#5ee7d4]' : d > 0 ? 'text-red-400' : 'text-gray-500'}`}>
                   ({d > 0 ? '+' : ''}{d.toFixed(1)} pts)
                 </span>
               ); })()}
@@ -60,7 +60,7 @@ export default function RevenusSection({ data }) {
             <div className="mt-2 flex items-center gap-2 text-xs">
               <span className="text-gray-500">France : {FR_REVENUS.part_menages_imposes}%</span>
               {(() => { const d = data.part_menages_imposes - FR_REVENUS.part_menages_imposes; return (
-                <span className={`font-medium ${d > 0 ? 'text-emerald-400' : d < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                <span className={`font-medium ${d > 0 ? 'text-[#5ee7d4]' : d < 0 ? 'text-red-400' : 'text-gray-500'}`}>
                   ({d > 0 ? '+' : ''}{d.toFixed(1)} pts)
                 </span>
               ); })()}
@@ -90,7 +90,7 @@ export default function RevenusSection({ data }) {
               <p className="text-sm text-gray-400">Rapport interdécile (D9/D1)</p>
               <p className="text-xs text-gray-500 mt-1">Mesure les inégalités de revenus</p>
             </div>
-            <p className={`text-2xl font-semibold ${data.rapport_interdecile > 5 ? 'text-red-400' : data.rapport_interdecile > 3.5 ? 'text-amber-400' : 'text-green-400'}`}>
+            <p className={`text-2xl font-semibold ${data.rapport_interdecile > 5 ? 'text-red-400' : data.rapport_interdecile > 3.5 ? 'text-amber-400' : 'text-[#5ee7d4]'}`}>
               {data.rapport_interdecile}
             </p>
           </div>

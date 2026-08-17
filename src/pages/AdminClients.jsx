@@ -84,7 +84,7 @@ const profilColors = {
   equilibriste: "bg-blue-100 text-blue-800",
   risk_taker: "bg-red-100 text-red-800",
   collectionneur: "bg-purple-100 text-purple-800",
-  visionnaire: "bg-green-100 text-green-800"
+  visionnaire: "bg-[#33d6c0]/15 text-[#2bb8a5]"
 };
 
 const profilLabels = {
@@ -690,7 +690,7 @@ export default function AdminClients() {
                           { value: "equilibriste", label: "L'équilibriste", icon: Target, color: "bg-blue-500" },
                           { value: "risk_taker", label: "Risk taker", icon: TrendingUp, color: "bg-red-500" },
                           { value: "collectionneur", label: "Le Collectionneur", icon: Sparkles, color: "bg-purple-500" },
-                          { value: "visionnaire", label: "Le Visionnaire", icon: User, color: "bg-green-500" }].
+                          { value: "visionnaire", label: "Le Visionnaire", icon: User, color: "bg-[#33d6c0]" }].
                           map((profil) => {
                             const Icon = profil.icon;
                             const isSelected = user.profil_investisseur === profil.value;
@@ -797,7 +797,7 @@ export default function AdminClients() {
                             <Button
                             variant="ghost"
                             size="icon"
-                            className={`h-8 w-8 ${user.dossier_bancaire_url ? 'text-green-400' : 'text-white/20'} hover:text-[#33d6c0] hover:bg-white/[0.04]`}
+                            className={`h-8 w-8 ${user.dossier_bancaire_url ? 'text-[#5ee7d4]' : 'text-white/20'} hover:text-[#33d6c0] hover:bg-white/[0.04]`}
                             title={user.dossier_bancaire_url ? "Dossier bancaire uploadé" : "Uploader dossier bancaire"}
                             disabled={uploadingDossier === user.id}
                             asChild>

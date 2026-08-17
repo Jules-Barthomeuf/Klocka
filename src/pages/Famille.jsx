@@ -98,7 +98,7 @@ const profilLabels = {
   visionnaire: {
     label: "Le Visionnaire",
     description: "Identifie le potentiel là où d'autres ne le voient pas. Création de valeur à long terme.",
-    color: "bg-green-500"
+    color: "bg-[#33d6c0]"
   }
 };
 
@@ -290,20 +290,20 @@ export default function Famille() {
 
         {/* Points d'accord */}
         {agreements.length > 0 && (
-          <Card className="bg-gradient-to-br from-green-900/20 to-black border-green-500/30 mb-6">
+          <Card className="bg-gradient-to-br from-[#33d6c0]/10 to-black border-[#33d6c0]/30 mb-6">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <CheckCircle2 className="w-5 h-5 text-[#33d6c0]" />
                 Points d'accord ({agreements.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {agreements.map((agreement, idx) => (
-                <div key={idx} className="p-3 bg-gray-800/50 rounded-lg border border-green-500/30 flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                <div key={idx} className="p-3 bg-gray-800/50 rounded-lg border border-[#33d6c0]/30 flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
                   <div>
                     <p className="text-white text-sm font-medium">{agreement.question.question}</p>
-                    <p className="text-green-400 text-sm">{agreement.label}</p>
+                    <p className="text-[#5ee7d4] text-sm">{agreement.label}</p>
                   </div>
                 </div>
               ))}

@@ -138,7 +138,11 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
           {ETAPES.map((e, i) => {
             const faite = !apercu && !abandonne && dossier && e.n < courante;
             const active = etape === e.n;
-            const accessible = e.n <= courante;
+            // Dès qu'un deal existe, toutes les étapes sont visitables : on
+            // reçoit parfois les documents d'emblée, ou on veut préparer la
+            // décision avant d'avoir envoyé le moindre mail. Les actions de
+            // chaque étape restent gouvernées par le statut du deal.
+            const accessible = apercu || !!dossier || e.n <= courante;
             return (
               <div key={e.id} className="flex-1 flex flex-col items-center min-w-0">
                 <div className="flex items-center w-full">
@@ -584,6 +588,7 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
         descOui="Un mail de demande de documents (bail, PV d'AG, diagnostics…) est pré-rédigé pour l'agent. Le deal passe en attente de documents, avec relance automatique proposée."
         titreNon="Non — on s'arrête là"
         descNon="Un mail de refus courtois est pré-rédigé (« nous restons en recherche d'opportunités »). Le deal alimente la base de données marché puis part aux archives."
+        descInactif="Étape dépassée — le deal a avancé sans refus ni demande de documents formelle."
       />
     </>
   );
@@ -678,7 +683,7 @@ function DepotFiche({ onAnalyse }) {
 // Bloc de décision Oui / Non — partagé par les étapes 2 et 4
 // ---------------------------------------------------------------------------
 
-function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, titreOui, descOui, titreNon, descNon, onOui, apercu }) {
+function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, titreOui, descOui, titreNon, descNon, onOui, apercu, descInactif }) {
   const [dialogIntention, setDialogIntention] = useState(null);
   // En aperçu, les cartes sont visibles mais inertes.
   const ouvrir = (intention) => !apercu && setDialogIntention(intention);
@@ -708,6 +713,21 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
           e.vers === "documents_demandes" ||
           e.vers === "projet_cree"
       );
+    // Ni abandon, ni trace de décision : l'étape n'a simplement pas encore été
+    // jouée (navigation libre) — on l'explique plutôt que d'inventer un « oui ».
+    if (!abandonne && !evenement) {
+      return (
+        <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4 flex items-center gap-3">
+          <span className="w-8 h-8 rounded-md bg-white/5 text-[#7f9995] flex items-center justify-center flex-shrink-0">
+            <Clock className="w-4 h-4" />
+          </span>
+          <p className="text-[#93aca7] text-sm min-w-0">
+            {descInactif || "Aucune décision formelle enregistrée à cette étape."}
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4">
         <div className="flex items-center gap-3">
@@ -916,6 +936,7 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
         descOui="Un mail est pré-rédigé pour annoncer à l'agent que le dossier sera présenté à l'un de nos clients investisseurs. Puis direction l'étape Plateforme."
         titreNon="Non — on abandonne"
         descNon="Vous donnez les raisons en une phrase ; un mail professionnel est rédigé pour l'agent. Le deal alimente la base de données marché puis part aux archives."
+        descInactif="La décision se prendra une fois les documents reçus ou dépouillés (étape 3)."
         onOui={onOui}
       />
     </>

@@ -37,7 +37,7 @@ const categorieIcons = {
 const statutConfig = {
   en_attente: { label: "En attente", color: "bg-white/10 text-gray-300", icon: Clock },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-400", icon: Loader2 },
-  verifie: { label: "Vérifié", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle2 },
+  verifie: { label: "Vérifié", color: "bg-[#33d6c0]/20 text-[#5ee7d4]", icon: CheckCircle2 },
   non_verifie: { label: "Non vérifié", color: "bg-red-500/20 text-red-400", icon: XCircle }
 };
 

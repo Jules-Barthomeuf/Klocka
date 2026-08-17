@@ -34,7 +34,11 @@ export function SyntheseView({ synthese }) {
             const g = GRAVITES[p.gravite] || GRAVITES.attention;
             const Icone = g.icone;
             return (
-              <div key={i} className={`rounded-md border px-4 py-3 ${g.bord}`}>
+              <div
+                key={i}
+                className={`rounded-md border px-4 py-3 animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out fill-mode-both ${g.bord}`}
+                style={{ animationDelay: `${i * 90}ms` }}
+              >
                 <p className={`text-xs font-medium flex items-center gap-2 ${g.classe}`}>
                   <Icone className="w-3.5 h-3.5 flex-shrink-0" />
                   {p.titre}
@@ -279,23 +283,28 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             )}
           </TabsContent>
 
-          <TabsContent value="depouillement">
+          <TabsContent value="depouillement" className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">
             {documents.length > 0 && (
               <div className="grid lg:grid-cols-[1fr_1fr] gap-5 items-start">
                 <div className="space-y-4">
-                  {documents.map((doc) => (
-                    <CarteDocument
+                  {documents.map((doc, i) => (
+                    <div
                       key={doc.doc_id}
-                      doc={doc}
-                      types={types}
-                      sourceActive={source}
-                      onVoirSource={setSource}
-                      onReclasser={(type) => reclasser.mutate({ docId: doc.doc_id, type })}
-                      onSupprimer={() => {
-                        if (confirm(`Retirer « ${doc.nom_fichier} » du dossier ?`)) supprimer.mutate(doc.doc_id);
-                      }}
-                      enCours={apercu || test || reclasser.isPending}
-                    />
+                      className="animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out fill-mode-both"
+                      style={{ animationDelay: `${i * 90}ms` }}
+                    >
+                      <CarteDocument
+                        doc={doc}
+                        types={types}
+                        sourceActive={source}
+                        onVoirSource={setSource}
+                        onReclasser={(type) => reclasser.mutate({ docId: doc.doc_id, type })}
+                        onSupprimer={() => {
+                          if (confirm(`Retirer « ${doc.nom_fichier} » du dossier ?`)) supprimer.mutate(doc.doc_id);
+                        }}
+                        enCours={apercu || test || reclasser.isPending}
+                      />
+                    </div>
                   ))}
                 </div>
                 <div className="lg:sticky lg:top-16">
@@ -306,7 +315,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
           </TabsContent>
 
           {!masquerSynthese && (
-            <TabsContent value="synthese">
+            <TabsContent value="synthese" className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">
               <SyntheseView synthese={synthese} />
             </TabsContent>
           )}

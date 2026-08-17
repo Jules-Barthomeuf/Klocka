@@ -332,7 +332,7 @@ function SlideBlock({ slide, index }) {
               onClick={(e) => { e.stopPropagation(); handleCopy(); }}
               className={`h-7 px-3 text-xs transition-all ${
                 copied
-                  ? "bg-green-500/20 border border-green-500/40 text-green-400"
+                  ? "bg-[#33d6c0]/20 border border-[#33d6c0]/40 text-[#5ee7d4]"
                   : "bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white"
               }`}
             >
@@ -385,7 +385,7 @@ export default function BankPitchGenerator({ project, client }) {
           onClick={handleCopyAll}
           className={`h-8 px-4 text-xs transition-all ${
             copiedAll
-              ? "bg-green-500/20 border border-green-500/40 text-green-400"
+              ? "bg-[#33d6c0]/20 border border-[#33d6c0]/40 text-[#5ee7d4]"
               : "bg-white/[0.06] border border-white/[0.1] hover:bg-white/[0.1] text-white"
           }`}
         >

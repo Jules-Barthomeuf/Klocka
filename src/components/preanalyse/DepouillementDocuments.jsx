@@ -172,19 +172,24 @@ export default function DepouillementDocuments() {
       {dossier?.documents?.length > 0 ? (
         <div className="grid lg:grid-cols-[1fr_1fr] gap-6 items-start">
           <div className="space-y-5">
-            {dossier.documents.map((doc) => (
-              <CarteDocument
+            {dossier.documents.map((doc, i) => (
+              <div
                 key={doc.doc_id}
-                doc={doc}
-                types={types}
-                sourceActive={source}
-                onVoirSource={setSource}
-                onReclasser={(type) => reclasser.mutate({ docId: doc.doc_id, type })}
-                onSupprimer={() => {
-                  if (confirm(`Retirer « ${doc.nom_fichier} » du dossier ?`)) supprimer.mutate(doc.doc_id);
-                }}
-                enCours={reclasser.isPending}
-              />
+                className="animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out fill-mode-both"
+                style={{ animationDelay: `${i * 90}ms` }}
+              >
+                <CarteDocument
+                  doc={doc}
+                  types={types}
+                  sourceActive={source}
+                  onVoirSource={setSource}
+                  onReclasser={(type) => reclasser.mutate({ docId: doc.doc_id, type })}
+                  onSupprimer={() => {
+                    if (confirm(`Retirer « ${doc.nom_fichier} » du dossier ?`)) supprimer.mutate(doc.doc_id);
+                  }}
+                  enCours={reclasser.isPending}
+                />
+              </div>
             ))}
           </div>
 

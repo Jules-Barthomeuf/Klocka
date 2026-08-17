@@ -187,8 +187,8 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                     )}
                     <div className="grid md:grid-cols-2 gap-4">
                       {ag.resolutions_votees && (
-                        <div className="p-3 bg-green-900/20 rounded-lg border border-green-500/30">
-                          <p className="text-xs text-green-400 mb-2 font-semibold">✓ Résolutions votées</p>
+                        <div className="p-3 bg-[#33d6c0]/10 rounded-lg border border-[#33d6c0]/30">
+                          <p className="text-xs text-[#5ee7d4] mb-2 font-semibold">✓ Résolutions votées</p>
                           <p className="text-sm text-gray-300 whitespace-pre-wrap">{ag.resolutions_votees}</p>
                         </div>
                       )}

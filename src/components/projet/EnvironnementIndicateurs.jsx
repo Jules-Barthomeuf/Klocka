@@ -53,8 +53,8 @@ export default function EnvironnementIndicateurs({ project }) {
   /* ---- BAR ÉCONOMIE ---- */
   const hasEco = env.taux_chomage != null || env.nb_entreprises != null;
   const barEco = [
-    env.taux_chomage != null && { name: "Chômage %", val: env.taux_chomage, fill: env.taux_chomage < 7 ? "#22c55e" : env.taux_chomage < 10 ? "#f59e0b" : "#ef4444" },
-    env.taux_vacance_commerciale != null && { name: "Vacance com. %", val: env.taux_vacance_commerciale, fill: env.taux_vacance_commerciale < 8 ? "#22c55e" : env.taux_vacance_commerciale < 15 ? "#f59e0b" : "#ef4444" },
+    env.taux_chomage != null && { name: "Chômage %", val: env.taux_chomage, fill: env.taux_chomage < 7 ? "#33d6c0" : env.taux_chomage < 10 ? "#f59e0b" : "#ef4444" },
+    env.taux_vacance_commerciale != null && { name: "Vacance com. %", val: env.taux_vacance_commerciale, fill: env.taux_vacance_commerciale < 8 ? "#33d6c0" : env.taux_vacance_commerciale < 15 ? "#f59e0b" : "#ef4444" },
   ].filter(Boolean);
 
   /* ---- BAR PROJETS URBAINS ---- */

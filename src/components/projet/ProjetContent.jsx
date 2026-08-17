@@ -437,7 +437,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                           <p className="text-white font-medium mb-3">{secteur.nom || `Secteur ${idx + 1}`}</p>
                           <div className="flex items-center gap-4">
                             <div className="flex-1">
-                              <p className="text-xs text-green-400 mb-1">Estimation basse</p>
+                              <p className="text-xs text-[#5ee7d4] mb-1">Estimation basse</p>
                               <p className="text-lg text-white font-semibold">{secteur.estimation_basse?.toLocaleString() || '-'} €/m²</p>
                             </div>
                             <div className="h-8 w-px bg-gray-700" />
@@ -457,7 +457,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     {project.marche_prix_m2_median > 0 && (
                       <div className="mb-6">
                         <div className="mb-3"><span className="text-sm text-white">Prix au m²</span></div>
-                        <div className="relative h-2 rounded-full overflow-hidden bg-gradient-to-r from-green-500 via-yellow-500 to-red-500">
+                        <div className="relative h-2 rounded-full overflow-hidden bg-gradient-to-r from-[#33d6c0] via-yellow-500 to-red-500">
                           {(() => {
                             const bas = project.marche_prix_m2_bas || 0;
                             const haut = project.marche_prix_m2_haut || project.marche_prix_m2_median * 2;
@@ -469,7 +469,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                           })()}
                         </div>
                         <div className="flex flex-col md:flex-row justify-between gap-2 md:gap-0 mt-3">
-                          <span className="text-sm max-md:text-xs text-green-400 font-semibold">Prix bas: {project.marche_prix_m2_bas?.toLocaleString() || '0'} €</span>
+                          <span className="text-sm max-md:text-xs text-[#5ee7d4] font-semibold">Prix bas: {project.marche_prix_m2_bas?.toLocaleString() || '0'} €</span>
                           <span className="text-sm max-md:text-xs text-yellow-400 font-semibold">Prix médian: {project.marche_prix_m2_median.toLocaleString()} €</span>
                           <span className="text-sm max-md:text-xs text-red-400 font-semibold">Prix haut: {project.marche_prix_m2_haut?.toLocaleString() || '-'} €</span>
                         </div>
@@ -479,13 +479,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       {project.marche_evolution_1an != null && project.marche_evolution_1an !== 0 && (
                         <div className="p-4 bg-white/[0.03]/50 rounded-md">
                           <p className="text-xs text-white/30 mb-1">Évolution 1 an</p>
-                          <p className={`text-2xl font-semibold ${project.marche_evolution_1an >= 0 ? 'text-green-400' : 'text-red-400'}`}>{project.marche_evolution_1an >= 0 ? '+' : ''}{project.marche_evolution_1an}%</p>
+                          <p className={`text-2xl font-semibold ${project.marche_evolution_1an >= 0 ? 'text-[#5ee7d4]' : 'text-red-400'}`}>{project.marche_evolution_1an >= 0 ? '+' : ''}{project.marche_evolution_1an}%</p>
                         </div>
                       )}
                       {project.marche_evolution_5ans != null && project.marche_evolution_5ans !== 0 && (
                         <div className="p-4 bg-white/[0.03]/50 rounded-md">
                           <p className="text-xs text-white/30 mb-1">Évolution 5 ans</p>
-                          <p className={`text-2xl font-semibold ${project.marche_evolution_5ans >= 0 ? 'text-green-400' : 'text-red-400'}`}>{project.marche_evolution_5ans >= 0 ? '+' : ''}{project.marche_evolution_5ans}%</p>
+                          <p className={`text-2xl font-semibold ${project.marche_evolution_5ans >= 0 ? 'text-[#5ee7d4]' : 'text-red-400'}`}>{project.marche_evolution_5ans >= 0 ? '+' : ''}{project.marche_evolution_5ans}%</p>
                         </div>
                       )}
                     </div>
@@ -661,8 +661,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 {(project.activites_autorisees || project.activites_interdites) &&
                   <div className="grid md:grid-cols-2 gap-6 max-md:gap-4 mt-6">
                     {project.activites_autorisees &&
-                      <div className="p-4 bg-green-900/20 rounded-md border border-green-500/30">
-                        <p className="text-sm max-md:text-xs text-green-400 mb-3 font-semibold">✓ Activités autorisées</p>
+                      <div className="p-4 bg-[#33d6c0]/10 rounded-md border border-[#33d6c0]/30">
+                        <p className="text-sm max-md:text-xs text-[#5ee7d4] mb-3 font-semibold">✓ Activités autorisées</p>
                         <ul className="space-y-1">{project.activites_autorisees.split(',').map((activite, idx) => (<li key={idx} className="text-sm text-white/60">• {activite.trim()}</li>))}</ul>
                       </div>
                     }
@@ -683,8 +683,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 {(project.resolutions_votees || project.resolutions_refusees) &&
                   <div className="grid md:grid-cols-2 gap-6 max-md:gap-4 mt-6">
                     {project.resolutions_votees &&
-                      <div className="p-4 bg-green-900/20 rounded-md border border-green-500/30">
-                        <p className="text-sm max-md:text-xs text-green-400 mb-3 font-semibold">✓ Résolutions votées</p>
+                      <div className="p-4 bg-[#33d6c0]/10 rounded-md border border-[#33d6c0]/30">
+                        <p className="text-sm max-md:text-xs text-[#5ee7d4] mb-3 font-semibold">✓ Résolutions votées</p>
                         <div className="text-sm text-white/60 whitespace-pre-wrap">{project.resolutions_votees}</div>
                       </div>
                     }

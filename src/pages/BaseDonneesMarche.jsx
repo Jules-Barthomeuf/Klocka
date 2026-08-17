@@ -254,7 +254,7 @@ export default function BaseDonneesMarche() {
                         {item.evolution_1an !== null && item.evolution_1an !== undefined && (
                           <div className="bg-gray-900/50 rounded-lg p-3">
                             <p className="text-gray-400 text-xs mb-1">Évolution 1 an</p>
-                            <p className={`font-semibold ${item.evolution_1an >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            <p className={`font-semibold ${item.evolution_1an >= 0 ? 'text-[#33d6c0]' : 'text-red-500'}`}>
                               {item.evolution_1an > 0 ? '+' : ''}{item.evolution_1an}%
                             </p>
                           </div>
@@ -416,8 +416,8 @@ export default function BaseDonneesMarche() {
             </div>
 
             {/* Évolution */}
-            <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg space-y-4">
-              <h4 className="text-green-400 font-medium">Évolution du marché</h4>
+            <div className="p-4 bg-[#33d6c0]/10 border border-[#33d6c0]/30 rounded-lg space-y-4">
+              <h4 className="text-[#5ee7d4] font-medium">Évolution du marché</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-gray-400 text-sm">Évolution 1 an (%)</Label>

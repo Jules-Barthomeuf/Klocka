@@ -425,7 +425,7 @@ export default function Vision() {
   const getStrategyColor = () => {
     switch (typeStrategie) {
       case "agressive":return "#ef4444";
-      case "patrimoniale":return "#10b981";
+      case "patrimoniale":return "#33d6c0";
       case "mixte":return "#ffffff";
       default:return "#ffffff";
     }
@@ -445,7 +445,7 @@ export default function Vision() {
   const getBorderColor = () => {
     switch (typeStrategie) {
       case "agressive":return "#ef4444";
-      case "patrimoniale":return "#10b981";
+      case "patrimoniale":return "#33d6c0";
       case "mixte":return "#ffffff";
       default:return "#ffffff";
     }
@@ -964,7 +964,7 @@ export default function Vision() {
                                 </div>
                                 <div className="p-3 rounded-lg bg-[#050807]/50 border border-neutral-800">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                                    <div className="w-3 h-3 rounded-full bg-[#5ee7d4]"></div>
                                     <span className="text-xs text-white font-normal">Phase 20-30 • Liberté</span>
                                   </div>
                                   <p className="text-xs text-white font-normal leading-relaxed">
@@ -1726,7 +1726,7 @@ export default function Vision() {
                           className="p-4 rounded-lg bg-[#050807]/50 border border-neutral-800">
 
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                            <div className="w-3 h-3 rounded-full bg-[#5ee7d4]"></div>
                             <span className="text-xs text-white font-normal uppercase tracking-wider">Phase 20-30 • Liberté financière</span>
                           </div>
                           <p className="text-xs text-white font-normal leading-relaxed">

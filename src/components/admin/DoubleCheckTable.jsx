@@ -108,13 +108,13 @@ export default function DoubleCheckTable({ checkData, onChange }) {
                 </div>
                 <div className="col-span-4 flex justify-center gap-1.5">
                   <button type="button" onClick={() => updateField(field.key, "ia", val.ia === "oui" ? "" : "oui")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "oui" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Oui</button>
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "oui" ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Oui</button>
                   <button type="button" onClick={() => updateField(field.key, "ia", val.ia === "non" ? "" : "non")}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "non" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Non</button>
                 </div>
                 <div className="col-span-4 flex justify-center gap-1.5">
                   <button type="button" onClick={() => updateField(field.key, "human", val.human === "oui" ? "" : "oui")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "oui" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Oui</button>
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "oui" ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Oui</button>
                   <button type="button" onClick={() => updateField(field.key, "human", val.human === "non" ? "" : "non")}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "non" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Non</button>
                 </div>

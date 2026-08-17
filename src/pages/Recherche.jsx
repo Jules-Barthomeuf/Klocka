@@ -36,7 +36,7 @@ export default function Recherche() {
               onClick={handleCopyLink}
               className="mt-3 border-white/10 bg-[#050807] text-white/50 hover:text-white hover:bg-white/5 text-xs gap-2"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Link2 className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-[#5ee7d4]" /> : <Link2 className="w-3.5 h-3.5" />}
               {copied ? "Lien copié" : "Copier le lien"}
             </Button>
           )}

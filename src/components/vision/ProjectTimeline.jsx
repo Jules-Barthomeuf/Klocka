@@ -222,7 +222,7 @@ function IndividualProjectChart({ donneesProjet }) {
             fill="#3b82f6"
           />
         </svg>
-        <p className={`text-sm mt-2 ${data[displayIndex].cashflow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <p className={`text-sm mt-2 ${data[displayIndex].cashflow >= 0 ? 'text-[#5ee7d4]' : 'text-red-400'}`}>
           An {data[displayIndex].annee}: {formatValue(data[displayIndex].cashflow)}
         </p>
       </div>
@@ -320,7 +320,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
       annee: debtFullyPaidYear,
       type: 'dette_zero',
       label: 'Dette remboursée',
-      color: '#10b981'
+      color: '#33d6c0'
     });
   }
 
@@ -429,9 +429,9 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
               <div className="p-6 bg-white/5 rounded-md border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-white/60 text-sm uppercase tracking-wider">Cashflow annuel</p>
-                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#33d6c0]' : 'bg-[#ef4444]'}`}></div>
                 </div>
-                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#33d6c0]' : 'text-[#ef4444]'}`}>
                   {formatValue(animatedCashflow)}
                 </p>
               </div>
@@ -440,9 +440,9 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
               <div className="p-6 bg-white/5 rounded-md border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-white/60 text-sm uppercase tracking-wider">Cashflow mensuel</p>
-                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#33d6c0]' : 'bg-[#ef4444]'}`}></div>
                 </div>
-                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#33d6c0]' : 'text-[#ef4444]'}`}>
                   {formatValue(animatedCashflowMensuel)}
                 </p>
               </div>

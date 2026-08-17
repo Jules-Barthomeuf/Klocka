@@ -179,9 +179,9 @@ export default function InteractiveFranceMap({ projets }) {
                       <div className="text-xs text-gray-500 mb-1">Prix d'acquisition</div>
                       <div className="font-bold text-sm">{formatValue(projet.prix_acquisition)}</div>
                     </div>
-                    <div className="bg-green-50 rounded-lg p-2">
+                    <div className="bg-[#33d6c0]/10 rounded-lg p-2">
                       <div className="text-xs text-gray-500 mb-1">Rendement annuel</div>
-                      <div className="font-bold text-sm text-green-600">{projet.rendement_locatif}%</div>
+                      <div className="font-bold text-sm text-[#2bb8a5]">{projet.rendement_locatif}%</div>
                     </div>
                   </div>
                 </div>

@@ -164,7 +164,7 @@ Réponds UNIQUEMENT en JSON.`;
                 </span>
               )}
               {totalNumericDiffs === 0 && totalTextDiffsFound === 0 && (
-                <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-[10px] bg-[#33d6c0]/20 text-[#5ee7d4] px-2 py-0.5 rounded-full flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> RAS
                 </span>
               )}
@@ -209,9 +209,9 @@ Réponds UNIQUEMENT en JSON.`;
                 ))}
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/5 border border-green-500/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-xs text-green-400">Tous les champs numériques correspondent</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#33d6c0]/5 border border-[#33d6c0]/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#5ee7d4]" />
+                <span className="text-xs text-[#5ee7d4]">Tous les champs numériques correspondent</span>
               </div>
             )}
           </div>
@@ -234,9 +234,9 @@ Réponds UNIQUEMENT en JSON.`;
             </div>
 
             {textDiffs && textDiffs.length === 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/5 border border-green-500/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-xs text-green-400">Aucune différence de sens détectée dans les textes</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#33d6c0]/5 border border-[#33d6c0]/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#5ee7d4]" />
+                <span className="text-xs text-[#5ee7d4]">Aucune différence de sens détectée dans les textes</span>
               </div>
             )}
 

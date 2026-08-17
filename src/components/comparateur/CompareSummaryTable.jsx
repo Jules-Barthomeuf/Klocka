@@ -2,8 +2,8 @@ import React from "react";
 import { formatCurrency } from "./ComparateurCalcul";
 import InfoTooltip from "./InfoTooltip";
 
-const COLORS = ["text-red-800", "text-emerald-400", "text-yellow-500", "text-purple-400"];
-const DOT_COLORS = ["bg-red-800", "bg-emerald-400", "bg-yellow-500", "bg-purple-400"];
+const COLORS = ["text-red-800", "text-[#5ee7d4]", "text-yellow-500", "text-purple-400"];
+const DOT_COLORS = ["bg-red-800", "bg-[#5ee7d4]", "bg-yellow-500", "bg-purple-400"];
 
 export default function CompareSummaryTable({ metrics }) {
   if (!metrics.length) return null;

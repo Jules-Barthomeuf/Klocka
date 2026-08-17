@@ -21,7 +21,7 @@ export default function SectionCard({ icon, title, children }) {
 export function KPI({ label, value, sub, color = "gray", inline }) {
   const colors = {
     teal: "from-[#33d6c0]/20 border-[#33d6c0]/50 text-[#33d6c0]",
-    green: "from-green-500/20 border-green-500/30 text-green-400",
+    green: "from-[#33d6c0]/20 border-[#33d6c0]/30 text-[#5ee7d4]",
     red: "from-red-500/20 border-red-500/30 text-red-400",
     amber: "from-amber-500/20 border-amber-500/30 text-amber-400",
     blue: "from-blue-500/20 border-blue-500/30 text-blue-400",

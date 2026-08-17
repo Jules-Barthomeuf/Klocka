@@ -436,7 +436,7 @@ export default function Mails() {
                     >
                       {copiedField === "draft" ? (
                         <>
-                          <Check className="w-4 h-4 mr-2 text-green-400" /> Copié
+                          <Check className="w-4 h-4 mr-2 text-[#5ee7d4]" /> Copié
                         </>
                       ) : (
                         <>
@@ -667,7 +667,7 @@ export default function Mails() {
                 className="text-gray-400 hover:text-white hover:bg-white/5 flex-shrink-0"
               >
                 {copiedField === "preview" ? (
-                  <Check className="w-3.5 h-3.5 text-green-400" />
+                  <Check className="w-3.5 h-3.5 text-[#5ee7d4]" />
                 ) : (
                   <Copy className="w-3.5 h-3.5" />
                 )}
@@ -696,7 +696,7 @@ export default function Mails() {
 
 function StatusBadge({ statut }) {
   const map = {
-    envoye: { label: "Envoyé", className: "bg-green-500/15 text-green-400 border-green-500/20" },
+    envoye: { label: "Envoyé", className: "bg-[#33d6c0]/15 text-[#5ee7d4] border-[#33d6c0]/20" },
     simule: { label: "Simulé", className: "bg-amber-500/15 text-amber-400 border-amber-500/20" },
     erreur: { label: "Erreur", className: "bg-red-500/15 text-red-400 border-red-500/20" },
   };

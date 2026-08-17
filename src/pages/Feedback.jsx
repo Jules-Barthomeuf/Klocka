@@ -17,7 +17,7 @@ moment.locale("fr");
 const statutConfig = {
   nouveau: { label: "En attente", color: "bg-gray-500/20 text-gray-300", icon: Clock },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300", icon: Loader2 },
-  accepte: { label: "Accepté", color: "bg-green-500/20 text-green-300", icon: CheckCircle2 },
+  accepte: { label: "Accepté", color: "bg-[#33d6c0]/20 text-[#5ee7d4]", icon: CheckCircle2 },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300", icon: XCircle },
   termine: { label: "Terminé", color: "bg-[#33d6c0]/20 text-[#33d6c0]", icon: CheckCircle2 }
 };

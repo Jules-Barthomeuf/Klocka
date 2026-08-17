@@ -28,7 +28,7 @@ export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, 
         </div>
         <div className="p-2 md:p-4 rounded-md bg-white/[0.04] border border-[#1c2725] flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm ${mutedClass} mb-1 flex items-center gap-1`}>Cash-flow cumulé <TooltipInfo field="cashFlowCumule" /></p>
-          <p className={`text-sm md:text-lg font-medium tabular-nums ${calculs.indicateurs.cashFlowCumule >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(calculs.indicateurs.cashFlowCumule)}</p>
+          <p className={`text-sm md:text-lg font-medium tabular-nums ${calculs.indicateurs.cashFlowCumule >= 0 ? 'text-[#33d6c0]' : 'text-red-500'}`}>{formatCurrency(calculs.indicateurs.cashFlowCumule)}</p>
         </div>
         <div className="p-2 md:p-4 rounded-md bg-gradient-to-r from-[#D4AF37]/20 to-[#F5D76E]/20 border border-[#D4AF37]/50 flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm text-[#F5D76E] mb-1 flex items-center gap-1`}>Création richesse <TooltipInfo field="creationRichesse" /></p>

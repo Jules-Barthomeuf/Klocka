@@ -239,7 +239,7 @@ export default function Contacts() {
                           <td className="py-3 px-3 text-gray-300">{contact.telephone || "-"}</td>
                           <td className="py-3 px-3 text-gray-300">{contact.statut_client || "-"}</td>
                           <td className="py-3 px-3">
-                            <Badge className={contact.mandat_signe ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-gray-700 text-gray-400"}>
+                            <Badge className={contact.mandat_signe ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-gray-700 text-gray-400"}>
                               {contact.mandat_signe ? "Oui" : "Non"}
                             </Badge>
                           </td>

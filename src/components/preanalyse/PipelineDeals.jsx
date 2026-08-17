@@ -79,7 +79,7 @@ export default function PipelineDeals() {
             <div className="h-px flex-1 bg-[#1c2725]" />
           </div>
           <div className="flex flex-col gap-2">
-            {g.deals.map((d) => {
+            {g.deals.map((d, iDeal) => {
               const lot = d.lots?.[0] || {};
               const enRetard = d.a_relancer;
               const attente =
@@ -96,9 +96,10 @@ export default function PipelineDeals() {
                 <button
                   key={d.deal_id}
                   onClick={() => ouvrir(d.deal_id)}
-                  className={`flex items-center gap-4 w-full px-4 py-3.5 bg-[#0a0f0e] border rounded-[5px] text-left transition-colors hover:border-[#33d6c0] ${
+                  className={`flex items-center gap-4 w-full px-4 py-3.5 bg-[#0a0f0e] border rounded-[5px] text-left transition-colors hover:border-[#33d6c0] animate-in fade-in slide-in-from-bottom-1 duration-300 ease-out fill-mode-both ${
                     enRetard ? "border-[#e2564d]/40" : "border-[#1c2725]"
                   }`}
+                  style={{ animationDelay: `${Math.min(iDeal * 40, 400)}ms` }}
                 >
                   <span
                     className="w-1.5 h-1.5 rounded-full flex-none"

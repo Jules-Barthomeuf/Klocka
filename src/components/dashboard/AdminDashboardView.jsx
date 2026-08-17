@@ -162,7 +162,7 @@ export default function AdminDashboardView({ user }) {
     { key: 'analyse', label: 'Analyse', color: 'bg-blue-500' },
     { key: 'negociation', label: 'Négociation', color: 'bg-amber-500' },
     { key: 'financement', label: 'Financement', color: 'bg-purple-500' },
-    { key: 'signe', label: 'Signé', color: 'bg-green-500' },
+    { key: 'signe', label: 'Signé', color: 'bg-[#33d6c0]' },
   ];
 
   return (
@@ -181,7 +181,7 @@ export default function AdminDashboardView({ user }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard icon={Users} value={totalClients} label="Clients" delay={0.05} />
           <StatCard icon={Building2} value={allProjects.length} label="Projets" color="text-blue-400" delay={0.1} />
-          <StatCard icon={CheckCircle2} value={projetsParStatut.signe} label="Signés" color="text-green-400" delay={0.15} />
+          <StatCard icon={CheckCircle2} value={projetsParStatut.signe} label="Signés" color="text-[#5ee7d4]" delay={0.15} />
           <StatCard icon={MessageSquare} value={suggestionsNouvelles} label="Suggestions" color="text-amber-400" delay={0.2} />
         </div>
 
@@ -241,7 +241,7 @@ export default function AdminDashboardView({ user }) {
           {/* CRM Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <StatCard icon={Users} value={crmClients.length} label="Clients CRM" color="text-blue-400" />
-            <StatCard icon={TrendingUp} value={crmTransactions.length} label="Transactions" color="text-green-400" />
+            <StatCard icon={TrendingUp} value={crmTransactions.length} label="Transactions" color="text-[#5ee7d4]" />
             <StatCard icon={Building2} value={crmProprietes.length} label="Propriétés" color="text-purple-400" />
             <StatCard icon={Briefcase} value={crmContacts.length} label="Agents" color="text-orange-400" />
           </div>
@@ -253,9 +253,9 @@ export default function AdminDashboardView({ user }) {
                 <div>
                   <p className="text-white/25 text-[9px] uppercase tracking-[0.15em] mb-1">Vol. Transactions Finalisées</p>
                   <p className="text-white text-lg font-medium">{fmtCur(crmVolumeFinalisees)}</p>
-                  <p className="text-green-400/60 text-[10px] mt-1">{crmTransactionsFinalisees.length} transactions</p>
+                  <p className="text-[#5ee7d4]/60 text-[10px] mt-1">{crmTransactionsFinalisees.length} transactions</p>
                 </div>
-                <DollarSign className="w-7 h-7 text-green-400/30" />
+                <DollarSign className="w-7 h-7 text-[#5ee7d4]/30" />
               </div>
             </div>
             <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
@@ -319,7 +319,7 @@ export default function AdminDashboardView({ user }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: "Clients", icon: Users, color: "text-blue-400", page: "CRMClients", count: crmClients.length },
-              { label: "Transactions", icon: DollarSign, color: "text-green-400", page: "CRMTransactions", count: crmTransactions.length },
+              { label: "Transactions", icon: DollarSign, color: "text-[#5ee7d4]", page: "CRMTransactions", count: crmTransactions.length },
               { label: "Propriétés", icon: Building2, color: "text-purple-400", page: "CRMProprietes", count: crmProprietes.length },
               { label: "Agents", icon: Briefcase, color: "text-orange-400", page: "CRMAgents", count: crmContacts.length },
             ].map(item => (

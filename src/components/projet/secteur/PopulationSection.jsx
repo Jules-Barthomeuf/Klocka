@@ -52,7 +52,7 @@ function CompareBar({ label, local, national, unit = "", suffix = "", invert = f
         </div>
       </div>
       {diff !== null && (
-        <p className={`text-[10px] mt-1.5 font-medium ${positive ? 'text-emerald-400' : diff === 0 ? 'text-gray-500' : 'text-red-400'}`}>
+        <p className={`text-[10px] mt-1.5 font-medium ${positive ? 'text-[#5ee7d4]' : diff === 0 ? 'text-gray-500' : 'text-red-400'}`}>
           {diff > 0 ? '+' : ''}{diff.toFixed(1)}{suffix} vs France
         </p>
       )}
@@ -152,7 +152,7 @@ function MiniStat({ label, value, national }) {
         <p className="text-[10px] text-gray-500 mt-0.5">
           FR: {national}%
           {diff !== null && (
-            <span className={`ml-1 font-medium ${diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+            <span className={`ml-1 font-medium ${diff > 0 ? 'text-[#5ee7d4]' : diff < 0 ? 'text-red-400' : 'text-gray-500'}`}>
               ({diff > 0 ? '+' : ''}{diff.toFixed(1)} pts)
             </span>
           )}

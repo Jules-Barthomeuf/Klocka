@@ -17,7 +17,7 @@ import MobileRecordCard from "@/components/crm/MobileRecordCard";
 
 const statutColors = {
   compromis: "bg-orange-500 text-white",
-  financement_obtenu: "bg-green-500 text-white",
+  financement_obtenu: "bg-[#33d6c0] text-white",
   offre_acceptee: "bg-blue-500 text-white"
 };
 

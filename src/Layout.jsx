@@ -86,7 +86,7 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
           <>
             <span className="flex-1 truncate">{label}</span>
             {badge && (
-              <Badge className={`${badgeColor || "bg-green-500/20 text-green-400"} text-[9px] px-1.5 py-0 border-0`}>
+              <Badge className={`${badgeColor || "bg-[#33d6c0]/20 text-[#5ee7d4]"} text-[9px] px-1.5 py-0 border-0`}>
                 {badge}
               </Badge>
             )}

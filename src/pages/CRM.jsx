@@ -156,9 +156,9 @@ export default function CRM() {
       icon: DollarSign,
       count: transactions.length,
       subtitle: `${transactionsFinalisees.length} finalisées`,
-      color: "from-green-500/20 to-emerald-500/10",
-      iconBg: "bg-green-500/20",
-      iconColor: "text-green-400",
+      color: "from-[#33d6c0]/20 to-[#33d6c0]/10",
+      iconBg: "bg-[#33d6c0]/20",
+      iconColor: "text-[#5ee7d4]",
       url: "CRMTransactions"
     },
     {
@@ -221,7 +221,7 @@ export default function CRM() {
                     <p className="text-3xl font-bold text-white mt-1">{transactions.length}</p>
                     <p className="text-xs text-gray-500 mt-1">{transactionsEnCours} en cours</p>
                   </div>
-                  <TrendingUp className="w-10 h-10 text-green-400" />
+                  <TrendingUp className="w-10 h-10 text-[#5ee7d4]" />
                 </div>
               </CardContent>
             </Card>
@@ -262,7 +262,7 @@ export default function CRM() {
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-green-900/20 to-green-800/20 border-none">
+            <Card className="relative bg-gradient-to-br from-[#33d6c0]/10 to-[#2bb8a5]/20 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -274,9 +274,9 @@ export default function CRM() {
                         maximumFractionDigits: 0 
                       }).format(volumeTransactionsFinalisees)}
                     </p>
-                    <p className="text-xs text-green-400 mt-1">{transactionsFinalisees.length} transactions</p>
+                    <p className="text-xs text-[#5ee7d4] mt-1">{transactionsFinalisees.length} transactions</p>
                   </div>
-                  <DollarSign className="w-10 h-10 text-green-400" />
+                  <DollarSign className="w-10 h-10 text-[#5ee7d4]" />
                 </div>
               </CardContent>
             </Card>
@@ -391,7 +391,7 @@ export default function CRM() {
             <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-400" />
+                  <TrendingUp className="w-5 h-5 text-[#5ee7d4]" />
                   Transactions
                   <div className="flex gap-3 ml-auto text-xs">
                     <div className="flex items-center gap-1">
@@ -399,7 +399,7 @@ export default function CRM() {
                       <span>En cours</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#33d6c0]"></div>
                       <span>Finalisées</span>
                     </div>
                   </div>
@@ -463,7 +463,7 @@ export default function CRM() {
                               )}
                               {finalisees.length > 0 && (
                                 <div>
-                                  <p className="font-semibold text-green-600 mb-1">Finalisées ({finalisees.length})</p>
+                                  <p className="font-semibold text-[#2bb8a5] mb-1">Finalisées ({finalisees.length})</p>
                                   <div className="space-y-1 max-h-32 overflow-y-auto">
                                     {finalisees.slice(0, 3).map(t => (
                                       <div key={t.id} className="text-xs">

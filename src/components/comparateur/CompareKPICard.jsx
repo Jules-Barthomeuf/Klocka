@@ -3,7 +3,7 @@ import InfoTooltip from "./InfoTooltip";
 
 const colorClasses = [
   { bg: "from-red-800/20", border: "border-red-800/50", text: "text-red-800", bar: "bg-red-800" },
-  { bg: "from-emerald-400/20", border: "border-emerald-400/50", text: "text-emerald-400", bar: "bg-emerald-400" },
+  { bg: "from-[#5ee7d4]/20", border: "border-[#5ee7d4]/50", text: "text-[#5ee7d4]", bar: "bg-[#5ee7d4]" },
   { bg: "from-yellow-500/20", border: "border-yellow-500/50", text: "text-yellow-500", bar: "bg-yellow-500" },
   { bg: "from-purple-400/20", border: "border-purple-400/50", text: "text-purple-400", bar: "bg-purple-400" },
 ];
@@ -47,7 +47,7 @@ export default function CompareKPICard({ label, values, projectNames, format = "
                 <span className="text-white/50 text-xs truncate max-w-[50%]">{projectNames[i]}</span>
                 <span className={`text-sm font-medium ${isBest ? colors.text : "text-white"}`}>
                   {formatValue(v)}
-                  {isBest && <span className="ml-1.5 text-[10px] text-green-400">★</span>}
+                  {isBest && <span className="ml-1.5 text-[10px] text-[#5ee7d4]">★</span>}
                 </span>
               </div>
               {typeof v === "number" && max > 0 && (

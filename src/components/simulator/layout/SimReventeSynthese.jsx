@@ -7,12 +7,12 @@ function Item({ label, value, accent = "text-white", info }) {
   return (
     <div className="px-4 py-4 min-w-0">
       <div className="flex items-center gap-1">
-        <p className="text-[9px] uppercase tracking-[0.16em] text-gray-600 font-medium truncate">{label}</p>
+        <p className="text-[9px] uppercase tracking-[0.16em] text-[#5e7672] font-medium truncate">{label}</p>
         {info && (
           <TooltipProvider delayDuration={100}>
             <UITooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0">
+                <button type="button" className="text-[#5e7672] hover:text-[#c4d5d1] transition-colors flex-shrink-0">
                   <Info className="w-3 h-3" />
                 </button>
               </TooltipTrigger>

@@ -127,7 +127,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white text-lg">Champs personnalisés du résumé</Label>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-[#93aca7] text-sm mt-1">
                 Ces champs seront affichés dans l'onglet "Résumé" de l'analyse du bail pour le client.
               </p>
             </div>
@@ -169,7 +169,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </div>
           ))}
           {(!formData.bail_admin_fields || formData.bail_admin_fields.length === 0) && (
-            <p className="text-gray-500 text-sm text-center py-2">Aucun champ personnalisé. Cliquez sur le bouton ci-dessus pour en ajouter.</p>
+            <p className="text-[#7f9995] text-sm text-center py-2">Aucun champ personnalisé. Cliquez sur le bouton ci-dessus pour en ajouter.</p>
           )}
         </div>
 
@@ -178,7 +178,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white text-lg">Réseaux sociaux & Avis</Label>
-              <p className="text-gray-400 text-sm mt-1">Ajoutez les liens vers les réseaux sociaux et pages d'avis du locataire</p>
+              <p className="text-[#93aca7] text-sm mt-1">Ajoutez les liens vers les réseaux sociaux et pages d'avis du locataire</p>
             </div>
             <Button
               type="button"
@@ -239,7 +239,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </div>
           ))}
           {(!formData.liens_locataire || formData.liens_locataire.length === 0) && (
-            <p className="text-gray-500 text-sm text-center py-2">Aucun lien ajouté.</p>
+            <p className="text-[#7f9995] text-sm text-center py-2">Aucun lien ajouté.</p>
           )}
         </div>
 
@@ -248,7 +248,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-white text-lg">Bilans du locataire</Label>
-              <p className="text-gray-400 text-sm mt-1">Importez les bilans financiers de l'entreprise (PDF, images...)</p>
+              <p className="text-[#93aca7] text-sm mt-1">Importez les bilans financiers de l'entreprise (PDF, images...)</p>
             </div>
             <label className="cursor-pointer">
               <input type="file" className="hidden" onChange={handleBilanUpload} accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls" />
@@ -283,7 +283,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </div>
           ))}
           {(!formData.bilans_locataire || formData.bilans_locataire.length === 0) && (
-            <p className="text-gray-500 text-sm text-center py-2">Aucun bilan importé.</p>
+            <p className="text-[#7f9995] text-sm text-center py-2">Aucun bilan importé.</p>
           )}
         </div>
 

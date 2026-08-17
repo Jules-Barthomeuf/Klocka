@@ -117,7 +117,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
             className={`flex flex-col items-center px-4 py-2.5 rounded-md border transition-all duration-300 min-w-[96px] ${
             !customActive && niveau === s.niveau ?
             "bg-[#33d6c0]/15 border-[#33d6c0]/50 text-white" :
-            "bg-[#141414] border-[#1c2725] text-gray-400 hover:border-white/[0.2]"}`
+            "bg-[#141414] border-[#1c2725] text-[#93aca7] hover:border-white/[0.2]"}`
             }>
             
               <span className="text-base tabular-nums text-[hsl(var(--background))]">-{s.niveau}%</span>
@@ -125,13 +125,13 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
             </button>
           )}
           <div className={`flex flex-col justify-center px-4 py-2 rounded-md border transition-all duration-300 min-w-[140px] ${customActive ? "bg-[#33d6c0]/15 border-[#33d6c0]/50" : "bg-[#141414] border-[#1c2725]"}`}>
-            <span className="text-[10px] text-gray-500 mb-1">Prix personnalisé</span>
+            <span className="text-[10px] text-[#7f9995] mb-1">Prix personnalisé</span>
             <input
               type="number"
               value={customPrix}
               onChange={(e) => setCustomPrix(e.target.value)}
               placeholder={formatCurrency(prixRef)}
-              className="sim-num-input bg-transparent text-white text-base tabular-nums w-full outline-none placeholder:text-gray-600" />
+              className="sim-num-input bg-transparent text-white text-base tabular-nums w-full outline-none placeholder:text-[#5e7672]" />
             
           </div>
         </div>
@@ -165,7 +165,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
             <col className="w-[23%]" />
           </colgroup>
           <thead>
-            <tr className="text-gray-500 border-b border-[#1c2725]">
+            <tr className="text-[#7f9995] border-b border-[#1c2725]">
               <th className="text-left font-normal px-3 py-2">Négociation</th>
               <th className="text-right font-normal px-3 py-2">Prix négocié</th>
               <th className="text-right font-normal px-3 py-2">Prix revient</th>
@@ -182,10 +182,10 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
                   className={`cursor-pointer border-b border-[#131c1b] transition-colors duration-200 ${niveau === s.niveau ? "bg-[#33d6c0]/10" : "hover:bg-white/[0.03]"}`}>
                   
                   <td className="px-3 py-2 text-white">-{s.niveau}%</td>
-                  <td className="px-3 py-2 text-right text-gray-300 tabular-nums">{formatCurrency(s.data.prixNegocie)}</td>
-                  <td className="px-3 py-2 text-right text-gray-300 tabular-nums">{formatCurrency(s.data.prixRevient)}</td>
-                  <td className="px-3 py-2 text-right text-gray-300 tabular-nums">{s.data.rendementBrut} %</td>
-                  <td className="px-3 py-2 text-right text-gray-300 tabular-nums">{formatCurrency(s.data.margeBrute)}</td>
+                  <td className="px-3 py-2 text-right text-[#c4d5d1] tabular-nums">{formatCurrency(s.data.prixNegocie)}</td>
+                  <td className="px-3 py-2 text-right text-[#c4d5d1] tabular-nums">{formatCurrency(s.data.prixRevient)}</td>
+                  <td className="px-3 py-2 text-right text-[#c4d5d1] tabular-nums">{s.data.rendementBrut} %</td>
+                  <td className="px-3 py-2 text-right text-[#c4d5d1] tabular-nums">{formatCurrency(s.data.margeBrute)}</td>
                 </tr>);
 
             })}

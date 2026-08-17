@@ -440,7 +440,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                               <p className="text-xs text-[#5ee7d4] mb-1">Estimation basse</p>
                               <p className="text-lg text-white font-semibold">{secteur.estimation_basse?.toLocaleString() || '-'} €/m²</p>
                             </div>
-                            <div className="h-8 w-px bg-gray-700" />
+                            <div className="h-8 w-px bg-[#24312f]" />
                             <div className="flex-1">
                               <p className="text-xs text-red-400 mb-1">Estimation haute</p>
                               <p className="text-lg text-white font-semibold">{secteur.estimation_haute?.toLocaleString() || '-'} €/m²</p>
@@ -565,7 +565,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   <div className="flex gap-3 max-md:gap-2 mb-6 max-md:mb-4 flex-wrap">
                     {project.bien_champ1 && <Badge className="bg-[#33d6c0] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ1}</Badge>}
                     {project.bien_champ2 && <Badge className="bg-[#5ee7d4] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ2}</Badge>}
-                    {project.bien_champ3 && <Badge className="bg-gray-700 text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ3}</Badge>}
+                    {project.bien_champ3 && <Badge className="bg-[#24312f] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ3}</Badge>}
                   </div>
                 }
                 {project.description_bien && <p className="text-sm max-md:text-xs text-white/60 leading-relaxed text-justify">{project.description_bien}</p>}
@@ -830,7 +830,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
                       <p className="text-xl text-white">{formatCurrency(prixRevientCalcule)}</p>
-                      <p className="text-xs text-gray-200">Prix de revient</p>
+                      <p className="text-xs text-[#e6efed]">Prix de revient</p>
                     </div>
                   </div>
                 </div>

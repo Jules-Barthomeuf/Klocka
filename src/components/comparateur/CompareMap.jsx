@@ -122,7 +122,7 @@ export default function CompareMap({ metrics }) {
               <Marker key={m.id} position={[m.lat, m.lng]} icon={icon}>
                 <Popup>
                   <div className="text-sm font-medium">{m.titre}</div>
-                  <div className="text-xs text-gray-500">{m.adresse || ""}</div>
+                  <div className="text-xs text-[#7f9995]">{m.adresse || ""}</div>
                 </Popup>
               </Marker>
             );

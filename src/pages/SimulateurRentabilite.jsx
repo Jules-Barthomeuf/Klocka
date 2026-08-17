@@ -503,7 +503,7 @@ export default function SimulateurRentabilite() {
                   <button
                     key={t.id}
                     onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#33d6c0] text-white" : "border-transparent text-gray-500 hover:text-gray-300"}`}
+                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#33d6c0] text-white" : "border-transparent text-[#7f9995] hover:text-[#c4d5d1]"}`}
                   >
                     {t.label}
                   </button>
@@ -512,12 +512,12 @@ export default function SimulateurRentabilite() {
               <div className="flex items-center gap-2">
                 <ExportExcelFullButton params={{ surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false }} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                 {isAdmin && (
-                  <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors">
+                  <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-[#c4d5d1] hover:text-white hover:border-white/[0.25] text-xs transition-colors">
                     {linkCopied ? <Check className="w-3.5 h-3.5 text-[#5ee7d4]" /> : <Link2 className="w-3.5 h-3.5" />}
                     {linkCopied ? 'Copié' : 'Partager'}
                   </button>
                 )}
-                <button onClick={handleReset} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors">
+                <button onClick={handleReset} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-[#c4d5d1] hover:text-white hover:border-white/[0.25] text-xs transition-colors">
                   <RefreshCw className="w-3.5 h-3.5" /> Reset
                 </button>
               </div>
@@ -559,7 +559,7 @@ export default function SimulateurRentabilite() {
               {activeTab !== "avance" && (
                 <SimDataTable calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} dureeCredit={values.dureeCredit} />
               )}
-              <p className="text-[10px] text-gray-600 italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
+              <p className="text-[10px] text-[#5e7672] italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
             </div>
           </main>
         </div>
@@ -567,9 +567,9 @@ export default function SimulateurRentabilite() {
         {/* Etape 1 overlay */}
         {isEtape1 && (
           <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
-            <div className="pointer-events-auto p-8 rounded-md bg-gradient-to-br from-gray-900/95 to-black/95 border-2 border-[#33d6c0]/50 text-center max-w-md backdrop-blur-sm">
+            <div className="pointer-events-auto p-8 rounded-md bg-gradient-to-br from-[#0a0f0e]/95 to-black/95 border-2 border-[#33d6c0]/50 text-center max-w-md backdrop-blur-sm">
               <h3 className="text-2xl text-white mb-3">Devenez client pour accéder au simulateur complet</h3>
-              <p className="text-gray-300 mb-6">Débloquez tous les indicateurs, graphiques détaillés et paramètres avancés.</p>
+              <p className="text-[#c4d5d1] mb-6">Débloquez tous les indicateurs, graphiques détaillés et paramètres avancés.</p>
               <NeonButton onClick={() => window.open("https://dpe3smipjxh.typeform.com/to/GD7sREFs", "_blank")} variant="default" className="inline-flex items-center justify-center">
                 Prendre rendez-vous <ArrowRight className="w-4 h-4 ml-2" />
               </NeonButton>

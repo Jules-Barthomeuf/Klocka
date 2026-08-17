@@ -205,7 +205,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
   if (!adresse) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Aucune adresse renseignée pour ce projet.</p>
+        <p className="text-[#93aca7]">Aucune adresse renseignée pour ce projet.</p>
       </div>
     );
   }
@@ -214,8 +214,8 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="w-10 h-10 text-[#33d6c0] animate-spin" />
-        <p className="text-gray-400 text-sm">Récupération des données INSEE...</p>
-        <p className="text-gray-500 text-xs">{adresse}</p>
+        <p className="text-[#93aca7] text-sm">Récupération des données INSEE...</p>
+        <p className="text-[#7f9995] text-xs">{adresse}</p>
       </div>
     );
   }
@@ -224,7 +224,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-4">
         <p className="text-red-400 text-sm">{error}</p>
-        <Button onClick={fetchData} variant="outline" size="sm" className="text-gray-300 border-gray-700">
+        <Button onClick={fetchData} variant="outline" size="sm" className="text-[#c4d5d1] border-[#24312f]">
           <RefreshCw className="w-4 h-4 mr-2" />Réessayer
         </Button>
       </div>
@@ -241,10 +241,10 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
           <h2 className="text-2xl font-montserrat text-white">{data.ville}</h2>
           <div className="flex items-center gap-3 mt-1">
             <Badge className="bg-[#33d6c0]/20 text-[#33d6c0] border-0">INSEE {data.code_insee}</Badge>
-            <span className="text-sm text-gray-400">Données {data.annee_donnees || 2022}</span>
+            <span className="text-sm text-[#93aca7]">Données {data.annee_donnees || 2022}</span>
           </div>
         </div>
-        <Button onClick={fetchData} variant="ghost" size="icon" className="text-gray-400 hover:text-white" title="Actualiser les données">
+        <Button onClick={fetchData} variant="ghost" size="icon" className="text-[#93aca7] hover:text-white" title="Actualiser les données">
           <RefreshCw className="w-4 h-4" />
         </Button>
       </div>
@@ -260,9 +260,9 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
         <SectionCard title="Notes">
           <div className="space-y-4">
             {project.notes_secteur.map((note, idx) => (
-              <div key={idx} className="p-4 bg-gray-800/50 rounded-md border border-gray-700">
+              <div key={idx} className="p-4 bg-[#101715]/50 rounded-md border border-[#24312f]">
                 {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
-                <p className="text-sm text-gray-300 whitespace-pre-wrap">{note.contenu}</p>
+                <p className="text-sm text-[#c4d5d1] whitespace-pre-wrap">{note.contenu}</p>
               </div>
             ))}
           </div>

@@ -99,6 +99,18 @@ function jsonSystemPrompt(schema) {
 
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
+const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Délai conseillé par Google dans une erreur 429 (RetryInfo), sinon null.
+function delaiRetryDe(data) {
+  const details = data?.error?.details || [];
+  for (const d of details) {
+    const m = String(d?.retryDelay || '').match(/^(\d+(?:\.\d+)?)s$/);
+    if (m) return Math.ceil(Number(m[1]) * 1000);
+  }
+  return null;
+}
+
 async function geminiGenerate({ systemInstruction, contents, tools, json }) {
   const body = {
     contents,
@@ -113,17 +125,35 @@ async function geminiGenerate({ systemInstruction, contents, tools, json }) {
     },
   };
 
-  const resp = await fetch(GEMINI_URL, {
-    method: 'POST',
-    headers: { 'x-goog-api-key': GEMINI_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  // Le palier gratuit de Gemini plafonne à ~20 requêtes/minute : un dépôt de
+  // plusieurs documents les enchaîne et tombe vite en 429. Plutôt que de faire
+  // échouer le document, on attend et on réessaie (délai conseillé par Google,
+  // sinon backoff progressif). Les 5xx passagers profitent du même filet.
+  const MAX_TENTATIVES = 4;
+  let derniereErreur = null;
 
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok) {
-    throw new Error(data?.error?.message || `Gemini a répondu ${resp.status}`);
+  for (let tentative = 1; tentative <= MAX_TENTATIVES; tentative++) {
+    const resp = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'x-goog-api-key': GEMINI_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok) return data;
+
+    derniereErreur = new Error(data?.error?.message || `Gemini a répondu ${resp.status}`);
+    const retryable = resp.status === 429 || resp.status >= 500;
+    if (!retryable || tentative === MAX_TENTATIVES) break;
+
+    const delai = delaiRetryDe(data) ?? [3000, 12000, 30000][tentative - 1];
+    console.warn(
+      `[llm] Gemini ${resp.status} (tentative ${tentative}/${MAX_TENTATIVES}) — nouvel essai dans ${Math.round(delai / 1000)} s`
+    );
+    await attendre(delai);
   }
-  return data;
+
+  throw derniereErreur;
 }
 
 function geminiParts(data) {

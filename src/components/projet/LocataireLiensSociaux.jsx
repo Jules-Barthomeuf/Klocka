@@ -44,8 +44,8 @@ const LINK_CONFIG = {
   },
   site_web: {
     label: "Site web",
-    color: "from-gray-500 to-gray-600",
-    borderColor: "border-gray-500/30 hover:border-gray-500/60",
+    color: "from-[#7f9995] to-[#2c3a37]",
+    borderColor: "border-[#7f9995]/30 hover:border-[#7f9995]/60",
     icon: <ExternalLink className="w-5 h-5" />,
   },
   linkedin: {
@@ -60,8 +60,8 @@ const LINK_CONFIG = {
   },
   autre: {
     label: "Autre",
-    color: "from-gray-500 to-gray-600",
-    borderColor: "border-gray-500/30 hover:border-gray-500/60",
+    color: "from-[#7f9995] to-[#2c3a37]",
+    borderColor: "border-[#7f9995]/30 hover:border-[#7f9995]/60",
     icon: <ExternalLink className="w-5 h-5" />,
   },
 };
@@ -95,7 +95,7 @@ function InstagramPreview({ url }) {
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
               </svg>
             </div>
-            <p className="text-gray-400 text-sm">Instagram</p>
+            <p className="text-[#93aca7] text-sm">Instagram</p>
           </div>
           <div className="px-4 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg text-white text-sm font-medium group-hover:from-pink-400 group-hover:to-purple-500 transition-all">
             Voir le profil
@@ -103,8 +103,8 @@ function InstagramPreview({ url }) {
         </div>
         <div className="grid grid-cols-3 gap-1.5 rounded-md overflow-hidden">
           {[1,2,3].map((i) => (
-            <div key={i} className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <div key={i} className="aspect-square bg-gradient-to-br from-[#101715] to-[#0a0f0e] flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#3c4a47]" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <path d="M21 15l-5-5L5 21" />
@@ -124,7 +124,7 @@ export default function LocataireLiensSociaux({ liens }) {
   const otherLinks = liens.filter(l => l.type !== "instagram");
 
   return (
-    <div className="mt-6 max-md:mt-4 pt-6 max-md:pt-4 border-t border-gray-700">
+    <div className="mt-6 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#24312f]">
       <h3 className="font-montserrat text-white mb-4 max-md:mb-2 max-md:text-lg">
         Présence en ligne
       </h3>
@@ -145,16 +145,16 @@ export default function LocataireLiensSociaux({ liens }) {
                 href={lien.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-4 p-4 bg-gray-800/50 rounded-md border ${config.borderColor} transition-all duration-300 group`}
+                className={`flex items-center gap-4 p-4 bg-[#101715]/50 rounded-md border ${config.borderColor} transition-all duration-300 group`}
               >
                 <div className={`w-10 h-10 bg-gradient-to-br ${config.color} rounded-lg flex items-center justify-center text-white flex-shrink-0 shadow-lg`}>
                   {config.icon}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium">{lien.label || config.label}</p>
-                  <p className="text-gray-500 text-xs truncate">{lien.url}</p>
+                  <p className="text-[#7f9995] text-xs truncate">{lien.url}</p>
                 </div>
-                <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors flex-shrink-0" />
+                <ExternalLink className="w-4 h-4 text-[#7f9995] group-hover:text-white transition-colors flex-shrink-0" />
               </a>
             );
           })}

@@ -217,8 +217,8 @@ export default function Questionnaire() {
 
     return (
       <div className="min-h-screen bg-[#050807] flex items-center justify-center p-4">
-        <Card className="max-w-2xl w-full border-[#33d6c0]/30 bg-gradient-to-br from-gray-900 to-black shadow-2xl">
-          <CardHeader className="pb-6 border-b border-gray-800">
+        <Card className="max-w-2xl w-full border-[#33d6c0]/30 bg-gradient-to-br from-[#0a0f0e] to-black shadow-2xl">
+          <CardHeader className="pb-6 border-b border-[#101715]">
             <div className="flex items-center gap-4 mb-4">
               <div className="flex-1 text-center">
                 <div className="w-12 h-12 mx-auto mb-2 bg-[#33d6c0] rounded-full flex items-center justify-center">
@@ -243,7 +243,7 @@ export default function Questionnaire() {
                 {profilInfo.nom}
               </h2>
 
-              <p className="text-gray-300 leading-relaxed text-lg max-md:text-base">
+              <p className="text-[#c4d5d1] leading-relaxed text-lg max-md:text-base">
                 {profilInfo.description}
               </p>
 
@@ -270,17 +270,17 @@ export default function Questionnaire() {
 
   return (
     <div className="min-h-screen bg-[#050807] flex items-center justify-center p-4 max-md:p-3">
-      <Card className="max-w-3xl w-full border-[#33d6c0]/30 bg-gradient-to-br from-gray-900 to-black shadow-2xl">
-        <CardHeader className="space-y-4 pb-8 max-md:pb-6 max-md:space-y-3 border-b border-gray-800">
+      <Card className="max-w-3xl w-full border-[#33d6c0]/30 bg-gradient-to-br from-[#0a0f0e] to-black shadow-2xl">
+        <CardHeader className="space-y-4 pb-8 max-md:pb-6 max-md:space-y-3 border-b border-[#101715]">
           <div className="flex justify-between items-center max-md:flex-col max-md:items-start max-md:gap-2">
             <CardTitle className="text-3xl max-md:text-xl text-white">
               {currentQuestion === 0 ? "Bienvenue chez Klocka !" : "Questionnaire initial"}
             </CardTitle>
-            <div className="text-sm max-md:text-xs font-medium text-gray-400">
+            <div className="text-sm max-md:text-xs font-medium text-[#93aca7]">
               Question {questionNumber} / {totalQuestions}
             </div>
           </div>
-          <Progress value={progress} className="h-2 max-md:h-1.5 bg-gray-800" />
+          <Progress value={progress} className="h-2 max-md:h-1.5 bg-[#101715]" />
         </CardHeader>
         
         <CardContent className="space-y-8 max-md:space-y-6 p-8 max-md:p-4">
@@ -295,18 +295,18 @@ export default function Questionnaire() {
                   placeholder={question.placeholder}
                   value={reponses[question.id] || ""}
                   onChange={(e) => setReponses({ ...reponses, [question.id]: e.target.value })}
-                  className="h-12 max-md:h-10 text-lg max-md:text-base bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-[#33d6c0] focus:ring-[#33d6c0]"
+                  className="h-12 max-md:h-10 text-lg max-md:text-base bg-[#0a0f0e] border-[#24312f] text-white placeholder:text-[#7f9995] focus:border-[#33d6c0] focus:ring-[#33d6c0]"
                   autoFocus
                 />
                 
                 {/* Section partenaire - uniquement sur la première question */}
                 {question.id === "nom_complet" && (
-                  <div className="p-4 bg-gray-800/50 rounded-md border border-gray-700 space-y-4">
+                  <div className="p-4 bg-[#101715]/50 rounded-md border border-[#24312f] space-y-4">
                     <div className="flex items-center gap-2">
                       <Users className="w-5 h-5 text-[#33d6c0]" />
                       <Label className="text-white font-medium">Investir à deux ? (optionnel)</Label>
                     </div>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-[#93aca7] text-sm">
                       Ajoutez l'email de votre partenaire pour qu'il ait accès à tous vos projets.
                     </p>
                     
@@ -334,7 +334,7 @@ export default function Questionnaire() {
                         value={newPartnerEmail}
                         onChange={(e) => setNewPartnerEmail(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddPartner())}
-                        className="flex-1 bg-gray-900 border-gray-700 text-white"
+                        className="flex-1 bg-[#0a0f0e] border-[#24312f] text-white"
                       />
                       <Button
                         type="button"
@@ -361,14 +361,14 @@ export default function Questionnaire() {
                     className={`flex items-start space-x-3 p-5 rounded-md border-2 transition-all cursor-pointer hover:shadow-md ${
                       reponses[question.id] === option.value
                         ? 'border-[#33d6c0] bg-[#33d6c0]/20'
-                        : 'border-gray-700 hover:border-gray-600 bg-gray-900'
+                        : 'border-[#24312f] hover:border-[#2c3a37] bg-[#0a0f0e]'
                     }`}
                     onClick={() => setReponses({ ...reponses, [question.id]: option.value })}
                   >
-                    <RadioGroupItem value={option.value} id={option.value} className="mt-1 border-gray-600" />
+                    <RadioGroupItem value={option.value} id={option.value} className="mt-1 border-[#2c3a37]" />
                     <Label 
                       htmlFor={option.value} 
-                      className="flex-1 cursor-pointer text-base font-medium leading-relaxed text-gray-200"
+                      className="flex-1 cursor-pointer text-base font-medium leading-relaxed text-[#e6efed]"
                     >
                       {option.label}
                     </Label>
@@ -381,12 +381,12 @@ export default function Questionnaire() {
             )}
           </div>
 
-          <div className="flex justify-between gap-4 max-md:gap-2 pt-6 max-md:pt-4 border-t border-gray-800">
+          <div className="flex justify-between gap-4 max-md:gap-2 pt-6 max-md:pt-4 border-t border-[#101715]">
             <Button
               variant="outline"
               onClick={handlePrevious}
               disabled={currentQuestion === 0}
-              className="px-8 max-md:px-4 max-md:text-sm border-gray-700 text-white hover:bg-gray-800"
+              className="px-8 max-md:px-4 max-md:text-sm border-[#24312f] text-white hover:bg-[#101715]"
             >
               Précédent
             </Button>

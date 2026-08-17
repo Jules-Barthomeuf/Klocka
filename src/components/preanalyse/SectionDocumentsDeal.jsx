@@ -27,7 +27,7 @@ export function SyntheseView({ synthese }) {
   if (!synthese) return null;
   return (
     <div className="space-y-3">
-      <p className="text-gray-300 text-sm leading-relaxed">{synthese.resume}</p>
+      <p className="text-[#c4d5d1] text-sm leading-relaxed">{synthese.resume}</p>
       {synthese.points_a_verifier?.length > 0 && (
         <div className="space-y-2">
           {synthese.points_a_verifier.map((p, i) => {
@@ -43,14 +43,14 @@ export function SyntheseView({ synthese }) {
                   <Icone className="w-3.5 h-3.5 flex-shrink-0" />
                   {p.titre}
                 </p>
-                <p className="text-gray-400 text-xs mt-1 leading-relaxed">{p.detail}</p>
+                <p className="text-[#93aca7] text-xs mt-1 leading-relaxed">{p.detail}</p>
               </div>
             );
           })}
         </div>
       )}
       {!synthese.ia && (
-        <p className="text-gray-600 text-[11px]">
+        <p className="text-[#5e7672] text-[11px]">
           Synthèse générée sans IA (repli) : seuls les champs douteux de l'extraction sont listés.
         </p>
       )}
@@ -93,6 +93,11 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
     onRefresh?.();
   };
 
+  // File de dépôt animée : chaque fichier passe par en_attente → analyse →
+  // fait/erreur, visible pendant tout le traitement (le dépouillement d'un PDF
+  // peut prendre du temps, surtout quand le quota IA impose des pauses).
+  const [file, setFile] = useState([]);
+
   const deposer = useMutation({
     mutationFn: async (fichier) => {
       const form = new FormData();
@@ -102,22 +107,37 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
         isForm: true,
       });
     },
-    onSuccess: (r) => {
-      rafraichir();
-      const c = r.document?.classement;
-      toast.success(c?.libelle ? `${r.document.nom_fichier} — ${c.libelle}` : "Document dépouillé");
-    },
-    onError: (e) => toast.error(e?.message || "Dépouillement impossible"),
   });
+
+  const majFile = (nom, patch) =>
+    setFile((prev) => prev.map((f) => (f.nom === nom ? { ...f, ...patch } : f)));
 
   const onFichiers = (e) => {
     const fichiers = Array.from(e.target.files || []);
-    fichiers.reduce(
-      (chaine, f) => chaine.then(() => deposer.mutateAsync(f).catch(() => {})),
-      Promise.resolve()
-    );
+    if (!fichiers.length) return;
+    setFile(fichiers.map((f) => ({ nom: f.name, etat: "en_attente" })));
+    fichiers
+      .reduce(
+        (chaine, f) =>
+          chaine.then(async () => {
+            majFile(f.name, { etat: "analyse" });
+            try {
+              const r = await deposer.mutateAsync(f);
+              majFile(f.name, { etat: "fait", libelle: r.document?.classement?.libelle });
+              rafraichir();
+            } catch (err) {
+              majFile(f.name, { etat: "erreur", detail: err?.message || "Dépouillement impossible" });
+            }
+          }),
+        Promise.resolve()
+      )
+      .then(() => {
+        // La file reste affichée quelques secondes pour lire le bilan.
+        setTimeout(() => setFile((prev) => (prev.some((f) => f.etat === "erreur") ? prev : [])), 4000);
+      });
     e.target.value = "";
   };
+  const depotEnCours = file.some((f) => f.etat === "analyse" || f.etat === "en_attente");
 
   const reclasser = useMutation({
     mutationFn: ({ docId, type }) =>
@@ -178,7 +198,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
       <div className="px-5 py-4 border-b border-[#16201f] flex flex-wrap items-center gap-3">
         <p className="text-white text-sm font-medium">Documents du deal</p>
         {documents.length > 0 && (
-          <Badge className="bg-white/5 text-gray-400 border-white/10 text-[10px]">
+          <Badge className="bg-white/5 text-[#93aca7] border-white/10 text-[10px]">
             {documents.length} document{documents.length > 1 ? "s" : ""}
           </Badge>
         )}
@@ -188,27 +208,31 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             href={dossier.drive_folder_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#5ee7d4] hover:text-white text-xs flex items-center gap-1.5 transition-colors"
+            className="text-[#5ee7d4] hover:text-white text-xs flex items-center gap-1.5 transition-colors animate-in zoom-in-95 fade-in duration-500"
           >
             <CheckCircle2 className="w-3.5 h-3.5" /> Dossier Drive <ExternalLink className="w-3 h-3" />
           </a>
         ) : (
-          documents.length > 0 && (
-            <Button
-              size="sm"
-              onClick={() => classerDrive.mutate()}
-              disabled={apercu || (!test && !compteDrive) || classerDrive.isPending}
-              title={!compteDrive ? "Aucun compte Google avec l'accès Drive (GOOGLE_DRIVE + reconnexion)" : undefined}
-              className="bg-white/5 hover:bg-white/10 text-gray-300 border-0"
-            >
-              {classerDrive.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <FolderUp className="w-3.5 h-3.5 mr-1.5" />
-              )}
-              Classer dans le Drive
-            </Button>
-          )
+          // Option, jamais bloquante : le dossier Drive peut être créé avant
+          // même le premier document — tout s'y classera ensuite.
+          <Button
+            size="sm"
+            onClick={() => classerDrive.mutate()}
+            disabled={apercu || (!test && !compteDrive) || classerDrive.isPending}
+            title={
+              !test && !compteDrive
+                ? "Aucun compte Google avec l'accès Drive — activez GOOGLE_DRIVE côté serveur puis reconnectez votre compte"
+                : "Crée « Klocka Projets / <deal> » dans votre Drive et y classe les documents"
+            }
+            className="bg-white/5 hover:bg-white/10 text-[#c4d5d1] border-0"
+          >
+            {classerDrive.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <FolderUp className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            {documents.length > 0 ? "Classer dans le Drive" : "Créer le dossier Drive (option)"}
+          </Button>
         )}
       </div>
 
@@ -230,7 +254,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
           <TabsContent value="depot">
             {test ? (
               <>
-                <p className="text-gray-400 text-xs mb-2">
+                <p className="text-[#93aca7] text-xs mb-2">
                   Deal de test : pas de vrai dépôt. La simulation pose trois documents fictifs
                   (bail, PV d'AG, diagnostics), la synthèse des points à vérifier, et avance le
                   statut jusqu'à « Dépouillé » — sans appel API.
@@ -250,27 +274,68 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
               </>
             ) : (
               <>
-            <p className="text-gray-400 text-xs mb-2">
+            <p className="text-[#93aca7] text-xs mb-2">
               Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
               Chaque dépôt met à jour la synthèse.
             </p>
             <button
               onClick={() => inputFichier.current?.click()}
-              disabled={apercu || deposer.isPending}
+              disabled={apercu || depotEnCours}
               className="w-full h-20 border border-dashed border-white/15 rounded-md flex items-center justify-center gap-3 hover:border-[#33d6c0]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
             >
-              {deposer.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 text-[#33d6c0] animate-spin" />
-                  <span className="text-gray-400 text-sm">Lecture et dépouillement…</span>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-5 h-5 text-[#33d6c0]" />
-                  <span className="text-gray-400 text-sm">PDF, image ou .eml — plusieurs à la fois</span>
-                </>
-              )}
+              <Upload className={`w-5 h-5 text-[#33d6c0] ${depotEnCours ? "animate-pulse" : ""}`} />
+              <span className="text-[#93aca7] text-sm">
+                {depotEnCours ? "Dépouillement en cours…" : "PDF, image ou .eml — plusieurs à la fois"}
+              </span>
             </button>
+
+            {/* File de traitement : un rang par fichier, états animés. */}
+            {file.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {file.map((f, i) => (
+                  <div
+                    key={f.nom}
+                    className="flex items-center gap-3 px-3.5 py-2.5 bg-[#060a09] border border-[#16201f] rounded animate-in fade-in slide-in-from-bottom-1 duration-300 ease-out fill-mode-both"
+                    style={{ animationDelay: `${i * 60}ms` }}
+                  >
+                    {f.etat === "analyse" ? (
+                      <Loader2 className="w-3.5 h-3.5 text-[#33d6c0] animate-spin flex-none" />
+                    ) : f.etat === "fait" ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#5ee7d4] flex-none animate-in zoom-in duration-300" />
+                    ) : f.etat === "erreur" ? (
+                      <OctagonAlert className="w-3.5 h-3.5 text-red-300 flex-none" />
+                    ) : (
+                      <span className="w-3.5 h-3.5 flex-none flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#3c4a47]" />
+                      </span>
+                    )}
+                    <span className="text-[12.5px] text-[#c4d5d1] truncate flex-1">{f.nom}</span>
+                    <span
+                      className={`text-[11px] flex-none ${
+                        f.etat === "erreur" ? "text-red-300" : f.etat === "fait" ? "text-[#5ee7d4]" : "text-[#5e7672]"
+                      }`}
+                    >
+                      {f.etat === "en_attente"
+                        ? "en attente"
+                        : f.etat === "analyse"
+                          ? "lecture et extraction…"
+                          : f.etat === "fait"
+                            ? f.libelle || "dépouillé"
+                            : f.detail}
+                    </span>
+                    {f.etat === "erreur" && (
+                      <button
+                        onClick={() => setFile((prev) => prev.filter((x) => x.nom !== f.nom))}
+                        className="text-[#5e7672] hover:text-white flex-none"
+                        title="Masquer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             <input
               ref={inputFichier}
               type="file"

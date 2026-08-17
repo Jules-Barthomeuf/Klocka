@@ -63,7 +63,7 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
       <div className="space-y-4">
         <div className="p-6 bg-[#171A21] rounded-[14px] border border-[#1c2725]">
           <div className="text-white text-lg mb-4">Upload direct</div>
-          <p className="text-xs text-gray-400 mb-4">Sélectionnez une ou plusieurs images depuis votre ordinateur</p>
+          <p className="text-xs text-[#93aca7] mb-4">Sélectionnez une ou plusieurs images depuis votre ordinateur</p>
           <label className="cursor-pointer">
             <input type="file" accept="image/*" multiple className="hidden" disabled={uploading} onChange={(e) => {
               handleFilesUpload(e.target.files);
@@ -77,13 +77,13 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
 
         <div className="p-6 bg-[#171A21] rounded-[14px] border border-[#1c2725]">
           <div className="text-white text-lg mb-4">Ajout par URL</div>
-          <p className="text-xs text-gray-400 mb-4">Collez une ou plusieurs URL d'images (une par ligne, ou séparées par une virgule)</p>
+          <p className="text-xs text-[#93aca7] mb-4">Collez une ou plusieurs URL d'images (une par ligne, ou séparées par une virgule)</p>
           <textarea
             value={urlText}
             onChange={(e) => setUrlText(e.target.value)}
             rows={3}
             placeholder="https://exemple.com/photo1.jpg&#10;https://exemple.com/photo2.jpg"
-            className="w-full resize-y bg-[#0c0c0c] border border-white/[0.10] rounded-lg px-3 py-2 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-[#33d6c0]/40 mb-3"
+            className="w-full resize-y bg-[#0c0c0c] border border-white/[0.10] rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#5e7672] focus:outline-none focus:border-[#33d6c0]/40 mb-3"
           />
           <Button type="button" onClick={handleAddUrls} disabled={!urlText.trim()} className="w-full bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white disabled:opacity-30">
             Ajouter les URL
@@ -92,7 +92,7 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
 
         {formData.photos.length > 0 && (
           <div className="mt-4">
-            <p className="text-gray-400 text-sm mb-3">
+            <p className="text-[#93aca7] text-sm mb-3">
               Glissez-déposez les images pour réorganiser ({formData.photos.length} photo{formData.photos.length > 1 ? 's' : ''})
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

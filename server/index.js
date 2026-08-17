@@ -98,7 +98,9 @@ app.set('trust proxy', 1);
 app.use(EN_PRODUCTION ? cors({ origin: APP_URL_PROD, credentials: true }) : cors());
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
+  // SAMEORIGIN et non DENY : la visionneuse de documents affiche les PDF de
+  // /uploads dans une iframe de l'application elle-même.
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'same-origin');
   next();
 });
@@ -908,7 +910,8 @@ app.post('/api/preanalyse/dossiers/:dealId/drive', wrap(async (req, res) => {
   if (dossier.source?.url) {
     fichiers.push({ nom: dossier.source.nom_fichier || 'fiche-commerciale', chemin: dossier.source.url });
   }
-  if (!fichiers.length) return res.status(400).json({ error: 'Aucun fichier à classer.' });
+  // Aucun fichier n'empêche rien : le dossier Drive peut être créé en avance,
+  // les documents s'y classeront au fil de l'eau.
 
   const titre = dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || dossier.deal_id;
   const r = await classerDansDrive(compte, titre, fichiers, UPLOAD_DIR);

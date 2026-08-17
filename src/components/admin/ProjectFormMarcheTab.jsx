@@ -116,9 +116,9 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
         </div>
         {secteurs.length === 0 ? (
           <div className="text-center py-8">
-            <MapPin className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-            <p className="text-gray-500 text-sm">Aucun secteur ajouté</p>
-            <p className="text-gray-600 text-xs mt-1">Ajoutez des secteurs pour comparer les estimations basse et haute</p>
+            <MapPin className="w-8 h-8 text-[#5e7672] mx-auto mb-2" />
+            <p className="text-[#7f9995] text-sm">Aucun secteur ajouté</p>
+            <p className="text-[#5e7672] text-xs mt-1">Ajoutez des secteurs pour comparer les estimations basse et haute</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -147,12 +147,12 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
               { key: "marche_prix_m2_haut", label: "Prix haut", color: "red", placeholder: "5645" },
             ].map(({ key, label, color, placeholder }) => (
               <div key={key} className="p-4 bg-white/[0.02] rounded-md border border-[#16201f] text-center">
-                <Label className="text-gray-400 text-sm">{label}</Label>
+                <Label className="text-[#93aca7] text-sm">{label}</Label>
                 <div className="mt-2">
                   <FField className="!py-2">
                     <FInput type="number" value={formData[key] || ''} onChange={(e) => setFormData({...formData, [key]: parseFloat(e.target.value) || 0})} placeholder={placeholder} className="text-center text-lg font-bold" />
                   </FField>
-                  <p className="text-gray-500 text-xs mt-1">€/m²</p>
+                  <p className="text-[#7f9995] text-xs mt-1">€/m²</p>
                 </div>
               </div>
             ))}
@@ -184,12 +184,12 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
             { key: "marche_offre_haut", label: "Haut", placeholder: "280" },
           ].map(({ key, label, placeholder }) => (
             <div key={key} className="p-4 bg-white/[0.02] rounded-md border border-[#16201f] text-center">
-              <Label className="text-gray-400 text-sm">{label}</Label>
+              <Label className="text-[#93aca7] text-sm">{label}</Label>
               <div className="mt-2">
                 <FField className="!py-2">
                   <FInput type="number" value={formData[key] || ''} onChange={(e) => setFormData({...formData, [key]: parseFloat(e.target.value) || 0})} placeholder={placeholder} className="text-center text-lg font-bold" />
                 </FField>
-                <p className="text-gray-500 text-xs mt-1">€/m²/an</p>
+                <p className="text-[#7f9995] text-xs mt-1">€/m²/an</p>
               </div>
             </div>
           ))}
@@ -206,12 +206,12 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
             { key: "marche_baux_haut", label: "Haut", placeholder: "250" },
           ].map(({ key, label, placeholder }) => (
             <div key={key} className="p-4 bg-white/[0.02] rounded-md border border-[#16201f] text-center">
-              <Label className="text-gray-400 text-sm">{label}</Label>
+              <Label className="text-[#93aca7] text-sm">{label}</Label>
               <div className="mt-2">
                 <FField className="!py-2">
                   <FInput type="number" value={formData[key] || ''} onChange={(e) => setFormData({...formData, [key]: parseFloat(e.target.value) || 0})} placeholder={placeholder} className="text-center text-lg font-bold" />
                 </FField>
-                <p className="text-gray-500 text-xs mt-1">€/m²/an</p>
+                <p className="text-[#7f9995] text-xs mt-1">€/m²/an</p>
               </div>
             </div>
           ))}

@@ -526,8 +526,8 @@ export default function AdminRessources() {
                       <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin" />
                     ) : (
                       <div className="flex flex-col items-center gap-1">
-                        <ImagePlus className="w-6 h-6 text-gray-500" />
-                        <span className="text-gray-500 text-[10px]">Importer</span>
+                        <ImagePlus className="w-6 h-6 text-[#7f9995]" />
+                        <span className="text-[#7f9995] text-[10px]">Importer</span>
                       </div>
                     )}
                   </label>

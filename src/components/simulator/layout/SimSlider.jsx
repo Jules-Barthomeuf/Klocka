@@ -43,7 +43,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
   return (
     <div className="py-1.5">
       <div className="flex items-center justify-between text-[13px] leading-tight">
-        <span className="text-gray-400 truncate pr-2">{label}</span>
+        <span className="text-[#93aca7] truncate pr-2">{label}</span>
         {editing ? (
           <input
             autoFocus
@@ -57,7 +57,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
         ) : (
           <button
             onClick={beginEdit}
-            className={`tabular-nums font-medium transition-all duration-300 ease-out ${muted ? "text-gray-300" : "text-white"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-[#33d6c0]"}`}
+            className={`tabular-nums font-medium transition-all duration-300 ease-out ${muted ? "text-[#c4d5d1]" : "text-white"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-[#33d6c0]"}`}
             title="Cliquer pour modifier"
           >
             {display}{unit}

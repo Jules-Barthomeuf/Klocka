@@ -71,7 +71,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         <p className="text-white text-xs font-medium mb-1">Année {label}</p>
         <p className="text-[#7FE0D3] text-[11px]">Capital remboursé : {formatCurrency(capital)}</p>
         <p className="text-[#1F6E64] text-[11px] mb-2" style={{ color: "#4FD1A5" }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
-        <p className="text-gray-400 text-[10px] leading-snug border-t border-white/10 pt-2">
+        <p className="text-[#93aca7] text-[10px] leading-snug border-t border-white/10 pt-2">
           La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.
         </p>
       </div>
@@ -83,7 +83,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-white text-sm font-medium">{config.title}</p>
-          <p className="text-gray-500 text-xs mt-0.5">{config.subtitle}</p>
+          <p className="text-[#7f9995] text-xs mt-0.5">{config.subtitle}</p>
         </div>
         <p className="text-[#33d6c0] text-xl font-medium tabular-nums">{config.bigValue}</p>
       </div>
@@ -95,7 +95,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: "Année", position: "bottom", offset: 18, fill: "#9ca3af", fontSize: 11 }} />
               <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} label={{ value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: "#9ca3af", fontSize: 11, style: { textAnchor: "middle" } }} />
               <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} content={<RichesseTooltip />} />
-              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 12, color: "#e5e7eb", paddingBottom: 12 }} formatter={(v) => <span className="text-gray-200">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
+              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 12, color: "#e5e7eb", paddingBottom: 12 }} formatter={(v) => <span className="text-[#e6efed]">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
               <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
               <Bar name="cashflow" dataKey="cashflow" fill="#1F6E64" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
             </BarChart>
@@ -129,7 +129,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <span className="w-2.5 h-2.5 rounded-full bg-[#F5A623] flex-shrink-0" />
               <div>
                 <p className="text-white text-xs font-medium">Récupération de l'apport</p>
-                <p className="text-gray-500 text-[11px]">Année {config.markers.recupApport.annee} – Vous récupérez vos {formatCurrency(config.markers.recupApport.montant)}</p>
+                <p className="text-[#7f9995] text-[11px]">Année {config.markers.recupApport.annee} – Vous récupérez vos {formatCurrency(config.markers.recupApport.montant)}</p>
               </div>
             </div>
           )}
@@ -138,7 +138,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6] flex-shrink-0" />
               <div>
                 <p className="text-white text-xs font-medium">Double de l'apport</p>
-                <p className="text-gray-500 text-[11px]">Année {config.markers.doubleApport.annee} – Vous atteignez {formatCurrency(config.markers.doubleApport.montant)}</p>
+                <p className="text-[#7f9995] text-[11px]">Année {config.markers.doubleApport.annee} – Vous atteignez {formatCurrency(config.markers.doubleApport.montant)}</p>
               </div>
             </div>
           )}

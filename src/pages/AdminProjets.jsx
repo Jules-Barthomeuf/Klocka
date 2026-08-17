@@ -1088,7 +1088,7 @@ export default function AdminProjets() {
           <DialogContent className="max-w-md bg-[#050505] border-[#33d6c0]/40 shadow-[0_0_40px_rgba(42,157,143,0.15)]">
             <DialogHeader>
               <DialogTitle className="text-white font-light text-xl">Choisissez l'admin principal</DialogTitle>
-              <p className="text-gray-500 text-sm mt-1">Cliquez sur la photo de l'admin en charge de ce projet</p>
+              <p className="text-[#7f9995] text-sm mt-1">Cliquez sur la photo de l'admin en charge de ce projet</p>
             </DialogHeader>
             <div className="flex justify-center gap-8 py-6">
               {users.filter(u => u.role === "admin" && ["jules.b@klocka.immo", "alexis.p@klocka.immo", "maxime.p@klocka.immo", "paul.b@klocka.immo"].includes(u.email)).map(u => {
@@ -1113,7 +1113,7 @@ export default function AdminProjets() {
                     <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-[#33d6c0] transition-all duration-200 group-hover:scale-105">
                       <img src={avatar} alt={u.full_name} className="w-full h-full object-cover" />
                     </div>
-                    <span className="text-gray-400 text-sm group-hover:text-white transition-colors">{u.full_name || u.email.split('@')[0]}</span>
+                    <span className="text-[#93aca7] text-sm group-hover:text-white transition-colors">{u.full_name || u.email.split('@')[0]}</span>
                   </button>
                 );
               })}

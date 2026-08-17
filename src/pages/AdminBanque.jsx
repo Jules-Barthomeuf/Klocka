@@ -68,11 +68,11 @@ export default function AdminBanque() {
           <h2 className="text-white text-lg font-light mb-1 flex items-center gap-2">
             <FileText className="w-4 h-4 text-[#33d6c0]" /> Générer le contenu des slides
           </h2>
-          <p className="text-gray-500 text-xs mb-5">Sélectionnez un client et un projet — le contenu prêt-à-copier pour chaque slide est généré automatiquement.</p>
+          <p className="text-[#7f9995] text-xs mb-5">Sélectionnez un client et un projet — le contenu prêt-à-copier pour chaque slide est généré automatiquement.</p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div>
-              <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Client</p>
+              <p className="text-[#7f9995] text-xs uppercase tracking-wider mb-2">Client</p>
               <Select value={selectedClient} onValueChange={(v) => { setSelectedClient(v); setSelectedProject(""); }}>
                 <SelectTrigger className="bg-[#050807] border-[#16201f] text-white h-11">
                   <SelectValue placeholder="Sélectionner un client" />
@@ -87,7 +87,7 @@ export default function AdminBanque() {
               </Select>
             </div>
             <div>
-              <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Projet</p>
+              <p className="text-[#7f9995] text-xs uppercase tracking-wider mb-2">Projet</p>
               <Select value={selectedProject} onValueChange={setSelectedProject} disabled={!selectedClient}>
                 <SelectTrigger className="bg-[#050807] border-[#16201f] text-white h-11">
                   <SelectValue placeholder={selectedClient ? "Sélectionner un projet" : "Choisir un client d'abord"} />
@@ -106,7 +106,7 @@ export default function AdminBanque() {
           {selectedProjectData ? (
             <BankPitchGenerator project={selectedProjectData} client={selectedClientData} />
           ) : (
-            <div className="text-center py-10 border border-dashed border-[#16201f] rounded-md text-gray-600 text-sm">
+            <div className="text-center py-10 border border-dashed border-[#16201f] rounded-md text-[#5e7672] text-sm">
               Sélectionnez un client et un projet pour générer le contenu
             </div>
           )}
@@ -121,9 +121,9 @@ export default function AdminBanque() {
             </div>
           ) : presentations.length === 0 ? (
             <div className="text-center py-16 bg-[#0a0f0e] rounded-md border border-[#16201f]">
-              <Landmark className="w-10 h-10 text-gray-700 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">Aucune présentation créée</p>
-              <p className="text-gray-600 text-xs mt-1">Générez un prompt ci-dessus pour commencer.</p>
+              <Landmark className="w-10 h-10 text-[#3c4a47] mx-auto mb-3" />
+              <p className="text-[#7f9995] text-sm">Aucune présentation créée</p>
+              <p className="text-[#5e7672] text-xs mt-1">Générez un prompt ci-dessus pour commencer.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -132,7 +132,7 @@ export default function AdminBanque() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-light truncate">{pres.project_title}</p>
-                      <p className="text-gray-500 text-xs mt-0.5">
+                      <p className="text-[#7f9995] text-xs mt-0.5">
                         {pres.client_name || pres.client_email} — {new Date(pres.created_date).toLocaleDateString('fr-FR')}
                       </p>
                     </div>
@@ -155,7 +155,7 @@ export default function AdminBanque() {
                           setEditLinkId(pres.id);
                           setLinkValue(pres.pptx_url || "");
                         }}
-                        className={`h-8 w-8 ${pres.pptx_url ? "text-[#33d6c0]" : "text-gray-400 hover:text-[#F59E0B]"}`}
+                        className={`h-8 w-8 ${pres.pptx_url ? "text-[#33d6c0]" : "text-[#93aca7] hover:text-[#F59E0B]"}`}
                         title={pres.pptx_url ? "Modifier le lien" : "Ajouter un lien de présentation"}
                       >
                         {pres.pptx_url ? <Pencil className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
@@ -164,7 +164,7 @@ export default function AdminBanque() {
                         variant="ghost"
                         size="icon"
                         onClick={() => { if (confirm("Supprimer cette présentation ?")) deleteMutation.mutate(pres.id); }}
-                        className="text-gray-400 hover:text-red-400 h-8 w-8"
+                        className="text-[#93aca7] hover:text-red-400 h-8 w-8"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -202,7 +202,7 @@ export default function AdminBanque() {
                         size="sm"
                         variant="ghost"
                         onClick={() => { setEditLinkId(null); setLinkValue(""); }}
-                        className="text-gray-500 text-xs h-9"
+                        className="text-[#7f9995] text-xs h-9"
                       >
                         Annuler
                       </Button>

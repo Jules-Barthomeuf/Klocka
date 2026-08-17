@@ -9,7 +9,7 @@ function SectionHeader({ title, open, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-gray-500 font-medium pt-3 pb-1 hover:text-gray-300 transition-colors"
+      className="w-full flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-[#7f9995] font-medium pt-3 pb-1 hover:text-[#c4d5d1] transition-colors"
     >
       <span>{title}</span>
       <ChevronDown className={`w-3 h-3 transition-transform ${open ? "" : "-rotate-90"}`} />
@@ -20,7 +20,7 @@ function SectionHeader({ title, open, onToggle }) {
 function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-[12px] text-gray-400">{label}</span>
+      <span className="text-[12px] text-[#93aca7]">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#33d6c0] h-4 w-7" />
     </div>
   );
@@ -113,7 +113,7 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
 
       {/* Scenario select */}
       <div className="px-3 pt-3 pb-2 border-b border-[#16201f]">
-        <p className="text-[9px] uppercase tracking-[0.18em] text-gray-600 font-medium mb-1.5">Scénario</p>
+        <p className="text-[9px] uppercase tracking-[0.18em] text-[#5e7672] font-medium mb-1.5">Scénario</p>
         <Select value={selectedProjectId || "default"} onValueChange={onSelectProject}>
           <SelectTrigger className="bg-[#161616] text-white border-[#1c2725] h-8 text-xs rounded-md">
             <SelectValue placeholder="Mode par défaut" />
@@ -126,7 +126,7 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
           </SelectContent>
         </Select>
         {calculs && (
-          <p className="text-[10px] text-gray-600 mt-1.5">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
+          <p className="text-[10px] text-[#5e7672] mt-1.5">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
         )}
       </div>
 
@@ -225,7 +225,7 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
               </div>
             )}
             {isOpen(g.title) && g.title === "LOCATION" && values.loyerInitialHTHC > 0 && values.surface > 0 && (
-              <p className="text-[10px] text-gray-600 -mt-0.5">{Math.round(values.loyerInitialHTHC / values.surface)} €/m²/an</p>
+              <p className="text-[10px] text-[#5e7672] -mt-0.5">{Math.round(values.loyerInitialHTHC / values.surface)} €/m²/an</p>
             )}
           </div>
         ))}

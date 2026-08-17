@@ -200,7 +200,7 @@ Réponds UNIQUEMENT avec le JSON.`;
         {/* Stats */}
         <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] px-5 py-3 mb-6 inline-flex items-center gap-2">
           <ClipboardCheck className="w-4 h-4 text-[#33d6c0]" />
-          <span className="text-gray-400 text-sm">{items.length} check{items.length !== 1 ? "s" : ""} en cours</span>
+          <span className="text-[#93aca7] text-sm">{items.length} check{items.length !== 1 ? "s" : ""} en cours</span>
         </div>
 
         {/* List */}
@@ -211,10 +211,10 @@ Réponds UNIQUEMENT avec le JSON.`;
         items.length === 0 ?
         <div className="text-center py-20">
             <div className="w-20 h-20 bg-white/[0.03] rounded-md flex items-center justify-center mx-auto mb-6">
-              <ClipboardCheck className="w-10 h-10 text-gray-700" />
+              <ClipboardCheck className="w-10 h-10 text-[#3c4a47]" />
             </div>
             <h2 className="text-xl font-light text-white mb-2">Aucun double check</h2>
-            <p className="text-gray-600 mb-6 text-sm">Créez un check pour analyser un nouveau bien</p>
+            <p className="text-[#5e7672] mb-6 text-sm">Créez un check pour analyser un nouveau bien</p>
             <button onClick={openCreate}
           className="inline-flex items-center gap-2 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white px-5 py-2.5 rounded-md transition-all text-sm">
               <Plus className="w-4 h-4 text-[#33d6c0]" /> Nouveau check
@@ -235,18 +235,18 @@ Réponds UNIQUEMENT avec le JSON.`;
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3 mb-1">
                         <h3 className="text-white font-medium text-sm truncate">{item.titre}</h3>
-                        <span className="text-gray-600 text-xs flex-shrink-0">{date}</span>
+                        <span className="text-[#5e7672] text-xs flex-shrink-0">{date}</span>
                       </div>
-                      <p className="text-gray-500 text-xs mb-3">{adresse}</p>
+                      <p className="text-[#7f9995] text-xs mb-3">{adresse}</p>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="h-1.5 flex-1 max-w-[200px] bg-white/[0.04] rounded-full overflow-hidden">
                           <div className="h-full bg-[#33d6c0] rounded-full transition-all" style={{ width: `${filledCount / totalCount * 100}%` }} />
                         </div>
-                        <span className="text-gray-600 text-[10px]">{filledCount}/{totalCount}</span>
+                        <span className="text-[#5e7672] text-[10px]">{filledCount}/{totalCount}</span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <button onClick={() => openEdit(item)}
-                      className="flex items-center gap-1.5 text-gray-400 hover:text-white text-xs px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-all">
+                      className="flex items-center gap-1.5 text-[#93aca7] hover:text-white text-xs px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-all">
                           <Pencil className="w-3 h-3" /> Éditer
                         </button>
                         {!item.projet_id && <button onClick={() => handleRunAI(item.id, item)} disabled={isRunningAI === item.id}
@@ -262,7 +262,7 @@ Réponds UNIQUEMENT avec le JSON.`;
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => {if (window.confirm("Supprimer ?")) deleteMutation.mutate(item.id);}}
-                  className="text-gray-600 hover:text-red-400 hover:bg-red-500/10 h-8 w-8 flex-shrink-0">
+                  className="text-[#5e7672] hover:text-red-400 hover:bg-red-500/10 h-8 w-8 flex-shrink-0">
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -281,7 +281,7 @@ Réponds UNIQUEMENT avec le JSON.`;
               <DialogTitle className="text-xl font-light text-white">
                 {editingItem ? "Modifier le check" : "Nouveau double check"}
               </DialogTitle>
-              <Button variant="ghost" size="icon" onClick={closeDialog} className="text-gray-500 hover:text-white hover:bg-white/5 h-8 w-8 -mr-2">
+              <Button variant="ghost" size="icon" onClick={closeDialog} className="text-[#7f9995] hover:text-white hover:bg-white/5 h-8 w-8 -mr-2">
                 <X className="w-5 h-5" />
               </Button>
             </div>
@@ -290,7 +290,7 @@ Réponds UNIQUEMENT avec le JSON.`;
             <div className="space-y-2">
               <label className="text-white text-sm font-medium">Titre / Référence</label>
               <Input value={titre} onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex: 45 rue de la République - Lyon" className="bg-slate-800 text-white px-3 py-1 text-base rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#1c2725] h-11" />
+              placeholder="Ex: 45 rue de la République - Lyon" className="bg-[#101715] text-white px-3 py-1 text-base rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#1c2725] h-11" />
               
             </div>
 
@@ -304,7 +304,7 @@ Réponds UNIQUEMENT avec le JSON.`;
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#16201f]">
-            <Button variant="ghost" onClick={closeDialog} className="text-gray-400 hover:text-white">Annuler</Button>
+            <Button variant="ghost" onClick={closeDialog} className="text-[#93aca7] hover:text-white">Annuler</Button>
             <Button onClick={handleSave} disabled={!titre.trim() || createMutation.isPending || updateMutation.isPending}
             className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white">
               {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}

@@ -57,7 +57,7 @@ export default function MonCompte() {
   if (showAsClient && userEtape === 1) {
     return (
       <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
+        <Card className="max-w-md w-full bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30">
           <CardContent className="p-8 text-center">
             <div className="w-20 h-20 bg-[#33d6c0] rounded-full flex items-center justify-center mx-auto mb-6">
               <Users className="w-10 h-10 text-white" />
@@ -65,7 +65,7 @@ export default function MonCompte() {
             <h2 className="text-2xl text-white mb-4">
               Accès en attente
             </h2>
-            <p className="text-gray-400 mb-6">
+            <p className="text-[#93aca7] mb-6">
               Cette section sera débloquée par votre conseiller.
             </p>
           </CardContent>
@@ -86,7 +86,7 @@ export default function MonCompte() {
             <div>
               <h1 className="text-4xl font-montserrat text-white mb-2">Mon Compte</h1>
               <div className="h-0.5 w-32 bg-[#33d6c0] mb-2"></div>
-              <p className="text-gray-400 text-lg">
+              <p className="text-[#93aca7] text-lg">
                 Gérez vos informations personnelles
               </p>
             </div>
@@ -113,7 +113,7 @@ export default function MonCompte() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30 hover:border-[#33d6c0]/60 transition-all duration-300">
+              <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30 hover:border-[#33d6c0]/60 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <User className="w-5 h-5 text-[#33d6c0]" />
@@ -123,39 +123,39 @@ export default function MonCompte() {
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="full_name" className="text-gray-300">Nom complet</Label>
+                      <Label htmlFor="full_name" className="text-[#c4d5d1]">Nom complet</Label>
                       <Input
                         id="full_name"
                         value={formData.full_name}
                         onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-[#101715] border-[#24312f] text-white"
                         placeholder="Votre nom complet"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-gray-300">Email</Label>
+                      <Label htmlFor="email" className="text-[#c4d5d1]">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7f9995]" />
                         <Input
                           id="email"
                           value={user.email}
                           disabled
-                          className="bg-gray-800 border-gray-700 text-gray-500 pl-10 cursor-not-allowed"
+                          className="bg-[#101715] border-[#24312f] text-[#7f9995] pl-10 cursor-not-allowed"
                         />
                       </div>
-                      <p className="text-xs text-gray-500">L'email ne peut pas être modifié</p>
+                      <p className="text-xs text-[#7f9995]">L'email ne peut pas être modifié</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="telephone" className="text-gray-300">Téléphone</Label>
+                      <Label htmlFor="telephone" className="text-[#c4d5d1]">Téléphone</Label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7f9995]" />
                         <Input
                           id="telephone"
                           value={formData.telephone}
                           onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                          className="bg-gray-800 border-gray-700 text-white pl-10"
+                          className="bg-[#101715] border-[#24312f] text-white pl-10"
                           placeholder="+33 6 12 34 56 78"
                         />
                       </div>
@@ -190,7 +190,7 @@ export default function MonCompte() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
+                <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Users className="w-5 h-5 text-[#33d6c0]" />
@@ -198,14 +198,14 @@ export default function MonCompte() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-[#93aca7] text-sm">
                       Gérez les partenaires liés à votre compte d'investissement.
                     </p>
                     
                     {user.comptes_lies && user.comptes_lies.length > 0 ? (
                       <div className="space-y-2">
                         {user.comptes_lies.map((email) => (
-                          <div key={email} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 flex items-center justify-between">
+                          <div key={email} className="p-3 bg-[#101715]/50 rounded-lg border border-[#24312f] flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Mail className="w-4 h-4 text-[#33d6c0]" />
                               <span className="text-white">{email}</span>
@@ -214,7 +214,7 @@ export default function MonCompte() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-500 text-sm">Aucun partenaire lié pour le moment.</p>
+                      <p className="text-[#7f9995] text-sm">Aucun partenaire lié pour le moment.</p>
                     )}
 
                     <Button
@@ -241,7 +241,7 @@ export default function MonCompte() {
                       <Users className="w-8 h-8 text-purple-400" />
                       <div>
                         <p className="text-white font-medium">Compte lié</p>
-                        <p className="text-gray-400 text-sm">Vous voyez les projets de {user.compte_maitre_email}</p>
+                        <p className="text-[#93aca7] text-sm">Vous voyez les projets de {user.compte_maitre_email}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -255,7 +255,7 @@ export default function MonCompte() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
+              <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30">
                 <CardHeader>
                   <CardTitle className="text-white">Votre profil investisseur</CardTitle>
                 </CardHeader>
@@ -267,7 +267,7 @@ export default function MonCompte() {
                       </p>
                     </div>
                   ) : (
-                    <p className="text-gray-400">Profil non défini</p>
+                    <p className="text-[#93aca7]">Profil non défini</p>
                   )}
                 </CardContent>
               </Card>
@@ -279,7 +279,7 @@ export default function MonCompte() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <Card className="bg-gradient-to-br from-gray-900 to-black border-red-500/20">
+              <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-red-500/20">
                 <CardHeader>
                   <CardTitle className="text-red-400 flex items-center gap-2">
                     <Trash2 className="w-5 h-5" />
@@ -287,7 +287,7 @@ export default function MonCompte() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-400 text-sm mb-4">
+                  <p className="text-[#93aca7] text-sm mb-4">
                     La suppression de votre compte est irréversible. Toutes vos données seront définitivement effacées.
                   </p>
                   <AlertDialog>
@@ -297,15 +297,15 @@ export default function MonCompte() {
                         Supprimer mon compte
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-gray-900 border-gray-700">
+                    <AlertDialogContent className="bg-[#0a0f0e] border-[#24312f]">
                       <AlertDialogHeader>
                         <AlertDialogTitle className="text-white">Supprimer votre compte ?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-gray-400">
+                        <AlertDialogDescription className="text-[#93aca7]">
                           Cette action est irréversible. Votre compte et toutes vos données seront définitivement supprimés.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">Annuler</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-[#101715] border-[#24312f] text-white hover:bg-[#24312f]">Annuler</AlertDialogCancel>
                         <AlertDialogAction
                           className="bg-red-600 hover:bg-red-700 text-white"
                           onClick={() => base44.auth.deleteMe()}

@@ -50,7 +50,7 @@ return (
 
 <div className={`rounded-md px-4 py-2.5 ${
 
-isUser ? "bg-[#33d6c0] text-white" : "bg-gray-800 border border-gray-700"
+isUser ? "bg-[#33d6c0] text-white" : "bg-[#101715] border border-[#24312f]"
 
 }`}>
 
@@ -80,9 +80,9 @@ code: ({ inline, children }) =>
 
 inline ?
 
-<code className="px-1 py-0.5 rounded bg-gray-900 text-[#5ee7d4] text-xs">{children}</code> :
+<code className="px-1 py-0.5 rounded bg-[#0a0f0e] text-[#5ee7d4] text-xs">{children}</code> :
 
-<code className="block p-2 rounded bg-gray-900 text-white text-xs">{children}</code>
+<code className="block p-2 rounded bg-[#0a0f0e] text-white text-xs">{children}</code>
 
 }}
 
@@ -104,7 +104,7 @@ inline ?
 
 {message.tool_calls.map((toolCall, idx) => (
 
-<div key={idx} className="text-xs text-gray-400 bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-700">
+<div key={idx} className="text-xs text-[#93aca7] bg-[#101715]/50 px-3 py-1.5 rounded-lg border border-[#24312f]">
 
 🔧 {toolCall.name?.split('.').reverse()[0] || 'Action'}
 
@@ -453,11 +453,11 @@ Nouvelle conversation
 
 {/* Chat Container */}
 
-<div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2 md:rounded-[1.5rem] md:p-3">
+<div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2 md:rounded-[1.5rem] md:p-3">
 
 <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
 
-<Card className="relative bg-gradient-to-br from-gray-900/95 via-[#33d6c0]/5 to-gray-900/95 border-none h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col">
+<Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 via-[#33d6c0]/5 to-[#0a0f0e]/95 border-none h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col">
 
 {/* Messages */}
 
@@ -475,7 +475,7 @@ Nouvelle conversation
 
 <h3 className="text-2xl text-white mb-3 font-geist font-semibold">Comment puis-je vous aider ?</h3>
 
-<p className="text-gray-400 text-sm max-w-md mb-8">
+<p className="text-[#93aca7] text-sm max-w-md mb-8">
 
 Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer les investissements et plus encore.
 
@@ -503,9 +503,9 @@ Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer l
 
 </div>
 
-<div className="bg-gray-800 border border-gray-700 rounded-md px-4 py-2.5">
+<div className="bg-[#101715] border border-[#24312f] rounded-md px-4 py-2.5">
 
-<p className="text-sm text-gray-400">En train d'analyser...</p>
+<p className="text-sm text-[#93aca7]">En train d'analyser...</p>
 
 </div>
 
@@ -524,9 +524,9 @@ Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer l
 
 {/* Input */}
 
-<div className="p-4 md:p-6 bg-gray-900/50">
+<div className="p-4 md:p-6 bg-[#0a0f0e]/50">
 
-<div className="bg-gray-900 rounded-md border border-gray-700">
+<div className="bg-[#0a0f0e] rounded-md border border-[#24312f]">
 
 <div className="overflow-y-auto">
 
@@ -574,7 +574,7 @@ className={cn(
 
 "focus-visible:ring-0 focus-visible:ring-offset-0",
 
-"placeholder:text-gray-500 placeholder:text-sm",
+"placeholder:text-[#7f9995] placeholder:text-sm",
 
 "min-h-[60px]"
 
@@ -609,7 +609,7 @@ inputValue.trim() && !isLoading
 
 ? "bg-[#33d6c0] text-white hover:bg-[#33d6c0]/90"
 
-: "bg-gray-800 text-gray-500 cursor-not-allowed"
+: "bg-[#101715] text-[#7f9995] cursor-not-allowed"
 
 )}
 
@@ -648,7 +648,7 @@ adjustHeight();
 
 }}
 
-className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 rounded-full border border-gray-700 text-gray-400 hover:text-white transition-colors"
+className="flex items-center gap-2 px-4 py-2 bg-[#0a0f0e] hover:bg-[#101715] rounded-full border border-[#24312f] text-[#93aca7] hover:text-white transition-colors"
 
 >
 
@@ -668,7 +668,7 @@ adjustHeight();
 
 }}
 
-className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 rounded-full border border-gray-700 text-gray-400 hover:text-white transition-colors"
+className="flex items-center gap-2 px-4 py-2 bg-[#0a0f0e] hover:bg-[#101715] rounded-full border border-[#24312f] text-[#93aca7] hover:text-white transition-colors"
 
 >
 
@@ -688,7 +688,7 @@ adjustHeight();
 
 }}
 
-className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 rounded-full border border-gray-700 text-gray-400 hover:text-white transition-colors"
+className="flex items-center gap-2 px-4 py-2 bg-[#0a0f0e] hover:bg-[#101715] rounded-full border border-[#24312f] text-[#93aca7] hover:text-white transition-colors"
 
 >
 
@@ -708,7 +708,7 @@ adjustHeight();
 
 }}
 
-className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 rounded-full border border-gray-700 text-gray-400 hover:text-white transition-colors"
+className="flex items-center gap-2 px-4 py-2 bg-[#0a0f0e] hover:bg-[#101715] rounded-full border border-[#24312f] text-[#93aca7] hover:text-white transition-colors"
 
 >
 

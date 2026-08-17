@@ -32,7 +32,7 @@ export default function Home() {
               <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-4xl md:text-5xl lg:text-6xl leading-[1.1] mb-4 text-white font-medium">
                 Votre plateforme tout en un en <span className="text-[#33d6c0]">immobilier commercial.</span>
               </h1>
-              <p className="text-gray-400 text-lg mb-8 max-w-xl">
+              <p className="text-[#93aca7] text-lg mb-8 max-w-xl">
                 Sourcing, analyse, financement, gestion — tout est centralisé pour simplifier vos investissements.
               </p>
 
@@ -59,7 +59,7 @@ export default function Home() {
               {/* Floating card - Rendement */}
               <div className="absolute -bottom-6 -left-6 bg-[#101715] backdrop-blur border border-white/15 rounded-md px-6 py-5 shadow-2xl">
                 <p className="text-3xl font-bold text-[#33d6c0]">7–9%</p>
-                <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Rendement moyen</p>
+                <p className="text-xs text-[#93aca7] uppercase tracking-widest mt-1">Rendement moyen</p>
               </div>
               {/* Floating card - Plateforme */}
               <div className="absolute -top-4 -right-4 bg-[#101715] backdrop-blur border border-white/15 rounded-md px-4 py-3 shadow-2xl">
@@ -69,7 +69,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-white text-sm font-medium">Plateforme dédiée</p>
-                    <p className="text-gray-500 text-xs">Suivi en temps réel</p>
+                    <p className="text-[#7f9995] text-xs">Suivi en temps réel</p>
                   </div>
                 </div>
               </div>
@@ -87,13 +87,13 @@ export default function Home() {
               alt="Klocka"
               className="h-6 w-auto opacity-60"
             />
-            <p className="text-gray-600 text-xs">© 2026 Klocka · Développeur de revenus immobiliers</p>
+            <p className="text-[#5e7672] text-xs">© 2026 Klocka · Développeur de revenus immobiliers</p>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-gray-500 hover:text-white text-xs transition-colors">Mentions légales</a>
-            <a href="#" className="text-gray-500 hover:text-white text-xs transition-colors">CGV</a>
-            <a href="#" className="text-gray-500 hover:text-white text-xs transition-colors">Confidentialité</a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition-colors">
+            <a href="#" className="text-[#7f9995] hover:text-white text-xs transition-colors">Mentions légales</a>
+            <a href="#" className="text-[#7f9995] hover:text-white text-xs transition-colors">CGV</a>
+            <a href="#" className="text-[#7f9995] hover:text-white text-xs transition-colors">Confidentialité</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-[#7f9995] hover:text-white transition-colors">
               <Linkedin className="w-4 h-4" />
             </a>
           </div>

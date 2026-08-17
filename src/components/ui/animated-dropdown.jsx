@@ -31,11 +31,11 @@ export function AnimatedDropdown({
         onClick={() => setIsOpen(prev => !prev)}
         className={cn(
           "w-full flex items-center justify-between rounded-md text-sm font-medium",
-          "bg-gray-900 text-gray-400 border border-gray-700",
-          "hover:bg-gray-800 hover:text-gray-200",
+          "bg-[#0a0f0e] text-[#93aca7] border border-[#24312f]",
+          "hover:bg-[#101715] hover:text-[#e6efed]",
           "focus:outline-none",
           "h-8 px-3",
-          isOpen && "bg-gray-800 text-gray-200",
+          isOpen && "bg-[#101715] text-[#e6efed]",
           triggerClassName
         )}
       >
@@ -44,7 +44,7 @@ export function AnimatedDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute z-[99999] top-full left-0 mt-1 w-full rounded-lg border border-gray-700 bg-gray-900 p-1 shadow-2xl">
+        <div className="absolute z-[99999] top-full left-0 mt-1 w-full rounded-lg border border-[#24312f] bg-[#0a0f0e] p-1 shadow-2xl">
           {options.map((option) => (
             <button
               key={option.value}
@@ -57,7 +57,7 @@ export function AnimatedDropdown({
                 "flex w-full items-center px-3 py-2 text-xs rounded-md transition-colors duration-150",
                 value === option.value
                   ? "text-white bg-[#33d6c0]/30 border border-[#33d6c0]/50"
-                  : "text-gray-300 hover:bg-[#33d6c0]/10 hover:text-white"
+                  : "text-[#c4d5d1] hover:bg-[#33d6c0]/10 hover:text-white"
               )}
             >
               <span className="truncate">{option.label}</span>

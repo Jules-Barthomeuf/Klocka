@@ -121,7 +121,7 @@ export default function ConnexionDialog({ ouvert, onClose }) {
           <form onSubmit={verifierEmail} className="space-y-4">
             <EnTete icone={Mail} titre="Connexion" sousTitre="Saisissez votre adresse professionnelle." />
             <div>
-              <Label className="text-gray-400 text-xs mb-1.5 block">Adresse email</Label>
+              <Label className="text-[#93aca7] text-xs mb-1.5 block">Adresse email</Label>
               <Input
                 type="email"
                 autoFocus
@@ -159,7 +159,7 @@ export default function ConnexionDialog({ ouvert, onClose }) {
               badge={compte?.role === "admin" ? "Administrateur" : null}
             />
             <div>
-              <Label className="text-gray-400 text-xs mb-1.5 block">Mot de passe</Label>
+              <Label className="text-[#93aca7] text-xs mb-1.5 block">Mot de passe</Label>
               <Input
                 ref={champMotDePasse}
                 type="password"
@@ -197,7 +197,7 @@ export default function ConnexionDialog({ ouvert, onClose }) {
               badge={compte?.role === "admin" ? "Administrateur" : null}
             />
             <div>
-              <Label className="text-gray-400 text-xs mb-1.5 block">Mot de passe (8 caractères minimum)</Label>
+              <Label className="text-[#93aca7] text-xs mb-1.5 block">Mot de passe (8 caractères minimum)</Label>
               <Input
                 ref={champMotDePasse}
                 type="password"
@@ -207,7 +207,7 @@ export default function ConnexionDialog({ ouvert, onClose }) {
               />
             </div>
             <div>
-              <Label className="text-gray-400 text-xs mb-1.5 block">Confirmation</Label>
+              <Label className="text-[#93aca7] text-xs mb-1.5 block">Confirmation</Label>
               <Input
                 type="password"
                 value={confirmation}
@@ -232,7 +232,7 @@ export default function ConnexionDialog({ ouvert, onClose }) {
         {etape === ETAPES.INCONNU && (
           <div className="space-y-4">
             <EnTete icone={AlertCircle} titre="Adresse non reconnue" sousTitre={email} />
-            <p className="text-gray-400 text-sm leading-relaxed">
+            <p className="text-[#93aca7] text-sm leading-relaxed">
               Cette adresse ne correspond à aucun compte. Les accès sont créés par Klocka : vérifiez la saisie, ou
               rapprochez-vous de votre interlocuteur pour qu'il vous ouvre un accès.
             </p>
@@ -250,7 +250,7 @@ function BoutonGoogle() {
   return (
     <a
       href="/api/auth/google/login?returnTo=%2FDashboard"
-      className="w-full inline-flex items-center justify-center gap-2.5 bg-white text-[#3c4043] font-medium text-sm rounded-md px-4 py-2 hover:bg-gray-100 transition-colors"
+      className="w-full inline-flex items-center justify-center gap-2.5 bg-white text-[#3c4043] font-medium text-sm rounded-md px-4 py-2 hover:bg-white/10 transition-colors"
     >
       <LogoGoogle />
       Se connecter avec Google
@@ -262,7 +262,7 @@ function Separateur() {
   return (
     <div className="flex items-center gap-3">
       <span className="h-px flex-1 bg-white/[0.08]" />
-      <span className="text-gray-600 text-[11px]">ou</span>
+      <span className="text-[#5e7672] text-[11px]">ou</span>
       <span className="h-px flex-1 bg-white/[0.08]" />
     </div>
   );
@@ -275,7 +275,7 @@ function EnTete({ icone: Icone, titre, sousTitre, badge }) {
         <Icone className="w-5 h-5 text-[#33d6c0]" />
       </div>
       <h2 className="text-white text-lg font-medium">{titre}</h2>
-      {sousTitre && <p className="text-gray-500 text-xs mt-1 break-all">{sousTitre}</p>}
+      {sousTitre && <p className="text-[#7f9995] text-xs mt-1 break-all">{sousTitre}</p>}
       {badge && (
         <span className="inline-block mt-2 text-[10px] text-[#5ee7d4] bg-[#33d6c0]/15 border border-[#33d6c0]/25 rounded-full px-2 py-0.5">
           {badge}
@@ -299,7 +299,7 @@ function BoutonRetour({ onClick, libelle = "Changer d'adresse" }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-gray-500 hover:text-gray-300 text-xs flex items-center justify-center gap-1.5 transition-colors"
+      className="w-full text-[#7f9995] hover:text-[#c4d5d1] text-xs flex items-center justify-center gap-1.5 transition-colors"
     >
       <ArrowLeft className="w-3 h-3" /> {libelle}
     </button>

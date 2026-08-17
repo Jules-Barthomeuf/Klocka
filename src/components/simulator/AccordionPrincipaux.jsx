@@ -37,7 +37,7 @@ export default function AccordionPrincipaux({
                     className="bg-transparent border-none text-right text-white font-medium w-20 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 )}
-                <span className="text-gray-400 text-sm">m²</span>
+                <span className="text-[#93aca7] text-sm">m²</span>
               </div>
             </div>
             <input
@@ -48,7 +48,7 @@ export default function AccordionPrincipaux({
               value={surface}
               onChange={(e) => setSurface(Number(e.target.value))}
               disabled={selectedProjectId && selectedProjectId !== "default"}
-              className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer accent-[#33d6c0] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-1 bg-[#24312f] rounded-full appearance-none cursor-pointer accent-[#33d6c0] disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div className="space-y-2">
@@ -70,7 +70,7 @@ export default function AccordionPrincipaux({
                     className="bg-transparent border-none text-right text-white font-medium w-24 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 )}
-                <span className="text-gray-400 text-sm">€</span>
+                <span className="text-[#93aca7] text-sm">€</span>
               </div>
             </div>
             <input
@@ -81,7 +81,7 @@ export default function AccordionPrincipaux({
               value={loyerInitialHTHC}
               onChange={(e) => setLoyerInitialHTHC(Number(e.target.value))}
               disabled={selectedProjectId && selectedProjectId !== "default"}
-              className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer accent-[#33d6c0] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-1 bg-[#24312f] rounded-full appearance-none cursor-pointer accent-[#33d6c0] disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div className="space-y-2">
@@ -103,7 +103,7 @@ export default function AccordionPrincipaux({
                     className="bg-transparent border-none text-right text-white font-medium w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 )}
-                <span className="text-gray-400 text-sm">€</span>
+                <span className="text-[#93aca7] text-sm">€</span>
               </div>
             </div>
             <input
@@ -114,7 +114,7 @@ export default function AccordionPrincipaux({
               value={prixBienFAI}
               onChange={(e) => setPrixBienFAI(Number(e.target.value))}
               disabled={selectedProjectId && selectedProjectId !== "default"}
-              className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer accent-[#33d6c0] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-1 bg-[#24312f] rounded-full appearance-none cursor-pointer accent-[#33d6c0] disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           <div className="space-y-2">
@@ -130,10 +130,10 @@ export default function AccordionPrincipaux({
                 ) : (
                   <Input type="number" value={prixBienNegocie} onChange={(e) => setPrixBienNegocie(Number(e.target.value))} className="bg-transparent border-none text-right text-white font-medium w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                 )}
-                <span className="text-gray-400 text-sm">€</span>
+                <span className="text-[#93aca7] text-sm">€</span>
               </div>
             </div>
-            <input type="range" min="50000" max="2000000" step="10000" value={prixBienNegocie} onChange={(e) => setPrixBienNegocie(Number(e.target.value))} className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer accent-[#33d6c0]" />
+            <input type="range" min="50000" max="2000000" step="10000" value={prixBienNegocie} onChange={(e) => setPrixBienNegocie(Number(e.target.value))} className="w-full h-1 bg-[#24312f] rounded-full appearance-none cursor-pointer accent-[#33d6c0]" />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -148,10 +148,10 @@ export default function AccordionPrincipaux({
                 ) : (
                   <Input type="number" value={dureeCredit} onChange={(e) => setDureeCredit(Number(e.target.value))} className="bg-transparent border-none text-right text-white font-medium w-12 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                 )}
-                <span className="text-gray-400 text-sm">ans</span>
+                <span className="text-[#93aca7] text-sm">ans</span>
               </div>
             </div>
-            <input type="range" min="5" max="30" step="1" value={dureeCredit} onChange={(e) => setDureeCredit(Number(e.target.value))} className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer accent-[#33d6c0]" />
+            <input type="range" min="5" max="30" step="1" value={dureeCredit} onChange={(e) => setDureeCredit(Number(e.target.value))} className="w-full h-1 bg-[#24312f] rounded-full appearance-none cursor-pointer accent-[#33d6c0]" />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -166,10 +166,10 @@ export default function AccordionPrincipaux({
                 ) : (
                   <Input type="number" value={apport} onChange={(e) => setApport(Number(e.target.value))} className="bg-transparent border-none text-right text-white font-medium w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                 )}
-                <span className="text-gray-400 text-sm">€</span>
+                <span className="text-[#93aca7] text-sm">€</span>
               </div>
             </div>
-            <input type="range" min="0" max="500000" step="5000" value={apport} onChange={(e) => setApport(Number(e.target.value))} className="w-full h-1 bg-gray-700 rounded-full appearance-none cursor-pointer accent-[#33d6c0]" />
+            <input type="range" min="0" max="500000" step="5000" value={apport} onChange={(e) => setApport(Number(e.target.value))} className="w-full h-1 bg-[#24312f] rounded-full appearance-none cursor-pointer accent-[#33d6c0]" />
           </div>
         </CardContent>
       </Card>

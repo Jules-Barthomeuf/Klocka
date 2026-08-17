@@ -97,7 +97,7 @@ export default function FeedbackWidget() {
         className={`h-10 rounded-full shadow-lg flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 ${
           isOpen
             ? "bg-[#33d6c0] text-white px-4"
-            : "bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-700 px-4"
+            : "bg-[#0a0f0e] hover:bg-[#101715] text-[#93aca7] hover:text-white border border-[#24312f] px-4"
         }`}
       >
         {isOpen ? <X className="w-4 h-4" /> : <><MessageCircle className="w-4 h-4" /><span className="text-xs">Un problème ?</span></>}

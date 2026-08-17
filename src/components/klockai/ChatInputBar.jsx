@@ -12,7 +12,7 @@ export default function ChatInputBar({ inputValue, setInputValue, onSend, onKeyP
         onKeyPress={onKeyPress}
         placeholder="Écrivez à KlockAI..."
         disabled={isLoading}
-        className="flex-1 bg-transparent border-0 text-white placeholder:text-gray-600 h-12 text-base focus-visible:ring-0 focus-visible:ring-offset-0 px-1"
+        className="flex-1 bg-transparent border-0 text-white placeholder:text-[#5e7672] h-12 text-base focus-visible:ring-0 focus-visible:ring-offset-0 px-1"
       />
       <NeonButton
         onClick={onSend}

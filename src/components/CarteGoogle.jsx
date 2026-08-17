@@ -17,7 +17,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" 
   const query = adresse || (lat != null && lon != null ? `${lat},${lon}` : null);
   if (!query) {
     return (
-      <p className="text-gray-500 text-sm py-6 text-center">
+      <p className="text-[#7f9995] text-sm py-6 text-center">
         Localisation inconnue : ni adresse ni commune résolue.
       </p>
     );
@@ -31,9 +31,9 @@ export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" 
     return (
       <div className={`${hauteur} rounded-md border border-[#16201f] bg-[#0a0f0e] flex flex-col items-center justify-center gap-3 text-center px-6`}>
         <MapPin className="w-6 h-6 text-[#33d6c0]/50" />
-        <p className="text-gray-500 text-xs max-w-sm">
-          Carte intégrée indisponible : renseignez <code className="text-gray-300">VITE_GOOGLE_MAPS_API_KEY</code>{" "}
-          dans <code className="text-gray-300">.env</code> (clé Maps Embed API).
+        <p className="text-[#7f9995] text-xs max-w-sm">
+          Carte intégrée indisponible : renseignez <code className="text-[#c4d5d1]">VITE_GOOGLE_MAPS_API_KEY</code>{" "}
+          dans <code className="text-[#c4d5d1]">.env</code> (clé Maps Embed API).
         </p>
         <a
           href={lienExterne}
@@ -63,7 +63,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" 
         href={lienExterne}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-gray-500 hover:text-white text-[11px] flex items-center gap-1 transition-colors"
+        className="text-[#7f9995] hover:text-white text-[11px] flex items-center gap-1 transition-colors"
       >
         Ouvrir dans Google Maps <ExternalLink className="w-3 h-3" />
       </a>

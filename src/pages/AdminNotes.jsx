@@ -159,7 +159,7 @@ export default function AdminNotes() {
               <div className="w-6 h-6 border-2 border-[#33d6c0]/30 border-t-[#33d6c0] rounded-full animate-spin" />
             </div>
           ) : displayedNotes.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">
+            <div className="text-center py-16 text-[#7f9995]">
               {showShared ? <Users className="w-10 h-10 mx-auto mb-3 opacity-30" /> : <StickyNote className="w-10 h-10 mx-auto mb-3 opacity-30" />}
               <p className="text-sm">{showShared ? "Aucune note partagée avec vous" : "Aucune note pour le moment"}</p>
             </div>

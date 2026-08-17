@@ -123,7 +123,7 @@ function ResultsView({ answers, questions, resources, onRestart }) {
         </div>
         <div>
           <p className="text-2xl font-light text-white">
-            {score} <span className="text-gray-500 text-sm">/ {total}</span>
+            {score} <span className="text-[#7f9995] text-sm">/ {total}</span>
           </p>
           <p className="text-white/80 text-xs">{msg}</p>
         </div>
@@ -182,7 +182,7 @@ function ResultsView({ answers, questions, resources, onRestart }) {
                     {categorieLabels[resource.categorie] || resource.categorie}
                   </p>
                 </div>
-                <ArrowRight className="w-3 h-3 text-gray-600 group-hover:text-[#33d6c0] transition-colors flex-shrink-0" />
+                <ArrowRight className="w-3 h-3 text-[#5e7672] group-hover:text-[#33d6c0] transition-colors flex-shrink-0" />
               </a>
             ))}
           </div>

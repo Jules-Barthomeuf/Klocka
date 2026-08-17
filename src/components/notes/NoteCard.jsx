@@ -52,7 +52,7 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
             placeholder="Contenu de la note..."
           />
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" size="sm" onClick={handleCancel} className="text-gray-400 hover:text-white">
+            <Button variant="ghost" size="sm" onClick={handleCancel} className="text-[#93aca7] hover:text-white">
               <X className="w-4 h-4 mr-1" /> Annuler
             </Button>
             <Button size="sm" onClick={handleSave} className="bg-[#33d6c0] hover:bg-[#33d6c0]/80 text-white">
@@ -65,33 +65,33 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-white font-medium text-sm">{note.titre}</h3>
             <div className="flex gap-1 flex-shrink-0">
-              <Button variant="ghost" size="icon" onClick={() => setEditing(true)} className="h-7 w-7 text-gray-500 hover:text-white">
+              <Button variant="ghost" size="icon" onClick={() => setEditing(true)} className="h-7 w-7 text-[#7f9995] hover:text-white">
                 <Pencil className="w-3.5 h-3.5" />
               </Button>
               {isOwner && (
-                <Button variant="ghost" size="icon" onClick={() => setShowShare(s => !s)} className={`h-7 w-7 ${showShare || sharedEmails.length > 0 ? "text-[#33d6c0]" : "text-gray-500"} hover:text-[#33d6c0]`}>
+                <Button variant="ghost" size="icon" onClick={() => setShowShare(s => !s)} className={`h-7 w-7 ${showShare || sharedEmails.length > 0 ? "text-[#33d6c0]" : "text-[#7f9995]"} hover:text-[#33d6c0]`}>
                   <Share2 className="w-3.5 h-3.5" />
                 </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={() => onDelete(note.id)} className="h-7 w-7 text-gray-500 hover:text-red-400">
+              <Button variant="ghost" size="icon" onClick={() => onDelete(note.id)} className="h-7 w-7 text-[#7f9995] hover:text-red-400">
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
           {note.contenu && (
-            <p className="text-gray-400 text-sm whitespace-pre-wrap leading-relaxed">{note.contenu}</p>
+            <p className="text-[#93aca7] text-sm whitespace-pre-wrap leading-relaxed">{note.contenu}</p>
           )}
-          <p className="text-gray-600 text-[10px]">{moment(note.created_date).format("DD/MM/YYYY HH:mm")}</p>
+          <p className="text-[#5e7672] text-[10px]">{moment(note.created_date).format("DD/MM/YYYY HH:mm")}</p>
 
           {isOwner && showShare && (
             <div className="pt-3 border-t border-[#16201f] space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-gray-500">Partager avec un admin</p>
+              <p className="text-[10px] uppercase tracking-wider text-[#7f9995]">Partager avec un admin</p>
               {admins.length === 0 ? (
-                <p className="text-xs text-gray-500">Aucun autre admin disponible</p>
+                <p className="text-xs text-[#7f9995]">Aucun autre admin disponible</p>
               ) : (
                 <div className="space-y-1">
                   {admins.map(admin => (
-                    <label key={admin.id} className="flex items-center gap-2 cursor-pointer text-sm text-gray-300 hover:text-white py-1">
+                    <label key={admin.id} className="flex items-center gap-2 cursor-pointer text-sm text-[#c4d5d1] hover:text-white py-1">
                       <input
                         type="checkbox"
                         checked={sharedEmails.includes(admin.email)}

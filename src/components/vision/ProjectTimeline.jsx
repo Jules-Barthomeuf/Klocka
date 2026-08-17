@@ -108,8 +108,8 @@ function IndividualProjectChart({ donneesProjet }) {
   return (
     <div className="space-y-4">
       {/* Patrimoine Chart */}
-      <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Évolution du patrimoine</p>
+      <div className="rounded-lg border border-[#101715] bg-[#0a0f0e]/30 p-4">
+        <p className="text-xs text-[#7f9995] uppercase tracking-wider mb-3">Évolution du patrimoine</p>
         <svg
           ref={chartRef}
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
@@ -147,7 +147,7 @@ function IndividualProjectChart({ donneesProjet }) {
                   x={getX(i)}
                   y={chartHeight - 10}
                   textAnchor="middle"
-                  className="text-[10px] fill-gray-500"
+                  className="text-[10px] fill-[#7f9995]"
                 >
                   An {d.annee}
                 </text>
@@ -179,8 +179,8 @@ function IndividualProjectChart({ donneesProjet }) {
       </div>
 
       {/* Cashflow Chart */}
-      <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Cashflow annuel</p>
+      <div className="rounded-lg border border-[#101715] bg-[#0a0f0e]/30 p-4">
+        <p className="text-xs text-[#7f9995] uppercase tracking-wider mb-3">Cashflow annuel</p>
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
           className="w-full h-32"
@@ -205,7 +205,7 @@ function IndividualProjectChart({ donneesProjet }) {
                   x={getX(i)}
                   y={chartHeight - 10}
                   textAnchor="middle"
-                  className="text-[10px] fill-gray-500"
+                  className="text-[10px] fill-[#7f9995]"
                 >
                   An {d.annee}
                 </text>

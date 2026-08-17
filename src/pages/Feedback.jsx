@@ -15,7 +15,7 @@ import "moment/locale/fr";
 moment.locale("fr");
 
 const statutConfig = {
-  nouveau: { label: "En attente", color: "bg-gray-500/20 text-gray-300", icon: Clock },
+  nouveau: { label: "En attente", color: "bg-[#7f9995]/20 text-[#c4d5d1]", icon: Clock },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300", icon: Loader2 },
   accepte: { label: "Accepté", color: "bg-[#33d6c0]/20 text-[#5ee7d4]", icon: CheckCircle2 },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300", icon: XCircle },
@@ -90,7 +90,7 @@ export default function Feedback() {
   if (showAsClient && userEtape === 1) {
     return (
       <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
+        <Card className="max-w-md w-full bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30">
           <CardContent className="p-8 text-center">
             <div className="w-20 h-20 bg-[#33d6c0] rounded-full flex items-center justify-center mx-auto mb-6">
               <MessageSquare className="w-10 h-10 text-white" />
@@ -98,7 +98,7 @@ export default function Feedback() {
             <h2 className="text-2xl text-white mb-4">
               Accès en attente
             </h2>
-            <p className="text-gray-400 mb-6">
+            <p className="text-[#93aca7] mb-6">
               Cette section sera débloquée par votre conseiller.
             </p>
           </CardContent>
@@ -119,7 +119,7 @@ export default function Feedback() {
             <div>
               <h1 className="text-4xl font-montserrat text-white mb-2">Suggestions</h1>
               <div className="h-0.5 w-32 bg-[#33d6c0] mb-2"></div>
-              <p className="text-gray-400 text-lg">
+              <p className="text-[#93aca7] text-lg">
                 Proposez vos idées d'amélioration
               </p>
             </div>
@@ -144,7 +144,7 @@ export default function Feedback() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30 hover:border-[#33d6c0]/60 transition-all duration-300 mb-8">
+            <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30 hover:border-[#33d6c0]/60 transition-all duration-300 mb-8">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-[#33d6c0]" />
@@ -169,7 +169,7 @@ export default function Feedback() {
                                               <CheckCircle2 className="w-20 h-20 text-[#33d6c0] mx-auto mb-4" />
                                             </motion.div>
                                             <h3 className="text-2xl text-white mb-2">Merci pour votre retour !</h3>
-                                            <p className="text-gray-400">Votre suggestion a été enregistrée</p>
+                                            <p className="text-[#93aca7]">Votre suggestion a été enregistrée</p>
                                           </motion.div>
                                         ) : (
                     <motion.form
@@ -181,14 +181,14 @@ export default function Feedback() {
                       className="space-y-6"
                     >
                       <div className="space-y-2">
-                        <Label htmlFor="feedback" className="text-gray-300">
+                        <Label htmlFor="feedback" className="text-[#c4d5d1]">
                           Quelle amélioration souhaitez-vous proposer ?
                         </Label>
                         <Textarea
                           id="feedback"
                           value={feedback}
                           onChange={(e) => setFeedback(e.target.value)}
-                          className="bg-gray-800 border-gray-700 text-white min-h-[150px] resize-none"
+                          className="bg-[#101715] border-[#24312f] text-white min-h-[150px] resize-none"
                           placeholder="Décrivez votre idée d'amélioration..."
                           disabled={isSubmitting}
                         />
@@ -197,7 +197,7 @@ export default function Feedback() {
                       <Button
                                                 type="submit"
                                                 disabled={!feedback.trim() || isSubmitting}
-                                                className="w-full bg-gray-900 hover:bg-gray-800 border border-gray-700 transition-all duration-300"
+                                                className="w-full bg-[#0a0f0e] hover:bg-[#101715] border border-[#24312f] transition-all duration-300"
                                               >
                                                 {isSubmitting ? (
                                                   <>
@@ -231,12 +231,12 @@ export default function Feedback() {
                   const config = statutConfig[suggestion.statut] || statutConfig.nouveau;
                   const Icon = config.icon;
                   return (
-                    <Card key={suggestion.id} className="bg-gradient-to-br from-gray-900 to-black border-gray-800">
+                    <Card key={suggestion.id} className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#101715]">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <p className="text-gray-300 text-sm mb-2">{suggestion.contenu}</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-[#c4d5d1] text-sm mb-2">{suggestion.contenu}</p>
+                            <p className="text-xs text-[#7f9995]">
                               {moment(suggestion.created_date).format('DD MMMM YYYY à HH:mm')}
                             </p>
                           </div>

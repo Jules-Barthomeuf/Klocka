@@ -93,7 +93,7 @@ export default function DepouillementDocuments() {
     <div className="max-w-[1600px] mx-auto">
       {/* Barre dossier : sélection + nouveau, dans l'esprit des pilules du simulateur */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <p className="text-gray-500 text-xs flex-1">
+        <p className="text-[#7f9995] text-xs flex-1">
           {dossier
             ? dossier.titre
             : "Déposez les documents d'un deal : ils sont classés, dépouillés, et chaque donnée renvoie à sa page source."}
@@ -107,7 +107,7 @@ export default function DepouillementDocuments() {
                 setSource(null);
               }}
             >
-              <SelectTrigger className="bg-transparent border-[#24312f] text-gray-300 hover:text-white hover:border-white/[0.25] rounded-full h-8 w-56 text-xs">
+              <SelectTrigger className="bg-transparent border-[#24312f] text-[#c4d5d1] hover:text-white hover:border-white/[0.25] rounded-full h-8 w-56 text-xs">
                 <SelectValue placeholder="Ouvrir un dossier" />
               </SelectTrigger>
               <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
@@ -115,7 +115,7 @@ export default function DepouillementDocuments() {
                   <SelectItem key={d.dossier_id} value={d.dossier_id}>
                     <span className="flex items-center gap-2">
                       <FolderOpen className="w-3.5 h-3.5" />
-                      {d.titre} <span className="text-gray-500">({d.nb_documents})</span>
+                      {d.titre} <span className="text-[#7f9995]">({d.nb_documents})</span>
                     </span>
                   </SelectItem>
                 ))}
@@ -128,7 +128,7 @@ export default function DepouillementDocuments() {
                 setDossierId(null);
                 setSource(null);
               }}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-[#c4d5d1] hover:text-white hover:border-white/[0.25] text-xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Nouveau dossier
             </button>
@@ -138,7 +138,7 @@ export default function DepouillementDocuments() {
 
       {/* Dépôt */}
       <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-5 mb-6">
-        <p className="text-gray-400 text-xs mb-2">
+        <p className="text-[#93aca7] text-xs mb-2">
           Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
         </p>
         <button
@@ -149,12 +149,12 @@ export default function DepouillementDocuments() {
           {deposer.isPending ? (
             <>
               <Loader2 className="w-5 h-5 text-[#33d6c0] animate-spin" />
-              <span className="text-gray-400 text-sm">Lecture et dépouillement…</span>
+              <span className="text-[#93aca7] text-sm">Lecture et dépouillement…</span>
             </>
           ) : (
             <>
               <Upload className="w-5 h-5 text-[#33d6c0]" />
-              <span className="text-gray-400 text-sm">PDF, image ou .eml — plusieurs à la fois</span>
+              <span className="text-[#93aca7] text-sm">PDF, image ou .eml — plusieurs à la fois</span>
             </>
           )}
         </button>
@@ -201,7 +201,7 @@ export default function DepouillementDocuments() {
         !deposer.isPending && (
           <div className="text-center py-16">
             <FolderOpen className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
-            <p className="text-gray-500 text-sm">
+            <p className="text-[#7f9995] text-sm">
               Déposez les documents d'un deal : ils sont classés, leurs données extraites, et chaque
               information indique d'où elle vient.
             </p>
@@ -235,7 +235,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
         <FileText className="w-4 h-4 text-[#33d6c0] flex-shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
           <p className="text-white text-sm font-medium truncate">{doc.nom_fichier}</p>
-          <p className="text-gray-500 text-xs">
+          <p className="text-[#7f9995] text-xs">
             {doc.nb_pages} page{doc.nb_pages > 1 ? "s" : ""} · {renseignes}/{lignes.length} champs renseignés
             {doc.transcrit ? " · transcrit" : ""}
           </p>
@@ -253,7 +253,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
               ))}
             </SelectContent>
           </Select>
-          <button onClick={onSupprimer} className="text-gray-600 hover:text-red-400 p-1.5" title="Retirer">
+          <button onClick={onSupprimer} className="text-[#5e7672] hover:text-red-400 p-1.5" title="Retirer">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -266,9 +266,30 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
         </p>
       )}
 
-      {doc.incidents?.length > 0 && (
+      {/* IA saturée au moment du dépôt : le document et ses pages sont
+          conservés, un clic relance l'extraction sans re-téléverser. */}
+      {doc.incidents?.some((i) => i.motif === "ia_indisponible") && (
+        <div className="px-5 py-2.5 bg-amber-500/[0.07] border-b border-amber-500/20 flex flex-wrap items-center gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" />
+          <p className="text-amber-200/90 text-xs flex-1 min-w-48">
+            L'IA était saturée pendant le dépôt : les champs n'ont pas été extraits. Le document est
+            conservé — relancez l'extraction quand vous voulez.
+          </p>
+          <button
+            onClick={() => doc.classement?.code && onReclasser(doc.classement.code)}
+            disabled={enCours || !doc.classement?.code}
+            className="px-3 py-1.5 text-xs rounded border border-amber-500/40 text-amber-200 hover:bg-amber-500/10 transition-colors disabled:opacity-50 flex-shrink-0"
+          >
+            {enCours ? "Extraction…" : "Redépouiller"}
+          </button>
+        </div>
+      )}
+
+      {doc.incidents?.filter((i) => i.motif !== "ia_indisponible").length > 0 && (
         <div className="px-5 py-2 bg-red-500/[0.07] border-b border-red-500/20">
-          {doc.incidents.map((i, k) => (
+          {doc.incidents
+            .filter((i) => i.motif !== "ia_indisponible")
+            .map((i, k) => (
             <p key={k} className="text-red-300/80 text-[11px]">
               {i.libelle || i.champ} :{" "}
               {i.motif === "citation_introuvable"
@@ -284,7 +305,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
       )}
 
       {!type ? (
-        <p className="px-5 py-6 text-gray-500 text-sm">
+        <p className="px-5 py-6 text-[#7f9995] text-sm">
           Type non reconnu. Choisissez-le ci-dessus pour lancer le dépouillement.
         </p>
       ) : (
@@ -297,10 +318,10 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
             return (
               <div key={c.id} className={`px-5 py-3 ${actif ? "bg-[#33d6c0]/[0.07]" : ""}`}>
                 <div className="flex items-start gap-3">
-                  <span className="text-gray-500 text-xs w-44 flex-shrink-0 pt-0.5">{c.libelle}</span>
+                  <span className="text-[#7f9995] text-xs w-44 flex-shrink-0 pt-0.5">{c.libelle}</span>
                   <div className="min-w-0 flex-1">
                     {absent ? (
-                      <span className="text-gray-600 text-xs italic">non trouvé dans ce document</span>
+                      <span className="text-[#5e7672] text-xs italic">non trouvé dans ce document</span>
                     ) : (
                       <>
                         <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">{v.valeur}</p>
@@ -323,7 +344,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                       className={`flex-shrink-0 text-[11px] px-2 py-1 rounded-lg border transition-colors ${
                         actif
                           ? "border-[#33d6c0]/40 bg-[#33d6c0]/20 text-[#5ee7d4]"
-                          : "border-white/10 text-gray-500 hover:text-white hover:border-white/25"
+                          : "border-white/10 text-[#7f9995] hover:text-white hover:border-white/25"
                       }`}
                       title={v.citation}
                     >
@@ -351,7 +372,7 @@ export function Visionneuse({ source, onFermer }) {
     return (
       <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md h-[70vh] flex flex-col items-center justify-center text-center px-8">
         <Quote className="w-8 h-8 text-[#33d6c0]/30 mb-3" />
-        <p className="text-gray-500 text-sm">
+        <p className="text-[#7f9995] text-sm">
           Cliquez sur le repère de page à côté d'une donnée : le document s'ouvrira ici, à la bonne page.
         </p>
       </div>
@@ -365,19 +386,19 @@ export function Visionneuse({ source, onFermer }) {
       <div className="px-4 py-3 border-b border-[#16201f] flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-white text-sm font-medium truncate">
-            {source.libelle} <span className="text-gray-500">— page {source.page}</span>
+            {source.libelle} <span className="text-[#7f9995]">— page {source.page}</span>
           </p>
-          <p className="text-gray-600 text-xs truncate">{source.fichier}</p>
+          <p className="text-[#5e7672] text-xs truncate">{source.fichier}</p>
         </div>
         <a
           href={`${source.url}#page=${source.page}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-500 hover:text-white text-[11px] flex-shrink-0"
+          className="text-[#7f9995] hover:text-white text-[11px] flex-shrink-0"
         >
           Ouvrir
         </a>
-        <button onClick={onFermer} className="text-gray-500 hover:text-white flex-shrink-0">
+        <button onClick={onFermer} className="text-[#7f9995] hover:text-white flex-shrink-0">
           <X className="w-4 h-4" />
         </button>
       </div>

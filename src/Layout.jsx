@@ -77,11 +77,11 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
       <div className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-200 group
         ${isActive 
           ? "bg-[#33d6c0]/15 text-white border border-[#33d6c0]/30" 
-          : "text-gray-400 hover:text-white hover:bg-white/5"
+          : "text-[#93aca7] hover:text-white hover:bg-white/5"
         }
         ${collapsed ? "justify-center px-2" : ""}
       `}>
-        <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-[#33d6c0]" : "text-gray-500 group-hover:text-gray-300"}`} />
+        <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-[#33d6c0]" : "text-[#7f9995] group-hover:text-[#c4d5d1]"}`} />
         {!collapsed && (
           <>
             <span className="flex-1 truncate">{label}</span>
@@ -101,7 +101,7 @@ function NavSection({ title, children, collapsed }) {
   if (collapsed) return <div className="space-y-1 py-1">{children}</div>;
   return (
     <div className="mb-4">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 px-3 mb-2 font-medium">{title}</p>
+      <p className="text-[10px] uppercase tracking-[0.2em] text-[#5e7672] px-3 mb-2 font-medium">{title}</p>
       <div className="space-y-0.5">{children}</div>
     </div>
   );
@@ -154,7 +154,7 @@ function LayoutContent({ children, currentPageName }) {
           </Link>
         )}
         {isMobile && (
-          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-gray-400 hover:text-white">
+          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-[#93aca7] hover:text-white">
             <X className="w-5 h-5" />
           </Button>
         )}
@@ -168,7 +168,7 @@ function LayoutContent({ children, currentPageName }) {
             className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-all text-xs
               ${sidebarPinned
                 ? "bg-[#33d6c0]/15 border-[#33d6c0]/30 text-[#33d6c0]"
-                : "bg-white/[0.03] border-[#16201f] text-gray-400 hover:text-white"}`}
+                : "bg-white/[0.03] border-[#16201f] text-[#93aca7] hover:text-white"}`}
             title={sidebarPinned ? "La barre reste ouverte" : "Garder la barre ouverte"}
           >
             {sidebarPinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
@@ -184,7 +184,7 @@ function LayoutContent({ children, currentPageName }) {
       {isAdmin && !(sidebarCollapsed && !isMobile) && (
         <div className="px-3 pt-4 pb-2">
           <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-[#16201f]">
-            <Eye className="w-3.5 h-3.5 text-gray-500" />
+            <Eye className="w-3.5 h-3.5 text-[#7f9995]" />
             <AnimatedDropdown
               value={previewClientMode ? 'client' : 'admin'}
               onChange={(v) => setPreviewClientMode(v === 'client')}
@@ -280,13 +280,13 @@ function LayoutContent({ children, currentPageName }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-white truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
-              <p className="text-[10px] text-gray-500 truncate">{user?.email}</p>
+              <p className="text-[10px] text-[#7f9995] truncate">{user?.email}</p>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-              className="text-gray-500 hover:text-white hover:bg-white/5 h-8 w-8 flex-shrink-0"
+              className="text-[#7f9995] hover:text-white hover:bg-white/5 h-8 w-8 flex-shrink-0"
               title="Déconnexion"
             >
               <LogOut className="w-4 h-4" />
@@ -297,7 +297,7 @@ function LayoutContent({ children, currentPageName }) {
             variant="ghost"
             size="icon"
             onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-            className="text-gray-500 hover:text-white hover:bg-white/5 h-8 w-8 mx-auto block"
+            className="text-[#7f9995] hover:text-white hover:bg-white/5 h-8 w-8 mx-auto block"
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />
@@ -318,7 +318,7 @@ function LayoutContent({ children, currentPageName }) {
           <button
             onClick={() => { if (!sidebarPinned) setSidebarCollapsed(!sidebarCollapsed); }}
             disabled={sidebarPinned}
-            className={`hidden md:flex absolute -right-3 top-20 z-50 w-6 h-6 rounded-full bg-[#0c0c0c] border border-[#24312f] items-center justify-center text-gray-400 hover:text-white hover:border-white/[0.3] transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`hidden md:flex absolute -right-3 top-20 z-50 w-6 h-6 rounded-full bg-[#0c0c0c] border border-[#24312f] items-center justify-center text-[#93aca7] hover:text-white hover:border-white/[0.3] transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
             title={sidebarPinned ? "Désépinglez pour fermer" : sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
           >
             <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />

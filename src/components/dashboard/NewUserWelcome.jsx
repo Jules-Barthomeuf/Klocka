@@ -59,7 +59,7 @@ export default function NewUserWelcome({ user }) {
         />
         <button
           onClick={() => base44.auth.logout()}
-          className="text-sm text-gray-500 hover:text-white transition-colors"
+          className="text-sm text-[#7f9995] hover:text-white transition-colors"
         >
           Se déconnecter
         </button>
@@ -76,7 +76,7 @@ export default function NewUserWelcome({ user }) {
         >
           Bienvenue{user?.full_name ? `, ${user.full_name.split(" ")[0]}` : ""} !
         </h1>
-        <p className="text-gray-400 text-base md:text-lg mb-12 max-w-lg">
+        <p className="text-[#93aca7] text-base md:text-lg mb-12 max-w-lg">
           Pour commencer votre parcours d'investissement, remplissez notre questionnaire de découverte.
         </p>
 
@@ -96,7 +96,7 @@ export default function NewUserWelcome({ user }) {
 
         {/* Message appel découverte */}
         <div className="bg-white/[0.03] border border-[#1c2725] rounded-md px-8 py-6 mb-12 max-w-lg w-full">
-          <p className="text-gray-300 text-sm leading-relaxed">
+          <p className="text-[#c4d5d1] text-sm leading-relaxed">
             <span className="text-white font-medium">Vous avez déjà effectué votre appel de découverte ?</span>
             <br />
             Pas de panique, nous allons vous débloquer l'accès d'ici peu !
@@ -105,7 +105,7 @@ export default function NewUserWelcome({ user }) {
 
         {/* Carousel fonctionnalités */}
         <div className="w-full max-w-lg">
-          <p className="text-xs text-gray-600 uppercase tracking-widest mb-6">Ce qui vous attend sur la plateforme</p>
+          <p className="text-xs text-[#5e7672] uppercase tracking-widest mb-6">Ce qui vous attend sur la plateforme</p>
           <div className="relative h-40">
             <AnimatePresence mode="wait">
               <motion.div
@@ -118,7 +118,7 @@ export default function NewUserWelcome({ user }) {
               >
                 {React.createElement(features[current].icon, { className: "w-6 h-6 text-[#33d6c0] mb-3" })}
                 <h3 className="text-white font-medium mb-2">{features[current].titre}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{features[current].description}</p>
+                <p className="text-[#93aca7] text-sm leading-relaxed">{features[current].description}</p>
               </motion.div>
             </AnimatePresence>
           </div>

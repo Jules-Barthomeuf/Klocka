@@ -18,7 +18,7 @@ function FrCompare({ local, national, unit = "%", invert = false }) {
   const diff = local - national;
   const positive = invert ? diff < 0 : diff > 0;
   return (
-    <p className={`text-[10px] mt-1 font-medium ${positive ? 'text-[#5ee7d4]' : diff === 0 ? 'text-gray-500' : 'text-red-400'}`}>
+    <p className={`text-[10px] mt-1 font-medium ${positive ? 'text-[#5ee7d4]' : diff === 0 ? 'text-[#7f9995]' : 'text-red-400'}`}>
       FR: {national}{unit} ({diff > 0 ? '+' : ''}{diff.toFixed(1)} pts)
     </p>
   );
@@ -44,7 +44,7 @@ export default function LogementSection({ data }) {
         {data.nb_logements > 0 && <KPI label="Logements" value={data.nb_logements.toLocaleString()} color="teal" />}
         {data.pct_logements_vacants > 0 && (
           <div className={`p-4 bg-gradient-to-br ${data.pct_logements_vacants > 8 ? 'from-red-500/20 border-red-500/30' : data.pct_logements_vacants > 5 ? 'from-amber-500/20 border-amber-500/30' : 'from-[#33d6c0]/20 border-[#33d6c0]/30'} to-transparent rounded-md border`}>
-            <p className="text-sm text-gray-400 mb-1">Taux de vacance</p>
+            <p className="text-sm text-[#93aca7] mb-1">Taux de vacance</p>
             <p className={`text-2xl font-semibold ${data.pct_logements_vacants > 8 ? 'text-red-400' : data.pct_logements_vacants > 5 ? 'text-amber-400' : 'text-[#5ee7d4]'}`}>{data.pct_logements_vacants}%</p>
             <FrCompare local={data.pct_logements_vacants} national={FR_LOG.pct_logements_vacants} invert={true} />
           </div>
@@ -57,7 +57,7 @@ export default function LogementSection({ data }) {
         {/* Catégorie de logement */}
         {pieLogement.length > 0 && (
           <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-gray-400">Catégorie</p>
+            <p className="text-sm text-[#93aca7]">Catégorie</p>
             <div className="w-36 h-36">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -72,7 +72,7 @@ export default function LogementSection({ data }) {
               {pieLogement.map((d, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.fill }} />
-                  <span className="text-xs text-gray-300">{d.name}: {d.value}%</span>
+                  <span className="text-xs text-[#c4d5d1]">{d.name}: {d.value}%</span>
                 </div>
               ))}
             </div>
@@ -82,7 +82,7 @@ export default function LogementSection({ data }) {
         {/* Type de logement */}
         {pieType.length > 0 && (
           <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-gray-400">Type</p>
+            <p className="text-sm text-[#93aca7]">Type</p>
             <div className="w-36 h-36">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -97,7 +97,7 @@ export default function LogementSection({ data }) {
               {pieType.map((d, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.fill }} />
-                  <span className="text-xs text-gray-300">{d.name}: {d.value}%</span>
+                  <span className="text-xs text-[#c4d5d1]">{d.name}: {d.value}%</span>
                 </div>
               ))}
             </div>
@@ -108,7 +108,7 @@ export default function LogementSection({ data }) {
         <div className="space-y-4">
           {(data.pct_proprietaires > 0 || data.pct_locataires > 0) && (
             <div>
-              <p className="text-sm text-gray-400 mb-2">Statut d'occupation</p>
+              <p className="text-sm text-[#93aca7] mb-2">Statut d'occupation</p>
               <div className="relative h-6 rounded-full overflow-hidden flex">
                 {data.pct_proprietaires > 0 && (
                   <div className="bg-blue-500 flex items-center justify-center text-white text-xs font-medium" style={{ width: `${data.pct_proprietaires}%` }}>
@@ -122,8 +122,8 @@ export default function LogementSection({ data }) {
                 )}
               </div>
               <div className="flex gap-4 mt-2">
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500" /><span className="text-xs text-gray-400">Propriétaires</span></div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500" /><span className="text-xs text-gray-400">Locataires</span></div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500" /><span className="text-xs text-[#93aca7]">Propriétaires</span></div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500" /><span className="text-xs text-[#93aca7]">Locataires</span></div>
               </div>
             </div>
           )}
@@ -131,7 +131,7 @@ export default function LogementSection({ data }) {
           {/* Ancienneté d'emménagement */}
           {data.pct_emmenagement_moins_2ans > 0 && (
             <div>
-              <p className="text-sm text-gray-400 mb-2">Ancienneté d'emménagement</p>
+              <p className="text-sm text-[#93aca7] mb-2">Ancienneté d'emménagement</p>
               <div className="space-y-1.5">
                 {data.pct_emmenagement_moins_2ans > 0 && <StatLine label="< 2 ans" value={data.pct_emmenagement_moins_2ans} />}
                 {data.pct_emmenagement_2_4ans > 0 && <StatLine label="2-4 ans" value={data.pct_emmenagement_2_4ans} />}
@@ -144,7 +144,7 @@ export default function LogementSection({ data }) {
           {/* Nb pièces */}
           {data.pct_1_piece > 0 && (
             <div>
-              <p className="text-sm text-gray-400 mb-2">Nombre de pièces</p>
+              <p className="text-sm text-[#93aca7] mb-2">Nombre de pièces</p>
               <div className="space-y-1.5">
                 {data.pct_1_piece > 0 && <StatLine label="1 pièce" value={data.pct_1_piece} />}
                 {data.pct_2_pieces > 0 && <StatLine label="2 pièces" value={data.pct_2_pieces} />}
@@ -163,11 +163,11 @@ export default function LogementSection({ data }) {
 function StatLine({ label, value }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-400 w-16">{label}</span>
-      <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+      <span className="text-xs text-[#93aca7] w-16">{label}</span>
+      <div className="flex-1 h-1.5 bg-[#101715] rounded-full overflow-hidden">
         <div className="h-full rounded-full bg-[#33d6c0]" style={{ width: `${Math.min(value, 100)}%` }} />
       </div>
-      <span className="text-xs text-gray-300 w-10 text-right">{value}%</span>
+      <span className="text-xs text-[#c4d5d1] w-10 text-right">{value}%</span>
     </div>
   );
 }

@@ -50,7 +50,7 @@ export default function ExportProjects() {
         </div>
         <div>
           <h1 className="text-2xl font-light text-white mb-2">Export Projets</h1>
-          <p className="text-gray-500 text-sm">Télécharge l'intégralité de l'entité Project en JSON brut, tous champs inclus.</p>
+          <p className="text-[#7f9995] text-sm">Télécharge l'intégralité de l'entité Project en JSON brut, tous champs inclus.</p>
         </div>
 
         {done && count !== null && (

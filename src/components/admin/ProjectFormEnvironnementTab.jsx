@@ -10,18 +10,18 @@ function Field({ label, info, children }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-1">
-        <Label className="text-gray-400 text-xs">{label}</Label>
+        <Label className="text-[#93aca7] text-xs">{label}</Label>
         {info && (
           <div className="relative">
             <button
               type="button"
               onClick={() => setShow(v => !v)}
-              className="text-gray-600 hover:text-[#33d6c0] transition-colors"
+              className="text-[#5e7672] hover:text-[#33d6c0] transition-colors"
             >
               <Info className="w-3 h-3" />
             </button>
             {show && (
-              <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-[#1a1a1a] border border-[#1c2725] rounded-lg p-2.5 text-xs text-gray-300 shadow-xl">
+              <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-[#1a1a1a] border border-[#1c2725] rounded-lg p-2.5 text-xs text-[#c4d5d1] shadow-xl">
                 {info}
                 <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1a1a1a] border-r border-b border-[#1c2725] rotate-45 -mt-1" />
               </div>

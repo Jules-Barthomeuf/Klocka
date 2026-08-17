@@ -109,7 +109,7 @@ export default function ProjectFormDiagnosticsTab({ formData, setFormData }) {
           </div>
         ))}
         {(!formData.notes_diagnostique || formData.notes_diagnostique.length === 0) && (
-          <p className="text-gray-500 text-sm text-center py-2">Aucune note. Cliquez sur le bouton ci-dessus pour en ajouter.</p>
+          <p className="text-[#7f9995] text-sm text-center py-2">Aucune note. Cliquez sur le bouton ci-dessus pour en ajouter.</p>
         )}
       </div>
     </div>

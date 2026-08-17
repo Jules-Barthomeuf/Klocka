@@ -82,7 +82,7 @@ export default function AdminSignup() {
 
   if (isChecking) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#e6efed] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
       </div>
     );
@@ -91,7 +91,7 @@ export default function AdminSignup() {
   // Si pas de token valide, afficher un message d'erreur
   if (!hasValidToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#e6efed] flex items-center justify-center p-4">
         <Card className="max-w-md w-full border-none shadow-2xl">
           <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white pb-8">
             <div className="flex items-center justify-center mb-4">
@@ -106,10 +106,10 @@ export default function AdminSignup() {
           
           <CardContent className="p-8 text-center space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="text-xl font-semibold text-[#0a0f0e] mb-2">
                 Lien d'invitation invalide
               </h2>
-              <p className="text-gray-600">
+              <p className="text-[#5e7672]">
                 Ce lien n'est pas valide ou a expiré. Veuillez contacter l'administrateur pour obtenir un nouveau lien d'invitation.
               </p>
             </div>
@@ -126,7 +126,7 @@ export default function AdminSignup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#e6efed] flex items-center justify-center p-4">
       <Card className="max-w-md w-full border-none shadow-2xl">
         <CardHeader className="bg-gradient-to-r from-[#33d6c0] to-[#5ee7d4] text-white pb-8">
           <div className="flex items-center justify-center mb-4">
@@ -141,10 +141,10 @@ export default function AdminSignup() {
         
         <CardContent className="p-8 text-center space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-xl font-semibold text-[#0a0f0e] mb-2">
               Accès administrateur validé
             </h2>
-            <p className="text-gray-600">
+            <p className="text-[#5e7672]">
               Créez votre compte ou connectez-vous pour accéder à l'espace administrateur avec tous les droits
             </p>
           </div>

@@ -341,9 +341,9 @@ function SlideBlock({ slide, index }) {
             </Button>
           )}
           {open ? (
-            <ChevronUp className="w-4 h-4 text-gray-500" />
+            <ChevronUp className="w-4 h-4 text-[#7f9995]" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-gray-500" />
+            <ChevronDown className="w-4 h-4 text-[#7f9995]" />
           )}
         </div>
       </button>
@@ -352,7 +352,7 @@ function SlideBlock({ slide, index }) {
       {open && (
         <div className="px-5 pb-5">
           <div className="bg-[#050807]/50 border border-[#131c1b] rounded-lg p-4">
-            <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-mono">
+            <pre className="text-[#c4d5d1] text-xs leading-relaxed whitespace-pre-wrap font-mono">
               {slide.text}
             </pre>
           </div>
@@ -377,7 +377,7 @@ export default function BankPitchGenerator({ project, client }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-gray-500 text-xs">
+        <p className="text-[#7f9995] text-xs">
           {slides.length} slides générées · Cliquez sur chaque slide pour voir le contenu et le copier.
         </p>
         <Button

@@ -78,7 +78,7 @@ export default function Portail({ paiement2Fois = false }) {
         {etape < 4 && (
           <div className="flex items-center gap-2 mb-0 justify-center py-6 bg-[#050807]">
             {[1, 2, 3].map((s) => (
-              <div key={s} className={`w-2 h-2 rounded-full transition-all ${s === etape ? 'bg-[#33d6c0] w-6' : s < etape ? 'bg-[#33d6c0]/50' : 'bg-gray-200'}`} />
+              <div key={s} className={`w-2 h-2 rounded-full transition-all ${s === etape ? 'bg-[#33d6c0] w-6' : s < etape ? 'bg-[#33d6c0]/50' : 'bg-[#e6efed]'}`} />
             ))}
           </div>
         )}

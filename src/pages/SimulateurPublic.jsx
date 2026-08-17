@@ -400,7 +400,7 @@ export default function SimulateurPublic() {
                   <button
                     key={t.id}
                     onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#33d6c0] text-white" : "border-transparent text-gray-500 hover:text-gray-300"}`}
+                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#33d6c0] text-white" : "border-transparent text-[#7f9995] hover:text-[#c4d5d1]"}`}
                   >
                     {t.label}
                   </button>
@@ -408,7 +408,7 @@ export default function SimulateurPublic() {
               </div>
               <div className="flex items-center gap-2">
                 <ExportExcelFullButton params={exportParams} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
-                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-gray-300 hover:text-white hover:border-white/[0.25] text-xs transition-colors">
+                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#24312f] text-[#c4d5d1] hover:text-white hover:border-white/[0.25] text-xs transition-colors">
                   {linkCopied ? <Check className="w-3.5 h-3.5 text-[#5ee7d4]" /> : <Link2 className="w-3.5 h-3.5" />}
                   {linkCopied ? 'Copié' : 'Partager'}
                 </button>
@@ -451,7 +451,7 @@ export default function SimulateurPublic() {
               {activeTab !== "avance" && (
                 <SimDataTable calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} dureeCredit={values.dureeCredit} />
               )}
-              <p className="text-[10px] text-gray-600 italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
+              <p className="text-[10px] text-[#5e7672] italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
               <p className="text-center text-white/20 text-xs pt-4">Simulation générée par Klocka</p>
             </div>
           </main>

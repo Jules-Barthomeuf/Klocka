@@ -93,10 +93,25 @@ export async function extraireDocument(type, pages) {
   }
 
   const corpus = pages.map((p) => `===PAGE ${p.page}===\n${p.texte}`).join('\n\n');
-  const brut = await invokeLLM({
-    prompt: `${consignes(type)}\n\n--- DOCUMENT ---\n${corpus}\n--- FIN DU DOCUMENT ---`,
-    response_json_schema: schemaPour(type),
-  });
+
+  // L'IA peut être momentanément indisponible (quota du palier gratuit, panne).
+  // Le document est alors conservé tel quel — pages comprises — avec un
+  // incident dédié : « Redépouiller » relancera l'extraction sans nouveau
+  // téléversement, une fois le quota revenu.
+  let brut;
+  try {
+    brut = await invokeLLM({
+      prompt: `${consignes(type)}\n\n--- DOCUMENT ---\n${corpus}\n--- FIN DU DOCUMENT ---`,
+      response_json_schema: schemaPour(type),
+    });
+  } catch (e) {
+    console.error('[alexis] extraction impossible (IA indisponible) :', e?.message || e);
+    return {
+      champs: vide,
+      incidents: [{ champ: '*', motif: 'ia_indisponible', detail: String(e?.message || e).slice(0, 200) }],
+      ia: false,
+    };
+  }
 
   const champs = {};
   const incidents = [];

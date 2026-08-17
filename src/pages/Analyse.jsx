@@ -177,7 +177,7 @@ export default function Analyse() {
           <div className="max-w-5xl mx-auto">
             <button
               onClick={() => montrerDeal(null)}
-              className="text-gray-500 hover:text-white text-xs flex items-center gap-1.5 mb-4 transition-colors"
+              className="text-[#7f9995] hover:text-white text-xs flex items-center gap-1.5 mb-4 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Tous les deals
             </button>
@@ -202,7 +202,7 @@ export default function Analyse() {
             ) : (
               <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-8 text-center">
                 <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin mx-auto mb-3" />
-                <p className="text-gray-400 text-sm">Ouverture du dossier…</p>
+                <p className="text-[#93aca7] text-sm">Ouverture du dossier…</p>
               </div>
             )}
           </div>

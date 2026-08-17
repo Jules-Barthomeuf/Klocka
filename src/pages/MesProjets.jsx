@@ -142,13 +142,13 @@ export default function MesProjets() {
         {/* Search */}
         {projects.length > 1 && (
           <div className="mb-6 relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7f9995]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher un projet..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-[#1c2725] rounded-md text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#33d6c0]/40 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-[#1c2725] rounded-md text-sm text-white placeholder:text-[#7f9995] focus:outline-none focus:border-[#33d6c0]/40 transition-colors"
             />
           </div>
         )}

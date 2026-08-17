@@ -62,7 +62,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#050807] border-gray-700 max-w-md">
+      <DialogContent className="bg-[#050807] border-[#24312f] max-w-md">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
             <Users className="w-5 h-5 text-[#33d6c0]" />
@@ -71,7 +71,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <p className="text-gray-400 text-sm">
+          <p className="text-[#93aca7] text-sm">
             Liez un partenaire pour qu'il puisse voir tous vos projets et informations d'investissement.
           </p>
 
@@ -81,7 +81,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
               <Label className="text-white">Partenaires liés</Label>
               <div className="space-y-2">
                 {linkedPartners.map((email) => (
-                  <div key={email} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <div key={email} className="flex items-center justify-between p-3 bg-[#101715]/50 rounded-lg border border-[#24312f]">
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-[#33d6c0]" />
                       <span className="text-white text-sm">{email}</span>
@@ -109,7 +109,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
                 placeholder="email@partenaire.com"
                 value={partnerEmail}
                 onChange={(e) => setPartnerEmail(e.target.value)}
-                className="flex-1 bg-gray-900 border-gray-700 text-white"
+                className="flex-1 bg-[#0a0f0e] border-[#24312f] text-white"
               />
               <Button
                 onClick={handleLinkPartner}
@@ -123,7 +123,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
                 )}
               </Button>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[#7f9995]">
               Votre partenaire recevra accès à tous vos projets et données d'investissement.
             </p>
           </div>

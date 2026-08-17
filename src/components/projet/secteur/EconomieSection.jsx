@@ -32,7 +32,7 @@ export default function EconomieSection({ data }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {secteursData.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-3">Répartition par secteur</p>
+            <p className="text-sm text-[#93aca7] mb-3">Répartition par secteur</p>
             <div className="space-y-2">
               {secteursData.map((d, i) => <ProgressBar key={i} label={d.name} value={d.value} color={d.color} />)}
             </div>
@@ -41,7 +41,7 @@ export default function EconomieSection({ data }) {
 
         {tailleData.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-3">Taille des établissements</p>
+            <p className="text-sm text-[#93aca7] mb-3">Taille des établissements</p>
             <div className="space-y-2">
               {tailleData.map((d, i) => <ProgressBar key={i} label={d.name} value={d.value} color={d.color} />)}
             </div>

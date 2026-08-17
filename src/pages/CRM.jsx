@@ -189,20 +189,20 @@ export default function CRM() {
             CRM
           </h1>
           <div className="h-0.5 w-32 bg-[#33d6c0]"></div>
-          <p className="text-gray-400 mt-4">
+          <p className="text-[#93aca7] mt-4">
             Vue d'ensemble de votre activité commerciale
           </p>
         </div>
 
         {/* Stats principales */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
+            <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 to-[#101715]/95 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Clients</p>
+                    <p className="text-[#93aca7] text-sm">Clients</p>
                     <p className="text-3xl font-bold text-white mt-1">{clients.length}</p>
                   </div>
                   <Users className="w-10 h-10 text-blue-400" />
@@ -211,15 +211,15 @@ export default function CRM() {
             </Card>
           </div>
 
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
+            <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 to-[#101715]/95 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Transactions</p>
+                    <p className="text-[#93aca7] text-sm">Transactions</p>
                     <p className="text-3xl font-bold text-white mt-1">{transactions.length}</p>
-                    <p className="text-xs text-gray-500 mt-1">{transactionsEnCours} en cours</p>
+                    <p className="text-xs text-[#7f9995] mt-1">{transactionsEnCours} en cours</p>
                   </div>
                   <TrendingUp className="w-10 h-10 text-[#5ee7d4]" />
                 </div>
@@ -227,13 +227,13 @@ export default function CRM() {
             </Card>
           </div>
 
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
+            <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 to-[#101715]/95 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Propriétés</p>
+                    <p className="text-[#93aca7] text-sm">Propriétés</p>
                     <p className="text-3xl font-bold text-white mt-1">{proprietes.length}</p>
                   </div>
                   <Building2 className="w-10 h-10 text-purple-400" />
@@ -242,13 +242,13 @@ export default function CRM() {
             </Card>
           </div>
 
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
+            <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 to-[#101715]/95 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Agents Immobiliers</p>
+                    <p className="text-[#93aca7] text-sm">Agents Immobiliers</p>
                     <p className="text-3xl font-bold text-white mt-1">{contacts.length}</p>
                   </div>
                   <Briefcase className="w-10 h-10 text-orange-400" />
@@ -260,13 +260,13 @@ export default function CRM() {
 
         {/* Stats financières */}
         <div className="grid md:grid-cols-3 gap-4 mb-8">
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
             <Card className="relative bg-gradient-to-br from-[#33d6c0]/10 to-[#2bb8a5]/20 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Volume Transactions Finalisées</p>
+                    <p className="text-[#93aca7] text-sm">Volume Transactions Finalisées</p>
                     <p className="text-2xl font-bold text-white mt-1">
                       {new Intl.NumberFormat('fr-FR', { 
                         style: 'currency', 
@@ -282,13 +282,13 @@ export default function CRM() {
             </Card>
           </div>
 
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
             <Card className="relative bg-gradient-to-br from-[#33d6c0]/20 to-[#5ee7d4]/20 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Total Honoraires</p>
+                    <p className="text-[#93aca7] text-sm">Total Honoraires</p>
                     <p className="text-2xl font-bold text-white mt-1">
                       {new Intl.NumberFormat('fr-FR', { 
                         style: 'currency', 
@@ -304,13 +304,13 @@ export default function CRM() {
             </Card>
           </div>
 
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
             <Card className="relative bg-gradient-to-br from-yellow-900/20 to-yellow-800/20 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Honoraires Finalisées</p>
+                    <p className="text-[#93aca7] text-sm">Honoraires Finalisées</p>
                     <p className="text-2xl font-bold text-white mt-1">
                       {new Intl.NumberFormat('fr-FR', { 
                         style: 'currency', 
@@ -330,9 +330,9 @@ export default function CRM() {
         {/* Cartes */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* Carte des agents */}
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
+            <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 to-[#101715]/95 border-none">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-[#33d6c0]" />
@@ -360,16 +360,16 @@ export default function CRM() {
                           <Popup>
                             <div className="text-sm">
                               <h3 className="font-bold text-base mb-2">{city}</h3>
-                              <p className="text-gray-600 mb-2">{cityContacts.length} agent{cityContacts.length > 1 ? 's' : ''}</p>
+                              <p className="text-[#5e7672] mb-2">{cityContacts.length} agent{cityContacts.length > 1 ? 's' : ''}</p>
                               <div className="max-h-48 overflow-y-auto space-y-1">
                                 {cityContacts.slice(0, 5).map(contact => (
                                   <div key={contact.id} className="text-xs">
                                     <strong>{contact.nom}</strong>
-                                    {contact.entreprise && <span className="text-gray-500"> - {contact.entreprise}</span>}
+                                    {contact.entreprise && <span className="text-[#7f9995]"> - {contact.entreprise}</span>}
                                   </div>
                                 ))}
                                 {cityContacts.length > 5 && (
-                                  <p className="text-xs text-gray-500 italic">
+                                  <p className="text-xs text-[#7f9995] italic">
                                     +{cityContacts.length - 5} autre{cityContacts.length - 5 > 1 ? 's' : ''}...
                                   </p>
                                 )}
@@ -386,9 +386,9 @@ export default function CRM() {
           </div>
 
           {/* Carte des transactions */}
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
+            <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 to-[#101715]/95 border-none">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-[#5ee7d4]" />
@@ -447,7 +447,7 @@ export default function CRM() {
                           <Popup>
                             <div className="text-sm">
                               <h3 className="font-bold text-base mb-2">{city}</h3>
-                              <p className="text-gray-600 mb-2">{total} transaction{total > 1 ? 's' : ''}</p>
+                              <p className="text-[#5e7672] mb-2">{total} transaction{total > 1 ? 's' : ''}</p>
                               {enCours.length > 0 && (
                                 <div className="mb-2">
                                   <p className="font-semibold text-blue-600 mb-1">En cours ({enCours.length})</p>
@@ -457,7 +457,7 @@ export default function CRM() {
                                         {t.name}
                                       </div>
                                     ))}
-                                    {enCours.length > 3 && <p className="text-xs text-gray-500 italic">+{enCours.length - 3} autre{enCours.length - 3 > 1 ? 's' : ''}...</p>}
+                                    {enCours.length > 3 && <p className="text-xs text-[#7f9995] italic">+{enCours.length - 3} autre{enCours.length - 3 > 1 ? 's' : ''}...</p>}
                                   </div>
                                 </div>
                               )}
@@ -470,7 +470,7 @@ export default function CRM() {
                                         {t.name}
                                       </div>
                                     ))}
-                                    {finalisees.length > 3 && <p className="text-xs text-gray-500 italic">+{finalisees.length - 3} autre{finalisees.length - 3 > 1 ? 's' : ''}...</p>}
+                                    {finalisees.length > 3 && <p className="text-xs text-[#7f9995] italic">+{finalisees.length - 3} autre{finalisees.length - 3 > 1 ? 's' : ''}...</p>}
                                   </div>
                                 </div>
                               )}
@@ -491,7 +491,7 @@ export default function CRM() {
           {crmSections.map((section, index) => {
             const Icon = section.icon;
             return (
-              <div key={index} className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+              <div key={index} className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
                 <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
                 <Card 
                   className={`relative bg-gradient-to-br ${section.color} hover:opacity-90 transition-all cursor-pointer border-none h-full`}
@@ -511,7 +511,7 @@ export default function CRM() {
                       {section.count}
                     </div>
                     {section.subtitle && (
-                      <p className="text-gray-400 text-sm">{section.subtitle}</p>
+                      <p className="text-[#93aca7] text-sm">{section.subtitle}</p>
                     )}
                   </CardContent>
                 </Card>

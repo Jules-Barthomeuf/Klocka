@@ -47,7 +47,7 @@ export default function SimulateurRapide({ parametres, rendementCible = [5, 7] }
 
   if (!resultat) {
     return (
-      <p className="text-gray-500 text-sm">
+      <p className="text-[#7f9995] text-sm">
         Simulation indisponible : il manque le prix ou le loyer.
       </p>
     );
@@ -73,13 +73,13 @@ export default function SimulateurRapide({ parametres, rendementCible = [5, 7] }
       <div className={`rounded-md border p-4 ${dansCible ? "border-[#33d6c0]/40 bg-[#33d6c0]/10" : "border-amber-500/30 bg-amber-500/[0.07]"}`}>
         <div className="flex items-baseline justify-between gap-4">
           <div>
-            <p className="text-gray-400 text-xs mb-1">Rendement AEM</p>
+            <p className="text-[#93aca7] text-xs mb-1">Rendement AEM</p>
             <p className={`text-3xl font-light ${dansCible ? "text-[#5ee7d4]" : "text-amber-300"}`}>
               {rendementAem.toFixed(2)} %
             </p>
           </div>
           <div className="text-right">
-            <p className="text-gray-400 text-xs mb-1">Prix de revient</p>
+            <p className="text-[#93aca7] text-xs mb-1">Prix de revient</p>
             <p className="text-white text-xl font-light">{euros(resultat.prixRevient)}</p>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function SimulateurRapide({ parametres, rendementCible = [5, 7] }
         <Kpi label={`Création richesse ${resultat.indicateurs.nbAnnees} ans`} valeur={euros(resultat.indicateurs.creationRichesseBrute)} positif={resultat.indicateurs.creationRichesseBrute >= 0} />
       </div>
 
-      <p className="text-gray-600 text-[11px]">
+      <p className="text-[#5e7672] text-[11px]">
         Hypothèses par défaut du simulateur (indexation 2 %, revente à 20 ans, assurance 0,25 %). Ouvrez le
         simulateur complet pour affiner charges, travaux et vacance.
       </p>
@@ -129,8 +129,8 @@ function negocePourCible(loyer, rendementCible, resultat, prixNegocie) {
 function Champ({ label, value, onChange, step, suffixe }) {
   return (
     <div>
-      <Label className="text-gray-400 text-xs mb-1.5 block">
-        {label} <span className="text-gray-600">({suffixe})</span>
+      <Label className="text-[#93aca7] text-xs mb-1.5 block">
+        {label} <span className="text-[#5e7672]">({suffixe})</span>
       </Label>
       <Input
         type="number"
@@ -146,8 +146,8 @@ function Champ({ label, value, onChange, step, suffixe }) {
 function Ligne({ label, valeur }) {
   return (
     <div className="flex justify-between gap-2 border-b border-[#131c1b] py-1.5">
-      <span className="text-gray-500 text-xs">{label}</span>
-      <span className="text-gray-200 text-xs">{valeur}</span>
+      <span className="text-[#7f9995] text-xs">{label}</span>
+      <span className="text-[#e6efed] text-xs">{valeur}</span>
     </div>
   );
 }
@@ -155,7 +155,7 @@ function Ligne({ label, valeur }) {
 function Kpi({ label, valeur, positif }) {
   return (
     <div className="bg-[#101715]/60 border border-[#16201f] rounded-md px-3 py-2.5">
-      <p className="text-gray-500 text-[11px] mb-0.5 flex items-center gap-1">
+      <p className="text-[#7f9995] text-[11px] mb-0.5 flex items-center gap-1">
         <TrendingUp className="w-3 h-3" /> {label}
       </p>
       <p className={`text-sm ${positif === undefined ? "text-white" : positif ? "text-[#5ee7d4]" : "text-red-400"}`}>

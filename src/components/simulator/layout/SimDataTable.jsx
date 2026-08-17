@@ -122,9 +122,9 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-[#1c2725]">
-              <th className="sticky left-0 z-10 bg-[#0c0c0c] px-3 py-2 text-left text-[9px] uppercase tracking-[0.14em] text-gray-600 font-medium whitespace-nowrap">Ligne</th>
+              <th className="sticky left-0 z-10 bg-[#0c0c0c] px-3 py-2 text-left text-[9px] uppercase tracking-[0.14em] text-[#5e7672] font-medium whitespace-nowrap">Ligne</th>
               {years.map((y) => (
-                <th key={y} className="px-2 py-2 text-right text-[9px] uppercase tracking-[0.14em] text-gray-600 font-medium whitespace-nowrap">An {y}</th>
+                <th key={y} className="px-2 py-2 text-right text-[9px] uppercase tracking-[0.14em] text-[#5e7672] font-medium whitespace-nowrap">An {y}</th>
               ))}
             </tr>
           </thead>
@@ -158,12 +158,12 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                 </tr>
                 {openSections[sec.title] && sec.rows.map((row, ri) => (
                   <tr key={row.label} className={`border-b border-white/[0.03] last:border-0 hover:bg-white/[0.04] transition-colors ${ri % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"}`}>
-                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-gray-400 whitespace-nowrap ${ri % 2 === 0 ? "bg-[#121212]" : "bg-[#0c0c0c]"}`}>{row.label}</td>
+                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-[#93aca7] whitespace-nowrap ${ri % 2 === 0 ? "bg-[#121212]" : "bg-[#0c0c0c]"}`}>{row.label}</td>
                     {rows.map((r) => {
                       const val = row.get(r);
                       const isNeg = typeof val === "string" && val.trim().startsWith("-");
                       return (
-                        <td key={r.annee} className={`px-2 py-1.5 text-right tabular-nums text-xs whitespace-nowrap ${isNeg ? "text-[#E8836B]" : "text-gray-200"}`}>{val}</td>
+                        <td key={r.annee} className={`px-2 py-1.5 text-right tabular-nums text-xs whitespace-nowrap ${isNeg ? "text-[#E8836B]" : "text-[#e6efed]"}`}>{val}</td>
                       );
                     })}
                   </tr>

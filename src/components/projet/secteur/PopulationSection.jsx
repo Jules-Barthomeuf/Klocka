@@ -29,30 +29,30 @@ function CompareBar({ label, local, national, unit = "", suffix = "", invert = f
   const diff = local != null && national != null ? local - national : null;
   const positive = invert ? diff < 0 : diff > 0;
   return (
-    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-      <p className="text-xs text-gray-400 mb-2">{label}</p>
+    <div className="p-3 bg-[#101715]/50 rounded-lg border border-[#24312f]">
+      <p className="text-xs text-[#93aca7] mb-2">{label}</p>
       <div className="space-y-1.5">
         <div>
           <div className="flex items-center justify-between text-xs mb-0.5">
             <span className="text-[#33d6c0]">Ville</span>
             <span className="text-white font-semibold">{local}{suffix}{unit}</span>
           </div>
-          <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[#24312f] rounded-full overflow-hidden">
             <div className="h-full rounded-full bg-[#33d6c0]" style={{ width: `${((local || 0) / max) * 100}%` }} />
           </div>
         </div>
         <div>
           <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="text-gray-500">France</span>
-            <span className="text-gray-400">{national}{suffix}{unit}</span>
+            <span className="text-[#7f9995]">France</span>
+            <span className="text-[#93aca7]">{national}{suffix}{unit}</span>
           </div>
-          <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gray-500" style={{ width: `${((national || 0) / max) * 100}%` }} />
+          <div className="h-1.5 bg-[#24312f] rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-[#7f9995]" style={{ width: `${((national || 0) / max) * 100}%` }} />
           </div>
         </div>
       </div>
       {diff !== null && (
-        <p className={`text-[10px] mt-1.5 font-medium ${positive ? 'text-[#5ee7d4]' : diff === 0 ? 'text-gray-500' : 'text-red-400'}`}>
+        <p className={`text-[10px] mt-1.5 font-medium ${positive ? 'text-[#5ee7d4]' : diff === 0 ? 'text-[#7f9995]' : 'text-red-400'}`}>
           {diff > 0 ? '+' : ''}{diff.toFixed(1)}{suffix} vs France
         </p>
       )}
@@ -91,7 +91,7 @@ export default function PopulationSection({ data }) {
         {/* Pyramide des âges */}
         {pyramide.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-3">Répartition par âge</p>
+            <p className="text-sm text-[#93aca7] mb-3">Répartition par âge</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={pyramide} layout="vertical" margin={{ left: 10, right: 20 }}>
@@ -109,7 +109,7 @@ export default function PopulationSection({ data }) {
         {/* Historique population */}
         {historique.length > 2 && (
           <div>
-            <p className="text-sm text-gray-400 mb-3">Évolution historique</p>
+            <p className="text-sm text-[#93aca7] mb-3">Évolution historique</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={historique} margin={{ left: 10, right: 20 }}>
@@ -128,7 +128,7 @@ export default function PopulationSection({ data }) {
       {/* Ménages et familles */}
       {(data.pct_menages_1_personne > 0 || data.pct_couples_avec_enfants > 0) && (
         <div className="mt-6">
-          <p className="text-sm text-gray-400 mb-3">Composition des ménages</p>
+          <p className="text-sm text-[#93aca7] mb-3">Composition des ménages</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {data.pct_menages_1_personne > 0 && <MiniStat label="Pers. seules" value={`${data.pct_menages_1_personne}%`} national={FR_POP.pct_menages_1_personne} />}
             {data.pct_couples_sans_enfant > 0 && <MiniStat label="Couples sans enfant" value={`${data.pct_couples_sans_enfant}%`} national={FR_POP.pct_couples_sans_enfant} />}
@@ -145,14 +145,14 @@ function MiniStat({ label, value, national }) {
   const localNum = parseFloat(value);
   const diff = national != null && !isNaN(localNum) ? localNum - national : null;
   return (
-    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-      <p className="text-xs text-gray-400">{label}</p>
+    <div className="p-3 bg-[#101715]/50 rounded-lg border border-[#24312f]">
+      <p className="text-xs text-[#93aca7]">{label}</p>
       <p className="text-lg text-white font-semibold">{value}</p>
       {national != null && (
-        <p className="text-[10px] text-gray-500 mt-0.5">
+        <p className="text-[10px] text-[#7f9995] mt-0.5">
           FR: {national}%
           {diff !== null && (
-            <span className={`ml-1 font-medium ${diff > 0 ? 'text-[#5ee7d4]' : diff < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+            <span className={`ml-1 font-medium ${diff > 0 ? 'text-[#5ee7d4]' : diff < 0 ? 'text-red-400' : 'text-[#7f9995]'}`}>
               ({diff > 0 ? '+' : ''}{diff.toFixed(1)} pts)
             </span>
           )}

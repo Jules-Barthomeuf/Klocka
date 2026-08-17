@@ -172,21 +172,21 @@ Réponds UNIQUEMENT en JSON.`;
           </div>
         </DialogHeader>
 
-        <p className="text-[10px] text-gray-600 mb-2">Cliquez sur une différence pour ouvrir le champ correspondant dans l'éditeur.</p>
+        <p className="text-[10px] text-[#5e7672] mb-2">Cliquez sur une différence pour ouvrir le champ correspondant dans l'éditeur.</p>
 
         <div className="space-y-6 mt-2">
           {/* Numeric diffs */}
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-3">Différences de valeurs</p>
+            <p className="text-[10px] uppercase tracking-wider text-[#7f9995] mb-3">Différences de valeurs</p>
             {numericDiffs.length > 0 ? (
               <div className="space-y-1.5">
                 {numericDiffs.map((diff) => (
                   <div key={diff.key} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/10 group">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                    <span className="text-xs text-gray-400 w-44 flex-shrink-0">{diff.label}</span>
+                    <span className="text-xs text-[#93aca7] w-44 flex-shrink-0">{diff.label}</span>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-xs text-blue-400 truncate">Actuel: <strong>{String(diff.currentVal)}</strong></span>
-                      <span className="text-gray-600">→</span>
+                      <span className="text-[#5e7672]">→</span>
                       <span className="text-xs text-purple-400 truncate">Shadow: <strong>{String(diff.shadowVal)}</strong></span>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -219,7 +219,7 @@ Réponds UNIQUEMENT en JSON.`;
           {/* Text analysis */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] uppercase tracking-wider text-gray-500">Analyse sémantique des textes</p>
+              <p className="text-[10px] uppercase tracking-wider text-[#7f9995]">Analyse sémantique des textes</p>
               <Button
                 size="sm"
                 onClick={analyzeTexts}
@@ -248,7 +248,7 @@ Réponds UNIQUEMENT en JSON.`;
                       <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-red-400 font-medium">{diff.label}</p>
-                        <p className="text-xs text-gray-400 mt-1">{diff.description}</p>
+                        <p className="text-xs text-[#93aca7] mt-1">{diff.description}</p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                         <button
@@ -271,7 +271,7 @@ Réponds UNIQUEMENT en JSON.`;
             )}
 
             {textDiffs && textDiffs.filter(d => !d.has_diff).length > 0 && textDiffs.filter(d => d.has_diff).length > 0 && (
-              <p className="text-[10px] text-gray-600 mt-2">
+              <p className="text-[10px] text-[#5e7672] mt-2">
                 {textDiffs.filter(d => !d.has_diff).length} autre(s) champ(s) texte sans différence de sens.
               </p>
             )}

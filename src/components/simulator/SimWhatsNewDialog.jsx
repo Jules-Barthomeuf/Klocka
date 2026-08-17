@@ -50,9 +50,9 @@ export default function SimWhatsNewDialog({ onClose }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 24 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-lg bg-gradient-to-br from-neutral-900 to-black border border-white/[0.1] rounded-md overflow-hidden"
+        className="relative w-full max-w-lg bg-gradient-to-br from-[#0a0f0e] to-black border border-white/[0.1] rounded-md overflow-hidden"
       >
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 text-gray-500 hover:text-white transition-colors">
+        <button onClick={onClose} className="absolute top-4 right-4 z-10 text-[#7f9995] hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
 
@@ -73,7 +73,7 @@ export default function SimWhatsNewDialog({ onClose }) {
                 <Icon className="w-7 h-7 text-[#33d6c0]" />
               </div>
               <h3 className="text-lg text-white font-medium mb-3">{slide.title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed max-w-sm">{slide.desc}</p>
+              <p className="text-sm text-[#93aca7] leading-relaxed max-w-sm">{slide.desc}</p>
             </motion.div>
           </AnimatePresence>
 
@@ -91,7 +91,7 @@ export default function SimWhatsNewDialog({ onClose }) {
             <button
               onClick={prev}
               disabled={index === 0}
-              className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-0 disabled:pointer-events-none"
+              className="flex items-center gap-1 text-sm text-[#93aca7] hover:text-white transition-colors disabled:opacity-0 disabled:pointer-events-none"
             >
               <ChevronLeft className="w-4 h-4" /> Précédent
             </button>

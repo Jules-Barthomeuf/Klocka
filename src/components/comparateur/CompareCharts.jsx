@@ -10,7 +10,7 @@ const COLORS = ["#991B1B", "#34D399", "#EAB308", "#C084FC"];
 function CustomTooltip({ active, payload, label, format = "currency" }) {
   if (!active || !payload) return null;
   return (
-    <div className="bg-[#1a1a1a] border border-gray-700 rounded-lg p-3">
+    <div className="bg-[#1a1a1a] border border-[#24312f] rounded-lg p-3">
       <p className="text-white text-xs font-medium mb-1">Année {label}</p>
       {payload.map((p, i) => (
         <p key={i} className="text-xs" style={{ color: p.color }}>

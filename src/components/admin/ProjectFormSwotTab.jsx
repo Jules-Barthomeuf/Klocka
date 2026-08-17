@@ -23,7 +23,7 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
       {/* Texte libre principal */}
       <div className="p-5 bg-white/[0.015] rounded-md border border-[#131c1b] space-y-3">
         <Label className="text-white text-lg">Analyse SWOT — Texte libre</Label>
-        <p className="text-gray-400 text-sm">
+        <p className="text-[#93aca7] text-sm">
           Saisissez toutes les informations SWOT. Le système les classera automatiquement en Forces, Faiblesses, Opportunités et Menaces pour le client.
         </p>
         <VerificationField fieldKey="swot_texte_general" formData={formData} setFormData={setFormData}>
@@ -40,7 +40,7 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
       {/* Indicateurs structurés */}
       <div className="p-5 bg-white/[0.015] rounded-md border border-[#131c1b] space-y-5">
         <Label className="text-white text-lg">Indicateurs clés</Label>
-        <p className="text-gray-400 text-sm">Ces données seront affichées dans des cards visuelles dans chaque onglet SWOT côté client.</p>
+        <p className="text-[#93aca7] text-sm">Ces données seront affichées dans des cards visuelles dans chaque onglet SWOT côté client.</p>
 
         <div className="grid md:grid-cols-2 gap-4">
           {/* Politique */}
@@ -48,19 +48,19 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             <p className="text-[#33d6c0] text-xs font-semibold uppercase tracking-wider">Politique & Gouvernance</p>
             <VerificationField fieldKey="swot_maire" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Maire</Label>
+                <Label className="text-[#93aca7] text-xs">Maire</Label>
                 <Input value={swot.maire || ""} onChange={(e) => update("maire", e.target.value)} placeholder="Ex: Martine Aubry" className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_parti_politique" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Parti politique</Label>
+                <Label className="text-[#93aca7] text-xs">Parti politique</Label>
                 <Input value={swot.parti_politique || ""} onChange={(e) => update("parti_politique", e.target.value)} placeholder="Ex: PS" className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_politiques_cles" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Politiques clés</Label>
+                <Label className="text-[#93aca7] text-xs">Politiques clés</Label>
                 <Textarea value={swot.politiques_cles || ""} onChange={(e) => update("politiques_cles", e.target.value)} rows={2} placeholder="Ex: Redynamisation centre-ville, ZFE..." className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>
@@ -71,13 +71,13 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             <p className="text-blue-400 text-xs font-semibold uppercase tracking-wider">Projets & Aménagement</p>
             <VerificationField fieldKey="swot_projets_ville" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Projets de la ville</Label>
+                <Label className="text-[#93aca7] text-xs">Projets de la ville</Label>
                 <Textarea value={swot.projets_ville || ""} onChange={(e) => update("projets_ville", e.target.value)} rows={3} placeholder="Ex: Nouveau tramway, rénovation quartier gare..." className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_programmes_nationaux" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Programmes nationaux</Label>
+                <Label className="text-[#93aca7] text-xs">Programmes nationaux</Label>
                 <Textarea value={swot.programmes_nationaux || ""} onChange={(e) => update("programmes_nationaux", e.target.value)} rows={2} placeholder="Ex: Action Cœur de Ville, Petites Villes de Demain..." className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>
@@ -88,19 +88,19 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             <p className="text-orange-400 text-xs font-semibold uppercase tracking-wider">Démographie & Risques</p>
             <VerificationField fieldKey="swot_taux_pauvrete" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Taux de pauvreté (%)</Label>
+                <Label className="text-[#93aca7] text-xs">Taux de pauvreté (%)</Label>
                 <Input type="number" value={swot.taux_pauvrete ?? ""} onChange={(e) => update("taux_pauvrete", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 18.5" className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_taux_etudiants" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Taux d'étudiants (%)</Label>
+                <Label className="text-[#93aca7] text-xs">Taux d'étudiants (%)</Label>
                 <Input type="number" value={swot.taux_etudiants ?? ""} onChange={(e) => update("taux_etudiants", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 12.3" className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_risques_environnement" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Risques environnementaux</Label>
+                <Label className="text-[#93aca7] text-xs">Risques environnementaux</Label>
                 <Textarea value={swot.risques_environnement || ""} onChange={(e) => update("risques_environnement", e.target.value)} rows={2} placeholder="Ex: Zone inondable, pollution sols..." className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>
@@ -111,7 +111,7 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             <p className="text-[#5ee7d4] text-xs font-semibold uppercase tracking-wider">Score global</p>
             <VerificationField fieldKey="swot_score_global" formData={formData} setFormData={setFormData}>
               <div>
-                <Label className="text-gray-400 text-xs">Score global (/100)</Label>
+                <Label className="text-[#93aca7] text-xs">Score global (/100)</Label>
                 <Input type="number" value={swot.score_global ?? ""} onChange={(e) => update("score_global", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 72" className="bg-[#161616] text-white border-[#1c2725] mt-1" />
               </div>
             </VerificationField>

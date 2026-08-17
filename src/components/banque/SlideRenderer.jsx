@@ -86,7 +86,7 @@ function CoverSlide({ slide }) {
       {/* Content */}
       <div className="flex-1 px-[5%] pb-[4%] flex flex-col justify-end relative">
         <DecoArcs opacity={0.08} />
-        {c.client_name && <p className="text-gray-300 text-[1.4vw] mb-2">{c.client_name}</p>}
+        {c.client_name && <p className="text-[#c4d5d1] text-[1.4vw] mb-2">{c.client_name}</p>}
         <h1 className="text-[4vw] font-extrabold text-white leading-[1.05] tracking-tight uppercase">
           BUSINESS PLAN<br/>INVESTISSEMENT IMMOBILIER
         </h1>
@@ -96,7 +96,7 @@ function CoverSlide({ slide }) {
             <span className="text-white text-[1.1vw]">{c.subtitle || c.project_title}</span>
           </div>
         )}
-        <p className="text-gray-400 text-[1vw] mt-3">Présentation à l'attention de votre établissement bancaire</p>
+        <p className="text-[#93aca7] text-[1vw] mt-3">Présentation à l'attention de votre établissement bancaire</p>
       </div>
     </div>
   );
@@ -112,7 +112,7 @@ function SommaireSlide({ slide }) {
         {slide.content.sections.map((s, i) => (
           <div key={i} className="flex items-center gap-3 p-4 rounded-md bg-[#1E1E1E]/60 border border-[#16201f] hover:bg-[#1E1E1E] transition-colors">
             <span className="text-[#33d6c0] text-[1.4vw] font-bold w-8">{s.num}</span>
-            <span className="text-gray-300 text-[1vw]">{s.label}</span>
+            <span className="text-[#c4d5d1] text-[1vw]">{s.label}</span>
           </div>
         ))}
       </div>
@@ -142,24 +142,24 @@ function VilleSlide({ slide }) {
           {c.badges?.[0] ? `SUR ${c.badges[0].toUpperCase()}` : "SUR LE QUARTIER"}
         </p>
         <div className="mt-8 p-5 rounded-md bg-[#1E1E1E]/80 border border-[#16201f] border-t-2 border-t-[#F59E0B]">
-          <p className="text-gray-500 text-[0.8vw] uppercase tracking-wider mb-1">ADRESSE STRATÉGIQUE</p>
+          <p className="text-[#7f9995] text-[0.8vw] uppercase tracking-wider mb-1">ADRESSE STRATÉGIQUE</p>
           <p className="text-white text-[1.2vw] font-semibold">{slide.content.badges?.[0] || "Le quartier"}</p>
-          <p className="text-gray-400 text-[0.9vw] mt-1 flex items-center gap-1"><MapPin className="w-3 h-3 text-[#33d6c0]" /> Cœur du secteur</p>
+          <p className="text-[#93aca7] text-[0.9vw] mt-1 flex items-center gap-1"><MapPin className="w-3 h-3 text-[#33d6c0]" /> Cœur du secteur</p>
         </div>
       </div>
       {/* Right panel - bullet cards */}
       <div className="w-[55%] p-[4%] flex flex-col justify-center">
         <div className="bg-[#1E1E1E]/60 rounded-md border border-[#16201f] p-6 relative">
-          <p className="text-gray-500 text-[3vw] leading-none mb-4">"</p>
+          <p className="text-[#7f9995] text-[3vw] leading-none mb-4">"</p>
           <div className="space-y-5">
             {bullets.map((text, i) => (
               <div key={i} className="flex items-start gap-3">
                 <IconCircle icon={BULLET_ICONS[i % BULLET_ICONS.length]} color={BULLET_COLORS[i % BULLET_COLORS.length]} size="w-8 h-8" />
-                <p className="text-gray-300 text-[0.95vw] leading-relaxed flex-1">{text.trim()}.</p>
+                <p className="text-[#c4d5d1] text-[0.95vw] leading-relaxed flex-1">{text.trim()}.</p>
               </div>
             ))}
             {bullets.length === 0 && c.description && (
-              <p className="text-gray-300 text-[0.95vw] leading-relaxed">{c.description}</p>
+              <p className="text-[#c4d5d1] text-[0.95vw] leading-relaxed">{c.description}</p>
             )}
           </div>
         </div>
@@ -184,7 +184,7 @@ function TransitionSlide({ slide }) {
             <span className="text-white text-[1.1vw]">{c.subtitle}</span>
           </div>
         )}
-        {c.description && <p className="text-gray-400 text-[1vw] mt-4 max-w-lg mx-auto">{c.description}</p>}
+        {c.description && <p className="text-[#93aca7] text-[1vw] mt-4 max-w-lg mx-auto">{c.description}</p>}
       </div>
     </div>
   );
@@ -237,11 +237,11 @@ function QuartierSlide({ slide }) {
               {col.items.map((item, ii) => (
                 <div key={ii} className="flex items-start gap-2">
                   <span className="text-[#F59E0B] text-[0.8vw] mt-0.5">›</span>
-                  <p className="text-gray-300 text-[0.85vw] leading-snug">{item}</p>
+                  <p className="text-[#c4d5d1] text-[0.85vw] leading-snug">{item}</p>
                 </div>
               ))}
               {col.items.length === 0 && (
-                <p className="text-gray-600 text-[0.8vw] italic">À compléter</p>
+                <p className="text-[#5e7672] text-[0.8vw] italic">À compléter</p>
               )}
             </div>
           </InfoCard>
@@ -275,7 +275,7 @@ function TensionSlide({ slide }) {
               c.pct_commerces > 0 ? [`${c.pct_commerces}% commerces`] : [],
             ).map((item, i) => (
               <div key={i} className="bg-[#1E1E1E]/80 rounded-md border border-[#16201f] p-5">
-                <p className="text-gray-300 text-[0.95vw]">{item}</p>
+                <p className="text-[#c4d5d1] text-[0.95vw]">{item}</p>
               </div>
             ))}
           </div>
@@ -309,16 +309,16 @@ function LocalSlide({ slide }) {
             return (
               <div key={i} className="rounded-md border border-dashed border-white/[0.1] bg-[#1E1E1E]/40 flex flex-col items-center justify-center p-4 text-center">
                 <IconCircle icon={Info} color="#6B7280" size="w-10 h-10" />
-                <p className="text-gray-400 text-[0.85vw] mt-2">{card.detail}</p>
+                <p className="text-[#93aca7] text-[0.85vw] mt-2">{card.detail}</p>
               </div>
             );
           }
           return (
             <div key={i} className="rounded-md bg-[#1E1E1E]/80 border border-[#16201f] p-5">
               <IconCircle icon={card.icon} color={card.color} size="w-10 h-10" />
-              <p className="text-gray-500 text-[0.7vw] uppercase tracking-wider mt-3">{card.label}</p>
+              <p className="text-[#7f9995] text-[0.7vw] uppercase tracking-wider mt-3">{card.label}</p>
               <p className="text-white text-[1.2vw] font-semibold mt-1" style={{ color: card.color === "#33d6c0" ? "#33d6c0" : undefined }}>{card.value}</p>
-              {card.detail && <p className="text-gray-400 text-[0.8vw] mt-1">{card.detail}</p>}
+              {card.detail && <p className="text-[#93aca7] text-[0.8vw] mt-1">{card.detail}</p>}
             </div>
           );
         })}
@@ -343,13 +343,13 @@ function LocalPhotosSlide({ slide }) {
         )) : (
           <>
             <div className="col-span-2 row-span-2 rounded-md bg-[#1E2A3A] border border-[#16201f] flex items-center justify-center">
-              <p className="text-gray-500 text-[1vw]">Façade Principale et Vitrine</p>
+              <p className="text-[#7f9995] text-[1vw]">Façade Principale et Vitrine</p>
             </div>
             <div className="rounded-md bg-[#1E2A3A] border border-[#16201f] flex items-center justify-center">
-              <p className="text-gray-500 text-[0.9vw]">Vue Intérieure 2</p>
+              <p className="text-[#7f9995] text-[0.9vw]">Vue Intérieure 2</p>
             </div>
             <div className="rounded-md bg-[#1E2A3A] border border-[#16201f] flex items-center justify-center">
-              <p className="text-gray-500 text-[0.9vw]">Vue Intérieure 3</p>
+              <p className="text-[#7f9995] text-[0.9vw]">Vue Intérieure 3</p>
             </div>
           </>
         )}
@@ -367,30 +367,30 @@ function MarcheSlide({ slide }) {
       <SlideTitle title="MARCHÉ IMMOBILIER - INDICATEURS CLÉS" subtitle="Analyse comparative des valeurs sectorielles" />
       <div className="flex-1 grid grid-cols-2 gap-5 mt-2">
         <InfoCard color="#33d6c0" className="flex flex-col items-center justify-center text-center">
-          <span className="text-gray-500 text-[0.7vw] uppercase bg-[#2D2D2D] px-3 py-1 rounded-full border border-[#16201f] mb-4">SOURCE : EQUIMMOX / DVF</span>
+          <span className="text-[#7f9995] text-[0.7vw] uppercase bg-[#2D2D2D] px-3 py-1 rounded-full border border-[#16201f] mb-4">SOURCE : EQUIMMOX / DVF</span>
           <IconCircle icon={Home} color="#33d6c0" size="w-14 h-14" />
-          <p className="text-gray-400 text-[0.85vw] uppercase tracking-wider mt-4">VALEUR MOYENNE DES MURS</p>
+          <p className="text-[#93aca7] text-[0.85vw] uppercase tracking-wider mt-4">VALEUR MOYENNE DES MURS</p>
           <p className="mt-2">
             <span className="text-white text-[3.5vw] font-bold">{c.prix_m2_median > 0 ? fmt(c.prix_m2_median) : "—"}</span>
-            <span className="text-gray-400 text-[1.2vw] ml-1">€ / m²</span>
+            <span className="text-[#93aca7] text-[1.2vw] ml-1">€ / m²</span>
           </p>
-          <p className="text-gray-500 text-[0.75vw] italic mt-3 max-w-xs">Basé sur les transactions pour des emplacements et surfaces équivalentes.</p>
+          <p className="text-[#7f9995] text-[0.75vw] italic mt-3 max-w-xs">Basé sur les transactions pour des emplacements et surfaces équivalentes.</p>
         </InfoCard>
 
         <InfoCard color="#F59E0B" className="flex flex-col items-center justify-center text-center">
-          <span className="text-gray-500 text-[0.7vw] uppercase bg-[#2D2D2D] px-3 py-1 rounded-full border border-[#16201f] mb-4">SOURCE : EQUIMMOX</span>
+          <span className="text-[#7f9995] text-[0.7vw] uppercase bg-[#2D2D2D] px-3 py-1 rounded-full border border-[#16201f] mb-4">SOURCE : EQUIMMOX</span>
           <IconCircle icon={Key} color="#F59E0B" size="w-14 h-14" />
-          <p className="text-gray-400 text-[0.85vw] uppercase tracking-wider mt-4">VALEUR LOCATIVE MOYENNE</p>
+          <p className="text-[#93aca7] text-[0.85vw] uppercase tracking-wider mt-4">VALEUR LOCATIVE MOYENNE</p>
           <p className="mt-2">
             <span className="text-white text-[3.5vw] font-bold">{c.offre_moyenne > 0 ? fmt(c.offre_moyenne) : c.baux_moyenne > 0 ? fmt(c.baux_moyenne) : "—"}</span>
-            <span className="text-gray-400 text-[1.2vw] ml-1">€ / m² / an</span>
+            <span className="text-[#93aca7] text-[1.2vw] ml-1">€ / m² / an</span>
           </p>
-          <p className="text-gray-500 text-[0.75vw] italic mt-3 max-w-xs">Basé sur les baux commerciaux en cours pour des actifs similaires dans le secteur.</p>
+          <p className="text-[#7f9995] text-[0.75vw] italic mt-3 max-w-xs">Basé sur les baux commerciaux en cours pour des actifs similaires dans le secteur.</p>
         </InfoCard>
       </div>
       <div className="mt-4 flex items-center gap-3 bg-[#1E1E1E]/60 rounded-md border-l-3 border-[#33d6c0] p-4" style={{ borderLeft: '3px solid #F59E0B' }}>
         <CheckCircle2 className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
-        <p className="text-gray-300 text-[0.9vw]">Potentiel commercial confirmé par les niveaux de loyers et valorisations du secteur.</p>
+        <p className="text-[#c4d5d1] text-[0.9vw]">Potentiel commercial confirmé par les niveaux de loyers et valorisations du secteur.</p>
       </div>
     </div>
   );
@@ -426,9 +426,9 @@ function BailSlide({ slide }) {
             <div className="p-4 flex items-start gap-3">
               <IconCircle icon={card.icon} color={card.color} size="w-9 h-9" />
               <div className="flex-1 min-w-0">
-                <p className="text-gray-500 text-[0.7vw] uppercase tracking-wider font-semibold">{card.label}</p>
+                <p className="text-[#7f9995] text-[0.7vw] uppercase tracking-wider font-semibold">{card.label}</p>
                 <p className="text-white text-[1.05vw] font-semibold mt-1">{card.value}</p>
-                {card.detail && <p className="text-gray-400 text-[0.75vw] mt-1 leading-snug">{card.detail}</p>}
+                {card.detail && <p className="text-[#93aca7] text-[0.75vw] mt-1 leading-snug">{card.detail}</p>}
               </div>
             </div>
           </div>
@@ -459,26 +459,26 @@ function AcquisitionVsMarcheSlide({ slide }) {
             <IconCircle icon={TrendingUp} color="#33d6c0" size="w-9 h-9" />
             <div>
               <p className="text-white text-[1.1vw] font-bold">PRIX DE MARCHÉ</p>
-              <p className="text-gray-500 text-[0.8vw]">Secteur Centre-Ville</p>
+              <p className="text-[#7f9995] text-[0.8vw]">Secteur Centre-Ville</p>
             </div>
           </div>
           <div className="space-y-5">
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-gray-400 text-[0.8vw]">Valeur Moyenne des Murs</p>
-                <Home className="w-4 h-4 text-gray-600" />
+                <p className="text-[#93aca7] text-[0.8vw]">Valeur Moyenne des Murs</p>
+                <Home className="w-4 h-4 text-[#5e7672]" />
               </div>
-              <p className="text-white text-[2.5vw] font-bold mt-1">{c.prix_m2_marche_median > 0 ? fmt(c.prix_m2_marche_median) : "—"} <span className="text-gray-400 text-[1vw]">€ / m²</span></p>
-              <div className="h-[2px] bg-gray-700 mt-2" />
+              <p className="text-white text-[2.5vw] font-bold mt-1">{c.prix_m2_marche_median > 0 ? fmt(c.prix_m2_marche_median) : "—"} <span className="text-[#93aca7] text-[1vw]">€ / m²</span></p>
+              <div className="h-[2px] bg-[#24312f] mt-2" />
               <span className="inline-block mt-2 text-[#33d6c0] text-[0.7vw] border border-[#33d6c0]/30 rounded-full px-3 py-0.5">Référence Marché</span>
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-gray-400 text-[0.8vw]">Valeur Locative Moyenne</p>
-                <Key className="w-4 h-4 text-gray-600" />
+                <p className="text-[#93aca7] text-[0.8vw]">Valeur Locative Moyenne</p>
+                <Key className="w-4 h-4 text-[#5e7672]" />
               </div>
-              <p className="text-white text-[2.5vw] font-bold mt-1">{c.offre_moyenne_marche > 0 ? fmt(c.offre_moyenne_marche) : c.baux_moyenne_marche > 0 ? fmt(c.baux_moyenne_marche) : "—"} <span className="text-gray-400 text-[1vw]">€ / m² / an</span></p>
-              <div className="h-[2px] bg-gray-700 mt-2" />
+              <p className="text-white text-[2.5vw] font-bold mt-1">{c.offre_moyenne_marche > 0 ? fmt(c.offre_moyenne_marche) : c.baux_moyenne_marche > 0 ? fmt(c.baux_moyenne_marche) : "—"} <span className="text-[#93aca7] text-[1vw]">€ / m² / an</span></p>
+              <div className="h-[2px] bg-[#24312f] mt-2" />
               <span className="inline-block mt-2 text-[#33d6c0] text-[0.7vw] border border-[#33d6c0]/30 rounded-full px-3 py-0.5">Référence Marché</span>
             </div>
           </div>
@@ -490,13 +490,13 @@ function AcquisitionVsMarcheSlide({ slide }) {
             <IconCircle icon={MapPin} color="#F59E0B" size="w-9 h-9" />
             <div>
               <p className="text-white text-[1.1vw] font-bold">LOCAL CIBLE</p>
-              <p className="text-gray-500 text-[0.8vw]">Actif Cible</p>
+              <p className="text-[#7f9995] text-[0.8vw]">Actif Cible</p>
             </div>
           </div>
           <div className="space-y-5">
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-gray-400 text-[0.8vw]">Prix d'Acquisition hors droits {c.prix_negocie ? `(${c.prix_negocie})` : ''}</p>
+                <p className="text-[#93aca7] text-[0.8vw]">Prix d'Acquisition hors droits {c.prix_negocie ? `(${c.prix_negocie})` : ''}</p>
                 {prixDiff !== null && (
                   <div className="flex items-center gap-1 border-2 border-[#33d6c0] rounded-lg px-2 py-1">
                     <ArrowDown className="w-3 h-3 text-[#33d6c0]" />
@@ -504,12 +504,12 @@ function AcquisitionVsMarcheSlide({ slide }) {
                   </div>
                 )}
               </div>
-              <p className="text-white text-[2.5vw] font-bold mt-1">{c.prix_m2_achat > 0 ? fmt(c.prix_m2_achat) : "—"} <span className="text-gray-400 text-[1vw]">€ / m²</span></p>
-              <div className="h-[2px] bg-gray-700 mt-2" />
+              <p className="text-white text-[2.5vw] font-bold mt-1">{c.prix_m2_achat > 0 ? fmt(c.prix_m2_achat) : "—"} <span className="text-[#93aca7] text-[1vw]">€ / m²</span></p>
+              <div className="h-[2px] bg-[#24312f] mt-2" />
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-gray-400 text-[0.8vw]">Loyer Annuel</p>
+                <p className="text-[#93aca7] text-[0.8vw]">Loyer Annuel</p>
                 {loyerDiff !== null && (
                   <div className="flex items-center gap-1 border-2 border-[#33d6c0] rounded-lg px-2 py-1">
                     <ArrowDown className="w-3 h-3 text-[#33d6c0]" />
@@ -517,15 +517,15 @@ function AcquisitionVsMarcheSlide({ slide }) {
                   </div>
                 )}
               </div>
-              <p className="text-white text-[2.5vw] font-bold mt-1">{c.loyer_m2_achat > 0 ? fmt(c.loyer_m2_achat) : "—"} <span className="text-gray-400 text-[1vw]">€ / m² / an</span></p>
-              <div className="h-[2px] bg-gray-700 mt-2" />
+              <p className="text-white text-[2.5vw] font-bold mt-1">{c.loyer_m2_achat > 0 ? fmt(c.loyer_m2_achat) : "—"} <span className="text-[#93aca7] text-[1vw]">€ / m² / an</span></p>
+              <div className="h-[2px] bg-[#24312f] mt-2" />
             </div>
           </div>
         </InfoCard>
       </div>
       <div className="mt-4 flex items-center gap-3 p-4 rounded-md bg-[#1E1E1E]/60" style={{ borderLeft: '3px solid #F59E0B' }}>
         <CheckCircle2 className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
-        <p className="text-gray-300 text-[0.85vw]">Point d'entrée attractif avec potentiel de valorisation long terme.</p>
+        <p className="text-[#c4d5d1] text-[0.85vw]">Point d'entrée attractif avec potentiel de valorisation long terme.</p>
       </div>
     </div>
   );
@@ -553,16 +553,16 @@ function ProjectionSlide({ slide }) {
             return (
               <div key={i} className="rounded-md border border-dashed border-white/[0.1] bg-[#1E1E1E]/40 flex flex-col items-center justify-center p-4 text-center">
                 <IconCircle icon={Info} color="#6B7280" size="w-10 h-10" />
-                <p className="text-gray-500 text-[0.8vw] mt-3 leading-snug">Ces hypothèses servent de base<br/>aux projections sur 20 ans.</p>
+                <p className="text-[#7f9995] text-[0.8vw] mt-3 leading-snug">Ces hypothèses servent de base<br/>aux projections sur 20 ans.</p>
               </div>
             );
           }
           return (
             <div key={i} className="rounded-md bg-[#1E1E1E]/80 border border-[#16201f] p-5">
               <IconCircle icon={card.icon} color={card.color} size="w-10 h-10" />
-              <p className="text-gray-500 text-[0.7vw] uppercase tracking-wider mt-3">{card.label}</p>
+              <p className="text-[#7f9995] text-[0.7vw] uppercase tracking-wider mt-3">{card.label}</p>
               <p className="text-[#33d6c0] text-[1.3vw] font-bold mt-1">{card.value}</p>
-              {card.detail && <p className="text-gray-400 text-[0.75vw] mt-1 whitespace-pre-line leading-snug">{card.detail}</p>}
+              {card.detail && <p className="text-[#93aca7] text-[0.75vw] mt-1 whitespace-pre-line leading-snug">{card.detail}</p>}
             </div>
           );
         })}
@@ -592,10 +592,10 @@ function ConditionsSlide({ slide }) {
         {condCards.map((card, i) => (
           <InfoCard key={i} color={card.color} className="flex flex-col items-center justify-center text-center py-8">
             <IconCircle icon={card.icon} color={card.color} size="w-16 h-16" />
-            <p className="text-gray-400 text-[0.8vw] uppercase tracking-wider mt-5">{card.label}</p>
+            <p className="text-[#93aca7] text-[0.8vw] uppercase tracking-wider mt-5">{card.label}</p>
             <p className="mt-3">
               <span className="text-[#33d6c0] text-[3vw] font-extrabold">{card.value}</span>
-              {card.suffix && <span className="text-gray-400 text-[1.2vw] ml-1 align-super">{card.suffix}</span>}
+              {card.suffix && <span className="text-[#93aca7] text-[1.2vw] ml-1 align-super">{card.suffix}</span>}
             </p>
           </InfoCard>
         ))}
@@ -616,23 +616,23 @@ function CVSlide({ slide }) {
           <InfoCard color="#33d6c0" className="w-56 text-center py-6">
             <IconCircle icon={Users} color="#33d6c0" size="w-12 h-12" />
             <p className="text-white text-[1.1vw] font-semibold mt-3">{c.nom || "Investisseur"}</p>
-            <p className="text-gray-500 text-[0.75vw] uppercase tracking-wider mt-1">PERSONNE PHYSIQUE</p>
+            <p className="text-[#7f9995] text-[0.75vw] uppercase tracking-wider mt-1">PERSONNE PHYSIQUE</p>
           </InfoCard>
         </div>
         <div className="flex flex-col items-center gap-2 mb-4">
-          <div className="w-px h-8 border-l border-dashed border-gray-600" />
-          <div className="w-2 h-2 border border-gray-600 rotate-45" />
+          <div className="w-px h-8 border-l border-dashed border-[#2c3a37]" />
+          <div className="w-2 h-2 border border-[#2c3a37] rotate-45" />
         </div>
         <InfoCard color="#3B82F6" className="w-72 text-center py-6 bg-[#1A2332]">
           <IconCircle icon={LandmarkIcon} color="#3B82F6" size="w-12 h-12" />
           <p className="text-white text-[1.1vw] font-bold mt-3">SOCIÉTÉ CIVILE</p>
-          <p className="text-gray-500 text-[0.75vw] uppercase tracking-wider mt-1">STRUCTURE MORALE & SUPPORT<br/>D'INVESTISSEMENT</p>
+          <p className="text-[#7f9995] text-[0.75vw] uppercase tracking-wider mt-1">STRUCTURE MORALE & SUPPORT<br/>D'INVESTISSEMENT</p>
         </InfoCard>
         <div className="mt-6 bg-[#2A2210] border border-[#F59E0B]/30 rounded-md p-4 flex items-center gap-3 max-w-md">
           <FileText className="w-5 h-5 text-[#F59E0B] flex-shrink-0" />
           <div>
             <p className="text-[#F59E0B] text-[0.8vw] font-bold uppercase">EN COURS DE FINALISATION</p>
-            <p className="text-gray-400 text-[0.75vw] mt-0.5">Rédaction des statuts et répartition en cours de validation.</p>
+            <p className="text-[#93aca7] text-[0.75vw] mt-0.5">Rédaction des statuts et répartition en cours de validation.</p>
           </div>
         </div>
       </div>
@@ -691,7 +691,7 @@ function ContactSlide({ slide }) {
         <h2 className="text-[3vw] font-extrabold text-white uppercase">{c.message || "Merci pour votre attention"}</h2>
         {c.client_name && <p className="text-white text-[1.4vw] font-light mt-4">{c.client_name}</p>}
         {c.client_email && (
-          <p className="text-gray-400 text-[0.9vw] mt-2 flex items-center justify-center gap-2">
+          <p className="text-[#93aca7] text-[0.9vw] mt-2 flex items-center justify-center gap-2">
             <Mail className="w-4 h-4" /> {c.client_email}
           </p>
         )}
@@ -724,6 +724,6 @@ const RENDERERS = {
 
 export default function SlideRenderer({ slide }) {
   const Comp = RENDERERS[slide.type];
-  if (!Comp) return <div className="w-full h-full bg-[#2D2D2D] flex items-center justify-center text-gray-500">Slide non reconnue : {slide.type}</div>;
+  if (!Comp) return <div className="w-full h-full bg-[#2D2D2D] flex items-center justify-center text-[#7f9995]">Slide non reconnue : {slide.type}</div>;
   return <Comp slide={slide} />;
 }

@@ -174,7 +174,7 @@ export default function CRMAgents() {
               setIsEditing(false);
             }
           }}
-          className="bg-gray-800 border-[#33d6c0] text-white h-8 text-sm"
+          className="bg-[#101715] border-[#33d6c0] text-white h-8 text-sm"
         />
       );
     }
@@ -182,7 +182,7 @@ export default function CRMAgents() {
     return (
       <div
         onClick={() => setIsEditing(true)}
-        className="cursor-pointer hover:bg-gray-700/50 rounded px-2 py-1 h-[32px] flex items-center text-white"
+        className="cursor-pointer hover:bg-[#24312f]/50 rounded px-2 py-1 h-[32px] flex items-center text-white"
       >
         {value || "-"}
       </div>
@@ -206,7 +206,7 @@ export default function CRMAgents() {
               variant="ghost"
               size="icon"
               onClick={() => navigate(createPageUrl("CRM"))}
-              className="text-gray-400 hover:text-white"
+              className="text-[#93aca7] hover:text-white"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -229,12 +229,12 @@ export default function CRMAgents() {
           </Button>
         </div>
 
-        <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-600 p-2">
+        <div className="relative rounded-[1.25rem] border-[0.75px] border-[#2c3a37] p-2">
           <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-          <Card className="relative bg-gradient-to-br from-gray-800/80 to-gray-700/80 border-none">
+          <Card className="relative bg-gradient-to-br from-[#101715]/80 to-[#24312f]/80 border-none">
             <CardContent className="p-6">
               {contacts.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-[#93aca7]">
                   <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p>Aucun agent immobilier</p>
                 </div>
@@ -242,47 +242,47 @@ export default function CRMAgents() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-600">
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700 min-w-[200px]">Nom</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700">Sous-éléments</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700 min-w-[200px]">Personnes</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700">E-mail</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700">Téléphone</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700">Ville</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700 min-w-[400px]">Propriétés</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700">Entreprise</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap border-r border-gray-700">Remarques</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Actions</th>
+                      <tr className="border-b border-[#2c3a37]">
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f] min-w-[200px]">Nom</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Sous-éléments</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f] min-w-[200px]">Personnes</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">E-mail</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Téléphone</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Ville</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f] min-w-[400px]">Propriétés</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Entreprise</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Remarques</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {contacts.map((contact) => (
-                        <tr key={contact.id} className="border-b border-gray-600 hover:bg-gray-700/30 transition-colors">
-                          <td className="py-3 px-3 border-r border-gray-600 min-w-[200px]">
+                        <tr key={contact.id} className="border-b border-[#2c3a37] hover:bg-[#24312f]/30 transition-colors">
+                          <td className="py-3 px-3 border-r border-[#2c3a37] min-w-[200px]">
                             <EditableCell contact={contact} field="nom" value={contact.nom} />
                           </td>
-                          <td className="py-3 px-3 border-r border-gray-600">
+                          <td className="py-3 px-3 border-r border-[#2c3a37]">
                             <EditableCell contact={contact} field="sous_elements" value={contact.sous_elements} />
                           </td>
-                          <td className="py-3 px-3 border-r border-gray-600 min-w-[200px]">
+                          <td className="py-3 px-3 border-r border-[#2c3a37] min-w-[200px]">
                             <EditableCell contact={contact} field="personnes" value={contact.personnes} />
                           </td>
-                          <td className="py-3 px-3 border-r border-gray-600">
+                          <td className="py-3 px-3 border-r border-[#2c3a37]">
                             <EditableCell contact={contact} field="email" value={contact.email} type="email" />
                           </td>
-                          <td className="py-3 px-3 border-r border-gray-600">
+                          <td className="py-3 px-3 border-r border-[#2c3a37]">
                             <EditableCell contact={contact} field="telephone" value={contact.telephone} />
                           </td>
-                          <td className="py-3 px-3 border-r border-gray-600">
+                          <td className="py-3 px-3 border-r border-[#2c3a37]">
                             <EditableCell contact={contact} field="localisation" value={contact.localisation} />
                           </td>
-                          <td className="py-3 px-3 border-r border-gray-600 min-w-[400px]">
+                          <td className="py-3 px-3 border-r border-[#2c3a37] min-w-[400px]">
                             <EditableCell contact={contact} field="proprietes" value={contact.proprietes} />
                           </td>
-                          <td className="py-3 px-3 border-r border-gray-600">
+                          <td className="py-3 px-3 border-r border-[#2c3a37]">
                             <EditableCell contact={contact} field="entreprise" value={contact.entreprise} />
                           </td>
-                          <td className="py-3 px-3 border-r border-gray-600">
+                          <td className="py-3 px-3 border-r border-[#2c3a37]">
                             <EditableCell contact={contact} field="remarque" value={contact.remarque} />
                           </td>
                           <td className="py-3 px-3">
@@ -318,7 +318,7 @@ export default function CRMAgents() {
 
       {/* Dialog création/édition */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#050807] border-gray-700 max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#050807] border-[#24312f] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">
               {editingContact ? "Modifier le contact" : "Nouveau contact"}
@@ -327,95 +327,95 @@ export default function CRMAgents() {
 
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-400">Nom *</Label>
+              <Label className="text-[#93aca7]">Nom *</Label>
               <Input
                 value={formData.nom}
                 onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                className="bg-gray-900 border-gray-700 text-white"
+                className="bg-[#0a0f0e] border-[#24312f] text-white"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Sous-éléments</Label>
+                <Label className="text-[#93aca7]">Sous-éléments</Label>
                 <Input
                   value={formData.sous_elements}
                   onChange={(e) => setFormData({...formData, sous_elements: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Personnes</Label>
+                <Label className="text-[#93aca7]">Personnes</Label>
                 <Input
                   value={formData.personnes}
                   onChange={(e) => setFormData({...formData, personnes: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">E-mail</Label>
+                <Label className="text-[#93aca7]">E-mail</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Téléphone</Label>
+                <Label className="text-[#93aca7]">Téléphone</Label>
                 <Input
                   value={formData.telephone}
                   onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Ville</Label>
+                <Label className="text-[#93aca7]">Ville</Label>
                 <Input
                   value={formData.localisation}
                   onChange={(e) => setFormData({...formData, localisation: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Entreprise</Label>
+                <Label className="text-[#93aca7]">Entreprise</Label>
                 <Input
                   value={formData.entreprise}
                   onChange={(e) => setFormData({...formData, entreprise: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div>
-              <Label className="text-gray-400">Propriétés</Label>
+              <Label className="text-[#93aca7]">Propriétés</Label>
               <Textarea
                 value={formData.proprietes}
                 onChange={(e) => setFormData({...formData, proprietes: e.target.value})}
-                className="bg-gray-900 border-gray-700 text-white"
+                className="bg-[#0a0f0e] border-[#24312f] text-white"
                 rows={2}
               />
             </div>
 
             <div>
-              <Label className="text-gray-400">Remarques</Label>
+              <Label className="text-[#93aca7]">Remarques</Label>
               <Textarea
                 value={formData.remarque}
                 onChange={(e) => setFormData({...formData, remarque: e.target.value})}
-                className="bg-gray-900 border-gray-700 text-white"
+                className="bg-[#0a0f0e] border-[#24312f] text-white"
                 rows={3}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-gray-700">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#24312f]">
               Annuler
             </Button>
             <Button onClick={handleSubmit} className="bg-[#33d6c0] hover:bg-[#33d6c0]/90">

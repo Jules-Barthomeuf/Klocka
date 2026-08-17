@@ -66,7 +66,7 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
             <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3 border border-[#16201f]">
               <div className="flex items-center gap-3">
                 <div className="space-y-1 w-32">
-                  <Label className="text-gray-400 text-xs">Année</Label>
+                  <Label className="text-[#93aca7] text-xs">Année</Label>
                   <Select value={String(ag.annee || new Date().getFullYear())} onValueChange={(value) => { const updated = [...formData.assemblees_generales]; updated[idx].annee = parseInt(value); setFormData({...formData, assemblees_generales: updated}); }}>
                     <SelectTrigger className="bg-[#161616] text-white border-[#1c2725]"><SelectValue /></SelectTrigger>
                     <SelectContent className="bg-[#161616] text-white border-[#1c2725] max-h-60">
@@ -88,7 +88,7 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
               </FField>
             </div>
           ))}
-          {(!formData.assemblees_generales || formData.assemblees_generales.length === 0) && <p className="text-gray-500 text-sm text-center py-2">Aucune AG.</p>}
+          {(!formData.assemblees_generales || formData.assemblees_generales.length === 0) && <p className="text-[#7f9995] text-sm text-center py-2">Aucune AG.</p>}
         </div>
 
         {/* Notes libres */}
@@ -108,7 +108,7 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
               <FField><FTextarea value={note.contenu} onChange={(e) => { const updated = [...formData.notes_libres]; updated[idx].contenu = e.target.value; setFormData({...formData, notes_libres: updated}); }} placeholder="Contenu..." rows={3} /></FField>
             </div>
           ))}
-          {(!formData.notes_libres || formData.notes_libres.length === 0) && <p className="text-gray-500 text-sm text-center py-2">Aucune note.</p>}
+          {(!formData.notes_libres || formData.notes_libres.length === 0) && <p className="text-[#7f9995] text-sm text-center py-2">Aucune note.</p>}
         </div>
       </div>
     </div>

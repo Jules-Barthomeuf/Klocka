@@ -113,13 +113,13 @@ export default function SlideViewer({ slides, title }) {
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#33d6c0] w-6' : 'bg-gray-700 hover:bg-gray-500'}`}
+              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#33d6c0] w-6' : 'bg-[#24312f] hover:bg-[#7f9995]'}`}
             />
           ))}
         </div>
-        <span className="text-gray-500 text-xs">{current + 1} / {slides.length}</span>
+        <span className="text-[#7f9995] text-xs">{current + 1} / {slides.length}</span>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-gray-400 hover:text-white h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-[#93aca7] hover:text-white h-8 w-8">
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </Button>
           <Button

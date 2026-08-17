@@ -118,7 +118,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
             <h2 className="text-white text-base font-medium truncate">
               {dossier ? lot?.synthese?.titre || dossier.source?.nom_fichier || "Deal" : "Nouveau deal"}
             </h2>
-            <p className="text-gray-500 text-xs mt-0.5">
+            <p className="text-[#7f9995] text-xs mt-0.5">
               {dossier
                 ? `${new Date(dossier.cree_le).toLocaleDateString("fr-FR")}${dossier.contact_agent_email ? ` · ${dossier.contact_agent_email}` : ""}`
                 : "Du premier mail à l'entrée dans la plateforme"}
@@ -360,13 +360,13 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             <p className="text-white text-sm font-medium">
               {dossier.source_mail ? "Fiche reçue par mail" : "Étape passée"}
             </p>
-            <p className="text-gray-500 text-xs mt-1 leading-relaxed">
+            <p className="text-[#7f9995] text-xs mt-1 leading-relaxed">
               {dossier.source_mail
                 ? `${dossier.source_mail.de || ""} — « ${dossier.source_mail.objet || ""} » le ${dossier.source_mail.date ? new Date(dossier.source_mail.date).toLocaleString("fr-FR") : "?"}`
                 : `La fiche « ${dossier.source?.nom_fichier || "texte collé"} » a été déposée directement, sans échange de mail préalable dans la plateforme.`}
             </p>
           </div>
-          <Button size="sm" onClick={onSuivant} className="bg-white/5 hover:bg-white/10 text-gray-300 border-0 flex-shrink-0">
+          <Button size="sm" onClick={onSuivant} className="bg-white/5 hover:bg-white/10 text-[#c4d5d1] border-0 flex-shrink-0">
             Étape suivante <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Button>
         </div>
@@ -436,7 +436,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
         <div className="space-y-3">
           {comptes.length > 0 ? (
             <div>
-              <Label className="text-gray-400 text-xs mb-1.5 block">Envoyer depuis</Label>
+              <Label className="text-[#93aca7] text-xs mb-1.5 block">Envoyer depuis</Label>
               <select
                 value={expediteur || comptes[0]?.id}
                 onChange={(e) => {
@@ -462,7 +462,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             )
           )}
           <div>
-            <Label className="text-gray-400 text-xs mb-1.5 block">Destinataire</Label>
+            <Label className="text-[#93aca7] text-xs mb-1.5 block">Destinataire</Label>
             <Input
               value={brouillon.to}
               onChange={(e) => setBrouillon({ ...brouillon, to: e.target.value })}
@@ -471,7 +471,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             />
           </div>
           <div>
-            <Label className="text-gray-400 text-xs mb-1.5 block">Objet</Label>
+            <Label className="text-[#93aca7] text-xs mb-1.5 block">Objet</Label>
             <Input
               value={brouillon.subject}
               onChange={(e) => setBrouillon({ ...brouillon, subject: e.target.value })}
@@ -479,7 +479,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             />
           </div>
           <div>
-            <Label className="text-gray-400 text-xs mb-1.5 block">Corps</Label>
+            <Label className="text-[#93aca7] text-xs mb-1.5 block">Corps</Label>
             <Textarea
               value={brouillon.body}
               onChange={(e) => setBrouillon({ ...brouillon, body: e.target.value })}
@@ -488,14 +488,14 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setBrouillon(null)} className="text-gray-400 hover:text-white hover:bg-white/5">
+            <Button variant="ghost" onClick={() => setBrouillon(null)} className="text-[#93aca7] hover:text-white hover:bg-white/5">
               Reprendre
             </Button>
             <div className="flex-1" />
             <Button
               variant="ghost"
               onClick={onSuivant}
-              className="text-gray-400 hover:text-white hover:bg-white/5"
+              className="text-[#93aca7] hover:text-white hover:bg-white/5"
             >
               <SkipForward className="w-4 h-4 mr-1.5" /> Passer sans envoyer
             </Button>
@@ -621,22 +621,22 @@ function DepotFiche({ onAnalyse }) {
   return (
     <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-6">
       <p className="text-white text-sm font-medium mb-1">Pré-analyser la fiche</p>
-      <p className="text-gray-500 text-xs mb-4">
+      <p className="text-[#7f9995] text-xs mb-4">
         Déposez la fiche commerciale reçue de l'agent (ou collez le texte du mail) : extraction,
         vérification des citations, verdict et simulateur. Les mails reçus se préanalysent aussi en un
         clic depuis la Boîte de réception de la page Mails.
       </p>
       <div className="grid md:grid-cols-2 gap-5">
         <div>
-          <Label className="text-gray-400 text-xs mb-2 block">Fiche commerciale</Label>
+          <Label className="text-[#93aca7] text-xs mb-2 block">Fiche commerciale</Label>
           <button
             onClick={() => inputFichier.current?.click()}
             disabled={analyser.isPending}
             className="w-full h-[104px] border border-dashed border-white/15 rounded-md flex flex-col items-center justify-center gap-2 hover:border-[#33d6c0]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
           >
             <Upload className="w-5 h-5 text-[#33d6c0]" />
-            <span className="text-gray-400 text-sm">PDF, image, .eml</span>
-            <span className="text-gray-600 text-[11px]">Les PDF scannés sont transcrits automatiquement</span>
+            <span className="text-[#93aca7] text-sm">PDF, image, .eml</span>
+            <span className="text-[#5e7672] text-[11px]">Les PDF scannés sont transcrits automatiquement</span>
           </button>
           <input
             ref={inputFichier}
@@ -647,7 +647,7 @@ function DepotFiche({ onAnalyse }) {
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-xs mb-2 block">…ou collez le texte du mail</Label>
+          <Label className="text-[#93aca7] text-xs mb-2 block">…ou collez le texte du mail</Label>
           <Textarea
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
@@ -671,7 +671,7 @@ function DepotFiche({ onAnalyse }) {
         </Button>
       </div>
       {analyser.isPending && (
-        <p className="text-gray-500 text-xs mt-3 text-center">
+        <p className="text-[#7f9995] text-xs mt-3 text-center">
           Lecture, extraction, vérification des citations puis application des règles…
         </p>
       )}
@@ -738,10 +738,10 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
           >
             {abandonne ? <ThumbsDown className="w-4 h-4" /> : <ThumbsUp className="w-4 h-4" />}
           </span>
-          <p className="text-gray-400 text-sm min-w-0">
+          <p className="text-[#93aca7] text-sm min-w-0">
             {abandonne ? "Décision : non." : "Décision : oui."}
             {evenement && (
-              <span className="text-gray-600">
+              <span className="text-[#5e7672]">
                 {" "}
                 {evenement.detail || ""} —{" "}
                 {new Date(evenement.le).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
@@ -763,7 +763,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
           <ThumbsUp className="w-4 h-4" />
         </span>
         <p className="text-white text-sm font-medium mb-1">{titreOui}</p>
-        <p className="text-gray-500 text-xs leading-relaxed">{descOui}</p>
+        <p className="text-[#7f9995] text-xs leading-relaxed">{descOui}</p>
         <span className="text-[#5ee7d4] text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
           Rédiger le mail <ArrowRight className="w-3 h-3" />
         </span>
@@ -777,7 +777,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
           <ThumbsDown className="w-4 h-4" />
         </span>
         <p className="text-white text-sm font-medium mb-1">{titreNon}</p>
-        <p className="text-gray-500 text-xs leading-relaxed">{descNon}</p>
+        <p className="text-[#7f9995] text-xs leading-relaxed">{descNon}</p>
         <span className="text-red-300 text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
           Rédiger le mail <ArrowRight className="w-3 h-3" />
         </span>
@@ -863,7 +863,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
             className={
               aRelancer
                 ? "bg-red-500/20 hover:bg-red-500/30 text-red-200 border-0"
-                : "bg-white/5 hover:bg-white/10 text-gray-300 border-0"
+                : "bg-white/5 hover:bg-white/10 text-[#c4d5d1] border-0"
             }
           >
             <Send className="w-3.5 h-3.5 mr-1.5" /> Relancer l'agent
@@ -914,8 +914,8 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
       />
       {dossier.synthese_documents?.resume && (
         <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4">
-          <p className="text-gray-400 text-xs mb-2">Rappel de la synthèse documentaire</p>
-          <p className="text-gray-300 text-sm leading-relaxed">{dossier.synthese_documents.resume}</p>
+          <p className="text-[#93aca7] text-xs mb-2">Rappel de la synthèse documentaire</p>
+          <p className="text-[#c4d5d1] text-sm leading-relaxed">{dossier.synthese_documents.resume}</p>
           {dossier.synthese_documents.points_a_verifier?.length > 0 && (
             <p className="text-amber-300/80 text-xs mt-2">
               {dossier.synthese_documents.points_a_verifier.length} point(s) à vérifier — détail à l'étape
@@ -979,7 +979,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
           <Briefcase className="w-5 h-5" />
         </span>
         <p className="text-white text-sm font-medium mb-1">Le deal est entré dans la plateforme</p>
-        <p className="text-gray-500 text-xs mb-4">
+        <p className="text-[#7f9995] text-xs mb-4">
           Suivez l'avancement client (message envoyé, retour oui/non) depuis la fiche projet.
         </p>
         <Button
@@ -1001,7 +1001,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         <Briefcase className="w-5 h-5" />
       </span>
       <p className="text-white text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
-      <p className="text-gray-500 text-xs mb-4 max-w-md mx-auto">
+      <p className="text-[#7f9995] text-xs mb-4 max-w-md mx-auto">
         Le projet est créé pré-rempli : adresse, locataire, bail, simulateur (mêmes chiffres que la
         pré-analyse) et données de marché issues de la base. Il s'ouvre ensuite dans l'éditeur pour
         compléter photos, secteur et documents client.
@@ -1019,7 +1019,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         Créer le projet pré-rempli
       </Button>
       {statut !== "depouille" && (
-        <p className="text-gray-600 text-[11px] mt-3">Disponible une fois les documents analysés (étape 3).</p>
+        <p className="text-[#5e7672] text-[11px] mt-3">Disponible une fois les documents analysés (étape 3).</p>
       )}
     </div>
     </>

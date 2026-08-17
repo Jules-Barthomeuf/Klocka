@@ -104,7 +104,7 @@ function CTAButton({ onClick, label }) {
         className="inline-flex items-center gap-2.5 bg-[#33d6c0] hover:bg-[#238B7F] text-white font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#33d6c0]/20">
         {label} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
       </button>
-      <p className="text-gray-600 text-xs mt-3 italic">Places limitées par cohorte</p>
+      <p className="text-[#5e7672] text-xs mt-3 italic">Places limitées par cohorte</p>
     </div>
   );
 }
@@ -126,7 +126,7 @@ function Title({ children }) {
 }
 
 function Sub({ children }) {
-  return <p className="text-sm md:text-base text-center max-w-2xl mx-auto mb-10 leading-relaxed text-gray-400">{children}</p>;
+  return <p className="text-sm md:text-base text-center max-w-2xl mx-auto mb-10 leading-relaxed text-[#93aca7]">{children}</p>;
 }
 
 /* ─── Main Component ─── */
@@ -151,7 +151,7 @@ export default function PortailLanding({ onContinue }) {
                 <span className="text-[#33d6c0]">réalisé pour vous</span>, depuis votre canapé.
               </h1>
 
-              <p className="text-gray-400 text-base md:text-lg leading-relaxed mb-8">
+              <p className="text-[#93aca7] text-base md:text-lg leading-relaxed mb-8">
                 Klocka ne vous forme pas. Klocka investit avec vous : sourcing, analyse, financement, gestion. <strong className="text-white">On s'occupe de tout.</strong>
               </p>
 
@@ -159,8 +159,8 @@ export default function PortailLanding({ onContinue }) {
                 {STATS.map((s, i) => (
                   <div key={i} className="bg-white/[0.03] border border-[#16201f] rounded-md px-4 py-3 text-center">
                     <p className="text-2xl md:text-3xl font-black text-white">{s.value}</p>
-                    <p className="text-gray-500 text-[10px] mt-0.5 uppercase tracking-wider">{s.label}</p>
-                    {s.note && <p className="text-gray-600 text-[9px] mt-1 italic normal-case">{s.note}</p>}
+                    <p className="text-[#7f9995] text-[10px] mt-0.5 uppercase tracking-wider">{s.label}</p>
+                    {s.note && <p className="text-[#5e7672] text-[9px] mt-1 italic normal-case">{s.note}</p>}
                   </div>
                 ))}
               </div>
@@ -169,7 +169,7 @@ export default function PortailLanding({ onContinue }) {
                 className="inline-flex items-center gap-2.5 bg-[#33d6c0] hover:bg-[#238B7F] text-white font-bold px-8 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#33d6c0]/20">
                 Je veux investir en immobilier commercial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <p className="text-gray-600 text-xs mt-3 italic">Places limitées par cohorte</p>
+              <p className="text-[#5e7672] text-xs mt-3 italic">Places limitées par cohorte</p>
             </div>
 
             {/* Right — Image */}
@@ -190,7 +190,7 @@ export default function PortailLanding({ onContinue }) {
         <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-center leading-tight uppercase tracking-wide text-white">
           Vous savez que l'immobilier commercial est un des meilleurs placements. <span className="text-[#33d6c0]">Mais vous n'avez jamais franchi le cap.</span>
         </h2>
-        <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-10 leading-relaxed text-gray-400">
+        <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-10 leading-relaxed text-[#93aca7]">
           Entre le manque de temps, la complexité du marché et la peur de faire une erreur — vous avez toujours reporté à plus tard.
         </p>
 
@@ -277,7 +277,7 @@ export default function PortailLanding({ onContinue }) {
           <h2 className="text-3xl md:text-5xl font-black mb-4 text-center leading-tight uppercase tracking-wide text-white">
             Un service complet, <span className="text-[#33d6c0]">de A à Z</span>.
           </h2>
-          <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-14 leading-relaxed text-gray-400">Chaque module montre concrètement que vous n'avez rien à faire de plus que choisir votre deal.</p>
+          <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-14 leading-relaxed text-[#93aca7]">Chaque module montre concrètement que vous n'avez rien à faire de plus que choisir votre deal.</p>
 
           {/* ── OFFRE SOCLE (1-4) ── */}
           <div className="mb-6">
@@ -293,7 +293,7 @@ export default function PortailLanding({ onContinue }) {
                   <div key={s.num} className={`rounded-md border transition-all hover:shadow-lg relative overflow-hidden ${
                     isHighlight
                       ? 'bg-[#050807] border-amber-400/50 p-0 shadow-[0_0_30px_rgba(251,191,36,0.08)]'
-                      : 'bg-gray-950 border-gray-800 hover:border-gray-600 p-6'
+                      : 'bg-[#050807] border-[#101715] hover:border-[#2c3a37] p-6'
                   }`}>
                     {isHighlight ? (
                       <div className="p-6 md:p-8 relative">
@@ -311,7 +311,7 @@ export default function PortailLanding({ onContinue }) {
                             <h3 className="text-white text-xl md:text-2xl font-black leading-tight mb-3">{s.title}</h3>
                             <ul className="space-y-2">
                               {s.items.map((item, j) => (
-                                <li key={j} className="flex items-start gap-2.5 text-base text-gray-300 leading-relaxed">
+                                <li key={j} className="flex items-start gap-2.5 text-base text-[#c4d5d1] leading-relaxed">
                                   <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-400" />
                                   {item}
                                 </li>
@@ -326,18 +326,18 @@ export default function PortailLanding({ onContinue }) {
                     ) : (
                       <>
                         <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-md bg-gray-800 flex items-center justify-center flex-shrink-0">
+                          <div className="w-12 h-12 rounded-md bg-[#101715] flex items-center justify-center flex-shrink-0">
                             <Icon className="w-6 h-6 text-white" />
                           </div>
                           <div>
-                            <span className="text-gray-500 text-xs font-mono font-bold block">Étape {s.num}</span>
+                            <span className="text-[#7f9995] text-xs font-mono font-bold block">Étape {s.num}</span>
                             <h3 className="text-white text-lg font-bold leading-tight">{s.title}</h3>
                           </div>
                         </div>
                         <ul className="space-y-2.5 pl-1">
                           {s.items.map((item, j) => (
-                            <li key={j} className="flex items-start gap-2.5 text-sm text-gray-400 leading-relaxed">
-                              <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-500" />
+                            <li key={j} className="flex items-start gap-2.5 text-sm text-[#93aca7] leading-relaxed">
+                              <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#7f9995]" />
                               {item}
                             </li>
                           ))}
@@ -356,19 +356,19 @@ export default function PortailLanding({ onContinue }) {
               {SERVICES.slice(4).map((s) => {
                 const Icon = s.icon;
                 return (
-                  <div key={s.num} className="rounded-md p-6 border bg-gray-950 border-gray-800 hover:border-gray-600 transition-all hover:shadow-lg relative overflow-hidden">
+                  <div key={s.num} className="rounded-md p-6 border bg-[#050807] border-[#101715] hover:border-[#2c3a37] transition-all hover:shadow-lg relative overflow-hidden">
                     <div className="absolute top-3 right-3">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-1">Option</span>
                     </div>
-                    <div className="w-12 h-12 rounded-md bg-gray-800 flex items-center justify-center mb-4">
+                    <div className="w-12 h-12 rounded-md bg-[#101715] flex items-center justify-center mb-4">
                       <Icon className="w-6 h-6 text-white" />
                     </div>
-                    <span className="text-gray-500 text-xs font-mono font-bold block">Étape {s.num}</span>
+                    <span className="text-[#7f9995] text-xs font-mono font-bold block">Étape {s.num}</span>
                     <h3 className="text-white text-lg font-bold leading-tight mb-3 mt-1">{s.title}</h3>
                     <ul className="space-y-2.5">
                       {s.items.map((item, j) => (
-                        <li key={j} className="flex items-start gap-2.5 text-sm text-gray-400 leading-relaxed">
-                          <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-500" />
+                        <li key={j} className="flex items-start gap-2.5 text-sm text-[#93aca7] leading-relaxed">
+                          <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#7f9995]" />
                           {item}
                         </li>
                       ))}
@@ -405,7 +405,7 @@ export default function PortailLanding({ onContinue }) {
         </div>
 
         {/* Platform screenshot */}
-        <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-[#1c2725] bg-gradient-to-br from-neutral-900 to-neutral-950 p-3 mb-12">
+        <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-[#1c2725] bg-gradient-to-br from-[#0a0f0e] to-[#050807] p-3 mb-12">
           <div className="rounded-md bg-[#050807] border border-[#16201f] overflow-hidden">
             <div className="h-7 bg-[#0a0f0e] flex items-center gap-1.5 px-3 border-b border-[#16201f]">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
@@ -458,7 +458,7 @@ export default function PortailLanding({ onContinue }) {
               <div className="text-center md:text-left">
                 <p className="text-white font-bold text-lg mb-0.5">{f.name}</p>
                 <p className="text-[#33d6c0] text-xs font-semibold uppercase tracking-wider mb-3">{f.role}</p>
-                <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
+                <p className="text-[#93aca7] text-sm leading-relaxed">{f.desc}</p>
               </div>
             </div>
           ))}
@@ -476,14 +476,14 @@ export default function PortailLanding({ onContinue }) {
             <h2 className="text-2xl md:text-4xl font-black text-white mb-4 uppercase tracking-wide">
               Prêt à investir ?
             </h2>
-            <p className="text-gray-400 text-sm md:text-base mb-8 max-w-lg mx-auto leading-relaxed">
+            <p className="text-[#93aca7] text-sm md:text-base mb-8 max-w-lg mx-auto leading-relaxed">
               Pour finaliser votre inscription, consultez et acceptez nos conditions générales, puis procédez au paiement sécurisé.
             </p>
             <button onClick={onContinue}
               className="inline-flex items-center gap-2.5 bg-[#33d6c0] hover:bg-[#238B7F] text-white font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#33d6c0]/25">
               Démarrer l'accompagnement <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
-            <p className="text-gray-600 text-xs mt-4 italic">Places limitées par cohorte</p>
+            <p className="text-[#5e7672] text-xs mt-4 italic">Places limitées par cohorte</p>
           </div>
         </div>
       </section>
@@ -493,13 +493,13 @@ export default function PortailLanding({ onContinue }) {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <img src={LOGO_KLOCKA} alt="Klocka" className="h-5 w-auto opacity-60" />
-            <p className="text-gray-600 text-xs">© 2025 Klocka · Développeur de revenus immobiliers</p>
+            <p className="text-[#5e7672] text-xs">© 2025 Klocka · Développeur de revenus immobiliers</p>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-gray-500 hover:text-white text-xs transition-colors">Mentions légales</a>
-            <a href="#" className="text-gray-500 hover:text-white text-xs transition-colors">CGV</a>
-            <a href="#" className="text-gray-500 hover:text-white text-xs transition-colors">Confidentialité</a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition-colors">
+            <a href="#" className="text-[#7f9995] hover:text-white text-xs transition-colors">Mentions légales</a>
+            <a href="#" className="text-[#7f9995] hover:text-white text-xs transition-colors">CGV</a>
+            <a href="#" className="text-[#7f9995] hover:text-white text-xs transition-colors">Confidentialité</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-[#7f9995] hover:text-white transition-colors">
               <Linkedin className="w-4 h-4" />
             </a>
           </div>

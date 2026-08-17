@@ -82,7 +82,7 @@ export default function ComposerChat({ onBrouillon }) {
         {conversation && (
           <button
             onClick={nouvelleConversation}
-            className="ml-auto text-[11px] text-gray-500 hover:text-white flex items-center gap-1 transition-colors"
+            className="ml-auto text-[11px] text-[#7f9995] hover:text-white flex items-center gap-1 transition-colors"
           >
             <MessageSquarePlus className="w-3.5 h-3.5" /> Nouvelle conversation
           </button>
@@ -97,7 +97,7 @@ export default function ComposerChat({ onBrouillon }) {
                 className={`max-w-[85%] rounded-md px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
                   m.role === "user"
                     ? "bg-[#33d6c0]/20 text-[#D8F3EE]"
-                    : "bg-[#101715] text-gray-300"
+                    : "bg-[#101715] text-[#c4d5d1]"
                 }`}
               >
                 {m.content}
@@ -134,7 +134,7 @@ export default function ComposerChat({ onBrouillon }) {
         }
         rows={2}
         disabled={enCours}
-        className="bg-[#101715] border-[#1c2725] text-white placeholder:text-gray-600 resize-none"
+        className="bg-[#101715] border-[#1c2725] text-white placeholder:text-[#5e7672] resize-none"
       />
       <div className="flex flex-wrap items-center gap-2 mt-3">
         {!messages.length &&
@@ -143,7 +143,7 @@ export default function ComposerChat({ onBrouillon }) {
               key={ex}
               type="button"
               onClick={() => envoyer(ex)}
-              className="text-[11px] text-gray-500 hover:text-gray-300 border border-[#1c2725] rounded-full px-3 py-1 transition-colors"
+              className="text-[11px] text-[#7f9995] hover:text-[#c4d5d1] border border-[#1c2725] rounded-full px-3 py-1 transition-colors"
             >
               {ex}
             </button>

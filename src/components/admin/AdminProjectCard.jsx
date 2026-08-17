@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import ShadowReportDialog from "./ShadowReport";
 
 const statutColors = {
-  prospect: "text-gray-300",
+  prospect: "text-[#c4d5d1]",
   analyse: "text-blue-400",
   negociation: "text-amber-400",
   financement: "text-purple-400",
@@ -124,7 +124,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
 
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className={`text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#050807]/60 backdrop-blur-sm border ${statutColors[project.statut] || 'text-gray-400'} border-white/10`}>
+            <span className={`text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#050807]/60 backdrop-blur-sm border ${statutColors[project.statut] || 'text-[#93aca7]'} border-white/10`}>
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>

@@ -35,7 +35,7 @@ export default function Banque() {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Banque</h1>
-              <p className="text-gray-500 text-sm">Vos présentations bancaires</p>
+              <p className="text-[#7f9995] text-sm">Vos présentations bancaires</p>
             </div>
           </div>
           <div className="h-px w-16 bg-[#33d6c0] mt-3" />
@@ -48,9 +48,9 @@ export default function Banque() {
         ) : presentations.length === 0 ? (
           <Card className="bg-[#0a0f0e] border-[#16201f]">
             <CardContent className="py-16 text-center">
-              <Landmark className="w-12 h-12 text-gray-700 mx-auto mb-4" />
+              <Landmark className="w-12 h-12 text-[#3c4a47] mx-auto mb-4" />
               <h2 className="text-white text-lg mb-2">Aucune présentation disponible</h2>
-              <p className="text-gray-500 text-sm">Votre conseiller vous préparera une présentation bancaire pour vos projets.</p>
+              <p className="text-[#7f9995] text-sm">Votre conseiller vous préparera une présentation bancaire pour vos projets.</p>
             </CardContent>
           </Card>
         ) : (
@@ -69,8 +69,8 @@ export default function Banque() {
                       {coverSlide ? (
                         <SlideRenderer slide={coverSlide} />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-black to-gray-900 flex items-center justify-center">
-                          <Landmark className="w-12 h-12 text-gray-700" />
+                        <div className="w-full h-full bg-gradient-to-br from-black to-[#0a0f0e] flex items-center justify-center">
+                          <Landmark className="w-12 h-12 text-[#3c4a47]" />
                         </div>
                       )}
                     </div>
@@ -80,7 +80,7 @@ export default function Banque() {
                   <div className="p-4">
                    <p className="text-white font-light text-lg truncate">{pres.project_title}</p>
                    <div className="flex items-center justify-between mt-1">
-                     <p className="text-gray-500 text-xs">{pres.slides?.length || 0} slides — {new Date(pres.created_date).toLocaleDateString('fr-FR')}</p>
+                     <p className="text-[#7f9995] text-xs">{pres.slides?.length || 0} slides — {new Date(pres.created_date).toLocaleDateString('fr-FR')}</p>
                      <p className="text-[#33d6c0] text-xs group-hover:underline">Voir →</p>
                    </div>
                    {pres.pptx_url && (

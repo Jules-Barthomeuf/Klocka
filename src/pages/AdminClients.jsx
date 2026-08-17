@@ -624,7 +624,7 @@ export default function AdminClients() {
                       <Checkbox
                         checked={selectedUsersForCompare.includes(user.id)}
                         onCheckedChange={() => toggleUserSelection(user.id)}
-                        className="border-gray-600 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600 flex-shrink-0" />
+                        className="border-[#2c3a37] data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600 flex-shrink-0" />
 
                       
                       {/* Avatar */}
@@ -925,7 +925,7 @@ export default function AdminClients() {
         <DialogContent className="bg-[#050505] border-[#1c2725]">
           <DialogHeader>
             <DialogTitle className="text-white">Confirmer la suppression</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-[#93aca7]">
               Êtes-vous sûr de vouloir supprimer le compte de{" "}
               <strong className="text-white">{userToDelete?.full_name || userToDelete?.email}</strong> ?
               {userToDelete?.role === "admin" &&
@@ -965,7 +965,7 @@ export default function AdminClients() {
             <DialogTitle className="text-white">
               Stratégie de {selectedUser?.full_name || selectedUser?.email}
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-[#93aca7]">
               Définissez les critères de stratégie d'investissement pour ce client.
             </DialogDescription>
           </DialogHeader>
@@ -979,7 +979,7 @@ export default function AdminClients() {
                 placeholder="Ex: 500000"
                 value={strategyBudgetMax}
                 onChange={(e) => setStrategyBudgetMax(e.target.value)}
-                className="bg-gray-900 border-gray-700 text-white mt-1" />
+                className="bg-[#0a0f0e] border-[#24312f] text-white mt-1" />
 
             </div>
             <div>
@@ -989,7 +989,7 @@ export default function AdminClients() {
                 placeholder="Ex: 100000"
                 value={strategyApport}
                 onChange={(e) => setStrategyApport(e.target.value)}
-                className="bg-gray-900 border-gray-700 text-white mt-1" />
+                className="bg-[#0a0f0e] border-[#24312f] text-white mt-1" />
 
             </div>
           </div>
@@ -1014,13 +1014,13 @@ export default function AdminClients() {
                   <Badge className="bg-red-500/20 text-red-400 text-xs">No-go</Badge>
                   }
                   </div>
-                  <p className="text-gray-400 text-sm">{field.value}</p>
+                  <p className="text-[#93aca7] text-sm">{field.value}</p>
                 </div>
                 <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleRemoveField(index)}
-                className="text-gray-400 hover:text-red-400">
+                className="text-[#93aca7] hover:text-red-400">
 
                   <X className="w-4 h-4" />
                 </Button>
@@ -1029,16 +1029,16 @@ export default function AdminClients() {
           </div>
 
           {/* Ajouter un nouveau champ */}
-          <div className="border border-gray-700 rounded-lg p-4 space-y-4">
+          <div className="border border-[#24312f] rounded-lg p-4 space-y-4">
             <h4 className="text-white font-medium text-sm">Ajouter un critère</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400 text-xs">Intitulé</Label>
+                <Label className="text-[#93aca7] text-xs">Intitulé</Label>
                 <Input
                   placeholder="Ex: Budget max"
                   value={newFieldLabel}
                   onChange={(e) => setNewFieldLabel(e.target.value)}
-                  className="bg-gray-900 border-gray-700 text-white mt-1" />
+                  className="bg-[#0a0f0e] border-[#24312f] text-white mt-1" />
 
               </div>
               <div className="flex items-end gap-4">
@@ -1048,17 +1048,17 @@ export default function AdminClients() {
                     onCheckedChange={setNewFieldIsNogo}
                     className="data-[state=checked]:bg-red-500" />
 
-                  <Label className="text-gray-400 text-xs">No-go</Label>
+                  <Label className="text-[#93aca7] text-xs">No-go</Label>
                 </div>
               </div>
             </div>
             <div>
-              <Label className="text-gray-400 text-xs">Valeur / Description</Label>
+              <Label className="text-[#93aca7] text-xs">Valeur / Description</Label>
               <Textarea
                 placeholder="Ex: 500 000€"
                 value={newFieldValue}
                 onChange={(e) => setNewFieldValue(e.target.value)}
-                className="bg-gray-900 border-gray-700 text-white mt-1"
+                className="bg-[#0a0f0e] border-[#24312f] text-white mt-1"
                 rows={2} />
 
             </div>
@@ -1076,7 +1076,7 @@ export default function AdminClients() {
             <Button
               variant="outline"
               onClick={() => setStrategyDialogOpen(false)}
-              className="border-gray-700 text-gray-400">
+              className="border-[#24312f] text-[#93aca7]">
 
               Annuler
             </Button>
@@ -1099,7 +1099,7 @@ export default function AdminClients() {
               <Link className="w-5 h-5 text-blue-500" />
               Lier les comptes
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-[#93aca7]">
               Définissez {selectedUserForLink?.full_name || selectedUserForLink?.email} comme compte esclave d'un compte maître.
               Le compte esclave verra tous les projets et données du compte maître.
             </DialogDescription>
@@ -1107,17 +1107,17 @@ export default function AdminClients() {
 
           <div className="my-4 space-y-4">
             <div>
-              <Label className="text-gray-400 text-sm mb-2 block">Compte esclave</Label>
-              <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+              <Label className="text-[#93aca7] text-sm mb-2 block">Compte esclave</Label>
+              <div className="p-3 bg-[#101715] rounded-lg border border-[#24312f]">
                 <p className="text-white">{selectedUserForLink?.full_name || "Sans nom"}</p>
-                <p className="text-gray-400 text-sm">{selectedUserForLink?.email}</p>
+                <p className="text-[#93aca7] text-sm">{selectedUserForLink?.email}</p>
               </div>
             </div>
 
             <div>
-              <Label className="text-gray-400 text-sm mb-2 block">Compte maître (principal)</Label>
+              <Label className="text-[#93aca7] text-sm mb-2 block">Compte maître (principal)</Label>
               <Select value={masterEmail} onValueChange={setMasterEmail}>
-                <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                <SelectTrigger className="bg-[#0a0f0e] border-[#24312f] text-white">
                   <SelectValue placeholder="Sélectionner le compte maître" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1141,7 +1141,7 @@ export default function AdminClients() {
                 setSelectedUserForLink(null);
                 setMasterEmail("");
               }}
-              className="border-gray-700 text-gray-400">
+              className="border-[#24312f] text-[#93aca7]">
 
               Annuler
             </Button>
@@ -1161,7 +1161,7 @@ export default function AdminClients() {
         <DialogContent className="bg-[#050505] border-[#1c2725]">
           <DialogHeader>
             <DialogTitle className="text-white">Créer une famille</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-[#93aca7]">
               Donnez un nom à ce groupe de {selectedUsersForCompare.length} investisseurs.
             </DialogDescription>
           </DialogHeader>
@@ -1170,7 +1170,7 @@ export default function AdminClients() {
               placeholder="Ex: Famille Dupont-Martin"
               value={newFamilleName}
               onChange={(e) => setNewFamilleName(e.target.value)}
-              className="bg-gray-900 border-gray-700 text-white"
+              className="bg-[#0a0f0e] border-[#24312f] text-white"
               onKeyPress={(e) => e.key === 'Enter' && handleCreateFamille()} />
 
           </div>
@@ -1178,7 +1178,7 @@ export default function AdminClients() {
             <Button
               variant="outline"
               onClick={() => setFamilleNameDialogOpen(false)}
-              className="border-gray-700 text-gray-400">
+              className="border-[#24312f] text-[#93aca7]">
 
               Annuler
             </Button>
@@ -1201,7 +1201,7 @@ export default function AdminClients() {
               <Edit className="w-5 h-5 text-blue-500" />
               Fiche client : {editingUser?.full_name || editingUser?.email}
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-[#93aca7]">
               Complétez les informations financières et les préférences du client
             </DialogDescription>
           </DialogHeader>
@@ -1212,43 +1212,43 @@ export default function AdminClients() {
             <div className="p-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 rounded-lg">
                 <Label className="text-[#33d6c0] text-sm font-medium">Profil investisseur</Label>
                 <p className="text-white mt-1">{profilLabels[editingUser.profil_investisseur] || editingUser.profil_investisseur}</p>
-                <p className="text-xs text-gray-400 mt-1">Ce champ se remplit automatiquement lors du changement de profil</p>
+                <p className="text-xs text-[#93aca7] mt-1">Ce champ se remplit automatiquement lors du changement de profil</p>
               </div>
             }
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400 text-sm">Revenus annuels (€)</Label>
+                <Label className="text-[#93aca7] text-sm">Revenus annuels (€)</Label>
                 <Input
                   type="number"
                   placeholder="Ex: 60000"
                   value={editForm.revenus_annuels}
                   onChange={(e) => setEditForm({ ...editForm, revenus_annuels: e.target.value })}
-                  className="bg-gray-900 border-gray-700 text-white mt-1" />
+                  className="bg-[#0a0f0e] border-[#24312f] text-white mt-1" />
 
               </div>
 
               <div>
-                <Label className="text-gray-400 text-sm">Épargne annuelle (€)</Label>
+                <Label className="text-[#93aca7] text-sm">Épargne annuelle (€)</Label>
                 <Input
                   type="number"
                   placeholder="Ex: 15000"
                   value={editForm.epargne_annuelle}
                   onChange={(e) => setEditForm({ ...editForm, epargne_annuelle: e.target.value })}
-                  className="bg-gray-900 border-gray-700 text-white mt-1" />
+                  className="bg-[#0a0f0e] border-[#24312f] text-white mt-1" />
 
               </div>
 
               <div>
-                <Label className="text-gray-400 text-sm">Durée d'emprunt (années)</Label>
+                <Label className="text-[#93aca7] text-sm">Durée d'emprunt (années)</Label>
                 <Select
                   value={editForm.duree_emprunt}
                   onValueChange={(val) => setEditForm({ ...editForm, duree_emprunt: val })}>
 
-                  <SelectTrigger className="bg-gray-900 border-gray-700 text-white mt-1">
+                  <SelectTrigger className="bg-[#0a0f0e] border-[#24312f] text-white mt-1">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700">
+                  <SelectContent className="bg-[#0a0f0e] border-[#24312f]">
                     {[15, 20, 25, 30].map((years) =>
                     <SelectItem key={years} value={String(years)} className="text-white">
                         {years} ans
@@ -1259,13 +1259,13 @@ export default function AdminClients() {
               </div>
 
               <div>
-                <Label className="text-gray-400 text-sm">Apport disponible (€)</Label>
+                <Label className="text-[#93aca7] text-sm">Apport disponible (€)</Label>
                 <Input
                   type="number"
                   placeholder="Ex: 100000"
                   value={editForm.apport_disponible}
                   onChange={(e) => setEditForm({ ...editForm, apport_disponible: e.target.value })}
-                  className="bg-gray-900 border-gray-700 text-white mt-1" />
+                  className="bg-[#0a0f0e] border-[#24312f] text-white mt-1" />
 
               </div>
             </div>
@@ -1278,7 +1278,7 @@ export default function AdminClients() {
                 setEditUserDialogOpen(false);
                 setEditingUser(null);
               }}
-              className="border-gray-700 text-gray-400">
+              className="border-[#24312f] text-[#93aca7]">
 
               Annuler
             </Button>
@@ -1301,15 +1301,15 @@ export default function AdminClients() {
               <Building2 className="w-5 h-5 text-[#33d6c0]" />
               Sélectionner le projet à poursuivre
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-[#93aca7]">
               Le client passera en étape {pendingEtapeChange?.etape}. À partir de l'étape 4, choisissez le projet qu'il va poursuivre (il ne verra que ce projet).
             </DialogDescription>
           </DialogHeader>
 
           <div className="my-4">
-            <Label className="text-gray-400 text-sm mb-2 block">Projet sélectionné</Label>
+            <Label className="text-[#93aca7] text-sm mb-2 block">Projet sélectionné</Label>
             <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-              <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+              <SelectTrigger className="bg-[#0a0f0e] border-[#24312f] text-white">
                 <SelectValue placeholder="Sélectionner un projet" />
               </SelectTrigger>
               <SelectContent>
@@ -1329,7 +1329,7 @@ export default function AdminClients() {
                 setEtapeDialogOpen(false);
                 setPendingEtapeChange(null);
               }}
-              className="border-gray-700 text-gray-400">
+              className="border-[#24312f] text-[#93aca7]">
 
               Annuler
             </Button>

@@ -57,14 +57,14 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
       <div className="text-center py-16 max-w-lg mx-auto">
         <Inbox className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
         {!gmailReadActif ? (
-          <p className="text-gray-500 text-sm leading-relaxed">
+          <p className="text-[#7f9995] text-sm leading-relaxed">
             La lecture de la boîte n'est pas activée. Ajoutez{" "}
-            <code className="text-gray-300">GOOGLE_GMAIL_READ=true</code> dans{" "}
-            <code className="text-gray-300">.env</code>, redémarrez, puis reconnectez votre compte
+            <code className="text-[#c4d5d1]">GOOGLE_GMAIL_READ=true</code> dans{" "}
+            <code className="text-[#c4d5d1]">.env</code>, redémarrez, puis reconnectez votre compte
             Google : l'écran de consentement demandera l'accès en lecture.
           </p>
         ) : (
-          <p className="text-gray-500 text-sm leading-relaxed">
+          <p className="text-[#7f9995] text-sm leading-relaxed">
             Aucun compte n'a autorisé la lecture de sa boîte.{" "}
             {comptes.length > 0
               ? "Reconnectez votre compte Google : le nouveau consentement inclura la lecture."
@@ -93,13 +93,13 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
           </Select>
         )}
         {lisibles.length === 1 && (
-          <span className="text-gray-400 text-sm">{lisibles[0].label}</span>
+          <span className="text-[#93aca7] text-sm">{lisibles[0].label}</span>
         )}
         <Button
           size="sm"
           onClick={() => relever.mutate()}
           disabled={relever.isPending}
-          className="bg-white/5 hover:bg-white/10 text-gray-300 border-0 ml-auto"
+          className="bg-white/5 hover:bg-white/10 text-[#c4d5d1] border-0 ml-auto"
         >
           {relever.isPending ? (
             <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -111,11 +111,11 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
       </div>
 
       {isLoading || (relever.isPending && !mails.length) ? (
-        <p className="text-gray-500 text-sm py-8 text-center">Relève de la boîte…</p>
+        <p className="text-[#7f9995] text-sm py-8 text-center">Relève de la boîte…</p>
       ) : mails.length === 0 ? (
         <div className="text-center py-16">
           <Inbox className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">Aucun mail relevé pour l'instant.</p>
+          <p className="text-[#7f9995] text-sm">Aucun mail relevé pour l'instant.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -128,16 +128,16 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
                 <div className="flex items-center gap-2 min-w-0">
                   <p className="text-white text-sm font-medium truncate">{m.objet}</p>
                   {m.pieces_jointes?.length > 0 && (
-                    <span className="text-gray-500 text-xs flex items-center gap-1 flex-shrink-0">
+                    <span className="text-[#7f9995] text-xs flex items-center gap-1 flex-shrink-0">
                       <Paperclip className="w-3 h-3" />
                       {m.pieces_jointes.length}
                     </span>
                   )}
                 </div>
-                <p className="text-gray-500 text-xs truncate">
+                <p className="text-[#7f9995] text-xs truncate">
                   {m.de} · {m.date ? new Date(m.date).toLocaleString("fr-FR") : ""}
                 </p>
-                {m.extrait && <p className="text-gray-600 text-xs truncate mt-0.5">{m.extrait}</p>}
+                {m.extrait && <p className="text-[#5e7672] text-xs truncate mt-0.5">{m.extrait}</p>}
               </div>
               <div className="flex-shrink-0">
                 {m.deal_id ? (
@@ -169,7 +169,7 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
         </div>
       )}
 
-      <p className="text-gray-600 text-[11px]">
+      <p className="text-[#5e7672] text-[11px]">
         La préanalyse lit le mail et ses pièces jointes (PDF, images) puis crée un deal dans la page
         Analyse. Comptez 30 à 60 secondes.
       </p>

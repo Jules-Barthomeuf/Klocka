@@ -19,7 +19,7 @@ function Card({ title, children }) {
 function Kpi({ label, value, accent = "text-white" }) {
   return (
     <div className="flex-1 px-4 py-3 min-w-0">
-      <p className="text-[9px] uppercase tracking-[0.16em] text-gray-500 font-medium truncate">{label}</p>
+      <p className="text-[9px] uppercase tracking-[0.16em] text-[#7f9995] font-medium truncate">{label}</p>
       <p className={`text-lg font-medium tabular-nums mt-1 truncate ${accent}`}>{value}</p>
     </div>
   );
@@ -28,7 +28,7 @@ function Kpi({ label, value, accent = "text-white" }) {
 function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-[13px] text-gray-300">{label}</span>
+      <span className="text-[13px] text-[#c4d5d1]">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#33d6c0] h-4 w-7" />
     </div>
   );
@@ -106,7 +106,7 @@ export default function SimParametresAvances({ values, advanced, calculs, format
           {advanced.vacancesLocatives.map((v, i) => v > 0 && (
             <span key={i} onClick={() => { const n = [...advanced.vacancesLocatives]; n[i] = 0; advanced.setVacancesLocatives(n); }} className="text-[11px] bg-orange-500/15 text-orange-300 px-2 py-1 rounded cursor-pointer">An {i + 1}: {v}m ✕</span>
           ))}
-          {nbVacance === 0 && <span className="text-[11px] text-gray-600">Aucune vacance renseignée</span>}
+          {nbVacance === 0 && <span className="text-[11px] text-[#5e7672]">Aucune vacance renseignée</span>}
         </div>
       </Card>
 
@@ -129,7 +129,7 @@ export default function SimParametresAvances({ values, advanced, calculs, format
           {advanced.travauxBailleur.map((t, i) => t > 0 && (
             <span key={i} onClick={() => { const n = [...advanced.travauxBailleur]; n[i] = 0; advanced.setTravauxBailleur(n); }} className="text-[11px] bg-orange-500/15 text-orange-300 px-2 py-1 rounded cursor-pointer">An {i + 1}: {t.toLocaleString("fr-FR")} € ✕</span>
           ))}
-          {totalTravaux === 0 && <span className="text-[11px] text-gray-600">Aucun travaux renseigné</span>}
+          {totalTravaux === 0 && <span className="text-[11px] text-[#5e7672]">Aucun travaux renseigné</span>}
         </div>
       </Card>
     </div>

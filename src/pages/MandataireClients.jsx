@@ -60,21 +60,21 @@ export default function MandataireClients() {
 
         {/* Recherche */}
         <div className="mb-6 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#93aca7]" />
           <Input
             placeholder="Rechercher un client..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 bg-gray-900 border-gray-700 text-white"
+            className="pl-12 bg-[#0a0f0e] border-[#24312f] text-white"
           />
         </div>
 
         {/* Liste des clients */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredClients.map((client) => (
-            <div key={client.id} className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+            <div key={client.id} className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
               <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-              <Card className="relative bg-gradient-to-br from-gray-900/95 via-[#33d6c0]/5 to-gray-900/95 border-none">
+              <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 via-[#33d6c0]/5 to-[#0a0f0e]/95 border-none">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4 mb-4">
                     <div className="w-12 h-12 bg-[#33d6c0] rounded-full flex items-center justify-center flex-shrink-0">
@@ -93,12 +93,12 @@ export default function MandataireClients() {
                   </div>
 
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-gray-400">
+                    <div className="flex items-center gap-2 text-[#93aca7]">
                       <Mail className="w-4 h-4" />
                       <span className="truncate">{client.email}</span>
                     </div>
                     {client.profil_investisseur && (
-                      <div className="flex items-center gap-2 text-gray-400">
+                      <div className="flex items-center gap-2 text-[#93aca7]">
                         <Users className="w-4 h-4" />
                         <span className="capitalize">{client.profil_investisseur.replace('_', ' ')}</span>
                       </div>
@@ -112,8 +112,8 @@ export default function MandataireClients() {
 
         {filteredClients.length === 0 && (
           <div className="text-center py-16">
-            <Users className="w-16 h-16 mx-auto text-gray-600 mb-4" />
-            <p className="text-gray-400 text-lg">Aucun client trouvé</p>
+            <Users className="w-16 h-16 mx-auto text-[#5e7672] mb-4" />
+            <p className="text-[#93aca7] text-lg">Aucun client trouvé</p>
           </div>
         )}
       </div>

@@ -26,30 +26,30 @@ function CompareBar({ label, local, national, unit = "%" }) {
   const max = Math.max(local || 0, national || 0) * 1.2 || 1;
   const diff = local && national ? local - national : null;
   return (
-    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-      <p className="text-xs text-gray-400 mb-2">{label}</p>
+    <div className="p-3 bg-[#101715]/50 rounded-lg border border-[#24312f]">
+      <p className="text-xs text-[#93aca7] mb-2">{label}</p>
       <div className="flex items-end gap-3 mb-1">
         <div className="flex-1">
           <div className="flex items-center justify-between text-xs mb-0.5">
             <span className="text-[#33d6c0]">Ville</span>
             <span className="text-white font-semibold">{local}{unit}</span>
           </div>
-          <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#24312f] rounded-full overflow-hidden">
             <div className="h-full rounded-full bg-[#33d6c0]" style={{ width: `${((local || 0) / max) * 100}%` }} />
           </div>
         </div>
       </div>
       <div className="flex-1">
         <div className="flex items-center justify-between text-xs mb-0.5">
-          <span className="text-gray-500">France</span>
-          <span className="text-gray-400">{national}{unit}</span>
+          <span className="text-[#7f9995]">France</span>
+          <span className="text-[#93aca7]">{national}{unit}</span>
         </div>
-        <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-gray-500" style={{ width: `${((national || 0) / max) * 100}%` }} />
+        <div className="h-2 bg-[#24312f] rounded-full overflow-hidden">
+          <div className="h-full rounded-full bg-[#7f9995]" style={{ width: `${((national || 0) / max) * 100}%` }} />
         </div>
       </div>
       {diff !== null && (
-        <p className={`text-[10px] mt-1.5 font-medium ${diff > 0 ? 'text-[#5ee7d4]' : diff < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+        <p className={`text-[10px] mt-1.5 font-medium ${diff > 0 ? 'text-[#5ee7d4]' : diff < 0 ? 'text-red-400' : 'text-[#7f9995]'}`}>
           {diff > 0 ? '+' : ''}{diff.toFixed(1)}{unit} vs France
         </p>
       )}
@@ -90,7 +90,7 @@ export default function EmploiSection({ data }) {
       {/* Diplômes */}
       {(data.pct_sans_diplome > 0 || data.pct_bac_plus_2 > 0) && (
         <div className="mb-6">
-          <p className="text-sm text-gray-400 mb-3">Niveau de diplôme (15 ans et plus non scolarisés)</p>
+          <p className="text-sm text-[#93aca7] mb-3">Niveau de diplôme (15 ans et plus non scolarisés)</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {data.pct_sans_diplome > 0 && <MiniBox label="Sans diplôme" value={`${data.pct_sans_diplome}%`} />}
             {data.pct_brevet > 0 && <MiniBox label="BEPC/Brevet" value={`${data.pct_brevet}%`} />}
@@ -107,7 +107,7 @@ export default function EmploiSection({ data }) {
         {/* CSP */}
         {cspData.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-3">Catégories socioprofessionnelles</p>
+            <p className="text-sm text-[#93aca7] mb-3">Catégories socioprofessionnelles</p>
             <div className="flex items-center gap-4">
               <div className="w-40 h-40">
                 <ResponsiveContainer width="100%" height="100%">
@@ -123,7 +123,7 @@ export default function EmploiSection({ data }) {
                 {cspData.map((d, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.fill }} />
-                    <span className="text-xs text-gray-300">{d.name}: {d.value}%</span>
+                    <span className="text-xs text-[#c4d5d1]">{d.name}: {d.value}%</span>
                   </div>
                 ))}
               </div>
@@ -134,7 +134,7 @@ export default function EmploiSection({ data }) {
         {/* Emploi par secteur */}
         {emploiSecteur.length > 0 && (
           <div>
-            <p className="text-sm text-gray-400 mb-3">Emploi par secteur d'activité</p>
+            <p className="text-sm text-[#93aca7] mb-3">Emploi par secteur d'activité</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={emploiSecteur} layout="vertical" margin={{ left: 5, right: 15 }}>
@@ -155,7 +155,7 @@ export default function EmploiSection({ data }) {
       {/* Transport / mobilité */}
       {(data.pct_transport_voiture > 0 || data.pct_transport_commun > 0) && (
         <div className="mt-6">
-          <p className="text-sm text-gray-400 mb-3">Mode de transport domicile-travail</p>
+          <p className="text-sm text-[#93aca7] mb-3">Mode de transport domicile-travail</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {data.pct_transport_voiture > 0 && <MiniBox label="Voiture" value={`${data.pct_transport_voiture}%`} />}
             {data.pct_transport_commun > 0 && <MiniBox label="Transports en commun" value={`${data.pct_transport_commun}%`} />}
@@ -171,9 +171,9 @@ export default function EmploiSection({ data }) {
 
 function MiniBox({ label, value }) {
   return (
-    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 text-center">
+    <div className="p-3 bg-[#101715]/50 rounded-lg border border-[#24312f] text-center">
       <p className="text-lg text-white font-semibold">{value}</p>
-      <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+      <p className="text-xs text-[#93aca7] mt-0.5">{label}</p>
     </div>
   );
 }

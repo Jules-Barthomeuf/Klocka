@@ -108,15 +108,15 @@ export default function DoubleCheckTable({ checkData, onChange }) {
                 </div>
                 <div className="col-span-4 flex justify-center gap-1.5">
                   <button type="button" onClick={() => updateField(field.key, "ia", val.ia === "oui" ? "" : "oui")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "oui" ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Oui</button>
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "oui" ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-white/[0.03] text-[#7f9995] border border-[#16201f] hover:bg-white/[0.06]"}`}>Oui</button>
                   <button type="button" onClick={() => updateField(field.key, "ia", val.ia === "non" ? "" : "non")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "non" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Non</button>
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "non" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-white/[0.03] text-[#7f9995] border border-[#16201f] hover:bg-white/[0.06]"}`}>Non</button>
                 </div>
                 <div className="col-span-4 flex justify-center gap-1.5">
                   <button type="button" onClick={() => updateField(field.key, "human", val.human === "oui" ? "" : "oui")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "oui" ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Oui</button>
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "oui" ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-white/[0.03] text-[#7f9995] border border-[#16201f] hover:bg-white/[0.06]"}`}>Oui</button>
                   <button type="button" onClick={() => updateField(field.key, "human", val.human === "non" ? "" : "non")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "non" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-white/[0.03] text-gray-500 border border-[#16201f] hover:bg-white/[0.06]"}`}>Non</button>
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "non" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-white/[0.03] text-[#7f9995] border border-[#16201f] hover:bg-white/[0.06]"}`}>Non</button>
                 </div>
               </div>
             );
@@ -142,7 +142,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
                   <div className="col-span-4">
                     <Input
                     value={val.ia}
-                    onChange={(e) => updateField(field.key, "ia", e.target.value)} className="bg-slate-800 text-white px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-purple-500/10 focus:border-purple-500/30 h-8 placeholder:text-gray-700"
+                    onChange={(e) => updateField(field.key, "ia", e.target.value)} className="bg-slate-800 text-white px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-purple-500/10 focus:border-purple-500/30 h-8 placeholder:text-[#3c4a47]"
 
                     placeholder="—" />
                   
@@ -150,7 +150,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
                   <div className="col-span-4">
                     <Input
                     value={val.human}
-                    onChange={(e) => updateField(field.key, "human", e.target.value)} className="bg-slate-800 text-white px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#33d6c0]/10 focus:border-[#33d6c0]/30 h-8 placeholder:text-gray-700"
+                    onChange={(e) => updateField(field.key, "human", e.target.value)} className="bg-slate-800 text-white px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#33d6c0]/10 focus:border-[#33d6c0]/30 h-8 placeholder:text-[#3c4a47]"
 
                     placeholder="—" />
                   

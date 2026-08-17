@@ -53,7 +53,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
   };
 
   return (
-    <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-gray-700">
+    <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#24312f]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-montserrat text-white text-lg">
           Assemblées Générales
@@ -72,14 +72,14 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
 
       {/* Formulaire d'ajout */}
       {showForm && (
-        <div className="mb-6 p-5 bg-gray-800/50 rounded-md border border-[#33d6c0]/30 space-y-4">
+        <div className="mb-6 p-5 bg-[#101715]/50 rounded-md border border-[#33d6c0]/30 space-y-4">
           <div>
-            <label className="text-sm text-gray-400 mb-1 block">Année</label>
+            <label className="text-sm text-[#93aca7] mb-1 block">Année</label>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="bg-gray-900 text-white border-gray-700 w-40">
+              <SelectTrigger className="bg-[#0a0f0e] text-white border-[#24312f] w-40">
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 text-white border-gray-700">
+              <SelectContent className="bg-[#0a0f0e] text-white border-[#24312f]">
                 {years.map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
@@ -90,30 +90,30 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
           {selectedYear && (
             <>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">Synthèse de l'assemblée générale</label>
+                <label className="text-sm text-[#93aca7] mb-1 block">Synthèse de l'assemblée générale</label>
                 <Textarea
                   value={synthese}
                   onChange={(e) => setSynthese(e.target.value)}
                   placeholder="Résumé des points abordés..."
-                  className="bg-gray-900 text-white border-gray-700 min-h-[100px]"
+                  className="bg-[#0a0f0e] text-white border-[#24312f] min-h-[100px]"
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">Résolutions votées</label>
+                <label className="text-sm text-[#93aca7] mb-1 block">Résolutions votées</label>
                 <Textarea
                   value={resVotees}
                   onChange={(e) => setResVotees(e.target.value)}
                   placeholder="Résolutions acceptées..."
-                  className="bg-gray-900 text-white border-gray-700 min-h-[80px]"
+                  className="bg-[#0a0f0e] text-white border-[#24312f] min-h-[80px]"
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">Résolutions non votées</label>
+                <label className="text-sm text-[#93aca7] mb-1 block">Résolutions non votées</label>
                 <Textarea
                   value={resRefusees}
                   onChange={(e) => setResRefusees(e.target.value)}
                   placeholder="Résolutions refusées..."
-                  className="bg-gray-900 text-white border-gray-700 min-h-[80px]"
+                  className="bg-[#0a0f0e] text-white border-[#24312f] min-h-[80px]"
                 />
               </div>
               <div className="flex gap-2">
@@ -128,7 +128,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                 <Button
                   variant="ghost"
                   onClick={() => { setShowForm(false); setSelectedYear(""); }}
-                  className="text-gray-400 hover:text-white"
+                  className="text-[#93aca7] hover:text-white"
                 >
                   Annuler
                 </Button>
@@ -146,11 +146,11 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
             return (
               <div
                 key={idx}
-                className="bg-gray-800/50 rounded-md border border-gray-700 overflow-hidden"
+                className="bg-[#101715]/50 rounded-md border border-[#24312f] overflow-hidden"
               >
                 <button
                   onClick={() => setExpandedAG(isExpanded ? null : idx)}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-800/80 transition-colors"
+                  className="w-full flex items-center justify-between p-4 text-left hover:bg-[#101715]/80 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-[#33d6c0]/20 flex items-center justify-center">
@@ -170,9 +170,9 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                       </Button>
                     )}
                     {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                      <ChevronUp className="w-5 h-5 text-[#93aca7]" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                      <ChevronDown className="w-5 h-5 text-[#93aca7]" />
                     )}
                   </div>
                 </button>
@@ -181,26 +181,26 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                   <div className="px-4 pb-4 space-y-4">
                     {ag.synthese && (
                       <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Synthèse</p>
-                        <p className="text-sm text-gray-300 whitespace-pre-wrap">{ag.synthese}</p>
+                        <p className="text-xs text-[#93aca7] uppercase tracking-wider mb-1">Synthèse</p>
+                        <p className="text-sm text-[#c4d5d1] whitespace-pre-wrap">{ag.synthese}</p>
                       </div>
                     )}
                     <div className="grid md:grid-cols-2 gap-4">
                       {ag.resolutions_votees && (
                         <div className="p-3 bg-[#33d6c0]/10 rounded-lg border border-[#33d6c0]/30">
                           <p className="text-xs text-[#5ee7d4] mb-2 font-semibold">✓ Résolutions votées</p>
-                          <p className="text-sm text-gray-300 whitespace-pre-wrap">{ag.resolutions_votees}</p>
+                          <p className="text-sm text-[#c4d5d1] whitespace-pre-wrap">{ag.resolutions_votees}</p>
                         </div>
                       )}
                       {ag.resolutions_refusees && (
                         <div className="p-3 bg-red-900/20 rounded-lg border border-red-500/30">
                           <p className="text-xs text-red-400 mb-2 font-semibold">✗ Résolutions non votées</p>
-                          <p className="text-sm text-gray-300 whitespace-pre-wrap">{ag.resolutions_refusees}</p>
+                          <p className="text-sm text-[#c4d5d1] whitespace-pre-wrap">{ag.resolutions_refusees}</p>
                         </div>
                       )}
                     </div>
                     {!ag.synthese && !ag.resolutions_votees && !ag.resolutions_refusees && (
-                      <p className="text-sm text-gray-500 italic">Aucune information renseignée pour cette AG.</p>
+                      <p className="text-sm text-[#7f9995] italic">Aucune information renseignée pour cette AG.</p>
                     )}
                   </div>
                 )}
@@ -210,7 +210,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
         </div>
       ) : (
         !showForm && (
-          <p className="text-sm text-gray-500 text-center py-6">Aucune assemblée générale enregistrée.</p>
+          <p className="text-sm text-[#7f9995] text-center py-6">Aucune assemblée générale enregistrée.</p>
         )
       )}
     </div>

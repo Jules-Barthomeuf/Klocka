@@ -13,13 +13,13 @@ const tabStyle = (active) =>
   `px-4 py-2 text-sm transition-all duration-200 border-b-2 ${
     active
       ? "text-white border-[#33d6c0]"
-      : "text-gray-500 border-transparent hover:text-gray-300"
+      : "text-[#7f9995] border-transparent hover:text-[#c4d5d1]"
   }`;
 
 function InfoCard({ label, value, accent, badge, note, onDelete, showDelete }) {
   if (!value && value !== 0) return null;
   return (
-    <div className="bg-gray-800/30 border border-gray-700/40 rounded-md p-4 flex flex-col gap-2 hover:border-gray-600/50 transition-colors relative">
+    <div className="bg-[#101715]/30 border border-[#24312f]/40 rounded-md p-4 flex flex-col gap-2 hover:border-[#2c3a37]/50 transition-colors relative">
       {showDelete && (
         <Button
           variant="ghost"
@@ -31,7 +31,7 @@ function InfoCard({ label, value, accent, badge, note, onDelete, showDelete }) {
         </Button>
       )}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-500 uppercase tracking-wider">{label}</span>
+        <span className="text-xs text-[#7f9995] uppercase tracking-wider">{label}</span>
         {badge && (
           <span className={`text-[10px] px-2 py-0.5 rounded-full ${
             badge === "preneur" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
@@ -44,7 +44,7 @@ function InfoCard({ label, value, accent, badge, note, onDelete, showDelete }) {
       <span className={`text-lg font-semibold leading-tight ${accent || "text-white"}`}>
         {value}
       </span>
-      {note && <span className="text-[11px] text-gray-400 leading-tight">{note}</span>}
+      {note && <span className="text-[11px] text-[#93aca7] leading-tight">{note}</span>}
     </div>
   );
 }
@@ -52,7 +52,7 @@ function InfoCard({ label, value, accent, badge, note, onDelete, showDelete }) {
 function SectionEmpty({ text }) {
   return (
     <div className="text-center py-8">
-      <p className="text-gray-500 text-sm">{text}</p>
+      <p className="text-[#7f9995] text-sm">{text}</p>
     </div>
   );
 }
@@ -368,7 +368,7 @@ export default function BailTabs({ project }) {
 
   return (
     <div>
-      <div className="flex gap-1 border-b border-gray-800 mb-6">
+      <div className="flex gap-1 border-b border-[#101715] mb-6">
         <button className={tabStyle(tab === "administratif")} onClick={() => setTab("administratif")}>Résumé</button>
         <button className={tabStyle(tab === "analyse")} onClick={() => setTab("analyse")}>Analyse du bail</button>
       </div>
@@ -399,7 +399,7 @@ export default function BailTabs({ project }) {
       {/* Analyse du bail */}
       {tab === "analyse" && (
         hasAnalyse ? (
-          <div className="text-sm text-gray-300 leading-relaxed space-y-4">
+          <div className="text-sm text-[#c4d5d1] leading-relaxed space-y-4">
             {project.analyse_bail.split(/(\b\d{1,2}\.\s+[A-ZÀ-Ü][^\n]+)/).filter(Boolean).map((section, idx) => {
               const isSectionTitle = /^\d{1,2}\.\s+[A-ZÀ-Ü]/.test(section.trim());
               if (isSectionTitle) {
@@ -408,7 +408,7 @@ export default function BailTabs({ project }) {
               return (
                 <div key={idx} className="space-y-1">
                   {section.split("\n").filter((l) => l.trim()).map((line, li) => (
-                    <p key={li} className="text-gray-300">{line.trim()}</p>
+                    <p key={li} className="text-[#c4d5d1]">{line.trim()}</p>
                   ))}
                 </div>
               );

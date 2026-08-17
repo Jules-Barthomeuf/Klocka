@@ -48,7 +48,7 @@ export default function PipelineDeals() {
     setParams(suivant);
   };
 
-  if (isLoading) return <p className="text-gray-500 text-sm">Chargement du pipeline…</p>;
+  if (isLoading) return <p className="text-[#7f9995] text-sm">Chargement du pipeline…</p>;
 
   const dossiers = pipeline?.dossiers || [];
   const groupes = GROUPES.map((g) => ({
@@ -60,7 +60,7 @@ export default function PipelineDeals() {
     return (
       <div className="text-center py-16">
         <Inbox className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
-        <p className="text-gray-500 text-sm">
+        <p className="text-[#7f9995] text-sm">
           Aucun deal en cours. Lancez « Nouveau deal » ou préanalysez un mail reçu depuis la page Mails.
         </p>
       </div>

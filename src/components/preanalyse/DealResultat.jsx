@@ -29,7 +29,7 @@ export const VERDICTS = {
 };
 
 export const STATUTS_DEAL = {
-  analyse: { libelle: "Analysé", classe: "bg-white/10 text-gray-300 border-white/20" },
+  analyse: { libelle: "Analysé", classe: "bg-white/10 text-[#c4d5d1] border-white/20" },
   documents_demandes: { libelle: "Docs demandés", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
   documents_recus: { libelle: "Docs reçus", classe: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
   depouille: { libelle: "Dépouillé", classe: "bg-[#33d6c0]/15 text-[#5ee7d4] border-[#33d6c0]/30" },
@@ -78,7 +78,7 @@ export function Bandeau({ type, items }) {
   const styles =
     type === "alerte"
       ? "border-amber-500/25 bg-amber-500/10 text-amber-200/90"
-      : "border-white/10 bg-white/[0.03] text-gray-400";
+      : "border-white/10 bg-white/[0.03] text-[#93aca7]";
   return (
     <div className={`rounded-md border px-4 py-3 text-sm ${styles}`}>
       {items.map((t, i) => (
@@ -210,7 +210,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
         {etape === "raisons" ? (
           <div className="space-y-3">
             <div>
-              <Label className="text-gray-400 text-xs mb-2 block">
+              <Label className="text-[#93aca7] text-xs mb-2 block">
                 Raisons de l'abandon (reformulées professionnellement dans le mail)
               </Label>
               <div className="flex flex-wrap gap-[7px] mb-3">
@@ -246,11 +246,11 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
             </div>
             <DialogFooter>
               {onArchiverSansMail && (
-                <Button variant="ghost" onClick={onArchiverSansMail} className="text-gray-400 hover:text-white hover:bg-white/5 mr-auto">
+                <Button variant="ghost" onClick={onArchiverSansMail} className="text-[#93aca7] hover:text-white hover:bg-white/5 mr-auto">
                   <Archive className="w-4 h-4 mr-1.5" /> Archiver sans mail
                 </Button>
               )}
-              <Button variant="ghost" onClick={onClose} className="text-gray-400 hover:text-white hover:bg-white/5">
+              <Button variant="ghost" onClick={onClose} className="text-[#93aca7] hover:text-white hover:bg-white/5">
                 Annuler
               </Button>
               <Button
@@ -268,14 +268,14 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
         ) : generer.isPending ? (
           <div className="py-10 text-center">
             <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin mx-auto mb-3" />
-            <p className="text-gray-400 text-sm">Rédaction du mail…</p>
+            <p className="text-[#93aca7] text-sm">Rédaction du mail…</p>
           </div>
         ) : (
           <>
             <div className="space-y-3">
               {comptes.length > 0 && (
                 <div>
-                  <Label className="text-gray-400 text-xs mb-1.5 block">Envoyer depuis</Label>
+                  <Label className="text-[#93aca7] text-xs mb-1.5 block">Envoyer depuis</Label>
                   <Select
                     value={expediteur || comptes[0]?.id}
                     onValueChange={(v) => {
@@ -306,7 +306,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                 />
               )}
               <div>
-                <Label className="text-gray-400 text-xs mb-1.5 block">Destinataire</Label>
+                <Label className="text-[#93aca7] text-xs mb-1.5 block">Destinataire</Label>
                 <Input
                   value={destinataire}
                   onChange={(e) => setDestinataire(e.target.value)}
@@ -315,11 +315,11 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                 />
               </div>
               <div>
-                <Label className="text-gray-400 text-xs mb-1.5 block">Objet</Label>
+                <Label className="text-[#93aca7] text-xs mb-1.5 block">Objet</Label>
                 <Input value={objet} onChange={(e) => setObjet(e.target.value)} className="bg-[#101715] border-[#1c2725] text-white" />
               </div>
               <div>
-                <Label className="text-gray-400 text-xs mb-1.5 block">Corps</Label>
+                <Label className="text-[#93aca7] text-xs mb-1.5 block">Corps</Label>
                 <Textarea
                   value={corps}
                   onChange={(e) => setCorps(e.target.value)}
@@ -335,11 +335,11 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
             </div>
             <DialogFooter>
               {onArchiverSansMail && (
-                <Button variant="ghost" onClick={onArchiverSansMail} className="text-gray-400 hover:text-white hover:bg-white/5 mr-auto">
+                <Button variant="ghost" onClick={onArchiverSansMail} className="text-[#93aca7] hover:text-white hover:bg-white/5 mr-auto">
                   <Archive className="w-4 h-4 mr-1.5" /> Archiver sans mail
                 </Button>
               )}
-              <Button variant="ghost" onClick={onClose} className="text-gray-400 hover:text-white hover:bg-white/5">
+              <Button variant="ghost" onClick={onClose} className="text-[#93aca7] hover:text-white hover:bg-white/5">
                 <X className="w-4 h-4 mr-1.5" /> Fermer
               </Button>
               <Button
@@ -382,17 +382,17 @@ export function JournalSuivi({ suivi }) {
   if (!suivi?.length) return null;
   return (
     <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4">
-      <p className="text-gray-400 text-xs mb-3">Historique du dossier</p>
+      <p className="text-[#93aca7] text-xs mb-3">Historique du dossier</p>
       <div className="space-y-2">
         {[...suivi].reverse().map((e, i) => (
           <div key={i} className="flex items-start gap-3 text-xs">
-            <span className="text-gray-600 w-32 flex-shrink-0">
+            <span className="text-[#5e7672] w-32 flex-shrink-0">
               {new Date(e.le).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
             </span>
-            <Badge className="bg-white/5 text-gray-400 border-white/10 text-[10px] flex-shrink-0">
+            <Badge className="bg-white/5 text-[#93aca7] border-white/10 text-[10px] flex-shrink-0">
               {LIBELLES_SUIVI[e.type] || e.type}
             </Badge>
-            <span className="text-gray-400 min-w-0">
+            <span className="text-[#93aca7] min-w-0">
               {e.detail}
               {e.intention ? ` (${e.intention.replace(/_/g, " ")})` : ""}
               {e.destinataire ? ` → ${e.destinataire}` : ""}
@@ -422,13 +422,13 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       <div className="p-5 border-b border-[#16201f]">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="min-w-0">
-            {lot.intitule && <p className="text-gray-500 text-xs mb-1">{lot.intitule}</p>}
+            {lot.intitule && <p className="text-[#7f9995] text-xs mb-1">{lot.intitule}</p>}
             <h3 className="text-white font-medium leading-snug">{lot.synthese?.titre || "Lot"}</h3>
           </div>
           <Badge className={`${v.classe} flex-shrink-0`}>{lot.evaluation.verdict}</Badge>
         </div>
 
-        <p className="text-gray-400 text-sm leading-relaxed">{lot.synthese?.synthese}</p>
+        <p className="text-[#93aca7] text-sm leading-relaxed">{lot.synthese?.synthese}</p>
 
         {lot.evaluation.profil && (
           <p className="text-[#5ee7d4] text-xs mt-2">Profil : {lot.evaluation.profil.libelle}</p>
@@ -470,8 +470,8 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       {/* Emplacement : saisie humaine */}
       <div className="px-5 py-4 border-b border-[#16201f]">
         <div className="flex items-center gap-2 mb-2">
-          <MapPin className="w-3.5 h-3.5 text-gray-500" />
-          <span className="text-gray-400 text-xs">Emplacement — qualification humaine</span>
+          <MapPin className="w-3.5 h-3.5 text-[#7f9995]" />
+          <span className="text-[#93aca7] text-xs">Emplacement — qualification humaine</span>
           {enr?.emplacement === "a_qualifier" && (
             <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/25 text-[10px]">à qualifier</Badge>
           )}
@@ -485,7 +485,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               className={`px-3 py-1.5 rounded-lg text-xs border transition-all disabled:opacity-50 ${
                 enr?.emplacement === e.code
                   ? "bg-[#33d6c0]/20 border-[#33d6c0]/40 text-[#5ee7d4]"
-                  : "border-white/10 text-gray-400 hover:border-white/25 hover:text-white"
+                  : "border-white/10 text-[#93aca7] hover:border-white/25 hover:text-white"
               }`}
             >
               {e.code === enr?.emplacement && <Check className="w-3 h-3 inline mr-1" />}
@@ -499,7 +499,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-gray-500 hover:text-white hover:border-white/25 ml-auto"
+              className="px-3 py-1.5 rounded-lg text-xs border border-white/10 text-[#7f9995] hover:text-white hover:border-white/25 ml-auto"
             >
               Voir sur la carte
             </a>
@@ -509,14 +509,14 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
 
       {/* Simulateur pré-rempli */}
       <div className="px-5 py-5 border-b border-[#16201f]">
-        <p className="text-gray-400 text-xs mb-3">Simulateur — pré-rempli avec ce dossier</p>
+        <p className="text-[#93aca7] text-xs mb-3">Simulateur — pré-rempli avec ce dossier</p>
         <SimulateurRapide parametres={lot.simulateur} />
       </div>
 
       {/* Détail */}
       <button
         onClick={() => setOngletsOuverts((o) => !o)}
-        className="w-full px-5 py-3 flex items-center justify-between text-gray-500 hover:text-white text-xs transition-colors"
+        className="w-full px-5 py-3 flex items-center justify-between text-[#7f9995] hover:text-white text-xs transition-colors"
       >
         <span>Détail de l'extraction et de l'enrichissement</span>
         {ongletsOuverts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -553,14 +553,14 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                   const absent = !c || c.absent;
                   return (
                     <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-[#131c1b]">
-                      <span className="text-gray-500 text-xs w-40 flex-shrink-0">{libelle}</span>
-                      <span className={`text-xs flex-1 ${absent ? "text-gray-600 italic" : "text-white"}`}>
+                      <span className="text-[#7f9995] text-xs w-40 flex-shrink-0">{libelle}</span>
+                      <span className={`text-xs flex-1 ${absent ? "text-[#5e7672] italic" : "text-white"}`}>
                         {absent ? "non renseigné dans la fiche" : afficherValeur(champ, c.valeur)}
                       </span>
                       {!absent && c.citation && (
                         <span
                           title={c.citation}
-                          className="text-gray-600 text-[11px] flex items-center gap-1 max-w-[45%] truncate cursor-help"
+                          className="text-[#5e7672] text-[11px] flex items-center gap-1 max-w-[45%] truncate cursor-help"
                         >
                           <Quote className="w-3 h-3 flex-shrink-0" />
                           {c.citation}
@@ -612,7 +612,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                   <LigneDetail label="Écart vs prix FAI" valeur={`+ ${euros(aem.surcout_vs_fai)}`} />
                 </div>
               ) : (
-                <p className="text-gray-500 text-xs">Calcul impossible : prix ou loyer manquant.</p>
+                <p className="text-[#7f9995] text-xs">Calcul impossible : prix ou loyer manquant.</p>
               )}
             </TabsContent>
 
@@ -633,12 +633,12 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
             {lot.contexte_marche && (
               <TabsContent value="marche">
                 <div className="space-y-3">
-                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-[#c4d5d1] text-sm leading-relaxed whitespace-pre-wrap">
                     {lot.contexte_marche.resume}
                   </p>
                   {lot.contexte_marche.sources?.length > 0 && (
                     <div>
-                      <p className="text-gray-500 text-xs mb-1.5">Sources consultées :</p>
+                      <p className="text-[#7f9995] text-xs mb-1.5">Sources consultées :</p>
                       <ul className="space-y-1">
                         {lot.contexte_marche.sources.map((s, i) => (
                           <li key={i}>
@@ -655,7 +655,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                       </ul>
                     </div>
                   )}
-                  <p className="text-gray-600 text-[11px]">
+                  <p className="text-[#5e7672] text-[11px]">
                     Généré avec recherche web — à vérifier avant décision. Ce contexte n'entre pas dans le
                     verdict.
                   </p>
@@ -682,9 +682,9 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
 function Metrique({ label, valeur, sousTitre, accent }) {
   return (
     <div className="px-4 py-3">
-      <p className="text-gray-500 text-[11px] mb-1">{label}</p>
+      <p className="text-[#7f9995] text-[11px] mb-1">{label}</p>
       <p className={`text-lg font-light ${accent ? "text-[#5ee7d4]" : "text-white"}`}>{valeur}</p>
-      {sousTitre && <p className="text-gray-600 text-[11px]">{sousTitre}</p>}
+      {sousTitre && <p className="text-[#5e7672] text-[11px]">{sousTitre}</p>}
     </div>
   );
 }
@@ -692,8 +692,8 @@ function Metrique({ label, valeur, sousTitre, accent }) {
 function LigneDetail({ label, valeur, fort }) {
   return (
     <div className="flex justify-between gap-3 py-1.5 border-b border-[#131c1b]">
-      <span className="text-gray-500">{label}</span>
-      <span className={fort ? "text-[#5ee7d4]" : "text-gray-200"}>{valeur}</span>
+      <span className="text-[#7f9995]">{label}</span>
+      <span className={fort ? "text-[#5ee7d4]" : "text-[#e6efed]"}>{valeur}</span>
     </div>
   );
 }

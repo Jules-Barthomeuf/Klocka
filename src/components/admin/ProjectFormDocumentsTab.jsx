@@ -51,7 +51,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
   return (
     <div className="space-y-6 mt-0">
       <h3 className="text-lg text-white">Documents du projet</h3>
-      <p className="text-sm text-gray-400">Ces fichiers seront téléchargeables par le client dans l'onglet "Documents" du projet.</p>
+      <p className="text-sm text-[#93aca7]">Ces fichiers seront téléchargeables par le client dans l'onglet "Documents" du projet.</p>
 
       {/* Checklist documents importés */}
       <div className="p-4 bg-white/[0.015] rounded-md border border-[#131c1b]">
@@ -122,7 +122,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
               <FileText className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm truncate">{f.nom}</p>
-                <p className="text-gray-500 text-xs truncate">{f.url}</p>
+                <p className="text-[#7f9995] text-xs truncate">{f.url}</p>
               </div>
               <Button
                 variant="ghost"
@@ -138,7 +138,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
       )}
 
       {fichiers.length === 0 && (
-        <p className="text-gray-500 text-sm text-center py-4">Aucun document ajouté. Uploadez un fichier ou ajoutez une URL ci-dessus.</p>
+        <p className="text-[#7f9995] text-sm text-center py-4">Aucun document ajouté. Uploadez un fichier ou ajoutez une URL ci-dessus.</p>
       )}
     </div>
   );

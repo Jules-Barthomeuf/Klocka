@@ -70,7 +70,7 @@ export default function Familles() {
           <div>
             <h1 className="text-4xl font-montserrat text-white mb-2">Familles</h1>
             <div className="h-0.5 w-32 bg-[#33d6c0] mb-2"></div>
-            <p className="text-gray-400 text-lg">
+            <p className="text-[#93aca7] text-lg">
               Gérez les groupes de co-investisseurs
             </p>
           </div>
@@ -85,15 +85,15 @@ export default function Familles() {
         </div>
 
         {/* Search */}
-        <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30 mb-6">
+        <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30 mb-6">
           <CardContent className="p-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#93aca7] w-5 h-5" />
               <Input
                 placeholder="Rechercher une famille..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-12 text-base bg-gray-900 text-white border-gray-700"
+                className="pl-10 h-12 text-base bg-[#0a0f0e] text-white border-[#24312f]"
               />
             </div>
           </CardContent>
@@ -101,11 +101,11 @@ export default function Familles() {
 
         {/* Liste des familles */}
         {filteredFamilles.length === 0 ? (
-          <Card className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30">
+          <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30">
             <CardContent className="p-12 text-center">
-              <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <Users className="w-16 h-16 text-[#5e7672] mx-auto mb-4" />
               <h2 className="text-xl text-white mb-2">Aucune famille créée</h2>
-              <p className="text-gray-400 mb-6">
+              <p className="text-[#93aca7] mb-6">
                 Sélectionnez des utilisateurs dans la gestion clients pour créer une famille.
               </p>
               <NeonButton
@@ -123,7 +123,7 @@ export default function Familles() {
               return (
                 <Card 
                   key={famille.id} 
-                  className="bg-gradient-to-br from-gray-900 to-black border-[#33d6c0]/30 hover:border-[#33d6c0]/60 transition-all cursor-pointer"
+                  className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30 hover:border-[#33d6c0]/60 transition-all cursor-pointer"
                   onClick={() => navigate(`${createPageUrl("Famille")}?users=${famille.user_ids?.join(',')}&familleId=${famille.id}`)}
                 >
                   <CardHeader className="pb-2">
@@ -151,7 +151,7 @@ export default function Familles() {
                       ))}
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">{familleUsers.length} membres</span>
+                      <span className="text-[#93aca7]">{familleUsers.length} membres</span>
                       <Button variant="ghost" size="sm" className="text-[#33d6c0] hover:text-[#33d6c0]">
                         <Eye className="w-4 h-4 mr-1" />
                         Voir

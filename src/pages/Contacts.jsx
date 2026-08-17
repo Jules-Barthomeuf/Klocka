@@ -175,9 +175,9 @@ export default function Contacts() {
           </Button>
         </div>
 
-        <div className="relative rounded-[1.25rem] border-[0.75px] border-gray-700 p-2">
+        <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
           <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-          <Card className="relative bg-gradient-to-br from-gray-900/95 to-gray-800/95 border-none">
+          <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 to-[#101715]/95 border-none">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <User className="w-5 h-5 text-[#33d6c0]" />
@@ -189,46 +189,46 @@ export default function Contacts() {
             </CardHeader>
             <CardContent>
               {contacts.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
+                <div className="text-center py-12 text-[#93aca7]">
                   Aucun contact pour le moment
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-600">
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Nom</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Sous-éléments</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Personnes</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Entreprise</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">E-mail</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Téléphone</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Statut Client</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Mandat Signé</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Patrimoine</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Revenu</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Fond propre</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Budget</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Localisation</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Formation LCDI</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Source</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Remarque</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Propriétés</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Chiffres</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Information</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Fonction</th>
-                        <th className="text-left py-3 px-3 text-gray-300 font-semibold whitespace-nowrap">Actions</th>
+                      <tr className="border-b border-[#2c3a37]">
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Nom</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Sous-éléments</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Personnes</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Entreprise</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">E-mail</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Téléphone</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Statut Client</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Mandat Signé</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Patrimoine</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Revenu</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Fond propre</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Budget</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Localisation</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Formation LCDI</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Source</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Remarque</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Propriétés</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Chiffres</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Information</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Fonction</th>
+                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {contacts.map((contact) => (
-                        <tr key={contact.id} className="border-b-2 border-gray-700 hover:bg-gray-800/50 transition-colors">
+                        <tr key={contact.id} className="border-b-2 border-[#24312f] hover:bg-[#101715]/50 transition-colors">
                           <td className="py-3 px-3">
                             <span className="text-white font-medium">{contact.nom}</span>
                           </td>
-                          <td className="py-3 px-3 text-gray-300">{contact.sous_elements || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.personnes || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.entreprise || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.sous_elements || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.personnes || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.entreprise || "-"}</td>
                           <td className="py-3 px-3">
                             {contact.email ? (
                               <a href={`mailto:${contact.email}`} className="text-[#5ee7d4] hover:underline">
@@ -236,25 +236,25 @@ export default function Contacts() {
                               </a>
                             ) : "-"}
                           </td>
-                          <td className="py-3 px-3 text-gray-300">{contact.telephone || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.statut_client || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.telephone || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.statut_client || "-"}</td>
                           <td className="py-3 px-3">
-                            <Badge className={contact.mandat_signe ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-gray-700 text-gray-400"}>
+                            <Badge className={contact.mandat_signe ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-[#24312f] text-[#93aca7]"}>
                               {contact.mandat_signe ? "Oui" : "Non"}
                             </Badge>
                           </td>
-                          <td className="py-3 px-3 text-gray-300">{contact.patrimoine || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{formatCurrency(contact.revenu)}</td>
-                          <td className="py-3 px-3 text-gray-300">{formatCurrency(contact.fond_propre)}</td>
-                          <td className="py-3 px-3 text-gray-300">{formatCurrency(contact.budget)}</td>
-                          <td className="py-3 px-3 text-gray-300 max-w-[150px] truncate" title={contact.localisation}>{contact.localisation || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.formation_lcdi || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.source || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300 max-w-[200px] truncate" title={contact.remarque}>{contact.remarque || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.proprietes || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.chiffres || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.information || "-"}</td>
-                          <td className="py-3 px-3 text-gray-300">{contact.fonction || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.patrimoine || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{formatCurrency(contact.revenu)}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{formatCurrency(contact.fond_propre)}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{formatCurrency(contact.budget)}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1] max-w-[150px] truncate" title={contact.localisation}>{contact.localisation || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.formation_lcdi || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.source || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1] max-w-[200px] truncate" title={contact.remarque}>{contact.remarque || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.proprietes || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.chiffres || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.information || "-"}</td>
+                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.fonction || "-"}</td>
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-1">
                               <Button
@@ -288,7 +288,7 @@ export default function Contacts() {
 
       {/* Dialog création/édition */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#050807] border-gray-700 max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#050807] border-[#24312f] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">
               {editingContact ? "Modifier le contact" : "Nouveau contact"}
@@ -298,69 +298,69 @@ export default function Contacts() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Nom *</Label>
+                <Label className="text-[#93aca7]">Nom *</Label>
                 <Input
                   value={formData.nom}
                   onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Sous-éléments</Label>
+                <Label className="text-[#93aca7]">Sous-éléments</Label>
                 <Input
                   value={formData.sous_elements}
                   onChange={(e) => setFormData({...formData, sous_elements: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Personnes</Label>
+                <Label className="text-[#93aca7]">Personnes</Label>
                 <Input
                   value={formData.personnes}
                   onChange={(e) => setFormData({...formData, personnes: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Entreprise</Label>
+                <Label className="text-[#93aca7]">Entreprise</Label>
                 <Input
                   value={formData.entreprise}
                   onChange={(e) => setFormData({...formData, entreprise: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">E-mail</Label>
+                <Label className="text-[#93aca7]">E-mail</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Téléphone</Label>
+                <Label className="text-[#93aca7]">Téléphone</Label>
                 <Input
                   value={formData.telephone}
                   onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Statut Client</Label>
+                <Label className="text-[#93aca7]">Statut Client</Label>
                 <Input
                   value={formData.statut_client}
                   onChange={(e) => setFormData({...formData, statut_client: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div className="flex items-end pb-2">
@@ -370,127 +370,127 @@ export default function Contacts() {
                     onCheckedChange={(checked) => setFormData({...formData, mandat_signe: checked})}
                     className="data-[state=checked]:bg-[#33d6c0]"
                   />
-                  <Label className="text-gray-400">Mandat signé</Label>
+                  <Label className="text-[#93aca7]">Mandat signé</Label>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Patrimoine</Label>
+                <Label className="text-[#93aca7]">Patrimoine</Label>
                 <Input
                   value={formData.patrimoine}
                   onChange={(e) => setFormData({...formData, patrimoine: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Fonction</Label>
+                <Label className="text-[#93aca7]">Fonction</Label>
                 <Input
                   value={formData.fonction}
                   onChange={(e) => setFormData({...formData, fonction: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-gray-400">Revenu (€)</Label>
+                <Label className="text-[#93aca7]">Revenu (€)</Label>
                 <Input
                   type="number"
                   value={formData.revenu}
                   onChange={(e) => setFormData({...formData, revenu: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Fond propre (€)</Label>
+                <Label className="text-[#93aca7]">Fond propre (€)</Label>
                 <Input
                   type="number"
                   value={formData.fond_propre}
                   onChange={(e) => setFormData({...formData, fond_propre: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Budget (€)</Label>
+                <Label className="text-[#93aca7]">Budget (€)</Label>
                 <Input
                   type="number"
                   value={formData.budget}
                   onChange={(e) => setFormData({...formData, budget: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-gray-400">Localisation</Label>
+                <Label className="text-[#93aca7]">Localisation</Label>
                 <Input
                   value={formData.localisation}
                   onChange={(e) => setFormData({...formData, localisation: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Formation LCDI</Label>
+                <Label className="text-[#93aca7]">Formation LCDI</Label>
                 <Input
                   value={formData.formation_lcdi}
                   onChange={(e) => setFormData({...formData, formation_lcdi: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Source</Label>
+                <Label className="text-[#93aca7]">Source</Label>
                 <Input
                   value={formData.source}
                   onChange={(e) => setFormData({...formData, source: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-gray-400">Propriétés</Label>
+                <Label className="text-[#93aca7]">Propriétés</Label>
                 <Input
                   value={formData.proprietes}
                   onChange={(e) => setFormData({...formData, proprietes: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Chiffres</Label>
+                <Label className="text-[#93aca7]">Chiffres</Label>
                 <Input
                   value={formData.chiffres}
                   onChange={(e) => setFormData({...formData, chiffres: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
               <div>
-                <Label className="text-gray-400">Information</Label>
+                <Label className="text-[#93aca7]">Information</Label>
                 <Input
                   value={formData.information}
                   onChange={(e) => setFormData({...formData, information: e.target.value})}
-                  className="bg-gray-900 border-gray-700 text-white"
+                  className="bg-[#0a0f0e] border-[#24312f] text-white"
                 />
               </div>
             </div>
 
             <div>
-              <Label className="text-gray-400">Remarque</Label>
+              <Label className="text-[#93aca7]">Remarque</Label>
               <Textarea
                 value={formData.remarque}
                 onChange={(e) => setFormData({...formData, remarque: e.target.value})}
-                className="bg-gray-900 border-gray-700 text-white"
+                className="bg-[#0a0f0e] border-[#24312f] text-white"
                 rows={2}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-gray-700">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#24312f]">
               Annuler
             </Button>
             <Button onClick={handleSubmit} className="bg-[#33d6c0] hover:bg-[#33d6c0]/90">

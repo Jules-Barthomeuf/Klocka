@@ -44,7 +44,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               isChecked
                 ? "border-[#33d6c0]/50 bg-[#33d6c0]/10 text-[#5ee7d4] hover:bg-[#33d6c0]/20"
-                : "border-gray-700 bg-gray-800/60 text-gray-500 hover:text-gray-300 hover:border-gray-600"
+                : "border-[#24312f] bg-[#101715]/60 text-[#7f9995] hover:text-[#c4d5d1] hover:border-[#2c3a37]"
             }`}
           >
             {isChecked ? (
@@ -62,7 +62,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               hasNote
                 ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
-                : "border-gray-700 bg-gray-800/60 text-gray-500 hover:text-gray-300 hover:border-gray-600"
+                : "border-[#24312f] bg-[#101715]/60 text-[#7f9995] hover:text-[#c4d5d1] hover:border-[#2c3a37]"
             }`}
           >
             <MessageSquare className="w-3 h-3" />
@@ -78,7 +78,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
               value={field.note || ""}
               onChange={(e) => setField({ note: e.target.value })}
               placeholder="Note du vérificateur..."
-              className="bg-gray-950 text-orange-100 border-orange-500/30 text-xs placeholder:text-gray-600"
+              className="bg-[#050807] text-orange-100 border-orange-500/30 text-xs placeholder:text-[#5e7672]"
               rows={2}
             />
           </div>

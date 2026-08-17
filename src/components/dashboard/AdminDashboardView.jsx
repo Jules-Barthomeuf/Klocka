@@ -297,14 +297,14 @@ export default function AdminDashboardView({ user }) {
                         <Popup>
                           <div className="text-sm">
                             <h3 className="font-bold text-base mb-1">{city}</h3>
-                            <p className="text-gray-600 mb-2">{contacts.length} agent{contacts.length > 1 ? 's' : ''}</p>
+                            <p className="text-[#5e7672] mb-2">{contacts.length} agent{contacts.length > 1 ? 's' : ''}</p>
                             {contacts.slice(0, 5).map(c => (
                               <div key={c.id} className="text-xs">
                                 <strong>{c.nom}</strong>
-                                {c.entreprise && <span className="text-gray-500"> - {c.entreprise}</span>}
+                                {c.entreprise && <span className="text-[#7f9995]"> - {c.entreprise}</span>}
                               </div>
                             ))}
-                            {contacts.length > 5 && <p className="text-xs text-gray-500 italic">+{contacts.length - 5} autres...</p>}
+                            {contacts.length > 5 && <p className="text-xs text-[#7f9995] italic">+{contacts.length - 5} autres...</p>}
                           </div>
                         </Popup>
                       </Marker>

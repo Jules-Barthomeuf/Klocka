@@ -49,7 +49,7 @@ export default function ExportClients() {
         </div>
         <div>
           <h1 className="text-2xl font-light text-white mb-2">Export Clients</h1>
-          <p className="text-gray-500 text-sm">Télécharge l'intégralité de l'entité User (clients) en JSON brut, tous champs inclus.</p>
+          <p className="text-[#7f9995] text-sm">Télécharge l'intégralité de l'entité User (clients) en JSON brut, tous champs inclus.</p>
         </div>
 
         {done && count !== null && (

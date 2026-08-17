@@ -182,7 +182,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
                 {project?.titre}
               </DialogTitle>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-gray-500 hover:text-white hover:bg-white/5">
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-[#7f9995] hover:text-white hover:bg-white/5">
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -195,7 +195,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md border text-sm transition-all ${
               viewMode === "current"
                 ? "bg-blue-500/15 border-blue-500/40 text-blue-400"
-                : "bg-[#0a0f0e] border-[#16201f] text-gray-500 hover:text-white"
+                : "bg-[#0a0f0e] border-[#16201f] text-[#7f9995] hover:text-white"
             }`}
           >
             <Eye className="w-4 h-4" />
@@ -207,7 +207,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md border text-sm transition-all ${
               viewMode === "shadow"
                 ? "bg-purple-500/15 border-purple-500/40 text-purple-400"
-                : "bg-[#0a0f0e] border-[#16201f] text-gray-500 hover:text-white"
+                : "bg-[#0a0f0e] border-[#16201f] text-[#7f9995] hover:text-white"
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -251,7 +251,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             <TabsContent value="secteur" className="space-y-6 mt-6">
               <div className="space-y-4">
                 {/* Minimal secteur inline - same structure as AdminProjets */}
-                <p className="text-gray-400 text-sm">Utilisez les onglets Infos / Locataire / Copro pour les champs principaux.</p>
+                <p className="text-[#93aca7] text-sm">Utilisez les onglets Infos / Locataire / Copro pour les champs principaux.</p>
               </div>
             </TabsContent>
             <TabsContent value="locataire"><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></TabsContent>
@@ -266,7 +266,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
 
         {/* Save button */}
         <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-[#16201f]">
-          <button onClick={() => onOpenChange(false)} className="px-5 py-2.5 text-gray-400 hover:text-white text-sm transition-colors">Annuler</button>
+          <button onClick={() => onOpenChange(false)} className="px-5 py-2.5 text-[#93aca7] hover:text-white text-sm transition-colors">Annuler</button>
           {viewMode === "shadow" ? (
             <button
               onClick={handleSaveShadow}

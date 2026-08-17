@@ -160,7 +160,7 @@ export default function KlockAI() {
               50% { left: calc(100% - 12px); }
             }
           `}</style>
-          <p className="text-gray-400">Chargement de KlockAI...</p>
+          <p className="text-[#93aca7]">Chargement de KlockAI...</p>
         </div>
       </div>
     );
@@ -182,7 +182,7 @@ export default function KlockAI() {
           variant="ghost"
           size="sm"
           onClick={handleNewConversation}
-          className="text-gray-500 hover:text-white hover:bg-white/5 text-xs"
+          className="text-[#7f9995] hover:text-white hover:bg-white/5 text-xs"
         >
           <RefreshCw className="w-3.5 h-3.5 mr-2" />
           Nouvelle conversation
@@ -240,11 +240,11 @@ export default function KlockAI() {
                         ),
                         thead: ({ children }) => <thead className="bg-white/[0.04]">{children}</thead>,
                         th: ({ children }) => <th className="text-left font-semibold text-white px-3 py-2 border-b border-white/10">{children}</th>,
-                        td: ({ children }) => <td className="text-gray-200 px-3 py-2 border-b border-[#16201f] align-top">{children}</td>,
+                        td: ({ children }) => <td className="text-[#e6efed] px-3 py-2 border-b border-[#16201f] align-top">{children}</td>,
                         tr: ({ children }) => <tr>{children}</tr>,
-                        p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-gray-200">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-gray-200">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-gray-200">{children}</ol>,
+                        p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-[#e6efed]">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-[#e6efed]">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-[#e6efed]">{children}</ol>,
                         li: ({ children }) => <li className="text-sm">{children}</li>,
                         strong: ({ children }) => <strong className="font-semibold text-[#5ee7d4]">{children}</strong>,
                         h1: ({ children }) => <h1 className="text-lg mb-2 text-white">{children}</h1>,
@@ -263,7 +263,7 @@ export default function KlockAI() {
                   {message.tool_calls && message.tool_calls.length > 0 && (
                     <div className="mt-2">
                       {message.tool_calls.map((toolCall, idx) => (
-                        <div key={idx} className="text-xs text-gray-500 flex items-center gap-1.5">
+                        <div key={idx} className="text-xs text-[#7f9995] flex items-center gap-1.5">
                           {toolCall.status === "running" || toolCall.status === "in_progress" ? (
                             <span className="flex items-center gap-1.5">
                               {[0, 1, 2].map((i) => (

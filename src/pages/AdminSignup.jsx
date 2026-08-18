@@ -116,7 +116,7 @@ export default function AdminSignup() {
 
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-sm text-red-800">
-                <strong>⚠️ Erreur :</strong> Token d'administration manquant ou incorrect
+                <strong>Erreur :</strong> Token d'administration manquant ou incorrect
               </p>
             </div>
           </CardContent>
@@ -159,7 +159,7 @@ export default function AdminSignup() {
 
           <div className="bg-[#35a79b]/10 border border-[#35a79b]/40 rounded-lg p-4">
             <p className="text-sm text-[#2f8d84]">
-              ✅ Lien d'invitation valide. Votre compte sera automatiquement configuré en tant qu'administrateur.
+              Lien d'invitation valide. Votre compte sera automatiquement configuré en tant qu'administrateur.
             </p>
           </div>
 

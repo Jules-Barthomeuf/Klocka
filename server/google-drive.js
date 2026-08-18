@@ -122,3 +122,40 @@ export async function classerDansDrive(compteEmail, titre, fichiers, uploadDir) 
     erreurs,
   };
 }
+
+/**
+ * Téléverse un PPTX en le convertissant en Google Slides (modifiable en
+ * ligne). Rangé dans « Klocka Projets/Présentations banque ».
+ * @returns {{ id, slides_url }}
+ */
+export async function uploaderEnSlides(compteEmail, { nom, buffer }) {
+  const account = compteDrive(compteEmail);
+  const token = await accessTokenFor(account);
+
+  const racine = await assurerDossier(token, DOSSIER_RACINE);
+  const dossier = await assurerDossier(token, 'Présentations banque', racine.id);
+
+  const boundary = `klocka${Date.now()}`;
+  // Le mimeType Google du meta déclenche la conversion PPTX → Slides.
+  const meta = JSON.stringify({
+    name: nom,
+    mimeType: 'application/vnd.google-apps.presentation',
+    parents: [dossier.id],
+  });
+  const corps = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n` +
+        `--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.presentationml.presentation\r\n\r\n`
+    ),
+    buffer,
+    Buffer.from(`\r\n--${boundary}--`),
+  ]);
+
+  const fichier = await driveFetch(token, `${DRIVE_UPLOAD}&fields=id,name`, {
+    method: 'POST',
+    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body: corps,
+  });
+
+  return { id: fichier.id, slides_url: `https://docs.google.com/presentation/d/${fichier.id}/edit` };
+}

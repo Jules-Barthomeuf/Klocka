@@ -655,7 +655,7 @@ function authResultPage(res, { ok, title, detail }) {
 <html lang="fr"><head><meta charset="utf-8"><title>${title}</title></head>
 <body style="margin:0;background:#000;color:#fff;font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
   <div style="max-width:520px;padding:32px;text-align:center">
-    <div style="font-size:40px;margin-bottom:12px">${ok ? '✓' : '⚠'}</div>
+    <div style="font-size:40px;margin-bottom:12px">${ok ? '✓' : '!'}</div>
     <h1 style="color:${color};font-size:20px;margin:0 0 12px">${title}</h1>
     <p style="color:#9ca3af;font-size:14px;line-height:1.6;margin:0 0 24px">${detail}</p>
     <a href="/Mails" id="retour" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:14px">Retour à la page Mails</a>
@@ -961,6 +961,50 @@ app.post('/api/preanalyse/dossiers/:dealId/drive', wrap(async (req, res) => {
   const dealMaj = Records.get('Deal', dossier.id);
   ajouterSuiviDeal(dealMaj, { type: 'documents_recus', detail: `${r.envoyes.length} fichier(s) classé(s) dans le Drive` }, user);
   ok(res, r);
+}));
+
+// Présentation bancaire du lot : PPTX généré depuis les données du deal,
+// converti en Google Slides (modifiable) quand un compte Drive est fourni.
+// Le PPTX reste téléchargeable dans tous les cas.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/presentation', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const idx = Number(req.params.index);
+  const lot = dossier.lots?.[idx];
+  if (!lot) return res.status(404).json({ error: 'Lot introuvable' });
+
+  const { genererPresentationBanque } = await import('./deal/presentation.js');
+  const buffer = await genererPresentationBanque(dossier, lot);
+
+  const nomFichier = `presentation-banque-${String(dossier.deal_id).replace(/[^a-zA-Z0-9_-]/g, '_')}-lot${idx}.pptx`;
+  const dossierPres = path.join(UPLOAD_DIR, 'presentations');
+  fs.mkdirSync(dossierPres, { recursive: true });
+  fs.writeFileSync(path.join(dossierPres, nomFichier), buffer);
+  const pptx_url = `/uploads/presentations/${nomFichier}`;
+
+  const { compte } = req.body || {};
+  let slides_url = null;
+  let erreur_slides = null;
+  if (compte) {
+    if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
+    try {
+      const { uploaderEnSlides } = await import('./google-drive.js');
+      const r = await uploaderEnSlides(compte, {
+        nom: `Présentation banque — ${lot.synthese?.titre || dossier.deal_id}`,
+        buffer,
+      });
+      slides_url = r.slides_url;
+    } catch (e) {
+      erreur_slides = e?.message || String(e);
+      console.error('[presentation] conversion Slides impossible :', erreur_slides);
+    }
+  }
+
+  const lots = [...(dossier.lots || [])];
+  lots[idx] = { ...lot, presentation: { slides_url, pptx_url, genere_le: new Date().toISOString() } };
+  Records.update('Deal', dossier.id, { lots });
+
+  ok(res, { slides_url, pptx_url, erreur_slides });
 }));
 
 // Création d'un projet pré-rempli depuis un lot du deal.

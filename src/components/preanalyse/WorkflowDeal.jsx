@@ -35,6 +35,7 @@ const ETAPES = [
   { n: 3, id: "documents", label: "Documents", sub: "dépouillement" },
   { n: 4, id: "decision", label: "Décision", sub: "client / abandon" },
   { n: 5, id: "plateforme", label: "Plateforme", sub: "création projet" },
+  { n: 6, id: "presentation", label: "Présentation", sub: "dossier banque" },
 ];
 
 // En-tête numéroté d'une étape : « 01 · Titre » + description, comme la maquette.
@@ -224,6 +225,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
           <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={() => setEtape(5)} apercu={apercu} />
         )}
         {etape === 5 && <EtapePlateforme dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
+        {etape === 6 && <EtapePresentation dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
       </div>
 
       {dossier && <JournalSuivi suivi={dossier.suivi} />}
@@ -907,6 +909,106 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
           }}
         />
       )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Étape 6 — Présentation bancaire : PPTX généré depuis le dossier, converti
+// en Google Slides (modifiable) quand un compte Drive est connecté.
+// ---------------------------------------------------------------------------
+
+function EtapePresentation({ dossier, onRefresh, apercu }) {
+  const pres = dossier?.lots?.[0]?.presentation;
+
+  const { data: statutMail } = useQuery({
+    queryKey: ["mail-status"],
+    queryFn: () => base44.functions.invoke("getMailStatus", {}),
+    enabled: !apercu,
+  });
+  const compteDrive = (statutMail?.accounts || []).find((c) => c.peut_drive)?.id || null;
+
+  const generer = useMutation({
+    mutationFn: () =>
+      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/0/presentation`, {
+        body: { compte: compteDrive },
+      }),
+    onSuccess: (r) => {
+      if (r.slides_url) {
+        toast.success("Présentation générée — ouverture dans Google Slides");
+        window.open(r.slides_url, "_blank", "noopener");
+      } else if (r.erreur_slides) {
+        toast.error(`PPTX généré, mais conversion Slides impossible : ${r.erreur_slides}`);
+      } else {
+        toast.success("Présentation générée (PPTX)");
+      }
+      onRefresh?.();
+    },
+    onError: (e) => toast.error(e?.message || "Génération impossible"),
+  });
+
+  return (
+    <>
+      <TitreEtape
+        n={6}
+        titre="Présentation"
+        description="Le dossier de présentation bancaire du bien, généré depuis les données du deal : le bien, le bail, l'opération, le plan de financement, le marché et les points forts. Modifiable ensuite dans Google Slides."
+      />
+
+      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[#edeae5] text-sm font-medium mb-1">Présentation bancaire</p>
+            <p className="text-[#8b9391] text-xs">
+              {pres?.genere_le
+                ? `Dernière génération le ${new Date(pres.genere_le).toLocaleDateString("fr-FR")} à ${new Date(pres.genere_le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`
+                : "Un clic : le PPTX est construit puis converti en Google Slides, prêt à retoucher."}
+            </p>
+          </div>
+          <Button
+            onClick={() => generer.mutate()}
+            disabled={generer.isPending || apercu}
+            className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
+            title={apercu ? "Indisponible en mode aperçu" : undefined}
+          >
+            {generer.isPending ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Génération…</>
+            ) : (
+              <><Briefcase className="w-4 h-4 mr-2" /> {pres ? "Regénérer" : "Générer la présentation"}</>
+            )}
+          </Button>
+        </div>
+
+        {pres && (
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            {pres.slides_url && (
+              <a href={pres.slides_url} target="_blank" rel="noopener noreferrer">
+                <Button className="h-9 text-xs bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5]">
+                  <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                  Ouvrir dans Google Slides
+                </Button>
+              </a>
+            )}
+            {pres.pptx_url && (
+              <a
+                href={pres.pptx_url}
+                download
+                className="inline-flex items-center gap-2 text-xs text-[#8b9391] hover:text-[#edeae5] transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Télécharger le PPTX
+              </a>
+            )}
+          </div>
+        )}
+
+        {!apercu && !compteDrive && (
+          <p className="text-[#8b9391] text-xs">
+            Aucun compte Google Drive connecté : la présentation restera un PPTX à télécharger. Connectez un
+            compte depuis la page Mails (accès Drive) pour obtenir directement un lien Google Slides modifiable.
+          </p>
+        )}
+      </div>
     </>
   );
 }

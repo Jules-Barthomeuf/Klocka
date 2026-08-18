@@ -834,14 +834,14 @@ export default function AdminClients() {
               <strong className="text-[#edeae5]">{userToDelete?.full_name || userToDelete?.email}</strong> ?
               {userToDelete?.role === "admin" &&
               <span className="block mt-2 text-amber-600 font-semibold">
-                  ⚠️ Attention : Cet utilisateur est administrateur
+                  Attention : cet utilisateur est administrateur
                 </span>
               }
             </DialogDescription>
           </DialogHeader>
           <div className="bg-[#e0c9a0]/5 border border-[#e0c9a0]/20 rounded-md p-4 my-4">
             <p className="text-sm text-[#e0c9a0]/80">
-              ⚠️ Cette action est irréversible. L'utilisateur devra recréer un compte pour accéder à l'application.
+              Cette action est irréversible. L'utilisateur devra recréer un compte pour accéder à l'application.
             </p>
           </div>
           <DialogFooter>

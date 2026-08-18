@@ -60,7 +60,7 @@ function generateSlideTexts(project, client) {
 
   // --- Slide 2 : La Ville ---
   const villeLines = [];
-  if (p.ville_secteur_champ1) villeLines.push(`📍 ${p.ville_secteur_champ1}${p.ville_secteur_champ2 ? ` — ${p.ville_secteur_champ2}` : ""}`);
+  if (p.ville_secteur_champ1) villeLines.push(`${p.ville_secteur_champ1}${p.ville_secteur_champ2 ? ` — ${p.ville_secteur_champ2}` : ""}`);
   if (p.description_ville) villeLines.push(`\n${p.description_ville}`);
   if (p.secteur_bassin_emploi) villeLines.push(`\nBassin d'emploi : ${fmtNum(p.secteur_bassin_emploi)} emplois`);
   if (p.secteur_taux_vacance != null) villeLines.push(`Taux de vacance commerciale : ${p.secteur_taux_vacance}%`);
@@ -85,7 +85,7 @@ function generateSlideTexts(project, client) {
 Adresse à rechercher : ${p.adresse_complete || "À compléter"}
 ${p.latitude && p.longitude ? `Coordonnées GPS : ${p.latitude}, ${p.longitude}` : ""}
 
-👉 Faire une capture de la carte Google Maps centrée sur l'adresse, montrant le quartier et les commerces alentours. Mettre un marqueur rouge sur le local.`,
+Faire une capture de la carte Google Maps centrée sur l'adresse, montrant le quartier et les commerces alentours. Mettre un marqueur rouge sur le local.`,
   });
 
   // --- Slide 4 : Zoom sur le quartier ---
@@ -118,7 +118,7 @@ ${p.latitude && p.longitude ? `Coordonnées GPS : ${p.latitude}, ${p.longitude}`
   if (p.secteur_pct_commerces) tensionLines.push(`Part commerces dans le secteur : ${p.secteur_pct_commerces}%`);
   if (p.secteur_projets_urbains) tensionLines.push(`\nDynamique urbaine :\n${p.secteur_projets_urbains}`);
   if (p.secteur_entreprises_majeures?.length) tensionLines.push(`\nEnseignes de référence à proximité :\n${p.secteur_entreprises_majeures.map(e => `• ${e}`).join("\n")}`);
-  tensionLines.push("\n👉 Ajouter les logos des commerces voisins (banques, enseignes, restaurants...) en complément visuel.");
+  tensionLines.push("\nAjouter les logos des commerces voisins (banques, enseignes, restaurants...) en complément visuel.");
 
   slides.push({
     num: "05",
@@ -292,7 +292,7 @@ ${p.latitude && p.longitude ? `Coordonnées GPS : ${p.latitude}, ${p.longitude}`
   const cvLines = [];
   if (clientName) cvLines.push(`Porteur du projet : ${clientName}`);
   if (client?.email) cvLines.push(`Email : ${client.email}`);
-  cvLines.push(`\n👉 Compléter avec :\n• Situation professionnelle\n• Revenus annuels\n• Patrimoine immobilier existant\n• Structure juridique retenue (SCI, SARL, personne physique...)\n• Répartition du capital (si associés)`);
+  cvLines.push(`\nCompléter avec :\n• Situation professionnelle\n• Revenus annuels\n• Patrimoine immobilier existant\n• Structure juridique retenue (SCI, SARL, personne physique...)\n• Répartition du capital (si associés)`);
 
   slides.push({
     num: "12",

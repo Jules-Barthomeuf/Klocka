@@ -112,7 +112,7 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
                     {clientCandidates.map((u) => (
                       <div key={u.id} onClick={() => addClient(u.email)} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-[13px] text-[#edeae5] hover:bg-[#edeae5]/[0.06] transition-colors">
                         <span className="w-6 h-6 rounded-full bg-[#edeae5]/[0.06] text-[#B9BEB9] flex items-center justify-center text-[10px] font-semibold">{initials(u.full_name || u.email)}</span>
-                        {u.full_name || u.email} {u.role === "admin" && "👑"}
+                        {u.full_name || u.email} {u.role === "admin" && "(admin)"}
                       </div>
                     ))}
                     {clientCandidates.length === 0 && <div className="p-3 text-[13px] text-[#6b7270] text-center">Aucun client</div>}

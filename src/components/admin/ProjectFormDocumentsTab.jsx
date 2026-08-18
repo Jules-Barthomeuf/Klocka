@@ -80,7 +80,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
 
       {/* Upload direct */}
       <div className="p-4 bg-[#0e100f] border border-[#edeae5]/[0.12]">
-        <Label className="text-[#edeae5] mb-3 block">📤 Upload depuis votre ordinateur</Label>
+        <Label className="text-[#edeae5] mb-3 block">Upload depuis votre ordinateur</Label>
         <label className="cursor-pointer">
           <input type="file" className="hidden" onChange={handleUpload} />
           <Button type="button" className="w-full bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5]" asChild>
@@ -91,7 +91,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
 
       {/* URL manuelle */}
       <div className="p-4 bg-[#0e100f] border border-[#edeae5]/[0.12]">
-        <Label className="text-[#edeae5] mb-3 block">🔗 Ajouter via URL</Label>
+        <Label className="text-[#edeae5] mb-3 block">Ajouter via URL</Label>
         <div className="space-y-2">
           <Input
             value={newFileName}

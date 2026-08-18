@@ -318,7 +318,7 @@ export default function PortailLanding({ onContinue }) {
                               ))}
                             </ul>
                             <div className="mt-5 inline-flex items-center gap-2 bg-[#e0c9a0]/10 border border-[#e0c9a0]/25 rounded-full px-5 py-2">
-                              <span className="text-[#e0c9a0] text-sm font-bold">✨ 3 deals inclus — différenciateur clé de l'accompagnement</span>
+                              <span className="text-[#e0c9a0] text-sm font-bold">3 deals inclus — différenciateur clé de l'accompagnement</span>
                             </div>
                           </div>
                         </div>

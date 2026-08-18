@@ -106,7 +106,7 @@ inline ?
 
 <div key={idx} className="text-xs text-[#9aa19e] bg-[#171918]/50 px-3 py-1.5 rounded-lg border border-[#303332]">
 
-🔧 {toolCall.name?.split('.').reverse()[0] || 'Action'}
+{toolCall.name?.split('.').reverse()[0] || 'Action'}
 
 </div>
 

@@ -43,7 +43,7 @@ function BoutonImportUtilisateurs() {
     onSuccess: (r) => {
       queryClient.invalidateQueries({ queryKey: ["all-users"] });
       const parts = [`${r.crees.length} compte(s) créé(s)`];
-      if (r.existants.length) parts.push(`${r.existants.length} déjà présent(s)`);
+      if (r.existants.length) parts.push(`${r.existants.length} mis à jour`);
       if (r.invalides.length) parts.push(`${r.invalides.length} invalide(s)`);
       window.alert(`Import terminé : ${parts.join(", ")}.\n\nLes nouveaux comptes n'ont pas de mot de passe : chacun le définit à sa première connexion.`);
     },

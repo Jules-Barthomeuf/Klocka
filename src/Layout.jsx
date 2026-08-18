@@ -271,6 +271,7 @@ function LayoutContent({ children, currentPageName }) {
                   <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("AdminPortail")} icon={UserPlus} label="Portails" isActive={isActivePage("AdminPortail")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to="/ImportProjects" icon={Upload} label="Import projets" isActive={isActivePage("ImportProjects")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to="/ImportClients" icon={Upload} label="Import clients" isActive={isActivePage("ImportClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                 </div>
               )}
             </div>

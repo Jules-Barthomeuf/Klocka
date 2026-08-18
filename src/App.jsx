@@ -29,6 +29,7 @@ import Analyse from '@/pages/Analyse';
 import AssistantExterne from '@/pages/AssistantExterne';
 import AdminPresentations from '@/pages/AdminPresentations';
 import ImportProjects from '@/pages/ImportProjects';
+import ImportClients from '@/pages/ImportClients';
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 import FeedbackWidget from '@/components/FeedbackWidget';
 
@@ -135,6 +136,7 @@ const AuthenticatedApp = () => {
       <Route path="/AssistantExterne" element={<LayoutWrapper currentPageName="AssistantExterne"><AssistantExterne /></LayoutWrapper>} />
       <Route path="/AdminPresentations" element={<LayoutWrapper currentPageName="AdminPresentations"><AdminPresentations /></LayoutWrapper>} />
       <Route path="/ImportProjects" element={<LayoutWrapper currentPageName="ImportProjects"><ImportProjects /></LayoutWrapper>} />
+      <Route path="/ImportClients" element={<LayoutWrapper currentPageName="ImportClients"><ImportClients /></LayoutWrapper>} />
 
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -2,13 +2,14 @@ import React, { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Users, Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
-// Miroir de la page Export Projets : recharge un fichier JSON de projets
-// (export de la plateforme { projects: [...] } ou export Base44 de l'entité
-// Project). L'import est idempotent côté serveur : un projet dont l'id existe
-// déjà est mis à jour, les autres sont créés.
-export default function ImportProjects() {
+// Miroir de la page Import Projets, pour l'entité User : recharge un export
+// JSON de clients (export Base44 ou export de la plateforme). Idempotent côté
+// serveur : une adresse déjà en base est mise à jour (jamais son mot de passe
+// ni son rôle), les autres comptes sont créés — sans mot de passe, chacun le
+// définit à sa première connexion.
+export default function ImportClients() {
   const inputRef = useRef(null);
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -26,13 +27,15 @@ export default function ImportProjects() {
       } catch {
         throw new Error("Ce fichier n'est pas un JSON valide.");
       }
-      // Formats acceptés : tableau brut, { projects: [...] } (page Export
-      // Projets), { projets: [...] }, ou { Project: [...] } (export Base44).
-      const projets = Array.isArray(data) ? data : data?.projects || data?.projets || data?.Project;
-      if (!Array.isArray(projets)) {
-        throw new Error("Le fichier doit contenir un tableau de projets (ou un objet { \"projects\": [...] }).");
+      // Formats acceptés : tableau brut, { users / utilisateurs / clients :
+      // [...] }, ou { User: [...] } (export Base44).
+      const utilisateurs = Array.isArray(data)
+        ? data
+        : data?.users || data?.utilisateurs || data?.clients || data?.User;
+      if (!Array.isArray(utilisateurs)) {
+        throw new Error("Le fichier doit contenir un tableau d'utilisateurs (ou un objet { \"users\": [...] }).");
       }
-      const r = await base44.request("POST", "/api/admin/import-projets", { body: { projets } });
+      const r = await base44.request("POST", "/api/admin/import-utilisateurs", { body: { utilisateurs } });
       setResultat(r);
       queryClient.invalidateQueries();
     } catch (e) {
@@ -45,13 +48,13 @@ export default function ImportProjects() {
   return (
     <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-8">
       <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-10 max-w-md w-full text-center space-y-6">
-        <div className="w-16 h-16 bg-[#35a79b]/10 rounded-md flex items-center justify-center mx-auto">
-          <Upload className="w-8 h-8 text-[#35a79b]" />
+        <div className="w-16 h-16 bg-[#edeae5]/[0.05] rounded-md flex items-center justify-center mx-auto">
+          <Users className="w-8 h-8 text-[#8b9391]" />
         </div>
         <div>
-          <h1 className="text-2xl font-light text-[#edeae5] mb-2">Import Projets</h1>
+          <h1 className="text-2xl font-light text-[#edeae5] mb-2">Import Clients</h1>
           <p className="text-[#8b9391] text-sm">
-            Recharge un export JSON de l'entité Project. Les projets dont l'id existe déjà sont mis à jour, les autres créés.
+            Recharge un export JSON de l'entité User. Les adresses déjà en base sont mises à jour (mot de passe et rôle intacts), les autres comptes créés — chacun définit son mot de passe à sa première connexion.
           </p>
         </div>
 
@@ -59,8 +62,8 @@ export default function ImportProjects() {
           <div className="flex items-center gap-2 justify-center text-[#7fd3c9] text-sm">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>
-              {resultat.crees} projet(s) créé(s), {resultat.maj} mis à jour
-              {resultat.invalides ? `, ${resultat.invalides} entrée(s) invalide(s)` : ""}
+              {resultat.crees.length} compte(s) créé(s), {resultat.existants.length} mis à jour
+              {resultat.invalides.length ? `, ${resultat.invalides.length} invalide(s)` : ""}
             </span>
           </div>
         )}
@@ -75,7 +78,7 @@ export default function ImportProjects() {
         <Button
           onClick={() => inputRef.current?.click()}
           disabled={loading}
-          className="w-full h-12 bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] text-sm"
+          className="w-full h-12 bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] text-sm"
         >
           {loading ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Import en cours...</>

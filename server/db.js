@@ -142,6 +142,10 @@ export const Records = {
   count(entity) {
     return db.prepare('SELECT COUNT(*) AS c FROM records WHERE entity = ?').get(entity).c;
   },
+
+  listEntities() {
+    return db.prepare('SELECT DISTINCT entity FROM records ORDER BY entity').all().map((r) => r.entity);
+  },
 };
 
 export const Conversations = {

@@ -18,6 +18,7 @@ import { fileURLToPath } from 'url';
 
 import { Records, Meta } from './db.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
+import { restaurerSeedSiNecessaire } from './seed-donnees.js';
 import { invokeLLM, llmEnabled, llmStatus } from './llm.js';
 import { sendEmail, sendSMS, listAccounts } from './email.js';
 import { ensureMailTemplates } from './mail.js';
@@ -52,6 +53,9 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 const PORT = process.env.PORT || 3001;
 const APP_ID = process.env.VITE_BASE44_APP_ID || 'klocka-local';
 
+// Les données réelles chiffrées du dépôt d'abord (déploiement autoportant),
+// le seed de démonstration ensuite — il ne joue que si rien n'a été restauré.
+restaurerSeedSiNecessaire();
 runSeedIfEmpty();
 ensureMailTemplates();
 purgeExpiredSessions();

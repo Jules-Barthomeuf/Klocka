@@ -262,7 +262,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                 <Button
                   onClick={() => simuler.mutate()}
                   disabled={simuler.isPending || dossier.documents_simules}
-                  className="bg-transparent border border-[#35a79b] text-[#35a79b] hover:bg-[#35a79b]/10"
+                  className="bg-transparent border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.06]"
                 >
                   {simuler.isPending ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -281,9 +281,9 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             <button
               onClick={() => inputFichier.current?.click()}
               disabled={apercu || depotEnCours}
-              className="w-full h-20 border border-dashed border-[#edeae5]/15 rounded-md flex items-center justify-center gap-3 hover:border-[#35a79b]/50 hover:bg-[#edeae5]/[0.02] transition-all disabled:opacity-50"
+              className="w-full h-20 border border-dashed border-[#edeae5]/15 rounded-md flex items-center justify-center gap-3 hover:border-[#565b59] hover:bg-[#edeae5]/[0.02] transition-all disabled:opacity-50"
             >
-              <Upload className={`w-5 h-5 text-[#35a79b] ${depotEnCours ? "animate-pulse" : ""}`} />
+              <Upload className={`w-5 h-5 text-[#8b9391] ${depotEnCours ? "animate-pulse" : ""}`} />
               <span className="text-[#9aa19e] text-sm">
                 {depotEnCours ? "Dépouillement en cours…" : "PDF, image ou .eml — plusieurs à la fois"}
               </span>
@@ -299,7 +299,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                     style={{ animationDelay: `${i * 60}ms` }}
                   >
                     {f.etat === "analyse" ? (
-                      <Loader2 className="w-3.5 h-3.5 text-[#35a79b] animate-spin flex-none" />
+                      <Loader2 className="w-3.5 h-3.5 text-[#8b9391] animate-spin flex-none" />
                     ) : f.etat === "fait" ? (
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#7fd3c9] flex-none animate-in zoom-in duration-300" />
                     ) : f.etat === "erreur" ? (

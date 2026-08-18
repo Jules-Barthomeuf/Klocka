@@ -59,7 +59,7 @@ export default function PipelineDeals() {
   if (!groupes.length) {
     return (
       <div className="text-center py-16">
-        <Inbox className="w-10 h-10 text-[#35a79b]/30 mx-auto mb-4" />
+        <Inbox className="w-10 h-10 text-[#8b9391]/40 mx-auto mb-4" />
         <p className="text-[#8b9391] text-sm">
           Aucun deal en cours. Lancez « Nouveau deal » ou préanalysez un mail reçu depuis la page Mails.
         </p>
@@ -96,7 +96,7 @@ export default function PipelineDeals() {
                 <button
                   key={d.deal_id}
                   onClick={() => ouvrir(d.deal_id)}
-                  className={`flex items-center gap-4 w-full px-4 py-3.5 bg-[#0a0c0c] border rounded-[5px] text-left transition-colors hover:border-[#35a79b] animate-in fade-in slide-in-from-bottom-1 duration-300 ease-out fill-mode-both ${
+                  className={`flex items-center gap-4 w-full px-4 py-3.5 bg-[#0a0c0c] border rounded-[5px] text-left transition-colors hover:border-[#565b59] animate-in fade-in slide-in-from-bottom-1 duration-300 ease-out fill-mode-both ${
                     enRetard ? "border-[#e2564d]/40" : "border-[#282b2a]"
                   }`}
                   style={{ animationDelay: `${Math.min(iDeal * 40, 400)}ms` }}
@@ -143,7 +143,7 @@ export default function PipelineDeals() {
 
       <button
         onClick={() => setVoirArchives((v) => !v)}
-        className="mt-7 text-[#6b7270] hover:text-[#edeae5] text-xs px-3 py-1.5 rounded border border-[#303332] hover:border-[#35a79b] transition-colors"
+        className="mt-7 text-[#6b7270] hover:text-[#edeae5] text-xs px-3 py-1.5 rounded border border-[#303332] hover:border-[#565b59] transition-colors"
       >
         {voirArchives ? "Masquer les abandonnés" : "Voir les abandonnés"}
       </button>

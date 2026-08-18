@@ -862,7 +862,7 @@ export default function AdminProjets() {
               {editingProject && (
                 <button onClick={goToProjectsList} className="border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-3.5 py-2 text-[13px] font-semibold">Projets</button>
               )}
-              <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving} className="text-[#edeae5] rounded-md px-3.5 py-2 text-[13px] font-bold disabled:opacity-50" style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}>{isSaving ? "..." : "Enregistrer"}</button>
+              <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving} className="text-[#0c0e0d] rounded-md px-3.5 py-2 text-[13px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#edeae5" }}>{isSaving ? "..." : "Enregistrer"}</button>
             </div>
           </div>
 
@@ -885,7 +885,7 @@ export default function AdminProjets() {
               <div className="flex items-center gap-2">
                 <h2 className="text-[22px] font-light m-0">{editorTabs.find(t => t.value === activeTab)?.label || "Informations"}</h2>
                 {editingProject && (
-                  <button onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, '_blank')} className="text-[#6b7270] hover:text-[#35a79b] transition-colors ml-1" title="Voir la page client">
+                  <button onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, '_blank')} className="text-[#6b7270] hover:text-[#edeae5] transition-colors ml-1" title="Voir la page client">
                     <Eye className="w-5 h-5" />
                   </button>
                 )}
@@ -896,7 +896,7 @@ export default function AdminProjets() {
                   <button onClick={goToProjectsList} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-[18px] py-2.5 text-[14px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Retour aux projets</button>
                 )}
                 <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
-                  className="inline-flex items-center gap-2 text-[#edeae5] rounded-md px-5 py-2.5 text-[14px] font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}>
+                  className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[14px] font-bold hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "#edeae5" }}>
                   {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
                 </button>
               </div>
@@ -910,8 +910,8 @@ export default function AdminProjets() {
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
                 <div className="p-6 bg-[#121413] rounded-none border border-[#282b2a]">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-[#35a79b]/10 rounded-md flex items-center justify-center">
-                      <Brain className="w-6 h-6 text-[#35a79b]" />
+                    <div className="w-12 h-12 bg-[#edeae5]/[0.05] rounded-md flex items-center justify-center">
+                      <Brain className="w-6 h-6 text-[#8b9391]" />
                     </div>
                     <div>
                       <h3 className="text-xl text-[#edeae5] font-light">Création assistée par IA</h3>
@@ -922,7 +922,7 @@ export default function AdminProjets() {
                     <FField label="Importer depuis Google Drive">
                       <div className="flex gap-2">
                         <FInput value={driveSearchAddress} onChange={(e) => setDriveSearchAddress(e.target.value)} placeholder="Ex: 123 rue de la Paix, Paris" className="flex-1" />
-                        <Button onClick={handleSearchGoogleDrive} disabled={isSearchingDrive || !driveSearchAddress.trim()} className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] flex-shrink-0">
+                        <Button onClick={handleSearchGoogleDrive} disabled={isSearchingDrive || !driveSearchAddress.trim()} className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] flex-shrink-0">
                           {isSearchingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : <><FolderSearch className="w-4 h-4 mr-2" />Chercher</>}
                         </Button>
                       </div>
@@ -935,7 +935,7 @@ export default function AdminProjets() {
                         <FField className="flex-1">
                           <FInput value={newAiDocUrl} onChange={(e) => setNewAiDocUrl(e.target.value)} placeholder="Ou ajoutez une URL de document : https://exemple.com/document.pdf" />
                         </FField>
-                        <Button onClick={() => { if (newAiDocUrl.trim()) { setAiDocuments([...aiDocuments, convertGoogleDriveUrl(newAiDocUrl.trim())]); setNewAiDocUrl(""); } }} className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 h-[52px] flex-shrink-0"><Plus className="w-4 h-4" /></Button>
+                        <Button onClick={() => { if (newAiDocUrl.trim()) { setAiDocuments([...aiDocuments, convertGoogleDriveUrl(newAiDocUrl.trim())]); setNewAiDocUrl(""); } }} className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] h-[52px] flex-shrink-0"><Plus className="w-4 h-4" /></Button>
                       </div>
                       {aiDocuments.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -948,8 +948,8 @@ export default function AdminProjets() {
                         </div>
                       )}
                     </div>
-                    <button onClick={handleFullAIGeneration} disabled={isGeneratingAI || (!aiFullText && aiDocuments.length === 0)} className="w-full h-12 bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] rounded-md transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                      {isGeneratingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Analyse en cours...</> : <><Sparkles className="w-4 h-4 text-[#35a79b]" />Extraire les informations avec l'IA</>}
+                    <button onClick={handleFullAIGeneration} disabled={isGeneratingAI || (!aiFullText && aiDocuments.length === 0)} className="w-full h-12 bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] rounded-md transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                      {isGeneratingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Analyse en cours...</> : <><Sparkles className="w-4 h-4 text-[#8b9391]" />Extraire les informations avec l'IA</>}
                     </button>
                   </div>
                 </div>
@@ -959,9 +959,9 @@ export default function AdminProjets() {
 
               <TabsContent value="secteur" className="space-y-6 mt-0">
                 {/* Génération IA Secteur */}
-                <div className="p-5 bg-[#35a79b]/5 rounded-md border border-[#35a79b]/20">
+                <div className="p-5 bg-[#edeae5]/[0.03] rounded-md border border-[#2e3130]">
                   <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="w-5 h-5 text-[#35a79b]" />
+                    <Sparkles className="w-5 h-5 text-[#8b9391]" />
                     <h4 className="text-[#edeae5] text-sm font-medium">Générer les infos secteur avec l'IA</h4>
                   </div>
                   <div className="flex gap-2">
@@ -1005,9 +1005,9 @@ export default function AdminProjets() {
                           setIsGeneratingAI(false);
                         }
                       }}
-                      className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] flex-shrink-0 h-[52px]"
+                      className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] flex-shrink-0 h-[52px]"
                     >
-                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-[#35a79b]" />Générer</>}
+                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-[#8b9391]" />Générer</>}
                     </Button>
                   </div>
                 </div>
@@ -1029,7 +1029,7 @@ export default function AdminProjets() {
                 <div className="space-y-4 pt-4 border-t border-[#242726]">
                   <div className="flex items-center justify-between">
                     <Label className="text-[#edeae5]">Notes secteur</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
                   </div>
                   {(formData.notes_secteur || []).map((note, idx) => (
                     <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
@@ -1055,7 +1055,7 @@ export default function AdminProjets() {
                 <div className="space-y-4 pt-4 border-t border-[#242726]">
                   <div className="flex items-center justify-between">
                     <Label className="text-[#edeae5]">Notes bien</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
                   </div>
                   {(formData.notes_bien || []).map((note, idx) => (
                     <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
@@ -1082,7 +1082,7 @@ export default function AdminProjets() {
 
         {/* Admin Picker Dialog */}
         <Dialog open={showAdminPicker} onOpenChange={setShowAdminPicker}>
-          <DialogContent className="max-w-md bg-[#0a0c0c] border-[#35a79b]/40 shadow-[0_0_40px_rgba(42,157,143,0.15)]">
+          <DialogContent className="max-w-md bg-[#0a0c0c] border-[#2e3130] shadow-[0_0_40px_rgba(0,0,0,0.5)]">
             <DialogHeader>
               <DialogTitle className="text-[#edeae5] font-light text-xl">Choisissez l'admin principal</DialogTitle>
               <p className="text-[#8b9391] text-sm mt-1">Cliquez sur la photo de l'admin en charge de ce projet</p>
@@ -1107,7 +1107,7 @@ export default function AdminProjets() {
                     }}
                     className="flex flex-col items-center gap-3 group"
                   >
-                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#edeae5]/10 group-hover:border-[#35a79b] transition-all duration-200 group-hover:scale-105">
+                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#edeae5]/10 group-hover:border-[#565b59] transition-all duration-200 group-hover:scale-105">
                       <img src={avatar} alt={u.full_name} className="w-full h-full object-cover" />
                     </div>
                     <span className="text-[#9aa19e] text-sm group-hover:text-[#edeae5] transition-colors">{u.full_name || u.email.split('@')[0]}</span>
@@ -1165,7 +1165,7 @@ export default function AdminProjets() {
             <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0 max-w-[520px]">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] transition-colors">
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.08] transition-colors">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
@@ -1183,7 +1183,7 @@ export default function AdminProjets() {
 
         {/* Recherche + filtres */}
         <div className="mb-8 max-md:mb-6">
-          <div className="flex items-center gap-3 border-b border-[#edeae5]/[0.18] focus-within:border-[#35a79b] transition-colors pb-2 mb-5">
+          <div className="flex items-center gap-3 border-b border-[#edeae5]/[0.18] focus-within:border-[#565b59] transition-colors pb-2 mb-5">
             <FolderSearch className="w-4 h-4 text-[#6b7270] flex-shrink-0" />
             <input
               placeholder="Rechercher un projet, une adresse, un client…"
@@ -1239,7 +1239,7 @@ export default function AdminProjets() {
               </p>
               {projects.length === 0 ? (
                 <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] transition-colors">
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.08] transition-colors">
                   <Plus className="w-4 h-4" /> Créer un projet
                 </button>
               ) : (

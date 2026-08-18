@@ -184,13 +184,13 @@ Réponds UNIQUEMENT avec le JSON.`;
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-[#35a79b] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+            <p className="text-[#8b9391] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
             <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Double Check</h1>
           </div>
           <button onClick={openCreate}
-          className="group flex items-center gap-3 bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 hover:border-[#35a79b]/50 text-[#edeae5] px-6 py-3 rounded-md transition-all duration-300">
-            <div className="w-9 h-9 bg-[#35a79b]/20 rounded-lg flex items-center justify-center group-hover:bg-[#35a79b]/30 transition-colors">
-              <Plus className="w-5 h-5 text-[#35a79b]" />
+          className="group flex items-center gap-3 bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] hover:border-[#565b59] text-[#edeae5] px-6 py-3 rounded-md transition-all duration-300">
+            <div className="w-9 h-9 bg-[#edeae5]/[0.05] rounded-lg flex items-center justify-center group-hover:bg-[#edeae5]/[0.1] transition-colors">
+              <Plus className="w-5 h-5 text-[#8b9391]" />
             </div>
             <span className="text-sm font-medium">Nouveau check</span>
           </button>
@@ -198,14 +198,14 @@ Réponds UNIQUEMENT avec le JSON.`;
 
         {/* Stats */}
         <div className="bg-[#0a0c0c] rounded-md border border-[#242726] px-5 py-3 mb-6 inline-flex items-center gap-2">
-          <ClipboardCheck className="w-4 h-4 text-[#35a79b]" />
+          <ClipboardCheck className="w-4 h-4 text-[#8b9391]" />
           <span className="text-[#9aa19e] text-sm">{items.length} check{items.length !== 1 ? "s" : ""} en cours</span>
         </div>
 
         {/* List */}
         {isLoading ?
         <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin" />
           </div> :
         items.length === 0 ?
         <div className="text-center py-20">
@@ -215,8 +215,8 @@ Réponds UNIQUEMENT avec le JSON.`;
             <h2 className="text-xl font-light text-[#edeae5] mb-2">Aucun double check</h2>
             <p className="text-[#6b7270] mb-6 text-sm">Créez un check pour analyser un nouveau bien</p>
             <button onClick={openCreate}
-          className="inline-flex items-center gap-2 bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] px-5 py-2.5 rounded-md transition-all text-sm">
-              <Plus className="w-4 h-4 text-[#35a79b]" /> Nouveau check
+          className="inline-flex items-center gap-2 bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] px-5 py-2.5 rounded-md transition-all text-sm">
+              <Plus className="w-4 h-4 text-[#8b9391]" /> Nouveau check
             </button>
           </div> :
 
@@ -254,7 +254,7 @@ Réponds UNIQUEMENT avec le JSON.`;
                           Check IA
                         </button>}
                         <button onClick={() => handleConvert(item)} disabled={isConverting === item.id}
-                      className="flex items-center gap-1.5 text-[#35a79b] hover:text-[#35a79b]/80 text-xs px-3 py-1.5 rounded-lg bg-[#35a79b]/10 hover:bg-[#35a79b]/15 transition-all disabled:opacity-50">
+                      className="flex items-center gap-1.5 text-[#c8cfcd] hover:text-[#edeae5] text-xs px-3 py-1.5 rounded-lg bg-[#edeae5]/[0.06] hover:bg-[#edeae5]/[0.1] transition-all disabled:opacity-50">
                           {isConverting === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
                           Créer projet
                         </button>
@@ -305,9 +305,9 @@ Réponds UNIQUEMENT avec le JSON.`;
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#242726]">
             <Button variant="ghost" onClick={closeDialog} className="text-[#9aa19e] hover:text-[#edeae5]">Annuler</Button>
             <Button onClick={handleSave} disabled={!titre.trim() || createMutation.isPending || updateMutation.isPending}
-            className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5]">
+            className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5]">
               {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              <CheckCircle2 className="w-4 h-4 mr-1 text-[#35a79b]" />
+              <CheckCircle2 className="w-4 h-4 mr-1 text-[#8b9391]" />
               {editingItem ? "Mettre à jour" : "Créer"}
             </Button>
           </div>

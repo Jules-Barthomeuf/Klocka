@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowRight, Briefcase, Check, Clock, ExternalLink, Eye, FlaskConical, FolderCheck, Loader2,
-  Lock, Mail, Microscope, Send, SkipForward, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload,
+  ArrowRight, Briefcase, Check, Clock, Download, ExternalLink, Eye, Film, FlaskConical, FolderCheck,
+  Loader2, Lock, Mail, Microscope, Send, SkipForward, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -42,7 +42,7 @@ export function TitreEtape({ n, titre, description }) {
   return (
     <div className="mb-6">
       <div className="flex items-baseline gap-3.5 mb-1.5">
-        <div className="text-xs text-[#35a79b] tabular-nums">{String(n).padStart(2, "0")}</div>
+        <div className="text-xs text-[#8b9391] tabular-nums">{String(n).padStart(2, "0")}</div>
         <h2 className="m-0 text-[22px] font-medium text-[#edeae5]">{titre}</h2>
       </div>
       <p className="m-0 text-[13.5px] text-[#9aa19e] max-w-[64ch] leading-[1.65]">{description}</p>
@@ -160,7 +160,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                         : faite
                           ? "bg-[#0c0e0d] border-[#35a79b] text-[#35a79b]"
                           : accessible
-                            ? "bg-[#0c0e0d] border-[#343735] text-[#8b9391] hover:border-[#35a79b]"
+                            ? "bg-[#0c0e0d] border-[#343735] text-[#8b9391] hover:border-[#565b59]"
                             : "bg-[#0c0e0d] border-[#22302e] text-[#4a4d4b] cursor-not-allowed"
                     }`}
                   >
@@ -353,7 +353,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
     return (
       <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-6">
         <div className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-md bg-[#35a79b]/20 text-[#7fd3c9] flex items-center justify-center flex-shrink-0">
+          <span className="w-9 h-9 rounded-md bg-[#edeae5]/[0.05] text-[#8b9391] flex items-center justify-center flex-shrink-0">
             <Mail className="w-4 h-4" />
           </span>
           <div className="min-w-0 flex-1">
@@ -396,7 +396,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
                 className={`px-3 py-[7px] rounded text-[11.5px] border transition-colors ${
                   gabarit === g.label
                     ? "border-[#35a79b] text-[#35a79b] bg-[#35a79b]/10"
-                    : "border-[#303332] text-[#9aa19e] hover:border-[#35a79b]"
+                    : "border-[#303332] text-[#9aa19e] hover:border-[#565b59]"
                 }`}
               >
                 {g.label}
@@ -414,7 +414,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             <Button
               onClick={() => composer.mutate()}
               disabled={apercu || !prompt.trim() || composer.isPending}
-              className="bg-transparent border border-[#35a79b] text-[#35a79b] hover:bg-[#35a79b]/10"
+              className="bg-transparent border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.06]"
             >
               {composer.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -508,7 +508,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
                 envoyer.isPending ||
                 connexionEnCours
               }
-              className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#0a0c0c] font-medium"
+              className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d] font-medium"
             >
               {envoyer.isPending || connexionEnCours ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -632,9 +632,9 @@ function DepotFiche({ onAnalyse }) {
           <button
             onClick={() => inputFichier.current?.click()}
             disabled={analyser.isPending}
-            className="w-full h-[104px] border border-dashed border-[#edeae5]/15 rounded-md flex flex-col items-center justify-center gap-2 hover:border-[#35a79b]/50 hover:bg-[#edeae5]/[0.02] transition-all disabled:opacity-50"
+            className="w-full h-[104px] border border-dashed border-[#edeae5]/15 rounded-md flex flex-col items-center justify-center gap-2 hover:border-[#565b59] hover:bg-[#edeae5]/[0.02] transition-all disabled:opacity-50"
           >
-            <Upload className="w-5 h-5 text-[#35a79b]" />
+            <Upload className="w-5 h-5 text-[#8b9391]" />
             <span className="text-[#9aa19e] text-sm">PDF, image, .eml</span>
             <span className="text-[#6b7270] text-[11px]">Les PDF scannés sont transcrits automatiquement</span>
           </button>
@@ -661,7 +661,7 @@ function DepotFiche({ onAnalyse }) {
         <Button
           onClick={() => analyser.mutate({ texte })}
           disabled={!texte.trim() || analyser.isPending}
-          className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
+          className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
         >
           {analyser.isPending ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyse…</>
@@ -872,7 +872,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
             size="sm"
             onClick={() => changerStatut.mutate({ statut: "documents_recus", note: "Documents reçus" })}
             disabled={apercu || changerStatut.isPending}
-            className="bg-[#35a79b]/15 hover:bg-[#35a79b]/25 text-[#7fd3c9] border-0"
+            className="bg-[#edeae5]/[0.06] hover:bg-[#edeae5]/[0.1] text-[#d3d8d6] border-0"
           >
             <FolderCheck className="w-3.5 h-3.5 mr-1.5" /> Documents reçus
           </Button>
@@ -894,6 +894,98 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
         />
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Vidéo de présentation client (~30 s) — rendue par Remotion côté serveur.
+// La vidéo n'expose que les faits (bien, chiffres, bail, ville), jamais le
+// verdict ni les réserves : elle est faite pour être envoyée au client.
+// ---------------------------------------------------------------------------
+
+function BlocVideoPresentation({ dossier, apercu }) {
+  const dealId = dossier?.deal_id;
+
+  const { data: statut, refetch } = useQuery({
+    queryKey: ["video-deal", dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/lots/0/video`),
+    enabled: !apercu && !!dealId,
+    refetchInterval: (query) => (query.state.data?.etat === "en_cours" ? 3000 : false),
+  });
+
+  const lancer = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/lots/0/video`),
+    onSuccess: () => {
+      toast.success("Rendu lancé — environ une à deux minutes");
+      refetch();
+    },
+    onError: (e) => toast.error(e?.message || "Lancement impossible"),
+  });
+
+  const etat = apercu ? "aucune" : statut?.etat || "aucune";
+  const enCours = etat === "en_cours" || lancer.isPending;
+  const progression = Math.round((statut?.progression || 0) * 100);
+
+  return (
+    <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4 space-y-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Film className="w-4 h-4 text-[#8b9391]" />
+          <div>
+            <p className="text-[#edeae5] text-sm">Vidéo de présentation</p>
+            <p className="text-[#8b9391] text-xs">
+              30 secondes générées depuis les informations clés du lot — à envoyer au client.
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={() => lancer.mutate()}
+          disabled={enCours || apercu}
+          variant="outline"
+          className="h-9 text-xs border-[#303332] bg-transparent text-[#9aa19e] hover:border-[#565b59] hover:text-[#edeae5] shrink-0"
+          title={apercu ? "Indisponible en mode aperçu" : undefined}
+        >
+          {enCours ? (
+            <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />Rendu {progression}%</>
+          ) : (
+            <><Film className="w-3.5 h-3.5 mr-2" />{etat === "pret" ? "Regénérer" : "Générer la vidéo"}</>
+          )}
+        </Button>
+      </div>
+
+      {enCours && (
+        <div className="h-1 rounded bg-[#1a1d1c] overflow-hidden">
+          <div
+            className="h-full bg-[#35a79b] transition-all duration-500"
+            style={{ width: `${Math.max(progression, 3)}%` }}
+          />
+        </div>
+      )}
+
+      {etat === "erreur" && (
+        <p className="text-[#e2564d] text-xs">Le rendu a échoué : {statut?.erreur || "erreur inconnue"}</p>
+      )}
+
+      {etat === "pret" && statut?.url && (
+        <div className="space-y-3">
+          <video
+            key={statut.url}
+            controls
+            preload="metadata"
+            src={statut.url}
+            className="w-full rounded-md border border-[#242726]"
+          />
+          <a
+            href={statut.url}
+            download={`presentation-${dealId}.mp4`}
+            className="inline-flex items-center gap-2 text-xs text-[#8b9391] hover:text-[#edeae5] transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Télécharger le MP4
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -924,6 +1016,8 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
           )}
         </div>
       )}
+
+      <BlocVideoPresentation dossier={dossier} apercu={apercu} />
 
       <BlocDecision
         dossier={dossier}
@@ -974,8 +1068,8 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
     return (
       <>
       {titre}
-      <div className="bg-[#0a0c0c] border border-[#35a79b]/25 rounded-md p-6 text-center">
-        <span className="w-10 h-10 rounded-md bg-[#35a79b]/20 text-[#7fd3c9] flex items-center justify-center mx-auto mb-3">
+      <div className="bg-[#0a0c0c] border border-[#2e3130] rounded-md p-6 text-center">
+        <span className="w-10 h-10 rounded-md bg-[#edeae5]/[0.05] text-[#8b9391] flex items-center justify-center mx-auto mb-3">
           <Briefcase className="w-5 h-5" />
         </span>
         <p className="text-[#edeae5] text-sm font-medium mb-1">Le deal est entré dans la plateforme</p>
@@ -984,7 +1078,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         </p>
         <Button
           onClick={() => navigate(`/AdminProjets?id=${dossier.projet_id}`)}
-          className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
+          className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
         >
           <ExternalLink className="w-4 h-4 mr-2" /> Ouvrir le projet
         </Button>
@@ -997,7 +1091,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
     <>
     {titre}
     <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-6 text-center">
-      <span className="w-10 h-10 rounded-md bg-[#35a79b]/20 text-[#7fd3c9] flex items-center justify-center mx-auto mb-3">
+      <span className="w-10 h-10 rounded-md bg-[#edeae5]/[0.05] text-[#8b9391] flex items-center justify-center mx-auto mb-3">
         <Briefcase className="w-5 h-5" />
       </span>
       <p className="text-[#edeae5] text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
@@ -1009,7 +1103,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       <Button
         onClick={() => creerProjet.mutate()}
         disabled={apercu || creerProjet.isPending || statut !== "depouille"}
-        className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
+        className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
       >
         {creerProjet.isPending ? (
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -32,6 +32,7 @@ import {
   ExternalLink,
   Pin,
   PinOff,
+  Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -242,7 +243,7 @@ function LayoutContent({ children, currentPageName }) {
           <>
             <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to="/Analyse" icon={Search} label="Analyse" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to="/Analyse" icon={Search} label="Deal" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
 
@@ -264,6 +265,7 @@ function LayoutContent({ children, currentPageName }) {
                   <NavItem to={createPageUrl("AdminRessources")} icon={BookOpen} label="Ressources" isActive={isActivePage("AdminRessources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("AdminPortail")} icon={UserPlus} label="Portails" isActive={isActivePage("AdminPortail")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to="/ImportProjects" icon={Upload} label="Import projets" isActive={isActivePage("ImportProjects")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                 </div>
               )}
             </div>

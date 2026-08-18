@@ -195,8 +195,8 @@ export default function Mails() {
         {/* Aucun compte connecté : on met la connexion Google en avant */}
         {status && accounts.length === 0 && (
           <div className="mb-6 rounded-md border border-[#282b2a] bg-[#0a0c0c] p-6 text-center">
-            <div className="w-12 h-12 rounded-md bg-[#35a79b]/15 flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-5 h-5 text-[#35a79b]" />
+            <div className="w-12 h-12 rounded-md bg-[#edeae5]/[0.05] flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-5 h-5 text-[#8b9391]" />
             </div>
             <h2 className="text-[#edeae5] font-medium mb-1.5">Connectez votre adresse pour envoyer</h2>
             <p className="text-[#9aa19e] text-sm mb-5 max-w-md mx-auto">
@@ -333,8 +333,8 @@ export default function Mails() {
               <div className="bg-[#0a0c0c] border border-[#282b2a] rounded-md overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-[#242726]">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-[#35a79b]/15 flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-4 h-4 text-[#35a79b]" />
+                    <div className="w-8 h-8 rounded-lg bg-[#edeae5]/[0.05] flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-4 h-4 text-[#8b9391]" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[#edeae5] text-sm font-medium truncate">
@@ -447,7 +447,7 @@ export default function Mails() {
                     <Button
                       onClick={() => sendMutation.mutate(draft)}
                       disabled={!draft.to.trim() || (accounts.length > 0 && !from) || sendMutation.isPending}
-                      className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
+                      className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
                     >
                       {sendMutation.isPending ? (
                         <>
@@ -475,7 +475,7 @@ export default function Mails() {
                 <code className="text-[#d3d8d6]">{"{{nom}}"}</code> ou{" "}
                 <code className="text-[#d3d8d6]">{"{{adresse}}"}</code> comme variables.
               </p>
-              <Button onClick={() => openEditor(null)} className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]">
+              <Button onClick={() => openEditor(null)} className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]">
                 <Plus className="w-4 h-4 mr-2" /> Nouveau
               </Button>
             </div>
@@ -489,11 +489,11 @@ export default function Mails() {
                 {templates.map((t) => (
                   <div
                     key={t.id}
-                    className="bg-[#171918] border border-[#edeae5]/[0.10] rounded-md p-5 hover:border-[#35a79b]/40 transition-all"
+                    className="bg-[#171918] border border-[#edeae5]/[0.10] rounded-md p-5 hover:border-[#565b59] transition-all"
                   >
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-md bg-[#35a79b]/15 flex items-center justify-center flex-shrink-0">
-                        <Mail className="w-4 h-4 text-[#35a79b]" />
+                      <div className="w-9 h-9 rounded-md bg-[#edeae5]/[0.05] flex items-center justify-center flex-shrink-0">
+                        <Mail className="w-4 h-4 text-[#8b9391]" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-[#edeae5] font-medium text-sm truncate">{t.titre}</h3>
@@ -507,7 +507,7 @@ export default function Mails() {
                       <Button
                         size="sm"
                         onClick={() => handleUseTemplate(t)}
-                        className="bg-[#35a79b]/15 hover:bg-[#35a79b]/25 text-[#7fd3c9] border-0 h-8"
+                        className="bg-[#edeae5]/[0.06] hover:bg-[#edeae5]/[0.1] text-[#d3d8d6] border-0 h-8"
                       >
                         <Send className="w-3.5 h-3.5 mr-1.5" /> Utiliser
                       </Button>
@@ -639,7 +639,7 @@ export default function Mails() {
                 })
               }
               disabled={!form.titre.trim() || !form.contenu.trim() || saveTemplate.isPending}
-              className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
+              className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
             >
               {saveTemplate.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Enregistrer
@@ -682,7 +682,7 @@ export default function Mails() {
           <DialogFooter>
             <Button
               onClick={() => handleUseTemplate(preview)}
-              className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
+              className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
             >
               <Send className="w-4 h-4 mr-2" /> Utiliser ce template
             </Button>

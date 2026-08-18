@@ -1668,9 +1668,17 @@ export default function Vision() {
     {/* --- PARTIE DROITE : Configuration --- */}
     <div className="grid gap-6 items-start md:grid-cols-1">
 
-      {/* Colonne : Configuration (S'étire pour remplir l'espace) */}
-      <div className="relative">
-        <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6 md:p-8">
+      {/* Colonne : Configuration (S'étire pour remplir l'espace).
+          Le cadre est peint par la couche du dessous, comme sur l'accueil :
+          un filet constant, plus un dégradé conique qui tourne lentement —
+          la lueur blanche qui parcourt le bord. */}
+      <div className="relative p-px overflow-hidden bg-[#edeae5]/[0.12]">
+        <div
+          aria-hidden="true"
+          className="absolute inset-[-100%] animate-[spin_10s_linear_infinite]"
+          style={{ background: "conic-gradient(rgba(237,234,229,0) 0deg, rgba(237,234,229,0) 288deg, rgba(237,234,229,0.9) 332deg, rgba(237,234,229,0) 360deg)" }}
+        />
+        <div className="relative bg-[#0e100f] p-6 md:p-8">
           {/* Progress Bar */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">

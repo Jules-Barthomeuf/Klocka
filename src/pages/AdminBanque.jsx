@@ -58,14 +58,14 @@ export default function AdminBanque() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[#35a79b] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+          <p className="text-[#8b9391] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
           <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Présentations bancaires</h1>
         </div>
 
         {/* Générateur de texte pour présentation */}
         <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-6 mb-8">
           <h2 className="text-[#edeae5] text-lg font-light mb-1 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#35a79b]" /> Générer le contenu des slides
+            <FileText className="w-4 h-4 text-[#8b9391]" /> Générer le contenu des slides
           </h2>
           <p className="text-[#8b9391] text-xs mb-5">Sélectionnez un client et un projet — le contenu prêt-à-copier pour chaque slide est généré automatiquement.</p>
 
@@ -116,7 +116,7 @@ export default function AdminBanque() {
           <h2 className="text-[#edeae5] text-lg font-light mb-4">Présentations existantes</h2>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-[#35a79b]" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#8b9391]" />
             </div>
           ) : presentations.length === 0 ? (
             <div className="text-center py-16 bg-[#0a0c0c] rounded-md border border-[#242726]">
@@ -141,7 +141,7 @@ export default function AdminBanque() {
                           href={pres.pptx_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[#35a79b] hover:text-[#35a79b]/80 h-8 w-8 inline-flex items-center justify-center"
+                          className="text-[#9aa19e] hover:text-[#edeae5] h-8 w-8 inline-flex items-center justify-center"
                           title="Ouvrir la présentation"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -172,9 +172,9 @@ export default function AdminBanque() {
 
                   {/* Lien de la présentation */}
                   {pres.pptx_url && editLinkId !== pres.id && (
-                    <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#35a79b]/10 border border-[#35a79b]/20">
-                      <Link2 className="w-3.5 h-3.5 text-[#35a79b] flex-shrink-0" />
-                      <a href={pres.pptx_url} target="_blank" rel="noopener noreferrer" className="text-[#35a79b] text-xs truncate hover:underline">
+                    <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#edeae5]/[0.05] border border-[#2e3130]">
+                      <Link2 className="w-3.5 h-3.5 text-[#8b9391] flex-shrink-0" />
+                      <a href={pres.pptx_url} target="_blank" rel="noopener noreferrer" className="text-[#c8cfcd] text-xs truncate hover:underline">
                         {pres.pptx_url}
                       </a>
                     </div>
@@ -193,7 +193,7 @@ export default function AdminBanque() {
                         size="sm"
                         onClick={() => handleSaveLink(pres.id)}
                         disabled={!linkValue.trim()}
-                        className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] text-xs h-9 px-4"
+                        className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] text-xs h-9 px-4"
                       >
                         Enregistrer
                       </Button>

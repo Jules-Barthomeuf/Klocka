@@ -139,7 +139,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData, 
                 bail_admin_fields: [...(formData.bail_admin_fields || []), { label: "", value: "" }]
               })}
-              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"
+              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter un champ
@@ -188,7 +188,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData,
                 liens_locataire: [...(formData.liens_locataire || []), { type: "instagram", url: "", label: "" }]
               })}
-              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"
+              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter un lien
@@ -252,7 +252,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </div>
             <label className="cursor-pointer">
               <input type="file" className="hidden" onChange={handleBilanUpload} accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls" />
-              <Button type="button" variant="outline" size="sm" className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30" asChild disabled={uploadingBilan}>
+              <Button type="button" variant="outline" size="sm" className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]" asChild disabled={uploadingBilan}>
                 <span>
                   {uploadingBilan ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
                   Importer un bilan
@@ -262,7 +262,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
           </div>
           {(formData.bilans_locataire || []).map((bilan, idx) => (
             <div key={idx} className="flex items-center gap-3 p-3 bg-[#edeae5]/[0.02] rounded-lg border border-[#242726]">
-              <FileText className="w-5 h-5 text-[#35a79b] flex-shrink-0" />
+              <FileText className="w-5 h-5 text-[#8b9391] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[#edeae5] text-sm truncate">{bilan.nom}</p>
               </div>
@@ -299,7 +299,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData, 
                 notes_locataire: [...(formData.notes_locataire || []), { titre: "", contenu: "" }]
               })}
-              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"
+              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter une note

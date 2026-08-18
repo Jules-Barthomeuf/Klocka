@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Plus, X, Search, ChevronDown } from "lucide-react";
 
-const fieldWrap = "bg-[#121413] border border-[#282b2a] rounded-none px-[18px] py-3.5 transition-all focus-within:border-[#35a79b] focus-within:shadow-[0_0_0_3px_rgba(42,157,143,0.14)]";
+const fieldWrap = "bg-[#121413] border border-[#282b2a] rounded-none px-[18px] py-3.5 transition-all focus-within:border-[#565b59] focus-within:shadow-[0_0_0_3px_rgba(237,234,229,0.08)]";
 const fieldInput = "w-full bg-transparent border-none text-[#edeae5] outline-none placeholder:text-[#6b7270]";
 const flabel = "text-[12px] text-[#8b9391] font-semibold mb-1.5";
 
@@ -66,7 +66,7 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
     <div className="flex flex-col gap-[22px] max-w-[720px]">
       {/* Titre */}
       <div className={fieldWrap}>
-        <div className={`${flabel} text-[#35a79b]`}>Titre du projet</div>
+        <div className={`${flabel} text-[#8b9391]`}>Titre du projet</div>
         <input value={formData.titre} onChange={(e) => setFormData({ ...formData, titre: e.target.value })} placeholder="Nom du projet" className={`${fieldInput} text-[17px] font-semibold`} />
       </div>
 
@@ -101,7 +101,7 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
               </div>
             ))}
             <div className="relative">
-              <button type="button" onClick={() => setClientOpen(!clientOpen)} className="w-[34px] h-[34px] rounded-full border-[1.5px] border-dashed border-[#edeae5]/20 text-[#8b9391] flex items-center justify-center text-[18px] hover:border-[#35a79b] hover:text-[#35a79b] transition-colors">+</button>
+              <button type="button" onClick={() => setClientOpen(!clientOpen)} className="w-[34px] h-[34px] rounded-full border-[1.5px] border-dashed border-[#edeae5]/20 text-[#8b9391] flex items-center justify-center text-[18px] hover:border-[#565b59] hover:text-[#edeae5] transition-colors">+</button>
               {clientOpen && (
                 <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#121413] border border-[#edeae5]/[0.1] rounded-md p-1.5 z-30 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
                   <div className="relative mb-1">
@@ -210,7 +210,7 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
         <div className="flex flex-col gap-2.5">
           <div className="flex gap-2.5 items-center">
             <input value={newDocUrl} onChange={(e) => setNewDocUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addDoc(); }} placeholder="https://exemple.com/document.pdf" className={`${fieldInput} text-[15px] flex-1`} />
-            <button type="button" onClick={addDoc} className="w-[34px] h-[34px] rounded-[9px] bg-[#35a79b] text-[#edeae5] flex items-center justify-center text-[18px] cursor-pointer flex-shrink-0 hover:brightness-110 transition-all">+</button>
+            <button type="button" onClick={addDoc} className="w-[34px] h-[34px] rounded-[9px] bg-[#edeae5] text-[#0c0e0d] flex items-center justify-center text-[18px] cursor-pointer flex-shrink-0 hover:bg-[#d8d5d0] transition-all">+</button>
           </div>
           {formData.documents.length > 0 && (
             <div className="flex flex-wrap gap-2">

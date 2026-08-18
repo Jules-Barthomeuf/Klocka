@@ -43,7 +43,7 @@ function ToggleRow({ checked, onCheckedChange, title, description }) {
 // Select stylé "IMMO OS"
 function FSelect({ label, value, onValueChange, children }) {
   return (
-    <div className="bg-[#121413] border border-[#282b2a] rounded-none px-[18px] py-3 transition-all focus-within:border-[#35a79b]">
+    <div className="bg-[#121413] border border-[#282b2a] rounded-none px-[18px] py-3 transition-all focus-within:border-[#565b59]">
       {label && <div className="text-[12px] text-[#8b9391] font-semibold mb-1.5">{label}</div>}
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger className="bg-transparent border-none h-auto p-0 text-[15px] text-[#edeae5] focus:ring-0"><SelectValue /></SelectTrigger>
@@ -133,7 +133,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
               </FField>
               <div className="bg-[#121413] border border-[#282b2a] rounded-none px-[18px] py-3">
                 <div className="text-[12px] text-[#8b9391] font-semibold mb-1.5">Honoraires TTC calculés</div>
-                <span className="text-[#35a79b] font-semibold text-[15px]">
+                <span className="text-[#edeae5] font-semibold text-[15px]">
                   {honorairesAgent > 0 ? fmtEur(honorairesAgent) : "—"}
                 </span>
               </div>

@@ -80,8 +80,8 @@ export default function AdminNotes() {
             {!showShared && (
               <button
                 onClick={() => setShowForm(true)}
-                className="inline-flex items-center gap-2 text-[#edeae5] rounded-md px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all"
-                style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}
+                className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-3 text-[14px] font-bold hover:brightness-95 transition-all"
+                style={{ background: "#edeae5" }}
               >
                 <Plus className="w-[18px] h-[18px]" strokeWidth={2.4} /> Nouvelle note
               </button>
@@ -95,16 +95,16 @@ export default function AdminNotes() {
               initial={{ opacity: 0, y: -8, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative overflow-hidden rounded-[18px] border border-[#35a79b]/25 bg-[#12151B] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)]"
+              className="relative overflow-hidden rounded-[18px] border border-[#2e3130] bg-[#12151B] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)]"
             >
               {/* Accent bar */}
-              <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: "linear-gradient(90deg,#35a79b,#1f6b62,transparent)" }} />
+              <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: "linear-gradient(90deg,rgba(237,234,229,0.35),rgba(237,234,229,0.08),transparent)" }} />
 
               <div className="p-5 md:p-6">
                 {/* En-tête */}
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[#35a79b]/12 border border-[#35a79b]/25">
-                    <StickyNote className="w-5 h-5 text-[#35a79b]" />
+                  <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[#edeae5]/[0.05] border border-[#2e3130]">
+                    <StickyNote className="w-5 h-5 text-[#8b9391]" />
                   </div>
                   <div>
                     <h3 className="text-[15px] font-semibold text-[#edeae5] leading-tight">Nouvelle note</h3>
@@ -126,7 +126,7 @@ export default function AdminNotes() {
                       placeholder="Ex. Idée pour le projet…"
                       value={newTitre}
                       onChange={(e) => setNewTitre(e.target.value)}
-                      className="h-11 bg-[#0a0c0c] text-[#edeae5] text-[15px] border-[#282b2a] rounded-md focus-visible:border-[#35a79b] focus-visible:ring-0 placeholder:text-[#5B616E]"
+                      className="h-11 bg-[#0a0c0c] text-[#edeae5] text-[15px] border-[#282b2a] rounded-md focus-visible:border-[#565b59] focus-visible:ring-0 placeholder:text-[#5B616E]"
                       autoFocus
                     />
                   </div>
@@ -136,7 +136,7 @@ export default function AdminNotes() {
                       placeholder="Écrivez votre note ici…"
                       value={newContenu}
                       onChange={(e) => setNewContenu(e.target.value)}
-                      className="bg-[#0a0c0c] text-[#edeae5] border-[#282b2a] rounded-md focus-visible:border-[#35a79b] focus-visible:ring-0 min-h-[130px] leading-relaxed placeholder:text-[#5B616E] resize-none"
+                      className="bg-[#0a0c0c] text-[#edeae5] border-[#282b2a] rounded-md focus-visible:border-[#565b59] focus-visible:ring-0 min-h-[130px] leading-relaxed placeholder:text-[#5B616E] resize-none"
                     />
                   </div>
                 </div>
@@ -146,7 +146,7 @@ export default function AdminNotes() {
                   <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setNewTitre(""); setNewContenu(""); }} className="text-[#8b9391] hover:text-[#edeae5]">
                     Annuler
                   </Button>
-                  <button onClick={handleCreate} disabled={!newTitre.trim() || createMutation.isPending} className="inline-flex items-center gap-2 text-[#edeae5] rounded-md px-5 py-2.5 text-[13px] font-bold hover:brightness-110 transition-all disabled:opacity-50" style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}>
+                  <button onClick={handleCreate} disabled={!newTitre.trim() || createMutation.isPending} className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[13px] font-bold hover:brightness-95 transition-all disabled:opacity-50" style={{ background: "#edeae5" }}>
                     <Plus className="w-4 h-4" strokeWidth={2.6} /> Créer la note
                   </button>
                 </div>
@@ -156,7 +156,7 @@ export default function AdminNotes() {
 
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="w-6 h-6 border-2 border-[#35a79b]/30 border-t-[#35a79b] rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[#8b9391]/30 border-t-[#8b9391] rounded-full animate-spin" />
             </div>
           ) : displayedNotes.length === 0 ? (
             <div className="text-center py-16 text-[#8b9391]">

@@ -130,7 +130,7 @@ export default function AdminSuggestions() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0c0c]">
-        <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin" />
+        <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin" />
       </div>
     );
   }
@@ -141,13 +141,13 @@ export default function AdminSuggestions() {
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-[#35a79b] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+            <p className="text-[#8b9391] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
             <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Feedback</h1>
           </div>
           <button onClick={() => { resetForm(); setShowDialog(true); }}
-            className="group flex items-center gap-3 bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 hover:border-[#35a79b]/50 text-[#edeae5] px-6 py-3 rounded-md transition-all duration-300">
-            <div className="w-9 h-9 bg-[#35a79b]/20 rounded-lg flex items-center justify-center group-hover:bg-[#35a79b]/30 transition-colors">
-              <Plus className="w-5 h-5 text-[#35a79b]" />
+            className="group flex items-center gap-3 bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] hover:border-[#565b59] text-[#edeae5] px-6 py-3 rounded-md transition-all duration-300">
+            <div className="w-9 h-9 bg-[#edeae5]/[0.05] rounded-lg flex items-center justify-center group-hover:bg-[#edeae5]/[0.1] transition-colors">
+              <Plus className="w-5 h-5 text-[#8b9391]" />
             </div>
             <span className="text-sm font-medium">Nouvelle amélioration</span>
           </button>
@@ -216,7 +216,7 @@ export default function AdminSuggestions() {
                       <div className="flex items-center gap-3 mb-2">
                         <span className="text-[#6b7270] text-xs flex-shrink-0">{moment(suggestion.created_date).format('DD/MM/YY')}</span>
                         <Badge className={`${config.color} text-[10px] px-2 py-0 border`}>{config.label}</Badge>
-                        {isAdmin && <Badge className="bg-[#35a79b]/10 text-[#35a79b] text-[10px] px-2 py-0 border border-[#35a79b]/20">Admin</Badge>}
+                        {isAdmin && <Badge className="bg-[#edeae5]/[0.06] text-[#c8cfcd] text-[10px] px-2 py-0 border border-[#3a3e3c]">Admin</Badge>}
                       </div>
                       <p className="text-[#edeae5]/80 text-sm mb-2 leading-relaxed">{suggestion.contenu}</p>
                       <div className="flex items-center gap-3">
@@ -292,7 +292,7 @@ export default function AdminSuggestions() {
             <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#242726]">
               <Button variant="ghost" onClick={() => setShowDialog(false)} className="text-[#9aa19e] hover:text-[#edeae5]">Annuler</Button>
               <Button onClick={handleSubmit} disabled={!formData.contenu.trim() || createMutation.isPending || updateMutation.isPending}
-                className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5]">
+                className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5]">
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {editingSuggestion ? "Mettre à jour" : "Ajouter"}
               </Button>

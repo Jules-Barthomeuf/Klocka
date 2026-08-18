@@ -108,7 +108,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
   return (
     <div>
       <div
-        className="group relative cursor-pointer bg-[#0e100f] border border-[#edeae5]/[0.12] overflow-hidden hover:border-[#35a79b]/60 transition-colors duration-300"
+        className="group relative cursor-pointer bg-[#0e100f] border border-[#edeae5]/[0.12] overflow-hidden hover:border-[#565b59] transition-colors duration-300"
         onClick={() => onEdit(project)}
       >
         {/* Image band */}
@@ -145,19 +145,19 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
 
           {/* Actions — apparaissent au survol */}
           <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Simulateur">
+            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#edeae5] hover:border-[#565b59]`} title="Simulateur">
               <Calculator className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Modifier">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-[#edeae5] hover:border-[#565b59]`} title="Modifier">
               <Pencil className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Preview client">
+            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#edeae5] hover:border-[#565b59]`} title="Preview client">
               <Eye className="w-3.5 h-3.5" />
             </button>
-            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Copier le lien public (accessible sans compte)">
+            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-[#edeae5] hover:border-[#565b59]`} title="Copier le lien public (accessible sans compte)">
               {copied ? <Check className="w-3.5 h-3.5 text-[#7fd3c9]" /> : <Share2 className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Dupliquer">
+            <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-[#edeae5] hover:border-[#565b59]`} title="Dupliquer">
               <Copy className="w-3.5 h-3.5" />
             </button>
             <button onClick={(e) => { e.stopPropagation(); onArchive(project); }} className={`${actionBtn} ${project.archived ? 'text-[#e0c9a0]' : 'hover:text-[#e0c9a0] hover:border-[#e0c9a0]'}`} title={project.archived ? "Désarchiver" : "Archiver"}>

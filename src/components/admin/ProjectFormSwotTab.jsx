@@ -45,7 +45,7 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
         <div className="grid md:grid-cols-2 gap-4">
           {/* Politique */}
           <div className="space-y-3 p-4 bg-[#0e100f] border border-[#edeae5]/[0.12]">
-            <p className="text-[#35a79b] text-xs font-semibold uppercase tracking-wider">Politique & Gouvernance</p>
+            <p className="text-[#8b9391] text-xs font-semibold uppercase tracking-wider">Politique & Gouvernance</p>
             <VerificationField fieldKey="swot_maire" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-[#9aa19e] text-xs">Maire</Label>

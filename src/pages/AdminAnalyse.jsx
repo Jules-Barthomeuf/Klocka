@@ -48,7 +48,7 @@ function DocumentCard({ doc, analyzing, onAnalyze, onDelete, onSelect }) {
 
   return (
     <div
-      className="bg-[#0a0c0c] rounded-md border border-[#242726] p-4 hover:border-[#35a79b]/30 transition-all cursor-pointer group"
+      className="bg-[#0a0c0c] rounded-md border border-[#242726] p-4 hover:border-[#565b59] transition-all cursor-pointer group"
       onClick={() => onSelect(doc)}>
       
       {doc.categorie === "images" && doc.url_fichier ?
@@ -57,7 +57,7 @@ function DocumentCard({ doc, analyzing, onAnalyze, onDelete, onSelect }) {
         </div> :
 
       <div className="w-10 h-10 bg-[#edeae5]/[0.04] border border-[#242726] rounded-md flex items-center justify-center mb-3">
-          <FileText className="w-5 h-5 text-[#35a79b]" />
+          <FileText className="w-5 h-5 text-[#8b9391]" />
         </div>
       }
 
@@ -82,7 +82,7 @@ function DocumentCard({ doc, analyzing, onAnalyze, onDelete, onSelect }) {
           size="sm"
           onClick={(e) => {e.stopPropagation();if (doc.categorie !== "images") onAnalyze(doc);}}
           disabled={isAnalyzing || doc.categorie === "images"}
-          className="flex-1 text-[#35a79b] hover:bg-[#35a79b]/10 h-8 text-xs">
+          className="flex-1 text-[#8b9391] hover:text-[#edeae5] hover:bg-[#edeae5]/[0.06] h-8 text-xs">
           
           <Brain className="w-3.5 h-3.5 mr-1" />
           {isAnalyzing ? "Analyse..." : "Analyser"}
@@ -273,7 +273,7 @@ export default function AdminAnalyse() {
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-4xl font-geist tracking-tighter text-[#edeae5] mb-2">Analyse de Documents</h1>
-          <div className="h-0.5 w-24 md:w-32 bg-[#35a79b] mb-2"></div>
+          <div className="h-0.5 w-24 md:w-32 bg-[#edeae5]/20 mb-2"></div>
           <p className="text-[#edeae5]/40 text-sm">Chargez et analysez les documents de vos projets avec l'IA</p>
         </div>
 
@@ -286,7 +286,7 @@ export default function AdminAnalyse() {
                 placeholder="Rechercher par email ou nom du projet..."
                 value={clientSearch}
                 onChange={(e) => setClientSearch(e.target.value)}
-                className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 h-9 text-sm focus:border-[#35a79b]/50 focus:ring-0" />
+                className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 h-9 text-sm focus:border-[#565b59] focus:ring-0" />
               
               <Select value={selectedProjectId || ""} onValueChange={setSelectedProjectId}>
                 <SelectTrigger className="bg-[#edeae5]/[0.04] text-[#edeae5] border-[#242726] h-9 text-sm">
@@ -350,7 +350,7 @@ export default function AdminAnalyse() {
                     }}
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
                   
-                      <Button className="bg-[#35a79b] hover:bg-[#35a79b]/80 text-[#edeae5] pointer-events-none h-8 text-xs px-4">
+                      <Button className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d] pointer-events-none h-8 text-xs px-4">
                         <Upload className="w-3.5 h-3.5 mr-1.5" />
                         Sélectionner des fichiers
                       </Button>
@@ -407,7 +407,7 @@ export default function AdminAnalyse() {
                   placeholder="Rechercher dans les documents..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 h-9 text-sm focus:border-[#35a79b]/50 focus:ring-0" />
+                  className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 h-9 text-sm focus:border-[#565b59] focus:ring-0" />
                 
                 </div>
                 {searchResults.length === 0 ?
@@ -509,7 +509,7 @@ export default function AdminAnalyse() {
               <Button variant="ghost" onClick={() => setShowTextDialog(false)} className="text-[#edeae5]/40 hover:text-[#edeae5] hover:bg-[#edeae5]/[0.06] h-8 text-xs">
                 Annuler
               </Button>
-              <Button onClick={createTextDocument} className="bg-[#35a79b] hover:bg-[#35a79b]/80 h-8 text-xs px-4">
+              <Button onClick={createTextDocument} className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d] h-8 text-xs px-4">
                 Créer
               </Button>
             </div>
@@ -525,7 +525,7 @@ export default function AdminAnalyse() {
               <span className="truncate mr-4">{selectedDoc?.nom_fichier}</span>
               {selectedDoc?.url_fichier &&
               <a href={selectedDoc.url_fichier} target="_blank" rel="noopener noreferrer">
-                  <Button variant="ghost" size="icon" className="text-[#35a79b] hover:bg-[#35a79b]/10 h-8 w-8">
+                  <Button variant="ghost" size="icon" className="text-[#8b9391] hover:text-[#edeae5] hover:bg-[#edeae5]/[0.06] h-8 w-8">
                     <Download className="w-4 h-4" />
                   </Button>
                 </a>
@@ -569,7 +569,7 @@ export default function AdminAnalyse() {
               <Button
                 onClick={() => analyzeDocument(selectedDoc)}
                 disabled={analyzing === selectedDoc.id}
-                className="bg-[#35a79b] hover:bg-[#35a79b]/80 h-8 text-xs px-3">
+                className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d] h-8 text-xs px-3">
                 
                     <Brain className="w-3.5 h-3.5 mr-1.5" />
                     {analyzing === selectedDoc.id ? "Analyse..." : "Analyser"}
@@ -614,7 +614,7 @@ export default function AdminAnalyse() {
               {selectedDoc.notes_ia &&
             <div>
                   <h4 className="text-[#edeae5]/50 text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <Brain className="w-3.5 h-3.5 text-[#35a79b]" />
+                    <Brain className="w-3.5 h-3.5 text-[#8b9391]" />
                     Analyse IA
                   </h4>
                   <div className="p-4 bg-[#edeae5]/[0.02] rounded-md text-[#edeae5]/70 text-sm whitespace-pre-wrap border border-[#242726] font-montserrat leading-relaxed">

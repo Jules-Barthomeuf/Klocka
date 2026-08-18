@@ -13,7 +13,7 @@ function SecteurCard({ secteur, index, onChange, onRemove }) {
     <div className="p-4 bg-[#0a0c0c] rounded-md border border-[#242726] space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-[#35a79b]" />
+          <MapPin className="w-4 h-4 text-[#8b9391]" />
           <span className="text-[#edeae5] text-sm font-medium">Secteur {index + 1}</span>
         </div>
         <Button variant="ghost" size="icon" onClick={onRemove} className="text-red-500 hover:bg-red-500/10 h-7 w-7">
@@ -100,16 +100,16 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
       </div>
 
       {/* ── Secteurs avec estimations ── */}
-      <div className="p-6 bg-[#35a79b]/5 rounded-md border border-[#35a79b]/20">
+      <div className="p-6 bg-[#edeae5]/[0.03] rounded-md border border-[#2e3130]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg text-[#edeae5] font-medium flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-[#35a79b]" />
+            <MapPin className="w-5 h-5 text-[#8b9391]" />
             Secteurs & Estimations
           </h3>
           <Button
             type="button" variant="outline" size="sm"
             onClick={addSecteur}
-            className="border-[#35a79b]/30 text-[#35a79b] hover:bg-[#35a79b]/10 hover:border-[#35a79b]/50"
+            className="border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.06] hover:border-[#565b59]"
           >
             <Plus className="w-4 h-4 mr-1" /> Ajouter un secteur
           </Button>
@@ -235,7 +235,7 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
               ...formData, 
               notes_marche: [...(formData.notes_marche || []), { titre: "", contenu: "" }]
             })}
-            className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"
+            className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]"
           >
             <Plus className="w-4 h-4 mr-1" /> Ajouter une note
           </Button>

@@ -83,7 +83,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
         <Label className="text-[#edeae5] mb-3 block">📤 Upload depuis votre ordinateur</Label>
         <label className="cursor-pointer">
           <input type="file" className="hidden" onChange={handleUpload} />
-          <Button type="button" className="w-full bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5]" asChild>
+          <Button type="button" className="w-full bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5]" asChild>
             <span><Upload className="w-4 h-4 mr-2" />Choisir un fichier</span>
           </Button>
         </label>
@@ -106,7 +106,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
               placeholder="https://..."
               className="flex-1 bg-[#161616] text-[#edeae5] border-[#282b2a]"
             />
-            <Button onClick={addFileByUrl} className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25">
+            <Button onClick={addFileByUrl} className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1]">
               <Plus className="w-4 h-4" />
             </Button>
           </div>
@@ -119,7 +119,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
           <Label className="text-[#edeae5]">Fichiers ajoutés ({fichiers.length})</Label>
           {fichiers.map((f, idx) => (
             <div key={idx} className="flex items-center gap-3 p-3 bg-[#edeae5]/[0.02] rounded-lg border border-[#242726]">
-              <FileText className="w-5 h-5 text-[#35a79b] flex-shrink-0" />
+              <FileText className="w-5 h-5 text-[#8b9391] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[#edeae5] text-sm truncate">{f.nom}</p>
                 <p className="text-[#8b9391] text-xs truncate">{f.url}</p>

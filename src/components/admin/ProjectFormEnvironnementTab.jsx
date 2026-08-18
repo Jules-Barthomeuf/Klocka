@@ -16,7 +16,7 @@ function Field({ label, info, children }) {
             <button
               type="button"
               onClick={() => setShow(v => !v)}
-              className="text-[#6b7270] hover:text-[#35a79b] transition-colors"
+              className="text-[#6b7270] hover:text-[#edeae5] transition-colors"
             >
               <Info className="w-3 h-3" />
             </button>
@@ -61,7 +61,7 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
 
       {/* DÉMOGRAPHIE */}
       <div>
-        <h3 className="text-sm font-semibold text-[#35a79b] uppercase tracking-wider mb-3">Démographie</h3>
+        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Démographie</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
           <Field label="Population (hab.)" info="Population municipale au dernier recensement INSEE.">
             <NumberInput value={env.population} onChange={(v) => update("population", v)} placeholder="Ex: 45000" />
@@ -95,7 +95,7 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
 
       {/* POLITIQUE DE LA VILLE (sans orientation politique) */}
       <div>
-        <h3 className="text-sm font-semibold text-[#35a79b] uppercase tracking-wider mb-3">Politique de la ville</h3>
+        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Politique de la ville</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           <Field label="Stabilité politique" info="Stabilité de la gouvernance municipale : ancienneté du maire, majorité confortable, renouvellements récents…">
             <Select value={env.stabilite_politique || "__none__"} onValueChange={(v) => update("stabilite_politique", v === "__none__" ? null : v)}>
@@ -125,7 +125,7 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
 
       {/* PROJETS URBAINS */}
       <div>
-        <h3 className="text-sm font-semibold text-[#35a79b] uppercase tracking-wider mb-3">Projets urbains & Aménagements</h3>
+        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Projets urbains & Aménagements</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           <Field label="Investissement total prévu (M€)" info="Montant total des investissements publics prévus sur le territoire (ANRU, CRTE, Plan de relance, investissements propres…).">
             <NumberInput value={env.projets_investissement_total} onChange={(v) => update("projets_investissement_total", v)} />
@@ -149,7 +149,7 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
 
       {/* ATTRACTIVITÉ */}
       <div>
-        <h3 className="text-sm font-semibold text-[#35a79b] uppercase tracking-wider mb-3">Attractivité & Rayonnement</h3>
+        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Attractivité & Rayonnement</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           <Field label="Score attractivité (/100)" info="Score composite évaluant l'attractivité globale de la ville : emploi, services, qualité de vie, accessibilité. 70+ = très attractive.">
             <NumberInput value={env.score_attractivite} onChange={(v) => update("score_attractivite", v)} />
@@ -177,7 +177,7 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
 
       {/* ÉCONOMIE LOCALE */}
       <div>
-        <h3 className="text-sm font-semibold text-[#35a79b] uppercase tracking-wider mb-3">Économie locale</h3>
+        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Économie locale</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
           <Field label="Taux de chômage (%)" info="Taux de chômage local (zone d'emploi). < 7% = marché du travail dynamique, > 10% = marché tendu. Source : INSEE / Pôle Emploi.">
             <NumberInput value={env.taux_chomage} onChange={(v) => update("taux_chomage", v)} />

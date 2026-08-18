@@ -141,10 +141,7 @@ export default function Analyse() {
       {/* En-tête du module : marque, bascule segmentée, relances en attente. */}
       <div className="flex items-center justify-between gap-6 px-5 md:px-10 py-3.5 border-b border-[#282b2a] bg-[#0e100f] sticky top-0 z-20">
         <div className="flex items-center gap-3.5">
-          <div className="w-[26px] h-[26px] border border-[#35a79b] rounded flex items-center justify-center text-[#35a79b] text-[13px]">
-            A
-          </div>
-          <div className="text-[15px] font-medium tracking-[.01em] hidden sm:block">Module d'analyse</div>
+          <div className="text-[15px] font-medium tracking-[.01em] hidden sm:block">Analyse</div>
         </div>
         <div className="flex gap-1 p-[3px] border border-[#282b2a] rounded-[5px] bg-[#0c0e0d]">
           {ONGLETS.map((t) => (
@@ -201,7 +198,7 @@ export default function Analyse() {
               />
             ) : (
               <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-8 text-center">
-                <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin mx-auto mb-3" />
+                <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin mx-auto mb-3" />
                 <p className="text-[#9aa19e] text-sm">Ouverture du dossier…</p>
               </div>
             )}
@@ -211,7 +208,7 @@ export default function Analyse() {
             {/* Bandeau éditorial : surtitre, titre, description, actions. */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5 border-b border-[#282b2a]">
               <div>
-                <div className="text-[11px] tracking-[.16em] uppercase text-[#35a79b] mb-2.5">Pipeline</div>
+                <div className="text-[11px] tracking-[.16em] uppercase text-[#8b9391] mb-2.5">Pipeline</div>
                 <h1 className="m-0 text-[30px] font-medium tracking-[-.01em]">Deals</h1>
                 <p className="mt-2.5 mb-0 max-w-[52ch] text-[13.5px] leading-[1.65] text-[#9aa19e]">
                   Du premier mail à l'agent jusqu'à l'entrée du projet dans la plateforme. Le statut
@@ -222,7 +219,7 @@ export default function Analyse() {
                 <button
                   onClick={ouvrirApercu}
                   title="Parcourir les cinq étapes sur un deal fictif (lecture seule)"
-                  className="px-4 py-[9px] text-[13px] text-[#9aa19e] border border-[#303332] rounded hover:border-[#35a79b] hover:text-[#edeae5] transition-colors"
+                  className="px-4 py-[9px] text-[13px] text-[#9aa19e] border border-[#303332] rounded hover:border-[#565b59] hover:text-[#edeae5] transition-colors"
                 >
                   Aperçu
                 </button>
@@ -230,13 +227,13 @@ export default function Analyse() {
                   onClick={() => creerDealTest.mutate()}
                   disabled={creerDealTest.isPending}
                   title="Jouer tout le cycle sur un deal fictif : chaque bouton agit réellement, mais aucun appel API n'est fait (mails simulés, documents fictifs)"
-                  className="px-4 py-[9px] text-[13px] text-[#9aa19e] border border-[#303332] rounded hover:border-[#35a79b] hover:text-[#edeae5] transition-colors disabled:opacity-50"
+                  className="px-4 py-[9px] text-[13px] text-[#9aa19e] border border-[#303332] rounded hover:border-[#565b59] hover:text-[#edeae5] transition-colors disabled:opacity-50"
                 >
                   {creerDealTest.isPending ? "Création…" : "Mode test"}
                 </button>
                 <button
                   onClick={demarrerNouveau}
-                  className="px-4 py-[9px] text-[13px] text-[#35a79b] border border-[#35a79b] rounded hover:bg-[#35a79b]/10 transition-colors"
+                  className="px-4 py-[9px] text-[13px] text-[#0c0e0d] bg-[#edeae5] border border-[#edeae5] rounded hover:bg-[#d8d5d0] transition-colors"
                 >
                   Nouveau deal
                 </button>

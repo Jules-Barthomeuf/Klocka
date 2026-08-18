@@ -58,7 +58,7 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
         <div className="space-y-4 pt-4 border-t border-[#242726]">
           <div className="flex items-center justify-between">
             <Label className="text-[#edeae5]">Assemblées Générales</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, assemblees_generales: [...(formData.assemblees_generales || []), { annee: new Date().getFullYear(), synthese: "", resolutions_votees: "", resolutions_refusees: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30">
+            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, assemblees_generales: [...(formData.assemblees_generales || []), { annee: new Date().getFullYear(), synthese: "", resolutions_votees: "", resolutions_refusees: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]">
               <Plus className="w-4 h-4 mr-1" /> Ajouter une AG
             </Button>
           </div>
@@ -95,7 +95,7 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
         <div className="space-y-4 pt-4 border-t border-[#242726]">
           <div className="flex items-center justify-between">
             <Label className="text-[#edeae5]">Notes libres</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_libres: [...(formData.notes_libres || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30">
+            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_libres: [...(formData.notes_libres || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]">
               <Plus className="w-4 h-4 mr-1" /> Ajouter une note
             </Button>
           </div>

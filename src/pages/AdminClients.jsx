@@ -56,7 +56,7 @@ function BoutonImportUtilisateurs() {
         onClick={() => inputRef.current?.click()}
         disabled={importer.isPending}
         variant="outline"
-        className="h-10 text-sm border-[#303332] bg-transparent text-[#9aa19e] hover:border-[#35a79b] hover:text-[#edeae5]"
+        className="h-10 text-sm border-[#303332] bg-transparent text-[#9aa19e] hover:border-[#565b59] hover:text-[#edeae5]"
       >
         {importer.isPending ? (
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -84,7 +84,7 @@ const profilColors = {
   equilibriste: "bg-blue-100 text-blue-800",
   risk_taker: "bg-red-100 text-red-800",
   collectionneur: "bg-purple-100 text-purple-800",
-  visionnaire: "bg-[#35a79b]/15 text-[#2f8d84]"
+  visionnaire: "bg-[#edeae5]/[0.07] text-[#9aa19e]"
 };
 
 const profilLabels = {
@@ -542,7 +542,7 @@ export default function AdminClients() {
 
       <div className="mb-6">
             <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
-              <div className="flex-1 flex items-center gap-3 border-b border-[#edeae5]/[0.18] focus-within:border-[#35a79b] transition-colors pb-2">
+              <div className="flex-1 flex items-center gap-3 border-b border-[#edeae5]/[0.18] focus-within:border-[#565b59] transition-colors pb-2">
                 <Search className="w-4 h-4 text-[#6b7270] flex-shrink-0" />
                 <input
                   placeholder="Rechercher un utilisateur…"
@@ -553,7 +553,7 @@ export default function AdminClients() {
               {selectedUsersForCompare.length >= 2 &&
               <Button
                 onClick={handleCompareUsers}
-                className="h-10 text-sm bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5]">
+                className="h-10 text-sm bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5]">
                   <GitCompare className="w-4 h-4 mr-2" />
                   Comparer ({selectedUsersForCompare.length})
                 </Button>
@@ -622,7 +622,7 @@ export default function AdminClients() {
                   <button
                     onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
                     disabled={updateUserMutation.isPending}
-                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] transition-colors disabled:opacity-40 flex-shrink-0"
+                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.06] transition-colors disabled:opacity-40 flex-shrink-0"
                   >
                     Activer
                   </button>
@@ -659,8 +659,8 @@ export default function AdminClients() {
                   onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
-                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0 ${isAdmin ? "border-[#e0c9a0]/50" : "border-[#35a79b]/50"}`}>
-                    <span className={`text-[11px] ${isAdmin ? "text-[#e0c9a0]" : "text-[#7fd3c9]"}`}>
+                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0 ${isAdmin ? "border-[#e0c9a0]/50" : "border-[#565b59]"}`}>
+                    <span className={`text-[11px] ${isAdmin ? "text-[#e0c9a0]" : "text-[#9aa19e]"}`}>
                       {user.full_name?.charAt(0)?.toUpperCase() || "U"}
                     </span>
                   </div>
@@ -668,7 +668,7 @@ export default function AdminClients() {
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-[#edeae5] text-[15px] truncate">{user.full_name || "Sans nom"}</span>
                       {isAdmin && <span className="text-[9px] tracking-[0.16em] uppercase text-[#e0c9a0] border border-[#e0c9a0]/40 rounded-full px-2 py-px">Admin</span>}
-                      {user.role === 'mandataire' && <span className="text-[9px] tracking-[0.16em] uppercase text-[#7fd3c9] border border-[#7fd3c9]/40 rounded-full px-2 py-px">Mandataire</span>}
+                      {user.role === 'mandataire' && <span className="text-[9px] tracking-[0.16em] uppercase text-[#9aa19e] border border-[#9aa19e]/40 rounded-full px-2 py-px">Mandataire</span>}
                       {user.est_compte_shadow && user.compte_maitre_email && <span className="text-[9px] tracking-[0.16em] uppercase text-[#8b9391] border border-[#edeae5]/[0.18] rounded-full px-2 py-px">Lié</span>}
                       {user.comptes_lies && user.comptes_lies.length > 0 && <span className="text-[9px] tracking-[0.16em] uppercase text-[#8b9391] border border-[#edeae5]/[0.18] rounded-full px-2 py-px">{user.comptes_lies.length} lié{user.comptes_lies.length > 1 ? "s" : ""}</span>}
                       {user.profil_investisseur && <span className="text-[9px] tracking-[0.16em] uppercase text-[#8b9391] max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
@@ -703,7 +703,7 @@ export default function AdminClients() {
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleOpenStrategyDialog(user)}
-                    className="h-8 w-8 text-[#6b7270] hover:text-[#7fd3c9] hover:bg-transparent" title="Définir la stratégie">
+                    className="h-8 w-8 text-[#6b7270] hover:text-[#edeae5] hover:bg-transparent" title="Définir la stratégie">
                     <FileText className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)}
@@ -760,7 +760,7 @@ export default function AdminClients() {
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5">
                       {etape >= 4 && (
                         <>
-                          <label className="cursor-pointer inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#8b9391] hover:text-[#7fd3c9] transition-colors">
+                          <label className="cursor-pointer inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#8b9391] hover:text-[#edeae5] transition-colors">
                             <input type="file" className="hidden"
                               onChange={(e) => { if (e.target.files[0]) handleUploadDossierBancaire(user.id, e.target.files[0]); }} />
                             {uploadingDossier === user.id
@@ -794,7 +794,7 @@ export default function AdminClients() {
                             <Crown className="w-3.5 h-3.5" /> Promouvoir admin
                           </button>
                           <button onClick={() => handlePromoteToMandataire(user)}
-                            className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#8b9391] hover:text-[#7fd3c9] transition-colors">
+                            className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#8b9391] hover:text-[#edeae5] transition-colors">
                             <Users className="w-3.5 h-3.5" /> Promouvoir mandataire
                           </button>
                         </>
@@ -875,9 +875,9 @@ export default function AdminClients() {
           </DialogHeader>
 
           {/* Champs obligatoires Budget et Apport */}
-          <div className="grid grid-cols-2 gap-4 my-4 p-4 bg-[#35a79b]/10 border border-[#35a79b]/30 rounded-lg">
+          <div className="grid grid-cols-2 gap-4 my-4 p-4 bg-[#edeae5]/[0.05] border border-[#2e3130] rounded-lg">
             <div>
-              <Label className="text-[#35a79b] text-sm font-medium">Budget max (€)</Label>
+              <Label className="text-[#8b9391] text-sm font-medium">Budget max (€)</Label>
               <Input
                 type="number"
                 placeholder="Ex: 500000"
@@ -887,7 +887,7 @@ export default function AdminClients() {
 
             </div>
             <div>
-              <Label className="text-[#35a79b] text-sm font-medium">Apport (€)</Label>
+              <Label className="text-[#8b9391] text-sm font-medium">Apport (€)</Label>
               <Input
                 type="number"
                 placeholder="Ex: 100000"
@@ -906,7 +906,7 @@ export default function AdminClients() {
               className={`flex items-start gap-3 p-3 rounded-lg ${
               field.is_nogo ?
               'bg-red-500/10 border border-red-500/30' :
-              'bg-[#35a79b]/10 border border-[#35a79b]/30'}`
+              'bg-[#edeae5]/[0.05] border border-[#2e3130]'}`
               }>
 
                 <div className="flex-1">
@@ -969,7 +969,7 @@ export default function AdminClients() {
             <Button
               onClick={handleAddField}
               disabled={!newFieldLabel.trim() || !newFieldValue.trim()}
-              className="w-full bg-gradient-to-r from-[#35a79b] to-[#e0c9a0] hover:from-[#238276] hover:to-[#e5a968] text-[#edeae5] border-0">
+              className="w-full bg-[#edeae5] text-[#0c0e0d] hover:bg-[#d8d5d0] border-0">
 
               <Plus className="w-4 h-4 mr-2" />
               Ajouter ce critère
@@ -986,7 +986,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleSaveStrategy}
-              className="bg-gradient-to-r from-[#35a79b] to-[#e0c9a0] hover:from-[#238276] hover:to-[#e5a968] text-[#edeae5] border-0"
+              className="bg-[#edeae5] text-[#0c0e0d] hover:bg-[#d8d5d0] border-0"
               disabled={createStrategyMutation.isPending || updateStrategyMutation.isPending}>
 
               {createStrategyMutation.isPending || updateStrategyMutation.isPending ? "Enregistrement..." : "Enregistrer"}
@@ -1051,7 +1051,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleLinkAccounts}
-              className="bg-gradient-to-r from-[#35a79b] to-[#e0c9a0] hover:from-[#238276] hover:to-[#e5a968] text-[#edeae5] border-0"
+              className="bg-[#edeae5] text-[#0c0e0d] hover:bg-[#d8d5d0] border-0"
               disabled={!masterEmail}>
 
               Lier les comptes
@@ -1088,7 +1088,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleCreateFamille}
-              className="bg-gradient-to-r from-[#35a79b] to-[#e0c9a0] hover:from-[#238276] hover:to-[#e5a968] text-[#edeae5] border-0"
+              className="bg-[#edeae5] text-[#0c0e0d] hover:bg-[#d8d5d0] border-0"
               disabled={!newFamilleName.trim()}>
 
               Créer et comparer
@@ -1113,8 +1113,8 @@ export default function AdminClients() {
           <div className="space-y-4 my-4">
             {/* Profil investisseur - en lecture seule mais visible */}
             {editingUser?.profil_investisseur &&
-            <div className="p-3 bg-[#35a79b]/10 border border-[#35a79b]/30 rounded-lg">
-                <Label className="text-[#35a79b] text-sm font-medium">Profil investisseur</Label>
+            <div className="p-3 bg-[#edeae5]/[0.05] border border-[#2e3130] rounded-lg">
+                <Label className="text-[#8b9391] text-sm font-medium">Profil investisseur</Label>
                 <p className="text-[#edeae5] mt-1">{profilLabels[editingUser.profil_investisseur] || editingUser.profil_investisseur}</p>
                 <p className="text-xs text-[#9aa19e] mt-1">Ce champ se remplit automatiquement lors du changement de profil</p>
               </div>
@@ -1188,7 +1188,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleSaveEditUser}
-              className="bg-gradient-to-r from-[#35a79b] to-[#e0c9a0] hover:from-[#238276] hover:to-[#e5a968] text-[#edeae5] border-0"
+              className="bg-[#edeae5] text-[#0c0e0d] hover:bg-[#d8d5d0] border-0"
               disabled={updateUserMutation.isPending}>
 
               {updateUserMutation.isPending ? "Enregistrement..." : "Enregistrer"}
@@ -1202,7 +1202,7 @@ export default function AdminClients() {
         <DialogContent className="bg-[#0a0c0c] border-[#282b2a]">
           <DialogHeader>
             <DialogTitle className="text-[#edeae5] flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-[#35a79b]" />
+              <Building2 className="w-5 h-5 text-[#8b9391]" />
               Sélectionner le projet à poursuivre
             </DialogTitle>
             <DialogDescription className="text-[#9aa19e]">
@@ -1239,7 +1239,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleConfirmEtapeChange}
-              className="bg-gradient-to-r from-[#35a79b] to-[#e0c9a0] hover:from-[#238276] hover:to-[#e5a968] text-[#edeae5] border-0"
+              className="bg-[#edeae5] text-[#0c0e0d] hover:bg-[#d8d5d0] border-0"
               disabled={!selectedProjectId}>
 
               Confirmer

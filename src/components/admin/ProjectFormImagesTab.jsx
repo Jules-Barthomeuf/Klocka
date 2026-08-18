@@ -69,7 +69,7 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
               handleFilesUpload(e.target.files);
               e.target.value = "";
             }} />
-            <Button type="button" disabled={uploading} className="w-full bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5]" asChild>
+            <Button type="button" disabled={uploading} className="w-full bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5]" asChild>
               <span>{uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin inline" /> Import en cours…</> : "Choisir des images"}</span>
             </Button>
           </label>
@@ -83,9 +83,9 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
             onChange={(e) => setUrlText(e.target.value)}
             rows={3}
             placeholder="https://exemple.com/photo1.jpg&#10;https://exemple.com/photo2.jpg"
-            className="w-full resize-y bg-[#0e100f] border border-[#edeae5]/[0.10] rounded-lg px-3 py-2 text-[#edeae5] text-sm placeholder:text-[#6b7270] focus:outline-none focus:border-[#35a79b]/40 mb-3"
+            className="w-full resize-y bg-[#0e100f] border border-[#edeae5]/[0.10] rounded-lg px-3 py-2 text-[#edeae5] text-sm placeholder:text-[#6b7270] focus:outline-none focus:border-[#565b59] mb-3"
           />
-          <Button type="button" onClick={handleAddUrls} disabled={!urlText.trim()} className="w-full bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] disabled:opacity-30">
+          <Button type="button" onClick={handleAddUrls} disabled={!urlText.trim()} className="w-full bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] disabled:opacity-30">
             Ajouter les URL
           </Button>
         </div>

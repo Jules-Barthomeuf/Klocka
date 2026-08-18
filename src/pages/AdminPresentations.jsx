@@ -107,8 +107,8 @@ export default function AdminPresentations() {
     <div className="min-h-screen text-[#edeae5] p-4 md:p-10" style={{ background: "linear-gradient(160deg,#0a0c0c 0%,#000000 90%)" }}>
       <div className="max-w-5xl mx-auto">
         <div className="mb-9 flex flex-col items-center text-center gap-3">
-          <div className="w-12 h-12 bg-[#35a79b]/10 rounded-md flex items-center justify-center">
-            <Presentation className="w-6 h-6 text-[#35a79b]" />
+          <div className="w-12 h-12 bg-[#edeae5]/[0.05] rounded-md flex items-center justify-center">
+            <Presentation className="w-6 h-6 text-[#8b9391]" />
           </div>
           <div>
             <h1 className="text-[28px] md:text-[32px] font-light leading-[1.08] -tracking-[0.02em] m-0">Présentations</h1>
@@ -120,14 +120,14 @@ export default function AdminPresentations() {
 
         {isLoading && (
           <div className="flex justify-center py-20">
-            <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin" />
           </div>
         )}
 
         {/* Recherche + liste de projets (tant qu'aucun n'est sélectionné) */}
         {!selectedProject && !isLoading && (
           <div className="max-w-2xl mx-auto">
-            <div className="bg-[#121413] border border-[#282b2a] rounded-none px-[18px] flex items-center focus-within:border-[#35a79b] focus-within:shadow-[0_0_0_3px_rgba(42,157,143,0.14)] transition-all mb-5">
+            <div className="bg-[#121413] border border-[#282b2a] rounded-none px-[18px] flex items-center focus-within:border-[#565b59] focus-within:shadow-[0_0_0_3px_rgba(86,91,89,0.2)] transition-all mb-5">
               <FolderSearch className="w-4 h-4 text-[#6b7270] flex-shrink-0" />
               <input
                 autoFocus
@@ -151,10 +151,10 @@ export default function AdminPresentations() {
                   <button
                     key={p.id}
                     onClick={() => { setSelectedId(p.id); setProjectSearch(""); }}
-                    className="w-full flex items-center gap-3 text-left bg-[#121413] border border-[#282b2a] rounded-none px-4 py-3.5 hover:border-[#35a79b]/40 hover:bg-[#35a79b]/[0.04] transition-all group"
+                    className="w-full flex items-center gap-3 text-left bg-[#121413] border border-[#282b2a] rounded-none px-4 py-3.5 hover:border-[#565b59] hover:bg-[#edeae5]/[0.04] transition-all group"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-[#35a79b]/10 flex items-center justify-center flex-shrink-0">
-                      <Building2 className="w-4 h-4 text-[#35a79b]" />
+                    <div className="w-9 h-9 rounded-lg bg-[#edeae5]/[0.05] flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-4 h-4 text-[#8b9391]" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[#edeae5] text-[14px] font-medium truncate">{p.titre || "Sans titre"}</p>
@@ -181,7 +181,7 @@ export default function AdminPresentations() {
 
             {/* Barre d'actions */}
             <div className="flex flex-col md:flex-row gap-3 mb-6 items-stretch md:items-center">
-              <div className="flex-1 bg-[#121413] border border-[#282b2a] rounded-none px-[18px] flex items-center focus-within:border-[#35a79b]">
+              <div className="flex-1 bg-[#121413] border border-[#282b2a] rounded-none px-[18px] flex items-center focus-within:border-[#565b59]">
                 <FolderSearch className="w-4 h-4 text-[#6b7270] flex-shrink-0" />
                 <input
                   placeholder="Filtrer les champs..."
@@ -196,7 +196,7 @@ export default function AdminPresentations() {
                     href={GENERATOR_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 text-[#edeae5] rounded-none px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all border border-[#35a79b]/40 bg-[#35a79b]/[0.12]"
+                    className="inline-flex items-center justify-center gap-2 text-[#edeae5] rounded-none px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all border border-[#3a3e3c] bg-[#edeae5]/[0.06]"
                   >
                     <Sparkles className="w-4 h-4" />
                     Générateur
@@ -204,8 +204,8 @@ export default function AdminPresentations() {
                 )}
                 <button
                   onClick={handleCopy}
-                  className="inline-flex items-center justify-center gap-2 text-[#edeae5] rounded-none px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all"
-                  style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}
+                  className="inline-flex items-center justify-center gap-2 text-[#0c0e0d] rounded-none px-5 py-3 text-[14px] font-bold hover:brightness-95 transition-all"
+                  style={{ background: "#edeae5" }}
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   {copied ? "Copié" : "Copier le JSON"}
@@ -235,7 +235,7 @@ export default function AdminPresentations() {
               {Array.isArray(selectedProject.photos) && selectedProject.photos.length > 0 && (
                 <div className="w-full lg:w-[300px] flex-shrink-0 bg-[#121413] border border-[#282b2a] rounded-none p-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <ImageIcon className="w-4 h-4 text-[#35a79b]" />
+                    <ImageIcon className="w-4 h-4 text-[#8b9391]" />
                     <span className="text-[#edeae5] text-[14px] font-medium">Photos du projet</span>
                     <span className="text-[#6b7270] text-[12px]">({selectedProject.photos.length})</span>
                   </div>
@@ -245,7 +245,7 @@ export default function AdminPresentations() {
                         <img src={photoUrl} alt={`Photo ${i + 1}`} className="w-full h-32 object-cover" />
                         <button
                           onClick={() => downloadImage(photoUrl, `${(selectedProject.titre || "projet").replace(/[^a-z0-9]/gi, "_")}_photo_${i + 1}.jpg`)}
-                          className="absolute top-2 right-2 inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#0a0c0c]/60 backdrop-blur-sm text-[#edeae5] hover:bg-[#35a79b] transition-all opacity-0 group-hover:opacity-100"
+                          className="absolute top-2 right-2 inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#0a0c0c]/60 backdrop-blur-sm text-[#edeae5] hover:bg-[#edeae5]/20 transition-all opacity-0 group-hover:opacity-100"
                           title="Télécharger l'image"
                         >
                           <Download className="w-4 h-4" />
@@ -266,7 +266,7 @@ export default function AdminPresentations() {
         <DialogContent className="bg-[#121413] border-[#282b2a] text-[#edeae5]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#35a79b]" />
+              <Sparkles className="w-5 h-5 text-[#8b9391]" />
               Générateur de présentation
             </DialogTitle>
             <DialogDescription className="text-[#8b9391]">
@@ -285,8 +285,8 @@ export default function AdminPresentations() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setShowGenPrompt(false)}
-              className="inline-flex items-center justify-center gap-2 text-[#edeae5] rounded-[12px] px-5 py-2.5 text-[14px] font-bold hover:brightness-110 transition-all"
-              style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}
+              className="inline-flex items-center justify-center gap-2 text-[#0c0e0d] rounded-[12px] px-5 py-2.5 text-[14px] font-bold hover:brightness-95 transition-all"
+              style={{ background: "#edeae5" }}
             >
               <ExternalLink className="w-4 h-4" />
               Oui, y aller

@@ -258,7 +258,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                   generer.mutate({ raisons: [...raisonsChoisies, raisons.trim()].filter(Boolean).join(" ; ") })
                 }
                 disabled={(!raisons.trim() && raisonsChoisies.length === 0) || generer.isPending}
-                className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#0a0c0c]"
+                className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
               >
                 {generer.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Rédiger le mail
@@ -267,7 +267,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
           </div>
         ) : generer.isPending ? (
           <div className="py-10 text-center">
-            <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin mx-auto mb-3" />
+            <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin mx-auto mb-3" />
             <p className="text-[#9aa19e] text-sm">Rédaction du mail…</p>
           </div>
         ) : (
@@ -347,7 +347,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                 disabled={
                   !destinataire.trim() || !objet.trim() || !corps.trim() || envoyer.isPending || connexionEnCours
                 }
-                className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#0a0c0c] font-medium"
+                className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d] font-medium"
               >
                 {envoyer.isPending || connexionEnCours ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

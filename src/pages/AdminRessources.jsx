@@ -191,7 +191,7 @@ export default function AdminRessources() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a0c0c]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8b9391]"></div>
       </div>
     );
   }
@@ -208,7 +208,7 @@ export default function AdminRessources() {
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] h-9 px-4 text-sm"
+            className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] h-9 px-4 text-sm"
           >
             <Plus className="w-4 h-4 mr-2" />
             Ajouter
@@ -281,14 +281,14 @@ export default function AdminRessources() {
 
         {resources.length === 0 ? (
           <div className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-12 text-center">
-              <div className="w-14 h-14 bg-[#35a79b]/[0.07] rounded-md flex items-center justify-center mx-auto mb-5">
-                <BookOpen className="w-6 h-6 text-[#35a79b]" />
+              <div className="w-14 h-14 bg-[#edeae5]/[0.05] rounded-md flex items-center justify-center mx-auto mb-5">
+                <BookOpen className="w-6 h-6 text-[#8b9391]" />
               </div>
               <h3 className="text-lg font-light text-[#edeae5] mb-2">Aucune ressource</h3>
               <p className="text-[#edeae5]/20 text-sm mb-6">Commencez par ajouter votre première ressource.</p>
               <Button
                 onClick={() => handleOpenDialog()}
-                className="bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] text-sm h-9 px-4"
+                className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] text-sm h-9 px-4"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter une ressource
@@ -301,7 +301,7 @@ export default function AdminRessources() {
               return (
                 <div 
                   key={resource.id} 
-                  className="bg-[#0e100f] border border-[#edeae5]/[0.12] hover:border-[#35a79b]/20 transition-all duration-300 cursor-pointer p-4"
+                  className="bg-[#0e100f] border border-[#edeae5]/[0.12] hover:border-[#565b59] transition-all duration-300 cursor-pointer p-4"
                   onClick={() => handleOpenDialog(resource)}
                 >
                     <div className="flex items-center gap-4">
@@ -323,8 +323,8 @@ export default function AdminRessources() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full bg-[#35a79b]/[0.07] flex items-center justify-center">
-                            <Icon className="w-5 h-5 text-[#35a79b]" />
+                          <div className="w-full h-full bg-[#edeae5]/[0.05] flex items-center justify-center">
+                            <Icon className="w-5 h-5 text-[#8b9391]" />
                           </div>
                         )}
                         {uploadingThumbnailId === resource.id ? (
@@ -344,7 +344,7 @@ export default function AdminRessources() {
                             {typeLabels[resource.type]}
                           </span>
                           {resource.categorie && (
-                            <span className="text-[10px] text-[#35a79b] bg-[#35a79b]/[0.07] px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] text-[#8b9391] bg-[#edeae5]/[0.05] px-2 py-0.5 rounded-full">
                               {categorieLabels[resource.categorie]}
                             </span>
                           )}
@@ -375,7 +375,7 @@ export default function AdminRessources() {
                             e.stopPropagation();
                             handleOpenDialog(resource);
                           }}
-                          className="text-[#edeae5]/20 hover:text-[#35a79b] hover:bg-[#edeae5]/[0.03] h-8 w-8"
+                          className="text-[#edeae5]/20 hover:text-[#edeae5] hover:bg-[#edeae5]/[0.03] h-8 w-8"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
@@ -515,7 +515,7 @@ export default function AdminRessources() {
                     </button>
                   </div>
                 ) : (
-                  <label className="mt-2 flex items-center justify-center w-40 h-28 rounded-lg border-2 border-dashed border-[#edeae5]/[0.1] hover:border-[#35a79b]/50 bg-[#edeae5]/[0.02] hover:bg-[#35a79b]/5 cursor-pointer transition-all">
+                  <label className="mt-2 flex items-center justify-center w-40 h-28 rounded-lg border-2 border-dashed border-[#edeae5]/[0.1] hover:border-[#565b59] bg-[#edeae5]/[0.02] hover:bg-[#edeae5]/[0.05] cursor-pointer transition-all">
                     <input
                       type="file"
                       accept="image/*"
@@ -523,7 +523,7 @@ export default function AdminRessources() {
                       onChange={(e) => handleFileUpload(e, 'image_miniature')}
                     />
                     {uploading ? (
-                      <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin" />
+                      <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin" />
                     ) : (
                       <div className="flex flex-col items-center gap-1">
                         <ImagePlus className="w-6 h-6 text-[#8b9391]" />
@@ -575,7 +575,7 @@ export default function AdminRessources() {
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] h-9 text-sm"
+                className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] h-9 text-sm"
                 disabled={!formData.titre || !formData.url_fichier || createMutation.isPending || updateMutation.isPending}
               >
                 {(createMutation.isPending || updateMutation.isPending) ? "Enregistrement..." : "Enregistrer"}

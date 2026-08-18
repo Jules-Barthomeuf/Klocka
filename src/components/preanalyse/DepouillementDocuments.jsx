@@ -144,16 +144,16 @@ export default function DepouillementDocuments() {
         <button
           onClick={() => inputFichier.current?.click()}
           disabled={deposer.isPending}
-          className="w-full h-20 border border-dashed border-[#edeae5]/15 rounded-md flex items-center justify-center gap-3 hover:border-[#35a79b]/50 hover:bg-[#edeae5]/[0.02] transition-all disabled:opacity-50"
+          className="w-full h-20 border border-dashed border-[#edeae5]/15 rounded-md flex items-center justify-center gap-3 hover:border-[#565b59] hover:bg-[#edeae5]/[0.02] transition-all disabled:opacity-50"
         >
           {deposer.isPending ? (
             <>
-              <Loader2 className="w-5 h-5 text-[#35a79b] animate-spin" />
+              <Loader2 className="w-5 h-5 text-[#8b9391] animate-spin" />
               <span className="text-[#9aa19e] text-sm">Lecture et dépouillement…</span>
             </>
           ) : (
             <>
-              <Upload className="w-5 h-5 text-[#35a79b]" />
+              <Upload className="w-5 h-5 text-[#8b9391]" />
               <span className="text-[#9aa19e] text-sm">PDF, image ou .eml — plusieurs à la fois</span>
             </>
           )}
@@ -200,7 +200,7 @@ export default function DepouillementDocuments() {
       ) : (
         !deposer.isPending && (
           <div className="text-center py-16">
-            <FolderOpen className="w-10 h-10 text-[#35a79b]/30 mx-auto mb-4" />
+            <FolderOpen className="w-10 h-10 text-[#8b9391]/40 mx-auto mb-4" />
             <p className="text-[#8b9391] text-sm">
               Déposez les documents d'un deal : ils sont classés, leurs données extraites, et chaque
               information indique d'où elle vient.
@@ -232,7 +232,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
   return (
     <div className="bg-[#0a0c0c] border border-[#242726] rounded-md overflow-hidden">
       <div className="px-5 py-4 border-b border-[#242726] flex items-start gap-3">
-        <FileText className="w-4 h-4 text-[#35a79b] flex-shrink-0 mt-0.5" />
+        <FileText className="w-4 h-4 text-[#8b9391] flex-shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
           <p className="text-[#edeae5] text-sm font-medium truncate">{doc.nom_fichier}</p>
           <p className="text-[#8b9391] text-xs">
@@ -371,7 +371,7 @@ export function Visionneuse({ source, onFermer }) {
   if (!source) {
     return (
       <div className="bg-[#0a0c0c] border border-[#242726] rounded-md h-[70vh] flex flex-col items-center justify-center text-center px-8">
-        <Quote className="w-8 h-8 text-[#35a79b]/30 mb-3" />
+        <Quote className="w-8 h-8 text-[#8b9391]/40 mb-3" />
         <p className="text-[#8b9391] text-sm">
           Cliquez sur le repère de page à côté d'une donnée : le document s'ouvrira ici, à la bonne page.
         </p>
@@ -382,7 +382,7 @@ export function Visionneuse({ source, onFermer }) {
   const estPdf = /\.pdf($|\?)/i.test(source.url || "");
 
   return (
-    <div className="bg-[#0a0c0c] border border-[#35a79b]/25 rounded-md overflow-hidden">
+    <div className="bg-[#0a0c0c] border border-[#2e3130] rounded-md overflow-hidden">
       <div className="px-4 py-3 border-b border-[#242726] flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[#edeae5] text-sm font-medium truncate">
@@ -404,8 +404,8 @@ export function Visionneuse({ source, onFermer }) {
       </div>
 
       {source.citation && (
-        <div className="px-4 py-3 bg-[#35a79b]/[0.07] border-b border-[#35a79b]/20">
-          <p className="text-[#7fd3c9] text-xs leading-relaxed">
+        <div className="px-4 py-3 bg-[#edeae5]/[0.04] border-b border-[#2e3130]">
+          <p className="text-[#9aa19e] text-xs leading-relaxed">
             <Quote className="w-3 h-3 inline mr-1.5" />
             {source.citation}
           </p>

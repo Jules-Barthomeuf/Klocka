@@ -336,14 +336,15 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
   // Gmail rattachée n'a alors pas à être un compte Klocka.
   const rattachement = !!sessionAvant;
 
-  let user = Records.filter('User', { email: profile.email })[0];
+  const emailGoogle = normEmail(profile.email);
+  let user = Records.filter('User', { email: emailGoogle })[0];
   if (!user && !rattachement) {
     // Même règle que la connexion par mot de passe : aucun compte ne se crée
     // librement. Seuls l'amorçage (toute première personne) et l'adresse
     // administrateur déclarée entrent sans avoir été enregistrés au préalable.
-    const amorcage = Records.count('User') === 0 || profile.email === ADMIN_EMAIL;
+    const amorcage = Records.count('User') === 0 || emailGoogle === normEmail(ADMIN_EMAIL);
     if (!amorcage) {
-      console.log(`[auth] refusé, adresse inconnue : ${profile.email}`);
+      console.log(`[auth] refusé, adresse inconnue : ${emailGoogle} (base : ${Records.count('User')} comptes)`);
       return authResultPage(res, {
         ok: false,
         title: 'Adresse non reconnue',
@@ -351,7 +352,7 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
       });
     }
     user = Records.create('User', {
-      email: profile.email,
+      email: emailGoogle,
       full_name: profile.name,
       picture: profile.picture,
       role: 'admin',
@@ -421,6 +422,25 @@ app.post('/api/admin/import-utilisateurs', wrap(async (req, res) => {
   if (r.error) return res.status(400).json(r);
   console.log(
     `[admin] import utilisateurs par ${user.email} : ${r.crees.length} créés, ${r.existants.length} existants, ${r.invalides.length} invalides`
+  );
+  ok(res, r);
+}));
+
+// Import de projets depuis un export JSON (page Import Projets). Accepte le
+// format de la page Export Projets ({ projects: [...] }) ou un tableau brut.
+// Idempotent : les projets dont l'id existe déjà sont mis à jour.
+app.post('/api/admin/import-projets', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { importerProjets } = await import('./projets-import.js');
+  const corps = req.body || {};
+  const liste = Array.isArray(corps.projets) ? corps.projets
+    : Array.isArray(corps.projets?.projects) ? corps.projets.projects
+    : corps.projets;
+  const r = importerProjets(liste, { par: user.email });
+  if (r.error) return res.status(400).json(r);
+  console.log(
+    `[admin] import projets par ${user.email} : ${r.crees} créés, ${r.maj} mis à jour, ${r.invalides} invalides`
   );
   ok(res, r);
 }));
@@ -930,6 +950,23 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap((req, res) 
   const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user);
   if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });
   ok(res, { project_id: r.project.id, titre: r.project.titre });
+}));
+
+// Vidéo de présentation client (~30 s, Remotion). Le rendu tourne en
+// arrière-plan ; le MP4 fini se télécharge depuis /uploads/videos/.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/video', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { lancerVideoLot } = await import('./video/index.js');
+  const r = lancerVideoLot(dossier, Number(req.params.index));
+  if (r.error) return res.status(404).json(r);
+  ok(res, r);
+}));
+
+// État du rendu (en_cours / pret / erreur / aucune) + URL du fichier.
+app.get('/api/preanalyse/dossiers/:dealId/lots/:index/video', wrap(async (req, res) => {
+  const { statutVideo } = await import('./video/index.js');
+  ok(res, statutVideo(req.params.dealId, Number(req.params.index)));
 }));
 
 // Changement de statut manuel (décision sans mail, réception de documents…).

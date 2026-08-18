@@ -83,7 +83,7 @@ export default function AdminSignup() {
   if (isChecking) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#edeae5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8b9391]"></div>
       </div>
     );
   }
@@ -128,7 +128,7 @@ export default function AdminSignup() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#edeae5] flex items-center justify-center p-4">
       <Card className="max-w-md w-full border-none shadow-2xl">
-        <CardHeader className="bg-gradient-to-r from-[#35a79b] to-[#7fd3c9] text-[#edeae5] pb-8">
+        <CardHeader className="bg-gradient-to-r from-[#1f2423] to-[#3a3e3c] text-[#edeae5] pb-8">
           <div className="flex items-center justify-center mb-4">
             <div className="w-16 h-16 bg-[#edeae5]/20 rounded-full flex items-center justify-center">
               <Shield className="w-8 h-8 text-[#edeae5]" />
@@ -151,7 +151,7 @@ export default function AdminSignup() {
 
           <Button
             onClick={handleLogin}
-            className="w-full h-12 bg-gradient-to-r from-[#35a79b] to-[#7fd3c9] text-[#edeae5] hover:from-[#35a79b]/90 hover:to-[#7fd3c9]/90"
+            className="w-full h-12 bg-[#1f2423] text-[#edeae5] hover:bg-[#2e3130]"
           >
             <LogIn className="w-5 h-5 mr-2" />
             Créer un compte / Se connecter

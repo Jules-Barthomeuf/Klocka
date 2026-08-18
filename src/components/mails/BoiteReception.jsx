@@ -55,16 +55,16 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
   if (!lisibles.length) {
     return (
       <div className="text-center py-16 max-w-lg mx-auto">
-        <Inbox className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
+        <Inbox className="w-10 h-10 text-[#35a79b]/30 mx-auto mb-4" />
         {!gmailReadActif ? (
-          <p className="text-[#7f9995] text-sm leading-relaxed">
+          <p className="text-[#8b9391] text-sm leading-relaxed">
             La lecture de la boîte n'est pas activée. Ajoutez{" "}
-            <code className="text-[#c4d5d1]">GOOGLE_GMAIL_READ=true</code> dans{" "}
-            <code className="text-[#c4d5d1]">.env</code>, redémarrez, puis reconnectez votre compte
+            <code className="text-[#d3d8d6]">GOOGLE_GMAIL_READ=true</code> dans{" "}
+            <code className="text-[#d3d8d6]">.env</code>, redémarrez, puis reconnectez votre compte
             Google : l'écran de consentement demandera l'accès en lecture.
           </p>
         ) : (
-          <p className="text-[#7f9995] text-sm leading-relaxed">
+          <p className="text-[#8b9391] text-sm leading-relaxed">
             Aucun compte n'a autorisé la lecture de sa boîte.{" "}
             {comptes.length > 0
               ? "Reconnectez votre compte Google : le nouveau consentement inclura la lecture."
@@ -80,10 +80,10 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
       <div className="flex items-center gap-3">
         {lisibles.length > 1 && (
           <Select value={compteActif} onValueChange={setCompte}>
-            <SelectTrigger className="bg-[#101715] border-[#1c2725] text-white w-72">
+            <SelectTrigger className="bg-[#171918] border-[#282b2a] text-[#edeae5] w-72">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
+            <SelectContent className="bg-[#0a0c0c] border-[#282b2a] text-[#edeae5]">
               {lisibles.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.label}
@@ -93,13 +93,13 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
           </Select>
         )}
         {lisibles.length === 1 && (
-          <span className="text-[#93aca7] text-sm">{lisibles[0].label}</span>
+          <span className="text-[#9aa19e] text-sm">{lisibles[0].label}</span>
         )}
         <Button
           size="sm"
           onClick={() => relever.mutate()}
           disabled={relever.isPending}
-          className="bg-white/5 hover:bg-white/10 text-[#c4d5d1] border-0 ml-auto"
+          className="bg-[#edeae5]/5 hover:bg-[#edeae5]/10 text-[#d3d8d6] border-0 ml-auto"
         >
           {relever.isPending ? (
             <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -111,40 +111,40 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
       </div>
 
       {isLoading || (relever.isPending && !mails.length) ? (
-        <p className="text-[#7f9995] text-sm py-8 text-center">Relève de la boîte…</p>
+        <p className="text-[#8b9391] text-sm py-8 text-center">Relève de la boîte…</p>
       ) : mails.length === 0 ? (
         <div className="text-center py-16">
-          <Inbox className="w-10 h-10 text-[#33d6c0]/30 mx-auto mb-4" />
-          <p className="text-[#7f9995] text-sm">Aucun mail relevé pour l'instant.</p>
+          <Inbox className="w-10 h-10 text-[#35a79b]/30 mx-auto mb-4" />
+          <p className="text-[#8b9391] text-sm">Aucun mail relevé pour l'instant.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {mails.map((m) => (
             <div
               key={m.id}
-              className="bg-[#0a0f0e] border border-[#1c2725] rounded-md px-4 py-3 flex items-center gap-3"
+              className="bg-[#0a0c0c] border border-[#282b2a] rounded-md px-4 py-3 flex items-center gap-3"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{m.objet}</p>
+                  <p className="text-[#edeae5] text-sm font-medium truncate">{m.objet}</p>
                   {m.pieces_jointes?.length > 0 && (
-                    <span className="text-[#7f9995] text-xs flex items-center gap-1 flex-shrink-0">
+                    <span className="text-[#8b9391] text-xs flex items-center gap-1 flex-shrink-0">
                       <Paperclip className="w-3 h-3" />
                       {m.pieces_jointes.length}
                     </span>
                   )}
                 </div>
-                <p className="text-[#7f9995] text-xs truncate">
+                <p className="text-[#8b9391] text-xs truncate">
                   {m.de} · {m.date ? new Date(m.date).toLocaleString("fr-FR") : ""}
                 </p>
-                {m.extrait && <p className="text-[#5e7672] text-xs truncate mt-0.5">{m.extrait}</p>}
+                {m.extrait && <p className="text-[#6b7270] text-xs truncate mt-0.5">{m.extrait}</p>}
               </div>
               <div className="flex-shrink-0">
                 {m.deal_id ? (
                   <Button
                     size="sm"
                     onClick={() => navigate(`/Analyse?deal_id=${m.deal_id}`)}
-                    className="bg-[#33d6c0]/15 hover:bg-[#33d6c0]/25 text-[#5ee7d4] border-0"
+                    className="bg-[#35a79b]/15 hover:bg-[#35a79b]/25 text-[#7fd3c9] border-0"
                   >
                     Voir le deal
                   </Button>
@@ -153,7 +153,7 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
                     size="sm"
                     onClick={() => preanalyser.mutate(m.id)}
                     disabled={preanalyser.isPending}
-                    className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
+                    className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
                   >
                     {preanalyser.isPending && preanalyser.variables === m.id ? (
                       <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -169,7 +169,7 @@ export default function BoiteReception({ comptes = [], gmailReadActif }) {
         </div>
       )}
 
-      <p className="text-[#5e7672] text-[11px]">
+      <p className="text-[#6b7270] text-[11px]">
         La préanalyse lit le mail et ses pièces jointes (PDF, images) puis crée un deal dans la page
         Analyse. Comptez 30 à 60 secondes.
       </p>

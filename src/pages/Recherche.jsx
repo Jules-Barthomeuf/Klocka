@@ -22,21 +22,21 @@ export default function Recherche() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050807]">
+    <div className="min-h-screen bg-[#0a0c0c]">
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">Recherche</p>
-          <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Profils d'investissement</h1>
-          <p className="text-white/30 text-sm mt-2">Critères de recherche par tranche de budget et projets correspondants.</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-2">Recherche</p>
+          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Profils d'investissement</h1>
+          <p className="text-[#edeae5]/30 text-sm mt-2">Critères de recherche par tranche de budget et projets correspondants.</p>
           {isAdmin && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleCopyLink}
-              className="mt-3 border-white/10 bg-[#050807] text-white/50 hover:text-white hover:bg-white/5 text-xs gap-2"
+              className="mt-3 border-[#edeae5]/10 bg-[#0a0c0c] text-[#edeae5]/50 hover:text-[#edeae5] hover:bg-[#edeae5]/5 text-xs gap-2"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-[#5ee7d4]" /> : <Link2 className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-[#7fd3c9]" /> : <Link2 className="w-3.5 h-3.5" />}
               {copied ? "Lien copié" : "Copier le lien"}
             </Button>
           )}
@@ -49,7 +49,7 @@ export default function Recherche() {
             className="flex-shrink-0 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 border"
             style={
               activeTab === "synthese"
-                ? { backgroundColor: "rgba(42,157,143,0.15)", color: "#33d6c0", borderColor: "rgba(42,157,143,0.4)" }
+                ? { backgroundColor: "rgba(42,157,143,0.15)", color: "#35a79b", borderColor: "rgba(42,157,143,0.4)" }
                 : { backgroundColor: "transparent", color: "rgba(255,255,255,0.4)", borderColor: "rgba(255,255,255,0.06)" }
             }
           >
@@ -76,18 +76,18 @@ export default function Recherche() {
         ) : (
           <>
             {/* Profil Details */}
-            <Card className="bg-[#0a0f0e] border border-[#16201f] rounded-md mb-8">
+            <Card className="bg-[#0a0c0c] border border-[#242726] rounded-md mb-8">
               <CardContent className="p-6 md:p-8">
                 <ProfilCard profil={activeProfil} />
               </CardContent>
             </Card>
 
             {/* CTA */}
-            <div className="text-center border border-[#16201f] rounded-md bg-[#0a0f0e] p-6 mb-8">
-              <p className="text-white/50 text-sm mb-4">Vous avez un bien correspondant à nos critères ?</p>
+            <div className="text-center border border-[#242726] rounded-md bg-[#0a0c0c] p-6 mb-8">
+              <p className="text-[#edeae5]/50 text-sm mb-4">Vous avez un bien correspondant à nos critères ?</p>
               <Button
                 onClick={() => window.open("https://dpe3smipjxh.typeform.com/to/GD7sREFs", "_blank")}
-                className="bg-[#33d6c0] hover:bg-[#33d6c0]/90 text-white px-6 py-2.5 gap-2"
+                className="bg-[#35a79b] hover:bg-[#35a79b]/90 text-[#edeae5] px-6 py-2.5 gap-2"
               >
                 Prendre rendez-vous
                 <ArrowRight className="w-4 h-4" />
@@ -97,8 +97,8 @@ export default function Recherche() {
             {/* Projets correspondants */}
             <div>
               <div className="flex items-center gap-3 mb-5">
-                <Search className="w-4 h-4 text-white/30" />
-                <h2 className="text-white text-lg font-light">Projets dans cette tranche</h2>
+                <Search className="w-4 h-4 text-[#edeae5]/30" />
+                <h2 className="text-[#edeae5] text-lg font-light">Projets dans cette tranche</h2>
               </div>
               <ProfilProjects
                 budgetMin={activeProfil.budgetMin}

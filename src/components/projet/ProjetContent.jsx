@@ -2,28 +2,174 @@ import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Download, MapPin, Calculator, X, ChevronLeft, ChevronRight, FileText, ExternalLink } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, ReferenceDot, Legend } from 'recharts';
+import { Download, X, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
-import SecteurIndicateurs from "./SecteurIndicateurs";
 import BailTabs from "./BailTabs";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
-import { NeonButton } from "@/components/ui/neon-button";
+import VilleSecteurIA, { AvisProjetIA, useAnalyseIA } from "./SecteurAnalyseIA";
+import AllerPlusLoin from "./AllerPlusLoin";
+
+// Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
+function SectionLabel({ children, tone = "muted", className = "" }) {
+  const color = tone === "teal" ? "text-[#7fd3c9]" : tone === "gold" ? "text-[#e0c9a0]" : tone === "red" ? "text-red-400" : "text-[#8b9391]";
+  return <div className={`text-[10px] tracking-[0.2em] uppercase ${color} mb-3 ${className}`}>{children}</div>;
+}
+
+// Le chapô (`right`) passe sous le titre : titre → sous-titre → chapô → chiffres.
+function TabHeader({ title, subtitle, left, right }) {
+  return (
+    <div className="mb-8 max-md:mb-5">
+      <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] mb-2">{title}</h2>
+      {subtitle && <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mb-0 max-w-[560px]">{subtitle}</p>}
+      {left}
+      {right && <div className="mt-5 max-md:mt-4 max-w-[880px]">{right}</div>}
+    </div>
+  );
+}
+
+function LeadText({ children }) {
+  return <p className="text-[14px] max-md:text-[13px] leading-[1.75] text-[#d3d8d6] mb-0">{children}</p>;
+}
+
+function KpiStrip({ items, className = "" }) {
+  const list = (items || []).filter(Boolean);
+  if (!list.length) return null;
+  return (
+    <div className={`flex flex-wrap border-t border-[#edeae5]/[0.35] mb-10 max-md:mb-6 ${className}`}>
+      {list.map((it, i) => (
+        <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#edeae5]/[0.12] md:pl-6" : ""}`}>
+          <div className={`font-cormorant text-[26px] max-md:text-[20px] font-light ${it.accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{it.value}</div>
+          <div className="text-[12px] text-[#8b9391] mt-1">{it.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function KVRow({ label, value, accent }) {
+  if (value == null || value === "") return null;
+  return (
+    <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
+      <span className="text-[#8b9391] flex-shrink-0">{label}</span>
+      <span className={`text-right ${accent || "text-[#edeae5]"}`}>{value}</span>
+    </div>
+  );
+}
+
+// Tableau éditorial : en-têtes lettrés, filets fins, chiffres alignés à droite
+function DataTable({ label, head, rows, align }) {
+  if (!rows || rows.length === 0) return null;
+  const cellAlign = (i) => (align?.[i] === "left" || (!align && i === 0) ? "text-left" : "text-right");
+  return (
+    <div className="mt-10 max-md:mt-6">
+      {label && <SectionLabel>{label}</SectionLabel>}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <thead>
+            <tr>
+              {head.map((h, i) => (
+                <th key={i} className={`text-[10px] tracking-[0.16em] uppercase text-[#8b9391] font-normal pb-3 whitespace-nowrap ${cellAlign(i)}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, ri) => (
+              <tr key={ri} className="border-t border-[#edeae5]/[0.12]">
+                {r.map((c, ci) => {
+                  const isObj = c !== null && typeof c === "object" && !React.isValidElement(c);
+                  return (
+                    <td key={ci} className={`py-3.5 align-top ${cellAlign(ci)} ${isObj && c.accent ? c.accent : ci === 0 ? "text-[#edeae5]" : "text-[#d3d8d6]"}`}>
+                      {isObj ? c.value : c}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function EmptyTab({ text = "Aucune information dans cette partie" }) {
+  return <p className="text-[#8b9391] text-sm border-t border-[#edeae5]/[0.12] pt-6 mb-0">{text}</p>;
+}
+
+function NotesBlock({ notes }) {
+  if (!notes || notes.length === 0) return null;
+  return (
+    <div className="mt-10 max-md:mt-6">
+      <SectionLabel>Notes</SectionLabel>
+      <div className="space-y-5">
+        {notes.map((note, idx) => (
+          <div key={idx} className="border-t border-[#edeae5]/[0.12] pt-4">
+            {note.titre && <h4 className="text-[#edeae5] text-[15px] font-medium mb-1.5">{note.titre}</h4>}
+            <p className="text-sm text-[#d3d8d6] leading-[1.8] whitespace-pre-wrap mb-0">{note.contenu}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Échelle A→G façon maquette : barres fines grises, classe active en teal
+function GradeScale({ active, valueLabel }) {
+  return (
+    <div className="space-y-1.5">
+      {["A", "B", "C", "D", "E", "F", "G"].map((g, idx) => {
+        const isActive = active === g;
+        return (
+          <div key={g} className="flex items-center gap-3">
+            <span className={`w-5 text-center flex-shrink-0 ${isActive ? "font-cormorant text-[17px] text-[#edeae5]" : "text-[12px] text-[#565b59]"}`}>{g}</span>
+            <div className="h-[9px] flex-shrink-0" style={{ width: `${26 + idx * 10}%`, backgroundColor: isActive ? "#35a79b" : "#242726" }} />
+            {isActive && valueLabel && <span className="text-[12px] text-[#7fd3c9] whitespace-nowrap">{valueLabel}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Fourchette bas / médian / haut sur filet fin
+function RangeScale({ bas, median, haut, unit = "€" }) {
+  const b = bas || 0;
+  const h = haut || (median ? median * 2 : 0);
+  const m = median || 0;
+  const range = h - b;
+  const pos = range > 0 && m > 0 ? Math.max(0, Math.min(100, ((m - b) / range) * 100)) : 50;
+  const fmtN = (v) => (v ? v.toLocaleString("fr-FR") : "—");
+  return (
+    <div>
+      <div className="relative h-[3px] bg-[#242726]">
+        {m > 0 && <div className="absolute w-[9px] h-[9px] rounded-full bg-[#7fd3c9]" style={{ left: `${pos}%`, top: "50%", transform: "translate(-50%, -50%)" }} />}
+      </div>
+      <div className="flex justify-between mt-2.5 text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+        <span className="text-[#8b9391]">{fmtN(b)} {unit}</span>
+        <span className="text-[#edeae5]">{fmtN(m)} {unit}</span>
+        <span className="text-[#8b9391]">{fmtN(h)} {unit}</span>
+      </div>
+    </div>
+  );
+}
 
 // Shared project display used by the client detail page and the public share page.
 // `isAdmin` / `showAsClient` control admin-only bits; `isPublic` disables navigation to
 // internal tools (simulator/comparator) for anonymous visitors.
 export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false }) {
   const navigate = useNavigate();
+  // Analyse IA (avis projet + chiffres ville/secteur), mutualisée en un appel.
+  const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [ongletActif, setOngletActif] = useState("secteur");
   const [currentSlide] = useState(1);
   const photosContainerRef = useRef(null);
 
@@ -178,11 +324,52 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   }
 
   const pieDataBudget = [
-    { name: 'Prix négocié', value: prixBienNegocie, fill: '#33d6c0' },
-    { name: "Droits enreg.", value: droitsEnregistrement, fill: '#5ee7d4' },
-    { name: 'Honoraires', value: totalFraisKlocka, fill: '#F59E0B' },
-    { name: 'Frais divers', value: fraisDivers, fill: '#EF4444' }
+    { name: 'Prix négocié', value: prixBienNegocie, fill: '#35a79b' },
+    { name: "Droits enreg.", value: droitsEnregistrement, fill: '#7fd3c9' },
+    { name: 'Honoraires', value: totalFraisKlocka, fill: '#e0c9a0' },
+    { name: 'Frais divers', value: fraisDivers, fill: '#a8894f' }
   ];
+
+  // Création de richesse annuelle : capital remboursé + cash-flow, année par année
+  // (même lecture que le graphique du simulateur).
+  const richesseRows = (() => {
+    const rows = [];
+    let capitalRestantTemp = montantEmprunt;
+    let loyerCourantTemp = loyerAnnuel;
+    for (let annee = 1; annee <= Math.min(anneeRevente, 20); annee++) {
+      if (annee > 1) loyerCourantTemp = loyerCourantTemp * (1 + indexation / 100);
+      const chargesCoproNonRefactTemp = !chargesCoproRefacturables ? -chargesCopropriete : 0;
+      const taxeFonciereNonRefactTemp = !taxeFonciereRefacturable ? -taxeFonciere : 0;
+      const loyersNetsCFTemp = loyerCourantTemp + chargesCoproNonRefactTemp + taxeFonciereNonRefactTemp;
+      let interetsAnnuelsTemp = 0;
+      let capitalRembourseTemp = 0;
+      let capitalTempLoop = capitalRestantTemp;
+      if (capitalTempLoop > 0 && annee <= dureeCredit) {
+        const tauxMensuelTemp = (tauxInteret / 100) / 12;
+        for (let mois = 0; mois < 12; mois++) {
+          if (capitalTempLoop <= 0) break;
+          const interetMoisTemp = capitalTempLoop * tauxMensuelTemp;
+          interetsAnnuelsTemp += interetMoisTemp;
+          const capitalMoisTemp = echeanceMensuelle - interetMoisTemp;
+          capitalRembourseTemp += capitalMoisTemp;
+          capitalTempLoop -= capitalMoisTemp;
+        }
+        capitalRestantTemp = Math.max(0, capitalRestantTemp - capitalRembourseTemp);
+      }
+      const assuranceCreditTemp = annee <= dureeCredit ? -(montantEmprunt * (tauxAssuranceCredit / 100)) : 0;
+      const creditBancaireCFTemp = -(interetsAnnuelsTemp + capitalRembourseTemp + Math.abs(assuranceCreditTemp));
+      const gestionLocativeCostTemp = -(loyersNetsCFTemp * (gestionLocative / 100));
+      const totalChargesTemp = gestionLocativeCostTemp - comptabilite - assurancePNE - chargesDiverses;
+      const cashFlowAnnuelTemp = loyersNetsCFTemp + creditBancaireCFTemp + totalChargesTemp;
+      rows.push({
+        annee: `${annee}`,
+        capital: Math.round(Math.abs(capitalRembourseTemp)),
+        cashflow: Math.round(cashFlowAnnuelTemp),
+      });
+    }
+    return rows;
+  })();
+  const richesseBrute = richesseRows.reduce((acc, r) => acc + r.capital + r.cashflow, 0);
 
   // Clé Embed API extraite en variable d'environnement (VITE_GOOGLE_MAPS_API_KEY).
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -198,6 +385,39 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
     project.adresse_complete ?
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.adresse_complete)}` :
     null;
+
+  // Valeurs dérivées consommées par les onglets éditoriaux
+  const fmtNum = (v) => (v || v === 0 ? Number(v).toLocaleString('fr-FR') : '—');
+  const fmtPct = (v, digits = 2) => (v == null ? '—' : `${Number(v).toFixed(digits).replace('.', ',')} %`);
+  const surfaceRef = project.sim_surface > 0 ? project.sim_surface : project.surface_m2 || 0;
+  const loyerM2 = surfaceRef > 0 && loyerAnnuel > 0 ? Math.round(loyerAnnuel / surfaceRef) : project.loyer_m2_an || 0;
+  const prixM2Revient = surfaceRef > 0 && prixRevientCalcule > 0 ? Math.round(prixRevientCalcule / surfaceRef) : 0;
+  const valeurLocativeSecteur = project.marche_baux_moyenne || project.marche_offre_moyenne || 0;
+  const ecartValeurLocative = valeurLocativeSecteur > 0 && loyerM2 > 0
+    ? ((loyerM2 - valeurLocativeSecteur) / valeurLocativeSecteur) * 100
+    : null;
+  const marcheLead = ecartValeurLocative != null
+    ? `Le loyer en place ressort à ${fmtNum(loyerM2)} €/m²/an, soit ${Math.abs(ecartValeurLocative).toFixed(0)} % ${ecartValeurLocative < 0 ? 'sous' : 'au-dessus de'} la valeur locative du secteur, estimée à ${fmtNum(valeurLocativeSecteur)} €/m²/an.`
+    : project.marche_quartier_nom
+      ? `Positionnement du deal sur le secteur ${project.marche_quartier_nom}.`
+      : 'Comparables et fourchettes de valeurs relevés sur le secteur.';
+  const anneesRestantesBail = project.echeance_bail && moment(project.echeance_bail).isValid()
+    ? Math.max(0, moment(project.echeance_bail).diff(moment(), 'years', true))
+    : null;
+  const locataireLead = project.nom_locataire
+    ? `${project.nom_locataire}${project.activite_locataire ? ` — ${project.activite_locataire}` : ''}${loyerAnnuel > 0 ? `, ${fmtNum(loyerAnnuel)} € HT HC de loyer annuel` : ''}${anneesRestantesBail != null ? `, bail courant sur ${anneesRestantesBail.toFixed(1).replace('.', ',')} an(s)` : ''}.`
+    : 'Identité du preneur, économie du bail et garanties associées.';
+  const bienLead = project.description_bien
+    || [surfaceRef > 0 ? `${fmtNum(surfaceRef)} m² exploités` : null, loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an de loyer` : null].filter(Boolean).join(', ')
+    || 'Surfaces, configuration et éléments marquants du lot.';
+  const coproLead = [
+    project.quote_part_lot > 0 ? `Quote-part du lot de ${project.quote_part_lot} %` : null,
+    project.charges_copropriete > 0 ? `${fmtNum(project.charges_copropriete)} € de charges annuelles` : null,
+    project.taxe_fonciere_an > 0 ? `${fmtNum(project.taxe_fonciere_an)} € de taxe foncière` : null,
+  ].filter(Boolean).join(' · ') || "Règlement, charges et décisions d'assemblée générale.";
+  const diagLead = project.dpe_note
+    ? `DPE classe ${project.dpe_note}${project.dpe_consommation > 0 ? ` — ${fmtNum(project.dpe_consommation)} kWh/m²/an` : ''}${project.ges_note ? `, GES classe ${project.ges_note}` : ''}.`
+    : 'Dossier de diagnostic technique du lot.';
 
   // Lien vers le simulateur public (accessible sans compte) — reprend les paramètres du projet
   const openPublicSimulator = () => {
@@ -244,13 +464,15 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="min-h-screen bg-[#050807] overflow-x-hidden">
+      // `overflow-x-clip` et non `hidden` : `hidden` crée un conteneur de
+      // défilement qui neutralise le `sticky` du rail d'analyse.
+      className="projet-editorial min-h-screen bg-[#0a0c0c] text-[#edeae5] overflow-x-clip">
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-[#050807] border-none [&>button]:hidden">
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-[#0a0c0c] border-none [&>button]:hidden">
           <div className="relative w-full h-full flex items-center justify-center">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white hover:bg-white/20 z-10 w-14 h-14">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-[#edeae5] hover:bg-[#edeae5]/20 z-10 w-14 h-14">
               <X className="w-8 h-8" />
             </Button>
             {project?.photos && project.photos.length > 1 && (
@@ -259,14 +481,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   const currentIndex = project.photos.indexOf(selectedImage);
                   const prevIndex = (currentIndex - 1 + project.photos.length) % project.photos.length;
                   setSelectedImage(project.photos[prevIndex]);
-                }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-[#050807]/50 hover:bg-[#050807]/70 text-white rounded-full w-16 h-16 z-10">
+                }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-[#0a0c0c]/50 hover:bg-[#0a0c0c]/70 text-[#edeae5] rounded-full w-16 h-16 z-10">
                   <ChevronLeft className="w-10 h-10" />
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => {
                   const currentIndex = project.photos.indexOf(selectedImage);
                   const nextIndex = (currentIndex + 1) % project.photos.length;
                   setSelectedImage(project.photos[nextIndex]);
-                }} className="absolute right-6 top-1/2 -translate-y-1/2 bg-[#050807]/50 hover:bg-[#050807]/70 text-white rounded-full w-16 h-16 z-10">
+                }} className="absolute right-6 top-1/2 -translate-y-1/2 bg-[#0a0c0c]/50 hover:bg-[#0a0c0c]/70 text-[#edeae5] rounded-full w-16 h-16 z-10">
                   <ChevronRight className="w-10 h-10" />
                 </Button>
               </>
@@ -276,98 +498,104 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         </DialogContent>
       </Dialog>
 
-      {/* Banner */}
-      <div className="w-full bg-[#050807] h-48 md:h-72 lg:h-96 overflow-hidden px-2 md:px-6">
-        <div className="flex h-full gap-2 md:gap-3 overflow-hidden py-2 md:py-3">
-          <div className="flex-1 min-w-0">
-            <div className="w-full h-full rounded-lg overflow-hidden relative">
-              {googleMapsLink && mapUrl ? (
-                <iframe src={mapUrl} width="100%" height="100%" style={{ border: 0, display: 'block' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du projet" />
-              ) : (
-                <div className="w-full h-full bg-white/[0.03] flex items-center justify-center">
-                  <p className="text-white/30 text-sm">Aucune adresse renseignée</p>
+      {/* Hero pleine largeur */}
+      <div className="relative w-full h-[560px] max-md:h-[440px] overflow-hidden">
+        {project.photos && project.photos.length > 0 ? (
+          <img src={project.photos[0]} alt={project.titre} onClick={() => setSelectedImage(project.photos[0])}
+            className="absolute inset-0 w-full h-full object-cover cursor-pointer" />
+        ) : mapUrl ? (
+          <iframe src={mapUrl} className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du projet" />
+        ) : (
+          <div className="absolute inset-0 bg-[#0e100f]" />
+        )}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
+
+        <div className="absolute top-7 left-5 right-5 md:left-14 md:right-14 flex justify-end items-center gap-3">
+          <div className="flex gap-2 flex-wrap justify-end items-center">
+            {/* Galerie : miniature empilée quand le dossier a plusieurs photos ;
+                le clic ouvre la visionneuse (flèches pour naviguer). */}
+            {project.photos && project.photos.length > 1 && (
+              <button onClick={() => setSelectedImage(project.photos[0])}
+                title={`Voir les ${project.photos.length} photos`}
+                className="relative group mr-1">
+                <span className="absolute -top-1 -right-1 w-full h-full border border-[#edeae5]/[0.28] bg-[#0a0c0c]/50" aria-hidden="true" />
+                <img src={project.photos[1]} alt="Galerie du projet"
+                  className="relative h-9 w-14 object-cover border border-[#edeae5]/[0.28] group-hover:border-[#edeae5] transition-colors" />
+                <span className="absolute inset-0 flex items-center justify-center bg-[#0a0c0c]/45 text-[11px] tracking-[0.08em] text-[#edeae5]" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  +{project.photos.length - 1}
+                </span>
+              </button>
+            )}
+            {project.documents && project.documents.length > 0 && (
+              <button onClick={() => window.open(project.documents[0], '_blank')}
+                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#0a0c0c]/50 border border-[#edeae5]/[0.28] text-[#edeae5] hover:border-[#edeae5] transition-colors max-md:hidden">
+                Documents ({project.documents.length})
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="absolute bottom-9 md:bottom-11 left-5 right-5 md:left-14 md:right-14 grid md:grid-cols-[minmax(0,1fr)_300px] gap-6 md:gap-12 items-end">
+          <div>
+            <h1 className="font-cormorant text-[34px] md:text-[48px] font-light tracking-[-0.03em] leading-[1.02] text-[#edeae5] mb-0">{project.titre}</h1>
+            <div className="md:hidden mt-5">
+              <div className="flex gap-8" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                <div>
+                  <div className="text-[22px] font-light text-[#edeae5] leading-tight">{formatCurrency(prixRevientCalcule)}</div>
+                  <div className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mt-1">Prix de revient</div>
                 </div>
-              )}
-              <div className="absolute bottom-2 left-2 bg-[#050807]/60 text-white text-xs px-2 py-0.5 rounded pointer-events-none">Carte</div>
+                {rendementLocatifNetCalcule > 0 && (
+                  <div>
+                    <div className="text-[22px] font-light text-[#7fd3c9] leading-tight">{rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %</div>
+                    <div className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mt-1">Rendement net</div>
+                  </div>
+                )}
+              </div>
+              <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
+                className="mt-4 inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                Simulateur complet <span aria-hidden="true">→</span>
+              </button>
             </div>
           </div>
-          {project.photos && project.photos.length > 0 && (
-            <div ref={photosContainerRef} className="hidden md:flex w-36 lg:w-56 flex-col gap-2 overflow-y-auto flex-shrink-0">
-              {project.photos.map((photo, idx) => (
-                <img key={idx} src={photo} alt={`Photo ${idx + 1}`} onClick={() => setSelectedImage(photo)}
-                  className="w-full h-28 lg:h-36 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0" />
-              ))}
+          <div className="max-md:hidden text-right">
+            <div className="flex justify-end gap-10" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              <div>
+                <div className="text-[30px] font-light text-[#edeae5] leading-tight">{formatCurrency(prixRevientCalcule)}</div>
+                <div className="text-[10px] tracking-[0.18em] uppercase text-[#8b9391] mt-1.5">Prix de revient</div>
+              </div>
+              <div>
+                <div className="text-[30px] font-light text-[#7fd3c9] leading-tight">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : '—'}</div>
+                <div className="text-[10px] tracking-[0.18em] uppercase text-[#8b9391] mt-1.5">Rendement net</div>
+              </div>
             </div>
-          )}
+            <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
+              className="mt-5 inline-flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+              Simulateur complet <span aria-hidden="true">→</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {project.photos && project.photos.length > 0 && (
-        <div className="md:hidden flex gap-2 overflow-x-auto px-3 py-2 bg-[#050807]" style={{ scrollbarWidth: 'none' }}>
-          {project.photos.map((photo, idx) => (
-            <img key={idx} src={photo} alt={`Photo ${idx + 1}`} onClick={() => setSelectedImage(photo)}
-              className="h-20 w-32 object-cover rounded-lg flex-shrink-0 cursor-pointer" />
+      {project.photos && project.photos.length > 1 && (
+        <div ref={photosContainerRef} className="flex gap-2 overflow-x-auto px-5 md:px-14 py-3 bg-[#0a0c0c] border-b border-[#edeae5]/[0.08]" style={{ scrollbarWidth: 'none' }}>
+          {project.photos.slice(1).map((photo, idx) => (
+            <img key={idx} src={photo} alt={`Photo ${idx + 2}`} onClick={() => setSelectedImage(photo)}
+              className="h-20 w-32 object-cover flex-shrink-0 cursor-pointer opacity-80 hover:opacity-100 transition-opacity" />
           ))}
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="mb-6 md:mb-8">
-            <div className="flex flex-col md:flex-row items-start justify-between mb-4 md:mb-6 gap-3">
-              <div className="flex-1">
-                <h1 className="text-4xl max-md:text-2xl font-light tracking-tight text-white mb-2">{project.titre}</h1>
-                {project.surface_m2 > 0 && (
-                  <p className="text-white/30 text-lg max-md:text-base mb-6 max-md:mb-4">{project.surface_m2} m²</p>
-                )}
-                {!isPublic && (
-                  <div className="flex flex-col md:flex-row gap-2 max-md:w-full">
-                    <NeonButton variant="solid" className="md:min-w-[280px] max-md:w-full" onClick={() => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}>
-                      Voir le simulateur complet
-                    </NeonButton>
-                    <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-[#131c1b] rounded-full text-white text-sm transition-all max-md:w-full max-md:justify-center"
-                      onClick={() => navigate(`${createPageUrl("Comparateur")}?preselect=${project.id}`)}>
-                      <Calculator className="w-4 h-4" />
-                      Comparer
-                    </button>
-                    <button className="inline-flex items-center justify-center w-9 h-9 bg-white/[0.02] hover:bg-white/[0.05] border border-[#131c1b] rounded-full text-white transition-all max-md:hidden"
-                      onClick={() => window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank')}>
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                    {project.documents && project.documents.length > 0 && (
-                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-[#131c1b] rounded-full text-[#33d6c0] text-sm transition-all max-md:w-full max-md:justify-center"
-                        onClick={() => window.open(project.documents[0], '_blank')}>
-                        <Download className="w-4 h-4" />
-                        Documents ({project.documents.length})
-                      </button>
-                    )}
-                  </div>
-                )}
-                {isPublic && (
-                  <div className="flex flex-col md:flex-row gap-2 max-md:w-full">
-                    <NeonButton variant="solid" className="md:min-w-[280px] max-md:w-full" onClick={openPublicSimulator}>
-                      Voir le simulateur complet
-                    </NeonButton>
-                    {project.documents && project.documents.length > 0 && (
-                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-[#131c1b] rounded-full text-[#33d6c0] text-sm transition-all max-md:w-full max-md:justify-center"
-                        onClick={() => window.open(project.documents[0], '_blank')}>
-                        <Download className="w-4 h-4" />
-                        Documents ({project.documents.length})
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="text-left md:text-right w-full md:w-auto">
-                <p className="text-white/30 text-[10px] uppercase tracking-[0.15em]">Prix de revient</p>
-                <p className="text-3xl max-md:text-2xl font-light text-white">{formatCurrency(prixRevientCalcule)}</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        <Tabs defaultValue="secteur" className="w-full mt-8 max-md:mt-6">
-          <TabsList className="w-full flex justify-start gap-4 max-md:gap-2 bg-transparent border-b border-[#131c1b] mb-8 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Pas de `items-start` ici : la colonne de droite doit s'étirer sur toute
+          la hauteur de la ligne, sinon le rail `sticky` n'a aucune course et
+          reste figé en haut de page. */}
+      <div className="max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
+        <div className="min-w-0">
+        {/* Sur mobile l'analyse revient en tête de page, faute de colonne */}
+        <div className="lg:hidden">
+          <AvisProjetIA analyse={analyse} loading={analyseLoading} error={analyseError} section={ongletActif} />
+        </div>
+        <Tabs value={ongletActif} onValueChange={setOngletActif} className="w-full">
+          <TabsList className="w-full flex justify-start flex-wrap max-md:flex-nowrap gap-x-7 gap-y-2 max-md:gap-x-5 bg-transparent border-0 mb-10 max-md:mb-6 rounded-none px-0 h-auto pt-1 pb-6 max-md:pb-4 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               { v: "secteur", l: "Secteur" },
               { v: "marche", l: "Marché" },
@@ -378,7 +606,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               { v: "diagnostique", l: "Diagnostique" },
               { v: "documents_projet", l: "Documents" },
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="relative bg-transparent border-0 text-white/30 hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent border-0 border-b border-transparent text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:border-[#35a79b] data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-colors duration-200">
                 {l}
               </TabsTrigger>
             ))}
@@ -386,581 +614,555 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="secteur" className="space-y-6 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              {(project.description_ville || project.description_secteur || project.ville_secteur_champ1) && (
-                <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8 mb-6">
-                  {(project.ville_secteur_champ1 || project.ville_secteur_champ2 || project.ville_secteur_champ3) && (
-                    <div className="flex gap-2 mb-5 flex-wrap">
-                      {project.ville_secteur_champ1 && <Badge className="bg-[#33d6c0] text-white py-1 px-4">{project.ville_secteur_champ1}</Badge>}
-                      {project.ville_secteur_champ2 && <Badge className="bg-[#5ee7d4] text-white py-1 px-4">{project.ville_secteur_champ2}</Badge>}
-                      {project.ville_secteur_champ3 && <Badge className="bg-white/10 text-white py-1 px-4">{project.ville_secteur_champ3}</Badge>}
+              <div className="mb-8 max-md:mb-5">
+                <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] mb-2">Secteur</h2>
+                <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mb-0 max-w-[560px]">Du macro au micro : la ville, le quartier, puis l'emplacement.</p>
+                {(project.ville_secteur_champ1 || project.ville_secteur_champ2 || project.ville_secteur_champ3) && (
+                  <div className="flex gap-2 mt-4 flex-wrap">
+                    {project.ville_secteur_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#35a79b]/[0.16] border border-[#35a79b] text-[#7fd3c9]">{project.ville_secteur_champ1}</span>}
+                    {project.ville_secteur_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#7fd3c9]/40 text-[#7fd3c9]">{project.ville_secteur_champ2}</span>}
+                    {project.ville_secteur_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#edeae5]/[0.18] text-[#d3d8d6]">{project.ville_secteur_champ3}</span>}
+                  </div>
+                )}
+                <div className="mt-6 max-md:mt-5">
+                  <VilleSecteurIA
+                    analyse={analyse}
+                    villeData={villeData}
+                    secteurData={secteurData}
+                    loading={analyseLoading}
+                    error={analyseError}
+                    refresh={refreshAnalyse}
+                    project={project}
+                    isPublic={isPublic}
+                  />
+                </div>
+              </div>
+
+              {mapUrl && (
+                <div className="mb-10 max-md:mb-6">
+                  <SectionLabel tone="teal">Localisation</SectionLabel>
+                  <div className="relative h-[420px] max-md:h-[260px] overflow-hidden bg-[#0e100f]">
+                    <iframe src={mapUrl} className="w-full h-full" style={{ border: 0, filter: 'saturate(0.85) contrast(1.04)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du secteur" />
+                    <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[#edeae5]/[0.13]" />
+                    <div className="max-md:hidden absolute left-6 bottom-6 max-w-[340px] bg-[#0a0c0c]/[0.86] backdrop-blur-sm px-5 py-4">
+                      {project.adresse_complete && (
+                        <>
+                          <div className="text-[10px] tracking-[0.18em] uppercase text-[#8b9391]">Adresse</div>
+                          <div className="text-[14px] leading-[1.6] text-[#edeae5] mt-1">{project.adresse_complete}</div>
+                        </>
+                      )}
+                      {project.surface_m2 > 0 && (
+                        <div className="text-[13px] text-[#d3d8d6] mt-2.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{project.surface_m2} m² exploités</div>
+                      )}
+                      {googleMapsLink && (
+                        <a href={googleMapsLink} target="_blank" rel="noopener noreferrer"
+                          className="pointer-events-auto inline-flex items-center gap-2 mt-4 text-[10px] tracking-[0.18em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                          Ouvrir dans Google Maps <span aria-hidden="true">→</span>
+                        </a>
+                      )}
                     </div>
-                  )}
-                  {project.description_ville && (
-                    <div className="mb-5">
-                      <h3 className="text-white font-medium mb-2 text-sm uppercase tracking-wider text-white/50">La ville</h3>
-                      <p className="text-sm text-white/60 leading-relaxed text-justify whitespace-pre-wrap">{project.description_ville}</p>
-                    </div>
-                  )}
-                  {project.description_secteur && (
+                  </div>
+                  <div className="md:hidden">
+                    <KVRow label="Adresse" value={project.adresse_complete} />
+                    <KVRow label="Surface" value={project.surface_m2 > 0 ? `${project.surface_m2} m²` : null} />
+                    {googleMapsLink && (
+                      <KVRow label="Carte" value={<a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="text-[#7fd3c9]">Ouvrir dans Google Maps</a>} />
+                    )}
+                  </div>
+                </div>
+              )}
+              <EnvironnementIndicateurs project={project} />
+              <NotesBlock notes={project.notes_secteur} />
+              <AllerPlusLoin section="secteur" project={project} />
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="marche">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
+              <TabHeader
+                title="Marché"
+                subtitle={`Comparables du secteur et positionnement du deal.${project.marche_quartier_nom ? ` Secteur : ${project.marche_quartier_nom}.` : ''}`}
+                right={<LeadText>{marcheLead}</LeadText>}
+              />
+
+              <KpiStrip items={[
+                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer en place /m²/an' },
+                valeurLocativeSecteur > 0 && { value: `${fmtNum(valeurLocativeSecteur)} €`, label: 'Valeur locative secteur', accent: 'text-[#7fd3c9]' },
+                prixM2Revient > 0 && { value: `${fmtNum(prixM2Revient)} €`, label: 'Prix de revient /m²' },
+                project.marche_prix_m2_median > 0 && { value: `${fmtNum(project.marche_prix_m2_median)} €`, label: 'Prix médian résidentiel /m²' },
+                ecartValeurLocative != null && {
+                  value: `${ecartValeurLocative > 0 ? '+' : ''}${ecartValeurLocative.toFixed(0)} %`,
+                  label: 'Écart à la valeur locative',
+                  accent: ecartValeurLocative < 0 ? 'text-[#e0c9a0]' : 'text-[#7fd3c9]',
+                },
+              ]} />
+
+              {(project.marche_prix_m2_median > 0 || project.marche_offre_moyenne > 0 || project.marche_baux_moyenne > 0) && (
+                <div className="grid md:grid-cols-2 gap-x-12 gap-y-9 mb-10 max-md:mb-6">
+                  {!project.marche_masquer_residentiel && project.marche_prix_m2_median > 0 && (
                     <div>
-                      <h3 className="text-white font-medium mb-2 text-sm uppercase tracking-wider text-white/50">Le secteur</h3>
-                      <p className="text-sm text-white/60 leading-relaxed text-justify whitespace-pre-wrap">{project.description_secteur}</p>
+                      <SectionLabel tone="teal">Résidentiel — prix au m²</SectionLabel>
+                      <RangeScale bas={project.marche_prix_m2_bas} median={project.marche_prix_m2_median} haut={project.marche_prix_m2_haut} />
+                    </div>
+                  )}
+                  {!project.marche_masquer_commercial && project.marche_offre_moyenne > 0 && (
+                    <div>
+                      <SectionLabel tone="teal">Commercial — valeur locative (offre)</SectionLabel>
+                      <RangeScale bas={project.marche_offre_bas} median={project.marche_offre_moyenne} haut={project.marche_offre_haut} unit="€/m²" />
+                    </div>
+                  )}
+                  {!project.marche_masquer_commercial && project.marche_baux_moyenne > 0 && (
+                    <div>
+                      <SectionLabel tone="teal">Commercial — baux existants</SectionLabel>
+                      <RangeScale bas={project.marche_baux_bas} median={project.marche_baux_moyenne} haut={project.marche_baux_haut} unit="€/m²" />
+                    </div>
+                  )}
+                  {(project.marche_evolution_1an || project.marche_evolution_5ans) && (
+                    <div>
+                      <SectionLabel>Évolution des prix</SectionLabel>
+                      <KVRow label="Sur 1 an" value={project.marche_evolution_1an != null && project.marche_evolution_1an !== 0 ? `${project.marche_evolution_1an > 0 ? '+' : ''}${project.marche_evolution_1an} %` : null}
+                        accent={project.marche_evolution_1an >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'} />
+                      <KVRow label="Sur 5 ans" value={project.marche_evolution_5ans != null && project.marche_evolution_5ans !== 0 ? `${project.marche_evolution_5ans > 0 ? '+' : ''}${project.marche_evolution_5ans} %` : null}
+                        accent={project.marche_evolution_5ans >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'} />
                     </div>
                   )}
                 </div>
               )}
-              <SecteurIndicateurs project={project} />
-              <div className="mt-6">
-                <EnvironnementIndicateurs project={project} />
-              </div>
+
+              {!project.marche_masquer_secteurs && (
+                <DataTable
+                  label="Comparables du secteur"
+                  head={['Secteur', 'Estimation basse', 'Estimation haute']}
+                  rows={(project.marche_secteurs || []).map((s, idx) => [
+                    s.nom || `Secteur ${idx + 1}`,
+                    s.estimation_basse ? `${fmtNum(s.estimation_basse)} €/m²` : '—',
+                    { value: s.estimation_haute ? `${fmtNum(s.estimation_haute)} €/m²` : '—', accent: 'text-[#edeae5]' },
+                  ])}
+                />
+              )}
+
+              <NotesBlock notes={project.notes_marche} />
+
+              {!project.marche_prix_m2_median && !project.marche_offre_moyenne && !project.marche_baux_moyenne
+                && (!project.marche_secteurs || project.marche_secteurs.length === 0)
+                && (!project.notes_marche || project.notes_marche.length === 0) && <EmptyTab />}
+              <AllerPlusLoin section="marche" project={project} />
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="marche" className="space-y-8 max-md:space-y-4">
+          <TabsContent value="bien">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-                {project.marche_quartier_nom && (
-                  <div className="mb-8">
-                    <p className="text-xs text-white/30 uppercase tracking-wider mb-1">Quartier / Secteur</p>
-                    <p className="text-lg text-white font-medium">{project.marche_quartier_nom}</p>
+              <TabHeader
+                title="Bien"
+                subtitle="Le physique : surfaces, configuration et éléments marquants du lot."
+                left={(project.bien_champ1 || project.bien_champ2 || project.bien_champ3) && (
+                  <div className="flex gap-2 mt-5 flex-wrap">
+                    {project.bien_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#35a79b]/[0.16] border border-[#35a79b] text-[#7fd3c9]">{project.bien_champ1}</span>}
+                    {project.bien_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#7fd3c9]/40 text-[#7fd3c9]">{project.bien_champ2}</span>}
+                    {project.bien_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#edeae5]/[0.18] text-[#d3d8d6]">{project.bien_champ3}</span>}
                   </div>
                 )}
-                {!project.marche_masquer_secteurs && project.marche_secteurs && project.marche_secteurs.length > 0 && (
-                  <div className="mb-10">
-                    <h3 className="text-xl max-md:text-lg text-white mb-4 flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-[#33d6c0]" />
-                      Secteurs & Localisation
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {project.marche_secteurs.map((secteur, idx) => (
-                        <div key={idx} className="p-5 bg-white/[0.03]/50 rounded-md border border-[#131c1b]">
-                          <p className="text-white font-medium mb-3">{secteur.nom || `Secteur ${idx + 1}`}</p>
-                          <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                              <p className="text-xs text-[#5ee7d4] mb-1">Estimation basse</p>
-                              <p className="text-lg text-white font-semibold">{secteur.estimation_basse?.toLocaleString() || '-'} €/m²</p>
-                            </div>
-                            <div className="h-8 w-px bg-[#24312f]" />
-                            <div className="flex-1">
-                              <p className="text-xs text-red-400 mb-1">Estimation haute</p>
-                              <p className="text-lg text-white font-semibold">{secteur.estimation_haute?.toLocaleString() || '-'} €/m²</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {!project.marche_masquer_residentiel && (
-                  <div className="mb-12 max-md:mb-8">
-                    <h3 className="text-xl max-md:text-lg text-white mb-6 max-md:mb-4">Marché immobilier résidentiel</h3>
-                    {project.marche_prix_m2_median > 0 && (
-                      <div className="mb-6">
-                        <div className="mb-3"><span className="text-sm text-white">Prix au m²</span></div>
-                        <div className="relative h-2 rounded-full overflow-hidden bg-gradient-to-r from-[#33d6c0] via-yellow-500 to-red-500">
-                          {(() => {
-                            const bas = project.marche_prix_m2_bas || 0;
-                            const haut = project.marche_prix_m2_haut || project.marche_prix_m2_median * 2;
-                            const range = haut - bas;
-                            const position = range > 0 ? ((project.marche_prix_m2_median - bas) / range) * 100 : 50;
-                            return (
-                              <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg border-2 border-black" style={{ left: `${Math.max(0, Math.min(100, position))}%`, transform: 'translate(-50%, -50%)' }} title={`${project.marche_prix_m2_median.toLocaleString()} €`} />
-                            );
-                          })()}
-                        </div>
-                        <div className="flex flex-col md:flex-row justify-between gap-2 md:gap-0 mt-3">
-                          <span className="text-sm max-md:text-xs text-[#5ee7d4] font-semibold">Prix bas: {project.marche_prix_m2_bas?.toLocaleString() || '0'} €</span>
-                          <span className="text-sm max-md:text-xs text-yellow-400 font-semibold">Prix médian: {project.marche_prix_m2_median.toLocaleString()} €</span>
-                          <span className="text-sm max-md:text-xs text-red-400 font-semibold">Prix haut: {project.marche_prix_m2_haut?.toLocaleString() || '-'} €</span>
-                        </div>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-4 max-md:gap-3">
-                      {project.marche_evolution_1an != null && project.marche_evolution_1an !== 0 && (
-                        <div className="p-4 bg-white/[0.03]/50 rounded-md">
-                          <p className="text-xs text-white/30 mb-1">Évolution 1 an</p>
-                          <p className={`text-2xl font-semibold ${project.marche_evolution_1an >= 0 ? 'text-[#5ee7d4]' : 'text-red-400'}`}>{project.marche_evolution_1an >= 0 ? '+' : ''}{project.marche_evolution_1an}%</p>
-                        </div>
-                      )}
-                      {project.marche_evolution_5ans != null && project.marche_evolution_5ans !== 0 && (
-                        <div className="p-4 bg-white/[0.03]/50 rounded-md">
-                          <p className="text-xs text-white/30 mb-1">Évolution 5 ans</p>
-                          <p className={`text-2xl font-semibold ${project.marche_evolution_5ans >= 0 ? 'text-[#5ee7d4]' : 'text-red-400'}`}>{project.marche_evolution_5ans >= 0 ? '+' : ''}{project.marche_evolution_5ans}%</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {!project.marche_masquer_commercial && (
-                  <div>
-                    <h3 className="text-xl max-md:text-lg font-light text-white mb-6 max-md:mb-4">Marché immobilier commercial</h3>
-                    {(project.marche_offre_bas > 0 || project.marche_offre_moyenne > 0 || project.marche_offre_haut > 0) && (
-                      <div className="mb-6">
-                        <div className="mb-3"><span className="text-sm text-white">Valeur locative (offre)</span></div>
-                        <div className="relative h-2 rounded-full overflow-hidden bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
-                          {(() => {
-                            const bas = project.marche_offre_bas || 0;
-                            const haut = project.marche_offre_haut || project.marche_offre_moyenne * 2;
-                            const moyenne = project.marche_offre_moyenne || 0;
-                            const range = haut - bas;
-                            const position = range > 0 && moyenne > 0 ? ((moyenne - bas) / range) * 100 : 50;
-                            return moyenne > 0 ? (
-                              <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg border-2 border-black" style={{ left: `${Math.max(0, Math.min(100, position))}%`, transform: 'translate(-50%, -50%)' }} title={`${moyenne.toLocaleString()} €/m²`} />
-                            ) : null;
-                          })()}
-                        </div>
-                        <div className="flex flex-col md:flex-row justify-between gap-2 md:gap-0 mt-3">
-                          <span className="text-sm max-md:text-xs text-blue-400 font-semibold">Prix bas: {project.marche_offre_bas?.toLocaleString() || '0'} €</span>
-                          <span className="text-sm max-md:text-xs text-purple-400 font-semibold">Prix médian: {project.marche_offre_moyenne?.toLocaleString() || '-'} €</span>
-                          <span className="text-sm max-md:text-xs text-pink-400 font-semibold">Prix haut: {project.marche_offre_haut?.toLocaleString() || '-'} €</span>
-                        </div>
-                      </div>
-                    )}
-                    {(project.marche_baux_bas > 0 || project.marche_baux_moyenne > 0 || project.marche_baux_haut > 0) && (
-                      <div className="mb-6">
-                        <div className="mb-3"><span className="text-sm text-white">Valeur locative (baux existants)</span></div>
-                        <div className="relative h-2 rounded-full overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500">
-                          {(() => {
-                            const bas = project.marche_baux_bas || 0;
-                            const haut = project.marche_baux_haut || project.marche_baux_moyenne * 2;
-                            const moyenne = project.marche_baux_moyenne || 0;
-                            const range = haut - bas;
-                            const position = range > 0 && moyenne > 0 ? ((moyenne - bas) / range) * 100 : 50;
-                            return moyenne > 0 ? (
-                              <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg border-2 border-black" style={{ left: `${Math.max(0, Math.min(100, position))}%`, transform: 'translate(-50%, -50%)' }} title={`${moyenne.toLocaleString()} €/m²/an`} />
-                            ) : null;
-                          })()}
-                        </div>
-                        <div className="flex flex-col md:flex-row justify-between gap-2 md:gap-0 mt-3">
-                          <span className="text-sm max-md:text-xs text-orange-400 font-semibold">Prix bas: {project.marche_baux_bas?.toLocaleString() || '0'} €</span>
-                          <span className="text-sm max-md:text-xs text-amber-400 font-semibold">Prix médian: {project.marche_baux_moyenne?.toLocaleString() || '-'} €</span>
-                          <span className="text-sm max-md:text-xs text-yellow-400 font-semibold">Prix haut: {project.marche_baux_haut?.toLocaleString() || '-'} €</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {project.notes_marche && project.notes_marche.length > 0 && (
-                  <div className="mt-8 max-md:mt-6 pt-6 max-md:pt-4 border-t border-[#131c1b]">
-                    <h3 className="font-light text-white mb-4 max-md:mb-2 text-lg">Notes</h3>
-                    <div className="space-y-3">
-                      {project.notes_marche.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                          {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
-                          <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </TabsContent>
+                right={<LeadText>{bienLead}</LeadText>}
+              />
 
-          <TabsContent value="bien" className="space-y-8 max-md:space-y-4">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-                <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Le bien</h2>
-                {(project.bien_champ1 || project.bien_champ2 || project.bien_champ3) &&
-                  <div className="flex gap-3 max-md:gap-2 mb-6 max-md:mb-4 flex-wrap">
-                    {project.bien_champ1 && <Badge className="bg-[#33d6c0] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ1}</Badge>}
-                    {project.bien_champ2 && <Badge className="bg-[#5ee7d4] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ2}</Badge>}
-                    {project.bien_champ3 && <Badge className="bg-[#24312f] text-white py-1 px-4 max-md:text-xs max-md:px-3">{project.bien_champ3}</Badge>}
-                  </div>
-                }
-                {project.description_bien && <p className="text-sm max-md:text-xs text-white/60 leading-relaxed text-justify">{project.description_bien}</p>}
-                {!project.description_bien && (!project.bien_champ1 && !project.bien_champ2 && !project.bien_champ3) && (!project.notes_bien || project.notes_bien.length === 0) &&
-                  <div className="text-center py-12 max-md:py-6"><p className="text-white/30 max-md:text-sm">Aucune information dans cette partie</p></div>
-                }
-                {project.notes_bien && project.notes_bien.length > 0 &&
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
-                    <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Notes</h3>
-                    <div className="space-y-4">
-                      {project.notes_bien.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                          {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
-                          <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                }
-              </div>
-            </motion.div>
-          </TabsContent>
+              <KpiStrip items={[
+                surfaceRef > 0 && { value: `${fmtNum(surfaceRef)} m²`, label: 'Surface exploitée' },
+                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#7fd3c9]' },
+                loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC' },
+                prixM2Revient > 0 && { value: `${fmtNum(prixM2Revient)} €`, label: 'Prix de revient /m²' },
+                project.type_construction && { value: project.type_construction, label: 'Type de construction' },
+              ]} />
 
-          <TabsContent value="locataire" className="space-y-8 max-md:space-y-4">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-                <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Le locataire</h2>
-                <div className="grid md:grid-cols-2 gap-6 max-md:gap-4 mb-6 max-md:mb-4">
-                  {project.nom_locataire && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Nom</p><p className="text-lg max-md:text-base font-semibold text-white">{project.nom_locataire}</p></div>}
-                  {project.activite_locataire && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Activité</p><p className="text-lg max-md:text-base font-semibold text-white">{project.activite_locataire}</p></div>}
-                  {(project.sim_loyer_initial_ht > 0 || project.loyer_annuel_ht > 0) && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Loyer annuel</p><p className="text-lg max-md:text-base font-semibold text-[#33d6c0]">{(project.sim_loyer_initial_ht || project.loyer_annuel_ht)?.toLocaleString()}€ HT HC</p></div>}
-                  {project.echeance_bail && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Échéance du bail</p><p className="text-lg max-md:text-base font-semibold text-white">{moment(project.echeance_bail).format('DD MMMM YYYY')}</p></div>}
-                  {(project.sim_surface > 0 || project.loyer_m2_an > 0) && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Loyer par m²</p><p className="text-lg max-md:text-base font-semibold text-white">{project.sim_surface > 0 && project.sim_loyer_initial_ht > 0 ? Math.round(project.sim_loyer_initial_ht / project.sim_surface) : project.loyer_m2_an} €/m²/an</p></div>}
-                  {!project.nom_locataire && !project.activite_locataire && (project.sim_loyer_initial_ht <= 0 && project.loyer_annuel_ht <= 0) && !project.echeance_bail && (project.sim_surface <= 0 && !project.loyer_m2_an) &&
-                    <div className="text-center py-12 max-md:py-6 col-span-2"><p className="text-white/30 max-md:text-sm">Aucune information dans cette partie</p></div>
-                  }
+              <div className="grid md:grid-cols-2 gap-x-12 gap-y-9">
+                <div>
+                  <SectionLabel tone="teal">Configuration</SectionLabel>
+                  <KVRow label="Surface" value={surfaceRef > 0 ? `${fmtNum(surfaceRef)} m²` : null} />
+                  <KVRow label="Activité exploitée" value={project.activite_locataire} />
+                  <KVRow label="Type de construction" value={project.type_construction} />
+                  <KVRow label="Adresse" value={project.adresse_complete} />
                 </div>
+                <div>
+                  <SectionLabel tone="teal">Exploitation</SectionLabel>
+                  <KVRow label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} />
+                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#7fd3c9]" />
+                  <KVRow label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
+                  <KVRow label="DPE" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} />
+                </div>
+              </div>
+
+              {project.description_bien && (
+                <div className="mt-10 max-md:mt-6">
+                  <SectionLabel>Description</SectionLabel>
+                  <p className="md:columns-2 md:gap-10 text-[14.5px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{project.description_bien}</p>
+                </div>
+              )}
+
+              <NotesBlock notes={project.notes_bien} />
+
+              {!project.description_bien && !project.bien_champ1 && !project.bien_champ2 && !project.bien_champ3
+                && surfaceRef <= 0 && (!project.notes_bien || project.notes_bien.length === 0) && <EmptyTab />}
+              <AllerPlusLoin section="bien" project={project} />
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="locataire">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
+              <TabHeader
+                title="Locataire"
+                subtitle="La solidité de la signature : identité, ancienneté, comptes, garanties."
+                right={<LeadText>{locataireLead}</LeadText>}
+              />
+
+              <KpiStrip items={[
+                loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC' },
+                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#7fd3c9]' },
+                anneesRestantesBail != null && { value: `${anneesRestantesBail.toFixed(1).replace('.', ',')} ans`, label: 'Bail restant à courir' },
+                project.echeance_bail && { value: moment(project.echeance_bail).format('MM/YYYY'), label: 'Échéance du bail' },
+              ]} />
+
+              <div className="grid md:grid-cols-2 gap-x-12 gap-y-9">
+                <div>
+                  <SectionLabel tone="teal">Identité</SectionLabel>
+                  <KVRow label="Raison sociale" value={project.nom_locataire} />
+                  <KVRow label="Activité" value={project.activite_locataire} />
+                  <KVRow label="Adresse d'exploitation" value={project.adresse_complete} />
+                </div>
+                <div>
+                  <SectionLabel tone="teal">Économie de la signature</SectionLabel>
+                  <KVRow label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} />
+                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#7fd3c9]" />
+                  <KVRow label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
+                  <KVRow label="Dépôt de garantie" value={project.bail_depot_garantie > 0 ? `${fmtNum(project.bail_depot_garantie)} €` : null} />
+                </div>
+              </div>
+
+              <div className="mt-8 max-md:mt-5">
                 <LocataireLiensSociaux liens={project.liens_locataire} />
-                {project.bilans_locataire && project.bilans_locataire.length > 0 && (
-                  <div className="mt-6 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
-                    <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Bilans financiers</h3>
-                    <div className="grid md:grid-cols-2 gap-3">
-                      {project.bilans_locataire.sort((a, b) => (b.annee || "").localeCompare(a.annee || "")).map((bilan, idx) => (
-                        <a key={idx} href={bilan.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-white/[0.02] rounded-md border border-[#131c1b] hover:border-[#33d6c0]/50 hover:bg-white/[0.03] transition-all duration-300 group">
-                          <div className="w-10 h-10 bg-[#33d6c0]/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-[#33d6c0]/30 transition-colors"><FileText className="w-5 h-5 text-[#33d6c0]" /></div>
-                          <div className="flex-1 min-w-0"><p className="text-white text-sm font-medium truncate">{bilan.nom}</p>{bilan.annee && <p className="text-white/20 text-xs">Année {bilan.annee}</p>}</div>
-                          <Download className="w-4 h-4 text-white/20 group-hover:text-[#33d6c0] transition-colors flex-shrink-0" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {project.notes_locataire && project.notes_locataire.length > 0 &&
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
-                    <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Notes</h3>
-                    <div className="space-y-4">
-                      {project.notes_locataire.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                          {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
-                          <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                }
               </div>
+
+              {project.bilans_locataire && project.bilans_locataire.length > 0 && (
+                <DataTable
+                  label="Santé financière — comptes déposés"
+                  head={['Exercice', 'Document', '']}
+                  align={['left', 'left', 'right']}
+                  rows={[...project.bilans_locataire].sort((a, b) => (b.annee || '').localeCompare(a.annee || '')).map((bilan) => [
+                    bilan.annee || '—',
+                    { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-[#d3d8d6] hover:text-[#7fd3c9] transition-colors">{bilan.nom}</a> },
+                    { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-[#7fd3c9] text-[13px] hover:text-[#edeae5] transition-colors">Télécharger</a> },
+                  ])}
+                />
+              )}
+
+              <NotesBlock notes={project.notes_locataire} />
+
+              {!project.nom_locataire && !project.activite_locataire && loyerAnnuel <= 0 && !project.echeance_bail
+                && (!project.notes_locataire || project.notes_locataire.length === 0) && <EmptyTab />}
+              <AllerPlusLoin section="locataire" project={project} />
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="bail" className="space-y-8 max-md:space-y-4">
+          <TabsContent value="bail">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-                <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Analyse du bail</h2>
-                <BailTabs project={project} />
-              </div>
-            </motion.div>
-          </TabsContent>
+              <TabHeader
+                title="Analyse du bail"
+                subtitle="Économie du bail, calendrier et clauses sensibles."
+                right={<LeadText>{project.bail_type || 'Bail commercial'}{project.echeance_bail ? ` — échéance au ${moment(project.echeance_bail).format('DD MMMM YYYY')}` : ''}{loyerAnnuel > 0 ? `, ${fmtNum(loyerAnnuel)} € HT/HC de loyer annuel.` : '.'}</LeadText>}
+              />
 
-          <TabsContent value="copropriete" className="space-y-8 max-md:space-y-4">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-                <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">La copropriété</h2>
-                <div className="grid md:grid-cols-2 gap-6 max-md:gap-4">
-                  {project.charges_copropriete > 0 && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Charges de la copro</p><p className="text-lg max-md:text-base font-semibold text-white">{project.charges_copropriete} €</p></div>}
-                  {project.type_construction && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Type de construction</p><p className="text-lg max-md:text-base font-semibold text-white">{project.type_construction}</p></div>}
-                  {project.taxe_fonciere_an > 0 && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Taxe foncière</p><p className="text-lg max-md:text-base font-semibold text-white">{project.taxe_fonciere_an} €/an</p></div>}
-                  {project.provision_charges > 0 && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Provision pour charges</p><p className="text-lg max-md:text-base font-semibold text-white">{project.provision_charges} €/an</p></div>}
-                  {project.quote_part_lot > 0 && <div><p className="text-sm max-md:text-xs text-white/30 mb-1">Quote part du lot</p><p className="text-lg max-md:text-base font-semibold text-white">{project.quote_part_lot}%</p></div>}
-                  {project.charges_copropriete <= 0 && !project.type_construction && project.taxe_fonciere_an <= 0 && project.provision_charges <= 0 && project.quote_part_lot <= 0 &&
-                    <div className="text-center py-12 max-md:py-6 col-span-2"><p className="text-white/30 max-md:text-sm">Aucune information dans cette partie</p></div>
-                  }
+              {(project.bail_date_debut || project.echeance_bail || project.bail_date_echeance) && (
+                <div className="mb-10 max-md:mb-6">
+                  <SectionLabel>Calendrier</SectionLabel>
+                  <div className="relative h-[3px] bg-[#242726] mt-6">
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#35a79b]" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border border-[#35a79b] bg-[#0a0c0c]" />
+                  </div>
+                  <div className="flex justify-between mt-3 text-[13px]">
+                    <div>
+                      <div className="text-[#7fd3c9]">{project.bail_date_debut ? moment(project.bail_date_debut).format('MM/YYYY') : '—'}</div>
+                      <div className="text-[12px] text-[#8b9391]">Prise d'effet</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[#7fd3c9]">{(project.bail_date_echeance || project.echeance_bail) ? moment(project.bail_date_echeance || project.echeance_bail).format('MM/YYYY') : '—'}</div>
+                      <div className="text-[12px] text-[#8b9391]">Échéance</div>
+                    </div>
+                  </div>
                 </div>
-                {(project.activites_autorisees || project.activites_interdites) &&
-                  <div className="grid md:grid-cols-2 gap-6 max-md:gap-4 mt-6">
-                    {project.activites_autorisees &&
-                      <div className="p-4 bg-[#33d6c0]/10 rounded-md border border-[#33d6c0]/30">
-                        <p className="text-sm max-md:text-xs text-[#5ee7d4] mb-3 font-semibold">✓ Activités autorisées</p>
-                        <ul className="space-y-1">{project.activites_autorisees.split(',').map((activite, idx) => (<li key={idx} className="text-sm text-white/60">• {activite.trim()}</li>))}</ul>
-                      </div>
-                    }
-                    {project.activites_interdites &&
-                      <div className="p-4 bg-red-900/20 rounded-md border border-red-500/30">
-                        <p className="text-sm max-md:text-xs text-red-400 mb-3 font-semibold">✗ Activités interdites</p>
-                        <ul className="space-y-1">{project.activites_interdites.split(',').map((activite, idx) => (<li key={idx} className="text-sm text-white/60">• {activite.trim()}</li>))}</ul>
-                      </div>
-                    }
-                  </div>
-                }
-                {project.synthese_assemblee_generale && project.synthese_assemblee_generale.trim() && (
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
-                    <h3 className="font-light text-white mb-3 max-md:mb-2 max-md:text-lg">Synthèse de l'assemblée générale</h3>
-                    <div className="text-white/60 leading-relaxed whitespace-pre-wrap max-md:text-sm">{project.synthese_assemblee_generale}</div>
-                  </div>
-                )}
-                {(project.resolutions_votees || project.resolutions_refusees) &&
-                  <div className="grid md:grid-cols-2 gap-6 max-md:gap-4 mt-6">
-                    {project.resolutions_votees &&
-                      <div className="p-4 bg-[#33d6c0]/10 rounded-md border border-[#33d6c0]/30">
-                        <p className="text-sm max-md:text-xs text-[#5ee7d4] mb-3 font-semibold">✓ Résolutions votées</p>
-                        <div className="text-sm text-white/60 whitespace-pre-wrap">{project.resolutions_votees}</div>
-                      </div>
-                    }
-                    {project.resolutions_refusees &&
-                      <div className="p-4 bg-red-900/20 rounded-md border border-red-500/30">
-                        <p className="text-sm max-md:text-xs text-red-400 mb-3 font-semibold">✗ Résolutions non acceptées</p>
-                        <div className="text-sm text-white/60 whitespace-pre-wrap">{project.resolutions_refusees}</div>
-                      </div>
-                    }
-                  </div>
-                }
-                <AssembleesGeneralesSection project={project} isAdmin={isAdmin && !showAsClient} showAsClient={showAsClient} />
-                {project.notes_libres && project.notes_libres.length > 0 &&
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
-                    <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Notes</h3>
-                    <div className="space-y-4">
-                      {project.notes_libres.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                          {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
-                          <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                }
-              </div>
+              )}
+
+              <BailTabs project={project} />
+              <AllerPlusLoin section="bail" project={project} />
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="diagnostique" className="space-y-8 max-md:space-y-4">
+          <TabsContent value="copropriete">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-                <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Diagnostiques énergétiques</h2>
-                <div className="grid md:grid-cols-2 gap-8 max-md:gap-6">
+              <TabHeader
+                title="Copropriété"
+                subtitle="Charges, quote-part du lot et décisions d'assemblée générale."
+                right={<LeadText>{coproLead}</LeadText>}
+              />
+
+              <KpiStrip items={[
+                project.quote_part_lot > 0 && { value: `${project.quote_part_lot} %`, label: 'Quote-part du lot' },
+                project.charges_copropriete > 0 && { value: `${fmtNum(project.charges_copropriete)} €`, label: 'Charges annuelles' },
+                project.provision_charges > 0 && { value: `${fmtNum(project.provision_charges)} €`, label: 'Provision pour charges' },
+                project.taxe_fonciere_an > 0 && { value: `${fmtNum(project.taxe_fonciere_an)} €`, label: 'Taxe foncière /an', accent: 'text-[#e0c9a0]' },
+                project.type_construction && { value: project.type_construction, label: 'Type de construction' },
+              ]} />
+
+              {(project.activites_autorisees || project.activites_interdites) && (
+                <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 mb-10 max-md:mb-6">
+                  {project.activites_autorisees && (
+                    <div className="border-l border-[#35a79b] pl-5">
+                      <SectionLabel tone="teal">Activités autorisées</SectionLabel>
+                      <ul className="space-y-2.5 list-none pl-0 mb-0">
+                        {project.activites_autorisees.split(',').map((a, idx) => (
+                          <li key={idx} className="text-[14.5px] text-[#d3d8d6]">{a.trim()}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {project.activites_interdites && (
+                    <div className="border-l border-[#e0c9a0] pl-5">
+                      <SectionLabel tone="gold">Activités interdites</SectionLabel>
+                      <ul className="space-y-2.5 list-none pl-0 mb-0">
+                        {project.activites_interdites.split(',').map((a, idx) => (
+                          <li key={idx} className="text-[14.5px] text-[#d3d8d6]">{a.trim()}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {project.synthese_assemblee_generale && project.synthese_assemblee_generale.trim() && (
+                <div className="mb-10 max-md:mb-6">
+                  <SectionLabel>Synthèse de l'assemblée générale</SectionLabel>
+                  <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p>
+                </div>
+              )}
+
+              {(project.resolutions_votees || project.resolutions_refusees) && (
+                <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 mb-10 max-md:mb-6">
+                  {project.resolutions_votees && (
+                    <div className="border-l border-[#35a79b] pl-5">
+                      <SectionLabel tone="teal">Résolutions votées</SectionLabel>
+                      <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{project.resolutions_votees}</p>
+                    </div>
+                  )}
+                  {project.resolutions_refusees && (
+                    <div className="border-l border-[#e0c9a0] pl-5">
+                      <SectionLabel tone="gold">Résolutions non acceptées</SectionLabel>
+                      <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <AssembleesGeneralesSection project={project} isAdmin={isAdmin && !showAsClient} showAsClient={showAsClient} />
+              <NotesBlock notes={project.notes_libres} />
+
+              {project.charges_copropriete <= 0 && !project.type_construction && project.taxe_fonciere_an <= 0
+                && project.provision_charges <= 0 && project.quote_part_lot <= 0
+                && !project.activites_autorisees && !project.activites_interdites
+                && !project.synthese_assemblee_generale && <EmptyTab />}
+              <AllerPlusLoin section="copropriete" project={project} />
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="diagnostique">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
+              <TabHeader
+                title="Diagnostique"
+                subtitle="Performance énergétique et émissions du lot."
+                right={<LeadText>{diagLead}</LeadText>}
+              />
+
+              {(project.dpe_note || project.ges_note) && (
+                <div className="grid md:grid-cols-2 gap-x-12 gap-y-10 mb-10 max-md:mb-6">
                   {project.dpe_note && (
                     <div>
-                      <h3 className="text-lg max-md:text-base font-semibold text-white mb-4 max-md:mb-3">DPE - Diagnostic de Performance Énergétique</h3>
-                      <div className="space-y-1">
-                        {["A", "B", "C", "D", "E", "F", "G"].map((note, idx) => {
-                          const colors = ["#319834", "#34CC0C", "#C3D301", "#FDEE03", "#FDB814", "#EF8023", "#E5001E"];
-                          const widths = ["60%", "70%", "80%", "90%", "100%", "90%", "80%"];
-                          const isActive = project.dpe_note === note;
-                          return (
-                            <div key={note} className={`flex items-center gap-2 transition-all ${isActive ? 'scale-105' : 'opacity-60'}`} style={{ width: widths[idx] }}>
-                              <div className="flex-1 h-8 max-md:h-7 flex items-center justify-between px-3 max-md:px-2 rounded-r-lg text-white text-sm max-md:text-xs" style={{ backgroundColor: colors[idx] }}>
-                                <span>{note}</span>
-                                {isActive && project.dpe_consommation > 0 && <span className="text-xs max-md:text-[10px]">{project.dpe_consommation} kWh/m²/an</span>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <SectionLabel tone="teal">Diagnostic de performance énergétique</SectionLabel>
+                      <GradeScale active={project.dpe_note} valueLabel={project.dpe_consommation > 0 ? `${fmtNum(project.dpe_consommation)} kWh/m²/an` : null} />
                     </div>
                   )}
                   {project.ges_note && (
                     <div>
-                      <h3 className="text-lg max-md:text-base font-semibold text-white mb-4 max-md:mb-3">GES - Émissions de gaz à effet de serre</h3>
-                      <div className="space-y-1">
-                        {["A", "B", "C", "D", "E", "F", "G"].map((note, idx) => {
-                          const colors = ["#F1EEF6", "#E3D5EC", "#C7AED7", "#A777BE", "#8B50A2", "#6A3285", "#4E1F67"];
-                          const widths = ["60%", "70%", "80%", "90%", "100%", "90%", "80%"];
-                          const isActive = project.ges_note === note;
-                          return (
-                            <div key={note} className={`flex items-center gap-2 transition-all ${isActive ? 'scale-105' : 'opacity-60'}`} style={{ width: widths[idx] }}>
-                              <div className="flex-1 h-8 max-md:h-7 flex items-center justify-between px-3 max-md:px-2 rounded-r-lg text-white text-sm max-md:text-xs" style={{ backgroundColor: colors[idx] }}>
-                                <span>{note}</span>
-                                {isActive && project.ges_emission > 0 && <span className="text-xs max-md:text-[10px]">{project.ges_emission} kg CO₂/m²/an</span>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <SectionLabel tone="teal">Émissions de gaz à effet de serre</SectionLabel>
+                      <GradeScale active={project.ges_note} valueLabel={project.ges_emission > 0 ? `${fmtNum(project.ges_emission)} kg CO₂/m²/an` : null} />
                     </div>
                   )}
                 </div>
-                {project.notes_diagnostique && project.notes_diagnostique.length > 0 && (
-                  <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#131c1b]">
-                    <h3 className="font-light text-white mb-4 max-md:mb-2 max-md:text-lg">Notes</h3>
-                    <div className="space-y-4">
-                      {project.notes_diagnostique.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                          {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
-                          <p className="text-sm text-white/60 whitespace-pre-wrap">{note.contenu}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {!project.dpe_note && !project.ges_note && (!project.notes_diagnostique || project.notes_diagnostique.length === 0) && (
-                  <div className="text-center py-12 max-md:py-6"><p className="text-white/30 max-md:text-sm">Aucune donnée de diagnostic disponible pour ce projet.</p></div>
-                )}
+              )}
+
+              <div className="grid md:grid-cols-2 gap-x-12">
+                <div>
+                  <KVRow label="Classe énergie" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} accent="text-[#7fd3c9]" />
+                  <KVRow label="Consommation" value={project.dpe_consommation > 0 ? `${fmtNum(project.dpe_consommation)} kWh/m²/an` : null} />
+                </div>
+                <div>
+                  <KVRow label="Classe GES" value={project.ges_note ? `Classe ${project.ges_note}` : null} accent="text-[#7fd3c9]" />
+                  <KVRow label="Émissions" value={project.ges_emission > 0 ? `${fmtNum(project.ges_emission)} kg CO₂/m²/an` : null} />
+                </div>
               </div>
+
+              <NotesBlock notes={project.notes_diagnostique} />
+
+              {!project.dpe_note && !project.ges_note && (!project.notes_diagnostique || project.notes_diagnostique.length === 0) && (
+                <EmptyTab text="Aucune donnée de diagnostic disponible pour ce projet." />
+              )}
+              <AllerPlusLoin section="diagnostique" project={project} />
             </motion.div>
           </TabsContent>
 
-          <TabsContent value="documents_projet" className="space-y-8 max-md:space-y-4">
+          <TabsContent value="documents_projet">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-                <h2 className="text-2xl max-md:text-xl font-light text-white mb-6 max-md:mb-4">Documents du projet</h2>
-                {project.fichiers_projet && project.fichiers_projet.length > 0 ? (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {project.fichiers_projet.map((fichier, idx) => (
-                      <a key={idx} href={fichier.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 p-4 bg-white/[0.02] rounded-md border border-[#131c1b] hover:border-[#33d6c0]/50 hover:bg-white/[0.03] transition-all duration-300 group">
-                        <div className="w-12 h-12 bg-[#33d6c0]/20 rounded-md flex items-center justify-center flex-shrink-0 group-hover:bg-[#33d6c0]/30 transition-colors"><FileText className="w-6 h-6 text-[#33d6c0]" /></div>
-                        <div className="flex-1 min-w-0"><p className="text-white font-medium truncate">{fichier.nom}</p><p className="text-white/20 text-xs">Cliquez pour télécharger</p></div>
-                        <Download className="w-5 h-5 text-white/20 group-hover:text-[#33d6c0] transition-colors flex-shrink-0" />
-                      </a>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 max-md:py-6">
-                    <FileText className="w-12 h-12 text-white/15 mx-auto mb-4" />
-                    <p className="text-white/30 max-md:text-sm">Aucun document disponible pour ce projet.</p>
-                  </div>
-                )}
-              </div>
+              <TabHeader
+                title="Documents"
+                subtitle="Pièces du dossier mises à disposition."
+                right={<LeadText>{project.fichiers_projet && project.fichiers_projet.length > 0
+                  ? `${project.fichiers_projet.length} document${project.fichiers_projet.length > 1 ? 's' : ''} disponible${project.fichiers_projet.length > 1 ? 's' : ''} au téléchargement.`
+                  : 'Aucun document disponible pour ce projet.'}</LeadText>}
+              />
+
+              {project.fichiers_projet && project.fichiers_projet.length > 0 ? (
+                <div className="border-t border-[#edeae5]/[0.35]">
+                  {project.fichiers_projet.map((fichier, idx) => (
+                    <a key={idx} href={fichier.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-4 py-4 border-b border-[#edeae5]/[0.12] group">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <FileText className="w-4 h-4 text-[#35a79b] flex-shrink-0" />
+                        <span className="text-[14.5px] text-[#edeae5] truncate group-hover:text-[#7fd3c9] transition-colors">{fichier.nom}</span>
+                      </div>
+                      <span className="flex items-center gap-2 text-[12px] text-[#8b9391] group-hover:text-[#7fd3c9] transition-colors flex-shrink-0">
+                        Télécharger <Download className="w-3.5 h-3.5" />
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <EmptyTab text="Aucun document disponible pour ce projet." />
+              )}
+              <AllerPlusLoin section="documents_projet" project={project} />
             </motion.div>
           </TabsContent>
         </Tabs>
 
         {/* Synthèse financière */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="mt-12 max-md:mt-6 pt-10 max-md:pt-6">
-          <div className="mb-8">
-            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">Finances</p>
-            <h2 className="text-2xl md:text-3xl font-light text-white tracking-tight">Synthèse financière</h2>
-            <div className="h-px w-12 bg-[#33d6c0] mt-3" />
-          </div>
+          <TabHeader
+            title="Synthèse financière"
+            subtitle="Budget d'acquisition, indicateurs clés et création de richesse."
+          />
           <div className="grid lg:grid-cols-2 gap-6 max-md:grid-cols-1 max-md:gap-4 mb-8 max-md:mb-4">
-            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-              <h3 className="text-white text-lg mb-4 font-light">Budget total</h3>
+            <div className="border-t border-[#edeae5]/[0.35] pt-7 max-md:pt-5">
+              <SectionLabel tone="teal">Budget total</SectionLabel>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-md:gap-4 max-w-full">
                 <div className="relative flex items-center justify-center w-full order-2 md:order-1">
                   <ResponsiveContainer width="100%" height={200} className="max-w-full">
                     <PieChart>
-                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#33d6c0' }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
-                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#33d6c0' }]).map((entry, index) => (
+                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#35a79b' }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
+                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#35a79b' }]).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => formatCurrency(value)} wrapperStyle={{ zIndex: 100 }} contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #fff', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#fff' }} position={{ y: -20 }} />
+                      <Tooltip formatter={(value) => formatCurrency(value)} wrapperStyle={{ zIndex: 100 }} contentStyle={{ backgroundColor: '#121413', border: '1px solid #303332', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#fff' }} position={{ y: -20 }} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
-                      <p className="text-xl text-white">{formatCurrency(prixRevientCalcule)}</p>
-                      <p className="text-xs text-[#e6efed]">Prix de revient</p>
+                      <p className="text-xl text-[#edeae5]">{formatCurrency(prixRevientCalcule)}</p>
+                      <p className="text-xs text-[#edeae5]">Prix de revient</p>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-3 min-w-0 flex-shrink order-1 md:order-2">
                   {prixBienNegocie > 0 ? (
                     <>
-                      <div><p className="text-xs text-white/30">Prix du bien négocié FAI</p><p className="text-lg text-white">{formatCurrency(prixBienNegocie)}</p></div>
-                      <div><p className="text-xs text-white/30">Droits d'enregistrement estimés</p><p className="text-lg text-white">{formatCurrency(droitsEnregistrement)}</p></div>
-                      <div><p className="text-xs text-white/30">Honoraires Klocka</p><p className="text-lg text-white">{formatCurrency(totalFraisKlocka)}</p></div>
-                      <div><p className="text-xs text-white/30">Frais divers à l'acquisition</p><p className="text-lg text-white">{formatCurrency(fraisDivers)}</p></div>
+                      <div><p className="text-xs text-[#edeae5]/30">Prix du bien négocié FAI</p><p className="text-lg text-[#edeae5]">{formatCurrency(prixBienNegocie)}</p></div>
+                      <div><p className="text-xs text-[#edeae5]/30">Droits d'enregistrement estimés</p><p className="text-lg text-[#edeae5]">{formatCurrency(droitsEnregistrement)}</p></div>
+                      <div><p className="text-xs text-[#edeae5]/30">Honoraires Klocka</p><p className="text-lg text-[#e0c9a0]">{formatCurrency(totalFraisKlocka)}</p></div>
+                      <div><p className="text-xs text-[#edeae5]/30">Frais divers à l'acquisition</p><p className="text-lg text-[#e0c9a0]">{formatCurrency(fraisDivers)}</p></div>
                     </>
                   ) : (
                     <>
-                      <div><p className="text-xs text-white/30">Prix de revient</p><p className="text-lg text-white">{formatCurrency(prixRevientCalcule)}</p></div>
-                      <div><p className="text-xs text-white/30">Loyer annuel HT</p><p className="text-lg text-white">{formatCurrency(loyerAnnuel)}</p></div>
-                      <div><p className="text-xs text-white/30">Apport estimé</p><p className="text-lg text-white">{formatCurrency(apport)}</p></div>
+                      <div><p className="text-xs text-[#edeae5]/30">Prix de revient</p><p className="text-lg text-[#edeae5]">{formatCurrency(prixRevientCalcule)}</p></div>
+                      <div><p className="text-xs text-[#edeae5]/30">Loyer annuel HT</p><p className="text-lg text-[#edeae5]">{formatCurrency(loyerAnnuel)}</p></div>
+                      <div><p className="text-xs text-[#edeae5]/30">Apport estimé</p><p className="text-lg text-[#edeae5]">{formatCurrency(apport)}</p></div>
                     </>
                   )}
                 </div>
               </div>
-              {!isPublic ? (
-                <button onClick={() => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)} className="w-full mt-6 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white text-sm rounded-full transition-all">
-                  Accéder au simulateur complet
-                </button>
-              ) : (
-                <button onClick={openPublicSimulator} className="w-full mt-6 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white text-sm rounded-full transition-all">
-                  Accéder au simulateur complet
-                </button>
-              )}
+              <button
+                onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
+                className="w-full mt-7 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] transition-colors">
+                Simulateur complet
+              </button>
             </div>
 
-            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-              <h3 className="text-white text-lg mb-6 font-light">Indicateurs clés</h3>
-              <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
-                <div className="p-5 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                  <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] mb-2">Rendement locatif net</p>
-                  <p className="text-2xl font-light text-[#33d6c0]">{rendementLocatifNetCalcule.toFixed(2)}%</p>
-                </div>
-                <div className="p-5 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                  <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] mb-2">Apport initial</p>
-                  <p className="text-2xl font-light text-white">{formatCurrency(apport)}</p>
-                </div>
-                <div className="p-5 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                  <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] mb-2">Récupération apport</p>
-                  <p className="text-2xl font-light text-white">{anneeRecuperationApport ? `Année ${anneeRecuperationApport}` : 'N/A'}</p>
-                </div>
-                <div className="p-5 bg-white/[0.02] rounded-md border border-[#131c1b]">
-                  <p className="text-white/30 text-[10px] uppercase tracking-[0.15em] mb-2">Loyer moyen net</p>
-                  <p className="text-2xl font-light text-white">{formatCurrency(loyerMoyenNet)}/an</p>
-                </div>
-              </div>
+            <div className="border-t border-[#edeae5]/[0.35] pt-7 max-md:pt-5">
+              <SectionLabel tone="teal">Indicateurs clés</SectionLabel>
+              <KVRow label="Rendement locatif net" value={fmtPct(rendementLocatifNetCalcule)} accent="text-[#7fd3c9]" />
+              <KVRow label="Apport initial" value={formatCurrency(apport)} />
+              <KVRow label="Récupération de l'apport" value={anneeRecuperationApport ? `Année ${anneeRecuperationApport}` : '—'} accent="text-[#e0c9a0]" />
+              <KVRow label="Loyer moyen net" value={`${formatCurrency(loyerMoyenNet)} /an`} />
+              <KVRow label="Échéance mensuelle de crédit" value={echeanceMensuelle > 0 ? `${formatCurrency(echeanceMensuelle)} /mois` : null} />
+              <KVRow label="Cash-flow cumulé" value={cashFlowCumule ? formatCurrency(cashFlowCumule) : null} accent={cashFlowCumule >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'} />
             </div>
           </div>
         </motion.div>
 
-        {/* Graphique Création de richesse */}
+        {/* Création de richesse annuelle — même graphique que le simulateur */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-8 max-md:mt-6">
-          <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-6 md:p-8">
-            <h3 className="text-white text-lg mb-6 font-light">Création de richesse cumulée</h3>
-            <div className="h-80 max-md:h-64">
+          <div className="border-t border-[#edeae5]/[0.35] pt-7 max-md:pt-5">
+            <div className="flex items-start justify-between gap-6 mb-6 max-md:mb-4">
+              <div>
+                <SectionLabel tone="teal" className="mb-1.5">Création de richesse annuelle</SectionLabel>
+                <p className="text-[13px] text-[#8b9391] mb-0">Cash-flow + capital remboursé sur {Math.min(anneeRevente, 20)} ans</p>
+              </div>
+              <p className="text-[26px] max-md:text-[20px] font-light text-[#e0c9a0] mb-0 whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(richesseBrute)}</p>
+            </div>
+            <div className="h-[26rem] max-md:h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={(() => {
-                  const data = [];
-                  let cashFlowCumulTemp = 0;
-                  let capitalCumulTemp = 0;
-                  let capitalRestantTemp = montantEmprunt;
-                  let loyerCourantTemp = loyerAnnuel;
-                  let anneeDoubleApport = null;
-                  for (let annee = 1; annee <= Math.min(anneeRevente, 20); annee++) {
-                    if (annee > 1) loyerCourantTemp = loyerCourantTemp * (1 + indexation / 100);
-                    const chargesCoproNonRefactTemp = !chargesCoproRefacturables ? -chargesCopropriete : 0;
-                    const taxeFonciereNonRefactTemp = !taxeFonciereRefacturable ? -taxeFonciere : 0;
-                    const loyersNetsCFTemp = loyerCourantTemp + chargesCoproNonRefactTemp + taxeFonciereNonRefactTemp;
-                    let interetsAnnuelsTemp = 0;
-                    let capitalRembourseTemp = 0;
-                    let capitalTempLoop = capitalRestantTemp;
-                    if (capitalTempLoop > 0 && annee <= dureeCredit) {
-                      const tauxMensuelTemp = (tauxInteret / 100) / 12;
-                      for (let mois = 0; mois < 12; mois++) {
-                        if (capitalTempLoop <= 0) break;
-                        const interetMoisTemp = capitalTempLoop * tauxMensuelTemp;
-                        interetsAnnuelsTemp += interetMoisTemp;
-                        const capitalMoisTemp = echeanceMensuelle - interetMoisTemp;
-                        capitalRembourseTemp += capitalMoisTemp;
-                        capitalTempLoop -= capitalMoisTemp;
-                      }
-                      capitalRestantTemp = Math.max(0, capitalRestantTemp - capitalRembourseTemp);
-                    }
-                    const assuranceCreditTemp = annee <= dureeCredit ? -(montantEmprunt * (tauxAssuranceCredit / 100)) : 0;
-                    const creditBancaireCFTemp = -(interetsAnnuelsTemp + capitalRembourseTemp + Math.abs(assuranceCreditTemp));
-                    const gestionLocativeCostTemp = -(loyersNetsCFTemp * (gestionLocative / 100));
-                    const totalChargesTemp = gestionLocativeCostTemp - comptabilite - assurancePNE - chargesDiverses;
-                    const cashFlowAnnuelTemp = loyersNetsCFTemp + creditBancaireCFTemp + totalChargesTemp;
-                    cashFlowCumulTemp += cashFlowAnnuelTemp;
-                    capitalCumulTemp += Math.abs(capitalRembourseTemp);
-                    const totalCumule = cashFlowCumulTemp + capitalCumulTemp;
-                    if (!anneeDoubleApport && totalCumule >= apport * 2) anneeDoubleApport = annee;
-                    data.push({ annee, totalCumule: Math.round(totalCumule), isRecuperationApport: annee === anneeRecuperationApport, isDoubleApport: annee === anneeDoubleApport });
-                  }
-                  return data;
-                })()} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                  <defs>
-                    <linearGradient id="colorTotalShared" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#33d6c0" stopOpacity={0.9} />
-                      <stop offset="95%" stopColor="#33d6c0" stopOpacity={0.3} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="annee" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} label={{ value: '(année)', position: 'insideBottom', offset: -10, fill: '#9ca3af', fontSize: 11 }} height={50} />
-                  <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}`} label={{ value: '(en milliers d\'euros)', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 11, dy: -20 }} />
-                  <Tooltip content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const d = payload[0].payload;
-                      return (
-                        <div style={{ backgroundColor: '#1a1a1a', border: '1px solid #374151', borderRadius: '8px', padding: '12px', color: '#fff' }}>
-                          <p style={{ fontWeight: 'bold', marginBottom: '8px', color: '#fff' }}>Année {d.annee} : {formatCurrency(d.totalCumule)}</p>
-                          {d.isRecuperationApport && <p style={{ color: '#F59E0B', marginBottom: '8px', fontWeight: 'bold' }}>🎯 Vous récupérez votre apport</p>}
-                          {d.isDoubleApport && <p style={{ color: '#8B5CF6', fontWeight: 'bold' }}>🚀 Vous doublez votre apport</p>}
-                        </div>
-                      );
-                    }
-                    return null;
+                <BarChart data={richesseRows} margin={{ top: 12, right: 20, left: 20, bottom: 40 }} barGap={4} barCategoryGap="20%">
+                  <CartesianGrid stroke="#edeae5" strokeOpacity={0.08} strokeDasharray="3 3" />
+                  <XAxis dataKey="annee" tick={{ fill: '#8b9391', fontSize: 10 }} axisLine={{ stroke: '#edeae5', strokeOpacity: 0.15 }} tickLine={{ stroke: '#edeae5', strokeOpacity: 0.15 }}
+                    label={{ value: 'Année', position: 'bottom', offset: 18, fill: '#8b9391', fontSize: 11 }} />
+                  <YAxis tick={{ fill: '#8b9391', fontSize: 10 }} axisLine={{ stroke: '#edeae5', strokeOpacity: 0.15 }} tickLine={{ stroke: '#edeae5', strokeOpacity: 0.15 }}
+                    tickFormatter={(v) => `${Math.round(v / 1000)}`}
+                    label={{ value: 'Milliers €', angle: -90, position: 'insideLeft', offset: -4, fill: '#8b9391', fontSize: 11, style: { textAnchor: 'middle' } }} />
+                  <Tooltip cursor={{ fill: 'rgba(237,234,229,0.03)' }} content={({ active, payload, label }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const capital = payload.find((p) => p.dataKey === 'capital')?.value || 0;
+                    const cashflow = payload.find((p) => p.dataKey === 'cashflow')?.value || 0;
+                    return (
+                      <div style={{ background: '#121413', border: '1px solid #303332', borderRadius: 6, padding: '10px 12px', maxWidth: 260 }}>
+                        <p style={{ color: '#edeae5', fontSize: 12, marginBottom: 6 }}>Année {label}</p>
+                        <p style={{ color: '#7FE0D3', fontSize: 11, marginBottom: 2 }}>Capital remboursé : {formatCurrency(capital)}</p>
+                        <p style={{ color: '#e0c9a0', fontSize: 11, marginBottom: 8 }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
+                        <p style={{ color: '#8b9391', fontSize: 10, lineHeight: 1.4, borderTop: '1px solid rgba(237,234,229,0.1)', paddingTop: 8, margin: 0 }}>
+                          La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.
+                        </p>
+                      </div>
+                    );
                   }} />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  <Area type="monotone" dataKey="totalCumule" stroke="#33d6c0" strokeWidth={3} fill="url(#colorTotalShared)" name="Richesse cumulée" />
-                </AreaChart>
+                  <Legend verticalAlign="top" align="right" iconType="circle"
+                    wrapperStyle={{ fontSize: 12, paddingBottom: 12 }}
+                    formatter={(v) => <span className="text-[#d3d8d6] text-[12px]">{v === 'capital' ? 'Capital remboursé' : 'Cash-flow annuel'}</span>} />
+                  <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
+                  <Bar name="cashflow" dataKey="cashflow" fill="#e0c9a0" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
         </motion.div>
+        </div>
+
+        <aside className="max-lg:hidden">
+          <div className="sticky top-8">
+            <AvisProjetIA analyse={analyse} loading={analyseLoading} error={analyseError} vertical section={ongletActif} />
+          </div>
+        </aside>
       </div>
     </motion.div>
   );

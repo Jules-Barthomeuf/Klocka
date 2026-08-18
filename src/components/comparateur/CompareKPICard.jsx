@@ -3,8 +3,8 @@ import InfoTooltip from "./InfoTooltip";
 
 const colorClasses = [
   { bg: "from-red-800/20", border: "border-red-800/50", text: "text-red-800", bar: "bg-red-800" },
-  { bg: "from-[#5ee7d4]/20", border: "border-[#5ee7d4]/50", text: "text-[#5ee7d4]", bar: "bg-[#5ee7d4]" },
-  { bg: "from-yellow-500/20", border: "border-yellow-500/50", text: "text-yellow-500", bar: "bg-yellow-500" },
+  { bg: "from-[#7fd3c9]/20", border: "border-[#7fd3c9]/50", text: "text-[#7fd3c9]", bar: "bg-[#7fd3c9]" },
+  { bg: "from-[#e0c9a0]/20", border: "border-[#e0c9a0]/50", text: "text-[#e0c9a0]", bar: "bg-[#e0c9a0]" },
   { bg: "from-purple-400/20", border: "border-purple-400/50", text: "text-purple-400", bar: "bg-purple-400" },
 ];
 
@@ -30,9 +30,9 @@ export default function CompareKPICard({ label, values, projectNames, format = "
   };
 
   return (
-    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
+    <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-5">
       <div className="flex items-center mb-4">
-        <p className="text-white/40 text-xs uppercase tracking-[0.15em]">{label}</p>
+        <p className="text-[#edeae5]/40 text-xs uppercase tracking-[0.15em]">{label}</p>
         {tooltip && <InfoTooltip text={tooltip} />}
       </div>
       <div className="space-y-3">
@@ -44,14 +44,14 @@ export default function CompareKPICard({ label, values, projectNames, format = "
           return (
             <div key={i}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-white/50 text-xs truncate max-w-[50%]">{projectNames[i]}</span>
-                <span className={`text-sm font-medium ${isBest ? colors.text : "text-white"}`}>
+                <span className="text-[#edeae5]/50 text-xs truncate max-w-[50%]">{projectNames[i]}</span>
+                <span className={`text-sm font-medium ${isBest ? colors.text : "text-[#edeae5]"}`}>
                   {formatValue(v)}
-                  {isBest && <span className="ml-1.5 text-[10px] text-[#5ee7d4]">★</span>}
+                  {isBest && <span className="ml-1.5 text-[10px] text-[#7fd3c9]">★</span>}
                 </span>
               </div>
               {typeof v === "number" && max > 0 && (
-                <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+                <div className="h-1.5 bg-[#edeae5]/[0.04] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${colors.bar} transition-all duration-700`}
                     style={{ width: `${Math.max(barWidth, 2)}%` }}

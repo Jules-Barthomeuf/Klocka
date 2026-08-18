@@ -61,27 +61,27 @@ export default function AdminNotes() {
   const displayedNotes = showShared ? sharedNotes : myNotes;
 
   return (
-    <div className="min-h-screen text-[#EAECEF] p-4 md:p-10" style={{ background: "linear-gradient(160deg,#0B0D0F 0%,#000000 90%)" }}>
+    <div className="min-h-screen text-[#edeae5] p-4 md:p-10" style={{ background: "linear-gradient(160deg,#0a0c0c 0%,#000000 90%)" }}>
       <div className="max-w-3xl mx-auto">
         {/* Header centré léger */}
         <div className="mb-9 flex flex-col items-center text-center gap-5">
           <div>
             <h1 className="text-[28px] md:text-[32px] font-light leading-[1.08] -tracking-[0.02em] m-0">Notes</h1>
-            <p className="text-[#8D93A0] text-[14px] leading-[1.5] mt-2 max-w-[420px] mx-auto">Retrouvez vos notes et celles partagées avec votre équipe.</p>
+            <p className="text-[#8b9391] text-[14px] leading-[1.5] mt-2 max-w-[420px] mx-auto">Retrouvez vos notes et celles partagées avec votre équipe.</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowShared(s => !s)}
-              className={`inline-flex items-center gap-2 rounded-md px-5 py-3 text-[14px] font-semibold transition-all border ${showShared ? "bg-[#33d6c0]/15 border-[#33d6c0]/40 text-white" : "bg-[#171A21] border-[#1c2725] text-[#8D93A0] hover:text-[#EAECEF] hover:border-white/20"}`}
+              className={`inline-flex items-center gap-2 rounded-md px-5 py-3 text-[14px] font-semibold transition-all border ${showShared ? "bg-[#35a79b]/15 border-[#35a79b]/40 text-[#edeae5]" : "bg-[#121413] border-[#282b2a] text-[#8b9391] hover:text-[#edeae5] hover:border-[#edeae5]/20"}`}
             >
               <Users className="w-4 h-4" /> Partagés avec moi
-              {sharedNotes.length > 0 && <span className="ml-0.5 text-[10px] bg-white/20 rounded-full px-1.5 py-0.5">{sharedNotes.length}</span>}
+              {sharedNotes.length > 0 && <span className="ml-0.5 text-[10px] bg-[#edeae5]/20 rounded-full px-1.5 py-0.5">{sharedNotes.length}</span>}
             </button>
             {!showShared && (
               <button
                 onClick={() => setShowForm(true)}
-                className="inline-flex items-center gap-2 text-white rounded-md px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all"
-                style={{ background: "linear-gradient(120deg,#33d6c0,#238B7E)" }}
+                className="inline-flex items-center gap-2 text-[#edeae5] rounded-md px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all"
+                style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}
               >
                 <Plus className="w-[18px] h-[18px]" strokeWidth={2.4} /> Nouvelle note
               </button>
@@ -95,24 +95,24 @@ export default function AdminNotes() {
               initial={{ opacity: 0, y: -8, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative overflow-hidden rounded-[18px] border border-[#33d6c0]/25 bg-[#12151B] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)]"
+              className="relative overflow-hidden rounded-[18px] border border-[#35a79b]/25 bg-[#12151B] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)]"
             >
               {/* Accent bar */}
-              <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: "linear-gradient(90deg,#33d6c0,#238B7E,transparent)" }} />
+              <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: "linear-gradient(90deg,#35a79b,#1f6b62,transparent)" }} />
 
               <div className="p-5 md:p-6">
                 {/* En-tête */}
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[#33d6c0]/12 border border-[#33d6c0]/25">
-                    <StickyNote className="w-5 h-5 text-[#33d6c0]" />
+                  <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[#35a79b]/12 border border-[#35a79b]/25">
+                    <StickyNote className="w-5 h-5 text-[#35a79b]" />
                   </div>
                   <div>
-                    <h3 className="text-[15px] font-semibold text-white leading-tight">Nouvelle note</h3>
-                    <p className="text-[12px] text-[#8D93A0]">Partagée automatiquement avec les admins</p>
+                    <h3 className="text-[15px] font-semibold text-[#edeae5] leading-tight">Nouvelle note</h3>
+                    <p className="text-[12px] text-[#8b9391]">Partagée automatiquement avec les admins</p>
                   </div>
                   <button
                     onClick={() => { setShowForm(false); setNewTitre(""); setNewContenu(""); }}
-                    className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center text-[#8D93A0] hover:text-white hover:bg-white/5 transition-colors"
+                    className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center text-[#8b9391] hover:text-[#edeae5] hover:bg-[#edeae5]/5 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -121,32 +121,32 @@ export default function AdminNotes() {
                 {/* Champs */}
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] uppercase tracking-[0.14em] text-[#8D93A0] font-medium">Titre</label>
+                    <label className="text-[11px] uppercase tracking-[0.14em] text-[#8b9391] font-medium">Titre</label>
                     <Input
                       placeholder="Ex. Idée pour le projet…"
                       value={newTitre}
                       onChange={(e) => setNewTitre(e.target.value)}
-                      className="h-11 bg-[#0B0D0F] text-white text-[15px] border-[#1c2725] rounded-md focus-visible:border-[#33d6c0] focus-visible:ring-0 placeholder:text-[#5B616E]"
+                      className="h-11 bg-[#0a0c0c] text-[#edeae5] text-[15px] border-[#282b2a] rounded-md focus-visible:border-[#35a79b] focus-visible:ring-0 placeholder:text-[#5B616E]"
                       autoFocus
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] uppercase tracking-[0.14em] text-[#8D93A0] font-medium">Contenu</label>
+                    <label className="text-[11px] uppercase tracking-[0.14em] text-[#8b9391] font-medium">Contenu</label>
                     <Textarea
                       placeholder="Écrivez votre note ici…"
                       value={newContenu}
                       onChange={(e) => setNewContenu(e.target.value)}
-                      className="bg-[#0B0D0F] text-white border-[#1c2725] rounded-md focus-visible:border-[#33d6c0] focus-visible:ring-0 min-h-[130px] leading-relaxed placeholder:text-[#5B616E] resize-none"
+                      className="bg-[#0a0c0c] text-[#edeae5] border-[#282b2a] rounded-md focus-visible:border-[#35a79b] focus-visible:ring-0 min-h-[130px] leading-relaxed placeholder:text-[#5B616E] resize-none"
                     />
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 justify-end mt-5 pt-4 border-t border-[#16201f]">
-                  <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setNewTitre(""); setNewContenu(""); }} className="text-[#8D93A0] hover:text-white">
+                <div className="flex gap-2 justify-end mt-5 pt-4 border-t border-[#242726]">
+                  <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setNewTitre(""); setNewContenu(""); }} className="text-[#8b9391] hover:text-[#edeae5]">
                     Annuler
                   </Button>
-                  <button onClick={handleCreate} disabled={!newTitre.trim() || createMutation.isPending} className="inline-flex items-center gap-2 text-white rounded-md px-5 py-2.5 text-[13px] font-bold hover:brightness-110 transition-all disabled:opacity-50" style={{ background: "linear-gradient(120deg,#33d6c0,#238B7E)" }}>
+                  <button onClick={handleCreate} disabled={!newTitre.trim() || createMutation.isPending} className="inline-flex items-center gap-2 text-[#edeae5] rounded-md px-5 py-2.5 text-[13px] font-bold hover:brightness-110 transition-all disabled:opacity-50" style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}>
                     <Plus className="w-4 h-4" strokeWidth={2.6} /> Créer la note
                   </button>
                 </div>
@@ -156,10 +156,10 @@ export default function AdminNotes() {
 
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="w-6 h-6 border-2 border-[#33d6c0]/30 border-t-[#33d6c0] rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[#35a79b]/30 border-t-[#35a79b] rounded-full animate-spin" />
             </div>
           ) : displayedNotes.length === 0 ? (
-            <div className="text-center py-16 text-[#7f9995]">
+            <div className="text-center py-16 text-[#8b9391]">
               {showShared ? <Users className="w-10 h-10 mx-auto mb-3 opacity-30" /> : <StickyNote className="w-10 h-10 mx-auto mb-3 opacity-30" />}
               <p className="text-sm">{showShared ? "Aucune note partagée avec vous" : "Aucune note pour le moment"}</p>
             </div>

@@ -147,114 +147,114 @@ export default function Contacts() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#050807] text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
+      <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050807] text-white p-6">
+    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-6">
       <div className="max-w-[1800px] mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-geist tracking-tighter text-white mb-2">
+            <h1 className="text-4xl font-geist tracking-tighter text-[#edeae5] mb-2">
               Contacts
             </h1>
-            <div className="h-0.5 w-32 bg-[#33d6c0]"></div>
+            <div className="h-0.5 w-32 bg-[#35a79b]"></div>
           </div>
           <Button
             onClick={() => {
               resetForm();
               setDialogOpen(true);
             }}
-            className="bg-[#33d6c0] hover:bg-[#33d6c0]/90"
+            className="bg-[#35a79b] hover:bg-[#35a79b]/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouveau contact
           </Button>
         </div>
 
-        <div className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
+        <div className="relative rounded-[1.25rem] border-[0.75px] border-[#303332] p-2">
           <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-          <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 to-[#101715]/95 border-none">
+          <Card className="relative bg-gradient-to-br from-[#0a0c0c]/95 to-[#171918]/95 border-none">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <User className="w-5 h-5 text-[#33d6c0]" />
+              <CardTitle className="text-[#edeae5] flex items-center gap-2">
+                <User className="w-5 h-5 text-[#35a79b]" />
                 Liste des contacts
-                <Badge className="ml-2 bg-[#33d6c0]/20 text-[#33d6c0]">
+                <Badge className="ml-2 bg-[#35a79b]/20 text-[#35a79b]">
                   {contacts.length}
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {contacts.length === 0 ? (
-                <div className="text-center py-12 text-[#93aca7]">
+                <div className="text-center py-12 text-[#9aa19e]">
                   Aucun contact pour le moment
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-[#2c3a37]">
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Nom</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Sous-éléments</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Personnes</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Entreprise</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">E-mail</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Téléphone</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Statut Client</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Mandat Signé</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Patrimoine</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Revenu</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Fond propre</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Budget</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Localisation</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Formation LCDI</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Source</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Remarque</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Propriétés</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Chiffres</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Information</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Fonction</th>
-                        <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Actions</th>
+                      <tr className="border-b border-[#343735]">
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Nom</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Sous-éléments</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Personnes</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Entreprise</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">E-mail</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Téléphone</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Statut Client</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Mandat Signé</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Patrimoine</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Revenu</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Fond propre</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Budget</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Localisation</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Formation LCDI</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Source</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Remarque</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Propriétés</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Chiffres</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Information</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Fonction</th>
+                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {contacts.map((contact) => (
-                        <tr key={contact.id} className="border-b-2 border-[#24312f] hover:bg-[#101715]/50 transition-colors">
+                        <tr key={contact.id} className="border-b-2 border-[#303332] hover:bg-[#171918]/50 transition-colors">
                           <td className="py-3 px-3">
-                            <span className="text-white font-medium">{contact.nom}</span>
+                            <span className="text-[#edeae5] font-medium">{contact.nom}</span>
                           </td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.sous_elements || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.personnes || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.entreprise || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.sous_elements || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.personnes || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.entreprise || "-"}</td>
                           <td className="py-3 px-3">
                             {contact.email ? (
-                              <a href={`mailto:${contact.email}`} className="text-[#5ee7d4] hover:underline">
+                              <a href={`mailto:${contact.email}`} className="text-[#7fd3c9] hover:underline">
                                 {contact.email}
                               </a>
                             ) : "-"}
                           </td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.telephone || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.statut_client || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.telephone || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.statut_client || "-"}</td>
                           <td className="py-3 px-3">
-                            <Badge className={contact.mandat_signe ? "bg-[#33d6c0]/20 text-[#5ee7d4] border border-[#33d6c0]/30" : "bg-[#24312f] text-[#93aca7]"}>
+                            <Badge className={contact.mandat_signe ? "bg-[#35a79b]/20 text-[#7fd3c9] border border-[#35a79b]/30" : "bg-[#303332] text-[#9aa19e]"}>
                               {contact.mandat_signe ? "Oui" : "Non"}
                             </Badge>
                           </td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.patrimoine || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{formatCurrency(contact.revenu)}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{formatCurrency(contact.fond_propre)}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{formatCurrency(contact.budget)}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1] max-w-[150px] truncate" title={contact.localisation}>{contact.localisation || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.formation_lcdi || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.source || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1] max-w-[200px] truncate" title={contact.remarque}>{contact.remarque || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.proprietes || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.chiffres || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.information || "-"}</td>
-                          <td className="py-3 px-3 text-[#c4d5d1]">{contact.fonction || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.patrimoine || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{formatCurrency(contact.revenu)}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{formatCurrency(contact.fond_propre)}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{formatCurrency(contact.budget)}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6] max-w-[150px] truncate" title={contact.localisation}>{contact.localisation || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.formation_lcdi || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.source || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6] max-w-[200px] truncate" title={contact.remarque}>{contact.remarque || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.proprietes || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.chiffres || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.information || "-"}</td>
+                          <td className="py-3 px-3 text-[#d3d8d6]">{contact.fonction || "-"}</td>
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-1">
                               <Button
@@ -288,9 +288,9 @@ export default function Contacts() {
 
       {/* Dialog création/édition */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#050807] border-[#24312f] max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#0a0c0c] border-[#303332] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-[#edeae5]">
               {editingContact ? "Modifier le contact" : "Nouveau contact"}
             </DialogTitle>
           </DialogHeader>
@@ -298,69 +298,69 @@ export default function Contacts() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Nom *</Label>
+                <Label className="text-[#9aa19e]">Nom *</Label>
                 <Input
                   value={formData.nom}
                   onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Sous-éléments</Label>
+                <Label className="text-[#9aa19e]">Sous-éléments</Label>
                 <Input
                   value={formData.sous_elements}
                   onChange={(e) => setFormData({...formData, sous_elements: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Personnes</Label>
+                <Label className="text-[#9aa19e]">Personnes</Label>
                 <Input
                   value={formData.personnes}
                   onChange={(e) => setFormData({...formData, personnes: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Entreprise</Label>
+                <Label className="text-[#9aa19e]">Entreprise</Label>
                 <Input
                   value={formData.entreprise}
                   onChange={(e) => setFormData({...formData, entreprise: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">E-mail</Label>
+                <Label className="text-[#9aa19e]">E-mail</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Téléphone</Label>
+                <Label className="text-[#9aa19e]">Téléphone</Label>
                 <Input
                   value={formData.telephone}
                   onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Statut Client</Label>
+                <Label className="text-[#9aa19e]">Statut Client</Label>
                 <Input
                   value={formData.statut_client}
                   onChange={(e) => setFormData({...formData, statut_client: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div className="flex items-end pb-2">
@@ -368,132 +368,132 @@ export default function Contacts() {
                   <Switch
                     checked={formData.mandat_signe}
                     onCheckedChange={(checked) => setFormData({...formData, mandat_signe: checked})}
-                    className="data-[state=checked]:bg-[#33d6c0]"
+                    className="data-[state=checked]:bg-[#35a79b]"
                   />
-                  <Label className="text-[#93aca7]">Mandat signé</Label>
+                  <Label className="text-[#9aa19e]">Mandat signé</Label>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Patrimoine</Label>
+                <Label className="text-[#9aa19e]">Patrimoine</Label>
                 <Input
                   value={formData.patrimoine}
                   onChange={(e) => setFormData({...formData, patrimoine: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Fonction</Label>
+                <Label className="text-[#9aa19e]">Fonction</Label>
                 <Input
                   value={formData.fonction}
                   onChange={(e) => setFormData({...formData, fonction: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Revenu (€)</Label>
+                <Label className="text-[#9aa19e]">Revenu (€)</Label>
                 <Input
                   type="number"
                   value={formData.revenu}
                   onChange={(e) => setFormData({...formData, revenu: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Fond propre (€)</Label>
+                <Label className="text-[#9aa19e]">Fond propre (€)</Label>
                 <Input
                   type="number"
                   value={formData.fond_propre}
                   onChange={(e) => setFormData({...formData, fond_propre: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Budget (€)</Label>
+                <Label className="text-[#9aa19e]">Budget (€)</Label>
                 <Input
                   type="number"
                   value={formData.budget}
                   onChange={(e) => setFormData({...formData, budget: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Localisation</Label>
+                <Label className="text-[#9aa19e]">Localisation</Label>
                 <Input
                   value={formData.localisation}
                   onChange={(e) => setFormData({...formData, localisation: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Formation LCDI</Label>
+                <Label className="text-[#9aa19e]">Formation LCDI</Label>
                 <Input
                   value={formData.formation_lcdi}
                   onChange={(e) => setFormData({...formData, formation_lcdi: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Source</Label>
+                <Label className="text-[#9aa19e]">Source</Label>
                 <Input
                   value={formData.source}
                   onChange={(e) => setFormData({...formData, source: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Propriétés</Label>
+                <Label className="text-[#9aa19e]">Propriétés</Label>
                 <Input
                   value={formData.proprietes}
                   onChange={(e) => setFormData({...formData, proprietes: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Chiffres</Label>
+                <Label className="text-[#9aa19e]">Chiffres</Label>
                 <Input
                   value={formData.chiffres}
                   onChange={(e) => setFormData({...formData, chiffres: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Information</Label>
+                <Label className="text-[#9aa19e]">Information</Label>
                 <Input
                   value={formData.information}
                   onChange={(e) => setFormData({...formData, information: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div>
-              <Label className="text-[#93aca7]">Remarque</Label>
+              <Label className="text-[#9aa19e]">Remarque</Label>
               <Textarea
                 value={formData.remarque}
                 onChange={(e) => setFormData({...formData, remarque: e.target.value})}
-                className="bg-[#0a0f0e] border-[#24312f] text-white"
+                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 rows={2}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#24312f]">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#303332]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#33d6c0] hover:bg-[#33d6c0]/90">
+            <Button onClick={handleSubmit} className="bg-[#35a79b] hover:bg-[#35a79b]/90">
               {editingContact ? "Modifier" : "Créer"}
             </Button>
           </DialogFooter>

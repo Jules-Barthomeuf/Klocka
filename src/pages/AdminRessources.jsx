@@ -190,25 +190,25 @@ export default function AdminRessources() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0c0c]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050807] p-4 md:p-8">
+    <div className="min-h-screen bg-[#0a0c0c] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-2">
               Administration
             </p>
-            <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Ressources</h1>
+            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Ressources</h1>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
-            className="bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white h-9 px-4 text-sm"
+            className="bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] h-9 px-4 text-sm"
           >
             <Plus className="w-4 h-4 mr-2" />
             Ajouter
@@ -216,14 +216,14 @@ export default function AdminRessources() {
         </div>
 
         {/* Import Google Drive */}
-        <div className="bg-white/[0.015] rounded-md border border-[#131c1b] mb-6 p-5">
+        <div className="bg-[#0e100f] border border-[#edeae5]/[0.12] mb-6 p-5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-md bg-[#F59E0B]/[0.07] flex items-center justify-center">
-                <FolderOpen className="w-[18px] h-[18px] text-[#F59E0B]" />
+              <div className="w-9 h-9 rounded-md bg-[#e0c9a0]/[0.07] flex items-center justify-center">
+                <FolderOpen className="w-[18px] h-[18px] text-[#e0c9a0]" />
               </div>
               <div>
-                <h2 className="text-white text-sm font-medium">Import rapide via Google Drive</h2>
-                <p className="text-white/20 text-xs">Collez un lien Google Drive pour créer une ressource.</p>
+                <h2 className="text-[#edeae5] text-sm font-medium">Import rapide via Google Drive</h2>
+                <p className="text-[#edeae5]/20 text-xs">Collez un lien Google Drive pour créer une ressource.</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -231,19 +231,19 @@ export default function AdminRessources() {
                 <Input
                   value={driveName}
                   onChange={(e) => setDriveeName(e.target.value)}
-                  className="bg-white/[0.03] border-[#16201f] text-white h-9 text-sm"
+                  className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] h-9 text-sm"
                   placeholder="Nom de la ressource"
                 />
                 <Input
                   value={driveLink}
                   onChange={(e) => setDriveLink(e.target.value)}
-                  className="bg-white/[0.03] border-[#16201f] text-white h-9 text-sm"
+                  className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] h-9 text-sm"
                   placeholder="https://drive.google.com/..."
                 />
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <Select value={driveType} onValueChange={setDriveType}>
-                  <SelectTrigger className="bg-white/[0.03] border-[#16201f] text-white h-9 w-[140px] text-sm">
+                  <SelectTrigger className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] h-9 w-[140px] text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -255,7 +255,7 @@ export default function AdminRessources() {
                   </SelectContent>
                 </Select>
                 <Select value={driveCategorie} onValueChange={setDriveCategorie}>
-                  <SelectTrigger className="bg-white/[0.03] border-[#16201f] text-white h-9 w-[160px] text-sm">
+                  <SelectTrigger className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] h-9 w-[160px] text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -270,7 +270,7 @@ export default function AdminRessources() {
                 <Button
                   onClick={handleAddDriveLink}
                   disabled={!driveLink.trim() || !driveName.trim() || addingDrive}
-                  className="bg-[#F59E0B]/[0.07] border border-[#F59E0B]/20 hover:bg-[#F59E0B]/15 text-white h-9 px-4 text-sm disabled:opacity-40"
+                  className="bg-[#e0c9a0]/[0.07] border border-[#e0c9a0]/20 hover:bg-[#e0c9a0]/15 text-[#edeae5] h-9 px-4 text-sm disabled:opacity-40"
                 >
                   {addingDrive ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Link2 className="w-4 h-4 mr-2" />}
                   Ajouter
@@ -280,15 +280,15 @@ export default function AdminRessources() {
         </div>
 
         {resources.length === 0 ? (
-          <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-12 text-center">
-              <div className="w-14 h-14 bg-[#33d6c0]/[0.07] rounded-md flex items-center justify-center mx-auto mb-5">
-                <BookOpen className="w-6 h-6 text-[#33d6c0]" />
+          <div className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-12 text-center">
+              <div className="w-14 h-14 bg-[#35a79b]/[0.07] rounded-md flex items-center justify-center mx-auto mb-5">
+                <BookOpen className="w-6 h-6 text-[#35a79b]" />
               </div>
-              <h3 className="text-lg font-light text-white mb-2">Aucune ressource</h3>
-              <p className="text-white/20 text-sm mb-6">Commencez par ajouter votre première ressource.</p>
+              <h3 className="text-lg font-light text-[#edeae5] mb-2">Aucune ressource</h3>
+              <p className="text-[#edeae5]/20 text-sm mb-6">Commencez par ajouter votre première ressource.</p>
               <Button
                 onClick={() => handleOpenDialog()}
-                className="bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white text-sm h-9 px-4"
+                className="bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] text-sm h-9 px-4"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Ajouter une ressource
@@ -301,7 +301,7 @@ export default function AdminRessources() {
               return (
                 <div 
                   key={resource.id} 
-                  className="bg-white/[0.015] rounded-md border border-[#131c1b] hover:border-[#33d6c0]/20 transition-all duration-300 cursor-pointer p-4"
+                  className="bg-[#0e100f] border border-[#edeae5]/[0.12] hover:border-[#35a79b]/20 transition-all duration-300 cursor-pointer p-4"
                   onClick={() => handleOpenDialog(resource)}
                 >
                     <div className="flex items-center gap-4">
@@ -323,38 +323,38 @@ export default function AdminRessources() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full bg-[#33d6c0]/[0.07] flex items-center justify-center">
-                            <Icon className="w-5 h-5 text-[#33d6c0]" />
+                          <div className="w-full h-full bg-[#35a79b]/[0.07] flex items-center justify-center">
+                            <Icon className="w-5 h-5 text-[#35a79b]" />
                           </div>
                         )}
                         {uploadingThumbnailId === resource.id ? (
-                          <div className="absolute inset-0 bg-[#050807]/70 flex items-center justify-center">
-                            <Loader2 className="w-5 h-5 text-white animate-spin" />
+                          <div className="absolute inset-0 bg-[#0a0c0c]/70 flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 text-[#edeae5] animate-spin" />
                           </div>
                         ) : (
-                          <div className="absolute inset-0 bg-[#050807]/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                            <ImagePlus className="w-5 h-5 text-white" />
+                          <div className="absolute inset-0 bg-[#0a0c0c]/60 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                            <ImagePlus className="w-5 h-5 text-[#edeae5]" />
                           </div>
                         )}
                       </label>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-white font-medium">{resource.titre}</h3>
-                          <span className="text-[10px] text-white/30 bg-white/[0.04] px-2 py-0.5 rounded-full">
+                          <h3 className="text-[#edeae5] font-medium">{resource.titre}</h3>
+                          <span className="text-[10px] text-[#edeae5]/30 bg-[#edeae5]/[0.04] px-2 py-0.5 rounded-full">
                             {typeLabels[resource.type]}
                           </span>
                           {resource.categorie && (
-                            <span className="text-[10px] text-[#33d6c0] bg-[#33d6c0]/[0.07] px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] text-[#35a79b] bg-[#35a79b]/[0.07] px-2 py-0.5 rounded-full">
                               {categorieLabels[resource.categorie]}
                             </span>
                           )}
                           {!resource.visible && (
-                            <span className="text-[10px] text-yellow-500 bg-yellow-500/[0.07] px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] text-[#e0c9a0] bg-[#e0c9a0]/[0.07] px-2 py-0.5 rounded-full">
                               Masqué
                             </span>
                           )}
                         </div>
-                        <p className="text-white/20 text-sm line-clamp-1">{resource.description}</p>
+                        <p className="text-[#edeae5]/20 text-sm line-clamp-1">{resource.description}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {resource.url_fichier && (
@@ -363,7 +363,7 @@ export default function AdminRessources() {
                             target="_blank" 
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="p-2 text-white/20 hover:text-white transition-colors"
+                            className="p-2 text-[#edeae5]/20 hover:text-[#edeae5] transition-colors"
                           >
                             <ExternalLink className="w-4 h-4" />
                           </a>
@@ -375,7 +375,7 @@ export default function AdminRessources() {
                             e.stopPropagation();
                             handleOpenDialog(resource);
                           }}
-                          className="text-white/20 hover:text-[#33d6c0] hover:bg-white/[0.03] h-8 w-8"
+                          className="text-[#edeae5]/20 hover:text-[#35a79b] hover:bg-[#edeae5]/[0.03] h-8 w-8"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
@@ -386,7 +386,7 @@ export default function AdminRessources() {
                             e.stopPropagation();
                             if (confirm("Supprimer cette ressource ?")) deleteMutation.mutate(resource.id);
                           }}
-                          className="text-white/20 hover:text-red-400 hover:bg-white/[0.03] h-8 w-8"
+                          className="text-[#edeae5]/20 hover:text-red-400 hover:bg-[#edeae5]/[0.03] h-8 w-8"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -400,30 +400,30 @@ export default function AdminRessources() {
 
         {/* Dialog d'édition */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="bg-[#0a0a0a] border-[#16201f] max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="bg-[#0a0a0a] border-[#242726] max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-white font-light text-lg">
+              <DialogTitle className="text-[#edeae5] font-light text-lg">
                 {editingResource ? "Modifier la ressource" : "Nouvelle ressource"}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 my-4">
               <div>
-                <Label className="text-white/30 text-xs">Titre *</Label>
+                <Label className="text-[#edeae5]/30 text-xs">Titre *</Label>
                 <Input
                   value={formData.titre}
                   onChange={(e) => setFormData({ ...formData, titre: e.target.value })}
-                  className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm"
+                  className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] mt-1 h-9 text-sm"
                   placeholder="Titre de la ressource"
                 />
               </div>
 
               <div>
-                <Label className="text-white/30 text-xs">Description</Label>
+                <Label className="text-[#edeae5]/30 text-xs">Description</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="bg-white/[0.03] border-[#16201f] text-white mt-1 text-sm"
+                  className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] mt-1 text-sm"
                   placeholder="Description de la ressource"
                   rows={3}
                 />
@@ -431,12 +431,12 @@ export default function AdminRessources() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white/30 text-xs">Type *</Label>
+                  <Label className="text-[#edeae5]/30 text-xs">Type *</Label>
                   <Select
                     value={formData.type}
                     onValueChange={(value) => setFormData({ ...formData, type: value })}
                   >
-                    <SelectTrigger className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm">
+                    <SelectTrigger className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] mt-1 h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -450,12 +450,12 @@ export default function AdminRessources() {
                 </div>
 
                 <div>
-                  <Label className="text-white/30 text-xs">Catégorie</Label>
+                  <Label className="text-[#edeae5]/30 text-xs">Catégorie</Label>
                   <Select
                     value={formData.categorie}
                     onValueChange={(value) => setFormData({ ...formData, categorie: value })}
                   >
-                    <SelectTrigger className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm">
+                    <SelectTrigger className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] mt-1 h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -471,12 +471,12 @@ export default function AdminRessources() {
               </div>
 
               <div>
-                <Label className="text-white/30 text-xs">Fichier / Vidéo *</Label>
+                <Label className="text-[#edeae5]/30 text-xs">Fichier / Vidéo *</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     value={formData.url_fichier}
                     onChange={(e) => setFormData({ ...formData, url_fichier: e.target.value })}
-                    className="bg-white/[0.03] border-[#16201f] text-white flex-1 h-9 text-sm"
+                    className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] flex-1 h-9 text-sm"
                     placeholder="URL ou importer un fichier"
                   />
                   <label className="cursor-pointer">
@@ -488,7 +488,7 @@ export default function AdminRessources() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="border-[#16201f] text-white/30 hover:text-white hover:bg-white/[0.03] h-9"
+                      className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:bg-[#edeae5]/[0.03] h-9"
                       disabled={uploading}
                     >
                       <Upload className="w-4 h-4" />
@@ -498,24 +498,24 @@ export default function AdminRessources() {
               </div>
 
               <div>
-                <Label className="text-white/30 text-xs">Image miniature</Label>
+                <Label className="text-[#edeae5]/30 text-xs">Image miniature</Label>
                 {formData.image_miniature ? (
                   <div className="mt-2 relative inline-block">
                     <img 
                       src={formData.image_miniature} 
                       alt="Aperçu" 
-                      className="w-40 h-28 object-cover rounded-lg border border-[#16201f]"
+                      className="w-40 h-28 object-cover rounded-lg border border-[#242726]"
                     />
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, image_miniature: "" })}
                       className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors"
                     >
-                      <X className="w-3 h-3 text-white" />
+                      <X className="w-3 h-3 text-[#edeae5]" />
                     </button>
                   </div>
                 ) : (
-                  <label className="mt-2 flex items-center justify-center w-40 h-28 rounded-lg border-2 border-dashed border-white/[0.1] hover:border-[#33d6c0]/50 bg-white/[0.02] hover:bg-[#33d6c0]/5 cursor-pointer transition-all">
+                  <label className="mt-2 flex items-center justify-center w-40 h-28 rounded-lg border-2 border-dashed border-[#edeae5]/[0.1] hover:border-[#35a79b]/50 bg-[#edeae5]/[0.02] hover:bg-[#35a79b]/5 cursor-pointer transition-all">
                     <input
                       type="file"
                       accept="image/*"
@@ -523,11 +523,11 @@ export default function AdminRessources() {
                       onChange={(e) => handleFileUpload(e, 'image_miniature')}
                     />
                     {uploading ? (
-                      <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin" />
+                      <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin" />
                     ) : (
                       <div className="flex flex-col items-center gap-1">
-                        <ImagePlus className="w-6 h-6 text-[#7f9995]" />
-                        <span className="text-[#7f9995] text-[10px]">Importer</span>
+                        <ImagePlus className="w-6 h-6 text-[#8b9391]" />
+                        <span className="text-[#8b9391] text-[10px]">Importer</span>
                       </div>
                     )}
                   </label>
@@ -536,28 +536,28 @@ export default function AdminRessources() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-white/30 text-xs">Durée (minutes)</Label>
+                  <Label className="text-[#edeae5]/30 text-xs">Durée (minutes)</Label>
                   <Input
                     type="number"
                     value={formData.duree_minutes}
                     onChange={(e) => setFormData({ ...formData, duree_minutes: e.target.value })}
-                    className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm"
+                    className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] mt-1 h-9 text-sm"
                     placeholder="Ex: 15"
                   />
                 </div>
                 <div>
-                  <Label className="text-white/30 text-xs">Ordre d'affichage</Label>
+                  <Label className="text-[#edeae5]/30 text-xs">Ordre d'affichage</Label>
                   <Input
                     type="number"
                     value={formData.ordre}
                     onChange={(e) => setFormData({ ...formData, ordre: e.target.value })}
-                    className="bg-white/[0.03] border-[#16201f] text-white mt-1 h-9 text-sm"
+                    className="bg-[#edeae5]/[0.03] border-[#242726] text-[#edeae5] mt-1 h-9 text-sm"
                   />
                 </div>
               </div>
 
               <div className="flex items-center justify-between py-2 px-1">
-                <Label className="text-white/30 text-xs">Visible par les clients</Label>
+                <Label className="text-[#edeae5]/30 text-xs">Visible par les clients</Label>
                 <Switch
                   checked={formData.visible}
                   onCheckedChange={(checked) => setFormData({ ...formData, visible: checked })}
@@ -569,13 +569,13 @@ export default function AdminRessources() {
               <Button
                 variant="outline"
                 onClick={handleCloseDialog}
-                className="border-[#16201f] text-white/30 hover:text-white hover:bg-white/[0.03] h-9 text-sm"
+                className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:bg-[#edeae5]/[0.03] h-9 text-sm"
               >
                 Annuler
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white h-9 text-sm"
+                className="bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] h-9 text-sm"
                 disabled={!formData.titre || !formData.url_fichier || createMutation.isPending || updateMutation.isPending}
               >
                 {(createMutation.isPending || updateMutation.isPending) ? "Enregistrement..." : "Enregistrer"}

@@ -42,10 +42,10 @@ export function TitreEtape({ n, titre, description }) {
   return (
     <div className="mb-6">
       <div className="flex items-baseline gap-3.5 mb-1.5">
-        <div className="text-xs text-[#33d6c0] tabular-nums">{String(n).padStart(2, "0")}</div>
-        <h2 className="m-0 text-[22px] font-medium text-[#e6efed]">{titre}</h2>
+        <div className="text-xs text-[#35a79b] tabular-nums">{String(n).padStart(2, "0")}</div>
+        <h2 className="m-0 text-[22px] font-medium text-[#edeae5]">{titre}</h2>
       </div>
-      <p className="m-0 text-[13.5px] text-[#93aca7] max-w-[64ch] leading-[1.65]">{description}</p>
+      <p className="m-0 text-[13.5px] text-[#9aa19e] max-w-[64ch] leading-[1.65]">{description}</p>
     </div>
   );
 }
@@ -112,13 +112,13 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
   return (
     <div className="space-y-5">
       {/* En-tête + stepper */}
-      <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4">
+      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="text-white text-base font-medium truncate">
+            <h2 className="text-[#edeae5] text-base font-medium truncate">
               {dossier ? lot?.synthese?.titre || dossier.source?.nom_fichier || "Deal" : "Nouveau deal"}
             </h2>
-            <p className="text-[#7f9995] text-xs mt-0.5">
+            <p className="text-[#8b9391] text-xs mt-0.5">
               {dossier
                 ? `${new Date(dossier.cree_le).toLocaleDateString("fr-FR")}${dossier.contact_agent_email ? ` · ${dossier.contact_agent_email}` : ""}`
                 : "Du premier mail à l'entrée dans la plateforme"}
@@ -148,7 +148,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                 <div className="flex items-center w-full">
                   <div
                     className={`h-px flex-1 ${
-                      i === 0 ? "bg-transparent" : e.n <= etape ? "bg-[#33d6c0]/40" : "bg-[#1c2725]"
+                      i === 0 ? "bg-transparent" : e.n <= etape ? "bg-[#35a79b]/40" : "bg-[#282b2a]"
                     }`}
                   />
                   <button
@@ -156,31 +156,31 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                     disabled={!accessible}
                     className={`w-7 h-7 flex-none rounded-full border text-xs flex items-center justify-center transition-colors ${
                       active
-                        ? "bg-[#33d6c0]/15 border-[#33d6c0] text-[#33d6c0]"
+                        ? "bg-[#35a79b]/15 border-[#35a79b] text-[#35a79b]"
                         : faite
-                          ? "bg-[#060a09] border-[#33d6c0] text-[#33d6c0]"
+                          ? "bg-[#0c0e0d] border-[#35a79b] text-[#35a79b]"
                           : accessible
-                            ? "bg-[#060a09] border-[#2c3a37] text-[#7f9995] hover:border-[#33d6c0]"
-                            : "bg-[#060a09] border-[#22302e] text-[#3c4a47] cursor-not-allowed"
+                            ? "bg-[#0c0e0d] border-[#343735] text-[#8b9391] hover:border-[#35a79b]"
+                            : "bg-[#0c0e0d] border-[#22302e] text-[#4a4d4b] cursor-not-allowed"
                     }`}
                   >
                     {faite ? <Check className="w-3 h-3" /> : accessible ? e.n : <Lock className="w-2.5 h-2.5" />}
                   </button>
                   <div
                     className={`h-px flex-1 ${
-                      i === ETAPES.length - 1 ? "bg-transparent" : e.n < etape ? "bg-[#33d6c0]/40" : "bg-[#1c2725]"
+                      i === ETAPES.length - 1 ? "bg-transparent" : e.n < etape ? "bg-[#35a79b]/40" : "bg-[#282b2a]"
                     }`}
                   />
                 </div>
                 <div className="mt-2.5 text-center px-1">
                   <div
                     className={`text-[12.5px] ${
-                      active ? "text-[#e6efed]" : accessible ? "text-[#93aca7]" : "text-[#3c4a47]"
+                      active ? "text-[#edeae5]" : accessible ? "text-[#9aa19e]" : "text-[#4a4d4b]"
                     }`}
                   >
                     {e.label}
                   </div>
-                  <div className="text-[11px] text-[#5e7672] mt-0.5 hidden sm:block">{e.sub}</div>
+                  <div className="text-[11px] text-[#6b7270] mt-0.5 hidden sm:block">{e.sub}</div>
                 </div>
               </div>
             );
@@ -245,7 +245,7 @@ function BandeauTest({ dossier }) {
   });
 
   return (
-    <div className="rounded-md border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 flex flex-wrap items-center gap-2 text-sm text-amber-200/90">
+    <div className="rounded-md border border-[#e0c9a0]/25 bg-[#e0c9a0]/[0.06] px-4 py-3 flex flex-wrap items-center gap-2 text-sm text-amber-200/90">
       <FlaskConical className="w-3.5 h-3.5 flex-shrink-0" />
       <span className="flex-1 min-w-56">
         Mode test — chaque bouton agit réellement (statuts, journal, projet), mais aucun appel API
@@ -256,7 +256,7 @@ function BandeauTest({ dossier }) {
         variant="ghost"
         onClick={() => supprimer.mutate()}
         disabled={supprimer.isPending}
-        className="text-amber-200/80 hover:text-white hover:bg-white/5 flex-shrink-0"
+        className="text-amber-200/80 hover:text-[#edeae5] hover:bg-[#edeae5]/5 flex-shrink-0"
       >
         {supprimer.isPending ? (
           <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -351,22 +351,22 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
   // montre plutôt l'écran de composition, qui est le cœur de l'étape.
   if (dossier && !apercu) {
     return (
-      <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-6">
+      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-6">
         <div className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-md bg-[#33d6c0]/20 text-[#5ee7d4] flex items-center justify-center flex-shrink-0">
+          <span className="w-9 h-9 rounded-md bg-[#35a79b]/20 text-[#7fd3c9] flex items-center justify-center flex-shrink-0">
             <Mail className="w-4 h-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-white text-sm font-medium">
+            <p className="text-[#edeae5] text-sm font-medium">
               {dossier.source_mail ? "Fiche reçue par mail" : "Étape passée"}
             </p>
-            <p className="text-[#7f9995] text-xs mt-1 leading-relaxed">
+            <p className="text-[#8b9391] text-xs mt-1 leading-relaxed">
               {dossier.source_mail
                 ? `${dossier.source_mail.de || ""} — « ${dossier.source_mail.objet || ""} » le ${dossier.source_mail.date ? new Date(dossier.source_mail.date).toLocaleString("fr-FR") : "?"}`
                 : `La fiche « ${dossier.source?.nom_fichier || "texte collé"} » a été déposée directement, sans échange de mail préalable dans la plateforme.`}
             </p>
           </div>
-          <Button size="sm" onClick={onSuivant} className="bg-white/5 hover:bg-white/10 text-[#c4d5d1] border-0 flex-shrink-0">
+          <Button size="sm" onClick={onSuivant} className="bg-[#edeae5]/5 hover:bg-[#edeae5]/10 text-[#d3d8d6] border-0 flex-shrink-0">
             Étape suivante <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Button>
         </div>
@@ -381,10 +381,10 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
         titre="Mail à l'agent"
         description="À écrire pendant l'appel. Choisissez un gabarit, complétez l'adresse et le nom de l'agent, le brouillon s'écrit. L'envoi part de votre Gmail — ou passez si vous avez déjà la fiche."
       />
-      <div className="bg-[#0a0f0e] border border-[#1c2725] rounded-md p-6">
+      <div className="bg-[#0a0c0c] border border-[#282b2a] rounded-md p-6">
       {!brouillon ? (
         <>
-          <div className="text-[10.5px] tracking-[.12em] uppercase text-[#5e7672] mb-2.5">Gabarits</div>
+          <div className="text-[10.5px] tracking-[.12em] uppercase text-[#6b7270] mb-2.5">Gabarits</div>
           <div className="flex flex-wrap gap-[7px] mb-4">
             {GABARITS.map((g) => (
               <button
@@ -395,8 +395,8 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
                 }}
                 className={`px-3 py-[7px] rounded text-[11.5px] border transition-colors ${
                   gabarit === g.label
-                    ? "border-[#33d6c0] text-[#33d6c0] bg-[#33d6c0]/10"
-                    : "border-[#24312f] text-[#93aca7] hover:border-[#33d6c0]"
+                    ? "border-[#35a79b] text-[#35a79b] bg-[#35a79b]/10"
+                    : "border-[#303332] text-[#9aa19e] hover:border-[#35a79b]"
                 }`}
               >
                 {g.label}
@@ -408,13 +408,13 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             onChange={(e) => setPrompt(e.target.value)}
             rows={3}
             placeholder="Choisissez un gabarit, puis complétez l'adresse, le nom de l'agent…"
-            className="bg-[#060a09] border-[#1c2725] text-[#c4d5d1] resize-vertical"
+            className="bg-[#0c0e0d] border-[#282b2a] text-[#d3d8d6] resize-vertical"
           />
           <div className="flex flex-wrap items-center gap-2 mt-3">
             <Button
               onClick={() => composer.mutate()}
               disabled={apercu || !prompt.trim() || composer.isPending}
-              className="bg-transparent border border-[#33d6c0] text-[#33d6c0] hover:bg-[#33d6c0]/10"
+              className="bg-transparent border border-[#35a79b] text-[#35a79b] hover:bg-[#35a79b]/10"
             >
               {composer.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -426,7 +426,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             <Button
               variant="ghost"
               onClick={onSuivant}
-              className="text-[#93aca7] hover:text-white hover:bg-white/5 ml-auto"
+              className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5 ml-auto"
             >
               <SkipForward className="w-4 h-4 mr-1.5" /> Passer — j'ai déjà la fiche
             </Button>
@@ -436,14 +436,14 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
         <div className="space-y-3">
           {comptes.length > 0 ? (
             <div>
-              <Label className="text-[#93aca7] text-xs mb-1.5 block">Envoyer depuis</Label>
+              <Label className="text-[#9aa19e] text-xs mb-1.5 block">Envoyer depuis</Label>
               <select
                 value={expediteur || comptes[0]?.id}
                 onChange={(e) => {
                   setExpediteur(e.target.value);
                   localStorage.setItem("klocka:dernier-expediteur", e.target.value);
                 }}
-                className="w-full bg-[#101715] border border-[#1c2725] rounded-md px-3 py-2 text-white text-sm"
+                className="w-full bg-[#171918] border border-[#282b2a] rounded-md px-3 py-2 text-[#edeae5] text-sm"
               >
                 {comptes.map((c) => (
                   <option key={c.id} value={c.id}>{c.label}</option>
@@ -462,40 +462,40 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
             )
           )}
           <div>
-            <Label className="text-[#93aca7] text-xs mb-1.5 block">Destinataire</Label>
+            <Label className="text-[#9aa19e] text-xs mb-1.5 block">Destinataire</Label>
             <Input
               value={brouillon.to}
               onChange={(e) => setBrouillon({ ...brouillon, to: e.target.value })}
               placeholder="agent@agence.fr"
-              className="bg-[#101715] border-[#1c2725] text-white"
+              className="bg-[#171918] border-[#282b2a] text-[#edeae5]"
             />
           </div>
           <div>
-            <Label className="text-[#93aca7] text-xs mb-1.5 block">Objet</Label>
+            <Label className="text-[#9aa19e] text-xs mb-1.5 block">Objet</Label>
             <Input
               value={brouillon.subject}
               onChange={(e) => setBrouillon({ ...brouillon, subject: e.target.value })}
-              className="bg-[#101715] border-[#1c2725] text-white"
+              className="bg-[#171918] border-[#282b2a] text-[#edeae5]"
             />
           </div>
           <div>
-            <Label className="text-[#93aca7] text-xs mb-1.5 block">Corps</Label>
+            <Label className="text-[#9aa19e] text-xs mb-1.5 block">Corps</Label>
             <Textarea
               value={brouillon.body}
               onChange={(e) => setBrouillon({ ...brouillon, body: e.target.value })}
               rows={8}
-              className="bg-[#101715] border-[#1c2725] text-white leading-relaxed"
+              className="bg-[#171918] border-[#282b2a] text-[#edeae5] leading-relaxed"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setBrouillon(null)} className="text-[#93aca7] hover:text-white hover:bg-white/5">
+            <Button variant="ghost" onClick={() => setBrouillon(null)} className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5">
               Reprendre
             </Button>
             <div className="flex-1" />
             <Button
               variant="ghost"
               onClick={onSuivant}
-              className="text-[#93aca7] hover:text-white hover:bg-white/5"
+              className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5"
             >
               <SkipForward className="w-4 h-4 mr-1.5" /> Passer sans envoyer
             </Button>
@@ -508,7 +508,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
                 envoyer.isPending ||
                 connexionEnCours
               }
-              className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-[#050807] font-medium"
+              className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#0a0c0c] font-medium"
             >
               {envoyer.isPending || connexionEnCours ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -619,24 +619,24 @@ function DepotFiche({ onAnalyse }) {
   };
 
   return (
-    <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-6">
-      <p className="text-white text-sm font-medium mb-1">Pré-analyser la fiche</p>
-      <p className="text-[#7f9995] text-xs mb-4">
+    <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-6">
+      <p className="text-[#edeae5] text-sm font-medium mb-1">Pré-analyser la fiche</p>
+      <p className="text-[#8b9391] text-xs mb-4">
         Déposez la fiche commerciale reçue de l'agent (ou collez le texte du mail) : extraction,
         vérification des citations, verdict et simulateur. Les mails reçus se préanalysent aussi en un
         clic depuis la Boîte de réception de la page Mails.
       </p>
       <div className="grid md:grid-cols-2 gap-5">
         <div>
-          <Label className="text-[#93aca7] text-xs mb-2 block">Fiche commerciale</Label>
+          <Label className="text-[#9aa19e] text-xs mb-2 block">Fiche commerciale</Label>
           <button
             onClick={() => inputFichier.current?.click()}
             disabled={analyser.isPending}
-            className="w-full h-[104px] border border-dashed border-white/15 rounded-md flex flex-col items-center justify-center gap-2 hover:border-[#33d6c0]/50 hover:bg-white/[0.02] transition-all disabled:opacity-50"
+            className="w-full h-[104px] border border-dashed border-[#edeae5]/15 rounded-md flex flex-col items-center justify-center gap-2 hover:border-[#35a79b]/50 hover:bg-[#edeae5]/[0.02] transition-all disabled:opacity-50"
           >
-            <Upload className="w-5 h-5 text-[#33d6c0]" />
-            <span className="text-[#93aca7] text-sm">PDF, image, .eml</span>
-            <span className="text-[#5e7672] text-[11px]">Les PDF scannés sont transcrits automatiquement</span>
+            <Upload className="w-5 h-5 text-[#35a79b]" />
+            <span className="text-[#9aa19e] text-sm">PDF, image, .eml</span>
+            <span className="text-[#6b7270] text-[11px]">Les PDF scannés sont transcrits automatiquement</span>
           </button>
           <input
             ref={inputFichier}
@@ -647,13 +647,13 @@ function DepotFiche({ onAnalyse }) {
           />
         </div>
         <div>
-          <Label className="text-[#93aca7] text-xs mb-2 block">…ou collez le texte du mail</Label>
+          <Label className="text-[#9aa19e] text-xs mb-2 block">…ou collez le texte du mail</Label>
           <Textarea
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             rows={4}
             placeholder="Bonjour, je vous propose un local commercial situé…"
-            className="bg-[#0a0f0e] border-[#1c2725] text-white resize-none"
+            className="bg-[#0a0c0c] border-[#282b2a] text-[#edeae5] resize-none"
           />
         </div>
       </div>
@@ -661,7 +661,7 @@ function DepotFiche({ onAnalyse }) {
         <Button
           onClick={() => analyser.mutate({ texte })}
           disabled={!texte.trim() || analyser.isPending}
-          className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
+          className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
         >
           {analyser.isPending ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyse…</>
@@ -671,7 +671,7 @@ function DepotFiche({ onAnalyse }) {
         </Button>
       </div>
       {analyser.isPending && (
-        <p className="text-[#7f9995] text-xs mt-3 text-center">
+        <p className="text-[#8b9391] text-xs mt-3 text-center">
           Lecture, extraction, vérification des citations puis application des règles…
         </p>
       )}
@@ -717,11 +717,11 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
     // jouée (navigation libre) — on l'explique plutôt que d'inventer un « oui ».
     if (!abandonne && !evenement) {
       return (
-        <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4 flex items-center gap-3">
-          <span className="w-8 h-8 rounded-md bg-white/5 text-[#7f9995] flex items-center justify-center flex-shrink-0">
+        <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4 flex items-center gap-3">
+          <span className="w-8 h-8 rounded-md bg-[#edeae5]/5 text-[#8b9391] flex items-center justify-center flex-shrink-0">
             <Clock className="w-4 h-4" />
           </span>
-          <p className="text-[#93aca7] text-sm min-w-0">
+          <p className="text-[#9aa19e] text-sm min-w-0">
             {descInactif || "Aucune décision formelle enregistrée à cette étape."}
           </p>
         </div>
@@ -729,19 +729,19 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
     }
 
     return (
-      <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4">
+      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4">
         <div className="flex items-center gap-3">
           <span
             className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-              abandonne ? "bg-red-500/15 text-red-300" : "bg-[#33d6c0]/20 text-[#5ee7d4]"
+              abandonne ? "bg-red-500/15 text-red-300" : "bg-[#35a79b]/20 text-[#7fd3c9]"
             }`}
           >
             {abandonne ? <ThumbsDown className="w-4 h-4" /> : <ThumbsUp className="w-4 h-4" />}
           </span>
-          <p className="text-[#93aca7] text-sm min-w-0">
+          <p className="text-[#9aa19e] text-sm min-w-0">
             {abandonne ? "Décision : non." : "Décision : oui."}
             {evenement && (
-              <span className="text-[#5e7672]">
+              <span className="text-[#6b7270]">
                 {" "}
                 {evenement.detail || ""} —{" "}
                 {new Date(evenement.le).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
@@ -757,27 +757,27 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
     <div className="grid sm:grid-cols-2 gap-4">
       <button
         onClick={() => ouvrir(intentionOui)}
-        className="bg-[#0a0f0e] border border-[#33d6c0]/30 hover:border-[#33d6c0]/60 rounded-md p-6 text-left transition-all group"
+        className="bg-[#0a0c0c] border border-[#35a79b]/30 hover:border-[#35a79b]/60 rounded-md p-6 text-left transition-all group"
       >
-        <span className="w-9 h-9 rounded-md bg-[#33d6c0]/20 text-[#5ee7d4] flex items-center justify-center mb-3">
+        <span className="w-9 h-9 rounded-md bg-[#35a79b]/20 text-[#7fd3c9] flex items-center justify-center mb-3">
           <ThumbsUp className="w-4 h-4" />
         </span>
-        <p className="text-white text-sm font-medium mb-1">{titreOui}</p>
-        <p className="text-[#7f9995] text-xs leading-relaxed">{descOui}</p>
-        <span className="text-[#5ee7d4] text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+        <p className="text-[#edeae5] text-sm font-medium mb-1">{titreOui}</p>
+        <p className="text-[#8b9391] text-xs leading-relaxed">{descOui}</p>
+        <span className="text-[#7fd3c9] text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
           Rédiger le mail <ArrowRight className="w-3 h-3" />
         </span>
       </button>
 
       <button
         onClick={() => ouvrir(intentionNon)}
-        className="bg-[#0a0f0e] border border-[#16201f] hover:border-red-500/40 rounded-md p-6 text-left transition-all group"
+        className="bg-[#0a0c0c] border border-[#242726] hover:border-red-500/40 rounded-md p-6 text-left transition-all group"
       >
         <span className="w-9 h-9 rounded-md bg-red-500/15 text-red-300 flex items-center justify-center mb-3">
           <ThumbsDown className="w-4 h-4" />
         </span>
-        <p className="text-white text-sm font-medium mb-1">{titreNon}</p>
-        <p className="text-[#7f9995] text-xs leading-relaxed">{descNon}</p>
+        <p className="text-[#edeae5] text-sm font-medium mb-1">{titreNon}</p>
+        <p className="text-[#8b9391] text-xs leading-relaxed">{descNon}</p>
         <span className="text-red-300 text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
           Rédiger le mail <ArrowRight className="w-3 h-3" />
         </span>
@@ -863,7 +863,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
             className={
               aRelancer
                 ? "bg-red-500/20 hover:bg-red-500/30 text-red-200 border-0"
-                : "bg-white/5 hover:bg-white/10 text-[#c4d5d1] border-0"
+                : "bg-[#edeae5]/5 hover:bg-[#edeae5]/10 text-[#d3d8d6] border-0"
             }
           >
             <Send className="w-3.5 h-3.5 mr-1.5" /> Relancer l'agent
@@ -872,7 +872,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
             size="sm"
             onClick={() => changerStatut.mutate({ statut: "documents_recus", note: "Documents reçus" })}
             disabled={apercu || changerStatut.isPending}
-            className="bg-[#33d6c0]/15 hover:bg-[#33d6c0]/25 text-[#5ee7d4] border-0"
+            className="bg-[#35a79b]/15 hover:bg-[#35a79b]/25 text-[#7fd3c9] border-0"
           >
             <FolderCheck className="w-3.5 h-3.5 mr-1.5" /> Documents reçus
           </Button>
@@ -913,11 +913,11 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
         description="Tout est sur la table : synthèse documentaire, verdict, marché. On présente au client, ou on abandonne — chaque issue part avec son mail pré-rédigé."
       />
       {dossier.synthese_documents?.resume && (
-        <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md px-5 py-4">
-          <p className="text-[#93aca7] text-xs mb-2">Rappel de la synthèse documentaire</p>
-          <p className="text-[#c4d5d1] text-sm leading-relaxed">{dossier.synthese_documents.resume}</p>
+        <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4">
+          <p className="text-[#9aa19e] text-xs mb-2">Rappel de la synthèse documentaire</p>
+          <p className="text-[#d3d8d6] text-sm leading-relaxed">{dossier.synthese_documents.resume}</p>
           {dossier.synthese_documents.points_a_verifier?.length > 0 && (
-            <p className="text-amber-300/80 text-xs mt-2">
+            <p className="text-[#e0c9a0]/80 text-xs mt-2">
               {dossier.synthese_documents.points_a_verifier.length} point(s) à vérifier — détail à l'étape
               Documents.
             </p>
@@ -974,17 +974,17 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
     return (
       <>
       {titre}
-      <div className="bg-[#0a0f0e] border border-[#33d6c0]/25 rounded-md p-6 text-center">
-        <span className="w-10 h-10 rounded-md bg-[#33d6c0]/20 text-[#5ee7d4] flex items-center justify-center mx-auto mb-3">
+      <div className="bg-[#0a0c0c] border border-[#35a79b]/25 rounded-md p-6 text-center">
+        <span className="w-10 h-10 rounded-md bg-[#35a79b]/20 text-[#7fd3c9] flex items-center justify-center mx-auto mb-3">
           <Briefcase className="w-5 h-5" />
         </span>
-        <p className="text-white text-sm font-medium mb-1">Le deal est entré dans la plateforme</p>
-        <p className="text-[#7f9995] text-xs mb-4">
+        <p className="text-[#edeae5] text-sm font-medium mb-1">Le deal est entré dans la plateforme</p>
+        <p className="text-[#8b9391] text-xs mb-4">
           Suivez l'avancement client (message envoyé, retour oui/non) depuis la fiche projet.
         </p>
         <Button
           onClick={() => navigate(`/AdminProjets?id=${dossier.projet_id}`)}
-          className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
+          className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
         >
           <ExternalLink className="w-4 h-4 mr-2" /> Ouvrir le projet
         </Button>
@@ -996,12 +996,12 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
   return (
     <>
     {titre}
-    <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-6 text-center">
-      <span className="w-10 h-10 rounded-md bg-[#33d6c0]/20 text-[#5ee7d4] flex items-center justify-center mx-auto mb-3">
+    <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-6 text-center">
+      <span className="w-10 h-10 rounded-md bg-[#35a79b]/20 text-[#7fd3c9] flex items-center justify-center mx-auto mb-3">
         <Briefcase className="w-5 h-5" />
       </span>
-      <p className="text-white text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
-      <p className="text-[#7f9995] text-xs mb-4 max-w-md mx-auto">
+      <p className="text-[#edeae5] text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
+      <p className="text-[#8b9391] text-xs mb-4 max-w-md mx-auto">
         Le projet est créé pré-rempli : adresse, locataire, bail, simulateur (mêmes chiffres que la
         pré-analyse) et données de marché issues de la base. Il s'ouvre ensuite dans l'éditeur pour
         compléter photos, secteur et documents client.
@@ -1009,7 +1009,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       <Button
         onClick={() => creerProjet.mutate()}
         disabled={apercu || creerProjet.isPending || statut !== "depouille"}
-        className="bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
+        className="bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
       >
         {creerProjet.isPending ? (
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1019,7 +1019,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         Créer le projet pré-rempli
       </Button>
       {statut !== "depouille" && (
-        <p className="text-[#5e7672] text-[11px] mt-3">Disponible une fois les documents analysés (étape 3).</p>
+        <p className="text-[#6b7270] text-[11px] mt-3">Disponible une fois les documents analysés (étape 3).</p>
       )}
     </div>
     </>

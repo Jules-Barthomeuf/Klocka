@@ -23,48 +23,54 @@ const etapeDescriptions = {
 
 function StepProgressBar({ etapes, userEtape }) {
   const steps = etapes.filter(e => e.numero !== 0);
+  const progression = Math.max(0, Math.min(1, (userEtape - 1) / (steps.length - 1)));
 
   return (
-    <div className="bg-white/[0.04] rounded-md border border-white/[0.3] px-5 py-4">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-white text-[10px] uppercase tracking-[0.2em] font-medium">
-          Étape en cours
-        </span>
-        <span className="text-white text-[10px]">
-          {etapeDescriptions[userEtape] || ""}
-        </span>
-      </div>
-      <div className="flex items-center justify-between">
-        {steps.map((step, i) => {
-          const num = step.numero;
-          const isCompleted = num < userEtape;
-          const isCurrent = num === userEtape;
-          const isActive = isCompleted || isCurrent;
-
-          return (
-            <div key={num} className="flex flex-col items-center gap-2 flex-1">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: i * 0.08, duration: 0.3 }}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all duration-500 ${
-                  isCurrent
-                    ? 'bg-[#33d6c0] text-white shadow-[0_0_12px_rgba(42,157,143,0.4)]'
-                    : isCompleted
-                      ? 'bg-[#33d6c0]/80 text-white'
-                      : 'bg-white/[0.06] text-white/20'
-                }`}
-              >
-                {num}
-              </motion.div>
-              <span className={`text-[9px] text-center leading-tight transition-colors duration-300 ${
-                isActive ? 'text-white' : 'text-white/20'
-              }`}>
-                {step.titre}
-              </span>
-            </div>
-          );
-        })}
+    <div>
+      <div className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-6">Votre parcours</div>
+      <div className="relative">
+        {/* Filet de fond + progression */}
+        <div className="absolute left-0 right-0 top-[5px] h-px bg-[#edeae5]/[0.14]" />
+        <motion.div
+          className="absolute left-0 top-[4.5px] h-[2px] bg-[#35a79b]"
+          initial={{ width: 0 }}
+          animate={{ width: `${progression * 100}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        />
+        <div className="relative flex justify-between">
+          {steps.map((step, i) => {
+            const num = step.numero;
+            const isCompleted = num < userEtape;
+            const isCurrent = num === userEtape;
+            return (
+              <div key={num} className={`flex flex-col ${i === 0 ? "items-start" : i === steps.length - 1 ? "items-end" : "items-center"}`}>
+                <motion.span
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: i * 0.07, duration: 0.3 }}
+                  className={`w-[11px] h-[11px] rounded-full border-2 ${
+                    isCurrent
+                      ? "border-[#35a79b] bg-[#0a0c0c]"
+                      : isCompleted
+                        ? "border-[#35a79b] bg-[#35a79b]"
+                        : "border-[#edeae5]/[0.2] bg-[#0a0c0c]"
+                  }`}
+                />
+                <span className={`mt-3 text-[10px] tracking-[0.14em] uppercase ${isCurrent ? "text-[#7fd3c9]" : isCompleted ? "text-[#d3d8d6]" : "text-[#6b7270]"} max-md:hidden`}>
+                  {step.titre}
+                </span>
+                {isCurrent && (
+                  <span className="mt-1 text-[12px] text-[#8b9391] max-md:hidden">{etapeDescriptions[userEtape]}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {/* Mobile : étape courante seule */}
+        <div className="md:hidden mt-4">
+          <span className="text-[10px] tracking-[0.14em] uppercase text-[#7fd3c9]">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
+          <p className="text-[12px] text-[#8b9391] mt-0.5 mb-0">{etapeDescriptions[userEtape]}</p>
+        </div>
       </div>
     </div>
   );
@@ -77,21 +83,16 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
       onClick={onClick}
-      className="group cursor-pointer bg-white/[0.04] rounded-md border border-white/[0.3] p-5 md:p-6 hover:border-[#33d6c0]/15 hover:bg-white/[0.06] transition-all duration-500"
+      className="group cursor-pointer border-t border-[#edeae5]/[0.35] pt-5 pb-2 transition-colors hover:border-[#35a79b]/60"
     >
-      <div className="flex items-start gap-4">
-        <div className="w-10 h-10 rounded-md bg-[#33d6c0]/[0.07] flex items-center justify-center flex-shrink-0 group-hover:bg-[#33d6c0]/[0.12] transition-colors">
-          <Icon className="w-[18px] h-[18px] text-[#33d6c0]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-white text-sm font-medium mb-1">{title}</h3>
-          <p className="text-white/70 text-xs leading-relaxed mb-4">{description}</p>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[#33d6c0] text-[11px] font-medium">{cta}</span>
-            <ArrowRight className="w-3 h-3 text-[#33d6c0]/50 group-hover:text-[#33d6c0] group-hover:translate-x-0.5 transition-all" />
-          </div>
-        </div>
+      <div className="flex items-center gap-2 mb-3">
+        <Icon className="w-4 h-4 text-[#35a79b]" />
+        <h3 className="text-[#edeae5] text-[15px] font-light m-0">{title}</h3>
       </div>
+      <p className="text-[#8b9391] text-[13px] leading-[1.7] mb-4">{description}</p>
+      <span className="inline-flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-[#7fd3c9] group-hover:text-[#edeae5] transition-colors">
+        {cta} <ArrowRight className="w-3 h-3" />
+      </span>
     </motion.div>
   );
 }
@@ -103,7 +104,7 @@ export default function ClientDashboardView({
   const firstName = (user.full_name || user.email.split('@')[0]).split(' ')[0];
 
   return (
-    <div className="min-h-screen bg-[#050807]">
+    <div className="min-h-screen bg-[#0a0c0c]">
       <FeedbackWidget />
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
 
@@ -115,9 +116,12 @@ export default function ClientDashboardView({
           className="mb-5"
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">
-              Bonjour, <span className="italic">{firstName}</span>
-            </h1>
+            <div>
+              <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">
+                Bonjour, {firstName}
+              </h1>
+              <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0">Votre parcours d'investissement, étape par étape.</p>
+            </div>
           </div>
         </motion.div>
 
@@ -126,7 +130,7 @@ export default function ClientDashboardView({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05, duration: 0.4 }}
-          className="mb-8"
+          className="mb-10 max-md:mb-8"
         >
           <StepProgressBar etapes={etapes} userEtape={userEtape} />
         </motion.div>
@@ -170,11 +174,11 @@ export default function ClientDashboardView({
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white/[0.04] rounded-md border border-white/[0.3] p-8 flex flex-col items-center justify-center min-h-[240px]"
+                    className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-8 flex flex-col items-center justify-center min-h-[240px]"
                   >
-                    <Building2 className="w-10 h-10 text-white/[0.06] mb-3" />
-                    <p className="text-white/20 text-sm mb-1">Aucun projet en cours</p>
-                    <p className="text-white/10 text-xs">Vos projets apparaîtront ici.</p>
+                    <Building2 className="w-10 h-10 text-[#edeae5]/[0.06] mb-3" />
+                    <p className="text-[#edeae5]/20 text-sm mb-1">Aucun projet en cours</p>
+                    <p className="text-[#edeae5]/10 text-xs">Vos projets apparaîtront ici.</p>
                   </motion.div>
                 )}
               </div>

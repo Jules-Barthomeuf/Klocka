@@ -179,45 +179,44 @@ Réponds UNIQUEMENT avec le JSON.`;
   };
 
   return (
-    <div className="min-h-screen bg-[#050807] text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
-            <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">Double Check</h1>
-            <div className="h-px w-16 bg-[#33d6c0] mt-3" />
+            <p className="text-[#35a79b] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Double Check</h1>
           </div>
           <button onClick={openCreate}
-          className="group flex items-center gap-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 hover:border-[#33d6c0]/50 text-white px-6 py-3 rounded-md transition-all duration-300">
-            <div className="w-9 h-9 bg-[#33d6c0]/20 rounded-lg flex items-center justify-center group-hover:bg-[#33d6c0]/30 transition-colors">
-              <Plus className="w-5 h-5 text-[#33d6c0]" />
+          className="group flex items-center gap-3 bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 hover:border-[#35a79b]/50 text-[#edeae5] px-6 py-3 rounded-md transition-all duration-300">
+            <div className="w-9 h-9 bg-[#35a79b]/20 rounded-lg flex items-center justify-center group-hover:bg-[#35a79b]/30 transition-colors">
+              <Plus className="w-5 h-5 text-[#35a79b]" />
             </div>
             <span className="text-sm font-medium">Nouveau check</span>
           </button>
         </div>
 
         {/* Stats */}
-        <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] px-5 py-3 mb-6 inline-flex items-center gap-2">
-          <ClipboardCheck className="w-4 h-4 text-[#33d6c0]" />
-          <span className="text-[#93aca7] text-sm">{items.length} check{items.length !== 1 ? "s" : ""} en cours</span>
+        <div className="bg-[#0a0c0c] rounded-md border border-[#242726] px-5 py-3 mb-6 inline-flex items-center gap-2">
+          <ClipboardCheck className="w-4 h-4 text-[#35a79b]" />
+          <span className="text-[#9aa19e] text-sm">{items.length} check{items.length !== 1 ? "s" : ""} en cours</span>
         </div>
 
         {/* List */}
         {isLoading ?
         <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin" />
           </div> :
         items.length === 0 ?
         <div className="text-center py-20">
-            <div className="w-20 h-20 bg-white/[0.03] rounded-md flex items-center justify-center mx-auto mb-6">
-              <ClipboardCheck className="w-10 h-10 text-[#3c4a47]" />
+            <div className="w-20 h-20 bg-[#edeae5]/[0.03] rounded-md flex items-center justify-center mx-auto mb-6">
+              <ClipboardCheck className="w-10 h-10 text-[#4a4d4b]" />
             </div>
-            <h2 className="text-xl font-light text-white mb-2">Aucun double check</h2>
-            <p className="text-[#5e7672] mb-6 text-sm">Créez un check pour analyser un nouveau bien</p>
+            <h2 className="text-xl font-light text-[#edeae5] mb-2">Aucun double check</h2>
+            <p className="text-[#6b7270] mb-6 text-sm">Créez un check pour analyser un nouveau bien</p>
             <button onClick={openCreate}
-          className="inline-flex items-center gap-2 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white px-5 py-2.5 rounded-md transition-all text-sm">
-              <Plus className="w-4 h-4 text-[#33d6c0]" /> Nouveau check
+          className="inline-flex items-center gap-2 bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] px-5 py-2.5 rounded-md transition-all text-sm">
+              <Plus className="w-4 h-4 text-[#35a79b]" /> Nouveau check
             </button>
           </div> :
 
@@ -230,23 +229,23 @@ Réponds UNIQUEMENT avec le JSON.`;
             const date = new Date(item.created_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 
             return (
-              <div key={item.id} className="bg-[#0a0f0e] rounded-md border border-[#16201f] hover:border-white/[0.10] transition-all p-5">
+              <div key={item.id} className="bg-[#0a0c0c] rounded-md border border-[#242726] hover:border-[#edeae5]/[0.10] transition-all p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-white font-medium text-sm truncate">{item.titre}</h3>
-                        <span className="text-[#5e7672] text-xs flex-shrink-0">{date}</span>
+                        <h3 className="text-[#edeae5] font-medium text-sm truncate">{item.titre}</h3>
+                        <span className="text-[#6b7270] text-xs flex-shrink-0">{date}</span>
                       </div>
-                      <p className="text-[#7f9995] text-xs mb-3">{adresse}</p>
+                      <p className="text-[#8b9391] text-xs mb-3">{adresse}</p>
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="h-1.5 flex-1 max-w-[200px] bg-white/[0.04] rounded-full overflow-hidden">
-                          <div className="h-full bg-[#33d6c0] rounded-full transition-all" style={{ width: `${filledCount / totalCount * 100}%` }} />
+                        <div className="h-1.5 flex-1 max-w-[200px] bg-[#edeae5]/[0.04] rounded-full overflow-hidden">
+                          <div className="h-full bg-[#35a79b] rounded-full transition-all" style={{ width: `${filledCount / totalCount * 100}%` }} />
                         </div>
-                        <span className="text-[#5e7672] text-[10px]">{filledCount}/{totalCount}</span>
+                        <span className="text-[#6b7270] text-[10px]">{filledCount}/{totalCount}</span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <button onClick={() => openEdit(item)}
-                      className="flex items-center gap-1.5 text-[#93aca7] hover:text-white text-xs px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-all">
+                      className="flex items-center gap-1.5 text-[#9aa19e] hover:text-[#edeae5] text-xs px-3 py-1.5 rounded-lg bg-[#edeae5]/[0.03] hover:bg-[#edeae5]/[0.06] transition-all">
                           <Pencil className="w-3 h-3" /> Éditer
                         </button>
                         {!item.projet_id && <button onClick={() => handleRunAI(item.id, item)} disabled={isRunningAI === item.id}
@@ -255,14 +254,14 @@ Réponds UNIQUEMENT avec le JSON.`;
                           Check IA
                         </button>}
                         <button onClick={() => handleConvert(item)} disabled={isConverting === item.id}
-                      className="flex items-center gap-1.5 text-[#33d6c0] hover:text-[#33d6c0]/80 text-xs px-3 py-1.5 rounded-lg bg-[#33d6c0]/10 hover:bg-[#33d6c0]/15 transition-all disabled:opacity-50">
+                      className="flex items-center gap-1.5 text-[#35a79b] hover:text-[#35a79b]/80 text-xs px-3 py-1.5 rounded-lg bg-[#35a79b]/10 hover:bg-[#35a79b]/15 transition-all disabled:opacity-50">
                           {isConverting === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
                           Créer projet
                         </button>
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => {if (window.confirm("Supprimer ?")) deleteMutation.mutate(item.id);}}
-                  className="text-[#5e7672] hover:text-red-400 hover:bg-red-500/10 h-8 w-8 flex-shrink-0">
+                  className="text-[#6b7270] hover:text-red-400 hover:bg-red-500/10 h-8 w-8 flex-shrink-0">
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -275,40 +274,40 @@ Réponds UNIQUEMENT avec le JSON.`;
 
       {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {if (!open) closeDialog();else setIsDialogOpen(true);}}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#050505] border-[#1c2725]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0a0c0c] border-[#282b2a]">
           <DialogHeader>
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-xl font-light text-white">
+              <DialogTitle className="text-xl font-light text-[#edeae5]">
                 {editingItem ? "Modifier le check" : "Nouveau double check"}
               </DialogTitle>
-              <Button variant="ghost" size="icon" onClick={closeDialog} className="text-[#7f9995] hover:text-white hover:bg-white/5 h-8 w-8 -mr-2">
+              <Button variant="ghost" size="icon" onClick={closeDialog} className="text-[#8b9391] hover:text-[#edeae5] hover:bg-[#edeae5]/5 h-8 w-8 -mr-2">
                 <X className="w-5 h-5" />
               </Button>
             </div>
           </DialogHeader>
           <div className="space-y-5 mt-4">
             <div className="space-y-2">
-              <label className="text-white text-sm font-medium">Titre / Référence</label>
+              <label className="text-[#edeae5] text-sm font-medium">Titre / Référence</label>
               <Input value={titre} onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex: 45 rue de la République - Lyon" className="bg-[#101715] text-white px-3 py-1 text-base rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#1c2725] h-11" />
+              placeholder="Ex: 45 rue de la République - Lyon" className="bg-[#171918] text-[#edeae5] px-3 py-1 text-base rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#282b2a] h-11" />
               
             </div>
 
             <DoubleCheckTable checkData={checkData} onChange={setCheckData} />
 
             <div className="space-y-2">
-              <label className="text-white text-sm font-medium">Notes libres</label>
+              <label className="text-[#edeae5] text-sm font-medium">Notes libres</label>
               <Textarea value={notesLibres} onChange={(e) => setNotesLibres(e.target.value)}
               placeholder="Ajoutez vos notes ici..."
-              className="bg-[#0a0f0e] text-white border-[#1c2725] min-h-[150px]" rows={8} />
+              className="bg-[#0a0c0c] text-[#edeae5] border-[#282b2a] min-h-[150px]" rows={8} />
             </div>
           </div>
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#16201f]">
-            <Button variant="ghost" onClick={closeDialog} className="text-[#93aca7] hover:text-white">Annuler</Button>
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#242726]">
+            <Button variant="ghost" onClick={closeDialog} className="text-[#9aa19e] hover:text-[#edeae5]">Annuler</Button>
             <Button onClick={handleSave} disabled={!titre.trim() || createMutation.isPending || updateMutation.isPending}
-            className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white">
+            className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5]">
               {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              <CheckCircle2 className="w-4 h-4 mr-1 text-[#33d6c0]" />
+              <CheckCircle2 className="w-4 h-4 mr-1 text-[#35a79b]" />
               {editingItem ? "Mettre à jour" : "Créer"}
             </Button>
           </div>

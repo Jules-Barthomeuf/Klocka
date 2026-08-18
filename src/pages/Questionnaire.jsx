@@ -216,15 +216,15 @@ export default function Questionnaire() {
     const CALENDLY_URL = "https://calendly.com/paul-dezulueta-klocka/definition-de-la-strategie-45";
 
     return (
-      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-4">
-        <Card className="max-w-2xl w-full border-[#33d6c0]/30 bg-gradient-to-br from-[#0a0f0e] to-black shadow-2xl">
-          <CardHeader className="pb-6 border-b border-[#101715]">
+      <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-4">
+        <Card className="max-w-2xl w-full border-[#35a79b]/30 bg-gradient-to-br from-[#0a0c0c] to-black shadow-2xl">
+          <CardHeader className="pb-6 border-b border-[#171918]">
             <div className="flex items-center gap-4 mb-4">
               <div className="flex-1 text-center">
-                <div className="w-12 h-12 mx-auto mb-2 bg-[#33d6c0] rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 mx-auto mb-2 bg-[#35a79b] rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-[#edeae5]" />
                 </div>
-                <CardTitle className="text-2xl max-md:text-xl font-montserrat text-white">
+                <CardTitle className="text-2xl max-md:text-xl font-montserrat text-[#edeae5]">
                   Votre profil investisseur
                 </CardTitle>
               </div>
@@ -236,14 +236,14 @@ export default function Questionnaire() {
               <img 
                 src={profilInfo.image} 
                 alt={profilInfo.nom}
-                className="w-64 h-64 max-md:w-48 max-md:h-48 mx-auto object-cover rounded-md shadow-lg border-2 border-[#33d6c0]"
+                className="w-64 h-64 max-md:w-48 max-md:h-48 mx-auto object-cover rounded-md shadow-lg border-2 border-[#35a79b]"
               />
 
-              <h2 className="text-2xl max-md:text-xl text-[#33d6c0]">
+              <h2 className="text-2xl max-md:text-xl text-[#35a79b]">
                 {profilInfo.nom}
               </h2>
 
-              <p className="text-[#c4d5d1] leading-relaxed text-lg max-md:text-base">
+              <p className="text-[#d3d8d6] leading-relaxed text-lg max-md:text-base">
                 {profilInfo.description}
               </p>
 
@@ -269,23 +269,23 @@ export default function Questionnaire() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050807] flex items-center justify-center p-4 max-md:p-3">
-      <Card className="max-w-3xl w-full border-[#33d6c0]/30 bg-gradient-to-br from-[#0a0f0e] to-black shadow-2xl">
-        <CardHeader className="space-y-4 pb-8 max-md:pb-6 max-md:space-y-3 border-b border-[#101715]">
+    <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-4 max-md:p-3">
+      <Card className="max-w-3xl w-full border-[#35a79b]/30 bg-gradient-to-br from-[#0a0c0c] to-black shadow-2xl">
+        <CardHeader className="space-y-4 pb-8 max-md:pb-6 max-md:space-y-3 border-b border-[#171918]">
           <div className="flex justify-between items-center max-md:flex-col max-md:items-start max-md:gap-2">
-            <CardTitle className="text-3xl max-md:text-xl text-white">
+            <CardTitle className="text-3xl max-md:text-xl text-[#edeae5]">
               {currentQuestion === 0 ? "Bienvenue chez Klocka !" : "Questionnaire initial"}
             </CardTitle>
-            <div className="text-sm max-md:text-xs font-medium text-[#93aca7]">
+            <div className="text-sm max-md:text-xs font-medium text-[#9aa19e]">
               Question {questionNumber} / {totalQuestions}
             </div>
           </div>
-          <Progress value={progress} className="h-2 max-md:h-1.5 bg-[#101715]" />
+          <Progress value={progress} className="h-2 max-md:h-1.5 bg-[#171918]" />
         </CardHeader>
         
         <CardContent className="space-y-8 max-md:space-y-6 p-8 max-md:p-4">
           <div className="space-y-6 max-md:space-y-4">
-            <h2 className="text-xl max-md:text-base font-semibold text-white leading-relaxed">
+            <h2 className="text-xl max-md:text-base font-semibold text-[#edeae5] leading-relaxed">
               {question.question}
             </h2>
             
@@ -295,26 +295,26 @@ export default function Questionnaire() {
                   placeholder={question.placeholder}
                   value={reponses[question.id] || ""}
                   onChange={(e) => setReponses({ ...reponses, [question.id]: e.target.value })}
-                  className="h-12 max-md:h-10 text-lg max-md:text-base bg-[#0a0f0e] border-[#24312f] text-white placeholder:text-[#7f9995] focus:border-[#33d6c0] focus:ring-[#33d6c0]"
+                  className="h-12 max-md:h-10 text-lg max-md:text-base bg-[#0a0c0c] border-[#303332] text-[#edeae5] placeholder:text-[#8b9391] focus:border-[#35a79b] focus:ring-[#35a79b]"
                   autoFocus
                 />
                 
                 {/* Section partenaire - uniquement sur la première question */}
                 {question.id === "nom_complet" && (
-                  <div className="p-4 bg-[#101715]/50 rounded-md border border-[#24312f] space-y-4">
+                  <div className="p-4 bg-[#171918]/50 rounded-md border border-[#303332] space-y-4">
                     <div className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-[#33d6c0]" />
-                      <Label className="text-white font-medium">Investir à deux ? (optionnel)</Label>
+                      <Users className="w-5 h-5 text-[#35a79b]" />
+                      <Label className="text-[#edeae5] font-medium">Investir à deux ? (optionnel)</Label>
                     </div>
-                    <p className="text-[#93aca7] text-sm">
+                    <p className="text-[#9aa19e] text-sm">
                       Ajoutez l'email de votre partenaire pour qu'il ait accès à tous vos projets.
                     </p>
                     
                     {partnerEmails.length > 0 && (
                       <div className="space-y-2">
                         {partnerEmails.map((email) => (
-                          <div key={email} className="flex items-center justify-between p-2 bg-[#33d6c0]/10 rounded-lg border border-[#33d6c0]/30">
-                            <span className="text-white text-sm">{email}</span>
+                          <div key={email} className="flex items-center justify-between p-2 bg-[#35a79b]/10 rounded-lg border border-[#35a79b]/30">
+                            <span className="text-[#edeae5] text-sm">{email}</span>
                             <button
                               type="button"
                               onClick={() => handleRemovePartner(email)}
@@ -334,14 +334,14 @@ export default function Questionnaire() {
                         value={newPartnerEmail}
                         onChange={(e) => setNewPartnerEmail(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddPartner())}
-                        className="flex-1 bg-[#0a0f0e] border-[#24312f] text-white"
+                        className="flex-1 bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                       />
                       <Button
                         type="button"
                         onClick={handleAddPartner}
                         disabled={!newPartnerEmail.trim()}
                         variant="outline"
-                        className="border-[#33d6c0] text-[#33d6c0] hover:bg-[#33d6c0]/10"
+                        className="border-[#35a79b] text-[#35a79b] hover:bg-[#35a79b]/10"
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -360,20 +360,20 @@ export default function Questionnaire() {
                     key={option.value}
                     className={`flex items-start space-x-3 p-5 rounded-md border-2 transition-all cursor-pointer hover:shadow-md ${
                       reponses[question.id] === option.value
-                        ? 'border-[#33d6c0] bg-[#33d6c0]/20'
-                        : 'border-[#24312f] hover:border-[#2c3a37] bg-[#0a0f0e]'
+                        ? 'border-[#35a79b] bg-[#35a79b]/20'
+                        : 'border-[#303332] hover:border-[#343735] bg-[#0a0c0c]'
                     }`}
                     onClick={() => setReponses({ ...reponses, [question.id]: option.value })}
                   >
-                    <RadioGroupItem value={option.value} id={option.value} className="mt-1 border-[#2c3a37]" />
+                    <RadioGroupItem value={option.value} id={option.value} className="mt-1 border-[#343735]" />
                     <Label 
                       htmlFor={option.value} 
-                      className="flex-1 cursor-pointer text-base font-medium leading-relaxed text-[#e6efed]"
+                      className="flex-1 cursor-pointer text-base font-medium leading-relaxed text-[#edeae5]"
                     >
                       {option.label}
                     </Label>
                     {reponses[question.id] === option.value && (
-                      <CheckCircle2 className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-[#35a79b] flex-shrink-0" />
                     )}
                   </div>
                 ))}
@@ -381,12 +381,12 @@ export default function Questionnaire() {
             )}
           </div>
 
-          <div className="flex justify-between gap-4 max-md:gap-2 pt-6 max-md:pt-4 border-t border-[#101715]">
+          <div className="flex justify-between gap-4 max-md:gap-2 pt-6 max-md:pt-4 border-t border-[#171918]">
             <Button
               variant="outline"
               onClick={handlePrevious}
               disabled={currentQuestion === 0}
-              className="px-8 max-md:px-4 max-md:text-sm border-[#24312f] text-white hover:bg-[#101715]"
+              className="px-8 max-md:px-4 max-md:text-sm border-[#303332] text-[#edeae5] hover:bg-[#171918]"
             >
               Précédent
             </Button>

@@ -3,18 +3,18 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 
 export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency, textClass, mutedClass, commissionAgentActive, commissionAgentInclusFAI = true }) {
   return (
-    <div className="bg-[#050807] p-4 rounded-md md:p-6 border border-white/[0.1] max-w-full overflow-hidden">
-      <h3 className="font-light text-white text-xl md:text-2xl tracking-tight mb-3 md:mb-4">Budget total</h3>
+    <div className="bg-[#0a0c0c] p-4 rounded-md md:p-6 border border-[#edeae5]/[0.1] max-w-full overflow-hidden">
+      <h3 className="font-light text-[#edeae5] text-xl md:text-2xl tracking-tight mb-3 md:mb-4">Budget total</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-full">
         <div className="relative flex items-center justify-center w-full">
           <ResponsiveContainer width="100%" height={200} className="max-w-full">
             <PieChart>
               <Pie
                 data={[
-                  { name: 'Prix négocié', value: prixBienNegocie, fill: '#33d6c0' },
-                  ...(commissionAgentActive && !commissionAgentInclusFAI && calculs.honorairesChargeAcquereur > 0 ? [{ name: 'Honoraires acquéreur TTC', value: calculs.honorairesChargeAcquereur, fill: '#8B5CF6' }] : []),
-                  { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: '#5ee7d4' },
-                  { name: 'Honoraires Klocka TTC', value: calculs.totalFraisKlocka, fill: '#F59E0B' },
+                  { name: 'Prix négocié', value: prixBienNegocie, fill: '#35a79b' },
+                  ...(commissionAgentActive && !commissionAgentInclusFAI && calculs.honorairesChargeAcquereur > 0 ? [{ name: 'Honoraires acquéreur TTC', value: calculs.honorairesChargeAcquereur, fill: '#a8894f' }] : []),
+                  { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: '#7fd3c9' },
+                  { name: 'Honoraires Klocka TTC', value: calculs.totalFraisKlocka, fill: '#e0c9a0' },
                   { name: 'Frais divers', value: calculs.fraisDivers, fill: '#EF4444' }
                 ].filter(d => d.value > 0)}
                 cx="50%"
@@ -27,10 +27,10 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
                 label={(entry) => `${(entry.value / calculs.prixRevient * 100).toFixed(0)}%`}
               >
                 {[
-                  { name: 'Prix négocié', value: prixBienNegocie, fill: '#33d6c0' },
-                  ...(commissionAgentActive && !commissionAgentInclusFAI && calculs.honorairesChargeAcquereur > 0 ? [{ name: 'Honoraires acquéreur TTC', value: calculs.honorairesChargeAcquereur, fill: '#8B5CF6' }] : []),
-                  { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: '#5ee7d4' },
-                  { name: 'Honoraires Klocka TTC', value: calculs.totalFraisKlocka, fill: '#F59E0B' },
+                  { name: 'Prix négocié', value: prixBienNegocie, fill: '#35a79b' },
+                  ...(commissionAgentActive && !commissionAgentInclusFAI && calculs.honorairesChargeAcquereur > 0 ? [{ name: 'Honoraires acquéreur TTC', value: calculs.honorairesChargeAcquereur, fill: '#a8894f' }] : []),
+                  { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: '#7fd3c9' },
+                  { name: 'Honoraires Klocka TTC', value: calculs.totalFraisKlocka, fill: '#e0c9a0' },
                   { name: 'Frais divers', value: calculs.fraisDivers, fill: '#EF4444' }
                 ].filter(d => d.value > 0).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />)}
               </Pie>
@@ -43,15 +43,15 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
           </ResponsiveContainer>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center">
-              <p className="text-xl font-medium text-white">{formatCurrency(calculs.prixRevient)}</p>
-              <p className="text-xs text-white/60">Prix de revient</p>
+              <p className="text-xl font-medium text-[#edeae5]">{formatCurrency(calculs.prixRevient)}</p>
+              <p className="text-xs text-[#edeae5]/60">Prix de revient</p>
             </div>
           </div>
         </div>
         <div className="space-y-3 min-w-0 flex-shrink">
           <div className="flex items-center justify-between">
             <p className={`text-xs ${mutedClass}`}>Prix du bien négocié FAI</p>
-            <p className="text-white text-base font-medium tabular-nums">{formatCurrency(prixBienNegocie)}</p>
+            <p className="text-[#edeae5] text-base font-medium tabular-nums">{formatCurrency(prixBienNegocie)}</p>
           </div>
           {commissionAgentActive && calculs.honorairesChargeAcquereur > 0 && commissionAgentInclusFAI && (
             <>
@@ -68,20 +68,20 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
           {commissionAgentActive && calculs.honorairesChargeAcquereur > 0 && !commissionAgentInclusFAI && (
             <div className="flex items-center justify-between">
               <p className={`text-xs ${mutedClass}`}>Honoraires charge acquéreur TTC (en sus)</p>
-              <p className={`text-base font-medium text-purple-400 tabular-nums`}>{formatCurrency(calculs.honorairesChargeAcquereur)}</p>
+              <p className={`text-base font-medium text-[#e0c9a0] tabular-nums`}>{formatCurrency(calculs.honorairesChargeAcquereur)}</p>
             </div>
           )}
           <div className="flex items-center justify-between">
             <p className={`text-xs ${mutedClass}`}>Droits d'enregistrement estimés</p>
-            <p className={`text-base font-medium text-white tabular-nums`}>{formatCurrency(calculs.droitsEnregistrement)}</p>
+            <p className={`text-base font-medium text-[#edeae5] tabular-nums`}>{formatCurrency(calculs.droitsEnregistrement)}</p>
           </div>
           <div className="flex items-center justify-between">
             <p className={`text-xs ${mutedClass}`}>Honoraires Klocka TTC</p>
-            <p className={`text-base font-medium text-white tabular-nums`}>{formatCurrency(calculs.totalFraisKlocka)}</p>
+            <p className={`text-base font-medium text-[#edeae5] tabular-nums`}>{formatCurrency(calculs.totalFraisKlocka)}</p>
           </div>
           <div className="flex items-center justify-between">
             <p className={`text-xs ${mutedClass}`}>Frais divers à l'acquisition</p>
-            <p className={`text-base font-medium text-white tabular-nums`}>{formatCurrency(calculs.fraisDivers)}</p>
+            <p className={`text-base font-medium text-[#edeae5] tabular-nums`}>{formatCurrency(calculs.fraisDivers)}</p>
           </div>
         </div>
       </div>

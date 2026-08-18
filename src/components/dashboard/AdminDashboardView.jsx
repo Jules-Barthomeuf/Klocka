@@ -51,35 +51,35 @@ const cityCoordinates = {
   "Frejus": [43.4333, 6.7333]
 };
 
-function StatCard({ icon: Icon, value, label, color = "text-[#33d6c0]", delay = 0 }) {
+function StatCard({ icon: Icon, value, label, color = "text-[#35a79b]", delay = 0 }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-white/[0.015] rounded-md border border-[#131c1b] p-4"
+      className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-4"
     >
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-md bg-white/[0.03] flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-md bg-[#edeae5]/[0.03] flex items-center justify-center flex-shrink-0">
           <Icon className={`w-4 h-4 ${color}`} />
         </div>
         <div>
-          <p className="text-xl font-medium text-white tabular-nums">{value}</p>
-          <p className="text-white/25 text-[10px] uppercase tracking-[0.15em]">{label}</p>
+          <p className="text-xl font-medium text-[#edeae5] tabular-nums">{value}</p>
+          <p className="text-[#edeae5]/25 text-[10px] uppercase tracking-[0.15em]">{label}</p>
         </div>
       </div>
     </motion.div>
   );
 }
 
-function QuickAccessButton({ icon: Icon, label, onClick, color = "text-[#33d6c0]" }) {
+function QuickAccessButton({ icon: Icon, label, onClick, color = "text-[#35a79b]" }) {
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-center gap-2 p-4 bg-white/[0.015] rounded-md border border-[#131c1b] hover:border-white/[0.1] hover:bg-white/[0.025] transition-all"
+      className="group flex flex-col items-center gap-2 p-4 bg-[#0e100f] border border-[#edeae5]/[0.12] hover:border-[#edeae5]/[0.1] hover:bg-[#edeae5]/[0.025] transition-all"
     >
       <Icon className={`w-5 h-5 ${color}`} />
-      <span className="text-white/60 text-xs group-hover:text-white transition-colors">{label}</span>
+      <span className="text-[#edeae5]/60 text-xs group-hover:text-[#edeae5] transition-colors">{label}</span>
     </button>
   );
 }
@@ -158,64 +158,63 @@ export default function AdminDashboardView({ user }) {
   const fmtCur = (v) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
 
   const pipelineItems = [
-    { key: 'prospect', label: 'Prospect', color: 'bg-white/20' },
+    { key: 'prospect', label: 'Prospect', color: 'bg-[#edeae5]/20' },
     { key: 'analyse', label: 'Analyse', color: 'bg-blue-500' },
-    { key: 'negociation', label: 'Négociation', color: 'bg-amber-500' },
+    { key: 'negociation', label: 'Négociation', color: 'bg-[#e0c9a0]' },
     { key: 'financement', label: 'Financement', color: 'bg-purple-500' },
-    { key: 'signe', label: 'Signé', color: 'bg-[#33d6c0]' },
+    { key: 'signe', label: 'Signé', color: 'bg-[#35a79b]' },
   ];
 
   return (
-    <div className="min-h-screen bg-[#050807]">
+    <div className="min-h-screen bg-[#0a0c0c]">
       <FeedbackWidget />
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8 md:mb-10">
-          <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">Administration</p>
-          <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Dashboard</h1>
-          <div className="h-px w-12 bg-[#33d6c0] mt-3" />
+          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">Dashboard</h1>
+          <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0">L'activité de la plateforme en un coup d'œil.</p>
         </motion.div>
 
         {/* Stats principales */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard icon={Users} value={totalClients} label="Clients" delay={0.05} />
           <StatCard icon={Building2} value={allProjects.length} label="Projets" color="text-blue-400" delay={0.1} />
-          <StatCard icon={CheckCircle2} value={projetsParStatut.signe} label="Signés" color="text-[#5ee7d4]" delay={0.15} />
-          <StatCard icon={MessageSquare} value={suggestionsNouvelles} label="Suggestions" color="text-amber-400" delay={0.2} />
+          <StatCard icon={CheckCircle2} value={projetsParStatut.signe} label="Signés" color="text-[#7fd3c9]" delay={0.15} />
+          <StatCard icon={MessageSquare} value={suggestionsNouvelles} label="Suggestions" color="text-[#e0c9a0]" delay={0.2} />
         </div>
 
         {/* Pipeline + Clients par étape */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
-            <p className="text-white/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
-              <Target className="w-3.5 h-3.5 text-[#33d6c0]" /> Pipeline Projets
+            className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5">
+            <p className="text-[#edeae5]/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
+              <Target className="w-3.5 h-3.5 text-[#35a79b]" /> Pipeline Projets
             </p>
             <div className="space-y-2.5">
               {pipelineItems.map(({ key, label, color }) => (
                 <div key={key} className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${color}`} />
-                  <span className="text-white/40 text-xs flex-1">{label}</span>
-                  <span className="text-white text-sm font-medium tabular-nums">{projetsParStatut[key]}</span>
+                  <span className="text-[#edeae5]/40 text-xs flex-1">{label}</span>
+                  <span className="text-[#edeae5] text-sm font-medium tabular-nums">{projetsParStatut[key]}</span>
                 </div>
               ))}
             </div>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-            className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
-            <p className="text-white/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-[#33d6c0]" /> Clients par étape
+            className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5">
+            <p className="text-[#edeae5]/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-[#35a79b]" /> Clients par étape
             </p>
             <div className="space-y-2.5">
               {etapes.map(etape => (
                 <div key={etape.numero} className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[#33d6c0]/15 flex items-center justify-center text-[10px] text-[#33d6c0] font-medium">
+                  <div className="w-5 h-5 rounded-full bg-[#35a79b]/15 flex items-center justify-center text-[10px] text-[#35a79b] font-medium">
                     {etape.numero}
                   </div>
-                  <span className="text-white/40 text-xs flex-1 truncate">{etape.titre}</span>
-                  <span className="text-white text-sm font-medium tabular-nums">{clientsParEtape[etape.numero]}</span>
+                  <span className="text-[#edeae5]/40 text-xs flex-1 truncate">{etape.titre}</span>
+                  <span className="text-[#edeae5] text-sm font-medium tabular-nums">{clientsParEtape[etape.numero]}</span>
                 </div>
               ))}
             </div>
@@ -227,64 +226,63 @@ export default function AdminDashboardView({ user }) {
           <QuickAccessButton icon={Users} label="Clients" onClick={() => navigate(createPageUrl("AdminClients"))} />
           <QuickAccessButton icon={Building2} label="Projets" color="text-blue-400" onClick={() => navigate(createPageUrl("AdminProjets"))} />
           <QuickAccessButton icon={BookOpen} label="Ressources" color="text-purple-400" onClick={() => navigate(createPageUrl("AdminRessources"))} />
-          <QuickAccessButton icon={MessageSquare} label="Suggestions" color="text-amber-400" onClick={() => navigate(createPageUrl("AdminSuggestions"))} />
+          <QuickAccessButton icon={MessageSquare} label="Suggestions" color="text-[#e0c9a0]" onClick={() => navigate(createPageUrl("AdminSuggestions"))} />
         </div>
 
         {/* CRM Section */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="mb-6">
-            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-2">CRM</p>
-            <h2 className="text-xl font-light text-white">Activité commerciale</h2>
-            <div className="h-px w-10 bg-[#33d6c0] mt-3" />
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-2">CRM</p>
+            <h2 className="text-xl font-light text-[#edeae5]">Activité commerciale</h2>
           </div>
 
           {/* CRM Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <StatCard icon={Users} value={crmClients.length} label="Clients CRM" color="text-blue-400" />
-            <StatCard icon={TrendingUp} value={crmTransactions.length} label="Transactions" color="text-[#5ee7d4]" />
+            <StatCard icon={TrendingUp} value={crmTransactions.length} label="Transactions" color="text-[#7fd3c9]" />
             <StatCard icon={Building2} value={crmProprietes.length} label="Propriétés" color="text-purple-400" />
             <StatCard icon={Briefcase} value={crmContacts.length} label="Agents" color="text-orange-400" />
           </div>
 
           {/* CRM Financials */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
+            <div className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white/25 text-[9px] uppercase tracking-[0.15em] mb-1">Vol. Transactions Finalisées</p>
-                  <p className="text-white text-lg font-medium">{fmtCur(crmVolumeFinalisees)}</p>
-                  <p className="text-[#5ee7d4]/60 text-[10px] mt-1">{crmTransactionsFinalisees.length} transactions</p>
+                  <p className="text-[#edeae5]/25 text-[9px] uppercase tracking-[0.15em] mb-1">Vol. Transactions Finalisées</p>
+                  <p className="text-[#edeae5] text-lg font-medium">{fmtCur(crmVolumeFinalisees)}</p>
+                  <p className="text-[#7fd3c9]/60 text-[10px] mt-1">{crmTransactionsFinalisees.length} transactions</p>
                 </div>
-                <DollarSign className="w-7 h-7 text-[#5ee7d4]/30" />
+                <DollarSign className="w-7 h-7 text-[#7fd3c9]/30" />
               </div>
             </div>
-            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
+            <div className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white/25 text-[9px] uppercase tracking-[0.15em] mb-1">Total Honoraires</p>
-                  <p className="text-white text-lg font-medium">{fmtCur(crmTotalHonoraires)}</p>
-                  <p className="text-[#33d6c0]/60 text-[10px] mt-1">Toutes catégories</p>
+                  <p className="text-[#edeae5]/25 text-[9px] uppercase tracking-[0.15em] mb-1">Total Honoraires</p>
+                  <p className="text-[#edeae5] text-lg font-medium">{fmtCur(crmTotalHonoraires)}</p>
+                  <p className="text-[#35a79b]/60 text-[10px] mt-1">Toutes catégories</p>
                 </div>
-                <DollarSign className="w-7 h-7 text-[#33d6c0]/30" />
+                <DollarSign className="w-7 h-7 text-[#35a79b]/30" />
               </div>
             </div>
-            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5">
+            <div className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white/25 text-[9px] uppercase tracking-[0.15em] mb-1">Honoraires Finalisées</p>
-                  <p className="text-white text-lg font-medium">{fmtCur(crmHonorairesFinalisees)}</p>
-                  <p className="text-amber-400/60 text-[10px] mt-1">Transactions finalisées</p>
+                  <p className="text-[#edeae5]/25 text-[9px] uppercase tracking-[0.15em] mb-1">Honoraires Finalisées</p>
+                  <p className="text-[#edeae5] text-lg font-medium">{fmtCur(crmHonorairesFinalisees)}</p>
+                  <p className="text-[#e0c9a0]/60 text-[10px] mt-1">Transactions finalisées</p>
                 </div>
-                <DollarSign className="w-7 h-7 text-amber-400/30" />
+                <DollarSign className="w-7 h-7 text-[#e0c9a0]/30" />
               </div>
             </div>
           </div>
 
           {/* Map */}
           {contactsByCity.length > 0 && (
-            <div className="bg-white/[0.015] rounded-md border border-[#131c1b] p-5 mb-6">
-              <p className="text-white/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-[#33d6c0]" /> Agents Immobiliers
+            <div className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5 mb-6">
+              <p className="text-[#edeae5]/60 uppercase tracking-[0.2em] text-[9px] mb-4 flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-[#35a79b]" /> Agents Immobiliers
               </p>
               <div style={{ height: '400px' }} className="rounded-md overflow-hidden">
                 <MapContainer center={[46.603354, 1.888334]} zoom={6} style={{ height: '100%', width: '100%' }} scrollWheelZoom={true}>
@@ -297,14 +295,14 @@ export default function AdminDashboardView({ user }) {
                         <Popup>
                           <div className="text-sm">
                             <h3 className="font-bold text-base mb-1">{city}</h3>
-                            <p className="text-[#5e7672] mb-2">{contacts.length} agent{contacts.length > 1 ? 's' : ''}</p>
+                            <p className="text-[#6b7270] mb-2">{contacts.length} agent{contacts.length > 1 ? 's' : ''}</p>
                             {contacts.slice(0, 5).map(c => (
                               <div key={c.id} className="text-xs">
                                 <strong>{c.nom}</strong>
-                                {c.entreprise && <span className="text-[#7f9995]"> - {c.entreprise}</span>}
+                                {c.entreprise && <span className="text-[#8b9391]"> - {c.entreprise}</span>}
                               </div>
                             ))}
-                            {contacts.length > 5 && <p className="text-xs text-[#7f9995] italic">+{contacts.length - 5} autres...</p>}
+                            {contacts.length > 5 && <p className="text-xs text-[#8b9391] italic">+{contacts.length - 5} autres...</p>}
                           </div>
                         </Popup>
                       </Marker>
@@ -319,20 +317,20 @@ export default function AdminDashboardView({ user }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: "Clients", icon: Users, color: "text-blue-400", page: "CRMClients", count: crmClients.length },
-              { label: "Transactions", icon: DollarSign, color: "text-[#5ee7d4]", page: "CRMTransactions", count: crmTransactions.length },
+              { label: "Transactions", icon: DollarSign, color: "text-[#7fd3c9]", page: "CRMTransactions", count: crmTransactions.length },
               { label: "Propriétés", icon: Building2, color: "text-purple-400", page: "CRMProprietes", count: crmProprietes.length },
               { label: "Agents", icon: Briefcase, color: "text-orange-400", page: "CRMAgents", count: crmContacts.length },
             ].map(item => (
               <button
                 key={item.page}
                 onClick={() => navigate(createPageUrl(item.page))}
-                className="group bg-white/[0.015] rounded-md border border-[#131c1b] p-5 text-left hover:border-white/[0.1] hover:bg-white/[0.025] transition-all"
+                className="group bg-[#0e100f] border border-[#edeae5]/[0.12] p-5 text-left hover:border-[#edeae5]/[0.1] hover:bg-[#edeae5]/[0.025] transition-all"
               >
-                <div className="w-10 h-10 rounded-md bg-white/[0.03] flex items-center justify-center mb-3 group-hover:bg-white/[0.05] transition-colors">
+                <div className="w-10 h-10 rounded-md bg-[#edeae5]/[0.03] flex items-center justify-center mb-3 group-hover:bg-[#edeae5]/[0.05] transition-colors">
                   <item.icon className={`w-5 h-5 ${item.color}`} />
                 </div>
-                <p className="text-white text-sm font-medium mb-0.5">{item.label}</p>
-                <p className="text-white/20 text-lg font-light tabular-nums">{item.count}</p>
+                <p className="text-[#edeae5] text-sm font-medium mb-0.5">{item.label}</p>
+                <p className="text-[#edeae5]/20 text-lg font-light tabular-nums">{item.count}</p>
               </button>
             ))}
           </div>

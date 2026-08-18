@@ -5,8 +5,8 @@ const RADIAN = Math.PI / 180;
 
 export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrency }) {
   const items = useMemo(() => [
-  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: "#33d6c0" },
-  { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: "#F5A623" },
+  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: "#35a79b" },
+  { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: "#e0c9a0" },
   { name: "Honoraires Klocka TTC", value: Math.round(calculs.totalFraisKlocka || 0), color: "#48C7A5" },
   { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: "#E76F51" }].
   filter((d) => d.value > 0), [calculs, prixBienNegocie]);
@@ -26,9 +26,9 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
   };
 
   return (
-    <div className="border border-[#1c2725] rounded-lg bg-[#050807]">
-      <div className="px-5 py-3 border-b border-[#16201f]">
-        <p className="text-white text-sm font-medium">Budget total</p>
+    <div className="border border-[#282b2a] rounded-lg bg-[#0a0c0c]">
+      <div className="px-5 py-3 border-b border-[#242726]">
+        <p className="text-[#edeae5] text-sm font-medium">Budget total</p>
       </div>
       <div className="flex items-center gap-8 p-5">
         {/* Donut */}
@@ -41,8 +41,8 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-white text-lg font-bold tabular-nums leading-tight">{formatCurrency(total)}</span>
-            <span className="text-[10px] text-[#7f9995] mt-0.5">Prix de revient</span>
+            <span className="text-[#edeae5] text-lg font-bold tabular-nums leading-tight">{formatCurrency(total)}</span>
+            <span className="text-[10px] text-[#8b9391] mt-0.5">Prix de revient</span>
           </div>
         </div>
 
@@ -51,7 +51,7 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
           {items.map((d, i) =>
           <div key={i} className="flex items-center justify-between text-sm">
               <span className="truncate pr-3 text-[hsl(var(--background))]">{d.name}</span>
-              <span className="text-white tabular-nums font-medium whitespace-nowrap">{formatCurrency(d.value)}</span>
+              <span className="text-[#edeae5] tabular-nums font-medium whitespace-nowrap">{formatCurrency(d.value)}</span>
             </div>
           )}
         </div>

@@ -173,16 +173,16 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-[#050505] border-[#1c2725]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-[#0a0c0c] border-[#282b2a]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-400 uppercase tracking-[0.2em] text-[10px] font-medium mb-1">Shadow Mode</p>
-              <DialogTitle className="text-2xl font-light text-white tracking-tight">
+              <DialogTitle className="text-2xl font-light text-[#edeae5] tracking-tight">
                 {project?.titre}
               </DialogTitle>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-[#7f9995] hover:text-white hover:bg-white/5">
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="text-[#8b9391] hover:text-[#edeae5] hover:bg-[#edeae5]/5">
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -195,7 +195,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md border text-sm transition-all ${
               viewMode === "current"
                 ? "bg-blue-500/15 border-blue-500/40 text-blue-400"
-                : "bg-[#0a0f0e] border-[#16201f] text-[#7f9995] hover:text-white"
+                : "bg-[#0a0c0c] border-[#242726] text-[#8b9391] hover:text-[#edeae5]"
             }`}
           >
             <Eye className="w-4 h-4" />
@@ -207,7 +207,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-md border text-sm transition-all ${
               viewMode === "shadow"
                 ? "bg-purple-500/15 border-purple-500/40 text-purple-400"
-                : "bg-[#0a0f0e] border-[#16201f] text-[#7f9995] hover:text-white"
+                : "bg-[#0a0c0c] border-[#242726] text-[#8b9391] hover:text-[#edeae5]"
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -233,17 +233,17 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
         {/* Form tabs */}
         <div>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-10 bg-[#0a0f0e] border border-[#16201f] rounded-md p-1">
-              <TabsTrigger value="informations" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Infos</TabsTrigger>
-              <TabsTrigger value="environnement" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Env.</TabsTrigger>
-              <TabsTrigger value="secteur" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Secteur</TabsTrigger>
-              <TabsTrigger value="locataire" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Locataire</TabsTrigger>
-              <TabsTrigger value="copropriete" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Copro</TabsTrigger>
-              <TabsTrigger value="marche" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Marché</TabsTrigger>
-              <TabsTrigger value="diagnostique" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Diag</TabsTrigger>
-              <TabsTrigger value="docs_projet" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Docs</TabsTrigger>
-              <TabsTrigger value="images" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Images</TabsTrigger>
-              <TabsTrigger value="simulateur" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-[11px] rounded-lg">Simu</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-10 bg-[#0a0c0c] border border-[#242726] rounded-md p-1">
+              <TabsTrigger value="informations" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Infos</TabsTrigger>
+              <TabsTrigger value="environnement" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Env.</TabsTrigger>
+              <TabsTrigger value="secteur" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Secteur</TabsTrigger>
+              <TabsTrigger value="locataire" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Locataire</TabsTrigger>
+              <TabsTrigger value="copropriete" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Copro</TabsTrigger>
+              <TabsTrigger value="marche" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Marché</TabsTrigger>
+              <TabsTrigger value="diagnostique" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Diag</TabsTrigger>
+              <TabsTrigger value="docs_projet" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Docs</TabsTrigger>
+              <TabsTrigger value="images" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Images</TabsTrigger>
+              <TabsTrigger value="simulateur" className="data-[state=active]:bg-[#edeae5]/10 data-[state=active]:text-[#edeae5] text-[11px] rounded-lg">Simu</TabsTrigger>
             </TabsList>
 
             <TabsContent value="informations"><ProjectFormInfoTab formData={formData} setFormData={setFormData} users={users || []} /></TabsContent>
@@ -251,7 +251,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             <TabsContent value="secteur" className="space-y-6 mt-6">
               <div className="space-y-4">
                 {/* Minimal secteur inline - same structure as AdminProjets */}
-                <p className="text-[#93aca7] text-sm">Utilisez les onglets Infos / Locataire / Copro pour les champs principaux.</p>
+                <p className="text-[#9aa19e] text-sm">Utilisez les onglets Infos / Locataire / Copro pour les champs principaux.</p>
               </div>
             </TabsContent>
             <TabsContent value="locataire"><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></TabsContent>
@@ -265,13 +265,13 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
         </div>
 
         {/* Save button */}
-        <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-[#16201f]">
-          <button onClick={() => onOpenChange(false)} className="px-5 py-2.5 text-[#93aca7] hover:text-white text-sm transition-colors">Annuler</button>
+        <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-[#242726]">
+          <button onClick={() => onOpenChange(false)} className="px-5 py-2.5 text-[#9aa19e] hover:text-[#edeae5] text-sm transition-colors">Annuler</button>
           {viewMode === "shadow" ? (
             <button
               onClick={handleSaveShadow}
               disabled={saveShadowMutation.isPending}
-              className="flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25 text-white px-6 py-2.5 rounded-md transition-all text-sm disabled:opacity-40"
+              className="flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25 text-[#edeae5] px-6 py-2.5 rounded-md transition-all text-sm disabled:opacity-40"
             >
               {saveShadowMutation.isPending
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</>
@@ -282,7 +282,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             <button
               onClick={handleSaveCurrent}
               disabled={saveCurrentMutation.isPending}
-              className="flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 hover:bg-blue-500/25 text-white px-6 py-2.5 rounded-md transition-all text-sm disabled:opacity-40"
+              className="flex items-center gap-2 bg-blue-500/15 border border-blue-500/30 hover:bg-blue-500/25 text-[#edeae5] px-6 py-2.5 rounded-md transition-all text-sm disabled:opacity-40"
             >
               {saveCurrentMutation.isPending
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</>

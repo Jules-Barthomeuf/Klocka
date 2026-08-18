@@ -132,8 +132,8 @@ export default function InteractiveFranceMap({ projets }) {
 
   if (projetsAvecCoords.length === 0) {
     return (
-      <div className="rounded-md bg-[#0a0f0e]/50 border border-[#101715] p-8 text-center">
-        <p className="text-[#93aca7]">Aucun projet avec localisation disponible</p>
+      <div className="rounded-md bg-[#0a0c0c]/50 border border-[#171918] p-8 text-center">
+        <p className="text-[#9aa19e]">Aucun projet avec localisation disponible</p>
       </div>
     );
   }
@@ -143,7 +143,7 @@ export default function InteractiveFranceMap({ projets }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="rounded-md overflow-hidden border border-[#101715] shadow-2xl w-full h-full"
+      className="rounded-md overflow-hidden border border-[#171918] shadow-2xl w-full h-full"
     >
       <div className="relative w-full h-full bg-[#aad3df]">
         <MapContainer
@@ -173,15 +173,15 @@ export default function InteractiveFranceMap({ projets }) {
                     className="w-full h-32 object-cover rounded-lg mb-3"
                   />
                   <div className="font-bold text-base mb-1">{projet.ville}</div>
-                  <div className="text-[#5e7672] mb-3 capitalize text-sm">{projet.commerceType}</div>
+                  <div className="text-[#6b7270] mb-3 capitalize text-sm">{projet.commerceType}</div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-xs text-[#7f9995] mb-1">Prix d'acquisition</div>
+                      <div className="text-xs text-[#8b9391] mb-1">Prix d'acquisition</div>
                       <div className="font-bold text-sm">{formatValue(projet.prix_acquisition)}</div>
                     </div>
-                    <div className="bg-[#33d6c0]/10 rounded-lg p-2">
-                      <div className="text-xs text-[#7f9995] mb-1">Rendement annuel</div>
-                      <div className="font-bold text-sm text-[#2bb8a5]">{projet.rendement_locatif}%</div>
+                    <div className="bg-[#35a79b]/10 rounded-lg p-2">
+                      <div className="text-xs text-[#8b9391] mb-1">Rendement annuel</div>
+                      <div className="font-bold text-sm text-[#2f8d84]">{projet.rendement_locatif}%</div>
                     </div>
                   </div>
                 </div>
@@ -201,7 +201,7 @@ export default function InteractiveFranceMap({ projets }) {
           background: white;
           border-radius: 12px;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-          border: 2px solid #f4be7e;
+          border: 2px solid #e0c9a0;
           overflow: visible;
         }
 
@@ -220,7 +220,7 @@ export default function InteractiveFranceMap({ projets }) {
 
         .custom-popup .leaflet-popup-tip {
           background: white;
-          border: 2px solid #f4be7e;
+          border: 2px solid #e0c9a0;
         }
 
         .leaflet-popup-close-button {

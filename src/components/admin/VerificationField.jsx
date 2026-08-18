@@ -30,7 +30,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
   const hasNote = field.note && field.note.trim().length > 0;
 
   return (
-    <div className={`relative rounded-lg transition-all ${isChecked ? "ring-1 ring-[#33d6c0]/40" : ""}`}>
+    <div className={`relative rounded-lg transition-all ${isChecked ? "ring-1 ring-[#35a79b]/40" : ""}`}>
       {/* Contenu du champ */}
       <div className="relative">
         {children}
@@ -43,8 +43,8 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             title={isChecked ? "Marquer comme non vérifié" : "Marquer comme vérifié"}
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               isChecked
-                ? "border-[#33d6c0]/50 bg-[#33d6c0]/10 text-[#5ee7d4] hover:bg-[#33d6c0]/20"
-                : "border-[#24312f] bg-[#101715]/60 text-[#7f9995] hover:text-[#c4d5d1] hover:border-[#2c3a37]"
+                ? "border-[#35a79b]/50 bg-[#35a79b]/10 text-[#7fd3c9] hover:bg-[#35a79b]/20"
+                : "border-[#303332] bg-[#171918]/60 text-[#8b9391] hover:text-[#d3d8d6] hover:border-[#343735]"
             }`}
           >
             {isChecked ? (
@@ -62,7 +62,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               hasNote
                 ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
-                : "border-[#24312f] bg-[#101715]/60 text-[#7f9995] hover:text-[#c4d5d1] hover:border-[#2c3a37]"
+                : "border-[#303332] bg-[#171918]/60 text-[#8b9391] hover:text-[#d3d8d6] hover:border-[#343735]"
             }`}
           >
             <MessageSquare className="w-3 h-3" />
@@ -78,7 +78,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
               value={field.note || ""}
               onChange={(e) => setField({ note: e.target.value })}
               placeholder="Note du vérificateur..."
-              className="bg-[#050807] text-orange-100 border-orange-500/30 text-xs placeholder:text-[#5e7672]"
+              className="bg-[#0a0c0c] text-orange-100 border-orange-500/30 text-xs placeholder:text-[#6b7270]"
               rows={2}
             />
           </div>

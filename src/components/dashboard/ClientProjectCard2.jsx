@@ -59,7 +59,7 @@ export default function ClientProjectCard2({ project }) {
       className="group cursor-pointer"
       onClick={() => navigate(`/ProjetDetail?id=${project.id}`)}
     >
-      <div className="relative bg-[#0a0f0e] rounded-md border border-[#16201f] overflow-hidden hover:border-[#33d6c0]/20 transition-all duration-500">
+      <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] overflow-hidden hover:border-[#35a79b]/60 transition-colors duration-300">
         {/* Image band */}
         <div className="relative h-48 md:h-56 overflow-hidden">
           {project.photos && project.photos.length > 0 ? (
@@ -69,15 +69,15 @@ export default function ClientProjectCard2({ project }) {
               className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#111] to-[#080808] flex items-center justify-center">
-              <MapPin className="w-12 h-12 text-white/[0.05]" />
+            <div className="w-full h-full bg-[#0a0c0c] flex items-center justify-center">
+              <MapPin className="w-10 h-10 text-[#edeae5]/[0.06]" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f0e] via-[#0a0f0e]/30 to-transparent" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,16,15,0.97) 6%, rgba(14,16,15,0.35) 55%, rgba(14,16,15,0.55) 100%)" }} />
           
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#050807]/60 backdrop-blur-sm text-[#33d6c0] border border-[#33d6c0]/20">
+            <span className="text-[10px] uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-[#0a0c0c]/70 backdrop-blur-sm text-[#7fd3c9] border border-[#35a79b]/50">
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -87,41 +87,39 @@ export default function ClientProjectCard2({ project }) {
             <img
               src="https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png"
               alt="Jules Barthomeuf"
-              className="w-9 h-9 rounded-full object-cover border-2 border-white/20 shadow-lg"
+              className="w-9 h-9 rounded-full object-cover border border-[#edeae5]/25"
             />
           </div>
 
           {/* Title overlay */}
           <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-xl md:text-2xl font-light text-white tracking-tight leading-tight">
+            <h2 className="text-[21px] md:text-[23px] font-light text-[#edeae5] tracking-[-0.02em] leading-tight truncate">
               {project.titre}
             </h2>
             {project.adresse_complete && (
-              <p className="text-white/40 text-sm mt-1">{project.adresse_complete}</p>
+              <p className="text-[#d3d8d6]/70 text-[13px] mt-1 truncate">{project.adresse_complete}</p>
             )}
           </div>
         </div>
 
-        {/* KPIs */}
-        <div className="p-5 flex items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-x-6 gap-y-2 min-w-0">
-            <div className="min-w-0">
-              <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Prix de revient</p>
-              <p className="text-[#33d6c0] text-lg font-light">{formatPrice(prixRevient)}</p>
-            </div>
-            <div className="min-w-0">
-              <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Rendement</p>
-              <p className="text-white text-lg font-light">{rendementLocatifMoyen.toFixed(2)}%</p>
-            </div>
-            {surface > 0 && (
-              <div className="min-w-0">
-                <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Surface</p>
-                <p className="text-white text-lg font-light">{surface} m²</p>
-              </div>
-            )}
+        {/* Chiffres clés — filets fins, chiffres alignés */}
+        <div className="flex items-center px-5 border-t border-[#edeae5]/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="flex-1 min-w-0 py-4 pr-4">
+            <p className="text-[19px] font-light text-[#edeae5] m-0">{formatPrice(prixRevient)}</p>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b9391] mt-1 m-0 whitespace-nowrap">Prix de revient</p>
           </div>
-          <div className="w-10 h-10 flex-shrink-0 rounded-full border border-[#16201f] flex items-center justify-center group-hover:border-[#33d6c0]/30 group-hover:bg-[#33d6c0]/5 transition-all">
-            <ArrowUpRight className="w-4 h-4 text-white/20 group-hover:text-[#33d6c0] transition-colors" />
+          <div className="flex-1 min-w-0 py-4 px-4 border-l border-[#edeae5]/[0.12]">
+            <p className="text-[19px] font-light text-[#7fd3c9] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b9391] mt-1 m-0">Rendement</p>
+          </div>
+          {surface > 0 && (
+            <div className="flex-1 min-w-0 py-4 px-4 border-l border-[#edeae5]/[0.12]">
+              <p className="text-[19px] font-light text-[#edeae5] m-0">{surface} m²</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b9391] mt-1 m-0">Surface</p>
+            </div>
+          )}
+          <div className="w-9 h-9 flex-shrink-0 rounded-full border border-[#edeae5]/[0.14] flex items-center justify-center group-hover:border-[#35a79b] transition-colors">
+            <ArrowUpRight className="w-4 h-4 text-[#8b9391] group-hover:text-[#7fd3c9] transition-colors" />
           </div>
         </div>
       </div>

@@ -43,6 +43,7 @@ import {
 } from './assistant/index.js';
 import { callFunction } from './functions.js';
 import { Agents } from './agents.js';
+import { lireArticle } from './lecture.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
@@ -1028,6 +1029,17 @@ app.post('/api/agents/conversations/:id/messages', wrap(async (req, res) => {
 // App logs (no-op sink)
 // ---------------------------------------------------------------------------
 app.post('/api/logs', (req, res) => ok(res, { success: true }));
+
+// ---------------------------------------------------------------------------
+// Lecture intégrée d'un article public (fiches « Aller plus loin »)
+// ---------------------------------------------------------------------------
+app.get('/api/lecture', wrap(async (req, res) => {
+  try {
+    ok(res, await lireArticle(String(req.query.url || '')));
+  } catch (e) {
+    res.status(e.statut || 500).json({ error: e.message });
+  }
+}));
 
 app.get('/api/health', (req, res) =>
   ok(res, { status: 'ok', llm: llmEnabled, google: googleEnabled, accounts: listAccounts().length })

@@ -15,52 +15,30 @@ export default function DashboardStrategyCard({ userStrategy }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="bg-white/[0.04] rounded-md border border-white/[0.3] p-5 h-full"
+      className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5 h-full"
     >
-      <p className="text-white uppercase tracking-[0.2em] text-[9px] font-medium mb-5">Stratégie</p>
-      
-      <div className="space-y-4">
-        {/* Budget */}
+      <p className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] mb-4">Stratégie</p>
+
+      <div style={{ fontVariantNumeric: "tabular-nums" }}>
         {hasBudget && (
-          <div className="flex items-start gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#33d6c0] mt-1.5 flex-shrink-0" />
-            <div>
-              <p className="text-white text-xs font-medium mb-0.5">Budget max</p>
-              <p className="text-white text-sm">{fmt(userStrategy.budget_max)}€</p>
-            </div>
+          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
+            <span className="text-[#8b9391]">Budget max</span>
+            <span className="text-[#edeae5]">{fmt(userStrategy.budget_max)} €</span>
           </div>
         )}
-
-        {/* Apport */}
         {hasApport && (
-          <div className="flex items-start gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#33d6c0] mt-1.5 flex-shrink-0" />
-            <div>
-              <p className="text-white text-xs font-medium mb-0.5">Apport</p>
-              <p className="text-white text-sm">{fmt(userStrategy.apport)}€</p>
-            </div>
+          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
+            <span className="text-[#8b9391]">Apport</span>
+            <span className="text-[#7fd3c9]">{fmt(userStrategy.apport)} €</span>
           </div>
         )}
-
-        {/* Custom fields */}
         {hasFields && userStrategy.fields.map((field, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
-              field.is_nogo ? 'bg-red-400' : 'bg-[#33d6c0]'
-            }`} />
-            <div>
-              <p className={`text-xs font-medium mb-0.5 ${
-                field.is_nogo ? 'text-red-400' : 'text-white'
-              }`}>
-                {field.label}
-                {field.is_nogo && <span className="text-red-400 ml-1.5 text-[9px] font-normal">(No-go)</span>}
-              </p>
-              {field.value && (
-                <span className="inline-block text-white text-xs bg-white/[0.04] px-2.5 py-1 rounded-md">
-                  {field.value}
-                </span>
-              )}
-            </div>
+          <div key={i} className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
+            <span className={field.is_nogo ? "text-red-400" : "text-[#8b9391]"}>
+              {field.label}
+              {field.is_nogo && <span className="ml-2 text-[9px] tracking-[0.14em] uppercase">No-go</span>}
+            </span>
+            {field.value && <span className="text-[#edeae5] text-right">{field.value}</span>}
           </div>
         ))}
       </div>

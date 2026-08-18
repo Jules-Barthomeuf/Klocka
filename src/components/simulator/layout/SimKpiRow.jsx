@@ -1,6 +1,6 @@
 import React from "react";
 
-function Kpi({ label, value, accent = "text-white" }) {
+function Kpi({ label, value, accent = "text-[#edeae5]" }) {
   return (
     <div className="flex-1 px-4 py-3 min-w-0">
       <p className="text-[9px] uppercase tracking-[0.16em] font-medium truncate text-[hsl(var(--primary-foreground))]">{label}</p>
@@ -19,12 +19,12 @@ export default function SimKpiRow({ calculs, anneeRevente, formatCurrency }) {
   { label: `TRI brut sur ${anneeRevente} ans`, value: `${ind.triBrut}%` }];
 
   return (
-    <div className="border border-[#1c2725] rounded-md bg-[#0c0c0c] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#16201f] flex items-center justify-between">
-        <p className="text-white text-sm font-medium">Indicateurs clés</p>
-        <p className="text-[11px] text-[#7f9995]">sur {anneeRevente} ans</p>
+    <div className="border border-[#282b2a] rounded-md bg-[#0e100f] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#242726] flex items-center justify-between">
+        <p className="text-[#edeae5] text-sm font-medium">Indicateurs clés</p>
+        <p className="text-[11px] text-[#8b9391]">sur {anneeRevente} ans</p>
       </div>
-      <div className="flex divide-x divide-[#16201f]">
+      <div className="flex divide-x divide-[#242726]">
         {cards.map((c, i) =>
         <Kpi key={i} label={c.label} value={c.value} accent={c.accent} />
         )}

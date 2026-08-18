@@ -11,7 +11,7 @@ import { FField, FInput, FTextarea } from "./FormField";
 export default function ProjectFormCoproTab({ formData, setFormData }) {
   return (
     <div className="space-y-6 mt-6">
-      <h3 className="text-lg mb-4 text-white">Copropriété</h3>
+      <h3 className="text-lg mb-4 text-[#edeae5]">Copropriété</h3>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <VerificationField fieldKey="quote_part_lot" formData={formData} setFormData={setFormData}>
@@ -55,21 +55,21 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
         </div>
 
         {/* Assemblées Générales */}
-        <div className="space-y-4 pt-4 border-t border-[#16201f]">
+        <div className="space-y-4 pt-4 border-t border-[#242726]">
           <div className="flex items-center justify-between">
-            <Label className="text-white">Assemblées Générales</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, assemblees_generales: [...(formData.assemblees_generales || []), { annee: new Date().getFullYear(), synthese: "", resolutions_votees: "", resolutions_refusees: "" }]})} className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30">
+            <Label className="text-[#edeae5]">Assemblées Générales</Label>
+            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, assemblees_generales: [...(formData.assemblees_generales || []), { annee: new Date().getFullYear(), synthese: "", resolutions_votees: "", resolutions_refusees: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30">
               <Plus className="w-4 h-4 mr-1" /> Ajouter une AG
             </Button>
           </div>
           {(formData.assemblees_generales || []).map((ag, idx) => (
-            <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3 border border-[#16201f]">
+            <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3 border border-[#242726]">
               <div className="flex items-center gap-3">
                 <div className="space-y-1 w-32">
-                  <Label className="text-[#93aca7] text-xs">Année</Label>
+                  <Label className="text-[#9aa19e] text-xs">Année</Label>
                   <Select value={String(ag.annee || new Date().getFullYear())} onValueChange={(value) => { const updated = [...formData.assemblees_generales]; updated[idx].annee = parseInt(value); setFormData({...formData, assemblees_generales: updated}); }}>
-                    <SelectTrigger className="bg-[#161616] text-white border-[#1c2725]"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-[#161616] text-white border-[#1c2725] max-h-60">
+                    <SelectTrigger className="bg-[#161616] text-[#edeae5] border-[#282b2a]"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[#161616] text-[#edeae5] border-[#282b2a] max-h-60">
                       {Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - i).map((y) => (<SelectItem key={y} value={String(y)}>{y}</SelectItem>))}
                     </SelectContent>
                   </Select>
@@ -88,19 +88,19 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
               </FField>
             </div>
           ))}
-          {(!formData.assemblees_generales || formData.assemblees_generales.length === 0) && <p className="text-[#7f9995] text-sm text-center py-2">Aucune AG.</p>}
+          {(!formData.assemblees_generales || formData.assemblees_generales.length === 0) && <p className="text-[#8b9391] text-sm text-center py-2">Aucune AG.</p>}
         </div>
 
         {/* Notes libres */}
-        <div className="space-y-4 pt-4 border-t border-[#16201f]">
+        <div className="space-y-4 pt-4 border-t border-[#242726]">
           <div className="flex items-center justify-between">
-            <Label className="text-white">Notes libres</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_libres: [...(formData.notes_libres || []), { titre: "", contenu: "" }]})} className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30">
+            <Label className="text-[#edeae5]">Notes libres</Label>
+            <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_libres: [...(formData.notes_libres || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30">
               <Plus className="w-4 h-4 mr-1" /> Ajouter une note
             </Button>
           </div>
           {(formData.notes_libres || []).map((note, idx) => (
-            <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3">
+            <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
               <div className="flex items-center gap-3">
                 <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const updated = [...formData.notes_libres]; updated[idx].titre = e.target.value; setFormData({...formData, notes_libres: updated}); }} placeholder="Titre..." /></FField>
                 <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_libres: formData.notes_libres.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
@@ -108,7 +108,7 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
               <FField><FTextarea value={note.contenu} onChange={(e) => { const updated = [...formData.notes_libres]; updated[idx].contenu = e.target.value; setFormData({...formData, notes_libres: updated}); }} placeholder="Contenu..." rows={3} /></FField>
             </div>
           ))}
-          {(!formData.notes_libres || formData.notes_libres.length === 0) && <p className="text-[#7f9995] text-sm text-center py-2">Aucune note.</p>}
+          {(!formData.notes_libres || formData.notes_libres.length === 0) && <p className="text-[#8b9391] text-sm text-center py-2">Aucune note.</p>}
         </div>
       </div>
     </div>

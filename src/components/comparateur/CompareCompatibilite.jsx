@@ -74,7 +74,7 @@ const profilConfig = {
   },
 };
 
-const PIE_COLORS = ["#EF4444", "#22C55E", "#F59E0B", "#A855F7"];
+const PIE_COLORS = ["#EF4444", "#22C55E", "#e0c9a0", "#A855F7"];
 
 function computeScore(metric, profil, budgetMax) {
   const config = profilConfig[profil];
@@ -173,10 +173,10 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
 
   if (!userProfil || !config) {
     return (
-      <div className="text-center py-16 bg-[#0a0f0e] rounded-md border border-[#16201f]">
-        <AlertTriangle className="w-10 h-10 text-yellow-500/50 mx-auto mb-4" />
-        <p className="text-white/40 text-sm">Aucun profil investisseur n'est défini pour votre compte.</p>
-        <p className="text-white/20 text-xs mt-1">Contactez votre conseiller pour le configurer.</p>
+      <div className="text-center py-16 bg-[#0a0c0c] rounded-md border border-[#242726]">
+        <AlertTriangle className="w-10 h-10 text-[#e0c9a0]/50 mx-auto mb-4" />
+        <p className="text-[#edeae5]/40 text-sm">Aucun profil investisseur n'est défini pour votre compte.</p>
+        <p className="text-[#edeae5]/20 text-xs mt-1">Contactez votre conseiller pour le configurer.</p>
       </div>
     );
   }
@@ -194,22 +194,22 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
   return (
     <div className="space-y-6">
       {/* Profil header */}
-      <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-6">
+      <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-6">
         <div className="flex items-center gap-4 mb-3">
           <div className="w-12 h-12 rounded-md flex items-center justify-center" style={{ backgroundColor: config.color + "20" }}>
             <Icon className="w-6 h-6" style={{ color: config.color }} />
           </div>
           <div>
-            <p className="text-white/40 text-[10px] uppercase tracking-[0.2em]">Votre profil investisseur</p>
-            <h3 className="text-xl text-white font-light">{config.label}</h3>
+            <p className="text-[#edeae5]/40 text-[10px] uppercase tracking-[0.2em]">Votre profil investisseur</p>
+            <h3 className="text-xl text-[#edeae5] font-light">{config.label}</h3>
           </div>
           {budgetMax > 0 && (
-            <Badge className="ml-auto bg-white/5 text-white/60 border border-[#1c2725] text-xs">
+            <Badge className="ml-auto bg-[#edeae5]/5 text-[#edeae5]/60 border border-[#282b2a] text-xs">
               Budget max : {Math.round(budgetMax).toLocaleString("fr-FR")} €
             </Badge>
           )}
         </div>
-        <p className="text-white/30 text-sm">{config.description}</p>
+        <p className="text-[#edeae5]/30 text-sm">{config.description}</p>
 
         {/* Pondérations */}
         <div className="flex gap-3 mt-4 flex-wrap">
@@ -219,9 +219,9 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             { key: "cashflow", label: "Cashflow" },
             { key: "budget", label: "Budget" },
           ].map(({ key, label }) => (
-            <div key={key} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-[#16201f] text-xs">
-              <span className="text-white/40">{label}</span>
-              <span className="text-white ml-2 font-medium">{Math.round(config.weights[key] * 100)}%</span>
+            <div key={key} className="px-3 py-1.5 rounded-lg bg-[#edeae5]/[0.03] border border-[#242726] text-xs">
+              <span className="text-[#edeae5]/40">{label}</span>
+              <span className="text-[#edeae5] ml-2 font-medium">{Math.round(config.weights[key] * 100)}%</span>
             </div>
           ))}
         </div>
@@ -230,8 +230,8 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
       {/* Pie chart + détails */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie chart */}
-        <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-6">
-          <p className="text-white/40 text-xs uppercase tracking-[0.15em] mb-4">Compatibilité relative</p>
+        <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-6">
+          <p className="text-[#edeae5]/40 text-xs uppercase tracking-[0.15em] mb-4">Compatibilité relative</p>
           <div className="relative">
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
@@ -255,10 +255,10 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                       const d = payload[0];
                       const pct = totalAllScores > 0 ? ((d.value / totalAllScores) * 100).toFixed(1) : 0;
                       return (
-                        <div className="bg-[#1a1a1a] border border-[#24312f] rounded-lg p-3 text-white text-sm">
+                        <div className="bg-[#1a1a1a] border border-[#303332] rounded-lg p-3 text-[#edeae5] text-sm">
                           <p className="font-medium">{d.name}</p>
-                          <p className="text-white/60">Score : {d.value}/100</p>
-                          <p className="text-white/60">Part : {pct}%</p>
+                          <p className="text-[#edeae5]/60">Score : {d.value}/100</p>
+                          <p className="text-[#edeae5]/60">Part : {pct}%</p>
                         </div>
                       );
                     }
@@ -269,8 +269,8 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             </ResponsiveContainer>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
-                <p className="text-2xl font-light text-white">{scores[bestIdx]?.total || 0}<span className="text-sm text-white/40">/100</span></p>
-                <p className="text-[10px] text-white/30 uppercase tracking-wider">Meilleur score</p>
+                <p className="text-2xl font-light text-[#edeae5]">{scores[bestIdx]?.total || 0}<span className="text-sm text-[#edeae5]/40">/100</span></p>
+                <p className="text-[10px] text-[#edeae5]/30 uppercase tracking-wider">Meilleur score</p>
               </div>
             </div>
           </div>
@@ -280,8 +280,8 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             {pieData.map((d, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }} />
-                <span className="text-white/50 text-xs">{d.name}</span>
-                <span className="text-white text-xs font-medium">
+                <span className="text-[#edeae5]/50 text-xs">{d.name}</span>
+                <span className="text-[#edeae5] text-xs font-medium">
                   {totalAllScores > 0 ? ((d.value / totalAllScores) * 100).toFixed(0) : 0}%
                 </span>
               </div>
@@ -297,23 +297,23 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             return (
               <div
                 key={i}
-                className={`bg-[#0a0f0e] rounded-md border p-5 transition-all ${
-                  isBest ? "border-[#33d6c0]/50 ring-1 ring-[#33d6c0]/20" : "border-[#16201f]"
+                className={`bg-[#0a0c0c] rounded-md border p-5 transition-all ${
+                  isBest ? "border-[#35a79b]/50 ring-1 ring-[#35a79b]/20" : "border-[#242726]"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                    <h4 className="text-white font-light">{sc.titre}</h4>
+                    <h4 className="text-[#edeae5] font-light">{sc.titre}</h4>
                     {isBest && (
-                      <Badge className="bg-[#33d6c0]/20 text-[#33d6c0] text-[10px] border-0">
+                      <Badge className="bg-[#35a79b]/20 text-[#35a79b] text-[10px] border-0">
                         <CheckCircle2 className="w-3 h-3 mr-1" />
                         Meilleur choix
                       </Badge>
                     )}
                   </div>
-                  <span className="text-2xl font-light text-white">
-                    {sc.total}<span className="text-sm text-white/30">/100</span>
+                  <span className="text-2xl font-light text-[#edeae5]">
+                    {sc.total}<span className="text-sm text-[#edeae5]/30">/100</span>
                   </span>
                 </div>
 
@@ -327,15 +327,15 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                   ].map(({ key, label }) => (
                     <div key={key}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-white/40 text-[11px]">{label}</span>
-                        <span className="text-white/60 text-[11px]">{sc.details[key]}/100</span>
+                        <span className="text-[#edeae5]/40 text-[11px]">{label}</span>
+                        <span className="text-[#edeae5]/60 text-[11px]">{sc.details[key]}/100</span>
                       </div>
-                      <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-[#edeae5]/[0.04] rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-700"
                           style={{
                             width: `${sc.details[key]}%`,
-                            backgroundColor: sc.details[key] >= 70 ? "#22C55E" : sc.details[key] >= 40 ? "#F59E0B" : "#EF4444",
+                            backgroundColor: sc.details[key] >= 70 ? "#22C55E" : sc.details[key] >= 40 ? "#e0c9a0" : "#EF4444",
                           }}
                         />
                       </div>

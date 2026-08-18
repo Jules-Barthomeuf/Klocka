@@ -3,9 +3,7 @@ import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +16,6 @@ import AdminProjectCard from "../components/admin/AdminProjectCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from "framer-motion";
-import { BeamsBackground } from "@/components/ui/beams-background";
 import ProjectFormLocataireTab from "../components/admin/ProjectFormLocataireTab";
 import ProjectFormInfoTab from "../components/admin/ProjectFormInfoTab";
 import ProjectFormDocumentsTab from "../components/admin/ProjectFormDocumentsTab";
@@ -814,11 +811,11 @@ export default function AdminProjets() {
     const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
     const statutLabels = { prospect: "Prospect", analyse: "Analyse", negociation: "Négociation", financement: "Financement", signe: "Signé" };
     return (
-      <div className="h-screen flex flex-col md:flex-row bg-[#0B0D0F] text-[#EAECEF] overflow-hidden">
+      <div className="h-screen flex flex-col md:flex-row bg-[#0a0c0c] text-[#edeae5] overflow-hidden">
         {/* LEFT — visual panel with live preview (fixe, ne scrolle pas) */}
         <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="hidden md:flex flex-col gap-6 w-[42%] lg:w-[46%] px-11 py-10 h-screen overflow-hidden" style={{ background: "linear-gradient(160deg,#0A0B0F 0%,#000000 70%)" }}>
           <div className="flex items-center gap-3">
-            <div className="w-[11px] h-[11px] rounded-[3px] bg-[#33d6c0]" />
+            <div className="w-[11px] h-[11px] rounded-[3px] bg-[#35a79b]" />
             <span className="font-medium tracking-[2px] text-[13px]">KLOCKA&nbsp;OS</span>
           </div>
 
@@ -826,7 +823,7 @@ export default function AdminProjets() {
             <h1 className="text-[26px] font-light leading-[1.08] m-0 mb-2 -tracking-[0.02em]">
               {editingProject ? <>Modifions votre projet.</> : <>Créons votre prochain projet.</>}
             </h1>
-            <p className="text-[#8D93A0] text-[14px] leading-[1.5] m-0 mb-4 max-w-[340px]">Renseignez les informations clés, l'aperçu se met à jour en temps réel.</p>
+            <p className="text-[#8b9391] text-[14px] leading-[1.5] m-0 mb-4 max-w-[340px]">Renseignez les informations clés, l'aperçu se met à jour en temps réel.</p>
 
             {/* card d'aperçu à gauche + onglets verticaux à droite */}
             <div className="flex gap-6 items-start">
@@ -843,9 +840,9 @@ export default function AdminProjets() {
                     <button
                       key={t.value}
                       onClick={() => setActiveTab(t.value)}
-                      className={`flex items-center gap-2.5 py-2 text-[14px] font-semibold text-left transition-colors ${active ? "text-[#33d6c0]" : "text-[#565C6A] hover:text-[#C3C7CE]"}`}
+                      className={`flex items-center gap-2.5 py-2 text-[14px] font-semibold text-left transition-colors ${active ? "text-[#35a79b]" : "text-[#6b7270] hover:text-[#C3C7CE]"}`}
                     >
-                      <span className={`w-[6px] h-[6px] rounded-full flex-shrink-0 transition-all ${active ? "bg-[#33d6c0]" : "bg-[#2E3340]"}`} />
+                      <span className={`w-[6px] h-[6px] rounded-full flex-shrink-0 transition-all ${active ? "bg-[#35a79b]" : "bg-[#343735]"}`} />
                       {t.label}
                     </button>
                   );
@@ -858,23 +855,23 @@ export default function AdminProjets() {
         {/* RIGHT — form area (seule zone qui scrolle) */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }} className="flex-1 bg-[#0F1116] h-screen overflow-y-auto">
           {/* Mobile top bar */}
-          <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-[#16201f]">
+          <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-[#242726]">
             <span className="font-light text-[18px]">{editingProject ? "Modifier" : "Nouveau projet"}</span>
             <div className="flex gap-2">
-              <button onClick={closeEditor} className="border border-white/[0.14] text-[#C3C7CE] rounded-md px-3.5 py-2 text-[13px] font-semibold">Annuler</button>
+              <button onClick={closeEditor} className="border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-3.5 py-2 text-[13px] font-semibold">Annuler</button>
               {editingProject && (
-                <button onClick={goToProjectsList} className="border border-white/[0.14] text-[#C3C7CE] rounded-md px-3.5 py-2 text-[13px] font-semibold">Projets</button>
+                <button onClick={goToProjectsList} className="border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-3.5 py-2 text-[13px] font-semibold">Projets</button>
               )}
-              <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving} className="text-white rounded-md px-3.5 py-2 text-[13px] font-bold disabled:opacity-50" style={{ background: "linear-gradient(120deg,#33d6c0,#238B7E)" }}>{isSaving ? "..." : "Enregistrer"}</button>
+              <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving} className="text-[#edeae5] rounded-md px-3.5 py-2 text-[13px] font-bold disabled:opacity-50" style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}>{isSaving ? "..." : "Enregistrer"}</button>
             </div>
           </div>
 
           {/* Mobile tab selector */}
-          <div className="md:hidden border-b border-[#16201f] overflow-x-auto flex gap-2 px-4 py-3">
+          <div className="md:hidden border-b border-[#242726] overflow-x-auto flex gap-2 px-4 py-3">
             {editorTabs.map((t) => {
               const active = activeTab === t.value;
               return (
-                <button key={t.value} onClick={() => setActiveTab(t.value)} className={`flex-shrink-0 px-3.5 py-2 rounded-full text-[13px] whitespace-nowrap transition-colors ${active ? "text-white font-semibold" : "bg-white/[0.05] text-[#8D93A0]"}`} style={active ? { background: "linear-gradient(120deg,#33d6c0,#238B7E)" } : undefined}>
+                <button key={t.value} onClick={() => setActiveTab(t.value)} className={`flex-shrink-0 px-3.5 py-2 rounded-full text-[13px] whitespace-nowrap transition-colors ${active ? "text-[#edeae5] font-semibold" : "bg-[#edeae5]/[0.05] text-[#8b9391]"}`} style={active ? { background: "linear-gradient(120deg,#35a79b,#1f6b62)" } : undefined}>
                   {t.label}
                 </button>
               );
@@ -888,18 +885,18 @@ export default function AdminProjets() {
               <div className="flex items-center gap-2">
                 <h2 className="text-[22px] font-light m-0">{editorTabs.find(t => t.value === activeTab)?.label || "Informations"}</h2>
                 {editingProject && (
-                  <button onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, '_blank')} className="text-[#565C6A] hover:text-[#33d6c0] transition-colors ml-1" title="Voir la page client">
+                  <button onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, '_blank')} className="text-[#6b7270] hover:text-[#35a79b] transition-colors ml-1" title="Voir la page client">
                     <Eye className="w-5 h-5" />
                   </button>
                 )}
               </div>
               <div className="flex gap-2.5 items-center">
-                <button onClick={closeEditor} className="bg-transparent border border-white/[0.14] text-[#C3C7CE] rounded-md px-[18px] py-2.5 text-[14px] font-semibold hover:bg-white/[0.06] transition-colors">Annuler</button>
+                <button onClick={closeEditor} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-[18px] py-2.5 text-[14px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Annuler</button>
                 {editingProject && (
-                  <button onClick={goToProjectsList} className="bg-transparent border border-white/[0.14] text-[#C3C7CE] rounded-md px-[18px] py-2.5 text-[14px] font-semibold hover:bg-white/[0.06] transition-colors">Retour aux projets</button>
+                  <button onClick={goToProjectsList} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-[18px] py-2.5 text-[14px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Retour aux projets</button>
                 )}
                 <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
-                  className="inline-flex items-center gap-2 text-white rounded-md px-5 py-2.5 text-[14px] font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "linear-gradient(120deg,#33d6c0,#238B7E)" }}>
+                  className="inline-flex items-center gap-2 text-[#edeae5] rounded-md px-5 py-2.5 text-[14px] font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "linear-gradient(120deg,#35a79b,#1f6b62)" }}>
                   {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
                 </button>
               </div>
@@ -911,21 +908,21 @@ export default function AdminProjets() {
               </TabsContent>
 
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
-                <div className="p-6 bg-[#171A21] rounded-[14px] border border-[#1c2725]">
+                <div className="p-6 bg-[#121413] rounded-none border border-[#282b2a]">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-[#33d6c0]/10 rounded-md flex items-center justify-center">
-                      <Brain className="w-6 h-6 text-[#33d6c0]" />
+                    <div className="w-12 h-12 bg-[#35a79b]/10 rounded-md flex items-center justify-center">
+                      <Brain className="w-6 h-6 text-[#35a79b]" />
                     </div>
                     <div>
-                      <h3 className="text-xl text-white font-light">Création assistée par IA</h3>
-                      <p className="text-white/30 text-sm">Collez du texte ou importez des documents pour remplir automatiquement</p>
+                      <h3 className="text-xl text-[#edeae5] font-light">Création assistée par IA</h3>
+                      <p className="text-[#edeae5]/30 text-sm">Collez du texte ou importez des documents pour remplir automatiquement</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <FField label="Importer depuis Google Drive">
                       <div className="flex gap-2">
                         <FInput value={driveSearchAddress} onChange={(e) => setDriveSearchAddress(e.target.value)} placeholder="Ex: 123 rue de la Paix, Paris" className="flex-1" />
-                        <Button onClick={handleSearchGoogleDrive} disabled={isSearchingDrive || !driveSearchAddress.trim()} className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white flex-shrink-0">
+                        <Button onClick={handleSearchGoogleDrive} disabled={isSearchingDrive || !driveSearchAddress.trim()} className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] flex-shrink-0">
                           {isSearchingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : <><FolderSearch className="w-4 h-4 mr-2" />Chercher</>}
                         </Button>
                       </div>
@@ -938,12 +935,12 @@ export default function AdminProjets() {
                         <FField className="flex-1">
                           <FInput value={newAiDocUrl} onChange={(e) => setNewAiDocUrl(e.target.value)} placeholder="Ou ajoutez une URL de document : https://exemple.com/document.pdf" />
                         </FField>
-                        <Button onClick={() => { if (newAiDocUrl.trim()) { setAiDocuments([...aiDocuments, convertGoogleDriveUrl(newAiDocUrl.trim())]); setNewAiDocUrl(""); } }} className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 h-[52px] flex-shrink-0"><Plus className="w-4 h-4" /></Button>
+                        <Button onClick={() => { if (newAiDocUrl.trim()) { setAiDocuments([...aiDocuments, convertGoogleDriveUrl(newAiDocUrl.trim())]); setNewAiDocUrl(""); } }} className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 h-[52px] flex-shrink-0"><Plus className="w-4 h-4" /></Button>
                       </div>
                       {aiDocuments.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {aiDocuments.map((url, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-white/[0.03] text-white/60 px-3 py-1.5 rounded-lg text-sm border border-[#16201f]">
+                            <div key={idx} className="flex items-center gap-2 bg-[#edeae5]/[0.03] text-[#edeae5]/60 px-3 py-1.5 rounded-lg text-sm border border-[#242726]">
                               <FileText className="w-4 h-4" /><span>Document {idx + 1}</span>
                               <button onClick={() => setAiDocuments(aiDocuments.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
                             </div>
@@ -951,8 +948,8 @@ export default function AdminProjets() {
                         </div>
                       )}
                     </div>
-                    <button onClick={handleFullAIGeneration} disabled={isGeneratingAI || (!aiFullText && aiDocuments.length === 0)} className="w-full h-12 bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white rounded-md transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                      {isGeneratingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Analyse en cours...</> : <><Sparkles className="w-4 h-4 text-[#33d6c0]" />Extraire les informations avec l'IA</>}
+                    <button onClick={handleFullAIGeneration} disabled={isGeneratingAI || (!aiFullText && aiDocuments.length === 0)} className="w-full h-12 bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] rounded-md transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                      {isGeneratingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Analyse en cours...</> : <><Sparkles className="w-4 h-4 text-[#35a79b]" />Extraire les informations avec l'IA</>}
                     </button>
                   </div>
                 </div>
@@ -962,10 +959,10 @@ export default function AdminProjets() {
 
               <TabsContent value="secteur" className="space-y-6 mt-0">
                 {/* Génération IA Secteur */}
-                <div className="p-5 bg-[#33d6c0]/5 rounded-md border border-[#33d6c0]/20">
+                <div className="p-5 bg-[#35a79b]/5 rounded-md border border-[#35a79b]/20">
                   <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="w-5 h-5 text-[#33d6c0]" />
-                    <h4 className="text-white text-sm font-medium">Générer les infos secteur avec l'IA</h4>
+                    <Sparkles className="w-5 h-5 text-[#35a79b]" />
+                    <h4 className="text-[#edeae5] text-sm font-medium">Générer les infos secteur avec l'IA</h4>
                   </div>
                   <div className="flex gap-2">
                     <FField className="flex-1">
@@ -1008,16 +1005,16 @@ export default function AdminProjets() {
                           setIsGeneratingAI(false);
                         }
                       }}
-                      className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white flex-shrink-0 h-[52px]"
+                      className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] flex-shrink-0 h-[52px]"
                     >
-                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-[#33d6c0]" />Générer</>}
+                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-[#35a79b]" />Générer</>}
                     </Button>
                   </div>
                 </div>
 
                 {/* Ville & Secteur */}
                 <div className="space-y-4">
-                  <h3 className="text-lg text-white">Ville & Secteur</h3>
+                  <h3 className="text-lg text-[#edeae5]">Ville & Secteur</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <FField><FInput value={formData.ville_secteur_champ1} onChange={(e) => setFormData({...formData, ville_secteur_champ1: e.target.value})} placeholder="Champ 1 (ex: Ville)" /></FField>
                     <FField><FInput value={formData.ville_secteur_champ2} onChange={(e) => setFormData({...formData, ville_secteur_champ2: e.target.value})} placeholder="Champ 2 (ex: Département)" /></FField>
@@ -1029,13 +1026,13 @@ export default function AdminProjets() {
                   </div>
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-[#16201f]">
+                <div className="space-y-4 pt-4 border-t border-[#242726]">
                   <div className="flex items-center justify-between">
-                    <Label className="text-white">Notes secteur</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
+                    <Label className="text-[#edeae5]">Notes secteur</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
                   </div>
                   {(formData.notes_secteur || []).map((note, idx) => (
-                    <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3">
+                    <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
                       <div className="flex items-center gap-3">
                         <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const u = [...formData.notes_secteur]; u[idx].titre = e.target.value; setFormData({...formData, notes_secteur: u}); }} placeholder="Titre..." /></FField>
                         <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_secteur: formData.notes_secteur.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
@@ -1045,7 +1042,7 @@ export default function AdminProjets() {
                   ))}
                 </div>
                 <div>
-                  <h3 className="text-lg mb-4 text-white">Bien</h3>
+                  <h3 className="text-lg mb-4 text-[#edeae5]">Bien</h3>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <FField><FInput value={formData.bien_champ1} onChange={(e) => setFormData({...formData, bien_champ1: e.target.value})} placeholder="Champ 1 (Bien)" /></FField>
@@ -1055,13 +1052,13 @@ export default function AdminProjets() {
                     <FField label="Description bien"><FTextarea value={formData.description_bien} onChange={(e) => setFormData({...formData, description_bien: e.target.value})} rows={4} placeholder="Description du bien..." /></FField>
                   </div>
                 </div>
-                <div className="space-y-4 pt-4 border-t border-[#16201f]">
+                <div className="space-y-4 pt-4 border-t border-[#242726]">
                   <div className="flex items-center justify-between">
-                    <Label className="text-white">Notes bien</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
+                    <Label className="text-[#edeae5]">Notes bien</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
                   </div>
                   {(formData.notes_bien || []).map((note, idx) => (
-                    <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3">
+                    <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
                       <div className="flex items-center gap-3">
                         <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const u = [...formData.notes_bien]; u[idx].titre = e.target.value; setFormData({...formData, notes_bien: u}); }} placeholder="Titre..." /></FField>
                         <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_bien: formData.notes_bien.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
@@ -1085,10 +1082,10 @@ export default function AdminProjets() {
 
         {/* Admin Picker Dialog */}
         <Dialog open={showAdminPicker} onOpenChange={setShowAdminPicker}>
-          <DialogContent className="max-w-md bg-[#050505] border-[#33d6c0]/40 shadow-[0_0_40px_rgba(42,157,143,0.15)]">
+          <DialogContent className="max-w-md bg-[#0a0c0c] border-[#35a79b]/40 shadow-[0_0_40px_rgba(42,157,143,0.15)]">
             <DialogHeader>
-              <DialogTitle className="text-white font-light text-xl">Choisissez l'admin principal</DialogTitle>
-              <p className="text-[#7f9995] text-sm mt-1">Cliquez sur la photo de l'admin en charge de ce projet</p>
+              <DialogTitle className="text-[#edeae5] font-light text-xl">Choisissez l'admin principal</DialogTitle>
+              <p className="text-[#8b9391] text-sm mt-1">Cliquez sur la photo de l'admin en charge de ce projet</p>
             </DialogHeader>
             <div className="flex justify-center gap-8 py-6">
               {users.filter(u => u.role === "admin" && ["jules.b@klocka.immo", "alexis.p@klocka.immo", "maxime.p@klocka.immo", "paul.b@klocka.immo"].includes(u.email)).map(u => {
@@ -1110,10 +1107,10 @@ export default function AdminProjets() {
                     }}
                     className="flex flex-col items-center gap-3 group"
                   >
-                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-[#33d6c0] transition-all duration-200 group-hover:scale-105">
+                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#edeae5]/10 group-hover:border-[#35a79b] transition-all duration-200 group-hover:scale-105">
                       <img src={avatar} alt={u.full_name} className="w-full h-full object-cover" />
                     </div>
-                    <span className="text-[#93aca7] text-sm group-hover:text-white transition-colors">{u.full_name || u.email.split('@')[0]}</span>
+                    <span className="text-[#9aa19e] text-sm group-hover:text-[#edeae5] transition-colors">{u.full_name || u.email.split('@')[0]}</span>
                   </button>
                 );
               })}
@@ -1124,79 +1121,133 @@ export default function AdminProjets() {
     );
   }
 
+  // --- Rendu de la liste : filtres appliqués une seule fois, réutilisés par le
+  // bandeau de chiffres et par la grille.
+  const projetsVisibles = projects.filter((project) => {
+    const q = searchTerm.toLowerCase();
+    const matchSearch = !searchTerm
+      || project.titre?.toLowerCase().includes(q)
+      || project.adresse_complete?.toLowerCase().includes(q)
+      || project.client_email?.toLowerCase().includes(q);
+    const matchStatus = statusFilter === "all" || project.statut === statusFilter;
+    const matchArchived = showArchived ? project.archived : !project.archived;
+    return matchSearch && matchStatus && matchArchived;
+  });
+
+  const actifs = projects.filter((p) => !p.archived);
+  const compteur = (statut) => actifs.filter((p) => p.statut === statut).length;
+  const nbArchives = projects.filter((p) => p.archived).length;
+
+  const FILTRES = [
+    { v: "all", l: "Tous", n: actifs.length },
+    { v: "prospect", l: "Prospect", n: compteur("prospect") },
+    { v: "analyse", l: "Analyse", n: compteur("analyse") },
+    { v: "negociation", l: "Négociation", n: compteur("negociation") },
+    { v: "financement", l: "Financement", n: compteur("financement") },
+    { v: "signe", l: "Signé", n: compteur("signe") },
+  ];
+
+  const CHIFFRES = [
+    { valeur: actifs.length, label: "Projets actifs" },
+    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-[#7fd3c9]" },
+    { valeur: compteur("financement"), label: "En financement" },
+    { valeur: compteur("signe"), label: "Signés", accent: "text-[#e0c9a0]" },
+    { valeur: nbArchives, label: "Archivés", accent: "text-[#8b9391]" },
+  ];
+
   return (
-    <div className="min-h-screen text-[#EAECEF] p-4 md:p-10" style={{ background: "linear-gradient(160deg,#0B0D0F 0%,#000000 90%)" }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-9 flex flex-col items-center text-center gap-5">
+    <div className="projet-editorial min-h-screen bg-[#0a0c0c] text-[#edeae5] px-5 md:px-10 py-8 md:py-12">
+      <div className="max-w-[1400px] mx-auto">
+        {/* En-tête */}
+        <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>
-            <h1 className="text-[28px] md:text-[32px] font-light leading-[1.08] -tracking-[0.02em] m-0">Gestion des projets</h1>
-            <p className="text-[#8D93A0] text-[14px] leading-[1.5] mt-2 max-w-[420px] mx-auto">Retrouvez, filtrez et modifiez tous vos projets immobiliers.</p>
+            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">Gestion des projets</h1>
+            <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0 max-w-[520px]">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="inline-flex items-center gap-2 text-white rounded-md px-5 py-3 text-[14px] font-bold hover:brightness-110 transition-all flex-shrink-0"
-            style={{ background: "linear-gradient(120deg,#33d6c0,#238B7E)" }}>
-            <Plus className="w-[18px] h-[18px]" strokeWidth={2.4} />
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] transition-colors">
+            <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
         </div>
 
-        {/* Filtres — champs #171A21 focus teal */}
-        <div className="flex flex-col md:flex-row gap-3 mb-8">
-          <div className="flex-1 bg-[#171A21] border border-[#1c2725] rounded-[14px] px-[18px] flex items-center transition-all focus-within:border-[#33d6c0] focus-within:shadow-[0_0_0_3px_rgba(42,157,143,0.14)]">
-            <FolderSearch className="w-4 h-4 text-[#5B616C] flex-shrink-0" />
-            <input placeholder="Rechercher un projet..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-none text-[#EAECEF] outline-none placeholder:text-[#5B616C] py-3.5 px-3 text-[15px]" />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="bg-[#171A21] text-[#EAECEF] border-[#1c2725] rounded-[14px] w-full md:w-52 h-auto py-3.5 px-[18px] focus:border-[#33d6c0] focus:ring-0">
-              <SelectValue placeholder="Tous les statuts" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#171A21] border-white/[0.1] text-[#EAECEF]">
-              <SelectItem value="all">Tous les statuts</SelectItem>
-              <SelectItem value="prospect">Prospect</SelectItem>
-              <SelectItem value="analyse">Analyse</SelectItem>
-              <SelectItem value="negociation">Négociation</SelectItem>
-              <SelectItem value="financement">Financement</SelectItem>
-              <SelectItem value="signe">Signé</SelectItem>
-            </SelectContent>
-          </Select>
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className={`flex items-center gap-2 px-5 py-3.5 rounded-[14px] border text-[14px] font-semibold transition-all ${showArchived ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' : 'bg-[#171A21] border-[#1c2725] text-[#8D93A0] hover:text-[#EAECEF] hover:border-white/20'}`}
-          >
-            <Archive className="w-4 h-4" />
-            {showArchived ? "Masquer archivés" : "Voir archivés"}
-          </button>
+        {/* Bandeau de chiffres */}
+        <div className="flex flex-wrap border-t border-[#edeae5]/[0.35] mb-8 max-md:mb-6">
+          {CHIFFRES.map((c, i) => (
+            <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#edeae5]/[0.12] md:pl-6" : ""}`}>
+              <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
+              <div className="text-[12px] text-[#8b9391] mt-1">{c.label}</div>
+            </div>
+          ))}
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {projects.filter(project => {
-            const matchSearch = !searchTerm || project.titre?.toLowerCase().includes(searchTerm.toLowerCase()) || project.adresse_complete?.toLowerCase().includes(searchTerm.toLowerCase()) || project.client_email?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchStatus = statusFilter === "all" || project.statut === statusFilter;
-            const matchArchived = showArchived ? project.archived : !project.archived;
-            return matchSearch && matchStatus && matchArchived;
-          }).map((project, idx) => (
+        {/* Recherche + filtres */}
+        <div className="mb-8 max-md:mb-6">
+          <div className="flex items-center gap-3 border-b border-[#edeae5]/[0.18] focus-within:border-[#35a79b] transition-colors pb-2 mb-5">
+            <FolderSearch className="w-4 h-4 text-[#6b7270] flex-shrink-0" />
+            <input
+              placeholder="Rechercher un projet, une adresse, un client…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-transparent border-none text-[#edeae5] outline-none placeholder:text-[#6b7270] text-[15px] py-1"
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm("")} className="text-[#6b7270] hover:text-[#edeae5] transition-colors" title="Effacer">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-x-7 gap-y-2 flex-wrap">
+            {FILTRES.map(({ v, l, n }) => (
+              <button key={v} onClick={() => setStatusFilter(v)}
+                className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${statusFilter === v ? "text-[#edeae5] border-[#35a79b]" : "text-[#8b9391] border-transparent hover:text-[#edeae5]"}`}>
+                {l} <span className="text-[#6b7270]">{n}</span>
+              </button>
+            ))}
+            <button onClick={() => setShowArchived(!showArchived)}
+              className={`ml-auto inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${showArchived ? "text-[#e0c9a0] border-[#e0c9a0]" : "text-[#8b9391] border-transparent hover:text-[#edeae5]"}`}>
+              <Archive className="w-3.5 h-3.5" />
+              {showArchived ? "Masquer les archivés" : `Archivés ${nbArchives}`}
+            </button>
+          </div>
+        </div>
+
+        {/* Grille */}
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-md:gap-4">
+          {projetsVisibles.map((project, idx) => (
             <motion.div
               key={project.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut", delay: Math.min(idx * 0.04, 0.4) }}
+              transition={{ duration: 0.35, ease: "easeOut", delay: Math.min(idx * 0.035, 0.35) }}
             >
               <AdminProjectCard project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} />
             </motion.div>
           ))}
-          {projects.length === 0 && (
-            <div className="col-span-full text-center py-20">
-              <div className="w-20 h-20 bg-[#171A21] border border-[#1c2725] rounded-[14px] flex items-center justify-center mx-auto mb-6">
-                <Building2 className="w-10 h-10 text-[#2E3340]" />
-              </div>
-              <h2 className="text-xl font-light text-[#EAECEF] mb-2">Aucun projet</h2>
-              <p className="text-[#565C6A] mb-6 text-sm">Créez votre premier projet pour commencer</p>
-              <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-                className="inline-flex items-center gap-2 text-white px-5 py-2.5 rounded-md transition-all text-sm font-bold hover:brightness-110"
-                style={{ background: "linear-gradient(120deg,#33d6c0,#238B7E)" }}>
-                <Plus className="w-4 h-4" /> Créer un projet
-              </button>
+
+          {projetsVisibles.length === 0 && (
+            <div className="col-span-full border-t border-[#edeae5]/[0.35] pt-10 pb-16 text-center">
+              <Building2 className="w-8 h-8 text-[#edeae5]/15 mx-auto mb-5" />
+              <h2 className="text-[22px] font-light text-[#edeae5] mb-2">
+                {projects.length === 0 ? "Aucun projet" : "Aucun projet ne correspond"}
+              </h2>
+              <p className="text-[#8b9391] text-sm mb-6">
+                {projects.length === 0
+                  ? "Créez le premier dossier pour commencer."
+                  : "Élargissez la recherche ou changez de filtre."}
+              </p>
+              {projects.length === 0 ? (
+                <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] transition-colors">
+                  <Plus className="w-4 h-4" /> Créer un projet
+                </button>
+              ) : (
+                <button onClick={() => { setSearchTerm(""); setStatusFilter("all"); setShowArchived(false); }}
+                  className="text-[11px] tracking-[0.16em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                  Réinitialiser les filtres
+                </button>
+              )}
             </div>
           )}
         </div>

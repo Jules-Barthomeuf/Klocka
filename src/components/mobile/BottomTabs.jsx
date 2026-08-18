@@ -15,7 +15,7 @@ export default function BottomTabs() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#050807]/90 backdrop-blur-xl border-t border-[#16201f]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0c0c]/90 backdrop-blur-xl border-t border-[#242726]"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex items-center justify-around h-14">
@@ -27,7 +27,7 @@ export default function BottomTabs() {
               key={page}
               to={url}
               className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${
-                isActive ? "text-[#33d6c0]" : "text-white/30"
+                isActive ? "text-[#35a79b]" : "text-[#edeae5]/30"
               }`}
             >
               <Icon className="w-5 h-5" />

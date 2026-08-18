@@ -10,41 +10,37 @@ import { Trash2, Plus } from "lucide-react";
 moment.locale("fr");
 
 const tabStyle = (active) =>
-  `px-4 py-2 text-sm transition-all duration-200 border-b-2 ${
+  `pb-2 text-[11px] tracking-[0.16em] uppercase transition-colors duration-200 border-b ${
     active
-      ? "text-white border-[#33d6c0]"
-      : "text-[#7f9995] border-transparent hover:text-[#c4d5d1]"
+      ? "text-[#7fd3c9] border-[#35a79b]"
+      : "text-[#8b9391] border-transparent hover:text-[#edeae5]"
   }`;
 
+// Ligne clé/valeur sur filet fin — même grammaire que les autres onglets
 function InfoCard({ label, value, accent, badge, note, onDelete, showDelete }) {
   if (!value && value !== 0) return null;
   return (
-    <div className="bg-[#101715]/30 border border-[#24312f]/40 rounded-md p-4 flex flex-col gap-2 hover:border-[#2c3a37]/50 transition-colors relative">
+    <div className="flex justify-between items-start gap-4 py-2.5 border-t border-[#edeae5]/[0.12]">
+      <span className="text-sm text-[#8b9391] flex-shrink-0">{label}</span>
+      <div className="text-right min-w-0">
+        <span className={`text-sm ${accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{value}</span>
+        {badge && (
+          <span className={`ml-2 text-[10px] tracking-[0.12em] uppercase ${badge === "preneur" ? "text-[#7fd3c9]" : "text-[#8b9391]"}`}>
+            {badge === "preneur" ? "Preneur" : "Bailleur"}
+          </span>
+        )}
+        {note && <div className="text-[11px] text-[#8b9391] mt-0.5">{note}</div>}
+      </div>
       {showDelete && (
         <Button
           variant="ghost"
           size="icon"
           onClick={onDelete}
-          className="absolute top-2 right-2 h-6 w-6 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+          className="h-6 w-6 flex-shrink-0 text-red-400 hover:text-red-300 hover:bg-red-400/10"
         >
           <Trash2 className="w-3 h-3" />
         </Button>
       )}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-[#7f9995] uppercase tracking-wider">{label}</span>
-        {badge && (
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-            badge === "preneur" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
-            "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-          }`}>
-            {badge === "preneur" ? "Preneur" : "Bailleur"}
-          </span>
-        )}
-      </div>
-      <span className={`text-lg font-semibold leading-tight ${accent || "text-white"}`}>
-        {value}
-      </span>
-      {note && <span className="text-[11px] text-[#93aca7] leading-tight">{note}</span>}
     </div>
   );
 }
@@ -52,7 +48,7 @@ function InfoCard({ label, value, accent, badge, note, onDelete, showDelete }) {
 function SectionEmpty({ text }) {
   return (
     <div className="text-center py-8">
-      <p className="text-[#7f9995] text-sm">{text}</p>
+      <p className="text-[#8b9391] text-sm">{text}</p>
     </div>
   );
 }
@@ -368,7 +364,7 @@ export default function BailTabs({ project }) {
 
   return (
     <div>
-      <div className="flex gap-1 border-b border-[#101715] mb-6">
+      <div className="flex gap-7 mb-7">
         <button className={tabStyle(tab === "administratif")} onClick={() => setTab("administratif")}>Résumé</button>
         <button className={tabStyle(tab === "analyse")} onClick={() => setTab("analyse")}>Analyse du bail</button>
       </div>
@@ -377,7 +373,7 @@ export default function BailTabs({ project }) {
       {tab === "administratif" && (
         hasAdmin || showAsAdmin ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid md:grid-cols-2 gap-x-12">
               {adminFields.map((field, index) => (
                 <InfoCard 
                   key={index} 
@@ -399,16 +395,20 @@ export default function BailTabs({ project }) {
       {/* Analyse du bail */}
       {tab === "analyse" && (
         hasAnalyse ? (
-          <div className="text-sm text-[#c4d5d1] leading-relaxed space-y-4">
+          <div className="text-[14.5px] text-[#d3d8d6] leading-[1.8] space-y-5">
             {project.analyse_bail.split(/(\b\d{1,2}\.\s+[A-ZÀ-Ü][^\n]+)/).filter(Boolean).map((section, idx) => {
               const isSectionTitle = /^\d{1,2}\.\s+[A-ZÀ-Ü]/.test(section.trim());
               if (isSectionTitle) {
-                return <h4 key={idx} className="text-white font-semibold mt-4 first:mt-0">{section.trim()}</h4>;
+                return (
+                  <div key={idx} className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] border-t border-[#edeae5]/[0.12] pt-5 mt-6 first:mt-0 first:border-0 first:pt-0">
+                    {section.trim()}
+                  </div>
+                );
               }
               return (
-                <div key={idx} className="space-y-1">
+                <div key={idx} className="space-y-1.5">
                   {section.split("\n").filter((l) => l.trim()).map((line, li) => (
-                    <p key={li} className="text-[#c4d5d1]">{line.trim()}</p>
+                    <p key={li} className="text-[#d3d8d6] mb-0">{line.trim()}</p>
                   ))}
                 </div>
               );

@@ -143,18 +143,18 @@ Réponds UNIQUEMENT en JSON.`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-[#050505] border-[#1c2725]">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-[#0a0c0c] border-[#282b2a]">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-400 uppercase tracking-[0.2em] text-[10px] font-medium mb-1">Rapport de comparaison</p>
-              <DialogTitle className="text-xl font-light text-white tracking-tight">
+              <DialogTitle className="text-xl font-light text-[#edeae5] tracking-tight">
                 {project?.titre}
               </DialogTitle>
             </div>
             <div className="flex items-center gap-2">
               {totalNumericDiffs > 0 && (
-                <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-[#e0c9a0]/20 text-[#e0c9a0] px-2 py-0.5 rounded-full">
                   {totalNumericDiffs} diff. valeurs
                 </span>
               )}
@@ -164,7 +164,7 @@ Réponds UNIQUEMENT en JSON.`;
                 </span>
               )}
               {totalNumericDiffs === 0 && totalTextDiffsFound === 0 && (
-                <span className="text-[10px] bg-[#33d6c0]/20 text-[#5ee7d4] px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-[10px] bg-[#35a79b]/20 text-[#7fd3c9] px-2 py-0.5 rounded-full flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> RAS
                 </span>
               )}
@@ -172,21 +172,21 @@ Réponds UNIQUEMENT en JSON.`;
           </div>
         </DialogHeader>
 
-        <p className="text-[10px] text-[#5e7672] mb-2">Cliquez sur une différence pour ouvrir le champ correspondant dans l'éditeur.</p>
+        <p className="text-[10px] text-[#6b7270] mb-2">Cliquez sur une différence pour ouvrir le champ correspondant dans l'éditeur.</p>
 
         <div className="space-y-6 mt-2">
           {/* Numeric diffs */}
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-[#7f9995] mb-3">Différences de valeurs</p>
+            <p className="text-[10px] uppercase tracking-wider text-[#8b9391] mb-3">Différences de valeurs</p>
             {numericDiffs.length > 0 ? (
               <div className="space-y-1.5">
                 {numericDiffs.map((diff) => (
-                  <div key={diff.key} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/10 group">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                    <span className="text-xs text-[#93aca7] w-44 flex-shrink-0">{diff.label}</span>
+                  <div key={diff.key} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#e0c9a0]/5 border border-[#e0c9a0]/10 group">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#e0c9a0] flex-shrink-0" />
+                    <span className="text-xs text-[#9aa19e] w-44 flex-shrink-0">{diff.label}</span>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-xs text-blue-400 truncate">Actuel: <strong>{String(diff.currentVal)}</strong></span>
-                      <span className="text-[#5e7672]">→</span>
+                      <span className="text-[#6b7270]">→</span>
                       <span className="text-xs text-purple-400 truncate">Shadow: <strong>{String(diff.shadowVal)}</strong></span>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -209,9 +209,9 @@ Réponds UNIQUEMENT en JSON.`;
                 ))}
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#33d6c0]/5 border border-[#33d6c0]/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#5ee7d4]" />
-                <span className="text-xs text-[#5ee7d4]">Tous les champs numériques correspondent</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#35a79b]/5 border border-[#35a79b]/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#7fd3c9]" />
+                <span className="text-xs text-[#7fd3c9]">Tous les champs numériques correspondent</span>
               </div>
             )}
           </div>
@@ -219,7 +219,7 @@ Réponds UNIQUEMENT en JSON.`;
           {/* Text analysis */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] uppercase tracking-wider text-[#7f9995]">Analyse sémantique des textes</p>
+              <p className="text-[10px] uppercase tracking-wider text-[#8b9391]">Analyse sémantique des textes</p>
               <Button
                 size="sm"
                 onClick={analyzeTexts}
@@ -234,9 +234,9 @@ Réponds UNIQUEMENT en JSON.`;
             </div>
 
             {textDiffs && textDiffs.length === 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#33d6c0]/5 border border-[#33d6c0]/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#5ee7d4]" />
-                <span className="text-xs text-[#5ee7d4]">Aucune différence de sens détectée dans les textes</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#35a79b]/5 border border-[#35a79b]/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#7fd3c9]" />
+                <span className="text-xs text-[#7fd3c9]">Aucune différence de sens détectée dans les textes</span>
               </div>
             )}
 
@@ -248,7 +248,7 @@ Réponds UNIQUEMENT en JSON.`;
                       <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-red-400 font-medium">{diff.label}</p>
-                        <p className="text-xs text-[#93aca7] mt-1">{diff.description}</p>
+                        <p className="text-xs text-[#9aa19e] mt-1">{diff.description}</p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                         <button
@@ -271,7 +271,7 @@ Réponds UNIQUEMENT en JSON.`;
             )}
 
             {textDiffs && textDiffs.filter(d => !d.has_diff).length > 0 && textDiffs.filter(d => d.has_diff).length > 0 && (
-              <p className="text-[10px] text-[#5e7672] mt-2">
+              <p className="text-[10px] text-[#6b7270] mt-2">
                 {textDiffs.filter(d => !d.has_diff).length} autre(s) champ(s) texte sans différence de sens.
               </p>
             )}

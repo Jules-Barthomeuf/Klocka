@@ -103,17 +103,17 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
     <div className="relative">
       <div className="relative overflow-hidden p-6">
         <div className="mb-4 h-[72px]">
-          <p className="text-sm font-medium text-[#93aca7]">Évolution du patrimoine financier et immobilier</p>
+          <p className="text-sm font-medium text-[#9aa19e]">Évolution du patrimoine financier et immobilier</p>
           {hoveredIndex !== null && data[hoveredIndex] && (
             <div className="mt-1 flex items-baseline gap-4">
               <div>
-                <span className="text-xs text-[#7f9995]">Patrimoine</span>
-                <h2 className="text-3xl font-semibold text-[#33d6c0]">
+                <span className="text-xs text-[#8b9391]">Patrimoine</span>
+                <h2 className="text-3xl font-semibold text-[#35a79b]">
                   {formatValue(data[hoveredIndex].patrimoine)}
                 </h2>
               </div>
               <div>
-                <span className="text-xs text-[#7f9995]">Dette</span>
+                <span className="text-xs text-[#8b9391]">Dette</span>
                 <h2 className="text-3xl font-semibold text-red-400">
                   {formatValue(data[hoveredIndex].capitalRestant)}
                 </h2>
@@ -133,9 +133,9 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
           >
             <defs>
               <linearGradient id="patrimoineAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#33d6c0" stopOpacity="0.35" />
-                <stop offset="50%" stopColor="#33d6c0" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#33d6c0" stopOpacity="0.02" />
+                <stop offset="0%" stopColor="#35a79b" stopOpacity="0.35" />
+                <stop offset="50%" stopColor="#35a79b" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#35a79b" stopOpacity="0.02" />
               </linearGradient>
               <filter id="patrimoineGlow" x="-100%" y="-100%" width="300%" height="300%">
                 <feGaussianBlur stdDeviation="2" result="blur" />
@@ -198,7 +198,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
             <path
               d={generatePath('patrimoine')}
               fill="none"
-              stroke="#33d6c0"
+              stroke="#35a79b"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -229,7 +229,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   cy={getY(data[hoveredIndex].patrimoine)}
                   r="8"
                   fill="#262627"
-                  stroke="#33d6c0"
+                  stroke="#35a79b"
                   strokeWidth="3"
                   filter="url(#patrimoineGlow)"
                 />

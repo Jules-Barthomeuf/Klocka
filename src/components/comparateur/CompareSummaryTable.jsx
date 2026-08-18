@@ -2,8 +2,8 @@ import React from "react";
 import { formatCurrency } from "./ComparateurCalcul";
 import InfoTooltip from "./InfoTooltip";
 
-const COLORS = ["text-red-800", "text-[#5ee7d4]", "text-yellow-500", "text-purple-400"];
-const DOT_COLORS = ["bg-red-800", "bg-[#5ee7d4]", "bg-yellow-500", "bg-purple-400"];
+const COLORS = ["text-red-800", "text-[#7fd3c9]", "text-[#e0c9a0]", "text-purple-400"];
+const DOT_COLORS = ["bg-red-800", "bg-[#7fd3c9]", "bg-[#e0c9a0]", "bg-purple-400"];
 
 export default function CompareSummaryTable({ metrics }) {
   if (!metrics.length) return null;
@@ -26,12 +26,12 @@ export default function CompareSummaryTable({ metrics }) {
   ];
 
   return (
-    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] overflow-hidden">
+    <div className="bg-[#0a0c0c] rounded-md border border-[#242726] overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#16201f]">
-              <th className="text-left text-white/30 text-xs uppercase tracking-wider py-3 px-4 min-w-[160px]">Indicateur</th>
+            <tr className="border-b border-[#242726]">
+              <th className="text-left text-[#edeae5]/30 text-xs uppercase tracking-wider py-3 px-4 min-w-[160px]">Indicateur</th>
               {metrics.map((m, i) => (
                 <th key={i} className="text-left py-3 px-4 min-w-[140px]">
                   <div className="flex items-center gap-2">
@@ -44,12 +44,12 @@ export default function CompareSummaryTable({ metrics }) {
           </thead>
           <tbody>
             {rows.map((row, rowIdx) => (
-              <tr key={row.key} className={rowIdx % 2 === 0 ? "bg-white/[0.01]" : ""}>
-                <td className="py-3 px-4 text-white/40 text-xs">{row.label}</td>
+              <tr key={row.key} className={rowIdx % 2 === 0 ? "bg-[#edeae5]/[0.01]" : ""}>
+                <td className="py-3 px-4 text-[#edeae5]/40 text-xs">{row.label}</td>
                 {metrics.map((m, i) => {
                   const val = m[row.key];
                   return (
-                    <td key={i} className="py-3 px-4 text-white text-xs font-medium">
+                    <td key={i} className="py-3 px-4 text-[#edeae5] text-xs font-medium">
                       {row.fmt(val)}
                     </td>
                   );

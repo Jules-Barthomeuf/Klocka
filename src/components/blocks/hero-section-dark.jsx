@@ -64,17 +64,17 @@ const HeroSection = React.forwardRef(
         <section className="relative max-w-full mx-auto z-1">
           <div className="max-w-screen-xl z-10 mx-auto px-4 py-16 gap-12 md:px-8">
             <div className="space-y-5 max-w-3xl leading-0 lg:leading-5 mx-auto text-center">
-              <h1 className="text-sm text-[#c4d5d1] dark:text-[#c4d5d1] group font-geist mx-auto px-5 py-2 bg-gradient-to-tr from-[#c4d5d1]/20 via-[#93aca7]/20 to-transparent dark:from-[#c4d5d1]/5 dark:via-[#93aca7]/5 border-[2px] border-black/5 dark:border-white/5 rounded-3xl w-fit">
+              <h1 className="text-sm text-[#d3d8d6] dark:text-[#d3d8d6] group font-geist mx-auto px-5 py-2 bg-gradient-to-tr from-[#d3d8d6]/20 via-[#9aa19e]/20 to-transparent dark:from-[#d3d8d6]/5 dark:via-[#9aa19e]/5 border-[2px] border-black/5 dark:border-[#edeae5]/5 rounded-3xl w-fit">
                 {title}
                 <ChevronRight className="inline w-4 h-4 ml-2 group-hover:translate-x-1 duration-300" />
               </h1>
               <h2 className="text-4xl tracking-tighter font-geist mx-auto md:text-6xl">
-                <span className="text-white">{subtitle.regular}</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#33d6c0] to-[#5ee7d4]">
+                <span className="text-[#edeae5]">{subtitle.regular}</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#35a79b] to-[#7fd3c9]">
                   {subtitle.gradient}
                 </span>
               </h2>
-              <p className="max-w-2xl mx-auto text-[#5e7672] dark:text-[#c4d5d1]">
+              <p className="max-w-2xl mx-auto text-[#6b7270] dark:text-[#d3d8d6]">
                 {description}
               </p>
               {ctaText && (
@@ -90,12 +90,12 @@ const HeroSection = React.forwardRef(
               <div className="mt-32 mx-10 relative z-10">
                 <img
                   src={bottomImage.light}
-                  className="w-full shadow-lg rounded-lg border border-[#e6efed] dark:hidden"
+                  className="w-full shadow-lg rounded-lg border border-[#edeae5] dark:hidden"
                   alt="Dashboard preview"
                 />
                 <img
                   src={bottomImage.dark}
-                  className="hidden w-full shadow-lg rounded-lg border border-[#101715] dark:block"
+                  className="hidden w-full shadow-lg rounded-lg border border-[#171918] dark:block"
                   alt="Dashboard preview"
                 />
               </div>

@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button";
  */
 export default function MobileRecordCard({ title, fields = [], onEdit, onDelete }) {
   return (
-    <div className="rounded-md border border-[#24312f] bg-[#101715]/60 p-4">
+    <div className="rounded-md border border-[#303332] bg-[#171918]/60 p-4">
       <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="text-white font-semibold text-sm break-words flex-1 min-w-0">{title || "-"}</div>
+        <div className="text-[#edeae5] font-semibold text-sm break-words flex-1 min-w-0">{title || "-"}</div>
         {(onEdit || onDelete) && (
           <div className="flex items-center gap-1 flex-shrink-0">
             {onEdit && (
@@ -32,8 +32,8 @@ export default function MobileRecordCard({ title, fields = [], onEdit, onDelete 
       <div className="space-y-2">
         {fields.map((f, i) => (
           <div key={i} className="flex items-start justify-between gap-3 text-sm">
-            <span className="text-[#93aca7] text-xs uppercase tracking-wide flex-shrink-0 pt-1">{f.label}</span>
-            <div className="text-white text-right break-words min-w-0">{f.value ?? "-"}</div>
+            <span className="text-[#9aa19e] text-xs uppercase tracking-wide flex-shrink-0 pt-1">{f.label}</span>
+            <div className="text-[#edeae5] text-right break-words min-w-0">{f.value ?? "-"}</div>
           </div>
         ))}
       </div>

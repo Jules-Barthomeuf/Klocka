@@ -18,10 +18,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MobileRecordCard from "@/components/crm/MobileRecordCard";
 
 const statutColors = {
-  negociation: "bg-blue-500 text-white",
-  recherche: "bg-cyan-500 text-white",
-  compromis: "bg-orange-500 text-white",
-  def_strategie: "bg-teal-500 text-white"
+  negociation: "bg-blue-500 text-[#edeae5]",
+  recherche: "bg-cyan-500 text-[#edeae5]",
+  compromis: "bg-orange-500 text-[#edeae5]",
+  def_strategie: "bg-teal-500 text-[#edeae5]"
 };
 
 const statutLabels = {
@@ -224,7 +224,7 @@ export default function CRMClients() {
               setIsEditing(false);
             }
           }}
-          className="bg-[#101715] border-[#33d6c0] text-white h-8 text-sm"
+          className="bg-[#171918] border-[#35a79b] text-[#edeae5] h-8 text-sm"
         />
       );
     }
@@ -232,7 +232,7 @@ export default function CRMClients() {
     return (
       <div
         onClick={() => setIsEditing(true)}
-        className="cursor-pointer hover:bg-[#24312f]/50 rounded px-2 py-1 h-[32px] flex items-center text-white"
+        className="cursor-pointer hover:bg-[#303332]/50 rounded px-2 py-1 h-[32px] flex items-center text-[#edeae5]"
       >
         {value || "-"}
       </div>
@@ -246,7 +246,7 @@ export default function CRMClients() {
           value={value || ""}
           onValueChange={(newValue) => handleCellEdit(client.id, field, newValue)}
         >
-          <SelectTrigger className="bg-transparent border-none text-white h-8 hover:bg-[#24312f]/50">
+          <SelectTrigger className="bg-transparent border-none text-[#edeae5] h-8 hover:bg-[#303332]/50">
             <SelectValue>
               {value ? (
                 field === "statut_client" ? (
@@ -259,9 +259,9 @@ export default function CRMClients() {
               ) : "-"}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent className="bg-[#0a0f0e] border-[#24312f]">
+          <SelectContent className="bg-[#0a0c0c] border-[#303332]">
             {options.map(opt => (
-              <SelectItem key={opt.value} value={opt.value} className="text-white">
+              <SelectItem key={opt.value} value={opt.value} className="text-[#edeae5]">
                 {opt.label}
               </SelectItem>
             ))}
@@ -277,19 +277,19 @@ export default function CRMClients() {
         <Switch
           checked={value || false}
           onCheckedChange={(checked) => handleCellEdit(client.id, field, checked)}
-          className="data-[state=checked]:bg-[#33d6c0]"
+          className="data-[state=checked]:bg-[#35a79b]"
         />
       </div>
     );
   };
 
   const renderTableau = (clientsList, titre) => (
-    <div className="relative rounded-[1.25rem] border-[0.75px] border-[#2c3a37] p-2">
+    <div className="relative rounded-[1.25rem] border-[0.75px] border-[#343735] p-2">
       <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-      <Card className="relative bg-gradient-to-br from-[#101715]/80 to-[#24312f]/80 border-none">
+      <Card className="relative bg-gradient-to-br from-[#171918]/80 to-[#303332]/80 border-none">
         <CardContent className="p-6">
           {clientsList.length === 0 ? (
-            <div className="text-center py-12 text-[#93aca7]">
+            <div className="text-center py-12 text-[#9aa19e]">
               <User className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Aucun client dans cette catégorie</p>
             </div>
@@ -320,52 +320,52 @@ export default function CRMClients() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#2c3a37]">
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f] min-w-[200px]">Nom</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Sous-éléments</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Personnes</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Entreprise</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">E-mail</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Téléphone</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Statut Client</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Mandat Signé</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Patrimoine</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Revenu</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Fond propre</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Budget</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Localisation</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Formation LCDI</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Source</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Remarque</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Propriétés</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Chiffres</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Information</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap border-r border-[#24312f]">Fonction</th>
-                    <th className="text-left py-3 px-3 text-[#c4d5d1] font-semibold whitespace-nowrap">Actions</th>
+                  <tr className="border-b border-[#343735]">
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332] min-w-[200px]">Nom</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Sous-éléments</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Personnes</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Entreprise</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">E-mail</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Téléphone</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Statut Client</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Mandat Signé</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Patrimoine</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Revenu</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Fond propre</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Budget</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Localisation</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Formation LCDI</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Source</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Remarque</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Propriétés</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Chiffres</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Information</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Fonction</th>
+                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {clientsList.map((client) => (
-                    <tr key={client.id} className="border-b border-[#2c3a37] hover:bg-[#24312f]/30 transition-colors">
-                      <td className="py-3 px-3 border-r border-[#2c3a37] min-w-[200px]">
+                    <tr key={client.id} className="border-b border-[#343735] hover:bg-[#303332]/30 transition-colors">
+                      <td className="py-3 px-3 border-r border-[#343735] min-w-[200px]">
                         <EditableCell client={client} field="nom" value={client.nom} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="sous_elements" value={client.sous_elements} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="personnes" value={client.personnes} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="entreprise" value={client.entreprise} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="email" value={client.email} type="email" />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="telephone" value={client.telephone} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableSelectCell 
                           client={client} 
                           field="statut_client" 
@@ -378,43 +378,43 @@ export default function CRMClients() {
                           ]}
                         />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableSwitchCell client={client} field="mandat_signe" value={client.mandat_signe} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="patrimoine" value={client.patrimoine} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="revenu" value={client.revenu?.toString()} type="number" />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="fond_propre" value={client.fond_propre?.toString()} type="number" />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="budget" value={client.budget?.toString()} type="number" />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="localisation" value={client.localisation} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="formation_lcdi" value={client.formation_lcdi} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="source" value={client.source} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="remarque" value={client.remarque} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="proprietes" value={client.proprietes} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="chiffres" value={client.chiffres} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="information" value={client.information} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#2c3a37]">
+                      <td className="py-3 px-3 border-r border-[#343735]">
                         <EditableCell client={client} field="fonction" value={client.fonction} />
                       </td>
                       <td className="py-3 px-3">
@@ -451,14 +451,14 @@ export default function CRMClients() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#050807] text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
+      <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050807] text-white p-6">
+    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-6">
       <div className="max-w-[1800px] mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -466,15 +466,15 @@ export default function CRMClients() {
               variant="ghost"
               size="icon"
               onClick={() => navigate(createPageUrl("CRM"))}
-              className="text-[#93aca7] hover:text-white"
+              className="text-[#9aa19e] hover:text-[#edeae5]"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-4xl font-geist tracking-tighter text-white mb-2">
+              <h1 className="text-4xl font-geist tracking-tighter text-[#edeae5] mb-2">
                 Clients CRM
               </h1>
-              <div className="h-0.5 w-32 bg-[#33d6c0]"></div>
+              <div className="h-0.5 w-32 bg-[#35a79b]"></div>
             </div>
           </div>
           <Button
@@ -482,7 +482,7 @@ export default function CRMClients() {
               resetForm();
               setDialogOpen(true);
             }}
-            className="bg-[#33d6c0] hover:bg-[#33d6c0]/90"
+            className="bg-[#35a79b] hover:bg-[#35a79b]/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouveau client
@@ -490,22 +490,22 @@ export default function CRMClients() {
         </div>
 
         <Tabs defaultValue="en_cours" className="w-full">
-          <TabsList className="w-full flex justify-start gap-4 bg-transparent border-b border-[#101715] mb-8 rounded-none px-0 h-auto pb-0">
+          <TabsList className="w-full flex justify-start gap-4 bg-transparent border-b border-[#171918] mb-8 rounded-none px-0 h-auto pb-0">
             <TabsTrigger 
               value="en_cours" 
-              className="relative bg-transparent border-0 text-[#93aca7] hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9aa19e] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Clients en cours ({clientsEnCours.length})
             </TabsTrigger>
             <TabsTrigger 
               value="signe" 
-              className="relative bg-transparent border-0 text-[#93aca7] hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9aa19e] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Clients signés ({clientsSignes.length})
             </TabsTrigger>
             <TabsTrigger 
               value="stand_by" 
-              className="relative bg-transparent border-0 text-[#93aca7] hover:text-white data-[state=active]:bg-transparent data-[state=active]:text-white data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#33d6c0] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9aa19e] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Clients en stand-by ({clientsStandBy.length})
             </TabsTrigger>
@@ -527,9 +527,9 @@ export default function CRMClients() {
 
       {/* Dialog création/édition */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#050807] border-[#24312f] max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#0a0c0c] border-[#303332] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-[#edeae5]">
               {editingClient ? "Modifier le client" : "Nouveau client"}
             </DialogTitle>
           </DialogHeader>
@@ -538,19 +538,19 @@ export default function CRMClients() {
             {/* Infos de base */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Nom complet *</Label>
+                <Label className="text-[#9aa19e]">Nom complet *</Label>
                 <Input
                   value={formData.nom}
                   onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Personnes</Label>
+                <Label className="text-[#9aa19e]">Personnes</Label>
                 <Input
                   value={formData.personnes}
                   onChange={(e) => setFormData({...formData, personnes: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                   placeholder="Ex: Paul De Zulueta"
                 />
               </div>
@@ -558,19 +558,19 @@ export default function CRMClients() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Entreprise</Label>
+                <Label className="text-[#9aa19e]">Entreprise</Label>
                 <Input
                   value={formData.entreprise}
                   onChange={(e) => setFormData({...formData, entreprise: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Fonction</Label>
+                <Label className="text-[#9aa19e]">Fonction</Label>
                 <Input
                   value={formData.fonction}
                   onChange={(e) => setFormData({...formData, fonction: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                   placeholder="Ex: Pilote de ligne"
                 />
               </div>
@@ -578,20 +578,20 @@ export default function CRMClients() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Email</Label>
+                <Label className="text-[#9aa19e]">Email</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Téléphone</Label>
+                <Label className="text-[#9aa19e]">Téléphone</Label>
                 <Input
                   value={formData.telephone}
                   onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
@@ -599,27 +599,27 @@ export default function CRMClients() {
             {/* Statuts */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Catégorie *</Label>
+                <Label className="text-[#9aa19e]">Catégorie *</Label>
                 <Select value={formData.categorie} onValueChange={(val) => setFormData({...formData, categorie: val})}>
-                  <SelectTrigger className="bg-[#0a0f0e] border-[#24312f] text-white">
+                  <SelectTrigger className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a0f0e] border-[#24312f]">
-                    <SelectItem value="en_cours" className="text-white">En cours</SelectItem>
-                    <SelectItem value="signe" className="text-white">Signé</SelectItem>
-                    <SelectItem value="stand_by" className="text-white">Stand-by</SelectItem>
+                  <SelectContent className="bg-[#0a0c0c] border-[#303332]">
+                    <SelectItem value="en_cours" className="text-[#edeae5]">En cours</SelectItem>
+                    <SelectItem value="signe" className="text-[#edeae5]">Signé</SelectItem>
+                    <SelectItem value="stand_by" className="text-[#edeae5]">Stand-by</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#93aca7]">Statut client</Label>
+                <Label className="text-[#9aa19e]">Statut client</Label>
                 <Select value={formData.statut_client} onValueChange={(val) => setFormData({...formData, statut_client: val})}>
-                  <SelectTrigger className="bg-[#0a0f0e] border-[#24312f] text-white">
+                  <SelectTrigger className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a0f0e] border-[#24312f]">
+                  <SelectContent className="bg-[#0a0c0c] border-[#303332]">
                     {Object.entries(statutLabels).map(([key, label]) => (
-                      <SelectItem key={key} value={key} className="text-white">{label}</SelectItem>
+                      <SelectItem key={key} value={key} className="text-[#edeae5]">{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -629,9 +629,9 @@ export default function CRMClients() {
                   <Switch
                     checked={formData.mandat_signe}
                     onCheckedChange={(checked) => setFormData({...formData, mandat_signe: checked})}
-                    className="data-[state=checked]:bg-[#33d6c0]"
+                    className="data-[state=checked]:bg-[#35a79b]"
                   />
-                  <Label className="text-[#93aca7]">Mandat signé</Label>
+                  <Label className="text-[#9aa19e]">Mandat signé</Label>
                 </div>
               </div>
             </div>
@@ -639,39 +639,39 @@ export default function CRMClients() {
             {/* Patrimoine et finances */}
             <div className="grid grid-cols-4 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Patrimoine</Label>
+                <Label className="text-[#9aa19e]">Patrimoine</Label>
                 <Input
                   value={formData.patrimoine}
                   onChange={(e) => setFormData({...formData, patrimoine: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                   placeholder="Ex: RAS, 1 RP + 2 LMNP..."
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Revenu (€)</Label>
+                <Label className="text-[#9aa19e]">Revenu (€)</Label>
                 <Input
                   type="number"
                   value={formData.revenu}
                   onChange={(e) => setFormData({...formData, revenu: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Fond propre (€)</Label>
+                <Label className="text-[#9aa19e]">Fond propre (€)</Label>
                 <Input
                   type="number"
                   value={formData.fond_propre}
                   onChange={(e) => setFormData({...formData, fond_propre: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Budget (€)</Label>
+                <Label className="text-[#9aa19e]">Budget (€)</Label>
                 <Input
                   type="number"
                   value={formData.budget}
                   onChange={(e) => setFormData({...formData, budget: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
@@ -679,29 +679,29 @@ export default function CRMClients() {
             {/* Localisation et source */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Localisation</Label>
+                <Label className="text-[#9aa19e]">Localisation</Label>
                 <Input
                   value={formData.localisation}
                   onChange={(e) => setFormData({...formData, localisation: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                   placeholder="Ex: Paris, France"
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Formation LCDI</Label>
+                <Label className="text-[#9aa19e]">Formation LCDI</Label>
                 <Input
                   value={formData.formation_lcdi}
                   onChange={(e) => setFormData({...formData, formation_lcdi: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                   placeholder="Non, Oui..."
                 />
               </div>
               <div>
-                <Label className="text-[#93aca7]">Source</Label>
+                <Label className="text-[#9aa19e]">Source</Label>
                 <Input
                   value={formData.source}
                   onChange={(e) => setFormData({...formData, source: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                   placeholder="MAIL, LINKEDIN, MDI..."
                 />
               </div>
@@ -709,11 +709,11 @@ export default function CRMClients() {
 
             {/* Remarque */}
             <div>
-              <Label className="text-[#93aca7]">Remarque</Label>
+              <Label className="text-[#9aa19e]">Remarque</Label>
               <Textarea
                 value={formData.remarque}
                 onChange={(e) => setFormData({...formData, remarque: e.target.value})}
-                className="bg-[#0a0f0e] border-[#24312f] text-white"
+                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 rows={2}
                 placeholder="Informations importantes sur le client..."
               />
@@ -721,21 +721,21 @@ export default function CRMClients() {
 
             {/* Notes internes */}
             <div>
-              <Label className="text-[#93aca7]">Notes internes</Label>
+              <Label className="text-[#9aa19e]">Notes internes</Label>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                className="bg-[#0a0f0e] border-[#24312f] text-white"
+                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 rows={2}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#24312f]">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#303332]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#33d6c0] hover:bg-[#33d6c0]/90">
+            <Button onClick={handleSubmit} className="bg-[#35a79b] hover:bg-[#35a79b]/90">
               {editingClient ? "Modifier" : "Créer"}
             </Button>
           </DialogFooter>

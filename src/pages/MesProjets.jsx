@@ -56,9 +56,9 @@ export default function MesProjets() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0c0c]">
         <div className="relative w-16 h-4">
-          <div className="absolute w-3 h-3 bg-[#33d6c0] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
+          <div className="absolute w-3 h-3 bg-[#35a79b] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
         </div>
         <style>{`
           @keyframes bounce-horizontal {
@@ -78,13 +78,13 @@ export default function MesProjets() {
   // Étape 1 - Accès bloqué
   if (showAsClient && userEtape === 1) {
     return (
-      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white/[0.015] rounded-md border border-[#131c1b] p-8 text-center">
-          <div className="w-16 h-16 bg-[#33d6c0]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-8 h-8 text-[#33d6c0]" />
+      <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#0e100f] border border-[#edeae5]/[0.12] p-8 text-center">
+          <div className="w-16 h-16 bg-[#35a79b]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <Building2 className="w-8 h-8 text-[#35a79b]" />
           </div>
-          <h2 className="text-xl font-light text-white mb-3">Accès en attente</h2>
-          <p className="text-white/30 text-sm">Cette section sera débloquée par votre conseiller.</p>
+          <h2 className="text-xl font-light text-[#edeae5] mb-3">Accès en attente</h2>
+          <p className="text-[#edeae5]/30 text-sm">Cette section sera débloquée par votre conseiller.</p>
         </div>
       </div>
     );
@@ -93,13 +93,13 @@ export default function MesProjets() {
   // Étape 2 - Prendre rendez-vous
   if (showAsClient && userEtape === 2) {
     return (
-      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white/[0.015] rounded-md border border-[#131c1b] p-8 text-center">
-          <div className="w-16 h-16 bg-[#33d6c0]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-            <Calendar className="w-8 h-8 text-[#33d6c0]" />
+      <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#0e100f] border border-[#edeae5]/[0.12] p-8 text-center">
+          <div className="w-16 h-16 bg-[#35a79b]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <Calendar className="w-8 h-8 text-[#35a79b]" />
           </div>
-          <h2 className="text-xl font-light text-white mb-3">Définissons votre stratégie</h2>
-          <p className="text-white/30 text-sm mb-6">
+          <h2 className="text-xl font-light text-[#edeae5] mb-3">Définissons votre stratégie</h2>
+          <p className="text-[#edeae5]/30 text-sm mb-6">
             Avant d'accéder aux projets, nous devons définir ensemble votre stratégie d'investissement.
           </p>
           <NeonButton
@@ -117,7 +117,7 @@ export default function MesProjets() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className="min-h-screen bg-[#050807]">
+    <div className="min-h-screen bg-[#0a0c0c]">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
 
         {/* Header */}
@@ -125,30 +125,26 @@ export default function MesProjets() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-10"
+          className="mb-8 max-md:mb-6"
         >
-          <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium mb-3">
-            Portfolio
-          </p>
-          <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">
+          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">
             Mes projets
           </h1>
-          <div className="h-px w-16 bg-[#33d6c0] mt-3" />
-          <p className="text-white/30 text-sm mt-3">
-            {projects.length} projet{projects.length > 1 ? 's' : ''} en cours
+          <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0">
+            {projects.length} projet{projects.length > 1 ? 's' : ''} en cours de suivi avec votre conseiller.
           </p>
         </motion.div>
 
         {/* Search */}
         {projects.length > 1 && (
-          <div className="mb-6 relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7f9995]" />
+          <div className="mb-8 max-w-md flex items-center gap-3 border-b border-[#edeae5]/[0.18] focus-within:border-[#35a79b] transition-colors pb-2">
+            <Search className="w-4 h-4 text-[#6b7270] flex-shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher un projet..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-[#1c2725] rounded-md text-sm text-white placeholder:text-[#7f9995] focus:outline-none focus:border-[#33d6c0]/40 transition-colors"
+              className="w-full bg-transparent border-none text-[15px] text-[#edeae5] placeholder:text-[#6b7270] outline-none py-1"
             />
           </div>
         )}
@@ -181,11 +177,9 @@ export default function MesProjets() {
             animate={{ opacity: 1 }}
             className="text-center py-20"
           >
-            <div className="w-16 h-16 bg-white/[0.03] rounded-md flex items-center justify-center mx-auto mb-5">
-              <Building2 className="w-7 h-7 text-white/10" />
-            </div>
-            <p className="text-white/30 text-sm">Aucun projet pour le moment</p>
-            <p className="text-white/15 text-xs mt-1">
+            <Building2 className="w-8 h-8 text-[#edeae5]/15 mx-auto mb-5" />
+            <p className="text-[#8b9391] text-sm">Aucun projet pour le moment</p>
+            <p className="text-[#6b7270] text-xs mt-1">
               {searchQuery ? "Essayez un autre terme" : "Vos projets apparaîtront ici"}
             </p>
           </motion.div>

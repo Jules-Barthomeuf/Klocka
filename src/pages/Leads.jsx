@@ -22,62 +22,62 @@ export default function Leads() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0f0e]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0c0c]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0f0e] p-6 md:p-10">
+    <div className="min-h-screen bg-[#0a0c0c] p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-montserrat text-white mb-2">
+          <h1 className="text-4xl font-montserrat text-[#edeae5] mb-2">
             Leads
           </h1>
-          <div className="h-0.5 w-32 bg-[#33d6c0] mb-2"></div>
-          <p className="text-[#93aca7] text-lg">
+          <div className="h-0.5 w-32 bg-[#35a79b] mb-2"></div>
+          <p className="text-[#9aa19e] text-lg">
             Liste de tous les emails des personnes inscrites
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-black">
+          <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-black">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#33d6c0]/20 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-[#33d6c0]" />
+                <div className="w-12 h-12 rounded-full bg-[#35a79b]/20 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-[#35a79b]" />
                 </div>
                 <div>
-                  <p className="text-[#93aca7] text-sm">Total inscrits</p>
-                  <p className="text-2xl text-white">{users.length}</p>
+                  <p className="text-[#9aa19e] text-sm">Total inscrits</p>
+                  <p className="text-2xl text-[#edeae5]">{users.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-black">
+          <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-black">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-                  <Crown className="w-6 h-6 text-amber-500" />
+                <div className="w-12 h-12 rounded-full bg-[#e0c9a0]/20 flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-[#e0c9a0]" />
                 </div>
                 <div>
-                  <p className="text-[#93aca7] text-sm">Admins</p>
-                  <p className="text-2xl text-white">{users.filter(u => u.role === 'admin').length}</p>
+                  <p className="text-[#9aa19e] text-sm">Admins</p>
+                  <p className="text-2xl text-[#edeae5]">{users.filter(u => u.role === 'admin').length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-black">
+          <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-black">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
                   <Mail className="w-6 h-6 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-[#93aca7] text-sm">Clients</p>
-                  <p className="text-2xl text-white">{users.filter(u => u.role !== 'admin').length}</p>
+                  <p className="text-[#9aa19e] text-sm">Clients</p>
+                  <p className="text-2xl text-[#edeae5]">{users.filter(u => u.role !== 'admin').length}</p>
                 </div>
               </div>
             </CardContent>
@@ -85,25 +85,25 @@ export default function Leads() {
         </div>
 
         {/* Search */}
-        <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30 mb-6">
+        <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30 mb-6">
           <CardContent className="p-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#93aca7] w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9aa19e] w-5 h-5" />
               <Input
                 placeholder="Rechercher par nom ou email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-12 text-base bg-[#0a0f0e] text-white border-[#24312f]"
+                className="pl-10 h-12 text-base bg-[#0a0c0c] text-[#edeae5] border-[#303332]"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Table */}
-        <Card className="bg-gradient-to-br from-[#0a0f0e] to-black border-[#33d6c0]/30">
+        <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#33d6c0]" />
+            <CardTitle className="text-[#edeae5] flex items-center gap-2">
+              <Mail className="w-5 h-5 text-[#35a79b]" />
               Liste des emails ({filteredUsers.length})
             </CardTitle>
           </CardHeader>
@@ -111,28 +111,28 @@ export default function Leads() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#24312f]">
-                    <th className="text-left p-3 text-[#93aca7] font-medium">Email</th>
-                    <th className="text-left p-3 text-[#93aca7] font-medium">Nom</th>
-                    <th className="text-left p-3 text-[#93aca7] font-medium">Rôle</th>
-                    <th className="text-left p-3 text-[#93aca7] font-medium">Date d'inscription</th>
+                  <tr className="border-b border-[#303332]">
+                    <th className="text-left p-3 text-[#9aa19e] font-medium">Email</th>
+                    <th className="text-left p-3 text-[#9aa19e] font-medium">Nom</th>
+                    <th className="text-left p-3 text-[#9aa19e] font-medium">Rôle</th>
+                    <th className="text-left p-3 text-[#9aa19e] font-medium">Date d'inscription</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="border-b border-[#101715] hover:bg-[#101715]/50 transition-colors">
+                    <tr key={user.id} className="border-b border-[#171918] hover:bg-[#171918]/50 transition-colors">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-[#33d6c0]" />
-                          <span className="text-white">{user.email}</span>
+                          <Mail className="w-4 h-4 text-[#35a79b]" />
+                          <span className="text-[#edeae5]">{user.email}</span>
                         </div>
                       </td>
-                      <td className="p-3 text-[#c4d5d1]">
+                      <td className="p-3 text-[#d3d8d6]">
                         {user.full_name || "-"}
                       </td>
                       <td className="p-3">
                         {user.role === 'admin' ? (
-                          <Badge className="bg-amber-100 text-amber-800 border border-amber-300">
+                          <Badge className="bg-amber-100 text-amber-800 border border-[#e0c9a0]">
                             <Crown className="w-3 h-3 mr-1" />
                             Admin
                           </Badge>
@@ -142,7 +142,7 @@ export default function Leads() {
                           </Badge>
                         )}
                       </td>
-                      <td className="p-3 text-[#93aca7]">
+                      <td className="p-3 text-[#9aa19e]">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
                           {user.created_date ? new Date(user.created_date).toLocaleDateString('fr-FR', {
@@ -160,8 +160,8 @@ export default function Leads() {
 
             {filteredUsers.length === 0 && (
               <div className="text-center py-12">
-                <Mail className="w-12 h-12 text-[#5e7672] mx-auto mb-4" />
-                <p className="text-[#93aca7]">Aucun lead trouvé</p>
+                <Mail className="w-12 h-12 text-[#6b7270] mx-auto mb-4" />
+                <p className="text-[#9aa19e]">Aucun lead trouvé</p>
               </div>
             )}
           </CardContent>

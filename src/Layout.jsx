@@ -28,6 +28,7 @@ import {
   Menu,
   X,
   ChevronLeft,
+  ChevronDown,
   ExternalLink,
   Pin,
   PinOff,
@@ -71,22 +72,31 @@ const globalTooltipStyles = `
 // accessible par son URL : passez ce drapeau à true pour la remontrer.
 const AFFICHER_DOUBLE_CHECK = false;
 
+// Marque Klocka en capitales espacées — reprend l'identité de la page projet
+function Wordmark({ collapsed = false }) {
+  if (collapsed) {
+    return <span className="text-[15px] tracking-[0.1em] text-[#edeae5] select-none">K</span>;
+  }
+  return <span className="text-[13px] tracking-[0.3em] text-[#edeae5] select-none">KLOCKA</span>;
+}
+
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
   return (
-    <Link to={to} onClick={onClick}>
-      <div className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-200 group
-        ${isActive 
-          ? "bg-[#33d6c0]/15 text-white border border-[#33d6c0]/30" 
-          : "text-[#93aca7] hover:text-white hover:bg-white/5"
-        }
-        ${collapsed ? "justify-center px-2" : ""}
+    <Link to={to} onClick={onClick} title={collapsed ? label : undefined}>
+      <div className={`relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group
+        ${isActive ? "text-[#edeae5]" : "text-[#9aa19e] hover:text-[#edeae5]"}
+        ${collapsed ? "justify-center px-0 py-2" : ""}
       `}>
-        <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-[#33d6c0]" : "text-[#7f9995] group-hover:text-[#c4d5d1]"}`} />
-        {!collapsed && (
+        <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[2px] rounded-full transition-all duration-200
+          ${isActive ? "h-5 bg-[#35a79b]" : "h-0 bg-transparent group-hover:h-3 group-hover:bg-[#edeae5]/20"}`} />
+        {/* Icônes réservées à la barre fermée : ouverte, seuls les libellés restent. */}
+        {collapsed ? (
+          <Icon className={`w-[17px] h-[17px] flex-shrink-0 transition-colors ${isActive ? "text-[#35a79b]" : "text-[#6b7270] group-hover:text-[#d3d8d6]"}`} />
+        ) : (
           <>
             <span className="flex-1 truncate">{label}</span>
             {badge && (
-              <Badge className={`${badgeColor || "bg-[#33d6c0]/20 text-[#5ee7d4]"} text-[9px] px-1.5 py-0 border-0`}>
+              <Badge className={`${badgeColor || "bg-transparent text-[#7fd3c9]"} text-[9px] tracking-[0.12em] px-1.5 py-0 border-0`}>
                 {badge}
               </Badge>
             )}
@@ -97,14 +107,29 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
   );
 }
 
-function NavSection({ title, children, collapsed }) {
-  if (collapsed) return <div className="space-y-1 py-1">{children}</div>;
+// Bascule du groupe secondaire « Autre » : même typographie qu'un lien.
+function AutreToggle({ open, onClick, collapsed }) {
   return (
-    <div className="mb-4">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-[#5e7672] px-3 mb-2 font-medium">{title}</p>
-      <div className="space-y-0.5">{children}</div>
-    </div>
+    <button onClick={onClick} title="Autre"
+      className={`w-full relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group text-[#6b7270] hover:text-[#edeae5] ${collapsed ? "justify-center px-0 py-2" : ""}`}>
+      {collapsed ? (
+        <ChevronDown className={`w-[17px] h-[17px] flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      ) : (
+        <>
+          <span className="flex-1 text-left">Autre</span>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        </>
+      )}
+    </button>
   );
+}
+
+// Les intitulés de section ne sont plus affichés et les groupes ne créent plus
+// d'espacement propre : le composant ne sert qu'à garder la structure lisible
+// dans le code. L'écart entre deux liens est identique partout, donné par le
+// `space-y` du conteneur de navigation.
+function NavSection({ children }) {
+  return <>{children}</>;
 }
 
 // Pages that are "child" pages (show back button on mobile)
@@ -118,6 +143,7 @@ function LayoutContent({ children, currentPageName }) {
   const [sidebarPinned, setSidebarPinned] = useState(() => localStorage.getItem('sidebarPinned') === 'true');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebarPinned') !== 'true');
   const [previewClientMode, setPreviewClientMode] = useState(() => localStorage.getItem('previewClientMode') === 'true');
+  const [autreOpen, setAutreOpen] = useState(false);
   const isChildPage = CHILD_PAGES.includes(currentPageName);
 
   const isNewUser = user && user.role !== 'admin' && (user.etape_actuelle ?? 0) === 0;
@@ -142,39 +168,32 @@ function LayoutContent({ children, currentPageName }) {
 
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className={`flex items-center ${sidebarCollapsed && !isMobile ? "justify-center py-5" : "gap-3 px-4 py-5"} border-b border-[#16201f]`}>
-        {!(sidebarCollapsed && !isMobile) && (
-          <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2">
-            <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68f0bd18555df3520e1740ca/203835f6a_Capturedecran2025-11-22a160624.png"
-              alt="Klocka"
-              className="h-8 w-auto object-contain"
-            />
-          </Link>
-        )}
+      {/* Marque */}
+      <div className={`flex items-center h-[60px] flex-shrink-0 ${sidebarCollapsed && !isMobile ? "justify-center" : "px-3.5"}`}>
+        <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center">
+          <Wordmark collapsed={sidebarCollapsed && !isMobile} />
+        </Link>
         {isMobile && (
-          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-[#93aca7] hover:text-white">
+          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-[#9aa19e] hover:text-[#edeae5]">
             <X className="w-5 h-5" />
           </Button>
         )}
       </div>
+      <div className={`h-px bg-gradient-to-r from-transparent via-[#35a79b]/25 to-transparent ${sidebarCollapsed && !isMobile ? "mx-2" : "mx-3.5"}`} />
 
       {/* Toggle rester ouvert (desktop uniquement, sidebar ouverte) */}
       {!isMobile && !sidebarCollapsed && (
-        <div className="px-3 pt-4 pb-1">
+        <div className="px-3.5 pt-3.5">
           <button
             onClick={() => setSidebarPinned((v) => !v)}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-all text-xs
-              ${sidebarPinned
-                ? "bg-[#33d6c0]/15 border-[#33d6c0]/30 text-[#33d6c0]"
-                : "bg-white/[0.03] border-[#16201f] text-[#93aca7] hover:text-white"}`}
+            className={`w-full flex items-center gap-2 py-1.5 transition-colors text-[11px] tracking-[0.08em]
+              ${sidebarPinned ? "text-[#35a79b]" : "text-[#6b7270] hover:text-[#d3d8d6]"}`}
             title={sidebarPinned ? "La barre reste ouverte" : "Garder la barre ouverte"}
           >
-            {sidebarPinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
+            {sidebarPinned ? <Pin className="w-3 h-3" /> : <PinOff className="w-3 h-3" />}
             <span className="flex-1 text-left">Rester ouvert</span>
-            <span className={`w-8 h-4 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-[#33d6c0]" : "bg-white/10"}`}>
-              <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${sidebarPinned ? "left-4" : "left-0.5"}`} />
+            <span className={`w-7 h-3.5 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-[#35a79b]" : "bg-[#edeae5]/10"}`}>
+              <span className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all ${sidebarPinned ? "left-4 bg-[#0a0c0c]" : "left-0.5 bg-[#edeae5]/70"}`} />
             </span>
           </button>
         </div>
@@ -182,9 +201,9 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Admin view switcher */}
       {isAdmin && !(sidebarCollapsed && !isMobile) && (
-        <div className="px-3 pt-4 pb-2">
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-[#16201f]">
-            <Eye className="w-3.5 h-3.5 text-[#7f9995]" />
+        <div className="px-3.5 pt-3 pb-1">
+          <div className="flex items-center gap-2 border-b border-[#edeae5]/[0.06] pb-1">
+            <Eye className="w-3.5 h-3.5 text-[#6b7270]" />
             <AnimatedDropdown
               value={previewClientMode ? 'client' : 'admin'}
               onChange={(v) => setPreviewClientMode(v === 'client')}
@@ -193,100 +212,83 @@ function LayoutContent({ children, currentPageName }) {
                 { value: 'client', label: 'Vue Client' },
               ]}
               className="flex-1"
-              triggerClassName="bg-transparent border-none text-white h-7 px-0 hover:bg-transparent hover:text-white"
+              triggerClassName="bg-transparent border-none text-[#edeae5] h-7 px-0 hover:bg-transparent hover:text-[#edeae5]"
             />
           </div>
         </div>
       )}
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto px-3 pt-4 pb-4 space-y-1">
+      <div className="flex-1 overflow-y-auto pl-0 pr-1.5 pt-4 pb-4 space-y-1">
         {showClientView ? (
           <>
-            <NavSection title="Principal" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
+            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("MesProjets")} icon={Building2} label="Mes projets" isActive={isActivePage("MesProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("Ressources")} icon={BookOpen} label="Ressources" isActive={isActivePage("Ressources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
 
-            <NavSection title="Projets" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("MesProjets")} icon={Building2} label="Mes projets" isActive={isActivePage("MesProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
-
-            <NavSection title="Banque" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("Banque")} icon={Landmark} label="Banque" isActive={isActivePage("Banque")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
-
-            <NavSection title="Outils" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
-
-            <div className="my-4" />
-
-            <NavSection title="Ressources" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("Ressources")} icon={BookOpen} label="Ressources" isActive={isActivePage("Ressources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
+            <div className="pt-3">
+              <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
+              {autreOpen && (
+                <div className="space-y-px">
+                  <NavItem to={createPageUrl("Banque")} icon={Landmark} label="Banque" isActive={isActivePage("Banque")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                </div>
+              )}
+            </div>
           </>
         ) : isAdmin && !previewClientMode ? (
           <>
-            <NavSection title="Principal" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to="/Analyse" icon={Search} label="Analyse" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
+            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to="/Analyse" icon={Search} label="Analyse" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
 
-            <NavSection title="Gestion" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
-
-            <NavSection title="Banque" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("AdminBanque")} icon={Landmark} label="Banque" isActive={isActivePage("AdminBanque")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to="/AdminPresentations" icon={Presentation} label="Présentations" isActive={isActivePage("AdminPresentations")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
-
-            <NavSection title="Outils" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#33d6c0]/20 text-[#33d6c0]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              {/* Double Check — masqué du menu, la page reste accessible via
-                  /AdminBrouillons. Repassez AFFICHER_DOUBLE_CHECK à true pour
-                  la faire réapparaître. */}
-              {AFFICHER_DOUBLE_CHECK && (
-                <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <div className="pt-3">
+              <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
+              {autreOpen && (
+                <div className="space-y-px">
+                  <NavItem to={createPageUrl("AdminBanque")} icon={Landmark} label="Banque" isActive={isActivePage("AdminBanque")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to="/AdminPresentations" icon={Presentation} label="Présentations" isActive={isActivePage("AdminPresentations")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#35a79b]/20 text-[#35a79b]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  {AFFICHER_DOUBLE_CHECK && (
+                    <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  )}
+                  <NavItem to="/Mails" icon={Mail} label="Mails" isActive={isActivePage("Mails")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to="/AdminNotes" icon={FileText} label="Notes" isActive={isActivePage("AdminNotes")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("Familles")} icon={Users} label="Familles" isActive={isActivePage("Familles")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("AdminRessources")} icon={BookOpen} label="Ressources" isActive={isActivePage("AdminRessources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("AdminPortail")} icon={UserPlus} label="Portails" isActive={isActivePage("AdminPortail")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                </div>
               )}
-              <NavItem to="/Mails" icon={Mail} label="Mails" isActive={isActivePage("Mails")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to="/AdminNotes" icon={FileText} label="Notes" isActive={isActivePage("AdminNotes")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
-
-            <NavSection title="Autre" collapsed={sidebarCollapsed && !isMobile}>
-              <NavItem to={createPageUrl("Familles")} icon={Users} label="Familles" isActive={isActivePage("Familles")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("AdminRessources")} icon={BookOpen} label="Ressources" isActive={isActivePage("AdminRessources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-              <NavItem to={createPageUrl("AdminPortail")} icon={UserPlus} label="Portails" isActive={isActivePage("AdminPortail")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </NavSection>
+            </div>
           </>
         ) : null}
       </div>
 
       {/* User & Logout */}
-      <div className="border-t border-[#16201f] px-3 py-3">
+      <div className="px-3.5 py-3.5 border-t border-[#edeae5]/[0.06]">
         {!(sidebarCollapsed && !isMobile) ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#33d6c0]/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs text-[#33d6c0] font-medium">
+            <div className="w-8 h-8 rounded-full border border-[#35a79b]/40 flex items-center justify-center flex-shrink-0">
+              <span className="text-[11px] text-[#35a79b] tracking-[0.06em]">
                 {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-white truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
-              <p className="text-[10px] text-[#7f9995] truncate">{user?.email}</p>
+              <p className="text-[13px] text-[#edeae5] truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
+              <p className="text-[10px] text-[#6b7270] truncate">{user?.email}</p>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-              className="text-[#7f9995] hover:text-white hover:bg-white/5 h-8 w-8 flex-shrink-0"
+              className="text-[#6b7270] hover:text-[#edeae5] hover:bg-transparent h-8 w-8 flex-shrink-0"
               title="Déconnexion"
             >
               <LogOut className="w-4 h-4" />
@@ -297,7 +299,7 @@ function LayoutContent({ children, currentPageName }) {
             variant="ghost"
             size="icon"
             onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-            className="text-[#7f9995] hover:text-white hover:bg-white/5 h-8 w-8 mx-auto block"
+            className="text-[#8b9391] hover:text-[#edeae5] hover:bg-[#edeae5]/5 h-8 w-8 mx-auto block"
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />
@@ -308,17 +310,26 @@ function LayoutContent({ children, currentPageName }) {
   );
 
   return (
-    <div className="min-h-screen flex w-full bg-[#0a0f0e] relative overflow-x-hidden">
+    // `overflow-x-clip` plutôt que `hidden` : `hidden` créerait un conteneur de
+    // défilement qui casserait les positions `sticky` des pages.
+    <div className="min-h-screen flex w-full bg-[#0a0c0c] relative overflow-x-clip">
       <style>{globalTooltipStyles}</style>
 
       {/* Desktop Sidebar */}
       {!hideNavbar && (
-        <aside className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 bg-[#050807]/60 backdrop-blur-xl border-r border-[#16201f] transition-all duration-300 ${sidebarCollapsed ? "w-[56px]" : "w-[200px]"}`} style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <aside
+          className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 backdrop-blur-xl transition-all duration-300 ${sidebarCollapsed ? "w-[52px]" : "w-[172px]"}`}
+          style={{
+            paddingTop: "env(safe-area-inset-top)",
+            background: "linear-gradient(180deg, #070b0a 0%, #0a0c0c 55%, #040605 100%)",
+            boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)",
+          }}
+        >
           {sidebarContent(false)}
           <button
             onClick={() => { if (!sidebarPinned) setSidebarCollapsed(!sidebarCollapsed); }}
             disabled={sidebarPinned}
-            className={`hidden md:flex absolute -right-3 top-20 z-50 w-6 h-6 rounded-full bg-[#0c0c0c] border border-[#24312f] items-center justify-center text-[#93aca7] hover:text-white hover:border-white/[0.3] transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-[#0a0c0c] border border-[#edeae5]/10 items-center justify-center text-[#8b9391] hover:text-[#edeae5] hover:border-[#35a79b]/50 transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
             title={sidebarPinned ? "Désépinglez pour fermer" : sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
           >
             <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
@@ -328,21 +339,17 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Mobile Top Bar */}
       {!hideNavbar && (
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-[#050807]/80 backdrop-blur-xl border-b border-[#16201f] flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-[#0a0c0c]/80 backdrop-blur-xl border-b border-[#242726] flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
           {isChildPage ? (
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-white -ml-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-[#edeae5] -ml-2">
               <ChevronLeft className="w-5 h-5" />
             </Button>
           ) : (
             <Link to={createPageUrl("Dashboard")} className="flex items-center">
-              <img
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68f0bd18555df3520e1740ca/203835f6a_Capturedecran2025-11-22a160624.png"
-                alt="Klocka"
-                className="h-7 w-auto object-contain"
-              />
+              <Wordmark />
             </Link>
           )}
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-white">
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-[#edeae5]">
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
         </div>
@@ -351,8 +358,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && !hideNavbar && (
         <>
-          <div className="md:hidden fixed inset-0 bg-[#050807]/60 z-40" onClick={closeMobile} />
-          <aside className="md:hidden fixed top-0 left-0 h-screen w-[260px] z-50 bg-[#050807] border-r border-[#16201f]">
+          <div className="md:hidden fixed inset-0 bg-[#0a0c0c]/60 z-40" onClick={closeMobile} />
+          <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-[#0a0c0c]" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
             {sidebarContent(true)}
           </aside>
         </>
@@ -362,7 +369,7 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Main Content */}
       <main
-        className={`flex-1 ${!hideNavbar ? (sidebarCollapsed ? "md:ml-[56px]" : "md:ml-[200px]") : ""} ${!hideNavbar ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0" : ""}`}
+        className={`flex-1 ${!hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""} ${!hideNavbar ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0" : ""}`}
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

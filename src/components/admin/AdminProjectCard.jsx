@@ -6,11 +6,11 @@ import { toast } from "sonner";
 import ShadowReportDialog from "./ShadowReport";
 
 const statutColors = {
-  prospect: "text-[#c4d5d1]",
-  analyse: "text-blue-400",
-  negociation: "text-amber-400",
-  financement: "text-purple-400",
-  signe: "text-[#5ee7d4]"
+  prospect: "text-[#8b9391] border-[#edeae5]/[0.18]",
+  analyse: "text-[#7fd3c9] border-[#7fd3c9]/40",
+  negociation: "text-[#e0c9a0] border-[#e0c9a0]/40",
+  financement: "text-[#e0c9a0] border-[#e0c9a0]/40",
+  signe: "text-[#7fd3c9] border-[#35a79b] bg-[#35a79b]/[0.16]"
 };
 
 const statutLabels = {
@@ -103,12 +103,12 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
     return `${Math.round(val)} €`;
   };
 
-  const actionBtn = "w-8 h-8 rounded-full bg-[#050807]/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/70 transition-colors";
+  const actionBtn = "w-8 h-8 rounded-full bg-[#0a0c0c]/70 backdrop-blur-sm border border-[#edeae5]/[0.18] flex items-center justify-center text-[#d3d8d6] transition-colors";
 
   return (
     <div>
       <div
-        className="group relative cursor-pointer bg-[#0a0f0e] rounded-md border border-[#16201f] overflow-hidden hover:border-[#33d6c0]/20 transition-all duration-500"
+        className="group relative cursor-pointer bg-[#0e100f] border border-[#edeae5]/[0.12] overflow-hidden hover:border-[#35a79b]/60 transition-colors duration-300"
         onClick={() => onEdit(project)}
       >
         {/* Image band */}
@@ -116,15 +116,15 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
           {project.photos && project.photos.length > 0 ? (
             <img src={project.photos[0]} alt={project.titre} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#111] to-[#080808] flex items-center justify-center">
-              <Eye className="w-12 h-12 text-white/[0.05]" />
+            <div className="w-full h-full bg-[#0a0c0c] flex items-center justify-center">
+              <Eye className="w-10 h-10 text-[#edeae5]/[0.06]" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f0e] via-[#0a0f0e]/30 to-transparent" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,16,15,0.97) 6%, rgba(14,16,15,0.35) 55%, rgba(14,16,15,0.55) 100%)" }} />
 
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className={`text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#050807]/60 backdrop-blur-sm border ${statutColors[project.statut] || 'text-[#93aca7]'} border-white/10`}>
+            <span className={`text-[10px] uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-[#0a0c0c]/70 backdrop-blur-sm border ${statutColors[project.statut] || 'text-[#8b9391] border-[#edeae5]/[0.18]'}`}>
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -132,35 +132,35 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
           {/* Conseiller avatar */}
           {getAdminAvatar(project.admin_principal) && (
             <div className="absolute top-3 right-3">
-              <img src={getAdminAvatar(project.admin_principal)} alt="Admin" className="w-9 h-9 rounded-full object-cover border-2 border-white/20 shadow-lg" />
+              <img src={getAdminAvatar(project.admin_principal)} alt="Admin" className="w-9 h-9 rounded-full object-cover border border-[#edeae5]/25" />
             </div>
           )}
 
           {/* Title overlay */}
           <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-xl md:text-2xl font-light text-white tracking-tight leading-tight truncate">{project.titre}</h2>
-            {project.adresse_complete && <p className="text-white/40 text-sm mt-1 truncate">{project.adresse_complete}</p>}
-            {project.client_email && <p className="text-white/25 text-xs mt-0.5">{project.client_email.split('@')[0]}</p>}
+            <h2 className="text-[21px] md:text-[23px] font-light text-[#edeae5] tracking-[-0.02em] leading-tight truncate">{project.titre}</h2>
+            {project.adresse_complete && <p className="text-[#d3d8d6]/70 text-[13px] mt-1 truncate">{project.adresse_complete}</p>}
+            {project.client_email && <p className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mt-1.5">{project.client_email.split('@')[0]}</p>}
           </div>
 
           {/* Actions — apparaissent au survol */}
           <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#33d6c0] hover:border-[#33d6c0]/40`} title="Simulateur">
+            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Simulateur">
               <Calculator className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-[#33d6c0] hover:border-[#33d6c0]/40`} title="Modifier">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Modifier">
               <Pencil className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-purple-400 hover:border-purple-400/40`} title="Preview client">
+            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Preview client">
               <Eye className="w-3.5 h-3.5" />
             </button>
-            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-[#33d6c0] hover:border-[#33d6c0]/40`} title="Copier le lien public (accessible sans compte)">
-              {copied ? <Check className="w-3.5 h-3.5 text-[#33d6c0]" /> : <Share2 className="w-3.5 h-3.5" />}
+            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Copier le lien public (accessible sans compte)">
+              {copied ? <Check className="w-3.5 h-3.5 text-[#7fd3c9]" /> : <Share2 className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-blue-400 hover:border-blue-400/40`} title="Dupliquer">
+            <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-[#7fd3c9] hover:border-[#35a79b]`} title="Dupliquer">
               <Copy className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onArchive(project); }} className={`${actionBtn} ${project.archived ? 'text-amber-400' : 'hover:text-amber-400 hover:border-amber-400/40'}`} title={project.archived ? "Désarchiver" : "Archiver"}>
+            <button onClick={(e) => { e.stopPropagation(); onArchive(project); }} className={`${actionBtn} ${project.archived ? 'text-[#e0c9a0]' : 'hover:text-[#e0c9a0] hover:border-[#e0c9a0]'}`} title={project.archived ? "Désarchiver" : "Archiver"}>
               {project.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
             </button>
             <button onClick={(e) => { e.stopPropagation(); onDelete(project.id); }} className={`${actionBtn} hover:text-red-400 hover:border-red-400/40`} title="Supprimer">
@@ -169,24 +169,22 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
           </div>
         </div>
 
-        {/* KPIs */}
-        <div className="p-5 flex items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-x-6 gap-y-2 min-w-0">
-            <div className="min-w-0">
-              <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Prix de revient</p>
-              <p className="text-[#33d6c0] text-lg font-light">{formatPrice(prixRevient)}</p>
-            </div>
-            <div className="min-w-0">
-              <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Rendement</p>
-              <p className="text-white text-lg font-light">{rendementLocatifMoyen.toFixed(2)}%</p>
-            </div>
-            {surface > 0 && (
-              <div className="min-w-0">
-                <p className="text-white/25 text-[10px] uppercase tracking-wider mb-1 whitespace-nowrap">Surface</p>
-                <p className="text-white text-lg font-light">{surface} m²</p>
-              </div>
-            )}
+        {/* Chiffres clés — filets fins, chiffres alignés */}
+        <div className="flex px-5 border-t border-[#edeae5]/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="flex-1 min-w-0 py-4 pr-4">
+            <p className="text-[19px] font-light text-[#edeae5] m-0">{formatPrice(prixRevient)}</p>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b9391] mt-1 m-0 whitespace-nowrap">Prix de revient</p>
           </div>
+          <div className="flex-1 min-w-0 py-4 px-4 border-l border-[#edeae5]/[0.12]">
+            <p className="text-[19px] font-light text-[#7fd3c9] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b9391] mt-1 m-0">Rendement</p>
+          </div>
+          {surface > 0 && (
+            <div className="flex-1 min-w-0 py-4 pl-4 border-l border-[#edeae5]/[0.12]">
+              <p className="text-[19px] font-light text-[#edeae5] m-0">{surface} m²</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[#8b9391] mt-1 m-0">Surface</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -194,7 +192,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
       {hasShadow && (
         <button
           onClick={() => setReportOpen(true)}
-          className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 text-purple-400 text-xs transition-all"
+          className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#e0c9a0]/30 hover:border-[#e0c9a0] text-[#e0c9a0] text-[10px] tracking-[0.16em] uppercase transition-colors"
         >
           <FileSearch className="w-3.5 h-3.5" />
           Voir le rapport

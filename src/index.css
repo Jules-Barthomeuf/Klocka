@@ -34,13 +34,13 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: 'IBM Plex Sans', Inter, system-ui, sans-serif;
-  background: #050807;
-  color: #e6efed;
+  background: #0a0c0c;
+  color: #edeae5;
   -webkit-font-smoothing: antialiased;
 }
 
-input[type=range] { accent-color: #33d6c0; }
-::selection { background: rgba(51, 214, 192, .25); }
+input[type=range] { accent-color: #35a79b; }
+::selection { background: rgba(53, 167, 155, .3); }
 
 h1 {
   font-size: 3.2em;
@@ -79,6 +79,31 @@ button:focus-visible {
   }
 } */
 
+/* Page projet — identité éditoriale (maquette "Page Projet Klocka") */
+.projet-editorial ::selection { background: rgba(53, 167, 155, .3); }
+
+/* Article lu via /api/lecture : le HTML arrive nettoyé et sans attribut, la
+   mise en forme est donc entièrement portée par ces règles. */
+.article-lu { color: #d3d8d6; font-size: 14.5px; line-height: 1.8; }
+.article-lu > * + * { margin-top: 1em; }
+.article-lu h1 { font-size: 26px; font-weight: 300; line-height: 1.2; color: #edeae5; margin-top: 1.4em; }
+.article-lu h2 { font-size: 20px; font-weight: 400; color: #edeae5; margin-top: 1.6em; }
+.article-lu h3 { font-size: 16px; font-weight: 500; color: #edeae5; margin-top: 1.5em; }
+.article-lu h4, .article-lu h5 { font-size: 14px; font-weight: 500; color: #edeae5; margin-top: 1.4em; }
+.article-lu ul, .article-lu ol { padding-left: 1.2em; }
+.article-lu ul { list-style: disc; }
+.article-lu ol { list-style: decimal; }
+.article-lu li { margin-top: .45em; }
+.article-lu li::marker { color: #35a79b; }
+.article-lu a { color: #7fd3c9; text-decoration: underline; text-underline-offset: 2px; }
+.article-lu a:hover { color: #edeae5; }
+.article-lu strong, .article-lu b { color: #edeae5; font-weight: 500; }
+.article-lu blockquote { border-left: 2px solid rgba(53, 167, 155, .6); padding-left: 1em; color: #9aa19e; }
+.article-lu table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
+.article-lu th, .article-lu td { border-top: 1px solid rgba(237, 234, 229, .12); padding: .55em .7em; text-align: left; vertical-align: top; }
+.article-lu th { color: #8b9391; font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+.article-lu dt { color: #edeae5; margin-top: .8em; }
+.article-lu dd { margin-left: 1em; }
 
 
 @layer base {

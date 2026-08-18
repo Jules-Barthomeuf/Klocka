@@ -137,22 +137,22 @@ export default function Analyse() {
   const aRelancer = pipeline?.a_relancer || 0;
 
   return (
-    <div className="bg-[#050807] min-h-screen text-[#e6efed] w-full max-w-full overflow-x-hidden">
+    <div className="bg-[#0a0c0c] min-h-screen text-[#edeae5] w-full max-w-full overflow-x-hidden">
       {/* En-tête du module : marque, bascule segmentée, relances en attente. */}
-      <div className="flex items-center justify-between gap-6 px-5 md:px-10 py-3.5 border-b border-[#1c2725] bg-[#080c0b] sticky top-0 z-20">
+      <div className="flex items-center justify-between gap-6 px-5 md:px-10 py-3.5 border-b border-[#282b2a] bg-[#0e100f] sticky top-0 z-20">
         <div className="flex items-center gap-3.5">
-          <div className="w-[26px] h-[26px] border border-[#33d6c0] rounded flex items-center justify-center text-[#33d6c0] text-[13px]">
+          <div className="w-[26px] h-[26px] border border-[#35a79b] rounded flex items-center justify-center text-[#35a79b] text-[13px]">
             A
           </div>
           <div className="text-[15px] font-medium tracking-[.01em] hidden sm:block">Module d'analyse</div>
         </div>
-        <div className="flex gap-1 p-[3px] border border-[#1c2725] rounded-[5px] bg-[#060a09]">
+        <div className="flex gap-1 p-[3px] border border-[#282b2a] rounded-[5px] bg-[#0c0e0d]">
           {ONGLETS.map((t) => (
             <button
               key={t.id}
               onClick={() => choisirOnglet(t.id)}
               className={`px-4 py-[7px] rounded text-[12.5px] transition-colors ${
-                actif === t.id ? "bg-[#33d6c0]/10 text-[#33d6c0]" : "text-[#7f9995] hover:text-[#c4d5d1]"
+                actif === t.id ? "bg-[#35a79b]/10 text-[#35a79b]" : "text-[#8b9391] hover:text-[#d3d8d6]"
               }`}
             >
               {t.label}
@@ -160,7 +160,7 @@ export default function Analyse() {
           ))}
         </div>
         <div
-          className={`text-xs hidden sm:block ${aRelancer ? "text-[#e2564d]" : "text-[#5e7672]"}`}
+          className={`text-xs hidden sm:block ${aRelancer ? "text-[#e2564d]" : "text-[#6b7270]"}`}
           title={SOUS_TITRES[actif]}
         >
           {aRelancer} relance(s) en attente
@@ -177,7 +177,7 @@ export default function Analyse() {
           <div className="max-w-5xl mx-auto">
             <button
               onClick={() => montrerDeal(null)}
-              className="text-[#7f9995] hover:text-white text-xs flex items-center gap-1.5 mb-4 transition-colors"
+              className="text-[#8b9391] hover:text-[#edeae5] text-xs flex items-center gap-1.5 mb-4 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Tous les deals
             </button>
@@ -200,20 +200,20 @@ export default function Analyse() {
                 onRefresh={recharger}
               />
             ) : (
-              <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-8 text-center">
-                <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin mx-auto mb-3" />
-                <p className="text-[#93aca7] text-sm">Ouverture du dossier…</p>
+              <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-8 text-center">
+                <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin mx-auto mb-3" />
+                <p className="text-[#9aa19e] text-sm">Ouverture du dossier…</p>
               </div>
             )}
           </div>
         ) : (
           <div className="max-w-[1120px] mx-auto">
             {/* Bandeau éditorial : surtitre, titre, description, actions. */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5 border-b border-[#1c2725]">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5 border-b border-[#282b2a]">
               <div>
-                <div className="text-[11px] tracking-[.16em] uppercase text-[#33d6c0] mb-2.5">Pipeline</div>
+                <div className="text-[11px] tracking-[.16em] uppercase text-[#35a79b] mb-2.5">Pipeline</div>
                 <h1 className="m-0 text-[30px] font-medium tracking-[-.01em]">Deals</h1>
-                <p className="mt-2.5 mb-0 max-w-[52ch] text-[13.5px] leading-[1.65] text-[#93aca7]">
+                <p className="mt-2.5 mb-0 max-w-[52ch] text-[13.5px] leading-[1.65] text-[#9aa19e]">
                   Du premier mail à l'agent jusqu'à l'entrée du projet dans la plateforme. Le statut
                   d'un deal détermine son étape courante.
                 </p>
@@ -222,7 +222,7 @@ export default function Analyse() {
                 <button
                   onClick={ouvrirApercu}
                   title="Parcourir les cinq étapes sur un deal fictif (lecture seule)"
-                  className="px-4 py-[9px] text-[13px] text-[#93aca7] border border-[#24312f] rounded hover:border-[#33d6c0] hover:text-[#e6efed] transition-colors"
+                  className="px-4 py-[9px] text-[13px] text-[#9aa19e] border border-[#303332] rounded hover:border-[#35a79b] hover:text-[#edeae5] transition-colors"
                 >
                   Aperçu
                 </button>
@@ -230,13 +230,13 @@ export default function Analyse() {
                   onClick={() => creerDealTest.mutate()}
                   disabled={creerDealTest.isPending}
                   title="Jouer tout le cycle sur un deal fictif : chaque bouton agit réellement, mais aucun appel API n'est fait (mails simulés, documents fictifs)"
-                  className="px-4 py-[9px] text-[13px] text-[#93aca7] border border-[#24312f] rounded hover:border-[#33d6c0] hover:text-[#e6efed] transition-colors disabled:opacity-50"
+                  className="px-4 py-[9px] text-[13px] text-[#9aa19e] border border-[#303332] rounded hover:border-[#35a79b] hover:text-[#edeae5] transition-colors disabled:opacity-50"
                 >
                   {creerDealTest.isPending ? "Création…" : "Mode test"}
                 </button>
                 <button
                   onClick={demarrerNouveau}
-                  className="px-4 py-[9px] text-[13px] text-[#33d6c0] border border-[#33d6c0] rounded hover:bg-[#33d6c0]/10 transition-colors"
+                  className="px-4 py-[9px] text-[13px] text-[#35a79b] border border-[#35a79b] rounded hover:bg-[#35a79b]/10 transition-colors"
                 >
                   Nouveau deal
                 </button>

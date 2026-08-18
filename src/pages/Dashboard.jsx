@@ -89,22 +89,22 @@ export default function Dashboard() {
   // Étape 0 - Compte en attente
   if (userEtape === 0 && !isAdmin) {
     return (
-      <div className="min-h-screen bg-[#050807] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white/[0.015] rounded-md border border-[#131c1b] p-8 text-center">
-          <div className="w-16 h-16 bg-[#33d6c0]/10 rounded-md flex items-center justify-center mx-auto mb-6">
-            <Clock className="w-8 h-8 text-[#33d6c0]" />
+      <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#0e100f] border border-[#edeae5]/[0.12] p-8 text-center">
+          <div className="w-16 h-16 bg-[#35a79b]/10 rounded-md flex items-center justify-center mx-auto mb-6">
+            <Clock className="w-8 h-8 text-[#35a79b]" />
           </div>
-          <h2 className="text-xl font-light text-white mb-3">Merci d'avoir créé votre compte !</h2>
-          <p className="text-white/30 text-sm mb-8">
+          <h2 className="text-xl font-light text-[#edeae5] mb-3">Merci d'avoir créé votre compte !</h2>
+          <p className="text-[#edeae5]/30 text-sm mb-8">
             L'administrateur vous débloquera l'accès à la plateforme seulement si vous êtes client ;)
           </p>
-          <div className="border-t border-[#131c1b] pt-6">
-            <p className="text-white/20 text-xs mb-4">Pas encore client ?</p>
+          <div className="border-t border-[#232625] pt-6">
+            <p className="text-[#edeae5]/20 text-xs mb-4">Pas encore client ?</p>
             <a
               href="https://dpe3smipjxh.typeform.com/to/GD7sREFs"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 text-white text-sm rounded-full transition-all"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 text-[#edeae5] text-sm rounded-full transition-all"
             >
               Devenir client
               <ArrowRight className="w-4 h-4" />

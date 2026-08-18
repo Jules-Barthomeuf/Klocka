@@ -23,9 +23,9 @@ const typeLabels = {
 };
 
 const statutConfig = {
-  disponible: { label: "Disponible", color: "bg-[#33d6c0]/15 text-[#2bb8a5]" },
+  disponible: { label: "Disponible", color: "bg-[#35a79b]/15 text-[#2f8d84]" },
   sous_offre: { label: "Sous offre", color: "bg-blue-100 text-blue-800" },
-  vendu: { label: "Vendu", color: "bg-white/10 text-[#101715]" },
+  vendu: { label: "Vendu", color: "bg-[#edeae5]/10 text-[#171918]" },
   loue: { label: "Loué", color: "bg-purple-100 text-purple-800" }
 };
 
@@ -97,31 +97,31 @@ export default function CRMProprietes() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#050807] text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
+      <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050807] text-white p-6">
+    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate(createPageUrl("CRM"))}
-            className="text-[#93aca7] hover:text-white"
+            className="text-[#9aa19e] hover:text-[#edeae5]"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-4xl font-geist tracking-tighter text-white mb-2">
+            <h1 className="text-4xl font-geist tracking-tighter text-[#edeae5] mb-2">
               Propriétés CRM
             </h1>
-            <div className="h-0.5 w-32 bg-[#33d6c0]"></div>
+            <div className="h-0.5 w-32 bg-[#35a79b]"></div>
           </div>
-          <Badge className="bg-[#33d6c0] text-white text-lg px-4 py-2">
+          <Badge className="bg-[#35a79b] text-[#edeae5] text-lg px-4 py-2">
             {new Intl.NumberFormat('fr-FR', { 
               style: 'currency', 
               currency: 'EUR',
@@ -133,17 +133,17 @@ export default function CRMProprietes() {
         {/* Actions */}
         <div className="mb-6 flex gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#93aca7]" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9aa19e]" />
             <Input
               placeholder="Rechercher une propriété..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 bg-[#0a0f0e] border-[#24312f] text-white"
+              className="pl-12 bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
             />
           </div>
           <Button
             onClick={() => setDialogOpen(true)}
-            className="bg-[#33d6c0] hover:bg-[#33d6c0]/90"
+            className="bg-[#35a79b] hover:bg-[#35a79b]/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouvelle propriété
@@ -153,41 +153,41 @@ export default function CRMProprietes() {
         {/* Grille des propriétés */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProprietes.map((propriete) => (
-            <div key={propriete.id} className="relative rounded-[1.25rem] border-[0.75px] border-[#24312f] p-2">
+            <div key={propriete.id} className="relative rounded-[1.25rem] border-[0.75px] border-[#303332] p-2">
               <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-              <Card className="relative bg-gradient-to-br from-[#0a0f0e]/95 via-[#33d6c0]/5 to-[#0a0f0e]/95 border-none">
+              <Card className="relative bg-gradient-to-br from-[#0a0c0c]/95 via-[#35a79b]/5 to-[#0a0c0c]/95 border-none">
                 <CardContent className="p-6">
                   <div className="mb-4">
                     <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-white font-semibold text-lg">{propriete.nom}</h3>
-                      <Badge className={statutConfig[propriete.statut]?.color || "bg-white/10 text-[#101715]"}>
+                      <h3 className="text-[#edeae5] font-semibold text-lg">{propriete.nom}</h3>
+                      <Badge className={statutConfig[propriete.statut]?.color || "bg-[#edeae5]/10 text-[#171918]"}>
                         {statutConfig[propriete.statut]?.label}
                       </Badge>
                     </div>
-                    <Badge variant="outline" className="text-[#93aca7] border-[#2c3a37] mb-3">
+                    <Badge variant="outline" className="text-[#9aa19e] border-[#343735] mb-3">
                       {typeLabels[propriete.type]}
                     </Badge>
                   </div>
 
                   <div className="space-y-2 text-sm mb-4">
                     {propriete.ville && (
-                      <div className="flex items-center gap-2 text-[#93aca7]">
+                      <div className="flex items-center gap-2 text-[#9aa19e]">
                         <MapPin className="w-4 h-4" />
                         <span>{propriete.ville}</span>
                       </div>
                     )}
                     {propriete.surface && (
-                      <div className="text-[#93aca7]">
+                      <div className="text-[#9aa19e]">
                         Surface: {propriete.surface} m²
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-[#24312f] space-y-2">
+                  <div className="pt-4 border-t border-[#303332] space-y-2">
                     {propriete.valeur_actuelle && (
                       <div className="flex items-center justify-between">
-                        <span className="text-[#93aca7] text-xs">Valeur actuelle</span>
-                        <span className="text-[#33d6c0] font-semibold">
+                        <span className="text-[#9aa19e] text-xs">Valeur actuelle</span>
+                        <span className="text-[#35a79b] font-semibold">
                           {new Intl.NumberFormat('fr-FR', { 
                             style: 'currency', 
                             currency: 'EUR',
@@ -198,8 +198,8 @@ export default function CRMProprietes() {
                     )}
                     {propriete.loyer_mensuel && (
                       <div className="flex items-center justify-between">
-                        <span className="text-[#93aca7] text-xs">Loyer mensuel</span>
-                        <span className="text-[#5ee7d4] font-semibold">
+                        <span className="text-[#9aa19e] text-xs">Loyer mensuel</span>
+                        <span className="text-[#7fd3c9] font-semibold">
                           {new Intl.NumberFormat('fr-FR', { 
                             style: 'currency', 
                             currency: 'EUR',
@@ -217,53 +217,53 @@ export default function CRMProprietes() {
 
         {filteredProprietes.length === 0 && (
           <div className="text-center py-16">
-            <Building2 className="w-16 h-16 mx-auto text-[#5e7672] mb-4" />
-            <p className="text-[#93aca7] text-lg">Aucune propriété trouvée</p>
+            <Building2 className="w-16 h-16 mx-auto text-[#6b7270] mb-4" />
+            <p className="text-[#9aa19e] text-lg">Aucune propriété trouvée</p>
           </div>
         )}
       </div>
 
       {/* Dialog création */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#050807] border-[#24312f] max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#0a0c0c] border-[#303332] max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Nouvelle propriété</DialogTitle>
+            <DialogTitle className="text-[#edeae5]">Nouvelle propriété</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label className="text-[#93aca7]">Nom</Label>
+              <Label className="text-[#9aa19e]">Nom</Label>
               <Input
                 value={formData.nom}
                 onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                className="bg-[#0a0f0e] border-[#24312f] text-white"
+                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Type</Label>
+                <Label className="text-[#9aa19e]">Type</Label>
                 <Select value={formData.type} onValueChange={(val) => setFormData({...formData, type: val})}>
-                  <SelectTrigger className="bg-[#0a0f0e] border-[#24312f] text-white">
+                  <SelectTrigger className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a0f0e] border-[#24312f]">
+                  <SelectContent className="bg-[#0a0c0c] border-[#303332]">
                     {Object.entries(typeLabels).map(([key, label]) => (
-                      <SelectItem key={key} value={key} className="text-white">{label}</SelectItem>
+                      <SelectItem key={key} value={key} className="text-[#edeae5]">{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label className="text-[#93aca7]">Statut</Label>
+                <Label className="text-[#9aa19e]">Statut</Label>
                 <Select value={formData.statut} onValueChange={(val) => setFormData({...formData, statut: val})}>
-                  <SelectTrigger className="bg-[#0a0f0e] border-[#24312f] text-white">
+                  <SelectTrigger className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a0f0e] border-[#24312f]">
+                  <SelectContent className="bg-[#0a0c0c] border-[#303332]">
                     {Object.entries(statutConfig).map(([key, { label }]) => (
-                      <SelectItem key={key} value={key} className="text-white">{label}</SelectItem>
+                      <SelectItem key={key} value={key} className="text-[#edeae5]">{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -271,73 +271,73 @@ export default function CRMProprietes() {
             </div>
 
             <div>
-              <Label className="text-[#93aca7]">Adresse</Label>
+              <Label className="text-[#9aa19e]">Adresse</Label>
               <Input
                 value={formData.adresse}
                 onChange={(e) => setFormData({...formData, adresse: e.target.value})}
-                className="bg-[#0a0f0e] border-[#24312f] text-white"
+                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Ville</Label>
+                <Label className="text-[#9aa19e]">Ville</Label>
                 <Input
                   value={formData.ville}
                   onChange={(e) => setFormData({...formData, ville: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
 
               <div>
-                <Label className="text-[#93aca7]">Surface (m²)</Label>
+                <Label className="text-[#9aa19e]">Surface (m²)</Label>
                 <Input
                   type="number"
                   value={formData.surface}
                   onChange={(e) => setFormData({...formData, surface: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#93aca7]">Prix acquisition (€)</Label>
+                <Label className="text-[#9aa19e]">Prix acquisition (€)</Label>
                 <Input
                   type="number"
                   value={formData.prix_acquisition}
                   onChange={(e) => setFormData({...formData, prix_acquisition: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
 
               <div>
-                <Label className="text-[#93aca7]">Valeur actuelle (€)</Label>
+                <Label className="text-[#9aa19e]">Valeur actuelle (€)</Label>
                 <Input
                   type="number"
                   value={formData.valeur_actuelle}
                   onChange={(e) => setFormData({...formData, valeur_actuelle: e.target.value})}
-                  className="bg-[#0a0f0e] border-[#24312f] text-white"
+                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
                 />
               </div>
             </div>
 
             <div>
-              <Label className="text-[#93aca7]">Loyer mensuel (€)</Label>
+              <Label className="text-[#9aa19e]">Loyer mensuel (€)</Label>
               <Input
                 type="number"
                 value={formData.loyer_mensuel}
                 onChange={(e) => setFormData({...formData, loyer_mensuel: e.target.value})}
-                className="bg-[#0a0f0e] border-[#24312f] text-white"
+                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#24312f]">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#303332]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#33d6c0] hover:bg-[#33d6c0]/90">
+            <Button onClick={handleSubmit} className="bg-[#35a79b] hover:bg-[#35a79b]/90">
               Créer
             </Button>
           </DialogFooter>

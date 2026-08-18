@@ -48,7 +48,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
 
   return (
     <div className="space-y-6 mt-6">
-      <h3 className="text-lg mb-4 text-white">Locataire</h3>
+      <h3 className="text-lg mb-4 text-[#edeae5]">Locataire</h3>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <VerificationField fieldKey="nom_locataire" formData={formData} setFormData={setFormData}>
@@ -84,7 +84,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
               value={formData.statut_bail || "en_cours"}
               onValueChange={(value) => setFormData({...formData, statut_bail: value})}
             >
-              <SelectTrigger className="bg-transparent border-none text-[#EAECEF] p-0 h-auto">
+              <SelectTrigger className="bg-transparent border-none text-[#edeae5] p-0 h-auto">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -96,13 +96,13 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
           </FField>
         </VerificationField>
 
-        <div className="p-4 bg-white/[0.02] rounded-lg space-y-4">
+        <div className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-4">
           <div className="flex items-center gap-3">
             <Switch
               checked={formData.vente_fonds_commerce || false}
               onCheckedChange={(checked) => setFormData({...formData, vente_fonds_commerce: checked})}
             />
-            <Label className="text-white">Vente récente de fonds de commerce</Label>
+            <Label className="text-[#edeae5]">Vente récente de fonds de commerce</Label>
           </div>
           {formData.vente_fonds_commerce && (
             <div className="grid grid-cols-2 gap-4">
@@ -123,11 +123,11 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
         </VerificationField>
 
         {/* Section Résumé */}
-        <div className="space-y-4 pt-4 border-t border-[#16201f]">
+        <div className="space-y-4 pt-4 border-t border-[#242726]">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-white text-lg">Champs personnalisés du résumé</Label>
-              <p className="text-[#93aca7] text-sm mt-1">
+              <Label className="text-[#edeae5] text-lg">Champs personnalisés du résumé</Label>
+              <p className="text-[#9aa19e] text-sm mt-1">
                 Ces champs seront affichés dans l'onglet "Résumé" de l'analyse du bail pour le client.
               </p>
             </div>
@@ -139,14 +139,14 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData, 
                 bail_admin_fields: [...(formData.bail_admin_fields || []), { label: "", value: "" }]
               })}
-              className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30"
+              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter un champ
             </Button>
           </div>
           {(formData.bail_admin_fields || []).map((field, idx) => (
-            <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3">
+            <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
               <div className="flex items-center gap-3">
                 <FField className="flex-1">
                   <FInput value={field.label} onChange={(e) => { const updated = [...(formData.bail_admin_fields || [])]; updated[idx].label = e.target.value; setFormData({...formData, bail_admin_fields: updated}); }} placeholder="Nom du champ (ex: Type de bail, Durée, Date de signature...)" />
@@ -169,16 +169,16 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </div>
           ))}
           {(!formData.bail_admin_fields || formData.bail_admin_fields.length === 0) && (
-            <p className="text-[#7f9995] text-sm text-center py-2">Aucun champ personnalisé. Cliquez sur le bouton ci-dessus pour en ajouter.</p>
+            <p className="text-[#8b9391] text-sm text-center py-2">Aucun champ personnalisé. Cliquez sur le bouton ci-dessus pour en ajouter.</p>
           )}
         </div>
 
         {/* Liens réseaux sociaux / avis */}
-        <div className="space-y-4 pt-4 border-t border-[#16201f]">
+        <div className="space-y-4 pt-4 border-t border-[#242726]">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-white text-lg">Réseaux sociaux & Avis</Label>
-              <p className="text-[#93aca7] text-sm mt-1">Ajoutez les liens vers les réseaux sociaux et pages d'avis du locataire</p>
+              <Label className="text-[#edeae5] text-lg">Réseaux sociaux & Avis</Label>
+              <p className="text-[#9aa19e] text-sm mt-1">Ajoutez les liens vers les réseaux sociaux et pages d'avis du locataire</p>
             </div>
             <Button
               type="button"
@@ -188,14 +188,14 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData,
                 liens_locataire: [...(formData.liens_locataire || []), { type: "instagram", url: "", label: "" }]
               })}
-              className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30"
+              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter un lien
             </Button>
           </div>
           {(formData.liens_locataire || []).map((lien, idx) => (
-            <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3">
+            <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
               <div className="flex items-center gap-3">
                 <Select
                   value={lien.type || "instagram"}
@@ -205,7 +205,7 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                     setFormData({...formData, liens_locataire: updated});
                   }}
                 >
-                  <SelectTrigger className="bg-[#171A21] border border-[#1c2725] rounded-[14px] text-[#EAECEF] w-40 h-[52px] px-[18px]">
+                  <SelectTrigger className="bg-[#121413] border border-[#282b2a] rounded-none text-[#edeae5] w-40 h-[52px] px-[18px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -239,20 +239,20 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </div>
           ))}
           {(!formData.liens_locataire || formData.liens_locataire.length === 0) && (
-            <p className="text-[#7f9995] text-sm text-center py-2">Aucun lien ajouté.</p>
+            <p className="text-[#8b9391] text-sm text-center py-2">Aucun lien ajouté.</p>
           )}
         </div>
 
         {/* Bilans du locataire */}
-        <div className="space-y-4 pt-4 border-t border-[#16201f]">
+        <div className="space-y-4 pt-4 border-t border-[#242726]">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-white text-lg">Bilans du locataire</Label>
-              <p className="text-[#93aca7] text-sm mt-1">Importez les bilans financiers de l'entreprise (PDF, images...)</p>
+              <Label className="text-[#edeae5] text-lg">Bilans du locataire</Label>
+              <p className="text-[#9aa19e] text-sm mt-1">Importez les bilans financiers de l'entreprise (PDF, images...)</p>
             </div>
             <label className="cursor-pointer">
               <input type="file" className="hidden" onChange={handleBilanUpload} accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls" />
-              <Button type="button" variant="outline" size="sm" className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30" asChild disabled={uploadingBilan}>
+              <Button type="button" variant="outline" size="sm" className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30" asChild disabled={uploadingBilan}>
                 <span>
                   {uploadingBilan ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
                   Importer un bilan
@@ -261,10 +261,10 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </label>
           </div>
           {(formData.bilans_locataire || []).map((bilan, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-lg border border-[#16201f]">
-              <FileText className="w-5 h-5 text-[#33d6c0] flex-shrink-0" />
+            <div key={idx} className="flex items-center gap-3 p-3 bg-[#edeae5]/[0.02] rounded-lg border border-[#242726]">
+              <FileText className="w-5 h-5 text-[#35a79b] flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm truncate">{bilan.nom}</p>
+                <p className="text-[#edeae5] text-sm truncate">{bilan.nom}</p>
               </div>
               <FField className="w-24 !py-2">
                 <FInput value={bilan.annee || ""} onChange={(e) => { const updated = [...(formData.bilans_locataire || [])]; updated[idx].annee = e.target.value; setFormData({...formData, bilans_locataire: updated}); }} placeholder="Année" className="text-center" />
@@ -283,14 +283,14 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
             </div>
           ))}
           {(!formData.bilans_locataire || formData.bilans_locataire.length === 0) && (
-            <p className="text-[#7f9995] text-sm text-center py-2">Aucun bilan importé.</p>
+            <p className="text-[#8b9391] text-sm text-center py-2">Aucun bilan importé.</p>
           )}
         </div>
 
         {/* Notes locataire */}
-        <div className="space-y-4 pt-4 border-t border-[#16201f]">
+        <div className="space-y-4 pt-4 border-t border-[#242726]">
           <div className="flex items-center justify-between">
-            <Label className="text-white">Notes locataire</Label>
+            <Label className="text-[#edeae5]">Notes locataire</Label>
             <Button
               type="button"
               variant="outline"
@@ -299,14 +299,14 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
                 ...formData, 
                 notes_locataire: [...(formData.notes_locataire || []), { titre: "", contenu: "" }]
               })}
-              className="border-[#16201f] text-white/30 hover:text-white hover:border-[#33d6c0]/30"
+              className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#35a79b]/30"
             >
               <Plus className="w-4 h-4 mr-1" />
               Ajouter une note
             </Button>
           </div>
           {(formData.notes_locataire || []).map((note, idx) => (
-            <div key={idx} className="p-4 bg-white/[0.02] rounded-lg space-y-3">
+            <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
               <div className="flex items-center gap-3">
                 <FField className="flex-1">
                   <FInput value={note.titre} onChange={(e) => { const updated = [...formData.notes_locataire]; updated[idx].titre = e.target.value; setFormData({...formData, notes_locataire: updated}); }} placeholder="Titre de la note..." />

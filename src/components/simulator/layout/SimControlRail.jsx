@@ -9,7 +9,7 @@ function SectionHeader({ title, open, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-[#7f9995] font-medium pt-3 pb-1 hover:text-[#c4d5d1] transition-colors"
+      className="w-full flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-[#8b9391] font-medium pt-3 pb-1 hover:text-[#d3d8d6] transition-colors"
     >
       <span>{title}</span>
       <ChevronDown className={`w-3 h-3 transition-transform ${open ? "" : "-rotate-90"}`} />
@@ -20,8 +20,8 @@ function SectionHeader({ title, open, onToggle }) {
 function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-[12px] text-[#93aca7]">{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#33d6c0] h-4 w-7" />
+      <span className="text-[12px] text-[#9aa19e]">{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#35a79b] h-4 w-7" />
     </div>
   );
 }
@@ -102,23 +102,23 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#0c0c0c] border-r border-[#1c2725]">
+    <div className="flex flex-col h-full bg-[#0e100f] border-r border-[#282b2a]">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 h-11 border-b border-[#16201f] flex-shrink-0">
-        <div className="w-5 h-5 rounded bg-[#33d6c0]/15 flex items-center justify-center">
-          <div className="w-2 h-2 rounded-sm bg-[#33d6c0]" />
+      <div className="flex items-center gap-2 px-3 h-11 border-b border-[#242726] flex-shrink-0">
+        <div className="w-5 h-5 rounded bg-[#35a79b]/15 flex items-center justify-center">
+          <div className="w-2 h-2 rounded-sm bg-[#35a79b]" />
         </div>
-        <span className="text-white text-sm font-medium">Simulateur</span>
+        <span className="text-[#edeae5] text-sm font-medium">Simulateur</span>
       </div>
 
       {/* Scenario select */}
-      <div className="px-3 pt-3 pb-2 border-b border-[#16201f]">
-        <p className="text-[9px] uppercase tracking-[0.18em] text-[#5e7672] font-medium mb-1.5">Scénario</p>
+      <div className="px-3 pt-3 pb-2 border-b border-[#242726]">
+        <p className="text-[9px] uppercase tracking-[0.18em] text-[#6b7270] font-medium mb-1.5">Scénario</p>
         <Select value={selectedProjectId || "default"} onValueChange={onSelectProject}>
-          <SelectTrigger className="bg-[#161616] text-white border-[#1c2725] h-8 text-xs rounded-md">
+          <SelectTrigger className="bg-[#161616] text-[#edeae5] border-[#282b2a] h-8 text-xs rounded-md">
             <SelectValue placeholder="Mode par défaut" />
           </SelectTrigger>
-          <SelectContent className="bg-[#161616] text-white border-white/[0.1]">
+          <SelectContent className="bg-[#161616] text-[#edeae5] border-[#edeae5]/[0.1]">
             <SelectItem value="default">Mode par défaut</SelectItem>
             {projects.map((p) => (
               <SelectItem key={p.id} value={p.id}>{p.titre}</SelectItem>
@@ -126,15 +126,15 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
           </SelectContent>
         </Select>
         {calculs && (
-          <p className="text-[10px] text-[#5e7672] mt-1.5">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
+          <p className="text-[10px] text-[#6b7270] mt-1.5">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
         )}
       </div>
 
       {/* Sliders */}
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         {/* Champs principaux - non repliable */}
-        <div className="mt-3 rounded-lg border border-[#F5A623]/40 bg-[#F5A623]/[0.06] p-2.5">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[#F5A623] font-semibold pb-1">Champs principaux</p>
+        <div className="mt-3 rounded-lg border border-[#e0c9a0]/40 bg-[#e0c9a0]/[0.06] p-2.5">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[#e0c9a0] font-semibold pb-1">Champs principaux</p>
           {acquisitionMainItems.map((it) => (
             <SimSlider
               key={it.key}
@@ -161,8 +161,8 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <div className="mt-3 rounded-lg border border-[#33d6c0]/40 bg-[#33d6c0]/[0.06] p-2.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[#33d6c0] font-semibold pb-1">Champs revente</p>
+              <div className="mt-3 rounded-lg border border-[#35a79b]/40 bg-[#35a79b]/[0.06] p-2.5">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[#35a79b] font-semibold pb-1">Champs revente</p>
                 {reventeMainItems.map((it) => (
                   <SimSlider
                     key={it.key}
@@ -225,7 +225,7 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
               </div>
             )}
             {isOpen(g.title) && g.title === "LOCATION" && values.loyerInitialHTHC > 0 && values.surface > 0 && (
-              <p className="text-[10px] text-[#5e7672] -mt-0.5">{Math.round(values.loyerInitialHTHC / values.surface)} €/m²/an</p>
+              <p className="text-[10px] text-[#6b7270] -mt-0.5">{Math.round(values.loyerInitialHTHC / values.surface)} €/m²/an</p>
             )}
           </div>
         ))}

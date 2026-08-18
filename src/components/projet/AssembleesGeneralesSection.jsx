@@ -53,16 +53,16 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
   };
 
   return (
-    <div className="mt-8 max-md:mt-4 pt-6 max-md:pt-4 border-t border-[#24312f]">
+    <div className="mt-10 max-md:mt-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-montserrat text-white text-lg">
-          Assemblées Générales
+        <h3 className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] mb-0">
+          Synthèse des assemblées générales
         </h3>
         {isAdmin && (
           <Button
             size="sm"
             onClick={() => setShowForm(!showForm)}
-            className="bg-[#33d6c0] hover:bg-[#33d6c0]/80 text-white gap-1.5"
+            className="bg-[#35a79b] hover:bg-[#35a79b]/80 text-[#edeae5] gap-1.5"
           >
             <Plus className="w-4 h-4" />
             Ajouter une AG
@@ -72,14 +72,14 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
 
       {/* Formulaire d'ajout */}
       {showForm && (
-        <div className="mb-6 p-5 bg-[#101715]/50 rounded-md border border-[#33d6c0]/30 space-y-4">
+        <div className="mb-6 p-5 bg-[#171918]/50 rounded-md border border-[#35a79b]/30 space-y-4">
           <div>
-            <label className="text-sm text-[#93aca7] mb-1 block">Année</label>
+            <label className="text-sm text-[#9aa19e] mb-1 block">Année</label>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="bg-[#0a0f0e] text-white border-[#24312f] w-40">
+              <SelectTrigger className="bg-[#121413] text-[#edeae5] border-[#303332] w-40">
                 <SelectValue placeholder="Sélectionner" />
               </SelectTrigger>
-              <SelectContent className="bg-[#0a0f0e] text-white border-[#24312f]">
+              <SelectContent className="bg-[#121413] text-[#edeae5] border-[#303332]">
                 {years.map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
@@ -90,37 +90,37 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
           {selectedYear && (
             <>
               <div>
-                <label className="text-sm text-[#93aca7] mb-1 block">Synthèse de l'assemblée générale</label>
+                <label className="text-sm text-[#9aa19e] mb-1 block">Synthèse de l'assemblée générale</label>
                 <Textarea
                   value={synthese}
                   onChange={(e) => setSynthese(e.target.value)}
                   placeholder="Résumé des points abordés..."
-                  className="bg-[#0a0f0e] text-white border-[#24312f] min-h-[100px]"
+                  className="bg-[#121413] text-[#edeae5] border-[#303332] min-h-[100px]"
                 />
               </div>
               <div>
-                <label className="text-sm text-[#93aca7] mb-1 block">Résolutions votées</label>
+                <label className="text-sm text-[#9aa19e] mb-1 block">Résolutions votées</label>
                 <Textarea
                   value={resVotees}
                   onChange={(e) => setResVotees(e.target.value)}
                   placeholder="Résolutions acceptées..."
-                  className="bg-[#0a0f0e] text-white border-[#24312f] min-h-[80px]"
+                  className="bg-[#121413] text-[#edeae5] border-[#303332] min-h-[80px]"
                 />
               </div>
               <div>
-                <label className="text-sm text-[#93aca7] mb-1 block">Résolutions non votées</label>
+                <label className="text-sm text-[#9aa19e] mb-1 block">Résolutions non votées</label>
                 <Textarea
                   value={resRefusees}
                   onChange={(e) => setResRefusees(e.target.value)}
                   placeholder="Résolutions refusées..."
-                  className="bg-[#0a0f0e] text-white border-[#24312f] min-h-[80px]"
+                  className="bg-[#121413] text-[#edeae5] border-[#303332] min-h-[80px]"
                 />
               </div>
               <div className="flex gap-2">
                 <Button
                   onClick={handleAdd}
                   disabled={saving}
-                  className="bg-[#33d6c0] hover:bg-[#33d6c0]/80 text-white gap-1.5"
+                  className="bg-[#35a79b] hover:bg-[#35a79b]/80 text-[#edeae5] gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? "Enregistrement..." : "Enregistrer"}
@@ -128,7 +128,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                 <Button
                   variant="ghost"
                   onClick={() => { setShowForm(false); setSelectedYear(""); }}
-                  className="text-[#93aca7] hover:text-white"
+                  className="text-[#9aa19e] hover:text-[#edeae5]"
                 >
                   Annuler
                 </Button>
@@ -140,23 +140,21 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
 
       {/* Liste des AG */}
       {assemblees.length > 0 ? (
-        <div className="space-y-3">
+        <div className="border-t border-[#edeae5]/[0.35]">
           {assemblees.map((ag, idx) => {
             const isExpanded = expandedAG === idx;
             return (
               <div
                 key={idx}
-                className="bg-[#101715]/50 rounded-md border border-[#24312f] overflow-hidden"
+                className="border-b border-[#edeae5]/[0.12]"
               >
                 <button
                   onClick={() => setExpandedAG(isExpanded ? null : idx)}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-[#101715]/80 transition-colors"
+                  className="w-full flex items-center justify-between py-3.5 text-left group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#33d6c0]/20 flex items-center justify-center">
-                      <CalendarDays className="w-5 h-5 text-[#33d6c0]" />
-                    </div>
-                    <span className="text-white font-medium">AG {ag.annee}</span>
+                    <CalendarDays className="w-4 h-4 text-[#35a79b]" />
+                    <span className="text-[14.5px] text-[#edeae5] group-hover:text-[#7fd3c9] transition-colors">AG {ag.annee}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {isAdmin && (
@@ -170,37 +168,37 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                       </Button>
                     )}
                     {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-[#93aca7]" />
+                      <ChevronUp className="w-5 h-5 text-[#9aa19e]" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-[#93aca7]" />
+                      <ChevronDown className="w-5 h-5 text-[#9aa19e]" />
                     )}
                   </div>
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 space-y-4">
+                  <div className="pb-5 space-y-5">
                     {ag.synthese && (
                       <div>
-                        <p className="text-xs text-[#93aca7] uppercase tracking-wider mb-1">Synthèse</p>
-                        <p className="text-sm text-[#c4d5d1] whitespace-pre-wrap">{ag.synthese}</p>
+                        <p className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] mb-2">Synthèse</p>
+                        <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{ag.synthese}</p>
                       </div>
                     )}
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-2 gap-x-12 gap-y-5">
                       {ag.resolutions_votees && (
-                        <div className="p-3 bg-[#33d6c0]/10 rounded-lg border border-[#33d6c0]/30">
-                          <p className="text-xs text-[#5ee7d4] mb-2 font-semibold">✓ Résolutions votées</p>
-                          <p className="text-sm text-[#c4d5d1] whitespace-pre-wrap">{ag.resolutions_votees}</p>
+                        <div className="border-l border-[#35a79b] pl-5">
+                          <p className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-2">Résolutions votées</p>
+                          <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{ag.resolutions_votees}</p>
                         </div>
                       )}
                       {ag.resolutions_refusees && (
-                        <div className="p-3 bg-red-900/20 rounded-lg border border-red-500/30">
-                          <p className="text-xs text-red-400 mb-2 font-semibold">✗ Résolutions non votées</p>
-                          <p className="text-sm text-[#c4d5d1] whitespace-pre-wrap">{ag.resolutions_refusees}</p>
+                        <div className="border-l border-[#e0c9a0] pl-5">
+                          <p className="text-[10px] tracking-[0.2em] uppercase text-[#e0c9a0] mb-2">Résolutions non votées</p>
+                          <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{ag.resolutions_refusees}</p>
                         </div>
                       )}
                     </div>
                     {!ag.synthese && !ag.resolutions_votees && !ag.resolutions_refusees && (
-                      <p className="text-sm text-[#7f9995] italic">Aucune information renseignée pour cette AG.</p>
+                      <p className="text-sm text-[#8b9391] mb-0">Aucune information renseignée pour cette AG.</p>
                     )}
                   </div>
                 )}
@@ -210,7 +208,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
         </div>
       ) : (
         !showForm && (
-          <p className="text-sm text-[#7f9995] text-center py-6">Aucune assemblée générale enregistrée.</p>
+          <p className="text-sm text-[#8b9391] text-center py-6">Aucune assemblée générale enregistrée.</p>
         )
       )}
     </div>

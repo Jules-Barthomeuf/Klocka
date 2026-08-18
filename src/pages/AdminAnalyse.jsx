@@ -35,9 +35,9 @@ const categorieIcons = {
 };
 
 const statutConfig = {
-  en_attente: { label: "En attente", color: "bg-white/10 text-[#c4d5d1]", icon: Clock },
+  en_attente: { label: "En attente", color: "bg-[#edeae5]/10 text-[#d3d8d6]", icon: Clock },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-400", icon: Loader2 },
-  verifie: { label: "Vérifié", color: "bg-[#33d6c0]/20 text-[#5ee7d4]", icon: CheckCircle2 },
+  verifie: { label: "Vérifié", color: "bg-[#35a79b]/20 text-[#7fd3c9]", icon: CheckCircle2 },
   non_verifie: { label: "Non vérifié", color: "bg-red-500/20 text-red-400", icon: XCircle }
 };
 
@@ -48,20 +48,20 @@ function DocumentCard({ doc, analyzing, onAnalyze, onDelete, onSelect }) {
 
   return (
     <div
-      className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-4 hover:border-[#33d6c0]/30 transition-all cursor-pointer group"
+      className="bg-[#0a0c0c] rounded-md border border-[#242726] p-4 hover:border-[#35a79b]/30 transition-all cursor-pointer group"
       onClick={() => onSelect(doc)}>
       
       {doc.categorie === "images" && doc.url_fichier ?
-      <div className="mb-3 h-32 rounded-md overflow-hidden border border-[#16201f]">
+      <div className="mb-3 h-32 rounded-md overflow-hidden border border-[#242726]">
           <img src={doc.url_fichier} alt={doc.nom_fichier} className="w-full h-full object-cover" />
         </div> :
 
-      <div className="w-10 h-10 bg-white/[0.04] border border-[#16201f] rounded-md flex items-center justify-center mb-3">
-          <FileText className="w-5 h-5 text-[#33d6c0]" />
+      <div className="w-10 h-10 bg-[#edeae5]/[0.04] border border-[#242726] rounded-md flex items-center justify-center mb-3">
+          <FileText className="w-5 h-5 text-[#35a79b]" />
         </div>
       }
 
-      <h3 className="text-white font-montserrat text-sm mb-2 truncate">{doc.nom_fichier}</h3>
+      <h3 className="text-[#edeae5] font-montserrat text-sm mb-2 truncate">{doc.nom_fichier}</h3>
 
       <div className="flex items-center gap-2 flex-wrap mb-3">
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${statut.color}`}>
@@ -69,20 +69,20 @@ function DocumentCard({ doc, analyzing, onAnalyze, onDelete, onSelect }) {
           {statut.label}
         </span>
         {doc.points_attention?.length > 0 &&
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-400">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#e0c9a0]/15 text-[#e0c9a0]">
             <AlertTriangle className="w-3 h-3" />
             {doc.points_attention.length}
           </span>
         }
       </div>
 
-      <div className="flex items-center gap-2 pt-2 border-t border-[#16201f]">
+      <div className="flex items-center gap-2 pt-2 border-t border-[#242726]">
         <Button
           variant="ghost"
           size="sm"
           onClick={(e) => {e.stopPropagation();if (doc.categorie !== "images") onAnalyze(doc);}}
           disabled={isAnalyzing || doc.categorie === "images"}
-          className="flex-1 text-[#33d6c0] hover:bg-[#33d6c0]/10 h-8 text-xs">
+          className="flex-1 text-[#35a79b] hover:bg-[#35a79b]/10 h-8 text-xs">
           
           <Brain className="w-3.5 h-3.5 mr-1" />
           {isAnalyzing ? "Analyse..." : "Analyser"}
@@ -91,7 +91,7 @@ function DocumentCard({ doc, analyzing, onAnalyze, onDelete, onSelect }) {
           variant="ghost"
           size="icon"
           onClick={(e) => {e.stopPropagation();onDelete(doc.id);}}
-          className="text-white/30 hover:text-red-400 hover:bg-red-500/10 h-8 w-8">
+          className="text-[#edeae5]/30 hover:text-red-400 hover:bg-red-500/10 h-8 w-8">
           
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
@@ -268,33 +268,33 @@ export default function AdminAnalyse() {
   });
 
   return (
-    <div className="bg-[#000000] text-white p-3 min-h-screen md:p-8">
+    <div className="bg-[#000000] text-[#edeae5] p-3 min-h-screen md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-geist tracking-tighter text-white mb-2">Analyse de Documents</h1>
-          <div className="h-0.5 w-24 md:w-32 bg-[#33d6c0] mb-2"></div>
-          <p className="text-white/40 text-sm">Chargez et analysez les documents de vos projets avec l'IA</p>
+          <h1 className="text-2xl md:text-4xl font-geist tracking-tighter text-[#edeae5] mb-2">Analyse de Documents</h1>
+          <div className="h-0.5 w-24 md:w-32 bg-[#35a79b] mb-2"></div>
+          <p className="text-[#edeae5]/40 text-sm">Chargez et analysez les documents de vos projets avec l'IA</p>
         </div>
 
         {/* Sélection du projet */}
-        <Card className="bg-[#0a0f0e] rounded-md border border-[#16201f] overflow-hidden mb-6">
+        <Card className="bg-[#0a0c0c] rounded-md border border-[#242726] overflow-hidden mb-6">
           <CardContent className="p-4 md:p-5">
-            <label className="text-white/50 text-xs uppercase tracking-widest block mb-3">Projet</label>
+            <label className="text-[#edeae5]/50 text-xs uppercase tracking-widest block mb-3">Projet</label>
             <div className="space-y-2">
               <Input
                 placeholder="Rechercher par email ou nom du projet..."
                 value={clientSearch}
                 onChange={(e) => setClientSearch(e.target.value)}
-                className="bg-white/[0.04] border-[#16201f] text-white placeholder:text-white/20 h-9 text-sm focus:border-[#33d6c0]/50 focus:ring-0" />
+                className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 h-9 text-sm focus:border-[#35a79b]/50 focus:ring-0" />
               
               <Select value={selectedProjectId || ""} onValueChange={setSelectedProjectId}>
-                <SelectTrigger className="bg-white/[0.04] text-white border-[#16201f] h-9 text-sm">
+                <SelectTrigger className="bg-[#edeae5]/[0.04] text-[#edeae5] border-[#242726] h-9 text-sm">
                   <SelectValue placeholder="Sélectionnez un projet..." />
                 </SelectTrigger>
-                <SelectContent className="bg-[#111] border-[#16201f]">
+                <SelectContent className="bg-[#111] border-[#242726]">
                   {filteredProjects.length === 0 ?
-                  <div className="p-2 text-white/30 text-sm">Aucun projet trouvé</div> :
+                  <div className="p-2 text-[#edeae5]/30 text-sm">Aucun projet trouvé</div> :
 
                   filteredProjects.map((project) =>
                   <SelectItem key={project.id} value={project.id}>
@@ -310,18 +310,18 @@ export default function AdminAnalyse() {
 
         {!selectedProjectId ?
         <div className="text-center py-20">
-            <div className="w-16 h-16 bg-white/[0.04] border border-[#16201f] rounded-md flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-white/20" />
+            <div className="w-16 h-16 bg-[#edeae5]/[0.04] border border-[#242726] rounded-md flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-8 h-8 text-[#edeae5]/20" />
             </div>
-            <h2 className="text-lg text-white/60 mb-1 font-montserrat">Sélectionnez un projet</h2>
-            <p className="text-white/30 text-sm">Choisissez un projet pour commencer à analyser ses documents</p>
+            <h2 className="text-lg text-[#edeae5]/60 mb-1 font-montserrat">Sélectionnez un projet</h2>
+            <p className="text-[#edeae5]/30 text-sm">Choisissez un projet pour commencer à analyser ses documents</p>
           </div> :
 
         <>
             {/* Dropzone */}
             <div
             className={`rounded-md border-2 border-dashed p-8 text-center mb-6 transition-all duration-300 ${
-            dragOver ? 'border-[#33d6c0] bg-[#33d6c0]/5' : 'border-[#1c2725] hover:border-white/[0.15]'}`
+            dragOver ? 'border-[#35a79b] bg-[#35a79b]/5' : 'border-[#282b2a] hover:border-[#edeae5]/[0.15]'}`
             }
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -329,16 +329,16 @@ export default function AdminAnalyse() {
             
               {uploading ?
             <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-10 h-10 text-[#33d6c0] animate-spin" />
-                  <p className="text-white/60 text-sm">Upload et extraction en cours...</p>
+                  <Loader2 className="w-10 h-10 text-[#35a79b] animate-spin" />
+                  <p className="text-[#edeae5]/60 text-sm">Upload et extraction en cours...</p>
                 </div> :
 
             <>
-                  <div className="w-12 h-12 bg-white/[0.04] border border-[#16201f] rounded-md flex items-center justify-center mx-auto mb-3">
-                    <Upload className="w-6 h-6 text-white/30" />
+                  <div className="w-12 h-12 bg-[#edeae5]/[0.04] border border-[#242726] rounded-md flex items-center justify-center mx-auto mb-3">
+                    <Upload className="w-6 h-6 text-[#edeae5]/30" />
                   </div>
-                  <p className="text-white/60 text-sm mb-1">Glissez-déposez vos documents ici</p>
-                  <p className="text-white/20 text-xs mb-4">L'IA analysera et catégorisera automatiquement</p>
+                  <p className="text-[#edeae5]/60 text-sm mb-1">Glissez-déposez vos documents ici</p>
+                  <p className="text-[#edeae5]/20 text-xs mb-4">L'IA analysera et catégorisera automatiquement</p>
                   <div className="flex gap-2 justify-center">
                     <div className="relative inline-block">
                       <input
@@ -350,14 +350,14 @@ export default function AdminAnalyse() {
                     }}
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
                   
-                      <Button className="bg-[#33d6c0] hover:bg-[#33d6c0]/80 text-white pointer-events-none h-8 text-xs px-4">
+                      <Button className="bg-[#35a79b] hover:bg-[#35a79b]/80 text-[#edeae5] pointer-events-none h-8 text-xs px-4">
                         <Upload className="w-3.5 h-3.5 mr-1.5" />
                         Sélectionner des fichiers
                       </Button>
                     </div>
                     <Button
                   onClick={() => setShowTextDialog(true)}
-                  className="bg-white/[0.06] hover:bg-white/[0.1] text-white border border-[#16201f] h-8 text-xs px-4">
+                  className="bg-[#edeae5]/[0.06] hover:bg-[#edeae5]/[0.1] text-[#edeae5] border border-[#242726] h-8 text-xs px-4">
                   
                       <Plus className="w-3.5 h-3.5 mr-1.5" />
                       Ajouter du texte
@@ -377,8 +377,8 @@ export default function AdminAnalyse() {
                   onClick={() => setActiveTab(key)}
                   className={`rounded-md p-2 text-center transition-all border ${
                   activeTab === key ?
-                  'bg-[#33d6c0]/10 border-[#33d6c0]/30 text-[#33d6c0]' :
-                  'bg-white/[0.02] border-[#16201f] text-white/40 hover:text-white/60 hover:bg-white/[0.04]'}`
+                  'bg-[#35a79b]/10 border-[#35a79b]/30 text-[#35a79b]' :
+                  'bg-[#edeae5]/[0.02] border-[#242726] text-[#edeae5]/40 hover:text-[#edeae5]/60 hover:bg-[#edeae5]/[0.04]'}`
                   }>
                   
                     <p className="text-lg font-montserrat font-semibold">{count}</p>
@@ -390,8 +390,8 @@ export default function AdminAnalyse() {
               onClick={() => setActiveTab("recherche")}
               className={`rounded-md p-2 text-center transition-all border ${
               activeTab === "recherche" ?
-              'bg-[#33d6c0]/10 border-[#33d6c0]/30 text-[#33d6c0]' :
-              'bg-white/[0.02] border-[#16201f] text-white/40 hover:text-white/60 hover:bg-white/[0.04]'}`
+              'bg-[#35a79b]/10 border-[#35a79b]/30 text-[#35a79b]' :
+              'bg-[#edeae5]/[0.02] border-[#242726] text-[#edeae5]/40 hover:text-[#edeae5]/60 hover:bg-[#edeae5]/[0.04]'}`
               }>
               
                 <Search className="w-4 h-4 mx-auto mb-0.5" />
@@ -407,13 +407,13 @@ export default function AdminAnalyse() {
                   placeholder="Rechercher dans les documents..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-white/[0.04] border-[#16201f] text-white placeholder:text-white/20 h-9 text-sm focus:border-[#33d6c0]/50 focus:ring-0" />
+                  className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 h-9 text-sm focus:border-[#35a79b]/50 focus:ring-0" />
                 
                 </div>
                 {searchResults.length === 0 ?
               <div className="text-center py-16">
-                    <Search className="w-10 h-10 text-white/10 mx-auto mb-3" />
-                    <p className="text-white/40 text-sm">{searchQuery ? "Aucun résultat" : "Commencez à taper pour rechercher"}</p>
+                    <Search className="w-10 h-10 text-[#edeae5]/10 mx-auto mb-3" />
+                    <p className="text-[#edeae5]/40 text-sm">{searchQuery ? "Aucun résultat" : "Commencez à taper pour rechercher"}</p>
                   </div> :
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -439,11 +439,11 @@ export default function AdminAnalyse() {
                 <TabsContent key={categorie} value={categorie} className="mt-0 space-y-4">
                     {docs.length === 0 ?
                   <div className="text-center py-16">
-                        <div className="w-12 h-12 bg-white/[0.04] border border-[#16201f] rounded-md flex items-center justify-center mx-auto mb-3">
-                          <CategoryIcon className="w-6 h-6 text-white/15" />
+                        <div className="w-12 h-12 bg-[#edeae5]/[0.04] border border-[#242726] rounded-md flex items-center justify-center mx-auto mb-3">
+                          <CategoryIcon className="w-6 h-6 text-[#edeae5]/15" />
                         </div>
-                        <p className="text-white/40 text-sm">Aucun document dans cette catégorie</p>
-                        <p className="text-white/20 text-xs mt-1">Importez des documents ci-dessus</p>
+                        <p className="text-[#edeae5]/40 text-sm">Aucun document dans cette catégorie</p>
+                        <p className="text-[#edeae5]/20 text-xs mt-1">Importez des documents ci-dessus</p>
                       </div> :
 
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -469,27 +469,27 @@ export default function AdminAnalyse() {
 
       {/* Text Document Dialog */}
       <Dialog open={showTextDialog} onOpenChange={setShowTextDialog}>
-        <DialogContent className="bg-[#0a0f0e] border-[#16201f] max-w-2xl">
+        <DialogContent className="bg-[#0a0c0c] border-[#242726] max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white font-montserrat">Ajouter du texte</DialogTitle>
+            <DialogTitle className="text-[#edeae5] font-montserrat">Ajouter du texte</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-white/50 text-xs uppercase tracking-widest mb-2 block">Nom du document</label>
+              <label className="text-[#edeae5]/50 text-xs uppercase tracking-widest mb-2 block">Nom du document</label>
               <Input
                 placeholder="Ex: Notes de visite, Informations locataire..."
                 value={newTextDoc.nom}
                 onChange={(e) => setNewTextDoc({ ...newTextDoc, nom: e.target.value })}
-                className="bg-white/[0.04] border-[#16201f] text-white placeholder:text-white/20 h-9 text-sm" />
+                className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 h-9 text-sm" />
               
             </div>
             <div>
-              <label className="text-white/50 text-xs uppercase tracking-widest mb-2 block">Catégorie</label>
+              <label className="text-[#edeae5]/50 text-xs uppercase tracking-widest mb-2 block">Catégorie</label>
               <Select value={newTextDoc.categorie} onValueChange={(value) => setNewTextDoc({ ...newTextDoc, categorie: value })}>
-                <SelectTrigger className="bg-white/[0.04] border-[#16201f] text-white h-9 text-sm">
+                <SelectTrigger className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] h-9 text-sm">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#111] border-[#16201f]">
+                <SelectContent className="bg-[#111] border-[#242726]">
                   {Object.entries(categorieLabels).map(([key, label]) =>
                   <SelectItem key={key} value={key}>{label}</SelectItem>
                   )}
@@ -497,19 +497,19 @@ export default function AdminAnalyse() {
               </Select>
             </div>
             <div>
-              <label className="text-white/50 text-xs uppercase tracking-widest mb-2 block">Contenu</label>
+              <label className="text-[#edeae5]/50 text-xs uppercase tracking-widest mb-2 block">Contenu</label>
               <Textarea
                 placeholder="Saisissez votre texte ici..."
                 value={newTextDoc.contenu}
                 onChange={(e) => setNewTextDoc({ ...newTextDoc, contenu: e.target.value })}
-                className="bg-white/[0.04] border-[#16201f] text-white placeholder:text-white/20 min-h-48 text-sm" />
+                className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 min-h-48 text-sm" />
               
             </div>
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="ghost" onClick={() => setShowTextDialog(false)} className="text-white/40 hover:text-white hover:bg-white/[0.06] h-8 text-xs">
+              <Button variant="ghost" onClick={() => setShowTextDialog(false)} className="text-[#edeae5]/40 hover:text-[#edeae5] hover:bg-[#edeae5]/[0.06] h-8 text-xs">
                 Annuler
               </Button>
-              <Button onClick={createTextDocument} className="bg-[#33d6c0] hover:bg-[#33d6c0]/80 h-8 text-xs px-4">
+              <Button onClick={createTextDocument} className="bg-[#35a79b] hover:bg-[#35a79b]/80 h-8 text-xs px-4">
                 Créer
               </Button>
             </div>
@@ -519,13 +519,13 @@ export default function AdminAnalyse() {
 
       {/* Document Detail Dialog */}
       <Dialog open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
-        <DialogContent className="bg-[#0a0f0e] border-[#16201f] max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="bg-[#0a0c0c] border-[#242726] max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white font-montserrat flex items-center justify-between">
+            <DialogTitle className="text-[#edeae5] font-montserrat flex items-center justify-between">
               <span className="truncate mr-4">{selectedDoc?.nom_fichier}</span>
               {selectedDoc?.url_fichier &&
               <a href={selectedDoc.url_fichier} target="_blank" rel="noopener noreferrer">
-                  <Button variant="ghost" size="icon" className="text-[#33d6c0] hover:bg-[#33d6c0]/10 h-8 w-8">
+                  <Button variant="ghost" size="icon" className="text-[#35a79b] hover:bg-[#35a79b]/10 h-8 w-8">
                     <Download className="w-4 h-4" />
                   </Button>
                 </a>
@@ -541,10 +541,10 @@ export default function AdminAnalyse() {
                 value={selectedDoc.categorie || "autre"}
                 onValueChange={(value) => updateDocMutation.mutate({ id: selectedDoc.id, data: { categorie: value } })}>
                 
-                  <SelectTrigger className="w-44 bg-white/[0.04] border-[#16201f] text-white h-8 text-xs">
+                  <SelectTrigger className="w-44 bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-[#16201f]">
+                  <SelectContent className="bg-[#111] border-[#242726]">
                     {Object.entries(categorieLabels).map(([key, label]) =>
                   <SelectItem key={key} value={key}>{label}</SelectItem>
                   )}
@@ -555,10 +555,10 @@ export default function AdminAnalyse() {
                 value={selectedDoc.statut || "en_attente"}
                 onValueChange={(value) => updateDocMutation.mutate({ id: selectedDoc.id, data: { statut: value } })}>
                 
-                  <SelectTrigger className="w-36 bg-white/[0.04] border-[#16201f] text-white h-8 text-xs">
+                  <SelectTrigger className="w-36 bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-[#16201f]">
+                  <SelectContent className="bg-[#111] border-[#242726]">
                     {Object.entries(statutConfig).map(([key, config]) =>
                   <SelectItem key={key} value={key}>{config.label}</SelectItem>
                   )}
@@ -569,7 +569,7 @@ export default function AdminAnalyse() {
               <Button
                 onClick={() => analyzeDocument(selectedDoc)}
                 disabled={analyzing === selectedDoc.id}
-                className="bg-[#33d6c0] hover:bg-[#33d6c0]/80 h-8 text-xs px-3">
+                className="bg-[#35a79b] hover:bg-[#35a79b]/80 h-8 text-xs px-3">
                 
                     <Brain className="w-3.5 h-3.5 mr-1.5" />
                     {analyzing === selectedDoc.id ? "Analyse..." : "Analyser"}
@@ -579,7 +579,7 @@ export default function AdminAnalyse() {
 
               {/* Aperçu image */}
               {selectedDoc.categorie === "images" &&
-            <div className="rounded-md overflow-hidden border border-[#16201f]">
+            <div className="rounded-md overflow-hidden border border-[#242726]">
                   <img src={selectedDoc.url_fichier} alt={selectedDoc.nom_fichier} className="w-full h-auto" />
                 </div>
             }
@@ -587,17 +587,17 @@ export default function AdminAnalyse() {
               {/* Points d'attention */}
               {selectedDoc.points_attention?.length > 0 &&
             <div>
-                  <h4 className="text-white/50 text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <h4 className="text-[#edeae5]/50 text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#e0c9a0]" />
                     Points d'attention
                   </h4>
                   <div className="space-y-2">
                     {selectedDoc.points_attention.map((point, idx) => {
                   const niveauStyles = {
                     info: "bg-blue-500/10 border-blue-500/20 text-blue-300",
-                    warning: "bg-amber-500/10 border-amber-500/20 text-amber-300",
+                    warning: "bg-[#e0c9a0]/10 border-[#e0c9a0]/20 text-[#e0c9a0]",
                     critical: "bg-red-500/10 border-red-500/20 text-red-300"
-                  }[point.niveau] || "bg-white/[0.04] border-[#16201f] text-white/60";
+                  }[point.niveau] || "bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5]/60";
 
                   return (
                     <div key={idx} className={`p-3 rounded-md border ${niveauStyles}`}>
@@ -613,11 +613,11 @@ export default function AdminAnalyse() {
               {/* Analyse IA */}
               {selectedDoc.notes_ia &&
             <div>
-                  <h4 className="text-white/50 text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <Brain className="w-3.5 h-3.5 text-[#33d6c0]" />
+                  <h4 className="text-[#edeae5]/50 text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Brain className="w-3.5 h-3.5 text-[#35a79b]" />
                     Analyse IA
                   </h4>
-                  <div className="p-4 bg-white/[0.02] rounded-md text-white/70 text-sm whitespace-pre-wrap border border-[#16201f] font-montserrat leading-relaxed">
+                  <div className="p-4 bg-[#edeae5]/[0.02] rounded-md text-[#edeae5]/70 text-sm whitespace-pre-wrap border border-[#242726] font-montserrat leading-relaxed">
                     {selectedDoc.notes_ia}
                   </div>
                 </div>
@@ -625,12 +625,12 @@ export default function AdminAnalyse() {
 
               {/* Notes manuelles */}
               <div>
-                <h4 className="text-white/50 text-xs uppercase tracking-widest mb-3">Notes manuelles</h4>
+                <h4 className="text-[#edeae5]/50 text-xs uppercase tracking-widest mb-3">Notes manuelles</h4>
                 <Textarea
                 placeholder="Ajoutez vos notes personnelles..."
                 value={selectedDoc.notes_manuelles || ""}
                 onChange={(e) => updateDocMutation.mutate({ id: selectedDoc.id, data: { notes_manuelles: e.target.value } })}
-                className="bg-white/[0.04] border-[#16201f] text-white placeholder:text-white/20 min-h-28 text-sm" />
+                className="bg-[#edeae5]/[0.04] border-[#242726] text-[#edeae5] placeholder:text-[#edeae5]/20 min-h-28 text-sm" />
               
               </div>
             </div>

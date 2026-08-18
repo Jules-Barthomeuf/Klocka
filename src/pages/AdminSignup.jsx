@@ -82,8 +82,8 @@ export default function AdminSignup() {
 
   if (isChecking) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#e6efed] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#33d6c0]"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#edeae5] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
       </div>
     );
   }
@@ -91,12 +91,12 @@ export default function AdminSignup() {
   // Si pas de token valide, afficher un message d'erreur
   if (!hasValidToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#e6efed] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#edeae5] flex items-center justify-center p-4">
         <Card className="max-w-md w-full border-none shadow-2xl">
-          <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white pb-8">
+          <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-[#edeae5] pb-8">
             <div className="flex items-center justify-center mb-4">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 bg-[#edeae5]/20 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-[#edeae5]" />
               </div>
             </div>
             <CardTitle className="text-3xl font-montserrat text-center">
@@ -106,10 +106,10 @@ export default function AdminSignup() {
           
           <CardContent className="p-8 text-center space-y-6">
             <div>
-              <h2 className="text-xl font-semibold text-[#0a0f0e] mb-2">
+              <h2 className="text-xl font-semibold text-[#0a0c0c] mb-2">
                 Lien d'invitation invalide
               </h2>
-              <p className="text-[#5e7672]">
+              <p className="text-[#6b7270]">
                 Ce lien n'est pas valide ou a expiré. Veuillez contacter l'administrateur pour obtenir un nouveau lien d'invitation.
               </p>
             </div>
@@ -126,12 +126,12 @@ export default function AdminSignup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#e6efed] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-[#edeae5] flex items-center justify-center p-4">
       <Card className="max-w-md w-full border-none shadow-2xl">
-        <CardHeader className="bg-gradient-to-r from-[#33d6c0] to-[#5ee7d4] text-white pb-8">
+        <CardHeader className="bg-gradient-to-r from-[#35a79b] to-[#7fd3c9] text-[#edeae5] pb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-              <Shield className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-[#edeae5]/20 rounded-full flex items-center justify-center">
+              <Shield className="w-8 h-8 text-[#edeae5]" />
             </div>
           </div>
           <CardTitle className="text-3xl font-montserrat text-center">
@@ -141,24 +141,24 @@ export default function AdminSignup() {
         
         <CardContent className="p-8 text-center space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-[#0a0f0e] mb-2">
+            <h2 className="text-xl font-semibold text-[#0a0c0c] mb-2">
               Accès administrateur validé
             </h2>
-            <p className="text-[#5e7672]">
+            <p className="text-[#6b7270]">
               Créez votre compte ou connectez-vous pour accéder à l'espace administrateur avec tous les droits
             </p>
           </div>
 
           <Button
             onClick={handleLogin}
-            className="w-full h-12 bg-gradient-to-r from-[#33d6c0] to-[#5ee7d4] text-white hover:from-[#33d6c0]/90 hover:to-[#5ee7d4]/90"
+            className="w-full h-12 bg-gradient-to-r from-[#35a79b] to-[#7fd3c9] text-[#edeae5] hover:from-[#35a79b]/90 hover:to-[#7fd3c9]/90"
           >
             <LogIn className="w-5 h-5 mr-2" />
             Créer un compte / Se connecter
           </Button>
 
-          <div className="bg-[#33d6c0]/10 border border-[#33d6c0]/40 rounded-lg p-4">
-            <p className="text-sm text-[#2bb8a5]">
+          <div className="bg-[#35a79b]/10 border border-[#35a79b]/40 rounded-lg p-4">
+            <p className="text-sm text-[#2f8d84]">
               ✅ Lien d'invitation valide. Votre compte sera automatiquement configuré en tant qu'administrateur.
             </p>
           </div>

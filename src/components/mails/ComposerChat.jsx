@@ -75,14 +75,14 @@ export default function ComposerChat({ onBrouillon }) {
   };
 
   return (
-    <div className="bg-[#0a0f0e] border border-[#1c2725] rounded-md p-5">
+    <div className="bg-[#0a0c0c] border border-[#282b2a] rounded-md p-5">
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="w-4 h-4 text-[#33d6c0]" />
-        <span className="text-white text-sm font-medium">Décrivez le mail, affinez-le en discutant</span>
+        <Sparkles className="w-4 h-4 text-[#35a79b]" />
+        <span className="text-[#edeae5] text-sm font-medium">Décrivez le mail, affinez-le en discutant</span>
         {conversation && (
           <button
             onClick={nouvelleConversation}
-            className="ml-auto text-[11px] text-[#7f9995] hover:text-white flex items-center gap-1 transition-colors"
+            className="ml-auto text-[11px] text-[#8b9391] hover:text-[#edeae5] flex items-center gap-1 transition-colors"
           >
             <MessageSquarePlus className="w-3.5 h-3.5" /> Nouvelle conversation
           </button>
@@ -96,21 +96,21 @@ export default function ComposerChat({ onBrouillon }) {
               <div
                 className={`max-w-[85%] rounded-md px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
                   m.role === "user"
-                    ? "bg-[#33d6c0]/20 text-[#D8F3EE]"
-                    : "bg-[#101715] text-[#c4d5d1]"
+                    ? "bg-[#35a79b]/20 text-[#D8F3EE]"
+                    : "bg-[#171918] text-[#d3d8d6]"
                 }`}
               >
                 {m.content}
                 {m.role === "assistant" && m.brouillon && (
-                  <p className="text-[#5ee7d4] text-[11px] mt-1.5">→ Brouillon mis à jour ci-dessous</p>
+                  <p className="text-[#7fd3c9] text-[11px] mt-1.5">→ Brouillon mis à jour ci-dessous</p>
                 )}
               </div>
             </div>
           ))}
           {enCours && (
             <div className="flex justify-start">
-              <div className="bg-[#101715] rounded-md px-3 py-2">
-                <Loader2 className="w-4 h-4 text-[#33d6c0] animate-spin" />
+              <div className="bg-[#171918] rounded-md px-3 py-2">
+                <Loader2 className="w-4 h-4 text-[#35a79b] animate-spin" />
               </div>
             </div>
           )}
@@ -134,7 +134,7 @@ export default function ComposerChat({ onBrouillon }) {
         }
         rows={2}
         disabled={enCours}
-        className="bg-[#101715] border-[#1c2725] text-white placeholder:text-[#5e7672] resize-none"
+        className="bg-[#171918] border-[#282b2a] text-[#edeae5] placeholder:text-[#6b7270] resize-none"
       />
       <div className="flex flex-wrap items-center gap-2 mt-3">
         {!messages.length &&
@@ -143,7 +143,7 @@ export default function ComposerChat({ onBrouillon }) {
               key={ex}
               type="button"
               onClick={() => envoyer(ex)}
-              className="text-[11px] text-[#7f9995] hover:text-[#c4d5d1] border border-[#1c2725] rounded-full px-3 py-1 transition-colors"
+              className="text-[11px] text-[#8b9391] hover:text-[#d3d8d6] border border-[#282b2a] rounded-full px-3 py-1 transition-colors"
             >
               {ex}
             </button>
@@ -151,7 +151,7 @@ export default function ComposerChat({ onBrouillon }) {
         <Button
           onClick={() => envoyer()}
           disabled={!texte.trim() || enCours}
-          className="ml-auto bg-[#33d6c0] hover:bg-[#2bb8a5] text-white"
+          className="ml-auto bg-[#35a79b] hover:bg-[#2f8d84] text-[#edeae5]"
         >
           {enCours ? (
             <>

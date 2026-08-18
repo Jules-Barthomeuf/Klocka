@@ -205,7 +205,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
   if (!adresse) {
     return (
       <div className="text-center py-12">
-        <p className="text-[#93aca7]">Aucune adresse renseignée pour ce projet.</p>
+        <p className="text-[#9aa19e]">Aucune adresse renseignée pour ce projet.</p>
       </div>
     );
   }
@@ -213,9 +213,9 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="w-10 h-10 text-[#33d6c0] animate-spin" />
-        <p className="text-[#93aca7] text-sm">Récupération des données INSEE...</p>
-        <p className="text-[#7f9995] text-xs">{adresse}</p>
+        <Loader2 className="w-10 h-10 text-[#35a79b] animate-spin" />
+        <p className="text-[#9aa19e] text-sm">Récupération des données INSEE...</p>
+        <p className="text-[#8b9391] text-xs">{adresse}</p>
       </div>
     );
   }
@@ -224,7 +224,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-4">
         <p className="text-red-400 text-sm">{error}</p>
-        <Button onClick={fetchData} variant="outline" size="sm" className="text-[#c4d5d1] border-[#24312f]">
+        <Button onClick={fetchData} variant="outline" size="sm" className="text-[#d3d8d6] border-[#303332]">
           <RefreshCw className="w-4 h-4 mr-2" />Réessayer
         </Button>
       </div>
@@ -238,13 +238,13 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-montserrat text-white">{data.ville}</h2>
+          <h2 className="text-2xl font-cormorant text-[#edeae5]">{data.ville}</h2>
           <div className="flex items-center gap-3 mt-1">
-            <Badge className="bg-[#33d6c0]/20 text-[#33d6c0] border-0">INSEE {data.code_insee}</Badge>
-            <span className="text-sm text-[#93aca7]">Données {data.annee_donnees || 2022}</span>
+            <Badge className="bg-[#35a79b]/20 text-[#35a79b] border-0">INSEE {data.code_insee}</Badge>
+            <span className="text-sm text-[#9aa19e]">Données {data.annee_donnees || 2022}</span>
           </div>
         </div>
-        <Button onClick={fetchData} variant="ghost" size="icon" className="text-[#93aca7] hover:text-white" title="Actualiser les données">
+        <Button onClick={fetchData} variant="ghost" size="icon" className="text-[#9aa19e] hover:text-[#edeae5]" title="Actualiser les données">
           <RefreshCw className="w-4 h-4" />
         </Button>
       </div>
@@ -260,9 +260,9 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
         <SectionCard title="Notes">
           <div className="space-y-4">
             {project.notes_secteur.map((note, idx) => (
-              <div key={idx} className="p-4 bg-[#101715]/50 rounded-md border border-[#24312f]">
-                {note.titre && <h4 className="text-white font-semibold mb-2">{note.titre}</h4>}
-                <p className="text-sm text-[#c4d5d1] whitespace-pre-wrap">{note.contenu}</p>
+              <div key={idx} className="p-4 bg-[#171918]/50 rounded-md border border-[#303332]">
+                {note.titre && <h4 className="text-[#edeae5] font-semibold mb-2">{note.titre}</h4>}
+                <p className="text-sm text-[#d3d8d6] whitespace-pre-wrap">{note.contenu}</p>
               </div>
             ))}
           </div>

@@ -43,18 +43,18 @@ export default function ExportProjects() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050807] flex items-center justify-center p-8">
-      <div className="bg-[#0a0f0e] border border-[#16201f] rounded-md p-10 max-w-md w-full text-center space-y-6">
-        <div className="w-16 h-16 bg-[#33d6c0]/10 rounded-md flex items-center justify-center mx-auto">
-          <Download className="w-8 h-8 text-[#33d6c0]" />
+    <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-8">
+      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-10 max-w-md w-full text-center space-y-6">
+        <div className="w-16 h-16 bg-[#35a79b]/10 rounded-md flex items-center justify-center mx-auto">
+          <Download className="w-8 h-8 text-[#35a79b]" />
         </div>
         <div>
-          <h1 className="text-2xl font-light text-white mb-2">Export Projets</h1>
-          <p className="text-[#7f9995] text-sm">Télécharge l'intégralité de l'entité Project en JSON brut, tous champs inclus.</p>
+          <h1 className="text-2xl font-light text-[#edeae5] mb-2">Export Projets</h1>
+          <p className="text-[#8b9391] text-sm">Télécharge l'intégralité de l'entité Project en JSON brut, tous champs inclus.</p>
         </div>
 
         {done && count !== null && (
-          <div className="flex items-center gap-2 justify-center text-[#5ee7d4] text-sm">
+          <div className="flex items-center gap-2 justify-center text-[#7fd3c9] text-sm">
             <CheckCircle2 className="w-4 h-4" />
             <span>{count} projet(s) exporté(s) avec succès</span>
           </div>
@@ -63,7 +63,7 @@ export default function ExportProjects() {
         <Button
           onClick={handleExport}
           disabled={loading}
-          className="w-full h-12 bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white text-sm"
+          className="w-full h-12 bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] text-sm"
         >
           {loading ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Chargement en cours...</>

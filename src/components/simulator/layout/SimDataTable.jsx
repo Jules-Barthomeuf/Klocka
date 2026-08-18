@@ -114,17 +114,17 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
   const toggle = (title) => setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }));
 
   return (
-    <div className="border border-[#1c2725] rounded-md bg-[#0c0c0c] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#16201f]">
-        <p className="text-white text-sm font-medium">Tableau annuel détaillé</p>
+    <div className="border border-[#282b2a] rounded-md bg-[#0e100f] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#242726]">
+        <p className="text-[#edeae5] text-sm font-medium">Tableau annuel détaillé</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-[#1c2725]">
-              <th className="sticky left-0 z-10 bg-[#0c0c0c] px-3 py-2 text-left text-[9px] uppercase tracking-[0.14em] text-[#5e7672] font-medium whitespace-nowrap">Ligne</th>
+            <tr className="border-b border-[#282b2a]">
+              <th className="sticky left-0 z-10 bg-[#0e100f] px-3 py-2 text-left text-[9px] uppercase tracking-[0.14em] text-[#6b7270] font-medium whitespace-nowrap">Ligne</th>
               {years.map((y) => (
-                <th key={y} className="px-2 py-2 text-right text-[9px] uppercase tracking-[0.14em] text-[#5e7672] font-medium whitespace-nowrap">An {y}</th>
+                <th key={y} className="px-2 py-2 text-right text-[9px] uppercase tracking-[0.14em] text-[#6b7270] font-medium whitespace-nowrap">An {y}</th>
               ))}
             </tr>
           </thead>
@@ -139,7 +139,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                   onClick={() => toggle(sec.title)}
                 >
                   <td
-                    className="sticky left-0 z-10 px-3 py-2 text-[10px] uppercase tracking-[0.18em] font-semibold border-b border-[#16201f] whitespace-nowrap"
+                    className="sticky left-0 z-10 px-3 py-2 text-[10px] uppercase tracking-[0.18em] font-semibold border-b border-[#242726] whitespace-nowrap"
                     style={{ backgroundColor: sec.headerBg, color: sec.color }}
                   >
                     <span className="inline-flex items-center gap-1.5">
@@ -152,18 +152,18 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                     const val = sum != null ? fmtCur(sum) : "";
                     const isNeg = typeof val === "string" && val.trim().startsWith("-");
                     return (
-                      <td key={r.annee} className="px-2 py-2 text-right tabular-nums text-xs font-semibold whitespace-nowrap border-b border-[#16201f]" style={{ color: isNeg ? "#E8836B" : sec.color }}>{val}</td>
+                      <td key={r.annee} className="px-2 py-2 text-right tabular-nums text-xs font-semibold whitespace-nowrap border-b border-[#242726]" style={{ color: isNeg ? "#E8836B" : sec.color }}>{val}</td>
                     );
                   })}
                 </tr>
                 {openSections[sec.title] && sec.rows.map((row, ri) => (
-                  <tr key={row.label} className={`border-b border-white/[0.03] last:border-0 hover:bg-white/[0.04] transition-colors ${ri % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"}`}>
-                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-[#93aca7] whitespace-nowrap ${ri % 2 === 0 ? "bg-[#121212]" : "bg-[#0c0c0c]"}`}>{row.label}</td>
+                  <tr key={row.label} className={`border-b border-[#edeae5]/[0.03] last:border-0 hover:bg-[#edeae5]/[0.04] transition-colors ${ri % 2 === 0 ? "bg-[#edeae5]/[0.02]" : "bg-transparent"}`}>
+                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-[#9aa19e] whitespace-nowrap ${ri % 2 === 0 ? "bg-[#121212]" : "bg-[#0e100f]"}`}>{row.label}</td>
                     {rows.map((r) => {
                       const val = row.get(r);
                       const isNeg = typeof val === "string" && val.trim().startsWith("-");
                       return (
-                        <td key={r.annee} className={`px-2 py-1.5 text-right tabular-nums text-xs whitespace-nowrap ${isNeg ? "text-[#E8836B]" : "text-[#e6efed]"}`}>{val}</td>
+                        <td key={r.annee} className={`px-2 py-1.5 text-right tabular-nums text-xs whitespace-nowrap ${isNeg ? "text-[#E8836B]" : "text-[#edeae5]"}`}>{val}</td>
                       );
                     })}
                   </tr>

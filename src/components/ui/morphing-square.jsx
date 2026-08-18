@@ -38,7 +38,7 @@ export function MorphingSquare({
         }}
         {...props}
       />
-      {message && <div className="text-white font-montserrat text-sm">{message}</div>}
+      {message && <div className="text-[#edeae5] font-montserrat text-sm">{message}</div>}
     </div>
   )
 }

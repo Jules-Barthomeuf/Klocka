@@ -149,10 +149,10 @@ export default function KlockAI() {
   
   if (isInitializing) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0c0c]">
         <div className="text-center">
           <div className="relative w-16 h-4 mx-auto mb-4">
-            <div className="absolute w-3 h-3 bg-[#33d6c0] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
+            <div className="absolute w-3 h-3 bg-[#35a79b] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
           </div>
           <style>{`
             @keyframes bounce-horizontal {
@@ -160,7 +160,7 @@ export default function KlockAI() {
               50% { left: calc(100% - 12px); }
             }
           `}</style>
-          <p className="text-[#93aca7]">Chargement de KlockAI...</p>
+          <p className="text-[#9aa19e]">Chargement de KlockAI...</p>
         </div>
       </div>
     );
@@ -170,7 +170,7 @@ export default function KlockAI() {
 
   const welcomeBlock = (
     <div className="text-center mb-8">
-      <h2 className="text-2xl font-medium text-white">{welcomePhrase}</h2>
+      <h2 className="text-2xl font-medium text-[#edeae5]">{welcomePhrase}</h2>
     </div>
   );
 
@@ -182,7 +182,7 @@ export default function KlockAI() {
           variant="ghost"
           size="sm"
           onClick={handleNewConversation}
-          className="text-[#7f9995] hover:text-white hover:bg-white/5 text-xs"
+          className="text-[#8b9391] hover:text-[#edeae5] hover:bg-[#edeae5]/5 text-xs"
         >
           <RefreshCw className="w-3.5 h-3.5 mr-2" />
           Nouvelle conversation
@@ -216,7 +216,7 @@ export default function KlockAI() {
                 transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                 className="flex justify-end"
               >
-                <div className="max-w-[80%] rounded-md rounded-br-sm px-4 py-2.5 bg-white/[0.06] border border-white/10 text-white">
+                <div className="max-w-[80%] rounded-md rounded-br-sm px-4 py-2.5 bg-[#edeae5]/[0.06] border border-[#edeae5]/10 text-[#edeae5]">
                   <p className="text-sm leading-relaxed">{stripEmojis(message.content)}</p>
                 </div>
               </motion.div>
@@ -228,30 +228,30 @@ export default function KlockAI() {
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className="flex justify-start"
               >
-                <div className="flex-1 min-w-0 rounded-md border border-[#33d6c0]/25 bg-[#33d6c0]/[0.06] px-4 py-2.5">
+                <div className="flex-1 min-w-0 rounded-md border border-[#35a79b]/25 bg-[#35a79b]/[0.06] px-4 py-2.5">
                   <div className="prose prose-sm prose-invert max-w-none">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
                         table: ({ children }) => (
-                          <div className="my-3 overflow-x-auto rounded-md border border-white/10">
+                          <div className="my-3 overflow-x-auto rounded-md border border-[#edeae5]/10">
                             <table className="w-full text-sm border-collapse">{children}</table>
                           </div>
                         ),
-                        thead: ({ children }) => <thead className="bg-white/[0.04]">{children}</thead>,
-                        th: ({ children }) => <th className="text-left font-semibold text-white px-3 py-2 border-b border-white/10">{children}</th>,
-                        td: ({ children }) => <td className="text-[#e6efed] px-3 py-2 border-b border-[#16201f] align-top">{children}</td>,
+                        thead: ({ children }) => <thead className="bg-[#edeae5]/[0.04]">{children}</thead>,
+                        th: ({ children }) => <th className="text-left font-semibold text-[#edeae5] px-3 py-2 border-b border-[#edeae5]/10">{children}</th>,
+                        td: ({ children }) => <td className="text-[#edeae5] px-3 py-2 border-b border-[#242726] align-top">{children}</td>,
                         tr: ({ children }) => <tr>{children}</tr>,
-                        p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-[#e6efed]">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-[#e6efed]">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-[#e6efed]">{children}</ol>,
+                        p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed text-[#edeae5]">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1 text-[#edeae5]">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1 text-[#edeae5]">{children}</ol>,
                         li: ({ children }) => <li className="text-sm">{children}</li>,
-                        strong: ({ children }) => <strong className="font-semibold text-[#5ee7d4]">{children}</strong>,
-                        h1: ({ children }) => <h1 className="text-lg mb-2 text-white">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-base mb-2 text-white">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-sm mb-1 text-white">{children}</h3>,
+                        strong: ({ children }) => <strong className="font-semibold text-[#7fd3c9]">{children}</strong>,
+                        h1: ({ children }) => <h1 className="text-lg mb-2 text-[#edeae5]">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-base mb-2 text-[#edeae5]">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-sm mb-1 text-[#edeae5]">{children}</h3>,
                         code: ({ children }) => (
-                          <code className="bg-white/5 px-1 py-0.5 rounded text-[#5ee7d4] text-xs">{children}</code>
+                          <code className="bg-[#edeae5]/5 px-1 py-0.5 rounded text-[#7fd3c9] text-xs">{children}</code>
                         ),
                       }}
                     >
@@ -263,13 +263,13 @@ export default function KlockAI() {
                   {message.tool_calls && message.tool_calls.length > 0 && (
                     <div className="mt-2">
                       {message.tool_calls.map((toolCall, idx) => (
-                        <div key={idx} className="text-xs text-[#7f9995] flex items-center gap-1.5">
+                        <div key={idx} className="text-xs text-[#8b9391] flex items-center gap-1.5">
                           {toolCall.status === "running" || toolCall.status === "in_progress" ? (
                             <span className="flex items-center gap-1.5">
                               {[0, 1, 2].map((i) => (
                                 <motion.span
                                   key={i}
-                                  className="w-1.5 h-1.5 rounded-full bg-[#33d6c0]"
+                                  className="w-1.5 h-1.5 rounded-full bg-[#35a79b]"
                                   animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
                                   transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut", delay: i * 0.18 }}
                                 />
@@ -278,7 +278,7 @@ export default function KlockAI() {
                             </span>
                           ) : (
                             <span className="flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#33d6c0]"></span>
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#35a79b]"></span>
                               Données récupérées
                             </span>
                           )}
@@ -304,7 +304,7 @@ export default function KlockAI() {
                   {[0, 1, 2].map((i) => (
                     <motion.span
                       key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-[#33d6c0]"
+                      className="w-1.5 h-1.5 rounded-full bg-[#35a79b]"
                       animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
                       transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut", delay: i * 0.18 }}
                     />

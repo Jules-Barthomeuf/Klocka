@@ -24,11 +24,11 @@ import "moment/locale/fr";
 moment.locale("fr");
 
 const statutConfig = {
-  nouveau: { label: "Nouveau", color: "bg-[#7f9995]/20 text-[#c4d5d1] border-[#7f9995]/30" },
+  nouveau: { label: "Nouveau", color: "bg-[#8b9391]/20 text-[#d3d8d6] border-[#8b9391]/30" },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
-  accepte: { label: "Accepté", color: "bg-[#33d6c0]/20 text-[#5ee7d4] border-[#33d6c0]/30" },
+  accepte: { label: "Accepté", color: "bg-[#35a79b]/20 text-[#7fd3c9] border-[#35a79b]/30" },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300 border-red-500/30" },
-  termine: { label: "Terminé", color: "bg-[#33d6c0]/20 text-[#33d6c0] border-[#33d6c0]/30" }
+  termine: { label: "Terminé", color: "bg-[#35a79b]/20 text-[#35a79b] border-[#35a79b]/30" }
 };
 
 export default function AdminSuggestions() {
@@ -129,26 +129,25 @@ export default function AdminSuggestions() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#050807]">
-        <Loader2 className="w-6 h-6 text-[#33d6c0] animate-spin" />
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0c0c]">
+        <Loader2 className="w-6 h-6 text-[#35a79b] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050807] text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
-            <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight">Feedback</h1>
-            <div className="h-px w-16 bg-[#33d6c0] mt-3" />
+            <p className="text-[#35a79b] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Feedback</h1>
           </div>
           <button onClick={() => { resetForm(); setShowDialog(true); }}
-            className="group flex items-center gap-3 bg-[#33d6c0]/10 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/20 hover:border-[#33d6c0]/50 text-white px-6 py-3 rounded-md transition-all duration-300">
-            <div className="w-9 h-9 bg-[#33d6c0]/20 rounded-lg flex items-center justify-center group-hover:bg-[#33d6c0]/30 transition-colors">
-              <Plus className="w-5 h-5 text-[#33d6c0]" />
+            className="group flex items-center gap-3 bg-[#35a79b]/10 border border-[#35a79b]/30 hover:bg-[#35a79b]/20 hover:border-[#35a79b]/50 text-[#edeae5] px-6 py-3 rounded-md transition-all duration-300">
+            <div className="w-9 h-9 bg-[#35a79b]/20 rounded-lg flex items-center justify-center group-hover:bg-[#35a79b]/30 transition-colors">
+              <Plus className="w-5 h-5 text-[#35a79b]" />
             </div>
             <span className="text-sm font-medium">Nouvelle amélioration</span>
           </button>
@@ -157,13 +156,13 @@ export default function AdminSuggestions() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
-            { label: "Total", value: stats.total, color: "text-white" },
-            { label: "Nouvelles", value: stats.nouveau, color: "text-[#93aca7]" },
+            { label: "Total", value: stats.total, color: "text-[#edeae5]" },
+            { label: "Nouvelles", value: stats.nouveau, color: "text-[#9aa19e]" },
             { label: "En cours", value: stats.en_cours, color: "text-blue-400" },
-            { label: "Terminées", value: stats.termine, color: "text-[#33d6c0]" }
+            { label: "Terminées", value: stats.termine, color: "text-[#35a79b]" }
           ].map((s) => (
-            <div key={s.label} className="bg-[#0a0f0e] rounded-md border border-[#16201f] px-4 py-3">
-              <p className="text-[#7f9995] text-[10px] uppercase tracking-[0.15em] mb-1">{s.label}</p>
+            <div key={s.label} className="bg-[#0a0c0c] rounded-md border border-[#242726] px-4 py-3">
+              <p className="text-[#8b9391] text-[10px] uppercase tracking-[0.15em] mb-1">{s.label}</p>
               <p className={`text-xl font-light ${s.color}`}>{s.value}</p>
             </div>
           ))}
@@ -172,20 +171,20 @@ export default function AdminSuggestions() {
         {/* Filtres */}
         <div className="flex flex-col md:flex-row gap-3 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5e7672]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7270]" />
             <Input
               placeholder="Rechercher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-[#0a0f0e] border-[#16201f] text-white placeholder:text-[#5e7672] h-10"
+              className="pl-10 bg-[#0a0c0c] border-[#242726] text-[#edeae5] placeholder:text-[#6b7270] h-10"
             />
           </div>
           <Select value={filterStatut} onValueChange={setFilterStatut}>
-            <SelectTrigger className="w-full md:w-48 bg-[#0a0f0e] border-[#16201f] text-white h-10">
-              <Filter className="w-3.5 h-3.5 mr-2 text-[#7f9995]" />
+            <SelectTrigger className="w-full md:w-48 bg-[#0a0c0c] border-[#242726] text-[#edeae5] h-10">
+              <Filter className="w-3.5 h-3.5 mr-2 text-[#8b9391]" />
               <SelectValue placeholder="Filtrer par statut" />
             </SelectTrigger>
-            <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
+            <SelectContent className="bg-[#0a0c0c] border-[#282b2a] text-[#edeae5]">
               <SelectItem value="all">Tous les statuts</SelectItem>
               <SelectItem value="nouveau">Nouveau</SelectItem>
               <SelectItem value="en_cours">En cours</SelectItem>
@@ -200,43 +199,43 @@ export default function AdminSuggestions() {
         <div className="space-y-3">
           {filteredSuggestions.length === 0 ? (
             <div className="text-center py-20">
-              <div className="w-20 h-20 bg-white/[0.03] rounded-md flex items-center justify-center mx-auto mb-6">
-                <Lightbulb className="w-10 h-10 text-[#3c4a47]" />
+              <div className="w-20 h-20 bg-[#edeae5]/[0.03] rounded-md flex items-center justify-center mx-auto mb-6">
+                <Lightbulb className="w-10 h-10 text-[#4a4d4b]" />
               </div>
-              <h2 className="text-xl font-light text-white mb-2">Aucune suggestion</h2>
-              <p className="text-[#5e7672] text-sm">Aucune suggestion ne correspond à votre recherche</p>
+              <h2 className="text-xl font-light text-[#edeae5] mb-2">Aucune suggestion</h2>
+              <p className="text-[#6b7270] text-sm">Aucune suggestion ne correspond à votre recherche</p>
             </div>
           ) : (
             filteredSuggestions.map((suggestion) => {
               const config = statutConfig[suggestion.statut] || statutConfig.nouveau;
               const isAdmin = suggestion.client_email === "admin@klocka.fr";
               return (
-                <div key={suggestion.id} className="bg-[#0a0f0e] rounded-md border border-[#16201f] hover:border-white/[0.10] transition-all p-5">
+                <div key={suggestion.id} className="bg-[#0a0c0c] rounded-md border border-[#242726] hover:border-[#edeae5]/[0.10] transition-all p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-[#5e7672] text-xs flex-shrink-0">{moment(suggestion.created_date).format('DD/MM/YY')}</span>
+                        <span className="text-[#6b7270] text-xs flex-shrink-0">{moment(suggestion.created_date).format('DD/MM/YY')}</span>
                         <Badge className={`${config.color} text-[10px] px-2 py-0 border`}>{config.label}</Badge>
-                        {isAdmin && <Badge className="bg-[#33d6c0]/10 text-[#33d6c0] text-[10px] px-2 py-0 border border-[#33d6c0]/20">Admin</Badge>}
+                        {isAdmin && <Badge className="bg-[#35a79b]/10 text-[#35a79b] text-[10px] px-2 py-0 border border-[#35a79b]/20">Admin</Badge>}
                       </div>
-                      <p className="text-white/80 text-sm mb-2 leading-relaxed">{suggestion.contenu}</p>
+                      <p className="text-[#edeae5]/80 text-sm mb-2 leading-relaxed">{suggestion.contenu}</p>
                       <div className="flex items-center gap-3">
-                        <p className="text-[#7f9995] text-xs">{suggestion.client_name}</p>
-                        {!isAdmin && <p className="text-[#5e7672] text-xs">{suggestion.client_email}</p>}
+                        <p className="text-[#8b9391] text-xs">{suggestion.client_name}</p>
+                        {!isAdmin && <p className="text-[#6b7270] text-xs">{suggestion.client_email}</p>}
                       </div>
                       {suggestion.note_admin && (
-                        <div className="mt-3 px-3 py-2 bg-white/[0.02] rounded-lg border border-[#131c1b]">
-                          <p className="text-[#7f9995] text-xs"><span className="text-[#93aca7]">Note :</span> {suggestion.note_admin}</p>
+                        <div className="mt-3 px-3 py-2 bg-[#edeae5]/[0.02] rounded-lg border border-[#232625]">
+                          <p className="text-[#8b9391] text-xs"><span className="text-[#9aa19e]">Note :</span> {suggestion.note_admin}</p>
                         </div>
                       )}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button onClick={() => handleEdit(suggestion)}
-                        className="flex items-center gap-1.5 text-[#93aca7] hover:text-white text-xs px-3 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition-all">
+                        className="flex items-center gap-1.5 text-[#9aa19e] hover:text-[#edeae5] text-xs px-3 py-1.5 rounded-lg bg-[#edeae5]/[0.03] hover:bg-[#edeae5]/[0.06] transition-all">
                         <Edit2 className="w-3 h-3" /> Éditer
                       </button>
                       <Button variant="ghost" size="icon" onClick={() => { if (window.confirm("Supprimer ?")) deleteMutation.mutate(suggestion.id); }}
-                        className="text-[#5e7672] hover:text-red-400 hover:bg-red-500/10 h-8 w-8">
+                        className="text-[#6b7270] hover:text-red-400 hover:bg-red-500/10 h-8 w-8">
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -249,29 +248,29 @@ export default function AdminSuggestions() {
 
         {/* Dialog ajout/édition */}
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent className="max-w-lg bg-[#050505] border-[#1c2725]">
+          <DialogContent className="max-w-lg bg-[#0a0c0c] border-[#282b2a]">
             <DialogHeader>
-              <DialogTitle className="text-xl font-light text-white">
+              <DialogTitle className="text-xl font-light text-[#edeae5]">
                 {editingSuggestion ? "Modifier la suggestion" : "Nouvelle amélioration"}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-5 mt-4">
               <div className="space-y-2">
-                <label className="text-white text-sm font-medium">Description</label>
+                <label className="text-[#edeae5] text-sm font-medium">Description</label>
                 <Textarea
                   value={formData.contenu}
                   onChange={(e) => setFormData({ ...formData, contenu: e.target.value })}
                   placeholder="Décrivez l'amélioration..."
-                  className="bg-[#0a0f0e] text-white border-[#1c2725] min-h-[120px]"
+                  className="bg-[#0a0c0c] text-[#edeae5] border-[#282b2a] min-h-[120px]"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-white text-sm font-medium">Statut</label>
+                <label className="text-[#edeae5] text-sm font-medium">Statut</label>
                 <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                  <SelectTrigger className="bg-[#0a0f0e] border-[#1c2725] text-white">
+                  <SelectTrigger className="bg-[#0a0c0c] border-[#282b2a] text-[#edeae5]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a0f0e] border-[#1c2725] text-white">
+                  <SelectContent className="bg-[#0a0c0c] border-[#282b2a] text-[#edeae5]">
                     <SelectItem value="nouveau">Nouveau</SelectItem>
                     <SelectItem value="en_cours">En cours</SelectItem>
                     <SelectItem value="accepte">Accepté</SelectItem>
@@ -281,19 +280,19 @@ export default function AdminSuggestions() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-white text-sm font-medium">Note interne</label>
+                <label className="text-[#edeae5] text-sm font-medium">Note interne</label>
                 <Textarea
                   value={formData.note_admin}
                   onChange={(e) => setFormData({ ...formData, note_admin: e.target.value })}
                   placeholder="Notes internes..."
-                  className="bg-[#0a0f0e] text-white border-[#1c2725]"
+                  className="bg-[#0a0c0c] text-[#edeae5] border-[#282b2a]"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#16201f]">
-              <Button variant="ghost" onClick={() => setShowDialog(false)} className="text-[#93aca7] hover:text-white">Annuler</Button>
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#242726]">
+              <Button variant="ghost" onClick={() => setShowDialog(false)} className="text-[#9aa19e] hover:text-[#edeae5]">Annuler</Button>
               <Button onClick={handleSubmit} disabled={!formData.contenu.trim() || createMutation.isPending || updateMutation.isPending}
-                className="bg-[#33d6c0]/15 border border-[#33d6c0]/30 hover:bg-[#33d6c0]/25 text-white">
+                className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5]">
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {editingSuggestion ? "Mettre à jour" : "Ajouter"}
               </Button>

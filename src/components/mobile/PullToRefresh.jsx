@@ -11,17 +11,18 @@ export default function PullToRefresh({ onRefresh, children }) {
   const containerRef = useRef(null);
 
   const handleTouchStart = useCallback((e) => {
-    const scrollTop = containerRef.current?.scrollTop ?? 0;
-    if (scrollTop === 0) {
+    // Le défilement est celui de la page : on n'arme le geste qu'en haut.
+    if (window.scrollY <= 0) {
       startY.current = e.touches[0].clientY;
     }
   }, []);
 
   const handleTouchMove = useCallback((e) => {
     if (startY.current === null || refreshing) return;
+    if (window.scrollY > 0) { startY.current = null; setPullDistance(0); return; }
     const delta = e.touches[0].clientY - startY.current;
     if (delta > 0) {
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       setPullDistance(Math.min(delta * 0.5, PULL_THRESHOLD + 20));
     }
   }, [refreshing]);
@@ -42,11 +43,10 @@ export default function PullToRefresh({ onRefresh, children }) {
   return (
     <div
       ref={containerRef}
-      className="relative overflow-auto h-full"
+      className="relative"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{ overscrollBehavior: "none" }}
     >
       {/* Pull indicator */}
       <AnimatePresence>
@@ -58,9 +58,9 @@ export default function PullToRefresh({ onRefresh, children }) {
             className="absolute top-0 left-0 right-0 flex items-center justify-center z-20 pointer-events-none"
             style={{ height: pullDistance }}
           >
-            <div className="w-8 h-8 bg-[#33d6c0]/20 rounded-full flex items-center justify-center border border-[#33d6c0]/30">
+            <div className="w-8 h-8 bg-[#35a79b]/20 rounded-full flex items-center justify-center border border-[#35a79b]/30">
               <RefreshCw
-                className="w-4 h-4 text-[#33d6c0]"
+                className="w-4 h-4 text-[#35a79b]"
                 style={{
                   transform: `rotate(${progress * 360}deg)`,
                   animation: refreshing ? "spin 0.8s linear infinite" : "none",

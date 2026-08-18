@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils'
 
 const buttonVariants = {
     variant: {
-        default: "bg-[#33d6c0]/10 hover:bg-[#33d6c0]/5 border-[#33d6c0]/30",
-        solid: "bg-[#33d6c0] hover:bg-[#33d6c0]/90 text-white border-transparent hover:border-white/50 transition-all duration-200",
-        ghost: "border-transparent bg-transparent hover:border-[#33d6c0]/60 hover:bg-white/10",
+        default: "bg-[#35a79b]/10 hover:bg-[#35a79b]/5 border-[#35a79b]/30",
+        solid: "bg-[#35a79b] hover:bg-[#35a79b]/90 text-[#edeae5] border-transparent hover:border-[#edeae5]/50 transition-all duration-200",
+        ghost: "border-transparent bg-transparent hover:border-[#35a79b]/60 hover:bg-[#edeae5]/10",
     },
     size: {
         default: "px-7 py-1.5",
@@ -22,7 +22,7 @@ const NeonButton = React.forwardRef(
         return (
             <button
                 className={cn(
-                    "relative group border text-white text-center rounded-full font-medium transition-all duration-200",
+                    "relative group border text-[#edeae5] text-center rounded-full font-medium transition-all duration-200",
                     variantClass,
                     sizeClass,
                     className
@@ -31,12 +31,12 @@ const NeonButton = React.forwardRef(
                 {...props}
             >
                 <span className={cn(
-                    "absolute h-px opacity-0 group-hover:opacity-100 transition-all duration-500 ease-in-out inset-x-0 inset-y-0 bg-gradient-to-r w-3/4 mx-auto from-transparent via-[#33d6c0] to-transparent hidden",
+                    "absolute h-px opacity-0 group-hover:opacity-100 transition-all duration-500 ease-in-out inset-x-0 inset-y-0 bg-gradient-to-r w-3/4 mx-auto from-transparent via-[#35a79b] to-transparent hidden",
                     neon && "block"
                 )} />
                 {children}
                 <span className={cn(
-                    "absolute group-hover:opacity-30 transition-all duration-500 ease-in-out inset-x-0 h-px -bottom-px bg-gradient-to-r w-3/4 mx-auto from-transparent via-[#33d6c0] to-transparent hidden",
+                    "absolute group-hover:opacity-30 transition-all duration-500 ease-in-out inset-x-0 h-px -bottom-px bg-gradient-to-r w-3/4 mx-auto from-transparent via-[#35a79b] to-transparent hidden",
                     neon && "block"
                 )} />
             </button>

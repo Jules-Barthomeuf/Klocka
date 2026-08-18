@@ -99,31 +99,30 @@ export default function Comparateur() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#050807] text-white">
+    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5]">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-[#33d6c0]/10 rounded-md flex items-center justify-center">
-              <GitCompareArrows className="w-5 h-5 text-[#33d6c0]" />
+            <div className="w-10 h-10 bg-[#35a79b]/10 rounded-md flex items-center justify-center">
+              <GitCompareArrows className="w-5 h-5 text-[#35a79b]" />
             </div>
             <div>
-              <p className="text-[#33d6c0] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
-              <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">Comparer mes projets</h1>
+              <p className="text-[#35a79b] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
+              <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Comparer mes projets</h1>
             </div>
           </div>
-          <div className="h-px w-16 bg-[#33d6c0] mt-3 mb-8" />
 
           <div className="flex items-center justify-between mb-4">
-            <p className="text-white/30 text-sm">
+            <p className="text-[#edeae5]/30 text-sm">
               Sélectionnez 2 à 4 projets pour les comparer côte à côte.
-              {selectedIds.length > 0 && <span className="text-white/50 ml-2">({selectedIds.length} sélectionné{selectedIds.length > 1 ? "s" : ""})</span>}
+              {selectedIds.length > 0 && <span className="text-[#edeae5]/50 ml-2">({selectedIds.length} sélectionné{selectedIds.length > 1 ? "s" : ""})</span>}
             </p>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowSelector(!showSelector)}
-              className="text-white/40 hover:text-white hover:bg-white/10 gap-1.5"
+              className="text-[#edeae5]/40 hover:text-[#edeae5] hover:bg-[#edeae5]/10 gap-1.5"
             >
               {showSelector ? "Masquer" : "Afficher"} les projets
               {showSelector ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -160,7 +159,7 @@ export default function Comparateur() {
             className="mt-10"
           >
             {/* Onglets */}
-            <div className="flex gap-1 border-b border-[#16201f] mb-8 overflow-x-auto">
+            <div className="flex gap-1 border-b border-[#242726] mb-8 overflow-x-auto">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 const isActive = activeTab === t.id;
@@ -170,8 +169,8 @@ export default function Comparateur() {
                     onClick={() => setActiveTab(t.id)}
                     className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
                       isActive
-                        ? "text-[#33d6c0] border-[#33d6c0]"
-                        : "text-white/30 border-transparent hover:text-white/60"
+                        ? "text-[#35a79b] border-[#35a79b]"
+                        : "text-[#edeae5]/30 border-transparent hover:text-[#edeae5]/60"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -238,8 +237,8 @@ export default function Comparateur() {
 
         {/* Message si < 2 projets sélectionnés */}
         {metrics.length < 2 && selectedIds.length > 0 && (
-          <div className="mt-10 text-center py-12 bg-[#0a0f0e] rounded-md border border-[#16201f]">
-            <p className="text-white/30 text-sm">Sélectionnez au moins 2 projets pour voir la comparaison.</p>
+          <div className="mt-10 text-center py-12 bg-[#0a0c0c] rounded-md border border-[#242726]">
+            <p className="text-[#edeae5]/30 text-sm">Sélectionnez au moins 2 projets pour voir la comparaison.</p>
           </div>
         )}
       </div>

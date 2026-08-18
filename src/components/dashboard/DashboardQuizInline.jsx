@@ -30,7 +30,7 @@ function QuestionView({ question, onAnswer }) {
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.25 }}
     >
-      <h3 className="text-white text-sm md:text-base font-medium mb-5 leading-relaxed">
+      <h3 className="text-[#edeae5] text-sm md:text-base font-medium mb-5 leading-relaxed">
         {question.question}
       </h3>
       <div className="space-y-2">
@@ -39,12 +39,12 @@ function QuestionView({ question, onAnswer }) {
           const isCorrect = index === question.correctIndex;
           const show = hasAnswered;
 
-          let border = "border-[#16201f] hover:border-white/[0.15]";
-          let bg = "bg-white/[0.02] hover:bg-white/[0.04]";
+          let border = "border-[#242726] hover:border-[#edeae5]/[0.15]";
+          let bg = "bg-[#edeae5]/[0.02] hover:bg-[#edeae5]/[0.04]";
           if (show) {
-            if (isCorrect) { border = "border-[#33d6c0]/50"; bg = "bg-[#33d6c0]/10"; }
+            if (isCorrect) { border = "border-[#35a79b]/50"; bg = "bg-[#35a79b]/10"; }
             else if (isSelected) { border = "border-red-500/50"; bg = "bg-red-500/10"; }
-            else { border = "border-white/[0.03]"; bg = "bg-white/[0.01]"; }
+            else { border = "border-[#edeae5]/[0.03]"; bg = "bg-[#edeae5]/[0.01]"; }
           }
 
           return (
@@ -55,18 +55,18 @@ function QuestionView({ question, onAnswer }) {
               className={`w-full text-left p-3 rounded-md border ${border} ${bg} transition-all duration-300 flex items-center gap-3`}
             >
               <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${
-                show && isCorrect ? "bg-[#33d6c0]/20 text-[#33d6c0]" :
+                show && isCorrect ? "bg-[#35a79b]/20 text-[#35a79b]" :
                 show && isSelected && !isCorrect ? "bg-red-500/20 text-red-400" :
-                "bg-white/[0.05] text-white/60"
+                "bg-[#edeae5]/[0.05] text-[#edeae5]/60"
               }`}>
                 {show && isCorrect ? <CheckCircle2 className="w-3.5 h-3.5" /> :
                  show && isSelected && !isCorrect ? <XCircle className="w-3.5 h-3.5" /> :
                  String.fromCharCode(65 + index)}
               </div>
               <span className={`text-xs md:text-sm ${
-                show && isCorrect ? "text-[#33d6c0]" :
+                show && isCorrect ? "text-[#35a79b]" :
                 show && isSelected && !isCorrect ? "text-red-400" :
-                hasAnswered ? "text-white/50" : "text-white"
+                hasAnswered ? "text-[#edeae5]/50" : "text-[#edeae5]"
               }`}>{option}</span>
             </button>
           );
@@ -76,7 +76,7 @@ function QuestionView({ question, onAnswer }) {
         <motion.p
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-3 text-white/80 text-[11px] leading-relaxed p-3 rounded-lg bg-white/[0.02] border border-[#131c1b]"
+          className="mt-3 text-[#edeae5]/80 text-[11px] leading-relaxed p-3 rounded-lg bg-[#edeae5]/[0.02] border border-[#232625]"
         >
           {question.explanation}
         </motion.p>
@@ -108,7 +108,7 @@ function ResultsView({ answers, questions, resources, onRestart }) {
               percent >= 50 ? "Pas mal ! Continuez à vous former." :
               "C'est un début ! Les vidéos ci-dessous vous aideront.";
 
-  const color = percent >= 70 ? "#33d6c0" : percent >= 50 ? "#F59E0B" : "#EF4444";
+  const color = percent >= 70 ? "#35a79b" : percent >= 50 ? "#e0c9a0" : "#EF4444";
 
   return (
     <motion.div
@@ -122,24 +122,24 @@ function ResultsView({ answers, questions, resources, onRestart }) {
           <Trophy className="w-6 h-6" style={{ color }} />
         </div>
         <div>
-          <p className="text-2xl font-light text-white">
-            {score} <span className="text-[#7f9995] text-sm">/ {total}</span>
+          <p className="text-2xl font-light text-[#edeae5]">
+            {score} <span className="text-[#8b9391] text-sm">/ {total}</span>
           </p>
-          <p className="text-white/80 text-xs">{msg}</p>
+          <p className="text-[#edeae5]/80 text-xs">{msg}</p>
         </div>
       </div>
 
       {/* Score bar */}
       <div className="grid grid-cols-10 gap-1 mb-5">
         {answers.map((a, i) => (
-          <div key={i} className={`h-1 rounded-full ${a.correct ? "bg-[#33d6c0]" : "bg-red-500/60"}`} />
+          <div key={i} className={`h-1 rounded-full ${a.correct ? "bg-[#35a79b]" : "bg-red-500/60"}`} />
         ))}
       </div>
 
       {/* Catégories à approfondir */}
       {wrongCategories.length > 0 && (
         <div className="mb-5">
-          <p className="text-white text-[9px] uppercase tracking-[0.2em] mb-2">À approfondir</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] mb-2">À approfondir</p>
           <div className="flex flex-wrap gap-1.5">
             {wrongCategories.map(cat => (
               <span key={cat} className="text-[10px] px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400">
@@ -153,7 +153,7 @@ function ResultsView({ answers, questions, resources, onRestart }) {
       {/* Vidéos recommandées */}
       {displayResources.length > 0 && (
         <div className="mb-5">
-          <p className="text-white text-[9px] uppercase tracking-[0.2em] mb-2">
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] mb-2">
             {allCorrect ? "Pour aller plus loin" : "Vidéos recommandées"}
           </p>
           <div className="space-y-2">
@@ -163,26 +163,26 @@ function ResultsView({ answers, questions, resources, onRestart }) {
                 href={resource.url_fichier}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-2.5 rounded-md bg-white/[0.02] border border-[#16201f] hover:border-[#33d6c0]/30 hover:bg-[#33d6c0]/5 transition-all group"
+                className="flex items-center gap-3 p-2.5 rounded-md bg-[#edeae5]/[0.02] border border-[#242726] hover:border-[#35a79b]/30 hover:bg-[#35a79b]/5 transition-all group"
               >
                 {resource.image_miniature ? (
                   <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
                     <img src={resource.image_miniature} alt="" className="w-full h-full object-cover" loading="lazy" />
                   </div>
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-[#33d6c0]/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-[#35a79b]/10 flex items-center justify-center flex-shrink-0">
                     {resource.type === 'video' || resource.type === 'webinar'
-                      ? <Play className="w-4 h-4 text-[#33d6c0]" />
-                      : <BookOpen className="w-4 h-4 text-[#33d6c0]" />}
+                      ? <Play className="w-4 h-4 text-[#35a79b]" />
+                      : <BookOpen className="w-4 h-4 text-[#35a79b]" />}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-xs truncate">{resource.titre}</p>
-                  <p className="text-white/60 text-[9px] uppercase tracking-wider">
+                  <p className="text-[#edeae5] text-xs truncate">{resource.titre}</p>
+                  <p className="text-[#edeae5]/60 text-[9px] uppercase tracking-wider">
                     {categorieLabels[resource.categorie] || resource.categorie}
                   </p>
                 </div>
-                <ArrowRight className="w-3 h-3 text-[#5e7672] group-hover:text-[#33d6c0] transition-colors flex-shrink-0" />
+                <ArrowRight className="w-3 h-3 text-[#6b7270] group-hover:text-[#35a79b] transition-colors flex-shrink-0" />
               </a>
             ))}
           </div>
@@ -192,7 +192,7 @@ function ResultsView({ answers, questions, resources, onRestart }) {
       <Button
         onClick={onRestart}
         variant="outline"
-        className="w-full border-[#1c2725] bg-white/[0.02] text-white hover:bg-white/[0.05] text-xs"
+        className="w-full border-[#282b2a] bg-[#edeae5]/[0.02] text-[#edeae5] hover:bg-[#edeae5]/[0.05] text-xs"
       >
         <RotateCcw className="w-3.5 h-3.5 mr-2" />
         Recommencer le quiz
@@ -233,20 +233,20 @@ export default function DashboardQuizInline({ resources }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.4 }}
-        className="bg-white/[0.04] rounded-md border border-white/[0.3] p-5 md:p-6"
+        className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5 md:p-6"
       >
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="w-10 h-10 rounded-md bg-[#F59E0B]/[0.1] flex items-center justify-center">
-            <Brain className="w-[18px] h-[18px] text-[#F59E0B]" />
+          <div className="w-10 h-10 rounded-md bg-[#e0c9a0]/[0.1] flex items-center justify-center">
+            <Brain className="w-[18px] h-[18px] text-[#e0c9a0]" />
           </div>
           <div>
-            <h3 className="text-white text-sm font-medium mb-1">Quiz Immobilier Commercial</h3>
-            <p className="text-white/70 text-xs leading-relaxed mb-4">
+            <h3 className="text-[#edeae5] text-sm font-medium mb-1">Quiz Immobilier Commercial</h3>
+            <p className="text-[#edeae5]/70 text-xs leading-relaxed mb-4">
               10 questions pour tester vos connaissances. À la fin, des ressources personnalisées pour progresser.
             </p>
             <Button
               onClick={() => setStarted(true)}
-              className="bg-[#F59E0B]/15 border border-[#F59E0B]/30 hover:bg-[#F59E0B]/25 text-white text-xs h-8 px-4"
+              className="bg-[#e0c9a0]/15 border border-[#e0c9a0]/30 hover:bg-[#e0c9a0]/25 text-[#edeae5] text-xs h-8 px-4"
             >
               Commencer le quiz
               <ArrowRight className="w-3.5 h-3.5 ml-2" />
@@ -258,17 +258,17 @@ export default function DashboardQuizInline({ resources }) {
   }
 
   return (
-    <div className="bg-white/[0.04] rounded-md border border-white/[0.3] p-5 md:p-6">
+    <div className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5 md:p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-[#F59E0B]/[0.1] flex items-center justify-center flex-shrink-0">
-          <Brain className="w-4 h-4 text-[#F59E0B]" />
+        <div className="w-8 h-8 rounded-lg bg-[#e0c9a0]/[0.1] flex items-center justify-center flex-shrink-0">
+          <Brain className="w-4 h-4 text-[#e0c9a0]" />
         </div>
         <div className="flex-1">
-          <h3 className="text-white text-xs font-medium">Quiz Immobilier Commercial</h3>
+          <h3 className="text-[#edeae5] text-xs font-medium">Quiz Immobilier Commercial</h3>
         </div>
         {!finished && (
-          <span className="text-white text-[10px]">
+          <span className="text-[#edeae5] text-[10px]">
             {currentIndex + 1} / {quizImmoCommercial.length}
           </span>
         )}
@@ -276,9 +276,9 @@ export default function DashboardQuizInline({ resources }) {
 
       {/* Progress bar */}
       {!finished && (
-        <div className="h-[2px] bg-white/[0.04] rounded-full overflow-hidden mb-5">
+        <div className="h-[2px] bg-[#edeae5]/[0.04] rounded-full overflow-hidden mb-5">
           <motion.div
-            className="h-full bg-gradient-to-r from-[#33d6c0] to-[#F59E0B]"
+            className="h-full bg-gradient-to-r from-[#35a79b] to-[#e0c9a0]"
             animate={{ width: `${((currentIndex + (answers.length > currentIndex ? 1 : 0)) / quizImmoCommercial.length) * 100}%` }}
             transition={{ duration: 0.4 }}
           />

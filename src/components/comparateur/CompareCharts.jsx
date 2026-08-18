@@ -10,8 +10,8 @@ const COLORS = ["#991B1B", "#34D399", "#EAB308", "#C084FC"];
 function CustomTooltip({ active, payload, label, format = "currency" }) {
   if (!active || !payload) return null;
   return (
-    <div className="bg-[#1a1a1a] border border-[#24312f] rounded-lg p-3">
-      <p className="text-white text-xs font-medium mb-1">Année {label}</p>
+    <div className="bg-[#1a1a1a] border border-[#303332] rounded-lg p-3">
+      <p className="text-[#edeae5] text-xs font-medium mb-1">Année {label}</p>
       {payload.map((p, i) => (
         <p key={i} className="text-xs" style={{ color: p.color }}>
           {p.name}: {Math.round(p.value).toLocaleString("fr-FR")} €
@@ -35,9 +35,9 @@ export function RichesseChart({ metrics }) {
   }
 
   return (
-    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
+    <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-5">
       <div className="flex items-center mb-4">
-        <p className="text-white/40 text-xs uppercase tracking-[0.15em]">
+        <p className="text-[#edeae5]/40 text-xs uppercase tracking-[0.15em]">
           Création de richesse cumulée
         </p>
         <InfoTooltip text="Représente la richesse totale créée année après année : cashflow cumulé + capital remboursé. Plus la courbe monte vite, plus le projet crée de la valeur rapidement." />
@@ -90,9 +90,9 @@ export function CashflowChart({ metrics }) {
   }
 
   return (
-    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
+    <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-5">
       <div className="flex items-center mb-4">
-        <p className="text-white/40 text-xs uppercase tracking-[0.15em]">
+        <p className="text-[#edeae5]/40 text-xs uppercase tracking-[0.15em]">
           Cashflow annuel
         </p>
         <InfoTooltip text="Le cashflow annuel correspond à la différence entre les loyers perçus et l'ensemble des charges (crédit, assurance, comptabilité, etc.). Un cashflow positif signifie que le projet s'autofinance." />
@@ -130,9 +130,9 @@ export function LoyerEvolutionChart({ metrics }) {
   }
 
   return (
-    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
+    <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-5">
       <div className="flex items-center mb-4">
-        <p className="text-white/40 text-xs uppercase tracking-[0.15em]">
+        <p className="text-[#edeae5]/40 text-xs uppercase tracking-[0.15em]">
           Évolution des loyers
         </p>
         <InfoTooltip text="Projection de l'évolution des loyers sur la durée de détention, en tenant compte de l'indexation annuelle. Permet de comparer la croissance des revenus locatifs entre projets." />
@@ -182,9 +182,9 @@ export function RendementCompareChart({ metrics }) {
   ];
 
   return (
-    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
+    <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-5">
       <div className="flex items-center mb-4">
-        <p className="text-white/40 text-xs uppercase tracking-[0.15em]">
+        <p className="text-[#edeae5]/40 text-xs uppercase tracking-[0.15em]">
           Comparaison des rendements
         </p>
         <InfoTooltip text="Compare le rendement locatif net (loyer / prix de revient), le rendement global (performance totale incluant la revente) et le multiple des fonds propres (richesse créée / apport investi)." />
@@ -225,9 +225,9 @@ export function CashflowCumuleChart({ metrics }) {
   }
 
   return (
-    <div className="bg-[#0a0f0e] rounded-md border border-[#16201f] p-5">
+    <div className="bg-[#0a0c0c] rounded-md border border-[#242726] p-5">
       <div className="flex items-center mb-4">
-        <p className="text-white/40 text-xs uppercase tracking-[0.15em]">
+        <p className="text-[#edeae5]/40 text-xs uppercase tracking-[0.15em]">
           Cashflow cumulé
         </p>
         <InfoTooltip text="Somme de tous les cashflows annuels depuis l'acquisition. Permet de voir combien le projet a généré ou coûté au total sur la durée de détention." />

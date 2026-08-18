@@ -47,47 +47,44 @@ export async function analyserFiche(entree, ctx = {}) {
   // --- [2] Extraction ------------------------------------------------------
   const { lots: lotsExtraits, incidents, ia: extractionIA } = await extraire(ingestion.texte);
 
-  // --- [3] Déterministe : enrichissement, calculs, règles -------------------
-  const lots = [];
-  for (let i = 0; i < lotsExtraits.length; i++) {
-    const lot = lotsExtraits[i];
-    const enrichissement = await enrichir(lot);
-    const evaluation = evaluer(lot, enrichissement);
+  // --- [3] + [4] par lot, en parallèle -------------------------------------
+  // Les lots sont indépendants entre eux, et dans un lot la synthèse et le
+  // mail agent le sont aussi : tout part de front. Les 429 du palier gratuit
+  // sont absorbés par les retries de llm.js. Le contexte marché web, purement
+  // informatif et souvent lent, est sorti du chemin critique : il se calcule
+  // en arrière-plan après la sauvegarde (voir completerContexteMarche).
+  const lots = await Promise.all(
+    lotsExtraits.map(async (lot, i) => {
+      const enrichissement = await enrichir(lot);
+      const evaluation = evaluer(lot, enrichissement);
 
-    // --- [4] Rédaction ----------------------------------------------------
-    const dossierLot = { lot, enrichissement, evaluation };
-    const synthese = await redigerSynthese(dossierLot);
-    const mailAgent =
-      evaluation.verdict === 'INSUFFISANT'
-        ? await redigerMailAgent(dossierLot, { signature: ctx.user?.full_name })
-        : null;
+      const dossierLot = { lot, enrichissement, evaluation };
+      const [synthese, mailAgent] = await Promise.all([
+        redigerSynthese(dossierLot),
+        evaluation.verdict === 'INSUFFISANT'
+          ? redigerMailAgent(dossierLot, { signature: ctx.user?.full_name })
+          : null,
+      ]);
 
-    // Contexte marché web sourcé — informatif seulement, jamais dans le
-    // verdict ni la synthèse. Une seule exécution : reevaluerLot ne le rejoue
-    // pas.
-    const contexteMarche = await contexteMarcheLocal({
-      ville: enrichissement?.commune?.nom || val(lot.adresse)?.ville,
-      code_postal: val(lot.adresse)?.code_postal,
-      type_actif: val(lot.type_actif),
-    });
-
-    lots.push({
-      index: i,
-      intitule: lot.intitule_lot || (lotsExtraits.length > 1 ? `Lot ${i + 1}` : ''),
-      lot,
-      enrichissement,
-      evaluation,
-      synthese,
-      mail_agent: mailAgent,
-      contexte_marche: contexteMarche,
-      simulateur: parametresSimulateur({
-        prixFai: val(lot.prix_fai),
-        loyerAnnuel: val(lot.loyer_annuel_ht_hc),
-        surface: val(lot.surface_m2),
-      }),
-      incidents_garde_fou: incidents.filter((x) => x.lot === i),
-    });
-  }
+      return {
+        index: i,
+        intitule: lot.intitule_lot || (lotsExtraits.length > 1 ? `Lot ${i + 1}` : ''),
+        lot,
+        enrichissement,
+        evaluation,
+        synthese,
+        mail_agent: mailAgent,
+        // Complété en arrière-plan une fois le deal sauvegardé.
+        contexte_marche: null,
+        simulateur: parametresSimulateur({
+          prixFai: val(lot.prix_fai),
+          loyerAnnuel: val(lot.loyer_annuel_ht_hc),
+          surface: val(lot.surface_m2),
+        }),
+        incidents_garde_fou: incidents.filter((x) => x.lot === i),
+      };
+    })
+  );
 
   const dossier = {
     deal_id: dealId,
@@ -126,7 +123,41 @@ export async function analyserFiche(entree, ctx = {}) {
   };
 
   Records.create('Deal', dossier, ctx.user?.email);
+  // Jamais attendu : l'analyse répond tout de suite, le contexte marché
+  // apparaît au prochain rafraîchissement du dossier.
+  completerContexteMarche(dossier);
   return dossier;
+}
+
+/**
+ * Complète le contexte marché web de chaque lot en arrière-plan. L'étape est
+ * purement informative (jamais dans le verdict) et son échec reste silencieux ;
+ * une seule exécution par deal, comme avant. Le merge relit le deal au moment
+ * d'écrire et ne pose QUE le champ contexte_marche, pour ne pas écraser une
+ * réévaluation faite entre-temps.
+ */
+async function completerContexteMarche(dossier) {
+  try {
+    const contextes = await Promise.all(
+      (dossier.lots || []).map((l) =>
+        contexteMarcheLocal({
+          ville: l.enrichissement?.commune?.nom || val(l.lot.adresse)?.ville,
+          code_postal: val(l.lot.adresse)?.code_postal,
+          type_actif: val(l.lot.type_actif),
+        })
+      )
+    );
+    if (!contextes.some(Boolean)) return;
+
+    const actuel = Records.filter('Deal', { deal_id: dossier.deal_id })[0];
+    if (!actuel) return;
+    const lots = (actuel.lots || []).map((l, i) =>
+      l.contexte_marche ? l : { ...l, contexte_marche: contextes[i] || null }
+    );
+    Records.update('Deal', actuel.id, { lots });
+  } catch (e) {
+    console.error('[preanalyse] contexte marché en arrière-plan impossible :', e?.message || e);
+  }
 }
 
 /**
@@ -159,9 +190,10 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   }
 
   const dossierLot = { lot: entree.lot, enrichissement, evaluation };
-  const synthese = await redigerSynthese(dossierLot);
-  const mailAgent =
-    evaluation.verdict === 'INSUFFISANT' ? await redigerMailAgent(dossierLot, {}) : null;
+  const [synthese, mailAgent] = await Promise.all([
+    redigerSynthese(dossierLot),
+    evaluation.verdict === 'INSUFFISANT' ? redigerMailAgent(dossierLot, {}) : null,
+  ]);
 
   const lots = [...dossier.lots];
   lots[indexLot] = { ...entree, enrichissement, evaluation, synthese, mail_agent: mailAgent };

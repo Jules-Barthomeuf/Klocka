@@ -815,7 +815,7 @@ export default function AdminProjets() {
         {/* LEFT — visual panel with live preview (fixe, ne scrolle pas) */}
         <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="hidden md:flex flex-col gap-6 w-[42%] lg:w-[46%] px-11 py-10 h-screen overflow-hidden" style={{ background: "linear-gradient(160deg,#0A0B0F 0%,#000000 70%)" }}>
           <div className="flex items-center gap-3">
-            <div className="w-[11px] h-[11px] rounded-[3px] bg-[#35a79b]" />
+            <img src="/logo-klocka.svg" alt="" className="w-[18px] h-[18px] rounded-[4px]" draggable={false} />
             <span className="font-medium tracking-[2px] text-[13px]">KLOCKA&nbsp;OS</span>
           </div>
 

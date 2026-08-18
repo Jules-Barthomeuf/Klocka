@@ -286,22 +286,12 @@ function SceneFin({ duree }) {
   return (
     <Scene duree={duree}>
       <Montee delai={6}>
-        <div
-          style={{
-            width: 76,
-            height: 76,
-            border: `2px solid ${C.teal}`,
-            borderRadius: 10,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: C.teal,
-            fontSize: 40,
-            margin: "0 auto",
-          }}
-        >
-          K
-        </div>
+        {/* Monogramme Klocka (même dessin que public/logo-klocka.svg). */}
+        <svg viewBox="26 20 48 60" style={{ width: 110, height: 138, display: "block", margin: "0 auto" }}>
+          <rect x="33" y="26.5" width="6.8" height="47" fill="#ffffff" />
+          <polygon points="66.2,26.5 69.6,26.5 47.1,49.2 43.7,49.2" fill="#ffffff" />
+          <path d="M40.2 51.2 H52.4 L71.6 73.5 H59.4 L40.2 56.4 Z" fill="#8CCFBE" />
+        </svg>
       </Montee>
       <Montee delai={18} style={{ marginTop: 52, textAlign: "center" }}>
         <div style={{ fontSize: 66, fontWeight: 300 }}>Présenté par Klocka</div>

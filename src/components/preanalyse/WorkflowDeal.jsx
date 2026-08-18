@@ -671,9 +671,23 @@ function DepotFiche({ onAnalyse }) {
         </Button>
       </div>
       {analyser.isPending && (
-        <p className="text-[#8b9391] text-xs mt-3 text-center">
-          Lecture, extraction, vérification des citations puis application des règles…
-        </p>
+        <div className="mt-4 flex flex-col items-center gap-1.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[#edeae5] text-sm">Analyse Klocka</span>
+            <span className="flex gap-1.5" aria-hidden>
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-[#edeae5] animate-bounce"
+                  style={{ animationDelay: `${i * 0.18}s` }}
+                />
+              ))}
+            </span>
+          </div>
+          <p className="text-[#8b9391] text-xs text-center">
+            Lecture, extraction, vérification des citations puis application des règles…
+          </p>
+        </div>
       )}
     </div>
   );

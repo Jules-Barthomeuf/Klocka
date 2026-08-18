@@ -73,12 +73,17 @@ const globalTooltipStyles = `
 // accessible par son URL : passez ce drapeau à true pour la remontrer.
 const AFFICHER_DOUBLE_CHECK = false;
 
-// Marque Klocka en capitales espacées — reprend l'identité de la page projet
+// Marque Klocka : monogramme officiel + capitales espacées
 function Wordmark({ collapsed = false }) {
   if (collapsed) {
-    return <span className="text-[15px] tracking-[0.1em] text-[#edeae5] select-none">K</span>;
+    return <img src="/logo-klocka.svg" alt="Klocka" className="w-7 h-7 rounded-[6px] select-none" draggable={false} />;
   }
-  return <span className="text-[13px] tracking-[0.3em] text-[#edeae5] select-none">KLOCKA</span>;
+  return (
+    <span className="flex items-center gap-2.5 select-none">
+      <img src="/logo-klocka.svg" alt="" className="w-6 h-6 rounded-[5px]" draggable={false} />
+      <span className="text-[13px] tracking-[0.3em] text-[#edeae5]">KLOCKA</span>
+    </span>
+  );
 }
 
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {

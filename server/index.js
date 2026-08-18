@@ -208,12 +208,23 @@ app.post('/api/auth/changer-mot-de-passe', wrap(async (req, res) => {
 const normEmail = (e) => String(e || '').trim().toLowerCase();
 const ipDe = (req) => (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
 
+// Même amorçage que la connexion Google : l'adresse admin déclarée dans .env
+// (et la toute première personne d'une base vierge) est toujours reconnue,
+// même si son compte n'existe pas encore — il sera créé au moment où elle
+// définit son mot de passe. Sans cela, une installation neuve refuse tout le
+// monde, y compris l'admin.
+const amorcagePossible = (email) =>
+  Records.count('User') === 0 || email === normEmail(ADMIN_EMAIL);
+
 app.post('/api/auth/verifier-email', wrap((req, res) => {
   const email = normEmail(req.body?.email);
   if (!email) return res.status(400).json({ error: 'Adresse manquante' });
 
   const user = Records.filter('User', { email })[0];
   if (!user) {
+    if (amorcagePossible(email)) {
+      return ok(res, { connu: true, email, prenom: null, role: 'admin', mot_de_passe_defini: false });
+    }
     return ok(res, { connu: false });
   }
   ok(res, {
@@ -229,8 +240,12 @@ app.post('/api/auth/verifier-email', wrap((req, res) => {
 app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
   const email = normEmail(req.body?.email);
   const { mot_de_passe } = req.body || {};
-  const user = Records.filter('User', { email })[0];
+  let user = Records.filter('User', { email })[0];
 
+  if (!user && amorcagePossible(email)) {
+    user = Records.create('User', { email, role: 'admin', etape_actuelle: 0 });
+    console.log(`[auth] amorçage : compte admin créé pour ${email}`);
+  }
   if (!user) return res.status(404).json({ error: 'Compte inconnu.' });
   if (user.mot_de_passe) {
     return res.status(409).json({ error: 'Un mot de passe existe déjà pour ce compte. Connectez-vous.' });

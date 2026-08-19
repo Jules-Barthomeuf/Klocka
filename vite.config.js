@@ -9,6 +9,10 @@ const BACKEND = process.env.VITE_BACKEND_URL || 'http://localhost:3001'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // MapLibre analyse ses tuiles vectorielles dans un Web Worker ; le
+  // pré-bundling de Vite casse ce worker en dev (symptôme : fond raster OK,
+  // aucune tuile vectorielle chargée). On le sert donc tel quel.
+  optimizeDeps: { exclude: ['maplibre-gl'] },
   resolve: {
     alias: [
       // "@" -> src (previously provided by the base44 vite plugin)

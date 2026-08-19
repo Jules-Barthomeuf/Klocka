@@ -4,13 +4,14 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Download, X, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { Download, X, ChevronLeft, ChevronRight, FileText, Play } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
 import BailTabs from "./BailTabs";
+import PlongeeCarte from "./PlongeeCarte";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
@@ -169,6 +170,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   // Analyse IA (avis projet + chiffres ville/secteur), mutualisée en un appel.
   const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [plongee, setPlongee] = useState(false);
   const [ongletActif, setOngletActif] = useState("secteur");
   const [currentSlide] = useState(1);
   const photosContainerRef = useRef(null);
@@ -500,7 +502,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
       {/* Hero pleine largeur */}
       <div className="relative w-full h-[560px] max-md:h-[440px] overflow-hidden">
-        {project.photos && project.photos.length > 0 ? (
+        {plongee ? (
+          <PlongeeCarte project={project} onClose={() => setPlongee(false)} />
+        ) : project.photos && project.photos.length > 0 ? (
           <img src={project.photos[0]} alt={project.titre} onClick={() => setSelectedImage(project.photos[0])}
             className="absolute inset-0 w-full h-full object-cover cursor-pointer" />
         ) : mapUrl ? (
@@ -510,8 +514,27 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         )}
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
 
+        {/* Bouton play au centre : lance la vidéo du secteur (plongée 3D). */}
+        {!plongee && (project.adresse_complete || (project.latitude && project.longitude)) && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setPlongee(true); }}
+            title="Voir la vidéo du secteur"
+            className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-[#0a0c0c]/55 border border-[#edeae5]/40 backdrop-blur-sm flex items-center justify-center text-[#edeae5] hover:border-[#35a79b] hover:text-[#7fd3c9] hover:scale-105 transition-all"
+          >
+            <Play className="w-6 h-6 ml-1 fill-current" />
+          </button>
+        )}
+
         <div className="absolute top-7 left-5 right-5 md:left-14 md:right-14 flex justify-end items-center gap-3">
           <div className="flex gap-2 flex-wrap justify-end items-center">
+            {/* Fermeture de la vidéo du secteur (le lancement, lui, se fait
+                par le bouton play au centre de l'image). */}
+            {plongee && (
+              <button onClick={() => setPlongee(false)}
+                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#0a0c0c]/50 border border-[#edeae5]/[0.28] text-[#edeae5] hover:border-[#edeae5] transition-colors">
+                Arrêter la vidéo
+              </button>
+            )}
             {/* Galerie : miniature empilée quand le dossier a plusieurs photos ;
                 le clic ouvre la visionneuse (flèches pour naviguer). */}
             {project.photos && project.photos.length > 1 && (

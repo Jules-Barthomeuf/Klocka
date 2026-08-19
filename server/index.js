@@ -1159,6 +1159,13 @@ if (fs.existsSync(DIST_DIR)) {
   });
 }
 
+// En production, le premier rendu vidéo paie le téléchargement du navigateur
+// et le bundle webpack : on les préchauffe en arrière-plan dès le démarrage.
+// En local, inutile — le premier clic les construit en quelques secondes.
+if (EN_PRODUCTION) {
+  import('./video/index.js').then((m) => m.prechaufferVideo()).catch(() => {});
+}
+
 app.listen(PORT, () => {
   const url = process.env.APP_URL || `http://localhost:${PORT}`;
   const accounts = listAccounts();

@@ -6,10 +6,13 @@
 // simplement omis, aucune valeur n'est inventée.
 
 import React from "react";
-import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring } from "remotion";
+import { AbsoluteFill, Img, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing } from "remotion";
 
 export const FPS = 30;
 export const DUREE_FRAMES = 30 * FPS; // 30 secondes
+// Scène d'ouverture cartographique (plongée France → adresse), ajoutée en tête
+// quand le lot a pu être géolocalisé (prop `carte`).
+export const DUREE_CARTE = 390; // 13 secondes
 
 // Palette de l'application (éditorial sombre).
 const C = {
@@ -128,6 +131,214 @@ function Trait({ delai = 0, largeur = 220 }) {
     extrapolateRight: "clamp",
   });
   return <div style={{ height: 2, width: w, background: C.teal, margin: "42px auto" }} />;
+}
+
+// ---------------------------------------------------------------------------
+// Scène carte : plongée satellite continue de la France jusqu'à l'adresse.
+//
+// Principe « slippy map » : des couches de tuiles (orthophotos IGN, comme la
+// plongée du détail projet) sont empilées, chacune nette autour de son niveau
+// de zoom ; une caméra au zoom continu Z les fait grossir (scale 2^ΔZ) et se
+// fondre l'une dans l'autre. Le point visé reste au centre de l'écran.
+// ---------------------------------------------------------------------------
+
+const URL_ORTHO =
+  "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
+  "&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/jpeg";
+
+const TUILE = 512; // px logiques par tuile — images @2x, nettes jusqu'à ×2
+const clampInterp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
+
+// Projection Web Mercator normalisée (0..1 sur le monde entier).
+const mercator = (lat, lon) => {
+  const rad = (lat * Math.PI) / 180;
+  return {
+    x: (lon + 180) / 360,
+    y: (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2,
+  };
+};
+
+// Une tuile qui sait disparaître si le CDN ne répond pas (trou sombre sur fond
+// sombre plutôt qu'un rendu en échec).
+function Tuile({ src, style }) {
+  const [perdue, setPerdue] = React.useState(false);
+  if (perdue) return null;
+  return <Img src={src} style={style} onError={() => setPerdue(true)} pauseWhenLoading />;
+}
+
+// Une couche de tuiles au niveau L, dessinée à 512 px/tuile (= zoom L+1),
+// mise à l'échelle et fondue selon le zoom caméra courant. `centre` est la
+// position caméra en Mercator normalisé — elle glisse de la France au bien.
+function CoucheTuiles({ centre, L, zoomCourant }) {
+  const zBase = L + 1;
+  // Les couches s'empilent : celle du dessous reste opaque pendant que la
+  // suivante, plus nette, apparaît PAR-DESSUS et la recouvre. Croiser deux
+  // fondus sur fond noir creusait un passage sombre à chaque transition.
+  // On ne retire une couche qu'une fois totalement cachée (zoom > zBase+2.1).
+  const opacity = interpolate(
+    zoomCourant,
+    [zBase - 0.35, zBase - 0.1, zBase + 2.1, zBase + 2.45],
+    [0, 1, 1, 0],
+    clampInterp
+  );
+  if (opacity <= 0.002) return null;
+
+  const s = Math.pow(2, zoomCourant - zBase);
+  const n = Math.pow(2, L);
+  const cx = centre.x * n;
+  const cy = centre.y * n;
+  // Couverture calculée au plus petit scale où la couche est visible (0.85) :
+  // au-delà, on zoome — les bords sortent de l'écran d'eux-mêmes.
+  const porteeX = 960 / 0.85 / TUILE;
+  const porteeY = 540 / 0.85 / TUILE;
+  const tuiles = [];
+  for (let tx = Math.floor(cx - porteeX); tx <= Math.floor(cx + porteeX); tx++) {
+    for (let ty = Math.floor(cy - porteeY); ty <= Math.floor(cy + porteeY); ty++) {
+      if (ty < 0 || ty >= n) continue;
+      const txMonde = ((tx % n) + n) % n; // la longitude boucle
+      tuiles.push({ tx, ty, txMonde });
+    }
+  }
+
+  return (
+    <AbsoluteFill style={{ opacity, transform: `scale(${s})` }}>
+      {tuiles.map(({ tx, ty, txMonde }) => (
+        <Tuile
+          key={`${tx}:${ty}`}
+          src={`${URL_ORTHO}&TILEMATRIX=${L}&TILEROW=${ty}&TILECOL=${txMonde}`}
+          style={{
+            position: "absolute",
+            left: 960 + (tx - cx) * TUILE,
+            top: 540 + (ty - cy) * TUILE,
+            width: TUILE,
+            height: TUILE,
+          }}
+        />
+      ))}
+    </AbsoluteFill>
+  );
+}
+
+// Marqueur : point teal pulsant à l'adresse, avec le libellé en cartouche.
+function MarqueurAdresse({ apparition, libelle }) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const p = spring({ frame: frame - apparition, fps, config: { damping: 14, stiffness: 160 } });
+  if (frame < apparition) return null;
+  const pulsation = ((frame - apparition) % 50) / 50;
+  return (
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", fontFamily: POLICE }}>
+      {/* Onde qui s'étend depuis le point */}
+      <div
+        style={{
+          position: "absolute",
+          width: 26 + pulsation * 150,
+          height: 26 + pulsation * 150,
+          borderRadius: "50%",
+          border: `2px solid ${C.teal}`,
+          opacity: (1 - pulsation) * 0.55 * p,
+        }}
+      />
+      <div
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: C.teal,
+          border: `4px solid ${C.fond}`,
+          boxShadow: `0 0 30px rgba(53,167,155,0.8)`,
+          transform: `scale(${p})`,
+        }}
+      />
+      {libelle && (
+        <div
+          style={{
+            position: "absolute",
+            top: "58%",
+            padding: "18px 34px",
+            background: "rgba(10,12,12,0.82)",
+            border: `1px solid ${C.bordure}`,
+            borderRadius: 8,
+            fontSize: 34,
+            fontWeight: 300,
+            color: C.ivoire,
+            opacity: p,
+            transform: `translateY(${(1 - p) * 24}px)`,
+            maxWidth: 1100,
+            textAlign: "center",
+          }}
+        >
+          {libelle}
+        </div>
+      )}
+    </AbsoluteFill>
+  );
+}
+
+function SceneCarte({ carte, duree }) {
+  const frame = useCurrentFrame();
+  const zoomDepart = 6.2; // la France remplit l'écran
+  const zoomFinal = carte.zoom || 16;
+  // Caméra : posée sur la France, plongée sur ~9 s (cubique : lente au
+  // décollage, rapide en croisière, douce à l'atterrissage), puis 3 s sur
+  // l'adresse pendant que le marqueur s'installe.
+  const t = interpolate(frame, [20, duree - 90], [0, 1], {
+    ...clampInterp,
+    easing: Easing.inOut(Easing.cubic),
+  });
+  const zoomCourant = zoomDepart + (zoomFinal - zoomDepart) * t;
+  // Le centre caméra glisse du milieu de la France jusqu'au bien pendant la
+  // plongée (interpolation en espace Mercator, comme le ferait un globe).
+  const depart = mercator(46.4, 2.6);
+  const arrivee = mercator(carte.lat, carte.lon);
+  const centre = {
+    x: depart.x + (arrivee.x - depart.x) * t,
+    y: depart.y + (arrivee.y - depart.y) * t,
+  };
+  // Couches tous les 2 niveaux.
+  const niveaux = [4, 6, 8, 10, 12, 14, 16].filter((L) => L + 1 - 0.35 <= zoomFinal + 0.2);
+  const opacity = interpolate(frame, [0, 10, duree - 12, duree], [0, 1, 1, 0], clampInterp);
+
+  return (
+    <AbsoluteFill style={{ opacity, backgroundColor: C.fond }}>
+      {niveaux.map((L) => (
+        <CoucheTuiles key={L} centre={centre} L={L} zoomCourant={zoomCourant} />
+      ))}
+      {/* Vignettage : recentre l'œil et fond les tuiles dans l'habillage */}
+      <AbsoluteFill
+        style={{
+          background:
+            "radial-gradient(ellipse 75% 65% at 50% 50%, transparent 55%, rgba(10,12,12,0.75) 100%)",
+        }}
+      />
+      <Montee
+        delai={6}
+        style={{
+          position: "absolute",
+          top: 90,
+          width: "100%",
+          textAlign: "center",
+          fontFamily: POLICE,
+          textShadow: "0 1px 16px rgba(4,7,10,0.95), 0 0 3px rgba(4,7,10,0.8)",
+        }}
+      >
+        <Etiquette>Localisation</Etiquette>
+      </Montee>
+      <MarqueurAdresse apparition={duree - 84} libelle={carte.libelle} />
+      <div
+        style={{
+          position: "absolute",
+          bottom: 24,
+          right: 32,
+          fontFamily: POLICE,
+          fontSize: 20,
+          color: "rgba(139,147,145,0.6)",
+        }}
+      >
+        © IGN
+      </div>
+    </AbsoluteFill>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +523,8 @@ function SceneFin({ duree }) {
 export function VideoDeal(props) {
   const d = props || {};
   const scenes = [
+    // La plongée cartographique ouvre la vidéo quand le bien est géolocalisé.
+    ...(d.carte ? [{ duree: DUREE_CARTE, rendu: (n) => <SceneCarte carte={d.carte} duree={n} /> }] : []),
     { duree: 120, rendu: (n) => <SceneOuverture d={d} duree={n} /> },
     { duree: 210, rendu: (n) => <SceneBien d={d} duree={n} /> },
     { duree: 240, rendu: (n) => <SceneChiffres d={d} duree={n} /> },
@@ -352,4 +565,10 @@ export const propsExemple = {
   rendement: 6.5,
   population: 52006,
   typologie_ville: "ville_moyenne",
+  carte: {
+    lat: 43.4904,
+    lon: -1.4768,
+    zoom: 17,
+    libelle: "12 Rue Port-Neuf 64100 Bayonne",
+  },
 };

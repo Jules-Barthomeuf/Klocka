@@ -47,7 +47,6 @@ export default function CompareKPICard({ label, values, projectNames, format = "
                 <span className="text-[#edeae5]/50 text-xs truncate max-w-[50%]">{projectNames[i]}</span>
                 <span className={`text-sm font-medium ${isBest ? colors.text : "text-[#edeae5]"}`}>
                   {formatValue(v)}
-                  {isBest && <span className="ml-1.5 text-[10px] text-[#7fd3c9]">★</span>}
                 </span>
               </div>
               {typeof v === "number" && max > 0 && (

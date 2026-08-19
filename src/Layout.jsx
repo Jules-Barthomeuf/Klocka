@@ -95,11 +95,11 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
       `}>
         <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[2px] rounded-full transition-all duration-200
           ${isActive ? "h-5 bg-[#35a79b]" : "h-0 bg-transparent group-hover:h-3 group-hover:bg-[#edeae5]/20"}`} />
-        {/* Icônes réservées à la barre fermée : ouverte, seuls les libellés restent. */}
         {collapsed ? (
           <Icon className={`w-[17px] h-[17px] flex-shrink-0 transition-colors ${isActive ? "text-[#35a79b]" : "text-[#6b7270] group-hover:text-[#d3d8d6]"}`} />
         ) : (
           <>
+            <Icon className={`w-[15px] h-[15px] flex-shrink-0 transition-colors ${isActive ? "text-[#35a79b]" : "text-[#6b7270] group-hover:text-[#d3d8d6]"}`} />
             <span className="flex-1 truncate">{label}</span>
             {badge && (
               <Badge className={`${badgeColor || "bg-transparent text-[#7fd3c9]"} text-[9px] tracking-[0.12em] px-1.5 py-0 border-0`}>

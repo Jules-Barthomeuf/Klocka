@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
 import { motion, AnimatePresence } from "framer-motion";
-import { GitCompareArrows, ChevronUp, ChevronDown, BarChart3, MapPin, TrendingUp, Table2, Gauge, UserCheck } from "lucide-react";
+import { ChevronUp, ChevronDown, BarChart3, MapPin, TrendingUp, Table2, Gauge, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CompareProjectSelector from "../components/comparateur/CompareProjectSelector";
 import CompareKPICard from "../components/comparateur/CompareKPICard";
@@ -103,14 +103,9 @@ export default function Comparateur() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-[#35a79b]/10 rounded-md flex items-center justify-center">
-              <GitCompareArrows className="w-5 h-5 text-[#35a79b]" />
-            </div>
-            <div>
-              <p className="text-[#35a79b] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
-              <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Comparer mes projets</h1>
-            </div>
+          <div className="mb-2">
+            <p className="text-[#35a79b] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
+            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Comparer mes projets</h1>
           </div>
 
           <div className="flex items-center justify-between mb-4">

@@ -29,7 +29,7 @@ export default function MesProjets() {
     await queryClient.invalidateQueries({ queryKey: ['projects'] });
   }, [queryClient]);
 
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['projects', user?.email, user?.projet_selectionne_id, user?.compte_maitre_email],
     queryFn: async () => {
       if (!user) return [];
@@ -50,8 +50,9 @@ export default function MesProjets() {
         p.client_emails && p.client_emails.includes(user.email)
       );
     },
+    // Pas d'initialData : un tableau vide ferait passer le chargement (et
+    // toute erreur réseau) pour « aucun projet », sans indice ni recours.
     enabled: !!user,
-    initialData: []
   });
 
   if (isLoading || !user) {
@@ -66,6 +67,28 @@ export default function MesProjets() {
             50% { left: calc(100% - 12px); }
           }
         `}</style>
+      </div>
+    );
+  }
+
+  // Échec de chargement (serveur qui redémarre, coupure réseau) : le dire et
+  // offrir de réessayer, plutôt qu'afficher à tort « aucun projet ».
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#0e100f] border border-[#edeae5]/[0.12] p-8 text-center">
+          <Building2 className="w-8 h-8 text-[#edeae5]/15 mx-auto mb-5" />
+          <h2 className="text-xl font-light text-[#edeae5] mb-3">Chargement impossible</h2>
+          <p className="text-[#edeae5]/30 text-sm mb-6">
+            Vos projets n'ont pas pu être récupérés. Vérifiez votre connexion, puis réessayez.
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="text-[11px] tracking-[0.16em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors"
+          >
+            Réessayer
+          </button>
+        </div>
       </div>
     );
   }

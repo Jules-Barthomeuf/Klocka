@@ -219,10 +219,11 @@ export default function AdminProjets() {
 
   const queryClient = useQueryClient();
 
-  const { data: projects = [] } = useQuery({
+  // Pas d'initialData : un tableau vide ferait passer le chargement (et toute
+  // erreur réseau) pour « aucun projet », sans indice ni recours.
+  const { data: projects = [], isLoading: chargementProjets, isError: erreurProjets, refetch: rechargerProjets } = useQuery({
     queryKey: ['all-projects'],
     queryFn: () => base44.entities.Project.list("-created_date"),
-    initialData: []
   });
 
   const { data: users = [] } = useQuery({
@@ -1226,7 +1227,27 @@ export default function AdminProjets() {
             </motion.div>
           ))}
 
-          {projetsVisibles.length === 0 && (
+          {erreurProjets && (
+            <div className="col-span-full border-t border-[#edeae5]/[0.35] pt-10 pb-16 text-center">
+              <Building2 className="w-8 h-8 text-[#edeae5]/15 mx-auto mb-5" />
+              <h2 className="text-[22px] font-light text-[#edeae5] mb-2">Chargement impossible</h2>
+              <p className="text-[#8b9391] text-sm mb-6">
+                Les projets n'ont pas pu être récupérés. Vérifiez votre connexion, puis réessayez.
+              </p>
+              <button onClick={() => rechargerProjets()}
+                className="text-[11px] tracking-[0.16em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                Réessayer
+              </button>
+            </div>
+          )}
+
+          {chargementProjets && !erreurProjets && (
+            <div className="col-span-full pt-16 pb-16 flex justify-center">
+              <div className="w-6 h-6 border-2 border-[#35a79b]/30 border-t-[#35a79b] rounded-full animate-spin" />
+            </div>
+          )}
+
+          {!chargementProjets && !erreurProjets && projetsVisibles.length === 0 && (
             <div className="col-span-full border-t border-[#edeae5]/[0.35] pt-10 pb-16 text-center">
               <Building2 className="w-8 h-8 text-[#edeae5]/15 mx-auto mb-5" />
               <h2 className="text-[22px] font-light text-[#edeae5] mb-2">

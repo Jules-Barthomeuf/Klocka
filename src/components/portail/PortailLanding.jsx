@@ -298,7 +298,7 @@ export default function PortailLanding({ onContinue }) {
                     {isHighlight ? (
                       <div className="p-6 md:p-8 relative">
                         <div className="absolute top-4 right-4">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#e0c9a0] bg-[#e0c9a0]/10 border border-[#e0c9a0]/30 rounded-full px-3 py-1">⭐ Étape clé</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#e0c9a0] bg-[#e0c9a0]/10 border border-[#e0c9a0]/30 rounded-full px-3 py-1">Étape clé</span>
                         </div>
                         <div className="flex flex-col md:flex-row md:items-center gap-6">
                           <div className="flex-shrink-0">

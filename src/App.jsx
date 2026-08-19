@@ -130,9 +130,9 @@ const AuthenticatedApp = () => {
       <Route path="/Mails" element={<LayoutWrapper currentPageName="Mails"><Mails /></LayoutWrapper>} />
       <Route path="/AdminNotes" element={<LayoutWrapper currentPageName="AdminNotes"><AdminNotes /></LayoutWrapper>} />
       <Route path="/Analyse" element={<LayoutWrapper currentPageName="Analyse"><Analyse /></LayoutWrapper>} />
-      {/* Anciennes URL : Préanalyse est devenue Analyse ; Alexis, son onglet Documents. */}
+      {/* Anciennes URL : Préanalyse est devenue Analyse ; l'onglet Documents d'Alexis a disparu. */}
       <Route path="/Preanalyse" element={<RedirectionAnalyse />} />
-      <Route path="/Alexis" element={<Navigate to="/Analyse?tab=documents" replace />} />
+      <Route path="/Alexis" element={<Navigate to="/Analyse" replace />} />
       <Route path="/AssistantExterne" element={<LayoutWrapper currentPageName="AssistantExterne"><AssistantExterne /></LayoutWrapper>} />
       <Route path="/AdminPresentations" element={<LayoutWrapper currentPageName="AdminPresentations"><AdminPresentations /></LayoutWrapper>} />
       <Route path="/ImportProjects" element={<LayoutWrapper currentPageName="ImportProjects"><ImportProjects /></LayoutWrapper>} />

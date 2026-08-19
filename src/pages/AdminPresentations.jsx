@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { Presentation, Copy, Check, FolderSearch, Loader2, Building2, ChevronLeft, Download, ImageIcon, ExternalLink, Sparkles } from "lucide-react";
+import { Copy, Check, FolderSearch, Loader2, Building2, ChevronLeft, Download, ImageIcon, ExternalLink, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -107,9 +107,6 @@ export default function AdminPresentations() {
     <div className="min-h-screen text-[#edeae5] p-4 md:p-10" style={{ background: "linear-gradient(160deg,#0a0c0c 0%,#000000 90%)" }}>
       <div className="max-w-5xl mx-auto">
         <div className="mb-9 flex flex-col items-center text-center gap-3">
-          <div className="w-12 h-12 bg-[#edeae5]/[0.05] rounded-md flex items-center justify-center">
-            <Presentation className="w-6 h-6 text-[#8b9391]" />
-          </div>
           <div>
             <h1 className="text-[28px] md:text-[32px] font-light leading-[1.08] -tracking-[0.02em] m-0">Présentations</h1>
             <p className="text-[#8b9391] text-[14px] leading-[1.5] mt-2 max-w-[440px] mx-auto">

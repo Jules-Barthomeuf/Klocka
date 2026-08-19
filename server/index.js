@@ -464,6 +464,50 @@ app.post('/api/admin/import-projets', wrap(async (req, res) => {
   ok(res, r);
 }));
 
+// Présentation de financement d'un projet (page Présentations) : PPTX généré
+// depuis les données du projet, converti en Google Slides quand un compte
+// Drive est fourni. Le PPTX reste téléchargeable dans tous les cas.
+app.post('/api/admin/projets/:id/presentation', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const projet = Records.get('Project', req.params.id);
+  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+
+  const { genererPresentationProjet } = await import('./presentation-projet.js');
+  const buffer = await genererPresentationProjet(projet);
+
+  const nomFichier = `presentation-projet-${String(projet.id).replace(/[^a-zA-Z0-9_-]/g, '_')}.pptx`;
+  const dossierPres = path.join(UPLOAD_DIR, 'presentations');
+  fs.mkdirSync(dossierPres, { recursive: true });
+  fs.writeFileSync(path.join(dossierPres, nomFichier), buffer);
+  const pptx_url = `/uploads/presentations/${nomFichier}`;
+
+  const { compte } = req.body || {};
+  let slides_url = null;
+  let erreur_slides = null;
+  if (compte) {
+    if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
+    try {
+      const { uploaderEnSlides } = await import('./google-drive.js');
+      const r = await uploaderEnSlides(compte, {
+        nom: `Projet de financement — ${projet.titre || projet.adresse_complete || projet.id}`,
+        buffer,
+      });
+      slides_url = r.slides_url;
+    } catch (e) {
+      erreur_slides = e?.message || String(e);
+      console.error('[presentation projet] conversion Slides impossible :', erreur_slides);
+    }
+  }
+
+  Records.update('Project', projet.id, {
+    presentation_google_slides: slides_url || projet.presentation_google_slides || '',
+    presentation_pptx_url: pptx_url,
+    presentation_generee_le: new Date().toISOString(),
+  });
+  ok(res, { slides_url, pptx_url, erreur_slides });
+}));
+
 // ---------------------------------------------------------------------------
 // Entities (generic CRUD)
 //

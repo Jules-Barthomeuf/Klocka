@@ -40,7 +40,8 @@ async function google3DDisponible() {
 }
 
 // Géolocalise le projet : coordonnées enregistrées, sinon API Adresse (BAN).
-async function geolocaliser(project) {
+// Partagé avec le Street View de la page projet (même clé de cache).
+export async function geolocaliser(project) {
   if (project.latitude && project.longitude) {
     return { lat: Number(project.latitude), lon: Number(project.longitude) };
   }

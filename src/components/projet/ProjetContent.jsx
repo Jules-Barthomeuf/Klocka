@@ -12,6 +12,7 @@ moment.locale("fr");
 import { motion } from "framer-motion";
 import BailTabs from "./BailTabs";
 import PlongeeCarte from "./PlongeeCarte";
+import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
@@ -171,6 +172,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
   const [selectedImage, setSelectedImage] = useState(null);
   const [plongee, setPlongee] = useState(false);
+  const [streetView, setStreetView] = useState(false);
   const [ongletActif, setOngletActif] = useState("secteur");
   const [currentSlide] = useState(1);
   const photosContainerRef = useRef(null);
@@ -502,7 +504,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
       {/* Hero pleine largeur */}
       <div className="relative w-full h-[560px] max-md:h-[440px] overflow-hidden">
-        {plongee ? (
+        {streetView ? (
+          <StreetViewRue project={project} />
+        ) : plongee ? (
           <PlongeeCarte project={project} onClose={() => setPlongee(false)} />
         ) : project.photos && project.photos.length > 0 ? (
           <img src={project.photos[0]} alt={project.titre} onClick={() => setSelectedImage(project.photos[0])}
@@ -512,10 +516,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         ) : (
           <div className="absolute inset-0 bg-[#0e100f]" />
         )}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
+        {/* En Street View, ni voile ni habillage : le panorama se manipule. */}
+        {!streetView && (
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
+        )}
 
         {/* Bouton play au centre : lance la vidéo du secteur (plongée 3D). */}
-        {!plongee && (project.adresse_complete || (project.latitude && project.longitude)) && (
+        {!plongee && !streetView && (project.adresse_complete || (project.latitude && project.longitude)) && (
           <button
             onClick={(e) => { e.stopPropagation(); setPlongee(true); }}
             title="Voir la vidéo du secteur"
@@ -529,10 +536,19 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <div className="flex gap-2 flex-wrap justify-end items-center">
             {/* Fermeture de la vidéo du secteur (le lancement, lui, se fait
                 par le bouton play au centre de l'image). */}
-            {plongee && (
+            {plongee && !streetView && (
               <button onClick={() => setPlongee(false)}
                 className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#0a0c0c]/50 border border-[#edeae5]/[0.28] text-[#edeae5] hover:border-[#edeae5] transition-colors">
                 Arrêter la vidéo
+              </button>
+            )}
+            {/* Street View : se déplacer dans la rue autour du local. */}
+            {mapsKey && (project.adresse_complete || (project.latitude && project.longitude)) && (
+              <button
+                onClick={() => { setStreetView((v) => !v); setPlongee(false); }}
+                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#0a0c0c]/50 border border-[#edeae5]/[0.28] text-[#edeae5] hover:border-[#edeae5] transition-colors"
+              >
+                {streetView ? "Fermer Street View" : "Street View"}
               </button>
             )}
             {/* Galerie : miniature empilée quand le dossier a plusieurs photos ;
@@ -558,7 +574,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           </div>
         </div>
 
-        <div className="absolute bottom-9 md:bottom-11 left-5 right-5 md:left-14 md:right-14 grid md:grid-cols-[minmax(0,1fr)_300px] gap-6 md:gap-12 items-end">
+        {/* Habillage masqué en Street View pour laisser le panorama réactif. */}
+        <div className={`absolute bottom-9 md:bottom-11 left-5 right-5 md:left-14 md:right-14 grid md:grid-cols-[minmax(0,1fr)_300px] gap-6 md:gap-12 items-end ${streetView ? "hidden" : ""}`}>
           <div>
             <h1 className="font-cormorant text-[34px] md:text-[48px] font-light tracking-[-0.03em] leading-[1.02] text-[#edeae5] mb-0">{project.titre}</h1>
             <div className="md:hidden mt-5">

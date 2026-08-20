@@ -20,7 +20,6 @@ import {
   Lightbulb,
   UserPlus,
   Scale,
-  Landmark,
   Search,
   Mail,
   Sparkles,
@@ -237,7 +236,6 @@ function LayoutContent({ children, currentPageName }) {
               <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
               {autreOpen && (
                 <div className="space-y-px">
-                  <NavItem to={createPageUrl("Banque")} icon={Landmark} label="Banque" isActive={isActivePage("Banque")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                 </div>
@@ -256,7 +254,6 @@ function LayoutContent({ children, currentPageName }) {
               <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
               {autreOpen && (
                 <div className="space-y-px">
-                  <NavItem to={createPageUrl("AdminBanque")} icon={Landmark} label="Banque" isActive={isActivePage("AdminBanque")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to="/AdminPresentations" icon={Presentation} label="Présentations" isActive={isActivePage("AdminPresentations")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#35a79b]/20 text-[#35a79b]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />

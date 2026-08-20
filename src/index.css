@@ -266,3 +266,8 @@ input[type="number"] {
   height: 12px !important;
   color: #fff !important;
 }
+/* L'éditeur de projet occupe tout l'écran : la bulle de signalement gênerait
+   la lecture de la page et les panneaux latéraux. */
+body[data-editeur-projet] .feedback-widget {
+  display: none;
+}

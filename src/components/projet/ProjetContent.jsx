@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
+import { EditionContext, ValeurEditable, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer } from "./EditionEnPlace";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -42,26 +43,34 @@ function LeadText({ children }) {
 }
 
 function KpiStrip({ items, className = "" }) {
-  const list = (items || []).filter(Boolean);
+  const edition = useEdition();
+  const list = (items || []).filter(Boolean).filter((it) => !estMasque(edition, it.champ));
   if (!list.length) return null;
   return (
     <div className={`flex flex-wrap border-t border-[#edeae5]/[0.35] mb-10 max-md:mb-6 ${className}`}>
       {list.map((it, i) => (
         <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#edeae5]/[0.12] md:pl-6" : ""}`}>
-          <div className={`font-cormorant text-[26px] max-md:text-[20px] font-light ${it.accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{it.value}</div>
-          <div className="text-[12px] text-[#8b9391] mt-1">{it.label}</div>
+          <div className={`font-cormorant text-[26px] max-md:text-[20px] font-light ${it.accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+            <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
+          </div>
+          <div className="text-[12px] text-[#8b9391] mt-1 flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></div>
         </div>
       ))}
     </div>
   );
 }
 
-function KVRow({ label, value, accent }) {
+function KVRow({ label, value, accent, champ, typeChamp }) {
+  const edition = useEdition();
+  if (estMasque(edition, champ)) return null;
   if (value == null || value === "") return null;
   return (
     <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
       <span className="text-[#8b9391] flex-shrink-0">{label}</span>
-      <span className={`text-right ${accent || "text-[#edeae5]"}`}>{value}</span>
+      <span className={`text-right flex items-center justify-end gap-1 ${accent || "text-[#edeae5]"}`}>
+        <ValeurEditable champ={champ} type={typeChamp || "number"}>{value}</ValeurEditable>
+        <BoutonMasquer champ={champ} />
+      </span>
     </div>
   );
 }
@@ -142,7 +151,7 @@ function GradeScale({ active, valueLabel }) {
 }
 
 // Fourchette bas / médian / haut sur filet fin
-function RangeScale({ bas, median, haut, unit = "€" }) {
+function RangeScale({ bas, median, haut, unit = "€", champBas, champMedian, champHaut }) {
   const b = bas || 0;
   const h = haut || (median ? median * 2 : 0);
   const m = median || 0;
@@ -155,9 +164,9 @@ function RangeScale({ bas, median, haut, unit = "€" }) {
         {m > 0 && <div className="absolute w-[9px] h-[9px] rounded-full bg-[#7fd3c9]" style={{ left: `${pos}%`, top: "50%", transform: "translate(-50%, -50%)" }} />}
       </div>
       <div className="flex justify-between mt-2.5 text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>
-        <span className="text-[#8b9391]">{fmtN(b)} {unit}</span>
-        <span className="text-[#edeae5]">{fmtN(m)} {unit}</span>
-        <span className="text-[#8b9391]">{fmtN(h)} {unit}</span>
+        <span className="text-[#8b9391]"><ValeurEditable champ={champBas}>{`${fmtN(b)} ${unit}`}</ValeurEditable></span>
+        <span className="text-[#edeae5]"><ValeurEditable champ={champMedian}>{`${fmtN(m)} ${unit}`}</ValeurEditable></span>
+        <span className="text-[#8b9391]"><ValeurEditable champ={champHaut}>{`${fmtN(h)} ${unit}`}</ValeurEditable></span>
       </div>
     </div>
   );
@@ -166,14 +175,20 @@ function RangeScale({ bas, median, haut, unit = "€" }) {
 // Shared project display used by the client detail page and the public share page.
 // `isAdmin` / `showAsClient` control admin-only bits; `isPublic` disables navigation to
 // internal tools (simulator/comparator) for anonymous visitors.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false }) {
+// `apercuOnglet` : mode aperçu de l'éditeur admin — rend UNIQUEMENT le contenu
+// de l'onglet demandé (secteur, marche, bien, locataire, bail, copropriete,
+// diagnostique, documents_projet), sans hero, sans barre d'onglets ni rail IA.
+// `modeEdition` + `onChamp` : éditeur admin — les chiffres deviennent des
+// champs au clic, et le hero comme la synthèse financière sont masqués.
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null }) {
   const navigate = useNavigate();
   // Analyse IA (avis projet + chiffres ville/secteur), mutualisée en un appel.
   const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
   const [selectedImage, setSelectedImage] = useState(null);
   const [plongee, setPlongee] = useState(false);
   const [streetView, setStreetView] = useState(false);
-  const [ongletActif, setOngletActif] = useState("secteur");
+  const [ongletChoisi, setOngletActif] = useState("secteur");
+  const ongletActif = apercuOnglet || ongletChoisi;
   const [currentSlide] = useState(1);
   const photosContainerRef = useRef(null);
 
@@ -463,7 +478,19 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
     window.open(`${createPageUrl("SimulateurPublic")}?data=${encodeURIComponent(JSON.stringify(simParams))}`, '_blank');
   };
 
+  // Contexte toujours fourni : les champs supprimés doivent disparaître pour
+  // le client aussi. Seul `onChamp` distingue le mode édition.
+  const contexteEdition = useMemo(
+    () => ({
+      onChamp: modeEdition && onChamp ? onChamp : null,
+      valeurs: project,
+      masques: project?.champs_masques || [],
+    }),
+    [modeEdition, onChamp, project]
+  );
+
   return (
+    <EditionContext.Provider value={contexteEdition}>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -502,7 +529,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         </DialogContent>
       </Dialog>
 
-      {/* Hero pleine largeur */}
+      {/* Hero pleine largeur (masqué en aperçu d'onglet et en édition) */}
+      {!apercuOnglet && !modeEdition && (
       <div className="relative w-full h-[560px] max-md:h-[440px] overflow-hidden">
         {streetView ? (
           <StreetViewRue project={project} />
@@ -615,8 +643,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           </div>
         </div>
       </div>
+      )}
 
-      {project.photos && project.photos.length > 1 && (
+      {!apercuOnglet && project.photos && project.photos.length > 1 && (
         <div ref={photosContainerRef} className="flex gap-2 overflow-x-auto px-5 md:px-14 py-3 bg-[#0a0c0c] border-b border-[#edeae5]/[0.08]" style={{ scrollbarWidth: 'none' }}>
           {project.photos.slice(1).map((photo, idx) => (
             <img key={idx} src={photo} alt={`Photo ${idx + 2}`} onClick={() => setSelectedImage(photo)}
@@ -628,13 +657,18 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       {/* Pas de `items-start` ici : la colonne de droite doit s'étirer sur toute
           la hauteur de la ligne, sinon le rail `sticky` n'a aucune course et
           reste figé en haut de page. */}
-      <div className="max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12">
+      <div className={apercuOnglet
+        ? "px-3 py-3"
+        : "max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12"}>
         <div className="min-w-0">
         {/* Sur mobile l'analyse revient en tête de page, faute de colonne */}
+        {!apercuOnglet && (
         <div className="lg:hidden">
           <AvisProjetIA analyse={analyse} loading={analyseLoading} error={analyseError} section={ongletActif} />
         </div>
-        <Tabs value={ongletActif} onValueChange={setOngletActif} className="w-full">
+        )}
+        <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
+          {!apercuOnglet && (
           <TabsList className="w-full flex justify-start flex-wrap max-md:flex-nowrap gap-x-7 gap-y-2 max-md:gap-x-5 bg-transparent border-0 mb-10 max-md:mb-6 rounded-none px-0 h-auto pt-1 pb-6 max-md:pb-4 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               { v: "secteur", l: "Secteur" },
@@ -651,6 +685,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               </TabsTrigger>
             ))}
           </TabsList>
+          )}
 
           <TabsContent value="secteur" className="space-y-6 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
@@ -659,9 +694,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mb-0 max-w-[560px]">Du macro au micro : la ville, le quartier, puis l'emplacement.</p>
                 {(project.ville_secteur_champ1 || project.ville_secteur_champ2 || project.ville_secteur_champ3) && (
                   <div className="flex gap-2 mt-4 flex-wrap">
-                    {project.ville_secteur_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#35a79b]/[0.16] border border-[#35a79b] text-[#7fd3c9]">{project.ville_secteur_champ1}</span>}
-                    {project.ville_secteur_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#7fd3c9]/40 text-[#7fd3c9]">{project.ville_secteur_champ2}</span>}
-                    {project.ville_secteur_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#edeae5]/[0.18] text-[#d3d8d6]">{project.ville_secteur_champ3}</span>}
+                    {project.ville_secteur_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#35a79b]/[0.16] border border-[#35a79b] text-[#7fd3c9]"><ValeurEditable champ="ville_secteur_champ1" type="text">{project.ville_secteur_champ1}</ValeurEditable></span>}
+                    {project.ville_secteur_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#7fd3c9]/40 text-[#7fd3c9]"><ValeurEditable champ="ville_secteur_champ2" type="text">{project.ville_secteur_champ2}</ValeurEditable></span>}
+                    {project.ville_secteur_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#edeae5]/[0.18] text-[#d3d8d6]"><ValeurEditable champ="ville_secteur_champ3" type="text">{project.ville_secteur_champ3}</ValeurEditable></span>}
                   </div>
                 )}
                 <div className="mt-6 max-md:mt-5">
@@ -703,8 +738,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     </div>
                   </div>
                   <div className="md:hidden">
-                    <KVRow label="Adresse" value={project.adresse_complete} />
-                    <KVRow label="Surface" value={project.surface_m2 > 0 ? `${project.surface_m2} m²` : null} />
+                    <KVRow champ="adresse_complete" typeChamp="text" label="Adresse" value={project.adresse_complete} />
+                    <KVRow label="Surface" value={project.surface_m2 > 0 ? `${project.surface_m2} m²` : null} champ="surface_m2" />
                     {googleMapsLink && (
                       <KVRow label="Carte" value={<a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="text-[#7fd3c9]">Ouvrir dans Google Maps</a>} />
                     )}
@@ -713,6 +748,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               )}
               <EnvironnementIndicateurs project={project} />
               <NotesBlock notes={project.notes_secteur} />
+              <ChampsPersonnalises zone="secteur" project={project} />
               <AllerPlusLoin section="secteur" project={project} />
             </motion.div>
           </TabsContent>
@@ -721,15 +757,15 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader
                 title="Marché"
-                subtitle={`Comparables du secteur et positionnement du deal.${project.marche_quartier_nom ? ` Secteur : ${project.marche_quartier_nom}.` : ''}`}
+                subtitle={<>Comparables du secteur et positionnement du deal.{project.marche_quartier_nom ? <> Secteur : <ValeurEditable champ="marche_quartier_nom" type="text">{project.marche_quartier_nom}</ValeurEditable>.</> : null}</>}
                 right={<LeadText>{marcheLead}</LeadText>}
               />
 
               <KpiStrip items={[
-                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer en place /m²/an' },
-                valeurLocativeSecteur > 0 && { value: `${fmtNum(valeurLocativeSecteur)} €`, label: 'Valeur locative secteur', accent: 'text-[#7fd3c9]' },
+                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer en place /m²/an', champ: 'loyer_m2_an' },
+                valeurLocativeSecteur > 0 && { value: `${fmtNum(valeurLocativeSecteur)} €`, label: 'Valeur locative secteur', accent: 'text-[#7fd3c9]', champ: 'marche_baux_moyenne' },
                 prixM2Revient > 0 && { value: `${fmtNum(prixM2Revient)} €`, label: 'Prix de revient /m²' },
-                project.marche_prix_m2_median > 0 && { value: `${fmtNum(project.marche_prix_m2_median)} €`, label: 'Prix médian résidentiel /m²' },
+                project.marche_prix_m2_median > 0 && { value: `${fmtNum(project.marche_prix_m2_median)} €`, label: 'Prix médian résidentiel /m²', champ: 'marche_prix_m2_median' },
                 ecartValeurLocative != null && {
                   value: `${ecartValeurLocative > 0 ? '+' : ''}${ecartValeurLocative.toFixed(0)} %`,
                   label: 'Écart à la valeur locative',
@@ -742,27 +778,27 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   {!project.marche_masquer_residentiel && project.marche_prix_m2_median > 0 && (
                     <div>
                       <SectionLabel tone="teal">Résidentiel — prix au m²</SectionLabel>
-                      <RangeScale bas={project.marche_prix_m2_bas} median={project.marche_prix_m2_median} haut={project.marche_prix_m2_haut} />
+                      <RangeScale bas={project.marche_prix_m2_bas} median={project.marche_prix_m2_median} haut={project.marche_prix_m2_haut} champBas="marche_prix_m2_bas" champMedian="marche_prix_m2_median" champHaut="marche_prix_m2_haut" />
                     </div>
                   )}
                   {!project.marche_masquer_commercial && project.marche_offre_moyenne > 0 && (
                     <div>
                       <SectionLabel tone="teal">Commercial — valeur locative (offre)</SectionLabel>
-                      <RangeScale bas={project.marche_offre_bas} median={project.marche_offre_moyenne} haut={project.marche_offre_haut} unit="€/m²" />
+                      <RangeScale bas={project.marche_offre_bas} median={project.marche_offre_moyenne} haut={project.marche_offre_haut} unit="€/m²" champBas="marche_offre_bas" champMedian="marche_offre_moyenne" champHaut="marche_offre_haut" />
                     </div>
                   )}
                   {!project.marche_masquer_commercial && project.marche_baux_moyenne > 0 && (
                     <div>
                       <SectionLabel tone="teal">Commercial — baux existants</SectionLabel>
-                      <RangeScale bas={project.marche_baux_bas} median={project.marche_baux_moyenne} haut={project.marche_baux_haut} unit="€/m²" />
+                      <RangeScale bas={project.marche_baux_bas} median={project.marche_baux_moyenne} haut={project.marche_baux_haut} unit="€/m²" champBas="marche_baux_bas" champMedian="marche_baux_moyenne" champHaut="marche_baux_haut" />
                     </div>
                   )}
                   {(project.marche_evolution_1an || project.marche_evolution_5ans) && (
                     <div>
                       <SectionLabel>Évolution des prix</SectionLabel>
-                      <KVRow label="Sur 1 an" value={project.marche_evolution_1an != null && project.marche_evolution_1an !== 0 ? `${project.marche_evolution_1an > 0 ? '+' : ''}${project.marche_evolution_1an} %` : null}
+                      <KVRow champ="marche_evolution_1an" label="Sur 1 an" value={project.marche_evolution_1an != null && project.marche_evolution_1an !== 0 ? `${project.marche_evolution_1an > 0 ? '+' : ''}${project.marche_evolution_1an} %` : null}
                         accent={project.marche_evolution_1an >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'} />
-                      <KVRow label="Sur 5 ans" value={project.marche_evolution_5ans != null && project.marche_evolution_5ans !== 0 ? `${project.marche_evolution_5ans > 0 ? '+' : ''}${project.marche_evolution_5ans} %` : null}
+                      <KVRow champ="marche_evolution_5ans" label="Sur 5 ans" value={project.marche_evolution_5ans != null && project.marche_evolution_5ans !== 0 ? `${project.marche_evolution_5ans > 0 ? '+' : ''}${project.marche_evolution_5ans} %` : null}
                         accent={project.marche_evolution_5ans >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'} />
                     </div>
                   )}
@@ -774,9 +810,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   label="Comparables du secteur"
                   head={['Secteur', 'Estimation basse', 'Estimation haute']}
                   rows={(project.marche_secteurs || []).map((s, idx) => [
-                    s.nom || `Secteur ${idx + 1}`,
-                    s.estimation_basse ? `${fmtNum(s.estimation_basse)} €/m²` : '—',
-                    { value: s.estimation_haute ? `${fmtNum(s.estimation_haute)} €/m²` : '—', accent: 'text-[#edeae5]' },
+                    { value: <ValeurEditable champ={`marche_secteurs.${idx}.nom`} type="text">{s.nom || `Secteur ${idx + 1}`}</ValeurEditable> },
+                    { value: <ValeurEditable champ={`marche_secteurs.${idx}.estimation_basse`}>{s.estimation_basse ? `${fmtNum(s.estimation_basse)} €/m²` : '—'}</ValeurEditable> },
+                    { value: <ValeurEditable champ={`marche_secteurs.${idx}.estimation_haute`}>{s.estimation_haute ? `${fmtNum(s.estimation_haute)} €/m²` : '—'}</ValeurEditable>, accent: 'text-[#edeae5]' },
                   ])}
                 />
               )}
@@ -786,6 +822,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {!project.marche_prix_m2_median && !project.marche_offre_moyenne && !project.marche_baux_moyenne
                 && (!project.marche_secteurs || project.marche_secteurs.length === 0)
                 && (!project.notes_marche || project.notes_marche.length === 0) && <EmptyTab />}
+              <ChampsPersonnalises zone="marche" project={project} />
               <AllerPlusLoin section="marche" project={project} />
             </motion.div>
           </TabsContent>
@@ -797,43 +834,43 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 subtitle="Le physique : surfaces, configuration et éléments marquants du lot."
                 left={(project.bien_champ1 || project.bien_champ2 || project.bien_champ3) && (
                   <div className="flex gap-2 mt-5 flex-wrap">
-                    {project.bien_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#35a79b]/[0.16] border border-[#35a79b] text-[#7fd3c9]">{project.bien_champ1}</span>}
-                    {project.bien_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#7fd3c9]/40 text-[#7fd3c9]">{project.bien_champ2}</span>}
-                    {project.bien_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#edeae5]/[0.18] text-[#d3d8d6]">{project.bien_champ3}</span>}
+                    {project.bien_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#35a79b]/[0.16] border border-[#35a79b] text-[#7fd3c9]"><ValeurEditable champ="bien_champ1" type="text">{project.bien_champ1}</ValeurEditable></span>}
+                    {project.bien_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#7fd3c9]/40 text-[#7fd3c9]"><ValeurEditable champ="bien_champ2" type="text">{project.bien_champ2}</ValeurEditable></span>}
+                    {project.bien_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#edeae5]/[0.18] text-[#d3d8d6]"><ValeurEditable champ="bien_champ3" type="text">{project.bien_champ3}</ValeurEditable></span>}
                   </div>
                 )}
                 right={<LeadText>{bienLead}</LeadText>}
               />
 
               <KpiStrip items={[
-                surfaceRef > 0 && { value: `${fmtNum(surfaceRef)} m²`, label: 'Surface exploitée' },
-                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#7fd3c9]' },
-                loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC' },
+                surfaceRef > 0 && { value: `${fmtNum(surfaceRef)} m²`, label: 'Surface exploitée', champ: 'sim_surface' },
+                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#7fd3c9]', champ: 'loyer_m2_an' },
+                loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC', champ: 'sim_loyer_initial_ht' },
                 prixM2Revient > 0 && { value: `${fmtNum(prixM2Revient)} €`, label: 'Prix de revient /m²' },
-                project.type_construction && { value: project.type_construction, label: 'Type de construction' },
+                project.type_construction && { value: project.type_construction, label: 'Type de construction', champ: 'type_construction', typeChamp: 'text' },
               ]} />
 
               <div className="grid md:grid-cols-2 gap-x-12 gap-y-9">
                 <div>
                   <SectionLabel tone="teal">Configuration</SectionLabel>
-                  <KVRow label="Surface" value={surfaceRef > 0 ? `${fmtNum(surfaceRef)} m²` : null} />
-                  <KVRow label="Activité exploitée" value={project.activite_locataire} />
-                  <KVRow label="Type de construction" value={project.type_construction} />
-                  <KVRow label="Adresse" value={project.adresse_complete} />
+                  <KVRow champ="surface_m2" label="Surface" value={surfaceRef > 0 ? `${fmtNum(surfaceRef)} m²` : null} />
+                  <KVRow champ="activite_locataire" typeChamp="text" label="Activité exploitée" value={project.activite_locataire} />
+                  <KVRow champ="type_construction" typeChamp="text" label="Type de construction" value={project.type_construction} />
+                  <KVRow champ="adresse_complete" typeChamp="text" label="Adresse" value={project.adresse_complete} />
                 </div>
                 <div>
                   <SectionLabel tone="teal">Exploitation</SectionLabel>
-                  <KVRow label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} />
-                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#7fd3c9]" />
-                  <KVRow label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
-                  <KVRow label="DPE" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} />
+                  <KVRow label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} champ="sim_loyer_initial_ht" />
+                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#7fd3c9]" champ="loyer_m2_an" />
+                  <KVRow champ="echeance_bail" typeChamp="date" label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
+                  <KVRow champ="dpe_note" typeChamp="text" label="DPE" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} />
                 </div>
               </div>
 
               {project.description_bien && (
                 <div className="mt-10 max-md:mt-6">
                   <SectionLabel>Description</SectionLabel>
-                  <p className="md:columns-2 md:gap-10 text-[14.5px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{project.description_bien}</p>
+                  <TexteEditable champ="description_bien"><p className="md:columns-2 md:gap-10 text-[14.5px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{project.description_bien}</p></TexteEditable>
                 </div>
               )}
 
@@ -841,6 +878,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               {!project.description_bien && !project.bien_champ1 && !project.bien_champ2 && !project.bien_champ3
                 && surfaceRef <= 0 && (!project.notes_bien || project.notes_bien.length === 0) && <EmptyTab />}
+              <ChampsPersonnalises zone="bien" project={project} />
               <AllerPlusLoin section="bien" project={project} />
             </motion.div>
           </TabsContent>
@@ -854,25 +892,25 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               />
 
               <KpiStrip items={[
-                loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC' },
-                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#7fd3c9]' },
+                loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC', champ: 'sim_loyer_initial_ht' },
+                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#7fd3c9]', champ: 'loyer_m2_an' },
                 anneesRestantesBail != null && { value: `${anneesRestantesBail.toFixed(1).replace('.', ',')} ans`, label: 'Bail restant à courir' },
-                project.echeance_bail && { value: moment(project.echeance_bail).format('MM/YYYY'), label: 'Échéance du bail' },
+                project.echeance_bail && { value: moment(project.echeance_bail).format('MM/YYYY'), label: 'Échéance du bail', champ: 'echeance_bail', typeChamp: 'date' },
               ]} />
 
               <div className="grid md:grid-cols-2 gap-x-12 gap-y-9">
                 <div>
                   <SectionLabel tone="teal">Identité</SectionLabel>
-                  <KVRow label="Raison sociale" value={project.nom_locataire} />
-                  <KVRow label="Activité" value={project.activite_locataire} />
-                  <KVRow label="Adresse d'exploitation" value={project.adresse_complete} />
+                  <KVRow champ="nom_locataire" typeChamp="text" label="Raison sociale" value={project.nom_locataire} />
+                  <KVRow champ="activite_locataire" typeChamp="text" label="Activité" value={project.activite_locataire} />
+                  <KVRow champ="adresse_complete" typeChamp="text" label="Adresse d'exploitation" value={project.adresse_complete} />
                 </div>
                 <div>
                   <SectionLabel tone="teal">Économie de la signature</SectionLabel>
-                  <KVRow label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} />
-                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#7fd3c9]" />
-                  <KVRow label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
-                  <KVRow label="Dépôt de garantie" value={project.bail_depot_garantie > 0 ? `${fmtNum(project.bail_depot_garantie)} €` : null} />
+                  <KVRow champ="sim_loyer_initial_ht" label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} />
+                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#7fd3c9]" champ="loyer_m2_an" />
+                  <KVRow champ="echeance_bail" typeChamp="date" label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
+                  <KVRow label="Dépôt de garantie" value={project.bail_depot_garantie > 0 ? `${fmtNum(project.bail_depot_garantie)} €` : null} champ="bail_depot_garantie" />
                 </div>
               </div>
 
@@ -897,6 +935,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               {!project.nom_locataire && !project.activite_locataire && loyerAnnuel <= 0 && !project.echeance_bail
                 && (!project.notes_locataire || project.notes_locataire.length === 0) && <EmptyTab />}
+              <ChampsPersonnalises zone="locataire" project={project} />
               <AllerPlusLoin section="locataire" project={project} />
             </motion.div>
           </TabsContent>
@@ -930,6 +969,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               )}
 
               <BailTabs project={project} />
+              <ChampsPersonnalises zone="bail" project={project} />
               <AllerPlusLoin section="bail" project={project} />
             </motion.div>
           </TabsContent>
@@ -943,11 +983,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               />
 
               <KpiStrip items={[
-                project.quote_part_lot > 0 && { value: `${project.quote_part_lot} %`, label: 'Quote-part du lot' },
-                project.charges_copropriete > 0 && { value: `${fmtNum(project.charges_copropriete)} €`, label: 'Charges annuelles' },
-                project.provision_charges > 0 && { value: `${fmtNum(project.provision_charges)} €`, label: 'Provision pour charges' },
-                project.taxe_fonciere_an > 0 && { value: `${fmtNum(project.taxe_fonciere_an)} €`, label: 'Taxe foncière /an', accent: 'text-[#e0c9a0]' },
-                project.type_construction && { value: project.type_construction, label: 'Type de construction' },
+                project.quote_part_lot > 0 && { value: `${project.quote_part_lot} %`, label: 'Quote-part du lot', champ: 'quote_part_lot' },
+                project.charges_copropriete > 0 && { value: `${fmtNum(project.charges_copropriete)} €`, label: 'Charges annuelles', champ: 'charges_copropriete' },
+                project.provision_charges > 0 && { value: `${fmtNum(project.provision_charges)} €`, label: 'Provision pour charges', champ: 'provision_charges' },
+                project.taxe_fonciere_an > 0 && { value: `${fmtNum(project.taxe_fonciere_an)} €`, label: 'Taxe foncière /an', accent: 'text-[#e0c9a0]', champ: 'taxe_fonciere_an' },
+                project.type_construction && { value: project.type_construction, label: 'Type de construction', champ: 'type_construction', typeChamp: 'text' },
               ]} />
 
               {(project.activites_autorisees || project.activites_interdites) && (
@@ -955,21 +995,25 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   {project.activites_autorisees && (
                     <div className="border-l border-[#35a79b] pl-5">
                       <SectionLabel tone="teal">Activités autorisées</SectionLabel>
+                      <TexteEditable champ="activites_autorisees">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
                         {project.activites_autorisees.split(',').map((a, idx) => (
                           <li key={idx} className="text-[14.5px] text-[#d3d8d6]">{a.trim()}</li>
                         ))}
                       </ul>
+                      </TexteEditable>
                     </div>
                   )}
                   {project.activites_interdites && (
                     <div className="border-l border-[#e0c9a0] pl-5">
                       <SectionLabel tone="gold">Activités interdites</SectionLabel>
+                      <TexteEditable champ="activites_interdites">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
                         {project.activites_interdites.split(',').map((a, idx) => (
                           <li key={idx} className="text-[14.5px] text-[#d3d8d6]">{a.trim()}</li>
                         ))}
                       </ul>
+                      </TexteEditable>
                     </div>
                   )}
                 </div>
@@ -978,7 +1022,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {project.synthese_assemblee_generale && project.synthese_assemblee_generale.trim() && (
                 <div className="mb-10 max-md:mb-6">
                   <SectionLabel>Synthèse de l'assemblée générale</SectionLabel>
-                  <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p>
+                  <TexteEditable champ="synthese_assemblee_generale"><p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p></TexteEditable>
                 </div>
               )}
 
@@ -987,13 +1031,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   {project.resolutions_votees && (
                     <div className="border-l border-[#35a79b] pl-5">
                       <SectionLabel tone="teal">Résolutions votées</SectionLabel>
-                      <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{project.resolutions_votees}</p>
+                      <TexteEditable champ="resolutions_votees"><p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{project.resolutions_votees}</p></TexteEditable>
                     </div>
                   )}
                   {project.resolutions_refusees && (
                     <div className="border-l border-[#e0c9a0] pl-5">
                       <SectionLabel tone="gold">Résolutions non acceptées</SectionLabel>
-                      <p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p>
+                      <TexteEditable champ="resolutions_refusees"><p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p></TexteEditable>
                     </div>
                   )}
                 </div>
@@ -1006,6 +1050,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 && project.provision_charges <= 0 && project.quote_part_lot <= 0
                 && !project.activites_autorisees && !project.activites_interdites
                 && !project.synthese_assemblee_generale && <EmptyTab />}
+              <ChampsPersonnalises zone="copropriete" project={project} />
               <AllerPlusLoin section="copropriete" project={project} />
             </motion.div>
           </TabsContent>
@@ -1037,12 +1082,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <div className="grid md:grid-cols-2 gap-x-12">
                 <div>
-                  <KVRow label="Classe énergie" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} accent="text-[#7fd3c9]" />
-                  <KVRow label="Consommation" value={project.dpe_consommation > 0 ? `${fmtNum(project.dpe_consommation)} kWh/m²/an` : null} />
+                  <KVRow champ="dpe_note" typeChamp="text" label="Classe énergie" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} accent="text-[#7fd3c9]" />
+                  <KVRow label="Consommation" value={project.dpe_consommation > 0 ? `${fmtNum(project.dpe_consommation)} kWh/m²/an` : null} champ="dpe_consommation" />
                 </div>
                 <div>
-                  <KVRow label="Classe GES" value={project.ges_note ? `Classe ${project.ges_note}` : null} accent="text-[#7fd3c9]" />
-                  <KVRow label="Émissions" value={project.ges_emission > 0 ? `${fmtNum(project.ges_emission)} kg CO₂/m²/an` : null} />
+                  <KVRow champ="ges_note" typeChamp="text" label="Classe GES" value={project.ges_note ? `Classe ${project.ges_note}` : null} accent="text-[#7fd3c9]" />
+                  <KVRow label="Émissions" value={project.ges_emission > 0 ? `${fmtNum(project.ges_emission)} kg CO₂/m²/an` : null} champ="ges_emission" />
                 </div>
               </div>
 
@@ -1051,6 +1096,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {!project.dpe_note && !project.ges_note && (!project.notes_diagnostique || project.notes_diagnostique.length === 0) && (
                 <EmptyTab text="Aucune donnée de diagnostic disponible pour ce projet." />
               )}
+              <ChampsPersonnalises zone="diagnostique" project={project} />
               <AllerPlusLoin section="diagnostique" project={project} />
             </motion.div>
           </TabsContent>
@@ -1083,12 +1129,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               ) : (
                 <EmptyTab text="Aucun document disponible pour ce projet." />
               )}
+              <ChampsPersonnalises zone="documents_projet" project={project} />
               <AllerPlusLoin section="documents_projet" project={project} />
             </motion.div>
           </TabsContent>
         </Tabs>
 
-        {/* Synthèse financière */}
+        {/* Synthèse financière — masquée dans l'éditeur (le simulateur fait foi) */}
+        {!modeEdition && (<>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="mt-12 max-md:mt-6 pt-10 max-md:pt-6">
           <TabHeader
             title="Synthèse financière"
@@ -1196,14 +1244,18 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             </div>
           </div>
         </motion.div>
+        </>)}
         </div>
 
+        {!apercuOnglet && (
         <aside className="max-lg:hidden">
           <div className="sticky top-8">
             <AvisProjetIA analyse={analyse} loading={analyseLoading} error={analyseError} vertical section={ongletActif} />
           </div>
         </aside>
+        )}
       </div>
     </motion.div>
+    </EditionContext.Provider>
   );
 }

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive } from "lucide-react";
+import { Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,6 +27,7 @@ import ProjectFormSwotTab from "../components/admin/ProjectFormSwotTab";
 import ProjectFormMarcheTab from "../components/admin/ProjectFormMarcheTab";
 import ProjectSimulatorPreview from "../components/admin/ProjectSimulatorPreview";
 import ProjectLivePreview from "../components/admin/ProjectLivePreview";
+import ProjetContent from "../components/projet/ProjetContent";
 
 import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
@@ -39,6 +40,20 @@ export default function AdminProjets() {
   });
   const [editingProject, setEditingProject] = useState(null);
   const [activeTab, setActiveTab] = useState("informations");
+  // Aperçu « page projet » — rafraîchi sur Entrée, Enregistrer ou fermeture du panneau.
+  const [apercuProjet, setApercuProjet] = useState(null);
+  // Panneau latéral des champs (caché par défaut) et onglet courant de la page.
+  const [panneauOuvert, setPanneauOuvert] = useState(false);
+  const [ongletPage, setOngletPage] = useState("secteur");
+  // Historique des modifications faites sur la page, pour le retour en arrière.
+  const [historique, setHistorique] = useState([]);
+  // Assistant de création de champs personnalisés (prompt libre), en panneau droit.
+  const [assistantOuvert, setAssistantOuvert] = useState(false);
+  const [assistantPrompt, setAssistantPrompt] = useState("");
+  const [assistantEnCours, setAssistantEnCours] = useState(false);
+  // Suivi de l'enregistrement, affiché dans la barre d'actions.
+  const [enregistreLe, setEnregistreLe] = useState(null);
+  const [modifieDepuis, setModifieDepuis] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
@@ -247,7 +262,7 @@ export default function AdminProjets() {
     if (!idDemande || editingProject || !projects.length || !users.length) return;
     const projet = projects.find((p) => p.id === idDemande);
     if (projet) handleEdit(projet);
-  }, [projects, users]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projects, users]);  
 
   const getShadowForProject = (projectId) => shadowProjects.find(s => s.project_id === projectId);
 
@@ -354,6 +369,7 @@ export default function AdminProjets() {
 
   const handleEdit = (project) => {
     setEditingProject(project);
+    setApercuProjet(null);
     const travaux = [];
     for (let i = 1; i <= 20; i++) {
       if (project[`sim_travaux_montant${i}`]) {
@@ -632,18 +648,9 @@ export default function AdminProjets() {
     } finally { setIsGeneratingAI(false); }
   };
 
-  const handleSubmit = async (overrides = {}) => {
-    const currentFormData = { ...formData, ...overrides };
-    if (!currentFormData.titre) {
-      toast.error("Veuillez remplir au minimum le titre du projet");
-      return;
-    }
-    if (!currentFormData.admin_principal && !editingProject) {
-      setShowAdminPicker(true);
-      return;
-    }
-
-    try {
+  // Transforme le formulaire en enregistrement Projet — partagé entre
+  // l'enregistrement et l'aperçu « page projet » du volet gauche.
+  const construireDonnees = (currentFormData) => {
       // Construire travauxData : tableau indexé par année (1..20)
       const travauxByAnnee = {};
       travauxList.forEach(t => {
@@ -669,6 +676,8 @@ export default function AdminProjets() {
         liens_locataire: (currentFormData.liens_locataire || []).map(l => ({ type: l.type, url: l.url, label: l.label })),
         swot_liens: (currentFormData.swot_liens || []).map(s => ({ url: s.url, label: s.label })),
         secteur_transports: (currentFormData.secteur_transports || []).map(t => ({ ligne: t.ligne, type: t.type, distance_metres: t.distance_metres, temps_marche_min: t.temps_marche_min })),
+        champs_personnalises: (currentFormData.champs_personnalises || []).map(c => ({ id: c.id, label: c.label, valeur: c.valeur, zone: c.zone, style: c.style || 'ligne' })),
+        champs_masques: [...(currentFormData.champs_masques || [])],
       };
       const data = {
         ...cleanFormData, ...travauxData,
@@ -757,6 +766,161 @@ export default function AdminProjets() {
         marche_baux_moyenne: parseFloat(currentFormData.marche_baux_moyenne) || 0,
         marche_baux_haut: parseFloat(currentFormData.marche_baux_haut) || 0,
       };
+      return data;
+  };
+
+  // À l'ouverture de l'éditeur : panneau ouvert d'emblée pour un nouveau
+  // projet (rien à montrer sur la page), fermé sinon ; aperçu remis à zéro.
+  useEffect(() => {
+    if (isDialogOpen) setPanneauOuvert(!editingProject);
+  }, [isDialogOpen]);
+
+  // Pendant l'édition, la bulle « Un problème ? » est masquée (voir index.css).
+  useEffect(() => {
+    if (isDialogOpen) document.body.dataset.editeurProjet = "1";
+    else delete document.body.dataset.editeurProjet;
+    return () => { delete document.body.dataset.editeurProjet; };
+  }, [isDialogOpen]);
+
+  // Un chiffre modifié directement sur la page : on met à jour le formulaire
+  // et on rafraîchit la page dans la foulée, sans passer par le panneau.
+  // Écrit une valeur par chemin pointé (« bail_admin_fields.2.value »), en
+  // recopiant chaque niveau traversé pour ne jamais muter l'état en place.
+  const ecrireChemin = (racine, chemin, valeur) => {
+    const cles = String(chemin).split(".");
+    const copie = Array.isArray(racine) ? [...racine] : { ...racine };
+    let courant = copie;
+    for (let i = 0; i < cles.length - 1; i++) {
+      const suivant = courant[cles[i]];
+      courant[cles[i]] = Array.isArray(suivant) ? [...suivant] : { ...(suivant || {}) };
+      courant = courant[cles[i]];
+    }
+    courant[cles[cles.length - 1]] = valeur;
+    return copie;
+  };
+
+  const modifierChamp = (champ, valeur, enregistrer = false) => {
+    setHistorique((h) => [...h.slice(-29), formData]); // 30 pas conservés
+    setModifieDepuis(true);
+    let suivant = ecrireChemin(formData, champ, valeur);
+    // Le loyer au m² est un ratio : le saisir revient à fixer le loyer annuel.
+    if (champ === "loyer_m2_an") {
+      const surface = parseFloat(suivant.sim_surface) || parseFloat(suivant.surface_m2) || 0;
+      const parM2 = parseFloat(valeur) || 0;
+      if (surface > 0 && parM2 > 0) suivant = { ...suivant, sim_loyer_initial_ht: Math.round(parM2 * surface) };
+    }
+    setFormData(suivant);
+    try {
+      setApercuProjet({ ...(editingProject || {}), ...construireDonnees(suivant), id: editingProject?.id || "apercu" });
+    } catch { /* valeur incomplète : la page garde son état précédent */ }
+    // Entrée vaut validation : on enregistre avec la valeur explicite, sans
+    // attendre que l'état du formulaire soit propagé.
+    if (enregistrer) handleSubmit({}, { source: suivant, discret: true });
+  };
+
+  // `source` explicite : après un enregistrement, `formData` de la fermeture est
+  // encore l'ancien état — s'y fier ferait réapparaître la valeur précédente.
+  // Retour en arrière : on restaure l'état précédent et on l'enregistre, pour
+  // que la page et la base disent la même chose.
+  const annulerDerniereModification = () => {
+    if (!historique.length) return;
+    const precedent = historique[historique.length - 1];
+    setHistorique((h) => h.slice(0, -1));
+    setFormData(precedent);
+    rafraichirApercu(precedent);
+    if (editingProject) handleSubmit({}, { source: precedent, discret: true });
+  };
+
+  // L'assistant traduit une demande en langage naturel (« ajoute Hauteur sous
+  // plafond dans l'onglet Bien, comme les chiffres du haut ») en champs
+  // personnalisés, placés dans l'onglet demandé et dans le style demandé.
+  const ZONES_ASSISTANT = "secteur, marche, bien, locataire, bail, copropriete, diagnostique, documents_projet";
+  const lancerAssistant = async () => {
+    if (!assistantPrompt.trim()) return;
+    setAssistantEnCours(true);
+    try {
+      const reponse = await base44.integrations.Core.InvokeLLM({
+        prompt: `Tu ajoutes des champs personnalisés à une fiche de projet immobilier commercial.\n\n` +
+          `Demande : « ${assistantPrompt.trim()} »\n\n` +
+          `Projet : ${formData.titre || "sans titre"}${formData.adresse_complete ? ` — ${formData.adresse_complete}` : ""}.\n\n` +
+          `Renvoie la liste des champs à créer. « zone » est l'onglet de destination parmi : ${ZONES_ASSISTANT}. ` +
+          `« label » est le libellé affiché, « valeur » la valeur si la demande en précise une (sinon chaîne vide). ` +
+          `« style » vaut "chiffre" quand la demande évoque une présentation en grands chiffres ` +
+          `(« comme les chiffres du haut », « en indicateurs », « en KPI »), sinon "ligne". ` +
+          `N'invente aucune donnée chiffrée sur le bien : laisse « valeur » vide si elle n'est pas dans la demande.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            champs: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  label: { type: "string" },
+                  valeur: { type: "string" },
+                  zone: { type: "string" },
+                  style: { type: "string" },
+                },
+                required: ["label", "zone"],
+              },
+            },
+          },
+          required: ["champs"],
+        },
+      });
+      const nouveaux = (reponse?.champs || [])
+        .filter((c) => c?.label)
+        .map((c, i) => ({
+          id: `cp_${Date.now()}_${i}`,
+          label: String(c.label),
+          valeur: String(c.valeur || ""),
+          zone: ZONES_ASSISTANT.includes(c.zone) ? c.zone : ongletPage,
+          style: c.style === "chiffre" ? "chiffre" : "ligne",
+        }));
+      if (!nouveaux.length) {
+        toast.error("Aucun champ n'a pu être créé à partir de cette demande.");
+        return;
+      }
+      setHistorique((h) => [...h.slice(-29), formData]);
+      const liste = [...(formData.champs_personnalises || []), ...nouveaux];
+      const suivant = { ...formData, champs_personnalises: liste };
+      setFormData(suivant);
+      rafraichirApercu(suivant);
+      if (editingProject) handleSubmit({}, { source: suivant, discret: true });
+      toast.success(`${nouveaux.length} champ${nouveaux.length > 1 ? "s" : ""} ajouté${nouveaux.length > 1 ? "s" : ""}`);
+      setAssistantPrompt("");
+    } catch (e) {
+      toast.error(e?.message || "L'assistant n'a pas pu répondre");
+    } finally {
+      setAssistantEnCours(false);
+    }
+  };
+
+  const rafraichirApercu = (source) => {
+    const donnees = source || formData;
+    try {
+      setApercuProjet({ ...(editingProject || {}), ...construireDonnees(donnees), id: editingProject?.id || "apercu" });
+    } catch { /* formulaire incomplet : on garde l'aperçu précédent */ }
+  };
+
+  // `source` : instantané complet du formulaire. Les modifications faites sur la
+  // page passent le leur, sinon on fusionnerait sur un état déjà périmé et
+  // l'enregistrement repartirait avec l'ancienne valeur.
+  // `discret` : pas de notification (édition sur place, assistant, annulation).
+  const handleSubmit = async (overrides = {}, { source = null, discret = false } = {}) => {
+    const currentFormData = source || { ...formData, ...overrides };
+    if (!currentFormData.titre) {
+      toast.error("Veuillez remplir au minimum le titre du projet");
+      return;
+    }
+    if (!currentFormData.admin_principal && !editingProject) {
+      setShowAdminPicker(true);
+      return;
+    }
+
+    try {
+      const data = construireDonnees(currentFormData);
+
 
       const isNewAssignment = !editingProject || editingProject.client_email !== currentFormData.client_email;
       const previousClientEmails = editingProject?.client_emails || [];
@@ -778,13 +942,18 @@ export default function AdminProjets() {
       }
 
       if (editingProject) {
-        await updateProjectMutation.mutateAsync({ id: editingProject.id, data });
-        toast.success("Projet enregistré !", { description: "Les modifications ont été enregistrées avec succès", duration: 3000 });
+        const maj = await updateProjectMutation.mutateAsync({ id: editingProject.id, data });
+        setEditingProject({ ...editingProject, ...data, ...(maj || {}) });
+        if (!discret) toast.success("Projet enregistré", { duration: 1800 });
       } else {
         const newProject = await createProjectMutation.mutateAsync(data);
-        toast.success("Projet créé !", { description: "Le nouveau projet a été enregistré avec succès", duration: 3000 });
+        if (!discret) toast.success("Projet créé", { duration: 1800 });
         setEditingProject(newProject);
       }
+      setFormData(currentFormData);
+      rafraichirApercu(currentFormData);
+      setEnregistreLe(new Date());
+      setModifieDepuis(false);
 
 
     } catch (error) {
@@ -795,119 +964,167 @@ export default function AdminProjets() {
   const editorTabs = [
     { value: "ai-extract", label: "IA", accent: "teal" },
     { value: "images", label: "Images" },
-    { value: "informations", label: "Infos" },
+    { value: "informations", label: "Bien" },
     { value: "secteur", label: "Secteur" },
-    { value: "locataire", label: "Locataire" },
-    { value: "copropriete", label: "Copro" },
     { value: "marche", label: "Marché" },
+    { value: "locataire", label: "Locataire" },
+    { value: "bail", label: "Analyse du bail" },
+    { value: "copropriete", label: "Copropriété" },
     { value: "diagnostique", label: "Diagnostique" },
     { value: "docs_projet", label: "Documents" },
-    { value: "preview", label: "Preview", accent: "amber" },
     { value: "simulateur", label: "Simulateur" },
   ];
+  // Onglet de la page projet -> onglet du panneau de champs correspondant.
+  const FORM_PAR_ONGLET = {
+    bien: "informations", secteur: "secteur", marche: "marche", locataire: "locataire",
+    bail: "bail", copropriete: "copropriete", diagnostique: "diagnostique", documents_projet: "docs_projet",
+  };
+  const projetAffiche = apercuProjet || editingProject || null;
 
   if (isDialogOpen) {
-    const closeEditor = () => { setIsDialogOpen(false); resetForm(); const url = new URL(window.location); url.searchParams.delete('action'); window.history.replaceState({}, '', url); };
-    const goToProjectsList = () => { setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); };
+    const closeEditor = () => { setIsDialogOpen(false); resetForm(); setPanneauOuvert(false); const url = new URL(window.location); url.searchParams.delete('action'); window.history.replaceState({}, '', url); };
+    const goToProjectsList = () => { setIsDialogOpen(false); resetForm(); setPanneauOuvert(false); navigate(createPageUrl("AdminProjets")); };
     const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
-    const statutLabels = { prospect: "Prospect", analyse: "Analyse", negociation: "Négociation", financement: "Financement", signe: "Signé" };
+    const ouvrirPanneau = (ongletFormulaire) => { if (ongletFormulaire) setActiveTab(ongletFormulaire); setAssistantOuvert(false); setPanneauOuvert(true); };
+    const fermerPanneau = () => { setPanneauOuvert(false); rafraichirApercu(formData); };
     return (
-      <div className="h-screen flex flex-col md:flex-row bg-[#0a0c0c] text-[#edeae5] overflow-hidden">
-        {/* LEFT — visual panel with live preview (fixe, ne scrolle pas) */}
-        <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="hidden md:flex flex-col gap-6 w-[42%] lg:w-[46%] px-11 py-10 h-screen overflow-hidden" style={{ background: "linear-gradient(160deg,#0A0B0F 0%,#000000 70%)" }}>
-          <div className="flex items-center gap-3">
+      <div className="h-screen flex flex-col bg-[#0a0c0c] text-[#edeae5] overflow-hidden">
+        {/* Barre d'actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-7 py-3 border-b border-[#242726] flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
             <img src="/logo-klocka.svg" alt="" className="w-[18px] h-[18px] rounded-[4px]" draggable={false} />
-            <span className="font-medium tracking-[2px] text-[13px]">KLOCKA&nbsp;OS</span>
-          </div>
-
-          <div className="flex flex-col py-6">
-            <h1 className="text-[26px] font-light leading-[1.08] m-0 mb-2 -tracking-[0.02em]">
-              {editingProject ? <>Modifions votre projet.</> : <>Créons votre prochain projet.</>}
-            </h1>
-            <p className="text-[#8b9391] text-[14px] leading-[1.5] m-0 mb-4 max-w-[340px]">Renseignez les informations clés, l'aperçu se met à jour en temps réel.</p>
-
-            {/* card d'aperçu à gauche + onglets verticaux à droite */}
-            <div className="flex gap-6 items-start">
-              {/* live preview card — contextual to active tab */}
-              <div className="flex-1 min-w-0">
-                <ProjectLivePreview activeTab={activeTab} formData={formData} />
-              </div>
-
-              {/* Navigation onglets — liste verticale à droite de la card */}
-              <nav className="flex flex-col gap-1 flex-shrink-0 w-[130px]">
-                {editorTabs.map((t) => {
-                  const active = activeTab === t.value;
-                  return (
-                    <button
-                      key={t.value}
-                      onClick={() => setActiveTab(t.value)}
-                      className={`flex items-center gap-2.5 py-2 text-[14px] font-semibold text-left transition-colors ${active ? "text-[#35a79b]" : "text-[#6b7270] hover:text-[#C3C7CE]"}`}
-                    >
-                      <span className={`w-[6px] h-[6px] rounded-full flex-shrink-0 transition-all ${active ? "bg-[#35a79b]" : "bg-[#343735]"}`} />
-                      {t.label}
-                    </button>
-                  );
-                })}
-              </nav>
+            <div className="min-w-0">
+              <p className="m-0 text-[15px] font-medium truncate">{formData.titre || (editingProject ? "Projet" : "Nouveau projet")}</p>
+              <p className="m-0 text-[11px] text-[#6b7270] max-md:hidden">Cliquez une valeur pour la modifier sur place — Entrée valide, Enregistrer sauvegarde.</p>
             </div>
           </div>
-        </motion.div>
+          <div className="flex gap-2 items-center flex-shrink-0">
+            <span className="text-[11.5px] mr-1 hidden lg:block" title="État de l'enregistrement">
+              {modifieDepuis
+                ? <span className="text-[#e0c9a0]">Modifications non enregistrées</span>
+                : enregistreLe
+                  ? <span className="text-[#7fd3c9]">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                  : null}
+            </span>
+            <button
+              onClick={annulerDerniereModification}
+              disabled={!historique.length}
+              title={historique.length ? "Annuler la dernière modification" : "Aucune modification à annuler"}
+              className="inline-flex items-center gap-2 bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Undo2 className="w-4 h-4" />
+              Retour en arrière
+            </button>
+            <button
+              onClick={() => { setAssistantOuvert(true); setPanneauOuvert(false); }}
+              title="Créer des champs personnalisés en langage naturel"
+              className="inline-flex items-center gap-2 bg-transparent border border-[#35a79b]/50 text-[#7fd3c9] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#35a79b]/[0.12] transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+              Assistant
+            </button>
+            <button onClick={() => ouvrirPanneau(FORM_PAR_ONGLET[ongletPage] || "informations")} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Modifier les informations</button>
+            <button onClick={closeEditor} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Annuler</button>
+            {editingProject && (
+              <button onClick={goToProjectsList} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Retour aux projets</button>
+            )}
+            <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
+              className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[13.5px] font-bold hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "#edeae5" }}>
+              {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
+            </button>
+          </div>
+        </div>
 
-        {/* RIGHT — form area (seule zone qui scrolle) */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }} className="flex-1 bg-[#0F1116] h-screen overflow-y-auto">
-          {/* Mobile top bar */}
-          <div className="md:hidden flex items-center justify-between px-5 py-4 border-b border-[#242726]">
-            <span className="font-light text-[18px]">{editingProject ? "Modifier" : "Nouveau projet"}</span>
-            <div className="flex gap-2">
-              <button onClick={closeEditor} className="border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-3.5 py-2 text-[13px] font-semibold">Annuler</button>
-              {editingProject && (
-                <button onClick={goToProjectsList} className="border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-3.5 py-2 text-[13px] font-semibold">Projets</button>
-              )}
-              <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving} className="text-[#0c0e0d] rounded-md px-3.5 py-2 text-[13px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#edeae5" }}>{isSaving ? "..." : "Enregistrer"}</button>
+        {/* La page projet, pleine largeur — les valeurs s'éditent sur place ;
+            le panneau ne s'ouvre que par le bouton « Modifier les informations ». */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {panneauOuvert && activeTab === "simulateur" ? (
+            <div className="max-w-[1100px] mx-auto p-6"><ProjectSimulatorPreview formData={formData} travauxList={travauxList} /></div>
+          ) : projetAffiche ? (
+            <ProjetContent project={projetAffiche} isAdmin={false} showAsClient onOngletChange={setOngletPage} modeEdition onChamp={modifierChamp} />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-[#6b7270] text-sm max-w-sm text-center px-6">
+                Renseignez le projet dans le panneau, puis appuyez sur Entrée ou Enregistrer : la page projet apparaîtra ici.
+              </p>
             </div>
+          )}
+        </div>
+
+        {/* Assistant — panneau latéral droit */}
+        <div className={`fixed inset-y-0 right-0 z-[55] w-full md:w-[420px] bg-[#0F1116] border-l border-[#242726] flex flex-col transform transition-transform duration-300 ${assistantOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#242726] flex-shrink-0">
+            <span className="flex items-center gap-2 text-[15px] font-medium">
+              <Sparkles className="w-4 h-4 text-[#7fd3c9]" />
+              Assistant
+            </span>
+            <button onClick={() => setAssistantOuvert(false)} className="text-[#8b9391] hover:text-[#edeae5] transition-colors" title="Fermer">
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          {/* Mobile tab selector */}
-          <div className="md:hidden border-b border-[#242726] overflow-x-auto flex gap-2 px-4 py-3">
-            {editorTabs.map((t) => {
-              const active = activeTab === t.value;
-              return (
-                <button key={t.value} onClick={() => setActiveTab(t.value)} className={`flex-shrink-0 px-3.5 py-2 rounded-full text-[13px] whitespace-nowrap transition-colors ${active ? "text-[#edeae5] font-semibold" : "bg-[#edeae5]/[0.05] text-[#8b9391]"}`} style={active ? { background: "linear-gradient(120deg,#35a79b,#1f6b62)" } : undefined}>
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Content */}
-          <div className="px-5 md:px-13 lg:px-16 py-8 md:py-12 max-w-[860px] mx-auto">
-            {/* Desktop header actions */}
-            <div className="hidden md:flex justify-between items-center mb-9">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[22px] font-light m-0">{editorTabs.find(t => t.value === activeTab)?.label || "Informations"}</h2>
-                {editingProject && (
-                  <button onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, '_blank')} className="text-[#6b7270] hover:text-[#edeae5] transition-colors ml-1" title="Voir la page client">
-                    <Eye className="w-5 h-5" />
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-4">
+            <p className="text-[#8b9391] text-[13px] leading-[1.65] m-0">
+              Décrivez les champs à créer, l'onglet où les placer et leur présentation —
+              en lignes ou en grands chiffres comme la bande du haut. Ils sont ensuite
+              modifiables au clic, déplaçables au glisser-déposer et supprimables.
+            </p>
+            <textarea
+              rows={5}
+              value={assistantPrompt}
+              onChange={(e) => setAssistantPrompt(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) lancerAssistant(); }}
+              placeholder="Ex. : ajoute « Hauteur sous plafond » et « Vitrine (ml) » dans l'onglet Bien, présentés comme les chiffres du haut."
+              className="w-full bg-[#0a0c0c] border border-[#282b2a] focus:border-[#35a79b] rounded-md px-3.5 py-3 text-[14px] text-[#edeae5] outline-none placeholder:text-[#4f5654] transition-colors"
+            />
+            <div className="border-t border-[#242726] pt-4">
+              <p className="text-[10px] tracking-[0.18em] uppercase text-[#6b7270] mb-2">Exemples</p>
+              <div className="space-y-1.5">
+                {[
+                  "Ajoute « Hauteur sous plafond » dans l'onglet Bien.",
+                  "Dans Marché, ajoute « Flux piéton » et « Vacance commerciale » comme les chiffres du haut.",
+                  "Ajoute « Bailleur » et « Syndic » dans l'onglet Copropriété.",
+                ].map((ex) => (
+                  <button key={ex} onClick={() => setAssistantPrompt(ex)}
+                    className="block w-full text-left text-[12.5px] leading-[1.5] text-[#8b9391] hover:text-[#edeae5] bg-[#0a0c0c] border border-[#242726] hover:border-[#35a79b]/50 rounded px-3 py-2 transition-colors">
+                    {ex}
                   </button>
-                )}
-              </div>
-              <div className="flex gap-2.5 items-center">
-                <button onClick={closeEditor} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-[18px] py-2.5 text-[14px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Annuler</button>
-                {editingProject && (
-                  <button onClick={goToProjectsList} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-[18px] py-2.5 text-[14px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Retour aux projets</button>
-                )}
-                <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
-                  className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[14px] font-bold hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "#edeae5" }}>
-                  {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
-                </button>
+                ))}
               </div>
             </div>
+          </div>
 
+          <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[#242726] flex-shrink-0">
+            <span className="text-[11px] text-[#6b7270]">⌘/Ctrl + Entrée</span>
+            <button onClick={lancerAssistant} disabled={assistantEnCours || !assistantPrompt.trim()}
+              className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#edeae5" }}>
+              {assistantEnCours ? <><Loader2 className="w-4 h-4 animate-spin" />Création…</> : "Créer les champs"}
+            </button>
+          </div>
+        </div>
+
+        {/* Panneau latéral des champs */}
+        <div
+          className={`fixed inset-y-0 right-0 z-50 w-full md:w-[600px] bg-[#0F1116] border-l border-[#242726] flex flex-col transform transition-transform duration-300 ${panneauOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}
+          onInput={() => setModifieDepuis(true)}
+          onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
+        >
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#242726] flex-shrink-0">
+            <span className="text-[15px] font-medium">{editorTabs.find(t => t.value === activeTab)?.label || "Modifier"}</span>
+            <button onClick={fermerPanneau} className="text-[#8b9391] hover:text-[#edeae5] transition-colors" title="Fermer — met la page à jour">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex gap-1.5 px-4 py-2.5 border-b border-[#242726] overflow-x-auto flex-shrink-0">
+            {editorTabs.map((t) => (
+              <button key={t.value} onClick={() => setActiveTab(t.value)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors ${activeTab === t.value ? "text-[#0c0e0d] font-semibold bg-[#edeae5]" : "bg-[#edeae5]/[0.05] text-[#8b9391] hover:text-[#edeae5]"}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsContent value="preview">
-                <ProjectSimulatorPreview formData={formData} travauxList={travauxList} />
-              </TabsContent>
-
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
                 <div className="p-6 bg-[#121413] rounded-none border border-[#282b2a]">
                   <div className="flex items-center gap-3 mb-4">
@@ -1071,6 +1288,7 @@ export default function AdminProjets() {
               </TabsContent>
 
               <TabsContent value="locataire"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
+              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="copropriete"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormCoproTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="marche"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormMarcheTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="diagnostique"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDiagnosticsTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
@@ -1079,45 +1297,14 @@ export default function AdminProjets() {
               <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} /></motion.div></TabsContent>
             </Tabs>
           </div>
-        </motion.div>
-
-        {/* Admin Picker Dialog */}
-        <Dialog open={showAdminPicker} onOpenChange={setShowAdminPicker}>
-          <DialogContent className="max-w-md bg-[#0a0c0c] border-[#2e3130] shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-            <DialogHeader>
-              <DialogTitle className="text-[#edeae5] font-light text-xl">Choisissez l'admin principal</DialogTitle>
-              <p className="text-[#8b9391] text-sm mt-1">Cliquez sur la photo de l'admin en charge de ce projet</p>
-            </DialogHeader>
-            <div className="flex justify-center gap-8 py-6">
-              {users.filter(u => u.role === "admin" && ["jules.b@klocka.immo", "alexis.p@klocka.immo", "maxime.p@klocka.immo", "paul.b@klocka.immo"].includes(u.email)).map(u => {
-                const avatarMap = {
-                  "jules.b@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png",
-                  "alexis.p@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e5f3e9394_Capturedecran2026-02-18a163239.png",
-                  "maxime.p@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e92131b8c_Capturedecran2026-02-18a164304.png",
-                  "paul.b@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/db402bc1f_Capturedecran2026-06-24a122246.png",
-                };
-                const avatar = avatarMap[u.email];
-                if (!avatar) return null;
-                return (
-                  <button
-                    key={u.id}
-                    onClick={() => {
-                      setShowAdminPicker(false);
-                      setFormData(prev => ({ ...prev, admin_principal: u.email }));
-                      handleSubmit({ admin_principal: u.email });
-                    }}
-                    className="flex flex-col items-center gap-3 group"
-                  >
-                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#edeae5]/10 group-hover:border-[#565b59] transition-all duration-200 group-hover:scale-105">
-                      <img src={avatar} alt={u.full_name} className="w-full h-full object-cover" />
-                    </div>
-                    <span className="text-[#9aa19e] text-sm group-hover:text-[#edeae5] transition-colors">{u.full_name || u.email.split('@')[0]}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </DialogContent>
-        </Dialog>
+          <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[#242726] flex-shrink-0">
+            <span className="text-[11px] text-[#6b7270]">Entrée met la page à jour sans enregistrer.</span>
+            <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
+              className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[14px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#edeae5" }}>
+              {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

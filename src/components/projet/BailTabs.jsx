@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { ValeurEditable, TexteEditable } from "./EditionEnPlace";
 import moment from "moment";
 import "moment/locale/fr";
 import { base44 } from "@/api/base44Client";
@@ -17,13 +18,15 @@ const tabStyle = (active) =>
   }`;
 
 // Ligne clé/valeur sur filet fin — même grammaire que les autres onglets
-function InfoCard({ label, value, accent, badge, note, onDelete, showDelete }) {
+function InfoCard({ label, value, accent, badge, note, onDelete, showDelete, champ }) {
   if (!value && value !== 0) return null;
   return (
     <div className="flex justify-between items-start gap-4 py-2.5 border-t border-[#edeae5]/[0.12]">
       <span className="text-sm text-[#8b9391] flex-shrink-0">{label}</span>
       <div className="text-right min-w-0">
-        <span className={`text-sm ${accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{value}</span>
+        <span className={`text-sm ${accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+          <ValeurEditable champ={champ} type="text">{value}</ValeurEditable>
+        </span>
         {badge && (
           <span className={`ml-2 text-[10px] tracking-[0.12em] uppercase ${badge === "preneur" ? "text-[#7fd3c9]" : "text-[#8b9391]"}`}>
             {badge === "preneur" ? "Preneur" : "Bailleur"}
@@ -379,6 +382,7 @@ export default function BailTabs({ project }) {
                   key={index} 
                   label={field.label} 
                   value={field.value}
+                  champ={`bail_admin_fields.${index}.value`}
                   showDelete={showAsAdmin}
                   onDelete={() => handleDeleteField(index)}
                 />
@@ -395,6 +399,7 @@ export default function BailTabs({ project }) {
       {/* Analyse du bail */}
       {tab === "analyse" && (
         hasAnalyse ? (
+          <TexteEditable champ="analyse_bail">
           <div className="text-[14.5px] text-[#d3d8d6] leading-[1.8] space-y-5">
             {project.analyse_bail.split(/(\b\d{1,2}\.\s+[A-ZÀ-Ü][^\n]+)/).filter(Boolean).map((section, idx) => {
               const isSectionTitle = /^\d{1,2}\.\s+[A-ZÀ-Ü]/.test(section.trim());
@@ -414,6 +419,7 @@ export default function BailTabs({ project }) {
               );
             })}
           </div>
+          </TexteEditable>
         ) : (
           <SectionEmpty text="Aucune analyse du bail renseignée." />
         )

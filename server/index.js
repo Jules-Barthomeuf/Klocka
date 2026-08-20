@@ -473,8 +473,18 @@ app.post('/api/admin/projets/:id/presentation', wrap(async (req, res) => {
   const projet = Records.get('Project', req.params.id);
   if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
 
+  // Six photos choisies dans la page : sommaire, ville, quartier, local ×2,
+  // conditions. Celle des conditions est mémorisée : c'est toujours la même
+  // d'un dossier à l'autre.
+  const photos = { ...(req.body?.photos || {}) };
+  const reglages = Records.filter('AppSettings', { setting_key: 'global' })[0];
+  if (photos.conditions && reglages && photos.conditions !== reglages.presentation_conditions_photo) {
+    Records.update('AppSettings', reglages.id, { presentation_conditions_photo: photos.conditions });
+  }
+  if (!photos.conditions) photos.conditions = reglages?.presentation_conditions_photo || null;
+
   const { genererPresentationProjet } = await import('./presentation-projet.js');
-  const buffer = await genererPresentationProjet(projet);
+  const buffer = await genererPresentationProjet(projet, photos);
 
   const nomFichier = `presentation-projet-${String(projet.id).replace(/[^a-zA-Z0-9_-]/g, '_')}.pptx`;
   const dossierPres = path.join(UPLOAD_DIR, 'presentations');

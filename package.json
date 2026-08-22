@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "concurrently -k -n back,front -c blue,green \"npm run server\" \"vite\"",
+    "dev": "node scripts/dev.js",
     "server": "node server/index.js",
     "import": "node server/import.js",
     "build": "vite build",
     "lint": "eslint .",
     "typecheck": "tsc -p ./jsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:sans-surveillance": "concurrently -k -n back,front -c blue,green \"npm run server\" \"vite\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

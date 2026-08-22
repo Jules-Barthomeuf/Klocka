@@ -775,6 +775,19 @@ export default function AdminProjets() {
     if (isDialogOpen) setPanneauOuvert(!editingProject);
   }, [isDialogOpen]);
 
+  // L'onglet Simulateur de la page va de pair avec ses champs : les chiffres à
+  // gauche, le panneau de saisie à droite, ouvert d'office.
+  useEffect(() => {
+    if (!isDialogOpen) return;
+    if (ongletPage === "simulateur") {
+      setActiveTab("simulateur");
+      setAssistantOuvert(false);
+      setPanneauOuvert(true);
+    } else if (activeTab === "simulateur") {
+      setPanneauOuvert(false);
+    }
+  }, [ongletPage, isDialogOpen]);
+
   // Pendant l'édition, la bulle « Un problème ? » est masquée (voir index.css).
   useEffect(() => {
     if (isDialogOpen) document.body.dataset.editeurProjet = "1";
@@ -974,10 +987,18 @@ export default function AdminProjets() {
     { value: "docs_projet", label: "Documents" },
     { value: "simulateur", label: "Simulateur" },
   ];
+  // Onglets de la page projet, dans l'ordre de la barre.
+  const ONGLETS_PAGE = [
+    { value: "secteur", label: "Secteur" }, { value: "marche", label: "Marché" },
+    { value: "bien", label: "Bien" }, { value: "locataire", label: "Locataire" },
+    { value: "bail", label: "Analyse du bail" }, { value: "copropriete", label: "Copropriété" },
+    { value: "diagnostique", label: "Diagnostique" }, { value: "documents_projet", label: "Documents" },
+  ];
   // Onglet de la page projet -> onglet du panneau de champs correspondant.
   const FORM_PAR_ONGLET = {
     bien: "informations", secteur: "secteur", marche: "marche", locataire: "locataire",
     bail: "bail", copropriete: "copropriete", diagnostique: "diagnostique", documents_projet: "docs_projet",
+    simulateur: "simulateur",
   };
   const projetAffiche = apercuProjet || editingProject || null;
 
@@ -1038,10 +1059,30 @@ export default function AdminProjets() {
         {/* La page projet, pleine largeur — les valeurs s'éditent sur place ;
             le panneau ne s'ouvre que par le bouton « Modifier les informations ». */}
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {panneauOuvert && activeTab === "simulateur" ? (
-            <div className="max-w-[1100px] mx-auto p-6"><ProjectSimulatorPreview formData={formData} travauxList={travauxList} /></div>
+          {ongletPage === "simulateur" ? (
+            <div className="max-w-[1100px] mx-auto px-4 md:px-6 pb-8">
+              {/* La barre d'onglets de la page reste accessible au-dessus des chiffres. */}
+              <div className="flex flex-wrap gap-x-7 gap-y-2 pt-6 pb-6 overflow-x-auto">
+                {[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => (
+                  <button key={o.value} onClick={() => setOngletPage(o.value)}
+                    className={`text-[11px] tracking-[0.16em] uppercase py-1 border-b whitespace-nowrap transition-colors
+                      ${ongletPage === o.value ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#8b9391] hover:text-[#edeae5]"}`}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <ProjectSimulatorPreview formData={formData} travauxList={travauxList} />
+            </div>
           ) : projetAffiche ? (
-            <ProjetContent project={projetAffiche} isAdmin={false} showAsClient onOngletChange={setOngletPage} modeEdition onChamp={modifierChamp} />
+            <ProjetContent
+              project={projetAffiche}
+              isAdmin={false}
+              showAsClient
+              onOngletChange={setOngletPage}
+              modeEdition
+              onChamp={modifierChamp}
+              ongletsSupplementaires={[{ value: "simulateur", label: "Simulateur" }]}
+            />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-[#6b7270] text-sm max-w-sm text-center px-6">

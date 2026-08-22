@@ -4,18 +4,20 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowRight, Briefcase, Check, Clock, Download, ExternalLink, Eye, Film, FlaskConical, FolderCheck,
-  Loader2, Lock, Mail, Microscope, Send, SkipForward, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload,
+  ChevronLeft, ChevronRight, Loader2, Lock, Mail, Microscope, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Bandeau, CarteLot, DialogMailIntention, JournalSuivi, STATUTS_DEAL, VERDICTS,
+  Bandeau, CarteLot, DialogMailIntention, JournalSuivi,
 } from "@/components/preanalyse/DealResultat";
 import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
+import ChatDossier from "./ChatDossier";
+import DocumentsDossier from "./DocumentsDossier";
+import AnalyseDocuments from "./AnalyseDocuments";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // Workflow d'un deal en cinq étapes, sur une seule page :
@@ -29,12 +31,13 @@ import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/Conn
 // Le workflow existe avant même le deal : sans dossier, seules les étapes 1 et
 // 2 sont ouvertes ; l'analyse (étape 2) crée le deal et déroule la suite.
 
+// Miroir de server/deal/etapes.js — le déblocage (etape_max) vient du serveur.
 const ETAPES = [
   { n: 1, id: "mail", label: "Mail", sub: "agent" },
   { n: 2, id: "preanalyse", label: "Pré-analyse", sub: "fiche du bien" },
-  { n: 3, id: "documents", label: "Documents", sub: "dépouillement" },
-  { n: 4, id: "decision", label: "Décision", sub: "client / abandon" },
-  { n: 5, id: "plateforme", label: "Plateforme", sub: "création projet" },
+  { n: 3, id: "analyse", label: "Analyse", sub: "documents et décision" },
+  { n: 4, id: "video", label: "Vidéo", sub: "présentation client" },
+  { n: 5, id: "plateforme", label: "Plateforme", sub: "création du projet" },
   { n: 6, id: "presentation", label: "Présentation", sub: "dossier banque" },
 ];
 
@@ -43,7 +46,7 @@ export function TitreEtape({ n, titre, description }) {
   return (
     <div className="mb-6">
       <div className="flex items-baseline gap-3.5 mb-1.5">
-        <div className="text-xs text-[#8b9391] tabular-nums">{String(n).padStart(2, "0")}</div>
+        {n != null && <div className="text-xs text-[#8b9391] tabular-nums">{String(n).padStart(2, "0")}</div>}
         <h2 className="m-0 text-[22px] font-medium text-[#edeae5]">{titre}</h2>
       </div>
       <p className="m-0 text-[13.5px] text-[#9aa19e] max-w-[64ch] leading-[1.65]">{description}</p>
@@ -52,33 +55,13 @@ export function TitreEtape({ n, titre, description }) {
 }
 
 // Étape la plus avancée déverrouillée selon le statut.
-function etapeCourante(dossier) {
-  if (!dossier) return 2; // nouveau deal : mail + pré-analyse ouvertes
-  switch (dossier.statut || "analyse") {
-    case "analyse":
-      return 2;
-    case "documents_demandes":
-    case "documents_recus":
-      return 3;
-    case "depouille":
-      return 5; // décision finale ET plateforme accessibles
-    case "projet_cree":
-      return 5;
-    case "abandonne":
-      if (dossier.dossier_doc_id) return 4;
-      if ((dossier.suivi || []).some((s) => s.vers === "documents_demandes" || s.intention === "demande_documents")) return 3;
-      return 2;
-    default:
-      return 2;
-  }
-}
-
-// Étape sur laquelle on attend une action de l'utilisateur.
-function etapeParDefaut(dossier) {
-  if (!dossier) return 1;
-  if (dossier.statut === "abandonne") return 2;
-  if (dossier.statut === "depouille") return 4;
-  return etapeCourante(dossier);
+// L'étape atteinte vient du serveur (etape_max, débloquée explicitement).
+function etapeDebloquee(dossier) {
+  // Sans dossier (dépôt direct d'une fiche), mail et pré-analyse sont ouvertes.
+  if (!dossier) return 2;
+  // Un dossier créé nommé commence à l'étape 1 : le mail à l'agent est la
+  // première chose à faire, avant même d'avoir une fiche à analyser.
+  return Math.min(ETAPES.length, Math.max(1, Number(dossier.etape_max) || 1));
 }
 
 /**
@@ -93,18 +76,86 @@ function etapeParDefaut(dossier) {
 export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, onRefresh, apercu = false }) {
   const abandonne = dossier?.statut === "abandonne";
   // En aperçu, tout est déverrouillé pour parcourir les écrans librement.
-  const courante = apercu ? ETAPES.length : etapeCourante(dossier);
-  const [etape, setEtape] = useState(() => (apercu ? 1 : etapeParDefaut(dossier)));
+  const debloquee = apercu ? ETAPES.length : etapeDebloquee(dossier);
+  const [etape, setEtape] = useState(() => (apercu ? 1 : debloquee));
+  const [deblocageEnCours, setDeblocageEnCours] = useState(false);
+  // Documents cochés dans l'étape Analyse, soumis au chat.
+  const [documentsCoches, setDocumentsCoches] = useState([]);
+  const [ongletAnalyse, setOngletAnalyse] = useState("documents");
+  const tableOuverte = etape === 3 && ongletAnalyse !== "documents";
+  // Étape Mail : brouillon rédigé depuis le chat du haut.
+  const [brouillonMail, setBrouillonMail] = useState(null);
+  // Étape Pré-analyse : le chat lance l'analyse (texte collé ou fichier).
+  const analyserFiche = useMutation({
+    mutationFn: async ({ fichier, texte }) => {
+      const form = new FormData();
+      if (fichier) form.append("fichier", fichier);
+      if (texte) form.append("texte", texte);
+      // Un dossier nommé existe déjà : l'analyse le remplit au lieu d'en créer un.
+      if (dossier?.deal_id) form.append("deal_id", dossier.deal_id);
+      return base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true });
+    },
+    onSuccess: (d) => {
+      toast.success(d.multi_lots ? `${d.lots.length} lots analysés` : "Fiche analysée");
+      onAnalyse?.(d);
+      onRefresh?.();
+    },
+    onError: (e) => toast.error(e?.message || "Analyse impossible"),
+  });
 
-  // Changer de deal (ou le voir avancer) recale le workflow sur l'étape active.
+  // Étape Analyse : dépouiller les documents cochés, sans prompt.
+  const extraire = useMutation({
+    mutationFn: () =>
+      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/extraire`, {
+        body: { documents: documentsCoches },
+      }),
+    onSuccess: (tables) => {
+      const total = (tables || []).reduce((n, t) => n + (t.lignes?.length || 0), 0);
+      toast.success(`${tables.length} document${tables.length > 1 ? "s" : ""} dépouillé${tables.length > 1 ? "s" : ""} — ${total} donnée${total > 1 ? "s" : ""}`);
+      onRefresh?.();
+    },
+    onError: (e) => toast.error(e?.message || "Dépouillement impossible"),
+  });
+
+  const composerMail = useMutation({
+    mutationFn: (prompt) => base44.functions.invoke("composeMail", { prompt }),
+    onSuccess: (r) => {
+      if (!r?.success) return toast.error(r?.error || "Composition impossible");
+      setBrouillonMail({
+        to: (r.draft.to || []).join(", "),
+        subject: r.draft.subject || "",
+        body: r.draft.body || "",
+      });
+      if (r.warnings?.length) toast.warning(r.warnings[0]);
+    },
+    onError: (e) => toast.error(e?.message || "Composition impossible"),
+  });
+
+  // Changer de dossier (ou le voir avancer) recale la vue sur le front débloqué.
   useEffect(() => {
-    if (!apercu) setEtape(etapeParDefaut(dossier));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dossier?.deal_id, dossier?.statut]);
+    if (!apercu) setEtape(etapeDebloquee(dossier));
+  }, [dossier?.deal_id, dossier?.etape_max]);
+
+  // Aller à une étape non atteinte la débloque — et valide automatiquement
+  // toutes les précédentes (etape_max = cible, côté serveur).
+  const passerVersEtape = async (cible) => {
+    if (!dossier || apercu) return;
+    setDeblocageEnCours(true);
+    try {
+      const r = await base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/etape-suivante`, {
+        body: cible ? { etape: cible } : {},
+      });
+      setEtape(cible || r.etape_max);
+      onRefresh?.();
+    } catch (e) {
+      toast.error(e?.message || "Passage à l'étape impossible");
+    } finally {
+      setDeblocageEnCours(false);
+    }
+  };
+  const passerEtapeSuivante = () => passerVersEtape(null);
 
   const lot = dossier?.lots?.[0];
-  const verdict = lot?.evaluation?.verdict;
-  const s = dossier ? STATUTS_DEAL[dossier.statut || "analyse"] || STATUTS_DEAL.analyse : null;
   const aRelancer =
     dossier?.statut === "documents_demandes" &&
     dossier.relance_prevue_le &&
@@ -112,89 +163,12 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
 
   return (
     <div className="space-y-5">
-      {/* En-tête + stepper */}
-      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[#edeae5] text-base font-medium truncate">
-              {dossier ? lot?.synthese?.titre || dossier.source?.nom_fichier || "Deal" : "Nouveau deal"}
-            </h2>
-            <p className="text-[#8b9391] text-xs mt-0.5">
-              {dossier
-                ? `${new Date(dossier.cree_le).toLocaleDateString("fr-FR")}${dossier.contact_agent_email ? ` · ${dossier.contact_agent_email}` : ""}`
-                : "Du premier mail à l'entrée dans la plateforme"}
-            </p>
-          </div>
-          {verdict && <Badge className={`${VERDICTS[verdict]?.classe || ""} flex-shrink-0`}>{verdict}</Badge>}
-          {s && <Badge className={`${s.classe} flex-shrink-0`}>{s.libelle}</Badge>}
-          {aRelancer && (
-            <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
-              <Clock className="w-3 h-3" /> À relancer
-            </Badge>
-          )}
-        </div>
-
-        {/* Stepper : pastilles reliées par un filet, sous-libellé sous chacune. */}
-        <div className="flex items-start mt-5">
-          {ETAPES.map((e, i) => {
-            const faite = !apercu && !abandonne && dossier && e.n < courante;
-            const active = etape === e.n;
-            // Dès qu'un deal existe, toutes les étapes sont visitables : on
-            // reçoit parfois les documents d'emblée, ou on veut préparer la
-            // décision avant d'avoir envoyé le moindre mail. Les actions de
-            // chaque étape restent gouvernées par le statut du deal.
-            const accessible = apercu || !!dossier || e.n <= courante;
-            return (
-              <div key={e.id} className="flex-1 flex flex-col items-center min-w-0">
-                <div className="flex items-center w-full">
-                  <div
-                    className={`h-px flex-1 ${
-                      i === 0 ? "bg-transparent" : e.n <= etape ? "bg-[#35a79b]/40" : "bg-[#282b2a]"
-                    }`}
-                  />
-                  <button
-                    onClick={() => accessible && setEtape(e.n)}
-                    disabled={!accessible}
-                    className={`w-7 h-7 flex-none rounded-full border text-xs flex items-center justify-center transition-colors ${
-                      active
-                        ? "bg-[#35a79b]/15 border-[#35a79b] text-[#35a79b]"
-                        : faite
-                          ? "bg-[#0c0e0d] border-[#35a79b] text-[#35a79b]"
-                          : accessible
-                            ? "bg-[#0c0e0d] border-[#343735] text-[#8b9391] hover:border-[#565b59]"
-                            : "bg-[#0c0e0d] border-[#22302e] text-[#4a4d4b] cursor-not-allowed"
-                    }`}
-                  >
-                    {faite ? <Check className="w-3 h-3" /> : accessible ? e.n : <Lock className="w-2.5 h-2.5" />}
-                  </button>
-                  <div
-                    className={`h-px flex-1 ${
-                      i === ETAPES.length - 1 ? "bg-transparent" : e.n < etape ? "bg-[#35a79b]/40" : "bg-[#282b2a]"
-                    }`}
-                  />
-                </div>
-                <div className="mt-2.5 text-center px-1">
-                  <div
-                    className={`text-[12.5px] ${
-                      active ? "text-[#edeae5]" : accessible ? "text-[#9aa19e]" : "text-[#4a4d4b]"
-                    }`}
-                  >
-                    {e.label}
-                  </div>
-                  <div className="text-[11px] text-[#6b7270] mt-0.5 hidden sm:block">{e.sub}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {apercu && (
         <div className="rounded-md border border-sky-500/25 bg-sky-500/[0.07] px-4 py-3 flex items-start gap-2 text-sm text-sky-200/90">
           <Eye className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
           <span>
-            Mode aperçu — deal fictif, les cinq étapes sont ouvertes pour visiter les écrans. Aucune
-            action n'est exécutée et rien n'est enregistré.
+            Mode aperçu — dossier fictif, toutes les étapes sont ouvertes pour visiter les écrans.
+            Aucune action n'est exécutée et rien n'est enregistré.
           </span>
         </div>
       )}
@@ -204,14 +178,134 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
       {abandonne && !apercu && (
         <Bandeau
           type="alerte"
-          items={["Deal abandonné et archivé. Les étapes restent consultables, les actions sont désactivées."]}
+          items={["Dossier abandonné et archivé. Les étapes restent consultables, les actions sont désactivées."]}
         />
       )}
 
+      {/* En-tête du dossier : nom, repères, actions */}
+      {dossier && (
+        <div className="flex flex-wrap items-start justify-between gap-4 pb-1">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="m-0 text-[26px] max-md:text-[21px] font-medium tracking-[-.01em] text-[#edeae5] truncate">
+                {dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom"}
+              </h1>
+              {aRelancer && (
+                <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
+                  <Clock className="w-3 h-3" /> À relancer
+                </Badge>
+              )}
+            </div>
+            <p className="m-0 mt-1.5 text-[12.5px] text-[#8b9391]">
+              {[
+                `${(dossier.documents_espace || []).length} document${(dossier.documents_espace || []).length > 1 ? "s" : ""}`,
+                ETAPES[Math.max(0, (dossier.etape_max || 1) - 1)]?.label,
+                (dossier.conversations || []).length ? `${dossier.conversations.length} requête${dossier.conversations.length > 1 ? "s" : ""}` : null,
+                dossier.contact_agent_email || null,
+                !isNaN(new Date(dossier.cree_le)) ? `créé le ${new Date(dossier.cree_le).toLocaleDateString("fr-FR")}` : null,
+              ].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+          {!apercu && (
+            <div className="flex items-center gap-2.5 flex-shrink-0">
+              {etape < ETAPES.length && (
+                <Button
+                  onClick={() => (etape < debloquee ? setEtape(etape + 1) : passerVersEtape(etape + 1))}
+                  disabled={deblocageEnCours || abandonne}
+                  className="bg-transparent border border-[#2e3230] text-[#edeae5] hover:bg-[#edeae5]/[0.06] hover:border-[#565b59] h-9 text-[13px]"
+                >
+                  {deblocageEnCours ? "Passage…" : "Poursuivre"}
+                </Button>
+              )}
+              {debloquee > 1 && (
+                <Button
+                  onClick={() => {
+                    if (!window.confirm("Ramener ce dossier à l'étape 1 ? Documents et analyses sont conservés.")) return;
+                    base44
+                      .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/revenir`, { body: { etape: 1 } })
+                      .then(() => { toast.success("Retour à l'étape 1"); setEtape(1); onRefresh?.(); })
+                      .catch((e) => toast.error(e?.message || "Retour impossible"));
+                  }}
+                  disabled={abandonne}
+                  className="bg-transparent border border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59] h-9 text-[13px]"
+                >
+                  Revenir à l'étape 1
+                </Button>
+              )}
+              <Button
+                onClick={() => {
+                  if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
+                  base44
+                    .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/abandonner`)
+                    .then(() => { toast.success("Dossier abandonné"); onRefresh?.(); })
+                    .catch((e) => toast.error(e?.message || "Abandon impossible"));
+                }}
+                disabled={abandonne || dossier.statut === "projet_cree"}
+                className="bg-transparent border border-[#2e3230] text-[#9aa19e] hover:text-red-300 hover:border-red-400/40 h-9 text-[13px]"
+              >
+                Abandonner
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Le chat du dossier : questions, analyses, points à vérifier */}
+      <ChatDossier
+        masquerRequetes={tableOuverte}
+        onOuvrirExtraction={(id) => {
+          setOngletAnalyse(id);
+          document.getElementById("tables-analyse")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+        dossier={dossier}
+        modeMail={etape === 1}
+        gabarits={GABARITS}
+        onComposer={(prompt) => composerMail.mutate(prompt)}
+        compositionEnCours={composerMail.isPending}
+        modePreanalyse={etape === 2 && !dossier?.lots?.length}
+        onAnalyserTexte={(texte) => analyserFiche.mutate({ texte })}
+        onAnalyserFichier={(fichier) => analyserFiche.mutate({ fichier })}
+        analyseEnCours={analyserFiche.isPending}
+        onExtraire={() => extraire.mutate()}
+        extractionEnCours={extraire.isPending}
+        documentsCoches={documentsCoches}
+        onToutCocher={() => {
+          const tous = (dossier?.documents_espace || []).map((d) => d.id);
+          setDocumentsCoches(documentsCoches.length === tous.length ? [] : tous);
+        }}
+        onRefresh={onRefresh}
+        apercu={apercu}
+      />
+
+      {/* Étapes du dossier — libellés seuls, sans pastilles. Elles s'effacent
+          quand on lit une table d'analyse : la lecture prend toute la page. */}
+      <div className={`flex-wrap items-center gap-x-6 gap-y-2 border-y border-[#1c1f1e] py-3 ${tableOuverte ? "hidden" : "flex"}`}>
+        {ETAPES.map((e) => {
+          const accessible = e.n <= debloquee;
+          const active = etape === e.n;
+          return (
+            <button
+              key={e.id}
+              onClick={() => (accessible ? setEtape(e.n) : dossier && !deblocageEnCours && passerVersEtape(e.n))}
+              disabled={!accessible && !dossier}
+              title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
+              className={`text-[12.5px] tracking-[0.02em] pb-1 border-b-2 transition-colors whitespace-nowrap
+                ${active ? "border-[#35a79b] text-[#edeae5]"
+                  : accessible ? "border-transparent text-[#9aa19e] hover:text-[#edeae5]"
+                  : "border-transparent text-[#4a4d4b] hover:text-[#8b9391]"}`}
+            >
+              {e.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Contenu de l'étape courante */}
       <div key={etape} className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out space-y-5">
-        {etape === 1 && <EtapeMail dossier={dossier} onSuivant={() => setEtape(2)} apercu={apercu} />}
+        {etape === 1 && <EtapeMail dossier={dossier} onSuivant={() => setEtape(2)} apercu={apercu} brouillon={brouillonMail} onBrouillon={setBrouillonMail} />}
         {etape === 2 && (
           <EtapePreanalyse
+            analyseParChat
             dossier={dossier}
             onAnalyse={onAnalyse}
             onSaisie={onSaisie}
@@ -220,15 +314,35 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
             apercu={apercu}
           />
         )}
-        {etape === 3 && <EtapeDocuments dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
-        {etape === 4 && (
-          <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={() => setEtape(5)} apercu={apercu} />
+        {etape === 3 && (
+          <div id="tables-analyse">
+            <AnalyseDocuments
+              dossier={dossier}
+              coches={documentsCoches}
+              onCocher={setDocumentsCoches}
+              onRefresh={onRefresh}
+              apercu={apercu}
+              onglet={ongletAnalyse}
+              onOnglet={setOngletAnalyse}
+            />
+          </div>
         )}
+        {etape === 3 && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
+        {etape === 4 && <BlocVideoPresentation dossier={dossier} apercu={apercu} />}
         {etape === 5 && <EtapePlateforme dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
         {etape === 6 && <EtapePresentation dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
       </div>
 
-      {dossier && <JournalSuivi suivi={dossier.suivi} />}
+      {/* Documents du dossier — toujours accessibles */}
+      {dossier && etape !== 3 && (
+        <DocumentsDossier
+          dossier={dossier}
+          coches={documentsCoches}
+          onCocher={setDocumentsCoches}
+          onRefresh={onRefresh}
+          apercu={apercu}
+        />
+      )}
     </div>
   );
 }
@@ -291,10 +405,11 @@ const ref = (d) => {
 };
 const agent = (d) => d?.contact_agent_email || "[email de l'agent]";
 
-function EtapeMail({ dossier, onSuivant, apercu }) {
-  const [prompt, setPrompt] = useState("");
-  const [gabarit, setGabarit] = useState(null);
-  const [brouillon, setBrouillon] = useState(null);
+function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, onBrouillon }) {
+  const [brouillonLocal, setBrouillonLocal] = useState(null);
+  // Le brouillon vient du chat du haut quand il est piloté de là.
+  const brouillon = brouillonExterne !== undefined ? brouillonExterne : brouillonLocal;
+  const setBrouillon = onBrouillon || setBrouillonLocal;
   const [expediteur, setExpediteur] = useState(() => localStorage.getItem("klocka:dernier-expediteur") || "");
 
   const { data: statutMail } = useQuery({
@@ -303,20 +418,6 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
     enabled: !apercu,
   });
   const comptes = statutMail?.accounts || [];
-
-  const composer = useMutation({
-    mutationFn: () => base44.functions.invoke("composeMail", { prompt, from: expediteur || undefined }),
-    onSuccess: (r) => {
-      if (!r?.success) return toast.error(r?.error || "Composition impossible");
-      setBrouillon({
-        to: (r.draft.to || []).join(", "),
-        subject: r.draft.subject || "",
-        body: r.draft.body || "",
-      });
-      if (r.warnings?.length) toast.warning(r.warnings[0]);
-    },
-    onError: (e) => toast.error(e?.message || "Composition impossible"),
-  });
 
   const envoyer = useMutation({
     mutationFn: (depuis) =>
@@ -331,7 +432,6 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
       if (r?.success || r?.simulated) {
         toast.success(r?.simulated ? "Envoi simulé (aucun compte connecté)" : "Mail envoyé");
         setBrouillon(null);
-        setPrompt("");
         onSuivant?.();
       } else toast.error(r?.error || "Envoi impossible");
     },
@@ -349,9 +449,23 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
   // Deal de test : envoi simulé côté serveur, aucune boîte requise.
   const test = !!dossier?.test;
 
-  // Deal déjà créé : l'étape est derrière nous, on la résume. En aperçu on
-  // montre plutôt l'écran de composition, qui est le cœur de l'étape.
-  if (dossier && !apercu) {
+  // L'étape n'est « derrière nous » que si elle a été franchie : fiche reçue
+  // par mail, mail déjà envoyé, ou dossier avancé au-delà de l'étape 1. Un
+  // dossier tout juste créé reste sur l'écran de composition.
+  const mailEnvoye = (dossier?.suivi || []).some((s) => s.type === "mail" || s.intention === "mail_agent");
+  const etapeFranchie = !!dossier && (!!dossier.source_mail || mailEnvoye || (Number(dossier.etape_max) || 1) > 1);
+  // Le chat du haut rédige : ici on ne montre plus que le brouillon obtenu.
+  if (onBrouillon && !brouillon && !etapeFranchie) {
+    return (
+      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-8 text-center">
+        <p className="m-0 text-[13.5px] text-[#9aa19e]">
+          Décrivez le mail dans le chat ci-dessus, ou choisissez un gabarit, puis générez le brouillon.
+        </p>
+      </div>
+    );
+  }
+
+  if (dossier && !apercu && etapeFranchie) {
     return (
       <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-6">
         <div className="flex items-start gap-3">
@@ -381,126 +495,100 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
       <TitreEtape
         n={1}
         titre="Mail à l'agent"
-        description="À écrire pendant l'appel. Choisissez un gabarit, complétez l'adresse et le nom de l'agent, le brouillon s'écrit. L'envoi part de votre Gmail — ou passez si vous avez déjà la fiche."
+        description="À écrire pendant l'appel, depuis le chat en haut de page. Le brouillon apparaît ici, prêt à relire et à envoyer depuis votre Gmail — ou passez si vous avez déjà la fiche."
       />
-      <div className="bg-[#0a0c0c] border border-[#282b2a] rounded-md p-6">
       {!brouillon ? (
-        <>
-          <div className="text-[10.5px] tracking-[.12em] uppercase text-[#6b7270] mb-2.5">Gabarits</div>
-          <div className="flex flex-wrap gap-[7px] mb-4">
-            {GABARITS.map((g) => (
-              <button
-                key={g.label}
-                onClick={() => {
-                  setGabarit(g.label);
-                  setPrompt(g.prompt(dossier));
-                }}
-                className={`px-3 py-[7px] rounded text-[11.5px] border transition-colors ${
-                  gabarit === g.label
-                    ? "border-[#35a79b] text-[#35a79b] bg-[#35a79b]/10"
-                    : "border-[#303332] text-[#9aa19e] hover:border-[#565b59]"
-                }`}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            rows={3}
-            placeholder="Choisissez un gabarit, puis complétez l'adresse, le nom de l'agent…"
-            className="bg-[#0c0e0d] border-[#282b2a] text-[#d3d8d6] resize-vertical"
-          />
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            <Button
-              onClick={() => composer.mutate()}
-              disabled={apercu || !prompt.trim() || composer.isPending}
-              className="bg-transparent border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.06]"
-            >
-              {composer.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-2" />
-              )}
-              Générer
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={onSuivant}
-              className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5 ml-auto"
-            >
-              <SkipForward className="w-4 h-4 mr-1.5" /> Passer — j'ai déjà la fiche
-            </Button>
-          </div>
-        </>
+        <div className="bg-[#0a0c0c] border border-[#242726] rounded-xl px-6 py-10 text-center">
+          <p className="m-0 text-[13.5px] text-[#9aa19e]">
+            Rédigez le mail dans le chat en haut de page — un gabarit pour partir vite, puis générez.
+          </p>
+          <Button
+            variant="ghost"
+            onClick={onSuivant}
+            className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5 mt-3"
+          >
+            Passer — j'ai déjà la fiche
+          </Button>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="bg-[#0a0c0c] border border-[#242726] rounded-xl overflow-hidden">
+          {/* Expéditeur : la ligne d'identité du message */}
           {comptes.length > 0 ? (
-            <div>
-              <Label className="text-[#9aa19e] text-xs mb-1.5 block">Envoyer depuis</Label>
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1c1f1e]">
+              <span className="text-[11px] tracking-[0.14em] uppercase text-[#6b7270] w-[74px] flex-shrink-0">De</span>
               <select
                 value={expediteur || comptes[0]?.id}
                 onChange={(e) => {
                   setExpediteur(e.target.value);
                   localStorage.setItem("klocka:dernier-expediteur", e.target.value);
                 }}
-                className="w-full bg-[#171918] border border-[#282b2a] rounded-md px-3 py-2 text-[#edeae5] text-sm"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-[#edeae5] cursor-pointer"
               >
                 {comptes.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
+                  <option key={c.id} value={c.id} className="bg-[#121413]">{c.label}</option>
                 ))}
               </select>
             </div>
           ) : (
             !apercu && (
-              <EncartConnexionGmail
-                googleConfigure={googleConfigure}
-                onConnecte={(email) => {
-                  setExpediteur(email);
-                  localStorage.setItem("klocka:dernier-expediteur", email);
-                }}
-              />
+              <div className="px-5 py-4 border-b border-[#1c1f1e]">
+                <EncartConnexionGmail
+                  googleConfigure={googleConfigure}
+                  onConnecte={(email) => {
+                    setExpediteur(email);
+                    localStorage.setItem("klocka:dernier-expediteur", email);
+                  }}
+                />
+              </div>
             )
           )}
-          <div>
-            <Label className="text-[#9aa19e] text-xs mb-1.5 block">Destinataire</Label>
-            <Input
+
+          {/* Destinataire et objet, sur filets fins */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1c1f1e]">
+            <label htmlFor="mail-to" className="text-[11px] tracking-[0.14em] uppercase text-[#6b7270] w-[74px] flex-shrink-0">À</label>
+            <input
+              id="mail-to"
               value={brouillon.to}
               onChange={(e) => setBrouillon({ ...brouillon, to: e.target.value })}
               placeholder="agent@agence.fr"
-              className="bg-[#171918] border-[#282b2a] text-[#edeae5]"
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-[#edeae5] placeholder:text-[#4f5654]"
             />
           </div>
-          <div>
-            <Label className="text-[#9aa19e] text-xs mb-1.5 block">Objet</Label>
-            <Input
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1c1f1e]">
+            <label htmlFor="mail-objet" className="text-[11px] tracking-[0.14em] uppercase text-[#6b7270] w-[74px] flex-shrink-0">Objet</label>
+            <input
+              id="mail-objet"
               value={brouillon.subject}
               onChange={(e) => setBrouillon({ ...brouillon, subject: e.target.value })}
-              className="bg-[#171918] border-[#282b2a] text-[#edeae5]"
+              placeholder="Objet du message"
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-[#edeae5] placeholder:text-[#4f5654]"
             />
           </div>
-          <div>
-            <Label className="text-[#9aa19e] text-xs mb-1.5 block">Corps</Label>
-            <Textarea
-              value={brouillon.body}
-              onChange={(e) => setBrouillon({ ...brouillon, body: e.target.value })}
-              rows={8}
-              className="bg-[#171918] border-[#282b2a] text-[#edeae5] leading-relaxed"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setBrouillon(null)} className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5">
-              Reprendre
-            </Button>
-            <div className="flex-1" />
-            <Button
-              variant="ghost"
-              onClick={onSuivant}
-              className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5"
+
+          {/* Corps : la zone d'écriture, sans cadre dans le cadre */}
+          <textarea
+            value={brouillon.body}
+            onChange={(e) => setBrouillon({ ...brouillon, body: e.target.value })}
+            rows={14}
+            placeholder="Corps du message"
+            className="w-full bg-transparent border-0 outline-none resize-y px-5 py-4 text-[13.5px] leading-[1.75] text-[#d3d8d6] placeholder:text-[#4f5654]"
+          />
+
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-[#1c1f1e] bg-[#0c0e0d]">
+            <button
+              onClick={() => setBrouillon(null)}
+              className="text-[13px] text-[#8b9391] hover:text-[#edeae5] transition-colors"
             >
-              <SkipForward className="w-4 h-4 mr-1.5" /> Passer sans envoyer
-            </Button>
+              Reprendre
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={onSuivant}
+              className="text-[13px] text-[#8b9391] hover:text-[#edeae5] transition-colors px-2"
+            >
+              Passer sans envoyer
+            </button>
             <Button
               onClick={() => (sansCompte && googleConfigure && !test ? connecter() : envoyer.mutate())}
               disabled={
@@ -510,19 +598,14 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
                 envoyer.isPending ||
                 connexionEnCours
               }
-              className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d] font-medium"
+              className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d] font-medium h-9 text-[13px]"
             >
-              {envoyer.isPending || connexionEnCours ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 mr-2" />
-              )}
+              {(envoyer.isPending || connexionEnCours) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {test ? "Envoyer (simulé)" : sansCompte && googleConfigure ? "Connecter Gmail et envoyer" : "Envoyer via Gmail"}
             </Button>
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
@@ -531,7 +614,7 @@ function EtapeMail({ dossier, onSuivant, apercu }) {
 // Étape 2 — Pré-analyse : dépôt (nouveau deal) ou résultat, décision Oui/Non
 // ---------------------------------------------------------------------------
 
-function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, apercu }) {
+function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, apercu, analyseParChat = false }) {
   const titre = (
     <TitreEtape
       n={2}
@@ -540,12 +623,20 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
     />
   );
 
-  // --- Nouveau deal : la fiche entre ici -----------------------------------
-  if (!dossier)
+  // --- Nouveau dossier, ou coquille nommée sans analyse : la fiche entre ici.
+  if (!dossier || !dossier.lots?.length)
     return (
       <>
         {titre}
-        <DepotFiche onAnalyse={onAnalyse} />
+        {analyseParChat ? (
+          <div className="bg-[#0a0c0c] border border-[#242726] rounded-xl px-6 py-10 text-center">
+            <p className="m-0 text-[13.5px] text-[#9aa19e]">
+              Importez un fichier ou collez l'email dans le chat pour lancer l'analyse.
+            </p>
+          </div>
+        ) : (
+          <DepotFiche onAnalyse={onAnalyse} dealId={dossier?.deal_id || null} />
+        )}
       </>
     );
 
@@ -596,7 +687,7 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
   );
 }
 
-function DepotFiche({ onAnalyse }) {
+function DepotFiche({ onAnalyse, dealId = null }) {
   const inputFichier = useRef(null);
   const [texte, setTexte] = useState("");
 
@@ -605,6 +696,8 @@ function DepotFiche({ onAnalyse }) {
       const form = new FormData();
       if (fichier) form.append("fichier", fichier);
       if (t) form.append("texte", t);
+      // Un dossier nommé existe déjà : l'analyse le remplit au lieu d'en créer un.
+      if (dealId) form.append("deal_id", dealId);
       return base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true });
     },
     onSuccess: (d) => {
@@ -731,18 +824,15 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
       );
     // Ni abandon, ni trace de décision : l'étape n'a simplement pas encore été
     // jouée (navigation libre) — on l'explique plutôt que d'inventer un « oui ».
-    if (!abandonne && !evenement) {
-      return (
-        <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4 flex items-center gap-3">
-          <span className="w-8 h-8 rounded-md bg-[#edeae5]/5 text-[#8b9391] flex items-center justify-center flex-shrink-0">
-            <Clock className="w-4 h-4" />
-          </span>
-          <p className="text-[#9aa19e] text-sm min-w-0">
-            {descInactif || "Aucune décision formelle enregistrée à cette étape."}
-          </p>
-        </div>
-      );
-    }
+    // Étape simplement pas encore jouée : rien à dire, on n'affiche rien.
+    if (!abandonne && !evenement) return descInactif ? (
+      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4 flex items-center gap-3">
+        <span className="w-8 h-8 rounded-md bg-[#edeae5]/5 text-[#8b9391] flex items-center justify-center flex-shrink-0">
+          <Clock className="w-4 h-4" />
+        </span>
+        <p className="text-[#9aa19e] text-sm min-w-0">{descInactif}</p>
+      </div>
+    ) : null;
 
     return (
       <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4">
@@ -1113,13 +1203,21 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
   const statut = dossier?.statut || "analyse";
   const actif = apercu || statut === "depouille" || statut === "documents_recus";
 
+  // Décision ni ouverte ni prise : le bloc n'aurait rien à dire, on le tait
+  // — titre compris, plutôt qu'un en-tête suivi d'un encart vide.
+  const decisionPrise =
+    statut === "abandonne" ||
+    (dossier?.suivi || []).some(
+      (e) =>
+        e.intention === "presentation_client" ||
+        e.intention === "abandon" ||
+        e.vers === "abandonne" ||
+        e.vers === "projet_cree"
+    );
+  if (!actif && !decisionPrise) return null;
+
   return (
     <>
-      <TitreEtape
-        n={4}
-        titre="Décision"
-        description="Tout est sur la table : synthèse documentaire, verdict, marché. On présente au client, ou on abandonne — chaque issue part avec son mail pré-rédigé."
-      />
       {dossier.synthese_documents?.resume && (
         <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4">
           <p className="text-[#9aa19e] text-xs mb-2">Rappel de la synthèse documentaire</p>
@@ -1133,8 +1231,6 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
         </div>
       )}
 
-      <BlocVideoPresentation dossier={dossier} apercu={apercu} />
-
       <BlocDecision
         dossier={dossier}
         onRefresh={onRefresh}
@@ -1146,7 +1242,6 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
         descOui="Un mail est pré-rédigé pour annoncer à l'agent que le dossier sera présenté à l'un de nos clients investisseurs. Puis direction l'étape Plateforme."
         titreNon="Non — on abandonne"
         descNon="Vous donnez les raisons en une phrase ; un mail professionnel est rédigé pour l'agent. Le deal alimente la base de données marché puis part aux archives."
-        descInactif="La décision se prendra une fois les documents reçus ou dépouillés (étape 3)."
         onOui={onOui}
       />
     </>

@@ -28,7 +28,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': { target: BACKEND, changeOrigin: true },
+      // Les appels au modèle (analyse d'un dossier, rédaction) dépassent
+      // volontiers la minute : sans délai explicite, le proxy coupe la
+      // connexion en cours de route et le navigateur signale une erreur réseau.
+      '/api': { target: BACKEND, changeOrigin: true, timeout: 600000, proxyTimeout: 600000 },
       '/uploads': { target: BACKEND, changeOrigin: true },
     },
   },

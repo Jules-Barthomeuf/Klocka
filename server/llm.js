@@ -459,3 +459,139 @@ async function runAgentAnthropic({ system, messages, tools, onTool }) {
 
   return { text: 'Désolé, je n’ai pas pu terminer l’analyse (trop d’étapes).' };
 }
+
+/**
+ * Conversation sur des documents : l'historique des tours et les pièces
+ * jointes (PDF, images, textes) partent ensemble au modèle. Gemini lit les
+ * fichiers nativement ; les autres fournisseurs reçoivent le texte extrait
+ * quand il existe, sinon le nom du document.
+ *
+ * @param {object} p
+ * @param {string} p.system            consigne système
+ * @param {Array<{role:'user'|'assistant', contenu:string}>} p.messages
+ * @param {Array<{nom:string, buffer?:Buffer, mimetype?:string, texte?:string}>} p.documents
+ * @returns {Promise<string>} la réponse
+ */
+export async function chatDocuments({ system, messages = [], documents = [] } = {}) {
+  if (!llmEnabled) throw new Error('Aucune clé IA configurée.');
+  const derniers = messages.slice(-12); // fenêtre de contexte raisonnable
+
+  if (provider === 'gemini') {
+    const pieces = documents.flatMap((d) => {
+      if (d.buffer?.length && d.mimetype) {
+        return [{ text: `Document « ${d.nom} » :` }, { inlineData: { mimeType: d.mimetype, data: Buffer.from(d.buffer).toString('base64') } }];
+      }
+      if (d.texte) return [{ text: `Document « ${d.nom} » :\n${String(d.texte).slice(0, 120000)}` }];
+      return [{ text: `Document « ${d.nom} » (contenu non lisible).` }];
+    });
+    const contents = derniers.map((m, i) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      // Les pièces accompagnent le dernier message de l'utilisateur.
+      parts: i === derniers.length - 1 && m.role === 'user' ? [...pieces, { text: m.contenu }] : [{ text: m.contenu }],
+    }));
+    const data = await geminiGenerate({ systemInstruction: system, contents });
+    const texte = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+    if (!texte.trim()) throw new Error('Réponse vide du modèle.');
+    return texte.trim();
+  }
+
+  // Autres fournisseurs : contexte textuel uniquement.
+  const contexte = documents
+    .map((d) => `Document « ${d.nom} » :\n${d.texte ? String(d.texte).slice(0, 60000) : '(contenu non lisible)'}`)
+    .join('\n\n');
+  const prompt = `${contexte ? contexte + '\n\n' : ''}${derniers.map((m) => `${m.role === 'assistant' ? 'Assistant' : 'Utilisateur'} : ${m.contenu}`).join('\n\n')}`;
+  const r = await invokeLLM({ prompt: `${system}\n\n${prompt}` });
+  return typeof r === 'string' ? r : JSON.stringify(r);
+}
+
+/**
+ * Extraction structurée d'un document : renvoie des lignes « libellé / valeur »
+ * accompagnées de leur source (page et citation), pour qu'on puisse remonter
+ * à l'endroit exact du document. Le modèle répond en JSON.
+ *
+ * @param {{nom:string, buffer?:Buffer, mimetype?:string, texte?:string}} doc
+ * @returns {Promise<{lignes: Array<{libelle:string, valeur:string, page:number|null, citation:string|null}>}>}
+ */
+export async function extraireDonneesDocument(doc = {}) {
+  if (!llmEnabled) throw new Error('Aucune clé IA configurée.');
+
+  // Avec une grille, le modèle répond élément par élément, dans l'ordre, sans
+  // en inventer ni en omettre. Sans grille (document non classé), il relève
+  // librement ce que la pièce contient.
+  const grille = Array.isArray(doc.elements) && doc.elements.length ? doc.elements : null;
+  const statuts = (doc.statuts || ['Conforme', 'À vérifier', 'Point de vigilance', 'Non renseigné'])
+    .map((s) => `"${s}"`)
+    .join(', ');
+
+  const consigne = grille
+    ? `Tu dépouilles un document d'un dossier d'investissement en murs commerciaux, ` +
+      `selon une grille de lecture imposée.\n\n` +
+      `Réponds pour CHACUN de ces éléments, dans cet ordre exact, sans en ajouter ni en retirer :\n` +
+      grille.map((e, i) => `${i + 1}. ${e}`).join('\n') +
+      `\n\nRéponds UNIQUEMENT en JSON :\n` +
+      `{"lignes":[{"element":"...","constat":"...","statut":"...","commentaire":"...","page":1,"citation":"..."}]}\n` +
+      `— "element" : repris mot pour mot de la liste ci-dessus.\n` +
+      `— "constat" : la valeur relevée dans le document, telle qu'écrite (unités comprises). ` +
+      `Chaîne vide si l'élément n'est pas traité par ce document.\n` +
+      `— "statut" : un seul parmi ${statuts}. « Non renseigné » quand le document ne dit rien ; ` +
+      `« Point de vigilance » quand la clause est défavorable ou inhabituelle ; ` +
+      `« À vérifier » quand elle demande une confirmation ailleurs.\n` +
+      `— "commentaire" : une phrase courte, seulement si elle apporte quelque chose (sinon chaîne vide).\n` +
+      `— "page" : la page où figure l'information, ou null.\n` +
+      `— "citation" : la phrase exacte du document, tronquée à 200 caractères, ou null.\n` +
+      `N'invente rien : un élément absent du document reçoit un constat vide et le statut « Non renseigné ».`
+    : `Tu dépouilles un document d'un dossier d'investissement en murs commerciaux.\n` +
+      `Relève les données factuelles utiles : parties, surfaces, loyers, charges, taxes, dates, ` +
+      `durées, prix, clauses notables, diagnostics, décisions.\n\n` +
+      `Réponds UNIQUEMENT en JSON :\n` +
+      `{"lignes":[{"element":"...","constat":"...","statut":"...","commentaire":"","page":1,"citation":"..."}]}\n` +
+      `— "element" : le nom de la donnée, court et explicite.\n` +
+      `— "constat" : la valeur telle qu'écrite (unités comprises).\n` +
+      `— "statut" : un seul parmi ${statuts}.\n` +
+      `— "page" : la page, ou null. — "citation" : la phrase exacte, ou null.\n` +
+      `N'invente rien. Pas de commentaire hors du JSON.`;
+
+  let brut = '';
+  if (provider === 'gemini') {
+    const parts = doc.buffer?.length && doc.mimetype
+      ? [{ inlineData: { mimeType: doc.mimetype, data: Buffer.from(doc.buffer).toString('base64') } }, { text: consigne }]
+      : [{ text: `Document « ${doc.nom} » :\n${String(doc.texte || '').slice(0, 120000)}\n\n${consigne}` }];
+    const data = await geminiGenerate({ contents: [{ role: 'user', parts }], json: true });
+    brut = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+  } else {
+    const r = await invokeLLM({
+      prompt: `Document « ${doc.nom} » :\n${String(doc.texte || '').slice(0, 60000)}\n\n${consigne}`,
+    });
+    brut = typeof r === 'string' ? r : JSON.stringify(r);
+  }
+
+  // Le modèle encadre parfois le JSON de balises ou de texte : on isole l'objet.
+  const debut = brut.indexOf('{');
+  const fin = brut.lastIndexOf('}');
+  if (debut === -1 || fin <= debut) throw new Error('Le modèle n’a pas renvoyé de JSON exploitable.');
+  const objet = JSON.parse(brut.slice(debut, fin + 1));
+
+  const normaliser = (l) => ({
+    element: String(l.element || l.libelle || '').slice(0, 140),
+    constat: l.constat == null ? (l.valeur == null ? '' : String(l.valeur)) : String(l.constat),
+    statut: String(l.statut || 'Non renseigné').slice(0, 40),
+    commentaire: l.commentaire ? String(l.commentaire).slice(0, 300) : '',
+    page: Number.isFinite(Number(l.page)) && Number(l.page) > 0 ? Number(l.page) : null,
+    citation: l.citation ? String(l.citation).slice(0, 220) : null,
+  });
+
+  const rendues = (Array.isArray(objet?.lignes) ? objet.lignes : []).map(normaliser).filter((l) => l.element);
+
+  // Avec une grille, la liste fait foi : on remet les éléments dans l'ordre et
+  // on complète ceux que le modèle aurait omis.
+  if (!grille) return { lignes: rendues };
+  const parElement = new Map(rendues.map((l) => [l.element.toLowerCase().trim(), l]));
+  return {
+    lignes: grille.map((e) => {
+      const trouve = parElement.get(e.toLowerCase().trim());
+      return trouve
+        ? { ...trouve, element: e, constat: String(trouve.constat).slice(0, 600) }
+        : { element: e, constat: '', statut: 'Non renseigné', commentaire: '', page: null, citation: null };
+    }),
+  };
+}

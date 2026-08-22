@@ -15,18 +15,24 @@ import {
 import { toast } from "sonner";
 import SimulateurRapide from "@/components/preanalyse/SimulateurRapide";
 import CarteGoogle from "@/components/CarteGoogle";
+import PlongeeCarte from "@/components/projet/PlongeeCarte";
+import StreetViewRue from "@/components/projet/StreetViewRue";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // Bibliothèque partagée du workflow d'analyse : verdicts, statuts, carte d'un
 // lot, dialogue de mail d'intention, journal de suivi. Consommée par
 // WorkflowDeal (la page Analyse) et PipelineDeals (la liste des deals).
 
+// Les clés sont les valeurs du moteur de règles (invariant serveur) ; seuls
+// les libellés affichés changent — un langage de comité, pas de jargon GO/NO-GO.
 export const VERDICTS = {
-  "GO": { classe: "bg-[#35a79b]/15 text-[#7fd3c9] border-[#35a79b]/30", bord: "border-[#35a79b]/40" },
-  "GO SOUS RÉSERVE": { classe: "bg-[#e0c9a0]/15 text-[#e0c9a0] border-[#e0c9a0]/30", bord: "border-[#e0c9a0]/30" },
-  "INSUFFISANT": { classe: "bg-sky-500/15 text-sky-300 border-sky-500/30", bord: "border-sky-500/30" },
-  "NO-GO": { classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
+  "GO": { libelle: "Validé", classe: "bg-[#35a79b]/15 text-[#7fd3c9] border-[#35a79b]/30", bord: "border-[#35a79b]/40" },
+  "GO SOUS RÉSERVE": { libelle: "Validé sous conditions", classe: "bg-[#e0c9a0]/15 text-[#e0c9a0] border-[#e0c9a0]/30", bord: "border-[#e0c9a0]/30" },
+  "INSUFFISANT": { libelle: "Dossier incomplet", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30", bord: "border-sky-500/30" },
+  "NO-GO": { libelle: "Non retenu", classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
 };
+
+export const libelleVerdict = (v) => VERDICTS[v]?.libelle || v;
 
 export const STATUTS_DEAL = {
   analyse: { libelle: "Analysé", classe: "bg-[#edeae5]/10 text-[#d3d8d6] border-[#edeae5]/20" },
@@ -162,7 +168,6 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
     if (!mailInitial && etape === "brouillon" && !corps && !generer.isPending) {
       generer.mutate({});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const envoyer = useMutation({
@@ -408,6 +413,67 @@ export function JournalSuivi({ suivi }) {
 // Carte d'un lot analysé (extraite d'AnalyseAnnonces)
 // ---------------------------------------------------------------------------
 
+// Situer le bien de trois façons : le plan, la plongée 3D qui tourne autour
+// de la rue, et la vue piéton. Les deux dernières réutilisent les vues de la
+// page projet, alimentées par l'adresse du lot (ou le centre de la commune).
+function VuesLieu({ lot, enr }) {
+  const [vue, setVue] = useState("carte");
+  const a = lot.lot?.adresse?.valeur;
+  const adresse = a?.rue ? [a.rue, a.code_postal, a.ville].filter(Boolean).join(", ") : null;
+  // Les vues de la page projet attendent un objet « projet » : on le compose.
+  const lieu = {
+    id: `lot-${lot.index ?? 0}`,
+    adresse_complete: adresse || [a?.code_postal, a?.ville].filter(Boolean).join(" ") || enr?.commune?.nom || null,
+    latitude: adresse ? null : enr?.commune?.centre?.lat || null,
+    longitude: adresse ? null : enr?.commune?.centre?.lon || null,
+  };
+  const localisable = !!(lieu.adresse_complete || (lieu.latitude && lieu.longitude));
+
+  const VUES = [
+    { id: "carte", label: "Plan" },
+    { id: "3d", label: "Vue 3D" },
+    { id: "street", label: "Street View" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        {VUES.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setVue(v.id)}
+            disabled={v.id !== "carte" && !localisable}
+            title={v.id !== "carte" && !localisable ? "Adresse inconnue pour ce lot" : undefined}
+            className={`px-3.5 py-1.5 rounded-full text-[12.5px] border transition-colors disabled:opacity-40
+              ${vue === v.id ? "bg-[#edeae5] border-[#edeae5] text-[#0a0c0c] font-medium" : "border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59]"}`}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {vue === "carte" && (
+        <CarteGoogle adresse={adresse} lat={enr?.commune?.centre?.lat} lon={enr?.commune?.centre?.lon} />
+      )}
+      {vue === "3d" && (
+        <div className="relative h-[420px] rounded-md overflow-hidden border border-[#242726]">
+          <PlongeeCarte project={lieu} onClose={() => setVue("carte")} />
+        </div>
+      )}
+      {vue === "street" && (
+        <div className="relative h-[420px] rounded-md overflow-hidden border border-[#242726]">
+          <StreetViewRue project={lieu} />
+        </div>
+      )}
+      {vue !== "carte" && !adresse && (
+        <p className="m-0 text-[11.5px] text-[#6b7270]">
+          Adresse précise absente de la fiche : la vue est centrée sur la commune.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
   // Ouvert d'emblée, sur la carte : situer le bien est le premier réflexe.
   const [ongletsOuverts, setOngletsOuverts] = useState(true);
@@ -425,7 +491,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
             {lot.intitule && <p className="text-[#8b9391] text-xs mb-1">{lot.intitule}</p>}
             <h3 className="text-[#edeae5] font-medium leading-snug">{lot.synthese?.titre || "Lot"}</h3>
           </div>
-          <Badge className={`${v.classe} flex-shrink-0`}>{lot.evaluation.verdict}</Badge>
+          <Badge className={`${v.classe} flex-shrink-0`}>{libelleVerdict(lot.evaluation.verdict)}</Badge>
         </div>
 
         <p className="text-[#9aa19e] text-sm leading-relaxed">{lot.synthese?.synthese}</p>
@@ -529,7 +595,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               <TabsTrigger value="extraction">Données extraites</TabsTrigger>
               <TabsTrigger value="enrichissement">Enrichissement</TabsTrigger>
               <TabsTrigger value="calcul">Calcul AEM</TabsTrigger>
-              <TabsTrigger value="carte">Carte</TabsTrigger>
+              <TabsTrigger value="carte">Lieu</TabsTrigger>
               {lot.contexte_marche && <TabsTrigger value="marche">Marché local</TabsTrigger>}
             </TabsList>
 
@@ -617,17 +683,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
             </TabsContent>
 
             <TabsContent value="carte">
-              <CarteGoogle
-                adresse={
-                  lot.lot.adresse?.valeur?.rue
-                    ? [lot.lot.adresse.valeur.rue, lot.lot.adresse.valeur.code_postal, lot.lot.adresse.valeur.ville]
-                        .filter(Boolean)
-                        .join(", ")
-                    : null
-                }
-                lat={enr?.commune?.centre?.lat}
-                lon={enr?.commune?.centre?.lon}
-              />
+              <VuesLieu lot={lot} enr={enr} />
             </TabsContent>
 
             {lot.contexte_marche && (

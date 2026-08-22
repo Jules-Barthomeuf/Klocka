@@ -180,7 +180,7 @@ function RangeScale({ bas, median, haut, unit = "€", champBas, champMedian, ch
 // diagnostique, documents_projet), sans hero, sans barre d'onglets ni rail IA.
 // `modeEdition` + `onChamp` : éditeur admin — les chiffres deviennent des
 // champs au clic, et le hero comme la synthèse financière sont masqués.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [] }) {
   const navigate = useNavigate();
   // Analyse IA (avis projet + chiffres ville/secteur), mutualisée en un appel.
   const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
@@ -679,6 +679,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               { v: "copropriete", l: "Copropriété" },
               { v: "diagnostique", l: "Diagnostique" },
               { v: "documents_projet", l: "Documents" },
+              // Onglets ajoutés par l'éditeur (simulateur…) : la barre les
+              // affiche, leur contenu est rendu par le parent.
+              ...ongletsSupplementaires.map((o) => ({ v: o.value, l: o.label })),
             ].map(({ v, l }) => (
               <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent border-0 border-b border-transparent text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:border-[#35a79b] data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-colors duration-200">
                 {l}

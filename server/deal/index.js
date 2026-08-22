@@ -17,6 +17,7 @@ import { evaluer, profilsConfigures } from './rules.js';
 import { calculerAEM, parametresSimulateur } from './aem.js';
 import { redigerSynthese, redigerMailAgent } from './redact.js';
 import { statutDe, aRelancer } from './lifecycle.js';
+import { etapeMax } from './etapes.js';
 import { contexteMarcheLocal } from './contexte-marche.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
@@ -122,7 +123,20 @@ export async function analyserFiche(entree, ctx = {}) {
     profils_configures: profilsConfigures(),
   };
 
-  Records.create('Deal', dossier, ctx.user?.email);
+  // Un dossier créé nommé (coquille) peut être rempli par l'analyse : on
+  // conserve son identité — nom, responsables, étapes, journal, création.
+  const coquille = ctx.dealId ? Records.filter('Deal', { deal_id: ctx.dealId })[0] : null;
+  if (coquille) {
+    dossier.deal_id = coquille.deal_id;
+    dossier.nom = coquille.nom || null;
+    dossier.responsables = coquille.responsables || [];
+    dossier.cree_le = coquille.cree_le || dossier.cree_le;
+    dossier.etape_max = Math.max(Number(coquille.etape_max) || 0, 2);
+    dossier.suivi = [...(coquille.suivi || []), ...dossier.suivi];
+    Records.update('Deal', coquille.id, dossier);
+  } else {
+    Records.create('Deal', dossier, ctx.user?.email);
+  }
   // Jamais attendu : l'analyse répond tout de suite, le contexte marché
   // apparaît au prochain rafraîchissement du dossier.
   completerContexteMarche(dossier);
@@ -202,6 +216,14 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   return { deal_id: dealId, lot: lots[indexLot] };
 }
 
+// Les anciens titres générés embarquaient le verdict (« … : GO SOUS RÉSERVE »).
+// On l'ôte de l'affichage : le verdict a son badge, le nom reste un nom.
+function nettoyerTitre(titre) {
+  return String(titre || '')
+    .replace(/\s*[:—-]\s*(GO SOUS R[ÉE]SERVE|NO-?GO|GO|Verdict?[^,]*)\s*$/i, '')
+    .trim();
+}
+
 export function listerDossiers(limit = 50) {
   return Records.list('Deal', { sort: '-created_date', limit }).map((d) => ({
     id: d.id,
@@ -218,6 +240,12 @@ export function listerDossiers(limit = 50) {
     a_relancer: aRelancer(d),
     contact_agent_email: d.contact_agent_email || null,
     projet_id: d.projet_id || null,
+    // Pour les cartes de la liste : qui s'en occupe, quand a-t-il bougé, où en est-il.
+    responsable: d.cree_par || d.created_by || null,
+    maj_le: d.updated_date || d.cree_le || d.created_date || null,
+    etape_max: etapeMax(d),
+    titre: nettoyerTitre(d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || d.deal_id),
+    responsables: d.responsables || [],
     dernier_suivi: (d.suivi || [])[d.suivi?.length - 1] || null,
     lots: (d.lots || []).map((l) => ({
       index: l.index,
@@ -232,5 +260,15 @@ export function listerDossiers(limit = 50) {
 }
 
 export function obtenirDossier(dealId) {
-  return Records.filter('Deal', { deal_id: dealId })[0] || null;
+  const deal = Records.filter('Deal', { deal_id: dealId })[0] || null;
+  // L'étape atteinte accompagne toujours le dossier : le front ne la recalcule pas.
+  // Le titre est calculé ici comme dans la liste : une seule façon de nommer
+  // un dossier, quelle que soit la page qui l'affiche.
+  return deal
+    ? {
+        ...deal,
+        etape_max: etapeMax(deal),
+        titre: nettoyerTitre(deal.nom || deal.lots?.[0]?.synthese?.titre || deal.source?.nom_fichier || deal.deal_id),
+      }
+    : null;
 }

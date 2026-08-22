@@ -35,6 +35,7 @@ import { alimenterBaseMarche } from './deal/marche.js';
 import { releverBoite, listerBoite, telechargerRaw } from './gmail-inbox.js';
 import { classerDansDrive } from './google-drive.js';
 import { syntheseDocuments } from './deal/synthese-docs.js';
+import { ajouterDocument as ajouterDocumentEspace, renommerDocument as renommerDocumentEspace, supprimerDocument as supprimerDocumentEspace, converser, supprimerConversation, renommerConversation, extraireDocuments, supprimerExtraction, renommerExtraction, majLigneExtraction } from './deal/espace.js';
 import { creerProjetDepuisDeal } from './deal/projet.js';
 import { ajouterAuReferentiel } from './deal/enrich.js';
 import { profilsConfigures } from './deal/rules.js';
@@ -837,7 +838,7 @@ app.post('/api/preanalyse/analyser', upload.single('fichier'), wrap(async (req, 
       texte: req.body?.texte,
       sourceUrl: req.file ? `/uploads/${req.file.filename}` : null,
     },
-    { user }
+    { user, dealId: req.body?.deal_id || null }
   );
   ok(res, dossier);
 }));
@@ -890,6 +891,195 @@ app.post('/api/preanalyse/enseignes', wrap((req, res) => {
 }));
 
 // Vue pipeline : tous les dossiers avec statut + compteurs par étape.
+// Création d'un dossier nommé, avant toute analyse : une coquille qui porte
+// le nom et les responsables ; l'analyse de la fiche la remplira (étape 2).
+app.post('/api/preanalyse/dossiers', wrap(async (req, res) => {
+  const { randomUUID } = await import('crypto');
+  const user = currentUser(req);
+  const nom = String(req.body?.nom || '').trim();
+  if (!nom) return res.status(400).json({ error: 'Donnez un nom au dossier.' });
+  const responsables = Array.isArray(req.body?.responsables)
+    ? req.body.responsables.map((r) => String(r).trim()).filter(Boolean).slice(0, 8)
+    : [];
+  const dossier = {
+    deal_id: randomUUID(),
+    nom,
+    responsables,
+    cree_le: new Date().toISOString(),
+    cree_par: user?.email || null,
+    statut: 'analyse',
+    etape_max: 1,
+    archived: false,
+    relance_prevue_le: null,
+    contact_agent_email: null,
+    dossier_doc_id: null,
+    projet_id: null,
+    lots: [],
+    multi_lots: false,
+    suivi: [{ le: new Date().toISOString(), par: user?.email || null, type: 'creation', detail: `Dossier créé : ${nom}` }],
+  };
+  Records.create('Deal', dossier, user?.email);
+  ok(res, dossier);
+}));
+
+// Renommer un dossier.
+app.post('/api/preanalyse/dossiers/:dealId/renommer', wrap((req, res) => {
+  const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+  const nom = String(req.body?.nom || '').trim();
+  if (!nom) return res.status(400).json({ error: 'Le nom ne peut pas être vide.' });
+  Records.update('Deal', brut.id, { nom });
+  ajouterSuiviDeal(Records.get('Deal', brut.id), { type: 'renommage', detail: `Renommé : ${nom}` }, currentUser(req));
+  ok(res, { nom });
+}));
+
+// Abandonner un dossier directement depuis la liste (sans mail).
+app.post('/api/preanalyse/dossiers/:dealId/abandonner', wrap((req, res) => {
+  const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+  const r = changerStatut(brut, 'abandonne', { user: currentUser(req), note: req.body?.note || 'Abandon depuis la liste' });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, { statut: 'abandonne' });
+}));
+
+// ---------------------------------------------------------------------------
+// Espace de travail d'un dossier : documents importés et conversations (chat
+// libre ou analyses sur documents cochés). Voir deal/espace.js.
+// ---------------------------------------------------------------------------
+app.post('/api/preanalyse/dossiers/:dealId/espace/documents', upload.single('fichier'), wrap((req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Fichier manquant' });
+  const r = ajouterDocumentEspace(req.params.dealId, {
+    nom: req.body?.nom || req.file.originalname,
+    url: `/uploads/${req.file.filename}`,
+    mime: req.file.mimetype,
+    taille: req.file.size,
+  }, currentUser(req));
+  if (!r.ok) return res.status(404).json({ error: r.error });
+  ok(res, r.document);
+}));
+
+app.post('/api/preanalyse/dossiers/:dealId/espace/documents/:docId/renommer', wrap((req, res) => {
+  const r = renommerDocumentEspace(req.params.dealId, req.params.docId, req.body?.nom, req.body?.categorie);
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
+app.delete('/api/preanalyse/dossiers/:dealId/espace/documents/:docId', wrap((req, res) => {
+  const r = supprimerDocumentEspace(req.params.dealId, req.params.docId, UPLOAD_DIR);
+  if (!r.ok) return res.status(404).json({ error: r.error });
+  ok(res, r);
+}));
+
+app.post('/api/preanalyse/dossiers/:dealId/espace/chat', wrap(async (req, res) => {
+  const { message, mode, documents, conversation_id } = req.body || {};
+  const r = await converser(req.params.dealId, {
+    message,
+    mode: ['analyse', 'verification'].includes(mode) ? mode : 'question',
+    documents: Array.isArray(documents) ? documents : [],
+    conversationId: conversation_id || null,
+    uploadDir: UPLOAD_DIR,
+    user: currentUser(req),
+  });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r.conversation);
+}));
+
+// Dépouillement : chaque document coché devient une table de données sourcées
+// (libellé, valeur, page, citation), consultable en onglets sous le chat.
+app.post('/api/preanalyse/dossiers/:dealId/espace/extraire', wrap(async (req, res) => {
+  const r = await extraireDocuments(req.params.dealId, {
+    documents: Array.isArray(req.body?.documents) ? req.body.documents : [],
+    uploadDir: UPLOAD_DIR,
+    user: currentUser(req),
+  });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r.extractions);
+}));
+
+// Correction manuelle d'une ligne : constat, statut ou commentaire.
+app.post('/api/preanalyse/dossiers/:dealId/espace/extractions/:extId/lignes/:index', wrap((req, res) => {
+  const r = majLigneExtraction(req.params.dealId, req.params.extId, Number(req.params.index), req.body || {});
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
+// La grille de lecture, pour que le front propose les mêmes statuts.
+app.get('/api/preanalyse/grille', wrap(async (req, res) => {
+  const { GRILLE, STATUTS_LIGNE } = await import('./deal/grille.js');
+  ok(res, { grille: GRILLE, statuts: STATUTS_LIGNE });
+}));
+
+// L'onglet d'une analyse porte un titre libre, à défaut sa catégorie.
+app.post('/api/preanalyse/dossiers/:dealId/espace/extractions/:extId/renommer', wrap((req, res) => {
+  const r = renommerExtraction(req.params.dealId, req.params.extId, req.body?.titre);
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
+app.delete('/api/preanalyse/dossiers/:dealId/espace/extractions/:extId', wrap((req, res) => {
+  const r = supprimerExtraction(req.params.dealId, req.params.extId);
+  if (!r.ok) return res.status(404).json({ error: r.error });
+  ok(res, r);
+}));
+
+app.post('/api/preanalyse/dossiers/:dealId/espace/conversations/:convId/renommer', wrap((req, res) => {
+  const r = renommerConversation(req.params.dealId, req.params.convId, req.body?.titre);
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
+app.delete('/api/preanalyse/dossiers/:dealId/espace/conversations/:convId', wrap((req, res) => {
+  const r = supprimerConversation(req.params.dealId, req.params.convId);
+  if (!r.ok) return res.status(404).json({ error: r.error });
+  ok(res, r);
+}));
+
+// Descripteur des étapes d'un dossier : le front consomme la même source que
+// le serveur au lieu de la réécrire.
+app.get('/api/preanalyse/etapes', wrap(async (req, res) => {
+  const { ETAPES } = await import('./deal/etapes.js');
+  ok(res, { etapes: ETAPES });
+}));
+
+// Déblocage explicite : « passer à l'étape suivante ». L'étape atteinte ne
+// recule jamais ; on ne peut débloquer que l'étape immédiatement suivante.
+app.post('/api/preanalyse/dossiers/:dealId/etape-suivante', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { ETAPES, etapeMax } = await import('./deal/etapes.js');
+  const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  const courante = etapeMax(brut);
+  // Une étape cible peut être demandée : y aller valide toutes les
+  // précédentes d'un coup. Sans cible, on avance d'un cran. Jamais en arrière.
+  const cible = Number(req.body?.etape);
+  const suivante = Math.min(ETAPES.length, Math.max(courante, isFinite(cible) && cible > 0 ? cible : courante + 1));
+  if (suivante <= courante) return ok(res, { etape_max: courante });
+  Records.update('Deal', brut.id, { etape_max: suivante });
+  const user = currentUser(req);
+  ajouterSuiviDeal(Records.get('Deal', brut.id), {
+    type: 'etape',
+    detail: `Étape débloquée : ${ETAPES[suivante - 1].label}`,
+  }, user);
+  ok(res, { etape_max: suivante });
+}));
+
+// Revenir à une étape antérieure : le dossier redevient modifiable à partir
+// de là (le mail se rouvre, la pré-analyse se refait). Les données déjà
+// produites — lots, documents, conversations — ne sont jamais effacées.
+app.post('/api/preanalyse/dossiers/:dealId/revenir', wrap(async (req, res) => {
+  const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { ETAPES } = await import('./deal/etapes.js');
+  const demandee = Number(req.body?.etape);
+  const cible = Math.min(ETAPES.length, Math.max(1, isFinite(demandee) && demandee > 0 ? demandee : 1));
+  Records.update('Deal', brut.id, { etape_max: cible });
+  ajouterSuiviDeal(Records.get('Deal', brut.id), {
+    type: 'etape',
+    detail: `Retour à l'étape ${cible} — ${ETAPES[cible - 1].label}`,
+  }, currentUser(req));
+  ok(res, { etape_max: cible });
+}));
+
 app.get('/api/preanalyse/pipeline', wrap((req, res) => {
   const dossiers = listerDossiers(200);
   const compteurs = {};

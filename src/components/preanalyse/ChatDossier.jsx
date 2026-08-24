@@ -60,6 +60,9 @@ export default function ChatDossier({
   onExtraire,
   extractionEnCours = false,
   onOuvrirExtraction,
+  // Les requêtes n'accompagnent que le travail d'analyse : elles n'ont rien à
+  // faire sur les étapes Mail, Vidéo, Plateforme et Présentation.
+  afficherRequetes = true,
 }) {
   const [mode, setMode] = useState("question");
   const [texte, setTexte] = useState("");
@@ -256,7 +259,7 @@ export default function ChatDossier({
       </div>
 
       {/* Requêtes récentes */}
-      {!modeMail && !modePreanalyse && requetes.length > 0 && (
+      {afficherRequetes && !modeMail && !modePreanalyse && requetes.length > 0 && (
         <div className="pt-4">
           <h3 className="m-0 mb-3 text-[16px] font-medium text-[#edeae5]">Requêtes récentes</h3>
           <div className="border-t border-[#1c1f1e]">

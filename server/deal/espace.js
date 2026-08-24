@@ -14,7 +14,7 @@ import { Records } from '../db.js';
 import { chatDocuments, extraireDonneesDocument, invokeLLMGrounded } from '../llm.js';
 import { vueRedacteur } from './redact.js';
 import { ETAPES, etapeMax } from './etapes.js';
-import { grilleDe, typeDepuisCategorie, STATUTS_LIGNE } from './grille.js';
+import { grilleDe, typeDepuisCategorie, categorieDepuisNom, STATUTS_LIGNE } from './grille.js';
 
 const brutDe = (dealId) => Records.filter('Deal', { deal_id: dealId })[0] || null;
 
@@ -25,14 +25,20 @@ const brutDe = (dealId) => Records.filter('Deal', { deal_id: dealId })[0] || nul
 export function ajouterDocument(dealId, { nom, url, mime, taille }, user) {
   const brut = brutDe(dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
+  const nomPropre = String(nom || 'Document').trim();
+  // Le nom de fichier suffit le plus souvent à classer la pièce ; à défaut, la
+  // file de dépouillement demandera au modèle. Le drapeau dit que la valeur
+  // vient de la machine — l'analyste corrige au lieu de saisir.
+  const categorie = categorieDepuisNom(nomPropre);
   const doc = {
     id: randomUUID(),
-    nom: String(nom || 'Document').trim(),
+    nom: nomPropre,
     url,
     mime: mime || 'application/octet-stream',
     taille: taille || 0,
     ajoute_le: new Date().toISOString(),
     ajoute_par: user?.email || null,
+    ...(categorie ? { categorie, categorie_auto: true } : {}),
   };
   Records.update('Deal', brut.id, { documents_espace: [...(brut.documents_espace || []), doc] });
   return { ok: true, document: doc };
@@ -248,6 +254,57 @@ export function renommerConversation(dealId, conversationId, titre) {
 // Le résultat vit sur le Deal (extractions), pour être rouvert plus tard.
 // ---------------------------------------------------------------------------
 
+/** Dépouille une pièce déjà chargée. Ne touche pas à la base. */
+export async function extraireUnePiece(piece, user) {
+  const base = {
+    id: `ext_${piece.id}`,
+    document_id: piece.id,
+    document_nom: piece.nom,
+    document_url: piece.url,
+    document_mime: piece.mimetype || null,
+    document_categorie: piece.categorie || null,
+    extrait_le: new Date().toISOString(),
+    extrait_par: user?.email || null,
+  };
+  const type = typeDepuisCategorie(piece.categorie, piece.nom);
+  const grille = grilleDe(type);
+  try {
+    const { lignes } = await extraireDonneesDocument({
+      ...piece,
+      elements: grille?.elements || null,
+      statuts: STATUTS_LIGNE,
+    });
+    return { ...base, type, type_label: grille?.label || null, lignes, erreur: null };
+  } catch (e) {
+    const quota = /quota|rate limit|429/i.test(e?.message || '');
+    return {
+      ...base,
+      type,
+      type_label: grille?.label || null,
+      lignes: [],
+      erreur: quota
+        ? 'Quota du modèle atteint — réessayez dans une minute.'
+        : e?.message || 'Extraction impossible',
+    };
+  }
+}
+
+/** Charge une pièce du dossier (buffer compris) pour la dépouiller. */
+export function chargerPiece(dealId, docId, uploadDir) {
+  const brut = brutDe(dealId);
+  if (!brut) return null;
+  return chargerPieces(brut, [docId], uploadDir, true)[0] || null;
+}
+
+/** Enregistre une extraction sur le deal, en remplaçant celle du même document. */
+export function enregistrerExtraction(dealId, resultat) {
+  const brut = brutDe(dealId);
+  if (!brut) return { ok: false, error: 'Dossier introuvable' };
+  const conservees = (brut.extractions || []).filter((e) => e.document_id !== resultat.document_id);
+  Records.update('Deal', brut.id, { extractions: [resultat, ...conservees] });
+  return { ok: true };
+}
+
 export async function extraireDocuments(dealId, { documents = [], uploadDir, user } = {}) {
   const brut = brutDe(dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
@@ -256,50 +313,14 @@ export async function extraireDocuments(dealId, { documents = [], uploadDir, use
 
   // Un document à la fois : le palier gratuit du modèle plafonne le débit, et
   // une rafale ferait échouer les dernières pièces. Un échec isolé n'emporte
-  // pas les autres, il est rapporté sur sa propre table.
+  // pas les autres, il est rapporté sur sa propre table. Chaque résultat est
+  // écrit dès qu'il tombe : un dépouillement interrompu garde ce qui est fait.
   const resultats = [];
   for (const p of pieces) {
-    resultats.push(await (async (p) => {
-      const base = {
-        id: `ext_${p.id}`,
-        document_id: p.id,
-        document_nom: p.nom,
-        document_url: p.url,
-        document_mime: p.mimetype || null,
-        document_categorie: p.categorie || null,
-        extrait_le: new Date().toISOString(),
-        extrait_par: user?.email || null,
-      };
-      const type = typeDepuisCategorie(p.categorie, p.nom);
-      const grille = grilleDe(type);
-      try {
-        const { lignes } = await extraireDonneesDocument({
-          ...p,
-          elements: grille?.elements || null,
-          statuts: STATUTS_LIGNE,
-        });
-        return { ...base, type, type_label: grille?.label || null, lignes, erreur: null };
-      } catch (e) {
-        const quota = /quota|rate limit|429/i.test(e?.message || '');
-        return {
-          ...base,
-          type,
-          type_label: grille?.label || null,
-          lignes: [],
-          erreur: quota
-            ? 'Quota du modèle atteint — réessayez dans une minute.'
-            : e?.message || 'Extraction impossible',
-        };
-      }
-    })(p));
+    const r = await extraireUnePiece(p, user);
+    enregistrerExtraction(dealId, r);
+    resultats.push(r);
   }
-
-  // Une nouvelle extraction remplace la précédente du même document.
-  const conservees = (brut.extractions || []).filter(
-    (e) => !resultats.some((r) => r.document_id === e.document_id)
-  );
-  const extractions = [...resultats, ...conservees];
-  Records.update('Deal', brut.id, { extractions });
   return { ok: true, extractions: resultats };
 }
 

@@ -946,15 +946,21 @@ app.post('/api/preanalyse/dossiers/:dealId/abandonner', wrap((req, res) => {
 // Espace de travail d'un dossier : documents importés et conversations (chat
 // libre ou analyses sur documents cochés). Voir deal/espace.js.
 // ---------------------------------------------------------------------------
-app.post('/api/preanalyse/dossiers/:dealId/espace/documents', upload.single('fichier'), wrap((req, res) => {
+app.post('/api/preanalyse/dossiers/:dealId/espace/documents', upload.single('fichier'), wrap(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Fichier manquant' });
+  const user = currentUser(req);
   const r = ajouterDocumentEspace(req.params.dealId, {
     nom: req.body?.nom || req.file.originalname,
     url: `/uploads/${req.file.filename}`,
     mime: req.file.mimetype,
     taille: req.file.size,
-  }, currentUser(req));
+  }, user);
   if (!r.ok) return res.status(404).json({ error: r.error });
+
+  // Le dépouillement part tout seul, en tâche de fond : la réponse n'attend
+  // pas l'analyse, et personne ne reste devant l'écran.
+  const { enfiler } = await import('./deal/file-extraction.js');
+  enfiler(req.params.dealId, [r.document.id], { uploadDir: UPLOAD_DIR, user });
   ok(res, r.document);
 }));
 
@@ -1280,6 +1286,62 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap(async (req,
   ok(res, { project_id: r.project.id, titre: r.project.titre, champs_remplis: r.champs_remplis, analyse });
 }));
 
+// ---------------------------------------------------------------------------
+// Assistant : le plan de travail.
+// La pile est calculée à la demande depuis l'état en base — rien n'est stocké,
+// donc rien ne se périme. Aucune action n'est déclenchée ici.
+// ---------------------------------------------------------------------------
+app.get('/api/assistant/propositions', wrap(async (req, res) => {
+  const user = currentUser(req);
+  const { construirePropositions } = await import('./deal/propositions.js');
+  const { etatVeille } = await import('./deal/veille-mails.js');
+  // Chacun ne voit que les boîtes qu'il a connectées.
+  const comptes = listAccounts(user?.email).map((c) => c.id);
+  ok(res, {
+    propositions: construirePropositions({ comptes }),
+    veille: etatVeille(),
+  });
+}));
+
+// Relève immédiate, sans attendre le prochain passage de la veille.
+app.post('/api/assistant/relever', wrap(async (req, res) => {
+  const { relever } = await import('./deal/veille-mails.js');
+  ok(res, await relever());
+}));
+
+// CRM : les agents des dossiers deviennent des fiches contact, sans saisie.
+app.post('/api/assistant/crm/synchroniser', wrap(async (req, res) => {
+  const { synchroniserAgents } = await import('./deal/crm-sync.js');
+  ok(res, synchroniserAgents());
+}));
+
+// Agenda d'équipe : création de l'agenda partagé et report des échéances.
+app.get('/api/assistant/calendrier', wrap(async (req, res) => {
+  const { lienCalendrier, calendrierConfigure } = await import('./google-calendar.js');
+  const { calendarDemande } = await import('./google-oauth.js');
+  ok(res, { actif: calendarDemande, configure: calendrierConfigure(), lien: lienCalendrier() });
+}));
+
+app.post('/api/assistant/calendrier/synchroniser', wrap(async (req, res) => {
+  const user = currentUser(req);
+  const { compte, partager } = req.body || {};
+  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
+  if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
+
+  const { synchroniserEcheances, partagerCalendrier, lienCalendrier } = await import('./google-calendar.js');
+  const r = await synchroniserEcheances(compte, APP_URL_PROD || `http://localhost:${PORT}`);
+
+  // Partage avec l'équipe : tous les admins, sauf le compte propriétaire.
+  let partage = null;
+  if (partager !== false) {
+    const admins = Records.filter('User', { role: 'admin' })
+      .map((u) => u.email)
+      .filter((e) => e && e.toLowerCase() !== String(compte).toLowerCase());
+    if (admins.length) partage = await partagerCalendrier(compte, admins);
+  }
+  ok(res, { ...r, partage, lien: lienCalendrier(), par: user?.email || null });
+}));
+
 // Ce que le dépouillement sait remplir dans la fiche projet, ligne par ligne :
 // l'onglet « Données extraites » de l'étape Analyse s'appuie dessus.
 app.get('/api/preanalyse/dossiers/:dealId/donnees-projet', wrap(async (req, res) => {
@@ -1439,6 +1501,30 @@ if (fs.existsSync(DIST_DIR)) {
 if (EN_PRODUCTION) {
   import('./video/index.js').then((m) => m.prechaufferVideo()).catch(() => {});
 }
+
+// Dépouillements interrompus par un arrêt du serveur : on les reprend, sinon
+// leurs pièces resteraient marquées « en cours » sans que rien n'avance.
+import('./deal/file-extraction.js').then(({ reprendreEnAttente }) => {
+  const n = reprendreEnAttente(UPLOAD_DIR);
+  if (n) console.log(`  ▸ ${n} dépouillement(s) repris après redémarrage`);
+});
+
+// Agents des dossiers → fiches CRM, dès le démarrage.
+import('./deal/crm-sync.js').then(({ synchroniserAgents }) => {
+  const { crees, completes } = synchroniserAgents();
+  if (crees || completes) console.log(`  ▸ CRM : ${crees} agent(s) créé(s), ${completes} complété(s)`);
+});
+
+// Veille des boîtes mail : relève périodique et rattachement des réponses aux
+// dossiers. Sans portée de lecture Gmail accordée, elle ne démarre pas.
+import('./deal/veille-mails.js').then(({ demarrerVeille }) => {
+  const active = demarrerVeille();
+  console.log(
+    active
+      ? `  ▸ Veille des boîtes mail active (toutes les ${process.env.MAIL_VEILLE_MINUTES || 5} min)`
+      : '  ▸ Veille des boîtes mail inactive (GOOGLE_GMAIL_READ absent)'
+  );
+});
 
 app.listen(PORT, () => {
   const url = process.env.APP_URL || `http://localhost:${PORT}`;

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -20,6 +20,14 @@ const CATEGORIES = [
   "Titre de propriété",
   "Autre",
 ];
+
+// Le dépouillement tourne en tâche de fond : chaque pièce porte son état.
+const ETATS = {
+  en_attente: { libelle: "En file", classe: "text-[#8b9391]" },
+  en_cours: { libelle: "Analyse…", classe: "text-[#7fd3c9]" },
+  fait: { libelle: "Analysé", classe: "text-[#7fd3c9]" },
+  erreur: { libelle: "Échec", classe: "text-red-400" },
+};
 
 const tailleLisible = (o) => (!o ? "—" : o < 1024 * 1024 ? `${Math.round(o / 1024)} Ko` : `${(o / 1024 / 1024).toFixed(1)} Mo`);
 const typeLisible = (mime) => {
@@ -81,7 +89,10 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
       }
     },
     onSuccess: (_, fichiers) => {
-      toast.success(`${fichiers.length} document${fichiers.length > 1 ? "s" : ""} importé${fichiers.length > 1 ? "s" : ""}`);
+      toast.success(
+        `${fichiers.length} document${fichiers.length > 1 ? "s" : ""} importé${fichiers.length > 1 ? "s" : ""}`,
+        { description: "Le dépouillement se lance tout seul — les tables arrivent au fil de l'eau." }
+      );
       onRefresh?.();
       // Le dossier Drive n'existe pas encore : c'est le moment de le proposer.
       if (proposerDrive && !apercu && !dossier?.drive_folder_url) setDriveDemande(true);
@@ -100,6 +111,17 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
     onSuccess: (_, id) => { onCocher?.(coches.filter((c) => c !== id)); onRefresh?.(); },
     onError: (e) => toast.error(e?.message || "Suppression impossible"),
   });
+
+  // Tant qu'une pièce est en file ou en cours, on redemande le dossier : les
+  // tables apparaissent au fil de l'eau, sans que personne ne recharge la page.
+  const enTraitement = documents.some((d) => ["en_attente", "en_cours"].includes(d.extraction?.statut));
+  const refRefresh = useRef(onRefresh);
+  refRefresh.current = onRefresh;
+  useEffect(() => {
+    if (!enTraitement || apercu) return undefined;
+    const t = setInterval(() => refRefresh.current?.(), 4000);
+    return () => clearInterval(t);
+  }, [enTraitement, apercu]);
 
   const basculer = (id) => onCocher?.(coches.includes(id) ? coches.filter((c) => c !== id) : [...coches, id]);
   const tousCoches = documents.length > 0 && coches.length === documents.length;
@@ -170,7 +192,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                     {tousCoches && <Check className="w-3 h-3" />}
                   </button>
                 </th>
-                {["Nom", "Catégorie", "Type", "Importé le", "Taille"].map((h, i) => (
+                {["Nom", "Catégorie", "Analyse", "Type", "Importé le", "Taille"].map((h, i) => (
                   <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-[#6b7270] font-normal ${i >= 2 ? "text-right" : "text-left"}`}>
                     {h}
                   </th>
@@ -219,8 +241,24 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                         onBlur={(e) => e.target.value !== (d.categorie || "") && majDocument.mutate({ id: d.id, nom: d.nom, categorie: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                         disabled={apercu}
-                        className="w-[200px] bg-[#101413] border border-[#2e3230] rounded-full px-3 py-1 text-[12px] text-[#9aa19e] outline-none focus:border-[#35a79b]/60 focus:text-[#edeae5] transition-colors"
+                        title={d.categorie_auto ? "Classée automatiquement — corrigez si besoin" : undefined}
+                        className={`w-[200px] bg-[#101413] rounded-full px-3 py-1 text-[12px] outline-none focus:border-[#35a79b]/60 focus:text-[#edeae5] transition-colors border
+                          ${d.categorie_auto ? "border-[#e0c9a0]/40 text-[#e0c9a0]" : "border-[#2e3230] text-[#9aa19e]"}`}
                       />
+                    </td>
+                    <td className="py-3 pr-4 text-right whitespace-nowrap">
+                      {d.extraction?.statut ? (
+                        <span
+                          className={`text-[12px] ${ETATS[d.extraction.statut]?.classe || "text-[#9aa19e]"}`}
+                          title={d.extraction.erreur || (d.extraction.statut === "fait" ? `${d.extraction.lignes ?? 0} donnée(s) relevée(s)` : undefined)}
+                        >
+                          {d.extraction.statut === "en_cours" && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+                          {ETATS[d.extraction.statut]?.libelle || d.extraction.statut}
+                          {d.extraction.statut === "fait" && d.extraction.lignes != null ? ` · ${d.extraction.lignes}` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-[12px] text-[#3f4644]">—</span>
+                      )}
                     </td>
                     <td className="py-3 text-right text-[13px] text-[#9aa19e]">{typeLisible(d.mime)}</td>
                     <td className="py-3 text-right text-[13px] text-[#9aa19e]">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>

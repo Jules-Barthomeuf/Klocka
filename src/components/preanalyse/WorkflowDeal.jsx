@@ -251,6 +251,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
 
       {/* Le chat du dossier : questions, analyses, points à vérifier */}
       <ChatDossier
+        afficherRequetes={etape === 2 || etape === 3}
         onOuvrirExtraction={(id) => {
           setOngletAnalyse(id);
           // Ouvrir une table depuis une autre étape emmène à l'étape Analyse,

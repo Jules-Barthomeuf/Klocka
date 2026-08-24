@@ -83,7 +83,7 @@ export const hasAnyAccount = () => allAccounts().length > 0;
 // Public (credential-free) view of the sender accounts.
 export function listAccounts(ownerEmail) {
   return allAccounts(ownerEmail).map(
-    ({ id, name, email, provider, picture, needs_reconnect, peut_lire, peut_drive }) => ({
+    ({ id, name, email, provider, picture, needs_reconnect, peut_lire, peut_drive, peut_agenda }) => ({
       id,
       name,
       email,
@@ -92,6 +92,7 @@ export function listAccounts(ownerEmail) {
       needs_reconnect: !!needs_reconnect,
       peut_lire: !!peut_lire,
       peut_drive: !!peut_drive,
+      peut_agenda: !!peut_agenda,
       label: `${name} <${email}>`,
     })
   );

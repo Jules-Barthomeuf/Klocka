@@ -39,6 +39,12 @@ export const gmailReadDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_GM
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 export const driveDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_DRIVE || '');
 
+// Calendrier d'équipe : calendar.app.created ne donne accès qu'aux agendas que
+// l'application a créés elle-même — jamais aux agendas personnels. C'est
+// l'équivalent de drive.file côté Calendar.
+const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.app.created';
+export const calendarDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_CALENDAR || '');
+
 const SCOPES = [
   'openid',
   'email',
@@ -46,10 +52,11 @@ const SCOPES = [
   ...(gmailSendDemande ? [GMAIL_SEND_SCOPE] : []),
   ...(gmailReadDemande ? [GMAIL_READ_SCOPE] : []),
   ...(driveDemande ? [DRIVE_SCOPE] : []),
+  ...(calendarDemande ? [CALENDAR_SCOPE] : []),
 ];
 
 // Un refresh token est nécessaire dès qu'une portée d'API long-terme est demandée.
-const besoinOffline = gmailSendDemande || gmailReadDemande || driveDemande;
+const besoinOffline = gmailSendDemande || gmailReadDemande || driveDemande || calendarDemande;
 
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
@@ -167,8 +174,9 @@ export async function handleCallback({ code, state, owner }) {
   const peutEnvoyer = portees.includes(GMAIL_SEND_SCOPE);
   const peutLire = portees.includes(GMAIL_READ_SCOPE);
   const peutDrive = portees.includes(DRIVE_SCOPE);
+  const peutAgenda = portees.includes(CALENDAR_SCOPE);
 
-  if (peutEnvoyer || peutLire || peutDrive) {
+  if (peutEnvoyer || peutLire || peutDrive || peutAgenda) {
     const existing = Records.filter('MailAccount', { email })[0] || null;
     const record = {
       provider: 'google',
@@ -185,6 +193,7 @@ export async function handleCallback({ code, state, owner }) {
       peut_envoyer: peutEnvoyer,
       peut_lire: peutLire,
       peut_drive: peutDrive,
+      peut_agenda: peutAgenda,
     };
     if (existing) Records.update('MailAccount', existing.id, record);
     else Records.create('MailAccount', record);
@@ -223,6 +232,7 @@ export function listGoogleAccounts(ownerEmail) {
       peut_envoyer: a.peut_envoyer !== false,
       peut_lire: !!a.peut_lire,
       peut_drive: !!a.peut_drive,
+      peut_agenda: !!a.peut_agenda,
     }));
 }
 
@@ -299,6 +309,7 @@ export function googleStatus() {
     gmail_send: gmailSendDemande,
     gmail_read: gmailReadDemande,
     drive: driveDemande,
+    calendar: calendarDemande,
     scopes: SCOPES,
   };
 }

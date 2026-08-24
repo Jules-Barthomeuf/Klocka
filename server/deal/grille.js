@@ -74,10 +74,29 @@ const PAR_CATEGORIE = {
   Diagnostics: 'diagnostics',
 };
 
+// Libellé de catégorie affiché pour un type de grille : le classement
+// automatique doit poser la même valeur que le menu déroulant de l'analyste.
+export const CATEGORIE_PAR_TYPE = {
+  bail: 'Bail commercial',
+  pv_ag: 'Assemblée générale',
+  rcp: 'Règlement de copropriété',
+  quittances: 'Quittances',
+  diagnostics: 'Diagnostics',
+};
+
+/** Catégorie devinée depuis le seul nom de fichier, ou null. */
+export function categorieDepuisNom(nom = '') {
+  const type = typeDepuisCategorie(null, nom);
+  return type ? CATEGORIE_PAR_TYPE[type] || null : null;
+}
+
 export function typeDepuisCategorie(categorie, nom = '') {
   if (categorie && PAR_CATEGORIE[categorie]) return PAR_CATEGORIE[categorie];
   // Repli sur le nom du fichier quand la catégorie n'est pas renseignée.
-  const n = `${categorie || ''} ${nom}`.toLowerCase();
+  // Underscores, tirets et points comptent comme des séparateurs : sans cela
+  // « BAIL_COM_2024.pdf » échappe à \bbail\b, le tiret bas étant un caractère
+  // de mot.
+  const n = `${categorie || ''} ${nom}`.toLowerCase().replace(/[_\-.]+/g, ' ');
   if (/\bbail\b/.test(n)) return 'bail';
   if (/\bag\b|assembl|proc[èe]s|\bpv\b/.test(n)) return 'pv_ag';
   if (/copropri[ée]t[ée]|r[èe]glement|\brcp\b/.test(n)) return 'rcp';

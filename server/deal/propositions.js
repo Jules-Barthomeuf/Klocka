@@ -12,7 +12,6 @@ import { Records } from '../db.js';
 import { statutDe, aRelancer } from './lifecycle.js';
 import { etapeMax } from './etapes.js';
 import { typeDepuisCategorie } from './grille.js';
-import { clientsPourDeal } from './crm-sync.js';
 
 // Le dossier documentaire type d'un deal : ce que l'on demande à l'agent.
 const DOSSIER_TYPE = [
@@ -74,6 +73,7 @@ function surMailsOrphelins(mails) {
             ? `${pieces.length} pièce${pieces.length > 1 ? 's' : ''} jointe${pieces.length > 1 ? 's' : ''} : ${pieces.map((p) => p.nom).slice(0, 3).join(', ')}`
             : 'Sans pièce jointe',
           age != null ? (age === 0 ? "reçu aujourd'hui" : `reçu il y a ${age} j`) : null,
+          m.retenu_parce_que ? `retenu : ${m.retenu_parce_que}` : null,
         ]
           .filter(Boolean)
           .join(' · '),
@@ -224,37 +224,6 @@ function surDossierEnSommeil(deal) {
   ];
 }
 
-// Un dossier dépouillé peut être présenté : à qui ?
-function surClientsInteresses(deal, clients) {
-  if (!clients.length) return [];
-  if (!['depouille', 'projet_cree'].includes(statutDe(deal))) return [];
-  const candidats = clientsPourDeal(deal, clients).slice(0, 3);
-  if (!candidats.length) return [];
-  return [
-    {
-      id: `clients:${deal.deal_id}`,
-      famille: 'client',
-      type: 'clients_interesses',
-      priorite: P.COURANT,
-      titre: `${candidats.length} client${candidats.length > 1 ? 's' : ''} pour ${titreDeal(deal)}`,
-      detail: candidats
-        .map((c) => `${c.client.nom || c.client.email} — ${c.raisons.join(', ')}`)
-        .join(' · '),
-      deal_id: deal.deal_id,
-      actions: [
-        {
-          id: 'presenter',
-          libelle: 'Préparer la présentation client',
-          mode: 'mail',
-          intention: 'presentation_client',
-          principal: true,
-        },
-        { id: 'crm', libelle: 'Ouvrir le CRM', mode: 'lien', href: '/CRMClients' },
-      ],
-    },
-  ];
-}
-
 /**
  * La pile de propositions, la plus urgente d'abord.
  * @param {object} [opts]
@@ -266,8 +235,6 @@ export function construirePropositions({ comptes = null } = {}) {
   const tousMails = Records.list('MailRecu');
   const mails = comptes ? tousMails.filter((m) => comptes.includes(m.compte)) : tousMails;
 
-  const clients = Records.list('ClientCRM');
-
   const pile = [...surMailsOrphelins(mails)];
   for (const deal of deals) {
     pile.push(
@@ -275,7 +242,6 @@ export function construirePropositions({ comptes = null } = {}) {
       ...surRelance(deal),
       ...surDocumentsManquants(deal),
       ...surProjetACreer(deal),
-      ...surClientsInteresses(deal, clients),
       ...surDossierEnSommeil(deal)
     );
   }

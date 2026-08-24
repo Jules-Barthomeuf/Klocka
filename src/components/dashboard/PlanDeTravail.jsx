@@ -89,7 +89,8 @@ export default function PlanDeTravail() {
     onSuccess: (r) => {
       rafraichir();
       const bouts = [
-        `${r.nouveaux || 0} nouveau(x) mail(s)`,
+        `${r.nouveaux || 0} mail(s) retenu(s)`,
+        r.ecartes ? `${r.ecartes} sans rapport écarté(s)` : null,
         r.rattaches ? `${r.rattaches} rattaché(s) à un dossier` : null,
       ].filter(Boolean);
       toast.success("Boîtes relevées", { description: bouts.join(" · ") });

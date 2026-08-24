@@ -21,12 +21,6 @@ L.Icon.Default.mergeOptions({
 export default function CRM() {
   const navigate = useNavigate();
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ['crm-clients-crm'],
-    queryFn: () => base44.entities.ClientCRM.list(),
-    initialData: []
-  });
-
   const { data: transactions = [] } = useQuery({
     queryKey: ['crm-transactions'],
     queryFn: () => base44.entities.Transaction.list(),
@@ -143,15 +137,6 @@ export default function CRM() {
 
   const crmSections = [
     {
-      title: "Clients",
-      icon: Users,
-      count: clients.length,
-      color: "from-blue-500/20 to-cyan-500/10",
-      iconBg: "bg-blue-500/20",
-      iconColor: "text-blue-400",
-      url: "CRMClients"
-    },
-    {
       title: "Transactions",
       icon: DollarSign,
       count: transactions.length,
@@ -195,22 +180,7 @@ export default function CRM() {
         </div>
 
         {/* Stats principales */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <div className="relative rounded-[1.25rem] border-[0.75px] border-[#303332] p-2">
-            <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-[#0a0c0c]/95 to-[#171918]/95 border-none">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[#9aa19e] text-sm">Clients</p>
-                    <p className="text-3xl font-bold text-[#edeae5] mt-1">{clients.length}</p>
-                  </div>
-                  <Users className="w-10 h-10 text-blue-400" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
           <div className="relative rounded-[1.25rem] border-[0.75px] border-[#303332] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
             <Card className="relative bg-gradient-to-br from-[#0a0c0c]/95 to-[#171918]/95 border-none">

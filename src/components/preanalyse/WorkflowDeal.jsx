@@ -950,7 +950,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
       <TitreEtape
         n={3}
         titre="Documents"
-        description="Baux, PV d'AG, diagnostics : dépôt, classement dans le Drive « Klocka Projets », dépouillement case par case avec page source, puis synthèse des points à vérifier."
+        description="Baux, PV d'AG, diagnostics : dépôt, classement dans le Drive d'équipe, dépouillement case par case avec page source, puis synthèse des points à vérifier."
       />
       {montrerAttente && (
         <div

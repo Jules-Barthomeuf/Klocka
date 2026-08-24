@@ -41,7 +41,7 @@ const typeLisible = (mime) => {
 };
 
 // proposerDrive : à l'étape Analyse, l'arrivée de documents propose de créer le
-// dossier Google Drive du projet (Klocka Projets › <projet>) et d'y classer tout
+// dossier Google Drive du projet (Drive partagé › Projets › <projet>) et d'y classer tout
 // ce qui est déjà là. Jamais bloquant : on peut refuser et le proposer plus tard.
 export default function DocumentsDossier({ dossier, coches = [], onCocher, onRefresh, apercu = false, proposerDrive = false }) {
   const inputRef = useRef(null);
@@ -57,6 +57,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
     enabled: !apercu && proposerDrive,
   });
   const compteDrive = (statutMail?.accounts || []).find((c) => c.peut_drive)?.id || null;
+  const destinationDrive = statutMail?.google?.drive_destination || "Klocka Projets";
   const titreProjet = dossier?.lots?.[0]?.synthese?.titre || dossier?.titre || dossier?.deal_id || "Projet";
 
   const creerDrive = useMutation({
@@ -303,7 +304,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
               Les documents du dossier seront classés dans votre Drive, sous :
             </p>
             <p className="m-0 mb-5 text-[13.5px] text-[#edeae5]">
-              Klocka Projets <span className="text-[#6b7270]">›</span> {titreProjet}
+              {destinationDrive} <span className="text-[#6b7270]">›</span> {titreProjet}
             </p>
 
             {!compteDrive && (

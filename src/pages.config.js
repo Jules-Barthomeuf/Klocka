@@ -56,7 +56,6 @@ import AdminSuggestions from './pages/AdminSuggestions';
 import BaseDonneesMarche from './pages/BaseDonneesMarche';
 import CRM from './pages/CRM';
 import CRMAgents from './pages/CRMAgents';
-import CRMClients from './pages/CRMClients';
 import CRMProprietes from './pages/CRMProprietes';
 import CRMProspects from './pages/CRMProspects';
 import CRMTransactions from './pages/CRMTransactions';
@@ -96,7 +95,6 @@ export const PAGES = {
     "BaseDonneesMarche": BaseDonneesMarche,
     "CRM": CRM,
     "CRMAgents": CRMAgents,
-    "CRMClients": CRMClients,
     "CRMProprietes": CRMProprietes,
     "CRMProspects": CRMProspects,
     "CRMTransactions": CRMTransactions,

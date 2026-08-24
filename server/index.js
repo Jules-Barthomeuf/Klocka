@@ -537,7 +537,7 @@ const nettoyer = (entity, data) =>
 const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
 // Outils internes : pipeline de deals, boîte mail, CRM, base marché. Les pages
 // qui les consomment sont toutes réservées aux admins.
-const ENTITES_ADMIN = new Set(['Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'ClientCRM']);
+const ENTITES_ADMIN = new Set(['Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche']);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
 // avoir répondu 403.

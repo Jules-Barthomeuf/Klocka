@@ -222,7 +222,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             title={
               !test && !compteDrive
                 ? "Aucun compte Google avec l'accès Drive — activez GOOGLE_DRIVE côté serveur puis reconnectez votre compte"
-                : "Crée « Klocka Projets / <deal> » dans votre Drive et y classe les documents"
+                : `Crée « ${statutMail?.google?.drive_destination || "Klocka Projets"} / <deal> » et y classe les documents`
             }
             className="bg-[#edeae5]/5 hover:bg-[#edeae5]/10 text-[#d3d8d6] border-0"
           >

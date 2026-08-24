@@ -4,7 +4,7 @@
 // are seeded once from the hard-coded set the app shipped with. composeMail()
 // turns a free-form instruction ("envoie le template présentation à Marc de
 // l'agence X") into a ready-to-send draft: it picks the template, resolves the
-// recipient against the Contact / ClientCRM books, and personalises the body.
+// recipient against the Contact book, and personalises the body.
 
 import { Records } from './db.js';
 import { invokeLLM, llmEnabled } from './llm.js';
@@ -164,18 +164,7 @@ export function addressBook() {
       email: c.email,
     });
   }
-  for (const c of Records.list('ClientCRM')) {
-    if (!c.email) continue;
-    out.push({
-      id: c.id,
-      source: 'ClientCRM',
-      nom: c.nom || '',
-      entreprise: c.entreprise || '',
-      fonction: c.statut_client || '',
-      email: c.email,
-    });
-  }
-  // De-duplicate on email, keeping the first (Contact wins over ClientCRM).
+  // De-duplicate on email, keeping the first.
   const seen = new Set();
   return out.filter((c) => {
     const key = c.email.toLowerCase();

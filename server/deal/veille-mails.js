@@ -80,11 +80,13 @@ export async function relever() {
   enCours = true;
   const erreurs = [];
   let nouveaux = 0;
+  let ecartes = 0;
   try {
     for (const compte of comptesLisibles()) {
       try {
         const r = await releverBoite(compte.email, { max: 25 });
         nouveaux += r?.nouveaux || 0;
+        ecartes += r?.ecartes || 0;
       } catch (e) {
         erreurs.push(`${compte.email} : ${e?.message || e}`);
       }
@@ -93,7 +95,7 @@ export async function relever() {
     // Les agents entrent au CRM tout seuls : l'information est déjà sur les
     // dossiers, personne n'a à la ressaisir.
     const crm = synchroniserAgents();
-    dernier = { le: new Date().toISOString(), nouveaux, rattaches, crm, erreurs };
+    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, crm, erreurs };
   } finally {
     enCours = false;
   }

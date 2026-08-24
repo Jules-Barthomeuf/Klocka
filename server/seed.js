@@ -128,14 +128,6 @@ function seedDemoData(adminEmail) {
     resources.forEach((r) => Records.create('Resource', r, adminEmail));
   }
 
-  // --- Sample CRM clients ---
-  const crm = [
-    { nom: 'Camille Client', email: clientEmail, telephone: '0600000000', categorie: 'en_cours', statut_client: 'recherche', mandat_signe: true, budget: 700000, revenu: 85000, fond_propre: 120000, localisation: 'PACA' },
-    { nom: 'Prospect Dupont', email: 'dupont@example.com', categorie: 'stand_by', statut_client: 'negociation', budget: 450000, localisation: 'Lyon' },
-  ];
-  if (!Records.count('ClientCRM')) {
-    crm.forEach((c) => Records.create('ClientCRM', c, adminEmail));
-  }
 }
 
 export function runSeedIfEmpty() {

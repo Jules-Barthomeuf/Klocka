@@ -8,6 +8,7 @@
 // .eml existant qui traite le texte ET les pièces jointes.
 
 import { Records } from './db.js';
+import { referentielTri, trierMail } from './deal/tri-mails.js';
 import { storedAccount, accessTokenFor } from './google-oauth.js';
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -67,13 +68,17 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
     Records.filter('MailRecu', { compte: account.email }).map((m) => m.gmail_message_id)
   );
 
+  // Référentiel de tri chargé une fois : qui est interne, qui est un agent connu.
+  const ref = referentielTri();
+
   let nouveaux = 0;
+  let ecartes = 0;
   for (const id of ids) {
     if (connus.has(id)) continue;
     try {
       const msg = await gmailGet(token, `/messages/${id}?format=full`);
       const de = entete(msg.payload, 'from');
-      Records.create('MailRecu', {
+      const mail = {
         compte: account.email,
         gmail_message_id: msg.id,
         thread_id: msg.threadId || null,
@@ -86,7 +91,17 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
         pieces_jointes: nomsPiecesJointes(msg.payload),
         lu: !(msg.labelIds || []).includes('UNREAD'),
         deal_id: null,
-      });
+      };
+
+      // Un mail sans rapport avec un dossier n'entre pas : la boîte de
+      // l'application reste le reflet des dossiers, pas une copie de Gmail.
+      const { garder, raison } = trierMail(mail, ref);
+      if (!garder) {
+        ecartes++;
+        continue;
+      }
+
+      Records.create('MailRecu', { ...mail, retenu_parce_que: raison });
       nouveaux++;
     } catch (e) {
       // Un message illisible ne doit pas bloquer la relève des autres.
@@ -94,7 +109,7 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
     }
   }
 
-  return { nouveaux, total: ids.length };
+  return { nouveaux, ecartes, total: ids.length };
 }
 
 /** Liste les mails relevés d'un compte, du plus récent au plus ancien. */

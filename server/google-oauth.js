@@ -36,7 +36,17 @@ export const gmailReadDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_GM
 
 // Classement des documents d'un deal dans le Drive : drive.file ne donne accès
 // qu'aux fichiers créés par l'app, jamais au reste du Drive.
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+//
+// Un Drive partagé change la donne : pour retrouver le Drive « Klocka » et son
+// dossier « Projets » — créés par quelqu'un d'autre — il faut pouvoir lister ce
+// que l'application n'a pas créé, ce que drive.file interdit par construction.
+// GOOGLE_DRIVE_COMPLET bascule alors sur la portée drive complète. À n'activer
+// que si vous classez dans un Drive partagé : elle donne accès à tout le Drive
+// du compte connecté.
+const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FULL_SCOPE = 'https://www.googleapis.com/auth/drive';
+export const driveComplet = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_DRIVE_COMPLET || '');
+const DRIVE_SCOPE = driveComplet ? DRIVE_FULL_SCOPE : DRIVE_FILE_SCOPE;
 export const driveDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_DRIVE || '');
 
 // Calendrier d'équipe : calendar.app.created ne donne accès qu'aux agendas que
@@ -173,7 +183,8 @@ export async function handleCallback({ code, state, owner }) {
   const portees = String(tokens.scope || '').split(/\s+/);
   const peutEnvoyer = portees.includes(GMAIL_SEND_SCOPE);
   const peutLire = portees.includes(GMAIL_READ_SCOPE);
-  const peutDrive = portees.includes(DRIVE_SCOPE);
+  const peutDrive = portees.includes(DRIVE_FILE_SCOPE) || portees.includes(DRIVE_FULL_SCOPE);
+  const driveEtendu = portees.includes(DRIVE_FULL_SCOPE);
   const peutAgenda = portees.includes(CALENDAR_SCOPE);
 
   if (peutEnvoyer || peutLire || peutDrive || peutAgenda) {
@@ -193,6 +204,7 @@ export async function handleCallback({ code, state, owner }) {
       peut_envoyer: peutEnvoyer,
       peut_lire: peutLire,
       peut_drive: peutDrive,
+      peut_drive_partage: driveEtendu,
       peut_agenda: peutAgenda,
     };
     if (existing) Records.update('MailAccount', existing.id, record);
@@ -309,6 +321,11 @@ export function googleStatus() {
     gmail_send: gmailSendDemande,
     gmail_read: gmailReadDemande,
     drive: driveDemande,
+    drive_complet: driveComplet,
+    // Destination lisible, telle qu'on l'annonce à l'écran.
+    drive_destination: (process.env.GOOGLE_DRIVE_NOM || process.env.GOOGLE_DRIVE_ID)
+      ? `${(process.env.GOOGLE_DRIVE_NOM || 'Drive partagé').trim()} › ${(process.env.GOOGLE_DRIVE_DOSSIER || 'Projets').trim()}`
+      : 'Klocka Projets',
     calendar: calendarDemande,
     scopes: SCOPES,
   };

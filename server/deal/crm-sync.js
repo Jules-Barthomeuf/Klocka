@@ -1,21 +1,13 @@
 // Alimentation du CRM depuis les dossiers.
 //
-// Deux sens, tous deux déterministes — aucun modèle n'intervient :
+// Déterministe — aucun modèle n'intervient : les agents immobiliers (entité
+// Contact) sont créés et tenus à jour à partir des dossiers. Dès qu'un agent
+// envoie une fiche, il entre au CRM avec sa dernière ville connue et le nombre
+// de dossiers apportés. Cette table était vide alors que l'information existait
+// déjà sur chaque deal.
 //
-//  1. Les agents immobiliers (entité Contact) sont créés et tenus à jour à
-//     partir des dossiers : dès qu'un agent envoie une fiche, il entre au CRM
-//     avec sa dernière ville connue et le nombre de dossiers apportés. Cette
-//     table était vide alors que l'information existait déjà sur chaque deal.
-//
-//  2. Les clients (entité ClientCRM) sont rapprochés des dossiers : budget,
-//     apport et zone recherchée face au prix de revient et à la ville du lot.
-//     Le rapprochement ne modifie rien — il propose.
 
 import { Records } from '../db.js';
-import { statutDe } from './lifecycle.js';
-
-const OUVERTS = ['analyse', 'documents_demandes', 'documents_recus', 'depouille'];
-
 const norm = (s) =>
   String(s || '')
     .toLowerCase()
@@ -123,66 +115,4 @@ export function synchroniserAgents() {
   }
 
   return { crees, completes };
-}
-
-// --- Rapprochement clients ↔ dossiers --------------------------------------
-
-const nombre = (v) => {
-  const n = Number(String(v ?? '').replace(/[^\d.-]/g, ''));
-  return Number.isFinite(n) && n > 0 ? n : null;
-};
-
-/** Prix de revient du lot, à défaut son prix FAI. */
-function coutDuLot(deal) {
-  const lot = deal.lots?.[0];
-  const aem = lot?.evaluation?.aem;
-  if (aem?.prix_aem) return aem.prix_aem;
-  const fai = lot?.lot?.prix_fai;
-  return fai && fai.absent === false ? fai.valeur : null;
-}
-
-/**
- * Clients dont le budget et la zone collent à un dossier.
- * Un critère absent ne disqualifie pas : il ne compte simplement pas.
- * @returns {Array<{client, raisons: string[]}>}
- */
-export function clientsPourDeal(deal, clients = null) {
-  const liste = (clients || Records.list('ClientCRM')).filter((c) => c.categorie !== 'signe');
-  const cout = coutDuLot(deal);
-  const ville = norm(villeDuDeal(deal));
-
-  const resultats = [];
-  for (const client of liste) {
-    const raisons = [];
-    const budget = nombre(client.budget);
-    const apport = nombre(client.fond_propre);
-
-    if (cout && budget) {
-      if (budget < cout * 0.9) continue; // hors budget : on écarte franchement
-      raisons.push(`budget ${Math.round(budget / 1000)} k€ pour un prix de revient de ${Math.round(cout / 1000)} k€`);
-    }
-    // L'apport usuel est de 15 % du prix de revient.
-    if (cout && apport && apport >= cout * 0.15) {
-      raisons.push(`apport suffisant (${Math.round(apport / 1000)} k€)`);
-    }
-    if (ville && client.localisation && norm(client.localisation).includes(ville)) {
-      raisons.push(`cherche sur ${client.localisation}`);
-    }
-    if (raisons.length) resultats.push({ client, raisons });
-  }
-
-  // Le plus de raisons d'abord, puis le plus gros budget.
-  return resultats.sort(
-    (a, b) => b.raisons.length - a.raisons.length || (nombre(b.client.budget) || 0) - (nombre(a.client.budget) || 0)
-  );
-}
-
-/** Rapprochements pour tous les dossiers ouverts, dossiers sans client exclus. */
-export function rapprochements() {
-  const clients = Records.list('ClientCRM');
-  if (!clients.length) return [];
-  return Records.list('Deal')
-    .filter((d) => !d.archived && !d.test && d.lots?.length && OUVERTS.includes(statutDe(d)))
-    .map((deal) => ({ deal, candidats: clientsPourDeal(deal, clients) }))
-    .filter((r) => r.candidats.length);
 }

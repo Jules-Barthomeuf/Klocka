@@ -79,11 +79,28 @@ function adressesAgents() {
   return new Set([...deals, ...contacts]);
 }
 
-/** Règles posées par l'équipe : { email | domaine, decision, motif }. */
+/**
+ * Agents dont on attend une réponse : documents demandés, sans retour.
+ * Eux seuls passent sans examen — leur « je vous envoie ça demain » compte,
+ * même sans pièce jointe ni mot du métier.
+ */
+function agentsAttendus() {
+  return new Set(
+    Records.list('Deal')
+      .filter((d) => !d.archived && d.contact_agent_email && d.statut === 'documents_demandes')
+      .map((d) => String(d.contact_agent_email).toLowerCase())
+  );
+}
+
+/**
+ * Règles dures posées par l'équipe : elles court-circuitent tout le reste.
+ * Seules les corrections de portée « expediteur » ou « domaine » en produisent.
+ */
 function reglesApprises() {
   const parEmail = new Map();
   const parDomaine = new Map();
   for (const r of Records.list('RegleTriMail')) {
+    if (r.portee === 'mail') continue; // un exemple n'est pas une règle
     if (r.email) parEmail.set(String(r.email).toLowerCase(), r);
     else if (r.domaine) parDomaine.set(String(r.domaine).toLowerCase(), r);
   }
@@ -91,27 +108,60 @@ function reglesApprises() {
 }
 
 /**
- * Enregistre une correction de l'équipe. Elle vaut pour l'expéditeur entier :
- * corriger un mail, c'est trancher pour tous les suivants.
+ * Enregistre une correction de l'équipe.
+ *
+ * La portée est le cœur du sujet : un agent immobilier envoie des dossiers ET
+ * des mails sans intérêt. Écarter un de ses mails ne doit pas le faire taire.
+ *
+ *   portee 'mail'       (défaut) — ce mail-ci ne remonte plus, et sert d'exemple
+ *                        au modèle. L'expéditeur continue d'être écouté.
+ *   portee 'expediteur' — plus rien de cette adresse. À réserver aux outils et
+ *                        aux robots.
+ *   portee 'domaine'    — plus rien de ce domaine.
+ *
  * @param {'garder'|'ignorer'} decision
  */
-export function apprendre({ email, domaine, decision, motif, par }) {
-  const cle = email ? { email: String(email).toLowerCase() } : { domaine: String(domaine || '').toLowerCase() };
-  if (!cle.email && !cle.domaine) return { ok: false, error: 'Expéditeur manquant' };
+export function apprendre({ email, domaine, decision, motif, par, portee = 'mail', exemple = null }) {
+  const adresse = String(email || '').toLowerCase();
+  if (!adresse && !domaine) return { ok: false, error: 'Expéditeur manquant' };
 
-  const existant = Records.filter('RegleTriMail', cle)[0];
-  const donnees = { ...cle, decision, motif: motif || null, par: par || null, le: new Date().toISOString() };
-  if (existant) Records.update('RegleTriMail', existant.id, donnees);
-  else Records.create('RegleTriMail', donnees);
+  const donnees = {
+    portee,
+    decision,
+    motif: motif || null,
+    par: par || null,
+    le: new Date().toISOString(),
+    ...(portee === 'domaine' ? { domaine: String(domaine || adresse.split('@')[1] || '').toLowerCase() } : { email: adresse }),
+    // Ce qu'on montrera au modèle : l'objet compte plus que l'adresse.
+    ...(exemple ? { objet: exemple.objet || null, pieces: (exemple.pieces_jointes || []).map((p) => p.nom) } : {}),
+  };
+
+  // Une règle dure remplace la précédente ; les exemples s'accumulent.
+  if (portee !== 'mail') {
+    const cle = portee === 'domaine' ? { domaine: donnees.domaine } : { email: adresse };
+    const existant = Records.filter('RegleTriMail', cle).find((r) => r.portee !== 'mail');
+    if (existant) {
+      Records.update('RegleTriMail', existant.id, donnees);
+      return { ok: true, regle: donnees };
+    }
+  }
+  Records.create('RegleTriMail', donnees);
   return { ok: true, regle: donnees };
 }
 
-/** Les corrections récentes, données en exemple au modèle. */
+/**
+ * Les corrections récentes, données en exemple au modèle. Un exemple portant
+ * sur un mail précis vaut mieux qu'une adresse : c'est le motif qui apprend.
+ */
 function exemplesRecents(limite = 12) {
   return Records.list('RegleTriMail')
     .sort((a, b) => String(b.le || '').localeCompare(String(a.le || '')))
     .slice(0, limite)
-    .map((r) => `${r.email || `@${r.domaine}`} → ${r.decision === 'garder' ? 'PERTINENT' : 'NON PERTINENT'}${r.motif ? ` (${r.motif})` : ''}`);
+    .map((r) => {
+      const quoi = r.objet ? `« ${r.objet} »` : r.email || `@${r.domaine}`;
+      const pieces = r.pieces?.length ? ` [${r.pieces.join(', ')}]` : '';
+      return `${quoi}${pieces} → ${r.decision === 'garder' ? 'PERTINENT' : 'NON PERTINENT'}${r.motif ? ` (${r.motif})` : ''}`;
+    });
 }
 
 /** Le référentiel, chargé une fois par relève plutôt qu'une fois par mail. */
@@ -132,6 +182,7 @@ export function referentielTri() {
     internes,
     domaines,
     agents: adressesAgents(),
+    attendus: agentsAttendus(),
     ignores: new Set(EXPEDITEURS_IGNORES),
     apprises: reglesApprises(),
     exemples: exemplesRecents(),
@@ -163,7 +214,10 @@ export function trierMail(mail, ref) {
   if (ref.ignores.has(email)) return { garder: false, raison: 'expéditeur ignoré' };
   if (ref.internes.has(email)) return { garder: false, raison: 'échange interne' };
   if (domaine && ref.domaines.has(domaine)) return { garder: false, raison: 'échange interne' };
-  if (ref.agents.has(email)) return { garder: true, raison: 'agent connu' };
+  // Une réponse attendue passe telle quelle. Un agent connu qui écrit hors
+  // dossier, lui, est examiné comme les autres : il envoie de bons biens ET des
+  // mails sans intérêt, et les deux ne se valent pas.
+  if (ref.attendus?.has(email)) return { garder: true, raison: 'réponse attendue' };
 
   const pieces = (mail.pieces_jointes || []).filter(
     (p) => PIECES_UTILES.test(p.nom || '') && !PIECES_INUTILES.test(p.nom || '')
@@ -171,7 +225,7 @@ export function trierMail(mail, ref) {
   const texte = norm(`${mail.objet || ''} ${mail.extrait || ''}`);
   const mot = MOTS_METIER.find((m) => texte.includes(norm(m)));
 
-  // Aucun signal : inutile de déranger le modèle.
+  // Aucun signal : inutile de déranger le modèle, même pour un agent connu.
   if (!pieces.length && !mot) return { garder: false, raison: 'sans rapport apparent' };
 
   // C. Un signal, mais lequel ? Une pièce jointe peut être un bail comme un

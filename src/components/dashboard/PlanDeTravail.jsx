@@ -159,10 +159,31 @@ export default function PlanDeTravail() {
         const r = await base44.request("POST", `/api/assistant/mails/${proposition.mail_id}/tri`, {
           body: { decision: action.decision, motif: "écarté depuis le plan de travail" },
         });
-        toast.success("C'est noté", {
-          description: `Les prochains mails de ${r.expediteur} ne remonteront plus.`,
-        });
         rafraichir();
+        // Par défaut on n'écarte que ce mail : l'expéditeur peut très bien
+        // envoyer un bon dossier demain. Faire taire l'adresse est un second
+        // geste, explicite.
+        toast.success("C'est noté", {
+          description: `${r.expediteur} continue d'être écouté — ce mail servira d'exemple.`,
+          action: {
+            label: "Ignorer cet expéditeur",
+            onClick: async () => {
+              try {
+                await base44.request("POST", "/api/assistant/tri-expediteur", {
+                  body: {
+                    email: r.expediteur,
+                    decision: "ignorer",
+                    motif: "expéditeur écarté depuis le plan de travail",
+                  },
+                });
+                toast.success(`Plus aucun mail de ${r.expediteur} ne remontera.`);
+                rafraichir();
+              } catch (err) {
+                toast.error(err?.message || "Action impossible");
+              }
+            },
+          },
+        });
       } else if (action.mode === "preanalyser") {
         const r = await base44.request("POST", `/api/mails/inbox/${proposition.mail_id}/preanalyser`);
         toast.success("Fiche analysée");

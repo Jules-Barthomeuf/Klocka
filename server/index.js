@@ -1321,13 +1321,52 @@ app.post('/api/assistant/mails/:id/tri', wrap(async (req, res) => {
 
   const { apprendre } = await import('./deal/tri-mails.js');
   const email = String(mail.de_email || '').toLowerCase();
-  const cible = portee === 'domaine' ? { domaine: email.split('@')[1] || '' } : { email };
-  const r = apprendre({ ...cible, decision, motif, par: currentUser(req)?.email });
+  const r = apprendre({
+    email,
+    decision,
+    motif,
+    // Défaut volontaire : ce mail-ci, pas tout l'expéditeur. Un agent envoie de
+    // bons biens et des mails sans intérêt ; le faire taire serait pire.
+    portee: ['expediteur', 'domaine'].includes(portee) ? portee : 'mail',
+    exemple: mail,
+    par: currentUser(req)?.email,
+  });
   if (!r.ok) return res.status(400).json(r);
 
   // Un mail écarté n'a plus à figurer dans la pile : la correction le retire.
   if (decision === 'ignorer') Records.delete('MailRecu', mail.id);
   ok(res, { ...r, expediteur: mail.de_email });
+}));
+
+// Faire taire un expéditeur, ou le réhabiliter. Séparé de la correction d'un
+// mail : celui-ci est supprimé au passage, il ne peut plus servir de référence.
+app.post('/api/assistant/tri-expediteur', wrap(async (req, res) => {
+  const { email, decision, motif, portee } = req.body || {};
+  if (!['garder', 'ignorer'].includes(decision)) {
+    return res.status(400).json({ error: 'Décision inconnue' });
+  }
+  if (!email) return res.status(400).json({ error: 'Expéditeur manquant' });
+
+  const { apprendre } = await import('./deal/tri-mails.js');
+  const r = apprendre({
+    email,
+    decision,
+    motif,
+    portee: portee === 'domaine' ? 'domaine' : 'expediteur',
+    par: currentUser(req)?.email,
+  });
+  if (!r.ok) return res.status(400).json(r);
+
+  // Les mails déjà remontés de cet expéditeur quittent la pile.
+  let retires = 0;
+  if (decision === 'ignorer') {
+    for (const m of Records.filter('MailRecu', { de_email: String(email).toLowerCase() })) {
+      if (m.deal_id) continue; // un mail rattaché à un dossier reste
+      Records.delete('MailRecu', m.id);
+      retires += 1;
+    }
+  }
+  ok(res, { ...r, retires });
 }));
 
 // CRM : les agents des dossiers deviennent des fiches contact, sans saisie.

@@ -81,6 +81,8 @@ function surMailsOrphelins(mails) {
         actions: [
           { id: 'preanalyser', libelle: 'Lancer la pré-analyse', mode: 'preanalyser', principal: true },
           { id: 'boite', libelle: 'Voir dans la boîte', mode: 'lien', href: '/Mails' },
+          // La correction vaut pour l'expéditeur : on ne repose plus la question.
+          { id: 'pas_pertinent', libelle: 'Pas pertinent', mode: 'tri', decision: 'ignorer' },
         ],
       };
     });

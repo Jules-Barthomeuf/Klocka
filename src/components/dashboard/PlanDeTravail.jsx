@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
   Loader2, Mail, FolderPlus, Briefcase, RefreshCw, Clock, FileWarning, Inbox, MoonStar, Send, X,
-  CalendarDays, Users, ExternalLink,
+  CalendarDays, ExternalLink, ThumbsDown,
 } from "lucide-react";
 
 // Le plan de travail : ce que l'assistant propose de faire, maintenant.
@@ -16,7 +16,6 @@ import {
 // « mail » ouvre un brouillon éditable, jamais un envoi.
 
 const ICONES = {
-  clients_interesses: Users,
   mail_a_traiter: Inbox,
   reponse_recue: Mail,
   documents_manquants: FileWarning,
@@ -156,6 +155,14 @@ export default function PlanDeTravail() {
         const r = await base44.request("POST", `/api/preanalyse/dossiers/${proposition.deal_id}/lots/0/projet`);
         toast.success(`Projet créé : ${r.titre}`);
         navigate(`/AdminProjets?id=${r.project_id}`);
+      } else if (action.mode === "tri") {
+        const r = await base44.request("POST", `/api/assistant/mails/${proposition.mail_id}/tri`, {
+          body: { decision: action.decision, motif: "écarté depuis le plan de travail" },
+        });
+        toast.success("C'est noté", {
+          description: `Les prochains mails de ${r.expediteur} ne remonteront plus.`,
+        });
+        rafraichir();
       } else if (action.mode === "preanalyser") {
         const r = await base44.request("POST", `/api/mails/inbox/${proposition.mail_id}/preanalyser`);
         toast.success("Fiche analysée");
@@ -275,6 +282,7 @@ export default function PlanDeTravail() {
                         {a.mode === "mail" && !occupe && <Mail className="w-3 h-3" />}
                         {a.mode === "drive" && !occupe && <FolderPlus className="w-3 h-3" />}
                         {a.mode === "projet" && !occupe && <Briefcase className="w-3 h-3" />}
+                        {a.mode === "tri" && !occupe && <ThumbsDown className="w-3 h-3" />}
                         {a.libelle}
                       </button>
                     );

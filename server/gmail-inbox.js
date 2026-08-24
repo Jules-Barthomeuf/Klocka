@@ -8,7 +8,7 @@
 // .eml existant qui traite le texte ET les pièces jointes.
 
 import { Records } from './db.js';
-import { referentielTri, trierMail } from './deal/tri-mails.js';
+import { referentielTri, trierMail, jugerParIA } from './deal/tri-mails.js';
 import { storedAccount, accessTokenFor } from './google-oauth.js';
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -95,13 +95,22 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
 
       // Un mail sans rapport avec un dossier n'entre pas : la boîte de
       // l'application reste le reflet des dossiers, pas une copie de Gmail.
-      const { garder, raison } = trierMail(mail, ref);
+      let { garder, raison, incertain } = trierMail(mail, ref);
+
+      // Un signal ambigu — une pièce jointe qui peut être un bail comme un RIB
+      // — est le seul cas où l'on fait lire le mail.
+      if (incertain) {
+        const juge = await jugerParIA(mail, ref);
+        garder = juge.garder;
+        raison = juge.garder ? `lu : ${juge.raison}` : juge.raison;
+      }
+
       if (!garder) {
         ecartes++;
         continue;
       }
 
-      Records.create('MailRecu', { ...mail, retenu_parce_que: raison });
+      Records.create('MailRecu', { ...mail, retenu_parce_que: raison, juge_par_ia: !!incertain });
       nouveaux++;
     } catch (e) {
       // Un message illisible ne doit pas bloquer la relève des autres.

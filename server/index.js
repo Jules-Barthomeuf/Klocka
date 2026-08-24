@@ -537,7 +537,7 @@ const nettoyer = (entity, data) =>
 const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
 // Outils internes : pipeline de deals, boîte mail, CRM, base marché. Les pages
 // qui les consomment sont toutes réservées aux admins.
-const ENTITES_ADMIN = new Set(['Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche']);
+const ENTITES_ADMIN = new Set(['Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail']);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
 // avoir répondu 403.
@@ -1307,6 +1307,27 @@ app.get('/api/assistant/propositions', wrap(async (req, res) => {
 app.post('/api/assistant/relever', wrap(async (req, res) => {
   const { relever } = await import('./deal/veille-mails.js');
   ok(res, await relever());
+}));
+
+// Correction du tri par l'équipe. Elle vaut pour l'expéditeur entier : la
+// question ne se repose jamais deux fois.
+app.post('/api/assistant/mails/:id/tri', wrap(async (req, res) => {
+  const { decision, motif, portee } = req.body || {};
+  if (!['garder', 'ignorer'].includes(decision)) {
+    return res.status(400).json({ error: 'Décision inconnue' });
+  }
+  const mail = Records.get('MailRecu', req.params.id);
+  if (!mail) return res.status(404).json({ error: 'Mail introuvable' });
+
+  const { apprendre } = await import('./deal/tri-mails.js');
+  const email = String(mail.de_email || '').toLowerCase();
+  const cible = portee === 'domaine' ? { domaine: email.split('@')[1] || '' } : { email };
+  const r = apprendre({ ...cible, decision, motif, par: currentUser(req)?.email });
+  if (!r.ok) return res.status(400).json(r);
+
+  // Un mail écarté n'a plus à figurer dans la pile : la correction le retire.
+  if (decision === 'ignorer') Records.delete('MailRecu', mail.id);
+  ok(res, { ...r, expediteur: mail.de_email });
 }));
 
 // CRM : les agents des dossiers deviennent des fiches contact, sans saisie.

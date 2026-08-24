@@ -4,20 +4,30 @@
 // échanges internes, factures, newsletters, conversations sans rapport. Tout
 // remonter noierait le plan de travail ; tout filtrer ferait rater des fiches.
 //
-// Le tri est déterministe et se fonde sur ce qu'on sait déjà, dans cet ordre :
+// Le tri se fait en trois couches, de la moins chère à la plus coûteuse :
 //
-//   1. Un expéditeur interne (l'équipe elle-même) n'est jamais un dossier.
-//   2. Un expéditeur déjà connu comme agent — parce qu'il a apporté un dossier
-//      ou qu'il est fiché au CRM — est toujours pertinent.
-//   3. Une pièce jointe exploitable (PDF, bureautique, image) rend le mail
-//      candidat : c'est le geste d'un agent qui transmet.
-//   4. À défaut, le vocabulaire du métier dans l'objet.
+//   A. Ce que l'équipe a tranché. Un « pas pertinent » posé sur un mail devient
+//      une règle sur son expéditeur : la décision ne se redemande jamais deux
+//      fois. C'est là qu'est l'apprentissage — pas dans le modèle, qui n'a
+//      aucune mémoire, mais dans ce que l'application retient des corrections.
+//
+//   B. Les règles déterministes, gratuites et immédiates :
+//      1. Un expéditeur interne (l'équipe elle-même) n'est jamais un dossier.
+//      2. Un expéditeur déjà connu comme agent — parce qu'il a apporté un
+//         dossier ou qu'il est fiché au CRM — est toujours pertinent.
+//      3. Aucun signal du métier, aucune pièce exploitable → écarté.
+//
+//   C. Le doute, et lui seul, part au modèle : une pièce jointe ou un mot du
+//      métier ne dit pas si l'on transmet un bien ou un RIB. La question posée
+//      est précise — « ce mail transmet-il un bien à étudier ? » — et les
+//      corrections passées lui sont données en exemple.
 //
 // Chaque mail retenu porte la raison de sa sélection : elle s'affiche, et se
 // discute. Un mail écarté n'est pas stocké — la boîte de réception de
 // l'application reste le reflet des dossiers, pas une copie de Gmail.
 
 import { Records } from '../db.js';
+import { invokeLLM, llmEnabled } from '../llm.js';
 
 // Domaines de l'équipe : un mail interne parle d'autre chose qu'un dossier.
 const DOMAINES_INTERNES = (process.env.MAIL_DOMAINES_INTERNES || '')
@@ -69,6 +79,41 @@ function adressesAgents() {
   return new Set([...deals, ...contacts]);
 }
 
+/** Règles posées par l'équipe : { email | domaine, decision, motif }. */
+function reglesApprises() {
+  const parEmail = new Map();
+  const parDomaine = new Map();
+  for (const r of Records.list('RegleTriMail')) {
+    if (r.email) parEmail.set(String(r.email).toLowerCase(), r);
+    else if (r.domaine) parDomaine.set(String(r.domaine).toLowerCase(), r);
+  }
+  return { parEmail, parDomaine };
+}
+
+/**
+ * Enregistre une correction de l'équipe. Elle vaut pour l'expéditeur entier :
+ * corriger un mail, c'est trancher pour tous les suivants.
+ * @param {'garder'|'ignorer'} decision
+ */
+export function apprendre({ email, domaine, decision, motif, par }) {
+  const cle = email ? { email: String(email).toLowerCase() } : { domaine: String(domaine || '').toLowerCase() };
+  if (!cle.email && !cle.domaine) return { ok: false, error: 'Expéditeur manquant' };
+
+  const existant = Records.filter('RegleTriMail', cle)[0];
+  const donnees = { ...cle, decision, motif: motif || null, par: par || null, le: new Date().toISOString() };
+  if (existant) Records.update('RegleTriMail', existant.id, donnees);
+  else Records.create('RegleTriMail', donnees);
+  return { ok: true, regle: donnees };
+}
+
+/** Les corrections récentes, données en exemple au modèle. */
+function exemplesRecents(limite = 12) {
+  return Records.list('RegleTriMail')
+    .sort((a, b) => String(b.le || '').localeCompare(String(a.le || '')))
+    .slice(0, limite)
+    .map((r) => `${r.email || `@${r.domaine}`} → ${r.decision === 'garder' ? 'PERTINENT' : 'NON PERTINENT'}${r.motif ? ` (${r.motif})` : ''}`);
+}
+
 /** Le référentiel, chargé une fois par relève plutôt qu'une fois par mail. */
 export function referentielTri() {
   const internes = adressesInternes();
@@ -83,7 +128,14 @@ export function referentielTri() {
       }
     }
   }
-  return { internes, domaines, agents: adressesAgents(), ignores: new Set(EXPEDITEURS_IGNORES) };
+  return {
+    internes,
+    domaines,
+    agents: adressesAgents(),
+    ignores: new Set(EXPEDITEURS_IGNORES),
+    apprises: reglesApprises(),
+    exemples: exemplesRecents(),
+  };
 }
 
 /**
@@ -97,21 +149,85 @@ export function trierMail(mail, ref) {
   const domaine = domaineDe(email);
 
   if (!email) return { garder: false, raison: 'expéditeur illisible' };
+
+  // A. Ce que l'équipe a tranché prime sur tout le reste.
+  const apprise = ref.apprises?.parEmail.get(email) || (domaine ? ref.apprises?.parDomaine.get(domaine) : null);
+  if (apprise) {
+    return {
+      garder: apprise.decision === 'garder',
+      raison: apprise.decision === 'garder' ? 'jugé pertinent par l\'équipe' : 'écarté par l\'équipe',
+    };
+  }
+
+  // B. Les règles gratuites.
   if (ref.ignores.has(email)) return { garder: false, raison: 'expéditeur ignoré' };
   if (ref.internes.has(email)) return { garder: false, raison: 'échange interne' };
   if (domaine && ref.domaines.has(domaine)) return { garder: false, raison: 'échange interne' };
-
-  // Un agent connu passe toujours : c'est peut-être la réponse qu'on attend.
   if (ref.agents.has(email)) return { garder: true, raison: 'agent connu' };
 
   const pieces = (mail.pieces_jointes || []).filter(
     (p) => PIECES_UTILES.test(p.nom || '') && !PIECES_INUTILES.test(p.nom || '')
   );
-  if (pieces.length) return { garder: true, raison: `pièce jointe (${pieces[0].nom})` };
-
   const texte = norm(`${mail.objet || ''} ${mail.extrait || ''}`);
   const mot = MOTS_METIER.find((m) => texte.includes(norm(m)));
-  if (mot) return { garder: true, raison: `objet : « ${mot} »` };
 
-  return { garder: false, raison: 'sans rapport apparent' };
+  // Aucun signal : inutile de déranger le modèle.
+  if (!pieces.length && !mot) return { garder: false, raison: 'sans rapport apparent' };
+
+  // C. Un signal, mais lequel ? Une pièce jointe peut être un bail comme un
+  // RIB. C'est le seul cas où l'on paie une lecture.
+  return {
+    garder: true,
+    incertain: true,
+    raison: pieces.length ? `pièce jointe (${pieces[0].nom})` : `objet : « ${mot} »`,
+    indices: { pieces: pieces.map((p) => p.nom), mot },
+  };
+}
+
+const SCHEMA_JUGEMENT = {
+  type: 'object',
+  properties: {
+    transmet_un_bien: {
+      type: 'boolean',
+      description: "true si le mail transmet un bien à étudier ou des documents s'y rapportant",
+    },
+    motif: { type: 'string', description: 'Six mots maximum, en français.' },
+  },
+  required: ['transmet_un_bien', 'motif'],
+};
+
+/**
+ * Lecture du mail par le modèle, pour les seuls cas douteux.
+ * En cas d'indisponibilité, on garde le mail : mieux vaut un mail de trop
+ * qu'une fiche manquée — l'équipe tranchera d'un clic.
+ * @returns {{ garder: boolean, raison: string }}
+ */
+export async function jugerParIA(mail, ref) {
+  if (!llmEnabled) return { garder: true, raison: 'à vérifier' };
+
+  const exemples = ref?.exemples?.length
+    ? `\n\nDécisions déjà prises par l'équipe, à respecter :\n${ref.exemples.join('\n')}`
+    : '';
+
+  try {
+    const r = await invokeLLM({
+      prompt: `Klocka investit dans des murs commerciaux. Nous recevons des mails d'agents immobiliers qui nous transmettent des biens à étudier, et beaucoup d'autres mails sans rapport.
+
+Ce mail transmet-il un bien à étudier, ou des documents s'y rapportant (bail, PV d'assemblée générale, règlement de copropriété, quittances, diagnostics) ?
+
+Réponds false pour tout le reste, même avec une pièce jointe : relevé d'identité bancaire, facture, lien de signature électronique, newsletter, prise de rendez-vous, échange administratif, relance commerciale d'un prestataire.
+
+Expéditeur : ${mail.de || mail.de_email}
+Objet : ${mail.objet || '(sans objet)'}
+Extrait : ${(mail.extrait || '').slice(0, 400)}
+Pièces jointes : ${(mail.pieces_jointes || []).map((p) => p.nom).join(', ') || 'aucune'}${exemples}`,
+      response_json_schema: SCHEMA_JUGEMENT,
+    });
+    return {
+      garder: !!r?.transmet_un_bien,
+      raison: r?.motif ? String(r.motif).slice(0, 60) : r?.transmet_un_bien ? 'transmet un bien' : 'sans rapport',
+    };
+  } catch {
+    return { garder: true, raison: 'à vérifier' };
+  }
 }

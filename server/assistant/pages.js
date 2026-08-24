@@ -81,8 +81,8 @@ export async function lirePages({ buffer, filename, mimetype, texte }) {
     try {
       const r = await parser.getText();
       natif = (r.pages || []).map((p) => ({ page: p.num ?? p.pageNumber, texte: nettoyer(p.text) }));
-    } catch (e) {
-      avertissements.push(`Couche texte illisible (${String(e?.message || e)}).`);
+    } catch {
+      // Couche texte illisible : on bascule sur la transcription.
     } finally {
       await parser.destroy().catch(() => {});
     }
@@ -92,7 +92,6 @@ export async function lirePages({ buffer, filename, mimetype, texte }) {
       return { pages: natif.filter((p) => p.texte), transcrit: false, avertissements };
     }
 
-    avertissements.push('PDF sans couche texte exploitable : contenu transcrit automatiquement.');
     const pages = await transcrire(buffer, 'application/pdf');
     return { pages, transcrit: true, avertissements };
   }

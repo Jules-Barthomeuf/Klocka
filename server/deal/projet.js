@@ -7,6 +7,7 @@
 
 import { Records } from '../db.js';
 import { changerStatut } from './lifecycle.js';
+import { patchDepuisExtractions } from './donnees-projet.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 
@@ -138,6 +139,11 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     docs_checklist: {},
   };
 
+  // Le dépouillement des documents complète la fiche : bail, copropriété,
+  // diagnostics, TVA. Il ne réécrit jamais ce que la préanalyse a déjà posé.
+  const { patch, remplis } = patchDepuisExtractions(deal, projet);
+  Object.assign(projet, patch);
+
   const cree = Records.create('Project', projet, user?.email);
   Records.update('Deal', deal.id, { projet_id: cree.id });
   changerStatut({ ...deal, projet_id: cree.id }, 'projet_cree', {
@@ -145,5 +151,5 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     note: `Projet créé : ${projet.titre}`,
   });
 
-  return { ok: true, project: cree };
+  return { ok: true, project: cree, champs_remplis: remplis };
 }

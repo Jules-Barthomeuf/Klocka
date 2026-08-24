@@ -29,11 +29,19 @@ function nettoyer(texte) {
 }
 
 async function lirePdf(buffer) {
-  // pdf-parse expose son implémentation sous plusieurs formes selon la version.
-  const mod = await import('pdf-parse');
-  const parse = mod.default?.default || mod.default || mod.pdf || mod;
-  const data = await parse(buffer);
-  return { texte: nettoyer(data.text), pages: data.numpages || 1 };
+  // pdf-parse v2 expose une classe : la couche texte se lit page par page.
+  const { PDFParse } = await import('pdf-parse');
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  try {
+    const r = await parser.getText();
+    const pages = r.pages || [];
+    return {
+      texte: nettoyer(pages.map((pg) => pg.text || '').join('\n\n')),
+      pages: pages.length || 1,
+    };
+  } finally {
+    await parser.destroy().catch(() => {});
+  }
 }
 
 async function lireEml(buffer) {
@@ -130,8 +138,8 @@ export async function ingerer({ buffer, filename, mimetype, texte } = {}) {
     let natif = { texte: '', pages: 1 };
     try {
       natif = await lirePdf(buffer);
-    } catch (e) {
-      avertissements.push(`Couche texte illisible (${String(e?.message || e)}), passage en transcription.`);
+    } catch {
+      // Couche texte illisible : on bascule sur la transcription.
     }
 
     const densite = natif.texte.length / Math.max(1, natif.pages);
@@ -140,7 +148,6 @@ export async function ingerer({ buffer, filename, mimetype, texte } = {}) {
     }
 
     // PDF scanné : on transcrit, et c'est cette transcription qui fait foi.
-    avertissements.push('PDF sans couche texte exploitable : contenu transcrit automatiquement.');
     const t = nettoyer(await transcribeDocument(buffer, 'application/pdf'));
     if (!t) avertissements.push("La transcription du PDF n'a rien produit.");
     return { texte: t, source: 'pdf_scanne', transcrit: true, pages: natif.pages, avertissements };

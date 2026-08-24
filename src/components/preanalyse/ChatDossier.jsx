@@ -12,6 +12,7 @@ const MODES = [
   { id: "analyse", label: "Analyse (critères du fonds)", court: "Table d'analyse" },
   { id: "verification", label: "Points à vérifier", court: "Points à vérifier" },
   { id: "question", label: "Question libre", court: "Question" },
+  { id: "web", label: "Recherche web", court: "Recherche web" },
 ];
 
 const ilYA = (iso) => {
@@ -59,7 +60,6 @@ export default function ChatDossier({
   onExtraire,
   extractionEnCours = false,
   onOuvrirExtraction,
-  masquerRequetes = false,
 }) {
   const [mode, setMode] = useState("question");
   const [texte, setTexte] = useState("");
@@ -144,7 +144,7 @@ export default function ChatDossier({
     <div className="space-y-4">
       {/* Conversation ouverte */}
       {!modeMail && !modePreanalyse && conversation && (
-        <div className="border border-[#242726] rounded-xl bg-[#0a0c0c]">
+        <div className="border border-[#2e3230] rounded-xl bg-[#131615]">
           <div className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-[#242726]">
             <p className="m-0 text-[13.5px] text-[#edeae5] truncate">{conversation.titre}</p>
             <button onClick={() => setConversationId(null)} className="text-[12.5px] text-[#8b9391] hover:text-[#edeae5] transition-colors flex-shrink-0">
@@ -163,7 +163,7 @@ export default function ChatDossier({
 
       {/* Zone de saisie */}
       <div className="max-w-[880px] mx-auto">
-        <div className="bg-[#101413] border border-[#242726] rounded-xl px-5 pt-4 pb-3 focus-within:border-[#35a79b]/60 transition-colors">
+        <div className="bg-[#171a19] border border-[#2e3230] rounded-xl px-5 pt-4 pb-3 focus-within:border-[#35a79b]/60 transition-colors">
           <textarea
             rows={2}
             value={texte}
@@ -256,7 +256,7 @@ export default function ChatDossier({
       </div>
 
       {/* Requêtes récentes */}
-      {!modeMail && !modePreanalyse && !masquerRequetes && requetes.length > 0 && (
+      {!modeMail && !modePreanalyse && requetes.length > 0 && (
         <div className="pt-4">
           <h3 className="m-0 mb-3 text-[16px] font-medium text-[#edeae5]">Requêtes récentes</h3>
           <div className="border-t border-[#1c1f1e]">

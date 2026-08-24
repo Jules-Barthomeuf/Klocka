@@ -26,7 +26,7 @@ function ToggleRow({ label, checked, onChange }) {
   );
 }
 
-export default function SimControlRail({ projects, selectedProjectId, onSelectProject, values, onChange, calculs, formatCurrency, advanced, activeTab }) {
+export default function SimControlRail({ projects = [], selectedProjectId, onSelectProject, values, onChange, calculs, formatCurrency, advanced, activeTab, afficherScenario = true, titre = "Simulateur" }) {
   const [openSections, setOpenSections] = useState({});
   const toggleSection = (title) => setOpenSections((prev) => ({ ...prev, [title]: prev[title] === undefined ? false : !prev[title] }));
   const isOpen = (title) => openSections[title] !== false;
@@ -108,10 +108,11 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
         <div className="w-5 h-5 rounded bg-[#35a79b]/15 flex items-center justify-center">
           <div className="w-2 h-2 rounded-sm bg-[#35a79b]" />
         </div>
-        <span className="text-[#edeae5] text-sm font-medium">Simulateur</span>
+        <span className="text-[#edeae5] text-sm font-medium">{titre}</span>
       </div>
 
       {/* Scenario select */}
+      {afficherScenario ? (
       <div className="px-3 pt-3 pb-2 border-b border-[#242726]">
         <p className="text-[9px] uppercase tracking-[0.18em] text-[#6b7270] font-medium mb-1.5">Scénario</p>
         <Select value={selectedProjectId || "default"} onValueChange={onSelectProject}>
@@ -129,6 +130,14 @@ export default function SimControlRail({ projects, selectedProjectId, onSelectPr
           <p className="text-[10px] text-[#6b7270] mt-1.5">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
         )}
       </div>
+      ) : (
+        calculs && (
+          <div className="px-3 pt-3 pb-2 border-b border-[#242726]">
+            <p className="text-[9px] uppercase tracking-[0.18em] text-[#6b7270] font-medium mb-1.5">Prix de revient</p>
+            <p className="text-[#edeae5] text-sm">{formatCurrency(calculs.prixRevient)}</p>
+          </div>
+        )
+      )}
 
       {/* Sliders */}
       <div className="flex-1 overflow-y-auto px-3 pb-3">

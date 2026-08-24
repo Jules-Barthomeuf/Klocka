@@ -14,12 +14,14 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
   const total = calculs.prixRevient || items.reduce((s, d) => s + d.value, 0);
 
   const renderLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
-    const r = outerRadius + 16;
+    const r = outerRadius + 18;
     const x = cx + r * Math.cos(-midAngle * RADIAN);
     const y = cy + r * Math.sin(-midAngle * RADIAN);
-    const pct = (percent * 100).toFixed(0);
+    // Les petites parts se perdent à l'entier : elles gardent une décimale.
+    const brut = percent * 100;
+    const pct = brut < 10 ? brut.toFixed(1) : brut.toFixed(0);
     return (
-      <text x={x} y={y} fill={items[index]?.color || "#888"} textAnchor="middle" dominantBaseline="middle" fontSize="11" fontWeight="600">
+      <text x={x} y={y} fill={items[index]?.color || "#888"} textAnchor="middle" dominantBaseline="middle" fontSize="12" fontWeight="600">
         {pct}%
       </text>);
 
@@ -32,10 +34,10 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
       </div>
       <div className="flex items-center gap-8 p-5">
         {/* Donut */}
-        <div className="relative w-44 h-44 flex-shrink-0">
+        <div className="relative w-60 h-60 flex-shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={items} dataKey="value" nameKey="name" innerRadius={60} outerRadius={74} paddingAngle={2} stroke="none" label={renderLabel} labelLine={false}>
+              <Pie data={items} dataKey="value" nameKey="name" innerRadius={64} outerRadius={80} paddingAngle={2} stroke="none" label={renderLabel} labelLine={false}>
                 {items.map((d, i) => <Cell key={i} fill={d.color} />)}
               </Pie>
             </PieChart>
@@ -50,7 +52,7 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
         <div className="flex-1 min-w-0 space-y-2.5">
           {items.map((d, i) =>
           <div key={i} className="flex items-center justify-between text-sm">
-              <span className="truncate pr-3 text-[hsl(var(--background))]">{d.name}</span>
+              <span className="truncate pr-3 text-[#9aa19e]">{d.name}</span>
               <span className="text-[#edeae5] tabular-nums font-medium whitespace-nowrap">{formatCurrency(d.value)}</span>
             </div>
           )}

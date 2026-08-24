@@ -974,7 +974,7 @@ app.post('/api/preanalyse/dossiers/:dealId/espace/chat', wrap(async (req, res) =
   const { message, mode, documents, conversation_id } = req.body || {};
   const r = await converser(req.params.dealId, {
     message,
-    mode: ['analyse', 'verification'].includes(mode) ? mode : 'question',
+    mode: ['analyse', 'verification', 'web'].includes(mode) ? mode : 'question',
     documents: Array.isArray(documents) ? documents : [],
     conversationId: conversation_id || null,
     uploadDir: UPLOAD_DIR,
@@ -1252,11 +1252,41 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/presentation', wrap(async
 }));
 
 // Création d'un projet pré-rempli depuis un lot du deal.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap((req, res) => {
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap(async (req, res) => {
   const user = currentUser(req);
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+
+  // Documents présents mais jamais dépouillés : on dépouille d'abord, puis on
+  // crée le projet avec les données relevées. Entrer le deal dans la plateforme
+  // ne demande donc plus d'être passé par l'étape 3 à la main.
+  let analyse = null;
+  const aDesDocuments = (dossier.documents_espace || []).length > 0;
+  if (aDesDocuments && !(dossier.extractions || []).length) {
+    const r = await extraireDocuments(req.params.dealId, {
+      documents: (dossier.documents_espace || []).map((d) => d.id),
+      uploadDir: UPLOAD_DIR,
+      user,
+    });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    analyse = {
+      documents: r.extractions.length,
+      donnees: r.extractions.reduce((n, e) => n + (e.lignes || []).filter((l) => l.constat).length, 0),
+    };
+  }
+
   const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user);
   if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });
-  ok(res, { project_id: r.project.id, titre: r.project.titre });
+  ok(res, { project_id: r.project.id, titre: r.project.titre, champs_remplis: r.champs_remplis, analyse });
+}));
+
+// Ce que le dépouillement sait remplir dans la fiche projet, ligne par ligne :
+// l'onglet « Données extraites » de l'étape Analyse s'appuie dessus.
+app.get('/api/preanalyse/dossiers/:dealId/donnees-projet', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { donneesProjet } = await import('./deal/donnees-projet.js');
+  ok(res, { lignes: donneesProjet(dossier) });
 }));
 
 // Vidéo de présentation client (~30 s, Remotion). Le rendu tourne en

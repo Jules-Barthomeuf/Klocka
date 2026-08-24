@@ -13,7 +13,7 @@ import {
   AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Loader2, MapPin, Quote, Send, X,
 } from "lucide-react";
 import { toast } from "sonner";
-import SimulateurRapide from "@/components/preanalyse/SimulateurRapide";
+import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 import CarteGoogle from "@/components/CarteGoogle";
 import PlongeeCarte from "@/components/projet/PlongeeCarte";
 import StreetViewRue from "@/components/projet/StreetViewRue";
@@ -573,10 +573,12 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
         </div>
       </div>
 
-      {/* Simulateur pré-rempli */}
+      {/* Simulateur complet, pré-rempli — remplace le calcul AEM figé */}
       <div className="px-5 py-5 border-b border-[#242726]">
-        <p className="text-[#9aa19e] text-xs mb-3">Simulateur — pré-rempli avec ce dossier</p>
-        <SimulateurRapide parametres={lot.simulateur} />
+        <p className="text-[#9aa19e] text-xs mb-3">
+          Simulateur — pré-rempli avec ce dossier, tous les paramètres sont manipulables
+        </p>
+        <SimulateurDossier parametres={lot.simulateur} />
       </div>
 
       {/* Détail */}
@@ -594,7 +596,6 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
             <TabsList className="bg-[#0a0c0c] border border-[#282b2a] mb-4">
               <TabsTrigger value="extraction">Données extraites</TabsTrigger>
               <TabsTrigger value="enrichissement">Enrichissement</TabsTrigger>
-              <TabsTrigger value="calcul">Calcul AEM</TabsTrigger>
               <TabsTrigger value="carte">Lieu</TabsTrigger>
               {lot.contexte_marche && <TabsTrigger value="marche">Marché local</TabsTrigger>}
             </TabsList>
@@ -662,23 +663,6 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               </div>
               {enr?.signature?.a_valider && (
                 <ValidationEnseigne nom={lot.lot.locataire_nom?.valeur} signature={enr.signature} apercu={apercu} />
-              )}
-            </TabsContent>
-
-            <TabsContent value="calcul">
-              {aem ? (
-                <div className="space-y-1 text-xs">
-                  <LigneDetail label="Prix FAI" valeur={euros(aem.prix_fai)} />
-                  <LigneDetail label={`Honoraires agence (${aem.taux.commission_agent} %)`} valeur={euros(aem.honoraires_agence)} />
-                  <LigneDetail label="Prix hors droits" valeur={euros(aem.prix_hors_droits)} />
-                  <LigneDetail label={`Droits d'enregistrement (${aem.taux.droits_enregistrement} %)`} valeur={euros(aem.droits_enregistrement)} />
-                  <LigneDetail label={`Honoraires Klocka (${aem.taux.fees_klocka} %)`} valeur={euros(aem.fees_klocka)} />
-                  <LigneDetail label="Frais divers" valeur={euros(aem.frais_divers)} />
-                  <LigneDetail label="Prix AEM (prix de revient)" valeur={euros(aem.prix_aem)} fort />
-                  <LigneDetail label="Écart vs prix FAI" valeur={`+ ${euros(aem.surcout_vs_fai)}`} />
-                </div>
-              ) : (
-                <p className="text-[#8b9391] text-xs">Calcul impossible : prix ou loyer manquant.</p>
               )}
             </TabsContent>
 

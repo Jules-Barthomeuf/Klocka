@@ -82,7 +82,6 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
   // Documents cochés dans l'étape Analyse, soumis au chat.
   const [documentsCoches, setDocumentsCoches] = useState([]);
   const [ongletAnalyse, setOngletAnalyse] = useState("documents");
-  const tableOuverte = etape === 3 && ongletAnalyse !== "documents";
   // Étape Mail : brouillon rédigé depuis le chat du haut.
   const [brouillonMail, setBrouillonMail] = useState(null);
   // Étape Pré-analyse : le chat lance l'analyse (texte collé ou fichier).
@@ -252,10 +251,14 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
 
       {/* Le chat du dossier : questions, analyses, points à vérifier */}
       <ChatDossier
-        masquerRequetes={tableOuverte}
         onOuvrirExtraction={(id) => {
           setOngletAnalyse(id);
-          document.getElementById("tables-analyse")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          // Ouvrir une table depuis une autre étape emmène à l'étape Analyse,
+          // sinon l'onglet change sans que rien ne s'affiche.
+          if (etape !== 3 && debloquee >= 3) setEtape(3);
+          requestAnimationFrame(() =>
+            document.getElementById("tables-analyse")?.scrollIntoView({ behavior: "smooth", block: "start" })
+          );
         }}
         dossier={dossier}
         modeMail={etape === 1}
@@ -277,9 +280,9 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         apercu={apercu}
       />
 
-      {/* Étapes du dossier — libellés seuls, sans pastilles. Elles s'effacent
-          quand on lit une table d'analyse : la lecture prend toute la page. */}
-      <div className={`flex-wrap items-center gap-x-6 gap-y-2 border-y border-[#1c1f1e] py-3 ${tableOuverte ? "hidden" : "flex"}`}>
+      {/* Étapes du dossier — libellés seuls, sans pastilles. Toujours visibles :
+          on doit pouvoir changer d'étape sans refermer la table ouverte. */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-[#2e3230] py-3">
         {ETAPES.map((e) => {
           const accessible = e.n <= debloquee;
           const active = etape === e.n;
@@ -1256,11 +1259,21 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
   const navigate = useNavigate();
   const statut = dossier?.statut || "analyse";
 
+  // Documents importés mais pas encore dépouillés : le serveur les analyse
+  // avant de créer le projet — l'entrée en plateforme ne dépend plus de l'étape 3.
+  const documents = dossier?.documents_espace || [];
+  const analyses = dossier?.extractions || [];
+  const aAnalyser = documents.length > 0 && analyses.length === 0;
+
   const creerProjet = useMutation({
     mutationFn: () =>
       base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/0/projet`),
     onSuccess: (r) => {
-      toast.success(`Projet créé : ${r.titre}`);
+      const details = [
+        r.analyse ? `${r.analyse.documents} document(s) dépouillé(s), ${r.analyse.donnees} donnée(s)` : null,
+        r.champs_remplis?.length ? `${r.champs_remplis.length} champ(s) pré-rempli(s)` : null,
+      ].filter(Boolean);
+      toast.success(`Projet créé : ${r.titre}`, details.length ? { description: details.join(" · ") } : undefined);
       onRefresh?.();
       navigate(`/AdminProjets?id=${r.project_id}`);
     },
@@ -1308,12 +1321,13 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       <p className="text-[#edeae5] text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
       <p className="text-[#8b9391] text-xs mb-4 max-w-md mx-auto">
         Le projet est créé pré-rempli : adresse, locataire, bail, simulateur (mêmes chiffres que la
-        pré-analyse) et données de marché issues de la base. Il s'ouvre ensuite dans l'éditeur pour
-        compléter photos, secteur et documents client.
+        pré-analyse), données de marché issues de la base, et tout ce que le dépouillement a relevé —
+        bail, copropriété, diagnostics. Il s'ouvre ensuite dans l'éditeur pour compléter photos,
+        secteur et documents client.
       </p>
       <Button
         onClick={() => creerProjet.mutate()}
-        disabled={apercu || creerProjet.isPending || statut !== "depouille"}
+        disabled={apercu || creerProjet.isPending}
         className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
       >
         {creerProjet.isPending ? (
@@ -1321,10 +1335,21 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         ) : (
           <Briefcase className="w-4 h-4 mr-2" />
         )}
-        Créer le projet pré-rempli
+        {aAnalyser ? "Analyser les documents et créer le projet" : "Créer le projet pré-rempli"}
       </Button>
-      {statut !== "depouille" && (
-        <p className="text-[#6b7270] text-[11px] mt-3">Disponible une fois les documents analysés (étape 3).</p>
+      {aAnalyser ? (
+        <p className="text-[#6b7270] text-[11px] mt-3">
+          {documents.length} document{documents.length > 1 ? "s" : ""} pas encore dépouillé
+          {documents.length > 1 ? "s" : ""} : ils le seront à la création, ce qui peut prendre une minute.
+        </p>
+      ) : analyses.length > 0 ? (
+        <p className="text-[#6b7270] text-[11px] mt-3">
+          Les données de l'onglet « Données extraites » (étape 3) seront reportées dans la fiche.
+        </p>
+      ) : (
+        <p className="text-[#6b7270] text-[11px] mt-3">
+          Aucun document au dossier : le projet part des seules données de la pré-analyse.
+        </p>
       )}
     </div>
     </>

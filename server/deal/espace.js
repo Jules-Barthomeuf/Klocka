@@ -11,7 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { Records } from '../db.js';
-import { chatDocuments, extraireDonneesDocument } from '../llm.js';
+import { chatDocuments, extraireDonneesDocument, invokeLLMGrounded } from '../llm.js';
 import { vueRedacteur } from './redact.js';
 import { ETAPES, etapeMax } from './etapes.js';
 import { grilleDe, typeDepuisCategorie, STATUTS_LIGNE } from './grille.js';
@@ -137,12 +137,41 @@ function consigne(brut, mode, pieces) {
       (faits ? ` Faits connus du dossier : ${faits}` : '')
     );
   }
+  if (mode === 'web') {
+    return (
+      base +
+      ` Mode RECHERCHE WEB : réponds en t'appuyant sur des sources publiques à jour ` +
+      `(enseigne et santé du locataire, marché locatif et prix de la commune, actualité du secteur, ` +
+      `projets urbains). Distingue toujours ce qui est sourcé de ce qui est une hypothèse, donne les ` +
+      `chiffres avec leur date, et dis-le franchement quand une information n'est pas trouvable.` +
+      (faits ? ` Faits connus du dossier : ${faits}` : '')
+    );
+  }
   return (
     base +
     ` Réponds à la question en t'appuyant d'abord sur les documents joints ; si la réponse ` +
     `n'y figure pas, dis-le clairement avant de compléter par des généralités.` +
     (faits ? ` Faits connus du dossier : ${faits}` : '')
   );
+}
+
+async function reponseWeb(brut, messages) {
+  const historique = messages
+    .map((m) => `${m.role === 'user' ? 'Question' : 'Réponse'} : ${m.contenu}`)
+    .join('\n\n');
+  const r = await invokeLLMGrounded({
+    prompt: `${consigne(brut, 'web', [])}\n\n${historique}`,
+  });
+  if (!r) {
+    return (
+      "La recherche web n'est pas disponible : elle demande le fournisseur Gemini " +
+      '(grounding Google Search). Utilisez « Question libre » pour une réponse sans sources web.'
+    );
+  }
+  const sources = r.sources?.length
+    ? `\n\nSources :\n${r.sources.map((x) => `- ${x.titre} — ${x.url}`).join('\n')}`
+    : '';
+  return `${r.text}${sources}`;
 }
 
 const titreDepuis = (message, mode) => {
@@ -181,11 +210,14 @@ export async function converser(dealId, { message, mode = 'question', documents 
 
   conv.messages.push({ role: 'user', contenu: texte, le: maintenant });
   const pieces = chargerPieces(brut, conv.documents, uploadDir);
-  const reponse = await chatDocuments({
-    system: consigne(brut, conv.mode, pieces),
-    messages: conv.messages.map((m) => ({ role: m.role, contenu: m.contenu })),
-    documents: pieces,
-  });
+  const reponse =
+    conv.mode === 'web'
+      ? await reponseWeb(brut, conv.messages)
+      : await chatDocuments({
+          system: consigne(brut, conv.mode, pieces),
+          messages: conv.messages.map((m) => ({ role: m.role, contenu: m.contenu })),
+          documents: pieces,
+        });
   conv.messages.push({ role: 'assistant', contenu: reponse, le: new Date().toISOString() });
   conv.maj_le = new Date().toISOString();
 

@@ -255,16 +255,21 @@ export function calculerTableauAnnuel(params) {
   let impotPlusValue = 0;
   if (plusValue > 0) impotPlusValue = Math.min(plusValue, 42500) * 0.15 + Math.max(plusValue - 42500, 0) * 0.25;
   const multipleNetFondsPropres = apport > 0 ? creationRichesseBrute / apport : 0;
-  const triBrut = apport > 0 && anneeRevente > 0 ? (Math.pow(1 + creationRichesseBrute / apport, 1 / anneeRevente) - 1) * 100 : 0;
+  // Un TRI n'a de sens que si l'on ne perd pas plus que l'apport : au-delà,
+  // la racine n-ième d'un nombre négatif donnerait NaN à l'affichage.
+  const ratioRichesse = apport > 0 ? 1 + creationRichesseBrute / apport : 0;
+  const triBrut = apport > 0 && anneeRevente > 0 && ratioRichesse > 0
+    ? (Math.pow(ratioRichesse, 1 / anneeRevente) - 1) * 100
+    : 0;
 
-  let anneeRecuperationApport = null, cumulRecuperationApport = 0;
+  // Récupération de l'apport : cumul annuel de (capital remboursé + cash-flow).
+  // On repère l'année où ce cumul dépasse l'apport, puis le double.
+  let anneeRecuperationApport = null, cumulRecuperationApport = 0, anneeDoubleApport = null;
   for (let i = 1; i <= tableauAnnuel.length - 1; i++) {
     const row = tableauAnnuel[i];
     cumulRecuperationApport += row.cashFlowAnnuel + Math.abs(row.capitalRembourse);
-    if (cumulRecuperationApport >= apport) {
-      anneeRecuperationApport = i;
-      break;
-    }
+    if (anneeRecuperationApport === null && apport > 0 && cumulRecuperationApport >= apport) anneeRecuperationApport = i;
+    if (anneeDoubleApport === null && apport > 0 && cumulRecuperationApport >= apport * 2) anneeDoubleApport = i;
   }
 
   return {
@@ -290,7 +295,7 @@ export function calculerTableauAnnuel(params) {
       pourcentageMargeBrute: pourcentageMargeBrute.toFixed(2), capitalARemboursserRevente: Math.round(capitalARemboursserRevente),
       creationRichesseBrute: Math.round(creationRichesseBrute), impotPlusValue: Math.round(impotPlusValue),
       multipleNetFondsPropres: multipleNetFondsPropres.toFixed(2), apportInitial: apport,
-      plusValue: Math.round(plusValue), anneeRecuperationApport, loyerNetMoyen: Math.round(loyerNetMoyen)
+      plusValue: Math.round(plusValue), anneeRecuperationApport, anneeDoubleApport, loyerNetMoyen: Math.round(loyerNetMoyen)
     }
   };
 }

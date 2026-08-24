@@ -4,6 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Loader2, X } from "lucide-react";
 import DocumentsDossier from "./DocumentsDossier";
+import SimulateurAnalyse from "./SimulateurAnalyse";
+import DonneesExtraites from "./DonneesExtraites";
 
 // L'étape Analyse : un onglet Documents (la liste cochable) puis un onglet par
 // document dépouillé, chacun présentant ses données extraites. Chaque ligne
@@ -28,7 +30,7 @@ function Visionneuse({ extraction, ligne, onFermer }) {
 
   return (
     <div className="bg-[#0a0c0c] border border-[#242726] rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4">
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#1c1f1e] flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#2e3230] flex-shrink-0">
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[12.5px] text-[#edeae5] truncate">{extraction.document_nom}</p>
           <p className="m-0 text-[11px] text-[#6b7270] truncate">
@@ -67,7 +69,7 @@ function Visionneuse({ extraction, ligne, onFermer }) {
       )}
 
       {ligne?.citation && (
-        <div className="px-4 py-2.5 border-t border-[#1c1f1e] flex-shrink-0">
+        <div className="px-4 py-2.5 border-t border-[#2e3230] flex-shrink-0">
           <p className="m-0 text-[11.5px] text-[#9aa19e] italic leading-[1.5]">« {ligne.citation} »</p>
         </div>
       )}
@@ -100,7 +102,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
 
   if (extraction.erreur) {
     return (
-      <p className="border-t border-[#1c1f1e] py-10 text-center text-[13px] text-[#e0c9a0] m-0">
+      <p className="border-t border-[#2e3230] py-10 text-center text-[13px] text-[#e0c9a0] m-0">
         Dépouillement impossible : {extraction.erreur}
       </p>
     );
@@ -125,9 +127,14 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
 
       <div className={ligneOuverte ? "grid lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] gap-5 items-start" : ""}>
       <div className="overflow-x-auto min-w-0">
-        <table className={`w-full border-collapse ${ligneOuverte ? "min-w-[560px]" : "min-w-[860px]"}`}>
+        <table
+          className={`w-full border-collapse ${ligneOuverte ? "min-w-[560px]" : "min-w-[860px]"}
+            [&_th]:border-r [&_td]:border-r [&_th]:border-[#2e3230] [&_td]:border-[#2e3230]
+            [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0
+            [&_th]:pl-3 [&_td]:pl-3`}
+        >
           <thead>
-            <tr className="border-y border-[#1c1f1e]">
+            <tr className="border-y border-[#3a3e3c]">
               {(ligneOuverte
                 ? [["Élément", "w-[30%]"], ["Constat / valeur relevée", "w-[54%]"], ["Source", "w-[16%]"]]
                 : [["Élément", "w-[22%]"], ["Constat / valeur relevée", "w-[38%]"], ["Source", "w-[12%]"], ["Commentaire", "w-[28%]"]]
@@ -145,7 +152,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
               return (
                 <tr
                   key={l.index}
-                  className={`border-b border-[#1c1f1e] transition-colors align-top ${ouverte ? "bg-[#35a79b]/[0.07]" : "hover:bg-[#edeae5]/[0.02]"}`}
+                  className={`border-b border-[#2e3230] transition-colors align-top ${ouverte ? "bg-[#35a79b]/[0.07]" : "hover:bg-[#edeae5]/[0.02]"}`}
                 >
                   <td className="py-3 pr-4 text-[13px] text-[#edeae5]">{l.element}</td>
 
@@ -267,15 +274,34 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
 
   return (
     <div>
-      {/* Onglets : Documents, puis un par document dépouillé */}
-      {extractions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[#1c1f1e] mb-4">
+      {/* Onglets : Documents, un par document dépouillé, puis le simulateur */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[#2e3230] mb-4">
           <button
             onClick={() => setOnglet("documents")}
             className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "documents" ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#9aa19e] hover:text-[#edeae5]"}`}
           >
             Documents
           </button>
+
+          {/* Deuxième onglet : le simulateur, avant les analyses. */}
+          <button
+            onClick={() => setOnglet("simulateur")}
+            className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "simulateur" ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#9aa19e] hover:text-[#edeae5]"}`}
+          >
+            Simulateur
+          </button>
+
+          {/* Dès qu'un document est dépouillé : ce qui ira dans la fiche projet. */}
+          {extractions.length > 0 && (
+            <button
+              onClick={() => setOnglet("donnees")}
+              title="Ce que le dépouillement remplira dans le projet"
+              className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "donnees" ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#9aa19e] hover:text-[#edeae5]"}`}
+            >
+              Données extraites
+            </button>
+          )}
+
           {extractions.map((e) =>
             renommage?.id === e.id ? (
               <input
@@ -302,11 +328,15 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
               </button>
             )
           )}
-        </div>
-      )}
 
-      {onglet === "documents" || !actif ? (
-        <DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={onRefresh} apercu={apercu} />
+      </div>
+
+      {onglet === "simulateur" ? (
+        <SimulateurAnalyse dossier={dossier} />
+      ) : onglet === "donnees" ? (
+        <DonneesExtraites dossier={dossier} apercu={apercu} />
+      ) : onglet === "documents" || !actif ? (
+        <DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={onRefresh} apercu={apercu} proposerDrive />
       ) : (
         <TableExtraction extraction={actif} dealId={dossier.deal_id} onSupprimer={(id) => supprimer.mutate(id)} onRefresh={onRefresh} />
       )}

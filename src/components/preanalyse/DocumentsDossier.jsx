@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2, MoreHorizontal, Check } from "lucide-react";
+import { Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus } from "lucide-react";
 
 // Les documents du dossier, en tableau : case à cocher pour les soumettre au
 // chat, nom modifiable, catégorie, type, date et taille, et un menu ⋯ par ligne.
@@ -32,11 +32,39 @@ const typeLisible = (mime) => {
   return "Fichier";
 };
 
-export default function DocumentsDossier({ dossier, coches = [], onCocher, onRefresh, apercu = false }) {
+// proposerDrive : à l'étape Analyse, l'arrivée de documents propose de créer le
+// dossier Google Drive du projet (Klocka Projets › <projet>) et d'y classer tout
+// ce qui est déjà là. Jamais bloquant : on peut refuser et le proposer plus tard.
+export default function DocumentsDossier({ dossier, coches = [], onCocher, onRefresh, apercu = false, proposerDrive = false }) {
   const inputRef = useRef(null);
   const [menu, setMenu] = useState(null);
   const [renommage, setRenommage] = useState(null);
   const [recherche, setRecherche] = useState("");
+  // Demande de création du dossier Drive, ouverte après un import.
+  const [driveDemande, setDriveDemande] = useState(false);
+
+  const { data: statutMail } = useQuery({
+    queryKey: ["mail-status"],
+    queryFn: () => base44.functions.invoke("getMailStatus", {}),
+    enabled: !apercu && proposerDrive,
+  });
+  const compteDrive = (statutMail?.accounts || []).find((c) => c.peut_drive)?.id || null;
+  const titreProjet = dossier?.lots?.[0]?.synthese?.titre || dossier?.titre || dossier?.deal_id || "Projet";
+
+  const creerDrive = useMutation({
+    mutationFn: () =>
+      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/drive`, {
+        body: { compte: compteDrive },
+      }),
+    onSuccess: (r) => {
+      setDriveDemande(false);
+      onRefresh?.();
+      if (r.simulated) toast.info("Dossier Drive simulé (mode test) — aucun appel Google");
+      else if (r.erreurs?.length) toast.warning(`Dossier créé, ${r.erreurs.length} fichier(s) en erreur`);
+      else toast.success(`Dossier Drive créé — ${r.envoyes.length} fichier(s) classé(s)`);
+    },
+    onError: (e) => { setDriveDemande(false); toast.error(e?.message || "Création du dossier Drive impossible"); },
+  });
 
   const documents = dossier?.documents_espace || [];
   const visibles = useMemo(() => {
@@ -52,7 +80,12 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
         await base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/documents`, { body: form, isForm: true });
       }
     },
-    onSuccess: (_, fichiers) => { toast.success(`${fichiers.length} document${fichiers.length > 1 ? "s" : ""} importé${fichiers.length > 1 ? "s" : ""}`); onRefresh?.(); },
+    onSuccess: (_, fichiers) => {
+      toast.success(`${fichiers.length} document${fichiers.length > 1 ? "s" : ""} importé${fichiers.length > 1 ? "s" : ""}`);
+      onRefresh?.();
+      // Le dossier Drive n'existe pas encore : c'est le moment de le proposer.
+      if (proposerDrive && !apercu && !dossier?.drive_folder_url) setDriveDemande(true);
+    },
     onError: (e) => toast.error(e?.message || "Import impossible"),
   });
 
@@ -89,6 +122,16 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
             placeholder="Rechercher"
             className="bg-[#101413] border border-[#242726] focus:border-[#35a79b]/60 rounded-md px-3.5 py-2 text-[13px] text-[#edeae5] outline-none placeholder:text-[#5a615f] transition-colors w-[190px]"
           />
+          {proposerDrive && dossier?.drive_folder_url && (
+            <a
+              href={dossier.drive_folder_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[12.5px] text-[#7fd3c9] hover:text-[#edeae5] transition-colors"
+            >
+              Dossier Drive <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
           <button
             onClick={() => inputRef.current?.click()}
             disabled={apercu || importer.isPending || !dossier}
@@ -207,6 +250,47 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Import terminé : on propose le dossier Drive du projet. */}
+      {driveDemande && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setDriveDemande(false)}>
+          <div className="w-full max-w-md bg-[#0F1116] border border-[#282b2a] rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-3">
+              <FolderPlus className="w-5 h-5 text-[#7fd3c9] flex-shrink-0 mt-0.5" />
+              <h3 className="m-0 text-[17px] font-medium text-[#edeae5]">Créer un dossier Google Drive ?</h3>
+            </div>
+            <p className="m-0 mb-1.5 text-[13.5px] text-[#9aa19e] leading-[1.6]">
+              Les documents du dossier seront classés dans votre Drive, sous :
+            </p>
+            <p className="m-0 mb-5 text-[13.5px] text-[#edeae5]">
+              Klocka Projets <span className="text-[#6b7270]">›</span> {titreProjet}
+            </p>
+
+            {!compteDrive && (
+              <p className="m-0 mb-4 text-[12.5px] text-[#e0c9a0] leading-[1.55]">
+                Aucun compte Google avec l'accès Drive : connectez-en un depuis la page Mails
+                (GOOGLE_DRIVE doit être actif côté serveur).
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2.5">
+              <button
+                onClick={() => setDriveDemande(false)}
+                className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors"
+              >
+                Non, plus tard
+              </button>
+              <button
+                onClick={() => creerDrive.mutate()}
+                disabled={!compteDrive || creerDrive.isPending}
+                className="inline-flex items-center gap-2 text-[#0c0e0d] bg-[#edeae5] rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all"
+              >
+                {creerDrive.isPending ? <><Loader2 className="w-4 h-4 animate-spin" />Création…</> : "Oui, créer le dossier"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

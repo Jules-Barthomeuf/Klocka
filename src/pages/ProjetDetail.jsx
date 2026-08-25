@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
 import { Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import FeedbackWidget from "../components/FeedbackWidget";
 import ProjetContent from "../components/projet/ProjetContent";
 
 export default function ProjetDetail() {
@@ -73,7 +72,6 @@ export default function ProjetDetail() {
         )}
       </AnimatePresence>
 
-      <FeedbackWidget />
       <ProjetContent project={project} isAdmin={isAdmin} showAsClient={showAsClient} />
     </>
   );

@@ -1,6 +1,6 @@
 // Grille de lecture d'un dossier d'investissement commercial.
 //
-// Source unique : le dépouillement d'un document ne relève PAS ce qu'il trouve,
+// Source unique : l'extraction d'un document ne relève PAS ce qu'il trouve,
 // il répond à cette liste, élément par élément. Chaque ligne produite porte son
 // constat, un statut et un commentaire — la même grammaire que la grille papier.
 

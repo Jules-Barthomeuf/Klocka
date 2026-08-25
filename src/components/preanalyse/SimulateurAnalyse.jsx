@@ -4,7 +4,7 @@ import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 // Le simulateur de l'étape Analyse : présent dès l'arrivée sur l'étape, à droite
 // des onglets Documents / analyses. Il part des chiffres du lot pré-analysé et
 // reste manipulable même quand le dossier est incomplet — c'est là qu'on
-// dégrossit pendant qu'on dépouille les documents.
+// dégrossit pendant qu'on extrait les documents.
 
 export default function SimulateurAnalyse({ dossier }) {
   const lots = dossier?.lots || [];

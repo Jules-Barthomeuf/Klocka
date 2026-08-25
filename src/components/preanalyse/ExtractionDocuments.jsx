@@ -8,11 +8,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Dépouillement documentaire (onglet « Documents » de la Préanalyse).
+// Extraction documentaire (onglet « Documents » de la Préanalyse).
 // Le principe : à gauche les données relevées, à droite le document ouvert à la
 // page exacte d'où vient la donnée sélectionnée.
 
-export default function DepouillementDocuments() {
+export default function ExtractionDocuments() {
   const queryClient = useQueryClient();
   const inputFichier = useRef(null);
 
@@ -64,7 +64,7 @@ export default function DepouillementDocuments() {
       base44.request("POST", `/api/alexis/dossiers/${dossierId}/documents/${docId}/type`, { body: { type } }),
     onSuccess: () => {
       rafraichir();
-      toast.success("Document redépouillé");
+      toast.success("Document reextrait");
     },
     onError: (e) => toast.error(e?.message || "Reclassement impossible"),
   });
@@ -96,7 +96,7 @@ export default function DepouillementDocuments() {
         <p className="text-[#8b9391] text-xs flex-1">
           {dossier
             ? dossier.titre
-            : "Déposez les documents d'un deal : ils sont classés, dépouillés, et chaque donnée renvoie à sa page source."}
+            : "Déposez les documents d'un deal : ils sont classés, extraits, et chaque donnée renvoie à sa page source."}
         </p>
         <div className="flex items-center gap-2 flex-shrink-0">
           {dossiers.length > 0 && (
@@ -149,7 +149,7 @@ export default function DepouillementDocuments() {
           {deposer.isPending ? (
             <>
               <Loader2 className="w-5 h-5 text-[#8b9391] animate-spin" />
-              <span className="text-[#9aa19e] text-sm">Lecture et dépouillement…</span>
+              <span className="text-[#9aa19e] text-sm">Lecture et extraction…</span>
             </>
           ) : (
             <>
@@ -280,7 +280,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
             disabled={enCours || !doc.classement?.code}
             className="px-3 py-1.5 text-xs rounded border border-[#e0c9a0]/40 text-amber-200 hover:bg-[#e0c9a0]/10 transition-colors disabled:opacity-50 flex-shrink-0"
           >
-            {enCours ? "Extraction…" : "Redépouiller"}
+            {enCours ? "Extraction…" : "Reextraire"}
           </button>
         </div>
       )}
@@ -306,7 +306,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
 
       {!type ? (
         <p className="px-5 py-6 text-[#8b9391] text-sm">
-          Type non reconnu. Choisissez-le ci-dessus pour lancer le dépouillement.
+          Type non reconnu. Choisissez-le ci-dessus pour lancer l'extraction.
         </p>
       ) : (
         <div className="divide-y divide-[#232625]">

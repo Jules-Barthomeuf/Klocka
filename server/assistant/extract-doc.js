@@ -47,7 +47,7 @@ function schemaPour(type) {
 }
 
 function consignes(type) {
-  return `Tu dépouilles un ${type.libelle} pour une société d'investissement en murs commerciaux.
+  return `Tu extraits un ${type.libelle} pour une société d'investissement en murs commerciaux.
 
 TU NE CALCULES RIEN QUI NE SOIT DEMANDÉ. TU N'INTERPRÈTES PAS. Tu relèves ce qui est écrit.
 
@@ -96,7 +96,7 @@ export async function extraireDocument(type, pages) {
 
   // L'IA peut être momentanément indisponible (quota du palier gratuit, panne).
   // Le document est alors conservé tel quel — pages comprises — avec un
-  // incident dédié : « Redépouiller » relancera l'extraction sans nouveau
+  // incident dédié : « Reextraire » relancera l'extraction sans nouveau
   // téléversement, une fois le quota revenu.
   let brut;
   try {

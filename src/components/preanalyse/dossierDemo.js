@@ -47,11 +47,11 @@ export const dossierDemo = {
     { le: "2026-08-12T09:31:00.000Z", par: "vous@klocka.immo", type: "mail_envoye", intention: "demande_documents", detail: "Suite de l'étude — documents du dossier", destinataire: "marie.legrand@agence-rhone.fr" },
     { le: "2026-08-12T09:31:00.000Z", par: "vous@klocka.immo", type: "statut", detail: "Demande de documents envoyée", de: "analyse", vers: "documents_demandes" },
     { le: "2026-08-14T10:02:00.000Z", par: "vous@klocka.immo", type: "statut", detail: "Document reçu : bail-commercial.pdf", de: "documents_demandes", vers: "documents_recus" },
-    { le: "2026-08-14T10:03:00.000Z", par: "vous@klocka.immo", type: "statut", detail: "Dépouillement effectué", de: "documents_recus", vers: "depouille" },
+    { le: "2026-08-14T10:03:00.000Z", par: "vous@klocka.immo", type: "statut", detail: "Extraction effectuée", de: "documents_recus", vers: "depouille" },
   ],
   synthese_documents: {
     resume:
-      "Trois documents dépouillés : bail commercial, PV d'assemblée générale 2025 et diagnostics. Les données du bail concordent avec l'annonce sur le loyer et la surface. Deux points méritent une vérification avant d'aller plus loin.",
+      "Trois documents extraits : bail commercial, PV d'assemblée générale 2025 et diagnostics. Les données du bail concordent avec l'annonce sur le loyer et la surface. Deux points méritent une vérification avant d'aller plus loin.",
     points_a_verifier: [
       {
         titre: "Bail — échéance et durée résiduelle",
@@ -172,7 +172,7 @@ export const dossierDemo = {
   ],
 };
 
-// Documents dépouillés du deal de démonstration (forme d'un DossierDoc).
+// Documents extraits du deal de démonstration (forme d'un DossierDoc).
 // Les identifiants de champs suivent la grille réelle
 // (server/assistant/data/documents.json) pour que les libellés s'affichent.
 const val = (valeur, citation, page, confiance = "haute") => ({

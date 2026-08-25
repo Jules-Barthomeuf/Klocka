@@ -19,7 +19,7 @@ export const LIBELLES_STATUTS = {
   analyse: 'Analysé',
   documents_demandes: 'Docs demandés',
   documents_recus: 'Docs reçus',
-  depouille: 'Dépouillé',
+  depouille: 'Extrait',
   abandonne: 'Abandonné',
   projet_cree: 'Projet créé',
 };

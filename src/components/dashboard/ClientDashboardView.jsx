@@ -11,7 +11,6 @@ import DashboardProfileCard from "./DashboardProfileCard";
 import DashboardStrategyCard from "./DashboardStrategyCard";
 import DashboardSuggestedResources from "./DashboardSuggestedResources";
 import DashboardQuizInline from "./DashboardQuizInline";
-import FeedbackWidget from "../FeedbackWidget";
 
 const etapeDescriptions = {
   1: "Acculturation à l'immobilier commercial",
@@ -105,7 +104,6 @@ export default function ClientDashboardView({
 
   return (
     <div className="min-h-screen bg-[#0a0c0c]">
-      <FeedbackWidget />
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
 
         {/* Header row: greeting + search */}

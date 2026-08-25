@@ -5,7 +5,8 @@ import { toast } from "sonner";
 
 // L'assistant : le champ de saisie EST le bouton.
 //
-// Au repos, une pilule ancrée en bas. Dès la frappe ou au clic, une feuille de
+// Au repos, une pilule étroite ancrée en bas à droite. Dès la frappe ou au clic,
+// une feuille de
 // conversation s'ouvre au-dessus ; la barre, elle, ne bouge pas — c'est ce qui
 // distingue ce motif d'une fenêtre de discussion classique.
 //
@@ -134,12 +135,14 @@ export default function AssistantFlottant() {
 
   return (
     <div
+      className="assistant-flottant"
       style={{
+        // Étroite et calée à droite, là où se tenait la bulle de signalement.
         position: "fixed",
-        left: 18,
-        right: 18,
-        bottom: 18,
-        zIndex: 9997,
+        right: 24,
+        bottom: 24,
+        width: "min(360px, calc(100vw - 48px))",
+        zIndex: 9998,
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -218,7 +221,7 @@ export default function AssistantFlottant() {
           alignItems: "center",
           gap: 10,
           background: "#111",
-          border: "1px solid #111",
+          border: "1px solid #fff",
           borderRadius: 999,
           padding: "9px 9px 9px 16px",
           cursor: "text",

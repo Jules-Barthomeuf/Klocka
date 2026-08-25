@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Loader2, ArrowRight } from "lucide-react";
 
-// Onglet « Données extraites » : ce que le dépouillement sait poser directement
+// Onglet « Données extraites » : ce que l'extraction sait poser directement
 // dans la fiche projet, et où. Une ligne sans destination reste affichée — elle
 // est relevée, simplement pas encore rangeable automatiquement.
 
@@ -44,7 +44,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
   if (!lignes.length) {
     return (
       <p className="border-t border-[#2e3230] py-10 text-center text-[13px] text-[#6b7270] m-0">
-        Rien d'extrait pour l'instant — dépouillez des documents depuis l'onglet Documents.
+        Rien d'extrait pour l'instant — extraitz des documents depuis l'onglet Documents.
       </p>
     );
   }

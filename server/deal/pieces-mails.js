@@ -2,7 +2,7 @@
 //
 // C'était le maillon manquant : on savait qu'un agent avait joint « bail.pdf »,
 // on en gardait le nom, et l'analyste devait rouvrir Gmail, télécharger, revenir
-// et déposer le fichier. Tout l'aval existait déjà — classement, dépouillement,
+// et déposer le fichier. Tout l'aval existait déjà — classement, extraction,
 // remplissage du projet ; seul le raccordement manquait.
 //
 // Ce module télécharge, dépose et met en file. Rien n'est décidé ici : un
@@ -78,7 +78,7 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
     }
   }
 
-  // Le dépouillement part immédiatement : quand l'analyste ouvre le dossier,
+  // L'extraction part immédiatement : quand l'analyste ouvre le dossier,
   // les données sont déjà là.
   if (nouveaux.length) {
     enfiler(mail.deal_id, nouveaux, { uploadDir, user });

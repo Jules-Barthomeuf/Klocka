@@ -127,7 +127,7 @@ function surReponsesRecues(deal, mails) {
         // Les pièces sont déjà au dossier : la carte le dit, sinon l'analyste
         // irait les chercher pour rien.
         deposes.length
-          ? `${deposes.length} document(s) déjà versé(s) au dossier et en cours de dépouillement`
+          ? `${deposes.length} document(s) déjà versé(s) au dossier et en cours de extraction`
           : avecPieces.length
             ? `${avecPieces.reduce((n, x) => n + x.pieces_jointes.length, 0)} pièce(s) jointe(s)`
             : 'Sans pièce jointe',
@@ -229,7 +229,7 @@ function surRelance(deal) {
   ];
 }
 
-// Dossier dépouillé qui n'est pas encore entré dans la plateforme.
+// Dossier extrait qui n'est pas encore entré dans la plateforme.
 function surProjetACreer(deal) {
   if (statutDe(deal) !== 'depouille' || deal.projet_id) return [];
   return [
@@ -238,10 +238,10 @@ function surProjetACreer(deal) {
       type: 'projet_a_creer',
       priorite: P.COURANT,
       titre: `Entrer le deal dans la plateforme — ${titreDeal(deal)}`,
-      detail: 'Les documents sont dépouillés : le projet peut être créé pré-rempli.',
+      detail: 'Les documents sont extraits : le projet peut être créé pré-rempli.',
       deal_id: deal.deal_id,
       contexte: [
-        ['Documents dépouillés', `${(deal.extractions || []).length}`],
+        ['Documents extraits', `${(deal.extractions || []).length}`],
         ['Données relevées', `${(deal.extractions || []).reduce((n, e) => n + (e.lignes || []).filter((l) => l.constat).length, 0)}`],
         ['Ville', villeDuLot(deal) || '—'],
       ],
@@ -280,7 +280,7 @@ function surDossierEnSommeil(deal) {
   ];
 }
 
-// Un dossier dépouillé peut être présenté : à qui ? Les investisseurs viennent
+// Un dossier extrait peut être présenté : à qui ? Les investisseurs viennent
 // de Monday, qui en est la source — Klocka les lit, ne les tient pas.
 function surInvestisseurs(deal, rapprochements) {
   const candidats = rapprochements.get(deal.deal_id);

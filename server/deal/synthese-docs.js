@@ -1,7 +1,7 @@
 // Synthèse documentaire d'un deal : « les points à regarder avant d'aller
 // plus loin ».
 //
-// Le rédacteur croise les données STRUCTURÉES du dépouillement (champs
+// Le rédacteur croise les données STRUCTURÉES de l'extraction (champs
 // {valeur, confiance, page} — jamais le texte des pages) avec la vue
 // consolidée de l'annonce (vueRedacteur). Il signale les écarts
 // annonce/documents, les échéances, les charges non refacturables, les
@@ -62,7 +62,7 @@ function syntheseDeSecours(docs) {
     }
   }
   return {
-    resume: `${docs.length} document(s) dépouillé(s). ${points.length ? `${points.length} point(s) à contrôler manuellement.` : 'Aucun point douteux détecté automatiquement.'}`,
+    resume: `${docs.length} document(s) extrait(s). ${points.length ? `${points.length} point(s) à contrôler manuellement.` : 'Aucun point douteux détecté automatiquement.'}`,
     points_a_verifier: points,
   };
 }
@@ -82,7 +82,7 @@ export async function syntheseDocuments(dossierLot, dossierDoc) {
 
   try {
     const r = await invokeLLM({
-      prompt: `Tu es analyste chez Klocka (investissement en murs commerciaux). Les documents d'un deal ont été dépouillés automatiquement ; ton rôle est de dresser LA liste des points à regarder avant d'aller plus loin.
+      prompt: `Tu es analyste chez Klocka (investissement en murs commerciaux). Les documents d'un deal ont été extraits automatiquement ; ton rôle est de dresser LA liste des points à regarder avant d'aller plus loin.
 
 RÈGLES IMPÉRATIVES :
 1. N'utilise QUE les données des deux JSON ci-dessous (annonce consolidée + champs extraits des documents). Tu n'as pas accès aux documents eux-mêmes — c'est voulu. N'invente rien.
@@ -95,7 +95,7 @@ RÈGLES IMPÉRATIVES :
 
 --- ANNONCE CONSOLIDÉE ---
 ${JSON.stringify(vueRedacteur(dossierLot), null, 2)}
---- DOCUMENTS DÉPOUILLÉS ---
+--- DOCUMENTS EXTRAITS ---
 ${JSON.stringify(docs, null, 2)}
 --- FIN ---`,
       response_json_schema: SCHEMA,

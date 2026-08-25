@@ -27,7 +27,7 @@ export function ajouterDocument(dealId, { nom, url, mime, taille }, user) {
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const nomPropre = String(nom || 'Document').trim();
   // Le nom de fichier suffit le plus souvent à classer la pièce ; à défaut, la
-  // file de dépouillement demandera au modèle. Le drapeau dit que la valeur
+  // file de extraction demandera au modèle. Le drapeau dit que la valeur
   // vient de la machine — l'analyste corrige au lieu de saisir.
   const categorie = categorieDepuisNom(nomPropre);
   const doc = {
@@ -254,7 +254,7 @@ export function renommerConversation(dealId, conversationId, titre) {
 // Le résultat vit sur le Deal (extractions), pour être rouvert plus tard.
 // ---------------------------------------------------------------------------
 
-/** Dépouille une pièce déjà chargée. Ne touche pas à la base. */
+/** Extrait une pièce déjà chargée. Ne touche pas à la base. */
 export async function extraireUnePiece(piece, user) {
   const base = {
     id: `ext_${piece.id}`,
@@ -289,7 +289,7 @@ export async function extraireUnePiece(piece, user) {
   }
 }
 
-/** Charge une pièce du dossier (buffer compris) pour la dépouiller. */
+/** Charge une pièce du dossier (buffer compris) pour la extraire. */
 export function chargerPiece(dealId, docId, uploadDir) {
   const brut = brutDe(dealId);
   if (!brut) return null;
@@ -314,7 +314,7 @@ export async function extraireDocuments(dealId, { documents = [], uploadDir, use
   // Un document à la fois : le palier gratuit du modèle plafonne le débit, et
   // une rafale ferait échouer les dernières pièces. Un échec isolé n'emporte
   // pas les autres, il est rapporté sur sa propre table. Chaque résultat est
-  // écrit dès qu'il tombe : un dépouillement interrompu garde ce qui est fait.
+  // écrit dès qu'il tombe : une extraction interrompue garde ce qui est fait.
   const resultats = [];
   for (const p of pieces) {
     const r = await extraireUnePiece(p, user);

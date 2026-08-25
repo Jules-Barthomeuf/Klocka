@@ -8,7 +8,7 @@ import { Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus } from "lucide
 // chat, nom modifiable, catégorie, type, date et taille, et un menu ⋯ par ligne.
 
 // Les cinq premières correspondent à la grille de lecture : classer un
-// document lui donne les éléments à relever lors du dépouillement.
+// document lui donne les éléments à relever lors de l'extraction.
 const CATEGORIES = [
   "Bail commercial",
   "Assemblée générale",
@@ -21,7 +21,7 @@ const CATEGORIES = [
   "Autre",
 ];
 
-// Le dépouillement tourne en tâche de fond : chaque pièce porte son état.
+// L'extraction tourne en tâche de fond : chaque pièce porte son état.
 const ETATS = {
   en_attente: { libelle: "En file", classe: "text-[#8b9391]" },
   en_cours: { libelle: "Analyse…", classe: "text-[#7fd3c9]" },
@@ -92,7 +92,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
     onSuccess: (_, fichiers) => {
       toast.success(
         `${fichiers.length} document${fichiers.length > 1 ? "s" : ""} importé${fichiers.length > 1 ? "s" : ""}`,
-        { description: "Le dépouillement se lance tout seul — les tables arrivent au fil de l'eau." }
+        { description: "L'extraction se lance toute seule — les tables arrivent au fil de l'eau." }
       );
       onRefresh?.();
       // Le dossier Drive n'existe pas encore : c'est le moment de le proposer.

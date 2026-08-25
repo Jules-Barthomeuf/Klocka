@@ -1,7 +1,7 @@
-// Alexis — assistant de dépouillement documentaire.
+// Alexis — assistant de extraction documentaire.
 //
 // Un dossier regroupe les documents reçus pour un deal. Chaque document est
-// classé, dépouillé selon la grille de son type, et chaque donnée relevée reste
+// classé, extrait selon la grille de son type, et chaque donnée relevée reste
 // reliée à sa page d'origine.
 
 import { randomUUID } from 'crypto';
@@ -41,7 +41,7 @@ export async function analyserDocument(entree, { dossierId, typeForce, user } = 
     nom_fichier: entree.filename || 'document',
     url: entree.url || null,
     nb_pages: pages.length,
-    // Le texte paginé est conservé : il permet de redépouiller le document si
+    // Le texte paginé est conservé : il permet de reextraire le document si
     // l'utilisateur corrige son type, sans lui demander de le redéposer.
     pages,
     transcrit,
@@ -103,7 +103,7 @@ export function supprimerDocument(dossierId, docId) {
   return { success: true };
 }
 
-/** Reclasse un document et le redépouille selon le type choisi par l'utilisateur. */
+/** Reclasse un document et le reextrait selon le type choisi par l'utilisateur. */
 export async function reclasserDocument(dossierId, docId, code) {
   const d = obtenirDossier(dossierId);
   if (!d) return { error: 'Dossier introuvable' };

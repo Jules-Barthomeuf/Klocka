@@ -56,7 +56,7 @@ export default function ChatDossier({
   onAnalyserTexte,
   onAnalyserFichier,
   analyseEnCours = false,
-  // Étape Analyse : dépouiller les documents cochés, sans passer par un prompt.
+  // Étape Analyse : extraire les documents cochés, sans passer par un prompt.
   onExtraire,
   extractionEnCours = false,
   onOuvrirExtraction,
@@ -120,7 +120,7 @@ export default function ChatDossier({
       ? "Poser une question… (aucun document sélectionné : réponse générale)"
       : "Poser une question…";
 
-  // « Requêtes récentes » réunit les conversations et les dépouillements : on
+  // « Requêtes récentes » réunit les conversations et les extractions : on
   // revient sur une analyse lancée comme sur une question posée.
   const requetes = [
     ...conversations.map((c) => ({
@@ -235,21 +235,21 @@ export default function ChatDossier({
                 key={m.id}
                 onClick={() => {
                   // « Analyse » sur des documents cochés part sans prompt :
-                  // le dépouillement est une action, pas une question.
+                  // l'extraction est une action, pas une question.
                   if (m.id === "analyse" && nbCoches && onExtraire) return onExtraire();
                   setMode(m.id);
                 }}
                 disabled={!!conversation || (m.id === "analyse" && extractionEnCours)}
                 title={
                   m.id === "analyse" && nbCoches
-                    ? `Dépouiller ${nbCoches} document${nbCoches > 1 ? "s" : ""} — sans question à écrire`
+                    ? `Extraire ${nbCoches} document${nbCoches > 1 ? "s" : ""} — sans question à écrire`
                     : conversation ? "Le mode est fixé par la requête ouverte" : undefined
                 }
                 className={`px-4 py-2 rounded-full text-[13px] border transition-colors disabled:opacity-50
                   ${mode === m.id ? "bg-[#edeae5] border-[#edeae5] text-[#0a0c0c] font-medium" : "border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59]"}`}
               >
                 {m.id === "analyse" && extractionEnCours ? (
-                  <span className="inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Dépouillement…</span>
+                  <span className="inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Extraction…</span>
                 ) : (
                   m.label
                 )}

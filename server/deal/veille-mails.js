@@ -101,7 +101,7 @@ export async function relever(uploadDir = null) {
     const rattaches = rattacherMailsOrphelins();
 
     // Les pièces jointes des réponses entrent dans leur dossier et partent au
-    // dépouillement : quand l'analyste ouvre le dossier, les données sont là.
+    // extraction : quand l'analyste ouvre le dossier, les données sont là.
     let pieces = { mails: 0, documents: 0 };
     const dossier = uploadDir || CHEMIN_UPLOADS;
     if (dossier) {

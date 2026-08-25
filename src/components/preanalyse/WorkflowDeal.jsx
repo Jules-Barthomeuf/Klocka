@@ -25,7 +25,7 @@ import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/Conn
 //
 //   1. Mail        — écrire à l'agent pendant l'appel… ou passer l'étape
 //   2. Pré-analyse — la fiche décortiquée, décision Oui / Non à la fin
-//   3. Documents   — analyse de tous les documents (dépôt, dépouillement, Drive, synthèse)
+//   3. Documents   — analyse de tous les documents (dépôt, extraction, Drive, synthèse)
 //   4. Décision    — mail Oui (présentation client) / Non (abandon), comme à l'étape 2
 //   5. Plateforme  — si Oui : entrée dans la plateforme (projet pré-rempli)
 //
@@ -103,7 +103,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
     onError: (e) => toast.error(e?.message || "Analyse impossible"),
   });
 
-  // Étape Analyse : dépouiller les documents cochés, sans prompt.
+  // Étape Analyse : extraire les documents cochés, sans prompt.
   const extraire = useMutation({
     mutationFn: () =>
       base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/extraire`, {
@@ -111,10 +111,10 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
       }),
     onSuccess: (tables) => {
       const total = (tables || []).reduce((n, t) => n + (t.lignes?.length || 0), 0);
-      toast.success(`${tables.length} document${tables.length > 1 ? "s" : ""} dépouillé${tables.length > 1 ? "s" : ""} — ${total} donnée${total > 1 ? "s" : ""}`);
+      toast.success(`${tables.length} document${tables.length > 1 ? "s" : ""} extrait${tables.length > 1 ? "s" : ""} — ${total} donnée${total > 1 ? "s" : ""}`);
       onRefresh?.();
     },
-    onError: (e) => toast.error(e?.message || "Dépouillement impossible"),
+    onError: (e) => toast.error(e?.message || "Extraction impossible"),
   });
 
   const composerMail = useMutation({
@@ -926,7 +926,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
 }
 
 // ---------------------------------------------------------------------------
-// Étape 3 — Documents : attente, relance, dépôt, dépouillement, Drive, synthèse
+// Étape 3 — Documents : attente, relance, dépôt, extraction, Drive, synthèse
 // ---------------------------------------------------------------------------
 
 function EtapeDocuments({ dossier, onRefresh, apercu }) {
@@ -937,7 +937,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
     dossier.relance_prevue_le &&
     new Date(dossier.relance_prevue_le) <= new Date();
   // En aperçu, le bandeau d'attente est montré même si le deal fictif est déjà
-  // dépouillé : il fait partie des écrans de l'étape.
+  // extrait : il fait partie des écrans de l'étape.
   const montrerAttente = apercu || statut === "documents_demandes";
 
   const changerStatut = useMutation({
@@ -954,7 +954,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
       <TitreEtape
         n={3}
         titre="Documents"
-        description="Baux, PV d'AG, diagnostics : dépôt, classement dans le Drive d'équipe, dépouillement case par case avec page source, puis synthèse des points à vérifier."
+        description="Baux, PV d'AG, diagnostics : dépôt, classement dans le Drive d'équipe, extraction case par case avec page source, puis synthèse des points à vérifier."
       />
       {montrerAttente && (
         <div
@@ -993,7 +993,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
         </div>
       )}
 
-      {/* Analyse de tous les documents : dépôt, dépouillement, Drive, synthèse. */}
+      {/* Analyse de tous les documents : dépôt, extraction, Drive, synthèse. */}
       <SectionDocumentsDeal dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
 
       {dialogIntention && (
@@ -1264,7 +1264,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
   const navigate = useNavigate();
   const statut = dossier?.statut || "analyse";
 
-  // Documents importés mais pas encore dépouillés : le serveur les analyse
+  // Documents importés mais pas encore extraits : le serveur les analyse
   // avant de créer le projet — l'entrée en plateforme ne dépend plus de l'étape 3.
   const documents = dossier?.documents_espace || [];
   const analyses = dossier?.extractions || [];
@@ -1275,7 +1275,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/0/projet`),
     onSuccess: (r) => {
       const details = [
-        r.analyse ? `${r.analyse.documents} document(s) dépouillé(s), ${r.analyse.donnees} donnée(s)` : null,
+        r.analyse ? `${r.analyse.documents} document(s) extrait(s), ${r.analyse.donnees} donnée(s)` : null,
         r.champs_remplis?.length ? `${r.champs_remplis.length} champ(s) pré-rempli(s)` : null,
       ].filter(Boolean);
       toast.success(`Projet créé : ${r.titre}`, details.length ? { description: details.join(" · ") } : undefined);
@@ -1326,7 +1326,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       <p className="text-[#edeae5] text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
       <p className="text-[#8b9391] text-xs mb-4 max-w-md mx-auto">
         Le projet est créé pré-rempli : adresse, locataire, bail, simulateur (mêmes chiffres que la
-        pré-analyse), données de marché issues de la base, et tout ce que le dépouillement a relevé —
+        pré-analyse), données de marché issues de la base, et tout ce que l'extraction a relevé —
         bail, copropriété, diagnostics. Il s'ouvre ensuite dans l'éditeur pour compléter photos,
         secteur et documents client.
       </p>
@@ -1344,7 +1344,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       </Button>
       {aAnalyser ? (
         <p className="text-[#6b7270] text-[11px] mt-3">
-          {documents.length} document{documents.length > 1 ? "s" : ""} pas encore dépouillé
+          {documents.length} document{documents.length > 1 ? "s" : ""} pas encore extrait
           {documents.length > 1 ? "s" : ""} : ils le seront à la création, ce qui peut prendre une minute.
         </p>
       ) : analyses.length > 0 ? (

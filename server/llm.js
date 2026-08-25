@@ -15,7 +15,7 @@ import Anthropic from '@anthropic-ai/sdk';
 const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5';
 
 function pickProvider() {
   const forced = (process.env.LLM_PROVIDER || '').trim().toLowerCase();
@@ -39,7 +39,13 @@ export function llmStatus() {
   };
 }
 
-const anthropic = provider === 'anthropic' ? new Anthropic({ apiKey: ANTHROPIC_KEY }) : null;
+const anthropic =
+  provider === 'anthropic'
+    ? // Le SDK réessaie lui-même les 429, les 5xx et les coupures réseau ; on
+      // lui laisse plus de tentatives que les deux par défaut, l'extraction
+      // arrivant par rafales. Le délai couvre les réponses longues.
+      new Anthropic({ apiKey: ANTHROPIC_KEY, maxRetries: 4, timeout: 10 * 60 * 1000 })
+    : null;
 
 // ---------------------------------------------------------------------------
 // Utilitaires communs
@@ -163,12 +169,49 @@ function geminiParts(data) {
 // ---------------------------------------------------------------------------
 // Génération avec recherche web (grounding Google Search).
 //
-// Gemini uniquement : le grounding est incompatible avec responseMimeType
-// JSON strict, la réponse est donc du texte libre accompagné des sources
-// consultées (groundingMetadata). Renvoie null si le fournisseur ne le
-// supporte pas — l'appelant traite l'étape comme simplement absente.
+// Les deux fournisseurs savent chercher, chacun avec son outil : Google Search
+// côté Gemini, l'outil de recherche hébergé côté Anthropic. La réponse est du
+// texte libre accompagné des sources consultées — jamais du JSON strict, que
+// la recherche interdit des deux côtés. Renvoie null si aucun fournisseur
+// n'est configuré : l'appelant traite l'étape comme simplement absente.
 // ---------------------------------------------------------------------------
+
+/** Recherche web côté Anthropic : outil serveur, exécuté chez eux. */
+async function rechercheAnthropic(prompt) {
+  const message = await anthropic.messages.create({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 16000,
+    tools: [{ type: 'web_search_20260209', name: 'web_search' }],
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const blocs = message.content || [];
+  const text = blocs
+    .filter((b) => b.type === 'text')
+    .map((b) => b.text)
+    .join('\n')
+    .trim();
+
+  // Les résultats arrivent dans des blocs dédiés. En cas d'échec, `content`
+  // est un objet d'erreur et non une liste : on ne l'indexe pas à l'aveugle.
+  const sources = [];
+  for (const bloc of blocs) {
+    if (bloc.type !== 'web_search_tool_result' || !Array.isArray(bloc.content)) continue;
+    for (const r of bloc.content) {
+      if (r?.url) sources.push({ titre: r.title || r.url, url: r.url });
+    }
+  }
+
+  if (!text) return null;
+  return {
+    text,
+    // Dédoublonné par URL : une même source revient souvent plusieurs fois.
+    sources: sources.filter((s, i, arr) => arr.findIndex((x) => x.url === s.url) === i),
+  };
+}
+
 export async function invokeLLMGrounded({ prompt } = {}) {
+  if (provider === 'anthropic') return rechercheAnthropic(prompt);
   if (provider !== 'gemini') return null;
 
   const body = {
@@ -275,7 +318,7 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
   } else {
     const message = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
-      max_tokens: 8192,
+      max_tokens: 16000,
       ...(system ? { system } : {}),
       messages: [{ role: 'user', content: fullPrompt }],
     });
@@ -326,7 +369,7 @@ export async function generateFromDocument({ buffer, mimetype, prompt } = {}) {
   const isPdf = mimetype === 'application/pdf';
   const message = await anthropic.messages.create({
     model: ANTHROPIC_MODEL,
-    max_tokens: 8192,
+    max_tokens: 16000,
     messages: [
       {
         role: 'user',
@@ -420,7 +463,7 @@ async function runAgentAnthropic({ system, messages, tools, onTool }) {
   for (let i = 0; i < MAX_TOOL_ROUNDS; i++) {
     const resp = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
-      max_tokens: 4096,
+      max_tokens: 16000,
       ...(system ? { system } : {}),
       ...(tools.length ? { tools } : {}),
       messages: convo,
@@ -495,13 +538,51 @@ export async function chatDocuments({ system, messages = [], documents = [] } = 
     return texte.trim();
   }
 
-  // Autres fournisseurs : contexte textuel uniquement.
-  const contexte = documents
-    .map((d) => `Document « ${d.nom} » :\n${d.texte ? String(d.texte).slice(0, 60000) : '(contenu non lisible)'}`)
-    .join('\n\n');
-  const prompt = `${contexte ? contexte + '\n\n' : ''}${derniers.map((m) => `${m.role === 'assistant' ? 'Assistant' : 'Utilisateur'} : ${m.contenu}`).join('\n\n')}`;
-  const r = await invokeLLM({ prompt: `${system}\n\n${prompt}` });
-  return typeof r === 'string' ? r : JSON.stringify(r);
+  // Claude lit les PDF et les images nativement. Sans ce chemin, on repliait
+  // sur `d.texte` — que l'appelant ne fournit pas : chaque pièce était annoncée
+  // « contenu non lisible » alors que le fichier était bien là.
+  const pieces = documents.flatMap((d) => {
+    const estPdf = d.mimetype === 'application/pdf';
+    const lisible = estPdf || String(d.mimetype || '').startsWith('image/');
+    if (d.buffer?.length && lisible) {
+      return [
+        { type: 'text', text: `Document « ${d.nom} » :` },
+        {
+          type: estPdf ? 'document' : 'image',
+          source: { type: 'base64', media_type: d.mimetype, data: Buffer.from(d.buffer).toString('base64') },
+        },
+      ];
+    }
+    if (d.texte) return [{ type: 'text', text: `Document « ${d.nom} » :\n${String(d.texte).slice(0, 120000)}` }];
+    return [{ type: 'text', text: `Document « ${d.nom} » (contenu non lisible).` }];
+  });
+
+  // La conversation doit commencer par un message utilisateur.
+  const fenetre = [...derniers];
+  while (fenetre.length && fenetre[0].role === 'assistant') fenetre.shift();
+
+  const convo = fenetre.map((m, i) => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    // Les pièces accompagnent le dernier message de l'utilisateur.
+    content:
+      i === fenetre.length - 1 && m.role !== 'assistant'
+        ? [...pieces, { type: 'text', text: m.contenu }]
+        : m.contenu,
+  }));
+
+  const message = await anthropic.messages.create({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 16000,
+    ...(system ? { system } : {}),
+    messages: convo.length ? convo : [{ role: 'user', content: [...pieces, { type: 'text', text: '?' }] }],
+  });
+  const texte = (message.content || [])
+    .filter((b) => b.type === 'text')
+    .map((b) => b.text)
+    .join('\n')
+    .trim();
+  if (!texte) throw new Error('Réponse vide du modèle.');
+  return texte;
 }
 
 /**
@@ -524,7 +605,7 @@ export async function extraireDonneesDocument(doc = {}) {
     .join(', ');
 
   const consigne = grille
-    ? `Tu dépouilles un document d'un dossier d'investissement en murs commerciaux, ` +
+    ? `Tu extraits un document d'un dossier d'investissement en murs commerciaux, ` +
       `selon une grille de lecture imposée.\n\n` +
       `Réponds pour CHACUN de ces éléments, dans cet ordre exact, sans en ajouter ni en retirer :\n` +
       grille.map((e, i) => `${i + 1}. ${e}`).join('\n') +
@@ -540,7 +621,7 @@ export async function extraireDonneesDocument(doc = {}) {
       `— "page" : la page où figure l'information, ou null.\n` +
       `— "citation" : la phrase exacte du document, tronquée à 200 caractères, ou null.\n` +
       `N'invente rien : un élément absent du document reçoit un constat vide et le statut « Non renseigné ».`
-    : `Tu dépouilles un document d'un dossier d'investissement en murs commerciaux.\n` +
+    : `Tu extraits un document d'un dossier d'investissement en murs commerciaux.\n` +
       `Relève les données factuelles utiles : parties, surfaces, loyers, charges, taxes, dates, ` +
       `durées, prix, clauses notables, diagnostics, décisions.\n\n` +
       `Réponds UNIQUEMENT en JSON :\n` +
@@ -558,6 +639,11 @@ export async function extraireDonneesDocument(doc = {}) {
       : [{ text: `Document « ${doc.nom} » :\n${String(doc.texte || '').slice(0, 120000)}\n\n${consigne}` }];
     const data = await geminiGenerate({ contents: [{ role: 'user', parts }], json: true });
     brut = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+  } else if (doc.buffer?.length && doc.mimetype) {
+    // Claude lit le PDF ou l'image nativement. Sans ce chemin, on n'envoyait
+    // que `doc.texte` — que l'appelant ne fournit pas : le modèle recevait un
+    // document vide et rendait des constats vides, sans la moindre erreur.
+    brut = await generateFromDocument({ buffer: doc.buffer, mimetype: doc.mimetype, prompt: consigne });
   } else {
     const r = await invokeLLM({
       prompt: `Document « ${doc.nom} » :\n${String(doc.texte || '').slice(0, 60000)}\n\n${consigne}`,

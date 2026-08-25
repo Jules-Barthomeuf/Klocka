@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useUser } from "@/components/providers/UserProvider";
 import SlideViewer from "@/components/banque/SlideViewer";
 import SlideRenderer from "@/components/banque/SlideRenderer";
-import FeedbackWidget from "@/components/FeedbackWidget";
 
 export default function Banque() {
   const user = useUser();
@@ -25,7 +24,6 @@ export default function Banque() {
 
   return (
     <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-4 md:p-8">
-      <FeedbackWidget />
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 max-md:mb-6">
           <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">Banque</h1>

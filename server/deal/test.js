@@ -177,7 +177,7 @@ export function creerDealTest(user) {
 }
 
 /**
- * Simule la réception + le dépouillement des documents d'un deal de test :
+ * Simule la réception + l'extraction des documents d'un deal de test :
  * pose la synthèse fictive et avance le statut jusqu'à 'depouille'.
  * Les documents affichés côté client sont la fixture de démonstration.
  */
@@ -195,7 +195,7 @@ export function simulerDocumentsTest(dossier, user) {
     deal = Records.get('Deal', dossier.id);
   }
   if (statutDe(deal) === 'documents_recus') {
-    changerStatut(deal, 'depouille', { user, note: 'Dépouillement simulé (mode test)' });
+    changerStatut(deal, 'depouille', { user, note: 'Extraction simulé (mode test)' });
     deal = Records.get('Deal', dossier.id);
   }
   return { deal_id: deal.deal_id, statut: statutDe(deal), synthese_documents: deal.synthese_documents };

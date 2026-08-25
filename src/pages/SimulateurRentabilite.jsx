@@ -5,7 +5,6 @@ import ExportExcelFullButton from "../components/simulator/ExportExcelFullButton
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
-import FeedbackWidget from "../components/FeedbackWidget";
 import { NeonButton } from "@/components/ui/neon-button";
 import { useNavigate } from "react-router-dom";
 
@@ -456,8 +455,6 @@ export default function SimulateurRentabilite() {
 
   return (
     <div className="bg-[#0a0c0c] min-h-screen relative w-full max-w-full overflow-x-hidden">
-      <FeedbackWidget />
-
       <AnimatePresence>
         {showWhatsNew && !isEtape1 && !isEtape2 && <SimWhatsNewDialog onClose={closeWhatsNew} />}
       </AnimatePresence>

@@ -8,7 +8,7 @@ import SimulateurAnalyse from "./SimulateurAnalyse";
 import DonneesExtraites from "./DonneesExtraites";
 
 // L'étape Analyse : un onglet Documents (la liste cochable) puis un onglet par
-// document dépouillé, chacun présentant ses données extraites. Chaque ligne
+// document extrait, chacun présentant ses données extraites. Chaque ligne
 // porte sa source — un clic ouvre le document à la bonne page.
 
 // Les visionneuses PDF acceptent #page=N ; pour le reste on ouvre le fichier.
@@ -103,7 +103,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
   if (extraction.erreur) {
     return (
       <p className="border-t border-[#2e3230] py-10 text-center text-[13px] text-[#e0c9a0] m-0">
-        Dépouillement impossible : {extraction.erreur}
+        Extraction impossible : {extraction.erreur}
       </p>
     );
   }
@@ -119,7 +119,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
             placeholder="Rechercher"
             className="bg-[#101413] border border-[#242726] focus:border-[#35a79b]/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-[#edeae5] outline-none placeholder:text-[#5a615f] transition-colors w-[170px]"
           />
-          <button onClick={() => onSupprimer?.(extraction.id)} className="text-[12.5px] text-[#6b7270] hover:text-red-400 transition-colors" title="Retirer ce dépouillement">
+          <button onClick={() => onSupprimer?.(extraction.id)} className="text-[12.5px] text-[#6b7270] hover:text-red-400 transition-colors" title="Retirer cette extraction">
             Retirer
           </button>
         </div>
@@ -274,7 +274,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
 
   return (
     <div>
-      {/* Onglets : Documents, un par document dépouillé, puis le simulateur */}
+      {/* Onglets : Documents, un par document extrait, puis le simulateur */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[#2e3230] mb-4">
           <button
             onClick={() => setOnglet("documents")}
@@ -291,11 +291,11 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
             Simulateur
           </button>
 
-          {/* Dès qu'un document est dépouillé : ce qui ira dans la fiche projet. */}
+          {/* Dès qu'un document est extrait : ce qui ira dans la fiche projet. */}
           {extractions.length > 0 && (
             <button
               onClick={() => setOnglet("donnees")}
-              title="Ce que le dépouillement remplira dans le projet"
+              title="Ce que l'extraction remplira dans le projet"
               className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "donnees" ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#9aa19e] hover:text-[#edeae5]"}`}
             >
               Données extraites

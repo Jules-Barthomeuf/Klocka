@@ -852,7 +852,7 @@ app.post('/api/preanalyse/test', wrap(async (req, res) => {
   ok(res, creerDealTest(currentUser(req)));
 }));
 
-// Simule la réception + le dépouillement des documents d'un deal de test.
+// Simule la réception + l'extraction des documents d'un deal de test.
 app.post('/api/preanalyse/dossiers/:dealId/documents/simuler', wrap(async (req, res) => {
   const dossier = obtenirDossier(req.params.dealId);
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
@@ -957,7 +957,7 @@ app.post('/api/preanalyse/dossiers/:dealId/espace/documents', upload.single('fic
   }, user);
   if (!r.ok) return res.status(404).json({ error: r.error });
 
-  // Le dépouillement part tout seul, en tâche de fond : la réponse n'attend
+  // L'extraction part tout seul, en tâche de fond : la réponse n'attend
   // pas l'analyse, et personne ne reste devant l'écran.
   const { enfiler } = await import('./deal/file-extraction.js');
   enfiler(req.params.dealId, [r.document.id], { uploadDir: UPLOAD_DIR, user });
@@ -990,7 +990,7 @@ app.post('/api/preanalyse/dossiers/:dealId/espace/chat', wrap(async (req, res) =
   ok(res, r.conversation);
 }));
 
-// Dépouillement : chaque document coché devient une table de données sourcées
+// Extraction : chaque document coché devient une table de données sourcées
 // (libellé, valeur, page, citation), consultable en onglets sous le chat.
 app.post('/api/preanalyse/dossiers/:dealId/espace/extraire', wrap(async (req, res) => {
   const r = await extraireDocuments(req.params.dealId, {
@@ -1120,7 +1120,7 @@ app.post('/api/preanalyse/dossiers/:dealId/mail', wrap(async (req, res) => {
   ok(res, { ...mail, intention, destinataire: dossier.contact_agent_email || '' });
 }));
 
-// Dépôt d'un document sur le deal : dépouillement via le pipeline Alexis,
+// Dépôt d'un document sur le deal : extraction via le pipeline Alexis,
 // liaison Deal ↔ DossierDoc, avancement du statut et synthèse recalculée.
 app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'), wrap(async (req, res) => {
   const dossier = obtenirDossier(req.params.dealId);
@@ -1155,8 +1155,8 @@ app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'),
   if (synthese) patch.synthese_documents = synthese;
   if (Object.keys(patch).length) Records.update('Deal', dossier.id, patch);
 
-  // Avancement : demandes → reçus → dépouillé (les transitions invalides sont
-  // ignorées, un dépôt sur un deal déjà dépouillé ne change rien).
+  // Avancement : demandes → reçus → extrait (les transitions invalides sont
+  // ignorées, un dépôt sur un deal déjà extrait ne change rien).
   const enrichi = { ...dossier, ...patch };
   if (statutDe(enrichi) === 'documents_demandes' || statutDe(enrichi) === 'analyse') {
     changerStatut(enrichi, 'documents_recus', { user, note: `Document reçu : ${req.file.originalname}` });
@@ -1164,7 +1164,7 @@ app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'),
     enrichi.suivi = Records.get('Deal', dossier.id)?.suivi || enrichi.suivi;
   }
   if (statutDe(enrichi) === 'documents_recus') {
-    changerStatut(enrichi, 'depouille', { user, note: 'Dépouillement effectué' });
+    changerStatut(enrichi, 'depouille', { user, note: 'Extraction effectuée' });
   }
 
   ok(res, { ...r, deal: { deal_id: dossier.deal_id, statut: statutDe(Records.get('Deal', dossier.id)), dossier_doc_id: patch.dossier_doc_id || dossier.dossier_doc_id, synthese_documents: patch.synthese_documents || dossier.synthese_documents } });
@@ -1192,7 +1192,7 @@ app.post('/api/preanalyse/dossiers/:dealId/drive', wrap(async (req, res) => {
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
 
   const fichiers = [];
-  // Les documents dépouillés, plus la fiche commerciale d'origine.
+  // Les documents extraits, plus la fiche commerciale d'origine.
   const dossierDoc = dossier.dossier_doc_id ? obtenirDossierDoc(dossier.dossier_doc_id) : null;
   for (const d of dossierDoc?.documents || []) {
     if (d.url) fichiers.push({ nom: d.nom_fichier, chemin: d.url });
@@ -1263,7 +1263,7 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap(async (req,
   const dossier = obtenirDossier(req.params.dealId);
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
 
-  // Documents présents mais jamais dépouillés : on dépouille d'abord, puis on
+  // Documents présents mais jamais extraits : on extrait d'abord, puis on
   // crée le projet avec les données relevées. Entrer le deal dans la plateforme
   // ne demande donc plus d'être passé par l'étape 3 à la main.
   let analyse = null;
@@ -1455,7 +1455,7 @@ app.post('/api/assistant/calendrier/synchroniser', wrap(async (req, res) => {
   ok(res, { ...r, partage, lien: lienCalendrier(), par: user?.email || null });
 }));
 
-// Ce que le dépouillement sait remplir dans la fiche projet, ligne par ligne :
+// Ce que l'extraction sait remplir dans la fiche projet, ligne par ligne :
 // l'onglet « Données extraites » de l'étape Analyse s'appuie dessus.
 app.get('/api/preanalyse/dossiers/:dealId/donnees-projet', wrap(async (req, res) => {
   const dossier = obtenirDossier(req.params.dealId);
@@ -1499,7 +1499,7 @@ app.post('/api/preanalyse/dossiers/:dealId/statut', wrap((req, res) => {
 }));
 
 // ---------------------------------------------------------------------------
-// Alexis — dépouillement documentaire
+// Alexis — extraction documentaire
 // ---------------------------------------------------------------------------
 app.get('/api/alexis/grille', wrap((req, res) => ok(res, { types: TYPES })));
 
@@ -1615,11 +1615,11 @@ if (EN_PRODUCTION) {
   import('./video/index.js').then((m) => m.prechaufferVideo()).catch(() => {});
 }
 
-// Dépouillements interrompus par un arrêt du serveur : on les reprend, sinon
+// Extractions interrompus par un arrêt du serveur : on les reprend, sinon
 // leurs pièces resteraient marquées « en cours » sans que rien n'avance.
 import('./deal/file-extraction.js').then(({ reprendreEnAttente }) => {
   const n = reprendreEnAttente(UPLOAD_DIR);
-  if (n) console.log(`  ▸ ${n} dépouillement(s) repris après redémarrage`);
+  if (n) console.log(`  ▸ ${n} extraction(s) repris après redémarrage`);
 });
 
 // Agents des dossiers → fiches CRM, dès le démarrage.

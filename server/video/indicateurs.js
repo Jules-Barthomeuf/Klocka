@@ -59,6 +59,47 @@ const DEFAUTS = {
 const PART_APPORT = 0.15;
 
 /**
+ * Rejoue la simulation avec d'autres hypothèses.
+ *
+ * C'est la même fonction que celle du simulateur, appelée avec d'autres
+ * paramètres : « à 25 % d'apport sur 25 ans » se répond en une seconde, sans
+ * ouvrir la page ni perdre le fil de ce qu'on faisait.
+ *
+ * @param {object} lot
+ * @param {{prixNegocie?, apportPourcent?, taux?, duree?}} hypotheses
+ */
+export function simuler(lot, { prixNegocie, apportPourcent, taux, duree } = {}) {
+  const params = { ...DEFAUTS, ...(lot?.simulateur || {}) };
+  if (prixNegocie) params.prixBienNegocie = prixNegocie;
+  if (taux) params.tauxInteret = taux;
+  if (duree) params.dureeCredit = duree;
+
+  const part = (apportPourcent != null ? apportPourcent : PART_APPORT * 100) / 100;
+  const sansApport = calculerTableauAnnuel({ ...params, apport: 0 });
+  const apport = Math.round(sansApport.prixRevient * part);
+  const r = calculerTableauAnnuel({ ...params, apport });
+
+  return {
+    prix_negocie: params.prixBienNegocie,
+    prix_revient: r.prixRevient,
+    apport,
+    apport_pourcent: Math.round(part * 100),
+    rentabilite: r.prixRevient > 0 ? Math.round((params.loyerInitialHTHC / r.prixRevient) * 10000) / 100 : null,
+    cashflow_mois: r.indicateurs.cashFlowMoyenMois,
+    mensualite: r.echeanceMensuelle,
+    emprunt: r.montantEmprunt,
+    tri_brut: r.indicateurs.triBrut,
+    // Les hypothèses accompagnent toujours le résultat : un chiffre sans elles
+    // se prend pour une certitude.
+    hypotheses: {
+      apport: `${Math.round(part * 100)} %`,
+      taux: `${String(params.tauxInteret).replace('.', ',')} %`,
+      duree: `${params.dureeCredit} ans`,
+    },
+  };
+}
+
+/**
  * Prix de revient, apport nécessaire, rentabilité et cash-flow moyen.
  * @param {object} lot - un lot du dossier (porte `simulateur`)
  * @returns {object|null} null si le lot n'a ni prix ni loyer

@@ -139,7 +139,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     docs_checklist: {},
   };
 
-  // Le dépouillement des documents complète la fiche : bail, copropriété,
+  // L'extraction des documents complète la fiche : bail, copropriété,
   // diagnostics, TVA. Il ne réécrit jamais ce que la préanalyse a déjà posé.
   const { patch, remplis } = patchDepuisExtractions(deal, projet);
   Object.assign(projet, patch);

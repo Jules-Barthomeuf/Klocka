@@ -1,6 +1,6 @@
-// Passerelle dépouillement → projet.
+// Passerelle extraction → projet.
 //
-// Le dépouillement répond à la grille de lecture, élément par élément. Chaque
+// L'extraction répond à la grille de lecture, élément par élément. Chaque
 // élément a une destination connue dans la fiche projet : c'est la table CIBLES
 // ci-dessous, source unique pour les deux usages —
 //   1. remplir le projet à sa création (patchDepuisExtractions),
@@ -48,7 +48,7 @@ const CIBLES = {
   Électricité: { section: 'Diagnostics', type: 'note_diag', libelle: 'Note « Électricité »' },
 };
 
-/** Toutes les lignes dépouillées du dossier, avec leur destination projet. */
+/** Toutes les lignes extraites du dossier, avec leur destination projet. */
 export function donneesProjet(deal) {
   const lignes = [];
   for (const ext of deal?.extractions || []) {
@@ -93,7 +93,7 @@ function dpeDepuis(constat) {
 }
 
 /**
- * Patch à fusionner dans le projet : ce que le dépouillement sait remplir.
+ * Patch à fusionner dans le projet : ce que l'extraction sait remplir.
  * Ne remplace jamais une valeur déjà posée par la préanalyse — il complète.
  * @returns {{ patch: object, remplis: string[], ignores: string[] }}
  */

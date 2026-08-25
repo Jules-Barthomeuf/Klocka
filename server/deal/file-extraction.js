@@ -1,4 +1,4 @@
-// File de dépouillement en arrière-plan.
+// File de extraction en arrière-plan.
 //
 // Un document déposé part immédiatement à l'analyse, sans que personne n'attende
 // devant l'écran : l'analyste importe et passe à autre chose. La file est
@@ -78,7 +78,7 @@ async function traiter({ dealId, docId, uploadDir, user }) {
         piece = { ...piece, categorie };
       }
     } catch {
-      // Classement impossible : le dépouillement se fait sans grille, comme avant.
+      // Classement impossible : l'extraction se fait sans grille, comme avant.
     }
   }
 
@@ -105,7 +105,7 @@ async function tourner() {
         marquer(tache.dealId, tache.docId, {
           statut: 'erreur',
           le: new Date().toISOString(),
-          erreur: e?.message || 'Dépouillement impossible',
+          erreur: e?.message || 'Extraction impossible',
         });
       }
     }

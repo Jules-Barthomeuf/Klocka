@@ -38,7 +38,7 @@ export const STATUTS_DEAL = {
   analyse: { libelle: "Analysé", classe: "bg-[#edeae5]/10 text-[#d3d8d6] border-[#edeae5]/20" },
   documents_demandes: { libelle: "Docs demandés", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
   documents_recus: { libelle: "Docs reçus", classe: "bg-[#e0c9a0]/15 text-[#e0c9a0] border-[#e0c9a0]/30" },
-  depouille: { libelle: "Dépouillé", classe: "bg-[#35a79b]/15 text-[#7fd3c9] border-[#35a79b]/30" },
+  depouille: { libelle: "Extrait", classe: "bg-[#35a79b]/15 text-[#7fd3c9] border-[#35a79b]/30" },
   abandonne: { libelle: "Abandonné", classe: "bg-red-500/15 text-red-300 border-red-500/30" },
   projet_cree: { libelle: "Projet créé", classe: "bg-[#35a79b]/20 text-[#7fd3c9] border-[#35a79b]/40" },
 };

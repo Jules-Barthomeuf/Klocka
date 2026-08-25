@@ -8,11 +8,11 @@ import {
   AlertTriangle, CheckCircle2, ExternalLink, FolderUp, Info, Loader2, OctagonAlert, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CarteDocument, Visionneuse } from "@/components/preanalyse/DepouillementDocuments";
+import { CarteDocument, Visionneuse } from "@/components/preanalyse/ExtractionDocuments";
 import { documentsDemo } from "@/components/preanalyse/dossierDemo";
 
 // Phase documentaire d'un deal : dépôt des documents reçus de l'agent,
-// dépouillement (cases structurées + page source), classement dans le Drive
+// extraction (cases structurées + page source), classement dans le Drive
 // et synthèse « points à regarder avant d'aller plus loin ».
 
 const GRAVITES = {
@@ -94,7 +94,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
   };
 
   // File de dépôt animée : chaque fichier passe par en_attente → analyse →
-  // fait/erreur, visible pendant tout le traitement (le dépouillement d'un PDF
+  // fait/erreur, visible pendant tout le traitement (l'extraction d'un PDF
   // peut prendre du temps, surtout quand le quota IA impose des pauses).
   const [file, setFile] = useState([]);
 
@@ -126,7 +126,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
               majFile(f.name, { etat: "fait", libelle: r.document?.classement?.libelle });
               rafraichir();
             } catch (err) {
-              majFile(f.name, { etat: "erreur", detail: err?.message || "Dépouillement impossible" });
+              majFile(f.name, { etat: "erreur", detail: err?.message || "Extraction impossible" });
             }
           }),
         Promise.resolve()
@@ -146,7 +146,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
       }),
     onSuccess: () => {
       rafraichir();
-      toast.success("Document redépouillé");
+      toast.success("Document reextrait");
     },
     onError: (e) => toast.error(e?.message || "Reclassement impossible"),
   });
@@ -179,7 +179,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
       base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/documents/simuler`),
     onSuccess: () => {
       rafraichir();
-      toast.success("Documents simulés : dépouillement et synthèse posés");
+      toast.success("Documents simulés : extraction et synthèse posés");
     },
     onError: (e) => toast.error(e?.message || "Simulation impossible"),
   });
@@ -237,11 +237,11 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
       </div>
 
       <div className="p-5">
-        <Tabs defaultValue={documents.length ? "depouillement" : "depot"}>
+        <Tabs defaultValue={documents.length ? "extraction" : "depot"}>
           <TabsList className="bg-[#0a0c0c] border border-[#282b2a] mb-4">
             <TabsTrigger value="depot">Dépôt</TabsTrigger>
-            <TabsTrigger value="depouillement" disabled={!documents.length}>
-              Dépouillement
+            <TabsTrigger value="extraction" disabled={!documents.length}>
+              Extraction
             </TabsTrigger>
             {!masquerSynthese && (
               <TabsTrigger value="synthese" disabled={!synthese}>
@@ -257,7 +257,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                 <p className="text-[#9aa19e] text-xs mb-2">
                   Deal de test : pas de vrai dépôt. La simulation pose trois documents fictifs
                   (bail, PV d'AG, diagnostics), la synthèse des points à vérifier, et avance le
-                  statut jusqu'à « Dépouillé » — sans appel API.
+                  statut jusqu'à « Extrait » — sans appel API.
                 </p>
                 <Button
                   onClick={() => simuler.mutate()}
@@ -285,7 +285,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             >
               <Upload className={`w-5 h-5 text-[#8b9391] ${depotEnCours ? "animate-pulse" : ""}`} />
               <span className="text-[#9aa19e] text-sm">
-                {depotEnCours ? "Dépouillement en cours…" : "PDF, image ou .eml — plusieurs à la fois"}
+                {depotEnCours ? "Extraction en cours…" : "PDF, image ou .eml — plusieurs à la fois"}
               </span>
             </button>
 
@@ -320,7 +320,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                         : f.etat === "analyse"
                           ? "lecture et extraction…"
                           : f.etat === "fait"
-                            ? f.libelle || "dépouillé"
+                            ? f.libelle || "extrait"
                             : f.detail}
                     </span>
                     {f.etat === "erreur" && (
@@ -348,7 +348,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             )}
           </TabsContent>
 
-          <TabsContent value="depouillement" className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">
+          <TabsContent value="extraction" className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">
             {documents.length > 0 && (
               <div className="grid lg:grid-cols-[1fr_1fr] gap-5 items-start">
                 <div className="space-y-4">

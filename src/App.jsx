@@ -30,7 +30,6 @@ import AdminPresentations from '@/pages/AdminPresentations';
 import ImportProjects from '@/pages/ImportProjects';
 import ImportClients from '@/pages/ImportClients';
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
-import FeedbackWidget from '@/components/FeedbackWidget';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -153,7 +152,6 @@ function App() {
         </Router>
         <Toaster />
         <SonnerToaster position="top-center" richColors closeButton />
-        <FeedbackWidget />
         <VisualEditAgent />
       </QueryClientProvider>
     </AuthProvider>

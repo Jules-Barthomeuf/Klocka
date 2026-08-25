@@ -17,6 +17,7 @@
 import { Records } from '../db.js';
 import { poserElement, lireTableau, TABLEAUX, mondayConfigure } from '../monday.js';
 import { statutDe } from './lifecycle.js';
+import { geocoder } from './geocodage.js';
 
 // Colonnes du tableau « Propriétés Klocka », relevées sur place : dans Monday
 // une colonne s'adresse par son identifiant, jamais par son titre.
@@ -76,6 +77,23 @@ function vueDuLot(deal) {
   };
 }
 
+/**
+ * Valeur de la colonne « Adresse ».
+ *
+ * Monday refuse une adresse sans coordonnées : `{address}` seul est rejeté et
+ * fait échouer toute la création. Quand le dossier ou le projet ne porte pas de
+ * latitude, on géocode ; si l'adresse reste introuvable, on omet la colonne
+ * plutôt que de perdre l'élément entier.
+ */
+async function valeurAdresse({ adresse, lat, lon }) {
+  if (!adresse) return null;
+  if (lat != null && lon != null) {
+    return { address: adresse, lat: String(lat), lng: String(lon) };
+  }
+  const trouve = await geocoder({ adresse });
+  return trouve ? { address: adresse, lat: String(trouve.lat), lng: String(trouve.lon) } : null;
+}
+
 /** Fiche Monday de l'agent, retrouvée par son adresse mail. */
 async function elementAgent(email) {
   if (!email || !TABLEAUX.agents) return null;
@@ -98,14 +116,12 @@ export async function pousserBien(deal, { motif } = {}) {
   const nom = [v.ville, v.rue].filter(Boolean).join(' - ') || deal.nom || deal.deal_id;
 
   const colonnes = {};
-  if (v.rue || v.ville) {
-    // La colonne « Adresse » est de type localisation : elle attend des
-    // coordonnées, l'adresse seule ne suffit pas à l'afficher sur la carte.
-    colonnes[COL.adresse] = {
-      address: [v.rue, v.ville].filter(Boolean).join(', '),
-      ...(v.lat != null && v.lon != null ? { lat: String(v.lat), lng: String(v.lon) } : {}),
-    };
-  }
+  const adresseDeal = await valeurAdresse({
+    adresse: [v.rue, v.ville].filter(Boolean).join(', '),
+    lat: v.lat,
+    lon: v.lon,
+  });
+  if (adresseDeal) colonnes[COL.adresse] = adresseDeal;
   if (STATUT_MONDAY[statut]) colonnes[COL.statut] = { label: STATUT_MONDAY[statut] };
   if (v.prix != null) colonnes[COL.prix] = v.prix;
   if (v.loyer != null) colonnes[COL.loyer] = v.loyer;
@@ -153,14 +169,12 @@ export async function pousserProjet(projet, { motif } = {}) {
   const nom = projet.titre || projet.adresse_complete || `Projet ${projet.id}`;
 
   const colonnes = {};
-  if (projet.adresse_complete) {
-    colonnes[COL.adresse] = {
-      address: projet.adresse_complete,
-      ...(projet.latitude != null && projet.longitude != null
-        ? { lat: String(projet.latitude), lng: String(projet.longitude) }
-        : {}),
-    };
-  }
+  const adresseProjet = await valeurAdresse({
+    adresse: projet.adresse_complete,
+    lat: projet.latitude,
+    lon: projet.longitude,
+  });
+  if (adresseProjet) colonnes[COL.adresse] = adresseProjet;
   if (STATUT_PROJET[projet.statut]) colonnes[COL.statut] = { label: STATUT_PROJET[projet.statut] };
   const prix = nombreOuNull(projet.prix_acquisition);
   const loyer = nombreOuNull(projet.loyer_annuel_ht);

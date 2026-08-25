@@ -15,6 +15,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { vueRedacteur } from '../deal/redact.js';
 import { indicateursCles } from './indicateurs.js';
+import { geocoder } from '../deal/geocodage.js';
 import { Meta } from '../db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -116,31 +117,12 @@ export function proprietesVideo(lot) {
 
 /**
  * Géolocalise le bien pour la scène d'ouverture cartographique (plongée
- * France → adresse). API Adresse data.gouv (BAN) : gratuite, sans clé,
- * couvre la France. Meilleur effort : null en cas d'échec, la vidéo se rend
- * alors sans la scène carte — jamais d'échec de rendu pour une carte.
+ * France → adresse). Le zoom d'arrivée dépend de la précision obtenue :
+ * jusqu'au sol sur une adresse, vue de ville sur une commune seule.
  */
 async function geocoderPourCarte({ adresse, commune }) {
-  const q = [adresse, commune].filter(Boolean).join(', ');
-  if (!q) return null;
-  try {
-    const url =
-      'https://api-adresse.data.gouv.fr/search/?limit=1&q=' +
-      encodeURIComponent(q) +
-      (adresse ? '' : '&type=municipality');
-    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (!r.ok) return null;
-    const f = (await r.json()).features?.[0];
-    if (!f || (f.properties?.score ?? 0) < 0.35) return null;
-    const [lon, lat] = f.geometry.coordinates;
-    // Adresse au numéro/à la rue : plongée jusqu'au sol ; commune seule : on
-    // s'arrête à la vue de la ville.
-    const precis = adresse && ['housenumber', 'street', 'locality'].includes(f.properties?.type);
-    return { lat, lon, zoom: precis ? 17 : 14, libelle: f.properties?.label || q };
-  } catch (e) {
-    console.warn('[video] géocodage impossible :', e?.message || e);
-    return null;
-  }
+  const r = await geocoder({ adresse, commune });
+  return r ? { lat: r.lat, lon: r.lon, zoom: r.precis ? 17 : 14, libelle: r.libelle } : null;
 }
 
 /**

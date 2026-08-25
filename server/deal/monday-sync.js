@@ -166,6 +166,9 @@ export async function pousserProjet(projet, { motif } = {}) {
   if (!projet) return { ignore: true };
 
   const nombreOuNull = (v) => (typeof v === 'number' && v > 0 ? v : null);
+  // Les chiffres d'un projet vivent souvent dans les champs du simulateur : la
+  // fiche d'en-tête reste à zéro tant que personne ne l'a remplie à la main.
+  const chiffre = (...candidats) => candidats.map(nombreOuNull).find((v) => v != null) ?? null;
   const nom = projet.titre || projet.adresse_complete || `Projet ${projet.id}`;
 
   const colonnes = {};
@@ -176,9 +179,9 @@ export async function pousserProjet(projet, { motif } = {}) {
   });
   if (adresseProjet) colonnes[COL.adresse] = adresseProjet;
   if (STATUT_PROJET[projet.statut]) colonnes[COL.statut] = { label: STATUT_PROJET[projet.statut] };
-  const prix = nombreOuNull(projet.prix_acquisition);
-  const loyer = nombreOuNull(projet.loyer_annuel_ht);
-  const surface = nombreOuNull(projet.surface_m2);
+  const prix = chiffre(projet.prix_acquisition, projet.sim_prix_bien_negocie, projet.sim_prix_bien_fai);
+  const loyer = chiffre(projet.loyer_annuel_ht, projet.sim_loyer_initial_ht);
+  const surface = chiffre(projet.surface_m2, projet.sim_surface);
   if (prix != null) colonnes[COL.prix] = prix;
   if (loyer != null) colonnes[COL.loyer] = loyer;
   if (surface != null) colonnes[COL.surface] = surface;
@@ -205,6 +208,37 @@ export async function pousserProjet(projet, { motif } = {}) {
   return r;
 }
 
+// Monday limite le débit : on garde le tableau quelques minutes en mémoire.
+const cache = new Map();
+const DUREE_CACHE = 5 * 60 * 1000;
+
+/**
+ * Crée la fiche d'un agent immobilier dans Monday.
+ *
+ * Normalement Monday est la source des agents et Klocka ne fait que lire. Mais
+ * un agent qui vient d'apporter un dossier n'y est pas encore : plutôt que de
+ * laisser la liaison vide, on propose de l'y inscrire.
+ */
+export async function creerAgentMonday({ nom, email, telephone, ville }) {
+  if (!mondayConfigure() || !TABLEAUX.agents) return { ignore: true };
+  if (!email) return { erreur: 'Adresse mail manquante' };
+
+  const colonnes = {
+    email: { email, text: email },
+    ...(telephone ? { phone: { phone: telephone, countryShortName: 'FR' } } : {}),
+    ...(ville ? { text0: ville } : {}),
+  };
+  const r = await poserElement(TABLEAUX.agents, {
+    nom: nom || email,
+    colonnes,
+    // Un agent se retrouve par son adresse : on ne crée pas deux fois la même fiche.
+    cle: { colonne: 'email', valeur: email },
+  });
+  // La liste des agents est en cache : elle doit repartir de zéro.
+  cache.delete('agents');
+  return r;
+}
+
 // --- Lecture : investisseurs et agents restent tenus dans Monday ------------
 
 // Colonnes du tableau « Clients ».
@@ -228,9 +262,6 @@ const COL_AGENT = {
   priorite: 'status5',
 };
 
-// Monday limite le débit : on garde le tableau quelques minutes en mémoire.
-const cache = new Map();
-const DUREE_CACHE = 5 * 60 * 1000;
 
 async function lireAvecCache(boardId, cle) {
   const vu = cache.get(cle);

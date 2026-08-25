@@ -141,6 +141,28 @@ const OUTILS = [
     },
   },
   {
+    name: 'verifier',
+    description:
+      "Passe en revue un dossier ou un projet et rend ce qui manque, avec l'action qui le lève : dossier Drive absent, bien pas dans Monday, agent sans fiche, documents non extraits, chiffres introuvables… À utiliser dès qu'on demande « vérifie », « qu'est-ce qui manque », « où ça en est vraiment », et avant de proposer quoi que ce soit sur un dossier ou un projet.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_id: { type: 'string', description: 'Pour un dossier de préanalyse' },
+        projet_id: { type: 'string', description: 'Pour un projet de la plateforme' },
+      },
+    },
+  },
+  {
+    name: 'creer_agent_monday',
+    description:
+      "Crée la fiche de l'agent immobilier d'un dossier dans le tableau Monday « Agent immobilier », quand il n'en a pas encore.",
+    input_schema: {
+      type: 'object',
+      properties: { deal_id: { type: 'string' } },
+      required: ['deal_id'],
+    },
+  },
+  {
     name: 'plan_du_jour',
     description:
       "Ce qui est à faire maintenant : mails à traiter, relances dues, documents manquants, dossiers prêts à entrer en plateforme. Répond à « qu'est-ce que je dois faire », « quoi de neuf ».",
@@ -269,6 +291,37 @@ async function executerOutil({ name, input }, user) {
     return { ville: input.ville, connu: true, donnees_marche: entrees.slice(0, 3), biens_ecartes: ecartes };
   }
 
+  if (name === 'verifier') {
+    const { verifierDossier, verifierProjet } = await import('./deal/verifications.js');
+    if (input.projet_id) {
+      const projet = Records.get('Project', input.projet_id);
+      if (!projet) return { erreur: 'Projet introuvable' };
+      return verifierProjet(projet);
+    }
+    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    if (!deal) return { erreur: 'Dossier introuvable' };
+    return verifierDossier(deal);
+  }
+
+  if (name === 'creer_agent_monday') {
+    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    if (!deal) return { erreur: 'Dossier introuvable' };
+    if (!deal.contact_agent_email) return { erreur: "Ce dossier n'a pas d'adresse d'agent" };
+    const fiche = Records.list('Contact').find(
+      (c) => String(c.email || '').toLowerCase() === String(deal.contact_agent_email).toLowerCase()
+    );
+    const { creerAgentMonday } = await import('./deal/monday-sync.js');
+    const r = await creerAgentMonday({
+      nom: fiche?.nom,
+      email: deal.contact_agent_email,
+      telephone: fiche?.telephone,
+      ville: fiche?.localisation || villeDeal(deal),
+    });
+    if (r?.ignore) return { erreur: "Monday n'est pas configuré" };
+    if (r?.erreur) return r;
+    return { ok: true, agent: deal.contact_agent_email, cree: r.cree };
+  }
+
   if (name === 'plan_du_jour') {
     const { construirePropositions } = await import('./deal/propositions.js');
     const pile = await construirePropositions({});
@@ -367,6 +420,8 @@ Tu exécutes des demandes courtes portant sur les dossiers de préanalyse et les
 
 Tu sais : renseigner sur un dossier ou un projet, rejouer leur simulation financière avec d'autres hypothèses, rédiger un brouillon de mail à l'agent, lancer l'extraction des documents, dire ce que Klocka sait d'une ville, donner le plan du jour, envoyer un dossier ou un projet dans Monday, créer leur dossier Google Drive.
 
+Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque.
+
 Pour tout le reste — droit des baux commerciaux, financement, fiscalité, méthode d'analyse — réponds directement, sans outil, en restant bref et en disant franchement quand tu ne sais pas.
 
 RÈGLES :
@@ -377,7 +432,8 @@ RÈGLES :
 5. Une fois l'action faite, dis ce qui a été fait et donne le lien.
 6. N'invente jamais un chiffre sur un bien : si tu ne l'as pas reçu d'un outil, dis que tu ne l'as pas.
 7. Une simulation se rend avec ses hypothèses : dis toujours sur quel apport, quel taux et quelle durée elle repose.
-8. Un brouillon de mail n'est pas un envoi. Annonce-le comme une proposition à relire, jamais comme un message parti.`;
+8. Un brouillon de mail n'est pas un envoi. Annonce-le comme une proposition à relire, jamais comme un message parti.
+9. Dès qu'on te parle d'un dossier ou d'un projet précis, vérifie-le avant de répondre. Dis ce que tu as constaté, puis propose ce qui manque — une proposition à la fois, en commençant par la plus utile, et attends la réponse avant d'agir. Ne propose pas ce qui n'a pas d'outil : signale-le comme à faire à la main.`;
 
 /**
  * Traite une demande en langage naturel.
@@ -396,7 +452,7 @@ export async function commander(historique, user) {
       // n'est pas une preuve d'action.
       const agissant =
         appel.name.startsWith('pousser') ||
-        ['creer_drive_dossier', 'extraire_documents', 'preparer_mail'].includes(appel.name);
+        ['creer_drive_dossier', 'extraire_documents', 'preparer_mail', 'creer_agent_monday'].includes(appel.name);
       if (agissant && resultat?.ok) actions.push({ ...appel, resultat });
       return resultat;
     },

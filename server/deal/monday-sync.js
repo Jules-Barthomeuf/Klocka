@@ -45,6 +45,15 @@ const STATUT_MONDAY = {
   abandonne: 'Archivé',
 };
 
+// Le cycle d'un projet, une fois le dossier entré en plateforme.
+const STATUT_PROJET = {
+  prospect: 'Analyse en cours',
+  analyse: 'Analyse en cours',
+  negociation: 'Négociation',
+  financement: 'Sous offre',
+  signe: 'Vendu',
+};
+
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 const nombre = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
@@ -126,6 +135,58 @@ export async function pousserBien(deal, { motif } = {}) {
   // Première pose : on retient l'identifiant pour ne jamais recréer.
   if (r?.id && r.id !== deal.monday_item_id) {
     Records.update('Deal', deal.id, { monday_item_id: String(r.id) });
+  }
+  return r;
+}
+
+/**
+ * Pose ou met à jour un projet de la plateforme dans « Propriétés ».
+ * Même tableau que les dossiers : un bien reste le même bien, qu'il soit encore
+ * à l'étude ou déjà attribué à un client.
+ * @param {object} projet - enregistrement Project
+ */
+export async function pousserProjet(projet, { motif } = {}) {
+  if (!mondayConfigure() || !TABLEAUX.proprietes) return { ignore: true };
+  if (!projet) return { ignore: true };
+
+  const nombreOuNull = (v) => (typeof v === 'number' && v > 0 ? v : null);
+  const nom = projet.titre || projet.adresse_complete || `Projet ${projet.id}`;
+
+  const colonnes = {};
+  if (projet.adresse_complete) {
+    colonnes[COL.adresse] = {
+      address: projet.adresse_complete,
+      ...(projet.latitude != null && projet.longitude != null
+        ? { lat: String(projet.latitude), lng: String(projet.longitude) }
+        : {}),
+    };
+  }
+  if (STATUT_PROJET[projet.statut]) colonnes[COL.statut] = { label: STATUT_PROJET[projet.statut] };
+  const prix = nombreOuNull(projet.prix_acquisition);
+  const loyer = nombreOuNull(projet.loyer_annuel_ht);
+  const surface = nombreOuNull(projet.surface_m2);
+  if (prix != null) colonnes[COL.prix] = prix;
+  if (loyer != null) colonnes[COL.loyer] = loyer;
+  if (surface != null) colonnes[COL.surface] = surface;
+  if (projet.activite_locataire) colonnes[COL.activite] = projet.activite_locataire;
+
+  const note = [
+    projet.nom_locataire ? `Locataire : ${projet.nom_locataire}` : null,
+    projet.echeance_bail ? `Échéance du bail : ${projet.echeance_bail}` : null,
+    motif || null,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  if (note) colonnes[COL.notes] = note;
+
+  // Le dossier d'origine peut avoir déjà posé l'élément : on le réutilise
+  // plutôt que d'en créer un second pour le même bien.
+  const deal = projet.deal_id ? Records.filter('Deal', { deal_id: projet.deal_id })[0] : null;
+  const itemId = projet.monday_item_id || deal?.monday_item_id || null;
+
+  const r = await poserElement(TABLEAUX.proprietes, { nom, colonnes, itemId });
+  if (r?.id && r.id !== projet.monday_item_id) {
+    Records.update('Project', projet.id, { monday_item_id: String(r.id) });
   }
   return r;
 }

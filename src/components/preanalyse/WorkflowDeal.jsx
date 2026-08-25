@@ -16,6 +16,7 @@ import {
 } from "@/components/preanalyse/DealResultat";
 import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
+import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
 import AnalyseDocuments from "./AnalyseDocuments";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
@@ -207,6 +208,9 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
           </div>
           {!apercu && (
             <div className="flex items-center gap-2.5 flex-shrink-0">
+              {dossier && (
+                <BoutonMonday dealId={dossier.deal_id} dejaPose={!!dossier.monday_item_id} />
+              )}
               {etape < ETAPES.length && (
                 <Button
                   onClick={() => (etape < debloquee ? setEtape(etape + 1) : passerVersEtape(etape + 1))}
@@ -1108,7 +1112,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
 }
 
 // ---------------------------------------------------------------------------
-// Vidéo de présentation client (~30 s) — rendue par Remotion côté serveur.
+// Teaser client (~20 s) — rendu par Remotion côté serveur.
 // La vidéo n'expose que les faits (bien, chiffres, bail, ville), jamais le
 // verdict ni les réserves : elle est faite pour être envoyée au client.
 // ---------------------------------------------------------------------------
@@ -1142,9 +1146,9 @@ function BlocVideoPresentation({ dossier, apercu }) {
         <div className="flex items-center gap-3">
           <Film className="w-4 h-4 text-[#8b9391]" />
           <div>
-            <p className="text-[#edeae5] text-sm">Vidéo de présentation</p>
+            <p className="text-[#edeae5] text-sm">Teaser client</p>
             <p className="text-[#8b9391] text-xs">
-              30 secondes générées depuis les informations clés du lot — à envoyer au client.
+              Vingt secondes : la devanture du bien, les quatre chiffres qui décident, l'appel — à envoyer au client.
             </p>
           </div>
         </div>

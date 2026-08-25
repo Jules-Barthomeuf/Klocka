@@ -27,6 +27,7 @@ import ProjectFormSwotTab from "../components/admin/ProjectFormSwotTab";
 import ProjectFormMarcheTab from "../components/admin/ProjectFormMarcheTab";
 import ProjectSimulatorPreview from "../components/admin/ProjectSimulatorPreview";
 import ProjectLivePreview from "../components/admin/ProjectLivePreview";
+import BoutonMonday from "@/components/BoutonMonday";
 import ProjetContent from "../components/projet/ProjetContent";
 
 import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
@@ -1048,6 +1049,13 @@ export default function AdminProjets() {
             <button onClick={closeEditor} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Annuler</button>
             {editingProject && (
               <button onClick={goToProjectsList} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Retour aux projets</button>
+            )}
+            {editingProject?.id && (
+              <BoutonMonday
+                projetId={editingProject.id}
+                dejaPose={!!editingProject.monday_item_id}
+                className="h-auto py-2.5 px-4 text-[13.5px] font-semibold"
+              />
             )}
             <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
               className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[13.5px] font-bold hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "#edeae5" }}>

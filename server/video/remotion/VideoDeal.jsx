@@ -1,15 +1,18 @@
-// Composition Remotion : vidéo de présentation client d'un lot (~30 s).
+// Composition Remotion : teaser client d'un lot (~20 s).
+//
+// Trois temps : la devanture du bien en mouvement 3D, les quatre chiffres qui
+// décident (prix de revient, apport, rentabilité, cash-flow), puis l'appel.
 //
 // Volontairement factuelle : elle ne montre QUE des données extraites de la
-// fiche (bien, chiffres, bail, ville) — jamais le verdict, les motifs ou les
-// réserves, qui sont des éléments d'analyse internes. Les champs absents sont
-// simplement omis, aucune valeur n'est inventée.
+// fiche et calculées par le moteur du simulateur — jamais le verdict, les
+// motifs ou les réserves, qui sont des éléments d'analyse internes. Les champs
+// absents sont simplement omis, aucune valeur n'est inventée.
 
 import React from "react";
 import { AbsoluteFill, Img, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing } from "remotion";
 
 export const FPS = 30;
-export const DUREE_FRAMES = 30 * FPS; // 30 secondes
+export const DUREE_FRAMES = 20 * FPS; // 20 secondes — c'est un teaser
 // Scène d'ouverture cartographique (plongée France → adresse), ajoutée en tête
 // quand le lot a pu être géolocalisé (prop `carte`).
 export const DUREE_CARTE = 390; // 13 secondes
@@ -31,13 +34,6 @@ const euros = (n) =>
   n == null ? null : new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Math.round(n)) + " €";
 const pourcent = (n) => (n == null ? null : n.toFixed(2).replace(".", ",") + " %");
 const nombre = (n) => (n == null ? null : new Intl.NumberFormat("fr-FR").format(n));
-
-const TYPOLOGIES = {
-  petite_ville: "Petite ville",
-  ville_moyenne: "Ville moyenne",
-  grande_ville: "Grande ville",
-  metropole: "Métropole",
-};
 
 // ---------------------------------------------------------------------------
 // Briques d'animation
@@ -342,6 +338,99 @@ function SceneCarte({ carte, duree }) {
 }
 
 // ---------------------------------------------------------------------------
+// Devanture : la façade en mouvement 3D.
+//
+// Pas de vraie profondeur — on n'en a pas — mais une caméra qui contourne
+// légèrement l'image en perspective, avec un plan d'arrière-fond flouté qui
+// glisse plus lentement. Le décalage entre les deux plans donne le relief.
+// ---------------------------------------------------------------------------
+
+function SceneDevanture({ d, duree }) {
+  const frame = useCurrentFrame();
+  const t = interpolate(frame, [0, duree], [0, 1], clampInterp);
+  const doux = Easing.inOut(Easing.quad)(t);
+
+  // Rotation de faible amplitude : au-delà, la déformation se voit.
+  const rotation = -7 + doux * 14;
+  const echelle = 1.12 + doux * 0.1;
+  const glissement = (0.5 - doux) * 60;
+  const opacity = interpolate(frame, [0, 14, duree - 14, duree], [0, 1, 1, 0], clampInterp);
+  const titre = [d.adresse, d.commune].filter(Boolean).join(", ") || d.commune || "Le bien";
+
+  return (
+    <AbsoluteFill style={{ opacity, backgroundColor: C.fond, overflow: "hidden" }}>
+      {/* Arrière-plan flouté : il glisse deux fois moins vite que la façade. */}
+      <AbsoluteFill
+        style={{
+          transform: `scale(1.5) translateX(${glissement / 2}px)`,
+          filter: "blur(28px) brightness(0.45)",
+        }}
+      >
+        <Img src={d.devanture} style={{ width: "100%", height: "100%", objectFit: "cover" }} pauseWhenLoading />
+      </AbsoluteFill>
+
+      {/* Façade, posée dans une scène en perspective. */}
+      <AbsoluteFill style={{ perspective: 1600, justifyContent: "center", alignItems: "center" }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            transform: `rotateY(${rotation}deg) scale(${echelle}) translateX(${glissement}px)`,
+            transformStyle: "preserve-3d",
+            boxShadow: "0 60px 140px rgba(0,0,0,0.7)",
+          }}
+        >
+          <Img src={d.devanture} style={{ width: "100%", height: "100%", objectFit: "cover" }} pauseWhenLoading />
+        </div>
+      </AbsoluteFill>
+
+      {/* Assombrissement du bas : le texte doit rester lisible sur toute photo. */}
+      <AbsoluteFill
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(10,12,12,0.55) 0%, transparent 28%, rgba(10,12,12,0.55) 62%, rgba(10,12,12,0.97) 100%)",
+        }}
+      />
+
+      {/* La couleur doit être posée ici : contrairement aux autres scènes, celle-ci
+          ne passe pas par <Scene>, qui portait le blanc ivoire. */}
+      <AbsoluteFill
+        style={{ fontFamily: POLICE, color: C.ivoire, justifyContent: "flex-end", padding: "0 120px 110px" }}
+      >
+        <Montee delai={16}>
+          <Etiquette>{d.type_actif || "Opportunité"}</Etiquette>
+        </Montee>
+        <Montee delai={28} style={{ marginTop: 26 }}>
+          <div
+            style={{
+              // Une adresse à rallonge ne doit pas manger l'image : la taille
+              // s'adapte et le texte se coupe à deux lignes.
+              fontSize: titre.length > 46 ? 58 : titre.length > 30 ? 72 : 86,
+              fontWeight: 300,
+              lineHeight: 1.12,
+              textShadow: "0 2px 30px rgba(0,0,0,0.95)",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {titre}
+          </div>
+        </Montee>
+        {(d.locataire || d.surface_m2) && (
+          <Montee delai={42} style={{ marginTop: 22 }}>
+            <div style={{ fontSize: 38, color: C.ivoire, opacity: 0.75, fontWeight: 300 }}>
+              {[d.locataire, d.surface_m2 ? `${nombre(d.surface_m2)} m²` : null].filter(Boolean).join(" · ")}
+            </div>
+          </Montee>
+        )}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Scènes
 // ---------------------------------------------------------------------------
 
@@ -418,77 +507,56 @@ function TuileChiffre({ delai, titre, valeur, format, note }) {
         border: `1px solid ${C.bordure}`,
         borderRadius: 10,
         background: C.panneau,
-        padding: "70px 40px",
+        padding: "54px 26px",
         textAlign: "center",
       }}
     >
-      <div style={{ color: C.gris, fontSize: 30, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+      <div style={{ color: C.gris, fontSize: 25, letterSpacing: "0.1em", textTransform: "uppercase" }}>
         {titre}
       </div>
       <Compteur
         valeur={valeur}
         format={format}
         delai={delai + 10}
-        style={{ fontSize: 76, fontWeight: 300, color: C.tealClair, marginTop: 36 }}
+        style={{ fontSize: 56, fontWeight: 300, color: C.tealClair, marginTop: 28, whiteSpace: "nowrap" }}
       />
-      {note && <div style={{ color: C.gris, fontSize: 26, marginTop: 24 }}>{note}</div>}
+      {note && <div style={{ color: C.gris, fontSize: 22, marginTop: 18 }}>{note}</div>}
     </Montee>
   );
 }
 
-function SceneChiffres({ d, duree }) {
+// Les quatre chiffres qui décident. Ils viennent du moteur du simulateur, pas
+// d'un calcul refait pour la vidéo : ce que voit le client est ce que voit
+// l'analyste.
+function SceneDonneesCles({ d, duree }) {
+  const c = d.cles || {};
   const tuiles = [
-    d.prix_fai != null && { titre: "Prix FAI", valeur: d.prix_fai, format: euros },
-    d.loyer_annuel != null && { titre: "Loyer annuel", valeur: d.loyer_annuel, format: euros, note: "HT-HC" },
-    d.rendement != null && { titre: "Rendement", valeur: d.rendement, format: pourcent, note: "sur prix FAI" },
+    c.prix_revient != null && { titre: "Prix de revient", valeur: c.prix_revient, format: euros, note: "acte en main" },
+    c.apport != null && { titre: "Apport nécessaire", valeur: c.apport, format: euros },
+    c.rentabilite != null && { titre: "Rentabilité", valeur: c.rentabilite, format: pourcent },
+    // « / mois » va dans la note : accolé à la valeur, il la faisait passer à
+    // la ligne dans la tuile.
+    c.cashflow_mois != null && { titre: "Cash-flow moyen", valeur: c.cashflow_mois, format: euros, note: "par mois" },
   ].filter(Boolean);
 
   return (
     <Scene duree={duree}>
       <Montee delai={4}>
-        <Etiquette>Chiffres clés</Etiquette>
+        <Etiquette>Données clés</Etiquette>
       </Montee>
-      <div style={{ display: "flex", gap: 44, width: "100%", maxWidth: 1560, marginTop: 80 }}>
+      <div style={{ display: "flex", gap: 30, width: "100%", maxWidth: 1660, marginTop: 64 }}>
         {tuiles.map((t, i) => (
-          <TuileChiffre key={t.titre} delai={16 + i * 14} {...t} />
+          <TuileChiffre key={t.titre} delai={14 + i * 10} {...t} />
         ))}
       </div>
-    </Scene>
-  );
-}
-
-function SceneBailVille({ d, duree }) {
-  const gauche = [
-    ["Type de bail", d.bail_type],
-    ["Échéance", d.bail_echeance],
-    ["Années restantes", d.annees_bail_restantes != null ? String(d.annees_bail_restantes) : null],
-  ].filter(([, v]) => v);
-  const droite = [
-    ["Commune", d.commune],
-    ["Population", d.population ? `${nombre(d.population)} habitants` : null],
-    ["Typologie", TYPOLOGIES[d.typologie_ville] || null],
-  ].filter(([, v]) => v);
-
-  const Colonne = ({ titre, lignes, delai }) => (
-    <Montee delai={delai} style={{ flex: 1 }}>
-      <Etiquette>{titre}</Etiquette>
-      <div style={{ marginTop: 40 }}>
-        {lignes.map(([t, v]) => (
-          <div key={t} style={{ borderBottom: `1px solid ${C.bordure}`, padding: "26px 4px" }}>
-            <div style={{ color: C.gris, fontSize: 28 }}>{t}</div>
-            <div style={{ fontSize: 46, fontWeight: 300, marginTop: 10 }}>{v}</div>
+      {c.hypotheses && (
+        <Montee delai={70} style={{ marginTop: 52 }}>
+          {/* Une hypothèse tue se prend pour un fait : on l'affiche. */}
+          <div style={{ fontSize: 26, color: C.gris, fontWeight: 300 }}>
+            Hypothèses de financement : {c.hypotheses}
           </div>
-        ))}
-      </div>
-    </Montee>
-  );
-
-  return (
-    <Scene duree={duree}>
-      <div style={{ display: "flex", gap: 120, width: "100%", maxWidth: 1500 }}>
-        {gauche.length > 0 && <Colonne titre="Le bail" lignes={gauche} delai={8} />}
-        {droite.length > 0 && <Colonne titre="La ville" lignes={droite} delai={22} />}
-      </div>
+        </Montee>
+      )}
     </Scene>
   );
 }
@@ -505,11 +573,11 @@ function SceneFin({ duree }) {
         </svg>
       </Montee>
       <Montee delai={18} style={{ marginTop: 52, textAlign: "center" }}>
-        <div style={{ fontSize: 66, fontWeight: 300 }}>Présenté par Klocka</div>
+        <div style={{ fontSize: 66, fontWeight: 300 }}>Le dossier complet vous attend</div>
       </Montee>
       <Montee delai={32} style={{ marginTop: 30, textAlign: "center" }}>
         <div style={{ fontSize: 34, color: C.gris, fontWeight: 300 }}>
-          Votre conseiller vous accompagne sur ce dossier
+          Bail, copropriété, marché local et simulation — avec votre conseiller Klocka
         </div>
       </Montee>
     </Scene>
@@ -520,17 +588,38 @@ function SceneFin({ duree }) {
 // Composition : 5 séquences sur 900 frames.
 // ---------------------------------------------------------------------------
 
-export function VideoDeal(props) {
+/**
+ * Le montage, en un seul endroit : trois temps — la devanture, les chiffres,
+ * l'appel. Chaque scène n'apparaît que si elle a de quoi se remplir ; un teaser
+ * à trous serait pire que court.
+ *
+ * La durée de la composition en découle (voir dureeTotale) : calculée à part,
+ * elle finissait par ne plus correspondre au montage.
+ */
+export function construireScenes(props) {
   const d = props || {};
-  const scenes = [
-    // La plongée cartographique ouvre la vidéo quand le bien est géolocalisé.
-    ...(d.carte ? [{ duree: DUREE_CARTE, rendu: (n) => <SceneCarte carte={d.carte} duree={n} /> }] : []),
-    { duree: 120, rendu: (n) => <SceneOuverture d={d} duree={n} /> },
-    { duree: 210, rendu: (n) => <SceneBien d={d} duree={n} /> },
-    { duree: 240, rendu: (n) => <SceneChiffres d={d} duree={n} /> },
-    { duree: 210, rendu: (n) => <SceneBailVille d={d} duree={n} /> },
-    { duree: 120, rendu: (n) => <SceneFin duree={n} /> },
+  const ouverture = d.devanture
+    ? { duree: 240, rendu: (n) => <SceneDevanture d={d} duree={n} /> }
+    : d.carte
+      ? // Pas de façade disponible : la plongée cartographique situe le bien.
+        { duree: DUREE_CARTE, rendu: (n) => <SceneCarte carte={d.carte} duree={n} /> }
+      : { duree: 150, rendu: (n) => <SceneOuverture d={d} duree={n} /> };
+
+  return [
+    ouverture,
+    ...(d.cles ? [{ duree: 270, rendu: (n) => <SceneDonneesCles d={d} duree={n} /> }] : []),
+    // Sans chiffres, le bien parle de lui-même plutôt que de laisser un vide.
+    ...(d.cles ? [] : [{ duree: 210, rendu: (n) => <SceneBien d={d} duree={n} /> }]),
+    { duree: 90, rendu: (n) => <SceneFin duree={n} /> },
   ];
+}
+
+/** Durée exacte du montage, en frames. */
+export const dureeTotale = (props) =>
+  construireScenes(props).reduce((n, s) => n + s.duree, 0);
+
+export function VideoDeal(props) {
+  const scenes = construireScenes(props);
 
   let debut = 0;
   return (
@@ -570,5 +659,12 @@ export const propsExemple = {
     lon: -1.4768,
     zoom: 17,
     libelle: "12 Rue Port-Neuf 64100 Bayonne",
+  },
+  cles: {
+    prix_revient: 905000,
+    apport: 135750,
+    rentabilite: 5.6,
+    cashflow_mois: 310,
+    hypotheses: "apport 15 %, 3,7 % sur 20 ans",
   },
 };

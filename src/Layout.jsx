@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 import { useQuery } from "@tanstack/react-query";
 import { UserProvider, useUser } from "@/components/providers/UserProvider";
+import AssistantFlottant from "@/components/AssistantFlottant";
 
 const globalTooltipStyles = `
   [role="tooltip"],
@@ -387,6 +388,9 @@ function LayoutContent({ children, currentPageName }) {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* L'assistant suit l'admin de page en page. */}
+      {isAdmin && !hideNavbar && <AssistantFlottant />}
 
       {/* Barre d'onglets mobile */}
       {!hideNavbar && showClientView && <BottomTabs />}

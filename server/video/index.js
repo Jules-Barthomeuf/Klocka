@@ -1,4 +1,4 @@
-// Vidéo de présentation client (~30 s) rendue avec Remotion.
+// Teaser client (~20 s) rendu avec Remotion.
 //
 // Le rendu (bundle webpack + Chrome headless) prend une à quelques minutes :
 // il tourne en arrière-plan. Un registre en mémoire suit la progression ; le
@@ -6,13 +6,15 @@
 // survit donc à un redémarrage, seul l'état "en cours" est volatil.
 //
 // Même invariant que les rédacteurs LLM : la vidéo est construite depuis la
-// vue consolidée (vueRedacteur), et n'expose QUE des faits (bien, chiffres,
-// bail, ville) — jamais le verdict ni les réserves, internes à l'analyse.
+// vue consolidée (vueRedacteur) et les chiffres du moteur du simulateur. Elle
+// n'expose QUE des faits — jamais le verdict ni les réserves, internes à
+// l'analyse.
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { vueRedacteur } from '../deal/redact.js';
+import { indicateursCles } from './indicateurs.js';
 import { Meta } from '../db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -59,6 +61,36 @@ function obtenirBundle() {
   return bundlePromise;
 }
 
+// Photo de devanture : Street View sur l'adresse du bien. La vue est cadrée
+// depuis la rue, c'est bien la façade que voit un passant. Sans clé ou sans
+// couverture, la scène s'efface — jamais de rendu en échec pour une image.
+const CLE_MAPS = process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '';
+
+async function devantureStreetView({ lat, lon }) {
+  if (!CLE_MAPS || lat == null || lon == null) return null;
+  const position = `${lat},${lon}`;
+  try {
+    // Les métadonnées disent si une prise de vue existe, sans consommer de quota.
+    const meta = await fetch(
+      `https://maps.googleapis.com/maps/api/streetview/metadata?location=${position}&key=${CLE_MAPS}`
+    ).then((r) => r.json());
+    if (meta?.status !== 'OK') {
+      // REQUEST_DENIED = l'API Street View Static n'est pas activée sur la clé.
+      // Le teaser se rend sans façade, mais l'exploitant doit pouvoir le savoir.
+      if (meta?.status && meta.status !== 'ZERO_RESULTS') {
+        console.warn(`[video] devanture indisponible (${meta.status})${meta.error_message ? ` : ${meta.error_message}` : ''}`);
+      }
+      return null;
+    }
+    return (
+      `https://maps.googleapis.com/maps/api/streetview?size=1280x720&location=${position}` +
+      `&fov=75&pitch=8&source=outdoor&key=${CLE_MAPS}`
+    );
+  } catch {
+    return null;
+  }
+}
+
 /** Réduit un lot aux faits présentables au client. */
 export function proprietesVideo(lot) {
   const vue = vueRedacteur({ lot: lot.lot, enrichissement: lot.enrichissement, evaluation: lot.evaluation });
@@ -77,6 +109,8 @@ export function proprietesVideo(lot) {
     rendement: vue.finances.rendement_fai ?? vue.finances.rendement_annonce,
     population: vue.marche.population,
     typologie_ville: vue.marche.typologie_ville,
+    // Les quatre chiffres du teaser, issus du moteur du simulateur.
+    cles: indicateursCles(lot),
   };
 }
 
@@ -132,7 +166,10 @@ export function lancerVideoLot(dossier, lotIndex) {
     ]);
     const base = proprietesVideo(lot);
     const carte = await geocoderPourCarte(base);
-    const inputProps = carte ? { ...base, carte } : base;
+    // La devanture se cadre sur les coordonnées du géocodage : sans adresse
+    // précise, pas de façade — on ne montre pas la rue d'à côté.
+    const devanture = carte?.zoom >= 17 ? await devantureStreetView(carte) : null;
+    const inputProps = { ...base, ...(carte ? { carte } : {}), ...(devanture ? { devanture } : {}) };
     const composition = await selectComposition({ serveUrl, id: 'presentation-deal', inputProps });
     fs.mkdirSync(REPERTOIRE_VIDEOS, { recursive: true });
     const fichier = nomFichier(dossier.deal_id, lotIndex);

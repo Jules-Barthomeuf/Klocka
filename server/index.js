@@ -1389,6 +1389,27 @@ app.get('/api/monday/tableaux', wrap(async (req, res) => {
   });
 }));
 
+// L'assistant de commande : une phrase, une action.
+app.post('/api/assistant/commande', wrap(async (req, res) => {
+  const { messages } = req.body || {};
+  if (!Array.isArray(messages) || !messages.length) {
+    return res.status(400).json({ error: 'Message manquant' });
+  }
+  const { commander } = await import('./assistant-commande.js');
+  const r = await commander(messages.slice(-12), currentUser(req));
+  ok(res, r);
+}));
+
+// Pousser un projet de la plateforme dans Monday.
+app.post('/api/monday/projets/:id', wrap(async (req, res) => {
+  const projet = Records.get('Project', req.params.id);
+  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+  const { pousserProjet } = await import('./deal/monday-sync.js');
+  const r = await pousserProjet(projet, { motif: req.body?.motif });
+  if (r?.ignore) return res.status(400).json({ error: 'Monday non configuré' });
+  ok(res, r);
+}));
+
 // Pousser un dossier dans « Propriétés Klocka » sans attendre sa clôture.
 app.post('/api/monday/dossiers/:dealId', wrap(async (req, res) => {
   const dossier = obtenirDossier(req.params.dealId);

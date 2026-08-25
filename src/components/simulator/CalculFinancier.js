@@ -1,4 +1,4 @@
-import { calculerTVADeductible } from "./TVACalculator";
+import { calculerTVADeductible } from "./TVACalculator.js";
 
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;

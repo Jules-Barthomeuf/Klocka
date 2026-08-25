@@ -713,7 +713,7 @@ function authResultPage(res, { ok, title, detail }) {
     <div style="font-size:40px;margin-bottom:12px">${ok ? '✓' : '!'}</div>
     <h1 style="color:${color};font-size:20px;margin:0 0 12px">${title}</h1>
     <p style="color:#9ca3af;font-size:14px;line-height:1.6;margin:0 0 24px">${detail}</p>
-    <a href="/Mails" id="retour" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:14px">Retour à la page Mails</a>
+    <a href="/Dashboard" id="retour" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:14px">Retour au dashboard</a>
   </div>
   <script>
     // Ouverte en fenêtre surgissante : prévenir la page appelante et proposer
@@ -754,7 +754,7 @@ function popupConnectePage(res, { email }) {
 </body></html>`);
 }
 
-// Rattacher une boîte supplémentaire : même flux, retour sur la page Mails.
+// Rattacher une boîte supplémentaire : même flux, retour sur le dashboard.
 app.get('/api/mail/google/connect', (req, res) =>
   res.redirect('/api/auth/google/login?returnTo=%2FMails')
 );
@@ -1298,7 +1298,7 @@ app.get('/api/assistant/propositions', wrap(async (req, res) => {
   // Chacun ne voit que les boîtes qu'il a connectées.
   const comptes = listAccounts(user?.email).map((c) => c.id);
   ok(res, {
-    propositions: construirePropositions({ comptes }),
+    propositions: await construirePropositions({ comptes }),
     veille: etatVeille(),
   });
 }));
@@ -1367,6 +1367,38 @@ app.post('/api/assistant/tri-expediteur', wrap(async (req, res) => {
     }
   }
   ok(res, { ...r, retires });
+}));
+
+// Monday : découverte des tableaux et de leurs colonnes. Sans les identifiants
+// de colonnes, impossible d'écrire quoi que ce soit — chacune est adressée par
+// son id, pas par son titre.
+app.get('/api/monday/tableaux', wrap(async (req, res) => {
+  const { mondayConfigure, listerTableaux, TABLEAUX } = await import('./monday.js');
+  if (!mondayConfigure()) {
+    return ok(res, { configure: false, tableaux: [], vises: TABLEAUX });
+  }
+  const tableaux = await listerTableaux();
+  ok(res, {
+    configure: true,
+    vises: TABLEAUX,
+    tableaux: tableaux.map((t) => ({
+      id: t.id,
+      nom: t.name,
+      colonnes: (t.columns || []).map((c) => ({ id: c.id, titre: c.title, type: c.type })),
+    })),
+  });
+}));
+
+// Pousser un dossier dans « Propriétés Klocka » sans attendre sa clôture.
+app.post('/api/monday/dossiers/:dealId', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { pousserBien } = await import('./deal/monday-sync.js');
+  const r = await pousserBien(Records.filter('Deal', { deal_id: req.params.dealId })[0], {
+    motif: req.body?.motif,
+  });
+  if (r?.ignore) return res.status(400).json({ error: 'Monday non configuré' });
+  ok(res, r);
 }));
 
 // CRM : les agents des dossiers deviennent des fiches contact, sans saisie.
@@ -1603,6 +1635,6 @@ app.listen(PORT, () => {
     console.log(`      ${g.redirect_uri}`);
   }
   console.log(
-    `    Expéditeurs : ${accounts.length ? accounts.map((a) => a.email).join(', ') : 'aucun — connectez un compte depuis la page Mails'}\n`
+    `    Expéditeurs : ${accounts.length ? accounts.map((a) => a.email).join(', ') : 'aucun — connectez un compte depuis le dashboard'}\n`
   );
 });

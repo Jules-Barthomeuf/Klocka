@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import ComptesGoogle from "@/components/dashboard/ComptesGoogle";
 import { toast } from "sonner";
 import {
   Loader2, Mail, FolderPlus, Briefcase, RefreshCw, Clock, FileWarning, Inbox, MoonStar, Send, X,
@@ -143,7 +144,7 @@ export default function PlanDeTravail() {
       } else if (action.mode === "drive") {
         if (!compteDrive) {
           toast.error("Aucun compte Google avec l'accès Drive", {
-            description: "Connectez-en un depuis la page Mails.",
+            description: "Connectez un compte Google autorisant le Drive, ci-dessus.",
           });
         } else {
           const r = await base44.request("POST", `/api/preanalyse/dossiers/${proposition.deal_id}/drive`, {
@@ -227,6 +228,8 @@ export default function PlanDeTravail() {
         </p>
       )}
 
+      <ComptesGoogle />
+
       {calendrier?.actif && (
         <div className="mb-4 flex flex-wrap items-center gap-3 border border-[#242726] rounded-md px-4 py-3">
           <CalendarDays className="w-4 h-4 text-[#7fd3c9] flex-shrink-0" />
@@ -248,7 +251,7 @@ export default function PlanDeTravail() {
           <button
             onClick={() => synchroniserAgenda.mutate()}
             disabled={!compteAgenda || synchroniserAgenda.isPending}
-            title={compteAgenda ? undefined : "Aucun compte Google n'a autorisé l'agenda — reconnectez-le depuis la page Mails"}
+            title={compteAgenda ? undefined : "Aucun compte Google n'a autorisé l'agenda — reconnectez-le ci-dessus"}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#303332] text-[12px] text-[#d3d8d6] hover:text-[#edeae5] hover:border-[#565b59] disabled:opacity-50 transition-colors"
           >
             {synchroniserAgenda.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarDays className="w-3 h-3" />}

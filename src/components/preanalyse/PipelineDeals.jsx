@@ -61,7 +61,7 @@ export default function PipelineDeals() {
       <div className="text-center py-16">
         <Inbox className="w-10 h-10 text-[#8b9391]/40 mx-auto mb-4" />
         <p className="text-[#8b9391] text-sm">
-          Aucun deal en cours. Lancez « Nouveau deal » ou préanalysez un mail reçu depuis la page Mails.
+          Aucun deal en cours. Lancez « Nouveau deal » ou préanalysez un mail reçu depuis le dashboard.
         </p>
       </div>
     );

@@ -36,7 +36,7 @@ function compteDrive(email) {
   if (!account) throw new Error(`Compte Google non connecté : ${email}`);
   if (!account.peut_drive) {
     throw new Error(
-      `Le compte ${account.email} n'a pas autorisé l'accès Drive. Reconnectez-le depuis la page Mails (GOOGLE_DRIVE doit être actif).`
+      `Le compte ${account.email} n'a pas autorisé l'accès Drive. Reconnectez-le depuis le dashboard (GOOGLE_DRIVE doit être actif).`
     );
   }
   return account;

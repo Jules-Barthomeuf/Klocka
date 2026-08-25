@@ -40,6 +40,17 @@ async function avancerDealApresMail(dealId, intention, sujet, destinataire, user
   } else if (intention === 'refus' || intention === 'abandon') {
     // Un deal de test n'alimente jamais la base marché.
     if (!deal.test) for (const lot of deal.lots || []) alimenterBaseMarche(deal, lot, user);
+    // Le bien écarté entre dans la mémoire commerciale : Monday garde ce que
+    // Klocka a analysé puis refusé, motif compris. Jamais bloquant.
+    if (!deal.test) {
+      import('./deal/monday-sync.js')
+        .then(({ pousserBien }) =>
+          pousserBien(Records.filter('Deal', { deal_id: dealId })[0], {
+            motif: intention === 'refus' ? 'Refusé après préanalyse' : 'Abandonné après étude des documents',
+          })
+        )
+        .catch((e) => console.warn('[monday] mise à jour impossible :', e?.message || e));
+    }
     changerStatut(deal, 'abandonne', {
       user,
       note: intention === 'refus' ? 'Refusé après préanalyse' : 'Abandonné après étude des documents',

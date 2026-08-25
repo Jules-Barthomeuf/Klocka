@@ -21,7 +21,6 @@ import {
   UserPlus,
   Scale,
   Search,
-  Mail,
   Sparkles,
   Presentation,
   Menu,
@@ -261,7 +260,6 @@ function LayoutContent({ children, currentPageName }) {
                   {AFFICHER_DOUBLE_CHECK && (
                     <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   )}
-                  <NavItem to="/Mails" icon={Mail} label="Mails" isActive={isActivePage("Mails")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to="/AdminNotes" icon={FileText} label="Notes" isActive={isActivePage("AdminNotes")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("Familles")} icon={Users} label="Familles" isActive={isActivePage("Familles")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("AdminRessources")} icon={BookOpen} label="Ressources" isActive={isActivePage("AdminRessources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />

@@ -723,7 +723,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
       <p className="text-[#8b9391] text-xs mb-4">
         Déposez la fiche commerciale reçue de l'agent (ou collez le texte du mail) : extraction,
         vérification des citations, verdict et simulateur. Les mails reçus se préanalysent aussi en un
-        clic depuis la Boîte de réception de la page Mails.
+        clic depuis le plan de travail du dashboard.
       </p>
       <div className="grid md:grid-cols-2 gap-5">
         <div>
@@ -1099,7 +1099,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
         {!apercu && !compteDrive && (
           <p className="text-[#8b9391] text-xs">
             Aucun compte Google Drive connecté : la présentation restera un PPTX à télécharger. Connectez un
-            compte depuis la page Mails (accès Drive) pour obtenir directement un lien Google Slides modifiable.
+            compte depuis le dashboard (accès Drive) pour obtenir directement un lien Google Slides modifiable.
           </p>
         )}
       </div>

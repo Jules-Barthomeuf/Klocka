@@ -23,7 +23,7 @@ function compteAgenda(email) {
   if (!account) throw new Error(`Compte Google non connecté : ${email}`);
   if (!account.peut_agenda) {
     throw new Error(
-      `Le compte ${account.email} n'a pas autorisé l'agenda. Reconnectez-le depuis la page Mails (GOOGLE_CALENDAR doit être actif).`
+      `Le compte ${account.email} n'a pas autorisé l'agenda. Reconnectez-le depuis le dashboard (GOOGLE_CALENDAR doit être actif).`
     );
   }
   return account;

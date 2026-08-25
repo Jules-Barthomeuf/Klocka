@@ -280,16 +280,60 @@ function surDossierEnSommeil(deal) {
   ];
 }
 
+// Un dossier dépouillé peut être présenté : à qui ? Les investisseurs viennent
+// de Monday, qui en est la source — Klocka les lit, ne les tient pas.
+function surInvestisseurs(deal, rapprochements) {
+  const candidats = rapprochements.get(deal.deal_id);
+  if (!candidats?.length) return [];
+  return [
+    {
+      id: `investisseurs:${deal.deal_id}`,
+      famille: 'client',
+      type: 'clients_interesses',
+      priorite: P.COURANT,
+      titre: `${candidats.length} investisseur${candidats.length > 1 ? 's' : ''} pour ${titreDeal(deal)}`,
+      detail: candidats.map((c) => c.client.nom).join(', '),
+      deal_id: deal.deal_id,
+      contexte: candidats.map((c) => [c.client.nom, c.raisons.join(' · ')]),
+      actions: [
+        {
+          id: 'presenter',
+          libelle: 'Préparer la présentation client',
+          mode: 'mail',
+          intention: 'presentation_client',
+          principal: true,
+        },
+      ],
+    },
+  ];
+}
+
 /**
  * La pile de propositions, la plus urgente d'abord.
  * @param {object} [opts]
  * @param {string[]} [opts.comptes] - boîtes dont on regarde les mails
  * @returns {Array<object>}
  */
-export function construirePropositions({ comptes = null } = {}) {
+export async function construirePropositions({ comptes = null } = {}) {
   const deals = Records.list('Deal').filter((d) => !d.archived && !d.test);
   const tousMails = Records.list('MailRecu');
   const mails = comptes ? tousMails.filter((m) => comptes.includes(m.compte)) : tousMails;
+
+  // Rapprochements Monday, une seule fois pour toute la pile : l'API est
+  // limitée en débit, et la lecture est mise en cache côté module.
+  const rapprochements = new Map();
+  try {
+    const { mondayConfigure } = await import('../monday.js');
+    if (mondayConfigure()) {
+      const { investisseursPourDeal } = await import('./monday-sync.js');
+      for (const deal of deals.filter((d) => ['depouille', 'projet_cree'].includes(statutDe(d)))) {
+        rapprochements.set(deal.deal_id, await investisseursPourDeal(deal));
+      }
+    }
+  } catch (e) {
+    // Monday indisponible : la pile se construit sans les rapprochements.
+    console.warn('[monday] rapprochements indisponibles :', e?.message || e);
+  }
 
   const pile = [...surMailsOrphelins(mails)];
   for (const deal of deals) {
@@ -298,6 +342,7 @@ export function construirePropositions({ comptes = null } = {}) {
       ...surRelance(deal),
       ...surDocumentsManquants(deal),
       ...surProjetACreer(deal),
+      ...surInvestisseurs(deal, rapprochements),
       ...surDossierEnSommeil(deal)
     );
   }

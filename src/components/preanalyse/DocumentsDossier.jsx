@@ -309,7 +309,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
 
             {!compteDrive && (
               <p className="m-0 mb-4 text-[12.5px] text-[#e0c9a0] leading-[1.55]">
-                Aucun compte Google avec l'accès Drive : connectez-en un depuis la page Mails
+                Aucun compte Google avec l'accès Drive : connectez-en un depuis le dashboard
                 (GOOGLE_DRIVE doit être actif côté serveur).
               </p>
             )}

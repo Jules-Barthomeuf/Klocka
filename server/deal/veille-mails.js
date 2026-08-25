@@ -2,7 +2,7 @@
 //
 // Relève périodique de toutes les boîtes connectées, puis rattachement des
 // réponses au dossier concerné. Aujourd'hui la relève est déclenchée à la main
-// depuis la page Mails et `deal_id` reste nul jusqu'à ce qu'un humain clique :
+// à la main et `deal_id` restait nul jusqu'à ce qu'un humain clique :
 // l'assistant ne peut donc rien voir arriver. C'est ce que ce module corrige.
 //
 // Le rattachement est déterministe : l'adresse de l'expéditeur est comparée au

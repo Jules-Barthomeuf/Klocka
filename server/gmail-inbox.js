@@ -29,7 +29,7 @@ function compteLisible(email) {
   if (!account) throw new Error(`Compte Google non connecté : ${email}`);
   if (!account.peut_lire) {
     throw new Error(
-      `Le compte ${account.email} n'a pas autorisé la lecture de la boîte. Reconnectez-le depuis la page Mails (GOOGLE_GMAIL_READ doit être actif).`
+      `Le compte ${account.email} n'a pas autorisé la lecture de la boîte. Reconnectez-le depuis le dashboard (GOOGLE_GMAIL_READ doit être actif).`
     );
   }
   return account;

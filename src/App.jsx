@@ -23,7 +23,6 @@ import SimulateurPublic from '@/pages/SimulateurPublic';
 import ProjetPublic from '@/pages/ProjetPublic';
 import Recherche from '@/pages/Recherche';
 import Investisseurs from '@/pages/Investisseurs';
-import Mails from '@/pages/Mails';
 import AdminNotes from '@/pages/AdminNotes';
 import Analyse from '@/pages/Analyse';
 import AssistantExterne from '@/pages/AssistantExterne';
@@ -127,7 +126,6 @@ const AuthenticatedApp = () => {
       <Route path="/ProjetPublic" element={<ProjetPublic />} />
       <Route path="/Recherche" element={<LayoutWrapper currentPageName="Recherche"><Recherche /></LayoutWrapper>} />
       <Route path="/Investisseurs" element={<LayoutWrapper currentPageName="Investisseurs"><Investisseurs /></LayoutWrapper>} />
-      <Route path="/Mails" element={<LayoutWrapper currentPageName="Mails"><Mails /></LayoutWrapper>} />
       <Route path="/AdminNotes" element={<LayoutWrapper currentPageName="AdminNotes"><AdminNotes /></LayoutWrapper>} />
       <Route path="/Analyse" element={<LayoutWrapper currentPageName="Analyse"><Analyse /></LayoutWrapper>} />
       {/* Anciennes URL : Préanalyse est devenue Analyse ; l'onglet Documents d'Alexis a disparu. */}

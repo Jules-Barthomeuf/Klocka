@@ -271,7 +271,7 @@ export async function sendEmail({
       success: false,
       simulated: true,
       error:
-        "Aucun compte expéditeur : le mail n'a pas été envoyé. Connectez votre adresse Google depuis la page Mails.",
+        "Aucun compte expéditeur : le mail n'a pas été envoyé. Connectez votre adresse Google depuis le dashboard.",
     };
   }
 

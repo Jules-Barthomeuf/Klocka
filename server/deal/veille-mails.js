@@ -9,16 +9,23 @@
 // contact agent des dossiers ouverts. Aucun modèle n'intervient — un mail mal
 // rattaché coûterait plus cher que pas de rattachement du tout.
 
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { releverBoite } from '../gmail-inbox.js';
 import { gmailReadDemande } from '../google-oauth.js';
 import { statutDe, ajouterSuivi } from './lifecycle.js';
 import { synchroniserAgents } from './crm-sync.js';
+import { ingererEnAttente } from './pieces-mails.js';
 
 // Un dossier clos ne reçoit plus de réponse : inutile d'y rattacher un mail.
 const OUVERTS = ['analyse', 'documents_demandes', 'documents_recus', 'depouille'];
 
 const MINUTES = Math.max(1, Number(process.env.MAIL_VEILLE_MINUTES || 5));
+
+// La veille tourne sans requête HTTP : elle résout elle-même le dossier des
+// uploads, plutôt que de dépendre d'un paramètre transmis.
+const CHEMIN_UPLOADS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 
 let minuterie = null;
 let enCours = false;
@@ -75,7 +82,7 @@ export function rattacherMailsOrphelins() {
  * Relève toutes les boîtes connectées, puis rattache ce qui peut l'être.
  * Une boîte en erreur n'empêche pas les autres.
  */
-export async function relever() {
+export async function relever(uploadDir = null) {
   if (enCours) return dernier;
   enCours = true;
   const erreurs = [];
@@ -92,10 +99,20 @@ export async function relever() {
       }
     }
     const rattaches = rattacherMailsOrphelins();
+
+    // Les pièces jointes des réponses entrent dans leur dossier et partent au
+    // dépouillement : quand l'analyste ouvre le dossier, les données sont là.
+    let pieces = { mails: 0, documents: 0 };
+    const dossier = uploadDir || CHEMIN_UPLOADS;
+    if (dossier) {
+      pieces = await ingererEnAttente(dossier);
+      erreurs.push(...(pieces.erreurs || []));
+    }
+
     // Les agents entrent au CRM tout seuls : l'information est déjà sur les
     // dossiers, personne n'a à la ressaisir.
     const crm = synchroniserAgents();
-    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, crm, erreurs };
+    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, pieces, crm, erreurs };
   } finally {
     enCours = false;
   }

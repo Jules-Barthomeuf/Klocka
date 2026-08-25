@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import {
   Loader2, Mail, FolderPlus, Briefcase, RefreshCw, Clock, FileWarning, Inbox, MoonStar, Send, X,
-  CalendarDays, ExternalLink, ThumbsDown,
+  CalendarDays, ExternalLink, ThumbsDown, ChevronDown,
 } from "lucide-react";
 
 // Le plan de travail : ce que l'assistant propose de faire, maintenant.
@@ -36,6 +36,7 @@ export default function PlanDeTravail() {
   const queryClient = useQueryClient();
   const [brouillon, setBrouillon] = useState(null); // { deal_id, intention, objet, corps, destinataire }
   const [enCours, setEnCours] = useState(null); // id de l'action en cours
+  const [ouverte, setOuverte] = useState(null); // proposition dépliée
 
   const { data, isLoading } = useQuery({
     queryKey: ["assistant-propositions"],
@@ -91,6 +92,7 @@ export default function PlanDeTravail() {
         `${r.nouveaux || 0} mail(s) retenu(s)`,
         r.ecartes ? `${r.ecartes} sans rapport écarté(s)` : null,
         r.rattaches ? `${r.rattaches} rattaché(s) à un dossier` : null,
+        r.pieces?.documents ? `${r.pieces.documents} pièce(s) jointe(s) versée(s) au dossier` : null,
       ].filter(Boolean);
       toast.success("Boîtes relevées", { description: bouts.join(" · ") });
       if (r.erreurs?.length) toast.warning(r.erreurs[0]);
@@ -264,53 +266,94 @@ export default function PlanDeTravail() {
           Rien en attente. Les nouveaux mails et les relances dues apparaîtront ici.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 items-start [&>div[data-ouverte=true]]:md:col-span-2 [&>div[data-ouverte=true]]:xl:col-span-3">
           {propositions.map((p) => {
             const Icone = ICONES[p.type] || Inbox;
             const teinte = TEINTES[p.priorite] || TEINTES[3];
+            const estOuverte = ouverte === p.id;
             return (
               <div
                 key={p.id}
-                className={`flex flex-col h-full border ${teinte.bord} rounded-lg bg-[#0c0e0d] p-4 hover:bg-[#edeae5]/[0.02] transition-colors`}
+                data-ouverte={estOuverte}
+                className={`flex flex-col h-full border ${teinte.bord} rounded-lg bg-[#0c0e0d] transition-colors ${
+                  estOuverte ? "bg-[#edeae5]/[0.02]" : "hover:bg-[#edeae5]/[0.02]"
+                }`}
               >
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${teinte.pastille}`}>
-                    <Icone className="w-4 h-4" />
-                  </span>
-                  <span className={`text-[9.5px] tracking-[0.12em] uppercase px-2 py-0.5 rounded-full ${teinte.pastille}`}>
-                    {teinte.libelle}
-                  </span>
-                </div>
+                {/* La carte fermée dit la situation ; les actions se méritent
+                    d'un clic, pour ne pas transformer la pile en tableau de bord
+                    de boutons. */}
+                <button
+                  onClick={() => setOuverte(estOuverte ? null : p.id)}
+                  aria-expanded={estOuverte}
+                  className="text-left p-4 w-full"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${teinte.pastille}`}>
+                      <Icone className="w-4 h-4" />
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9.5px] tracking-[0.12em] uppercase px-2 py-0.5 rounded-full ${teinte.pastille}`}>
+                        {teinte.libelle}
+                      </span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-[#6b7270] transition-transform ${estOuverte ? "" : "-rotate-90"}`}
+                      />
+                    </div>
+                  </div>
 
-                <p className="m-0 text-[14.5px] text-[#edeae5] font-medium leading-snug">{p.titre}</p>
-                <p className="m-0 mt-1.5 text-[12.5px] text-[#9aa19e] leading-[1.6]">{p.detail}</p>
+                  <p className="m-0 text-[14.5px] text-[#edeae5] font-medium leading-snug">{p.titre}</p>
+                  <p className="m-0 mt-1.5 text-[12.5px] text-[#9aa19e] leading-[1.6]">{p.detail}</p>
 
-                {/* Les actions restent en bas, alignées d'une carte à l'autre. */}
-                <div className="flex flex-wrap items-center gap-2 mt-auto pt-4">
-                  {p.actions.map((a) => {
-                    const cle = `${p.id}:${a.id}`;
-                    const occupe = enCours === cle;
-                    return (
-                      <button
-                        key={a.id}
-                        onClick={() => executer(p, a)}
-                        disabled={!!enCours}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] transition-colors disabled:opacity-50
-                          ${a.principal
-                            ? "bg-[#edeae5] text-[#0c0e0d] font-medium hover:bg-[#d8d5d0]"
-                            : "border border-[#303332] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59]"}`}
-                      >
-                        {occupe && <Loader2 className="w-3 h-3 animate-spin" />}
-                        {a.mode === "mail" && !occupe && <Mail className="w-3 h-3" />}
-                        {a.mode === "drive" && !occupe && <FolderPlus className="w-3 h-3" />}
-                        {a.mode === "projet" && !occupe && <Briefcase className="w-3 h-3" />}
-                        {a.mode === "tri" && !occupe && <ThumbsDown className="w-3 h-3" />}
-                        {a.mode === "externe" && !occupe && <ExternalLink className="w-3 h-3" />}
-                        {a.libelle}
-                      </button>
-                    );
-                  })}
-                </div>
+                  {!estOuverte && (
+                    <p className="m-0 mt-3 text-[11.5px] text-[#6b7270]">
+                      {p.actions.length} action{p.actions.length > 1 ? "s" : ""} proposée
+                      {p.actions.length > 1 ? "s" : ""}
+                    </p>
+                  )}
+                </button>
+
+                {estOuverte && (
+                  <div className="px-4 pb-4 -mt-1">
+                    {/* Sur quoi la proposition se fonde : elle doit pouvoir se
+                        discuter, pas seulement s'exécuter. */}
+                    {p.contexte?.length > 0 && (
+                      <dl className="m-0 mb-4 border-t border-[#242726] pt-3 space-y-1.5">
+                        {p.contexte.map(([cle, valeur]) => (
+                          <div key={cle} className="flex gap-3 text-[12px]">
+                            <dt className="text-[#6b7270] w-[120px] flex-shrink-0">{cle}</dt>
+                            <dd className="m-0 text-[#d3d8d6] min-w-0 break-words">{valeur}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {p.actions.map((a) => {
+                        const cle = `${p.id}:${a.id}`;
+                        const occupe = enCours === cle;
+                        return (
+                          <button
+                            key={a.id}
+                            onClick={() => executer(p, a)}
+                            disabled={!!enCours}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] transition-colors disabled:opacity-50
+                              ${a.principal
+                                ? "bg-[#edeae5] text-[#0c0e0d] font-medium hover:bg-[#d8d5d0]"
+                                : "border border-[#303332] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59]"}`}
+                          >
+                            {occupe && <Loader2 className="w-3 h-3 animate-spin" />}
+                            {a.mode === "mail" && !occupe && <Mail className="w-3 h-3" />}
+                            {a.mode === "drive" && !occupe && <FolderPlus className="w-3 h-3" />}
+                            {a.mode === "projet" && !occupe && <Briefcase className="w-3 h-3" />}
+                            {a.mode === "tri" && !occupe && <ThumbsDown className="w-3 h-3" />}
+                            {a.mode === "externe" && !occupe && <ExternalLink className="w-3 h-3" />}
+                            {a.libelle}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

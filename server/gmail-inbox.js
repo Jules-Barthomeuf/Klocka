@@ -38,10 +38,19 @@ function compteLisible(email) {
 const entete = (payload, nom) =>
   (payload?.headers || []).find((h) => h.name?.toLowerCase() === nom)?.value || '';
 
-// Les noms de pièces jointes vivent dans l'arbre MIME, à plat ou imbriqués.
+// Les pièces jointes vivent dans l'arbre MIME, à plat ou imbriquées. On garde
+// leur identifiant : c'est lui qui permettra de télécharger le fichier sans
+// recharger tout le message.
 function nomsPiecesJointes(payload, acc = []) {
   for (const part of payload?.parts || []) {
-    if (part.filename) acc.push({ nom: part.filename, mime: part.mimeType || null, taille: part.body?.size || null });
+    if (part.filename) {
+      acc.push({
+        nom: part.filename,
+        mime: part.mimeType || null,
+        taille: part.body?.size || null,
+        piece_id: part.body?.attachmentId || null,
+      });
+    }
     if (part.parts) nomsPiecesJointes(part, acc);
   }
   return acc;
@@ -119,6 +128,19 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
   }
 
   return { nouveaux, ecartes, total: ids.length };
+}
+
+/**
+ * Télécharge une pièce jointe d'un message.
+ * @returns {Buffer}
+ */
+export async function telechargerPieceJointe(compteEmail, messageId, pieceId) {
+  const account = compteLisible(compteEmail);
+  const token = await accessTokenFor(account);
+  const data = await gmailGet(token, `/messages/${messageId}/attachments/${pieceId}`);
+  if (!data?.data) throw new Error('Pièce jointe vide');
+  // Gmail renvoie du base64url.
+  return Buffer.from(String(data.data).replace(/-/g, '+').replace(/_/g, '/'), 'base64');
 }
 
 /** Liste les mails relevés d'un compte, du plus récent au plus ancien. */

@@ -41,6 +41,9 @@ const lienGmail = (mail) =>
     ? `https://mail.google.com/mail/u/${encodeURIComponent(mail.compte || 0)}/#all/${mail.gmail_message_id}`
     : 'https://mail.google.com/mail/';
 
+const villeDuLot = (deal) =>
+  deal.lots?.[0]?.enrichissement?.commune?.nom || deal.lots?.[0]?.lot?.adresse?.valeur?.ville || '';
+
 const titreDeal = (deal) =>
   deal.nom || deal.lots?.[0]?.synthese?.titre || deal.source?.nom_fichier || deal.deal_id;
 
@@ -85,6 +88,14 @@ function surMailsOrphelins(mails) {
           .filter(Boolean)
           .join(' · '),
         mail_id: m.id,
+        contexte: [
+          ['Expéditeur', m.de || m.de_email],
+          ['Objet', m.objet || '(sans objet)'],
+          ['Reçu le', m.date ? leJour(m.date) : '—'],
+          ['Pièces jointes', pieces.length ? pieces.map((p) => p.nom).join(', ') : 'aucune'],
+          ['Retenu parce que', m.retenu_parce_que || '—'],
+          m.juge_par_ia ? ['Lecture', 'le contenu du mail a été lu pour trancher'] : null,
+        ].filter(Boolean),
         actions: [
           { id: 'preanalyser', libelle: 'Lancer la pré-analyse', mode: 'preanalyser', principal: true },
           { id: 'gmail', libelle: 'Ouvrir dans Gmail', mode: 'externe', href: lienGmail(m) },
@@ -104,6 +115,7 @@ function surReponsesRecues(deal, mails) {
   if (!recus.length) return [];
   const avecPieces = recus.filter((m) => (m.pieces_jointes || []).length);
   const m = avecPieces[0] || recus[0];
+  const deposes = recus.flatMap((x) => x.pieces_deposees || []);
   return [
     {
       id: `reponse:${m.id}`,
@@ -112,14 +124,26 @@ function surReponsesRecues(deal, mails) {
       titre: `Réponse de l'agent — ${titreDeal(deal)}`,
       detail: [
         m.objet ? `« ${m.objet} »` : null,
-        avecPieces.length
-          ? `${avecPieces.reduce((n, x) => n + x.pieces_jointes.length, 0)} pièce(s) jointe(s) à récupérer`
-          : 'Sans pièce jointe',
+        // Les pièces sont déjà au dossier : la carte le dit, sinon l'analyste
+        // irait les chercher pour rien.
+        deposes.length
+          ? `${deposes.length} document(s) déjà versé(s) au dossier et en cours de dépouillement`
+          : avecPieces.length
+            ? `${avecPieces.reduce((n, x) => n + x.pieces_jointes.length, 0)} pièce(s) jointe(s)`
+            : 'Sans pièce jointe',
       ]
         .filter(Boolean)
         .join(' · '),
       deal_id: deal.deal_id,
       mail_id: m.id,
+      contexte: [
+        ['Expéditeur', m.de || m.de_email],
+        ['Objet', m.objet || '(sans objet)'],
+        ['Reçu le', m.date ? leJour(m.date) : '—'],
+        ['Pièces jointes', (m.pieces_jointes || []).map((p) => p.nom).join(', ') || 'aucune'],
+        ['Versées au dossier', deposes.length ? deposes.join(', ') : 'aucune'],
+        ['Statut du dossier', deal.statut || '—'],
+      ],
       actions: [
         { id: 'ouvrir', libelle: 'Ouvrir le dossier', mode: 'lien', href: `/Analyse?deal_id=${deal.deal_id}`, principal: true },
         { id: 'gmail', libelle: 'Ouvrir dans Gmail', mode: 'externe', href: lienGmail(m) },
@@ -161,6 +185,13 @@ function surDocumentsManquants(deal) {
       titre: `Documents manquants — ${titreDeal(deal)}`,
       detail: `Il manque ${manquants.map((m) => m.libelle).join(', ')}.`,
       deal_id: deal.deal_id,
+      contexte: [
+        ['Manquant', manquants.map((m) => m.libelle).join(', ')],
+        ['Déjà au dossier', [...typesPresents(deal)].join(', ') || 'aucun document'],
+        ['Contact agent', deal.contact_agent_email || 'inconnu — à renseigner avant l\'envoi'],
+        ['Statut', statut],
+        ['Dossier Drive', deal.drive_folder_url ? 'créé' : 'pas encore créé'],
+      ],
       actions,
     },
   ];
@@ -184,6 +215,12 @@ function surRelance(deal) {
         .filter(Boolean)
         .join(' · '),
       deal_id: deal.deal_id,
+      contexte: [
+        ['Contact agent', deal.contact_agent_email || 'inconnu'],
+        ['Relance prévue le', leJour(deal.relance_prevue_le)],
+        ['Retard', attente > 0 ? `${attente} jour(s)` : 'échue aujourd\'hui'],
+        ['Dernier événement', (deal.suivi || []).slice(-1)[0]?.detail || '—'],
+      ],
       actions: [
         { id: 'relancer', libelle: 'Préparer la relance', mode: 'mail', intention: 'relance', principal: true },
         { id: 'ouvrir', libelle: 'Ouvrir le dossier', mode: 'lien', href: `/Analyse?deal_id=${deal.deal_id}` },
@@ -203,6 +240,11 @@ function surProjetACreer(deal) {
       titre: `Entrer le deal dans la plateforme — ${titreDeal(deal)}`,
       detail: 'Les documents sont dépouillés : le projet peut être créé pré-rempli.',
       deal_id: deal.deal_id,
+      contexte: [
+        ['Documents dépouillés', `${(deal.extractions || []).length}`],
+        ['Données relevées', `${(deal.extractions || []).reduce((n, e) => n + (e.lignes || []).filter((l) => l.constat).length, 0)}`],
+        ['Ville', villeDuLot(deal) || '—'],
+      ],
       actions: [
         { id: 'projet', libelle: 'Créer le projet', mode: 'projet', principal: true },
         { id: 'ouvrir', libelle: 'Ouvrir le dossier', mode: 'lien', href: `/Analyse?deal_id=${deal.deal_id}` },
@@ -225,6 +267,11 @@ function surDossierEnSommeil(deal) {
       titre: `Sans activité depuis ${age} jours — ${titreDeal(deal)}`,
       detail: 'À reprendre ou à abandonner explicitement, pour que la pile reste honnête.',
       deal_id: deal.deal_id,
+      contexte: [
+        ['Sans activité depuis', `${age} jours`],
+        ['Statut', statut],
+        ['Dernier événement', (deal.suivi || []).slice(-1)[0]?.detail || '—'],
+      ],
       actions: [
         { id: 'ouvrir', libelle: 'Ouvrir le dossier', mode: 'lien', href: `/Analyse?deal_id=${deal.deal_id}`, principal: true },
         { id: 'abandon', libelle: "Préparer un mot d'abandon", mode: 'mail', intention: 'abandon' },

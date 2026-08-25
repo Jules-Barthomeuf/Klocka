@@ -231,6 +231,29 @@ export async function converser(dealId, { message, mode = 'question', documents 
   return { ok: true, conversation: conv };
 }
 
+/**
+ * Question ponctuelle sur les pièces d'un dossier.
+ *
+ * Même moteur que le chat du dossier, mais sans rien persister : l'assistant
+ * pose une question de passage, il n'ouvre pas une conversation dans le dossier.
+ * Sans document précisé, toutes les pièces sont chargées.
+ */
+export async function questionnerDocuments(dealId, { question, documents = null, uploadDir } = {}) {
+  const brut = brutDe(dealId);
+  if (!brut) return { ok: false, error: 'Dossier introuvable' };
+
+  const ids = documents?.length ? documents : (brut.documents_espace || []).map((d) => d.id);
+  if (!ids.length) return { ok: false, error: 'Aucun document au dossier' };
+
+  const pieces = chargerPieces(brut, ids, uploadDir);
+  const reponse = await chatDocuments({
+    system: consigne(brut, 'question', pieces),
+    messages: [{ role: 'user', contenu: question }],
+    documents: pieces,
+  });
+  return { ok: true, reponse, documents_lus: pieces.length };
+}
+
 export function supprimerConversation(dealId, conversationId) {
   const brut = brutDe(dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };

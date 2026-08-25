@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 import { Records } from './db.js';
 import { runAgent } from './llm.js';
 import { statutDe } from './deal/lifecycle.js';
+import { journaliser } from './assistant-journal.js';
 
 const UPLOAD_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'uploads');
 
@@ -171,6 +172,46 @@ const OUTILS = [
       properties: { deal_id: { type: 'string' } },
       required: ['deal_id'],
     },
+  },
+  {
+    name: 'interroger_documents',
+    description:
+      "Pose une question sur le contenu des documents d'un dossier — bail, PV d'assemblée générale, règlement de copropriété, quittances, diagnostics. Le modèle lit les pièces elles-mêmes. À utiliser pour « que dit le bail sur … », « le PV parle-t-il de … ».",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_id: { type: 'string' },
+        question: { type: 'string', description: 'La question, telle qu\'on la poserait à un juriste' },
+      },
+      required: ['deal_id', 'question'],
+    },
+  },
+  {
+    name: 'envoyer_mail',
+    description:
+      "Envoie un mail déjà rédigé. À n'appeler QUE si l'analyste a explicitement demandé l'envoi après avoir vu le texte. Sans cet accord, propose le brouillon et arrête-toi là.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_id: { type: 'string' },
+        destinataire: { type: 'string' },
+        objet: { type: 'string' },
+        corps: { type: 'string' },
+        intention: { type: 'string' },
+      },
+      required: ['destinataire', 'objet', 'corps'],
+    },
+  },
+  {
+    name: 'annuler_derniere_action',
+    description:
+      "Défait la dernière action réversible : élément Monday créé, fiche agent créée, dossier Drive créé. Une mise à jour ou un envoi ne se défont pas — l'outil le dit alors franchement.",
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'historique_actions',
+    description: "Ce que l'assistant a réellement exécuté récemment, et par qui.",
+    input_schema: { type: 'object', properties: {} },
   },
   {
     name: 'plan_du_jour',
@@ -332,6 +373,67 @@ async function executerOutil({ name, input }, user) {
     return { ok: true, agent: deal.contact_agent_email, cree: r.cree };
   }
 
+  if (name === 'interroger_documents') {
+    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    if (!deal) return { erreur: 'Dossier introuvable' };
+    const { questionnerDocuments } = await import('./deal/espace.js');
+    const r = await questionnerDocuments(input.deal_id, { question: input.question, uploadDir: UPLOAD_DIR });
+    if (!r.ok) return { erreur: r.error };
+    return { titre: titreDeal(deal), documents_lus: r.documents_lus, reponse: r.reponse };
+  }
+
+  if (name === 'envoyer_mail') {
+    const { callFunction } = await import('./functions.js');
+    const r = await callFunction(
+      'sendMail',
+      {
+        to: input.destinataire,
+        subject: input.objet,
+        body: input.corps,
+        ...(input.deal_id ? { deal_id: input.deal_id } : {}),
+        ...(input.intention ? { intention: input.intention } : {}),
+      },
+      { user }
+    );
+    if (r?.error) return { erreur: r.error };
+    return {
+      ok: true,
+      envoye: !r?.simulated,
+      simule: !!r?.simulated,
+      destinataire: input.destinataire,
+      objet: input.objet,
+    };
+  }
+
+  if (name === 'annuler_derniere_action') {
+    const { derniereAnnulable, annuler, dernieresActions } = await import('./assistant-journal.js');
+    const cible = derniereAnnulable(user?.email);
+    if (!cible) {
+      const recentes = dernieresActions(3, user?.email);
+      return {
+        ok: false,
+        message: recentes.length
+          ? `Rien d'annulable. Dernière action : ${recentes[0].outil}${recentes[0].effet_annulation ? '' : ' — sans retour'}.`
+          : "Aucune action exécutée récemment.",
+      };
+    }
+    return annuler(cible);
+  }
+
+  if (name === 'historique_actions') {
+    const { dernieresActions } = await import('./assistant-journal.js');
+    return {
+      actions: dernieresActions(8).map((a) => ({
+        outil: a.outil,
+        le: a.le,
+        par: a.par,
+        sur: a.resultat?.titre || a.deal_id || a.projet_id || null,
+        annulable: a.annulable && !a.annulee,
+        annulee: !!a.annulee,
+      })),
+    };
+  }
+
   if (name === 'plan_du_jour') {
     const { construirePropositions } = await import('./deal/propositions.js');
     const pile = await construirePropositions({});
@@ -368,7 +470,7 @@ async function executerOutil({ name, input }, user) {
       .map((d) => ({ nom: d.nom, chemin: d.url }));
     const r = await classerDansDrive(compte, titre, fichiers, UPLOAD_DIR);
     Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
-    return { ok: true, titre, url: r.folder_url, chemin: r.chemin, fichiers_classes: r.envoyes.length };
+    return { ok: true, cree: true, titre, url: r.folder_url, chemin: r.chemin, compte, fichiers_classes: r.envoyes.length };
   }
 
   if (name === 'etat_dossier') {
@@ -492,7 +594,7 @@ Tu exécutes des demandes courtes portant sur les dossiers de préanalyse et les
 
 Tu sais : renseigner sur un dossier ou un projet, rejouer leur simulation financière avec d'autres hypothèses, rédiger un brouillon de mail à l'agent, lancer l'extraction des documents, dire ce que Klocka sait d'une ville, donner le plan du jour, envoyer un dossier ou un projet dans Monday, créer leur dossier Google Drive.
 
-Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque.
+Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque, lire ses documents pour répondre à une question précise, envoyer un mail une fois qu'on te l'a demandé, et annuler ta dernière action.
 
 Pour tout le reste — droit des baux commerciaux, financement, fiscalité, méthode d'analyse — réponds directement, sans outil, en restant bref et en disant franchement quand tu ne sais pas.
 
@@ -505,17 +607,31 @@ RÈGLES :
 6. N'invente jamais un chiffre sur un bien : si tu ne l'as pas reçu d'un outil, dis que tu ne l'as pas. Et n'invente pas non plus d'explication à une donnée absente — dis simplement qu'elle n'est pas au dossier.
 7. Une simulation se rend avec ses hypothèses : dis toujours sur quel apport, quel taux et quelle durée elle repose.
 8. Un brouillon de mail n'est pas un envoi. Annonce-le comme une proposition à relire, jamais comme un message parti.
-9. Dès qu'on te parle d'un dossier ou d'un projet précis, vérifie-le avant de répondre. Dis ce que tu as constaté, puis propose ce qui manque — une proposition à la fois, en commençant par la plus utile, et attends la réponse avant d'agir. Ne propose pas ce qui n'a pas d'outil : signale-le comme à faire à la main.`;
+9. Un mail ne part jamais sans accord explicite : propose le texte, attends « envoie », alors seulement envoie.
+10. « Annule » défait la dernière action réversible. Si elle ne l'est pas, dis-le sans détour au lieu de faire semblant.
+11. Dès qu'on te parle d'un dossier ou d'un projet précis, vérifie-le avant de répondre. Dis ce que tu as constaté, puis propose ce qui manque — une proposition à la fois, en commençant par la plus utile, et attends la réponse avant d'agir. Ne propose pas ce qui n'a pas d'outil : signale-le comme à faire à la main.`;
+
+// L'écran que l'utilisateur a sous les yeux : « mets-le dans Monday » doit
+// suffire quand le dossier est déjà ouvert devant lui.
+function consigneContexte(contexte) {
+  if (!contexte?.deal_id && !contexte?.projet_id) return '';
+  const quoi = contexte.deal_id
+    ? `le dossier ${contexte.deal_id}`
+    : `le projet ${contexte.projet_id}`;
+  return `\n\nL'utilisateur regarde en ce moment ${quoi}${contexte.titre ? ` (« ${contexte.titre} »)` : ''}. Quand il dit « ce dossier », « ce projet », « le mettre dans Monday » sans autre précision, c'est de celui-là qu'il parle : utilise directement cet identifiant, sans chercher.`;
+}
 
 /**
  * Traite une demande en langage naturel.
  * @param {Array<{role, contenu}>} historique
+ * @param {object} user
+ * @param {{deal_id?, projet_id?, titre?}} [contexte] - l'écran ouvert
  * @returns {Promise<{ texte: string, actions: Array }>}
  */
-export async function commander(historique, user) {
+export async function commander(historique, user, contexte = null) {
   const actions = [];
   const { text } = await runAgent({
-    system: CONSIGNE,
+    system: CONSIGNE + consigneContexte(contexte),
     messages: historique.map((m) => ({ role: m.role, content: m.contenu })),
     tools: OUTILS,
     onTool: async (appel) => {
@@ -524,8 +640,21 @@ export async function commander(historique, user) {
       // n'est pas une preuve d'action.
       const agissant =
         appel.name.startsWith('pousser') ||
-        ['creer_drive_dossier', 'extraire_documents', 'preparer_mail', 'creer_agent_monday'].includes(appel.name);
-      if (agissant && resultat?.ok) actions.push({ ...appel, resultat });
+        ['creer_drive_dossier', 'extraire_documents', 'preparer_mail', 'creer_agent_monday', 'envoyer_mail'].includes(
+          appel.name
+        );
+      if (agissant && resultat?.ok) {
+        actions.push({ ...appel, resultat });
+        // Une action qui touche un système extérieur laisse une trace : qui l'a
+        // demandée, ce qui a réellement été exécuté, et si elle se défait.
+        if (appel.name !== 'preparer_mail') {
+          try {
+            journaliser({ outil: appel.name, args: appel.input, resultat, user });
+          } catch (e) {
+            console.warn('[assistant] journalisation impossible :', e?.message || e);
+          }
+        }
+      }
       return resultat;
     },
   });

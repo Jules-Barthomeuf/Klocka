@@ -537,7 +537,9 @@ const nettoyer = (entity, data) =>
 const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
 // Outils internes : pipeline de deals, boîte mail, CRM, base marché. Les pages
 // qui les consomment sont toutes réservées aux admins.
-const ENTITES_ADMIN = new Set(['Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail']);
+const ENTITES_ADMIN = new Set([
+  'Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail', 'AssistantAction',
+]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
 // avoir répondu 403.
@@ -1391,13 +1393,30 @@ app.get('/api/monday/tableaux', wrap(async (req, res) => {
 
 // L'assistant de commande : une phrase, une action.
 app.post('/api/assistant/commande', wrap(async (req, res) => {
-  const { messages } = req.body || {};
+  const { messages, contexte } = req.body || {};
   if (!Array.isArray(messages) || !messages.length) {
     return res.status(400).json({ error: 'Message manquant' });
   }
+  const user = currentUser(req);
   const { commander } = await import('./assistant-commande.js');
-  const r = await commander(messages.slice(-12), currentUser(req));
+  const r = await commander(messages.slice(-12), user, contexte);
+
+  // Le fil survit au rechargement : il vit en base, pas dans l'onglet.
+  const { enregistrerFil } = await import('./assistant-fil.js');
+  enregistrerFil(user, [...messages, { role: 'assistant', contenu: r.texte }]);
   ok(res, r);
+}));
+
+// Le fil de conversation de l'utilisateur, tel qu'il l'a laissé.
+app.get('/api/assistant/fil', wrap(async (req, res) => {
+  const { lireFil } = await import('./assistant-fil.js');
+  ok(res, { messages: lireFil(currentUser(req)) });
+}));
+
+app.delete('/api/assistant/fil', wrap(async (req, res) => {
+  const { effacerFil } = await import('./assistant-fil.js');
+  effacerFil(currentUser(req));
+  ok(res, { efface: true });
 }));
 
 // Pousser un projet de la plateforme dans Monday.

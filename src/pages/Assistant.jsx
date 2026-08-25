@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ChevronLeft, ChevronRight, Search, FileText, ClipboardCheck, Calculator,
   Mail, ScanText, MapPin, ListTodo, Upload, FolderPlus, UserPlus, MessageCircleQuestion,
+  BookOpen, Undo2, History,
 } from "lucide-react";
 
 // La page Assistant : ce qu'il sait faire, une compétence par vue.
@@ -47,9 +48,17 @@ const COMPETENCES = [
     id: "mail",
     icone: Mail,
     titre: "Rédiger un mail à l'agent",
-    quoi: "Cinq intentions du cycle : demande de documents, relance, refus, abandon, présentation client. Le rédacteur ne voit jamais le verdict ni la grille d'analyse.",
+    quoi: "Cinq intentions du cycle : demande de documents, relance, refus, abandon, présentation client. Le brouillon s'affiche dans le panneau, modifiable — destinataire, objet, corps — et part d'un bouton. Le rédacteur ne voit jamais le verdict ni la grille d'analyse.",
     exemples: ["Prépare la relance de l'agent sur Mitry-Mory", "Rédige la demande de documents pour ce dossier"],
-    limite: "Un brouillon n'est pas un envoi. Rien ne part sans votre relecture.",
+    limite: "Rien ne part sans que vous ayez lu le texte et cliqué. Un envoi ne se rattrape pas.",
+  },
+  {
+    id: "documents",
+    icone: BookOpen,
+    titre: "Lire les documents du dossier",
+    quoi: "Il ouvre les pièces elles-mêmes — bail, PV d'assemblée générale, règlement de copropriété, quittances, diagnostics — et répond sur leur contenu.",
+    exemples: ["Que dit le bail sur les charges ?", "Le PV d'AG parle-t-il de travaux ?"],
+    limite: "Il lit ce qui est au dossier. Une pièce absente reste absente : il le dit plutôt que de supposer.",
   },
   {
     id: "extraire",
@@ -100,6 +109,22 @@ const COMPETENCES = [
     limite: "Une fiche existante n'est jamais dupliquée : la recherche se fait sur l'adresse mail.",
   },
   {
+    id: "annuler",
+    icone: Undo2,
+    titre: "Annuler la dernière action",
+    quoi: "Un élément Monday créé par erreur, une fiche agent en double, un dossier Drive de trop : il défait. Le Drive part à la corbeille, pas à la destruction.",
+    exemples: ["Annule", "Annule ce que tu viens de faire"],
+    limite: "Une mise à jour et un envoi ne se défont pas — il le dit franchement au lieu de faire semblant.",
+  },
+  {
+    id: "historique",
+    icone: History,
+    titre: "Rendre compte de ce qu'il a fait",
+    quoi: "Chaque action qui touche Monday, le Drive ou un envoi laisse une trace : qui l'a demandée, ce qui a réellement été exécuté, et si elle se défait encore.",
+    exemples: ["Qu'est-ce que tu as fait récemment ?"],
+    limite: "Le texte de l'assistant n'est jamais la preuve d'une action : seule la trace l'est.",
+  },
+  {
     id: "questions",
     icone: MessageCircleQuestion,
     titre: "Répondre aux questions de fond",
@@ -124,7 +149,9 @@ export default function Assistant() {
         <p className="mt-3 mb-0 max-w-[64ch] text-[13.5px] leading-[1.7] text-[#9aa19e]">
           La barre en bas à droite est toujours là : on lui écrit comme on parlerait à un collègue.
           Il cherche, vérifie, calcule, rédige et range — mais il ne décide jamais à votre place, et
-          rien ne part vers l'extérieur sans que vous l'ayez relu.
+          rien ne part vers l'extérieur sans que vous l'ayez relu. Il sait sur quel dossier vous êtes :
+          « mets-le dans Monday » suffit quand il est ouvert devant vous. Et la conversation survit au
+          rechargement de la page.
         </p>
 
         {/* Le carrousel : une compétence à la fois, pour qu'on la lise vraiment. */}

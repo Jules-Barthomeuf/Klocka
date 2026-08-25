@@ -129,6 +129,21 @@ export async function assurerDossierProjets(token) {
   return { dossier, driveId: null, chemin: DOSSIER_RACINE };
 }
 
+/**
+ * Met un fichier ou un dossier à la corbeille.
+ * Sert à annuler une création : la corbeille se récupère, la suppression non.
+ * @param {string} compteEmail - le compte qui a créé le dossier
+ */
+export async function corbeille(compteEmail, fileId) {
+  const account = compteDrive(compteEmail);
+  const token = await accessTokenFor(account);
+  return driveFetch(token, `${DRIVE_API}/files/${encodeURIComponent(fileId)}?supportsAllDrives=true`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trashed: true }),
+  });
+}
+
 /** Upload multipart d'un fichier binaire dans un dossier Drive. */
 export async function uploaderFichier(token, { nom, buffer, mime, parentId }) {
   const boundary = `klocka${Date.now()}`;

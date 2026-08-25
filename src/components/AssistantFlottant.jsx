@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -76,13 +77,39 @@ function Frappe() {
   );
 }
 
+// Ce que l'utilisateur a sous les yeux, déduit de l'URL. « Mets-le dans
+// Monday » doit suffire quand le dossier est déjà ouvert devant lui.
+function useContextePage() {
+  const { pathname } = useLocation();
+  const [params] = useSearchParams();
+  if (pathname.startsWith("/Analyse") && params.get("deal_id")) {
+    return { deal_id: params.get("deal_id") };
+  }
+  if (pathname.startsWith("/AdminProjets") && params.get("id")) {
+    return { projet_id: params.get("id") };
+  }
+  return null;
+}
+
 export default function AssistantFlottant() {
   const [ouvert, setOuvert] = useState(false);
   const [texte, setTexte] = useState("");
   const [messages, setMessages] = useState([]);
   const [frappe, setFrappe] = useState(false);
+  const [brouillon, setBrouillon] = useState(null);
   const finRef = useRef(null);
   const champRef = useRef(null);
+  const contexte = useContextePage();
+
+  // Le fil survit au rechargement : il vit en base, pas dans l'onglet.
+  useEffect(() => {
+    let vivant = true;
+    base44
+      .request("GET", "/api/assistant/fil")
+      .then((r) => { if (vivant && r?.messages?.length) setMessages(r.messages); })
+      .catch(() => {});
+    return () => { vivant = false; };
+  }, []);
 
   // Le fil colle au dernier message, indicateur de frappe compris.
   useEffect(() => {
@@ -94,7 +121,7 @@ export default function AssistantFlottant() {
       // La réponse ne s'affiche pas avant que l'indicateur ait eu le temps
       // d'exister : sans cela, une réponse rapide donne un à-coup.
       const [r] = await Promise.all([
-        base44.request("POST", "/api/assistant/commande", { body: { messages: suite } }),
+        base44.request("POST", "/api/assistant/commande", { body: { messages: suite, contexte } }),
         new Promise((resoudre) => setTimeout(resoudre, DUREE_FRAPPE)),
       ]);
       return r;
@@ -104,7 +131,20 @@ export default function AssistantFlottant() {
       setMessages((m) => [...m, { role: "assistant", contenu: r.texte || "—" }]);
       // Une action réellement exécutée se signale : le texte du modèle n'en est
       // pas la preuve.
+      // Un brouillon de mail s'affiche pour être relu et corrigé, pas récité.
+      const mail = (r.actions || []).find((a) => a.name === "preparer_mail" && a.resultat?.brouillon);
+      if (mail) {
+        setBrouillon({
+          deal_id: mail.resultat.deal_id,
+          intention: mail.resultat.intention,
+          destinataire: mail.resultat.destinataire || "",
+          objet: mail.resultat.objet || "",
+          corps: mail.resultat.corps || "",
+        });
+      }
+
       for (const a of r.actions || []) {
+        if (a.name === "preparer_mail") continue;
         const drive = a.name === "creer_drive_dossier";
         toast.success(drive ? "Dossier Drive créé" : a.resultat?.cree ? "Ajouté à Monday" : "Mis à jour dans Monday", {
           description: drive && a.resultat?.chemin ? a.resultat.chemin : a.resultat?.titre,
@@ -130,6 +170,27 @@ export default function AssistantFlottant() {
     setFrappe(true);
     envoyer.mutate(suite);
   };
+
+  const envoyerMail = useMutation({
+    mutationFn: () =>
+      base44.functions.invoke("sendMail", {
+        to: brouillon.destinataire,
+        subject: brouillon.objet,
+        body: brouillon.corps,
+        deal_id: brouillon.deal_id,
+        intention: brouillon.intention,
+      }),
+    onSuccess: (r) => {
+      if (r?.success || r?.simulated) {
+        toast.success(r?.simulated ? "Envoi simulé (aucun compte connecté)" : "Mail envoyé", {
+          description: brouillon.destinataire,
+        });
+        setMessages((m) => [...m, { role: "assistant", contenu: `Mail envoyé à ${brouillon.destinataire}.` }]);
+        setBrouillon(null);
+      } else toast.error(r?.error || "Envoi impossible");
+    },
+    onError: (e) => toast.error(e?.message || "Envoi impossible"),
+  });
 
   const actif = !!texte.trim();
 
@@ -173,6 +234,61 @@ export default function AssistantFlottant() {
               </Bulle>
             ))}
             {frappe && <Frappe />}
+
+            {brouillon && (
+              <div style={{ border: "1px solid #2a2a2a", borderRadius: 12, background: "#111", padding: 12 }}>
+                <p style={{ margin: 0, marginBottom: 8, fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "#7a7a78", fontFamily: MONO }}>
+                  Brouillon — à relire
+                </p>
+                {[
+                  ["destinataire", "Destinataire"],
+                  ["objet", "Objet"],
+                ].map(([cle, libelle]) => (
+                  <input
+                    key={cle}
+                    value={brouillon[cle]}
+                    onChange={(e) => setBrouillon({ ...brouillon, [cle]: e.target.value })}
+                    placeholder={libelle}
+                    style={{
+                      width: "100%", marginBottom: 6, background: "#0b0b0b", border: "1px solid #222",
+                      borderRadius: 8, padding: "7px 9px", color: "#e6e6e4", fontSize: 12.5,
+                      fontFamily: SANS, outline: "none",
+                    }}
+                  />
+                ))}
+                <textarea
+                  rows={7}
+                  value={brouillon.corps}
+                  onChange={(e) => setBrouillon({ ...brouillon, corps: e.target.value })}
+                  style={{
+                    width: "100%", background: "#0b0b0b", border: "1px solid #222", borderRadius: 8,
+                    padding: "7px 9px", color: "#e6e6e4", fontSize: 12.5, lineHeight: 1.55,
+                    fontFamily: SANS, outline: "none", resize: "vertical",
+                  }}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+                  <button
+                    onClick={() => setBrouillon(null)}
+                    style={{ background: "none", border: "1px solid #2a2a2a", borderRadius: 8, color: "#9a9a98", fontSize: 12, padding: "6px 12px", cursor: "pointer" }}
+                  >
+                    Écarter
+                  </button>
+                  <button
+                    onClick={() => envoyerMail.mutate()}
+                    disabled={!brouillon.destinataire.trim() || !brouillon.objet.trim() || envoyerMail.isPending}
+                    style={{
+                      background: "#fff", border: 0, borderRadius: 8, color: "#111", fontSize: 12,
+                      fontWeight: 600, padding: "6px 14px",
+                      cursor: envoyerMail.isPending ? "default" : "pointer",
+                      opacity: !brouillon.destinataire.trim() || !brouillon.objet.trim() ? 0.4 : 1,
+                    }}
+                  >
+                    {envoyerMail.isPending ? "Envoi…" : "Envoyer"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div ref={finRef} />
           </div>
 

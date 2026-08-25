@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
-import BoiteReception from "@/components/mails/BoiteReception";
 import ComposerChat from "@/components/mails/ComposerChat";
 import { BoutonConnecterGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 import {
@@ -235,17 +234,10 @@ export default function Mails() {
         <Tabs defaultValue="composer" className="w-full">
           <TabsList className="bg-[#0a0c0c] border border-[#282b2a] mb-6">
             <TabsTrigger value="composer">Composer</TabsTrigger>
-            <TabsTrigger value="reception">Boîte de réception</TabsTrigger>
             <TabsTrigger value="templates">Templates ({templates.length})</TabsTrigger>
             <TabsTrigger value="historique">Historique</TabsTrigger>
           </TabsList>
 
-          {/* ---------------------------------------------------------- */}
-          {/* BOÎTE DE RÉCEPTION                                          */}
-          {/* ---------------------------------------------------------- */}
-          <TabsContent value="reception">
-            <BoiteReception comptes={accounts} gmailReadActif={!!status?.google?.gmail_read} />
-          </TabsContent>
 
           {/* ---------------------------------------------------------- */}
           {/* COMPOSER                                                    */}

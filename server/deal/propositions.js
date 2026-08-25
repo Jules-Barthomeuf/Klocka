@@ -34,6 +34,13 @@ const jours = (depuis) => {
 const leJour = (iso) =>
   !iso || isNaN(new Date(iso)) ? '' : new Date(iso).toLocaleDateString('fr-FR');
 
+// Le message, ouvert dans Gmail, sur le bon compte. L'application n'a pas
+// vocation à être une seconde messagerie : elle trie, Gmail affiche.
+const lienGmail = (mail) =>
+  mail?.gmail_message_id
+    ? `https://mail.google.com/mail/u/${encodeURIComponent(mail.compte || 0)}/#all/${mail.gmail_message_id}`
+    : 'https://mail.google.com/mail/';
+
 const titreDeal = (deal) =>
   deal.nom || deal.lots?.[0]?.synthese?.titre || deal.source?.nom_fichier || deal.deal_id;
 
@@ -80,8 +87,8 @@ function surMailsOrphelins(mails) {
         mail_id: m.id,
         actions: [
           { id: 'preanalyser', libelle: 'Lancer la pré-analyse', mode: 'preanalyser', principal: true },
-          { id: 'boite', libelle: 'Voir dans la boîte', mode: 'lien', href: '/Mails' },
-          // La correction vaut pour l'expéditeur : on ne repose plus la question.
+          { id: 'gmail', libelle: 'Ouvrir dans Gmail', mode: 'externe', href: lienGmail(m) },
+          // La correction ne vaut que pour ce mail : l'expéditeur reste écouté.
           { id: 'pas_pertinent', libelle: 'Pas pertinent', mode: 'tri', decision: 'ignorer' },
         ],
       };
@@ -115,7 +122,7 @@ function surReponsesRecues(deal, mails) {
       mail_id: m.id,
       actions: [
         { id: 'ouvrir', libelle: 'Ouvrir le dossier', mode: 'lien', href: `/Analyse?deal_id=${deal.deal_id}`, principal: true },
-        { id: 'boite', libelle: 'Voir le mail', mode: 'lien', href: '/Mails' },
+        { id: 'gmail', libelle: 'Ouvrir dans Gmail', mode: 'externe', href: lienGmail(m) },
       ],
     },
   ];

@@ -122,6 +122,7 @@ export default function PlanDeTravail() {
   const executer = async (proposition, action) => {
     const cle = `${proposition.id}:${action.id}`;
     if (action.mode === "lien") return navigate(action.href);
+    if (action.mode === "externe") return window.open(action.href, "_blank", "noopener");
 
     setEnCours(cle);
     try {
@@ -304,6 +305,7 @@ export default function PlanDeTravail() {
                         {a.mode === "drive" && !occupe && <FolderPlus className="w-3 h-3" />}
                         {a.mode === "projet" && !occupe && <Briefcase className="w-3 h-3" />}
                         {a.mode === "tri" && !occupe && <ThumbsDown className="w-3 h-3" />}
+                        {a.mode === "externe" && !occupe && <ExternalLink className="w-3 h-3" />}
                         {a.libelle}
                       </button>
                     );

@@ -180,7 +180,12 @@ export function createClient(config = {}) {
 
   // --- App logs (no-op locally) ---
   const appLogs = {
-    logUserInApp: () => Promise.resolve({ success: true }),
+    // Consigne la page ouverte : c'est la matière du centre de suivi. Un échec
+    // est avalé — un journal ne doit jamais gêner la navigation.
+    logUserInApp: (page) =>
+      request('POST', '/api/journal/page', { body: { page, url: window.location.href } }).catch(() => ({
+        success: false,
+      })),
   };
 
   return {

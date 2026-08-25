@@ -539,6 +539,7 @@ const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
 // qui les consomment sont toutes réservées aux admins.
 const ENTITES_ADMIN = new Set([
   'Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail', 'AssistantAction',
+  'AssistantRequete', 'VisitePage',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -1399,12 +1400,57 @@ app.post('/api/assistant/commande', wrap(async (req, res) => {
   }
   const user = currentUser(req);
   const { commander } = await import('./assistant-commande.js');
+  const debut = Date.now();
   const r = await commander(messages.slice(-12), user, contexte);
+
+  // Chaque échange laisse une ligne : la question, la réponse, les outils
+  // consultés et ceux qui ont agi.
+  const { consignerRequete } = await import('./journal-usage.js');
+  consignerRequete({
+    question: messages[messages.length - 1]?.contenu,
+    reponse: r.texte,
+    outils: r.outils,
+    actions: (r.actions || []).map((a) => a.name),
+    user,
+    duree_ms: Date.now() - debut,
+    contexte,
+  });
 
   // Le fil survit au rechargement : il vit en base, pas dans l'onglet.
   const { enregistrerFil } = await import('./assistant-fil.js');
   enregistrerFil(user, [...messages, { role: 'assistant', contenu: r.texte }]);
   ok(res, r);
+}));
+
+// Consignation d'une page ouverte. Ouvert à tout utilisateur connecté : c'est
+// son propre passage qu'il déclare.
+app.post('/api/journal/page', wrap(async (req, res) => {
+  const { consignerVisite } = await import('./journal-usage.js');
+  consignerVisite({ page: req.body?.page, url: req.body?.url, user: currentUser(req) });
+  ok(res, { consigne: true });
+}));
+
+// Centre de suivi : réservé aux administrateurs, il expose l'usage de chacun.
+app.get('/api/monitoring', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { synthese } = await import('./journal-usage.js');
+  ok(res, synthese(Number(req.query.jours) || 30));
+}));
+
+// L'historique complet des échanges avec l'assistant.
+app.get('/api/monitoring/requetes', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { historiqueRequetes } = await import('./journal-usage.js');
+  ok(
+    res,
+    historiqueRequetes({
+      limite: Math.min(Number(req.query.limite) || 50, 200),
+      depuis: Number(req.query.depuis) || 0,
+      par: req.query.par || null,
+    })
+  );
 }));
 
 // Le fil de conversation de l'utilisateur, tel qu'il l'a laissé.

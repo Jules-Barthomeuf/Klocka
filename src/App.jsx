@@ -26,6 +26,7 @@ import Investisseurs from '@/pages/Investisseurs';
 import AdminNotes from '@/pages/AdminNotes';
 import Analyse from '@/pages/Analyse';
 import Assistant from '@/pages/Assistant';
+import Monitoring from '@/pages/Monitoring';
 import AssistantExterne from '@/pages/AssistantExterne';
 import AdminPresentations from '@/pages/AdminPresentations';
 import ImportProjects from '@/pages/ImportProjects';
@@ -129,6 +130,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminNotes" element={<LayoutWrapper currentPageName="AdminNotes"><AdminNotes /></LayoutWrapper>} />
       <Route path="/Analyse" element={<LayoutWrapper currentPageName="Analyse"><Analyse /></LayoutWrapper>} />
       <Route path="/Assistant" element={<LayoutWrapper currentPageName="Assistant"><Assistant /></LayoutWrapper>} />
+      <Route path="/Monitoring" element={<LayoutWrapper currentPageName="Monitoring"><Monitoring /></LayoutWrapper>} />
       {/* Anciennes URL : Préanalyse est devenue Analyse ; l'onglet Documents d'Alexis a disparu. */}
       <Route path="/Preanalyse" element={<RedirectionAnalyse />} />
       <Route path="/Alexis" element={<Navigate to="/Analyse" replace />} />

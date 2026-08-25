@@ -34,6 +34,9 @@ const PAGE_TITLES = {
     Investisseurs: "Investisseurs",
     Portail: "Portail de Démarrage",
     Home: "Accueil",
+    Analyse: "Dossiers",
+    Assistant: "Assistant",
+    Monitoring: "Suivi de l'usage",
     NewUserWelcome: "Bienvenue",
     TableauProjection: "Tableau de Projection",
     QuizImmo: "Quiz Immobilier",
@@ -78,13 +81,16 @@ export default function NavigationTracker() {
             // Remove leading slash and get the first segment
             const pathSegment = pathname.replace(/^\//, '').split('/')[0];
             
-            // Try case-insensitive lookup in Pages config
+            // Correspondance insensible à la casse dans la configuration.
             const pageKeys = Object.keys(Pages);
             const matchedKey = pageKeys.find(
                 key => key.toLowerCase() === pathSegment.toLowerCase()
             );
-            
-            pageName = matchedKey || null;
+
+            // Plusieurs pages sont déclarées en routes manuelles (Dossiers,
+            // Assistant, Suivi…) : s'en tenir à la configuration les rendait
+            // invisibles au suivi. Le segment d'URL fait alors office de nom.
+            pageName = matchedKey || pathSegment || null;
         }
 
         if (isAuthenticated && pageName) {

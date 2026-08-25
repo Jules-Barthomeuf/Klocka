@@ -630,11 +630,15 @@ function consigneContexte(contexte) {
  */
 export async function commander(historique, user, contexte = null) {
   const actions = [];
+  // Tous les outils appelés, y compris ceux qui n'ont fait que lire : le
+  // journal doit pouvoir dire ce que l'assistant a consulté.
+  const outils = [];
   const { text } = await runAgent({
     system: CONSIGNE + consigneContexte(contexte),
     messages: historique.map((m) => ({ role: m.role, content: m.contenu })),
     tools: OUTILS,
     onTool: async (appel) => {
+      outils.push(appel.name);
       const resultat = await executerOutil(appel, user);
       // On garde la trace de ce qui a réellement été fait : le texte du modèle
       // n'est pas une preuve d'action.
@@ -658,5 +662,5 @@ export async function commander(historique, user, contexte = null) {
       return resultat;
     },
   });
-  return { texte: text, actions };
+  return { texte: text, actions, outils };
 }

@@ -81,7 +81,7 @@ const OUTILS = [
   {
     name: 'etat_dossier',
     description:
-      "Donne l'état détaillé d'un dossier : étape, statut, documents présents et manquants, dossier Drive, contact agent, dernier événement. À utiliser pour répondre à « où en est … ».",
+      "Toutes les données d'un dossier : prix FAI et prix acte en main, loyer, surface, rendements, locataire et activité, bail, commune, projection financière (prix de revient, apport, rentabilité, cash-flow), plus l'étape, le statut, les documents présents et manquants, le Drive et le contact agent. À utiliser pour « où en est … », « quel est le prix de … », toute question sur un bien.",
     input_schema: {
       type: 'object',
       properties: { deal_id: { type: 'string' } },
@@ -138,6 +138,16 @@ const OUTILS = [
       type: 'object',
       properties: { ville: { type: 'string' } },
       required: ['ville'],
+    },
+  },
+  {
+    name: 'etat_projet',
+    description:
+      "Les données d'un projet de la plateforme : adresse, prix, loyer, surface, rendement, locataire, clients rattachés, présence dans Monday. Nécessite l'identifiant obtenu par chercher_projet.",
+    input_schema: {
+      type: 'object',
+      properties: { projet_id: { type: 'string' } },
+      required: ['projet_id'],
     },
   },
   {
@@ -367,12 +377,45 @@ async function executerOutil({ name, input }, user) {
     const { documentsManquants } = await import('./deal/propositions.js');
     const { etapeMax, ETAPES } = await import('./deal/etapes.js');
     const etape = etapeMax(deal);
+    const lot = deal.lots?.[0];
+
+    // Les faits du bien et ses chiffres : sans eux, l'assistant répondait
+    // « je n'ai pas le prix » alors que le dossier le portait, et inventait
+    // une explication à cette absence.
+    let bien = null;
+    let finances = null;
+    let marche = null;
+    if (lot) {
+      try {
+        const { vueRedacteur } = await import('./deal/redact.js');
+        const vue = vueRedacteur({ lot: lot.lot, enrichissement: lot.enrichissement, evaluation: lot.evaluation });
+        bien = vue.bien;
+        finances = vue.finances;
+        marche = vue.marche;
+      } catch {
+        // Vue indisponible : le reste de l'état reste utile.
+      }
+    }
+
+    let projection = null;
+    if (lot?.simulateur?.loyerInitialHTHC) {
+      const { indicateursCles } = await import('./video/indicateurs.js');
+      projection = indicateursCles(lot);
+    }
+
     return {
       titre: titreDeal(deal),
       ville: villeDeal(deal),
       statut: statutDe(deal),
       etape: `${etape} — ${ETAPES.find((e) => e.n === etape)?.label || ''}`,
-      verdict: deal.lots?.[0]?.evaluation?.verdict || null,
+      verdict: lot?.evaluation?.verdict || null,
+      bien,
+      finances,
+      marche,
+      // Prix de revient, apport, rentabilité, cash-flow, sur les hypothèses
+      // par défaut du simulateur.
+      projection,
+      nombre_de_lots: deal.lots?.length || 0,
       documents: (deal.documents_espace || []).map((d) => d.nom),
       documents_manquants: documentsManquants(deal).map((m) => m.libelle),
       dossier_drive: deal.drive_folder_url || null,
@@ -380,6 +423,35 @@ async function executerOutil({ name, input }, user) {
       contact_agent: deal.contact_agent_email || null,
       relance_prevue_le: deal.relance_prevue_le || null,
       dernier_evenement: (deal.suivi || []).slice(-1)[0]?.detail || null,
+    };
+  }
+
+  if (name === 'etat_projet') {
+    const projet = Records.get('Project', input.projet_id);
+    if (!projet) return { erreur: 'Projet introuvable' };
+    const nombre = (v) => (typeof v === 'number' && v > 0 ? v : null);
+    const chiffre = (...c) => c.map(nombre).find((v) => v != null) ?? null;
+    // Comme pour Monday : les chiffres vivent souvent dans les champs du
+    // simulateur, la fiche d'en-tête restant à zéro.
+    const prix = chiffre(projet.prix_acquisition, projet.sim_prix_bien_negocie, projet.sim_prix_bien_fai);
+    const loyer = chiffre(projet.loyer_annuel_ht, projet.sim_loyer_initial_ht);
+    const surface = chiffre(projet.surface_m2, projet.sim_surface);
+    return {
+      titre: projet.titre,
+      statut: projet.statut,
+      adresse: projet.adresse_complete || null,
+      ville: projet.ville_secteur_champ1 || null,
+      prix,
+      loyer_annuel_ht: loyer,
+      surface_m2: surface,
+      rendement: prix && loyer ? Math.round((loyer / prix) * 10000) / 100 : null,
+      locataire: projet.nom_locataire || null,
+      activite: projet.activite_locataire || null,
+      echeance_bail: projet.echeance_bail || null,
+      clients: [projet.client_email, ...(projet.client_emails || [])].filter(Boolean),
+      photos: (projet.photos || []).length,
+      dans_monday: !!projet.monday_item_id,
+      issu_du_dossier: projet.deal_id || null,
     };
   }
 
@@ -430,7 +502,7 @@ RÈGLES :
 3. Si elle n'en rend aucun, dis-le, sans inventer.
 4. « Dossier » désigne un dossier de préanalyse ; « projet » un projet de la plateforme. Dans le doute, cherche des deux côtés et demande.
 5. Une fois l'action faite, dis ce qui a été fait et donne le lien.
-6. N'invente jamais un chiffre sur un bien : si tu ne l'as pas reçu d'un outil, dis que tu ne l'as pas.
+6. N'invente jamais un chiffre sur un bien : si tu ne l'as pas reçu d'un outil, dis que tu ne l'as pas. Et n'invente pas non plus d'explication à une donnée absente — dis simplement qu'elle n'est pas au dossier.
 7. Une simulation se rend avec ses hypothèses : dis toujours sur quel apport, quel taux et quelle durée elle repose.
 8. Un brouillon de mail n'est pas un envoi. Annonce-le comme une proposition à relire, jamais comme un message parti.
 9. Dès qu'on te parle d'un dossier ou d'un projet précis, vérifie-le avant de répondre. Dis ce que tu as constaté, puis propose ce qui manque — une proposition à la fois, en commençant par la plus utile, et attends la réponse avant d'agir. Ne propose pas ce qui n'a pas d'outil : signale-le comme à faire à la main.`;

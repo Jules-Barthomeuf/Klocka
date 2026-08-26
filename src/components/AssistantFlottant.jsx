@@ -20,8 +20,14 @@ const META = "#8b908c";
 const FILET = "#3a3e3c";
 const SEPARATEUR = "#1f2321";
 
-const SANS = "'Inter Tight', 'IBM Plex Sans', -apple-system, Helvetica, Arial, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace";
+// La police du reste de l'application, pas une seconde : l'assistant est une
+// pièce de Klocka, il n'a pas à s'annoncer par sa typographie. IBM Plex Sans
+// tient mieux les petites tailles qu'Inter Tight, dont les chasses serrées
+// brouillaient les 12,5 px de la barre de saisie.
+const SANS = "'IBM Plex Sans', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif";
+// Le libellé en capitales espacées tombait jusqu'ici sur la mono du système —
+// donc sur une police différente selon la machine.
+const MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
 
 // L'indicateur de frappe doit se voir : on ne montre jamais la réponse avant.
 const DUREE_FRAPPE = 900;

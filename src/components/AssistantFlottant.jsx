@@ -201,20 +201,27 @@ export default function AssistantFlottant() {
         zIndex: 9998,
         display: "flex",
         flexDirection: "column",
-        // Le liseré or est le seul séparateur : le fond reste celui de la page.
-        background: FOND,
-        border: `1px solid ${OR}`,
-        borderRadius: ouvert ? 20 : 22,
-        boxShadow: ouvert ? "0 20px 50px rgba(0,0,0,.7)" : "none",
-        overflow: "hidden",
+        gap: 10,
         fontFamily: SANS,
-        transition: "width .18s ease, border-radius .18s ease",
+        transition: "width .18s ease",
       }}
     >
       <style>{ANIMATIONS}</style>
 
+      {/* Deux parties distinctes : la transcription, puis la saisie. Chacune
+          porte son propre liseré or — la barre reste une pilule autonome. */}
       {ouvert && (
-        <>
+        <div
+          style={{
+            background: FOND,
+            border: `1px solid ${OR}`,
+            borderRadius: 20,
+            boxShadow: "0 20px 50px rgba(0,0,0,.7)",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           {/* Barre méta : l'état de la veille, et la fermeture. */}
           <div
             style={{
@@ -248,6 +255,7 @@ export default function AssistantFlottant() {
               gap: 14,
               maxHeight: "55vh",
               overflowY: "auto",
+              paddingBottom: 16,
             }}
           >
             {messages.map((m, i) =>
@@ -358,20 +366,21 @@ export default function AssistantFlottant() {
 
             <div ref={finRef} />
           </div>
-        </>
+        </div>
       )}
 
-      {/* La saisie : au repos c'est la pilule elle-même, ouverte elle se sépare
-          d'un trait et reste collée en bas du cadre. */}
+      {/* La saisie : une pilule, ouverte ou non. */}
       <div
         onClick={() => { setOuvert(true); champRef.current?.focus(); }}
         style={{
           display: "flex",
           alignItems: "center",
-          gap: ouvert ? 10 : 9,
-          padding: ouvert ? "12px 12px 12px 16px" : "9px 9px 9px 14px",
-          marginTop: ouvert ? 16 : 0,
-          borderTop: ouvert ? `1px solid ${SEPARATEUR}` : "none",
+          gap: 10,
+          padding: "9px 9px 9px 14px",
+          background: FOND,
+          border: `1px solid ${OR}`,
+          borderRadius: 22,
+          boxShadow: ouvert ? "0 20px 50px rgba(0,0,0,.7)" : "none",
           cursor: "text",
         }}
       >
@@ -394,14 +403,14 @@ export default function AssistantFlottant() {
           onClick={(e) => { e.stopPropagation(); lancer(); }}
           aria-label="Envoyer"
           style={{
-            width: ouvert ? 24 : 22,
-            height: ouvert ? 24 : 22,
+            width: 24,
+            height: 24,
             borderRadius: "50%",
             flex: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: ouvert ? 12 : 11,
+            fontSize: 12,
             cursor: actif ? "pointer" : "default",
             // Plein or une fois ouvert, contour sombre au repos.
             background: ouvert ? OR : "#1a1c1b",

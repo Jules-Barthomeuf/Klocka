@@ -37,3 +37,6 @@ server/uploads
 
 # Exported user data (contains real emails/names)
 data-import/
+
+# Copie imbriquée périmée du dépôt — jamais suivie.
+server/Klocka/

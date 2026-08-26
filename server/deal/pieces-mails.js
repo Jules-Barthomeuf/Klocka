@@ -194,6 +194,7 @@ export async function ingererEnAttente(uploadDir, user = null) {
   let classes = 0;
   let fiches = 0;
   const erreurs = [];
+  const lignes = [];
   for (const mail of aTraiter) {
     try {
       const r = await ingererPiecesJointes(mail, uploadDir, user);
@@ -201,9 +202,21 @@ export async function ingererEnAttente(uploadDir, user = null) {
       classes += r.drive?.classes || 0;
       if (r.monday) fiches += 1;
       erreurs.push(...r.erreurs);
+
+      if (r.deposes.length) {
+        const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
+        lignes.push({
+          dossier: deal?.nom || deal?.lots?.[0]?.synthese?.titre || mail.deal_id,
+          deal_id: mail.deal_id,
+          de: mail.de_email,
+          documents: r.deposes,
+          drive: r.drive?.chemin || null,
+          monday: r.monday ? (r.monday.cree ? 'fiche créée' : 'fiche mise à jour') : null,
+        });
+      }
     } catch (e) {
       erreurs.push(`${mail.objet || mail.id} : ${e?.message || e}`);
     }
   }
-  return { mails: aTraiter.length, documents, classes, fiches, erreurs };
+  return { mails: aTraiter.length, documents, classes, fiches, lignes, erreurs };
 }

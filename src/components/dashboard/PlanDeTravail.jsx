@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import ComptesGoogle from "@/components/dashboard/ComptesGoogle";
+import RapportAuto from "@/components/dashboard/RapportAuto";
 import { toast } from "sonner";
 import {
   Loader2, Mail, FolderPlus, Briefcase, RefreshCw, Clock, FileWarning, Inbox, MoonStar, Send, X,
@@ -248,6 +249,10 @@ export default function PlanDeTravail() {
           Mails. Sans cela, l'assistant ne voit passer aucun mail.
         </p>
       )}
+
+      {/* Ce que la veille a fait seule passe avant le reste : on doit le savoir
+          avant de décider quoi faire. */}
+      <RapportAuto />
 
       <ComptesGoogle />
 

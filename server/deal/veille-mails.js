@@ -113,6 +113,20 @@ export async function relever(uploadDir = null) {
     // dossiers, personne n'a à la ressaisir.
     const crm = synchroniserAgents();
     dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, pieces, crm, erreurs };
+
+    // Ce que la veille a fait sans personne devant l'écran doit pouvoir se
+    // relire : sinon un document apparaît dans un dossier sans qu'on sache d'où.
+    const { consignerPasse } = await import('../rapport-auto.js');
+    consignerPasse({
+      nouveaux,
+      ecartes,
+      rattaches,
+      documents: pieces.documents || 0,
+      classes: pieces.classes || 0,
+      fiches: pieces.fiches || 0,
+      lignes: pieces.lignes || [],
+      erreurs,
+    });
   } finally {
     enCours = false;
   }

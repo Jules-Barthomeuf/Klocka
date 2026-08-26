@@ -539,7 +539,7 @@ const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
 // qui les consomment sont toutes réservées aux admins.
 const ENTITES_ADMIN = new Set([
   'Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail', 'AssistantAction',
-  'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition',
+  'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -1485,6 +1485,18 @@ app.get('/api/monitoring/requetes', wrap(async (req, res) => {
       par: req.query.par || null,
     })
   );
+}));
+
+// Ce que la plateforme a fait toute seule, et ce que cette personne n'a pas
+// encore vu.
+app.get('/api/assistant/rapports', wrap(async (req, res) => {
+  const { rapports } = await import('./rapport-auto.js');
+  ok(res, rapports(currentUser(req), { jours: Number(req.query.jours) || 7 }));
+}));
+
+app.post('/api/assistant/rapports/vus', wrap(async (req, res) => {
+  const { marquerVus } = await import('./rapport-auto.js');
+  ok(res, { marques: marquerVus(currentUser(req), req.body?.ids) });
 }));
 
 // Le fil de conversation de l'utilisateur, tel qu'il l'a laissé.

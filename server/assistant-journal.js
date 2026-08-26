@@ -28,6 +28,10 @@ export function journaliser({ outil, args, resultat, user }) {
   // Une mise à jour n'est pas annulable : on ne connaît pas l'état d'avant.
   const creation = resultat?.cree === true;
   const annulable = !!REVERSIBLES[outil] && creation;
+  // Une tentative ratée se consigne aussi : c'est elle qu'on relit quand on
+  // demande pourquoi l'assistant a annoncé un refus. Rien à défaire, en
+  // revanche — il ne s'est rien produit à l'extérieur.
+  const echec = !resultat?.ok;
 
   return Records.create('AssistantAction', {
     outil,
@@ -37,10 +41,12 @@ export function journaliser({ outil, args, resultat, user }) {
     le: new Date().toISOString(),
     deal_id: args?.deal_id || null,
     projet_id: args?.projet_id || null,
-    annulable,
+    annulable: annulable && !echec,
+    echec,
+    erreur: echec ? resultat?.erreur || null : null,
     annulee: false,
     // Ce qu'annuler ferait, pour pouvoir l'annoncer avant de le faire.
-    effet_annulation: annulable ? REVERSIBLES[outil] : null,
+    effet_annulation: annulable && !echec ? REVERSIBLES[outil] : null,
   });
 }
 

@@ -393,7 +393,7 @@ async function executerOutil({ name, input }, user) {
 
     const { creerAgentMonday } = await import('./deal/monday-sync.js');
     const r = await creerAgentMonday(agent);
-    if (r?.ignore) return { erreur: "Monday n'est pas configuré" };
+    if (r?.ignore) return { erreur: `Rien n'a été posé dans Monday : ${r.raison || 'raison inconnue'}` };
     if (r?.erreur) return r;
 
     // La fiche entre aussi au CRM local : c'est elle qui fait qu'un mail de cet
@@ -617,7 +617,7 @@ async function executerOutil({ name, input }, user) {
     if (!deal) return { erreur: 'Dossier introuvable' };
     const { pousserBien } = await import('./deal/monday-sync.js');
     const r = await pousserBien(deal, { motif: input.motif });
-    if (r?.ignore) return { erreur: 'Monday n\'est pas configuré' };
+    if (r?.ignore) return { erreur: `Rien n'a été posé dans Monday : ${r.raison || 'raison inconnue'}` };
     return {
       ok: true,
       titre: titreDeal(deal),
@@ -631,7 +631,7 @@ async function executerOutil({ name, input }, user) {
     if (!projet) return { erreur: 'Projet introuvable' };
     const { pousserProjet } = await import('./deal/monday-sync.js');
     const r = await pousserProjet(projet, { motif: input.motif });
-    if (r?.ignore) return { erreur: 'Monday n\'est pas configuré' };
+    if (r?.ignore) return { erreur: `Rien n'a été posé dans Monday : ${r.raison || 'raison inconnue'}` };
     return {
       ok: true,
       titre: projet.titre,
@@ -703,16 +703,19 @@ export async function commander(historique, user, contexte = null) {
         ['creer_drive_dossier', 'extraire_documents', 'preparer_mail', 'creer_agent_monday', 'envoyer_mail'].includes(
           appel.name
         );
-      if (agissant && resultat?.ok) {
-        actions.push({ ...appel, resultat });
-        // Une action qui touche un système extérieur laisse une trace : qui l'a
-        // demandée, ce qui a réellement été exécuté, et si elle se défait.
-        if (appel.name !== 'preparer_mail') {
-          try {
-            journaliser({ outil: appel.name, args: appel.input, resultat, user });
-          } catch (e) {
-            console.warn('[assistant] journalisation impossible :', e?.message || e);
-          }
+      if (agissant && resultat?.ok) actions.push({ ...appel, resultat });
+
+      // Une action qui touche un système extérieur laisse une trace : qui l'a
+      // demandée, ce qui a réellement été exécuté, et si elle se défait.
+      //
+      // L'échec se consigne aussi. Il ne l'était pas, et une tentative ratée
+      // ne laissait donc rien derrière elle : impossible, le lendemain, de
+      // dire pourquoi l'assistant avait annoncé un refus.
+      if (agissant && appel.name !== 'preparer_mail') {
+        try {
+          journaliser({ outil: appel.name, args: appel.input, resultat, user });
+        } catch (e) {
+          console.warn('[assistant] journalisation impossible :', e?.message || e);
         }
       }
       return resultat;

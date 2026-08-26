@@ -108,8 +108,10 @@ async function elementAgent(email) {
  * @param {{ motif?: string }} [opts]
  */
 export async function pousserBien(deal, { motif } = {}) {
-  if (!mondayConfigure() || !TABLEAUX.proprietes) return { ignore: true };
-  if (deal.test) return { ignore: true };
+  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!TABLEAUX.proprietes)
+    return { ignore: true, raison: 'le tableau Propriétés n\'est pas déclaré (MONDAY_BOARD_PROPRIETES)' };
+  if (deal.test) return { ignore: true, raison: "c'est un dossier de test : rien n'est poussé dans le CRM" };
 
   const v = vueDuLot(deal);
   const statut = statutDe(deal);
@@ -162,8 +164,10 @@ export async function pousserBien(deal, { motif } = {}) {
  * @param {object} projet - enregistrement Project
  */
 export async function pousserProjet(projet, { motif } = {}) {
-  if (!mondayConfigure() || !TABLEAUX.proprietes) return { ignore: true };
-  if (!projet) return { ignore: true };
+  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!TABLEAUX.proprietes)
+    return { ignore: true, raison: 'le tableau Propriétés n\'est pas déclaré (MONDAY_BOARD_PROPRIETES)' };
+  if (!projet) return { ignore: true, raison: 'aucun projet fourni' };
 
   const nombreOuNull = (v) => (typeof v === 'number' && v > 0 ? v : null);
   // Les chiffres d'un projet vivent souvent dans les champs du simulateur : la
@@ -220,7 +224,9 @@ const DUREE_CACHE = 5 * 60 * 1000;
  * laisser la liaison vide, on propose de l'y inscrire.
  */
 export async function creerAgentMonday({ nom, email, telephone, ville, entreprise }) {
-  if (!mondayConfigure() || !TABLEAUX.agents) return { ignore: true };
+  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!TABLEAUX.agents)
+    return { ignore: true, raison: "le tableau Agent immobilier n'est pas déclaré (MONDAY_BOARD_AGENTS)" };
   if (!email) return { erreur: 'Adresse mail manquante' };
 
   const colonnes = {

@@ -252,12 +252,21 @@ export default function AssistantFlottant() {
           >
             {messages.map((m, i) =>
               m.role === "user" ? (
-                // Tour utilisateur : or, aligné à droite, sans bulle.
+                // Tour utilisateur : bulle blanche, texte noir, à droite.
                 <div
                   key={i}
                   style={{
-                    fontSize: 13, lineHeight: 1.5, color: OR, textAlign: "right",
-                    maxWidth: "88%", alignSelf: "flex-end", whiteSpace: "pre-wrap",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                    background: "#fff",
+                    color: "#111",
+                    padding: "8px 11px",
+                    // Le coin bas-droit se ferme : la bulle pointe vers celui
+                    // qui l'a écrite.
+                    borderRadius: "12px 12px 3px 12px",
+                    maxWidth: "88%",
+                    alignSelf: "flex-end",
+                    whiteSpace: "pre-wrap",
                   }}
                 >
                   {m.contenu}

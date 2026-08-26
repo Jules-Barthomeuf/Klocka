@@ -179,7 +179,7 @@ export default function AssistantFlottant() {
         position: "fixed",
         right: 20,
         bottom: 20,
-        width: ouvert ? 344 : 262,
+        width: ouvert ? 420 : 330,
         maxWidth: "calc(100vw - 40px)",
         zIndex: 9998,
         display: "flex",
@@ -232,7 +232,7 @@ export default function AssistantFlottant() {
           {/* Transcription : elle défile, la saisie reste collée en bas. */}
           <div
             style={{
-              padding: "0 16px",
+              padding: "0 18px",
               display: "flex",
               flexDirection: "column",
               gap: 14,
@@ -247,7 +247,7 @@ export default function AssistantFlottant() {
                 <div
                   key={i}
                   style={{
-                    fontSize: 13,
+                    fontSize: 13.5,
                     lineHeight: 1.5,
                     background: "#fff",
                     color: "#111",
@@ -266,7 +266,7 @@ export default function AssistantFlottant() {
                 // Tour assistant : texte plein derrière un filet vertical.
                 <div key={i} style={{ display: "flex", gap: 12 }}>
                   <div style={{ width: 1.5, flex: "none", background: FILET }} />
-                  <div style={{ fontSize: 13, lineHeight: 1.6, color: TEXTE, whiteSpace: "pre-wrap" }}>
+                  <div style={{ fontSize: 13.5, lineHeight: 1.6, color: TEXTE, whiteSpace: "pre-wrap" }}>
                     {m.contenu}
                   </div>
                 </div>
@@ -358,16 +358,16 @@ export default function AssistantFlottant() {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          padding: "9px 9px 9px 14px",
+          gap: 11,
+          padding: "12px 12px 12px 18px",
           background: FOND,
           border: `1px solid ${OR}`,
-          borderRadius: 22,
+          borderRadius: 26,
           boxShadow: ouvert ? "0 20px 50px rgba(0,0,0,.7)" : "none",
           cursor: "text",
         }}
       >
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: OR, flex: "none" }} />
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: OR, flex: "none" }} />
 
         <input
           ref={champRef}
@@ -378,7 +378,7 @@ export default function AssistantFlottant() {
           placeholder="Ask the assistant"
           style={{
             flex: 1, minWidth: 0, background: "transparent", border: 0, outline: "none",
-            color: TEXTE, fontFamily: SANS, fontSize: 12.5,
+            color: TEXTE, fontFamily: SANS, fontSize: 14,
           }}
         />
 
@@ -386,14 +386,14 @@ export default function AssistantFlottant() {
           onClick={(e) => { e.stopPropagation(); lancer(); }}
           aria-label="Envoyer"
           style={{
-            width: 24,
-            height: 24,
+            width: 28,
+            height: 28,
             borderRadius: "50%",
             flex: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 12,
+            fontSize: 13,
             cursor: actif ? "pointer" : "default",
             // Plein or une fois ouvert, contour sombre au repos.
             background: ouvert ? OR : "#1a1c1b",

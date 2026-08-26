@@ -10,6 +10,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { telechargerPieceJointe } from '../gmail-inbox.js';
 import { ajouterDocument } from './espace.js';
@@ -19,6 +20,10 @@ import { ajouterSuivi } from './lifecycle.js';
 // Ce qu'un agent transmet réellement — mêmes critères que le tri des mails.
 const UTILES = /\.(pdf|docx?|xlsx?|odt|ods|jpe?g|png|webp)$/i;
 const PARASITES = /^(image\d+|logo|signature|banniere|banner|icon|unnamed)/i;
+
+// La veille tourne sans requête HTTP : elle résout elle-même le dossier des
+// uploads plutôt que de dépendre d'un paramètre transmis.
+const CHEMIN_UPLOADS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 
 const nomSur = (nom) => String(nom || 'document').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
 
@@ -92,8 +97,88 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
     );
   }
 
+  // Les pièces sont au dossier : on les range dans le Drive et on met la fiche
+  // Monday à jour dans la foulée. Ni l'un ni l'autre ne peut faire échouer la
+  // récupération elle-même — un document reçu doit rester reçu.
+  const rangement = nouveaux.length
+    ? await ranger(mail, deposes, user)
+    : { drive: null, monday: null, erreurs: [] };
+  erreurs.push(...rangement.erreurs);
+
   Records.update('MailRecu', mail.id, { pieces_ingerees: true, pieces_deposees: deposes });
-  return { deposes, ignorees, erreurs };
+  return { deposes, ignorees, erreurs, drive: rangement.drive, monday: rangement.monday };
+}
+
+/**
+ * Range les documents dans le Drive du dossier et rafraîchit sa fiche Monday.
+ *
+ * Le compte Drive est celui qui a reçu le mail — c'est son autorisation qui est
+ * engagée ; à défaut, le premier compte de l'équipe qui autorise le Drive.
+ */
+async function ranger(mail, deposes, user) {
+  const erreurs = [];
+  let drive = null;
+  let monday = null;
+
+  const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
+  if (!deal) return { drive, monday, erreurs };
+
+  // --- Drive ---------------------------------------------------------------
+  try {
+    const comptes = Records.list('MailAccount').filter((a) => a.peut_drive);
+    const compte =
+      comptes.find((a) => String(a.email).toLowerCase() === String(mail.compte).toLowerCase())?.email ||
+      comptes[0]?.email;
+
+    if (!compte) {
+      erreurs.push("Drive : aucun compte Google n'autorise le Drive.");
+    } else {
+      const { classerDansDrive } = await import('../google-drive.js');
+      const tous = deal.documents_espace || [];
+      // Dossier déjà créé : on n'y remonte que les nouvelles pièces, sinon
+      // chaque mail rechargerait tout l'historique en double.
+      const aEnvoyer = (deal.drive_folder_url ? tous.filter((d) => deposes.includes(d.nom)) : tous)
+        .filter((d) => d.url)
+        .map((d) => ({ nom: d.nom, chemin: d.url }));
+
+      const titre = deal.nom || deal.lots?.[0]?.synthese?.titre || deal.deal_id;
+      const r = await classerDansDrive(compte, titre, aEnvoyer, CHEMIN_UPLOADS);
+      Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+      drive = { url: r.folder_url, chemin: r.chemin, classes: r.envoyes.length };
+      erreurs.push(...(r.erreurs || []).map((e) => `Drive : ${e}`));
+    }
+  } catch (e) {
+    erreurs.push(`Drive : ${e?.message || e}`);
+  }
+
+  // --- Monday --------------------------------------------------------------
+  try {
+    const { pousserBien } = await import('./monday-sync.js');
+    const r = await pousserBien(Records.filter('Deal', { deal_id: mail.deal_id })[0], {
+      motif: `Documents reçus de ${mail.de_email} : ${deposes.join(', ')}`,
+    });
+    if (!r?.ignore) monday = { id: r?.id, cree: r?.cree };
+  } catch (e) {
+    erreurs.push(`Monday : ${e?.message || e}`);
+  }
+
+  if (drive || monday) {
+    ajouterSuivi(
+      Records.filter('Deal', { deal_id: mail.deal_id })[0],
+      {
+        type: 'documents_recus',
+        detail: [
+          drive ? `${drive.classes} document(s) classé(s) dans ${drive.chemin}` : null,
+          monday ? (monday.cree ? 'fiche Monday créée' : 'fiche Monday mise à jour') : null,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      },
+      user
+    );
+  }
+
+  return { drive, monday, erreurs };
 }
 
 /**
@@ -106,15 +191,19 @@ export async function ingererEnAttente(uploadDir, user = null) {
   );
 
   let documents = 0;
+  let classes = 0;
+  let fiches = 0;
   const erreurs = [];
   for (const mail of aTraiter) {
     try {
       const r = await ingererPiecesJointes(mail, uploadDir, user);
       documents += r.deposes.length;
+      classes += r.drive?.classes || 0;
+      if (r.monday) fiches += 1;
       erreurs.push(...r.erreurs);
     } catch (e) {
       erreurs.push(`${mail.objet || mail.id} : ${e?.message || e}`);
     }
   }
-  return { mails: aTraiter.length, documents, erreurs };
+  return { mails: aTraiter.length, documents, classes, fiches, erreurs };
 }

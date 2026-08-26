@@ -64,7 +64,7 @@ const COMPETENCES = [
     id: "extraire",
     icone: ScanText,
     titre: "Lancer l'extraction des documents",
-    quoi: "Chaque pièce est lue et ses données relevées, avec la page et la citation d'origine. Le traitement se poursuit en arrière-plan.",
+    quoi: "Chaque pièce est lue et ses données relevées, avec la page et la citation d'origine. Quand les documents arrivent par mail, la chaîne se fait seule : dépôt au dossier, classement dans le Drive, fiche Monday mise à jour, puis extraction.",
     exemples: ["Lance l'extraction du dossier Monoprix"],
     limite: "Un document à la fois : compter en minutes sur un dossier fourni.",
   },

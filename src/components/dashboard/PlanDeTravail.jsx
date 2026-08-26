@@ -94,6 +94,8 @@ export default function PlanDeTravail() {
         r.ecartes ? `${r.ecartes} sans rapport écarté(s)` : null,
         r.rattaches ? `${r.rattaches} rattaché(s) à un dossier` : null,
         r.pieces?.documents ? `${r.pieces.documents} pièce(s) jointe(s) versée(s) au dossier` : null,
+        r.pieces?.classes ? `${r.pieces.classes} classée(s) dans le Drive` : null,
+        r.pieces?.fiches ? `${r.pieces.fiches} fiche(s) Monday à jour` : null,
       ].filter(Boolean);
       toast.success("Boîtes relevées", { description: bouts.join(" · ") });
       if (r.erreurs?.length) toast.warning(r.erreurs[0]);

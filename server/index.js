@@ -1499,6 +1499,31 @@ app.delete('/api/assistant/fil', wrap(async (req, res) => {
   ok(res, { efface: true });
 }));
 
+// À qui correspond chaque projet, d'après les investisseurs tenus dans Monday.
+// Un seul appel pour toute la page : la liste des investisseurs est en cache,
+// une requête par projet la relirait pour rien.
+app.get('/api/monday/projets/clients', wrap(async (req, res) => {
+  const { mondayConfigure } = await import('./monday.js');
+  if (!mondayConfigure()) return ok(res, { configure: false, par_projet: {} });
+
+  const { investisseursPourProjet } = await import('./deal/monday-sync.js');
+  const projets = Records.list('Project').filter((p) => !p.archived);
+
+  const parProjet = {};
+  for (const projet of projets) {
+    const candidats = await investisseursPourProjet(projet);
+    if (candidats.length) {
+      parProjet[projet.id] = candidats.map((c) => ({
+        nom: c.client.nom,
+        budget: c.client.budget,
+        statut: c.client.statut,
+        raisons: c.raisons,
+      }));
+    }
+  }
+  ok(res, { configure: true, par_projet: parProjet });
+}));
+
 // Pousser un projet de la plateforme dans Monday.
 app.post('/api/monday/projets/:id', wrap(async (req, res) => {
   const projet = Records.get('Project', req.params.id);

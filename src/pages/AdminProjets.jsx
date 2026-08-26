@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
+import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from "framer-motion";
@@ -240,6 +241,14 @@ export default function AdminProjets() {
   const { data: projects = [], isLoading: chargementProjets, isError: erreurProjets, refetch: rechargerProjets } = useQuery({
     queryKey: ['all-projects'],
     queryFn: () => base44.entities.Project.list("-created_date"),
+  });
+
+  // À qui chaque projet pourrait correspondre, d'après les investisseurs tenus
+  // dans Monday. Un seul appel pour toute la page.
+  const { data: correspondances } = useQuery({
+    queryKey: ["projets-clients"],
+    queryFn: () => base44.request("GET", "/api/monday/projets/clients"),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: users = [] } = useQuery({
@@ -1460,6 +1469,7 @@ export default function AdminProjets() {
               transition={{ duration: 0.35, ease: "easeOut", delay: Math.min(idx * 0.035, 0.35) }}
             >
               <AdminProjectCard project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} />
+              <ClientsCorrespondants clients={correspondances?.par_projet?.[project.id]} />
             </motion.div>
           ))}
 

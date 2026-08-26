@@ -337,45 +337,83 @@ export async function agents() {
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /**
- * Investisseurs Monday dont le budget et la zone collent au dossier.
+ * Investisseurs Monday dont le budget et la zone collent à un bien.
  * Un critère absent ne disqualifie pas ; chaque rapprochement dit pourquoi.
+ *
+ * @param {{cout: number, ville: string}} bien
  */
-export async function investisseursPourDeal(deal) {
-  const v = vueDuLot(deal);
-  const cout = v.prix;
+export async function investisseursPourBien({ cout, ville: nomVille }) {
   if (!cout) return [];
 
-  const ville = norm(v.ville);
+  const ville = norm(nomVille);
   const ecartes = ['Abandonné', 'Projet Signé', 'Compromis'];
 
   const resultats = [];
   for (const c of await investisseurs()) {
     if (ecartes.includes(c.statut)) continue;
     const raisons = [];
+    // Le score sépare une vraie piste d'une simple compatibilité arithmétique :
+    // un budget de 1 000 k€ « passe » sur un bien à 210 k€ sans rien dire.
+    let score = 0;
 
     if (c.budget) {
       if (c.budget < cout * 0.9) continue; // hors budget : on écarte franchement
+      const rapport = c.budget / cout;
+      // Le bien occupe une part sérieuse du budget : c'est là que ça se joue.
+      if (rapport <= 1.6) score += 3;
+      else if (rapport <= 2.5) score += 1;
       raisons.push(`budget ${Math.round(c.budget / 1000)} k€ pour ${Math.round(cout / 1000)} k€`);
     }
     if (c.apport && c.apport >= cout * 0.15) {
+      score += 1;
       raisons.push(`apport ${Math.round(c.apport / 1000)} k€`);
     }
     // On dit quel champ a matché : afficher « Nice » parce que le lieu de
     // recherche mentionnait Lyon serait trompeur.
     if (ville) {
-      if (norm(c.recherche).includes('partout') || norm(c.localisation).includes('partout')) {
-        raisons.push('cherche partout');
-      } else if (norm(c.recherche).includes(ville)) {
+      if (norm(c.recherche).includes(ville)) {
+        // Chercher précisément cette ville est le signal le plus fort.
+        score += 4;
         raisons.push(`cherche sur ${c.recherche}`);
       } else if (norm(c.localisation).includes(ville)) {
+        score += 2;
         raisons.push(`basé à ${c.localisation}`);
+      } else if (norm(c.recherche).includes('partout') || norm(c.localisation).includes('partout')) {
+        score += 1;
+        raisons.push('cherche partout');
       }
     }
 
-    if (raisons.length) resultats.push({ client: c, raisons });
+    if (raisons.length) resultats.push({ client: c, raisons, score });
   }
 
+  // Le meilleur score d'abord ; à égalité, le budget le plus proche du bien —
+  // et non le plus gros, qui correspondrait à tout.
   return resultats
-    .sort((a, b) => b.raisons.length - a.raisons.length || (b.client.budget || 0) - (a.client.budget || 0))
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (a.client.budget || Infinity) - (b.client.budget || Infinity)
+    )
     .slice(0, 5);
+}
+
+/** Rapprochement pour un dossier de préanalyse. */
+export async function investisseursPourDeal(deal) {
+  const v = vueDuLot(deal);
+  return investisseursPourBien({ cout: v.prix, ville: v.ville });
+}
+
+/**
+ * Rapprochement pour un projet de la plateforme.
+ * Le prix se cherche aussi dans les champs du simulateur : la fiche d'en-tête
+ * reste souvent à zéro.
+ */
+export async function investisseursPourProjet(projet) {
+  const nombre = (v) => (typeof v === 'number' && v > 0 ? v : null);
+  const cout =
+    [projet.prix_acquisition, projet.sim_prix_bien_negocie, projet.sim_prix_bien_fai]
+      .map(nombre)
+      .find((v) => v != null) ?? null;
+  return investisseursPourBien({ cout, ville: projet.ville_secteur_champ1 || '' });
 }

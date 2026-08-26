@@ -4,10 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import ComptesGoogle from "@/components/dashboard/ComptesGoogle";
 import RapportAuto from "@/components/dashboard/RapportAuto";
+import { useConnexionGmail } from "@/components/mails/ConnexionGmail";
 import { toast } from "sonner";
 import {
   Loader2, Mail, FolderPlus, Briefcase, RefreshCw, Clock, FileWarning, Inbox, MoonStar, Send, X,
-  CalendarDays, ExternalLink, ThumbsDown, ChevronDown,
+  CalendarDays, ExternalLink, ThumbsDown, ChevronDown, KeyRound,
 } from "lucide-react";
 
 // Le plan de travail : ce que l'assistant propose de faire, maintenant.
@@ -19,6 +20,7 @@ import {
 
 const ICONES = {
   mail_a_traiter: Inbox,
+  compte_muet: KeyRound,
   reponse_recue: Mail,
   documents_manquants: FileWarning,
   relance_due: Clock,
@@ -92,6 +94,15 @@ export default function PlanDeTravail() {
 
   const rafraichir = () => queryClient.invalidateQueries({ queryKey: ["assistant-propositions"] });
 
+  // Reconnecter un compte depuis la pile : le serveur relève la boîte dès le
+  // consentement accordé, il n'y a donc rien à cliquer ensuite.
+  const { connecter: connecterGoogle } = useConnexionGmail(() => {
+    queryClient.invalidateQueries({ queryKey: ["mail-status"] });
+    rafraichir();
+    queryClient.invalidateQueries({ queryKey: ["rapports-auto"] });
+    toast.success("Compte reconnecté", { description: "La boîte est relevée dans la foulée." });
+  });
+
   const relever = useMutation({
     mutationFn: () => base44.request("POST", "/api/assistant/relever"),
     onSuccess: (r) => {
@@ -151,6 +162,10 @@ export default function PlanDeTravail() {
     const cle = `${proposition.id}:${action.id}`;
     // Ouvrir un dossier n'est pas le traiter : seules les actions comptent.
     if (action.mode === "lien") return navigate(action.href);
+    if (action.mode === "google") {
+      noterTraitee(proposition, action);
+      return connecterGoogle();
+    }
     if (action.mode === "externe") noterTraitee(proposition, action);
     if (action.mode === "externe") return window.open(action.href, "_blank", "noopener");
 
@@ -423,6 +438,7 @@ export default function PlanDeTravail() {
                             {a.mode === "projet" && !occupe && <Briefcase className="w-3 h-3" />}
                             {a.mode === "tri" && !occupe && <ThumbsDown className="w-3 h-3" />}
                             {a.mode === "externe" && !occupe && <ExternalLink className="w-3 h-3" />}
+                            {a.mode === "google" && !occupe && <KeyRound className="w-3 h-3" />}
                             {a.libelle}
                           </button>
                         );

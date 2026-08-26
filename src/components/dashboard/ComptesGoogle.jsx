@@ -41,6 +41,8 @@ export default function ComptesGoogle() {
   const rafraichir = () => {
     queryClient.invalidateQueries({ queryKey: ["mail-status"] });
     queryClient.invalidateQueries({ queryKey: ["assistant-propositions"] });
+    // Le serveur relève la boîte dès le consentement : le rapport bouge aussi.
+    queryClient.invalidateQueries({ queryKey: ["rapports-auto"] });
   };
 
   const deconnecter = useMutation({

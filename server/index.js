@@ -396,6 +396,15 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
           "Vous n'avez pas accordé l'autorisation d'envoyer des mails : la boîte ne peut pas servir d'expéditeur. Réessayez en cochant la case demandée par Google.",
       });
     }
+    // La boîte vient d'être autorisée : on la relève tout de suite, sans
+    // attendre le prochain passage de la veille ni un clic de plus. Se
+    // connecter une fois doit suffire.
+    if (profile.peut_lire) {
+      import('./deal/veille-mails.js')
+        .then(({ relever }) => relever())
+        .then((r) => console.log(`[veille] relève immédiate après connexion : ${r?.nouveaux || 0} mail(s)`))
+        .catch((e) => console.warn('[veille] relève après connexion impossible :', e?.message || e));
+    }
     return popupConnectePage(res, profile);
   }
 

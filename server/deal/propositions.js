@@ -308,6 +308,62 @@ function surInvestisseurs(deal, rapprochements) {
   ];
 }
 
+// Une boîte connectée qui n'autorise pas ce que le serveur demande ne sert à
+// rien : la veille ne l'ouvre même pas. Jusqu'ici ce défaut ne se signalait que
+// par un bandeau discret, et la boîte restait muette pendant des semaines. Il
+// devient une proposition prioritaire, avec le bouton qui la répare.
+async function surComptesMuets() {
+  const { gmailReadDemande, gmailSendDemande, driveDemande, calendarDemande } = await import(
+    '../google-oauth.js'
+  );
+  const attendues = [
+    gmailReadDemande && ['peut_lire', 'relever la boîte'],
+    gmailSendDemande && ['peut_envoyer', 'envoyer les mails'],
+    driveDemande && ['peut_drive', 'classer dans le Drive'],
+    calendarDemande && ['peut_agenda', "tenir l'agenda"],
+  ].filter(Boolean);
+  if (!attendues.length) return [];
+
+  const comptes = Records.list('MailAccount').filter((a) => a.provider === 'google');
+  const pile = [];
+  for (const compte of comptes) {
+    const manquantes = attendues.filter(([cle]) => !compte[cle]);
+    const perimee = !compte.refresh_token;
+    if (!manquantes.length && !perimee) continue;
+
+    // Ne pas pouvoir lire est le seul défaut qui rend le compte totalement
+    // sourd : les autres se rattrapent à la main, celui-là non.
+    const sourde = manquantes.some(([cle]) => cle === 'peut_lire');
+    pile.push({
+      id: `compte:${compte.email}`,
+      type: 'compte_muet',
+      priorite: sourde || perimee ? P.URGENT : P.ATTENDU,
+      famille: 'compte',
+      titre: sourde
+        ? `${compte.email} n'est jamais relevée`
+        : `${compte.email} : autorisation manquante`,
+      detail: perimee
+        ? 'La session Google est incomplète : le compte cessera de fonctionner.'
+        : `Le compte n'autorise pas Klocka à ${manquantes.map(([, quoi]) => quoi).join(', ni à ')}. ` +
+          "Une autorisation ne s'ajoute jamais après coup : il faut reconnecter le compte.",
+      contexte: [
+        ['Compte', compte.email],
+        ['Connecté le', leJour(compte.connected_at)],
+        ['Manquant', manquantes.map(([, quoi]) => quoi).join(', ') || 'session'],
+      ],
+      actions: [
+        {
+          id: 'reconnecter',
+          libelle: 'Reconnecter le compte',
+          mode: 'google',
+          principal: true,
+        },
+      ],
+    });
+  }
+  return pile;
+}
+
 /**
  * La pile de propositions, la plus urgente d'abord.
  * @param {object} [opts]
@@ -335,7 +391,9 @@ export async function construirePropositions({ comptes = null } = {}) {
     console.warn('[monday] rapprochements indisponibles :', e?.message || e);
   }
 
-  const pile = [...surMailsOrphelins(mails)];
+  // Un compte muet passe avant tout le reste : sans lui, la pile est fausse —
+  // elle décrit un travail calculé sur des boîtes qu'on ne lit pas.
+  const pile = [...(await surComptesMuets()), ...surMailsOrphelins(mails)];
   for (const deal of deals) {
     pile.push(
       ...surReponsesRecues(deal, mails),

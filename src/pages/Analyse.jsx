@@ -180,7 +180,7 @@ export default function Analyse() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5 border-b border-[#282b2a]">
               <div>
                 <div className="text-[11px] tracking-[.16em] uppercase text-[#8b9391] mb-2.5">Pipeline</div>
-                <h1 className="m-0 text-[30px] font-medium tracking-[-.01em]">Dossiers</h1>
+                <h1 className="m-0 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Dossiers</h1>
                 <p className="mt-2.5 mb-0 max-w-[52ch] text-[13.5px] leading-[1.65] text-[#9aa19e]">
                   Du premier mail à l'agent jusqu'au dossier de présentation banque, en six étapes.
                 </p>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
@@ -32,16 +32,6 @@ const ANIMATIONS = `
   50%      { opacity: 1;   transform: translateY(-3px); }
 }
 `;
-
-// « Relevé il y a 3 min » : l'état de la veille, en clair.
-function depuis(iso) {
-  if (!iso || isNaN(new Date(iso))) return null;
-  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (min < 1) return "À L'INSTANT";
-  if (min < 60) return `IL Y A ${min} MIN`;
-  const h = Math.floor(min / 60);
-  return h < 24 ? `IL Y A ${h} H` : `IL Y A ${Math.floor(h / 24)} J`;
-}
 
 // Ce que l'utilisateur a sous les yeux : « mets-le dans Monday » doit suffire.
 function useContextePage() {
@@ -85,12 +75,6 @@ export default function AssistantFlottant() {
       .catch(() => {});
     return () => { vivant = false; };
   }, []);
-
-  const { data: veille } = useQuery({
-    queryKey: ["assistant-veille"],
-    queryFn: () => base44.request("GET", "/api/assistant/veille"),
-    refetchInterval: 60000,
-  });
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -187,7 +171,6 @@ export default function AssistantFlottant() {
   };
 
   const actif = !!texte.trim();
-  const releve = depuis(veille?.le);
 
   return (
     <div
@@ -222,7 +205,7 @@ export default function AssistantFlottant() {
             flexDirection: "column",
           }}
         >
-          {/* Barre méta : l'état de la veille, et la fermeture. */}
+          {/* Barre méta : l'étiquette et la fermeture. */}
           <div
             style={{
               display: "flex",
@@ -232,7 +215,7 @@ export default function AssistantFlottant() {
             }}
           >
             <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: "#8a8570" }}>
-              {releve ? `RELEVÉ ${releve}` : "ASSISTANT"}
+              ASSISTANT
             </span>
             <button
               onClick={() => setOuvert(false)}

@@ -2,6 +2,7 @@
 //
 // Choix du fournisseur :
 //   - LLM_PROVIDER=gemini|anthropic force explicitement ;
+//   - sans consigne, Anthropic l'emporte si sa clé est là ;
 //   - sinon, la première clé présente gagne (GEMINI_API_KEY puis
 //     ANTHROPIC_API_KEY) ;
 //   - sans aucune clé, chaque appel renvoie une réponse factice pour que
@@ -22,8 +23,11 @@ function pickProvider() {
   const forced = (process.env.LLM_PROVIDER || '').trim().toLowerCase();
   if (forced === 'gemini') return GEMINI_KEY ? 'gemini' : 'none';
   if (forced === 'anthropic' || forced === 'claude') return ANTHROPIC_KEY ? 'anthropic' : 'none';
-  if (GEMINI_KEY) return 'gemini';
+  // Anthropic l'emporte quand les deux clés sont présentes. L'inverse était un
+  // piège : ajouter une clé Anthropic sans toucher à LLM_PROVIDER ne changeait
+  // rien, et le service continuait d'appeler Gemini jusqu'à épuiser son quota.
   if (ANTHROPIC_KEY) return 'anthropic';
+  if (GEMINI_KEY) return 'gemini';
   return 'none';
 }
 

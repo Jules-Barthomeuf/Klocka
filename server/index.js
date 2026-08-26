@@ -1806,7 +1806,7 @@ app.listen(PORT, () => {
   const accounts = listAccounts();
   console.log(`\n  ▸ Klocka : ${url}\n`);
   console.log(`    Interface  : ${fs.existsSync(DIST_DIR) ? 'servie sur ce port' : 'absente — lancez `npm run build`'}`);
-  console.log(`    IA         : ${llmEnabled ? llmStatus().label : 'désactivée — ajoutez GEMINI_API_KEY dans .env'}`);
+  console.log(`    IA         : ${llmEnabled ? llmStatus().label : 'désactivée — ajoutez ANTHROPIC_API_KEY dans .env'}`);
   const g = googleStatus();
   console.log(
     `    Connexion Google : ${googleEnabled ? `prête${g.gmail_send ? ' (+ envoi de mails)' : ''}` : 'non configurée — ajoutez GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET dans .env'}`

@@ -226,6 +226,12 @@ const OUTILS = [
     input_schema: { type: 'object', properties: {} },
   },
   {
+    name: 'registre_engagements',
+    description:
+      "Le registre des engagements : qui doit quoi, pour quand. Sans deal_id, tout le registre ; avec, les engagements de ce dossier. Répond à « qu'attend-on », « qui doit quoi », « quelles promesses ».",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' } } },
+  },
+  {
     name: 'pousser_projet_monday',
     description:
       "Pose ou met à jour un projet dans le tableau Monday « Propriétés ». Nécessite l'identifiant obtenu par chercher_projet.",
@@ -298,9 +304,11 @@ async function executerOutil({ name, input }, user) {
     const lot = deal.lots?.[0];
     if (!lot) return { erreur: 'Aucun lot analysé sur ce dossier' };
     const { redigerMailIntention } = await import('./deal/mails-cycle.js');
+    const { engagementsOuverts } = await import('./deal/engagements.js');
     const mail = await redigerMailIntention(lot, input.intention, {
       signature: user?.full_name || user?.email,
       sansIA: !!deal.test,
+      engagements: engagementsOuverts(input.deal_id),
     });
     if (!mail) return { erreur: 'Intention inconnue' };
     return {
@@ -579,6 +587,11 @@ async function executerOutil({ name, input }, user) {
       dans_monday: !!deal.monday_item_id,
       contact_agent: deal.contact_agent_email || null,
       relance_prevue_le: deal.relance_prevue_le || null,
+      engagements_ouverts: (await import('./deal/engagements.js')).engagementsOuverts(deal.deal_id).map((e) => ({
+        de: e.de,
+        quoi: e.quoi,
+        echeance: e.echeance,
+      })),
       dernier_evenement: (deal.suivi || []).slice(-1)[0]?.detail || null,
     };
   }
@@ -623,6 +636,24 @@ async function executerOutil({ name, input }, user) {
       titre: titreDeal(deal),
       cree: r.cree,
       url: `https://klocka-company.monday.com/boards/${process.env.MONDAY_BOARD_PROPRIETES || ''}/pulses/${r.id}`,
+    };
+  }
+
+  if (name === 'registre_engagements') {
+    const { engagementsOuverts, tousLesEngagements, enRetard } = await import('./deal/engagements.js');
+    const liste = input.deal_id ? engagementsOuverts(input.deal_id) : tousLesEngagements().slice(0, 30);
+    return {
+      engagements: liste.map((e) => ({
+        dossier: e.dossier,
+        deal_id: e.deal_id,
+        de: e.de,
+        quoi: e.quoi,
+        echeance: e.echeance,
+        statut: e.statut,
+        en_retard: enRetard(e),
+        source: e.source?.type,
+      })),
+      nombre: liste.length,
     };
   }
 

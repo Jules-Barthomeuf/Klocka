@@ -83,8 +83,9 @@ export default function RapportAuto({ onCompte }) {
       documents: t.documents + (r.documents || 0),
       classes: t.classes + (r.classes || 0),
       fiches: t.fiches + (r.fiches || 0),
+      engagements: t.engagements + (r.engagements || 0),
     }),
-    { mails: 0, rattaches: 0, documents: 0, classes: 0, fiches: 0 }
+    { mails: 0, rattaches: 0, documents: 0, classes: 0, fiches: 0, engagements: 0 }
   );
 
   const lignes = passes.flatMap((r) => r.lignes || []);
@@ -121,6 +122,12 @@ export default function RapportAuto({ onCompte }) {
     total.fiches ? (
       <Fort>
         {total.fiches} fiche{total.fiches > 1 ? "s" : ""} Monday rafraîchie{total.fiches > 1 ? "s" : ""}
+      </Fort>
+    ) : null,
+    total.engagements ? (
+      <Fort>
+        {total.engagements} promesse{total.engagements > 1 ? "s" : ""} inscrite{total.engagements > 1 ? "s" : ""} au
+        registre
       </Fort>
     ) : null,
   ].filter(Boolean);

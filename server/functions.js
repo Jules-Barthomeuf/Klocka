@@ -37,6 +37,18 @@ async function avancerDealApresMail(dealId, intention, sujet, destinataire, user
     changerStatut(deal, 'documents_demandes', { user, note: 'Demande de documents envoyée' });
   } else if (intention === 'relance' && statutDe(deal) === 'documents_demandes') {
     repousserRelance(deal, user);
+  }
+
+  // La demande entre au registre des engagements : une attente datée, avec ce
+  // qui a été réclamé et à qui. C'est elle — plus un minuteur — qui portera la
+  // relance. Après changerStatut : l'échéance hérite de relance_prevue_le.
+  if (['demande_documents', 'relance'].includes(intention)) {
+    try {
+      const { ouvrirDepuisEnvoi } = await import('./deal/engagements.js');
+      ouvrirDepuisEnvoi(dealId, { intention, objet: sujet, destinataire, user });
+    } catch (e) {
+      console.warn('[engagements] ouverture impossible :', e?.message || e);
+    }
   } else if (intention === 'refus' || intention === 'abandon') {
     // Un deal de test n'alimente jamais la base marché.
     if (!deal.test) for (const lot of deal.lots || []) alimenterBaseMarche(deal, lot, user);

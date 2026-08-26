@@ -11,8 +11,12 @@ import { ChevronDown, Loader2, Users } from "lucide-react";
 // montrer, si bien qu'une panne, un Monday non configuré et une absence de
 // candidat se ressemblaient tous : un écran vide, sans recours.
 
-const somme = (n) =>
-  typeof n === "number" && isFinite(n) ? `${Math.round(n / 1000)} k€` : null;
+// Milliers jusqu'au million, puis millions : « 2000 k€ » ne se lit pas, « 2 M€ » si.
+const somme = (n) => {
+  if (typeof n !== "number" || !isFinite(n) || !n) return null;
+  if (n < 1_000_000) return `${Math.round(n / 1000)} k€`;
+  return `${String(Math.round((n / 1_000_000) * 10) / 10).replace(".", ",")} M€`;
+};
 
 function Mention({ children }) {
   return (

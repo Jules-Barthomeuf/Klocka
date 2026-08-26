@@ -38,6 +38,35 @@ function compteLisible(email) {
 const entete = (payload, nom) =>
   (payload?.headers || []).find((h) => h.name?.toLowerCase() === nom)?.value || '';
 
+// Le texte du message, extrait de l'arbre MIME. Conservé en base — c'est de
+// lui que le registre des engagements tire les promesses de l'agent, et le
+// relire ne doit pas coûter un appel Gmail. On préfère text/plain ; à défaut,
+// le HTML débarrassé de ses balises. Plafonné : un mail de 20 000 caractères
+// a déjà tout dit.
+function texteDuMessage(payload) {
+  const morceaux = { plain: [], html: [] };
+  const parcourir = (part) => {
+    if (!part) return;
+    if (part.body?.data && !part.filename) {
+      const texte = Buffer.from(part.body.data, 'base64url').toString('utf8');
+      if (part.mimeType === 'text/plain') morceaux.plain.push(texte);
+      else if (part.mimeType === 'text/html') morceaux.html.push(texte);
+    }
+    for (const p of part.parts || []) parcourir(p);
+  };
+  parcourir(payload);
+  const brut = morceaux.plain.length
+    ? morceaux.plain.join('\n')
+    : morceaux.html
+        .join('\n')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/[ \t]+/g, ' ');
+  return brut.trim().slice(0, 20000);
+}
+
 // Les pièces jointes vivent dans l'arbre MIME, à plat ou imbriquées. On garde
 // leur identifiant : c'est lui qui permettra de télécharger le fichier sans
 // recharger tout le message.
@@ -97,6 +126,7 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
         objet: entete(msg.payload, 'subject') || '(sans objet)',
         date: msg.internalDate ? new Date(Number(msg.internalDate)).toISOString() : null,
         extrait: msg.snippet || '',
+        texte: texteDuMessage(msg.payload),
         pieces_jointes: nomsPiecesJointes(msg.payload),
         lu: !(msg.labelIds || []).includes('UNREAD'),
         deal_id: null,

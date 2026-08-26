@@ -24,6 +24,7 @@ const ICONES = {
   reponse_recue: Mail,
   documents_manquants: FileWarning,
   relance_due: Clock,
+  engagement_du: Clock,
   projet_a_creer: Briefcase,
   dossier_en_sommeil: MoonStar,
 };

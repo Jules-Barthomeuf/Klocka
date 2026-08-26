@@ -101,6 +101,12 @@ export function changerStatut(deal, statut, { user, note } = {}) {
   ];
 
   Records.update('Deal', deal.id, patch);
+  // Un statut qui avance solde les attentes du registre des engagements :
+  // « documents reçus » paie la dette, « abandonné » la rend sans objet.
+  // Import dynamique et sans attente — le cycle de vie ne dépend de personne.
+  import('./engagements.js')
+    .then((m) => m.surStatut(deal.deal_id, statut, user))
+    .catch(() => {});
   return { ok: true, deal: { ...deal, ...patch } };
 }
 

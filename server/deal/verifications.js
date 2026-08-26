@@ -8,7 +8,8 @@
 // n'est exécuté ici : on décrit, l'analyste décide.
 
 import { Records } from '../db.js';
-import { statutDe, aRelancer } from './lifecycle.js';
+import { statutDe } from './lifecycle.js';
+import { engagementsOuverts, enRetard } from './engagements.js';
 import { documentsManquants } from './propositions.js';
 
 const titreDeal = (d) => d.nom || d.lots?.[0]?.synthese?.titre || d.deal_id;
@@ -78,9 +79,11 @@ export function verifierDossier(deal) {
     });
   }
 
-  if (aRelancer(deal)) {
+  // Le registre des engagements dit ce qui est dû, par qui, depuis quand —
+  // c'est lui qui fonde le constat, plus le minuteur d'autrefois.
+  for (const e of engagementsOuverts(deal.deal_id).filter(enRetard)) {
     constats.push({
-      manque: "l'agent n'a pas répondu et la relance est échue",
+      manque: `${e.quoi} — attendu de ${e.de || "l'agent"} pour le ${new Date(e.echeance).toLocaleDateString('fr-FR')}`,
       action: 'préparer la relance',
       outil: 'preparer_mail',
       arguments: { deal_id: deal.deal_id, intention: 'relance' },

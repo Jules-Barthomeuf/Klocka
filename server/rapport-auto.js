@@ -20,7 +20,11 @@ const PLAFOND = 300;
  */
 export function consignerPasse(bilan) {
   const utile =
-    (bilan.nouveaux || 0) + (bilan.rattaches || 0) + (bilan.documents || 0) + (bilan.erreurs?.length || 0);
+    (bilan.nouveaux || 0) +
+    (bilan.rattaches || 0) +
+    (bilan.documents || 0) +
+    (bilan.engagements || 0) +
+    (bilan.erreurs?.length || 0);
   if (!utile) return null;
 
   try {
@@ -32,6 +36,7 @@ export function consignerPasse(bilan) {
       documents: bilan.documents || 0,
       classes: bilan.classes || 0,
       fiches: bilan.fiches || 0,
+      engagements: bilan.engagements || 0,
       // Le détail par dossier : c'est lui qu'on relit, pas les compteurs.
       lignes: bilan.lignes || [],
       erreurs: bilan.erreurs || [],

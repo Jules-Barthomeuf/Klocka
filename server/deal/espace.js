@@ -41,6 +41,10 @@ export function ajouterDocument(dealId, { nom, url, mime, taille }, user) {
     ...(categorie ? { categorie, categorie_auto: true } : {}),
   };
   Records.update('Deal', brut.id, { documents_espace: [...(brut.documents_espace || []), doc] });
+  // La pièce arrivée peut solder une promesse du registre — jamais bloquant.
+  import('./engagements.js')
+    .then((m) => m.rapprocherDocuments(dealId, user))
+    .catch(() => {});
   return { ok: true, document: doc };
 }
 

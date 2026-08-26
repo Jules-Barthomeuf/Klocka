@@ -88,6 +88,7 @@ const CONSIGNES_INTENTION = {
 - Rappelle brièvement que nous travaillons avec des mandats de recherche et que les honoraires de l'agent restent inchangés.`,
   relance: `Objectif : relancer courtoisement l'agent qui n'a pas envoyé les documents demandés précédemment.
 - Reste bref (4-6 phrases), courtois mais direct.
+- Si le JSON contient "engagements_en_attente", appuie-toi dessus : rappelle précisément ce qui est attendu et, quand une date avait été promise, cite-la (« vous nous annonciez le bail pour le 27 août »).
 - Rappelle que nos clients peuvent se positionner rapidement dès réception des documents.
 - Ne mentionne ni verdict ni analyse.`,
   abandon: `Objectif : annoncer que nous abandonnons le dossier après étude approfondie des documents.
@@ -103,10 +104,14 @@ const CONSIGNES_INTENTION = {
  * Rédige le mail correspondant à une intention du cycle de vie.
  * @param {object} dossierLot - { lot, enrichissement, evaluation }
  * @param {string} intention  - une valeur de INTENTIONS
- * @param {object} opts       - { signature, raisons }
+ * @param {object} opts       - { signature, raisons, engagements }
  * @returns {Promise<{objet, corps, ia} | null>}
  */
-export async function redigerMailIntention(dossierLot, intention, { signature, raisons, sansIA } = {}) {
+export async function redigerMailIntention(
+  dossierLot,
+  intention,
+  { signature, raisons, sansIA, engagements } = {}
+) {
   if (!INTENTIONS.includes(intention)) return null;
   const vue = vueRedacteur(dossierLot);
   const secours = mailDeSecours(intention, vue, { signature, raisons });
@@ -124,6 +129,17 @@ export async function redigerMailIntention(dossierLot, intention, { signature, r
         }
       : {}),
     ...(intention === 'abandon' ? { raisons_abandon: raisons || 'non précisées' } : {}),
+    // La relance cite le registre : ce qui a été demandé, ce qui a été promis,
+    // pour quand. C'est ce qui la sort du gabarit — chaque relance dit SES faits.
+    ...(intention === 'relance' && engagements?.length
+      ? {
+          engagements_en_attente: engagements.map((e) => ({
+            quoi: e.quoi,
+            promis_ou_demande: e.source?.type === 'mail_recu' ? 'promis par l’agent' : 'demandé par nous',
+            pour_le: e.echeance ? e.echeance.slice(0, 10) : null,
+          })),
+        }
+      : {}),
   };
 
   try {

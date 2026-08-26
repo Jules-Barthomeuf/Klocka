@@ -9,7 +9,7 @@
 // exécute l'action choisie, l'humain valide l'envoi.
 
 import { Records } from '../db.js';
-import { statutDe, aRelancer } from './lifecycle.js';
+import { statutDe } from './lifecycle.js';
 import { etapeMax } from './etapes.js';
 import { typeDepuisCategorie } from './grille.js';
 
@@ -198,31 +198,41 @@ function surDocumentsManquants(deal) {
 }
 
 // Relance due : documents demandés, échéance passée, silence.
-function surRelance(deal) {
-  if (!aRelancer(deal)) return [];
-  const attente = jours(deal.relance_prevue_le);
+// La relance ne repose plus sur un minuteur mais sur le registre des
+// engagements : un engagement échu dit QUOI relancer, à QUI, et depuis quand.
+// Le minuteur disait « sept jours sans réponse » ; le registre dit « Marc
+// devait envoyer le PV jeudi, on est lundi ». La règle reste 100 % calculée —
+// le modèle écrit le registre, jamais la proposition.
+function surEngagements(deal, engagements) {
+  const echus = (engagements || []).filter((e) => e.echeance && new Date(e.echeance) <= new Date());
+  if (!echus.length) return [];
+  const plusAncien = echus[0];
+  const retard = jours(plusAncien.echeance);
   return [
     {
-      id: `relance:${deal.deal_id}`,
-      type: 'relance_due',
+      id: `engagement:${deal.deal_id}`,
+      type: 'engagement_du',
       priorite: P.URGENT,
-      titre: `Relancer l'agent — ${titreDeal(deal)}`,
+      titre: `Relancer ${plusAncien.de || "l'agent"} — ${titreDeal(deal)}`,
       detail: [
-        `Documents demandés, sans réponse.`,
-        deal.relance_prevue_le ? `Relance prévue le ${leJour(deal.relance_prevue_le)}` : null,
-        attente > 0 ? `en retard de ${attente} j` : null,
+        echus.map((e) => e.quoi).join(' ; '),
+        `attendu pour le ${leJour(plusAncien.echeance)}`,
+        retard > 0 ? `en retard de ${retard} j` : null,
       ]
         .filter(Boolean)
         .join(' · '),
       deal_id: deal.deal_id,
       contexte: [
-        ['Contact agent', deal.contact_agent_email || 'inconnu'],
-        ['Relance prévue le', leJour(deal.relance_prevue_le)],
-        ['Retard', attente > 0 ? `${attente} jour(s)` : 'échue aujourd\'hui'],
+        ['Doit', plusAncien.de || deal.contact_agent_email || 'inconnu'],
+        ...echus.map((e) => [
+          e.source?.type === 'mail_recu' ? 'Promis' : 'Demandé',
+          `${e.quoi} — pour le ${leJour(e.echeance)}`,
+        ]),
         ['Dernier événement', (deal.suivi || []).slice(-1)[0]?.detail || '—'],
       ],
       actions: [
         { id: 'relancer', libelle: 'Préparer la relance', mode: 'mail', intention: 'relance', principal: true },
+        { id: 'registre', libelle: 'Voir le registre', mode: 'lien', href: '/Engagements' },
         { id: 'ouvrir', libelle: 'Ouvrir le dossier', mode: 'lien', href: `/Analyse?deal_id=${deal.deal_id}` },
       ],
     },
@@ -393,11 +403,21 @@ export async function construirePropositions({ comptes = null } = {}) {
 
   // Un compte muet passe avant tout le reste : sans lui, la pile est fausse —
   // elle décrit un travail calculé sur des boîtes qu'on ne lit pas.
+  // Le registre se lit une fois pour toute la pile.
+  const parDeal = new Map();
+  for (const e of Records.filter('Engagement', { statut: 'ouvert' })) {
+    if (!parDeal.has(e.deal_id)) parDeal.set(e.deal_id, []);
+    parDeal.get(e.deal_id).push(e);
+  }
+  for (const liste of parDeal.values()) {
+    liste.sort((a, b) => String(a.echeance || '9999').localeCompare(String(b.echeance || '9999')));
+  }
+
   const pile = [...(await surComptesMuets()), ...surMailsOrphelins(mails)];
   for (const deal of deals) {
     pile.push(
       ...surReponsesRecues(deal, mails),
-      ...surRelance(deal),
+      ...surEngagements(deal, parDeal.get(deal.deal_id)),
       ...surDocumentsManquants(deal),
       ...surProjetACreer(deal),
       ...surInvestisseurs(deal, rapprochements),

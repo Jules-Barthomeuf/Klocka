@@ -118,10 +118,21 @@ export async function relever(uploadDir = null) {
       echecs.push(...(pieces.echecs || []));
     }
 
+    // Les promesses des réponses entrent au registre : « je vous envoie le PV
+    // jeudi » devient une échéance datée, que la relance saura citer.
+    let engagements = { crees: 0 };
+    try {
+      const { extraireEnAttente } = await import('./engagements.js');
+      engagements = await extraireEnAttente();
+      erreurs.push(...(engagements.erreurs || []));
+    } catch (e) {
+      erreurs.push(`Registre des engagements : ${e?.message || e}`);
+    }
+
     // Les agents entrent au CRM tout seuls : l'information est déjà sur les
     // dossiers, personne n'a à la ressaisir.
     const crm = synchroniserAgents();
-    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, pieces, crm, erreurs };
+    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, pieces, engagements, crm, erreurs };
 
     // Ce que la veille a fait sans personne devant l'écran doit pouvoir se
     // relire : sinon un document apparaît dans un dossier sans qu'on sache d'où.
@@ -134,6 +145,7 @@ export async function relever(uploadDir = null) {
       classes: pieces.classes || 0,
       fiches: pieces.fiches || 0,
       lignes: pieces.lignes || [],
+      engagements: engagements.crees || 0,
       erreurs,
       echecs,
     });

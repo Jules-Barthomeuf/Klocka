@@ -574,7 +574,7 @@ const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
 // qui les consomment sont toutes réservées aux admins.
 const ENTITES_ADMIN = new Set([
   'Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail', 'AssistantAction',
-  'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto',
+  'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto', 'Engagement',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -1149,11 +1149,14 @@ app.post('/api/preanalyse/dossiers/:dealId/mail', wrap(async (req, res) => {
   if (!lot) return res.status(404).json({ error: 'Lot introuvable' });
 
   const user = currentUser(req);
+  const { engagementsOuverts } = await import('./deal/engagements.js');
   const mail = await redigerMailIntention(lot, intention, {
     signature: user?.full_name || user?.email,
     raisons,
     // Deal de test : texte de secours directement, aucun appel LLM.
     sansIA: !!dossier.test,
+    // La relance sait ce que le registre attend — elle cite ses faits.
+    engagements: engagementsOuverts(req.params.dealId),
   });
   ok(res, { ...mail, intention, destinataire: dossier.contact_agent_email || '' });
 }));
@@ -1544,6 +1547,26 @@ app.post('/api/assistant/rapports/vus', wrap(async (req, res) => {
   ok(res, { marques: marquerVus(currentUser(req), req.body?.ids) });
 }));
 
+// Le registre des engagements : qui doit quoi, pour quand.
+app.get('/api/assistant/engagements', wrap(async (req, res) => {
+  const { tousLesEngagements, enRetard } = await import('./deal/engagements.js');
+  ok(res, { engagements: tousLesEngagements().map((e) => ({ ...e, en_retard: enRetard(e) })) });
+}));
+
+app.post('/api/assistant/engagements/:id/tenu', wrap(async (req, res) => {
+  const { clore } = await import('./deal/engagements.js');
+  const r = clore(req.params.id, { user: currentUser(req), commentaire: req.body?.commentaire });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
+app.post('/api/assistant/engagements/:id/echeance', wrap(async (req, res) => {
+  const { repousser } = await import('./deal/engagements.js');
+  const r = repousser(req.params.id, req.body?.date, currentUser(req));
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
 // Le fil de conversation de l'utilisateur, tel qu'il l'a laissé.
 app.get('/api/assistant/fil', wrap(async (req, res) => {
   const { lireFil } = await import('./assistant-fil.js');
@@ -1801,6 +1824,12 @@ if (EN_PRODUCTION) {
 import('./deal/file-extraction.js').then(({ reprendreEnAttente }) => {
   const n = reprendreEnAttente(UPLOAD_DIR);
   if (n) console.log(`  ▸ ${n} extraction(s) repris après redémarrage`);
+});
+
+// Les demandes déjà envoyées avant l'existence du registre des engagements
+// entrent au registre rétroactivement — EmailLog garde tout, rien n'est perdu.
+import('./deal/engagements.js').then(({ rattraperDepuisEmailLog }) => {
+  rattraperDepuisEmailLog();
 });
 
 // Agents des dossiers → fiches CRM, dès le démarrage.

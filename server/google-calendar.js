@@ -10,7 +10,6 @@
 
 import { Records, Meta } from './db.js';
 import { storedAccount, accessTokenFor } from './google-oauth.js';
-import { statutDe } from './deal/lifecycle.js';
 
 const API = 'https://www.googleapis.com/calendar/v3';
 const NOM_AGENDA = 'Klocka — Dossiers';
@@ -143,35 +142,36 @@ export async function synchroniserEcheances(compteEmail, appUrl = '') {
   const token = await accessTokenFor(account);
   const { id, cree } = await assurerCalendrier(compteEmail);
 
-  const deals = Records.list('Deal').filter(
-    (d) => !d.archived && !d.test && d.relance_prevue_le && statutDe(d) === 'documents_demandes'
-  );
+  // Les échéances viennent du registre des engagements : chaque événement dit
+  // QUOI est attendu et de QUI — plus seulement « relance » et une date.
+  const { engagementsOuverts } = await import('./deal/engagements.js');
+  const engagements = engagementsOuverts().filter((e) => e.echeance);
 
   let crees = 0;
   let majs = 0;
   const erreurs = [];
-  for (const deal of deals) {
-    const titre = `Relance — ${deal.nom || deal.lots?.[0]?.synthese?.titre || deal.deal_id}`;
+  for (const e of engagements) {
+    const titre = `${e.quoi} — ${e.dossier}`;
     try {
       const r = await poserEvenement(token, id, {
-        cle: `relance:${deal.deal_id}`,
+        cle: `engagement:${e.id}`,
         titre,
         description: [
-          `Documents demandés à ${deal.contact_agent_email || "l'agent"}, sans réponse.`,
-          appUrl ? `Dossier : ${appUrl}/Analyse?deal_id=${deal.deal_id}` : null,
+          `Attendu de ${e.de || "l'agent"}.`,
+          appUrl ? `Dossier : ${appUrl}/Analyse?deal_id=${e.deal_id}` : null,
         ]
           .filter(Boolean)
           .join('\n'),
-        date: deal.relance_prevue_le,
+        date: e.echeance,
       });
       if (r === 'cree') crees += 1;
       if (r === 'maj') majs += 1;
-    } catch (e) {
-      erreurs.push(`${titre} : ${e?.message || e}`);
+    } catch (err) {
+      erreurs.push(`${titre} : ${err?.message || err}`);
     }
   }
 
-  return { calendrier_id: id, calendrier_cree: cree, echeances: deals.length, crees, majs, erreurs };
+  return { calendrier_id: id, calendrier_cree: cree, echeances: engagements.length, crees, majs, erreurs };
 }
 
 /** Adresse publique de l'agenda, à ouvrir dans Google Agenda. */

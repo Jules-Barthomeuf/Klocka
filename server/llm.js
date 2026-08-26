@@ -11,6 +11,7 @@
 // (scripts, tests) sans dépendre de l'ordre des imports.
 import 'dotenv/config';
 import Anthropic from '@anthropic-ai/sdk';
+import { enregistrerUsage } from './llm-couts.js';
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
@@ -146,7 +147,10 @@ async function geminiGenerate({ systemInstruction, contents, tools, json }) {
     });
 
     const data = await resp.json().catch(() => ({}));
-    if (resp.ok) return data;
+    if (resp.ok) {
+      compter(GEMINI_MODEL, data?.usageMetadata);
+      return data;
+    }
 
     derniereErreur = new Error(data?.error?.message || `Gemini a répondu ${resp.status}`);
     const retryable = resp.status === 429 || resp.status >= 500;
@@ -184,6 +188,7 @@ async function rechercheAnthropic(prompt) {
     tools: [{ type: 'web_search_20260209', name: 'web_search' }],
     messages: [{ role: 'user', content: prompt }],
   });
+  compter(ANTHROPIC_MODEL, message.usage);
 
   const blocs = message.content || [];
   const text = blocs
@@ -241,6 +246,17 @@ export async function invokeLLMGrounded({ prompt } = {}) {
   const text = geminiText(data);
   if (!text) return null;
   return { text, sources };
+}
+
+// La consommation, ramenée à un vocabulaire commun aux deux fournisseurs.
+function compter(modele, usage) {
+  if (!usage) return;
+  enregistrerUsage(modele, {
+    entree: usage.input_tokens ?? usage.promptTokenCount ?? 0,
+    sortie: usage.output_tokens ?? usage.candidatesTokenCount ?? 0,
+    cache_lecture: usage.cache_read_input_tokens ?? usage.cachedContentTokenCount ?? 0,
+    cache_ecriture: usage.cache_creation_input_tokens ?? 0,
+  });
 }
 
 function geminiText(data) {
@@ -322,6 +338,7 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
       ...(system ? { system } : {}),
       messages: [{ role: 'user', content: fullPrompt }],
     });
+    compter(ANTHROPIC_MODEL, message.usage);
     text = (message.content || [])
       .filter((b) => b.type === 'text')
       .map((b) => b.text)
@@ -383,6 +400,7 @@ export async function generateFromDocument({ buffer, mimetype, prompt } = {}) {
       },
     ],
   });
+  compter(ANTHROPIC_MODEL, message.usage);
   return (message.content || [])
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
@@ -468,6 +486,7 @@ async function runAgentAnthropic({ system, messages, tools, onTool }) {
       ...(tools.length ? { tools } : {}),
       messages: convo,
     });
+    compter(ANTHROPIC_MODEL, resp.usage);
 
     if (resp.stop_reason === 'tool_use') {
       convo.push({ role: 'assistant', content: resp.content });
@@ -576,6 +595,7 @@ export async function chatDocuments({ system, messages = [], documents = [] } = 
     ...(system ? { system } : {}),
     messages: convo.length ? convo : [{ role: 'user', content: [...pieces, { type: 'text', text: '?' }] }],
   });
+  compter(ANTHROPIC_MODEL, message.usage);
   const texte = (message.content || [])
     .filter((b) => b.type === 'text')
     .map((b) => b.text)

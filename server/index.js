@@ -539,7 +539,7 @@ const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
 // qui les consomment sont toutes réservées aux admins.
 const ENTITES_ADMIN = new Set([
   'Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail', 'AssistantAction',
-  'AssistantRequete', 'VisitePage',
+  'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -1300,16 +1300,42 @@ app.get('/api/assistant/propositions', wrap(async (req, res) => {
   const { etatVeille } = await import('./deal/veille-mails.js');
   // Chacun ne voit que les boîtes qu'il a connectées.
   const comptes = listAccounts(user?.email).map((c) => c.id);
-  ok(res, {
-    propositions: await construirePropositions({ comptes }),
-    veille: etatVeille(),
-  });
+  const propositions = await construirePropositions({ comptes });
+
+  // Une proposition montrée est notée : sans cela, rien ne dit ce qui est suivi
+  // d'effet et les priorités restent des constantes jamais confrontées.
+  const { noterVues } = await import('./suivi-propositions.js');
+  noterVues(propositions, user);
+
+  ok(res, { propositions, veille: etatVeille() });
 }));
 
 // Relève immédiate, sans attendre le prochain passage de la veille.
 app.post('/api/assistant/relever', wrap(async (req, res) => {
   const { relever } = await import('./deal/veille-mails.js');
   ok(res, await relever());
+}));
+
+// Une proposition traitée : c'est ce qui ferme la boucle de mesure.
+app.post('/api/assistant/propositions/traitee', wrap(async (req, res) => {
+  const { type, deal_id, mail_id, id, action } = req.body || {};
+  if (!type) return res.status(400).json({ error: 'Type manquant' });
+  const { noterTraitee } = await import('./suivi-propositions.js');
+  const r = noterTraitee({ type, deal_id, mail_id, id, action, user: currentUser(req) });
+  ok(res, { notee: !!r });
+}));
+
+// Ce que deviennent les propositions, et ce que coûte l'IA.
+app.get('/api/monitoring/propositions', wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { syntheseTraitement } = await import('./suivi-propositions.js');
+  ok(res, syntheseTraitement(Number(req.query.jours) || 30));
+}));
+
+app.get('/api/monitoring/couts', wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { syntheseCouts } = await import('./llm-couts.js');
+  ok(res, syntheseCouts(Number(req.query.jours) || 30));
 }));
 
 // Correction du tri par l'équipe. Elle vaut pour l'expéditeur entier : la
@@ -1401,7 +1427,13 @@ app.post('/api/assistant/commande', wrap(async (req, res) => {
   const user = currentUser(req);
   const { commander } = await import('./assistant-commande.js');
   const debut = Date.now();
-  const r = await commander(messages.slice(-12), user, contexte);
+  // La demande est mesurée : une seule question peut déclencher six appels au
+  // modèle, ils comptent tous pour elle.
+  const { mesurer } = await import('./llm-couts.js');
+  const { resultat: r, consommation } = await mesurer(
+    { operation: 'assistant', par: user?.email, sur: contexte?.deal_id || contexte?.projet_id },
+    () => commander(messages.slice(-12), user, contexte)
+  );
 
   // Chaque échange laisse une ligne : la question, la réponse, les outils
   // consultés et ceux qui ont agi.
@@ -1413,6 +1445,8 @@ app.post('/api/assistant/commande', wrap(async (req, res) => {
     actions: (r.actions || []).map((a) => a.name),
     user,
     duree_ms: Date.now() - debut,
+    cout: consommation?.cout ?? null,
+    jetons: consommation ? consommation.entree + consommation.sortie : null,
     contexte,
   });
 

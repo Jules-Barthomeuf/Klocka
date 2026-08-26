@@ -121,14 +121,33 @@ export default function PlanDeTravail() {
     onError: (e) => toast.error(e?.message || "Envoi impossible"),
   });
 
+  // Une proposition traitée se déclare : c'est ce qui permet de savoir, plus
+  // tard, lesquelles servent à quelque chose et lesquelles personne ne touche.
+  const noterTraitee = (proposition, action) => {
+    base44
+      .request("POST", "/api/assistant/propositions/traitee", {
+        body: {
+          type: proposition.type,
+          deal_id: proposition.deal_id,
+          mail_id: proposition.mail_id,
+          id: proposition.id,
+          action: action.id,
+        },
+      })
+      .catch(() => {});
+  };
+
   // Chaque mode d'action sait ce qu'il déclenche. Aucun n'envoie de lui-même.
   const executer = async (proposition, action) => {
     const cle = `${proposition.id}:${action.id}`;
+    // Ouvrir un dossier n'est pas le traiter : seules les actions comptent.
     if (action.mode === "lien") return navigate(action.href);
+    if (action.mode === "externe") noterTraitee(proposition, action);
     if (action.mode === "externe") return window.open(action.href, "_blank", "noopener");
 
     setEnCours(cle);
     try {
+      if (action.mode !== "externe") noterTraitee(proposition, action);
       if (action.mode === "mail") {
         const r = await base44.request("POST", `/api/preanalyse/dossiers/${proposition.deal_id}/mail`, {
           body: { intention: action.intention },

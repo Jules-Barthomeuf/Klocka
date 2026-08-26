@@ -40,7 +40,7 @@ export function consignerVisite({ page, url, user }) {
 }
 
 /** Consigne un échange avec l'assistant. */
-export function consignerRequete({ question, reponse, outils, actions, user, duree_ms, contexte }) {
+export function consignerRequete({ question, reponse, outils, actions, user, duree_ms, cout, jetons, contexte }) {
   try {
     const requete = Records.create('AssistantRequete', {
       question: String(question || '').slice(0, 2000),
@@ -52,6 +52,8 @@ export function consignerRequete({ question, reponse, outils, actions, user, dur
       par: user?.email || null,
       le: new Date().toISOString(),
       duree_ms: duree_ms ?? null,
+      cout: cout ?? null,
+      jetons: jetons ?? null,
       sur: contexte?.deal_id || contexte?.projet_id || null,
     });
     elaguer('AssistantRequete', PLAFOND_REQUETES);

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Activity, Users, MessageSquare, Wrench, ChevronDown } from "lucide-react";
+import { Loader2, Activity, Users, MessageSquare, Wrench, ChevronDown, Coins, Target } from "lucide-react";
 
 // Centre de suivi : qui utilise quoi, et tout ce qu'on a demandé à l'assistant.
 //
@@ -14,6 +14,10 @@ const FENETRES = [
   { jours: 30, libelle: "30 jours" },
   { jours: 90, libelle: "90 jours" },
 ];
+
+// Sous le centime, une somme se lit mieux en millièmes qu'arrondie à zéro.
+const dollars = (n) =>
+  n == null ? "—" : n >= 0.01 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`;
 
 const quand = (iso) => {
   if (!iso || isNaN(new Date(iso))) return "—";
@@ -50,6 +54,16 @@ export default function Monitoring() {
     queryKey: ["monitoring", jours],
     queryFn: () => base44.request("GET", `/api/monitoring?jours=${jours}`),
     refetchOnWindowFocus: true,
+  });
+
+  const { data: couts } = useQuery({
+    queryKey: ["monitoring-couts", jours],
+    queryFn: () => base44.request("GET", `/api/monitoring/couts?jours=${jours}`),
+  });
+
+  const { data: propositions } = useQuery({
+    queryKey: ["monitoring-propositions", jours],
+    queryFn: () => base44.request("GET", `/api/monitoring/propositions?jours=${jours}`),
   });
 
   const { data: historique } = useQuery({
@@ -197,6 +211,124 @@ export default function Monitoring() {
           </>
         )}
 
+        {/* Ce que coûte l'IA */}
+        {couts && (
+          <div className="border border-[#242726] rounded-md p-4 mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#7fd3c9] font-normal flex items-center gap-2">
+                <Coins className="w-3.5 h-3.5" /> Ce que coûte l'IA
+              </h2>
+              <span className="text-[12.5px] text-[#edeae5] tabular-nums">
+                {dollars(couts.total.cout)} · {couts.total.appels} appel(s) ·{" "}
+                {Math.round((couts.total.entree + couts.total.sortie) / 1000)} k jetons
+              </span>
+            </div>
+
+            {couts.total.appels === 0 ? (
+              <p className="m-0 text-[12.5px] text-[#6b7270]">Aucun appel au modèle sur la période.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                <div>
+                  <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#6b7270]">Par opération</p>
+                  {couts.operations.slice(0, 8).map((o) => (
+                    <div key={o.cle} className="flex justify-between text-[12.5px] py-1 border-b border-[#1c1f1e]">
+                      <span className="text-[#d3d8d6]">{o.cle}</span>
+                      <span className="text-[#8b9391] tabular-nums">
+                        {dollars(o.cout)} <span className="text-[#4f5654]">· {o.appels}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#6b7270]">Par personne</p>
+                  {couts.personnes.slice(0, 8).map((p) => (
+                    <div key={p.cle} className="flex justify-between text-[12.5px] py-1 border-b border-[#1c1f1e]">
+                      <span className="text-[#d3d8d6] truncate max-w-[200px]">{p.cle}</span>
+                      <span className="text-[#8b9391] tabular-nums">{dollars(p.cout)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className="m-0 mt-4 text-[11.5px] leading-[1.6] text-[#6b7270]">
+              Tarifs publics du modèle, lectures de cache comprises. « automatique » regroupe ce qui
+              tourne sans personne devant l'écran — extraction des documents, veille des boîtes.
+            </p>
+          </div>
+        )}
+
+        {/* Ce que deviennent les propositions */}
+        {propositions && propositions.total.proposees > 0 && (
+          <div className="border border-[#242726] rounded-md p-4 mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#7fd3c9] font-normal flex items-center gap-2">
+                <Target className="w-3.5 h-3.5" /> Ce que deviennent les propositions
+              </h2>
+              <span className="text-[12.5px] text-[#edeae5] tabular-nums">
+                {propositions.total.traitees} traitée(s) sur {propositions.total.proposees}
+              </span>
+            </div>
+
+            <table className="w-full border-collapse mb-5">
+              <thead>
+                <tr className="border-b border-[#2e3230]">
+                  {["Type", "Proposées", "Traitées", "Taux", "Délai médian", "En attente"].map((h, i) => (
+                    <th
+                      key={h}
+                      className={`py-2 text-[10px] tracking-[.14em] uppercase text-[#6b7270] font-normal ${i ? "text-right" : "text-left"}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {propositions.par_type.map((t) => (
+                  <tr key={t.cle} className="border-b border-[#1c1f1e]">
+                    <td className="py-2.5 text-[12.5px] text-[#edeae5]">{t.cle}</td>
+                    <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#d3d8d6]">{t.proposees}</td>
+                    <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#d3d8d6]">{t.traitees}</td>
+                    <td
+                      className={`py-2.5 text-right text-[12.5px] tabular-nums ${t.taux >= 50 ? "text-[#7fd3c9]" : t.taux === 0 ? "text-[#e0c9a0]" : "text-[#d3d8d6]"}`}
+                    >
+                      {t.taux} %
+                    </td>
+                    <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#8b9391]">
+                      {t.delai_median_h != null ? `${t.delai_median_h} h` : "—"}
+                    </td>
+                    <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#8b9391]">
+                      {t.en_attente}
+                      {t.plus_vieille_j > 0 && <span className="text-[#4f5654]"> · {t.plus_vieille_j} j</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {propositions.ignorees.length > 0 && (
+              <div>
+                <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#e0c9a0]">
+                  Vues plusieurs fois, jamais traitées
+                </p>
+                <div className="space-y-1.5">
+                  {propositions.ignorees.map((i, k) => (
+                    <div key={`${i.titre}-${k}`} className="flex justify-between gap-4 text-[12.5px]">
+                      <span className="text-[#d3d8d6] truncate">{i.titre}</span>
+                      <span className="text-[#8b9391] tabular-nums whitespace-nowrap">
+                        {i.vues} vues · {i.jours} j
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="m-0 mt-3 text-[11.5px] leading-[1.6] text-[#6b7270]">
+                  Une proposition vue dix fois sans être traitée n'est pas urgente : soit sa priorité
+                  est mal réglée, soit elle n'intéresse personne et mérite d'être retirée.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Historique complet des demandes à l'assistant */}
         <div className="border border-[#242726] rounded-md p-4">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -234,6 +366,7 @@ export default function Monitoring() {
                             r.duree_ms != null ? `${(r.duree_ms / 1000).toFixed(1)} s` : null,
                             r.outils?.length ? `${r.outils.length} outil(s)` : "sans outil",
                             r.actions?.length ? `${r.actions.length} action(s)` : null,
+                            r.cout != null ? dollars(r.cout) : null,
                           ]
                             .filter(Boolean)
                             .join(" · ")}

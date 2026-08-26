@@ -1520,6 +1520,16 @@ app.get('/api/assistant/rapports', wrap(async (req, res) => {
   ok(res, rapports(currentUser(req), { jours: Number(req.query.jours) || 7 }));
 }));
 
+// Rattraper une opération manquée pendant la nuit, sans rejouer tout le passage.
+app.post('/api/assistant/rapports/:id/relancer', wrap(async (req, res) => {
+  const { relancer } = await import('./rapport-auto.js');
+  try {
+    ok(res, await relancer(req.params.id, Number(req.body?.index)));
+  } catch (e) {
+    res.status(400).json({ error: e?.message || 'Relance impossible' });
+  }
+}));
+
 app.post('/api/assistant/rapports/vus', wrap(async (req, res) => {
   const { marquerVus } = await import('./rapport-auto.js');
   ok(res, { marques: marquerVus(currentUser(req), req.body?.ids) });

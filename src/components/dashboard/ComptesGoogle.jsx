@@ -2,23 +2,30 @@ import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Check, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { BoutonConnecterGmail } from "@/components/mails/ConnexionGmail";
 
-// Les comptes Google connectés, sur le dashboard.
+// Les comptes Google connectés, en pied de tableau de bord.
 //
 // Ils vivaient sur la page Mails, supprimée depuis. Or tout en dépend : la
 // relève des boîtes, le classement Drive, l'agenda d'équipe et l'envoi des
 // mails. Un compte se connecte et se retire donc ici, à côté du travail qu'il
 // rend possible.
+//
+// Une portée refusée s'affiche en clair, en or : c'est la première chose à
+// regarder quand la veille ne rapporte rien.
 
-// Ce qu'une portée autorise, dit en clair.
 const PORTEES = [
-  ["peut_lire", "Lecture des mails"],
+  ["peut_lire", "Relève des mails"],
   ["peut_envoyer", "Envoi"],
-  ["peut_drive", "Drive"],
+  ["peut_drive", "Drive — dossiers clients"],
   ["peut_agenda", "Agenda"],
 ];
+
+const connexion = (iso) => {
+  if (!iso || isNaN(new Date(iso))) return null;
+  return `connecté le ${new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
+};
 
 export default function ComptesGoogle() {
   const queryClient = useQueryClient();
@@ -38,18 +45,22 @@ export default function ComptesGoogle() {
 
   const deconnecter = useMutation({
     mutationFn: (email) => base44.functions.invoke("disconnectMailAccount", { email }),
-    onSuccess: () => { rafraichir(); toast.success("Compte délié"); },
+    onSuccess: () => {
+      rafraichir();
+      toast.success("Compte délié");
+    },
     onError: (e) => toast.error(e?.message || "Déconnexion impossible"),
   });
 
   if (isLoading) return null;
 
   return (
-    <div className="border border-[#242726] rounded-md px-4 py-3.5 mb-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <p className="m-0 text-[12.5px] text-[#9aa19e]">
-          Comptes Google — ils alimentent la relève, le Drive et l'agenda.
-        </p>
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3 mb-8">
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#8b8880]">Comptes Google connectés</p>
+          <p className="m-0 text-[13.5px] text-[#6f6c66]">la relève, le Drive et l'agenda en dépendent</p>
+        </div>
         <BoutonConnecterGmail
           onConnecte={rafraichir}
           libelle={comptes.length ? "Connecter un autre compte" : "Connecter un compte"}
@@ -57,59 +68,70 @@ export default function ComptesGoogle() {
       </div>
 
       {!google.enabled && (
-        <p className="m-0 text-[12px] text-[#e0c9a0] leading-[1.6]">
-          La connexion Google n'est pas configurée côté serveur (GOOGLE_CLIENT_ID et
-          GOOGLE_CLIENT_SECRET).
+        <p className="m-0 text-[13.5px] text-[#d9c08a] leading-[1.6]">
+          La connexion Google n'est pas configurée côté serveur (GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET).
         </p>
       )}
 
-      {comptes.length === 0 ? (
-        google.enabled && (
-          <p className="m-0 text-[12px] text-[#6b7270]">
-            Aucun compte connecté : l'assistant ne voit passer aucun mail.
-          </p>
-        )
-      ) : (
-        <ul className="m-0 p-0 list-none space-y-2">
-          {comptes.map((c) => (
-            <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <span className="text-[13px] text-[#edeae5]">{c.email}</span>
+      {comptes.length === 0
+        ? google.enabled && (
+            <p className="m-0 text-[15px] text-[#6f6c66]">
+              Aucun compte connecté : l'assistant ne voit passer aucun mail.
+            </p>
+          )
+        : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-14 gap-y-10">
+            {comptes.map((c) => (
+              <div key={c.id}>
+                <p className="m-0 text-[16px] text-[#e8e4dd] leading-snug break-all">{c.email}</p>
+                <p className="m-0 mt-1 text-[13px] text-[#6f6c66]">
+                  {[c.name, connexion(c.connected_at)].filter(Boolean).join(" · ") || "compte Google"}
+                </p>
 
-              {PORTEES.map(([cle, libelle]) => (
-                <span
-                  key={cle}
-                  className={`text-[11px] inline-flex items-center gap-1 ${c[cle] ? "text-[#7fd3c9]" : "text-[#4f5654]"}`}
-                  title={c[cle] ? `${libelle} autorisée` : `${libelle} non autorisée — reconnectez le compte`}
+                <dl className="m-0 mt-5">
+                  {PORTEES.map(([cle, libelle]) => (
+                    <div
+                      key={cle}
+                      className="flex items-baseline justify-between gap-4 border-t border-[#232120] py-2.5"
+                    >
+                      <dt className="text-[14px] text-[#b9b5ad]">{libelle}</dt>
+                      <dd
+                        className={`m-0 text-[13px] ${c[cle] ? "text-[#8b8880]" : "text-[#d9c08a]"}`}
+                        title={c[cle] ? undefined : "Reconnectez le compte pour l'accorder"}
+                      >
+                        {c[cle] ? "accordé" : "non accordé"}
+                      </dd>
+                    </div>
+                  ))}
+                  {c.needs_reconnect && (
+                    <div className="flex items-baseline justify-between gap-4 border-t border-[#232120] py-2.5">
+                      <dt className="text-[14px] text-[#b9b5ad]">Session Google</dt>
+                      <dd className="m-0 text-[13px] text-[#c4715c]">à reconnecter</dd>
+                    </div>
+                  )}
+                </dl>
+
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Délier ${c.email} ?`)) deconnecter.mutate(c.email);
+                  }}
+                  disabled={deconnecter.isPending}
+                  className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] text-[#5c5a55] hover:text-[#c4715c] transition-colors disabled:opacity-50"
                 >
-                  {c[cle] ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                  {libelle}
-                </span>
-              ))}
-
-              {c.needs_reconnect && (
-                <span className="text-[11px] text-[#e0c9a0]">à reconnecter</span>
-              )}
-
-              <button
-                onClick={() => {
-                  if (window.confirm(`Délier ${c.email} ?`)) deconnecter.mutate(c.email);
-                }}
-                disabled={deconnecter.isPending}
-                className="ml-auto text-[11.5px] text-[#6b7270] hover:text-red-400 transition-colors disabled:opacity-50"
-              >
-                {deconnecter.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Délier"}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                  {deconnecter.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                  Délier
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
       {/* Une portée manquante ne se rattrape qu'en reconnectant : un jeton déjà
           émis ne l'acquiert jamais rétroactivement. */}
       {comptes.some((c) => !c.peut_lire) && google.gmail_read && (
-        <p className="m-0 mt-2.5 text-[11.5px] text-[#e0c9a0] leading-[1.55]">
-          Un compte n'autorise pas la lecture des mails alors que le serveur la demande :
-          reconnectez-le pour que l'assistant puisse relever sa boîte.
+        <p className="m-0 mt-7 text-[13px] text-[#d9c08a] leading-[1.6]">
+          Un compte n'autorise pas la relève alors que le serveur la demande : reconnectez-le pour que l'assistant
+          puisse lire sa boîte.
         </p>
       )}
     </div>

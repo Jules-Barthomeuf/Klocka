@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -26,11 +26,13 @@ const ICONES = {
   dossier_en_sommeil: MoonStar,
 };
 
+// L'urgence se lit au filet de gauche, pas à une pastille de couleur : la même
+// grammaire que « Ce qui a échoué », pour que la page se parcoure d'un regard.
 const TEINTES = {
-  1: { bord: "border-[#e2564d]/40", pastille: "bg-[#e2564d]/15 text-[#e2564d]", libelle: "À faire aujourd'hui" },
-  2: { bord: "border-[#e0c9a0]/35", pastille: "bg-[#e0c9a0]/15 text-[#e0c9a0]", libelle: "Attendu" },
-  3: { bord: "border-[#242726]", pastille: "bg-[#35a79b]/15 text-[#7fd3c9]", libelle: "Courant" },
-  4: { bord: "border-[#242726]", pastille: "bg-[#edeae5]/[0.06] text-[#8b9391]", libelle: "Plus tard" },
+  1: { filet: "border-[#c4715c]", icone: "text-[#c4715c]", libelle: "À faire aujourd'hui", label: "text-[#c4715c]" },
+  2: { filet: "border-[#d9c08a]", icone: "text-[#d9c08a]", libelle: "Attendu", label: "text-[#d9c08a]" },
+  3: { filet: "border-[#4a4844]", icone: "text-[#8b8880]", libelle: "Courant", label: "text-[#8b8880]" },
+  4: { filet: "border-[#2f2c29]", icone: "text-[#6f6c66]", libelle: "Plus tard", label: "text-[#6f6c66]" },
 };
 
 export default function PlanDeTravail() {
@@ -39,6 +41,10 @@ export default function PlanDeTravail() {
   const [brouillon, setBrouillon] = useState(null); // { deal_id, intention, objet, corps, destinataire }
   const [enCours, setEnCours] = useState(null); // id de l'action en cours
   const [ouverte, setOuverte] = useState(null); // proposition dépliée
+  // Le compte des échecs de la nuit remonte du rapport : l'en-tête doit dire
+  // d'un coup d'œil combien de choses attendent et combien ont manqué.
+  const [echecs, setEchecs] = useState(0);
+  const noterEchecs = useCallback((n) => setEchecs(n), []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["assistant-propositions"],
@@ -222,44 +228,71 @@ export default function PlanDeTravail() {
     }
   };
 
+  const maintenant = new Date().toLocaleString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const REGLE = "h-px bg-[#232120] my-12 max-md:my-9";
+
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
-        <div>
-          <h1 className="m-0 text-[30px] max-md:text-[24px] font-light tracking-[-.02em] text-[#edeae5]">Dashboard</h1>
-          <p className="mt-2 mb-0 max-w-[62ch] text-[13.5px] leading-[1.65] text-[#9aa19e]">
-            Les boîtes mail sont relevées{veille?.minutes ? ` toutes les ${veille.minutes} minutes` : ""} et les
-            réponses rattachées à leur dossier. Rien n'est envoyé sans votre relecture.
+      {/* --- En-tête : ce qu'il y a à faire, et combien --------------------- */}
+      <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
+        <div className="min-w-0">
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#8b8880]">
+            Équipe Klocka — {maintenant.replace(" à ", ", ")}
           </p>
+          <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#f0ece5]">
+            Ce qu'il y a à faire maintenant
+          </h1>
         </div>
-        <button
-          onClick={() => relever.mutate()}
-          disabled={relever.isPending}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md border border-[#303332] text-[13px] text-[#d3d8d6] hover:text-[#edeae5] hover:border-[#565b59] disabled:opacity-50 transition-colors"
-        >
-          {relever.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-          Relever les boîtes
-        </button>
-      </div>
+
+        <div className="flex items-start gap-10 max-md:gap-7">
+          <div className="text-right">
+            <p className="m-0 text-[38px] max-md:text-[30px] font-light leading-none text-[#d9c08a]">
+              {propositions.length}
+            </p>
+            <p className="m-0 mt-2.5 text-[10.5px] tracking-[.16em] uppercase text-[#8b8880]">
+              Proposition{propositions.length > 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className={`m-0 text-[38px] max-md:text-[30px] font-light leading-none ${echecs ? "text-[#c4715c]" : "text-[#4a4844]"}`}>
+              {echecs}
+            </p>
+            <p className="m-0 mt-2.5 text-[10.5px] tracking-[.16em] uppercase text-[#8b8880]">
+              Échec{echecs > 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <div className={REGLE} />
 
       {veille && !veille.lecture && (
-        <p className="mb-4 text-[12.5px] text-[#e0c9a0] leading-[1.6] border border-[#e0c9a0]/25 bg-[#e0c9a0]/[0.06] rounded-md px-4 py-3">
+        <p className="mb-9 text-[13.5px] text-[#d9c08a] leading-[1.65] border-l-2 border-[#d9c08a]/60 pl-5">
           La lecture des boîtes Gmail est désactivée : passez <code>GOOGLE_GMAIL_READ=true</code> côté serveur,
-          déclarez la portée <code>gmail.readonly</code> chez Google, puis reconnectez les comptes depuis la page
-          Mails. Sans cela, l'assistant ne voit passer aucun mail.
+          déclarez la portée <code>gmail.readonly</code> chez Google, puis reconnectez les comptes ci-dessous.
+          Sans cela, l'assistant ne voit passer aucun mail.
         </p>
       )}
 
       {/* Ce que la veille a fait seule passe avant le reste : on doit le savoir
           avant de décider quoi faire. */}
-      <RapportAuto />
+      <RapportAuto onCompte={noterEchecs} />
+
+      <div className={REGLE} />
 
       <ComptesGoogle />
 
       {calendrier?.actif && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 border border-[#242726] rounded-md px-4 py-3">
-          <CalendarDays className="w-4 h-4 text-[#7fd3c9] flex-shrink-0" />
-          <p className="m-0 text-[12.5px] text-[#9aa19e] flex-1 min-w-[240px] leading-[1.5]">
+        <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[#232120] pt-5">
+          <CalendarDays className="w-4 h-4 text-[#8b8880] flex-shrink-0" />
+          <p className="m-0 text-[13.5px] text-[#8b8880] flex-1 min-w-[240px] leading-[1.5]">
             {calendrier.configure
               ? "Les relances prévues sont reportées dans l'agenda d'équipe."
               : "Un agenda Google partagé peut recevoir les échéances des dossiers."}
@@ -269,7 +302,7 @@ export default function PlanDeTravail() {
               href={calendrier.lien}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[12.5px] text-[#7fd3c9] hover:text-[#edeae5] transition-colors"
+              className="inline-flex items-center gap-1.5 text-[13px] text-[#d9c08a] hover:text-[#f0ece5] transition-colors"
             >
               Ouvrir l'agenda <ExternalLink className="w-3 h-3" />
             </a>
@@ -278,24 +311,44 @@ export default function PlanDeTravail() {
             onClick={() => synchroniserAgenda.mutate()}
             disabled={!compteAgenda || synchroniserAgenda.isPending}
             title={compteAgenda ? undefined : "Aucun compte Google n'a autorisé l'agenda — reconnectez-le ci-dessus"}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#303332] text-[12px] text-[#d3d8d6] hover:text-[#edeae5] hover:border-[#565b59] disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-[#2f2c29] text-[10.5px] tracking-[.16em] uppercase text-[#b9b5ad] hover:border-[#54504a] disabled:opacity-40 transition-colors"
           >
-            {synchroniserAgenda.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarDays className="w-3 h-3" />}
+            {synchroniserAgenda.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
             {calendrier.configure ? "Mettre à jour" : "Créer l'agenda partagé"}
           </button>
         </div>
       )}
 
+      <div className={REGLE} />
+
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3 mb-8">
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#8b8880]">Propositions</p>
+          <p className="m-0 text-[13.5px] text-[#6f6c66]">
+            rien ne part sans votre relecture
+            {veille?.minutes ? ` · boîtes relevées toutes les ${veille.minutes} minutes` : ""}
+          </p>
+        </div>
+        <button
+          onClick={() => relever.mutate()}
+          disabled={relever.isPending}
+          className="inline-flex items-center gap-2 px-3.5 py-2 border border-[#2f2c29] text-[10.5px] tracking-[.16em] uppercase text-[#b9b5ad] hover:border-[#54504a] disabled:opacity-40 transition-colors"
+        >
+          {relever.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+          Relever les boîtes
+        </button>
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin" />
+          <Loader2 className="w-6 h-6 text-[#8b8880] animate-spin" />
         </div>
       ) : propositions.length === 0 ? (
-        <p className="border border-[#242726] rounded-md py-12 text-center text-[13.5px] text-[#6b7270] m-0">
+        <p className="m-0 py-6 text-[19px] font-light leading-[1.55] text-[#6f6c66]">
           Rien en attente. Les nouveaux mails et les relances dues apparaîtront ici.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 items-start [&>div[data-ouverte=true]]:md:col-span-2 [&>div[data-ouverte=true]]:xl:col-span-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-14 gap-y-9 items-start [&>div[data-ouverte=true]]:md:col-span-2 [&>div[data-ouverte=true]]:xl:col-span-3">
           {propositions.map((p) => {
             const Icone = ICONES[p.type] || Inbox;
             const teinte = TEINTES[p.priorite] || TEINTES[3];
@@ -304,9 +357,7 @@ export default function PlanDeTravail() {
               <div
                 key={p.id}
                 data-ouverte={estOuverte}
-                className={`flex flex-col h-full border ${teinte.bord} rounded-lg bg-[#0c0e0d] transition-colors ${
-                  estOuverte ? "bg-[#edeae5]/[0.02]" : "hover:bg-[#edeae5]/[0.02]"
-                }`}
+                className={`flex flex-col h-full border-l-2 ${teinte.filet} pl-5 transition-colors`}
               >
                 {/* La carte fermée dit la situation ; les actions se méritent
                     d'un clic, pour ne pas transformer la pile en tableau de bord
@@ -314,27 +365,23 @@ export default function PlanDeTravail() {
                 <button
                   onClick={() => setOuverte(estOuverte ? null : p.id)}
                   aria-expanded={estOuverte}
-                  className="text-left p-4 w-full"
+                  className="text-left w-full group"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${teinte.pastille}`}>
-                      <Icone className="w-4 h-4" />
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[9.5px] tracking-[0.12em] uppercase px-2 py-0.5 rounded-full ${teinte.pastille}`}>
-                        {teinte.libelle}
-                      </span>
-                      <ChevronDown
-                        className={`w-3.5 h-3.5 text-[#6b7270] transition-transform ${estOuverte ? "" : "-rotate-90"}`}
-                      />
-                    </div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <Icone className={`w-3.5 h-3.5 flex-shrink-0 ${teinte.icone}`} />
+                    <span className={`text-[10px] tracking-[.16em] uppercase ${teinte.label}`}>{teinte.libelle}</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 ml-auto text-[#5c5a55] transition-transform ${estOuverte ? "" : "-rotate-90"}`}
+                    />
                   </div>
 
-                  <p className="m-0 text-[14.5px] text-[#edeae5] font-medium leading-snug">{p.titre}</p>
-                  <p className="m-0 mt-1.5 text-[12.5px] text-[#9aa19e] leading-[1.6]">{p.detail}</p>
+                  <p className="m-0 text-[16.5px] text-[#e8e4dd] leading-snug group-hover:text-[#f0ece5] transition-colors">
+                    {p.titre}
+                  </p>
+                  <p className="m-0 mt-1.5 text-[13px] text-[#8b8880] leading-[1.55]">{p.detail}</p>
 
                   {!estOuverte && (
-                    <p className="m-0 mt-3 text-[11.5px] text-[#6b7270]">
+                    <p className="m-0 mt-3 text-[12px] text-[#5c5a55]">
                       {p.actions.length} action{p.actions.length > 1 ? "s" : ""} proposée
                       {p.actions.length > 1 ? "s" : ""}
                     </p>
@@ -342,15 +389,15 @@ export default function PlanDeTravail() {
                 </button>
 
                 {estOuverte && (
-                  <div className="px-4 pb-4 -mt-1">
+                  <div className="mt-4">
                     {/* Sur quoi la proposition se fonde : elle doit pouvoir se
                         discuter, pas seulement s'exécuter. */}
                     {p.contexte?.length > 0 && (
-                      <dl className="m-0 mb-4 border-t border-[#242726] pt-3 space-y-1.5">
+                      <dl className="m-0 mb-5 border-t border-[#232120] pt-3.5 space-y-1.5">
                         {p.contexte.map(([cle, valeur]) => (
-                          <div key={cle} className="flex gap-3 text-[12px]">
-                            <dt className="text-[#6b7270] w-[120px] flex-shrink-0">{cle}</dt>
-                            <dd className="m-0 text-[#d3d8d6] min-w-0 break-words">{valeur}</dd>
+                          <div key={cle} className="flex gap-4 text-[12.5px]">
+                            <dt className="text-[#6f6c66] w-[130px] flex-shrink-0">{cle}</dt>
+                            <dd className="m-0 text-[#b9b5ad] min-w-0 break-words">{valeur}</dd>
                           </div>
                         ))}
                       </dl>
@@ -365,10 +412,10 @@ export default function PlanDeTravail() {
                             key={a.id}
                             onClick={() => executer(p, a)}
                             disabled={!!enCours}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] transition-colors disabled:opacity-50
+                            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-[10.5px] tracking-[.16em] uppercase transition-colors disabled:opacity-40
                               ${a.principal
-                                ? "bg-[#edeae5] text-[#0c0e0d] font-medium hover:bg-[#d8d5d0]"
-                                : "border border-[#303332] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59]"}`}
+                                ? "bg-[#d9c08a] text-[#0b0a09] hover:bg-[#e6d0a0]"
+                                : "border border-[#2f2c29] text-[#b9b5ad] hover:border-[#54504a]"}`}
                           >
                             {occupe && <Loader2 className="w-3 h-3 animate-spin" />}
                             {a.mode === "mail" && !occupe && <Mail className="w-3 h-3" />}

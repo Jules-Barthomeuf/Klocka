@@ -83,16 +83,23 @@ export const hasAnyAccount = () => allAccounts().length > 0;
 // Public (credential-free) view of the sender accounts.
 export function listAccounts(ownerEmail) {
   return allAccounts(ownerEmail).map(
-    ({ id, name, email, provider, picture, needs_reconnect, peut_lire, peut_drive, peut_agenda }) => ({
+    ({
+      id, name, email, provider, picture, needs_reconnect,
+      peut_envoyer, peut_lire, peut_drive, peut_agenda, connected_at,
+    }) => ({
       id,
       name,
       email,
       provider,
       picture: picture || null,
       needs_reconnect: !!needs_reconnect,
+      // Un compte SMTP n'a pas de portées : il ne sait qu'envoyer. Sans ce
+      // défaut, l'expéditeur retenu par le plan de travail restait introuvable.
+      peut_envoyer: peut_envoyer !== false,
       peut_lire: !!peut_lire,
       peut_drive: !!peut_drive,
       peut_agenda: !!peut_agenda,
+      connected_at: connected_at || null,
       label: `${name} <${email}>`,
     })
   );

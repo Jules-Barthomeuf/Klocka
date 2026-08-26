@@ -15,7 +15,7 @@ const PLAFOND = 300;
 
 /**
  * Consigne un passage de la veille.
- * @param {{nouveaux, ecartes, rattaches, documents, classes, fiches, lignes, erreurs}} bilan
+ * @param {{nouveaux, ecartes, rattaches, documents, classes, fiches, lignes, erreurs, echecs}} bilan
  * @returns {object|null} null si le passage n'a rien produit
  */
 export function consignerPasse(bilan) {
@@ -35,6 +35,9 @@ export function consignerPasse(bilan) {
       // Le détail par dossier : c'est lui qu'on relit, pas les compteurs.
       lignes: bilan.lignes || [],
       erreurs: bilan.erreurs || [],
+      // Les mêmes échecs, mais nommés : dossier, opération, cause. C'est ce qui
+      // permet de les relancer au lieu de les relire.
+      echecs: bilan.echecs || [],
       vu_par: [],
     });
     elaguer();
@@ -84,4 +87,57 @@ export function marquerVus(user, ids = null) {
     n += 1;
   }
   return n;
+}
+
+/**
+ * Rejoue une opération qui a échoué pendant un passage de la veille.
+ *
+ * Un échec consigné ne vaut que si on peut le rattraper : la cause est souvent
+ * passagère (quota Drive, jeton Monday renouvelé depuis). On rejoue donc la
+ * même opération, et on ne la marque réglée que si elle réussit vraiment.
+ *
+ * @param {string} rapportId
+ * @param {number} index - position de l'échec dans le rapport
+ */
+export async function relancer(rapportId, index) {
+  const rapport = Records.get('RapportAuto', rapportId);
+  if (!rapport) throw new Error('Rapport introuvable');
+  const echecs = rapport.echecs || [];
+  const echec = echecs[index];
+  if (!echec) throw new Error('Échec introuvable');
+  if (echec.regle) return { deja: true, echec };
+
+  let detail = '';
+  if (echec.operation === 'releve') {
+    const { relever } = await import('./deal/veille-mails.js');
+    const r = await relever();
+    // La boîte peut avoir échoué de nouveau : la relève, elle, a bien tourné.
+    if (r.erreurs?.some((e) => String(e).startsWith(echec.compte || '\u0000'))) {
+      throw new Error(r.erreurs.find((e) => String(e).startsWith(echec.compte)));
+    }
+    detail = `${r.nouveaux || 0} mail(s) relevé(s)`;
+  } else {
+    const deal = Records.filter('Deal', { deal_id: echec.deal_id })[0];
+    if (!deal) throw new Error('Dossier introuvable');
+
+    if (echec.operation === 'drive') {
+      const { classerDeal } = await import('./deal/pieces-mails.js');
+      const r = await classerDeal(deal);
+      if (r.erreurs.length) throw new Error(r.erreurs[0]);
+      detail = `${r.drive?.classes || 0} document(s) classé(s)`;
+    } else if (echec.operation === 'monday') {
+      const { pousserBien } = await import('./deal/monday-sync.js');
+      const r = await pousserBien(deal, { motif: 'Relance depuis le rapport de veille' });
+      if (r?.ignore) throw new Error(r.raison || 'Monday a ignoré la fiche');
+      detail = r?.cree ? 'fiche créée' : 'fiche mise à jour';
+    } else {
+      throw new Error(`Opération inconnue : ${echec.operation}`);
+    }
+  }
+
+  const majs = echecs.map((e, i) =>
+    i === index ? { ...e, regle: true, regle_le: new Date().toISOString(), regle_detail: detail } : e
+  );
+  Records.update('RapportAuto', rapportId, { echecs: majs });
+  return { detail, echec: majs[index] };
 }

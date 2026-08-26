@@ -39,7 +39,7 @@ const nomSur = (nom) => String(nom || 'document').replace(/[^a-zA-Z0-9._-]/g, '_
  * @returns {Promise<{ deposes: string[], ignorees: number, erreurs: string[] }>}
  */
 export async function ingererPiecesJointes(mail, uploadDir, user = null, telecharger = telechargerPieceJointe) {
-  const vide = { deposes: [], ignorees: 0, erreurs: [] };
+  const vide = { deposes: [], ignorees: 0, erreurs: [], echecs: [] };
   if (!mail?.deal_id || mail.pieces_ingerees) return vide;
 
   const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
@@ -102,11 +102,55 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
   // récupération elle-même — un document reçu doit rester reçu.
   const rangement = nouveaux.length
     ? await ranger(mail, deposes, user)
-    : { drive: null, monday: null, erreurs: [] };
+    : { drive: null, monday: null, erreurs: [], echecs: [] };
   erreurs.push(...rangement.erreurs);
 
   Records.update('MailRecu', mail.id, { pieces_ingerees: true, pieces_deposees: deposes });
-  return { deposes, ignorees, erreurs, drive: rangement.drive, monday: rangement.monday };
+  return {
+    deposes,
+    ignorees,
+    erreurs,
+    echecs: rangement.echecs || [],
+    drive: rangement.drive,
+    monday: rangement.monday,
+  };
+}
+
+/**
+ * Classe les documents d'un dossier dans son Drive.
+ *
+ * Extrait de `ranger()` parce qu'un classement raté doit pouvoir se rejouer
+ * plus tard, depuis le rapport, sans qu'un mail soit à rejouer avec lui.
+ *
+ * @param {object} deal
+ * @param {{noms?: string[], comptePrefere?: string}} options - `noms` limite
+ *   l'envoi aux pièces nommées quand le dossier Drive existe déjà ; sinon tout
+ *   l'historique repartirait en double.
+ * @returns {Promise<{drive: object|null, erreurs: string[]}>}
+ */
+export async function classerDeal(deal, { noms = null, comptePrefere = null } = {}) {
+  const erreurs = [];
+  try {
+    const comptes = Records.list('MailAccount').filter((a) => a.peut_drive);
+    const compte =
+      comptes.find((a) => String(a.email).toLowerCase() === String(comptePrefere || '').toLowerCase())?.email ||
+      comptes[0]?.email;
+    if (!compte) return { drive: null, erreurs: ["aucun compte Google n'autorise le Drive"] };
+
+    const { classerDansDrive } = await import('../google-drive.js');
+    const tous = deal.documents_espace || [];
+    const aEnvoyer = (deal.drive_folder_url && noms ? tous.filter((d) => noms.includes(d.nom)) : tous)
+      .filter((d) => d.url)
+      .map((d) => ({ nom: d.nom, chemin: d.url }));
+
+    const titre = deal.nom || deal.lots?.[0]?.synthese?.titre || deal.deal_id;
+    const r = await classerDansDrive(compte, titre, aEnvoyer, CHEMIN_UPLOADS);
+    Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+    erreurs.push(...(r.erreurs || []));
+    return { drive: { url: r.folder_url, chemin: r.chemin, classes: r.envoyes.length }, erreurs };
+  } catch (e) {
+    return { drive: null, erreurs: [String(e?.message || e)] };
+  }
 }
 
 /**
@@ -117,38 +161,33 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
  */
 async function ranger(mail, deposes, user) {
   const erreurs = [];
+  // Un échec écrit en toutes lettres ne se rattrape pas : il faut savoir quel
+  // dossier et quelle opération ont manqué pour pouvoir les relancer d'un clic.
+  const echecs = [];
   let drive = null;
   let monday = null;
 
   const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
-  if (!deal) return { drive, monday, erreurs };
+  if (!deal) return { drive, monday, erreurs, echecs };
+
+  const titreDeal = deal.nom || deal.lots?.[0]?.synthese?.titre || deal.deal_id;
+  const echec = (operation, quoi, cause) => {
+    echecs.push({
+      operation,
+      deal_id: deal.deal_id,
+      dossier: titreDeal,
+      quoi,
+      cause: String(cause || '').slice(0, 240),
+      le: new Date().toISOString(),
+    });
+  };
 
   // --- Drive ---------------------------------------------------------------
-  try {
-    const comptes = Records.list('MailAccount').filter((a) => a.peut_drive);
-    const compte =
-      comptes.find((a) => String(a.email).toLowerCase() === String(mail.compte).toLowerCase())?.email ||
-      comptes[0]?.email;
-
-    if (!compte) {
-      erreurs.push("Drive : aucun compte Google n'autorise le Drive.");
-    } else {
-      const { classerDansDrive } = await import('../google-drive.js');
-      const tous = deal.documents_espace || [];
-      // Dossier déjà créé : on n'y remonte que les nouvelles pièces, sinon
-      // chaque mail rechargerait tout l'historique en double.
-      const aEnvoyer = (deal.drive_folder_url ? tous.filter((d) => deposes.includes(d.nom)) : tous)
-        .filter((d) => d.url)
-        .map((d) => ({ nom: d.nom, chemin: d.url }));
-
-      const titre = deal.nom || deal.lots?.[0]?.synthese?.titre || deal.deal_id;
-      const r = await classerDansDrive(compte, titre, aEnvoyer, CHEMIN_UPLOADS);
-      Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
-      drive = { url: r.folder_url, chemin: r.chemin, classes: r.envoyes.length };
-      erreurs.push(...(r.erreurs || []).map((e) => `Drive : ${e}`));
-    }
-  } catch (e) {
-    erreurs.push(`Drive : ${e?.message || e}`);
+  const classement = await classerDeal(deal, { noms: deposes, comptePrefere: mail.compte });
+  drive = classement.drive;
+  erreurs.push(...classement.erreurs.map((e) => `Drive : ${e}`));
+  for (const e of classement.erreurs) {
+    echec('drive', classement.drive ? `${titreDeal} — document non versé` : `${deposes.length} document(s) non classé(s)`, e);
   }
 
   // --- Monday --------------------------------------------------------------
@@ -160,6 +199,7 @@ async function ranger(mail, deposes, user) {
     if (!r?.ignore) monday = { id: r?.id, cree: r?.cree };
   } catch (e) {
     erreurs.push(`Monday : ${e?.message || e}`);
+    echec('monday', `Fiche « ${titreDeal} » non mise à jour`, e?.message || e);
   }
 
   if (drive || monday) {
@@ -178,7 +218,7 @@ async function ranger(mail, deposes, user) {
     );
   }
 
-  return { drive, monday, erreurs };
+  return { drive, monday, erreurs, echecs };
 }
 
 /**
@@ -194,6 +234,7 @@ export async function ingererEnAttente(uploadDir, user = null) {
   let classes = 0;
   let fiches = 0;
   const erreurs = [];
+  const echecs = [];
   const lignes = [];
   for (const mail of aTraiter) {
     try {
@@ -202,6 +243,7 @@ export async function ingererEnAttente(uploadDir, user = null) {
       classes += r.drive?.classes || 0;
       if (r.monday) fiches += 1;
       erreurs.push(...r.erreurs);
+      echecs.push(...(r.echecs || []));
 
       if (r.deposes.length) {
         const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
@@ -218,5 +260,5 @@ export async function ingererEnAttente(uploadDir, user = null) {
       erreurs.push(`${mail.objet || mail.id} : ${e?.message || e}`);
     }
   }
-  return { mails: aTraiter.length, documents, classes, fiches, lignes, erreurs };
+  return { mails: aTraiter.length, documents, classes, fiches, lignes, erreurs, echecs };
 }

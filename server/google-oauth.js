@@ -245,6 +245,7 @@ export function listGoogleAccounts(ownerEmail) {
       peut_lire: !!a.peut_lire,
       peut_drive: !!a.peut_drive,
       peut_agenda: !!a.peut_agenda,
+      connected_at: a.connected_at || null,
     }));
 }
 

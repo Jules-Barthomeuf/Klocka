@@ -86,6 +86,7 @@ export async function relever(uploadDir = null) {
   if (enCours) return dernier;
   enCours = true;
   const erreurs = [];
+  const echecs = [];
   let nouveaux = 0;
   let ecartes = 0;
   try {
@@ -96,6 +97,13 @@ export async function relever(uploadDir = null) {
         ecartes += r?.ecartes || 0;
       } catch (e) {
         erreurs.push(`${compte.email} : ${e?.message || e}`);
+        echecs.push({
+          operation: 'releve',
+          compte: compte.email,
+          quoi: `Boîte ${compte.email} non relevée`,
+          cause: String(e?.message || e).slice(0, 240),
+          le: new Date().toISOString(),
+        });
       }
     }
     const rattaches = rattacherMailsOrphelins();
@@ -107,6 +115,7 @@ export async function relever(uploadDir = null) {
     if (dossier) {
       pieces = await ingererEnAttente(dossier);
       erreurs.push(...(pieces.erreurs || []));
+      echecs.push(...(pieces.echecs || []));
     }
 
     // Les agents entrent au CRM tout seuls : l'information est déjà sur les
@@ -126,6 +135,7 @@ export async function relever(uploadDir = null) {
       fiches: pieces.fiches || 0,
       lignes: pieces.lignes || [],
       erreurs,
+      echecs,
     });
   } finally {
     enCours = false;

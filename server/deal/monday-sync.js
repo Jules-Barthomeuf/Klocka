@@ -336,6 +336,22 @@ export async function agents() {
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// Un montant se lit en milliers jusqu'au million, puis en millions : « 2 020 k€ »
+// se déchiffre, « 2 M€ » se lit.
+const somme = (n) => {
+  if (!n) return null;
+  if (n < 1_000_000) return `${Math.round(n / 1000)} k€`;
+  const millions = Math.round((n / 1_000_000) * 10) / 10;
+  return `${String(millions).replace('.', ',')} M€`;
+};
+
+// En dessous, la correspondance ne repose sur rien de solide : un budget
+// simplement « suffisant » ne dit pas qu'un client cherche ce bien-là.
+const SCORE_MINIMUM = 3;
+
+// Trois pistes se regardent ; dix ne se regardent pas.
+const MAX_CANDIDATS = 3;
+
 /**
  * Investisseurs Monday dont le budget et la zone collent à un bien.
  * Un critère absent ne disqualifie pas ; chaque rapprochement dit pourquoi.
@@ -362,11 +378,11 @@ export async function investisseursPourBien({ cout, ville: nomVille }) {
       // Le bien occupe une part sérieuse du budget : c'est là que ça se joue.
       if (rapport <= 1.6) score += 3;
       else if (rapport <= 2.5) score += 1;
-      raisons.push(`budget ${Math.round(c.budget / 1000)} k€ pour ${Math.round(cout / 1000)} k€`);
+      raisons.push(`budget ${somme(c.budget)} pour ${somme(cout)}`);
     }
     if (c.apport && c.apport >= cout * 0.15) {
       score += 1;
-      raisons.push(`apport ${Math.round(c.apport / 1000)} k€`);
+      raisons.push(`apport ${somme(c.apport)}`);
     }
     // On dit quel champ a matché : afficher « Nice » parce que le lieu de
     // recherche mentionnait Lyon serait trompeur.
@@ -384,7 +400,10 @@ export async function investisseursPourBien({ cout, ville: nomVille }) {
       }
     }
 
-    if (raisons.length) resultats.push({ client: c, raisons, score });
+    // Un score trop faible n'est pas une piste : sans ce seuil, tous les
+    // investisseurs dont le budget dépasse le prix ressortaient sur chaque
+    // bien, et la liste affichait invariablement cinq noms sans rapport.
+    if (raisons.length && score >= SCORE_MINIMUM) resultats.push({ client: c, raisons, score });
   }
 
   // Le meilleur score d'abord ; à égalité, le budget le plus proche du bien —
@@ -395,7 +414,7 @@ export async function investisseursPourBien({ cout, ville: nomVille }) {
         b.score - a.score ||
         (a.client.budget || Infinity) - (b.client.budget || Infinity)
     )
-    .slice(0, 5);
+    .slice(0, MAX_CANDIDATS);
 }
 
 /** Rapprochement pour un dossier de préanalyse. */

@@ -1487,6 +1487,13 @@ app.get('/api/monitoring/requetes', wrap(async (req, res) => {
   );
 }));
 
+// État de la veille seul : la barre de l'assistant l'affiche, il serait
+// dispendieux de recalculer toutes les propositions pour cette seule ligne.
+app.get('/api/assistant/veille', wrap(async (req, res) => {
+  const { etatVeille } = await import('./deal/veille-mails.js');
+  ok(res, etatVeille());
+}));
+
 // Le fil de conversation de l'utilisateur, tel qu'il l'a laissé.
 app.get('/api/assistant/fil', wrap(async (req, res) => {
   const { lireFil } = await import('./assistant-fil.js');

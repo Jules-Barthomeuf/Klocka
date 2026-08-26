@@ -166,11 +166,17 @@ const OUTILS = [
   {
     name: 'creer_agent_monday',
     description:
-      "Crée la fiche de l'agent immobilier d'un dossier dans le tableau Monday « Agent immobilier », quand il n'en a pas encore.",
+      "Crée la fiche d'un agent immobilier dans le tableau Monday « Agent immobilier ». Deux usages : depuis un dossier (deal_id, le contact du dossier est repris), ou de but en blanc à partir des coordonnées données — un agent rencontré n'a pas besoin d'un dossier pour exister. L'adresse mail est le minimum requis.",
     input_schema: {
       type: 'object',
-      properties: { deal_id: { type: 'string' } },
-      required: ['deal_id'],
+      properties: {
+        deal_id: { type: 'string', description: "Pour reprendre le contact d'un dossier" },
+        nom: { type: 'string' },
+        email: { type: 'string' },
+        telephone: { type: 'string' },
+        ville: { type: 'string' },
+        entreprise: { type: 'string', description: "Agence ou réseau" },
+      },
     },
   },
   {
@@ -355,22 +361,71 @@ async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'creer_agent_monday') {
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
-    if (!deal) return { erreur: 'Dossier introuvable' };
-    if (!deal.contact_agent_email) return { erreur: "Ce dossier n'a pas d'adresse d'agent" };
-    const fiche = Records.list('Contact').find(
-      (c) => String(c.email || '').toLowerCase() === String(deal.contact_agent_email).toLowerCase()
-    );
+    // Depuis un dossier, ou de but en blanc : un agent rencontré en salon n'a
+    // pas de dossier, et n'a pas à en attendre un pour entrer au CRM.
+    let agent = {
+      nom: input.nom,
+      email: input.email,
+      telephone: input.telephone,
+      ville: input.ville,
+      entreprise: input.entreprise,
+    };
+
+    if (input.deal_id) {
+      const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+      if (!deal) return { erreur: 'Dossier introuvable' };
+      if (!deal.contact_agent_email && !agent.email) {
+        return { erreur: "Ce dossier n'a pas d'adresse d'agent : donnez-la directement." };
+      }
+      const fiche = Records.list('Contact').find(
+        (c) => String(c.email || '').toLowerCase() === String(deal.contact_agent_email || '').toLowerCase()
+      );
+      agent = {
+        nom: agent.nom || fiche?.nom,
+        email: agent.email || deal.contact_agent_email,
+        telephone: agent.telephone || fiche?.telephone,
+        ville: agent.ville || fiche?.localisation || villeDeal(deal),
+        entreprise: agent.entreprise || fiche?.entreprise,
+      };
+    }
+
+    if (!agent.email) return { erreur: "Il faut au moins l'adresse mail de l'agent." };
+
     const { creerAgentMonday } = await import('./deal/monday-sync.js');
-    const r = await creerAgentMonday({
-      nom: fiche?.nom,
-      email: deal.contact_agent_email,
-      telephone: fiche?.telephone,
-      ville: fiche?.localisation || villeDeal(deal),
-    });
+    const r = await creerAgentMonday(agent);
     if (r?.ignore) return { erreur: "Monday n'est pas configuré" };
     if (r?.erreur) return r;
-    return { ok: true, agent: deal.contact_agent_email, cree: r.cree };
+
+    // La fiche entre aussi au CRM local : c'est elle qui fait qu'un mail de cet
+    // agent sera reconnu au lieu d'être trié comme inconnu.
+    const cle = String(agent.email).toLowerCase();
+    const existant = Records.list('Contact').find((c) => String(c.email || '').toLowerCase() === cle);
+    if (!existant) {
+      Records.create('Contact', {
+        nom: agent.nom || agent.email,
+        email: agent.email,
+        telephone: agent.telephone || '',
+        entreprise: agent.entreprise || '',
+        localisation: agent.ville || '',
+        fonction: 'Agent immobilier',
+        source: 'assistant',
+      });
+    }
+
+    return {
+      ok: true,
+      cree: r.cree,
+      agent: agent.email,
+      nom: agent.nom || agent.email,
+      titre: agent.nom || agent.email,
+      // « Entreprise » est une liste fermée côté Monday : si le libellé n'y
+      // figure pas, il n'est pas écrit — et il faut le dire.
+      ...(r.entreprise_ignoree
+        ? {
+            avertissement: `L'entreprise « ${r.entreprise_ignoree} » ne fait pas partie de la liste du tableau Monday : elle n'a pas été enregistrée là-bas (elle l'est au CRM local). À ajouter à la main dans la colonne si besoin.`,
+          }
+        : {}),
+    };
   }
 
   if (name === 'interroger_documents') {
@@ -594,7 +649,7 @@ Tu exécutes des demandes courtes portant sur les dossiers de préanalyse et les
 
 Tu sais : renseigner sur un dossier ou un projet, rejouer leur simulation financière avec d'autres hypothèses, rédiger un brouillon de mail à l'agent, lancer l'extraction des documents, dire ce que Klocka sait d'une ville, donner le plan du jour, envoyer un dossier ou un projet dans Monday, créer leur dossier Google Drive.
 
-Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque, lire ses documents pour répondre à une question précise, envoyer un mail une fois qu'on te l'a demandé, et annuler ta dernière action.
+Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque, lire ses documents pour répondre à une question précise, envoyer un mail une fois qu'on te l'a demandé, inscrire un agent immobilier au CRM — avec ou sans dossier rattaché — et annuler ta dernière action.
 
 Pour tout le reste — droit des baux commerciaux, financement, fiscalité, méthode d'analyse — réponds directement, sans outil, en restant bref et en disant franchement quand tu ne sais pas.
 
@@ -609,7 +664,8 @@ RÈGLES :
 8. Un brouillon de mail n'est pas un envoi. Annonce-le comme une proposition à relire, jamais comme un message parti.
 9. Un mail ne part jamais sans accord explicite : propose le texte, attends « envoie », alors seulement envoie.
 10. « Annule » défait la dernière action réversible. Si elle ne l'est pas, dis-le sans détour au lieu de faire semblant.
-11. Dès qu'on te parle d'un dossier ou d'un projet précis, vérifie-le avant de répondre. Dis ce que tu as constaté, puis propose ce qui manque — une proposition à la fois, en commençant par la plus utile, et attends la réponse avant d'agir. Ne propose pas ce qui n'a pas d'outil : signale-le comme à faire à la main.`;
+11. Un agent immobilier n'a pas besoin d'un dossier pour entrer au CRM : si on te donne un nom et une adresse mail, inscris-le. Ne réclame un dossier que si l'adresse manque.
+12. Dès qu'on te parle d'un dossier ou d'un projet précis, vérifie-le avant de répondre. Dis ce que tu as constaté, puis propose ce qui manque — une proposition à la fois, en commençant par la plus utile, et attends la réponse avant d'agir. Ne propose pas ce qui n'a pas d'outil : signale-le comme à faire à la main.`;
 
 // L'écran que l'utilisateur a sous les yeux : « mets-le dans Monday » doit
 // suffire quand le dossier est déjà ouvert devant lui.

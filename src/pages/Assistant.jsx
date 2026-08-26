@@ -104,9 +104,9 @@ const COMPETENCES = [
     id: "agent",
     icone: UserPlus,
     titre: "Inscrire un agent au CRM",
-    quoi: "Un agent qui vient d'apporter un dossier n'a pas encore de fiche dans Monday : il l'y inscrit et la relie au bien.",
-    exemples: ["L'agent de ce dossier n'est pas dans Monday, ajoute-le"],
-    limite: "Une fiche existante n'est jamais dupliquée : la recherche se fait sur l'adresse mail.",
+    quoi: "Depuis un dossier, ou de but en blanc : un agent rencontré n'a pas besoin d'un bien pour entrer au CRM. La fiche part dans Monday et dans le carnet local, ce qui fait que ses mails seront reconnus au lieu d'être triés comme inconnus.",
+    exemples: ["L'agent de ce dossier n'est pas dans Monday, ajoute-le", "Crée la fiche de Marc Durand, m.durand@immo-sud.fr, Toulouse"],
+    limite: "L'adresse mail est le minimum. L'entreprise n'est écrite que si elle figure déjà dans la liste du tableau — sinon il le signale.",
   },
   {
     id: "annuler",

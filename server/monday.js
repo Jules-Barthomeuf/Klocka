@@ -70,6 +70,15 @@ export async function listerTableaux() {
   return d?.boards || [];
 }
 
+/** Les colonnes d'un tableau, avec leurs réglages (libellés des listes fermées). */
+export async function colonnesDuTableau(boardId) {
+  const d = await graphql(
+    `query ($board: ID!) { boards(ids: [$board]) { columns { id title type settings_str } } }`,
+    { board: String(boardId) }
+  );
+  return d?.boards?.[0]?.columns || [];
+}
+
 /** Recherche un élément par le contenu d'une colonne. */
 async function chercherElement(boardId, colonne, valeur) {
   const d = await graphql(
@@ -114,25 +123,56 @@ export async function commenter(itemId, texte) {
   );
 }
 
-/** Les éléments d'un tableau, avec leurs valeurs lisibles. */
-export async function lireTableau(boardId, limite = 200) {
-  const d = await graphql(
-    `query ($board: ID!, $limite: Int!) {
-      boards(ids: [$board]) {
-        items_page(limit: $limite) {
-          items { id name column_values { id text type } }
-        }
-      }
-    }`,
-    { board: String(boardId), limite: limite }
-  );
-  const items = d?.boards?.[0]?.items_page?.items || [];
-  // Une ligne plate, plus simple à exploiter côté appelant.
-  return items.map((it) => ({
-    id: it.id,
-    nom: it.name,
-    colonnes: Object.fromEntries((it.column_values || []).map((c) => [c.id, c.text])),
-  }));
+/**
+ * Les éléments d'un tableau, avec leurs valeurs lisibles.
+ *
+ * Paginé : Monday rend 500 éléments au maximum par appel et livre un curseur
+ * pour la suite. Sans cette boucle, un tableau de plus de 300 lignes cachait ses
+ * entrées les plus récentes — une fiche créée à l'instant restait introuvable.
+ */
+export async function lireTableau(boardId, limite = 2000) {
+  const lignes = [];
+  let curseur = null;
+
+  while (lignes.length < limite) {
+    const parPage = Math.min(500, limite - lignes.length);
+    const d = curseur
+      ? await graphql(
+          `query ($curseur: String!, $limite: Int!) {
+            next_items_page(cursor: $curseur, limit: $limite) {
+              cursor
+              items { id name column_values { id text type } }
+            }
+          }`,
+          { curseur, limite: parPage }
+        )
+      : await graphql(
+          `query ($board: ID!, $limite: Int!) {
+            boards(ids: [$board]) {
+              items_page(limit: $limite) {
+                cursor
+                items { id name column_values { id text type } }
+              }
+            }
+          }`,
+          { board: String(boardId), limite: parPage }
+        );
+
+    const page = curseur ? d?.next_items_page : d?.boards?.[0]?.items_page;
+    const items = page?.items || [];
+    // Une ligne plate, plus simple à exploiter côté appelant.
+    for (const it of items) {
+      lignes.push({
+        id: it.id,
+        nom: it.name,
+        colonnes: Object.fromEntries((it.column_values || []).map((c) => [c.id, c.text])),
+      });
+    }
+    curseur = page?.cursor || null;
+    if (!curseur || !items.length) break;
+  }
+
+  return lignes;
 }
 
 /** Supprime un élément. Réservé au nettoyage de ce qu'on a soi-même créé. */

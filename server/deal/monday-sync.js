@@ -219,7 +219,7 @@ const DUREE_CACHE = 5 * 60 * 1000;
  * un agent qui vient d'apporter un dossier n'y est pas encore : plutôt que de
  * laisser la liaison vide, on propose de l'y inscrire.
  */
-export async function creerAgentMonday({ nom, email, telephone, ville }) {
+export async function creerAgentMonday({ nom, email, telephone, ville, entreprise }) {
   if (!mondayConfigure() || !TABLEAUX.agents) return { ignore: true };
   if (!email) return { erreur: 'Adresse mail manquante' };
 
@@ -228,6 +228,16 @@ export async function creerAgentMonday({ nom, email, telephone, ville }) {
     ...(telephone ? { phone: { phone: telephone, countryShortName: 'FR' } } : {}),
     ...(ville ? { text0: ville } : {}),
   };
+
+  // « Entreprise » est une liste fermée : on n'y écrit que si le libellé existe
+  // déjà. Créer des entrées à la volée polluerait durablement votre CRM — mais
+  // l'omission doit se dire, sinon on croit l'information enregistrée.
+  let entrepriseIgnoree = null;
+  if (entreprise) {
+    const connue = await libelleExistant(TABLEAUX.agents, COL_AGENT.entreprise, entreprise);
+    if (connue) colonnes[COL_AGENT.entreprise] = { labels: [connue] };
+    else entrepriseIgnoree = entreprise;
+  }
   const r = await poserElement(TABLEAUX.agents, {
     nom: nom || email,
     colonnes,
@@ -236,7 +246,7 @@ export async function creerAgentMonday({ nom, email, telephone, ville }) {
   });
   // La liste des agents est en cache : elle doit repartir de zéro.
   cache.delete('agents');
-  return r;
+  return { ...r, entreprise_ignoree: entrepriseIgnoree };
 }
 
 // --- Lecture : investisseurs et agents restent tenus dans Monday ------------
@@ -266,7 +276,7 @@ const COL_AGENT = {
 async function lireAvecCache(boardId, cle) {
   const vu = cache.get(cle);
   if (vu && Date.now() - vu.le < DUREE_CACHE) return vu.lignes;
-  const lignes = await lireTableau(boardId, 300);
+  const lignes = await lireTableau(boardId);
   cache.set(cle, { le: Date.now(), lignes });
   return lignes;
 }
@@ -291,6 +301,20 @@ export async function investisseurs() {
     recherche: l.colonnes[COL_CLIENT.recherche] || '',
     objectif: l.colonnes[COL_CLIENT.objectif] || '',
   }));
+}
+
+/** Le libellé d'une liste fermée, s'il existe déjà (comparaison insensible à la casse). */
+async function libelleExistant(boardId, colonneId, valeur) {
+  try {
+    const { colonnesDuTableau } = await import('../monday.js');
+    const colonnes = await colonnesDuTableau(boardId);
+    const col = colonnes.find((c) => c.id === colonneId);
+    const reglages = col?.settings_str ? JSON.parse(col.settings_str) : {};
+    const libelles = Object.values(reglages.labels || {}).map((l) => (typeof l === 'object' ? l.name : l));
+    return libelles.find((l) => String(l).toLowerCase() === String(valeur).toLowerCase()) || null;
+  } catch {
+    return null;
+  }
 }
 
 /** Les agents immobiliers, tels que Monday les tient. */

@@ -245,7 +245,11 @@ export default function AdminProjets() {
 
   // À qui chaque projet pourrait correspondre, d'après les investisseurs tenus
   // dans Monday. Un seul appel pour toute la page.
-  const { data: correspondances } = useQuery({
+  const {
+    data: correspondances,
+    isLoading: chargementCorrespondances,
+    isError: erreurCorrespondances,
+  } = useQuery({
     queryKey: ["projets-clients"],
     queryFn: () => base44.request("GET", "/api/monday/projets/clients"),
     staleTime: 5 * 60 * 1000,
@@ -1469,7 +1473,12 @@ export default function AdminProjets() {
               transition={{ duration: 0.35, ease: "easeOut", delay: Math.min(idx * 0.035, 0.35) }}
             >
               <AdminProjectCard project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} />
-              <ClientsCorrespondants clients={correspondances?.par_projet?.[project.id]} />
+              <ClientsCorrespondants
+                clients={correspondances?.par_projet?.[project.id]}
+                chargement={chargementCorrespondances}
+                configure={correspondances?.configure}
+                erreur={erreurCorrespondances}
+              />
             </motion.div>
           ))}
 

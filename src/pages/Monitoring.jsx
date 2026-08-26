@@ -40,7 +40,7 @@ function Chiffre({ icone: Icone, valeur, libelle }) {
 function Barre({ part }) {
   return (
     <div className="h-1.5 rounded-full bg-[#edeae5]/[0.06] overflow-hidden">
-      <div className="h-full bg-[#35a79b]" style={{ width: `${Math.max(2, part * 100)}%` }} />
+      <div className="h-full bg-[#e0c9a0]" style={{ width: `${Math.max(2, part * 100)}%` }} />
     </div>
   );
 }
@@ -101,7 +101,7 @@ export default function Monitoring() {
                 onClick={() => setJours(f.jours)}
                 className={`px-3 py-1.5 rounded-md text-[12.5px] border transition-colors ${
                   jours === f.jours
-                    ? "border-[#35a79b] text-[#7fd3c9] bg-[#35a79b]/[0.1]"
+                    ? "border-[#e0c9a0] text-[#e0c9a0] bg-[#e0c9a0]/[0.1]"
                     : "border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59]"
                 }`}
               >
@@ -127,7 +127,7 @@ export default function Monitoring() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
               {/* Par personne */}
               <div className="border border-[#242726] rounded-md p-4">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#7fd3c9] font-normal">
+                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#e0c9a0] font-normal">
                   Par personne
                 </h2>
                 {data.personnes.length === 0 ? (
@@ -151,7 +151,7 @@ export default function Monitoring() {
                         <tr key={p.email} className="border-b border-[#1c1f1e]">
                           <td className="py-2.5 text-[12.5px] text-[#edeae5] truncate max-w-[190px]">
                             {p.email}
-                            {p.role === "admin" && <span className="text-[#7fd3c9] text-[10px] ml-1.5">admin</span>}
+                            {p.role === "admin" && <span className="text-[#e0c9a0] text-[10px] ml-1.5">admin</span>}
                           </td>
                           <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#d3d8d6]">{p.visites}</td>
                           <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#d3d8d6]">{p.requetes}</td>
@@ -168,7 +168,7 @@ export default function Monitoring() {
 
               {/* Par page */}
               <div className="border border-[#242726] rounded-md p-4">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#7fd3c9] font-normal">
+                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#e0c9a0] font-normal">
                   Pages les plus consultées
                 </h2>
                 {data.pages.length === 0 ? (
@@ -192,7 +192,7 @@ export default function Monitoring() {
             {/* Outils de l'assistant */}
             {data.outils.length > 0 && (
               <div className="border border-[#242726] rounded-md p-4 mb-8">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#7fd3c9] font-normal">
+                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#e0c9a0] font-normal">
                   Outils de l'assistant les plus appelés
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
@@ -215,7 +215,7 @@ export default function Monitoring() {
         {couts && (
           <div className="border border-[#242726] rounded-md p-4 mb-8">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#7fd3c9] font-normal flex items-center gap-2">
+              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#e0c9a0] font-normal flex items-center gap-2">
                 <Coins className="w-3.5 h-3.5" /> Ce que coûte l'IA
               </h2>
               <span className="text-[12.5px] text-[#edeae5] tabular-nums">
@@ -261,7 +261,7 @@ export default function Monitoring() {
         {propositions && propositions.total.proposees > 0 && (
           <div className="border border-[#242726] rounded-md p-4 mb-8">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#7fd3c9] font-normal flex items-center gap-2">
+              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#e0c9a0] font-normal flex items-center gap-2">
                 <Target className="w-3.5 h-3.5" /> Ce que deviennent les propositions
               </h2>
               <span className="text-[12.5px] text-[#edeae5] tabular-nums">
@@ -289,7 +289,7 @@ export default function Monitoring() {
                     <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#d3d8d6]">{t.proposees}</td>
                     <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#d3d8d6]">{t.traitees}</td>
                     <td
-                      className={`py-2.5 text-right text-[12.5px] tabular-nums ${t.taux >= 50 ? "text-[#7fd3c9]" : t.taux === 0 ? "text-[#e0c9a0]" : "text-[#d3d8d6]"}`}
+                      className={`py-2.5 text-right text-[12.5px] tabular-nums ${t.taux >= 50 ? "text-[#e0c9a0]" : t.taux === 0 ? "text-[#e2564d]" : "text-[#d3d8d6]"}`}
                     >
                       {t.taux} %
                     </td>
@@ -307,7 +307,7 @@ export default function Monitoring() {
 
             {propositions.ignorees.length > 0 && (
               <div>
-                <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#e0c9a0]">
+                <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#e2564d]">
                   Vues plusieurs fois, jamais traitées
                 </p>
                 <div className="space-y-1.5">
@@ -332,7 +332,7 @@ export default function Monitoring() {
         {/* Historique complet des demandes à l'assistant */}
         <div className="border border-[#242726] rounded-md p-4">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#7fd3c9] font-normal">
+            <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#e0c9a0] font-normal">
               Toutes les demandes à l'assistant
             </h2>
             <span className="text-[11.5px] text-[#6b7270]">
@@ -393,7 +393,7 @@ export default function Monitoring() {
                                   key={`${o}-${i}`}
                                   className={`text-[11px] px-2 py-0.5 rounded-full border ${
                                     r.actions?.includes(o)
-                                      ? "border-[#35a79b]/40 text-[#7fd3c9] bg-[#35a79b]/[0.1]"
+                                      ? "border-[#e0c9a0]/40 text-[#e0c9a0] bg-[#e0c9a0]/[0.1]"
                                       : "border-[#2e3230] text-[#9aa19e]"
                                   }`}
                                   title={r.actions?.includes(o) ? "A modifié quelque chose" : "Lecture seule"}

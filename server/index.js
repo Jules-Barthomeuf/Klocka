@@ -419,13 +419,39 @@ app.use((req, res, next) => {
   // AUTH_DESACTIVEE (dev local uniquement) l'assouplit — jamais l'absence de
   // configuration Google, qui n'a rien à voir avec l'identité.
   if (AUTH_DESACTIVEE) return next();
-  if (!/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails|admin)\b/.test(req.path)) return next();
+  // Toute famille de routes métier doit figurer ici. Les surfaces ajoutées
+  // après coup — assistant, monday, journal, monitoring — répondaient sans la
+  // moindre authentification, alors que l'assistant écrit dans Monday, crée des
+  // dossiers Drive et envoie des mails.
+  if (
+    !/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring)\b/.test(
+      req.path
+    )
+  ) {
+    return next();
+  }
   if (req.path.startsWith('/api/functions/')) {
     const name = req.path.split('/')[3];
     if (PUBLIC_FUNCTIONS.has(name)) return next();
   }
   if (currentUser(req)) return next();
   res.status(401).json({ error: 'Not authenticated' });
+});
+
+// Arrière-boutique : les dossiers, l'assistant, Monday et le suivi ne
+// concernent que l'équipe. Sans ce filtre, un compte client — il y en a
+// soixante-quinze — pouvait lire les verdicts, les prix et les adresses des
+// agents, et déclencher des actions en son nom.
+const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring)\b/;
+
+app.use((req, res, next) => {
+  if (AUTH_DESACTIVEE) return next();
+  if (!PREFIXES_EQUIPE.test(req.path)) return next();
+  // Déclarer sa propre visite reste ouvert à tous : c'est ce que fait un client
+  // en naviguant.
+  if (req.path.startsWith('/api/journal/')) return next();
+  if (currentUser(req)?.role === 'admin') return next();
+  res.status(403).json({ error: "Réservé à l'équipe Klocka." });
 });
 
 // ---------------------------------------------------------------------------

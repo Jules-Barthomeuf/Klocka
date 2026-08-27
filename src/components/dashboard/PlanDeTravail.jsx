@@ -263,7 +263,7 @@ export default function PlanDeTravail() {
             Équipe Klocka — {maintenant.replace(" à ", ", ")}
           </p>
           <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#f0ece5]">
-            Ce qu'il y a à faire maintenant
+            Dashboard
           </h1>
         </div>
 

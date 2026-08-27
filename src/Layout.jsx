@@ -153,7 +153,8 @@ function LayoutContent({ children, currentPageName }) {
   const isChildPage = CHILD_PAGES.includes(currentPageName);
 
   const isNewUser = user && user.role !== 'admin' && (user.etape_actuelle ?? 0) === 0;
-  const pagesWithoutNavbar = ['Questionnaire', 'Home'];
+  // Alexis : la page secrète se visite sans barre latérale — rien ne doit y mener.
+  const pagesWithoutNavbar = ['Questionnaire', 'Home', 'Alexis'];
 
   useEffect(() => { localStorage.setItem('previewClientMode', previewClientMode); }, [previewClientMode]);
   useEffect(() => {

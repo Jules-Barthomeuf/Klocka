@@ -19,6 +19,7 @@ import Banque from '@/pages/Banque';
 
 import Portail from '@/pages/Portail';
 import Bienvenue from "./pages/Bienvenue";
+import Alexis from "./pages/Alexis";
 
 // Ce qu'un client peut ouvrir : son parcours, ses projets, ses outils. Tout le
 // reste appartient à l'équipe.
@@ -157,7 +158,8 @@ const AuthenticatedApp = () => {
       <Route path="/Engagements" element={<LayoutWrapper currentPageName="Engagements"><Engagements /></LayoutWrapper>} />
       {/* Anciennes URL : Préanalyse est devenue Analyse ; l'onglet Documents d'Alexis a disparu. */}
       <Route path="/Preanalyse" element={<RedirectionAnalyse />} />
-      <Route path="/Alexis" element={<Navigate to="/Analyse" replace />} />
+      {/* La page secrète. L'ancienne redirection vers Analyse cède la place. */}
+      <Route path="/Alexis" element={<LayoutWrapper currentPageName="Alexis"><Alexis /></LayoutWrapper>} />
       <Route path="/AssistantExterne" element={<LayoutWrapper currentPageName="AssistantExterne"><AssistantExterne /></LayoutWrapper>} />
       <Route path="/AdminPresentations" element={<LayoutWrapper currentPageName="AdminPresentations"><AdminPresentations /></LayoutWrapper>} />
       <Route path="/ImportProjects" element={<LayoutWrapper currentPageName="ImportProjects"><ImportProjects /></LayoutWrapper>} />

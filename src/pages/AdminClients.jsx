@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import InviterClient, { BoutonLienInvitation } from "@/components/admin/InviterClient";
+import { DialogueAssignerProjets } from "@/components/admin/AssignationProjets";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -124,6 +125,8 @@ export default function AdminClients() {
   const [pendingEtapeChange, setPendingEtapeChange] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  // Le client depuis lequel on assigne : la ligne d'où l'on a cliqué.
+  const [assignerPour, setAssignerPour] = useState(null);
   const [selectedUserForLink, setSelectedUserForLink] = useState(null);
   const [masterEmail, setMasterEmail] = useState("");
   const [selectedUsersForCompare, setSelectedUsersForCompare] = useState([]);
@@ -793,6 +796,10 @@ export default function AdminClients() {
                           )}
                         </>
                       )}
+                      <button onClick={() => setAssignerPour(user)}
+                        className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#e0c9a0] hover:text-[#edeae5] transition-colors">
+                        <Building2 className="w-3.5 h-3.5" /> Assigner un projet
+                      </button>
                       {user.est_compte_shadow ? (
                         <button onClick={() => handleUnlinkAccount(user)}
                           className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#8b9391] hover:text-[#edeae5] transition-colors">
@@ -1013,6 +1020,13 @@ export default function AdminClients() {
       </Dialog>
 
       {/* Dialog liaison de comptes */}
+      <DialogueAssignerProjets
+        user={assignerPour}
+        projects={allProjects}
+        ouvert={!!assignerPour}
+        onClose={() => setAssignerPour(null)}
+      />
+
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
         <DialogContent className="bg-[#0a0c0c] border-[#282b2a]">
           <DialogHeader>

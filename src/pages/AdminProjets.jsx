@@ -14,6 +14,7 @@ import { Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, 
 import { toast } from "sonner";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
 import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
+import { DialogueAssignerClient } from "../components/admin/AssignationProjets";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,6 +47,8 @@ export default function AdminProjets() {
   const [apercuProjet, setApercuProjet] = useState(null);
   // Panneau latéral des champs (caché par défaut) et onglet courant de la page.
   const [panneauOuvert, setPanneauOuvert] = useState(false);
+  // Assigner un client sans ouvrir le panneau : le bouton vit dans la barre.
+  const [assignerOuvert, setAssignerOuvert] = useState(false);
   const [ongletPage, setOngletPage] = useState("secteur");
   // Historique des modifications faites sur la page, pour le retour en arrière.
   const [historique, setHistorique] = useState([]);
@@ -1063,6 +1066,12 @@ export default function AdminProjets() {
             {editingProject && (
               <button onClick={goToProjectsList} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Retour aux projets</button>
             )}
+            <button
+              onClick={() => setAssignerOuvert(true)}
+              className="bg-transparent border border-[#e0c9a0]/50 text-[#e0c9a0] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#e0c9a0]/[0.08] transition-colors"
+            >
+              Assigner un client
+            </button>
             {editingProject?.id && (
               <BoutonMonday
                 projetId={editingProject.id}
@@ -1076,6 +1085,19 @@ export default function AdminProjets() {
             </button>
           </div>
         </div>
+
+        <DialogueAssignerClient
+          ouvert={assignerOuvert}
+          onClose={() => setAssignerOuvert(false)}
+          users={users}
+          formData={formData}
+          onValider={(champs) => {
+            // Enregistré tout de suite : c'est handleSubmit qui prévient les
+            // nouveaux assignés, comme depuis le panneau.
+            setFormData((f) => ({ ...f, ...champs }));
+            handleSubmit(champs);
+          }}
+        />
 
         {/* La page projet, pleine largeur — les valeurs s'éditent sur place ;
             le panneau ne s'ouvre que par le bouton « Modifier les informations ». */}

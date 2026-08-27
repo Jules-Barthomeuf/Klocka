@@ -303,8 +303,8 @@ app.post('/api/auth/logout', (req, res) => {
 });
 app.get('/api/auth/isAuthenticated', (req, res) => ok(res, { authenticated: !!currentUser(req) }));
 
-// --- Connexion Google : elle authentifie l'utilisateur ET autorise l'envoi de
-// --- mails en son nom, en une seule demande de consentement.
+// --- Connexion Google : identité seule (nom, adresse, photo). Le rattachement
+// --- d'une boîte est un autre parcours, réservé aux admins — voir plus bas.
 
 app.get('/api/auth/google/login', (req, res) => {
   if (!googleEnabled) {
@@ -792,16 +792,25 @@ function popupConnectePage(res, { email }) {
 </body></html>`);
 }
 
-// Rattacher une boîte supplémentaire : même flux, retour sur le dashboard.
-app.get('/api/mail/google/connect', (req, res) =>
-  res.redirect('/api/auth/google/login?returnTo=%2FMails')
-);
+// Rattacher une boîte d'équipe : réservé aux admins, et c'est le seul parcours
+// qui demande à Google les portées Gmail, Drive et Agenda. Un client n'y
+// accède pas — sa connexion ne cède que son identité.
+function rattachementBoite(req, res, returnTo) {
+  if (currentUser(req)?.role !== 'admin') {
+    return authResultPage(res, {
+      ok: false,
+      title: 'Réservé à l\'équipe',
+      detail: "Seul un administrateur connecté peut rattacher une boîte Google à Klocka.",
+    });
+  }
+  res.redirect(buildAuthUrl({ returnTo, req, boite: true }));
+}
+
+app.get('/api/mail/google/connect', (req, res) => rattachementBoite(req, res, '/Dashboard'));
 
 // Variante en fenêtre surgissante : la page appelante (et son brouillon de
 // mail en cours de rédaction) n'est jamais quittée.
-app.get('/api/mail/google/connect-popup', (req, res) =>
-  res.redirect(`/api/auth/google/login?returnTo=${encodeURIComponent(RETOUR_POPUP)}`)
-);
+app.get('/api/mail/google/connect-popup', (req, res) => rattachementBoite(req, res, RETOUR_POPUP));
 
 // ---------------------------------------------------------------------------
 // Boîte de réception (relève Gmail, sur action utilisateur — pas de polling)

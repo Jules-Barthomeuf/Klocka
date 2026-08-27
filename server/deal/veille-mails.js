@@ -12,6 +12,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
+import { comptesEquipe } from '../google-oauth.js';
 import { releverBoite } from '../gmail-inbox.js';
 import { gmailReadDemande } from '../google-oauth.js';
 import { statutDe, ajouterSuivi } from './lifecycle.js';
@@ -31,8 +32,10 @@ let minuterie = null;
 let enCours = false;
 let dernier = { le: null, nouveaux: 0, rattaches: 0, erreurs: [] };
 
+// Seules les boîtes de l'équipe se relèvent. Jamais celle d'un client, quelle
+// que soit l'autorisation qu'un jeton pourrait porter.
 function comptesLisibles() {
-  return Records.list('MailAccount').filter((a) => a.peut_lire && a.email);
+  return comptesEquipe().filter((a) => a.peut_lire && a.email);
 }
 
 /**

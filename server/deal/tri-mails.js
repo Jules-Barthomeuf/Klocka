@@ -27,6 +27,7 @@
 // l'application reste le reflet des dossiers, pas une copie de Gmail.
 
 import { Records } from '../db.js';
+import { comptesEquipe } from '../google-oauth.js';
 import { invokeLLM, llmEnabled } from '../llm.js';
 
 // Domaines de l'équipe : un mail interne parle d'autre chose qu'un dossier.
@@ -63,7 +64,7 @@ const domaineDe = (email) => String(email || '').toLowerCase().split('@')[1] || 
 
 /** Adresses de l'équipe : comptes connectés et utilisateurs administrateurs. */
 function adressesInternes() {
-  const comptes = Records.list('MailAccount').map((a) => String(a.email || '').toLowerCase());
+  const comptes = comptesEquipe().map((a) => String(a.email || '').toLowerCase());
   const admins = Records.filter('User', { role: 'admin' }).map((u) => String(u.email || '').toLowerCase());
   return new Set([...comptes, ...admins].filter(Boolean));
 }

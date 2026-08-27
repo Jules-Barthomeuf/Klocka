@@ -55,6 +55,14 @@ export const driveDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_DRIVE 
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.app.created';
 export const calendarDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_CALENDAR || '');
 
+// Se connecter n'est pas connecter une boîte. Un client qui entre dans son
+// espace ne cède que son identité — nom, adresse, photo. Les portées Gmail,
+// Drive et Agenda sont réservées au rattachement d'une boîte d'équipe, par un
+// admin. Sans cette séparation, chaque client voyait « Klocka veut lire vos
+// e-mails » pour ouvrir son espace, et sa boîte personnelle entrait dans la
+// veille — et Google exige un audit pour ces portées « restreintes ».
+const SCOPES_IDENTITE = ['openid', 'email', 'profile'];
+
 const SCOPES = [
   'openid',
   'email',
@@ -77,9 +85,11 @@ const GMAIL_SEND_ENDPOINT = 'https://gmail.googleapis.com/gmail/v1/users/me/mess
 const pendingStates = new Map();
 const STATE_TTL_MS = 10 * 60 * 1000;
 
-function rememberState(returnTo, redirectUri) {
+function rememberState(returnTo, redirectUri, boite = false) {
   const state = randomBytes(16).toString('hex');
-  pendingStates.set(state, { at: Date.now(), returnTo: returnTo || '/', redirectUri });
+  // `boite` voyage dans l'état signé, pas dans l'URL : c'est lui — et non les
+  // portées que Google renvoie — qui autorise l'enregistrement d'une boîte.
+  pendingStates.set(state, { at: Date.now(), returnTo: returnTo || '/', redirectUri, boite: !!boite });
   for (const [s, v] of pendingStates) if (Date.now() - v.at > STATE_TTL_MS) pendingStates.delete(s);
   return state;
 }
@@ -110,16 +120,19 @@ function consumeState(state) {
  * @param {object} [opts]
  * @param {string} [opts.returnTo] - path to land on once the round-trip is done
  */
-export function buildAuthUrl({ returnTo, req } = {}) {
+export function buildAuthUrl({ returnTo, req, boite = false } = {}) {
   const redirectUri = redirectUriPour(req);
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: SCOPES.join(' '),
-    // Le refresh token n'a d'intérêt que pour utiliser les API plus tard.
-    ...(besoinOffline ? { access_type: 'offline', prompt: 'consent select_account' } : { prompt: 'select_account' }),
-    state: rememberState(returnTo, redirectUri),
+    scope: (boite ? SCOPES : SCOPES_IDENTITE).join(' '),
+    // Le refresh token n'a d'intérêt que pour utiliser les API plus tard —
+    // donc seulement quand on rattache une boîte.
+    ...(boite && besoinOffline
+      ? { access_type: 'offline', prompt: 'consent select_account' }
+      : { prompt: 'select_account' }),
+    state: rememberState(returnTo, redirectUri, boite),
   });
   if (ALLOWED_DOMAIN) params.set('hd', ALLOWED_DOMAIN);
   return `${AUTH_ENDPOINT}?${params}`;
@@ -187,7 +200,10 @@ export async function handleCallback({ code, state, owner }) {
   const driveEtendu = portees.includes(DRIVE_FULL_SCOPE);
   const peutAgenda = portees.includes(CALENDAR_SCOPE);
 
-  if (peutEnvoyer || peutLire || peutDrive || peutAgenda) {
+  // Une boîte ne s'enregistre que si le parcours l'a demandé (état `boite`) —
+  // jamais sur la foi des portées renvoyées. Une simple connexion, même si
+  // Google renvoyait plus que prévu, ne crée pas de compte de boîte.
+  if (stateValue.boite && (peutEnvoyer || peutLire || peutDrive || peutAgenda)) {
     const existing = Records.filter('MailAccount', { email })[0] || null;
     const record = {
       provider: 'google',
@@ -226,9 +242,23 @@ export async function handleCallback({ code, state, owner }) {
  * should be able to pick a colleague's address as sender.
  * @param {string} [ownerEmail] - omit to list every connected mailbox
  */
+/**
+ * Les boîtes de l'équipe : celles dont le propriétaire est administrateur.
+ * Tout ce qui relève, classe ou envoie au nom de Klocka passe par ici — une
+ * boîte rattachée à un compte client, quelle qu'en soit l'origine, est ignorée.
+ */
+export function comptesEquipe() {
+  const admins = new Set(
+    Records.filter('User', { role: 'admin' }).map((u) => String(u.email || '').toLowerCase())
+  );
+  return Records.list('MailAccount', { sort: 'connected_at' }).filter((a) =>
+    admins.has(String(a.owner_email || a.email || '').toLowerCase())
+  );
+}
+
 export function listGoogleAccounts(ownerEmail) {
   const owner = ownerEmail ? String(ownerEmail).toLowerCase() : null;
-  return Records.list('MailAccount', { sort: 'connected_at' })
+  return comptesEquipe()
     .filter((a) => a.provider === 'google')
     .filter((a) => !owner || (a.owner_email || a.email) === owner)
     .map((a) => ({

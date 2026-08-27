@@ -131,7 +131,8 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
 export async function classerDeal(deal, { noms = null, comptePrefere = null } = {}) {
   const erreurs = [];
   try {
-    const comptes = Records.list('MailAccount').filter((a) => a.peut_drive);
+    const { comptesEquipe } = await import('../google-oauth.js');
+    const comptes = comptesEquipe().filter((a) => a.peut_drive);
     const compte =
       comptes.find((a) => String(a.email).toLowerCase() === String(comptePrefere || '').toLowerCase())?.email ||
       comptes[0]?.email;

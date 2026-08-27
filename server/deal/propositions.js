@@ -323,7 +323,7 @@ function surInvestisseurs(deal, rapprochements) {
 // par un bandeau discret, et la boîte restait muette pendant des semaines. Il
 // devient une proposition prioritaire, avec le bouton qui la répare.
 async function surComptesMuets() {
-  const { gmailReadDemande, gmailSendDemande, driveDemande, calendarDemande } = await import(
+  const { gmailReadDemande, gmailSendDemande, driveDemande, calendarDemande, comptesEquipe } = await import(
     '../google-oauth.js'
   );
   const attendues = [
@@ -334,7 +334,7 @@ async function surComptesMuets() {
   ].filter(Boolean);
   if (!attendues.length) return [];
 
-  const comptes = Records.list('MailAccount').filter((a) => a.provider === 'google');
+  const comptes = comptesEquipe().filter((a) => a.provider === 'google');
   const pile = [];
   for (const compte of comptes) {
     const manquantes = attendues.filter(([cle]) => !compte[cle]);

@@ -23,7 +23,12 @@ function inviter(body) {
 }
 
 /** Le formulaire, replié derrière un bouton dans l'en-tête de la page. */
-export default function InviterClient() {
+/**
+ * @param {{onCree?: (r: {user_id, email}) => void}} props - appelé dès que le
+ *   compte existe : la page peut l'ouvrir pour poser projets et étape sans
+ *   attendre que la personne se connecte.
+ */
+export default function InviterClient({ onCree } = {}) {
   const queryClient = useQueryClient();
   const [ouvert, setOuvert] = useState(false);
   const [nom, setNom] = useState("");
@@ -35,6 +40,7 @@ export default function InviterClient() {
     onSuccess: (r) => {
       setResultat(r);
       queryClient.invalidateQueries({ queryKey: ["all-users"] });
+      onCree?.(r);
       if (r.envoye) toast.success(`Invitation envoyée à ${r.email}`);
       else if (r.erreur_envoi) toast.error(r.erreur_envoi);
     },

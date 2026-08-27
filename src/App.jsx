@@ -19,6 +19,14 @@ import Banque from '@/pages/Banque';
 
 import Portail from '@/pages/Portail';
 import Bienvenue from "./pages/Bienvenue";
+
+// Ce qu'un client peut ouvrir : son parcours, ses projets, ses outils. Tout le
+// reste appartient à l'équipe.
+const PAGES_CLIENT = new Set([
+  'Home', 'Dashboard', 'NewUserWelcome', 'Questionnaire', 'MesProjets', 'ProjetDetail',
+  'SimulateurRentabilite', 'TableauProjection', 'Ressources', 'Vision', 'Comparateur',
+  'KlockAI', 'MonCompte', 'Feedback', 'Famille', 'Familles',
+]);
 import Portail2Fois from '@/pages/Portail2Fois';
 import SimulateurPublic from '@/pages/SimulateurPublic';
 import ProjetPublic from '@/pages/ProjetPublic';
@@ -97,6 +105,18 @@ const AuthenticatedApp = () => {
     if (etape === 0 && currentUser.role !== 'admin') {
       return <Navigate to="/NewUserWelcome" replace />;
     }
+  }
+
+  // Un client ne voit que l'espace client. Les pages d'équipe ne s'ouvrent
+  // pas en tapant leur adresse : le serveur refuse déjà leurs données, mais
+  // une coquille vide en dit encore trop. Seuls les admins ont le choix de vue.
+  if (isAuthenticated && !isLoadingUser && currentUser && currentUser.role !== 'admin') {
+    const page = location.pathname.replace(/^\/+|\/+$/g, '');
+    const autorisee =
+      page === '' ||
+      PAGES_CLIENT.has(page) ||
+      (currentUser.role === 'mandataire' && page.startsWith('Mandataire'));
+    if (!autorisee) return <Navigate to="/Dashboard" replace />;
   }
 
   // Render the main app

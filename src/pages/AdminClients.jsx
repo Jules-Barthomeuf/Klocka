@@ -523,7 +523,19 @@ export default function AdminClients() {
           <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0">Gérez tous les utilisateurs de la plateforme.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <InviterClient />
+          <InviterClient
+            onCree={(r) => {
+              // Le compte existe : on l'ouvre tout de suite, filtres levés,
+              // pour poser l'étape et lier des projets sans le chercher.
+              setEtapeFilter("all");
+              setSearchTerm("");
+              setPendingCollapsed(true);
+              setExpandedUserId(r.user_id);
+              setTimeout(() => {
+                document.getElementById(`utilisateur-${r.user_id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }, 250);
+            }}
+          />
           <BoutonImportUtilisateurs />
         </div>
       </div>
@@ -651,7 +663,7 @@ export default function AdminClients() {
           const etape = user.etape_actuelle ?? 0;
 
           return (
-            <div key={user.id} className={`border-t border-[#edeae5]/[0.12] transition-colors ${isSelected ? "bg-[#35a79b]/[0.05]" : isExpanded ? "bg-[#edeae5]/[0.015]" : ""}`}>
+            <div key={user.id} id={`utilisateur-${user.id}`} className={`border-t border-[#edeae5]/[0.12] transition-colors ${isSelected ? "bg-[#35a79b]/[0.05]" : isExpanded ? "bg-[#edeae5]/[0.015]" : ""}`}>
               {/* Rangée principale */}
               <div className="flex items-center gap-4 max-md:gap-3 py-4 max-md:flex-wrap">
                 <Checkbox

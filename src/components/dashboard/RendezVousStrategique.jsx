@@ -85,10 +85,10 @@ export default function RendezVousStrategique({ user }) {
           </>
         ) : (
           <>
-            <div className="w-11 h-11 border border-[#35a79b]/40 flex items-center justify-center mb-6">
-              <BookOpen className="w-5 h-5 text-[#7fd3c9]" />
+            <div className="w-11 h-11 border border-[#e0c9a0]/40 flex items-center justify-center mb-6">
+              <BookOpen className="w-5 h-5 text-[#e0c9a0]" />
             </div>
-            <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#7fd3c9]">Rendez-vous pris</p>
+            <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#e0c9a0]">Rendez-vous pris</p>
             <h2 className="m-0 mt-3 text-[28px] max-md:text-[23px] font-light tracking-[-.02em] leading-[1.1] text-[#edeae5]">
               En attendant, acculturez-vous à l'immobilier commercial
             </h2>
@@ -99,7 +99,7 @@ export default function RendezVousStrategique({ user }) {
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => finAcculturation(true)}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-[#edeae5] text-[#0a0c0c] text-[11px] tracking-[.16em] uppercase font-medium hover:bg-[#d8d5d0] transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-[#e0c9a0] text-[#0a0c0c] text-[11px] tracking-[.16em] uppercase font-medium hover:bg-[#e8d4b0] transition-colors"
               >
                 Accéder aux ressources <ArrowRight className="w-3.5 h-3.5" />
               </button>

@@ -364,6 +364,7 @@ ${admin.full_name || admin.email}`,
   console.log(`[auth] invitation : ${email} par ${admin.email}${envoi ? (envoi.simulated ? ' (mail simulé)' : ' (mail envoyé)') : ''}`);
   ok(res, {
     email,
+    user_id: user.id,
     lien,
     expire_le: expire,
     cree: !req.body?.reprise && !user.mot_de_passe_defini_le,

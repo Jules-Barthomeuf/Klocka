@@ -18,6 +18,7 @@ const REVERSIBLES = {
   pousser_projet_monday: "l'élément Monday créé sera supprimé",
   creer_agent_monday: "la fiche agent créée sera supprimée",
   creer_drive_dossier: 'le dossier Drive créé partira à la corbeille',
+  noter_engagement: "l'engagement noté sera effacé du registre",
 };
 
 /**
@@ -97,6 +98,14 @@ export async function annuler(action) {
     }
     Records.update('AssistantAction', action.id, { annulee: true, annulee_le: new Date().toISOString() });
     return { ok: true, message: `Élément Monday supprimé (${action.resultat?.titre || id}).` };
+  }
+
+  if (action.outil === 'noter_engagement') {
+    const { effacer } = await import('./deal/engagements.js');
+    const r = effacer(id);
+    if (!r.ok) return { ok: false, message: r.error };
+    Records.update('AssistantAction', action.id, { annulee: true, annulee_le: new Date().toISOString() });
+    return { ok: true, message: `Engagement effacé du registre (${action.resultat?.titre || id}).` };
   }
 
   if (action.outil === 'creer_drive_dossier') {

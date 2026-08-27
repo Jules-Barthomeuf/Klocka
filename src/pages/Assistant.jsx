@@ -109,6 +109,14 @@ const COMPETENCES = [
     limite: "L'adresse mail est le minimum. L'entreprise n'est écrite que si elle figure déjà dans la liste du tableau — sinon il le signale.",
   },
   {
+    id: "engagements",
+    icone: ClipboardCheck,
+    titre: "Tenir le registre des engagements",
+    quoi: "Une phrase suffit — « Marc envoie le PV jeudi », « rappeler le notaire lundi » — et l'engagement entre dans la page Engagements, daté, rattaché au dossier si vous le nommez. « C'est reçu » le marque tenu.",
+    exemples: ["Note que Marc envoie le bail jeudi", "Le syndic nous doit le RCP avant fin de mois", "Qu'est-ce qu'on attend encore sur Mitry-Mory ?"],
+    limite: "Il résout « jeudi » en date réelle, mais sans date il n'en invente pas : l'engagement reste sans échéance.",
+  },
+  {
     id: "annuler",
     icone: Undo2,
     titre: "Annuler la dernière action",

@@ -45,11 +45,13 @@ export function tousLesEngagements() {
 
 function creer({ deal, de, quoi, types = [], echeance = null, source }) {
   return Records.create('Engagement', {
-    deal_id: deal.deal_id,
+    // Un engagement dicté à l'assistant peut ne tenir à aucun dossier
+    // (« rappeler le notaire jeudi ») : deal_id reste alors vide.
+    deal_id: deal?.deal_id || null,
     // Le titre est photographié : le registre doit rester lisible même si le
     // dossier est renommé, archivé ou que son mail d'origine est supprimé.
-    dossier: titreDeal(deal),
-    de: de || deal.contact_agent_email || null,
+    dossier: deal ? titreDeal(deal) : null,
+    de: de || deal?.contact_agent_email || null,
     quoi,
     types,
     echeance,
@@ -257,6 +259,39 @@ export async function extraireEnAttente() {
     }
   }
   return { mails: aLire.length, crees, erreurs };
+}
+
+// ---------------------------------------------------------------------------
+// Source 3 — dicté à l'assistant
+// ---------------------------------------------------------------------------
+
+/**
+ * Inscrit un engagement dicté : « Marc envoie le PV jeudi », « rappeler le
+ * notaire lundi ». La seule source qui passe par un humain — et c'est
+ * l'assistant qui écrit, pas un formulaire.
+ */
+export function noter({ dealId = null, de = null, quoi, echeance = null, types = [], user = null }) {
+  if (!quoi?.trim()) return { ok: false, error: 'Rien à noter' };
+  const deal = dealId ? Records.filter('Deal', { deal_id: dealId })[0] : null;
+  if (dealId && !deal) return { ok: false, error: 'Dossier introuvable' };
+  if (echeance && isNaN(new Date(echeance))) return { ok: false, error: 'Date invalide' };
+  const e = creer({
+    deal,
+    de,
+    quoi: quoi.trim(),
+    types: types.filter((t) => TYPES_CONNUS.includes(t)),
+    echeance: echeance ? new Date(echeance).toISOString() : null,
+    source: { type: 'assistant', le: new Date().toISOString(), par: user?.email || null },
+  });
+  return { ok: true, engagement: e };
+}
+
+/** Efface un engagement — l'inverse de « noter », pour l'annulation. */
+export function effacer(id) {
+  const e = Records.get('Engagement', id);
+  if (!e) return { ok: false, error: 'Engagement introuvable' };
+  Records.delete('Engagement', id);
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

@@ -7,11 +7,11 @@ import { Check, Loader2 } from "lucide-react";
 
 // Le registre des engagements : qui doit quoi, pour quand.
 //
-// Rien ne se saisit ici — le registre s'écrit tout seul, depuis nos demandes
-// envoyées et, dès que la lecture Gmail sera accordée, depuis les promesses
-// des agents. La page sert à trois choses : voir ce qui est dû, cocher ce qui
-// est tenu quand la clôture automatique ne peut pas le savoir, et repousser
-// une échéance renégociée.
+// Pas de formulaire ici — le registre s'écrit depuis nos demandes envoyées,
+// depuis les promesses des agents dès que la lecture Gmail sera accordée, et
+// depuis une phrase dite à l'assistant. La page sert à trois choses : voir ce
+// qui est dû, cocher ce qui est tenu quand la clôture automatique ne peut pas
+// le savoir, et repousser une échéance renégociée.
 
 const jour = (iso) =>
   !iso || isNaN(new Date(iso))
@@ -32,6 +32,7 @@ const SOURCES = {
   mail_sortant: "d'après notre demande",
   reprise: "repris de l'historique des envois",
   mail_recu: "promis par mail",
+  assistant: "noté via l'assistant",
 };
 
 export default function Engagements() {
@@ -77,14 +78,9 @@ export default function Engagements() {
       <div className="max-w-[1100px] mx-auto px-5 md:px-12 py-10 md:py-16">
         {/* --- En-tête --------------------------------------------------- */}
         <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
-          <div>
-            <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#8b8880]">
-              Registre — écrit par les mails, jamais à la main
-            </p>
-            <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#f0ece5]">
-              Qui doit quoi, pour quand
-            </h1>
-          </div>
+          <h1 className="m-0 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#f0ece5]">
+            Engagements
+          </h1>
           <div className="flex items-start gap-10 max-md:gap-7">
             <div className="text-right">
               <p className="m-0 text-[38px] max-md:text-[30px] font-light leading-none text-[#d9c08a]">{ouverts.length}</p>
@@ -111,8 +107,8 @@ export default function Engagements() {
           </div>
         ) : ouverts.length === 0 ? (
           <p className="m-0 py-6 text-[19px] font-light leading-[1.55] text-[#6f6c66]">
-            Rien n'est dû. Une demande de documents envoyée, ou une promesse reçue par mail,
-            inscrira sa ligne ici toute seule.
+            Rien n'est dû. Une demande de documents envoyée, une promesse reçue par mail, ou une
+            phrase dite à l'assistant — « Marc envoie le PV jeudi » — inscrira sa ligne ici.
           </p>
         ) : (
           <div className="space-y-9">
@@ -121,12 +117,16 @@ export default function Engagements() {
               return (
                 <div key={e.id} className={`border-l-2 ${t.filet} pl-6`}>
                   <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                    <button
-                      onClick={() => navigate(`/Analyse?deal_id=${e.deal_id}`)}
-                      className="text-[11px] tracking-[.16em] uppercase text-[#8b8880] hover:text-[#d9c08a] transition-colors"
-                    >
-                      {e.dossier}
-                    </button>
+                    {e.deal_id ? (
+                      <button
+                        onClick={() => navigate(`/Analyse?deal_id=${e.deal_id}`)}
+                        className="text-[11px] tracking-[.16em] uppercase text-[#8b8880] hover:text-[#d9c08a] transition-colors"
+                      >
+                        {e.dossier}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] tracking-[.16em] uppercase text-[#5c5a55]">sans dossier</span>
+                    )}
                     <span className={`text-[11px] tracking-[.16em] uppercase ${t.etiquette}`}>
                       {e.en_retard
                         ? `en retard de ${retardJours(e.echeance)} j`

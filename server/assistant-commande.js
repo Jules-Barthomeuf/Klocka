@@ -232,6 +232,36 @@ const OUTILS = [
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' } } },
   },
   {
+    name: 'noter_engagement',
+    description:
+      "Inscrit un engagement au registre : qui doit quoi, pour quand. Ex: « Marc envoie le PV jeudi », « rappeler le notaire lundi ». Le dossier est facultatif — le chercher d'abord avec chercher_dossier quand l'utilisateur en nomme un. Résous les dates relatives en YYYY-MM-DD par rapport à aujourd'hui.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        quoi: { type: 'string', description: "l'engagement, en une phrase courte" },
+        deal_id: { type: 'string', description: 'identifiant du dossier concerné, si connu' },
+        de: { type: 'string', description: 'qui doit : adresse mail ou nom de la personne' },
+        echeance: { type: 'string', description: 'date YYYY-MM-DD, omise si aucune date' },
+        types: {
+          type: 'array',
+          items: { type: 'string', enum: ['bail', 'pv_ag', 'rcp', 'quittances', 'diagnostics'] },
+          description: 'types de documents concernés, si la promesse porte sur une pièce du dossier',
+        },
+      },
+      required: ['quoi'],
+    },
+  },
+  {
+    name: 'tenir_engagement',
+    description:
+      "Marque un engagement comme tenu (« c'est reçu », « il l'a fait »). Prend l'identifiant rendu par registre_engagements.",
+    input_schema: {
+      type: 'object',
+      properties: { engagement_id: { type: 'string' }, commentaire: { type: 'string' } },
+      required: ['engagement_id'],
+    },
+  },
+  {
     name: 'pousser_projet_monday',
     description:
       "Pose ou met à jour un projet dans le tableau Monday « Propriétés ». Nécessite l'identifiant obtenu par chercher_projet.",
@@ -644,6 +674,7 @@ async function executerOutil({ name, input }, user) {
     const liste = input.deal_id ? engagementsOuverts(input.deal_id) : tousLesEngagements().slice(0, 30);
     return {
       engagements: liste.map((e) => ({
+        engagement_id: e.id,
         dossier: e.dossier,
         deal_id: e.deal_id,
         de: e.de,
@@ -655,6 +686,35 @@ async function executerOutil({ name, input }, user) {
       })),
       nombre: liste.length,
     };
+  }
+
+  if (name === 'noter_engagement') {
+    const { noter } = await import('./deal/engagements.js');
+    const r = noter({
+      dealId: input.deal_id || null,
+      de: input.de || null,
+      quoi: input.quoi,
+      echeance: input.echeance || null,
+      types: input.types || [],
+      user,
+    });
+    if (!r.ok) return { erreur: r.error };
+    return {
+      ok: true,
+      cree: true,
+      id: r.engagement.id,
+      titre: r.engagement.quoi,
+      dossier: r.engagement.dossier,
+      echeance: r.engagement.echeance,
+      lien: '/Engagements',
+    };
+  }
+
+  if (name === 'tenir_engagement') {
+    const { clore } = await import('./deal/engagements.js');
+    const r = clore(input.engagement_id, { user, commentaire: input.commentaire || "confirmé à l'assistant" });
+    if (!r.ok) return { erreur: r.error };
+    return { ok: true, titre: r.engagement.quoi, statut: 'tenu' };
   }
 
   if (name === 'pousser_projet_monday') {
@@ -674,13 +734,15 @@ async function executerOutil({ name, input }, user) {
   return { erreur: `Outil inconnu : ${name}` };
 }
 
-const CONSIGNE = `Tu es l'assistant de Klocka, conseil en investissement dans les murs commerciaux.
+const consigne = () => `Tu es l'assistant de Klocka, conseil en investissement dans les murs commerciaux.
 
 Tu exécutes des demandes courtes portant sur les dossiers de préanalyse et les projets de la plateforme. Tu réponds en français, en une ou deux phrases, sans formule d'attente ni superlatif.
 
 Tu sais : renseigner sur un dossier ou un projet, rejouer leur simulation financière avec d'autres hypothèses, rédiger un brouillon de mail à l'agent, lancer l'extraction des documents, dire ce que Klocka sait d'une ville, donner le plan du jour, envoyer un dossier ou un projet dans Monday, créer leur dossier Google Drive.
 
 Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque, lire ses documents pour répondre à une question précise, envoyer un mail une fois qu'on te l'a demandé, inscrire un agent immobilier au CRM — avec ou sans dossier rattaché — et annuler ta dernière action.
+
+Tu tiens le registre des engagements : qui doit quoi, pour quand. « Marc envoie le PV jeudi », « rappeler le notaire lundi », « le syndic nous doit le RCP avant fin de mois » s'inscrivent au registre avec noter_engagement ; « c'est reçu », « il l'a fait » les marquent tenus avec tenir_engagement ; registre_engagements dit ce qui est dû. La date du jour est le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} : résous « jeudi », « la semaine prochaine » en date réelle — « jeudi » est le prochain jeudi à venir, demain s'il tombe demain, jamais celui d'après.
 
 Pour tout le reste — droit des baux commerciaux, financement, fiscalité, méthode d'analyse — réponds directement, sans outil, en restant bref et en disant franchement quand tu ne sais pas.
 
@@ -696,6 +758,7 @@ RÈGLES :
 9. Un mail ne part jamais sans accord explicite : propose le texte, attends « envoie », alors seulement envoie.
 10. « Annule » défait la dernière action réversible. Si elle ne l'est pas, dis-le sans détour au lieu de faire semblant.
 11. Un agent immobilier n'a pas besoin d'un dossier pour entrer au CRM : si on te donne un nom et une adresse mail, inscris-le. Ne réclame un dossier que si l'adresse manque.
+13. Un engagement dicté sans dossier nommé s'inscrit sans dossier — ne réclame pas un dossier qu'on ne t'a pas donné. S'il en nomme un, cherche-le d'abord.
 12. Dès qu'on te parle d'un dossier ou d'un projet précis, vérifie-le avant de répondre. Dis ce que tu as constaté, puis propose ce qui manque — une proposition à la fois, en commençant par la plus utile, et attends la réponse avant d'agir. Ne propose pas ce qui n'a pas d'outil : signale-le comme à faire à la main.`;
 
 // L'écran que l'utilisateur a sous les yeux : « mets-le dans Monday » doit
@@ -721,7 +784,7 @@ export async function commander(historique, user, contexte = null) {
   // journal doit pouvoir dire ce que l'assistant a consulté.
   const outils = [];
   const { text } = await runAgent({
-    system: CONSIGNE + consigneContexte(contexte),
+    system: consigne() + consigneContexte(contexte),
     messages: historique.map((m) => ({ role: m.role, content: m.contenu })),
     tools: OUTILS,
     onTool: async (appel) => {
@@ -731,7 +794,7 @@ export async function commander(historique, user, contexte = null) {
       // n'est pas une preuve d'action.
       const agissant =
         appel.name.startsWith('pousser') ||
-        ['creer_drive_dossier', 'extraire_documents', 'preparer_mail', 'creer_agent_monday', 'envoyer_mail'].includes(
+        ['creer_drive_dossier', 'extraire_documents', 'preparer_mail', 'creer_agent_monday', 'envoyer_mail', 'noter_engagement', 'tenir_engagement'].includes(
           appel.name
         );
       if (agissant && resultat?.ok) actions.push({ ...appel, resultat });

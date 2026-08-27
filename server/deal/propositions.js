@@ -413,7 +413,23 @@ export async function construirePropositions({ comptes = null } = {}) {
     liste.sort((a, b) => String(a.echeance || '9999').localeCompare(String(b.echeance || '9999')));
   }
 
-  const pile = [...(await surComptesMuets()), ...surMailsOrphelins(mails)];
+  // Les engagements dictés sans dossier (« rappeler le notaire lundi ») n'ont
+  // pas de deal à qui s'accrocher : ils remontent tels quels quand ils sont dus.
+  const libres = (parDeal.get(null) || [])
+    .filter((e) => e.echeance && new Date(e.echeance) <= new Date())
+    .map((e) => ({
+      id: `engagement-libre:${e.id}`,
+      type: 'engagement_du',
+      priorite: P.URGENT,
+      titre: e.quoi,
+      detail: [e.de ? `${e.de}` : null, `pour le ${leJour(e.echeance)}`, jours(e.echeance) > 0 ? `en retard de ${jours(e.echeance)} j` : null]
+        .filter(Boolean)
+        .join(' · '),
+      contexte: [['Noté', e.source?.type === 'assistant' ? "via l'assistant" : e.source?.type || '—']],
+      actions: [{ id: 'registre', libelle: 'Voir le registre', mode: 'lien', href: '/Engagements', principal: true }],
+    }));
+
+  const pile = [...(await surComptesMuets()), ...libres, ...surMailsOrphelins(mails)];
   for (const deal of deals) {
     pile.push(
       ...surReponsesRecues(deal, mails),

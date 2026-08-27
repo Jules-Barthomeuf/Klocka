@@ -18,6 +18,7 @@ import AdminBanque from '@/pages/AdminBanque';
 import Banque from '@/pages/Banque';
 
 import Portail from '@/pages/Portail';
+import Bienvenue from "./pages/Bienvenue";
 import Portail2Fois from '@/pages/Portail2Fois';
 import SimulateurPublic from '@/pages/SimulateurPublic';
 import ProjetPublic from '@/pages/ProjetPublic';
@@ -57,10 +58,11 @@ const AuthenticatedApp = () => {
   const isNewUserPage = location.pathname === '/NewUserWelcome';
 
   // Public pages accessible sans authentification (paiement, liens publics)
-  const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic'];
+  const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic', '/Bienvenue'];
   if (publicPaths.includes(location.pathname)) {
     return (
       <Routes>
+        <Route path="/Bienvenue" element={<Bienvenue />} />
         <Route path="/Portail" element={<Portail />} />
         <Route path="/Portail2Fois" element={<Portail2Fois />} />
         <Route path="/SimulateurPublic" element={<SimulateurPublic />} />

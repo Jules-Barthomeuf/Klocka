@@ -7,6 +7,7 @@ import {
   Calculator, TrendingUp, Scale, Building2, MapPin, ArrowUpRight, Search
 } from "lucide-react";
 import DashboardProjectCard from "./DashboardProjectCard";
+import RendezVousStrategique from "@/components/dashboard/RendezVousStrategique";
 import DashboardProfileCard from "./DashboardProfileCard";
 import DashboardStrategyCard from "./DashboardStrategyCard";
 import DashboardSuggestedResources from "./DashboardSuggestedResources";
@@ -133,24 +134,26 @@ export default function ClientDashboardView({
           <StepProgressBar etapes={etapes} userEtape={userEtape} />
         </motion.div>
 
-        {/* Étape 1 - Onboarding cards */}
+        {/* Étape 1 — le rendez-vous d'abord, l'acculturation ensuite et sans
+            obligation. La fenêtre le dit à l'arrivée ; les cartes le redisent. */}
+        {userEtape === 1 && <RendezVousStrategique user={user} />}
         {userEtape === 1 && (
           <div className="space-y-4 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <OnboardingCard
-                icon={BookOpen}
-                title="Maîtrisez les fondamentaux"
-                description="Accédez à nos ressources pour comprendre l'immobilier commercial."
-                cta="Accéder aux ressources"
-                onClick={() => navigate(createPageUrl("Ressources"))}
+                icon={Calendar}
+                title="Définissons votre stratégie"
+                description="Un rendez-vous de quarante-cinq minutes avec votre conseiller : tout part de là."
+                cta={user?.rdv_strategique_le ? "Reprendre rendez-vous" : "Prendre rendez-vous"}
+                onClick={() => navigate(createPageUrl("Questionnaire"))}
                 delay={0.15}
               />
               <OnboardingCard
-                icon={Calendar}
-                title="Prêt pour la suite ?"
-                description="Définissons ensemble votre stratégie d'investissement."
-                cta="Prendre rendez-vous"
-                onClick={() => navigate(createPageUrl("Questionnaire"))}
+                icon={BookOpen}
+                title="Acculturez-vous, à votre rythme"
+                description="Guides, vidéos et webinars pour comprendre l'immobilier commercial. Facultatif, et toujours accessible."
+                cta="Accéder aux ressources"
+                onClick={() => navigate(createPageUrl("Ressources"))}
                 delay={0.2}
               />
             </div>

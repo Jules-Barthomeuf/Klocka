@@ -1,3 +1,4 @@
+import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
@@ -196,8 +197,6 @@ export default function Questionnaire() {
     }
   };
 
-  const CALENDLY_URL = "https://calendly.com/paul-dezulueta-klocka/definition-de-la-strategie-45";
-
   const handleContinue = () => {
     navigate(createPageUrl("Dashboard"));
   };
@@ -213,8 +212,6 @@ export default function Questionnaire() {
 
   if (showResult && profil) {
     const profilInfo = profilsInfo[profil];
-    const CALENDLY_URL = "https://calendly.com/paul-dezulueta-klocka/definition-de-la-strategie-45";
-
     return (
       <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full border-[#35a79b]/30 bg-gradient-to-br from-[#0a0c0c] to-black shadow-2xl">
@@ -248,7 +245,7 @@ export default function Questionnaire() {
               </p>
 
               <a
-                href={CALENDLY_URL}
+                href={RENDEZ_VOUS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full mt-6"

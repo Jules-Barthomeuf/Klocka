@@ -18,10 +18,14 @@ const ETAPES = { EMAIL: "email", MOT_DE_PASSE: "mot_de_passe", CREATION: "creati
 // Panneau de connexion nu : porte toute la logique, sans Dialog. La page
 // d'accueil l'affiche en colonne de droite ; ConnexionDialog reste disponible
 // pour l'ouvrir en surimpression ailleurs.
-export function ConnexionPanel() {
-  const [etape, setEtape] = useState(ETAPES.EMAIL);
-  const [email, setEmail] = useState("");
-  const [compte, setCompte] = useState(null);
+/**
+ * @param {{invitation?: {email, prenom, jeton}}} props - une invitation ouvre
+ *   directement sur le choix du mot de passe : l'adresse vient du lien.
+ */
+export function ConnexionPanel({ invitation = null } = {}) {
+  const [etape, setEtape] = useState(invitation ? ETAPES.CREATION : ETAPES.EMAIL);
+  const [email, setEmail] = useState(invitation?.email || "");
+  const [compte, setCompte] = useState(invitation ? { prenom: invitation.prenom, role: "user" } : null);
   const [motDePasse, setMotDePasse] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [erreur, setErreur] = useState(null);
@@ -99,7 +103,9 @@ export function ConnexionPanel() {
     setEnCours(true);
     setErreur(null);
     try {
-      await base44.request("POST", "/api/auth/definir-mot-de-passe", { body: { email, mot_de_passe: motDePasse } });
+      await base44.request("POST", "/api/auth/definir-mot-de-passe", {
+        body: { email, mot_de_passe: motDePasse, ...(invitation?.jeton ? { jeton: invitation.jeton } : {}) },
+      });
       window.location.href = "/Dashboard";
     } catch (err) {
       setErreur(err?.message || "Enregistrement impossible.");
@@ -224,7 +230,7 @@ export function ConnexionPanel() {
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Enregistrer et entrer
             </Button>
-            <BoutonRetour onClick={reinitialiser} />
+            {!invitation && <BoutonRetour onClick={reinitialiser} />}
           </form>
         )}
 

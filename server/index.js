@@ -24,6 +24,7 @@ import { sendEmail, sendSMS, listAccounts } from './email.js';
 import { ensureMailTemplates } from './mail.js';
 import { googleEnabled, googleStatus, buildAuthUrl, handleCallback, redirectUriPour } from './google-oauth.js';
 import { createSession, sessionEmail, destroySession, purgeExpiredSessions } from './sessions.js';
+import { randomBytes } from 'crypto';
 import {
   hacherMotDePasse, verifierMotDePasse, validerMotDePasse,
   tropDeTentatives, enregistrerEchec, reinitialiserTentatives, minutesDAttente,
@@ -84,7 +85,7 @@ function sansSecret(user) {
 }
 
 // Champs qu'un utilisateur ne peut pas se donner à lui-même.
-const CHAMPS_PROTEGES = ['role', 'mot_de_passe', 'mot_de_passe_defini', 'email', 'id'];
+const CHAMPS_PROTEGES = ['role', 'mot_de_passe', 'mot_de_passe_defini', 'email', 'id', 'invitation_jeton', 'invitation_expire_le'];
 function retirerChampsProteges(patch) {
   const copie = { ...(patch || {}) };
   for (const c of CHAMPS_PROTEGES) delete copie[c];
@@ -256,17 +257,120 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
     return res.status(409).json({ error: 'Un mot de passe existe déjà pour ce compte. Connectez-vous.' });
   }
 
+  // Un compte invité se réclame avec son lien, pas avec sa seule adresse :
+  // sinon quiconque connaît l'adresse d'un client peut s'approprier le compte
+  // avant lui. Les comptes sans invitation émise gardent l'ancien parcours.
+  if (user.invitation_jeton) {
+    const { jeton } = req.body || {};
+    const expire = user.invitation_expire_le && new Date(user.invitation_expire_le) < new Date();
+    if (!jeton || jeton !== user.invitation_jeton) {
+      return res.status(403).json({ error: "Ce compte a reçu un lien d'invitation : ouvrez-le pour choisir votre mot de passe." });
+    }
+    if (expire) return res.status(410).json({ error: "Ce lien d'invitation a expiré. Demandez-en un nouveau à votre interlocuteur." });
+  }
+
   const controle = validerMotDePasse(mot_de_passe);
   if (!controle.valide) return res.status(400).json({ error: controle.erreur });
 
   Records.update('User', user.id, {
     mot_de_passe: await hacherMotDePasse(mot_de_passe),
     mot_de_passe_defini_le: new Date().toISOString(),
+    invitation_jeton: null,
+    invitation_expire_le: null,
   });
 
   createSession(res, email);
   console.log(`[auth] mot de passe défini et connexion : ${email} (${user.role || 'user'})`);
   ok(res, { success: true, email, role: user.role || 'user' });
+}));
+
+// Le lien d'invitation : ce qu'il ouvre, avant tout mot de passe.
+app.get('/api/auth/invitation/:jeton', wrap((req, res) => {
+  const user = Records.filter('User', { invitation_jeton: req.params.jeton })[0];
+  if (!user) return ok(res, { valide: false, raison: 'inconnu' });
+  if (user.mot_de_passe) return ok(res, { valide: false, raison: 'deja_actif', email: user.email });
+  if (user.invitation_expire_le && new Date(user.invitation_expire_le) < new Date()) {
+    return ok(res, { valide: false, raison: 'expire' });
+  }
+  ok(res, {
+    valide: true,
+    email: user.email,
+    prenom: (user.full_name || '').split(' ')[0] || null,
+  });
+}));
+
+// L'adresse publique de l'application, telle que le navigateur la voit : c'est
+// elle qui figure dans les liens envoyés. APP_URL seul casserait sur Codespaces.
+function urlPublique(req) {
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
+  const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  return host ? `${proto}://${host}` : APP_URL_PROD || 'http://localhost:3001';
+}
+
+// Inviter un client : le compte est créé par l'équipe, la personne reçoit un
+// lien et n'a qu'à choisir son mot de passe. Le compte entre directement à
+// l'étape 1 — la salle d'attente n'a de sens que pour une inscription sauvage.
+app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+
+  const email = normEmail(req.body?.email);
+  const fullName = String(req.body?.full_name || '').trim();
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Adresse invalide.' });
+
+  let user = Records.filter('User', { email })[0];
+  if (user?.mot_de_passe) {
+    return res.status(409).json({ error: `${email} a déjà un mot de passe : le compte est actif.` });
+  }
+  if (user?.role === 'admin') return res.status(409).json({ error: 'Cette adresse est celle d\'un administrateur.' });
+
+  const jeton = randomBytes(24).toString('hex');
+  const expire = new Date(Date.now() + 14 * 86400000).toISOString();
+  const patch = {
+    invitation_jeton: jeton,
+    invitation_expire_le: expire,
+    invite_par: admin.email,
+    invite_le: new Date().toISOString(),
+    ...(fullName ? { full_name: fullName } : {}),
+  };
+  if (user) {
+    user = Records.update('User', user.id, { ...patch, etape_actuelle: Math.max(1, user.etape_actuelle || 0) });
+  } else {
+    user = Records.create('User', { email, role: 'user', etape_actuelle: 1, ...patch }, admin.email);
+  }
+
+  const lien = `${urlPublique(req)}/Bienvenue?jeton=${jeton}`;
+  const prenom = (user.full_name || '').split(' ')[0];
+
+  let envoi = null;
+  if (req.body?.envoyer) {
+    envoi = await sendEmail({
+      owner: admin.email,
+      to: email,
+      subject: 'Votre accès à Klocka',
+      body: `Bonjour${prenom ? ` ${prenom}` : ''},
+
+Votre espace Klocka est prêt. Pour y entrer, choisissez votre mot de passe en ouvrant ce lien :
+
+${lien}
+
+Il reste valable quatorze jours. Nous y définirons ensemble votre stratégie d'investissement.
+
+À très vite,
+${admin.full_name || admin.email}`,
+    });
+  }
+
+  console.log(`[auth] invitation : ${email} par ${admin.email}${envoi ? (envoi.simulated ? ' (mail simulé)' : ' (mail envoyé)') : ''}`);
+  ok(res, {
+    email,
+    lien,
+    expire_le: expire,
+    cree: !req.body?.reprise && !user.mot_de_passe_defini_le,
+    envoye: !!(envoi && envoi.success && !envoi.simulated),
+    simule: !!envoi?.simulated,
+    erreur_envoi: envoi && !envoi.success && !envoi.simulated ? envoi.error || 'Envoi impossible' : null,
+  });
 }));
 
 app.post('/api/auth/connexion', wrap(async (req, res) => {

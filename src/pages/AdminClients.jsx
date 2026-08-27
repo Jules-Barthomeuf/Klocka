@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
+import InviterClient, { BoutonLienInvitation } from "@/components/admin/InviterClient";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -521,7 +522,10 @@ export default function AdminClients() {
           <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">Utilisateurs</h1>
           <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0">Gérez tous les utilisateurs de la plateforme.</p>
         </div>
-        <BoutonImportUtilisateurs />
+        <div className="flex flex-wrap items-center gap-3">
+          <InviterClient />
+          <BoutonImportUtilisateurs />
+        </div>
       </div>
 
       {/* Bandeau de chiffres */}
@@ -619,6 +623,7 @@ export default function AdminClients() {
                     <p className="text-[#edeae5] text-[15px] truncate m-0">{user.full_name || "Sans nom"}</p>
                     <p className="text-[#8b9391] text-xs truncate m-0">{user.email}</p>
                   </div>
+                  <BoutonLienInvitation user={user} />
                   <button
                     onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
                     disabled={updateUserMutation.isPending}

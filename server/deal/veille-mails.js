@@ -11,7 +11,7 @@
 
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Records } from '../db.js';
+import { Records, CHEMIN_UPLOADS } from '../db.js';
 import { comptesEquipe } from '../google-oauth.js';
 import { releverBoite } from '../gmail-inbox.js';
 import { gmailReadDemande } from '../google-oauth.js';
@@ -26,7 +26,6 @@ const MINUTES = Math.max(1, Number(process.env.MAIL_VEILLE_MINUTES || 5));
 
 // La veille tourne sans requête HTTP : elle résout elle-même le dossier des
 // uploads, plutôt que de dépendre d'un paramètre transmis.
-const CHEMIN_UPLOADS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 
 let minuterie = null;
 let enCours = false;

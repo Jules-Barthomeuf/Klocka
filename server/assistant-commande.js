@@ -11,12 +11,12 @@
 
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Records } from './db.js';
+import { Records, CHEMIN_UPLOADS } from './db.js';
 import { runAgent } from './llm.js';
 import { statutDe } from './deal/lifecycle.js';
 import { journaliser } from './assistant-journal.js';
 
-const UPLOAD_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'uploads');
+const UPLOAD_DIR = CHEMIN_UPLOADS;
 
 const norm = (s) =>
   String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();

@@ -11,7 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Records } from '../db.js';
+import { Records, CHEMIN_UPLOADS } from '../db.js';
 import { telechargerPieceJointe } from '../gmail-inbox.js';
 import { ajouterDocument } from './espace.js';
 import { enfiler } from './file-extraction.js';
@@ -23,7 +23,6 @@ const PARASITES = /^(image\d+|logo|signature|banniere|banner|icon|unnamed)/i;
 
 // La veille tourne sans requête HTTP : elle résout elle-même le dossier des
 // uploads plutôt que de dépendre d'un paramètre transmis.
-const CHEMIN_UPLOADS = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 
 const nomSur = (nom) => String(nom || 'document').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
 

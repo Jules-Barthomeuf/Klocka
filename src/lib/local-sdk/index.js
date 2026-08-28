@@ -26,7 +26,10 @@ export function createClient(config = {}) {
       headers['Content-Type'] = 'application/json';
       payload = JSON.stringify(body);
     }
-    const resp = await fetch(`${base}${url}`, { method, headers, body: payload });
+    // Même origine : le cookie de session part de lui-même. `credentials` le
+    // dit explicitement — un hébergeur qui sert le front sous un autre nom
+    // que l'API ne doit pas perdre la session en silence.
+    const resp = await fetch(`${base}${url}`, { method, headers, body: payload, credentials: 'include' });
     if (!resp.ok) {
       let data = null;
       try {
@@ -34,7 +37,22 @@ export function createClient(config = {}) {
       } catch {
         /* no body */
       }
-      const err = new Error(data?.error || `Request failed: ${resp.status}`);
+      // Une session qui disparaît en cours de route — serveur redémarré sur
+      // un disque éphémère, cookie expiré — ne doit pas laisser l'écran
+      // afficher « Not authenticated » sur chaque clic : on revient à la
+      // connexion, en le disant. Les routes d'authentification s'en occupent
+      // elles-mêmes.
+      if (resp.status === 401 && typeof window !== 'undefined' && !url.startsWith('/api/auth/')) {
+        const ici = window.location.pathname;
+        if (ici !== '/Home' && ici !== '/' && !ici.startsWith('/Bienvenue')) {
+          window.location.href = '/Home?session=expiree';
+        }
+      }
+      const err = new Error(
+        resp.status === 401
+          ? 'Votre session a expiré : reconnectez-vous.'
+          : data?.error || `Le serveur a répondu ${resp.status}${resp.status >= 500 ? ' (erreur interne — voir ses journaux)' : ''}`
+      );
       err.status = resp.status;
       err.data = data;
       throw err;

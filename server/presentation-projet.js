@@ -11,6 +11,7 @@
 // mêmes données (dataset des grandes villes, sinon LLM serveur), même dessin.
 // Les six photos sont choisies dans la page Présentations et passées en URLs.
 
+import { CHEMIN_UPLOADS } from './db.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -19,7 +20,7 @@ import { invokeLLM, llmEnabled } from './llm.js';
 import { trouverVille, trouverSecteur } from '../src/data/villes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
+const UPLOAD_DIR = CHEMIN_UPLOADS;
 
 const C = {
   fond: '000000',

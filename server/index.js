@@ -16,7 +16,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { Records, Meta } from './db.js';
+import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
 import { restaurerSeedSiNecessaire } from './seed-donnees.js';
 import { invokeLLM, llmEnabled, llmStatus } from './llm.js';
@@ -49,8 +49,10 @@ import { Agents } from './agents.js';
 import { lireArticle } from './lecture.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// Les fichiers déposés suivent la base : sur un disque persistant quand
+// KLOCKA_DATA_DIR le désigne, sinon à côté du code. Un document versé à un
+// dossier ne doit pas survivre moins longtemps que le dossier lui-même.
+const UPLOAD_DIR = CHEMIN_UPLOADS;
 
 const PORT = process.env.PORT || 3001;
 const APP_ID = process.env.VITE_BASE44_APP_ID || 'klocka-local';
@@ -1931,9 +1933,31 @@ app.get('/api/lecture', wrap(async (req, res) => {
   }
 }));
 
-app.get('/api/health', (req, res) =>
-  ok(res, { status: 'ok', llm: llmEnabled, google: googleEnabled, accounts: listAccounts().length })
-);
+// L'état du service, lisible depuis n'importe quel navigateur : c'est ce qu'on
+// ouvre quand « ça ne marche pas » sur l'hébergeur, avant toute hypothèse.
+// Une base créée il y a quelques minutes sur un service en ligne depuis des
+// semaines dit tout : le disque est éphémère.
+app.get('/api/health', (req, res) => {
+  const dataDir = (process.env.KLOCKA_DATA_DIR || '').trim();
+  ok(res, {
+    status: 'ok',
+    version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) || null,
+    en_ligne_depuis_s: Math.round(process.uptime()),
+    base: {
+      creee_le: Meta.get('base_creee_le') || null,
+      persistante: !!dataDir,
+      emplacement: dataDir || 'dossier du code (éphémère chez un hébergeur sans disque)',
+      utilisateurs: Records.count('User'),
+      dossiers: Records.count('Deal'),
+      projets: Records.count('Project'),
+      sessions: Records.count('Session'),
+    },
+    hebergeur: process.env.RENDER ? 'render' : null,
+    ia: llmStatus().label,
+    google: googleEnabled,
+    comptes_google: listAccounts().length,
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Frontend — servi par le même serveur, pour n'avoir qu'un seul port à ouvrir.
@@ -1962,6 +1986,10 @@ import('./deal/file-extraction.js').then(({ reprendreEnAttente }) => {
   const n = reprendreEnAttente(UPLOAD_DIR);
   if (n) console.log(`  ▸ ${n} extraction(s) repris après redémarrage`);
 });
+
+// La base retient sa date de naissance : c'est elle qu'on lit dans /api/health
+// pour savoir si l'hébergeur l'a effacée.
+if (!Meta.get('base_creee_le')) Meta.set('base_creee_le', new Date().toISOString());
 
 // Sur Render sans disque, tout est perdu au prochain déploiement : le dire au
 // démarrage, en clair, avant que ce soit arrivé.

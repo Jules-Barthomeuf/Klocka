@@ -13,8 +13,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // KLOCKA_DATA_DIR : chez un hébergeur au disque éphémère (Render sans disque
 // attaché), le dossier du dépôt est effacé à chaque déploiement — sessions,
 // dossiers, clients, tout. Monter un disque persistant et pointer ici dessus.
-const DATA_DIR = (process.env.KLOCKA_DATA_DIR || '').trim() || path.join(__dirname, 'data');
+export const DATA_DIR = (process.env.KLOCKA_DATA_DIR || '').trim() || path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+// Les fichiers déposés suivent la base. Cinq modules définissaient chacun
+// leur chemin « ../uploads » : sur un disque persistant, ils auraient écrit
+// à côté, dans l'éphémère. Un seul chemin, exporté d'ici.
+export const CHEMIN_UPLOADS = (process.env.KLOCKA_DATA_DIR || '').trim()
+  ? path.join(DATA_DIR, 'uploads')
+  : path.join(__dirname, 'uploads');
+if (!fs.existsSync(CHEMIN_UPLOADS)) fs.mkdirSync(CHEMIN_UPLOADS, { recursive: true });
 
 const db = new Database(path.join(DATA_DIR, 'klocka.db'));
 db.pragma('journal_mode = WAL');

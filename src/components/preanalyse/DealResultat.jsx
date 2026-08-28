@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
+import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
 import CarteGoogle from "@/components/CarteGoogle";
 import PlongeeCarte from "@/components/projet/PlongeeCarte";
 import StreetViewRue from "@/components/projet/StreetViewRue";
@@ -477,6 +478,19 @@ function VuesLieu({ lot, enr }) {
 export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
   // Ouvert d'emblée, sur la carte : situer le bien est le premier réflexe.
   const [ongletsOuverts, setOngletsOuverts] = useState(true);
+
+  // À qui ce bien pourrait correspondre, d'après les investisseurs de Monday :
+  // dès la pré-analyse, avant même de décider, on sait s'il y a preneur.
+  const {
+    data: correspondances,
+    isLoading: chargementCorrespondances,
+    isError: erreurCorrespondances,
+  } = useQuery({
+    queryKey: ["dossier-clients", dossier?.deal_id],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dossier.deal_id}/clients`),
+    enabled: !!dossier?.deal_id,
+    staleTime: 5 * 60 * 1000,
+  });
   const [mailOuvert, setMailOuvert] = useState(false);
   const v = VERDICTS[lot.evaluation.verdict] || {};
   const aem = lot.evaluation.aem;
@@ -579,6 +593,19 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
           Simulateur — pré-rempli avec ce dossier, tous les paramètres sont manipulables
         </p>
         <SimulateurDossier parametres={lot.simulateur} />
+      </div>
+
+      {/* Clients à qui ce bien pourrait correspondre */}
+      <div className="px-5 py-5 border-b border-[#242726]">
+        <p className="text-[#9aa19e] text-xs mb-1">
+          Clients à qui ce bien pourrait correspondre — budget, apport et zone de recherche, d'après Monday
+        </p>
+        <ClientsCorrespondants
+          clients={correspondances?.clients}
+          chargement={chargementCorrespondances}
+          configure={correspondances?.configure}
+          erreur={erreurCorrespondances}
+        />
       </div>
 
       {/* Détail */}

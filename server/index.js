@@ -1720,6 +1720,27 @@ app.get('/api/monday/projets/clients', wrap(async (req, res) => {
   ok(res, { configure: true, par_projet: parProjet });
 }));
 
+// À qui ce dossier pourrait correspondre, d'après les investisseurs de Monday :
+// budget, apport et zone face au prix du bien. Une piste, pas une attribution.
+app.get('/api/preanalyse/dossiers/:dealId/clients', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { mondayConfigure } = await import('./monday.js');
+  if (!mondayConfigure() || dossier.test) return ok(res, { configure: !!mondayConfigure(), clients: [] });
+  const { investisseursPourDeal } = await import('./deal/monday-sync.js');
+  const candidats = await investisseursPourDeal(Records.filter('Deal', { deal_id: req.params.dealId })[0]);
+  ok(res, {
+    configure: true,
+    clients: candidats.map((c) => ({
+      nom: c.client.nom,
+      email: c.client.email,
+      budget: c.client.budget,
+      statut: c.client.statut,
+      raisons: c.raisons,
+    })),
+  });
+}));
+
 // Pousser un projet de la plateforme dans Monday.
 app.post('/api/monday/projets/:id', wrap(async (req, res) => {
   const projet = Records.get('Project', req.params.id);

@@ -51,6 +51,54 @@ async function graphql(query, variables = {}) {
   return data.data;
 }
 
+// Les utilisateurs du compte Monday, pour retrouver qui a fait l'action. Lus
+// une fois, gardés dix minutes : une équipe ne change pas entre deux poses.
+let utilisateursCache = { le: 0, liste: [] };
+export async function utilisateursMonday() {
+  if (Date.now() - utilisateursCache.le < 10 * 60 * 1000 && utilisateursCache.liste.length) return utilisateursCache.liste;
+  const data = await graphql(`query { users (limit: 200) { id name email enabled } }`);
+  utilisateursCache = { le: Date.now(), liste: (data.users || []).filter((u) => u.enabled !== false) };
+  return utilisateursCache.liste;
+}
+
+const sansAccents = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+/**
+ * La personne Monday qui correspond à un utilisateur Klocka : par adresse
+ * d'abord, par nom complet à défaut. Null si personne ne correspond — on ne
+ * devine pas un collègue.
+ */
+export async function personneMonday({ email, nom } = {}) {
+  const liste = await utilisateursMonday();
+  const e = sansAccents(email);
+  const n = sansAccents(nom);
+  const parEmail = e && liste.find((u) => sansAccents(u.email) === e);
+  if (parEmail) return parEmail;
+  const parNom = n && liste.find((u) => sansAccents(u.name) === n);
+  return parNom || null;
+}
+
+/** Les identifiants des personnes déjà posées sur un élément. */
+export async function personnesDe(itemId, colonne) {
+  if (!itemId) return [];
+  const data = await graphql(
+    `query ($ids: [ID!], $cols: [String!]) { items (ids: $ids) { column_values (ids: $cols) { value } } }`,
+    { ids: [String(itemId)], cols: [colonne] }
+  );
+  const brut = data.items?.[0]?.column_values?.[0]?.value;
+  if (!brut) return [];
+  try {
+    return (JSON.parse(brut).personsAndTeams || []).filter((p) => p.kind === 'person').map((p) => Number(p.id));
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Les tableaux accessibles et leurs colonnes.
  * Sert à repérer les identifiants à mettre dans .env : sans eux, impossible
@@ -190,7 +238,7 @@ export async function supprimerElement(itemId) {
  * @param {string} boardId
  * @param {{ nom, colonnes, itemId?: string, cle?: {colonne, valeur} }} element
  */
-export async function poserElement(boardId, { nom, colonnes = {}, itemId = null, cle = null }) {
+export async function poserElement(boardId, { nom, colonnes = {}, itemId = null, cle = null, recreerSiInactif = false }) {
   if (!boardId) throw new Error('Tableau Monday non configuré');
 
   if (itemId) {
@@ -198,8 +246,21 @@ export async function poserElement(boardId, { nom, colonnes = {}, itemId = null,
       await majElement(boardId, itemId, colonnes);
       return { id: String(itemId), cree: false };
     } catch (e) {
+      const message = e?.message || '';
       // Élément supprimé côté Monday : on en recrée un plutôt que d'échouer.
-      if (!/not found|does not exist|invalid/i.test(e?.message || '')) throw e;
+      if (/not found|does not exist|invalid/i.test(message)) {
+        /* on retombe sur la création, plus bas */
+      } else if (/inactive/i.test(message)) {
+        // Archivé chez Monday. Un humain qui pousse veut une fiche vivante :
+        // on en recrée une. La veille, elle, ne ressuscite rien toute seule.
+        if (!recreerSiInactif) {
+          throw new Error(
+            'La fiche Monday de ce bien est archivée. Désarchivez-la dans Monday, ou poussez-la à la main pour en créer une nouvelle.'
+          );
+        }
+      } else {
+        throw e;
+      }
     }
   }
 

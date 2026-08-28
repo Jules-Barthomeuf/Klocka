@@ -659,7 +659,7 @@ async function executerOutil({ name, input }, user) {
     const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
     if (!deal) return { erreur: 'Dossier introuvable' };
     const { pousserBien } = await import('./deal/monday-sync.js');
-    const r = await pousserBien(deal, { motif: input.motif });
+    const r = await pousserBien(deal, { motif: input.motif, par: user });
     if (r?.ignore) return { erreur: `Rien n'a été posé dans Monday : ${r.raison || 'raison inconnue'}` };
     return {
       ok: true,
@@ -721,7 +721,7 @@ async function executerOutil({ name, input }, user) {
     const projet = Records.get('Project', input.projet_id);
     if (!projet) return { erreur: 'Projet introuvable' };
     const { pousserProjet } = await import('./deal/monday-sync.js');
-    const r = await pousserProjet(projet, { motif: input.motif });
+    const r = await pousserProjet(projet, { motif: input.motif, par: user });
     if (r?.ignore) return { erreur: `Rien n'a été posé dans Monday : ${r.raison || 'raison inconnue'}` };
     return {
       ok: true,

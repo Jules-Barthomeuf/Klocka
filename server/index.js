@@ -1748,7 +1748,7 @@ app.post('/api/monday/projets/:id', wrap(async (req, res) => {
   const projet = Records.get('Project', req.params.id);
   if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
   const { pousserProjet } = await import('./deal/monday-sync.js');
-  const r = await pousserProjet(projet, { motif: req.body?.motif });
+  const r = await pousserProjet(projet, { motif: req.body?.motif, par: currentUser(req) });
   if (r?.ignore) return res.status(400).json({ error: 'Monday non configuré' });
   ok(res, r);
 }));
@@ -1760,6 +1760,7 @@ app.post('/api/monday/dossiers/:dealId', wrap(async (req, res) => {
   const { pousserBien } = await import('./deal/monday-sync.js');
   const r = await pousserBien(Records.filter('Deal', { deal_id: req.params.dealId })[0], {
     motif: req.body?.motif,
+    par: currentUser(req),
   });
   if (r?.ignore) return res.status(400).json({ error: 'Monday non configuré' });
   ok(res, r);

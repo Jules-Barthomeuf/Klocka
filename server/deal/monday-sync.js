@@ -34,6 +34,7 @@ const COL = {
   date: 'date_mkv6xqzp',
   agent: 'board_relation_mkv59rn8',
   acheteurs: 'connect_boards',
+  personnes: 'multiple_person_mkv624cf',
 };
 
 // Le cycle de Klocka se lit dans les statuts déjà en place chez vous.
@@ -54,6 +55,24 @@ const STATUT_PROJET = {
   financement: 'Sous offre',
   signe: 'Vendu',
 };
+
+// Qui a fait l'action entre au tableau, dans la colonne Personnes — sans en
+// chasser un collègue déjà posé. Sans correspondance chez Monday, on ne pose
+// rien : mieux vaut une case vide qu'un mauvais nom.
+async function colonnePersonnes(par, itemId) {
+  if (!par?.email && !par?.full_name) return null;
+  try {
+    const { personneMonday, personnesDe } = await import('../monday.js');
+    const moi = await personneMonday({ email: par.email, nom: par.full_name });
+    if (!moi) return null;
+    const deja = itemId ? await personnesDe(itemId, COL.personnes) : [];
+    const ids = Array.from(new Set([...deja, Number(moi.id)]));
+    return { personsAndTeams: ids.map((id) => ({ id, kind: 'person' })) };
+  } catch (e) {
+    console.warn('[monday] personne non posée :', e?.message || e);
+    return null;
+  }
+}
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 const nombre = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -107,7 +126,7 @@ async function elementAgent(email) {
  * @param {object} deal
  * @param {{ motif?: string }} [opts]
  */
-export async function pousserBien(deal, { motif } = {}) {
+export async function pousserBien(deal, { motif, par = null } = {}) {
   if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
   if (!TABLEAUX.proprietes)
     return { ignore: true, raison: 'le tableau Propriétés n\'est pas déclaré (MONDAY_BOARD_PROPRIETES)' };
@@ -131,6 +150,19 @@ export async function pousserBien(deal, { motif } = {}) {
   if (v.activite) colonnes[COL.activite] = v.activite;
   if (deal.drive_folder_url) colonnes[COL.drive] = { url: deal.drive_folder_url, text: 'Dossier Drive' };
 
+  const personnes = await colonnePersonnes(par, deal.monday_item_id);
+  if (personnes) colonnes[COL.personnes] = personnes;
+
+  // L'annonce déjà connue part avec la fiche ; sinon elle se cherche après
+  // la pose (voir plus bas) — une recherche web prend jusqu'à deux minutes,
+  // la pose ne doit pas attendre.
+  if (deal.annonce_url) colonnes[COL.annonce] = { url: deal.annonce_url, text: 'Annonce' };
+  const bienPourAnnonce = {
+    rue: v.rue, ville: v.ville, prix: v.prix, surface: v.surface, loyer: v.loyer, activite: v.activite,
+    locataire: val(deal.lots?.[0]?.lot?.locataire_nom),
+    agence: deal.contact_agent_email || null,
+  };
+
   // L'agent qui a transmis le bien est relié à sa fiche : c'est la liaison que
   // vous faites à la main aujourd'hui.
   const agentId = await elementAgent(deal.contact_agent_email);
@@ -148,13 +180,33 @@ export async function pousserBien(deal, { motif } = {}) {
   if (note) colonnes[COL.notes] = note;
 
   // Un élément déjà posé se retrouve par son identifiant, gardé sur le dossier.
-  const r = await poserElement(TABLEAUX.proprietes, { nom, colonnes, itemId: deal.monday_item_id || null });
+  const r = await poserElement(TABLEAUX.proprietes, {
+    nom,
+    colonnes,
+    itemId: deal.monday_item_id || null,
+    recreerSiInactif: !!par,
+  });
 
   // Première pose : on retient l'identifiant pour ne jamais recréer.
   if (r?.id && r.id !== deal.monday_item_id) {
     Records.update('Deal', deal.id, { monday_item_id: String(r.id) });
   }
+  if (r?.id) completerAnnonce('Deal', deal, bienPourAnnonce, r.id);
   return r;
+}
+
+// L'annonce publique du bien, retrouvée sur le web et vérifiée, rejoint la
+// fiche Monday quand elle arrive. Jamais attendue, jamais bloquante : la pose
+// est faite, le lien est un complément.
+function completerAnnonce(entite, record, bien, itemId) {
+  if (record.annonce_url) return;
+  import('./annonce.js')
+    .then(({ annonceDe }) => annonceDe(entite, record, bien))
+    .then((url) => {
+      if (!url) return null;
+      return poserElement(TABLEAUX.proprietes, { nom: '', colonnes: { [COL.annonce]: { url, text: 'Annonce' } }, itemId });
+    })
+    .catch((e) => console.warn('[monday] annonce non complétée :', e?.message || e));
 }
 
 /**
@@ -163,7 +215,7 @@ export async function pousserBien(deal, { motif } = {}) {
  * à l'étude ou déjà attribué à un client.
  * @param {object} projet - enregistrement Project
  */
-export async function pousserProjet(projet, { motif } = {}) {
+export async function pousserProjet(projet, { motif, par = null } = {}) {
   if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
   if (!TABLEAUX.proprietes)
     return { ignore: true, raison: 'le tableau Propriétés n\'est pas déclaré (MONDAY_BOARD_PROPRIETES)' };
@@ -191,6 +243,15 @@ export async function pousserProjet(projet, { motif } = {}) {
   if (surface != null) colonnes[COL.surface] = surface;
   if (projet.activite_locataire) colonnes[COL.activite] = projet.activite_locataire;
 
+  const personnes = await colonnePersonnes(par, projet.monday_item_id);
+  if (personnes) colonnes[COL.personnes] = personnes;
+
+  if (projet.annonce_url) colonnes[COL.annonce] = { url: projet.annonce_url, text: 'Annonce' };
+  const bienPourAnnonce = {
+    rue: projet.adresse_complete, ville: projet.ville_secteur_champ1, prix, surface,
+    loyer, activite: projet.activite_locataire, locataire: projet.nom_locataire,
+  };
+
   const note = [
     projet.nom_locataire ? `Locataire : ${projet.nom_locataire}` : null,
     projet.echeance_bail ? `Échéance du bail : ${projet.echeance_bail}` : null,
@@ -205,10 +266,11 @@ export async function pousserProjet(projet, { motif } = {}) {
   const deal = projet.deal_id ? Records.filter('Deal', { deal_id: projet.deal_id })[0] : null;
   const itemId = projet.monday_item_id || deal?.monday_item_id || null;
 
-  const r = await poserElement(TABLEAUX.proprietes, { nom, colonnes, itemId });
+  const r = await poserElement(TABLEAUX.proprietes, { nom, colonnes, itemId, recreerSiInactif: !!par });
   if (r?.id && r.id !== projet.monday_item_id) {
     Records.update('Project', projet.id, { monday_item_id: String(r.id) });
   }
+  if (r?.id) completerAnnonce('Project', projet, bienPourAnnonce, r.id);
   return r;
 }
 

@@ -10,7 +10,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, 'data');
+// KLOCKA_DATA_DIR : chez un hébergeur au disque éphémère (Render sans disque
+// attaché), le dossier du dépôt est effacé à chaque déploiement — sessions,
+// dossiers, clients, tout. Monter un disque persistant et pointer ici dessus.
+const DATA_DIR = (process.env.KLOCKA_DATA_DIR || '').trim() || path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const db = new Database(path.join(DATA_DIR, 'klocka.db'));

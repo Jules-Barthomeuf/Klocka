@@ -23,7 +23,7 @@ import { invokeLLM, llmEnabled, llmStatus } from './llm.js';
 import { sendEmail, sendSMS, listAccounts } from './email.js';
 import { ensureMailTemplates } from './mail.js';
 import { googleEnabled, googleStatus, buildAuthUrl, handleCallback, redirectUriPour } from './google-oauth.js';
-import { createSession, sessionEmail, destroySession, purgeExpiredSessions } from './sessions.js';
+import { createSession, sessionEmail, destroySession, purgeExpiredSessions, prolongerSession } from './sessions.js';
 import { randomBytes } from 'crypto';
 import {
   hacherMotDePasse, verifierMotDePasse, validerMotDePasse,
@@ -175,6 +175,8 @@ app.get('/api/apps/public/prod/public-settings/by-id/:appId', (req, res) => {
 app.get('/api/auth/me', wrap((req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  // Chaque ouverture de l'application repousse l'échéance de la session.
+  if (!AUTH_DESACTIVEE) prolongerSession(req, res);
   ok(res, sansSecret(user));
 }));
 

@@ -5,6 +5,25 @@ import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
 
+// Un serveur qui redémarre, un Codespace qui se réveille, un hébergeur qui
+// sort de veille : la première requête échoue ou traîne, sans que la session
+// ait bougé. On réessaie avant de conclure — seule une réponse 401/403 vaut
+// déconnexion, jamais un réseau muet.
+const estRefus = (e) => e?.status === 401 || e?.status === 403;
+async function avecReprises(fn, { essais = 4, attente = 800 } = {}) {
+  let derniere;
+  for (let i = 0; i < essais; i += 1) {
+    try {
+      return await fn();
+    } catch (e) {
+      derniere = e;
+      if (estRefus(e) || (e?.status >= 400 && e?.status < 500)) throw e;
+      await new Promise((r) => setTimeout(r, attente * 2 ** i));
+    }
+  }
+  throw derniere;
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -34,7 +53,9 @@ export const AuthProvider = ({ children }) => {
       });
       
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        const publicSettings = await avecReprises(() =>
+          appClient.get(`/prod/public-settings/by-id/${appParams.appId}`)
+        );
         setAppPublicSettings(publicSettings);
         
         // If we got the app public settings successfully, check if user is authenticated
@@ -91,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = await avecReprises(() => base44.auth.me());
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
@@ -99,12 +120,19 @@ export const AuthProvider = ({ children }) => {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
+
+      if (estRefus(error)) {
+        // Le serveur a répondu : la session n'existe plus.
         setAuthError({
           type: 'auth_required',
           message: 'Authentication required'
+        });
+      } else {
+        // Le serveur n'a pas répondu : on ne sait rien de la session, on ne
+        // déconnecte pas — on le dit, et on propose de réessayer.
+        setAuthError({
+          type: 'serveur_injoignable',
+          message: error?.message || 'Le serveur ne répond pas'
         });
       }
     }

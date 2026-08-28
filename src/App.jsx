@@ -59,7 +59,7 @@ const RedirectionAnalyse = () => {
 };
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();
   const { data: currentUser, isLoading: isLoadingUser } = useCurrentUser();
   const location = useLocation();
 
@@ -97,6 +97,26 @@ const AuthenticatedApp = () => {
       if (!isHomePage) {
         return <Navigate to="/Home" replace />;
       }
+    } else if (authError.type === 'serveur_injoignable') {
+      // Le serveur n'a pas répondu : la session est peut-être intacte. On ne
+      // renvoie personne à la connexion — on attend, et on réessaie.
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-[#0a0c0c] px-6">
+          <div className="max-w-sm text-center">
+            <div className="w-10 h-0.5 bg-[#e0c9a0] mx-auto mb-8" />
+            <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-[#edeae5]">Le serveur ne répond pas</h1>
+            <p className="m-0 mt-4 text-[14px] leading-[1.7] text-[#9aa19e]">
+              Il démarre peut-être. Votre session est conservée : réessayez dans un instant.
+            </p>
+            <button
+              onClick={() => checkAppState()}
+              className="mt-8 px-5 py-2.5 border border-[#e0c9a0]/50 text-[11px] tracking-[.16em] uppercase text-[#e0c9a0] hover:bg-[#e0c9a0]/[0.08] transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      );
     }
   }
 

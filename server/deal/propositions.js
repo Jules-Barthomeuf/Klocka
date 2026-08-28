@@ -374,6 +374,33 @@ async function surComptesMuets() {
   return pile;
 }
 
+// Render efface le système de fichiers à chaque déploiement. Sans disque
+// attaché et sans KLOCKA_DATA_DIR pointé dessus, la base — sessions, dossiers,
+// clients, tout — repart de zéro à la prochaine mise en ligne. Ce n'est pas un
+// réglage : c'est la première chose à faire, et le plan de travail le dit.
+function surStockageEphemere() {
+  if (!process.env.RENDER || (process.env.KLOCKA_DATA_DIR || '').trim()) return [];
+  return [
+    {
+      id: 'stockage:ephemere',
+      type: 'stockage_ephemere',
+      priorite: P.URGENT,
+      famille: 'stockage',
+      titre: 'La base de données sera effacée au prochain déploiement',
+      detail:
+        "Le service tourne sur Render sans disque persistant : comptes, sessions, dossiers et clients disparaîtront à la prochaine mise en ligne. Attachez un disque et déclarez KLOCKA_DATA_DIR.",
+      contexte: [
+        ['Hébergeur', 'Render (variable RENDER présente)'],
+        ['KLOCKA_DATA_DIR', 'non déclaré'],
+        ['À faire', 'Disks → Add Disk (ex. /var/data), puis Environment → KLOCKA_DATA_DIR=/var/data, puis redéployer'],
+      ],
+      actions: [
+        { id: 'render', libelle: 'Ouvrir Render', mode: 'externe', href: 'https://dashboard.render.com', principal: true },
+      ],
+    },
+  ];
+}
+
 /**
  * La pile de propositions, la plus urgente d'abord.
  * @param {object} [opts]
@@ -429,7 +456,7 @@ export async function construirePropositions({ comptes = null } = {}) {
       actions: [{ id: 'registre', libelle: 'Voir le registre', mode: 'lien', href: '/Engagements', principal: true }],
     }));
 
-  const pile = [...(await surComptesMuets()), ...libres, ...surMailsOrphelins(mails)];
+  const pile = [...surStockageEphemere(), ...(await surComptesMuets()), ...libres, ...surMailsOrphelins(mails)];
   for (const deal of deals) {
     pile.push(
       ...surReponsesRecues(deal, mails),

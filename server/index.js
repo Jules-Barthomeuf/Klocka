@@ -1942,6 +1942,16 @@ import('./deal/file-extraction.js').then(({ reprendreEnAttente }) => {
   if (n) console.log(`  ▸ ${n} extraction(s) repris après redémarrage`);
 });
 
+// Sur Render sans disque, tout est perdu au prochain déploiement : le dire au
+// démarrage, en clair, avant que ce soit arrivé.
+if (process.env.RENDER && !(process.env.KLOCKA_DATA_DIR || '').trim()) {
+  console.warn(
+    '\n  ⚠  BASE ÉPHÉMÈRE : ce service tourne sur Render sans KLOCKA_DATA_DIR.\n' +
+      '     Comptes, sessions, dossiers et clients seront effacés au prochain déploiement.\n' +
+      '     Attachez un disque (ex. /var/data) et déclarez KLOCKA_DATA_DIR=/var/data.\n'
+  );
+}
+
 // Les demandes déjà envoyées avant l'existence du registre des engagements
 // entrent au registre rétroactivement — EmailLog garde tout, rien n'est perdu.
 import('./deal/engagements.js').then(({ rattraperDepuisEmailLog }) => {

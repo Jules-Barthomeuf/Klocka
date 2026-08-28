@@ -21,6 +21,7 @@ import {
 const ICONES = {
   mail_a_traiter: Inbox,
   compte_muet: KeyRound,
+  stockage_ephemere: FileWarning,
   reponse_recue: Mail,
   documents_manquants: FileWarning,
   relance_due: Clock,

@@ -18,6 +18,7 @@ import { fileURLToPath } from 'url';
 
 import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
+import { accesDe, ACCES, changerAcces, migrerComptesEnAttente } from './clients-acces.js';
 import { restaurerSeedSiNecessaire } from './seed-donnees.js';
 import { invokeLLM, llmEnabled, llmStatus } from './llm.js';
 import { sendEmail, sendSMS, listAccounts } from './email.js';
@@ -61,6 +62,8 @@ const APP_ID = process.env.VITE_BASE44_APP_ID || 'klocka-local';
 // le seed de démonstration ensuite — il ne joue que si rien n'a été restauré.
 restaurerSeedSiNecessaire();
 runSeedIfEmpty();
+// Les comptes restés en salle d'attente deviennent des comptes découverte.
+migrerComptesEnAttente();
 ensureMailTemplates();
 purgeExpiredSessions();
 
@@ -83,11 +86,11 @@ function currentUser(req) {
 function sansSecret(user) {
   if (!user || typeof user !== 'object') return user;
   const { mot_de_passe, ...reste } = user;
-  return { ...reste, mot_de_passe_defini: !!mot_de_passe };
+  return { ...reste, mot_de_passe_defini: !!mot_de_passe, acces: accesDe(user) };
 }
 
 // Champs qu'un utilisateur ne peut pas se donner à lui-même.
-const CHAMPS_PROTEGES = ['role', 'mot_de_passe', 'mot_de_passe_defini', 'email', 'id', 'invitation_jeton', 'invitation_expire_le'];
+const CHAMPS_PROTEGES = ['role', 'mot_de_passe', 'mot_de_passe_defini', 'email', 'id', 'invitation_jeton', 'invitation_expire_le', 'acces', 'inscrit_le', 'inscription_via', 'promu_client_le', 'promu_par'];
 function retirerChampsProteges(patch) {
   const copie = { ...(patch || {}) };
   for (const c of CHAMPS_PROTEGES) delete copie[c];
@@ -186,7 +189,10 @@ app.post('/api/auth/updateMe', wrap((req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
   // Sans ce filtre, n'importe qui pourrait s'attribuer le rôle admin.
-  ok(res, sansSecret(Records.update('User', user.id, retirerChampsProteges(req.body))));
+  const patch = retirerChampsProteges(req.body);
+  // Un compte découverte n'a pas d'étape à faire avancer.
+  if (accesDe(user) === 'decouverte') delete patch.etape_actuelle;
+  ok(res, sansSecret(Records.update('User', user.id, patch)));
 }));
 
 // Changer son mot de passe une fois connecté.
@@ -226,7 +232,7 @@ const ipDe = (req) => (req.headers['x-forwarded-for'] || req.socket?.remoteAddre
 const amorcagePossible = (email) =>
   Records.count('User') === 0 || email === normEmail(ADMIN_EMAIL);
 
-app.post('/api/auth/verifier-email', wrap((req, res) => {
+app.post('/api/auth/verifier-email', wrap(async (req, res) => {
   const email = normEmail(req.body?.email);
   if (!email) return res.status(400).json({ error: 'Adresse manquante' });
 
@@ -235,7 +241,14 @@ app.post('/api/auth/verifier-email', wrap((req, res) => {
     if (amorcagePossible(email)) {
       return ok(res, { connu: true, email, prenom: null, role: 'admin', mot_de_passe_defini: false });
     }
-    return ok(res, { connu: false });
+    // Inconnue : la porte de l'inscription, avec ce qui est ouvert.
+    const { inscriptionParEmailDisponible } = await import('./inscription.js');
+    return ok(res, { connu: false, inscription: { google: googleEnabled, email: await inscriptionParEmailDisponible() } });
+  }
+  // Un compte découverte né par Google, sans mot de passe : il se prouve par
+  // un code, pas par sa seule adresse.
+  if (!user.mot_de_passe && user.inscrit_le) {
+    return ok(res, { connu: true, email: user.email, prenom: (user.full_name || '').split(' ')[0] || null, role: user.role || 'user', mot_de_passe_defini: false, code_requis: true, google: googleEnabled });
   }
   ok(res, {
     connu: true,
@@ -259,6 +272,11 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Compte inconnu.' });
   if (user.mot_de_passe) {
     return res.status(409).json({ error: 'Un mot de passe existe déjà pour ce compte. Connectez-vous.' });
+  }
+
+  // Un compte inscrit seul (Google) pose son mot de passe avec un code mail.
+  if (user.inscrit_le && !user.invitation_jeton) {
+    return res.status(403).json({ error: 'Ce compte a été créé avec Google : connectez-vous avec Google, ou demandez un code par e-mail pour choisir un mot de passe.', code: 'code_requis' });
   }
 
   // Un compte invité se réclame avec son lien, pas avec sa seule adresse :
@@ -286,6 +304,45 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
   createSession(res, email);
   console.log(`[auth] mot de passe défini et connexion : ${email} (${user.role || 'user'})`);
   ok(res, { success: true, email, role: user.role || 'user' });
+}));
+
+// --- Inscription libre : l'espace découverte ---------------------------------
+//
+// Une adresse, un prénom, un mot de passe ; un code à six chiffres prouve
+// l'adresse. Le compte naît en découverte — projets vitrine, simulateur, et
+// la porte du rendez-vous. L'équipe le passe client après l'appel.
+
+app.post('/api/auth/inscription/code', wrap(async (req, res) => {
+  const { demanderCode } = await import('./inscription.js');
+  const r = await demanderCode({ email: req.body?.email, full_name: req.body?.full_name, ip: ipDe(req) });
+  if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
+  ok(res, { envoye: true, expire_le: r.expire_le });
+}));
+
+app.post('/api/auth/inscription/confirmer', wrap(async (req, res) => {
+  const { confirmerInscription } = await import('./inscription.js');
+  const r = await confirmerInscription({
+    email: req.body?.email,
+    code: req.body?.code,
+    mot_de_passe: req.body?.mot_de_passe,
+    full_name: req.body?.full_name,
+  });
+  if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
+  createSession(res, r.user.email);
+  console.log(`[inscription] connexion : ${r.user.email} (${accesDe(r.user)})`);
+  ok(res, { success: true, email: r.user.email, acces: accesDe(r.user) });
+}));
+
+// L'équipe passe un compte client (ou le repasse en découverte).
+app.post('/api/admin/clients/:id/acces', wrap((req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const user = Records.get('User', req.params.id);
+  if (!user) return res.status(404).json({ error: 'Compte introuvable.' });
+  if (user.role === 'admin') return res.status(400).json({ error: "Un administrateur n'a pas de niveau d'accès." });
+  const acces = String(req.body?.acces || '');
+  if (!ACCES.includes(acces)) return res.status(400).json({ error: `Accès inconnu : ${acces}` });
+  ok(res, sansSecret(changerAcces(user, acces, { admin })));
 }));
 
 // Le lien d'invitation : ce qu'il ouvre, avant tout mot de passe.
@@ -320,6 +377,10 @@ app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
   const { creerInvitation } = await import('./clients-invitation.js');
   const r = creerInvitation({ email: req.body?.email, full_name: req.body?.full_name, admin, base: urlPublique(req) });
   if (!r.ok) return res.status(r.error?.includes('invalide') ? 400 : 409).json({ error: r.error });
+  if (r.promu) {
+    console.log(`[auth] compte découverte passé client : ${r.user.email} par ${admin.email}`);
+    return ok(res, { email: r.user.email, user_id: r.user.id, promu: true, lien: null, envoye: false, simule: false, erreur_envoi: null });
+  }
 
   const prenom = (r.user.full_name || '').split(' ')[0];
   let envoi = null;
@@ -468,21 +529,28 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
     // administrateur déclarée entrent sans avoir été enregistrés au préalable.
     const amorcage = Records.count('User') === 0 || emailGoogle === normEmail(ADMIN_EMAIL);
     if (!amorcage) {
-      console.log(`[auth] refusé, adresse inconnue : ${emailGoogle} (base : ${Records.count('User')} comptes)`);
+      // Inscription libre : le compte naît en découverte, l'identité vient de
+      // Google — rien d'autre à prouver.
+      const { creerCompteDecouverte } = await import('./inscription.js');
+      user = creerCompteDecouverte({ email: emailGoogle, full_name: profile.name, picture: profile.picture, via: 'google' });
+    }
+    if (false) {
       return authResultPage(res, {
         ok: false,
         title: 'Adresse non reconnue',
         detail: `${profile.email} ne correspond à aucun compte Klocka. Les accès sont créés par Klocka : vérifiez le compte Google choisi, ou rapprochez-vous de votre interlocuteur.`,
       });
     }
-    user = Records.create('User', {
-      email: emailGoogle,
-      full_name: profile.name,
-      picture: profile.picture,
-      role: 'admin',
-      etape_actuelle: 0,
-    });
-    console.log(`[auth] nouveau compte : ${profile.email} (${user.role})`);
+    if (!user) {
+      user = Records.create('User', {
+        email: emailGoogle,
+        full_name: profile.name,
+        picture: profile.picture,
+        role: 'admin',
+        etape_actuelle: 0,
+      });
+      console.log(`[auth] nouveau compte : ${profile.email} (${user.role})`);
+    }
   } else if (user && (!user.full_name || !user.picture)) {
     user = Records.update('User', user.id, { full_name: user.full_name || profile.name, picture: profile.picture });
   }
@@ -673,7 +741,7 @@ const nettoyer = (entity, data) =>
 // Ces entités portent des jetons (sessions, refresh tokens Google) : elles ne
 // transitent JAMAIS par le CRUD HTTP, quel que soit le rôle. Les modules
 // serveur y accèdent en direct.
-const ENTITES_INTERDITES = new Set(['Session', 'MailAccount']);
+const ENTITES_INTERDITES = new Set(['Session', 'MailAccount', 'CodeInscription']);
 // Outils internes : pipeline de deals, boîte mail, CRM, base marché. Les pages
 // qui les consomment sont toutes réservées aux admins.
 const ENTITES_ADMIN = new Set([
@@ -704,8 +772,17 @@ const projetVisiblePar = (user) => (p) =>
     (Array.isArray(p.client_emails) && p.client_emails.includes(user.email)) ||
     p.created_by === user.email);
 
-const filtrerProjets = (user, data) =>
-  user.role === 'admin' ? data : (Array.isArray(data) ? data.filter(projetVisiblePar(user)) : data);
+// Un projet vitrine se montre sans ses clients ni ses pièces.
+const projetVitrine = ({ client_email, client_emails, admin_principal, documents, dossier_bancaire_url, ...reste }) => reste;
+const filtrerProjets = (user, data) => {
+  if (user.role === 'admin') return data;
+  if (!Array.isArray(data)) return data;
+  if (accesDe(user) === 'decouverte') return data.filter((p) => p.vitrine && !p.archived).map(projetVitrine);
+  return data.filter(projetVisiblePar(user));
+};
+// Les comptes : l'équipe et les mandataires voient la liste, un client ne voit que lui.
+const filtrerUsers = (user, data) =>
+  ['admin', 'mandataire'].includes(user.role) || !Array.isArray(data) ? data : data.filter((u) => u.id === user.id);
 
 app.get('/api/entities/:entity', wrap((req, res) => {
   const { entity } = req.params;
@@ -718,6 +795,7 @@ app.get('/api/entities/:entity', wrap((req, res) => {
     skip: skip != null ? Number(skip) : undefined,
   });
   if (entity === 'Project') data = filtrerProjets(user, data);
+  if (entity === 'User') data = filtrerUsers(user, data);
   ok(res, nettoyer(entity, data));
 }));
 
@@ -728,6 +806,7 @@ app.post('/api/entities/:entity/filter', wrap((req, res) => {
   const { query, sort, limit } = req.body || {};
   let data = Records.filter(entity, query, { sort, limit: limit != null ? Number(limit) : undefined });
   if (entity === 'Project') data = filtrerProjets(user, data);
+  if (entity === 'User') data = filtrerUsers(user, data);
   ok(res, nettoyer(entity, data));
 }));
 
@@ -738,7 +817,14 @@ app.get('/api/entities/:entity/:id', wrap((req, res) => {
   if (!rec) return res.status(404).json({ error: 'Not found' });
   // Même réponse qu'un enregistrement inexistant : ne pas révéler l'existence
   // d'un projet auquel on n'a pas accès.
-  if (req.params.entity === 'Project' && user.role !== 'admin' && !projetVisiblePar(user)(rec)) {
+  if (req.params.entity === 'Project' && user.role !== 'admin') {
+    if (accesDe(user) === 'decouverte') {
+      if (!rec.vitrine || rec.archived) return res.status(404).json({ error: 'Not found' });
+      return ok(res, nettoyer('Project', projetVitrine(rec)));
+    }
+    if (!projetVisiblePar(user)(rec)) return res.status(404).json({ error: 'Not found' });
+  }
+  if (req.params.entity === 'User' && !['admin', 'mandataire'].includes(user.role) && rec.id !== user.id) {
     return res.status(404).json({ error: 'Not found' });
   }
   ok(res, nettoyer(req.params.entity, rec));
@@ -775,7 +861,7 @@ app.put('/api/entities/:entity/:id', wrap((req, res) => {
   // Un non-admin ne modifie que les projets où il figure.
   if (entity === 'Project' && user.role !== 'admin') {
     const rec = Records.get(entity, id);
-    if (!rec || !projetVisiblePar(user)(rec)) return res.status(404).json({ error: 'Not found' });
+    if (accesDe(user) === 'decouverte' || !rec || !projetVisiblePar(user)(rec)) return res.status(404).json({ error: 'Not found' });
   }
 
   const rec = Records.update(entity, id, patch);

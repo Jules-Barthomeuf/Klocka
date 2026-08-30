@@ -37,7 +37,6 @@ const PAGE_TITLES = {
     Analyse: "Dossiers",
     Assistant: "Assistant",
     Monitoring: "Suivi de l'usage",
-    NewUserWelcome: "Bienvenue",
     TableauProjection: "Tableau de Projection",
     QuizImmo: "Quiz Immobilier",
 };

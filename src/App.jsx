@@ -10,7 +10,6 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'r
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import NewUserWelcome from '@/pages/NewUserWelcome';
 import AdminPortail from '@/pages/AdminPortail';
 
 import AdminBrouillons from '@/pages/AdminBrouillons';
@@ -21,14 +20,17 @@ import Portail from '@/pages/Portail';
 import Bienvenue from "./pages/Bienvenue";
 import Installer from "./pages/Installer";
 import Alexis from "./pages/Alexis";
+import { accesDe } from "@/lib/acces";
 
 // Ce qu'un client peut ouvrir : son parcours, ses projets, ses outils. Tout le
 // reste appartient à l'équipe.
 const PAGES_CLIENT = new Set([
-  'Home', 'Dashboard', 'NewUserWelcome', 'Questionnaire', 'MesProjets', 'ProjetDetail',
+  'Home', 'Dashboard', 'Questionnaire', 'MesProjets', 'ProjetDetail',
   'SimulateurRentabilite', 'TableauProjection', 'Ressources', 'Vision', 'Comparateur',
   'KlockAI', 'MonCompte', 'Feedback', 'Famille', 'Familles',
 ]);
+// Ce qu'un inscrit en découverte peut ouvrir : l'aperçu, le simulateur, son compte.
+const PAGES_DECOUVERTE = new Set(['Home', 'Dashboard', 'SimulateurRentabilite', 'ProjetDetail', 'MonCompte', 'Feedback']);
 import Portail2Fois from '@/pages/Portail2Fois';
 import SimulateurPublic from '@/pages/SimulateurPublic';
 import ProjetPublic from '@/pages/ProjetPublic';
@@ -66,7 +68,6 @@ const AuthenticatedApp = () => {
   const location = useLocation();
 
   const isHomePage = location.pathname === '/' || location.pathname === '/Home';
-  const isNewUserPage = location.pathname === '/NewUserWelcome';
 
   // Public pages accessible sans authentification (paiement, liens publics)
   const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic', '/Bienvenue', '/Installer'];
@@ -123,22 +124,15 @@ const AuthenticatedApp = () => {
     }
   }
 
-  // Redirect new users (etape 0) to NewUserWelcome, except if already there
-  if (isAuthenticated && !isLoadingUser && currentUser && !isNewUserPage) {
-    const etape = currentUser.etape_actuelle ?? 0;
-    if (etape === 0 && currentUser.role !== 'admin') {
-      return <Navigate to="/NewUserWelcome" replace />;
-    }
-  }
-
   // Un client ne voit que l'espace client. Les pages d'équipe ne s'ouvrent
   // pas en tapant leur adresse : le serveur refuse déjà leurs données, mais
   // une coquille vide en dit encore trop. Seuls les admins ont le choix de vue.
   if (isAuthenticated && !isLoadingUser && currentUser && currentUser.role !== 'admin') {
     const page = location.pathname.replace(/^\/+|\/+$/g, '');
+    const pages = accesDe(currentUser) === 'decouverte' ? PAGES_DECOUVERTE : PAGES_CLIENT;
     const autorisee =
       page === '' ||
-      PAGES_CLIENT.has(page) ||
+      pages.has(page) ||
       (currentUser.role === 'mandataire' && page.startsWith('Mandataire'));
     if (!autorisee) return <Navigate to="/Dashboard" replace />;
   }
@@ -162,7 +156,6 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
-      <Route path="/NewUserWelcome" element={<NewUserWelcome />} />
       <Route path="/AdminPortail" element={<LayoutWrapper currentPageName="AdminPortail"><AdminPortail /></LayoutWrapper>} />
       <Route path="/AdminBrouillons" element={<LayoutWrapper currentPageName="AdminBrouillons"><AdminBrouillons /></LayoutWrapper>} />
       <Route path="/AdminBanque" element={<LayoutWrapper currentPageName="AdminBanque"><AdminBanque /></LayoutWrapper>} />

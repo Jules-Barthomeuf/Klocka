@@ -6,7 +6,7 @@ import ComptesGoogle from "@/components/dashboard/ComptesGoogle";
 import RapportAuto from "@/components/dashboard/RapportAuto";
 import { useConnexionGmail } from "@/components/mails/ConnexionGmail";
 import { toast } from "sonner";
-import {
+import { UserPlus,
   Loader2, Mail, FolderPlus, Briefcase, RefreshCw, Clock, FileWarning, Inbox, MoonStar, Send, X,
   CalendarDays, ExternalLink, ThumbsDown, ChevronDown, KeyRound,
 } from "lucide-react";
@@ -19,6 +19,7 @@ import {
 // « mail » ouvre un brouillon éditable, jamais un envoi.
 
 const ICONES = {
+  inscrit_decouverte: UserPlus,
   mail_a_traiter: Inbox,
   compte_muet: KeyRound,
   stockage_ephemere: FileWarning,

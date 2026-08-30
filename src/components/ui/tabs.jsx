@@ -25,8 +25,9 @@ const TabsTrigger = React.forwardRef(({ className, ...props }, ref) => (
     ref={ref}
     className={cn(
       // Le trait est un pseudo-élément posé sur le filet de la liste : il ne
-      // dépend d'aucune bordure, et n'hérite d'aucun arrondi.
-      "relative inline-flex items-center justify-center whitespace-nowrap rounded-none border-0 bg-transparent px-0 pb-2.5 pt-1 text-[11px] uppercase tracking-[0.16em] text-[#9298a6] transition-colors hover:text-[#f2f3f5] focus-visible:outline-none focus-visible:text-[#f2f3f5] disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-transparent after:transition-colors data-[state=active]:after:bg-[#96c0b8]",
+      // dépend d'aucune bordure, n'hérite d'aucun arrondi, et se déploie de
+      // gauche à droite quand l'onglet s'ouvre.
+      "relative inline-flex items-center justify-center whitespace-nowrap rounded-none border-0 bg-transparent px-0 pb-2.5 pt-1 text-[11px] uppercase tracking-[0.16em] text-[#9298a6] transition-colors hover:text-[#f2f3f5] focus-visible:outline-none focus-visible:text-[#f2f3f5] disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-[#96c0b8] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 after:ease-out data-[state=active]:after:scale-x-100",
       className
     )}
     {...props} />

@@ -1644,6 +1644,13 @@ app.post('/api/assistant/rapports/vus', wrap(async (req, res) => {
 }));
 
 // Le registre des engagements : qui doit quoi, pour quand.
+// Les échéances : nos mails sans réponse, les promesses, les dossiers qui
+// dorment — les cartes du mode « Échéances » du chat du tableau de bord.
+app.get('/api/assistant/echeances', wrap(async (req, res) => {
+  const { echeances } = await import('./deal/echeances.js');
+  ok(res, echeances());
+}));
+
 app.get('/api/assistant/engagements', wrap(async (req, res) => {
   const { tousLesEngagements, enRetard } = await import('./deal/engagements.js');
   ok(res, { engagements: tousLesEngagements().map((e) => ({ ...e, en_retard: enRetard(e) })) });

@@ -103,7 +103,9 @@ button.rounded-md, a.rounded-md, button.rounded-lg, a.rounded-lg { border-radius
    qui se fait passer pour un bouton. Le sélecteur d'attribut vise le jeton
    exact « bg-[#96c0b8] » : les fonds teintés (…/[0.06]) ne sont pas touchés. */
 [class~="bg-[#96c0b8]"] { border-radius: 9999px !important; }
-button[class*="border-[#96c0b8]"], a[class*="border-[#96c0b8]"] { border-radius: 9999px !important; }
+/* Un bouton cerclé de menthe est une pilule — mais pas un onglet souligné :
+   un trait sous un mot reste droit. */
+button[class*="border-[#96c0b8]"]:not([class*="border-b"]):not([role="tab"]), a[class*="border-[#96c0b8]"]:not([class*="border-b"]) { border-radius: 9999px !important; }
 button[class~="bg-[#f2f3f5]"], a[class~="bg-[#f2f3f5]"] { background-color: #96c0b8; color: #000000; border-color: #96c0b8; border-radius: 9999px !important; }
 button[class~="bg-[#f2f3f5]"]:hover, a[class~="bg-[#f2f3f5]"]:hover { border-color: #abd0c8; }
 button[class~="bg-[#f2f3f5]"]:hover, a[class~="bg-[#f2f3f5]"]:hover { background-color: #abd0c8; }

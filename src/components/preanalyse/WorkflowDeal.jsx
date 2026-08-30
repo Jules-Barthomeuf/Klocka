@@ -297,7 +297,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
               onClick={() => (accessible ? setEtape(e.n) : dossier && !deblocageEnCours && passerVersEtape(e.n))}
               disabled={!accessible && !dossier}
               title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
-              className={`text-[12.5px] tracking-[0.02em] pb-1 border-b-2 transition-colors whitespace-nowrap
+              className={`text-[12.5px] tracking-[0.02em] pb-1.5 border-b rounded-none transition-colors whitespace-nowrap
                 ${active ? "border-[#96c0b8] text-[#f2f3f5]"
                   : accessible ? "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"
                   : "border-transparent text-[#3a3f4a] hover:text-[#9298a6]"}`}

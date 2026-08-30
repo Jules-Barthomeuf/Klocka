@@ -58,16 +58,13 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
-/* Pas de bord qui apparaît au survol ni d'anneau clair au clic : un bouton
-   de couleur reste de sa couleur. Le clavier garde un repère, dans la teinte. */
-button:focus {
-  outline: none;
+button:hover {
+  border-color: #646cff;
 }
+button:focus,
 button:focus-visible {
-  outline: 2px solid rgba(150, 192, 184, 0.55);
-  outline-offset: 2px;
+  outline: 4px auto -webkit-focus-ring-color;
 }
-
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

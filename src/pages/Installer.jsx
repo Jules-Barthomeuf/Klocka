@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowUp, Check, Copy, Download, Share } from "lucide-react";
+import { Check, Copy, Download, MoreVertical, Share } from "lucide-react";
 
 // La page qu'on envoie : un lien, un bouton, l'application sur l'écran
 // d'accueil. Publique — pas besoin d'être connecté pour installer.
@@ -67,7 +67,7 @@ export default function Installer() {
           <img src="/icones/icone-512.png" alt="Klocka" className="w-24 h-24 rounded-[22px] mx-auto mb-8 shadow-[0_20px_60px_rgba(150,192,184,.18)]" />
           <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#9298a6]">Application Klocka</p>
           <h1 className="m-0 mt-3 text-[34px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#ffffff]">
-            Sur votre écran d'accueil
+            {etat === "installee" ? "Klocka est installée" : "Installer Klocka"}
           </h1>
 
           {etat === "installee" ? (
@@ -86,7 +86,8 @@ export default function Installer() {
           ) : invite ? (
             <>
               <p className="m-0 mt-5 text-[15px] leading-[1.7] text-[#9298a6]">
-                Vos projets, le simulateur, vos ressources — dans une application, sans passer par le navigateur.
+                Cliquez sur le menu <MoreVertical className="w-4 h-4 inline align-[-3px] text-[#96c0b8]" /> en haut à droite et cliquez sur{" "}
+                <strong className="font-medium text-[#f2f3f5]">« Installer et créer un raccourci »</strong>.
               </p>
               <button
                 onClick={installer}
@@ -124,11 +125,11 @@ export default function Installer() {
           ) : (
             <>
               <p className="m-0 mt-5 text-[15px] leading-[1.7] text-[#9298a6]">
-                Pour installer l'application, ouvrez cette page dans <strong className="font-medium text-[#f2f3f5]">Chrome</strong> ou{" "}
-                <strong className="font-medium text-[#f2f3f5]">Edge</strong> : un bouton apparaît. Sur iPhone, ouvrez-la dans Safari.
+                Cliquez sur le menu <MoreVertical className="w-4 h-4 inline align-[-3px] text-[#96c0b8]" /> en haut à droite et cliquez sur{" "}
+                <strong className="font-medium text-[#f2f3f5]">« Installer et créer un raccourci »</strong>.
               </p>
               <p className="m-0 mt-4 text-[12.5px] text-[#6a7180]">
-                Dans Chrome, l'installation se trouve aussi dans le menu <ArrowUp className="w-3 h-3 inline rotate-45" /> en haut à droite, « Installer Klocka ».
+                Dans Chrome ou Edge. Sur iPhone, ouvrez cette page dans Safari.
               </p>
             </>
           )}

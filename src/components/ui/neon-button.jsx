@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 const buttonVariants = {
     variant: {
         default: "bg-[#96c0b8]/10 hover:bg-[#96c0b8]/5 border-[#96c0b8]/30",
-        solid: "bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5] border-transparent hover:border-[#f2f3f5]/50 transition-all duration-200",
+        solid: "bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5] border-transparent hover:border-transparent transition-all duration-200",
         ghost: "border-transparent bg-transparent hover:border-[#96c0b8]/60 hover:bg-[#f2f3f5]/10",
     },
     size: {

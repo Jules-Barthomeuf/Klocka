@@ -58,12 +58,14 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #646cff;
+/* Pas de bord qui apparaît au survol ni d'anneau clair au clic : un bouton
+   de couleur reste de sa couleur. Le clavier garde un repère, dans la teinte. */
+button:focus {
+  outline: none;
 }
-button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid rgba(150, 192, 184, 0.55);
+  outline-offset: 2px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -105,7 +107,8 @@ button.rounded-md, a.rounded-md, button.rounded-lg, a.rounded-lg { border-radius
    exact « bg-[#96c0b8] » : les fonds teintés (…/[0.06]) ne sont pas touchés. */
 [class~="bg-[#96c0b8]"] { border-radius: 9999px !important; }
 button[class*="border-[#96c0b8]"], a[class*="border-[#96c0b8]"] { border-radius: 9999px !important; }
-button[class~="bg-[#f2f3f5]"], a[class~="bg-[#f2f3f5]"] { background-color: #96c0b8; color: #000000; border-radius: 9999px !important; }
+button[class~="bg-[#f2f3f5]"], a[class~="bg-[#f2f3f5]"] { background-color: #96c0b8; color: #000000; border-color: #96c0b8; border-radius: 9999px !important; }
+button[class~="bg-[#f2f3f5]"]:hover, a[class~="bg-[#f2f3f5]"]:hover { border-color: #abd0c8; }
 button[class~="bg-[#f2f3f5]"]:hover, a[class~="bg-[#f2f3f5]"]:hover { background-color: #abd0c8; }
 button[class~="bg-[#ffffff]"] { border-radius: 9999px !important; }
 

@@ -207,7 +207,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
             </p>
           </div>
           {!apercu && (
-            <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="flex items-center gap-2.5 flex-shrink-0 max-md:flex-wrap max-md:flex-shrink max-md:justify-end">
               {dossier && (
                 <BoutonMonday dealId={dossier.deal_id} dejaPose={!!dossier.monday_item_id} />
               )}

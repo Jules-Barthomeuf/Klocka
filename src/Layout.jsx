@@ -378,7 +378,7 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Main Content */}
       <main
-        className={`flex-1 ${!hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""} ${!hideNavbar ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0" : ""}`}
+        className={`flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${!hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""} ${!hideNavbar ? (isAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0") : ""}`}
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

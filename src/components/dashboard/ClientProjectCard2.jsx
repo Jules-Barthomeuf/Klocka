@@ -103,19 +103,22 @@ export default function ClientProjectCard2({ project }) {
         </div>
 
         {/* Chiffres clés — filets fins, chiffres alignés */}
-        <div className="flex items-center px-5 border-t border-[#f2f3f5]/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
-          <div className="flex-1 min-w-0 py-4 pr-4">
-            <p className="text-[19px] font-light text-[#f2f3f5] m-0">{formatPrice(prixRevient)}</p>
-            <p className="text-[10px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0 whitespace-nowrap">Prix de revient</p>
+        {/* Sur téléphone, trois chiffres côte à côte ne laissent pas de place
+            aux libellés espacés : on resserre le tracking et on laisse le
+            libellé se couper plutôt que d'empiéter sur le voisin. */}
+        <div className="flex items-center px-5 max-md:px-4 border-t border-[#f2f3f5]/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="flex-1 min-w-0 py-4 pr-3">
+            <p className="text-[19px] max-md:text-[16px] font-light text-[#f2f3f5] m-0 whitespace-nowrap">{formatPrice(prixRevient)}</p>
+            <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-[#9298a6] mt-1 m-0 md:truncate max-md:leading-[1.25]">Prix de revient</p>
           </div>
-          <div className="flex-1 min-w-0 py-4 px-4 border-l border-[#f2f3f5]/[0.12]">
-            <p className="text-[19px] font-light text-[#c3ddd6] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
-            <p className="text-[10px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0">Rendement</p>
+          <div className="flex-1 min-w-0 py-4 px-3 border-l border-[#f2f3f5]/[0.12]">
+            <p className="text-[19px] max-md:text-[16px] font-light text-[#c3ddd6] m-0 whitespace-nowrap">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+            <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-[#9298a6] mt-1 m-0 md:truncate max-md:leading-[1.25]">Rendement</p>
           </div>
           {surface > 0 && (
-            <div className="flex-1 min-w-0 py-4 px-4 border-l border-[#f2f3f5]/[0.12]">
-              <p className="text-[19px] font-light text-[#f2f3f5] m-0">{surface} m²</p>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0">Surface</p>
+            <div className="flex-1 min-w-0 py-4 px-3 border-l border-[#f2f3f5]/[0.12]">
+              <p className="text-[19px] max-md:text-[16px] font-light text-[#f2f3f5] m-0 whitespace-nowrap">{Math.round(surface)} m²</p>
+              <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-[#9298a6] mt-1 m-0 md:truncate max-md:leading-[1.25]">Surface</p>
             </div>
           )}
           <div className="w-9 h-9 flex-shrink-0 rounded-full border border-[#f2f3f5]/[0.14] flex items-center justify-center group-hover:border-[#96c0b8] transition-colors">

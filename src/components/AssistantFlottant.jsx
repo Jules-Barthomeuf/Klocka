@@ -179,6 +179,14 @@ export default function AssistantFlottant() {
 
   const actif = !!texte.trim();
 
+  // Téléphone ou bureau : la pilule ne se place pas au même endroit.
+  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  useEffect(() => {
+    const surRedim = () => setMobile(window.innerWidth < 768);
+    window.addEventListener("resize", surRedim);
+    return () => window.removeEventListener("resize", surRedim);
+  }, []);
+
   // Dicter dans la pilule : le texte se pose dans le champ, on relit, on
   // envoie. La page Note, elle, envoie dès qu'on se tait — ici on est au
   // bureau, on peut se relire.
@@ -189,11 +197,15 @@ export default function AssistantFlottant() {
       className="assistant-flottant"
       style={{
         position: "fixed",
-        right: 20,
-        bottom: 20,
+        right: mobile ? 12 : 20,
+        // Sur téléphone, la barre de navigation occupe le bas : la pilule se
+        // pose juste au-dessus, elle ne la recouvre pas.
+        bottom: mobile ? "calc(3.5rem + env(safe-area-inset-bottom) + 10px)" : 20,
         width: ouvert ? 420 : 330,
-        maxWidth: "calc(100vw - 40px)",
-        zIndex: 9998,
+        maxWidth: mobile ? "calc(100vw - 24px)" : "calc(100vw - 40px)",
+        // Sous les fenêtres modales (z-50) : une pilule qui flotte par-dessus
+        // une boîte de dialogue n'a rien à y faire.
+        zIndex: 40,
         display: "flex",
         flexDirection: "column",
         gap: 10,

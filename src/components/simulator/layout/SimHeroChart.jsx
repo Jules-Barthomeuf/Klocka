@@ -80,12 +80,12 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
 
   return (
     <div className="border border-[#1f2228] rounded-md bg-[#0f1114] p-4">
-      <div className="flex items-start justify-between mb-3">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 mb-3">
+        <div className="min-w-0">
           <p className="text-[#f2f3f5] text-sm font-medium">{config.title}</p>
           <p className="text-[#9298a6] text-xs mt-0.5">{config.subtitle}</p>
         </div>
-        <p className="text-[#96c0b8] text-xl font-medium tabular-nums">{config.bigValue}</p>
+        <p className="text-[#96c0b8] text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
       </div>
       <div className="h-[26rem]">
         <ResponsiveContainer width="100%" height="100%">

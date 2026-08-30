@@ -536,7 +536,7 @@ export default function Vision() {
               transition={{ duration: 0.6 }}
               className="mb-6">
 
-                <div className="flex items-center justify-between gap-6">
+                <div className="flex flex-wrap items-center justify-between gap-6 max-md:gap-4">
                   {/* Titre de la page */}
                   <div>
                     {currentSlide === 1 &&
@@ -707,7 +707,7 @@ export default function Vision() {
               <p className="text-xs text-[#9298a6] font-normal">Revenus nets après crédit et charges</p>
             </div>
 
-            <div className="flex flex-col gap-4 min-w-[300px]">
+            <div className="flex flex-col gap-4 w-full md:w-auto md:min-w-[300px]">
               <div className="grid grid-cols-4 gap-2">
                 {['2000', '3000', '5000', '10000'].map((val) =>
                               <button

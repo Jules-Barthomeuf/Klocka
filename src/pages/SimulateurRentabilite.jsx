@@ -494,8 +494,8 @@ export default function SimulateurRentabilite() {
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between border-b border-[#1f2228] px-4 h-11 sticky top-0 bg-[#000000] z-10">
-              <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-[#0f1114] border border-[#1f2228] min-w-0 overflow-x-auto">
+            <div className="flex items-center justify-between gap-3 border-b border-[#1f2228] px-4 h-11 sticky top-0 bg-[#000000] z-10 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-[#0f1114] border border-[#1f2228] min-w-0 overflow-x-auto flex-shrink-0 max-md:flex-shrink">
                 {tabs.map((t) => {
                   const active = activeTab === t.id;
                   return (

@@ -32,7 +32,7 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
       <div className="px-5 py-3 border-b border-[#1f2228]">
         <p className="text-[#f2f3f5] text-sm font-medium">Budget total</p>
       </div>
-      <div className="flex items-center gap-8 p-5">
+      <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 p-5">
         {/* Donut */}
         <div className="relative w-60 h-60 flex-shrink-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -49,7 +49,7 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
         </div>
 
         {/* List */}
-        <div className="flex-1 min-w-0 space-y-2.5">
+        <div className="w-full sm:w-auto sm:flex-1 min-w-0 space-y-2.5">
           {items.map((d, i) =>
           <div key={i} className="flex items-center justify-between text-sm">
               <span className="truncate pr-3 text-[#9298a6]">{d.name}</span>

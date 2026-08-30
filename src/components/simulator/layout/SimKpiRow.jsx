@@ -2,9 +2,9 @@ import React from "react";
 
 function Kpi({ label, value, accent = "text-[#f2f3f5]" }) {
   return (
-    <div className="flex-1 px-4 py-3 min-w-0">
-      <p className="text-[9px] uppercase tracking-[0.16em] font-medium truncate text-[hsl(var(--primary-foreground))]">{label}</p>
-      <p className={`text-lg font-medium tabular-nums mt-1 ${accent} truncate`}>{value}</p>
+    <div className="px-4 py-3 min-w-0 border-[#1f2228]">
+      <p className="text-[9px] uppercase tracking-[0.12em] font-medium leading-snug text-[hsl(var(--primary-foreground))]">{label}</p>
+      <p className={`text-lg font-medium tabular-nums mt-1 ${accent} whitespace-nowrap`}>{value}</p>
     </div>);
 
 }
@@ -24,7 +24,9 @@ export default function SimKpiRow({ calculs, anneeRevente, formatCurrency }) {
         <p className="text-[#f2f3f5] text-sm font-medium">Indicateurs clés</p>
         <p className="text-[11px] text-[#9298a6]">sur {anneeRevente} ans</p>
       </div>
-      <div className="flex divide-x divide-[#1f2228]">
+      {/* Deux colonnes sur téléphone, trois sur tablette, cinq au bureau :
+          des tuiles tronquées (« REND… 22… ») ne disent plus rien. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 [&>div]:border-t [&>div]:border-l [&>div:nth-child(-n+2)]:border-t-0 sm:[&>div:nth-child(-n+3)]:border-t-0 lg:[&>div]:border-t-0 [&>div:nth-child(2n+1)]:border-l-0 sm:[&>div:nth-child(2n+1)]:border-l sm:[&>div:nth-child(3n+1)]:border-l-0 lg:[&>div:nth-child(3n+1)]:border-l lg:[&>div:first-child]:border-l-0">
         {cards.map((c, i) =>
         <Kpi key={i} label={c.label} value={c.value} accent={c.accent} />
         )}

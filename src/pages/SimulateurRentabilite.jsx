@@ -431,7 +431,7 @@ export default function SimulateurRentabilite() {
   const handleCopyShareLink = () => {
     const paramsToShare = { surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false };
     const url = window.location.origin + '/SimulateurPublic?data=' + encodeURIComponent(JSON.stringify(paramsToShare));
-    try { navigator.clipboard?.writeText(url).catch(() => {}); } catch (e) {}
+    try { navigator.clipboard?.writeText(url).catch(() => {}); } catch { /* presse-papier indisponible : le lien reste affiché */ }
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };

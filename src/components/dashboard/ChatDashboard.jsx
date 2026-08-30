@@ -212,7 +212,7 @@ export default function ChatDashboard() {
   };
 
   return (
-    <div className="mb-12 max-md:mb-9">
+    <div>
       <div className="bg-[#0f1114] border border-[#22262d] rounded-xl px-5 pt-4 pb-3 focus-within:border-[#96c0b8]/60 transition-colors">
         <textarea
           value={texte}

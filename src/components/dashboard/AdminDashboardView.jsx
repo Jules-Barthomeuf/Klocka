@@ -16,8 +16,7 @@ export default function AdminDashboardView() {
           d'un regard, il ne se déchiffre pas. */}
       <div className="max-w-[1400px] mx-auto px-5 md:px-12 py-10 md:py-16">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <ChatDashboard />
-          <PlanDeTravail />
+          <PlanDeTravail chat={<ChatDashboard />} />
         </motion.div>
       </div>
     </div>

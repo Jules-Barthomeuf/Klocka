@@ -39,7 +39,7 @@ const TEINTES = {
   4: { filet: "border-[#22262d]", icone: "text-[#6a7180]", libelle: "Plus tard", label: "text-[#6a7180]" },
 };
 
-export default function PlanDeTravail() {
+export default function PlanDeTravail({ chat = null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [brouillon, setBrouillon] = useState(null); // { deal_id, intention, objet, corps, destinataire }
@@ -287,6 +287,9 @@ export default function PlanDeTravail() {
           </div>
         </div>
       </header>
+
+      {/* Le chat vient sous le titre : le tableau de bord se nomme d'abord. */}
+      {chat && <div className="mt-10 max-md:mt-8">{chat}</div>}
 
       <div className={REGLE} />
 

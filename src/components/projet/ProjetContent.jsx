@@ -22,7 +22,7 @@ import AllerPlusLoin from "./AllerPlusLoin";
 
 // Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
 function SectionLabel({ children, tone = "muted", className = "" }) {
-  const color = tone === "teal" ? "text-[#7fd3c9]" : tone === "gold" ? "text-[#e0c9a0]" : tone === "red" ? "text-red-400" : "text-[#8b9391]";
+  const color = tone === "teal" ? "text-[#aab6f5]" : tone === "gold" ? "text-[#a9c5b9]" : tone === "red" ? "text-red-400" : "text-[#9298a6]";
   return <div className={`text-[10px] tracking-[0.2em] uppercase ${color} mb-3 ${className}`}>{children}</div>;
 }
 
@@ -30,8 +30,8 @@ function SectionLabel({ children, tone = "muted", className = "" }) {
 function TabHeader({ title, subtitle, left, right }) {
   return (
     <div className="mb-8 max-md:mb-5">
-      <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] mb-2">{title}</h2>
-      {subtitle && <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mb-0 max-w-[560px]">{subtitle}</p>}
+      <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] mb-2">{title}</h2>
+      {subtitle && <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mb-0 max-w-[560px]">{subtitle}</p>}
       {left}
       {right && <div className="mt-5 max-md:mt-4 max-w-[880px]">{right}</div>}
     </div>
@@ -39,7 +39,7 @@ function TabHeader({ title, subtitle, left, right }) {
 }
 
 function LeadText({ children }) {
-  return <p className="text-[14px] max-md:text-[13px] leading-[1.75] text-[#d3d8d6] mb-0">{children}</p>;
+  return <p className="text-[14px] max-md:text-[13px] leading-[1.75] text-[#c9cdd6] mb-0">{children}</p>;
 }
 
 function KpiStrip({ items, className = "" }) {
@@ -47,13 +47,13 @@ function KpiStrip({ items, className = "" }) {
   const list = (items || []).filter(Boolean).filter((it) => !estMasque(edition, it.champ));
   if (!list.length) return null;
   return (
-    <div className={`flex flex-wrap border-t border-[#edeae5]/[0.35] mb-10 max-md:mb-6 ${className}`}>
+    <div className={`flex flex-wrap border-t border-[#f2f3f5]/[0.35] mb-10 max-md:mb-6 ${className}`}>
       {list.map((it, i) => (
-        <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#edeae5]/[0.12] md:pl-6" : ""}`}>
-          <div className={`font-cormorant text-[26px] max-md:text-[20px] font-light ${it.accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+        <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#f2f3f5]/[0.12] md:pl-6" : ""}`}>
+          <div className={`font-cormorant text-[26px] max-md:text-[20px] font-light ${it.accent || "text-[#f2f3f5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
             <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
           </div>
-          <div className="text-[12px] text-[#8b9391] mt-1 flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></div>
+          <div className="text-[12px] text-[#9298a6] mt-1 flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></div>
         </div>
       ))}
     </div>
@@ -65,9 +65,9 @@ function KVRow({ label, value, accent, champ, typeChamp }) {
   if (estMasque(edition, champ)) return null;
   if (value == null || value === "") return null;
   return (
-    <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
-      <span className="text-[#8b9391] flex-shrink-0">{label}</span>
-      <span className={`text-right flex items-center justify-end gap-1 ${accent || "text-[#edeae5]"}`}>
+    <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#f2f3f5]/[0.12]">
+      <span className="text-[#9298a6] flex-shrink-0">{label}</span>
+      <span className={`text-right flex items-center justify-end gap-1 ${accent || "text-[#f2f3f5]"}`}>
         <ValeurEditable champ={champ} type={typeChamp || "number"}>{value}</ValeurEditable>
         <BoutonMasquer champ={champ} />
       </span>
@@ -87,17 +87,17 @@ function DataTable({ label, head, rows, align }) {
           <thead>
             <tr>
               {head.map((h, i) => (
-                <th key={i} className={`text-[10px] tracking-[0.16em] uppercase text-[#8b9391] font-normal pb-3 whitespace-nowrap ${cellAlign(i)}`}>{h}</th>
+                <th key={i} className={`text-[10px] tracking-[0.16em] uppercase text-[#9298a6] font-normal pb-3 whitespace-nowrap ${cellAlign(i)}`}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((r, ri) => (
-              <tr key={ri} className="border-t border-[#edeae5]/[0.12]">
+              <tr key={ri} className="border-t border-[#f2f3f5]/[0.12]">
                 {r.map((c, ci) => {
                   const isObj = c !== null && typeof c === "object" && !React.isValidElement(c);
                   return (
-                    <td key={ci} className={`py-3.5 align-top ${cellAlign(ci)} ${isObj && c.accent ? c.accent : ci === 0 ? "text-[#edeae5]" : "text-[#d3d8d6]"}`}>
+                    <td key={ci} className={`py-3.5 align-top ${cellAlign(ci)} ${isObj && c.accent ? c.accent : ci === 0 ? "text-[#f2f3f5]" : "text-[#c9cdd6]"}`}>
                       {isObj ? c.value : c}
                     </td>
                   );
@@ -112,7 +112,7 @@ function DataTable({ label, head, rows, align }) {
 }
 
 function EmptyTab({ text = "Aucune information dans cette partie" }) {
-  return <p className="text-[#8b9391] text-sm border-t border-[#edeae5]/[0.12] pt-6 mb-0">{text}</p>;
+  return <p className="text-[#9298a6] text-sm border-t border-[#f2f3f5]/[0.12] pt-6 mb-0">{text}</p>;
 }
 
 function NotesBlock({ notes }) {
@@ -122,9 +122,9 @@ function NotesBlock({ notes }) {
       <SectionLabel>Notes</SectionLabel>
       <div className="space-y-5">
         {notes.map((note, idx) => (
-          <div key={idx} className="border-t border-[#edeae5]/[0.12] pt-4">
-            {note.titre && <h4 className="text-[#edeae5] text-[15px] font-medium mb-1.5">{note.titre}</h4>}
-            <p className="text-sm text-[#d3d8d6] leading-[1.8] whitespace-pre-wrap mb-0">{note.contenu}</p>
+          <div key={idx} className="border-t border-[#f2f3f5]/[0.12] pt-4">
+            {note.titre && <h4 className="text-[#f2f3f5] text-[15px] font-medium mb-1.5">{note.titre}</h4>}
+            <p className="text-sm text-[#c9cdd6] leading-[1.8] whitespace-pre-wrap mb-0">{note.contenu}</p>
           </div>
         ))}
       </div>
@@ -140,9 +140,9 @@ function GradeScale({ active, valueLabel }) {
         const isActive = active === g;
         return (
           <div key={g} className="flex items-center gap-3">
-            <span className={`w-5 text-center flex-shrink-0 ${isActive ? "font-cormorant text-[17px] text-[#edeae5]" : "text-[12px] text-[#565b59]"}`}>{g}</span>
-            <div className="h-[9px] flex-shrink-0" style={{ width: `${26 + idx * 10}%`, backgroundColor: isActive ? "#35a79b" : "#242726" }} />
-            {isActive && valueLabel && <span className="text-[12px] text-[#7fd3c9] whitespace-nowrap">{valueLabel}</span>}
+            <span className={`w-5 text-center flex-shrink-0 ${isActive ? "font-cormorant text-[17px] text-[#f2f3f5]" : "text-[12px] text-[#3a3f4a]"}`}>{g}</span>
+            <div className="h-[9px] flex-shrink-0" style={{ width: `${26 + idx * 10}%`, backgroundColor: isActive ? "#8fa0f2" : "#1f2228" }} />
+            {isActive && valueLabel && <span className="text-[12px] text-[#aab6f5] whitespace-nowrap">{valueLabel}</span>}
           </div>
         );
       })}
@@ -160,13 +160,13 @@ function RangeScale({ bas, median, haut, unit = "€", champBas, champMedian, ch
   const fmtN = (v) => (v ? v.toLocaleString("fr-FR") : "—");
   return (
     <div>
-      <div className="relative h-[3px] bg-[#242726]">
-        {m > 0 && <div className="absolute w-[9px] h-[9px] rounded-full bg-[#7fd3c9]" style={{ left: `${pos}%`, top: "50%", transform: "translate(-50%, -50%)" }} />}
+      <div className="relative h-[3px] bg-[#1f2228]">
+        {m > 0 && <div className="absolute w-[9px] h-[9px] rounded-full bg-[#aab6f5]" style={{ left: `${pos}%`, top: "50%", transform: "translate(-50%, -50%)" }} />}
       </div>
       <div className="flex justify-between mt-2.5 text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>
-        <span className="text-[#8b9391]"><ValeurEditable champ={champBas}>{`${fmtN(b)} ${unit}`}</ValeurEditable></span>
-        <span className="text-[#edeae5]"><ValeurEditable champ={champMedian}>{`${fmtN(m)} ${unit}`}</ValeurEditable></span>
-        <span className="text-[#8b9391]"><ValeurEditable champ={champHaut}>{`${fmtN(h)} ${unit}`}</ValeurEditable></span>
+        <span className="text-[#9298a6]"><ValeurEditable champ={champBas}>{`${fmtN(b)} ${unit}`}</ValeurEditable></span>
+        <span className="text-[#f2f3f5]"><ValeurEditable champ={champMedian}>{`${fmtN(m)} ${unit}`}</ValeurEditable></span>
+        <span className="text-[#9298a6]"><ValeurEditable champ={champHaut}>{`${fmtN(h)} ${unit}`}</ValeurEditable></span>
       </div>
     </div>
   );
@@ -343,9 +343,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   }
 
   const pieDataBudget = [
-    { name: 'Prix négocié', value: prixBienNegocie, fill: '#35a79b' },
-    { name: "Droits enreg.", value: droitsEnregistrement, fill: '#7fd3c9' },
-    { name: 'Honoraires', value: totalFraisKlocka, fill: '#e0c9a0' },
+    { name: 'Prix négocié', value: prixBienNegocie, fill: '#8fa0f2' },
+    { name: "Droits enreg.", value: droitsEnregistrement, fill: '#aab6f5' },
+    { name: 'Honoraires', value: totalFraisKlocka, fill: '#a9c5b9' },
     { name: 'Frais divers', value: fraisDivers, fill: '#a8894f' }
   ];
 
@@ -497,13 +497,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       transition={{ duration: 0.4 }}
       // `overflow-x-clip` et non `hidden` : `hidden` crée un conteneur de
       // défilement qui neutralise le `sticky` du rail d'analyse.
-      className="projet-editorial min-h-screen bg-[#0a0c0c] text-[#edeae5] overflow-x-clip">
+      className="projet-editorial min-h-screen bg-[#000000] text-[#f2f3f5] overflow-x-clip">
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-[#0a0c0c] border-none [&>button]:hidden">
+        <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-[#000000] border-none [&>button]:hidden">
           <div className="relative w-full h-full flex items-center justify-center">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-[#edeae5] hover:bg-[#edeae5]/20 z-10 w-14 h-14">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-[#f2f3f5] hover:bg-[#f2f3f5]/20 z-10 w-14 h-14">
               <X className="w-8 h-8" />
             </Button>
             {project?.photos && project.photos.length > 1 && (
@@ -512,14 +512,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   const currentIndex = project.photos.indexOf(selectedImage);
                   const prevIndex = (currentIndex - 1 + project.photos.length) % project.photos.length;
                   setSelectedImage(project.photos[prevIndex]);
-                }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-[#0a0c0c]/50 hover:bg-[#0a0c0c]/70 text-[#edeae5] rounded-full w-16 h-16 z-10">
+                }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-[#000000]/50 hover:bg-[#000000]/70 text-[#f2f3f5] rounded-full w-16 h-16 z-10">
                   <ChevronLeft className="w-10 h-10" />
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => {
                   const currentIndex = project.photos.indexOf(selectedImage);
                   const nextIndex = (currentIndex + 1) % project.photos.length;
                   setSelectedImage(project.photos[nextIndex]);
-                }} className="absolute right-6 top-1/2 -translate-y-1/2 bg-[#0a0c0c]/50 hover:bg-[#0a0c0c]/70 text-[#edeae5] rounded-full w-16 h-16 z-10">
+                }} className="absolute right-6 top-1/2 -translate-y-1/2 bg-[#000000]/50 hover:bg-[#000000]/70 text-[#f2f3f5] rounded-full w-16 h-16 z-10">
                   <ChevronRight className="w-10 h-10" />
                 </Button>
               </>
@@ -542,7 +542,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         ) : mapUrl ? (
           <iframe src={mapUrl} className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du projet" />
         ) : (
-          <div className="absolute inset-0 bg-[#0e100f]" />
+          <div className="absolute inset-0 bg-[#0f1114]" />
         )}
         {/* En Street View, ni voile ni habillage : le panorama se manipule. */}
         {!streetView && (
@@ -554,7 +554,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <button
             onClick={(e) => { e.stopPropagation(); setPlongee(true); }}
             title="Voir la vidéo du secteur"
-            className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-[#0a0c0c]/55 border border-[#edeae5]/40 backdrop-blur-sm flex items-center justify-center text-[#edeae5] hover:border-[#35a79b] hover:text-[#7fd3c9] hover:scale-105 transition-all"
+            className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-[#000000]/55 border border-[#f2f3f5]/40 backdrop-blur-sm flex items-center justify-center text-[#f2f3f5] hover:border-[#8fa0f2] hover:text-[#aab6f5] hover:scale-105 transition-all"
           >
             <Play className="w-6 h-6 ml-1 fill-current" />
           </button>
@@ -566,7 +566,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 par le bouton play au centre de l'image). */}
             {plongee && !streetView && (
               <button onClick={() => setPlongee(false)}
-                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#0a0c0c]/50 border border-[#edeae5]/[0.28] text-[#edeae5] hover:border-[#edeae5] transition-colors">
+                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#000000]/50 border border-[#f2f3f5]/[0.28] text-[#f2f3f5] hover:border-[#f2f3f5] transition-colors">
                 Arrêter la vidéo
               </button>
             )}
@@ -574,7 +574,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             {mapsKey && (project.adresse_complete || (project.latitude && project.longitude)) && (
               <button
                 onClick={() => { setStreetView((v) => !v); setPlongee(false); }}
-                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#0a0c0c]/50 border border-[#edeae5]/[0.28] text-[#edeae5] hover:border-[#edeae5] transition-colors"
+                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#000000]/50 border border-[#f2f3f5]/[0.28] text-[#f2f3f5] hover:border-[#f2f3f5] transition-colors"
               >
                 {streetView ? "Fermer Street View" : "Street View"}
               </button>
@@ -585,17 +585,17 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <button onClick={() => setSelectedImage(project.photos[0])}
                 title={`Voir les ${project.photos.length} photos`}
                 className="relative group mr-1">
-                <span className="absolute -top-1 -right-1 w-full h-full border border-[#edeae5]/[0.28] bg-[#0a0c0c]/50" aria-hidden="true" />
+                <span className="absolute -top-1 -right-1 w-full h-full border border-[#f2f3f5]/[0.28] bg-[#000000]/50" aria-hidden="true" />
                 <img src={project.photos[1]} alt="Galerie du projet"
-                  className="relative h-9 w-14 object-cover border border-[#edeae5]/[0.28] group-hover:border-[#edeae5] transition-colors" />
-                <span className="absolute inset-0 flex items-center justify-center bg-[#0a0c0c]/45 text-[11px] tracking-[0.08em] text-[#edeae5]" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  className="relative h-9 w-14 object-cover border border-[#f2f3f5]/[0.28] group-hover:border-[#f2f3f5] transition-colors" />
+                <span className="absolute inset-0 flex items-center justify-center bg-[#000000]/45 text-[11px] tracking-[0.08em] text-[#f2f3f5]" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   +{project.photos.length - 1}
                 </span>
               </button>
             )}
             {project.documents && project.documents.length > 0 && (
               <button onClick={() => window.open(project.documents[0], '_blank')}
-                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#0a0c0c]/50 border border-[#edeae5]/[0.28] text-[#edeae5] hover:border-[#edeae5] transition-colors max-md:hidden">
+                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-[#000000]/50 border border-[#f2f3f5]/[0.28] text-[#f2f3f5] hover:border-[#f2f3f5] transition-colors max-md:hidden">
                 Documents ({project.documents.length})
               </button>
             )}
@@ -605,22 +605,22 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         {/* Habillage masqué en Street View pour laisser le panorama réactif. */}
         <div className={`absolute bottom-9 md:bottom-11 left-5 right-5 md:left-14 md:right-14 grid md:grid-cols-[minmax(0,1fr)_300px] gap-6 md:gap-12 items-end ${streetView ? "hidden" : ""}`}>
           <div>
-            <h1 className="font-cormorant text-[34px] md:text-[48px] font-light tracking-[-0.03em] leading-[1.02] text-[#edeae5] mb-0">{project.titre}</h1>
+            <h1 className="font-cormorant text-[34px] md:text-[48px] font-light tracking-[-0.03em] leading-[1.02] text-[#f2f3f5] mb-0">{project.titre}</h1>
             <div className="md:hidden mt-5">
               <div className="flex gap-8" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 <div>
-                  <div className="text-[22px] font-light text-[#edeae5] leading-tight">{formatCurrency(prixRevientCalcule)}</div>
-                  <div className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mt-1">Prix de revient</div>
+                  <div className="text-[22px] font-light text-[#f2f3f5] leading-tight">{formatCurrency(prixRevientCalcule)}</div>
+                  <div className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mt-1">Prix de revient</div>
                 </div>
                 {rendementLocatifNetCalcule > 0 && (
                   <div>
-                    <div className="text-[22px] font-light text-[#7fd3c9] leading-tight">{rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %</div>
-                    <div className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mt-1">Rendement net</div>
+                    <div className="text-[22px] font-light text-[#aab6f5] leading-tight">{rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %</div>
+                    <div className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mt-1">Rendement net</div>
                   </div>
                 )}
               </div>
               <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-                className="mt-4 inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                className="mt-4 inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
                 Simulateur complet <span aria-hidden="true">→</span>
               </button>
             </div>
@@ -628,16 +628,16 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <div className="max-md:hidden text-right">
             <div className="flex justify-end gap-10" style={{ fontVariantNumeric: 'tabular-nums' }}>
               <div>
-                <div className="text-[30px] font-light text-[#edeae5] leading-tight">{formatCurrency(prixRevientCalcule)}</div>
-                <div className="text-[10px] tracking-[0.18em] uppercase text-[#8b9391] mt-1.5">Prix de revient</div>
+                <div className="text-[30px] font-light text-[#f2f3f5] leading-tight">{formatCurrency(prixRevientCalcule)}</div>
+                <div className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6] mt-1.5">Prix de revient</div>
               </div>
               <div>
-                <div className="text-[30px] font-light text-[#7fd3c9] leading-tight">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : '—'}</div>
-                <div className="text-[10px] tracking-[0.18em] uppercase text-[#8b9391] mt-1.5">Rendement net</div>
+                <div className="text-[30px] font-light text-[#aab6f5] leading-tight">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : '—'}</div>
+                <div className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6] mt-1.5">Rendement net</div>
               </div>
             </div>
             <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-              className="mt-5 inline-flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+              className="mt-5 inline-flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
               Simulateur complet <span aria-hidden="true">→</span>
             </button>
           </div>
@@ -646,7 +646,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       )}
 
       {!apercuOnglet && project.photos && project.photos.length > 1 && (
-        <div ref={photosContainerRef} className="flex gap-2 overflow-x-auto px-5 md:px-14 py-3 bg-[#0a0c0c] border-b border-[#edeae5]/[0.08]" style={{ scrollbarWidth: 'none' }}>
+        <div ref={photosContainerRef} className="flex gap-2 overflow-x-auto px-5 md:px-14 py-3 bg-[#000000] border-b border-[#f2f3f5]/[0.08]" style={{ scrollbarWidth: 'none' }}>
           {project.photos.slice(1).map((photo, idx) => (
             <img key={idx} src={photo} alt={`Photo ${idx + 2}`} onClick={() => setSelectedImage(photo)}
               className="h-20 w-32 object-cover flex-shrink-0 cursor-pointer opacity-80 hover:opacity-100 transition-opacity" />
@@ -683,7 +683,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               // affiche, leur contenu est rendu par le parent.
               ...ongletsSupplementaires.map((o) => ({ v: o.value, l: o.label })),
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent border-0 border-b border-transparent text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:border-[#35a79b] data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-colors duration-200">
+              <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent border-0 border-b border-transparent text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:border-[#8fa0f2] data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-colors duration-200">
                 {l}
               </TabsTrigger>
             ))}
@@ -693,13 +693,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <TabsContent value="secteur" className="space-y-6 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <div className="mb-8 max-md:mb-5">
-                <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] mb-2">Secteur</h2>
-                <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mb-0 max-w-[560px]">Du macro au micro : la ville, le quartier, puis l'emplacement.</p>
+                <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] mb-2">Secteur</h2>
+                <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mb-0 max-w-[560px]">Du macro au micro : la ville, le quartier, puis l'emplacement.</p>
                 {(project.ville_secteur_champ1 || project.ville_secteur_champ2 || project.ville_secteur_champ3) && (
                   <div className="flex gap-2 mt-4 flex-wrap">
-                    {project.ville_secteur_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#35a79b]/[0.16] border border-[#35a79b] text-[#7fd3c9]"><ValeurEditable champ="ville_secteur_champ1" type="text">{project.ville_secteur_champ1}</ValeurEditable></span>}
-                    {project.ville_secteur_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#7fd3c9]/40 text-[#7fd3c9]"><ValeurEditable champ="ville_secteur_champ2" type="text">{project.ville_secteur_champ2}</ValeurEditable></span>}
-                    {project.ville_secteur_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#edeae5]/[0.18] text-[#d3d8d6]"><ValeurEditable champ="ville_secteur_champ3" type="text">{project.ville_secteur_champ3}</ValeurEditable></span>}
+                    {project.ville_secteur_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#8fa0f2]/[0.16] border border-[#8fa0f2] text-[#aab6f5]"><ValeurEditable champ="ville_secteur_champ1" type="text">{project.ville_secteur_champ1}</ValeurEditable></span>}
+                    {project.ville_secteur_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#aab6f5]/40 text-[#aab6f5]"><ValeurEditable champ="ville_secteur_champ2" type="text">{project.ville_secteur_champ2}</ValeurEditable></span>}
+                    {project.ville_secteur_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#f2f3f5]/[0.18] text-[#c9cdd6]"><ValeurEditable champ="ville_secteur_champ3" type="text">{project.ville_secteur_champ3}</ValeurEditable></span>}
                   </div>
                 )}
                 <div className="mt-6 max-md:mt-5">
@@ -719,22 +719,22 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {mapUrl && (
                 <div className="mb-10 max-md:mb-6">
                   <SectionLabel tone="teal">Localisation</SectionLabel>
-                  <div className="relative h-[420px] max-md:h-[260px] overflow-hidden bg-[#0e100f]">
+                  <div className="relative h-[420px] max-md:h-[260px] overflow-hidden bg-[#0f1114]">
                     <iframe src={mapUrl} className="w-full h-full" style={{ border: 0, filter: 'saturate(0.85) contrast(1.04)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du secteur" />
-                    <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[#edeae5]/[0.13]" />
-                    <div className="max-md:hidden absolute left-6 bottom-6 max-w-[340px] bg-[#0a0c0c]/[0.86] backdrop-blur-sm px-5 py-4">
+                    <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[#f2f3f5]/[0.13]" />
+                    <div className="max-md:hidden absolute left-6 bottom-6 max-w-[340px] bg-[#000000]/[0.86] backdrop-blur-sm px-5 py-4">
                       {project.adresse_complete && (
                         <>
-                          <div className="text-[10px] tracking-[0.18em] uppercase text-[#8b9391]">Adresse</div>
-                          <div className="text-[14px] leading-[1.6] text-[#edeae5] mt-1">{project.adresse_complete}</div>
+                          <div className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6]">Adresse</div>
+                          <div className="text-[14px] leading-[1.6] text-[#f2f3f5] mt-1">{project.adresse_complete}</div>
                         </>
                       )}
                       {project.surface_m2 > 0 && (
-                        <div className="text-[13px] text-[#d3d8d6] mt-2.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{project.surface_m2} m² exploités</div>
+                        <div className="text-[13px] text-[#c9cdd6] mt-2.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{project.surface_m2} m² exploités</div>
                       )}
                       {googleMapsLink && (
                         <a href={googleMapsLink} target="_blank" rel="noopener noreferrer"
-                          className="pointer-events-auto inline-flex items-center gap-2 mt-4 text-[10px] tracking-[0.18em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                          className="pointer-events-auto inline-flex items-center gap-2 mt-4 text-[10px] tracking-[0.18em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
                           Ouvrir dans Google Maps <span aria-hidden="true">→</span>
                         </a>
                       )}
@@ -744,7 +744,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     <KVRow champ="adresse_complete" typeChamp="text" label="Adresse" value={project.adresse_complete} />
                     <KVRow label="Surface" value={project.surface_m2 > 0 ? `${project.surface_m2} m²` : null} champ="surface_m2" />
                     {googleMapsLink && (
-                      <KVRow label="Carte" value={<a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="text-[#7fd3c9]">Ouvrir dans Google Maps</a>} />
+                      <KVRow label="Carte" value={<a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="text-[#aab6f5]">Ouvrir dans Google Maps</a>} />
                     )}
                   </div>
                 </div>
@@ -766,13 +766,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <KpiStrip items={[
                 loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer en place /m²/an', champ: 'loyer_m2_an' },
-                valeurLocativeSecteur > 0 && { value: `${fmtNum(valeurLocativeSecteur)} €`, label: 'Valeur locative secteur', accent: 'text-[#7fd3c9]', champ: 'marche_baux_moyenne' },
+                valeurLocativeSecteur > 0 && { value: `${fmtNum(valeurLocativeSecteur)} €`, label: 'Valeur locative secteur', accent: 'text-[#aab6f5]', champ: 'marche_baux_moyenne' },
                 prixM2Revient > 0 && { value: `${fmtNum(prixM2Revient)} €`, label: 'Prix de revient /m²' },
                 project.marche_prix_m2_median > 0 && { value: `${fmtNum(project.marche_prix_m2_median)} €`, label: 'Prix médian résidentiel /m²', champ: 'marche_prix_m2_median' },
                 ecartValeurLocative != null && {
                   value: `${ecartValeurLocative > 0 ? '+' : ''}${ecartValeurLocative.toFixed(0)} %`,
                   label: 'Écart à la valeur locative',
-                  accent: ecartValeurLocative < 0 ? 'text-[#e0c9a0]' : 'text-[#7fd3c9]',
+                  accent: ecartValeurLocative < 0 ? 'text-[#a9c5b9]' : 'text-[#aab6f5]',
                 },
               ]} />
 
@@ -800,9 +800,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     <div>
                       <SectionLabel>Évolution des prix</SectionLabel>
                       <KVRow champ="marche_evolution_1an" label="Sur 1 an" value={project.marche_evolution_1an != null && project.marche_evolution_1an !== 0 ? `${project.marche_evolution_1an > 0 ? '+' : ''}${project.marche_evolution_1an} %` : null}
-                        accent={project.marche_evolution_1an >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'} />
+                        accent={project.marche_evolution_1an >= 0 ? 'text-[#aab6f5]' : 'text-red-400'} />
                       <KVRow champ="marche_evolution_5ans" label="Sur 5 ans" value={project.marche_evolution_5ans != null && project.marche_evolution_5ans !== 0 ? `${project.marche_evolution_5ans > 0 ? '+' : ''}${project.marche_evolution_5ans} %` : null}
-                        accent={project.marche_evolution_5ans >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'} />
+                        accent={project.marche_evolution_5ans >= 0 ? 'text-[#aab6f5]' : 'text-red-400'} />
                     </div>
                   )}
                 </div>
@@ -815,7 +815,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   rows={(project.marche_secteurs || []).map((s, idx) => [
                     { value: <ValeurEditable champ={`marche_secteurs.${idx}.nom`} type="text">{s.nom || `Secteur ${idx + 1}`}</ValeurEditable> },
                     { value: <ValeurEditable champ={`marche_secteurs.${idx}.estimation_basse`}>{s.estimation_basse ? `${fmtNum(s.estimation_basse)} €/m²` : '—'}</ValeurEditable> },
-                    { value: <ValeurEditable champ={`marche_secteurs.${idx}.estimation_haute`}>{s.estimation_haute ? `${fmtNum(s.estimation_haute)} €/m²` : '—'}</ValeurEditable>, accent: 'text-[#edeae5]' },
+                    { value: <ValeurEditable champ={`marche_secteurs.${idx}.estimation_haute`}>{s.estimation_haute ? `${fmtNum(s.estimation_haute)} €/m²` : '—'}</ValeurEditable>, accent: 'text-[#f2f3f5]' },
                   ])}
                 />
               )}
@@ -837,9 +837,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 subtitle="Le physique : surfaces, configuration et éléments marquants du lot."
                 left={(project.bien_champ1 || project.bien_champ2 || project.bien_champ3) && (
                   <div className="flex gap-2 mt-5 flex-wrap">
-                    {project.bien_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#35a79b]/[0.16] border border-[#35a79b] text-[#7fd3c9]"><ValeurEditable champ="bien_champ1" type="text">{project.bien_champ1}</ValeurEditable></span>}
-                    {project.bien_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#7fd3c9]/40 text-[#7fd3c9]"><ValeurEditable champ="bien_champ2" type="text">{project.bien_champ2}</ValeurEditable></span>}
-                    {project.bien_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#edeae5]/[0.18] text-[#d3d8d6]"><ValeurEditable champ="bien_champ3" type="text">{project.bien_champ3}</ValeurEditable></span>}
+                    {project.bien_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#8fa0f2]/[0.16] border border-[#8fa0f2] text-[#aab6f5]"><ValeurEditable champ="bien_champ1" type="text">{project.bien_champ1}</ValeurEditable></span>}
+                    {project.bien_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#aab6f5]/40 text-[#aab6f5]"><ValeurEditable champ="bien_champ2" type="text">{project.bien_champ2}</ValeurEditable></span>}
+                    {project.bien_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#f2f3f5]/[0.18] text-[#c9cdd6]"><ValeurEditable champ="bien_champ3" type="text">{project.bien_champ3}</ValeurEditable></span>}
                   </div>
                 )}
                 right={<LeadText>{bienLead}</LeadText>}
@@ -847,7 +847,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <KpiStrip items={[
                 surfaceRef > 0 && { value: `${fmtNum(surfaceRef)} m²`, label: 'Surface exploitée', champ: 'sim_surface' },
-                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#7fd3c9]', champ: 'loyer_m2_an' },
+                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#aab6f5]', champ: 'loyer_m2_an' },
                 loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC', champ: 'sim_loyer_initial_ht' },
                 prixM2Revient > 0 && { value: `${fmtNum(prixM2Revient)} €`, label: 'Prix de revient /m²' },
                 project.type_construction && { value: project.type_construction, label: 'Type de construction', champ: 'type_construction', typeChamp: 'text' },
@@ -864,7 +864,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 <div>
                   <SectionLabel tone="teal">Exploitation</SectionLabel>
                   <KVRow label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} champ="sim_loyer_initial_ht" />
-                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#7fd3c9]" champ="loyer_m2_an" />
+                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#aab6f5]" champ="loyer_m2_an" />
                   <KVRow champ="echeance_bail" typeChamp="date" label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
                   <KVRow champ="dpe_note" typeChamp="text" label="DPE" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} />
                 </div>
@@ -873,7 +873,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {project.description_bien && (
                 <div className="mt-10 max-md:mt-6">
                   <SectionLabel>Description</SectionLabel>
-                  <TexteEditable champ="description_bien"><p className="md:columns-2 md:gap-10 text-[14.5px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{project.description_bien}</p></TexteEditable>
+                  <TexteEditable champ="description_bien"><p className="md:columns-2 md:gap-10 text-[14.5px] leading-[1.8] text-[#c9cdd6] text-justify whitespace-pre-wrap mb-0">{project.description_bien}</p></TexteEditable>
                 </div>
               )}
 
@@ -896,7 +896,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <KpiStrip items={[
                 loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC', champ: 'sim_loyer_initial_ht' },
-                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#7fd3c9]', champ: 'loyer_m2_an' },
+                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-[#aab6f5]', champ: 'loyer_m2_an' },
                 anneesRestantesBail != null && { value: `${anneesRestantesBail.toFixed(1).replace('.', ',')} ans`, label: 'Bail restant à courir' },
                 project.echeance_bail && { value: moment(project.echeance_bail).format('MM/YYYY'), label: 'Échéance du bail', champ: 'echeance_bail', typeChamp: 'date' },
               ]} />
@@ -911,7 +911,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 <div>
                   <SectionLabel tone="teal">Économie de la signature</SectionLabel>
                   <KVRow champ="sim_loyer_initial_ht" label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} />
-                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#7fd3c9]" champ="loyer_m2_an" />
+                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-[#aab6f5]" champ="loyer_m2_an" />
                   <KVRow champ="echeance_bail" typeChamp="date" label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
                   <KVRow label="Dépôt de garantie" value={project.bail_depot_garantie > 0 ? `${fmtNum(project.bail_depot_garantie)} €` : null} champ="bail_depot_garantie" />
                 </div>
@@ -928,8 +928,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   align={['left', 'left', 'right']}
                   rows={[...project.bilans_locataire].sort((a, b) => (b.annee || '').localeCompare(a.annee || '')).map((bilan) => [
                     bilan.annee || '—',
-                    { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-[#d3d8d6] hover:text-[#7fd3c9] transition-colors">{bilan.nom}</a> },
-                    { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-[#7fd3c9] text-[13px] hover:text-[#edeae5] transition-colors">Télécharger</a> },
+                    { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-[#c9cdd6] hover:text-[#aab6f5] transition-colors">{bilan.nom}</a> },
+                    { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-[#aab6f5] text-[13px] hover:text-[#f2f3f5] transition-colors">Télécharger</a> },
                   ])}
                 />
               )}
@@ -954,18 +954,18 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {(project.bail_date_debut || project.echeance_bail || project.bail_date_echeance) && (
                 <div className="mb-10 max-md:mb-6">
                   <SectionLabel>Calendrier</SectionLabel>
-                  <div className="relative h-[3px] bg-[#242726] mt-6">
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#35a79b]" />
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border border-[#35a79b] bg-[#0a0c0c]" />
+                  <div className="relative h-[3px] bg-[#1f2228] mt-6">
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#8fa0f2]" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border border-[#8fa0f2] bg-[#000000]" />
                   </div>
                   <div className="flex justify-between mt-3 text-[13px]">
                     <div>
-                      <div className="text-[#7fd3c9]">{project.bail_date_debut ? moment(project.bail_date_debut).format('MM/YYYY') : '—'}</div>
-                      <div className="text-[12px] text-[#8b9391]">Prise d'effet</div>
+                      <div className="text-[#aab6f5]">{project.bail_date_debut ? moment(project.bail_date_debut).format('MM/YYYY') : '—'}</div>
+                      <div className="text-[12px] text-[#9298a6]">Prise d'effet</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[#7fd3c9]">{(project.bail_date_echeance || project.echeance_bail) ? moment(project.bail_date_echeance || project.echeance_bail).format('MM/YYYY') : '—'}</div>
-                      <div className="text-[12px] text-[#8b9391]">Échéance</div>
+                      <div className="text-[#aab6f5]">{(project.bail_date_echeance || project.echeance_bail) ? moment(project.bail_date_echeance || project.echeance_bail).format('MM/YYYY') : '—'}</div>
+                      <div className="text-[12px] text-[#9298a6]">Échéance</div>
                     </div>
                   </div>
                 </div>
@@ -989,31 +989,31 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 project.quote_part_lot > 0 && { value: `${project.quote_part_lot} %`, label: 'Quote-part du lot', champ: 'quote_part_lot' },
                 project.charges_copropriete > 0 && { value: `${fmtNum(project.charges_copropriete)} €`, label: 'Charges annuelles', champ: 'charges_copropriete' },
                 project.provision_charges > 0 && { value: `${fmtNum(project.provision_charges)} €`, label: 'Provision pour charges', champ: 'provision_charges' },
-                project.taxe_fonciere_an > 0 && { value: `${fmtNum(project.taxe_fonciere_an)} €`, label: 'Taxe foncière /an', accent: 'text-[#e0c9a0]', champ: 'taxe_fonciere_an' },
+                project.taxe_fonciere_an > 0 && { value: `${fmtNum(project.taxe_fonciere_an)} €`, label: 'Taxe foncière /an', accent: 'text-[#a9c5b9]', champ: 'taxe_fonciere_an' },
                 project.type_construction && { value: project.type_construction, label: 'Type de construction', champ: 'type_construction', typeChamp: 'text' },
               ]} />
 
               {(project.activites_autorisees || project.activites_interdites) && (
                 <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 mb-10 max-md:mb-6">
                   {project.activites_autorisees && (
-                    <div className="border-l border-[#35a79b] pl-5">
+                    <div className="border-l border-[#8fa0f2] pl-5">
                       <SectionLabel tone="teal">Activités autorisées</SectionLabel>
                       <TexteEditable champ="activites_autorisees">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
                         {project.activites_autorisees.split(',').map((a, idx) => (
-                          <li key={idx} className="text-[14.5px] text-[#d3d8d6]">{a.trim()}</li>
+                          <li key={idx} className="text-[14.5px] text-[#c9cdd6]">{a.trim()}</li>
                         ))}
                       </ul>
                       </TexteEditable>
                     </div>
                   )}
                   {project.activites_interdites && (
-                    <div className="border-l border-[#e0c9a0] pl-5">
+                    <div className="border-l border-[#a9c5b9] pl-5">
                       <SectionLabel tone="gold">Activités interdites</SectionLabel>
                       <TexteEditable champ="activites_interdites">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
                         {project.activites_interdites.split(',').map((a, idx) => (
-                          <li key={idx} className="text-[14.5px] text-[#d3d8d6]">{a.trim()}</li>
+                          <li key={idx} className="text-[14.5px] text-[#c9cdd6]">{a.trim()}</li>
                         ))}
                       </ul>
                       </TexteEditable>
@@ -1025,22 +1025,22 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {project.synthese_assemblee_generale && project.synthese_assemblee_generale.trim() && (
                 <div className="mb-10 max-md:mb-6">
                   <SectionLabel>Synthèse de l'assemblée générale</SectionLabel>
-                  <TexteEditable champ="synthese_assemblee_generale"><p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p></TexteEditable>
+                  <TexteEditable champ="synthese_assemblee_generale"><p className="text-[14.5px] leading-[1.8] text-[#c9cdd6] text-justify whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p></TexteEditable>
                 </div>
               )}
 
               {(project.resolutions_votees || project.resolutions_refusees) && (
                 <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 mb-10 max-md:mb-6">
                   {project.resolutions_votees && (
-                    <div className="border-l border-[#35a79b] pl-5">
+                    <div className="border-l border-[#8fa0f2] pl-5">
                       <SectionLabel tone="teal">Résolutions votées</SectionLabel>
-                      <TexteEditable champ="resolutions_votees"><p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{project.resolutions_votees}</p></TexteEditable>
+                      <TexteEditable champ="resolutions_votees"><p className="text-[14.5px] leading-[1.8] text-[#c9cdd6] whitespace-pre-wrap mb-0">{project.resolutions_votees}</p></TexteEditable>
                     </div>
                   )}
                   {project.resolutions_refusees && (
-                    <div className="border-l border-[#e0c9a0] pl-5">
+                    <div className="border-l border-[#a9c5b9] pl-5">
                       <SectionLabel tone="gold">Résolutions non acceptées</SectionLabel>
-                      <TexteEditable champ="resolutions_refusees"><p className="text-[14.5px] leading-[1.8] text-[#d3d8d6] whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p></TexteEditable>
+                      <TexteEditable champ="resolutions_refusees"><p className="text-[14.5px] leading-[1.8] text-[#c9cdd6] whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p></TexteEditable>
                     </div>
                   )}
                 </div>
@@ -1085,11 +1085,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <div className="grid md:grid-cols-2 gap-x-12">
                 <div>
-                  <KVRow champ="dpe_note" typeChamp="text" label="Classe énergie" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} accent="text-[#7fd3c9]" />
+                  <KVRow champ="dpe_note" typeChamp="text" label="Classe énergie" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} accent="text-[#aab6f5]" />
                   <KVRow label="Consommation" value={project.dpe_consommation > 0 ? `${fmtNum(project.dpe_consommation)} kWh/m²/an` : null} champ="dpe_consommation" />
                 </div>
                 <div>
-                  <KVRow champ="ges_note" typeChamp="text" label="Classe GES" value={project.ges_note ? `Classe ${project.ges_note}` : null} accent="text-[#7fd3c9]" />
+                  <KVRow champ="ges_note" typeChamp="text" label="Classe GES" value={project.ges_note ? `Classe ${project.ges_note}` : null} accent="text-[#aab6f5]" />
                   <KVRow label="Émissions" value={project.ges_emission > 0 ? `${fmtNum(project.ges_emission)} kg CO₂/m²/an` : null} champ="ges_emission" />
                 </div>
               </div>
@@ -1115,15 +1115,15 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               />
 
               {project.fichiers_projet && project.fichiers_projet.length > 0 ? (
-                <div className="border-t border-[#edeae5]/[0.35]">
+                <div className="border-t border-[#f2f3f5]/[0.35]">
                   {project.fichiers_projet.map((fichier, idx) => (
                     <a key={idx} href={fichier.url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-between gap-4 py-4 border-b border-[#edeae5]/[0.12] group">
+                      className="flex items-center justify-between gap-4 py-4 border-b border-[#f2f3f5]/[0.12] group">
                       <div className="flex items-center gap-4 min-w-0">
-                        <FileText className="w-4 h-4 text-[#35a79b] flex-shrink-0" />
-                        <span className="text-[14.5px] text-[#edeae5] truncate group-hover:text-[#7fd3c9] transition-colors">{fichier.nom}</span>
+                        <FileText className="w-4 h-4 text-[#8fa0f2] flex-shrink-0" />
+                        <span className="text-[14.5px] text-[#f2f3f5] truncate group-hover:text-[#aab6f5] transition-colors">{fichier.nom}</span>
                       </div>
-                      <span className="flex items-center gap-2 text-[12px] text-[#8b9391] group-hover:text-[#7fd3c9] transition-colors flex-shrink-0">
+                      <span className="flex items-center gap-2 text-[12px] text-[#9298a6] group-hover:text-[#aab6f5] transition-colors flex-shrink-0">
                         Télécharger <Download className="w-3.5 h-3.5" />
                       </span>
                     </a>
@@ -1146,92 +1146,92 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             subtitle="Budget d'acquisition, indicateurs clés et création de richesse."
           />
           <div className="grid lg:grid-cols-2 gap-6 max-md:grid-cols-1 max-md:gap-4 mb-8 max-md:mb-4">
-            <div className="border-t border-[#edeae5]/[0.35] pt-7 max-md:pt-5">
+            <div className="border-t border-[#f2f3f5]/[0.35] pt-7 max-md:pt-5">
               <SectionLabel tone="teal">Budget total</SectionLabel>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-md:gap-4 max-w-full">
                 <div className="relative flex items-center justify-center w-full order-2 md:order-1">
                   <ResponsiveContainer width="100%" height={200} className="max-w-full">
                     <PieChart>
-                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#35a79b' }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
-                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#35a79b' }]).map((entry, index) => (
+                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#8fa0f2' }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
+                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#8fa0f2' }]).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => formatCurrency(value)} wrapperStyle={{ zIndex: 100 }} contentStyle={{ backgroundColor: '#121413', border: '1px solid #303332', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#fff' }} position={{ y: -20 }} />
+                      <Tooltip formatter={(value) => formatCurrency(value)} wrapperStyle={{ zIndex: 100 }} contentStyle={{ backgroundColor: '#0f1114', border: '1px solid #22262d', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#fff' }} position={{ y: -20 }} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
-                      <p className="text-xl text-[#edeae5]">{formatCurrency(prixRevientCalcule)}</p>
-                      <p className="text-xs text-[#edeae5]">Prix de revient</p>
+                      <p className="text-xl text-[#f2f3f5]">{formatCurrency(prixRevientCalcule)}</p>
+                      <p className="text-xs text-[#f2f3f5]">Prix de revient</p>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-3 min-w-0 flex-shrink order-1 md:order-2">
                   {prixBienNegocie > 0 ? (
                     <>
-                      <div><p className="text-xs text-[#edeae5]/30">Prix du bien négocié FAI</p><p className="text-lg text-[#edeae5]">{formatCurrency(prixBienNegocie)}</p></div>
-                      <div><p className="text-xs text-[#edeae5]/30">Droits d'enregistrement estimés</p><p className="text-lg text-[#edeae5]">{formatCurrency(droitsEnregistrement)}</p></div>
-                      <div><p className="text-xs text-[#edeae5]/30">Honoraires Klocka</p><p className="text-lg text-[#e0c9a0]">{formatCurrency(totalFraisKlocka)}</p></div>
-                      <div><p className="text-xs text-[#edeae5]/30">Frais divers à l'acquisition</p><p className="text-lg text-[#e0c9a0]">{formatCurrency(fraisDivers)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Prix du bien négocié FAI</p><p className="text-lg text-[#f2f3f5]">{formatCurrency(prixBienNegocie)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Droits d'enregistrement estimés</p><p className="text-lg text-[#f2f3f5]">{formatCurrency(droitsEnregistrement)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Honoraires Klocka</p><p className="text-lg text-[#a9c5b9]">{formatCurrency(totalFraisKlocka)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Frais divers à l'acquisition</p><p className="text-lg text-[#a9c5b9]">{formatCurrency(fraisDivers)}</p></div>
                     </>
                   ) : (
                     <>
-                      <div><p className="text-xs text-[#edeae5]/30">Prix de revient</p><p className="text-lg text-[#edeae5]">{formatCurrency(prixRevientCalcule)}</p></div>
-                      <div><p className="text-xs text-[#edeae5]/30">Loyer annuel HT</p><p className="text-lg text-[#edeae5]">{formatCurrency(loyerAnnuel)}</p></div>
-                      <div><p className="text-xs text-[#edeae5]/30">Apport estimé</p><p className="text-lg text-[#edeae5]">{formatCurrency(apport)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Prix de revient</p><p className="text-lg text-[#f2f3f5]">{formatCurrency(prixRevientCalcule)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Loyer annuel HT</p><p className="text-lg text-[#f2f3f5]">{formatCurrency(loyerAnnuel)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Apport estimé</p><p className="text-lg text-[#f2f3f5]">{formatCurrency(apport)}</p></div>
                     </>
                   )}
                 </div>
               </div>
               <button
                 onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-                className="w-full mt-7 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] transition-colors">
+                className="w-full mt-7 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#8fa0f2] text-[#aab6f5] hover:bg-[#8fa0f2]/[0.16] transition-colors">
                 Simulateur complet
               </button>
             </div>
 
-            <div className="border-t border-[#edeae5]/[0.35] pt-7 max-md:pt-5">
+            <div className="border-t border-[#f2f3f5]/[0.35] pt-7 max-md:pt-5">
               <SectionLabel tone="teal">Indicateurs clés</SectionLabel>
-              <KVRow label="Rendement locatif net" value={fmtPct(rendementLocatifNetCalcule)} accent="text-[#7fd3c9]" />
+              <KVRow label="Rendement locatif net" value={fmtPct(rendementLocatifNetCalcule)} accent="text-[#aab6f5]" />
               <KVRow label="Apport initial" value={formatCurrency(apport)} />
-              <KVRow label="Récupération de l'apport" value={anneeRecuperationApport ? `Année ${anneeRecuperationApport}` : '—'} accent="text-[#e0c9a0]" />
+              <KVRow label="Récupération de l'apport" value={anneeRecuperationApport ? `Année ${anneeRecuperationApport}` : '—'} accent="text-[#a9c5b9]" />
               <KVRow label="Loyer moyen net" value={`${formatCurrency(loyerMoyenNet)} /an`} />
               <KVRow label="Échéance mensuelle de crédit" value={echeanceMensuelle > 0 ? `${formatCurrency(echeanceMensuelle)} /mois` : null} />
-              <KVRow label="Cash-flow cumulé" value={cashFlowCumule ? formatCurrency(cashFlowCumule) : null} accent={cashFlowCumule >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'} />
+              <KVRow label="Cash-flow cumulé" value={cashFlowCumule ? formatCurrency(cashFlowCumule) : null} accent={cashFlowCumule >= 0 ? 'text-[#aab6f5]' : 'text-red-400'} />
             </div>
           </div>
         </motion.div>
 
         {/* Création de richesse annuelle — même graphique que le simulateur */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-8 max-md:mt-6">
-          <div className="border-t border-[#edeae5]/[0.35] pt-7 max-md:pt-5">
+          <div className="border-t border-[#f2f3f5]/[0.35] pt-7 max-md:pt-5">
             <div className="flex items-start justify-between gap-6 mb-6 max-md:mb-4">
               <div>
                 <SectionLabel tone="teal" className="mb-1.5">Création de richesse annuelle</SectionLabel>
-                <p className="text-[13px] text-[#8b9391] mb-0">Cash-flow + capital remboursé sur {Math.min(anneeRevente, 20)} ans</p>
+                <p className="text-[13px] text-[#9298a6] mb-0">Cash-flow + capital remboursé sur {Math.min(anneeRevente, 20)} ans</p>
               </div>
-              <p className="text-[26px] max-md:text-[20px] font-light text-[#e0c9a0] mb-0 whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(richesseBrute)}</p>
+              <p className="text-[26px] max-md:text-[20px] font-light text-[#a9c5b9] mb-0 whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(richesseBrute)}</p>
             </div>
             <div className="h-[26rem] max-md:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={richesseRows} margin={{ top: 12, right: 20, left: 20, bottom: 40 }} barGap={4} barCategoryGap="20%">
-                  <CartesianGrid stroke="#edeae5" strokeOpacity={0.08} strokeDasharray="3 3" />
-                  <XAxis dataKey="annee" tick={{ fill: '#8b9391', fontSize: 10 }} axisLine={{ stroke: '#edeae5', strokeOpacity: 0.15 }} tickLine={{ stroke: '#edeae5', strokeOpacity: 0.15 }}
-                    label={{ value: 'Année', position: 'bottom', offset: 18, fill: '#8b9391', fontSize: 11 }} />
-                  <YAxis tick={{ fill: '#8b9391', fontSize: 10 }} axisLine={{ stroke: '#edeae5', strokeOpacity: 0.15 }} tickLine={{ stroke: '#edeae5', strokeOpacity: 0.15 }}
+                  <CartesianGrid stroke="#f2f3f5" strokeOpacity={0.08} strokeDasharray="3 3" />
+                  <XAxis dataKey="annee" tick={{ fill: '#9298a6', fontSize: 10 }} axisLine={{ stroke: '#f2f3f5', strokeOpacity: 0.15 }} tickLine={{ stroke: '#f2f3f5', strokeOpacity: 0.15 }}
+                    label={{ value: 'Année', position: 'bottom', offset: 18, fill: '#9298a6', fontSize: 11 }} />
+                  <YAxis tick={{ fill: '#9298a6', fontSize: 10 }} axisLine={{ stroke: '#f2f3f5', strokeOpacity: 0.15 }} tickLine={{ stroke: '#f2f3f5', strokeOpacity: 0.15 }}
                     tickFormatter={(v) => `${Math.round(v / 1000)}`}
-                    label={{ value: 'Milliers €', angle: -90, position: 'insideLeft', offset: -4, fill: '#8b9391', fontSize: 11, style: { textAnchor: 'middle' } }} />
+                    label={{ value: 'Milliers €', angle: -90, position: 'insideLeft', offset: -4, fill: '#9298a6', fontSize: 11, style: { textAnchor: 'middle' } }} />
                   <Tooltip cursor={{ fill: 'rgba(237,234,229,0.03)' }} content={({ active, payload, label }) => {
                     if (!active || !payload || !payload.length) return null;
                     const capital = payload.find((p) => p.dataKey === 'capital')?.value || 0;
                     const cashflow = payload.find((p) => p.dataKey === 'cashflow')?.value || 0;
                     return (
-                      <div style={{ background: '#121413', border: '1px solid #303332', borderRadius: 6, padding: '10px 12px', maxWidth: 260 }}>
-                        <p style={{ color: '#edeae5', fontSize: 12, marginBottom: 6 }}>Année {label}</p>
+                      <div style={{ background: '#0f1114', border: '1px solid #22262d', borderRadius: 6, padding: '10px 12px', maxWidth: 260 }}>
+                        <p style={{ color: '#f2f3f5', fontSize: 12, marginBottom: 6 }}>Année {label}</p>
                         <p style={{ color: '#7FE0D3', fontSize: 11, marginBottom: 2 }}>Capital remboursé : {formatCurrency(capital)}</p>
-                        <p style={{ color: '#e0c9a0', fontSize: 11, marginBottom: 8 }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
-                        <p style={{ color: '#8b9391', fontSize: 10, lineHeight: 1.4, borderTop: '1px solid rgba(237,234,229,0.1)', paddingTop: 8, margin: 0 }}>
+                        <p style={{ color: '#a9c5b9', fontSize: 11, marginBottom: 8 }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
+                        <p style={{ color: '#9298a6', fontSize: 10, lineHeight: 1.4, borderTop: '1px solid rgba(237,234,229,0.1)', paddingTop: 8, margin: 0 }}>
                           La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.
                         </p>
                       </div>
@@ -1239,9 +1239,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   }} />
                   <Legend verticalAlign="top" align="right" iconType="circle"
                     wrapperStyle={{ fontSize: 12, paddingBottom: 12 }}
-                    formatter={(v) => <span className="text-[#d3d8d6] text-[12px]">{v === 'capital' ? 'Capital remboursé' : 'Cash-flow annuel'}</span>} />
+                    formatter={(v) => <span className="text-[#c9cdd6] text-[12px]">{v === 'capital' ? 'Capital remboursé' : 'Cash-flow annuel'}</span>} />
                   <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
-                  <Bar name="cashflow" dataKey="cashflow" fill="#e0c9a0" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
+                  <Bar name="cashflow" dataKey="cashflow" fill="#a9c5b9" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

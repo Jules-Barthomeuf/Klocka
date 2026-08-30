@@ -17,7 +17,7 @@ import { documentsDemo } from "@/components/preanalyse/dossierDemo";
 
 const GRAVITES = {
   bloquant: { icone: OctagonAlert, classe: "text-red-300", bord: "border-red-500/25 bg-red-500/[0.06]" },
-  attention: { icone: AlertTriangle, classe: "text-[#e0c9a0]", bord: "border-[#e0c9a0]/25 bg-[#e0c9a0]/[0.06]" },
+  attention: { icone: AlertTriangle, classe: "text-[#a9c5b9]", bord: "border-[#a9c5b9]/25 bg-[#a9c5b9]/[0.06]" },
   info: { icone: Info, classe: "text-sky-300", bord: "border-sky-500/25 bg-sky-500/[0.06]" },
 };
 
@@ -27,7 +27,7 @@ export function SyntheseView({ synthese }) {
   if (!synthese) return null;
   return (
     <div className="space-y-3">
-      <p className="text-[#d3d8d6] text-sm leading-relaxed">{synthese.resume}</p>
+      <p className="text-[#c9cdd6] text-sm leading-relaxed">{synthese.resume}</p>
       {synthese.points_a_verifier?.length > 0 && (
         <div className="space-y-2">
           {synthese.points_a_verifier.map((p, i) => {
@@ -43,14 +43,14 @@ export function SyntheseView({ synthese }) {
                   <Icone className="w-3.5 h-3.5 flex-shrink-0" />
                   {p.titre}
                 </p>
-                <p className="text-[#9aa19e] text-xs mt-1 leading-relaxed">{p.detail}</p>
+                <p className="text-[#9298a6] text-xs mt-1 leading-relaxed">{p.detail}</p>
               </div>
             );
           })}
         </div>
       )}
       {!synthese.ia && (
-        <p className="text-[#6b7270] text-[11px]">
+        <p className="text-[#6a7180] text-[11px]">
           Synthèse générée sans IA (repli) : seuls les champs douteux de l'extraction sont listés.
         </p>
       )}
@@ -194,11 +194,11 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
   const synthese = dossier.synthese_documents;
 
   return (
-    <div className="bg-[#0a0c0c] border border-[#242726] rounded-md overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#242726] flex flex-wrap items-center gap-3">
-        <p className="text-[#edeae5] text-sm font-medium">Documents du deal</p>
+    <div className="bg-[#000000] border border-[#1f2228] rounded-md overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#1f2228] flex flex-wrap items-center gap-3">
+        <p className="text-[#f2f3f5] text-sm font-medium">Documents du deal</p>
         {documents.length > 0 && (
-          <Badge className="bg-[#edeae5]/5 text-[#9aa19e] border-[#edeae5]/10 text-[10px]">
+          <Badge className="bg-[#f2f3f5]/5 text-[#9298a6] border-[#f2f3f5]/10 text-[10px]">
             {documents.length} document{documents.length > 1 ? "s" : ""}
           </Badge>
         )}
@@ -208,7 +208,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             href={dossier.drive_folder_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#7fd3c9] hover:text-[#edeae5] text-xs flex items-center gap-1.5 transition-colors animate-in zoom-in-95 fade-in duration-500"
+            className="text-[#aab6f5] hover:text-[#f2f3f5] text-xs flex items-center gap-1.5 transition-colors animate-in zoom-in-95 fade-in duration-500"
           >
             <CheckCircle2 className="w-3.5 h-3.5" /> Dossier Drive <ExternalLink className="w-3 h-3" />
           </a>
@@ -224,7 +224,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                 ? "Aucun compte Google avec l'accès Drive — activez GOOGLE_DRIVE côté serveur puis reconnectez votre compte"
                 : `Crée « ${statutMail?.google?.drive_destination || "Klocka Projets"} / <deal> » et y classe les documents`
             }
-            className="bg-[#edeae5]/5 hover:bg-[#edeae5]/10 text-[#d3d8d6] border-0"
+            className="bg-[#f2f3f5]/5 hover:bg-[#f2f3f5]/10 text-[#c9cdd6] border-0"
           >
             {classerDrive.isPending ? (
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -238,7 +238,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
 
       <div className="p-5">
         <Tabs defaultValue={documents.length ? "extraction" : "depot"}>
-          <TabsList className="bg-[#0a0c0c] border border-[#282b2a] mb-4">
+          <TabsList className="bg-[#000000] border border-[#1f2228] mb-4">
             <TabsTrigger value="depot">Dépôt</TabsTrigger>
             <TabsTrigger value="extraction" disabled={!documents.length}>
               Extraction
@@ -254,7 +254,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
           <TabsContent value="depot">
             {test ? (
               <>
-                <p className="text-[#9aa19e] text-xs mb-2">
+                <p className="text-[#9298a6] text-xs mb-2">
                   Deal de test : pas de vrai dépôt. La simulation pose trois documents fictifs
                   (bail, PV d'AG, diagnostics), la synthèse des points à vérifier, et avance le
                   statut jusqu'à « Extrait » — sans appel API.
@@ -262,7 +262,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                 <Button
                   onClick={() => simuler.mutate()}
                   disabled={simuler.isPending || dossier.documents_simules}
-                  className="bg-transparent border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.06]"
+                  className="bg-transparent border border-[#2c3139] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.06]"
                 >
                   {simuler.isPending ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -274,17 +274,17 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
               </>
             ) : (
               <>
-            <p className="text-[#9aa19e] text-xs mb-2">
+            <p className="text-[#9298a6] text-xs mb-2">
               Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
               Chaque dépôt met à jour la synthèse.
             </p>
             <button
               onClick={() => inputFichier.current?.click()}
               disabled={apercu || depotEnCours}
-              className="w-full h-20 border border-dashed border-[#edeae5]/15 rounded-md flex items-center justify-center gap-3 hover:border-[#565b59] hover:bg-[#edeae5]/[0.02] transition-all disabled:opacity-50"
+              className="w-full h-20 border border-dashed border-[#f2f3f5]/15 rounded-md flex items-center justify-center gap-3 hover:border-[#3a3f4a] hover:bg-[#f2f3f5]/[0.02] transition-all disabled:opacity-50"
             >
-              <Upload className={`w-5 h-5 text-[#8b9391] ${depotEnCours ? "animate-pulse" : ""}`} />
-              <span className="text-[#9aa19e] text-sm">
+              <Upload className={`w-5 h-5 text-[#9298a6] ${depotEnCours ? "animate-pulse" : ""}`} />
+              <span className="text-[#9298a6] text-sm">
                 {depotEnCours ? "Extraction en cours…" : "PDF, image ou .eml — plusieurs à la fois"}
               </span>
             </button>
@@ -295,24 +295,24 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                 {file.map((f, i) => (
                   <div
                     key={f.nom}
-                    className="flex items-center gap-3 px-3.5 py-2.5 bg-[#0c0e0d] border border-[#242726] rounded animate-in fade-in slide-in-from-bottom-1 duration-300 ease-out fill-mode-both"
+                    className="flex items-center gap-3 px-3.5 py-2.5 bg-[#0f1114] border border-[#1f2228] rounded animate-in fade-in slide-in-from-bottom-1 duration-300 ease-out fill-mode-both"
                     style={{ animationDelay: `${i * 60}ms` }}
                   >
                     {f.etat === "analyse" ? (
-                      <Loader2 className="w-3.5 h-3.5 text-[#8b9391] animate-spin flex-none" />
+                      <Loader2 className="w-3.5 h-3.5 text-[#9298a6] animate-spin flex-none" />
                     ) : f.etat === "fait" ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#7fd3c9] flex-none animate-in zoom-in duration-300" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#aab6f5] flex-none animate-in zoom-in duration-300" />
                     ) : f.etat === "erreur" ? (
                       <OctagonAlert className="w-3.5 h-3.5 text-red-300 flex-none" />
                     ) : (
                       <span className="w-3.5 h-3.5 flex-none flex items-center justify-center">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#4a4d4b]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#3a3f4a]" />
                       </span>
                     )}
-                    <span className="text-[12.5px] text-[#d3d8d6] truncate flex-1">{f.nom}</span>
+                    <span className="text-[12.5px] text-[#c9cdd6] truncate flex-1">{f.nom}</span>
                     <span
                       className={`text-[11px] flex-none ${
-                        f.etat === "erreur" ? "text-red-300" : f.etat === "fait" ? "text-[#7fd3c9]" : "text-[#6b7270]"
+                        f.etat === "erreur" ? "text-red-300" : f.etat === "fait" ? "text-[#aab6f5]" : "text-[#6a7180]"
                       }`}
                     >
                       {f.etat === "en_attente"
@@ -326,7 +326,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                     {f.etat === "erreur" && (
                       <button
                         onClick={() => setFile((prev) => prev.filter((x) => x.nom !== f.nom))}
-                        className="text-[#6b7270] hover:text-[#edeae5] flex-none"
+                        className="text-[#6a7180] hover:text-[#f2f3f5] flex-none"
                         title="Masquer"
                       >
                         ✕

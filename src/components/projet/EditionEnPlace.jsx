@@ -33,7 +33,7 @@ export function BoutonMasquer({ champ, titre = "Supprimer de la page" }) {
         e.stopPropagation();
         edition.onChamp("champs_masques", [...(edition.masques || []), champ], true);
       }}
-      className="text-[#4f5654] hover:text-red-400 transition-colors text-[13px] leading-none px-1 flex-shrink-0"
+      className="text-[#3a3f4a] hover:text-red-400 transition-colors text-[13px] leading-none px-1 flex-shrink-0"
     >
       ×
     </button>
@@ -76,7 +76,7 @@ export function ValeurEditable({ champ, children, type = "number" }) {
           if (e.key === "Enter") { e.preventDefault(); valider(); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className="bg-[#0f1413] border border-[#35a79b] text-[#edeae5] rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit"
+        className="bg-[#0f1413] border border-[#8fa0f2] text-[#f2f3f5] rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit"
         style={{ fontVariantNumeric: "tabular-nums" }}
       />
     );
@@ -91,7 +91,7 @@ export function ValeurEditable({ champ, children, type = "number" }) {
         setBrouillon(valeurInitiale());
         setOuvert(true);
       }}
-      className="text-inherit font-inherit bg-transparent border-0 p-0 text-left cursor-text rounded-[3px] px-0.5 -mx-0.5 hover:bg-[#35a79b]/[0.18] hover:shadow-[inset_0_-1px_0_#35a79b] transition-colors"
+      className="text-inherit font-inherit bg-transparent border-0 p-0 text-left cursor-text rounded-[3px] px-0.5 -mx-0.5 hover:bg-[#8fa0f2]/[0.18] hover:shadow-[inset_0_-1px_0_#8fa0f2] transition-colors"
     >
       {children}
     </button>
@@ -120,7 +120,7 @@ export function TexteEditable({ champ, children, className = "" }) {
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setOuvert(false); edition.onChamp(champ, brouillon, true); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className={`w-full bg-[#0f1413] border border-[#35a79b] text-[#edeae5] rounded px-3 py-2 outline-none text-[14px] leading-[1.7] ${className}`}
+        className={`w-full bg-[#0f1413] border border-[#8fa0f2] text-[#f2f3f5] rounded px-3 py-2 outline-none text-[14px] leading-[1.7] ${className}`}
       />
     );
   }
@@ -134,7 +134,7 @@ export function TexteEditable({ champ, children, className = "" }) {
         setBrouillon(String(lireChemin(edition.valeurs, champ) ?? ""));
         setOuvert(true);
       }}
-      className={`block w-full text-left text-inherit font-inherit bg-transparent border-0 p-0 cursor-text rounded-[3px] hover:bg-[#35a79b]/[0.10] hover:shadow-[inset_0_-1px_0_#35a79b] transition-colors ${className}`}
+      className={`block w-full text-left text-inherit font-inherit bg-transparent border-0 p-0 cursor-text rounded-[3px] hover:bg-[#8fa0f2]/[0.10] hover:shadow-[inset_0_-1px_0_#8fa0f2] transition-colors ${className}`}
     >
       {children}
       <span className="block text-right"><BoutonMasquer champ={champ} titre="Supprimer ce bloc" /></span>
@@ -189,10 +189,10 @@ export function ChampsPersonnalises({ zone, project }) {
 
   return (
     <div className="mt-8 max-md:mt-5">
-      <div className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] mb-3">Informations complémentaires</div>
+      <div className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6] mb-3">Informations complémentaires</div>
 
       {chiffres.length > 0 && (
-        <div className="flex flex-wrap border-t border-[#edeae5]/[0.35] mb-6">
+        <div className="flex flex-wrap border-t border-[#f2f3f5]/[0.35] mb-6">
           {chiffres.map((i) => {
             const champ = tous[i];
             return (
@@ -200,18 +200,18 @@ export function ChampsPersonnalises({ zone, project }) {
                 key={champ.id || i}
                 {...proprietesGlisser(i)}
                 className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 border-l first:border-l-0 md:pl-6 transition-colors
-                  ${survole === i ? "border-[#35a79b] bg-[#35a79b]/[0.06]" : "border-[#edeae5]/[0.12]"}
+                  ${survole === i ? "border-[#8fa0f2] bg-[#8fa0f2]/[0.06]" : "border-[#f2f3f5]/[0.12]"}
                   ${edition?.onChamp ? "cursor-grab active:cursor-grabbing" : ""}`}
               >
-                <div className="font-cormorant text-[26px] max-md:text-[20px] font-light text-[#edeae5]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <div className="font-cormorant text-[26px] max-md:text-[20px] font-light text-[#f2f3f5]" style={{ fontVariantNumeric: "tabular-nums" }}>
                   <ValeurEditable champ={`champs_personnalises.${i}.valeur`} type="text">{champ.valeur || "—"}</ValeurEditable>
                 </div>
-                <div className="text-[12px] text-[#8b9391] mt-1 flex items-center gap-1.5">
+                <div className="text-[12px] text-[#9298a6] mt-1 flex items-center gap-1.5">
                   <Poignee i={i} />
                   <ValeurEditable champ={`champs_personnalises.${i}.label`} type="text">{champ.label || "Sans libellé"}</ValeurEditable>
                   {edition?.onChamp && (
                     <button type="button" onClick={() => supprimer(i)} title="Supprimer ce champ"
-                      className="text-[#4f5654] hover:text-red-400 transition-colors text-[13px] leading-none">×</button>
+                      className="text-[#3a3f4a] hover:text-red-400 transition-colors text-[13px] leading-none">×</button>
                   )}
                 </div>
               </div>
@@ -232,18 +232,18 @@ export function ChampsPersonnalises({ zone, project }) {
               onDragLeave={() => setSurvole((v) => (v === i ? null : v))}
               onDrop={(e) => { e.preventDefault(); setSurvole(null); deplacer(source.current, i); }}
               className={`flex justify-between items-start gap-4 py-2.5 text-sm border-t transition-colors
-                ${survole === i ? "border-[#35a79b] bg-[#35a79b]/[0.06]" : "border-[#edeae5]/[0.12]"}
+                ${survole === i ? "border-[#8fa0f2] bg-[#8fa0f2]/[0.06]" : "border-[#f2f3f5]/[0.12]"}
                 ${edition?.onChamp ? "cursor-grab active:cursor-grabbing" : ""}`}
             >
-              <span className="text-[#8b9391] flex-shrink-0 flex items-center gap-2">
+              <span className="text-[#9298a6] flex-shrink-0 flex items-center gap-2">
                 {edition?.onChamp && <span className="text-[#3f4644] select-none" title="Glisser pour déplacer">⠿</span>}
                 <ValeurEditable champ={`champs_personnalises.${i}.label`} type="text">{champ.label || "Sans libellé"}</ValeurEditable>
               </span>
-              <span className="text-right text-[#edeae5] flex items-center gap-2">
+              <span className="text-right text-[#f2f3f5] flex items-center gap-2">
                 <ValeurEditable champ={`champs_personnalises.${i}.valeur`} type="text">{champ.valeur || "—"}</ValeurEditable>
                 {edition?.onChamp && (
                   <button type="button" onClick={() => supprimer(i)} title="Supprimer ce champ"
-                    className="text-[#6b7270] hover:text-red-400 transition-colors text-[13px] leading-none">×</button>
+                    className="text-[#6a7180] hover:text-red-400 transition-colors text-[13px] leading-none">×</button>
                 )}
               </span>
             </div>

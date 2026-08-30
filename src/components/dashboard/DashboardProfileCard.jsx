@@ -43,23 +43,23 @@ export default function DashboardProfileCard({ user }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="bg-[#0e100f] border border-[#edeae5]/[0.12] overflow-hidden h-full"
+      className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden h-full"
     >
       <div
-        className="p-5 cursor-pointer hover:bg-[#edeae5]/[0.01] transition-colors h-full flex flex-col"
+        className="p-5 cursor-pointer hover:bg-[#f2f3f5]/[0.01] transition-colors h-full flex flex-col"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] m-0">Profil investisseur</p>
-          <ChevronDown className={`w-3.5 h-3.5 text-[#6b7270] transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6] m-0">Profil investisseur</p>
+          <ChevronDown className={`w-3.5 h-3.5 text-[#6a7180] transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
         </div>
         
         <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-          <div className="w-20 h-20 rounded-full overflow-hidden border border-[#35a79b]/50 mb-4 flex-shrink-0">
+          <div className="w-20 h-20 rounded-full overflow-hidden border border-[#8fa0f2]/50 mb-4 flex-shrink-0">
             <img src={image} alt="" className="w-full h-full object-cover" />
           </div>
-          <p className="text-[#edeae5] text-[20px] font-light mb-0.5">{profil.label}</p>
-          <p className="text-[#8b9391] text-[12px] m-0">{profil.subtitle}</p>
+          <p className="text-[#f2f3f5] text-[20px] font-light mb-0.5">{profil.label}</p>
+          <p className="text-[#9298a6] text-[12px] m-0">{profil.subtitle}</p>
         </div>
 
         <AnimatePresence>
@@ -71,8 +71,8 @@ export default function DashboardProfileCard({ user }) {
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="pt-3 border-t border-[#edeae5]/[0.12]">
-                <p className="text-[#d3d8d6] text-[13px] leading-[1.7] mb-0">{profil.description}</p>
+              <div className="pt-3 border-t border-[#f2f3f5]/[0.12]">
+                <p className="text-[#c9cdd6] text-[13px] leading-[1.7] mb-0">{profil.description}</p>
               </div>
             </motion.div>
           )}

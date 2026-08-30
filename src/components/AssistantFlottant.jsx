@@ -13,18 +13,18 @@ import { toast } from "sonner";
 // Le cadre est unique : la barre de saisie du bas est la même que la pilule du
 // repos, simplement étirée. Rien ne se superpose, rien ne se déplace.
 
-const OR = "#d8c9a3";
-const FOND = "#070908";
+const OR = "#a9c5b9";
+const FOND = "#000000";
 const TEXTE = "#dcdedb";
 const META = "#8b908c";
-const FILET = "#3a3e3c";
+const FILET = "#2c3139";
 const SEPARATEUR = "#1f2321";
 
 // La police du reste de l'application, pas une seconde : l'assistant est une
 // pièce de Klocka, il n'a pas à s'annoncer par sa typographie. IBM Plex Sans
 // tient mieux les petites tailles qu'Inter Tight, dont les chasses serrées
 // brouillaient les 12,5 px de la barre de saisie.
-const SANS = "'IBM Plex Sans', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif";
+const SANS = "'Inter Tight', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif";
 // Le libellé en capitales espacées tombait jusqu'ici sur la mono du système —
 // donc sur une police différente selon la machine.
 const MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
@@ -220,7 +220,7 @@ export default function AssistantFlottant() {
               padding: "11px 14px 11px 16px",
             }}
           >
-            <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: "#8a8570" }}>
+            <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: "#9298a6" }}>
               ASSISTANT
             </span>
             <button
@@ -291,7 +291,7 @@ export default function AssistantFlottant() {
                       fontSize: 12,
                       color: s.principal ? "#cfcabb" : META,
                       background: "none",
-                      border: `1px solid ${s.principal ? "#4a4633" : "#2a2e2c"}`,
+                      border: `1px solid ${s.principal ? "#4a4633" : "#22262d"}`,
                       borderRadius: 6,
                       padding: "5px 10px",
                       cursor: "pointer",
@@ -306,7 +306,7 @@ export default function AssistantFlottant() {
 
             {brouillon && (
               <div style={{ border: `1px solid ${SEPARATEUR}`, borderRadius: 10, padding: 11 }}>
-                <p style={{ margin: "0 0 8px", fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: "#8a8570" }}>
+                <p style={{ margin: "0 0 8px", fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: "#9298a6" }}>
                   BROUILLON — À RELIRE
                 </p>
                 {[["destinataire", "Destinataire"], ["objet", "Objet"]].map(([cle, libelle]) => (
@@ -334,7 +334,7 @@ export default function AssistantFlottant() {
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
                   <button
                     onClick={() => setBrouillon(null)}
-                    style={{ background: "none", border: `1px solid #2a2e2c`, borderRadius: 6, color: META, fontSize: 12, padding: "5px 10px", cursor: "pointer", fontFamily: SANS }}
+                    style={{ background: "none", border: `1px solid #22262d`, borderRadius: 6, color: META, fontSize: 12, padding: "5px 10px", cursor: "pointer", fontFamily: SANS }}
                   >
                     Écarter
                   </button>

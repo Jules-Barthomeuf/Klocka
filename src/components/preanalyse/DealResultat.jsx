@@ -27,8 +27,8 @@ import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/Conn
 // Les clés sont les valeurs du moteur de règles (invariant serveur) ; seuls
 // les libellés affichés changent — un langage de comité, pas de jargon GO/NO-GO.
 export const VERDICTS = {
-  "GO": { libelle: "Validé", classe: "bg-[#35a79b]/15 text-[#7fd3c9] border-[#35a79b]/30", bord: "border-[#35a79b]/40" },
-  "GO SOUS RÉSERVE": { libelle: "Validé sous conditions", classe: "bg-[#e0c9a0]/15 text-[#e0c9a0] border-[#e0c9a0]/30", bord: "border-[#e0c9a0]/30" },
+  "GO": { libelle: "Validé", classe: "bg-[#8fa0f2]/15 text-[#aab6f5] border-[#8fa0f2]/30", bord: "border-[#8fa0f2]/40" },
+  "GO SOUS RÉSERVE": { libelle: "Validé sous conditions", classe: "bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/30", bord: "border-[#a9c5b9]/30" },
   "INSUFFISANT": { libelle: "Dossier incomplet", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30", bord: "border-sky-500/30" },
   "NO-GO": { libelle: "Non retenu", classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
 };
@@ -36,12 +36,12 @@ export const VERDICTS = {
 export const libelleVerdict = (v) => VERDICTS[v]?.libelle || v;
 
 export const STATUTS_DEAL = {
-  analyse: { libelle: "Analysé", classe: "bg-[#edeae5]/10 text-[#d3d8d6] border-[#edeae5]/20" },
+  analyse: { libelle: "Analysé", classe: "bg-[#f2f3f5]/10 text-[#c9cdd6] border-[#f2f3f5]/20" },
   documents_demandes: { libelle: "Docs demandés", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
-  documents_recus: { libelle: "Docs reçus", classe: "bg-[#e0c9a0]/15 text-[#e0c9a0] border-[#e0c9a0]/30" },
-  depouille: { libelle: "Extrait", classe: "bg-[#35a79b]/15 text-[#7fd3c9] border-[#35a79b]/30" },
+  documents_recus: { libelle: "Docs reçus", classe: "bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/30" },
+  depouille: { libelle: "Extrait", classe: "bg-[#8fa0f2]/15 text-[#aab6f5] border-[#8fa0f2]/30" },
   abandonne: { libelle: "Abandonné", classe: "bg-red-500/15 text-red-300 border-red-500/30" },
-  projet_cree: { libelle: "Projet créé", classe: "bg-[#35a79b]/20 text-[#7fd3c9] border-[#35a79b]/40" },
+  projet_cree: { libelle: "Projet créé", classe: "bg-[#8fa0f2]/20 text-[#aab6f5] border-[#8fa0f2]/40" },
 };
 
 const EMPLACEMENTS = [
@@ -84,8 +84,8 @@ function afficherValeur(champ, valeur) {
 export function Bandeau({ type, items }) {
   const styles =
     type === "alerte"
-      ? "border-[#e0c9a0]/25 bg-[#e0c9a0]/10 text-amber-200/90"
-      : "border-[#edeae5]/10 bg-[#edeae5]/[0.03] text-[#9aa19e]";
+      ? "border-[#a9c5b9]/25 bg-[#a9c5b9]/10 text-amber-200/90"
+      : "border-[#f2f3f5]/10 bg-[#f2f3f5]/[0.03] text-[#9298a6]";
   return (
     <div className={`rounded-md border px-4 py-3 text-sm ${styles}`}>
       {items.map((t, i) => (
@@ -208,7 +208,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-[#0a0c0c] border-[#282b2a] text-[#edeae5] max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-[#000000] border-[#1f2228] text-[#f2f3f5] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{TITRES_INTENTION[intention] || "Mail à l'agent"}</DialogTitle>
         </DialogHeader>
@@ -216,7 +216,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
         {etape === "raisons" ? (
           <div className="space-y-3">
             <div>
-              <Label className="text-[#9aa19e] text-xs mb-2 block">
+              <Label className="text-[#9298a6] text-xs mb-2 block">
                 Raisons de l'abandon (reformulées professionnellement dans le mail)
               </Label>
               <div className="flex flex-wrap gap-[7px] mb-3">
@@ -233,8 +233,8 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                       }
                       className={`px-3 py-[6px] rounded text-[11.5px] border transition-colors ${
                         choisie
-                          ? "border-[#e2564d] text-[#e2564d] bg-[#e2564d]/10"
-                          : "border-[#303332] text-[#9aa19e] hover:border-[#e2564d]/60"
+                          ? "border-[#e8746a] text-[#e8746a] bg-[#e8746a]/10"
+                          : "border-[#22262d] text-[#9298a6] hover:border-[#e8746a]/60"
                       }`}
                     >
                       {r}
@@ -247,16 +247,16 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                 onChange={(e) => setRaisons(e.target.value)}
                 rows={3}
                 placeholder="Précisions libres — ex : travaux de toiture votés en AG non provisionnés, loyer 30 % au-dessus du marché…"
-                className="bg-[#171918] border-[#282b2a] text-[#edeae5]"
+                className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5]"
               />
             </div>
             <DialogFooter>
               {onArchiverSansMail && (
-                <Button variant="ghost" onClick={onArchiverSansMail} className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5 mr-auto">
+                <Button variant="ghost" onClick={onArchiverSansMail} className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 mr-auto">
                   <Archive className="w-4 h-4 mr-1.5" /> Archiver sans mail
                 </Button>
               )}
-              <Button variant="ghost" onClick={onClose} className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5">
+              <Button variant="ghost" onClick={onClose} className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5">
                 Annuler
               </Button>
               <Button
@@ -264,7 +264,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                   generer.mutate({ raisons: [...raisonsChoisies, raisons.trim()].filter(Boolean).join(" ; ") })
                 }
                 disabled={(!raisons.trim() && raisonsChoisies.length === 0) || generer.isPending}
-                className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d]"
+                className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114]"
               >
                 {generer.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Rédiger le mail
@@ -273,15 +273,15 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
           </div>
         ) : generer.isPending ? (
           <div className="py-10 text-center">
-            <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin mx-auto mb-3" />
-            <p className="text-[#9aa19e] text-sm">Rédaction du mail…</p>
+            <Loader2 className="w-6 h-6 text-[#9298a6] animate-spin mx-auto mb-3" />
+            <p className="text-[#9298a6] text-sm">Rédaction du mail…</p>
           </div>
         ) : (
           <>
             <div className="space-y-3">
               {comptes.length > 0 && (
                 <div>
-                  <Label className="text-[#9aa19e] text-xs mb-1.5 block">Envoyer depuis</Label>
+                  <Label className="text-[#9298a6] text-xs mb-1.5 block">Envoyer depuis</Label>
                   <Select
                     value={expediteur || comptes[0]?.id}
                     onValueChange={(v) => {
@@ -289,10 +289,10 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                       localStorage.setItem("klocka:dernier-expediteur", v);
                     }}
                   >
-                    <SelectTrigger className="bg-[#171918] border-[#282b2a] text-[#edeae5]">
+                    <SelectTrigger className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5]">
                       <SelectValue placeholder="Choisir un compte" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#0a0c0c] border-[#282b2a] text-[#edeae5]">
+                    <SelectContent className="bg-[#000000] border-[#1f2228] text-[#f2f3f5]">
                       {comptes.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name ? `${c.name} — ${c.id}` : c.id}
@@ -312,40 +312,40 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                 />
               )}
               <div>
-                <Label className="text-[#9aa19e] text-xs mb-1.5 block">Destinataire</Label>
+                <Label className="text-[#9298a6] text-xs mb-1.5 block">Destinataire</Label>
                 <Input
                   value={destinataire}
                   onChange={(e) => setDestinataire(e.target.value)}
                   placeholder="agent@agence.fr"
-                  className="bg-[#171918] border-[#282b2a] text-[#edeae5]"
+                  className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e] text-xs mb-1.5 block">Objet</Label>
-                <Input value={objet} onChange={(e) => setObjet(e.target.value)} className="bg-[#171918] border-[#282b2a] text-[#edeae5]" />
+                <Label className="text-[#9298a6] text-xs mb-1.5 block">Objet</Label>
+                <Input value={objet} onChange={(e) => setObjet(e.target.value)} className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5]" />
               </div>
               <div>
-                <Label className="text-[#9aa19e] text-xs mb-1.5 block">Corps</Label>
+                <Label className="text-[#9298a6] text-xs mb-1.5 block">Corps</Label>
                 <Textarea
                   value={corps}
                   onChange={(e) => setCorps(e.target.value)}
                   rows={12}
-                  className="bg-[#171918] border-[#282b2a] text-[#edeae5] leading-relaxed"
+                  className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5] leading-relaxed"
                 />
               </div>
               {EFFETS_INTENTION[intention] && (
-                <p className="text-[11.5px] text-[#6b7270] border-t border-[#242726] pt-3">
+                <p className="text-[11.5px] text-[#6a7180] border-t border-[#1f2228] pt-3">
                   À l'envoi : {EFFETS_INTENTION[intention]}
                 </p>
               )}
             </div>
             <DialogFooter>
               {onArchiverSansMail && (
-                <Button variant="ghost" onClick={onArchiverSansMail} className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5 mr-auto">
+                <Button variant="ghost" onClick={onArchiverSansMail} className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 mr-auto">
                   <Archive className="w-4 h-4 mr-1.5" /> Archiver sans mail
                 </Button>
               )}
-              <Button variant="ghost" onClick={onClose} className="text-[#9aa19e] hover:text-[#edeae5] hover:bg-[#edeae5]/5">
+              <Button variant="ghost" onClick={onClose} className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5">
                 <X className="w-4 h-4 mr-1.5" /> Fermer
               </Button>
               <Button
@@ -353,7 +353,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
                 disabled={
                   !destinataire.trim() || !objet.trim() || !corps.trim() || envoyer.isPending || connexionEnCours
                 }
-                className="bg-[#edeae5] hover:bg-[#d8d5d0] text-[#0c0e0d] font-medium"
+                className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114] font-medium"
               >
                 {envoyer.isPending || connexionEnCours ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -387,18 +387,18 @@ const LIBELLES_SUIVI = {
 export function JournalSuivi({ suivi }) {
   if (!suivi?.length) return null;
   return (
-    <div className="bg-[#0a0c0c] border border-[#242726] rounded-md px-5 py-4">
-      <p className="text-[#9aa19e] text-xs mb-3">Historique du dossier</p>
+    <div className="bg-[#000000] border border-[#1f2228] rounded-md px-5 py-4">
+      <p className="text-[#9298a6] text-xs mb-3">Historique du dossier</p>
       <div className="space-y-2">
         {[...suivi].reverse().map((e, i) => (
           <div key={i} className="flex items-start gap-3 text-xs">
-            <span className="text-[#6b7270] w-32 flex-shrink-0">
+            <span className="text-[#6a7180] w-32 flex-shrink-0">
               {new Date(e.le).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
             </span>
-            <Badge className="bg-[#edeae5]/5 text-[#9aa19e] border-[#edeae5]/10 text-[10px] flex-shrink-0">
+            <Badge className="bg-[#f2f3f5]/5 text-[#9298a6] border-[#f2f3f5]/10 text-[10px] flex-shrink-0">
               {LIBELLES_SUIVI[e.type] || e.type}
             </Badge>
-            <span className="text-[#9aa19e] min-w-0">
+            <span className="text-[#9298a6] min-w-0">
               {e.detail}
               {e.intention ? ` (${e.intention.replace(/_/g, " ")})` : ""}
               {e.destinataire ? ` → ${e.destinataire}` : ""}
@@ -446,7 +446,7 @@ function VuesLieu({ lot, enr }) {
             disabled={v.id !== "carte" && !localisable}
             title={v.id !== "carte" && !localisable ? "Adresse inconnue pour ce lot" : undefined}
             className={`px-3.5 py-1.5 rounded-full text-[12.5px] border transition-colors disabled:opacity-40
-              ${vue === v.id ? "bg-[#edeae5] border-[#edeae5] text-[#0a0c0c] font-medium" : "border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59]"}`}
+              ${vue === v.id ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#000000] font-medium" : "border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}
           >
             {v.label}
           </button>
@@ -457,17 +457,17 @@ function VuesLieu({ lot, enr }) {
         <CarteGoogle adresse={adresse} lat={enr?.commune?.centre?.lat} lon={enr?.commune?.centre?.lon} />
       )}
       {vue === "3d" && (
-        <div className="relative h-[420px] rounded-md overflow-hidden border border-[#242726]">
+        <div className="relative h-[420px] rounded-md overflow-hidden border border-[#1f2228]">
           <PlongeeCarte project={lieu} onClose={() => setVue("carte")} />
         </div>
       )}
       {vue === "street" && (
-        <div className="relative h-[420px] rounded-md overflow-hidden border border-[#242726]">
+        <div className="relative h-[420px] rounded-md overflow-hidden border border-[#1f2228]">
           <StreetViewRue project={lieu} />
         </div>
       )}
       {vue !== "carte" && !adresse && (
-        <p className="m-0 text-[11.5px] text-[#6b7270]">
+        <p className="m-0 text-[11.5px] text-[#6a7180]">
           Adresse précise absente de la fiche : la vue est centrée sur la commune.
         </p>
       )}
@@ -497,27 +497,27 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
   const enr = lot.enrichissement;
 
   return (
-    <div className={`bg-[#0a0c0c] border rounded-md overflow-hidden ${v.bord || "border-[#242726]"}`}>
+    <div className={`bg-[#000000] border rounded-md overflow-hidden ${v.bord || "border-[#1f2228]"}`}>
       {/* En-tête */}
-      <div className="p-5 border-b border-[#242726]">
+      <div className="p-5 border-b border-[#1f2228]">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="min-w-0">
-            {lot.intitule && <p className="text-[#8b9391] text-xs mb-1">{lot.intitule}</p>}
-            <h3 className="text-[#edeae5] font-medium leading-snug">{lot.synthese?.titre || "Lot"}</h3>
+            {lot.intitule && <p className="text-[#9298a6] text-xs mb-1">{lot.intitule}</p>}
+            <h3 className="text-[#f2f3f5] font-medium leading-snug">{lot.synthese?.titre || "Lot"}</h3>
           </div>
           <Badge className={`${v.classe} flex-shrink-0`}>{libelleVerdict(lot.evaluation.verdict)}</Badge>
         </div>
 
-        <p className="text-[#9aa19e] text-sm leading-relaxed">{lot.synthese?.synthese}</p>
+        <p className="text-[#9298a6] text-sm leading-relaxed">{lot.synthese?.synthese}</p>
 
         {lot.evaluation.profil && (
-          <p className="text-[#7fd3c9] text-xs mt-2">Profil : {lot.evaluation.profil.libelle}</p>
+          <p className="text-[#aab6f5] text-xs mt-2">Profil : {lot.evaluation.profil.libelle}</p>
         )}
 
         {lot.evaluation.reserves?.length > 0 && (
           <ul className="mt-3 space-y-1">
             {lot.evaluation.reserves.map((r) => (
-              <li key={r.id} className="text-[#e0c9a0]/80 text-xs flex items-start gap-2">
+              <li key={r.id} className="text-[#a9c5b9]/80 text-xs flex items-start gap-2">
                 <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
                 {r.motif}
               </li>
@@ -539,7 +539,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
 
       {/* Rendement : annoncé vs AEM */}
       {aem && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#242726] border-b border-[#242726]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#1f2228] border-b border-[#1f2228]">
           <Metrique label="Prix FAI" valeur={euros(aem.prix_fai)} />
           <Metrique label="Prix AEM" valeur={euros(aem.prix_aem)} accent sousTitre={`+${euros(aem.surcout_vs_fai)}`} />
           <Metrique label="Rendement annoncé" valeur={aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—"} />
@@ -548,12 +548,12 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       )}
 
       {/* Emplacement : saisie humaine */}
-      <div className="px-5 py-4 border-b border-[#242726]">
+      <div className="px-5 py-4 border-b border-[#1f2228]">
         <div className="flex items-center gap-2 mb-2">
-          <MapPin className="w-3.5 h-3.5 text-[#8b9391]" />
-          <span className="text-[#9aa19e] text-xs">Emplacement — qualification humaine</span>
+          <MapPin className="w-3.5 h-3.5 text-[#9298a6]" />
+          <span className="text-[#9298a6] text-xs">Emplacement — qualification humaine</span>
           {enr?.emplacement === "a_qualifier" && (
-            <Badge className="bg-[#e0c9a0]/15 text-[#e0c9a0] border-[#e0c9a0]/25 text-[10px]">à qualifier</Badge>
+            <Badge className="bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/25 text-[10px]">à qualifier</Badge>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
@@ -564,8 +564,8 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               onClick={() => onSaisie?.({ emplacement: e.code })}
               className={`px-3 py-1.5 rounded-lg text-xs border transition-all disabled:opacity-50 ${
                 enr?.emplacement === e.code
-                  ? "bg-[#35a79b]/20 border-[#35a79b]/40 text-[#7fd3c9]"
-                  : "border-[#edeae5]/10 text-[#9aa19e] hover:border-[#edeae5]/25 hover:text-[#edeae5]"
+                  ? "bg-[#8fa0f2]/20 border-[#8fa0f2]/40 text-[#aab6f5]"
+                  : "border-[#f2f3f5]/10 text-[#9298a6] hover:border-[#f2f3f5]/25 hover:text-[#f2f3f5]"
               }`}
             >
               {e.code === enr?.emplacement && <Check className="w-3 h-3 inline mr-1" />}
@@ -579,7 +579,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg text-xs border border-[#edeae5]/10 text-[#8b9391] hover:text-[#edeae5] hover:border-[#edeae5]/25 ml-auto"
+              className="px-3 py-1.5 rounded-lg text-xs border border-[#f2f3f5]/10 text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/25 ml-auto"
             >
               Voir sur la carte
             </a>
@@ -588,16 +588,16 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       </div>
 
       {/* Simulateur complet, pré-rempli — remplace le calcul AEM figé */}
-      <div className="px-5 py-5 border-b border-[#242726]">
-        <p className="text-[#9aa19e] text-xs mb-3">
+      <div className="px-5 py-5 border-b border-[#1f2228]">
+        <p className="text-[#9298a6] text-xs mb-3">
           Simulateur — pré-rempli avec ce dossier, tous les paramètres sont manipulables
         </p>
         <SimulateurDossier parametres={lot.simulateur} />
       </div>
 
       {/* Clients à qui ce bien pourrait correspondre */}
-      <div className="px-5 py-5 border-b border-[#242726]">
-        <p className="text-[#9aa19e] text-xs mb-1">
+      <div className="px-5 py-5 border-b border-[#1f2228]">
+        <p className="text-[#9298a6] text-xs mb-1">
           Clients à qui ce bien pourrait correspondre — budget, apport et zone de recherche, d'après Monday
         </p>
         <ClientsCorrespondants
@@ -611,7 +611,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       {/* Détail */}
       <button
         onClick={() => setOngletsOuverts((o) => !o)}
-        className="w-full px-5 py-3 flex items-center justify-between text-[#8b9391] hover:text-[#edeae5] text-xs transition-colors"
+        className="w-full px-5 py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors"
       >
         <span>Détail de l'extraction et de l'enrichissement</span>
         {ongletsOuverts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -620,7 +620,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       {ongletsOuverts && (
         <div className="px-5 pb-5">
           <Tabs defaultValue="carte">
-            <TabsList className="bg-[#0a0c0c] border border-[#282b2a] mb-4">
+            <TabsList className="bg-[#000000] border border-[#1f2228] mb-4">
               <TabsTrigger value="extraction">Données extraites</TabsTrigger>
               <TabsTrigger value="enrichissement">Enrichissement</TabsTrigger>
               <TabsTrigger value="carte">Lieu</TabsTrigger>
@@ -646,22 +646,22 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                   const c = lot.lot[champ];
                   const absent = !c || c.absent;
                   return (
-                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-[#232625]">
-                      <span className="text-[#8b9391] text-xs w-40 flex-shrink-0">{libelle}</span>
-                      <span className={`text-xs flex-1 ${absent ? "text-[#6b7270] italic" : "text-[#edeae5]"}`}>
+                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-[#15171b]">
+                      <span className="text-[#9298a6] text-xs w-40 flex-shrink-0">{libelle}</span>
+                      <span className={`text-xs flex-1 ${absent ? "text-[#6a7180] italic" : "text-[#f2f3f5]"}`}>
                         {absent ? "non renseigné dans la fiche" : afficherValeur(champ, c.valeur)}
                       </span>
                       {!absent && c.citation && (
                         <span
                           title={c.citation}
-                          className="text-[#6b7270] text-[11px] flex items-center gap-1 max-w-[45%] truncate cursor-help"
+                          className="text-[#6a7180] text-[11px] flex items-center gap-1 max-w-[45%] truncate cursor-help"
                         >
                           <Quote className="w-3 h-3 flex-shrink-0" />
                           {c.citation}
                         </span>
                       )}
                       {!absent && c.confiance === "basse" && (
-                        <Badge className="bg-[#e0c9a0]/15 text-[#e0c9a0] border-[#e0c9a0]/25 text-[10px]">
+                        <Badge className="bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/25 text-[10px]">
                           confiance basse
                         </Badge>
                       )}
@@ -700,12 +700,12 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
             {lot.contexte_marche && (
               <TabsContent value="marche">
                 <div className="space-y-3">
-                  <p className="text-[#d3d8d6] text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-[#c9cdd6] text-sm leading-relaxed whitespace-pre-wrap">
                     {lot.contexte_marche.resume}
                   </p>
                   {lot.contexte_marche.sources?.length > 0 && (
                     <div>
-                      <p className="text-[#8b9391] text-xs mb-1.5">Sources consultées :</p>
+                      <p className="text-[#9298a6] text-xs mb-1.5">Sources consultées :</p>
                       <ul className="space-y-1">
                         {lot.contexte_marche.sources.map((s, i) => (
                           <li key={i}>
@@ -713,7 +713,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                               href={s.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[#7fd3c9] hover:text-[#edeae5] text-xs underline underline-offset-2 transition-colors"
+                              className="text-[#aab6f5] hover:text-[#f2f3f5] text-xs underline underline-offset-2 transition-colors"
                             >
                               {s.titre}
                             </a>
@@ -722,7 +722,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                       </ul>
                     </div>
                   )}
-                  <p className="text-[#6b7270] text-[11px]">
+                  <p className="text-[#6a7180] text-[11px]">
                     Généré avec recherche web — à vérifier avant décision. Ce contexte n'entre pas dans le
                     verdict.
                   </p>
@@ -749,18 +749,18 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
 function Metrique({ label, valeur, sousTitre, accent }) {
   return (
     <div className="px-4 py-3">
-      <p className="text-[#8b9391] text-[11px] mb-1">{label}</p>
-      <p className={`text-lg font-light ${accent ? "text-[#7fd3c9]" : "text-[#edeae5]"}`}>{valeur}</p>
-      {sousTitre && <p className="text-[#6b7270] text-[11px]">{sousTitre}</p>}
+      <p className="text-[#9298a6] text-[11px] mb-1">{label}</p>
+      <p className={`text-lg font-light ${accent ? "text-[#aab6f5]" : "text-[#f2f3f5]"}`}>{valeur}</p>
+      {sousTitre && <p className="text-[#6a7180] text-[11px]">{sousTitre}</p>}
     </div>
   );
 }
 
 function LigneDetail({ label, valeur, fort }) {
   return (
-    <div className="flex justify-between gap-3 py-1.5 border-b border-[#232625]">
-      <span className="text-[#8b9391]">{label}</span>
-      <span className={fort ? "text-[#7fd3c9]" : "text-[#edeae5]"}>{valeur}</span>
+    <div className="flex justify-between gap-3 py-1.5 border-b border-[#15171b]">
+      <span className="text-[#9298a6]">{label}</span>
+      <span className={fort ? "text-[#aab6f5]" : "text-[#f2f3f5]"}>{valeur}</span>
     </div>
   );
 }
@@ -777,10 +777,10 @@ function ValidationEnseigne({ nom, signature, apercu }) {
     },
   });
 
-  if (fait) return <p className="text-[#7fd3c9] text-xs mt-3">Enseigne ajoutée au référentiel.</p>;
+  if (fait) return <p className="text-[#aab6f5] text-xs mt-3">Enseigne ajoutée au référentiel.</p>;
 
   return (
-    <div className="mt-3 rounded-lg border border-[#e0c9a0]/25 bg-[#e0c9a0]/10 px-3 py-2.5">
+    <div className="mt-3 rounded-lg border border-[#a9c5b9]/25 bg-[#a9c5b9]/10 px-3 py-2.5">
       <p className="text-amber-200/90 text-xs mb-1">
         « {nom} » est absente du référentiel. Qualification proposée par l'IA : <strong>{signature.niveau}</strong>.
       </p>
@@ -789,7 +789,7 @@ function ValidationEnseigne({ nom, signature, apercu }) {
         size="sm"
         onClick={() => enregistrer.mutate()}
         disabled={apercu || enregistrer.isPending}
-        className="bg-[#e0c9a0]/20 hover:bg-[#e0c9a0]/30 text-amber-200 border-0 h-7 text-xs"
+        className="bg-[#a9c5b9]/20 hover:bg-[#a9c5b9]/30 text-amber-200 border-0 h-7 text-xs"
       >
         Valider et ajouter au référentiel
       </Button>

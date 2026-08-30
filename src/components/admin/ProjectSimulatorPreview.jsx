@@ -68,18 +68,18 @@ export default function ProjectSimulatorPreview({ formData, travauxList }) {
   }, [formData, travauxList]);
 
   return (
-    <div className="mt-6 rounded-md border border-[#282b2a] bg-[#0a0c0c] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#282b2a] flex items-center justify-between">
+    <div className="mt-6 rounded-md border border-[#1f2228] bg-[#000000] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[#1f2228] flex items-center justify-between">
         <div>
-          <h3 className="text-[#edeae5] text-sm font-medium">Preview simulateur client</h3>
-          <p className="text-[#edeae5]/35 text-xs">Aperçu complet basé sur les données du formulaire.</p>
+          <h3 className="text-[#f2f3f5] text-sm font-medium">Preview simulateur client</h3>
+          <p className="text-[#f2f3f5]/35 text-xs">Aperçu complet basé sur les données du formulaire.</p>
         </div>
       </div>
       <iframe
         key={previewUrl}
         src={previewUrl}
         title="Preview simulateur client"
-        className="w-full h-[72vh] bg-[#0a0c0c]"
+        className="w-full h-[72vh] bg-[#000000]"
       />
     </div>
   );

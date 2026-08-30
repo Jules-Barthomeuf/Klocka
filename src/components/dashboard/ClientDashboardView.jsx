@@ -27,12 +27,12 @@ function StepProgressBar({ etapes, userEtape }) {
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-6">Votre parcours</div>
+      <div className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-6">Votre parcours</div>
       <div className="relative">
         {/* Filet de fond + progression */}
-        <div className="absolute left-0 right-0 top-[5px] h-px bg-[#edeae5]/[0.14]" />
+        <div className="absolute left-0 right-0 top-[5px] h-px bg-[#f2f3f5]/[0.14]" />
         <motion.div
-          className="absolute left-0 top-[4.5px] h-[2px] bg-[#35a79b]"
+          className="absolute left-0 top-[4.5px] h-[2px] bg-[#8fa0f2]"
           initial={{ width: 0 }}
           animate={{ width: `${progression * 100}%` }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -50,17 +50,17 @@ function StepProgressBar({ etapes, userEtape }) {
                   transition={{ delay: i * 0.07, duration: 0.3 }}
                   className={`w-[11px] h-[11px] rounded-full border-2 ${
                     isCurrent
-                      ? "border-[#35a79b] bg-[#0a0c0c]"
+                      ? "border-[#8fa0f2] bg-[#000000]"
                       : isCompleted
-                        ? "border-[#35a79b] bg-[#35a79b]"
-                        : "border-[#edeae5]/[0.2] bg-[#0a0c0c]"
+                        ? "border-[#8fa0f2] bg-[#8fa0f2]"
+                        : "border-[#f2f3f5]/[0.2] bg-[#000000]"
                   }`}
                 />
-                <span className={`mt-3 text-[10px] tracking-[0.14em] uppercase ${isCurrent ? "text-[#7fd3c9]" : isCompleted ? "text-[#d3d8d6]" : "text-[#6b7270]"} max-md:hidden`}>
+                <span className={`mt-3 text-[10px] tracking-[0.14em] uppercase ${isCurrent ? "text-[#aab6f5]" : isCompleted ? "text-[#c9cdd6]" : "text-[#6a7180]"} max-md:hidden`}>
                   {step.titre}
                 </span>
                 {isCurrent && (
-                  <span className="mt-1 text-[12px] text-[#8b9391] max-md:hidden">{etapeDescriptions[userEtape]}</span>
+                  <span className="mt-1 text-[12px] text-[#9298a6] max-md:hidden">{etapeDescriptions[userEtape]}</span>
                 )}
               </div>
             );
@@ -68,8 +68,8 @@ function StepProgressBar({ etapes, userEtape }) {
         </div>
         {/* Mobile : étape courante seule */}
         <div className="md:hidden mt-4">
-          <span className="text-[10px] tracking-[0.14em] uppercase text-[#7fd3c9]">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
-          <p className="text-[12px] text-[#8b9391] mt-0.5 mb-0">{etapeDescriptions[userEtape]}</p>
+          <span className="text-[10px] tracking-[0.14em] uppercase text-[#aab6f5]">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
+          <p className="text-[12px] text-[#9298a6] mt-0.5 mb-0">{etapeDescriptions[userEtape]}</p>
         </div>
       </div>
     </div>
@@ -83,14 +83,14 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
       onClick={onClick}
-      className="group cursor-pointer border-t border-[#edeae5]/[0.35] pt-5 pb-2 transition-colors hover:border-[#35a79b]/60"
+      className="group cursor-pointer border-t border-[#f2f3f5]/[0.35] pt-5 pb-2 transition-colors hover:border-[#8fa0f2]/60"
     >
       <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-[#35a79b]" />
-        <h3 className="text-[#edeae5] text-[15px] font-light m-0">{title}</h3>
+        <Icon className="w-4 h-4 text-[#8fa0f2]" />
+        <h3 className="text-[#f2f3f5] text-[15px] font-light m-0">{title}</h3>
       </div>
-      <p className="text-[#8b9391] text-[13px] leading-[1.7] mb-4">{description}</p>
-      <span className="inline-flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-[#7fd3c9] group-hover:text-[#edeae5] transition-colors">
+      <p className="text-[#9298a6] text-[13px] leading-[1.7] mb-4">{description}</p>
+      <span className="inline-flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-[#aab6f5] group-hover:text-[#f2f3f5] transition-colors">
         {cta} <ArrowRight className="w-3 h-3" />
       </span>
     </motion.div>
@@ -104,7 +104,7 @@ export default function ClientDashboardView({
   const firstName = (user.full_name || user.email.split('@')[0]).split(' ')[0];
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c]">
+    <div className="min-h-screen bg-[#000000]">
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
 
         {/* Header row: greeting + search */}
@@ -116,10 +116,10 @@ export default function ClientDashboardView({
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">
+              <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] m-0">
                 Bonjour, {firstName}
               </h1>
-              <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0">Votre parcours d'investissement, étape par étape.</p>
+              <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mt-2 mb-0">Votre parcours d'investissement, étape par étape.</p>
             </div>
           </div>
         </motion.div>
@@ -175,11 +175,11 @@ export default function ClientDashboardView({
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-8 flex flex-col items-center justify-center min-h-[240px]"
+                    className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-8 flex flex-col items-center justify-center min-h-[240px]"
                   >
-                    <Building2 className="w-10 h-10 text-[#edeae5]/[0.06] mb-3" />
-                    <p className="text-[#edeae5]/20 text-sm mb-1">Aucun projet en cours</p>
-                    <p className="text-[#edeae5]/10 text-xs">Vos projets apparaîtront ici.</p>
+                    <Building2 className="w-10 h-10 text-[#f2f3f5]/[0.06] mb-3" />
+                    <p className="text-[#f2f3f5]/20 text-sm mb-1">Aucun projet en cours</p>
+                    <p className="text-[#f2f3f5]/10 text-xs">Vos projets apparaîtront ici.</p>
                   </motion.div>
                 )}
               </div>

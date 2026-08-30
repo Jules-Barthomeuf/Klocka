@@ -108,8 +108,8 @@ function IndividualProjectChart({ donneesProjet }) {
   return (
     <div className="space-y-4">
       {/* Patrimoine Chart */}
-      <div className="rounded-lg border border-[#171918] bg-[#0a0c0c]/30 p-4">
-        <p className="text-xs text-[#8b9391] uppercase tracking-wider mb-3">Évolution du patrimoine</p>
+      <div className="rounded-lg border border-[#0f1114] bg-[#000000]/30 p-4">
+        <p className="text-xs text-[#9298a6] uppercase tracking-wider mb-3">Évolution du patrimoine</p>
         <svg
           ref={chartRef}
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
@@ -121,7 +121,7 @@ function IndividualProjectChart({ donneesProjet }) {
           <path
             d={generatePath('patrimoine', getYPatrimoine)}
             fill="none"
-            stroke="#35a79b"
+            stroke="#8fa0f2"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -131,7 +131,7 @@ function IndividualProjectChart({ donneesProjet }) {
           <path
             d={generatePath('capital_restant', getYPatrimoine)}
             fill="none"
-            stroke="#ef4444"
+            stroke="#e8746a"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -147,7 +147,7 @@ function IndividualProjectChart({ donneesProjet }) {
                   x={getX(i)}
                   y={chartHeight - 10}
                   textAnchor="middle"
-                  className="text-[10px] fill-[#8b9391]"
+                  className="text-[10px] fill-[#9298a6]"
                 >
                   An {d.annee}
                 </text>
@@ -162,25 +162,25 @@ function IndividualProjectChart({ donneesProjet }) {
               cx={getX(displayIndex)}
               cy={getYPatrimoine(data[displayIndex].patrimoine)}
               r="5"
-              fill="#35a79b"
+              fill="#8fa0f2"
             />
             <circle
               cx={getX(displayIndex)}
               cy={getYPatrimoine(data[displayIndex].capital_restant)}
               r="5"
-              fill="#ef4444"
+              fill="#e8746a"
             />
           </>
         </svg>
         <div className="text-sm space-y-1 mt-2">
-          <p className="text-[#e0c9a0]">Patrimoine: {formatValue(data[displayIndex].patrimoine)}</p>
+          <p className="text-[#a9c5b9]">Patrimoine: {formatValue(data[displayIndex].patrimoine)}</p>
           <p className="text-red-400">Dette: {formatValue(data[displayIndex].capital_restant)}</p>
         </div>
       </div>
 
       {/* Cashflow Chart */}
-      <div className="rounded-lg border border-[#171918] bg-[#0a0c0c]/30 p-4">
-        <p className="text-xs text-[#8b9391] uppercase tracking-wider mb-3">Cashflow annuel</p>
+      <div className="rounded-lg border border-[#0f1114] bg-[#000000]/30 p-4">
+        <p className="text-xs text-[#9298a6] uppercase tracking-wider mb-3">Cashflow annuel</p>
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
           className="w-full h-32"
@@ -190,7 +190,7 @@ function IndividualProjectChart({ donneesProjet }) {
           <path
             d={generatePath('cashflow', getYCashflow)}
             fill="none"
-            stroke="#3b82f6"
+            stroke="#8fa0f2"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -205,7 +205,7 @@ function IndividualProjectChart({ donneesProjet }) {
                   x={getX(i)}
                   y={chartHeight - 10}
                   textAnchor="middle"
-                  className="text-[10px] fill-[#8b9391]"
+                  className="text-[10px] fill-[#9298a6]"
                 >
                   An {d.annee}
                 </text>
@@ -219,10 +219,10 @@ function IndividualProjectChart({ donneesProjet }) {
             cx={getX(displayIndex)}
             cy={getYCashflow(data[displayIndex].cashflow)}
             r="5"
-            fill="#3b82f6"
+            fill="#8fa0f2"
           />
         </svg>
-        <p className={`text-sm mt-2 ${data[displayIndex].cashflow >= 0 ? 'text-[#7fd3c9]' : 'text-red-400'}`}>
+        <p className={`text-sm mt-2 ${data[displayIndex].cashflow >= 0 ? 'text-[#aab6f5]' : 'text-red-400'}`}>
           An {data[displayIndex].annee}: {formatValue(data[displayIndex].cashflow)}
         </p>
       </div>
@@ -281,7 +281,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
         type: 'projet',
         label: `Projet ${idx + 1}`,
         montant: p.taille >= 1000 ? `${p.taille / 1000}M€` : `${p.taille}K€`,
-        color: '#e0c9a0'
+        color: '#a9c5b9'
       });
     }
   });
@@ -292,7 +292,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
       type: 'apport',
       label: 'Apport récupéré',
       montant: formatValue(apportTotal),
-      color: '#35a79b'
+      color: '#8fa0f2'
     });
   }
 
@@ -311,7 +311,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
       annee: crossoverYear,
       type: 'equilibre',
       label: 'Équilibre dette/patrimoine',
-      color: '#3b82f6'
+      color: '#8fa0f2'
     });
   }
 
@@ -320,7 +320,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
       annee: debtFullyPaidYear,
       type: 'dette_zero',
       label: 'Dette remboursée',
-      color: '#35a79b'
+      color: '#8fa0f2'
     });
   }
 
@@ -328,17 +328,17 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
 
   return (
     <div>
-      <h3 className="text-2xl text-[#edeae5] font-geist font-semibold mb-8">Votre parcours d'investissement</h3>
+      <h3 className="text-2xl text-[#f2f3f5] font-geist font-semibold mb-8">Votre parcours d'investissement</h3>
       
       <div className="grid lg:grid-cols-[300px_1fr] gap-8">
         {/* Timeline verticale minimaliste */}
         <div className="relative">
           {/* Ligne verticale */}
-          <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-[#edeae5]/10"></div>
+          <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-[#f2f3f5]/10"></div>
           
           {/* Progress bar */}
           <motion.div 
-            className="absolute left-6 top-0 w-[2px] bg-gradient-to-b from-[#35a79b] to-[#7fd3c9]"
+            className="absolute left-6 top-0 w-[2px] bg-gradient-to-b from-[#8fa0f2] to-[#aab6f5]"
             initial={{ height: 0 }}
             animate={{ height: `${(selectedYear / 30) * 100}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -366,19 +366,19 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
                   {/* Point */}
                   <div className="relative flex-shrink-0">
                     {isSelected ? (
-                      <div className="w-12 h-12 rounded-full bg-[#35a79b] border-4 border-black flex items-center justify-center">
-                        <span className="text-[#edeae5] text-sm font-bold">{annee}</span>
+                      <div className="w-12 h-12 rounded-full bg-[#8fa0f2] border-4 border-black flex items-center justify-center">
+                        <span className="text-[#f2f3f5] text-sm font-bold">{annee}</span>
                       </div>
                     ) : milestone ? (
                       <div 
                         className="w-10 h-10 rounded-full border-4 border-black flex items-center justify-center"
                         style={{ backgroundColor: milestone.color }}
                       >
-                        <span className="text-[#edeae5] text-xs font-bold">{annee}</span>
+                        <span className="text-[#f2f3f5] text-xs font-bold">{annee}</span>
                       </div>
                     ) : (
-                      <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center ${isPassed ? 'bg-[#edeae5]/20' : 'bg-[#edeae5]/5'}`}>
-                        <span className="text-[#edeae5]/60 text-xs">{annee}</span>
+                      <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center ${isPassed ? 'bg-[#f2f3f5]/20' : 'bg-[#f2f3f5]/5'}`}>
+                        <span className="text-[#f2f3f5]/60 text-xs">{annee}</span>
                       </div>
                     )}
                   </div>
@@ -386,9 +386,9 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
                   {/* Label */}
                   {milestone && (
                     <div className="flex-1">
-                      <p className="text-[#edeae5] text-sm font-medium">{milestone.label}</p>
+                      <p className="text-[#f2f3f5] text-sm font-medium">{milestone.label}</p>
                       {milestone.montant && (
-                        <p className="text-[#edeae5]/60 text-xs">{milestone.montant}</p>
+                        <p className="text-[#f2f3f5]/60 text-xs">{milestone.montant}</p>
                       )}
                     </div>
                   )}
@@ -412,45 +412,45 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
             >
               {/* Année sélectionnée */}
               <div className="mb-6">
-                <p className="text-[#edeae5]/60 text-sm mb-1">Année sélectionnée</p>
-                <h4 className="text-4xl font-bold text-[#edeae5]">Année {selectedData.annee}</h4>
+                <p className="text-[#f2f3f5]/60 text-sm mb-1">Année sélectionnée</p>
+                <h4 className="text-4xl font-bold text-[#f2f3f5]">Année {selectedData.annee}</h4>
               </div>
 
               {/* Patrimoine */}
-              <div className="p-6 bg-[#edeae5]/5 rounded-md border border-[#edeae5]/10">
+              <div className="p-6 bg-[#f2f3f5]/5 rounded-md border border-[#f2f3f5]/10">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#edeae5]/60 text-sm uppercase tracking-wider">Patrimoine net</p>
-                  <div className="w-2 h-2 rounded-full bg-[#35a79b]"></div>
+                  <p className="text-[#f2f3f5]/60 text-sm uppercase tracking-wider">Patrimoine net</p>
+                  <div className="w-2 h-2 rounded-full bg-[#8fa0f2]"></div>
                 </div>
-                <p className="text-3xl font-bold text-[#35a79b]">{formatValue(animatedPatrimoine)}</p>
+                <p className="text-3xl font-bold text-[#8fa0f2]">{formatValue(animatedPatrimoine)}</p>
               </div>
 
               {/* Cashflow annuel */}
-              <div className="p-6 bg-[#edeae5]/5 rounded-md border border-[#edeae5]/10">
+              <div className="p-6 bg-[#f2f3f5]/5 rounded-md border border-[#f2f3f5]/10">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#edeae5]/60 text-sm uppercase tracking-wider">Cashflow annuel</p>
-                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#35a79b]' : 'bg-[#ef4444]'}`}></div>
+                  <p className="text-[#f2f3f5]/60 text-sm uppercase tracking-wider">Cashflow annuel</p>
+                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#8fa0f2]' : 'bg-[#e8746a]'}`}></div>
                 </div>
-                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#35a79b]' : 'text-[#ef4444]'}`}>
+                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#8fa0f2]' : 'text-[#e8746a]'}`}>
                   {formatValue(animatedCashflow)}
                 </p>
               </div>
 
               {/* Cashflow mensuel */}
-              <div className="p-6 bg-[#edeae5]/5 rounded-md border border-[#edeae5]/10">
+              <div className="p-6 bg-[#f2f3f5]/5 rounded-md border border-[#f2f3f5]/10">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#edeae5]/60 text-sm uppercase tracking-wider">Cashflow mensuel</p>
-                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#35a79b]' : 'bg-[#ef4444]'}`}></div>
+                  <p className="text-[#f2f3f5]/60 text-sm uppercase tracking-wider">Cashflow mensuel</p>
+                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#8fa0f2]' : 'bg-[#e8746a]'}`}></div>
                 </div>
-                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#35a79b]' : 'text-[#ef4444]'}`}>
+                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#8fa0f2]' : 'text-[#e8746a]'}`}>
                   {formatValue(animatedCashflowMensuel)}
                 </p>
               </div>
 
               {/* Dette restante */}
-              <div className="p-6 bg-[#edeae5]/5 rounded-md border border-[#edeae5]/10">
+              <div className="p-6 bg-[#f2f3f5]/5 rounded-md border border-[#f2f3f5]/10">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#edeae5]/60 text-sm uppercase tracking-wider">Dette restante</p>
+                  <p className="text-[#f2f3f5]/60 text-sm uppercase tracking-wider">Dette restante</p>
                   <div className="w-2 h-2 rounded-full bg-red-400"></div>
                 </div>
                 <p className="text-3xl font-bold text-red-400">

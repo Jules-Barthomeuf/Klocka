@@ -1026,29 +1026,29 @@ export default function AdminProjets() {
     const ouvrirPanneau = (ongletFormulaire) => { if (ongletFormulaire) setActiveTab(ongletFormulaire); setAssistantOuvert(false); setPanneauOuvert(true); };
     const fermerPanneau = () => { setPanneauOuvert(false); rafraichirApercu(formData); };
     return (
-      <div className="h-screen flex flex-col bg-[#0a0c0c] text-[#edeae5] overflow-hidden">
+      <div className="h-screen flex flex-col bg-[#000000] text-[#f2f3f5] overflow-hidden">
         {/* Barre d'actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-7 py-3 border-b border-[#242726] flex-shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-7 py-3 border-b border-[#1f2228] flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <img src="/logo-klocka.svg" alt="" className="w-[18px] h-[18px] rounded-[4px]" draggable={false} />
             <div className="min-w-0">
               <p className="m-0 text-[15px] font-medium truncate">{formData.titre || (editingProject ? "Projet" : "Nouveau projet")}</p>
-              <p className="m-0 text-[11px] text-[#6b7270] max-md:hidden">Cliquez une valeur pour la modifier sur place — Entrée valide, Enregistrer sauvegarde.</p>
+              <p className="m-0 text-[11px] text-[#6a7180] max-md:hidden">Cliquez une valeur pour la modifier sur place — Entrée valide, Enregistrer sauvegarde.</p>
             </div>
           </div>
           <div className="flex gap-2 items-center flex-shrink-0">
             <span className="text-[11.5px] mr-1 hidden lg:block" title="État de l'enregistrement">
               {modifieDepuis
-                ? <span className="text-[#e0c9a0]">Modifications non enregistrées</span>
+                ? <span className="text-[#a9c5b9]">Modifications non enregistrées</span>
                 : enregistreLe
-                  ? <span className="text-[#7fd3c9]">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                  ? <span className="text-[#aab6f5]">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
                   : null}
             </span>
             <button
               onClick={annulerDerniereModification}
               disabled={!historique.length}
               title={historique.length ? "Annuler la dernière modification" : "Aucune modification à annuler"}
-              className="inline-flex items-center gap-2 bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Undo2 className="w-4 h-4" />
               Retour en arrière
@@ -1056,19 +1056,19 @@ export default function AdminProjets() {
             <button
               onClick={() => { setAssistantOuvert(true); setPanneauOuvert(false); }}
               title="Créer des champs personnalisés en langage naturel"
-              className="inline-flex items-center gap-2 bg-transparent border border-[#35a79b]/50 text-[#7fd3c9] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#35a79b]/[0.12] transition-colors"
+              className="inline-flex items-center gap-2 bg-transparent border border-[#8fa0f2]/50 text-[#aab6f5] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#8fa0f2]/[0.12] transition-colors"
             >
               <Sparkles className="w-4 h-4" />
               Assistant
             </button>
-            <button onClick={() => ouvrirPanneau(FORM_PAR_ONGLET[ongletPage] || "informations")} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Modifier les informations</button>
-            <button onClick={closeEditor} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Annuler</button>
+            <button onClick={() => ouvrirPanneau(FORM_PAR_ONGLET[ongletPage] || "informations")} className="bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors">Modifier les informations</button>
+            <button onClick={closeEditor} className="bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors">Annuler</button>
             {editingProject && (
-              <button onClick={goToProjectsList} className="bg-transparent border border-[#edeae5]/[0.14] text-[#C3C7CE] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#edeae5]/[0.06] transition-colors">Retour aux projets</button>
+              <button onClick={goToProjectsList} className="bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors">Retour aux projets</button>
             )}
             <button
               onClick={() => setAssignerOuvert(true)}
-              className="bg-transparent border border-[#e0c9a0]/50 text-[#e0c9a0] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#e0c9a0]/[0.08] transition-colors"
+              className="bg-transparent border border-[#a9c5b9]/50 text-[#a9c5b9] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#a9c5b9]/[0.08] transition-colors"
             >
               Assigner un client
             </button>
@@ -1080,7 +1080,7 @@ export default function AdminProjets() {
               />
             )}
             <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[13.5px] font-bold hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "#edeae5" }}>
+              className="inline-flex items-center gap-2 text-[#0f1114] rounded-md px-5 py-2.5 text-[13.5px] font-bold hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "#f2f3f5" }}>
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
             </button>
           </div>
@@ -1109,7 +1109,7 @@ export default function AdminProjets() {
                 {[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => (
                   <button key={o.value} onClick={() => setOngletPage(o.value)}
                     className={`text-[11px] tracking-[0.16em] uppercase py-1 border-b whitespace-nowrap transition-colors
-                      ${ongletPage === o.value ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#8b9391] hover:text-[#edeae5]"}`}>
+                      ${ongletPage === o.value ? "border-[#8fa0f2] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}>
                     {o.label}
                   </button>
                 ))}
@@ -1128,7 +1128,7 @@ export default function AdminProjets() {
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-[#6b7270] text-sm max-w-sm text-center px-6">
+              <p className="text-[#6a7180] text-sm max-w-sm text-center px-6">
                 Renseignez le projet dans le panneau, puis appuyez sur Entrée ou Enregistrer : la page projet apparaîtra ici.
               </p>
             </div>
@@ -1136,19 +1136,19 @@ export default function AdminProjets() {
         </div>
 
         {/* Assistant — panneau latéral droit */}
-        <div className={`fixed inset-y-0 right-0 z-[55] w-full md:w-[420px] bg-[#0F1116] border-l border-[#242726] flex flex-col transform transition-transform duration-300 ${assistantOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}>
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#242726] flex-shrink-0">
+        <div className={`fixed inset-y-0 right-0 z-[55] w-full md:w-[420px] bg-[#0f1114] border-l border-[#1f2228] flex flex-col transform transition-transform duration-300 ${assistantOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1f2228] flex-shrink-0">
             <span className="flex items-center gap-2 text-[15px] font-medium">
-              <Sparkles className="w-4 h-4 text-[#7fd3c9]" />
+              <Sparkles className="w-4 h-4 text-[#aab6f5]" />
               Assistant
             </span>
-            <button onClick={() => setAssistantOuvert(false)} className="text-[#8b9391] hover:text-[#edeae5] transition-colors" title="Fermer">
+            <button onClick={() => setAssistantOuvert(false)} className="text-[#9298a6] hover:text-[#f2f3f5] transition-colors" title="Fermer">
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-4">
-            <p className="text-[#8b9391] text-[13px] leading-[1.65] m-0">
+            <p className="text-[#9298a6] text-[13px] leading-[1.65] m-0">
               Décrivez les champs à créer, l'onglet où les placer et leur présentation —
               en lignes ou en grands chiffres comme la bande du haut. Ils sont ensuite
               modifiables au clic, déplaçables au glisser-déposer et supprimables.
@@ -1159,10 +1159,10 @@ export default function AdminProjets() {
               onChange={(e) => setAssistantPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) lancerAssistant(); }}
               placeholder="Ex. : ajoute « Hauteur sous plafond » et « Vitrine (ml) » dans l'onglet Bien, présentés comme les chiffres du haut."
-              className="w-full bg-[#0a0c0c] border border-[#282b2a] focus:border-[#35a79b] rounded-md px-3.5 py-3 text-[14px] text-[#edeae5] outline-none placeholder:text-[#4f5654] transition-colors"
+              className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#8fa0f2] rounded-md px-3.5 py-3 text-[14px] text-[#f2f3f5] outline-none placeholder:text-[#3a3f4a] transition-colors"
             />
-            <div className="border-t border-[#242726] pt-4">
-              <p className="text-[10px] tracking-[0.18em] uppercase text-[#6b7270] mb-2">Exemples</p>
+            <div className="border-t border-[#1f2228] pt-4">
+              <p className="text-[10px] tracking-[0.18em] uppercase text-[#6a7180] mb-2">Exemples</p>
               <div className="space-y-1.5">
                 {[
                   "Ajoute « Hauteur sous plafond » dans l'onglet Bien.",
@@ -1170,7 +1170,7 @@ export default function AdminProjets() {
                   "Ajoute « Bailleur » et « Syndic » dans l'onglet Copropriété.",
                 ].map((ex) => (
                   <button key={ex} onClick={() => setAssistantPrompt(ex)}
-                    className="block w-full text-left text-[12.5px] leading-[1.5] text-[#8b9391] hover:text-[#edeae5] bg-[#0a0c0c] border border-[#242726] hover:border-[#35a79b]/50 rounded px-3 py-2 transition-colors">
+                    className="block w-full text-left text-[12.5px] leading-[1.5] text-[#9298a6] hover:text-[#f2f3f5] bg-[#000000] border border-[#1f2228] hover:border-[#8fa0f2]/50 rounded px-3 py-2 transition-colors">
                     {ex}
                   </button>
                 ))}
@@ -1178,10 +1178,10 @@ export default function AdminProjets() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[#242726] flex-shrink-0">
-            <span className="text-[11px] text-[#6b7270]">⌘/Ctrl + Entrée</span>
+          <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[#1f2228] flex-shrink-0">
+            <span className="text-[11px] text-[#6a7180]">⌘/Ctrl + Entrée</span>
             <button onClick={lancerAssistant} disabled={assistantEnCours || !assistantPrompt.trim()}
-              className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#edeae5" }}>
+              className="inline-flex items-center gap-2 text-[#0f1114] rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#f2f3f5" }}>
               {assistantEnCours ? <><Loader2 className="w-4 h-4 animate-spin" />Création…</> : "Créer les champs"}
             </button>
           </div>
@@ -1189,20 +1189,20 @@ export default function AdminProjets() {
 
         {/* Panneau latéral des champs */}
         <div
-          className={`fixed inset-y-0 right-0 z-50 w-full md:w-[600px] bg-[#0F1116] border-l border-[#242726] flex flex-col transform transition-transform duration-300 ${panneauOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}
+          className={`fixed inset-y-0 right-0 z-50 w-full md:w-[600px] bg-[#0f1114] border-l border-[#1f2228] flex flex-col transform transition-transform duration-300 ${panneauOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
         >
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#242726] flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1f2228] flex-shrink-0">
             <span className="text-[15px] font-medium">{editorTabs.find(t => t.value === activeTab)?.label || "Modifier"}</span>
-            <button onClick={fermerPanneau} className="text-[#8b9391] hover:text-[#edeae5] transition-colors" title="Fermer — met la page à jour">
+            <button onClick={fermerPanneau} className="text-[#9298a6] hover:text-[#f2f3f5] transition-colors" title="Fermer — met la page à jour">
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex gap-1.5 px-4 py-2.5 border-b border-[#242726] overflow-x-auto flex-shrink-0">
+          <div className="flex gap-1.5 px-4 py-2.5 border-b border-[#1f2228] overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => setActiveTab(t.value)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors ${activeTab === t.value ? "text-[#0c0e0d] font-semibold bg-[#edeae5]" : "bg-[#edeae5]/[0.05] text-[#8b9391] hover:text-[#edeae5]"}`}>
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors ${activeTab === t.value ? "text-[#0f1114] font-semibold bg-[#f2f3f5]" : "bg-[#f2f3f5]/[0.05] text-[#9298a6] hover:text-[#f2f3f5]"}`}>
                 {t.label}
               </button>
             ))}
@@ -1210,21 +1210,21 @@ export default function AdminProjets() {
           <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
-                <div className="p-6 bg-[#121413] rounded-none border border-[#282b2a]">
+                <div className="p-6 bg-[#0f1114] rounded-none border border-[#1f2228]">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-[#edeae5]/[0.05] rounded-md flex items-center justify-center">
-                      <Brain className="w-6 h-6 text-[#8b9391]" />
+                    <div className="w-12 h-12 bg-[#f2f3f5]/[0.05] rounded-md flex items-center justify-center">
+                      <Brain className="w-6 h-6 text-[#9298a6]" />
                     </div>
                     <div>
-                      <h3 className="text-xl text-[#edeae5] font-light">Création assistée par IA</h3>
-                      <p className="text-[#edeae5]/30 text-sm">Collez du texte ou importez des documents pour remplir automatiquement</p>
+                      <h3 className="text-xl text-[#f2f3f5] font-light">Création assistée par IA</h3>
+                      <p className="text-[#f2f3f5]/30 text-sm">Collez du texte ou importez des documents pour remplir automatiquement</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <FField label="Importer depuis Google Drive">
                       <div className="flex gap-2">
                         <FInput value={driveSearchAddress} onChange={(e) => setDriveSearchAddress(e.target.value)} placeholder="Ex: 123 rue de la Paix, Paris" className="flex-1" />
-                        <Button onClick={handleSearchGoogleDrive} disabled={isSearchingDrive || !driveSearchAddress.trim()} className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] flex-shrink-0">
+                        <Button onClick={handleSearchGoogleDrive} disabled={isSearchingDrive || !driveSearchAddress.trim()} className="bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] flex-shrink-0">
                           {isSearchingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : <><FolderSearch className="w-4 h-4 mr-2" />Chercher</>}
                         </Button>
                       </div>
@@ -1237,12 +1237,12 @@ export default function AdminProjets() {
                         <FField className="flex-1">
                           <FInput value={newAiDocUrl} onChange={(e) => setNewAiDocUrl(e.target.value)} placeholder="Ou ajoutez une URL de document : https://exemple.com/document.pdf" />
                         </FField>
-                        <Button onClick={() => { if (newAiDocUrl.trim()) { setAiDocuments([...aiDocuments, convertGoogleDriveUrl(newAiDocUrl.trim())]); setNewAiDocUrl(""); } }} className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] h-[52px] flex-shrink-0"><Plus className="w-4 h-4" /></Button>
+                        <Button onClick={() => { if (newAiDocUrl.trim()) { setAiDocuments([...aiDocuments, convertGoogleDriveUrl(newAiDocUrl.trim())]); setNewAiDocUrl(""); } }} className="bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] h-[52px] flex-shrink-0"><Plus className="w-4 h-4" /></Button>
                       </div>
                       {aiDocuments.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {aiDocuments.map((url, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-[#edeae5]/[0.03] text-[#edeae5]/60 px-3 py-1.5 rounded-lg text-sm border border-[#242726]">
+                            <div key={idx} className="flex items-center gap-2 bg-[#f2f3f5]/[0.03] text-[#f2f3f5]/60 px-3 py-1.5 rounded-lg text-sm border border-[#1f2228]">
                               <FileText className="w-4 h-4" /><span>Document {idx + 1}</span>
                               <button onClick={() => setAiDocuments(aiDocuments.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
                             </div>
@@ -1250,8 +1250,8 @@ export default function AdminProjets() {
                         </div>
                       )}
                     </div>
-                    <button onClick={handleFullAIGeneration} disabled={isGeneratingAI || (!aiFullText && aiDocuments.length === 0)} className="w-full h-12 bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] rounded-md transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                      {isGeneratingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Analyse en cours...</> : <><Sparkles className="w-4 h-4 text-[#8b9391]" />Extraire les informations avec l'IA</>}
+                    <button onClick={handleFullAIGeneration} disabled={isGeneratingAI || (!aiFullText && aiDocuments.length === 0)} className="w-full h-12 bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] rounded-md transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                      {isGeneratingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Analyse en cours...</> : <><Sparkles className="w-4 h-4 text-[#9298a6]" />Extraire les informations avec l'IA</>}
                     </button>
                   </div>
                 </div>
@@ -1261,10 +1261,10 @@ export default function AdminProjets() {
 
               <TabsContent value="secteur" className="space-y-6 mt-0">
                 {/* Génération IA Secteur */}
-                <div className="p-5 bg-[#edeae5]/[0.03] rounded-md border border-[#2e3130]">
+                <div className="p-5 bg-[#f2f3f5]/[0.03] rounded-md border border-[#22262d]">
                   <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="w-5 h-5 text-[#8b9391]" />
-                    <h4 className="text-[#edeae5] text-sm font-medium">Générer les infos secteur avec l'IA</h4>
+                    <Sparkles className="w-5 h-5 text-[#9298a6]" />
+                    <h4 className="text-[#f2f3f5] text-sm font-medium">Générer les infos secteur avec l'IA</h4>
                   </div>
                   <div className="flex gap-2">
                     <FField className="flex-1">
@@ -1307,16 +1307,16 @@ export default function AdminProjets() {
                           setIsGeneratingAI(false);
                         }
                       }}
-                      className="bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] flex-shrink-0 h-[52px]"
+                      className="bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] flex-shrink-0 h-[52px]"
                     >
-                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-[#8b9391]" />Générer</>}
+                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-[#9298a6]" />Générer</>}
                     </Button>
                   </div>
                 </div>
 
                 {/* Ville & Secteur */}
                 <div className="space-y-4">
-                  <h3 className="text-lg text-[#edeae5]">Ville & Secteur</h3>
+                  <h3 className="text-lg text-[#f2f3f5]">Ville & Secteur</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <FField><FInput value={formData.ville_secteur_champ1} onChange={(e) => setFormData({...formData, ville_secteur_champ1: e.target.value})} placeholder="Champ 1 (ex: Ville)" /></FField>
                     <FField><FInput value={formData.ville_secteur_champ2} onChange={(e) => setFormData({...formData, ville_secteur_champ2: e.target.value})} placeholder="Champ 2 (ex: Département)" /></FField>
@@ -1328,13 +1328,13 @@ export default function AdminProjets() {
                   </div>
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-[#242726]">
+                <div className="space-y-4 pt-4 border-t border-[#1f2228]">
                   <div className="flex items-center justify-between">
-                    <Label className="text-[#edeae5]">Notes secteur</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
+                    <Label className="text-[#f2f3f5]">Notes secteur</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-[#1f2228] text-[#f2f3f5]/30 hover:text-[#f2f3f5] hover:border-[#3a3f4a]"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
                   </div>
                   {(formData.notes_secteur || []).map((note, idx) => (
-                    <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
+                    <div key={idx} className="p-4 bg-[#f2f3f5]/[0.02] rounded-lg space-y-3">
                       <div className="flex items-center gap-3">
                         <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const u = [...formData.notes_secteur]; u[idx].titre = e.target.value; setFormData({...formData, notes_secteur: u}); }} placeholder="Titre..." /></FField>
                         <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_secteur: formData.notes_secteur.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
@@ -1344,7 +1344,7 @@ export default function AdminProjets() {
                   ))}
                 </div>
                 <div>
-                  <h3 className="text-lg mb-4 text-[#edeae5]">Bien</h3>
+                  <h3 className="text-lg mb-4 text-[#f2f3f5]">Bien</h3>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <FField><FInput value={formData.bien_champ1} onChange={(e) => setFormData({...formData, bien_champ1: e.target.value})} placeholder="Champ 1 (Bien)" /></FField>
@@ -1354,13 +1354,13 @@ export default function AdminProjets() {
                     <FField label="Description bien"><FTextarea value={formData.description_bien} onChange={(e) => setFormData({...formData, description_bien: e.target.value})} rows={4} placeholder="Description du bien..." /></FField>
                   </div>
                 </div>
-                <div className="space-y-4 pt-4 border-t border-[#242726]">
+                <div className="space-y-4 pt-4 border-t border-[#1f2228]">
                   <div className="flex items-center justify-between">
-                    <Label className="text-[#edeae5]">Notes bien</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-[#242726] text-[#edeae5]/30 hover:text-[#edeae5] hover:border-[#565b59]"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
+                    <Label className="text-[#f2f3f5]">Notes bien</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-[#1f2228] text-[#f2f3f5]/30 hover:text-[#f2f3f5] hover:border-[#3a3f4a]"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
                   </div>
                   {(formData.notes_bien || []).map((note, idx) => (
-                    <div key={idx} className="p-4 bg-[#edeae5]/[0.02] rounded-lg space-y-3">
+                    <div key={idx} className="p-4 bg-[#f2f3f5]/[0.02] rounded-lg space-y-3">
                       <div className="flex items-center gap-3">
                         <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const u = [...formData.notes_bien]; u[idx].titre = e.target.value; setFormData({...formData, notes_bien: u}); }} placeholder="Titre..." /></FField>
                         <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_bien: formData.notes_bien.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
@@ -1381,10 +1381,10 @@ export default function AdminProjets() {
               <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} /></motion.div></TabsContent>
             </Tabs>
           </div>
-          <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[#242726] flex-shrink-0">
-            <span className="text-[11px] text-[#6b7270]">Entrée met la page à jour sans enregistrer.</span>
+          <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[#1f2228] flex-shrink-0">
+            <span className="text-[11px] text-[#6a7180]">Entrée met la page à jour sans enregistrer.</span>
             <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 text-[#0c0e0d] rounded-md px-5 py-2.5 text-[14px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#edeae5" }}>
+              className="inline-flex items-center gap-2 text-[#0f1114] rounded-md px-5 py-2.5 text-[14px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#f2f3f5" }}>
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
             </button>
           </div>
@@ -1421,50 +1421,50 @@ export default function AdminProjets() {
 
   const CHIFFRES = [
     { valeur: actifs.length, label: "Projets actifs" },
-    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-[#7fd3c9]" },
+    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-[#aab6f5]" },
     { valeur: compteur("financement"), label: "En financement" },
-    { valeur: compteur("signe"), label: "Signés", accent: "text-[#e0c9a0]" },
-    { valeur: nbArchives, label: "Archivés", accent: "text-[#8b9391]" },
+    { valeur: compteur("signe"), label: "Signés", accent: "text-[#a9c5b9]" },
+    { valeur: nbArchives, label: "Archivés", accent: "text-[#9298a6]" },
   ];
 
   return (
-    <div className="projet-editorial min-h-screen bg-[#0a0c0c] text-[#edeae5] px-5 md:px-10 py-8 md:py-12">
+    <div className="projet-editorial min-h-screen bg-[#000000] text-[#f2f3f5] px-5 md:px-10 py-8 md:py-12">
       <div className="max-w-[1400px] mx-auto">
         {/* En-tête */}
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>
-            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">Gestion des projets</h1>
-            <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0 max-w-[520px]">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
+            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] m-0">Gestion des projets</h1>
+            <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mt-2 mb-0 max-w-[520px]">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.08] transition-colors">
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#2c3139] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.08] transition-colors">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
         </div>
 
         {/* Bandeau de chiffres */}
-        <div className="flex flex-wrap border-t border-[#edeae5]/[0.35] mb-8 max-md:mb-6">
+        <div className="flex flex-wrap border-t border-[#f2f3f5]/[0.35] mb-8 max-md:mb-6">
           {CHIFFRES.map((c, i) => (
-            <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#edeae5]/[0.12] md:pl-6" : ""}`}>
-              <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-[#edeae5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
-              <div className="text-[12px] text-[#8b9391] mt-1">{c.label}</div>
+            <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#f2f3f5]/[0.12] md:pl-6" : ""}`}>
+              <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-[#f2f3f5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
+              <div className="text-[12px] text-[#9298a6] mt-1">{c.label}</div>
             </div>
           ))}
         </div>
 
         {/* Recherche + filtres */}
         <div className="mb-8 max-md:mb-6">
-          <div className="flex items-center gap-3 border-b border-[#edeae5]/[0.18] focus-within:border-[#565b59] transition-colors pb-2 mb-5">
-            <FolderSearch className="w-4 h-4 text-[#6b7270] flex-shrink-0" />
+          <div className="flex items-center gap-3 border-b border-[#f2f3f5]/[0.18] focus-within:border-[#3a3f4a] transition-colors pb-2 mb-5">
+            <FolderSearch className="w-4 h-4 text-[#6a7180] flex-shrink-0" />
             <input
               placeholder="Rechercher un projet, une adresse, un client…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-none text-[#edeae5] outline-none placeholder:text-[#6b7270] text-[15px] py-1"
+              className="w-full bg-transparent border-none text-[#f2f3f5] outline-none placeholder:text-[#6a7180] text-[15px] py-1"
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm("")} className="text-[#6b7270] hover:text-[#edeae5] transition-colors" title="Effacer">
+              <button onClick={() => setSearchTerm("")} className="text-[#6a7180] hover:text-[#f2f3f5] transition-colors" title="Effacer">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -1473,12 +1473,12 @@ export default function AdminProjets() {
           <div className="flex items-center gap-x-7 gap-y-2 flex-wrap">
             {FILTRES.map(({ v, l, n }) => (
               <button key={v} onClick={() => setStatusFilter(v)}
-                className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${statusFilter === v ? "text-[#edeae5] border-[#35a79b]" : "text-[#8b9391] border-transparent hover:text-[#edeae5]"}`}>
-                {l} <span className="text-[#6b7270]">{n}</span>
+                className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${statusFilter === v ? "text-[#f2f3f5] border-[#8fa0f2]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
+                {l} <span className="text-[#6a7180]">{n}</span>
               </button>
             ))}
             <button onClick={() => setShowArchived(!showArchived)}
-              className={`ml-auto inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${showArchived ? "text-[#e0c9a0] border-[#e0c9a0]" : "text-[#8b9391] border-transparent hover:text-[#edeae5]"}`}>
+              className={`ml-auto inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${showArchived ? "text-[#a9c5b9] border-[#a9c5b9]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
               <Archive className="w-3.5 h-3.5" />
               {showArchived ? "Masquer les archivés" : `Archivés ${nbArchives}`}
             </button>
@@ -1505,14 +1505,14 @@ export default function AdminProjets() {
           ))}
 
           {erreurProjets && (
-            <div className="col-span-full border-t border-[#edeae5]/[0.35] pt-10 pb-16 text-center">
-              <Building2 className="w-8 h-8 text-[#edeae5]/15 mx-auto mb-5" />
-              <h2 className="text-[22px] font-light text-[#edeae5] mb-2">Chargement impossible</h2>
-              <p className="text-[#8b9391] text-sm mb-6">
+            <div className="col-span-full border-t border-[#f2f3f5]/[0.35] pt-10 pb-16 text-center">
+              <Building2 className="w-8 h-8 text-[#f2f3f5]/15 mx-auto mb-5" />
+              <h2 className="text-[22px] font-light text-[#f2f3f5] mb-2">Chargement impossible</h2>
+              <p className="text-[#9298a6] text-sm mb-6">
                 Les projets n'ont pas pu être récupérés. Vérifiez votre connexion, puis réessayez.
               </p>
               <button onClick={() => rechargerProjets()}
-                className="text-[11px] tracking-[0.16em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                className="text-[11px] tracking-[0.16em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
                 Réessayer
               </button>
             </div>
@@ -1520,29 +1520,29 @@ export default function AdminProjets() {
 
           {chargementProjets && !erreurProjets && (
             <div className="col-span-full pt-16 pb-16 flex justify-center">
-              <div className="w-6 h-6 border-2 border-[#35a79b]/30 border-t-[#35a79b] rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin" />
             </div>
           )}
 
           {!chargementProjets && !erreurProjets && projetsVisibles.length === 0 && (
-            <div className="col-span-full border-t border-[#edeae5]/[0.35] pt-10 pb-16 text-center">
-              <Building2 className="w-8 h-8 text-[#edeae5]/15 mx-auto mb-5" />
-              <h2 className="text-[22px] font-light text-[#edeae5] mb-2">
+            <div className="col-span-full border-t border-[#f2f3f5]/[0.35] pt-10 pb-16 text-center">
+              <Building2 className="w-8 h-8 text-[#f2f3f5]/15 mx-auto mb-5" />
+              <h2 className="text-[22px] font-light text-[#f2f3f5] mb-2">
                 {projects.length === 0 ? "Aucun projet" : "Aucun projet ne correspond"}
               </h2>
-              <p className="text-[#8b9391] text-sm mb-6">
+              <p className="text-[#9298a6] text-sm mb-6">
                 {projects.length === 0
                   ? "Créez le premier dossier pour commencer."
                   : "Élargissez la recherche ou changez de filtre."}
               </p>
               {projects.length === 0 ? (
                 <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase border border-[#3a3e3c] text-[#edeae5] hover:bg-[#edeae5]/[0.08] transition-colors">
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase border border-[#2c3139] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.08] transition-colors">
                   <Plus className="w-4 h-4" /> Créer un projet
                 </button>
               ) : (
                 <button onClick={() => { setSearchTerm(""); setStatusFilter("all"); setShowArchived(false); }}
-                  className="text-[11px] tracking-[0.16em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                  className="text-[11px] tracking-[0.16em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
                   Réinitialiser les filtres
                 </button>
               )}

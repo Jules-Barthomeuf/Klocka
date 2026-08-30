@@ -150,11 +150,11 @@ export default function Assistant() {
   const aller = (pas) => setIndex((i) => (i + pas + COMPETENCES.length) % COMPETENCES.length);
 
   return (
-    <div className="bg-[#0a0c0c] min-h-screen text-[#edeae5]">
+    <div className="bg-[#000000] min-h-screen text-[#f2f3f5]">
       <div className="max-w-[900px] mx-auto px-4 md:px-8 py-8 md:py-12">
-        <div className="text-[11px] tracking-[.16em] uppercase text-[#8b9391] mb-2.5">Assistant</div>
+        <div className="text-[11px] tracking-[.16em] uppercase text-[#9298a6] mb-2.5">Assistant</div>
         <h1 className="m-0 text-[30px] max-md:text-[24px] font-light tracking-[-.02em]">Ce qu'il sait faire</h1>
-        <p className="mt-3 mb-0 max-w-[64ch] text-[13.5px] leading-[1.7] text-[#9aa19e]">
+        <p className="mt-3 mb-0 max-w-[64ch] text-[13.5px] leading-[1.7] text-[#9298a6]">
           La barre en bas à droite est toujours là : on lui écrit comme on parlerait à un collègue.
           Il cherche, vérifie, calcule, rédige et range — mais il ne décide jamais à votre place, et
           rien ne part vers l'extérieur sans que vous l'ayez relu. Il sait sur quel dossier vous êtes :
@@ -163,28 +163,28 @@ export default function Assistant() {
         </p>
 
         {/* Le carrousel : une compétence à la fois, pour qu'on la lise vraiment. */}
-        <div className="relative mt-9 border border-[#282b2a] rounded-lg bg-[#0c0e0d] p-6 md:p-8">
+        <div className="relative mt-9 border border-[#1f2228] rounded-lg bg-[#0f1114] p-6 md:p-8">
           <div className="flex items-start gap-4 mb-5">
-            <span className="w-10 h-10 rounded-md bg-[#35a79b]/15 text-[#7fd3c9] flex items-center justify-center flex-shrink-0">
+            <span className="w-10 h-10 rounded-md bg-[#8fa0f2]/15 text-[#aab6f5] flex items-center justify-center flex-shrink-0">
               <Icone className="w-5 h-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="m-0 text-[10px] tracking-[.16em] uppercase text-[#6b7270]">
+              <p className="m-0 text-[10px] tracking-[.16em] uppercase text-[#6a7180]">
                 {index + 1} / {COMPETENCES.length}
               </p>
               <h2 className="m-0 mt-1 text-[20px] font-medium leading-snug">{c.titre}</h2>
             </div>
           </div>
 
-          <p className="m-0 text-[14px] leading-[1.75] text-[#d3d8d6]">{c.quoi}</p>
+          <p className="m-0 text-[14px] leading-[1.75] text-[#c9cdd6]">{c.quoi}</p>
 
           <div className="mt-6">
-            <p className="m-0 mb-2.5 text-[10px] tracking-[.16em] uppercase text-[#6b7270]">À lui dire</p>
+            <p className="m-0 mb-2.5 text-[10px] tracking-[.16em] uppercase text-[#6a7180]">À lui dire</p>
             <div className="space-y-2">
               {c.exemples.map((e) => (
                 <p
                   key={e}
-                  className="m-0 text-[13.5px] text-[#edeae5] border border-[#242726] rounded-md px-3.5 py-2.5 bg-[#0a0c0c]"
+                  className="m-0 text-[13.5px] text-[#f2f3f5] border border-[#1f2228] rounded-md px-3.5 py-2.5 bg-[#000000]"
                 >
                   « {e} »
                 </p>
@@ -192,21 +192,21 @@ export default function Assistant() {
             </div>
           </div>
 
-          <p className="m-0 mt-6 text-[12.5px] leading-[1.6] text-[#e0c9a0]/80 border-t border-[#242726] pt-4">
+          <p className="m-0 mt-6 text-[12.5px] leading-[1.6] text-[#a9c5b9]/80 border-t border-[#1f2228] pt-4">
             {c.limite}
           </p>
 
           <button
             onClick={() => aller(-1)}
             title="Précédent"
-            className="absolute -left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#0a0c0c] border border-[#303332] flex items-center justify-center text-[#d3d8d6] hover:text-[#edeae5] hover:border-[#edeae5]/[0.3] transition-colors"
+            className="absolute -left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#000000] border border-[#22262d] flex items-center justify-center text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.3] transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => aller(1)}
             title="Suivant"
-            className="absolute -right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#0a0c0c] border border-[#303332] flex items-center justify-center text-[#d3d8d6] hover:text-[#edeae5] hover:border-[#edeae5]/[0.3] transition-colors"
+            className="absolute -right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#000000] border border-[#22262d] flex items-center justify-center text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.3] transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -219,12 +219,12 @@ export default function Assistant() {
               key={x.id}
               onClick={() => setIndex(i)}
               title={x.titre}
-              className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-[#35a79b]" : "w-1.5 bg-[#edeae5]/20 hover:bg-[#edeae5]/40"}`}
+              className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-[#8fa0f2]" : "w-1.5 bg-[#f2f3f5]/20 hover:bg-[#f2f3f5]/40"}`}
             />
           ))}
         </div>
 
-        <p className="mt-10 mb-0 text-[12.5px] leading-[1.7] text-[#6b7270] border-t border-[#242726] pt-5">
+        <p className="mt-10 mb-0 text-[12.5px] leading-[1.7] text-[#6a7180] border-t border-[#1f2228] pt-5">
           Deux choses qu'il ne fait pas, volontairement. Il ne décide pas : les verdicts sont produits
           par le moteur de règles, en clair, et se relisent. Et il n'envoie rien de lui-même — un mail
           maladroit chez un agent coûte plus cher que trente secondes de relecture.

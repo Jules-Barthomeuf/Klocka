@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-export default function AnimatedBackground({ color = "#35a79b", tintOpacity = 0.6 }) {
+export default function AnimatedBackground({ color = "#8fa0f2", tintOpacity = 0.6 }) {
   useEffect(() => {
     // Load Unicorn Studio script
     if (!window.UnicornStudio) {
@@ -31,7 +31,7 @@ export default function AnimatedBackground({ color = "#35a79b", tintOpacity = 0.
       />
       
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c0c]/80 via-transparent to-[#0a0c0c]/90" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/80 via-transparent to-[#000000]/90" />
     </div>
   );
 }

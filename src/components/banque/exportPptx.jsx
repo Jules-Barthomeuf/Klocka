@@ -23,7 +23,7 @@ export default async function exportPptx(slides, title, slideRef, setCurrent) {
     // Capture at 2x for quality
     const canvas = await html2canvas(slideRef.current, {
       scale: 2,
-      backgroundColor: "#2D2D2D",
+      backgroundColor: "#22262d",
       useCORS: true,
       allowTaint: true,
     });

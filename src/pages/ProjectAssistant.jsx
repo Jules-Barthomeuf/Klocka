@@ -36,9 +36,9 @@ return (
 
 {!isUser && (
 
-<div className="h-7 w-7 rounded-lg bg-[#35a79b]/20 flex items-center justify-center mt-0.5 flex-shrink-0">
+<div className="h-7 w-7 rounded-lg bg-[#8fa0f2]/20 flex items-center justify-center mt-0.5 flex-shrink-0">
 
-<div className="h-1.5 w-1.5 rounded-full bg-[#35a79b]" />
+<div className="h-1.5 w-1.5 rounded-full bg-[#8fa0f2]" />
 
 </div>
 
@@ -50,7 +50,7 @@ return (
 
 <div className={`rounded-md px-4 py-2.5 ${
 
-isUser ? "bg-[#35a79b] text-[#edeae5]" : "bg-[#171918] border border-[#303332]"
+isUser ? "bg-[#8fa0f2] text-[#f2f3f5]" : "bg-[#0f1114] border border-[#22262d]"
 
 }`}>
 
@@ -66,23 +66,23 @@ className="text-sm prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0
 
 components={{
 
-p: ({ children }) => <p className="my-1 leading-relaxed text-[#edeae5]">{children}</p>,
+p: ({ children }) => <p className="my-1 leading-relaxed text-[#f2f3f5]">{children}</p>,
 
-ul: ({ children }) => <ul className="my-1 ml-4 list-disc text-[#edeae5]">{children}</ul>,
+ul: ({ children }) => <ul className="my-1 ml-4 list-disc text-[#f2f3f5]">{children}</ul>,
 
-ol: ({ children }) => <ol className="my-1 ml-4 list-decimal text-[#edeae5]">{children}</ol>,
+ol: ({ children }) => <ol className="my-1 ml-4 list-decimal text-[#f2f3f5]">{children}</ol>,
 
-li: ({ children }) => <li className="my-0.5 text-[#edeae5]">{children}</li>,
+li: ({ children }) => <li className="my-0.5 text-[#f2f3f5]">{children}</li>,
 
-strong: ({ children }) => <strong className="text-[#7fd3c9]">{children}</strong>,
+strong: ({ children }) => <strong className="text-[#aab6f5]">{children}</strong>,
 
 code: ({ inline, children }) =>
 
 inline ?
 
-<code className="px-1 py-0.5 rounded bg-[#0a0c0c] text-[#7fd3c9] text-xs">{children}</code> :
+<code className="px-1 py-0.5 rounded bg-[#000000] text-[#aab6f5] text-xs">{children}</code> :
 
-<code className="block p-2 rounded bg-[#0a0c0c] text-[#edeae5] text-xs">{children}</code>
+<code className="block p-2 rounded bg-[#000000] text-[#f2f3f5] text-xs">{children}</code>
 
 }}
 
@@ -104,7 +104,7 @@ inline ?
 
 {message.tool_calls.map((toolCall, idx) => (
 
-<div key={idx} className="text-xs text-[#9aa19e] bg-[#171918]/50 px-3 py-1.5 rounded-lg border border-[#303332]">
+<div key={idx} className="text-xs text-[#9298a6] bg-[#0f1114]/50 px-3 py-1.5 rounded-lg border border-[#22262d]">
 
 {toolCall.name?.split('.').reverse()[0] || 'Action'}
 
@@ -382,11 +382,11 @@ if (!isInitialized) {
 
 return (
 
-<div className="flex items-center justify-center min-h-screen bg-[#0a0c0c]">
+<div className="flex items-center justify-center min-h-screen bg-[#000000]">
 
 <div className="relative w-16 h-4">
 
-<div className="absolute w-3 h-3 bg-[#35a79b] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
+<div className="absolute w-3 h-3 bg-[#8fa0f2] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
 
 </div>
 
@@ -411,10 +411,10 @@ return (
 
 return (
 
-<div className="min-h-screen bg-[#0a0c0c] flex">
+<div className="min-h-screen bg-[#000000] flex">
 
 {/* Lumière en haut */}
-<div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-gradient-to-br from-[#35a79b] via-indigo-500 to-blue-500 opacity-20 blur-[120px] pointer-events-none" />
+<div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-gradient-to-br from-[#8fa0f2] via-indigo-500 to-blue-500 opacity-20 blur-[120px] pointer-events-none" />
 
 <div className="flex-1 transition-all duration-300">
 
@@ -426,7 +426,7 @@ return (
 
 <div className="flex items-center gap-4">
 
-<h1 className="text-3xl max-md:text-2xl font-geist tracking-tighter text-[#edeae5]">
+<h1 className="text-3xl max-md:text-2xl font-geist tracking-tighter text-[#f2f3f5]">
 
 Assistant Klocka
 
@@ -453,11 +453,11 @@ Nouvelle conversation
 
 {/* Chat Container */}
 
-<div className="relative rounded-[1.25rem] border-[0.75px] border-[#303332] p-2 md:rounded-[1.5rem] md:p-3">
+<div className="relative rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
 
 <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
 
-<Card className="relative bg-gradient-to-br from-[#0a0c0c]/95 via-[#35a79b]/5 to-[#0a0c0c]/95 border-none h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col">
+<Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#8fa0f2]/5 to-[#000000]/95 border-none h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col">
 
 {/* Messages */}
 
@@ -467,15 +467,15 @@ Nouvelle conversation
 
 <div className="flex flex-col items-center justify-center h-full text-center">
 
-<div className="w-16 h-16 bg-[#35a79b]/20 rounded-full flex items-center justify-center mb-4">
+<div className="w-16 h-16 bg-[#8fa0f2]/20 rounded-full flex items-center justify-center mb-4">
 
-<div className="w-8 h-8 bg-[#35a79b] rounded-full" />
+<div className="w-8 h-8 bg-[#8fa0f2] rounded-full" />
 
 </div>
 
-<h3 className="text-2xl text-[#edeae5] mb-3 font-geist font-semibold">Comment puis-je vous aider ?</h3>
+<h3 className="text-2xl text-[#f2f3f5] mb-3 font-geist font-semibold">Comment puis-je vous aider ?</h3>
 
-<p className="text-[#9aa19e] text-sm max-w-md mb-8">
+<p className="text-[#9298a6] text-sm max-w-md mb-8">
 
 Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer les investissements et plus encore.
 
@@ -497,15 +497,15 @@ Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer l
 
 <div className="flex gap-3 justify-start">
 
-<div className="h-7 w-7 rounded-lg bg-[#35a79b]/20 flex items-center justify-center mt-0.5">
+<div className="h-7 w-7 rounded-lg bg-[#8fa0f2]/20 flex items-center justify-center mt-0.5">
 
-<Loader2 className="h-4 w-4 text-[#35a79b] animate-spin" />
+<Loader2 className="h-4 w-4 text-[#8fa0f2] animate-spin" />
 
 </div>
 
-<div className="bg-[#171918] border border-[#303332] rounded-md px-4 py-2.5">
+<div className="bg-[#0f1114] border border-[#22262d] rounded-md px-4 py-2.5">
 
-<p className="text-sm text-[#9aa19e]">En train d'analyser...</p>
+<p className="text-sm text-[#9298a6]">En train d'analyser...</p>
 
 </div>
 
@@ -524,9 +524,9 @@ Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer l
 
 {/* Input */}
 
-<div className="p-4 md:p-6 bg-[#0a0c0c]/50">
+<div className="p-4 md:p-6 bg-[#000000]/50">
 
-<div className="bg-[#0a0c0c] rounded-md border border-[#303332]">
+<div className="bg-[#000000] rounded-md border border-[#22262d]">
 
 <div className="overflow-y-auto">
 
@@ -568,13 +568,13 @@ className={cn(
 
 "border-none",
 
-"text-[#edeae5] text-sm",
+"text-[#f2f3f5] text-sm",
 
 "focus:outline-none",
 
 "focus-visible:ring-0 focus-visible:ring-offset-0",
 
-"placeholder:text-[#8b9391] placeholder:text-sm",
+"placeholder:text-[#9298a6] placeholder:text-sm",
 
 "min-h-[60px]"
 
@@ -607,9 +607,9 @@ className={cn(
 
 inputValue.trim() && !isLoading
 
-? "bg-[#35a79b] text-[#edeae5] hover:bg-[#35a79b]/90"
+? "bg-[#8fa0f2] text-[#f2f3f5] hover:bg-[#8fa0f2]/90"
 
-: "bg-[#171918] text-[#8b9391] cursor-not-allowed"
+: "bg-[#0f1114] text-[#9298a6] cursor-not-allowed"
 
 )}
 
@@ -648,7 +648,7 @@ adjustHeight();
 
 }}
 
-className="flex items-center gap-2 px-4 py-2 bg-[#0a0c0c] hover:bg-[#171918] rounded-full border border-[#303332] text-[#9aa19e] hover:text-[#edeae5] transition-colors"
+className="flex items-center gap-2 px-4 py-2 bg-[#000000] hover:bg-[#0f1114] rounded-full border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
 
 >
 
@@ -668,7 +668,7 @@ adjustHeight();
 
 }}
 
-className="flex items-center gap-2 px-4 py-2 bg-[#0a0c0c] hover:bg-[#171918] rounded-full border border-[#303332] text-[#9aa19e] hover:text-[#edeae5] transition-colors"
+className="flex items-center gap-2 px-4 py-2 bg-[#000000] hover:bg-[#0f1114] rounded-full border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
 
 >
 
@@ -688,7 +688,7 @@ adjustHeight();
 
 }}
 
-className="flex items-center gap-2 px-4 py-2 bg-[#0a0c0c] hover:bg-[#171918] rounded-full border border-[#303332] text-[#9aa19e] hover:text-[#edeae5] transition-colors"
+className="flex items-center gap-2 px-4 py-2 bg-[#000000] hover:bg-[#0f1114] rounded-full border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
 
 >
 
@@ -708,7 +708,7 @@ adjustHeight();
 
 }}
 
-className="flex items-center gap-2 px-4 py-2 bg-[#0a0c0c] hover:bg-[#171918] rounded-full border border-[#303332] text-[#9aa19e] hover:text-[#edeae5] transition-colors"
+className="flex items-center gap-2 px-4 py-2 bg-[#000000] hover:bg-[#0f1114] rounded-full border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
 
 >
 

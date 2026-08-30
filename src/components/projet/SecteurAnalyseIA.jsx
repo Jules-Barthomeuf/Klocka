@@ -176,7 +176,7 @@ export function useAnalyseIA(project) {
 }
 
 function SkeletonLine({ w = "100%" }) {
-  return <div className="h-3 bg-[#edeae5]/[0.07] animate-pulse" style={{ width: w }} />;
+  return <div className="h-3 bg-[#f2f3f5]/[0.07] animate-pulse" style={{ width: w }} />;
 }
 
 const TITRES_ONGLETS = {
@@ -207,28 +207,28 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
       <SkeletonLine w="72%" />
     </div>
   ) : (
-    <p className={`${vertical ? "text-[13.5px]" : "text-[14.5px] max-md:text-[13.5px]"} leading-[1.75] text-[#d3d8d6] mb-0`}>{texte}</p>
+    <p className={`${vertical ? "text-[13.5px]" : "text-[14.5px] max-md:text-[13.5px]"} leading-[1.75] text-[#c9cdd6] mb-0`}>{texte}</p>
   );
 
   if (vertical) {
     return (
-      <div className="border-l-2 border-[#35a79b] pl-5 py-1">
+      <div className="border-l-2 border-[#8fa0f2] pl-5 py-1">
         <div className="flex items-center gap-2 mb-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#7fd3c9]" />
-          <span className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9]">Analyse Klocka</span>
+          <Sparkles className="w-3.5 h-3.5 text-[#aab6f5]" />
+          <span className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5]">Analyse Klocka</span>
         </div>
-        {sousTitre && <div className="text-[10px] tracking-[0.18em] uppercase text-[#8b9391] mb-3">{sousTitre}</div>}
+        {sousTitre && <div className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6] mb-3">{sousTitre}</div>}
         <div className={vertical ? "transition-opacity duration-300" : ""} key={section || "general"}>{corps}</div>
       </div>
     );
   }
 
   return (
-    <div className="border border-[#35a79b]/40 bg-[#35a79b]/[0.05] px-6 py-5 max-md:px-4 max-md:py-4 mb-8 max-md:mb-6">
+    <div className="border border-[#8fa0f2]/40 bg-[#8fa0f2]/[0.05] px-6 py-5 max-md:px-4 max-md:py-4 mb-8 max-md:mb-6">
       <div className="flex items-center gap-2 mb-2.5">
-        <Sparkles className="w-3.5 h-3.5 text-[#7fd3c9]" />
-        <span className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9]">Analyse Klocka</span>
-        {sousTitre && <span className="text-[10px] tracking-[0.18em] uppercase text-[#8b9391]">· {sousTitre}</span>}
+        <Sparkles className="w-3.5 h-3.5 text-[#aab6f5]" />
+        <span className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5]">Analyse Klocka</span>
+        {sousTitre && <span className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6]">· {sousTitre}</span>}
       </div>
       {corps}
     </div>
@@ -250,12 +250,12 @@ function InfoDot({ texte }) {
         onMouseLeave={() => setOpen(false)}
         onBlur={() => setOpen(false)}
         className={`w-[15px] h-[15px] rounded-full border text-[9px] leading-none flex items-center justify-center transition-colors
-          ${open ? "border-[#7fd3c9] text-[#7fd3c9]" : "border-[#edeae5]/25 text-[#8b9391] hover:border-[#7fd3c9] hover:text-[#7fd3c9]"}`}
+          ${open ? "border-[#aab6f5] text-[#aab6f5]" : "border-[#f2f3f5]/25 text-[#9298a6] hover:border-[#aab6f5] hover:text-[#aab6f5]"}`}
       >
         i
       </button>
       {open && (
-        <span className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-30 w-64 max-md:w-52 bg-[#121413] border border-[#303332] px-3.5 py-3 text-[12px] leading-[1.6] text-[#d3d8d6] text-left normal-case tracking-normal shadow-xl">
+        <span className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-30 w-64 max-md:w-52 bg-[#0f1114] border border-[#22262d] px-3.5 py-3 text-[12px] leading-[1.6] text-[#c9cdd6] text-left normal-case tracking-normal shadow-xl">
           {texte}
         </span>
       )}
@@ -267,12 +267,12 @@ function ChiffresStrip({ chiffres }) {
   const list = (chiffres || []).filter((c) => c && c.valeur);
   if (!list.length) return null;
   return (
-    <div className="flex flex-wrap border-t border-[#edeae5]/[0.35] mb-5">
+    <div className="flex flex-wrap border-t border-[#f2f3f5]/[0.35] mb-5">
       {list.map((c, i) => (
-        <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-4 max-md:py-3 pr-5 ${i > 0 ? "md:border-l md:border-[#edeae5]/[0.12] md:pl-5" : ""}`}>
-          <div className="text-[22px] max-md:text-[18px] font-light text-[#edeae5]" style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
+        <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-4 max-md:py-3 pr-5 ${i > 0 ? "md:border-l md:border-[#f2f3f5]/[0.12] md:pl-5" : ""}`}>
+          <div className="text-[22px] max-md:text-[18px] font-light text-[#f2f3f5]" style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
           <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[11px] text-[#8b9391]">{c.label}</span>
+            <span className="text-[11px] text-[#9298a6]">{c.label}</span>
             <InfoDot texte={c.info} />
           </div>
         </div>
@@ -287,8 +287,8 @@ function PointsList({ points }) {
   return (
     <ul className="md:columns-2 md:gap-10 space-y-2.5 list-none pl-0 mb-0">
       {list.map((p, i) => (
-        <li key={i} className="flex gap-2.5 text-[14px] leading-[1.7] text-[#d3d8d6] break-inside-avoid">
-          <span className="text-[#35a79b] flex-shrink-0 mt-[7px] w-1 h-1 rounded-full bg-[#35a79b]" />
+        <li key={i} className="flex gap-2.5 text-[14px] leading-[1.7] text-[#c9cdd6] break-inside-avoid">
+          <span className="text-[#8fa0f2] flex-shrink-0 mt-[7px] w-1 h-1 rounded-full bg-[#8fa0f2]" />
           <span>{p}</span>
         </li>
       ))}
@@ -301,7 +301,7 @@ function Bloc({ label, nom, chiffres, points, loading, fallback }) {
   if (!loading && !hasIA && !fallback) return null;
   return (
     <div className="mb-8 max-md:mb-6 last:mb-0">
-      <div className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] mb-3">
+      <div className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6] mb-3">
         {label}{nom ? ` — ${nom}` : ""}
       </div>
       {loading && !hasIA ? (
@@ -316,7 +316,7 @@ function Bloc({ label, nom, chiffres, points, loading, fallback }) {
           <PointsList points={points} />
         </>
       ) : (
-        <p className="text-[14px] leading-[1.8] text-[#d3d8d6] text-justify whitespace-pre-wrap mb-0">{fallback}</p>
+        <p className="text-[14px] leading-[1.8] text-[#c9cdd6] text-justify whitespace-pre-wrap mb-0">{fallback}</p>
       )}
     </div>
   );
@@ -332,7 +332,7 @@ export default function VilleSecteurIA({ analyse, villeData, secteurData, loadin
   const rien = !loading && !ville && !secteur && !project.description_ville && !project.description_secteur;
 
   if (rien) {
-    return <p className="text-[#8b9391] text-sm mb-0">Aucune donnée disponible pour ce secteur.</p>;
+    return <p className="text-[#9298a6] text-sm mb-0">Aucune donnée disponible pour ce secteur.</p>;
   }
 
   return (
@@ -353,15 +353,15 @@ export default function VilleSecteurIA({ analyse, villeData, secteurData, loadin
         loading={attenteIA}
         fallback={project.description_secteur}
       />
-      <p className="text-[10.5px] text-[#6b7270] mb-0">Ordres de grandeur — INSEE (recensement 2022), observatoires notariaux et données publiques des collectivités.</p>
+      <p className="text-[10.5px] text-[#6a7180] mb-0">Ordres de grandeur — INSEE (recensement 2022), observatoires notariaux et données publiques des collectivités.</p>
       {!isPublic && (
         <div className="flex items-center gap-3 mt-3">
           <button onClick={refresh} disabled={loading}
-            className="inline-flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-[#8b9391] hover:text-[#edeae5] transition-colors disabled:opacity-40">
+            className="inline-flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-[#9298a6] hover:text-[#f2f3f5] transition-colors disabled:opacity-40">
             <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
             Actualiser l'analyse
           </button>
-          {error && <span className="text-[11px] text-[#e0c9a0]">{error}</span>}
+          {error && <span className="text-[11px] text-[#a9c5b9]">{error}</span>}
         </div>
       )}
     </div>

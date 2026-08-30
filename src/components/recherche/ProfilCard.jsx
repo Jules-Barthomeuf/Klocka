@@ -4,12 +4,12 @@ import { Info } from "lucide-react";
 function SectionBlock({ section, color }) {
   return (
     <div className="mb-6">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-[#edeae5]/40 mb-4 font-medium">{section.titre}</p>
+      <p className="text-[10px] uppercase tracking-[0.2em] text-[#f2f3f5]/40 mb-4 font-medium">{section.titre}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {section.items.map((item, idx) => (
-          <div key={idx} className="p-3 rounded-md bg-[#edeae5]/[0.03] border border-[#242726]">
-            <p className="text-sm font-medium text-[#edeae5] mb-1">{item.label}</p>
-            <p className="text-xs text-[#edeae5]/50 whitespace-pre-line leading-relaxed">{item.desc}</p>
+          <div key={idx} className="p-3 rounded-md bg-[#f2f3f5]/[0.03] border border-[#1f2228]">
+            <p className="text-sm font-medium text-[#f2f3f5] mb-1">{item.label}</p>
+            <p className="text-xs text-[#f2f3f5]/50 whitespace-pre-line leading-relaxed">{item.desc}</p>
           </div>
         ))}
       </div>
@@ -36,7 +36,7 @@ export default function ProfilCard({ profil }) {
         <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ backgroundColor: `${color}20`, color: color, border: `1px solid ${color}40` }}>
           {profil.label} €
         </span>
-        <h2 className="text-lg md:text-xl font-light text-[#edeae5]">{titre}</h2>
+        <h2 className="text-lg md:text-xl font-light text-[#f2f3f5]">{titre}</h2>
       </div>
 
       {/* Sections */}
@@ -47,7 +47,7 @@ export default function ProfilCard({ profil }) {
       {/* Types de commerce exclus */}
       {profil.typesCommerceExclus && profil.typesCommerceExclus.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#edeae5]/40 mb-3 font-medium">TYPES DE COMMERCE EXCLUS</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#f2f3f5]/40 mb-3 font-medium">TYPES DE COMMERCE EXCLUS</p>
           <div className="flex flex-wrap gap-2">
             {profil.typesCommerceExclus.map((type, idx) => (
               <span key={idx} className="text-xs px-3 py-1.5 rounded-full border border-red-500/40 text-red-400">

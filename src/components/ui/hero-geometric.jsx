@@ -52,7 +52,7 @@ function ElegantShape({
                         "absolute inset-0 rounded-full",
                         "bg-gradient-to-r to-transparent",
                         gradient,
-                        "backdrop-blur-[2px] border-2 border-[#edeae5]/[0.15]",
+                        "backdrop-blur-[2px] border-2 border-[#f2f3f5]/[0.15]",
                         "shadow-[0_8px_32px_0_rgba(255,255,255,0.1)]",
                         "after:absolute after:inset-0 after:rounded-full",
                         "after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2),transparent_70%)]"
@@ -101,7 +101,7 @@ export function HeroGeometric() {
                     width={200}
                     height={60}
                     rotate={20}
-                    gradient="from-[#e0c9a0]/[0.15]"
+                    gradient="from-[#a9c5b9]/[0.15]"
                     className="right-[15%] md:right-[20%] top-[10%] md:top-[15%]"
                 />
 

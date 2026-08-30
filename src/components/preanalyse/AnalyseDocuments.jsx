@@ -29,11 +29,11 @@ function Visionneuse({ extraction, ligne, onFermer }) {
   const affichable = lisibleEnCadre(extraction.document_url, extraction.document_mime);
 
   return (
-    <div className="bg-[#0a0c0c] border border-[#242726] rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4">
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#2e3230] flex-shrink-0">
+    <div className="bg-[#000000] border border-[#1f2228] rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4">
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#22262d] flex-shrink-0">
         <div className="min-w-0 flex-1">
-          <p className="m-0 text-[12.5px] text-[#edeae5] truncate">{extraction.document_nom}</p>
-          <p className="m-0 text-[11px] text-[#6b7270] truncate">
+          <p className="m-0 text-[12.5px] text-[#f2f3f5] truncate">{extraction.document_nom}</p>
+          <p className="m-0 text-[11px] text-[#6a7180] truncate">
             {ligne?.element}{page ? ` · page ${page}` : ""}
           </p>
         </div>
@@ -41,11 +41,11 @@ function Visionneuse({ extraction, ligne, onFermer }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[11.5px] text-[#7fd3c9] hover:text-[#edeae5] transition-colors flex-shrink-0"
+          className="text-[11.5px] text-[#aab6f5] hover:text-[#f2f3f5] transition-colors flex-shrink-0"
         >
           Plein écran
         </a>
-        <button onClick={onFermer} className="text-[#6b7270] hover:text-[#edeae5] transition-colors flex-shrink-0" title="Fermer">
+        <button onClick={onFermer} className="text-[#6a7180] hover:text-[#f2f3f5] transition-colors flex-shrink-0" title="Fermer">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -55,22 +55,22 @@ function Visionneuse({ extraction, ligne, onFermer }) {
           key={url}
           src={url}
           title={extraction.document_nom}
-          className="flex-1 w-full bg-[#101413] border-0"
+          className="flex-1 w-full bg-[#0c0d10] border-0"
         />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-          <p className="m-0 text-[13px] text-[#8b9391]">
+          <p className="m-0 text-[13px] text-[#9298a6]">
             Ce format ne s'affiche pas dans le navigateur.
           </p>
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+          <a href={url} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
             Ouvrir le document
           </a>
         </div>
       )}
 
       {ligne?.citation && (
-        <div className="px-4 py-2.5 border-t border-[#2e3230] flex-shrink-0">
-          <p className="m-0 text-[11.5px] text-[#9aa19e] italic leading-[1.5]">« {ligne.citation} »</p>
+        <div className="px-4 py-2.5 border-t border-[#22262d] flex-shrink-0">
+          <p className="m-0 text-[11.5px] text-[#9298a6] italic leading-[1.5]">« {ligne.citation} »</p>
         </div>
       )}
     </div>
@@ -102,7 +102,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
 
   if (extraction.erreur) {
     return (
-      <p className="border-t border-[#2e3230] py-10 text-center text-[13px] text-[#e0c9a0] m-0">
+      <p className="border-t border-[#22262d] py-10 text-center text-[13px] text-[#a9c5b9] m-0">
         Extraction impossible : {extraction.erreur}
       </p>
     );
@@ -117,9 +117,9 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher"
-            className="bg-[#101413] border border-[#242726] focus:border-[#35a79b]/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-[#edeae5] outline-none placeholder:text-[#5a615f] transition-colors w-[170px]"
+            className="bg-[#0c0d10] border border-[#1f2228] focus:border-[#8fa0f2]/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-[#f2f3f5] outline-none placeholder:text-[#5a615f] transition-colors w-[170px]"
           />
-          <button onClick={() => onSupprimer?.(extraction.id)} className="text-[12.5px] text-[#6b7270] hover:text-red-400 transition-colors" title="Retirer cette extraction">
+          <button onClick={() => onSupprimer?.(extraction.id)} className="text-[12.5px] text-[#6a7180] hover:text-red-400 transition-colors" title="Retirer cette extraction">
             Retirer
           </button>
         </div>
@@ -129,17 +129,17 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
       <div className="overflow-x-auto min-w-0">
         <table
           className={`w-full border-collapse ${ligneOuverte ? "min-w-[560px]" : "min-w-[860px]"}
-            [&_th]:border-r [&_td]:border-r [&_th]:border-[#2e3230] [&_td]:border-[#2e3230]
+            [&_th]:border-r [&_td]:border-r [&_th]:border-[#22262d] [&_td]:border-[#22262d]
             [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0
             [&_th]:pl-3 [&_td]:pl-3`}
         >
           <thead>
-            <tr className="border-y border-[#3a3e3c]">
+            <tr className="border-y border-[#2c3139]">
               {(ligneOuverte
                 ? [["Élément", "w-[30%]"], ["Constat / valeur relevée", "w-[54%]"], ["Source", "w-[16%]"]]
                 : [["Élément", "w-[22%]"], ["Constat / valeur relevée", "w-[38%]"], ["Source", "w-[12%]"], ["Commentaire", "w-[28%]"]]
               ).map(([h, cls]) => (
-                <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-[#edeae5] font-normal text-left ${cls}`}>
+                <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-[#f2f3f5] font-normal text-left ${cls}`}>
                   {h}
                 </th>
               ))}
@@ -152,9 +152,9 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
               return (
                 <tr
                   key={l.index}
-                  className={`border-b border-[#2e3230] transition-colors align-top ${ouverte ? "bg-[#35a79b]/[0.07]" : "hover:bg-[#edeae5]/[0.02]"}`}
+                  className={`border-b border-[#22262d] transition-colors align-top ${ouverte ? "bg-[#8fa0f2]/[0.07]" : "hover:bg-[#f2f3f5]/[0.02]"}`}
                 >
-                  <td className="py-3 pr-4 text-[13px] text-[#edeae5]">{l.element}</td>
+                  <td className="py-3 pr-4 text-[13px] text-[#f2f3f5]">{l.element}</td>
 
                   <td className="py-3 pr-4">
                     {edition?.index === l.index && edition.champ === "constat" ? (
@@ -164,15 +164,15 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
                         defaultValue={l.constat}
                         onBlur={(e) => majLigne.mutate({ index: l.index, constat: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
-                        className="w-full bg-[#101413] border border-[#35a79b] rounded px-2 py-1 text-[13px] text-[#edeae5] outline-none resize-y"
+                        className="w-full bg-[#0c0d10] border border-[#8fa0f2] rounded px-2 py-1 text-[13px] text-[#f2f3f5] outline-none resize-y"
                       />
                     ) : (
                       <button
                         onClick={() => setEdition({ index: l.index, champ: "constat" })}
-                        className="block w-full text-left text-[13.5px] text-[#edeae5] hover:text-[#7fd3c9] transition-colors"
+                        className="block w-full text-left text-[13.5px] text-[#f2f3f5] hover:text-[#aab6f5] transition-colors"
                         title="Cliquer pour corriger"
                       >
-                        {l.constat || <span className="text-[#4f5654]">—</span>}
+                        {l.constat || <span className="text-[#3a3f4a]">—</span>}
                         {l.citation && (
                           <span className="block mt-1 text-[11.5px] text-[#5a615f] italic leading-[1.5]">« {l.citation} »</span>
                         )}
@@ -185,7 +185,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
                     {lien ? (
                       <button
                         onClick={() => setLigneOuverte(ligneOuverte?.index === l.index ? null : l)}
-                        className={`text-[12.5px] transition-colors ${ouverte ? "text-[#edeae5] underline" : "text-[#7fd3c9] hover:text-[#edeae5]"}`}
+                        className={`text-[12.5px] transition-colors ${ouverte ? "text-[#f2f3f5] underline" : "text-[#aab6f5] hover:text-[#f2f3f5]"}`}
                         title={l.citation || "Afficher le document ici"}
                       >
                         {l.page ? `page ${l.page}` : "voir"}
@@ -204,12 +204,12 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
                         defaultValue={l.commentaire}
                         onBlur={(e) => majLigne.mutate({ index: l.index, commentaire: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
-                        className="w-full bg-[#101413] border border-[#35a79b] rounded px-2 py-1 text-[13px] text-[#edeae5] outline-none resize-y"
+                        className="w-full bg-[#0c0d10] border border-[#8fa0f2] rounded px-2 py-1 text-[13px] text-[#f2f3f5] outline-none resize-y"
                       />
                     ) : (
                       <button
                         onClick={() => setEdition({ index: l.index, champ: "commentaire" })}
-                        className="block w-full text-left text-[12.5px] text-[#9aa19e] hover:text-[#edeae5] transition-colors"
+                        className="block w-full text-left text-[12.5px] text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
                         title="Cliquer pour commenter"
                       >
                         {l.commentaire || <span className="text-[#3f4644]">+ commenter</span>}
@@ -275,10 +275,10 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
   return (
     <div>
       {/* Onglets : Documents, un par document extrait, puis le simulateur */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[#2e3230] mb-4">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[#22262d] mb-4">
           <button
             onClick={() => setOnglet("documents")}
-            className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "documents" ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#9aa19e] hover:text-[#edeae5]"}`}
+            className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "documents" ? "border-[#8fa0f2] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}
           >
             Documents
           </button>
@@ -286,7 +286,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
           {/* Deuxième onglet : le simulateur, avant les analyses. */}
           <button
             onClick={() => setOnglet("simulateur")}
-            className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "simulateur" ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#9aa19e] hover:text-[#edeae5]"}`}
+            className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "simulateur" ? "border-[#8fa0f2] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}
           >
             Simulateur
           </button>
@@ -296,7 +296,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
             <button
               onClick={() => setOnglet("donnees")}
               title="Ce que l'extraction remplira dans le projet"
-              className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "donnees" ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#9aa19e] hover:text-[#edeae5]"}`}
+              className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "donnees" ? "border-[#8fa0f2] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}
             >
               Données extraites
             </button>
@@ -313,7 +313,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
                   if (ev.key === "Enter") ev.currentTarget.blur();
                   if (ev.key === "Escape") setRenommage(null);
                 }}
-                className="mb-2 w-[180px] bg-[#101413] border border-[#35a79b] rounded px-2 py-0.5 text-[12.5px] text-[#edeae5] outline-none"
+                className="mb-2 w-[180px] bg-[#0c0d10] border border-[#8fa0f2] rounded px-2 py-0.5 text-[12.5px] text-[#f2f3f5] outline-none"
               />
             ) : (
               <button
@@ -321,7 +321,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
                 onClick={() => (onglet === e.id ? setRenommage({ id: e.id, titre: nomOnglet(e) }) : setOnglet(e.id))}
                 onDoubleClick={() => setRenommage({ id: e.id, titre: nomOnglet(e) })}
                 title={onglet === e.id ? "Cliquer pour renommer" : e.document_nom}
-                className={`text-[12.5px] pb-2 border-b-2 -mb-px max-w-[220px] truncate transition-colors ${onglet === e.id ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#9aa19e] hover:text-[#edeae5]"}`}
+                className={`text-[12.5px] pb-2 border-b-2 -mb-px max-w-[220px] truncate transition-colors ${onglet === e.id ? "border-[#8fa0f2] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}
               >
                 {nomOnglet(e)}
                 {e.erreur ? " ⚠" : ` · ${(e.lignes || []).filter((l) => l.constat).length}/${(e.lignes || []).length}`}

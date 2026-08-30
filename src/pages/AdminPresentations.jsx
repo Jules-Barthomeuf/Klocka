@@ -44,38 +44,38 @@ function CasePhoto({ label, url, suggestions, onChange }) {
   };
 
   return (
-    <div className="bg-[#121413] border border-[#282b2a]">
-      <div className="relative aspect-video bg-[#0a0c0c] overflow-hidden">
+    <div className="bg-[#0f1114] border border-[#1f2228]">
+      <div className="relative aspect-video bg-[#000000] overflow-hidden">
         {url ? (
           <img src={url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <ImageOff className="w-6 h-6 text-[#343735]" />
+            <ImageOff className="w-6 h-6 text-[#22262d]" />
           </div>
         )}
         {envoi && (
-          <div className="absolute inset-0 bg-[#0a0c0c]/70 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 text-[#7fd3c9] animate-spin" />
+          <div className="absolute inset-0 bg-[#000000]/70 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 text-[#aab6f5] animate-spin" />
           </div>
         )}
       </div>
       <div className="flex items-center justify-between px-2.5 py-2">
-        <span className="text-[10.5px] tracking-[0.06em] uppercase text-[#8b9391] truncate">{label}</span>
+        <span className="text-[10.5px] tracking-[0.06em] uppercase text-[#9298a6] truncate">{label}</span>
         <div className="flex items-center gap-1 flex-shrink-0">
           {suggestions.length > 1 && (
             <>
               <button onClick={() => naviguer(-1)} title="Photo précédente du projet"
-                className="w-6 h-6 flex items-center justify-center text-[#8b9391] hover:text-[#edeae5] transition-colors">
+                className="w-6 h-6 flex items-center justify-center text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               <button onClick={() => naviguer(1)} title="Photo suivante du projet"
-                className="w-6 h-6 flex items-center justify-center text-[#8b9391] hover:text-[#edeae5] transition-colors">
+                className="w-6 h-6 flex items-center justify-center text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </>
           )}
           <button onClick={() => fichierRef.current?.click()} title="Importer une image"
-            className="w-6 h-6 flex items-center justify-center text-[#8b9391] hover:text-[#7fd3c9] transition-colors">
+            className="w-6 h-6 flex items-center justify-center text-[#9298a6] hover:text-[#aab6f5] transition-colors">
             <Upload className="w-3.5 h-3.5" />
           </button>
           <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={importer} />
@@ -147,9 +147,9 @@ function PanneauGeneration({ project }) {
   return (
     <div className="space-y-5">
       {/* Les six photos du dossier */}
-      <div className="bg-[#121413] border border-[#282b2a] p-5">
-        <p className="text-[#edeae5] text-sm font-medium mb-1">Les six photos du dossier</p>
-        <p className="text-[#8b9391] text-xs mb-4">
+      <div className="bg-[#0f1114] border border-[#1f2228] p-5">
+        <p className="text-[#f2f3f5] text-sm font-medium mb-1">Les six photos du dossier</p>
+        <p className="text-[#9298a6] text-xs mb-4">
           Suggérées depuis les photos du projet — utilisez les flèches pour en changer ou importez
           la vôtre. La photo des conditions souhaitées est commune à tous les dossiers.
         </p>
@@ -167,11 +167,11 @@ function PanneauGeneration({ project }) {
       </div>
 
       {/* Génération */}
-      <div className="bg-[#121413] border border-[#282b2a] p-5 space-y-4">
+      <div className="bg-[#0f1114] border border-[#1f2228] p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-[#edeae5] text-sm font-medium mb-1">Présentation de financement</p>
-            <p className="text-[#8b9391] text-xs max-w-xl">
+            <p className="text-[#f2f3f5] text-sm font-medium mb-1">Présentation de financement</p>
+            <p className="text-[#9298a6] text-xs max-w-xl">
               Quinze diapositives : couverture, sommaire, ville, carte de l'emplacement, quartier,
               local, bail, enseignes du secteur, prix vs marché, projection, conditions,
               CV et structuration — puis retouchables dans Google Slides.
@@ -180,8 +180,8 @@ function PanneauGeneration({ project }) {
           <button
             onClick={() => generer.mutate()}
             disabled={generer.isPending}
-            className="inline-flex items-center justify-center gap-2 text-[#0c0e0d] px-6 py-3 text-[14px] font-bold hover:brightness-95 transition-all disabled:opacity-60"
-            style={{ background: "#edeae5" }}
+            className="inline-flex items-center justify-center gap-2 text-[#0f1114] px-6 py-3 text-[14px] font-bold hover:brightness-95 transition-all disabled:opacity-60"
+            style={{ background: "#f2f3f5" }}
           >
             {generer.isPending ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Génération…</>
@@ -192,7 +192,7 @@ function PanneauGeneration({ project }) {
         </div>
 
         {generer.isPending && (
-          <p className="text-[#8b9391] text-xs">
+          <p className="text-[#9298a6] text-xs">
             Analyse, carte, enseignes et photos en cours d'assemblage — comptez une quinzaine de secondes.
           </p>
         )}
@@ -201,20 +201,20 @@ function PanneauGeneration({ project }) {
           <div className="flex flex-wrap items-center gap-4">
             {slidesUrl && (
               <a href={slidesUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs px-4 py-2 border border-[#3a3e3c] bg-[#edeae5]/[0.06] hover:bg-[#edeae5]/[0.1] text-[#edeae5] transition-colors">
+                className="inline-flex items-center gap-2 text-xs px-4 py-2 border border-[#2c3139] bg-[#f2f3f5]/[0.06] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] transition-colors">
                 <ExternalLink className="w-3.5 h-3.5" />
                 Ouvrir dans Google Slides
               </a>
             )}
             {pptxUrl && (
               <a href={pptxUrl} download
-                className="inline-flex items-center gap-2 text-xs text-[#8b9391] hover:text-[#edeae5] transition-colors">
+                className="inline-flex items-center gap-2 text-xs text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
                 <Download className="w-3.5 h-3.5" />
                 Télécharger le PPTX
               </a>
             )}
             {project.presentation_generee_le && !resultat && (
-              <span className="text-[#6b7270] text-xs">
+              <span className="text-[#6a7180] text-xs">
                 Dernière génération le {new Date(project.presentation_generee_le).toLocaleDateString("fr-FR")}
               </span>
             )}
@@ -227,12 +227,12 @@ function PanneauGeneration({ project }) {
               onClick={() => {
                 window.location.href = "/api/auth/google/login?returnTo=" + encodeURIComponent("/AdminPresentations");
               }}
-              className="inline-flex items-center gap-2 text-xs px-4 py-2.5 border border-[#3a3e3c] bg-[#edeae5]/[0.06] hover:bg-[#edeae5]/[0.1] text-[#edeae5] transition-colors"
+              className="inline-flex items-center gap-2 text-xs px-4 py-2.5 border border-[#2c3139] bg-[#f2f3f5]/[0.06] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Connecter Google Slides
             </button>
-            <p className="text-[#8b9391] text-xs max-w-md">
+            <p className="text-[#9298a6] text-xs max-w-md">
               Une autorisation Google unique pour que les présentations s'ouvrent directement dans
               Google Slides. Sans elle, le dossier reste un PPTX à télécharger.
             </p>
@@ -267,17 +267,17 @@ function LigneProjet({ p, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 text-left bg-[#121413] border border-[#282b2a] px-4 py-3.5 hover:border-[#565b59] hover:bg-[#edeae5]/[0.04] transition-all"
+      className="w-full flex items-center gap-3 text-left bg-[#0f1114] border border-[#1f2228] px-4 py-3.5 hover:border-[#3a3f4a] hover:bg-[#f2f3f5]/[0.04] transition-all"
     >
-      <div className="w-9 h-9 rounded-lg bg-[#edeae5]/[0.05] flex items-center justify-center flex-shrink-0">
-        <Building2 className="w-4 h-4 text-[#8b9391]" />
+      <div className="w-9 h-9 rounded-lg bg-[#f2f3f5]/[0.05] flex items-center justify-center flex-shrink-0">
+        <Building2 className="w-4 h-4 text-[#9298a6]" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[#edeae5] text-[14px] font-medium truncate">{p.titre || "Sans titre"}</p>
-        {p.adresse_complete && <p className="text-[#6b7270] text-[12px] truncate">{p.adresse_complete}</p>}
+        <p className="text-[#f2f3f5] text-[14px] font-medium truncate">{p.titre || "Sans titre"}</p>
+        {p.adresse_complete && <p className="text-[#6a7180] text-[12px] truncate">{p.adresse_complete}</p>}
       </div>
       {p.presentation_google_slides && (
-        <span className="text-[10px] tracking-[0.12em] uppercase text-[#7fd3c9] flex-shrink-0">Générée</span>
+        <span className="text-[10px] tracking-[0.12em] uppercase text-[#aab6f5] flex-shrink-0">Générée</span>
       )}
     </button>
   );
@@ -331,32 +331,32 @@ export default function AdminPresentations() {
   const ouvrirProjet = (id) => { setSelectedId(id); setRecherche(""); };
 
   return (
-    <div className="min-h-screen text-[#edeae5] p-4 md:p-10" style={{ background: "linear-gradient(160deg,#0a0c0c 0%,#000000 90%)" }}>
+    <div className="min-h-screen text-[#f2f3f5] p-4 md:p-10" style={{ background: "linear-gradient(160deg,#000000 0%,#000000 90%)" }}>
       <div className="max-w-5xl mx-auto">
         <div className="mb-9 text-center">
           <h1 className="text-[28px] md:text-[32px] font-light leading-[1.08] -tracking-[0.02em] m-0">Présentations</h1>
-          <p className="text-[#8b9391] text-[14px] leading-[1.5] mt-2 max-w-[460px] mx-auto">
+          <p className="text-[#9298a6] text-[14px] leading-[1.5] mt-2 max-w-[460px] mx-auto">
             Une ville, un dossier : générez la présentation de financement.
           </p>
         </div>
 
         {isLoading && (
           <div className="flex justify-center py-16">
-            <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#9298a6] animate-spin" />
           </div>
         )}
 
         {/* Villes / recherche / projets d'une ville */}
         {!selectedProject && !isLoading && (
           <div className="w-full">
-            <div className="bg-[#121413] border border-[#282b2a] px-[18px] flex items-center focus-within:border-[#565b59] focus-within:shadow-[0_0_0_3px_rgba(86,91,89,0.2)] transition-all mb-6">
-              <FolderSearch className="w-4 h-4 text-[#6b7270] flex-shrink-0" />
+            <div className="bg-[#0f1114] border border-[#1f2228] px-[18px] flex items-center focus-within:border-[#3a3f4a] focus-within:shadow-[0_0_0_3px_rgba(86,91,89,0.2)] transition-all mb-6">
+              <FolderSearch className="w-4 h-4 text-[#6a7180] flex-shrink-0" />
               <input
                 autoFocus
                 placeholder="Rechercher une ville, un dossier, une adresse, un client…"
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
-                className="w-full bg-transparent border-none text-[#edeae5] outline-none placeholder:text-[#6b7270] py-3.5 px-3 text-[15px]"
+                className="w-full bg-transparent border-none text-[#f2f3f5] outline-none placeholder:text-[#6a7180] py-3.5 px-3 text-[15px]"
               />
             </div>
 
@@ -364,8 +364,8 @@ export default function AdminPresentations() {
               // Résultats de recherche : directement les dossiers.
               resultats.length === 0 ? (
                 <div className="text-center py-16">
-                  <Building2 className="w-8 h-8 text-[#343735] mx-auto mb-4" />
-                  <p className="text-[#6b7270] text-sm">Aucun dossier ne correspond à votre recherche.</p>
+                  <Building2 className="w-8 h-8 text-[#22262d] mx-auto mb-4" />
+                  <p className="text-[#6a7180] text-sm">Aucun dossier ne correspond à votre recherche.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -373,7 +373,7 @@ export default function AdminPresentations() {
                     <LigneProjet key={p.id} p={p} onClick={() => ouvrirProjet(p.id)} />
                   ))}
                   {resultats.length > 30 && (
-                    <p className="text-[#6b7270] text-xs text-center pt-2">
+                    <p className="text-[#6a7180] text-xs text-center pt-2">
                       {resultats.length - 30} autres résultats — précisez la recherche.
                     </p>
                   )}
@@ -384,14 +384,14 @@ export default function AdminPresentations() {
               <div>
                 <button
                   onClick={() => setVille("")}
-                  className="inline-flex items-center gap-1.5 text-[#8b9391] hover:text-[#edeae5] text-[14px] mb-4 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[#9298a6] hover:text-[#f2f3f5] text-[14px] mb-4 transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Toutes les villes
                 </button>
-                <h2 className="text-[19px] font-light text-[#edeae5] mb-4">
+                <h2 className="text-[19px] font-light text-[#f2f3f5] mb-4">
                   {ville}
-                  <span className="text-[#6b7270] text-[13px] ml-2">
+                  <span className="text-[#6a7180] text-[13px] ml-2">
                     {projetsDeLaVille.length} dossier{projetsDeLaVille.length > 1 ? "s" : ""}
                   </span>
                 </h2>
@@ -408,10 +408,10 @@ export default function AdminPresentations() {
                   <button
                     key={nom}
                     onClick={() => setVille(nom)}
-                    className="text-left bg-[#121413] border border-[#282b2a] px-4 py-4 hover:border-[#35a79b]/60 hover:bg-[#edeae5]/[0.03] transition-all"
+                    className="text-left bg-[#0f1114] border border-[#1f2228] px-4 py-4 hover:border-[#8fa0f2]/60 hover:bg-[#f2f3f5]/[0.03] transition-all"
                   >
-                    <p className="text-[#edeae5] text-[15px] font-medium truncate">{nom}</p>
-                    <p className="text-[#6b7270] text-[12px] mt-1">
+                    <p className="text-[#f2f3f5] text-[15px] font-medium truncate">{nom}</p>
+                    <p className="text-[#6a7180] text-[12px] mt-1">
                       {n} dossier{n > 1 ? "s" : ""}
                     </p>
                   </button>
@@ -425,13 +425,13 @@ export default function AdminPresentations() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <button
               onClick={() => setSelectedId("")}
-              className="inline-flex items-center gap-1.5 text-[#8b9391] hover:text-[#edeae5] text-[14px] mb-5 transition-colors"
+              className="inline-flex items-center gap-1.5 text-[#9298a6] hover:text-[#f2f3f5] text-[14px] mb-5 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
               {ville || "Retour"}
             </button>
-            <h2 className="text-[20px] font-light text-[#edeae5] mb-1">{selectedProject.titre || "Sans titre"}</h2>
-            {selectedProject.adresse_complete && <p className="text-[#6b7270] text-[13px] mb-6">{selectedProject.adresse_complete}</p>}
+            <h2 className="text-[20px] font-light text-[#f2f3f5] mb-1">{selectedProject.titre || "Sans titre"}</h2>
+            {selectedProject.adresse_complete && <p className="text-[#6a7180] text-[13px] mb-6">{selectedProject.adresse_complete}</p>}
 
             <PanneauGeneration project={selectedProject} />
           </motion.div>

@@ -40,7 +40,7 @@ export default function ProfilProjects({ budgetMin, budgetMax, color }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-6 h-6 border-2 border-[#edeae5]/20 border-t-white/60 rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-[#f2f3f5]/20 border-t-white/60 rounded-full animate-spin" />
       </div>
     );
   }
@@ -48,8 +48,8 @@ export default function ProfilProjects({ budgetMin, budgetMax, color }) {
   if (projects.length === 0) {
     return (
       <div className="text-center py-12">
-        <Building2 className="w-10 h-10 text-[#edeae5]/10 mx-auto mb-3" />
-        <p className="text-[#edeae5]/30 text-sm">Aucun exemple dans cette tranche pour le moment.</p>
+        <Building2 className="w-10 h-10 text-[#f2f3f5]/10 mx-auto mb-3" />
+        <p className="text-[#f2f3f5]/30 text-sm">Aucun exemple dans cette tranche pour le moment.</p>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export default function ProfilProjects({ budgetMin, budgetMax, color }) {
         const activite = getActivite(project);
 
         return (
-          <Card key={project.id} className="bg-[#edeae5]/[0.03] border-[#242726]">
+          <Card key={project.id} className="bg-[#f2f3f5]/[0.03] border-[#1f2228]">
             <CardContent className="p-5">
               {/* Photo */}
               {project.photos && project.photos.length > 0 ? (
@@ -72,20 +72,20 @@ export default function ProfilProjects({ budgetMin, budgetMax, color }) {
                   <img src={project.photos[0]} alt="Exemple" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="h-36 rounded-lg bg-[#edeae5]/[0.03] flex items-center justify-center mb-4">
-                  <Building2 className="w-8 h-8 text-[#edeae5]/10" />
+                <div className="h-36 rounded-lg bg-[#f2f3f5]/[0.03] flex items-center justify-center mb-4">
+                  <Building2 className="w-8 h-8 text-[#f2f3f5]/10" />
                 </div>
               )}
 
               {/* Description anonymisée */}
-              <p className="text-[#edeae5] text-sm leading-relaxed">
+              <p className="text-[#f2f3f5] text-sm leading-relaxed">
                 <span className="font-medium">{activite}</span>
-                {ville && <span className="text-[#edeae5]/50"> à {ville}</span>}
-                <span className="text-[#edeae5]/50"> — vendu pour </span>
+                {ville && <span className="text-[#f2f3f5]/50"> à {ville}</span>}
+                <span className="text-[#f2f3f5]/50"> — vendu pour </span>
                 <span className="font-medium">{formatCurrency(prix)}</span>
                 {rendement && (
                   <>
-                    <span className="text-[#edeae5]/50"> avec une rentabilité de </span>
+                    <span className="text-[#f2f3f5]/50"> avec une rentabilité de </span>
                     <span className="font-medium" style={{ color }}>{rendement}%</span>
                   </>
                 )}

@@ -137,7 +137,7 @@ export default function CRMProspects() {
               setIsEditing(false);
             }
           }}
-          className="bg-[#171918] border-[#35a79b] text-[#edeae5] h-8 text-sm"
+          className="bg-[#0f1114] border-[#8fa0f2] text-[#f2f3f5] h-8 text-sm"
         />
       );
     }
@@ -145,7 +145,7 @@ export default function CRMProspects() {
     return (
       <div
         onClick={() => setIsEditing(true)}
-        className="cursor-pointer hover:bg-[#303332]/50 rounded px-2 py-1 h-[32px] flex items-center text-[#edeae5]"
+        className="cursor-pointer hover:bg-[#22262d]/50 rounded px-2 py-1 h-[32px] flex items-center text-[#f2f3f5]"
       >
         {value || "-"}
       </div>
@@ -154,14 +154,14 @@ export default function CRMProspects() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
+      <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-6">
+    <div className="min-h-screen bg-[#000000] text-[#f2f3f5] p-6">
       <div className="max-w-[1800px] mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -169,15 +169,15 @@ export default function CRMProspects() {
               variant="ghost"
               size="icon"
               onClick={() => navigate(createPageUrl("CRM"))}
-              className="text-[#9aa19e] hover:text-[#edeae5]"
+              className="text-[#9298a6] hover:text-[#f2f3f5]"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-4xl font-geist tracking-tighter text-[#edeae5] mb-2">
+              <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
                 Prospects CRM
               </h1>
-              <div className="h-0.5 w-32 bg-[#35a79b]"></div>
+              <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
             </div>
           </div>
           <Button
@@ -185,19 +185,19 @@ export default function CRMProspects() {
               resetForm();
               setDialogOpen(true);
             }}
-            className="bg-[#35a79b] hover:bg-[#35a79b]/90"
+            className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouveau prospect
           </Button>
         </div>
 
-        <div className="relative rounded-[1.25rem] border-[0.75px] border-[#343735] p-2">
+        <div className="relative rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2">
           <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-          <Card className="relative bg-gradient-to-br from-[#171918]/80 to-[#303332]/80 border-none">
+          <Card className="relative bg-gradient-to-br from-[#0f1114]/80 to-[#22262d]/80 border-none">
             <CardContent className="p-6">
               {prospects.length === 0 ? (
-                <div className="text-center py-12 text-[#9aa19e]">
+                <div className="text-center py-12 text-[#9298a6]">
                   <User className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p>Aucun prospect</p>
                 </div>
@@ -227,47 +227,47 @@ export default function CRMProspects() {
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-[#343735]">
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332] min-w-[200px]">Nom</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Sous-éléments</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">SPOC</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">E-mail</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Téléphone</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Ville</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Propriétés</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Entreprise</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Remarques</th>
-                        <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Actions</th>
+                      <tr className="border-b border-[#22262d]">
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d] min-w-[200px]">Nom</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Sous-éléments</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">SPOC</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">E-mail</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Téléphone</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Ville</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Propriétés</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Entreprise</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Remarques</th>
+                        <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {prospects.map((prospect) => (
-                        <tr key={prospect.id} className="border-b border-[#343735] hover:bg-[#303332]/30 transition-colors">
-                          <td className="py-3 px-3 border-r border-[#343735] min-w-[200px]">
+                        <tr key={prospect.id} className="border-b border-[#22262d] hover:bg-[#22262d]/30 transition-colors">
+                          <td className="py-3 px-3 border-r border-[#22262d] min-w-[200px]">
                             <EditableCell prospect={prospect} field="nom" value={prospect.nom} />
                           </td>
-                          <td className="py-3 px-3 border-r border-[#343735]">
+                          <td className="py-3 px-3 border-r border-[#22262d]">
                             <EditableCell prospect={prospect} field="sous_elements" value={prospect.sous_elements} />
                           </td>
-                          <td className="py-3 px-3 border-r border-[#343735]">
+                          <td className="py-3 px-3 border-r border-[#22262d]">
                             <EditableCell prospect={prospect} field="spoc" value={prospect.spoc} />
                           </td>
-                          <td className="py-3 px-3 border-r border-[#343735]">
+                          <td className="py-3 px-3 border-r border-[#22262d]">
                             <EditableCell prospect={prospect} field="email" value={prospect.email} type="email" />
                           </td>
-                          <td className="py-3 px-3 border-r border-[#343735]">
+                          <td className="py-3 px-3 border-r border-[#22262d]">
                             <EditableCell prospect={prospect} field="telephone" value={prospect.telephone} />
                           </td>
-                          <td className="py-3 px-3 border-r border-[#343735]">
+                          <td className="py-3 px-3 border-r border-[#22262d]">
                             <EditableCell prospect={prospect} field="ville" value={prospect.ville} />
                           </td>
-                          <td className="py-3 px-3 border-r border-[#343735]">
+                          <td className="py-3 px-3 border-r border-[#22262d]">
                             <EditableCell prospect={prospect} field="proprietes" value={prospect.proprietes} />
                           </td>
-                          <td className="py-3 px-3 border-r border-[#343735]">
+                          <td className="py-3 px-3 border-r border-[#22262d]">
                             <EditableCell prospect={prospect} field="entreprise" value={prospect.entreprise} />
                           </td>
-                          <td className="py-3 px-3 border-r border-[#343735]">
+                          <td className="py-3 px-3 border-r border-[#22262d]">
                             <EditableCell prospect={prospect} field="remarques" value={prospect.remarques} />
                           </td>
                           <td className="py-3 px-3">
@@ -304,107 +304,107 @@ export default function CRMProspects() {
 
       {/* Dialog création/édition */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#0a0c0c] border-[#303332] max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#000000] border-[#22262d] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#edeae5]">
+            <DialogTitle className="text-[#f2f3f5]">
               {editingProspect ? "Modifier le prospect" : "Nouveau prospect"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label className="text-[#9aa19e]">Nom *</Label>
+              <Label className="text-[#9298a6]">Nom *</Label>
               <Input
                 value={formData.nom}
                 onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#9aa19e]">Sous-éléments</Label>
+                <Label className="text-[#9298a6]">Sous-éléments</Label>
                 <Input
                   value={formData.sous_elements}
                   onChange={(e) => setFormData({...formData, sous_elements: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e]">SPOC</Label>
+                <Label className="text-[#9298a6]">SPOC</Label>
                 <Input
                   value={formData.spoc}
                   onChange={(e) => setFormData({...formData, spoc: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#9aa19e]">E-mail</Label>
+                <Label className="text-[#9298a6]">E-mail</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e]">Téléphone</Label>
+                <Label className="text-[#9298a6]">Téléphone</Label>
                 <Input
                   value={formData.telephone}
                   onChange={(e) => setFormData({...formData, telephone: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#9aa19e]">Ville</Label>
+                <Label className="text-[#9298a6]">Ville</Label>
                 <Input
                   value={formData.ville}
                   onChange={(e) => setFormData({...formData, ville: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e]">Entreprise</Label>
+                <Label className="text-[#9298a6]">Entreprise</Label>
                 <Input
                   value={formData.entreprise}
                   onChange={(e) => setFormData({...formData, entreprise: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
             </div>
 
             <div>
-              <Label className="text-[#9aa19e]">Propriétés</Label>
+              <Label className="text-[#9298a6]">Propriétés</Label>
               <Textarea
                 value={formData.proprietes}
                 onChange={(e) => setFormData({...formData, proprietes: e.target.value})}
-                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 rows={2}
               />
             </div>
 
             <div>
-              <Label className="text-[#9aa19e]">Remarques</Label>
+              <Label className="text-[#9298a6]">Remarques</Label>
               <Textarea
                 value={formData.remarques}
                 onChange={(e) => setFormData({...formData, remarques: e.target.value})}
-                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 rows={3}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#303332]">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#22262d]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#35a79b] hover:bg-[#35a79b]/90">
+            <Button onClick={handleSubmit} className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90">
               {editingProspect ? "Modifier" : "Créer"}
             </Button>
           </DialogFooter>

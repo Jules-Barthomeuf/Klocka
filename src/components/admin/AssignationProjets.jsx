@@ -20,20 +20,20 @@ function Ligne({ coche, onChange, titre, detail }) {
     <button
       type="button"
       onClick={onChange}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-t border-[#edeae5]/[0.08] transition-colors ${
-        coche ? "bg-[#e0c9a0]/[0.06]" : "hover:bg-[#edeae5]/[0.03]"
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-t border-[#f2f3f5]/[0.08] transition-colors ${
+        coche ? "bg-[#a9c5b9]/[0.06]" : "hover:bg-[#f2f3f5]/[0.03]"
       }`}
     >
       <span
         className={`w-4 h-4 flex items-center justify-center border flex-shrink-0 ${
-          coche ? "bg-[#e0c9a0] border-[#e0c9a0]" : "border-[#565b59]"
+          coche ? "bg-[#a9c5b9] border-[#a9c5b9]" : "border-[#3a3f4a]"
         }`}
       >
-        {coche && <Check className="w-3 h-3 text-[#0a0c0c]" />}
+        {coche && <Check className="w-3 h-3 text-[#000000]" />}
       </span>
       <span className="min-w-0">
-        <span className="block text-[14px] text-[#edeae5] truncate">{titre}</span>
-        {detail && <span className="block text-[12px] text-[#8b9391] truncate">{detail}</span>}
+        <span className="block text-[14px] text-[#f2f3f5] truncate">{titre}</span>
+        {detail && <span className="block text-[12px] text-[#9298a6] truncate">{detail}</span>}
       </span>
     </button>
   );
@@ -43,18 +43,18 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
   return (
     <>
       <div className="relative mb-2">
-        <Search className="w-4 h-4 text-[#6b7270] absolute left-3 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-[#6a7180] absolute left-3 top-1/2 -translate-y-1/2" />
         <input
           autoFocus
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           placeholder="Rechercher…"
-          className="w-full bg-[#0F1116] border border-[#282b2a] focus:border-[#e0c9a0] rounded-md pl-9 pr-3 py-2 text-[14px] text-[#edeae5] outline-none"
+          className="w-full bg-[#0f1114] border border-[#1f2228] focus:border-[#a9c5b9] rounded-md pl-9 pr-3 py-2 text-[14px] text-[#f2f3f5] outline-none"
         />
       </div>
-      <div className="max-h-[50vh] overflow-y-auto border-b border-[#edeae5]/[0.08]">
+      <div className="max-h-[50vh] overflow-y-auto border-b border-[#f2f3f5]/[0.08]">
         {elements.length === 0 ? (
-          <p className="m-0 py-6 text-center text-[13px] text-[#6b7270]">{vide}</p>
+          <p className="m-0 py-6 text-center text-[13px] text-[#6a7180]">{vide}</p>
         ) : (
           elements.map((el) => (
             <Ligne
@@ -113,10 +113,10 @@ export function DialogueAssignerClient({ ouvert, onClose, users, formData, onVal
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-[#0a0c0c] border-[#282b2a] max-w-lg">
+      <DialogContent className="bg-[#000000] border-[#1f2228] max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-[#edeae5]">Assigner des clients</DialogTitle>
-          <DialogDescription className="text-[#9aa19e]">
+          <DialogTitle className="text-[#f2f3f5]">Assigner des clients</DialogTitle>
+          <DialogDescription className="text-[#9298a6]">
             Les clients cochés verront ce projet dans leur espace. Un mail les prévient à l'enregistrement.
           </DialogDescription>
         </DialogHeader>
@@ -129,14 +129,14 @@ export function DialogueAssignerClient({ ouvert, onClose, users, formData, onVal
           vide="Aucun client ne correspond."
         />
         <div className="flex items-center justify-between gap-3 pt-2">
-          <span className="text-[12px] text-[#8b9391]">
+          <span className="text-[12px] text-[#9298a6]">
             {coches.size} client{coches.size > 1 ? "s" : ""} assigné{coches.size > 1 ? "s" : ""}
           </span>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 border border-[#3a3e3c] text-[11px] tracking-[.14em] uppercase text-[#C3C7CE] hover:bg-[#edeae5]/[0.06]">
+            <button onClick={onClose} className="px-4 py-2 border border-[#2c3139] text-[11px] tracking-[.14em] uppercase text-[#c9cdd6] hover:bg-[#f2f3f5]/[0.06]">
               Annuler
             </button>
-            <button onClick={valider} className="px-5 py-2 bg-[#e0c9a0] text-[#0a0c0c] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#e8d4b0]">
+            <button onClick={valider} className="px-5 py-2 bg-[#a9c5b9] text-[#000000] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#bcd4c9]">
               Assigner
             </button>
           </div>
@@ -227,11 +227,11 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && !enregistrer.isPending && onClose()}>
-      <DialogContent className="bg-[#0a0c0c] border-[#282b2a] max-w-lg">
+      <DialogContent className="bg-[#000000] border-[#1f2228] max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-[#edeae5]">Assigner des projets</DialogTitle>
-          <DialogDescription className="text-[#9aa19e]">
-            À <span className="text-[#edeae5]">{user.full_name || user.email}</span>. Les projets cochés apparaîtront dans son espace.
+          <DialogTitle className="text-[#f2f3f5]">Assigner des projets</DialogTitle>
+          <DialogDescription className="text-[#9298a6]">
+            À <span className="text-[#f2f3f5]">{user.full_name || user.email}</span>. Les projets cochés apparaîtront dans son espace.
           </DialogDescription>
         </DialogHeader>
         <Liste
@@ -243,17 +243,17 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
           vide="Aucun projet ne correspond."
         />
         <div className="flex items-center justify-between gap-3 pt-2">
-          <span className="text-[12px] text-[#8b9391]">
+          <span className="text-[12px] text-[#9298a6]">
             {coches.size} projet{coches.size > 1 ? "s" : ""} coché{coches.size > 1 ? "s" : ""}
           </span>
           <div className="flex gap-2">
-            <button onClick={onClose} disabled={enregistrer.isPending} className="px-4 py-2 border border-[#3a3e3c] text-[11px] tracking-[.14em] uppercase text-[#C3C7CE] hover:bg-[#edeae5]/[0.06] disabled:opacity-40">
+            <button onClick={onClose} disabled={enregistrer.isPending} className="px-4 py-2 border border-[#2c3139] text-[11px] tracking-[.14em] uppercase text-[#c9cdd6] hover:bg-[#f2f3f5]/[0.06] disabled:opacity-40">
               Annuler
             </button>
             <button
               onClick={() => enregistrer.mutate()}
               disabled={enregistrer.isPending}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-[#e0c9a0] text-[#0a0c0c] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#e8d4b0] disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-[#a9c5b9] text-[#000000] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#bcd4c9] disabled:opacity-40"
             >
               {enregistrer.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Assigner

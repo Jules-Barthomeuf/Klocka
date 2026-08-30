@@ -114,27 +114,27 @@ export function ConnexionPanel({ invitation = null } = {}) {
   };
 
   return (
-    <div className="text-[#edeae5]">
+    <div className="text-[#f2f3f5]">
         {/* Étape 1 — adresse */}
         {etape === ETAPES.EMAIL && (
           <form onSubmit={verifierEmail} className="space-y-4">
             <EnTete icone={Mail} titre="Connexion" sousTitre="Saisissez votre adresse professionnelle." />
             <div>
-              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mb-1.5 block">Adresse email</Label>
+              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Adresse email</Label>
               <Input
                 type="email"
                 autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="vous@exemple.fr"
-                className="bg-transparent border-0 border-b border-[#edeae5]/[0.18] rounded-none px-0 text-[15px] text-[#edeae5] focus-visible:ring-0 focus-visible:border-[#35a79b] placeholder:text-[#6b7270]"
+                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#8fa0f2] placeholder:text-[#6a7180]"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!email.trim() || enCours}
-              className="w-full rounded-none bg-transparent border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] hover:text-[#7fd3c9] text-[11px] tracking-[0.16em] uppercase h-11"
+              className="w-full rounded-none bg-transparent border border-[#8fa0f2] text-[#aab6f5] hover:bg-[#8fa0f2]/[0.16] hover:text-[#aab6f5] text-[11px] tracking-[0.16em] uppercase h-11"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Continuer <ArrowRight className="w-4 h-4 ml-2" />
@@ -145,10 +145,10 @@ export function ConnexionPanel({ invitation = null } = {}) {
                 <BoutonGoogle />
               </>
             )}
-            <p className="text-[12px] text-[#6b7270] text-center pt-1 mb-0">
+            <p className="text-[12px] text-[#6a7180] text-center pt-1 mb-0">
               Pas encore client ?{" "}
               <a href="https://dpe3smipjxh.typeform.com/to/GD7sREFs" target="_blank" rel="noopener noreferrer"
-                className="text-[#7fd3c9] hover:text-[#edeae5] transition-colors">
+                className="text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
                 Créez un compte
               </a>
             </p>
@@ -165,20 +165,20 @@ export function ConnexionPanel({ invitation = null } = {}) {
               badge={compte?.role === "admin" ? "Administrateur" : null}
             />
             <div>
-              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mb-1.5 block">Mot de passe</Label>
+              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Mot de passe</Label>
               <Input
                 ref={champMotDePasse}
                 type="password"
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}
-                className="bg-transparent border-0 border-b border-[#edeae5]/[0.18] rounded-none px-0 text-[15px] text-[#edeae5] focus-visible:ring-0 focus-visible:border-[#35a79b] placeholder:text-[#6b7270]"
+                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#8fa0f2] placeholder:text-[#6a7180]"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!motDePasse || enCours}
-              className="w-full rounded-none bg-transparent border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] hover:text-[#7fd3c9] text-[11px] tracking-[0.16em] uppercase h-11"
+              className="w-full rounded-none bg-transparent border border-[#8fa0f2] text-[#aab6f5] hover:bg-[#8fa0f2]/[0.16] hover:text-[#aab6f5] text-[11px] tracking-[0.16em] uppercase h-11"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Se connecter
@@ -203,29 +203,29 @@ export function ConnexionPanel({ invitation = null } = {}) {
               badge={compte?.role === "admin" ? "Administrateur" : null}
             />
             <div>
-              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mb-1.5 block">Mot de passe (8 caractères minimum)</Label>
+              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Mot de passe (8 caractères minimum)</Label>
               <Input
                 ref={champMotDePasse}
                 type="password"
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}
-                className="bg-transparent border-0 border-b border-[#edeae5]/[0.18] rounded-none px-0 text-[15px] text-[#edeae5] focus-visible:ring-0 focus-visible:border-[#35a79b] placeholder:text-[#6b7270]"
+                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#8fa0f2] placeholder:text-[#6a7180]"
               />
             </div>
             <div>
-              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#8b9391] mb-1.5 block">Confirmation</Label>
+              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Confirmation</Label>
               <Input
                 type="password"
                 value={confirmation}
                 onChange={(e) => setConfirmation(e.target.value)}
-                className="bg-transparent border-0 border-b border-[#edeae5]/[0.18] rounded-none px-0 text-[15px] text-[#edeae5] focus-visible:ring-0 focus-visible:border-[#35a79b] placeholder:text-[#6b7270]"
+                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#8fa0f2] placeholder:text-[#6a7180]"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!motDePasse || !confirmation || enCours}
-              className="w-full rounded-none bg-transparent border border-[#35a79b] text-[#7fd3c9] hover:bg-[#35a79b]/[0.16] hover:text-[#7fd3c9] text-[11px] tracking-[0.16em] uppercase h-11"
+              className="w-full rounded-none bg-transparent border border-[#8fa0f2] text-[#aab6f5] hover:bg-[#8fa0f2]/[0.16] hover:text-[#aab6f5] text-[11px] tracking-[0.16em] uppercase h-11"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Enregistrer et entrer
@@ -238,7 +238,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
         {etape === ETAPES.INCONNU && (
           <div className="space-y-4">
             <EnTete icone={AlertCircle} titre="Adresse non reconnue" sousTitre={email} />
-            <p className="text-[#9aa19e] text-sm leading-relaxed">
+            <p className="text-[#9298a6] text-sm leading-relaxed">
               Cette adresse ne correspond à aucun compte. Les accès sont créés par Klocka : vérifiez la saisie, ou
               rapprochez-vous de votre interlocuteur pour qu'il vous ouvre un accès.
             </p>
@@ -253,7 +253,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
 export default function ConnexionDialog({ ouvert, onClose }) {
   return (
     <Dialog open={ouvert} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="bg-[#0a0c0c] border-[#edeae5]/[0.13] text-[#edeae5] max-w-md">
+      <DialogContent className="bg-[#000000] border-[#f2f3f5]/[0.13] text-[#f2f3f5] max-w-md">
         <ConnexionPanel />
       </DialogContent>
     </Dialog>
@@ -266,7 +266,7 @@ function BoutonGoogle() {
   return (
     <a
       href="/api/auth/google/login?returnTo=%2FDashboard"
-      className="w-full inline-flex items-center justify-center gap-2.5 bg-[#edeae5] text-[#3c4043] font-medium text-sm rounded-none px-4 py-2.5 hover:opacity-90 transition-colors"
+      className="w-full inline-flex items-center justify-center gap-2.5 bg-[#f2f3f5] text-[#3c4043] font-medium text-sm rounded-none px-4 py-2.5 hover:opacity-90 transition-colors"
     >
       <LogoGoogle />
       Se connecter avec Google
@@ -277,9 +277,9 @@ function BoutonGoogle() {
 function Separateur() {
   return (
     <div className="flex items-center gap-3">
-      <span className="h-px flex-1 bg-[#edeae5]/[0.08]" />
-      <span className="text-[#6b7270] text-[11px]">ou</span>
-      <span className="h-px flex-1 bg-[#edeae5]/[0.08]" />
+      <span className="h-px flex-1 bg-[#f2f3f5]/[0.08]" />
+      <span className="text-[#6a7180] text-[11px]">ou</span>
+      <span className="h-px flex-1 bg-[#f2f3f5]/[0.08]" />
     </div>
   );
 }
@@ -288,12 +288,12 @@ function EnTete({ icone: Icone, titre, sousTitre, badge }) {
   return (
     <div className="pb-2">
       <div className="flex items-center gap-2.5">
-        <h2 className="text-[#edeae5] text-[22px] font-light tracking-[-0.02em] m-0">{titre}</h2>
+        <h2 className="text-[#f2f3f5] text-[22px] font-light tracking-[-0.02em] m-0">{titre}</h2>
         {badge && (
-          <span className="text-[9px] tracking-[0.14em] uppercase text-[#e0c9a0] border border-[#e0c9a0]/40 rounded-full px-2 py-px">{badge}</span>
+          <span className="text-[9px] tracking-[0.14em] uppercase text-[#a9c5b9] border border-[#a9c5b9]/40 rounded-full px-2 py-px">{badge}</span>
         )}
       </div>
-      {sousTitre && <p className="text-[#8b9391] text-[12.5px] mt-1.5 mb-0 break-all">{sousTitre}</p>}
+      {sousTitre && <p className="text-[#9298a6] text-[12.5px] mt-1.5 mb-0 break-all">{sousTitre}</p>}
     </div>
   );
 }
@@ -312,7 +312,7 @@ function BoutonRetour({ onClick, libelle = "Changer d'adresse" }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-[#8b9391] hover:text-[#d3d8d6] text-xs flex items-center justify-center gap-1.5 transition-colors"
+      className="w-full text-[#9298a6] hover:text-[#c9cdd6] text-xs flex items-center justify-center gap-1.5 transition-colors"
     >
       <ArrowLeft className="w-3 h-3" /> {libelle}
     </button>

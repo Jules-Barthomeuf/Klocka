@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 
 const UserNotRegisteredError = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0c0c]">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#000000]">
       <div className="max-w-md w-full px-8 py-12 text-center">
         {/* Logo */}
         <img
@@ -13,27 +13,27 @@ const UserNotRegisteredError = () => {
         />
 
         {/* Icône horloge/attente */}
-        <div className="w-16 h-16 rounded-full bg-[#35a79b]/10 border border-[#35a79b]/20 flex items-center justify-center mx-auto mb-6">
-          <svg className="w-8 h-8 text-[#35a79b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-16 h-16 rounded-full bg-[#8fa0f2]/10 border border-[#8fa0f2]/20 flex items-center justify-center mx-auto mb-6">
+          <svg className="w-8 h-8 text-[#8fa0f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
 
-        <h1 className="text-2xl font-light text-[#edeae5] mb-3 tracking-tight">
+        <h1 className="text-2xl font-light text-[#f2f3f5] mb-3 tracking-tight">
           Compte en attente d'activation
         </h1>
-        <p className="text-[#edeae5]/40 text-sm leading-relaxed mb-8">
+        <p className="text-[#f2f3f5]/40 text-sm leading-relaxed mb-8">
           Votre compte a bien été créé. Un conseiller Klocka va activer votre accès très prochainement. Vous recevrez une notification par email.
         </p>
 
-        <div className="w-full h-px bg-[#edeae5]/[0.06] mb-8" />
+        <div className="w-full h-px bg-[#f2f3f5]/[0.06] mb-8" />
 
-        <p className="text-[#edeae5]/20 text-xs mb-4">
+        <p className="text-[#f2f3f5]/20 text-xs mb-4">
           Connecté avec un autre compte ?
         </p>
         <button
           onClick={() => base44.auth.logout(window.location.origin)}
-          className="text-[#35a79b] text-sm hover:text-[#35a79b]/80 transition-colors underline underline-offset-4"
+          className="text-[#8fa0f2] text-sm hover:text-[#8fa0f2]/80 transition-colors underline underline-offset-4"
         >
           Se déconnecter
         </button>

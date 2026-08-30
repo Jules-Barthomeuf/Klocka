@@ -98,7 +98,7 @@ const profilLabels = {
   visionnaire: {
     label: "Le Visionnaire",
     description: "Identifie le potentiel là où d'autres ne le voient pas. Création de valeur à long terme.",
-    color: "bg-[#35a79b]"
+    color: "bg-[#8fa0f2]"
   }
 };
 
@@ -168,11 +168,11 @@ export default function Famille() {
 
   if (selectedUsers.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0a0c0c] p-6 md:p-10">
+      <div className="min-h-screen bg-[#000000] p-6 md:p-10">
         <div className="max-w-7xl mx-auto text-center py-20">
-          <Users className="w-16 h-16 text-[#6b7270] mx-auto mb-4" />
-          <h2 className="text-2xl text-[#edeae5] mb-4">Aucun utilisateur sélectionné</h2>
-          <p className="text-[#9aa19e] mb-6">Retournez à la gestion des clients pour sélectionner des utilisateurs à comparer.</p>
+          <Users className="w-16 h-16 text-[#6a7180] mx-auto mb-4" />
+          <h2 className="text-2xl text-[#f2f3f5] mb-4">Aucun utilisateur sélectionné</h2>
+          <p className="text-[#9298a6] mb-6">Retournez à la gestion des clients pour sélectionner des utilisateurs à comparer.</p>
           <NeonButton
             onClick={() => navigate(createPageUrl("AdminClients"))}
             variant="solid"
@@ -187,25 +187,25 @@ export default function Famille() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] p-6 md:p-10">
+    <div className="min-h-screen bg-[#000000] p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Button
             variant="ghost"
             onClick={() => navigate(createPageUrl("AdminClients"))}
-            className="text-[#9aa19e] hover:text-[#edeae5] mb-4"
+            className="text-[#9298a6] hover:text-[#f2f3f5] mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-4xl font-montserrat text-[#edeae5] mb-2">
+          <h1 className="text-4xl font-montserrat text-[#f2f3f5] mb-2">
             Comparaison Famille
           </h1>
-          <div className="h-0.5 w-32 bg-[#35a79b] mb-4"></div>
+          <div className="h-0.5 w-32 bg-[#8fa0f2] mb-4"></div>
           <div className="flex flex-wrap gap-2">
             {selectedUsers.map(u => (
-              <Badge key={u.id} className="bg-[#35a79b]/20 text-[#35a79b] border border-[#35a79b]/50">
+              <Badge key={u.id} className="bg-[#8fa0f2]/20 text-[#8fa0f2] border border-[#8fa0f2]/50">
                 {u.full_name || u.email}
               </Badge>
             ))}
@@ -213,10 +213,10 @@ export default function Famille() {
         </div>
 
         {/* Résumé des profils */}
-        <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30 mb-6">
+        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 mb-6">
           <CardHeader>
-            <CardTitle className="text-[#edeae5] flex items-center gap-2">
-              <User className="w-5 h-5 text-[#35a79b]" />
+            <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
+              <User className="w-5 h-5 text-[#8fa0f2]" />
               Profils des investisseurs
             </CardTitle>
           </CardHeader>
@@ -225,27 +225,27 @@ export default function Famille() {
               {selectedUsers.map(u => {
                 const profil = profilLabels[u.profil_investisseur];
                 return (
-                  <div key={u.id} className="p-4 bg-[#171918]/50 rounded-lg border border-[#303332]">
+                  <div key={u.id} className="p-4 bg-[#0f1114]/50 rounded-lg border border-[#22262d]">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`w-10 h-10 rounded-full ${profil?.color || 'bg-[#343735]'} flex items-center justify-center`}>
-                        <span className="text-[#edeae5] font-bold">
+                      <div className={`w-10 h-10 rounded-full ${profil?.color || 'bg-[#22262d]'} flex items-center justify-center`}>
+                        <span className="text-[#f2f3f5] font-bold">
                           {(u.full_name || u.email).charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <p className="text-[#edeae5] font-medium">{u.full_name || "Sans nom"}</p>
-                        <p className="text-[#9aa19e] text-xs">{u.email}</p>
+                        <p className="text-[#f2f3f5] font-medium">{u.full_name || "Sans nom"}</p>
+                        <p className="text-[#9298a6] text-xs">{u.email}</p>
                       </div>
                     </div>
                     {profil ? (
                       <div className="space-y-2">
-                        <Badge className={`${profil.color} text-[#edeae5]`}>
+                        <Badge className={`${profil.color} text-[#f2f3f5]`}>
                           {profil.label}
                         </Badge>
-                        <p className="text-[#9aa19e] text-sm">{profil.description}</p>
+                        <p className="text-[#9298a6] text-sm">{profil.description}</p>
                       </div>
                     ) : (
-                      <p className="text-[#8b9391] text-sm">Profil non défini</p>
+                      <p className="text-[#9298a6] text-sm">Profil non défini</p>
                     )}
                   </div>
                 );
@@ -258,26 +258,26 @@ export default function Famille() {
         {discords.length > 0 && (
           <Card className="bg-gradient-to-br from-red-900/20 to-black border-red-500/30 mb-6">
             <CardHeader>
-              <CardTitle className="text-[#edeae5] flex items-center gap-2">
+              <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-500" />
                 Points de discorde ({discords.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {discords.map((discord, idx) => (
-                <div key={idx} className="p-4 bg-[#171918]/50 rounded-lg border border-red-500/30">
-                  <p className="text-[#edeae5] font-medium mb-3">{discord.question.question}</p>
+                <div key={idx} className="p-4 bg-[#0f1114]/50 rounded-lg border border-red-500/30">
+                  <p className="text-[#f2f3f5] font-medium mb-3">{discord.question.question}</p>
                   <div className="space-y-2">
                     {discord.responses.map((r, rIdx) => (
-                      <div key={rIdx} className="flex items-start gap-3 p-2 rounded bg-[#0a0c0c]/50">
+                      <div key={rIdx} className="flex items-start gap-3 p-2 rounded bg-[#000000]/50">
                         <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-red-400 text-sm font-bold">
                             {(r.user.full_name || r.user.email).charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div>
-                          <p className="text-[#d3d8d6] text-sm font-medium">{r.user.full_name || r.user.email}</p>
-                          <p className="text-[#9aa19e] text-sm">{r.label}</p>
+                          <p className="text-[#c9cdd6] text-sm font-medium">{r.user.full_name || r.user.email}</p>
+                          <p className="text-[#9298a6] text-sm">{r.label}</p>
                         </div>
                       </div>
                     ))}
@@ -290,20 +290,20 @@ export default function Famille() {
 
         {/* Points d'accord */}
         {agreements.length > 0 && (
-          <Card className="bg-gradient-to-br from-[#35a79b]/10 to-black border-[#35a79b]/30 mb-6">
+          <Card className="bg-gradient-to-br from-[#8fa0f2]/10 to-black border-[#8fa0f2]/30 mb-6">
             <CardHeader>
-              <CardTitle className="text-[#edeae5] flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-[#35a79b]" />
+              <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-[#8fa0f2]" />
                 Points d'accord ({agreements.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {agreements.map((agreement, idx) => (
-                <div key={idx} className="p-3 bg-[#171918]/50 rounded-lg border border-[#35a79b]/30 flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#35a79b] flex-shrink-0" />
+                <div key={idx} className="p-3 bg-[#0f1114]/50 rounded-lg border border-[#8fa0f2]/30 flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-[#8fa0f2] flex-shrink-0" />
                   <div>
-                    <p className="text-[#edeae5] text-sm font-medium">{agreement.question.question}</p>
-                    <p className="text-[#7fd3c9] text-sm">{agreement.label}</p>
+                    <p className="text-[#f2f3f5] text-sm font-medium">{agreement.question.question}</p>
+                    <p className="text-[#aab6f5] text-sm">{agreement.label}</p>
                   </div>
                 </div>
               ))}
@@ -312,18 +312,18 @@ export default function Famille() {
         )}
 
         {/* Tableau comparatif détaillé */}
-        <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30">
+        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
           <CardHeader>
-            <CardTitle className="text-[#edeae5]">Comparaison détaillée des réponses</CardTitle>
+            <CardTitle className="text-[#f2f3f5]">Comparaison détaillée des réponses</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#303332]">
-                    <th className="text-left p-3 text-[#9aa19e] min-w-[200px]">Question</th>
+                  <tr className="border-b border-[#22262d]">
+                    <th className="text-left p-3 text-[#9298a6] min-w-[200px]">Question</th>
                     {selectedUsers.map(u => (
-                      <th key={u.id} className="text-left p-3 text-[#9aa19e] min-w-[150px]">
+                      <th key={u.id} className="text-left p-3 text-[#9298a6] min-w-[150px]">
                         {u.full_name || u.email.split('@')[0]}
                       </th>
                     ))}
@@ -336,18 +336,18 @@ export default function Famille() {
                     const hasDiscord = uniqueResponses.length > 1;
                     
                     return (
-                      <tr key={q.id} className={`border-b border-[#171918] ${hasDiscord ? 'bg-red-900/10' : ''}`}>
-                        <td className="p-3 text-[#d3d8d6]">{q.question}</td>
+                      <tr key={q.id} className={`border-b border-[#0f1114] ${hasDiscord ? 'bg-red-900/10' : ''}`}>
+                        <td className="p-3 text-[#c9cdd6]">{q.question}</td>
                         {selectedUsers.map(u => {
                           const response = u.reponses_questionnaire?.[q.id];
                           return (
                             <td key={u.id} className="p-3">
                               {response ? (
-                                <span className={`text-sm ${hasDiscord ? 'text-red-400' : 'text-[#9aa19e]'}`}>
+                                <span className={`text-sm ${hasDiscord ? 'text-red-400' : 'text-[#9298a6]'}`}>
                                   {q.options[response] || response}
                                 </span>
                               ) : (
-                                <span className="text-[#6b7270]">-</span>
+                                <span className="text-[#6a7180]">-</span>
                               )}
                             </td>
                           );

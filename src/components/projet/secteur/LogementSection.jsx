@@ -3,7 +3,7 @@ import { Home } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import SectionCard, { KPI } from "./SectionCard";
 
-const tooltipStyle = { backgroundColor: '#121413', border: '1px solid #303332', borderRadius: '8px', color: '#fff' };
+const tooltipStyle = { backgroundColor: '#0f1114', border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
 
 // Moyennes nationales France (INSEE)
 const FR_LOG = {
@@ -18,7 +18,7 @@ function FrCompare({ local, national, unit = "%", invert = false }) {
   const diff = local - national;
   const positive = invert ? diff < 0 : diff > 0;
   return (
-    <p className={`text-[10px] mt-1 font-medium ${positive ? 'text-[#7fd3c9]' : diff === 0 ? 'text-[#8b9391]' : 'text-red-400'}`}>
+    <p className={`text-[10px] mt-1 font-medium ${positive ? 'text-[#aab6f5]' : diff === 0 ? 'text-[#9298a6]' : 'text-red-400'}`}>
       FR: {national}{unit} ({diff > 0 ? '+' : ''}{diff.toFixed(1)} pts)
     </p>
   );
@@ -26,26 +26,26 @@ function FrCompare({ local, national, unit = "%", invert = false }) {
 
 export default function LogementSection({ data }) {
   const pieLogement = [
-    data.pct_residences_principales > 0 && { name: "Rés. principales", value: data.pct_residences_principales, fill: "#35a79b" },
-    data.pct_residences_secondaires > 0 && { name: "Rés. secondaires", value: data.pct_residences_secondaires, fill: "#7fd3c9" },
-    data.pct_logements_vacants > 0 && { name: "Vacants", value: data.pct_logements_vacants, fill: "#EF4444" },
+    data.pct_residences_principales > 0 && { name: "Rés. principales", value: data.pct_residences_principales, fill: "#8fa0f2" },
+    data.pct_residences_secondaires > 0 && { name: "Rés. secondaires", value: data.pct_residences_secondaires, fill: "#aab6f5" },
+    data.pct_logements_vacants > 0 && { name: "Vacants", value: data.pct_logements_vacants, fill: "#e8746a" },
   ].filter(Boolean);
 
   const pieType = [
-    data.pct_maisons > 0 && { name: "Maisons", value: data.pct_maisons, fill: "#35a79b" },
+    data.pct_maisons > 0 && { name: "Maisons", value: data.pct_maisons, fill: "#8fa0f2" },
     data.pct_appartements > 0 && { name: "Appartements", value: data.pct_appartements, fill: "#1f6b62" },
   ].filter(Boolean);
 
   if (!data.nb_logements && pieLogement.length === 0) return null;
 
   return (
-    <SectionCard icon={<Home className="w-5 h-5 text-[#35a79b]" />} title="Logement">
+    <SectionCard icon={<Home className="w-5 h-5 text-[#8fa0f2]" />} title="Logement">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {data.nb_logements > 0 && <KPI label="Logements" value={data.nb_logements.toLocaleString()} color="teal" />}
         {data.pct_logements_vacants > 0 && (
-          <div className={`p-4 bg-gradient-to-br ${data.pct_logements_vacants > 8 ? 'from-red-500/20 border-red-500/30' : data.pct_logements_vacants > 5 ? 'from-[#e0c9a0]/20 border-[#e0c9a0]/30' : 'from-[#35a79b]/20 border-[#35a79b]/30'} to-transparent rounded-md border`}>
-            <p className="text-sm text-[#9aa19e] mb-1">Taux de vacance</p>
-            <p className={`text-2xl font-semibold ${data.pct_logements_vacants > 8 ? 'text-red-400' : data.pct_logements_vacants > 5 ? 'text-[#e0c9a0]' : 'text-[#7fd3c9]'}`}>{data.pct_logements_vacants}%</p>
+          <div className={`p-4 bg-gradient-to-br ${data.pct_logements_vacants > 8 ? 'from-red-500/20 border-red-500/30' : data.pct_logements_vacants > 5 ? 'from-[#a9c5b9]/20 border-[#a9c5b9]/30' : 'from-[#8fa0f2]/20 border-[#8fa0f2]/30'} to-transparent rounded-md border`}>
+            <p className="text-sm text-[#9298a6] mb-1">Taux de vacance</p>
+            <p className={`text-2xl font-semibold ${data.pct_logements_vacants > 8 ? 'text-red-400' : data.pct_logements_vacants > 5 ? 'text-[#a9c5b9]' : 'text-[#aab6f5]'}`}>{data.pct_logements_vacants}%</p>
             <FrCompare local={data.pct_logements_vacants} national={FR_LOG.pct_logements_vacants} invert={true} />
           </div>
         )}
@@ -57,7 +57,7 @@ export default function LogementSection({ data }) {
         {/* Catégorie de logement */}
         {pieLogement.length > 0 && (
           <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-[#9aa19e]">Catégorie</p>
+            <p className="text-sm text-[#9298a6]">Catégorie</p>
             <div className="w-36 h-36">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -72,7 +72,7 @@ export default function LogementSection({ data }) {
               {pieLogement.map((d, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.fill }} />
-                  <span className="text-xs text-[#d3d8d6]">{d.name}: {d.value}%</span>
+                  <span className="text-xs text-[#c9cdd6]">{d.name}: {d.value}%</span>
                 </div>
               ))}
             </div>
@@ -82,7 +82,7 @@ export default function LogementSection({ data }) {
         {/* Type de logement */}
         {pieType.length > 0 && (
           <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-[#9aa19e]">Type</p>
+            <p className="text-sm text-[#9298a6]">Type</p>
             <div className="w-36 h-36">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -97,7 +97,7 @@ export default function LogementSection({ data }) {
               {pieType.map((d, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.fill }} />
-                  <span className="text-xs text-[#d3d8d6]">{d.name}: {d.value}%</span>
+                  <span className="text-xs text-[#c9cdd6]">{d.name}: {d.value}%</span>
                 </div>
               ))}
             </div>
@@ -108,22 +108,22 @@ export default function LogementSection({ data }) {
         <div className="space-y-4">
           {(data.pct_proprietaires > 0 || data.pct_locataires > 0) && (
             <div>
-              <p className="text-sm text-[#9aa19e] mb-2">Statut d'occupation</p>
+              <p className="text-sm text-[#9298a6] mb-2">Statut d'occupation</p>
               <div className="relative h-6 rounded-full overflow-hidden flex">
                 {data.pct_proprietaires > 0 && (
-                  <div className="bg-[#35a79b] flex items-center justify-center text-[#0a0c0c] text-xs font-medium" style={{ width: `${data.pct_proprietaires}%` }}>
+                  <div className="bg-[#8fa0f2] flex items-center justify-center text-[#000000] text-xs font-medium" style={{ width: `${data.pct_proprietaires}%` }}>
                     {data.pct_proprietaires}%
                   </div>
                 )}
                 {data.pct_locataires > 0 && (
-                  <div className="bg-[#1f6b62] flex items-center justify-center text-[#edeae5] text-xs font-medium" style={{ width: `${data.pct_locataires}%` }}>
+                  <div className="bg-[#1f6b62] flex items-center justify-center text-[#f2f3f5] text-xs font-medium" style={{ width: `${data.pct_locataires}%` }}>
                     {data.pct_locataires}%
                   </div>
                 )}
               </div>
               <div className="flex gap-4 mt-2">
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#35a79b]" /><span className="text-xs text-[#9aa19e]">Propriétaires</span></div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#1f6b62]" /><span className="text-xs text-[#9aa19e]">Locataires</span></div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#8fa0f2]" /><span className="text-xs text-[#9298a6]">Propriétaires</span></div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#1f6b62]" /><span className="text-xs text-[#9298a6]">Locataires</span></div>
               </div>
             </div>
           )}
@@ -131,7 +131,7 @@ export default function LogementSection({ data }) {
           {/* Ancienneté d'emménagement */}
           {data.pct_emmenagement_moins_2ans > 0 && (
             <div>
-              <p className="text-sm text-[#9aa19e] mb-2">Ancienneté d'emménagement</p>
+              <p className="text-sm text-[#9298a6] mb-2">Ancienneté d'emménagement</p>
               <div className="space-y-1.5">
                 {data.pct_emmenagement_moins_2ans > 0 && <StatLine label="< 2 ans" value={data.pct_emmenagement_moins_2ans} />}
                 {data.pct_emmenagement_2_4ans > 0 && <StatLine label="2-4 ans" value={data.pct_emmenagement_2_4ans} />}
@@ -144,7 +144,7 @@ export default function LogementSection({ data }) {
           {/* Nb pièces */}
           {data.pct_1_piece > 0 && (
             <div>
-              <p className="text-sm text-[#9aa19e] mb-2">Nombre de pièces</p>
+              <p className="text-sm text-[#9298a6] mb-2">Nombre de pièces</p>
               <div className="space-y-1.5">
                 {data.pct_1_piece > 0 && <StatLine label="1 pièce" value={data.pct_1_piece} />}
                 {data.pct_2_pieces > 0 && <StatLine label="2 pièces" value={data.pct_2_pieces} />}
@@ -163,11 +163,11 @@ export default function LogementSection({ data }) {
 function StatLine({ label, value }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-[#9aa19e] w-16">{label}</span>
-      <div className="flex-1 h-1.5 bg-[#171918] rounded-full overflow-hidden">
-        <div className="h-full rounded-full bg-[#35a79b]" style={{ width: `${Math.min(value, 100)}%` }} />
+      <span className="text-xs text-[#9298a6] w-16">{label}</span>
+      <div className="flex-1 h-1.5 bg-[#0f1114] rounded-full overflow-hidden">
+        <div className="h-full rounded-full bg-[#8fa0f2]" style={{ width: `${Math.min(value, 100)}%` }} />
       </div>
-      <span className="text-xs text-[#d3d8d6] w-10 text-right">{value}%</span>
+      <span className="text-xs text-[#c9cdd6] w-10 text-right">{value}%</span>
     </div>
   );
 }

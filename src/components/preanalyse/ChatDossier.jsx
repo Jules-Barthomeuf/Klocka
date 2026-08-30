@@ -31,7 +31,7 @@ function Message({ m }) {
     <div className={`flex ${moi ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[86%] rounded-lg px-4 py-3 text-[13.5px] leading-[1.7] whitespace-pre-wrap
-          ${moi ? "bg-[#1a1d1c] text-[#edeae5] border border-[#2e3230]" : "bg-transparent text-[#d3d8d6] border border-[#242726]"}`}
+          ${moi ? "bg-[#1a1d1c] text-[#f2f3f5] border border-[#22262d]" : "bg-transparent text-[#c9cdd6] border border-[#1f2228]"}`}
       >
         {m.contenu}
       </div>
@@ -147,17 +147,17 @@ export default function ChatDossier({
     <div className="space-y-4">
       {/* Conversation ouverte */}
       {!modeMail && !modePreanalyse && conversation && (
-        <div className="border border-[#2e3230] rounded-xl bg-[#131615]">
-          <div className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-[#242726]">
-            <p className="m-0 text-[13.5px] text-[#edeae5] truncate">{conversation.titre}</p>
-            <button onClick={() => setConversationId(null)} className="text-[12.5px] text-[#8b9391] hover:text-[#edeae5] transition-colors flex-shrink-0">
+        <div className="border border-[#22262d] rounded-xl bg-[#131615]">
+          <div className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-[#1f2228]">
+            <p className="m-0 text-[13.5px] text-[#f2f3f5] truncate">{conversation.titre}</p>
+            <button onClick={() => setConversationId(null)} className="text-[12.5px] text-[#9298a6] hover:text-[#f2f3f5] transition-colors flex-shrink-0">
               Nouvelle requête
             </button>
           </div>
           <div className="px-5 py-4 space-y-3 max-h-[460px] overflow-y-auto">
             {conversation.messages.map((m, i) => <Message key={i} m={m} />)}
             {envoyer.isPending && (
-              <div className="flex items-center gap-2 text-[#8b9391] text-[12.5px]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Réflexion…</div>
+              <div className="flex items-center gap-2 text-[#9298a6] text-[12.5px]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Réflexion…</div>
             )}
             <div ref={finRef} />
           </div>
@@ -166,7 +166,7 @@ export default function ChatDossier({
 
       {/* Zone de saisie */}
       <div className="max-w-[880px] mx-auto">
-        <div className="bg-[#171a19] border border-[#2e3230] rounded-xl px-5 pt-4 pb-3 focus-within:border-[#35a79b]/60 transition-colors">
+        <div className="bg-[#171a19] border border-[#22262d] rounded-xl px-5 pt-4 pb-3 focus-within:border-[#8fa0f2]/60 transition-colors">
           <textarea
             rows={2}
             value={texte}
@@ -174,7 +174,7 @@ export default function ChatDossier({
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer) { e.preventDefault(); lancer(); } }}
             placeholder={placeholder}
             disabled={apercu || !dossier}
-            className="w-full bg-transparent border-0 outline-none resize-none text-[15px] text-[#edeae5] placeholder:text-[#5a615f] disabled:opacity-50"
+            className="w-full bg-transparent border-0 outline-none resize-none text-[15px] text-[#f2f3f5] placeholder:text-[#5a615f] disabled:opacity-50"
           />
           <div className={`flex items-center gap-3 mt-2 ${modeMail || modePreanalyse ? "justify-end" : "justify-between"}`}>
             <button
@@ -182,14 +182,14 @@ export default function ChatDossier({
               hidden={modeMail || modePreanalyse}
               disabled={!documents.length}
               title={documents.length ? "Choisir les documents interrogés" : "Aucun document importé"}
-              className="text-[12.5px] px-3.5 py-1.5 rounded-full border border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59] transition-colors disabled:opacity-40"
+              className="text-[12.5px] px-3.5 py-1.5 rounded-full border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-40"
             >
               Sources : {nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : documents.length ? "aucune" : "générales"}
             </button>
             <button
               onClick={lancer}
               disabled={!peutEnvoyer}
-              className="w-10 h-10 rounded-full bg-[#edeae5] text-[#0a0c0c] flex items-center justify-center hover:brightness-95 disabled:opacity-30 transition-all flex-shrink-0"
+              className="w-10 h-10 rounded-full bg-[#f2f3f5] text-[#000000] flex items-center justify-center hover:brightness-95 disabled:opacity-30 transition-all flex-shrink-0"
               title="Envoyer"
             >
               {enCours ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
@@ -204,7 +204,7 @@ export default function ChatDossier({
               <button
                 onClick={() => fichierRef.current?.click()}
                 disabled={apercu || analyseEnCours}
-                className="px-4 py-2 rounded-full text-[13px] border border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59] transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-full text-[13px] border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50"
               >
                 Importer un fichier
               </button>
@@ -215,7 +215,7 @@ export default function ChatDossier({
                 className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onAnalyserFichier?.(f); }}
               />
-              <span className="px-1 py-2 text-[12.5px] text-[#6b7270]">
+              <span className="px-1 py-2 text-[12.5px] text-[#6a7180]">
                 ou collez l'email dans le chat pour lancer l'analyse
               </span>
             </>
@@ -225,7 +225,7 @@ export default function ChatDossier({
                   key={g.label}
                   onClick={() => setTexte(g.prompt(dossier))}
                   disabled={apercu}
-                  className="px-4 py-2 rounded-full text-[13px] border border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59] transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-full text-[13px] border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50"
                 >
                   {g.label}
                 </button>
@@ -246,7 +246,7 @@ export default function ChatDossier({
                     : conversation ? "Le mode est fixé par la requête ouverte" : undefined
                 }
                 className={`px-4 py-2 rounded-full text-[13px] border transition-colors disabled:opacity-50
-                  ${mode === m.id ? "bg-[#edeae5] border-[#edeae5] text-[#0a0c0c] font-medium" : "border-[#2e3230] text-[#9aa19e] hover:text-[#edeae5] hover:border-[#565b59]"}`}
+                  ${mode === m.id ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#000000] font-medium" : "border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}
               >
                 {m.id === "analyse" && extractionEnCours ? (
                   <span className="inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Extraction…</span>
@@ -261,16 +261,16 @@ export default function ChatDossier({
       {/* Requêtes récentes */}
       {afficherRequetes && !modeMail && !modePreanalyse && requetes.length > 0 && (
         <div className="pt-4">
-          <h3 className="m-0 mb-3 text-[16px] font-medium text-[#edeae5]">Requêtes récentes</h3>
-          <div className="border-t border-[#1c1f1e]">
+          <h3 className="m-0 mb-3 text-[16px] font-medium text-[#f2f3f5]">Requêtes récentes</h3>
+          <div className="border-t border-[#15171b]">
             {requetes.map((r) => (
-              <div key={r.cle} className="flex items-center gap-4 px-1 py-3.5 border-b border-[#1c1f1e] hover:bg-[#edeae5]/[0.02] transition-colors group">
-                <button onClick={r.ouvrir} className="flex-1 min-w-0 text-left text-[13.5px] text-[#edeae5] truncate hover:text-[#7fd3c9] transition-colors">
+              <div key={r.cle} className="flex items-center gap-4 px-1 py-3.5 border-b border-[#15171b] hover:bg-[#f2f3f5]/[0.02] transition-colors group">
+                <button onClick={r.ouvrir} className="flex-1 min-w-0 text-left text-[13.5px] text-[#f2f3f5] truncate hover:text-[#aab6f5] transition-colors">
                   {r.titre}
                 </button>
-                <span className="hidden md:block w-[130px] flex-shrink-0 text-[12.5px] text-[#8b9391]">{r.type}</span>
-                <span className="hidden lg:block w-[190px] flex-shrink-0 text-[12.5px] text-[#6b7270] truncate">{r.auteur || "—"}</span>
-                <span className="w-[86px] flex-shrink-0 text-right text-[12.5px] text-[#6b7270]">{ilYA(r.date)}</span>
+                <span className="hidden md:block w-[130px] flex-shrink-0 text-[12.5px] text-[#9298a6]">{r.type}</span>
+                <span className="hidden lg:block w-[190px] flex-shrink-0 text-[12.5px] text-[#6a7180] truncate">{r.auteur || "—"}</span>
+                <span className="w-[86px] flex-shrink-0 text-right text-[12.5px] text-[#6a7180]">{ilYA(r.date)}</span>
                 {r.supprimer ? (
                   <button
                     onClick={() => { if (window.confirm(`Supprimer « ${r.titre} » ?`)) r.supprimer(); }}

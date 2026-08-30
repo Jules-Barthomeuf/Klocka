@@ -63,14 +63,14 @@ export default function Familles() {
   if (!user || user.role !== 'admin') return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] p-6 md:p-10">
+    <div className="min-h-screen bg-[#000000] p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-4xl font-montserrat text-[#edeae5] mb-2">Familles</h1>
-            <div className="h-0.5 w-32 bg-[#35a79b] mb-2"></div>
-            <p className="text-[#9aa19e] text-lg">
+            <h1 className="text-4xl font-montserrat text-[#f2f3f5] mb-2">Familles</h1>
+            <div className="h-0.5 w-32 bg-[#8fa0f2] mb-2"></div>
+            <p className="text-[#9298a6] text-lg">
               Gérez les groupes de co-investisseurs
             </p>
           </div>
@@ -85,15 +85,15 @@ export default function Familles() {
         </div>
 
         {/* Search */}
-        <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30 mb-6">
+        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 mb-6">
           <CardContent className="p-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9aa19e] w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9298a6] w-5 h-5" />
               <Input
                 placeholder="Rechercher une famille..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-12 text-base bg-[#0a0c0c] text-[#edeae5] border-[#303332]"
+                className="pl-10 h-12 text-base bg-[#000000] text-[#f2f3f5] border-[#22262d]"
               />
             </div>
           </CardContent>
@@ -101,11 +101,11 @@ export default function Familles() {
 
         {/* Liste des familles */}
         {filteredFamilles.length === 0 ? (
-          <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30">
+          <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
             <CardContent className="p-12 text-center">
-              <Users className="w-16 h-16 text-[#6b7270] mx-auto mb-4" />
-              <h2 className="text-xl text-[#edeae5] mb-2">Aucune famille créée</h2>
-              <p className="text-[#9aa19e] mb-6">
+              <Users className="w-16 h-16 text-[#6a7180] mx-auto mb-4" />
+              <h2 className="text-xl text-[#f2f3f5] mb-2">Aucune famille créée</h2>
+              <p className="text-[#9298a6] mb-6">
                 Sélectionnez des utilisateurs dans la gestion clients pour créer une famille.
               </p>
               <NeonButton
@@ -123,12 +123,12 @@ export default function Familles() {
               return (
                 <Card 
                   key={famille.id} 
-                  className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30 hover:border-[#35a79b]/60 transition-all cursor-pointer"
+                  className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 hover:border-[#8fa0f2]/60 transition-all cursor-pointer"
                   onClick={() => navigate(`${createPageUrl("Famille")}?users=${famille.user_ids?.join(',')}&familleId=${famille.id}`)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-[#edeae5] text-lg">{famille.nom}</CardTitle>
+                      <CardTitle className="text-[#f2f3f5] text-lg">{famille.nom}</CardTitle>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -145,14 +145,14 @@ export default function Familles() {
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {familleUsers.map(u => (
-                        <Badge key={u.id} className="bg-[#35a79b]/20 text-[#35a79b] border border-[#35a79b]/50">
+                        <Badge key={u.id} className="bg-[#8fa0f2]/20 text-[#8fa0f2] border border-[#8fa0f2]/50">
                           {u.full_name || u.email.split('@')[0]}
                         </Badge>
                       ))}
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-[#9aa19e]">{familleUsers.length} membres</span>
-                      <Button variant="ghost" size="sm" className="text-[#35a79b] hover:text-[#35a79b]">
+                      <span className="text-[#9298a6]">{familleUsers.length} membres</span>
+                      <Button variant="ghost" size="sm" className="text-[#8fa0f2] hover:text-[#8fa0f2]">
                         <Eye className="w-4 h-4 mr-1" />
                         Voir
                       </Button>

@@ -33,33 +33,33 @@ export default function Bienvenue() {
   }, [jeton]);
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] flex flex-col">
+    <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex flex-col">
       <nav className="px-8 md:px-16 py-6">
-        <span className="text-[13px] tracking-[.22em] uppercase text-[#edeae5]">Klocka</span>
+        <span className="text-[13px] tracking-[.22em] uppercase text-[#f2f3f5]">Klocka</span>
       </nav>
 
       <div className="flex-1 flex items-center justify-center px-6 pb-16">
         <div className="w-full max-w-md">
           {etat.chargement ? (
             <div className="flex justify-center py-16">
-              <Loader2 className="w-6 h-6 text-[#8b9391] animate-spin" />
+              <Loader2 className="w-6 h-6 text-[#9298a6] animate-spin" />
             </div>
           ) : etat.valide ? (
             <>
-              <div className="w-10 h-0.5 bg-[#e0c9a0] mb-8" />
-              <p className="m-0 mb-8 text-[15px] leading-[1.7] text-[#9aa19e]">
+              <div className="w-10 h-0.5 bg-[#a9c5b9] mb-8" />
+              <p className="m-0 mb-8 text-[15px] leading-[1.7] text-[#9298a6]">
                 Votre espace est prêt. Il ne manque que votre mot de passe.
               </p>
               <ConnexionPanel invitation={{ email: etat.email, prenom: etat.prenom, jeton }} />
             </>
           ) : (
             <>
-              <div className="w-10 h-0.5 bg-[#e0c9a0] mb-8" />
-              <h1 className="m-0 text-[26px] font-light tracking-[-.02em] text-[#edeae5]">Lien inutilisable</h1>
-              <p className="m-0 mt-4 text-[14.5px] leading-[1.7] text-[#9aa19e]">{MESSAGES[etat.raison] || MESSAGES.inconnu}</p>
+              <div className="w-10 h-0.5 bg-[#a9c5b9] mb-8" />
+              <h1 className="m-0 text-[26px] font-light tracking-[-.02em] text-[#f2f3f5]">Lien inutilisable</h1>
+              <p className="m-0 mt-4 text-[14.5px] leading-[1.7] text-[#9298a6]">{MESSAGES[etat.raison] || MESSAGES.inconnu}</p>
               <a
                 href="/"
-                className="inline-block mt-8 px-5 py-2.5 border border-[#3a3e3c] text-[11px] tracking-[.16em] uppercase text-[#edeae5] hover:bg-[#edeae5]/[0.06] transition-colors"
+                className="inline-block mt-8 px-5 py-2.5 border border-[#2c3139] text-[11px] tracking-[.16em] uppercase text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.06] transition-colors"
               >
                 Aller à la connexion
               </a>

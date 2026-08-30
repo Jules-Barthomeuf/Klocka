@@ -15,11 +15,11 @@ import "moment/locale/fr";
 moment.locale("fr");
 
 const statutConfig = {
-  nouveau: { label: "En attente", color: "bg-[#8b9391]/20 text-[#d3d8d6]", icon: Clock },
+  nouveau: { label: "En attente", color: "bg-[#9298a6]/20 text-[#c9cdd6]", icon: Clock },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300", icon: Loader2 },
-  accepte: { label: "Accepté", color: "bg-[#35a79b]/20 text-[#7fd3c9]", icon: CheckCircle2 },
+  accepte: { label: "Accepté", color: "bg-[#8fa0f2]/20 text-[#aab6f5]", icon: CheckCircle2 },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300", icon: XCircle },
-  termine: { label: "Terminé", color: "bg-[#35a79b]/20 text-[#35a79b]", icon: CheckCircle2 }
+  termine: { label: "Terminé", color: "bg-[#8fa0f2]/20 text-[#8fa0f2]", icon: CheckCircle2 }
 };
 
 export default function Feedback() {
@@ -89,16 +89,16 @@ export default function Feedback() {
   // Bloquer l'accès en étape 1
   if (showAsClient && userEtape === 1) {
     return (
-      <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30">
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
+        <Card className="max-w-md w-full bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
           <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-[#35a79b] rounded-full flex items-center justify-center mx-auto mb-6">
-              <MessageSquare className="w-10 h-10 text-[#edeae5]" />
+            <div className="w-20 h-20 bg-[#8fa0f2] rounded-full flex items-center justify-center mx-auto mb-6">
+              <MessageSquare className="w-10 h-10 text-[#f2f3f5]" />
             </div>
-            <h2 className="text-2xl text-[#edeae5] mb-4">
+            <h2 className="text-2xl text-[#f2f3f5] mb-4">
               Accès en attente
             </h2>
-            <p className="text-[#9aa19e] mb-6">
+            <p className="text-[#9298a6] mb-6">
               Cette section sera débloquée par votre conseiller.
             </p>
           </CardContent>
@@ -108,7 +108,7 @@ export default function Feedback() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] p-6 md:p-10">
+    <div className="min-h-screen bg-[#000000] p-6 md:p-10">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -117,21 +117,21 @@ export default function Feedback() {
         >
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <h1 className="text-4xl font-montserrat text-[#edeae5] mb-2">Suggestions</h1>
-              <div className="h-0.5 w-32 bg-[#35a79b] mb-2"></div>
-              <p className="text-[#9aa19e] text-lg">
+              <h1 className="text-4xl font-montserrat text-[#f2f3f5] mb-2">Suggestions</h1>
+              <div className="h-0.5 w-32 bg-[#8fa0f2] mb-2"></div>
+              <p className="text-[#9298a6] text-lg">
                 Proposez vos idées d'amélioration
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-sm font-montserrat text-[#edeae5]">
+                <p className="text-sm font-montserrat text-[#f2f3f5]">
                   {user.full_name || user.email.split('@')[0]}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#35a79b] to-[#7fd3c9] rounded-full flex items-center justify-center">
-                <span className="text-[#edeae5] font-montserrat text-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#8fa0f2] to-[#aab6f5] rounded-full flex items-center justify-center">
+                <span className="text-[#f2f3f5] font-montserrat text-lg">
                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -144,10 +144,10 @@ export default function Feedback() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <Card className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#35a79b]/30 hover:border-[#35a79b]/60 transition-all duration-300 mb-8">
+            <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 hover:border-[#8fa0f2]/60 transition-all duration-300 mb-8">
               <CardHeader>
-                <CardTitle className="text-[#edeae5] flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#35a79b]" />
+                <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-[#8fa0f2]" />
                   Nouvelle suggestion
                 </CardTitle>
               </CardHeader>
@@ -166,10 +166,10 @@ export default function Feedback() {
                                               animate={{ scale: 1 }}
                                               transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
                                             >
-                                              <CheckCircle2 className="w-20 h-20 text-[#35a79b] mx-auto mb-4" />
+                                              <CheckCircle2 className="w-20 h-20 text-[#8fa0f2] mx-auto mb-4" />
                                             </motion.div>
-                                            <h3 className="text-2xl text-[#edeae5] mb-2">Merci pour votre retour !</h3>
-                                            <p className="text-[#9aa19e]">Votre suggestion a été enregistrée</p>
+                                            <h3 className="text-2xl text-[#f2f3f5] mb-2">Merci pour votre retour !</h3>
+                                            <p className="text-[#9298a6]">Votre suggestion a été enregistrée</p>
                                           </motion.div>
                                         ) : (
                     <motion.form
@@ -181,14 +181,14 @@ export default function Feedback() {
                       className="space-y-6"
                     >
                       <div className="space-y-2">
-                        <Label htmlFor="feedback" className="text-[#d3d8d6]">
+                        <Label htmlFor="feedback" className="text-[#c9cdd6]">
                           Quelle amélioration souhaitez-vous proposer ?
                         </Label>
                         <Textarea
                           id="feedback"
                           value={feedback}
                           onChange={(e) => setFeedback(e.target.value)}
-                          className="bg-[#171918] border-[#303332] text-[#edeae5] min-h-[150px] resize-none"
+                          className="bg-[#0f1114] border-[#22262d] text-[#f2f3f5] min-h-[150px] resize-none"
                           placeholder="Décrivez votre idée d'amélioration..."
                           disabled={isSubmitting}
                         />
@@ -197,7 +197,7 @@ export default function Feedback() {
                       <Button
                                                 type="submit"
                                                 disabled={!feedback.trim() || isSubmitting}
-                                                className="w-full bg-[#0a0c0c] hover:bg-[#171918] border border-[#303332] transition-all duration-300"
+                                                className="w-full bg-[#000000] hover:bg-[#0f1114] border border-[#22262d] transition-all duration-300"
                                               >
                                                 {isSubmitting ? (
                                                   <>
@@ -225,18 +225,18 @@ export default function Feedback() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <h2 className="text-xl font-montserrat text-[#edeae5] mb-4">Mes suggestions</h2>
+              <h2 className="text-xl font-montserrat text-[#f2f3f5] mb-4">Mes suggestions</h2>
               <div className="space-y-4">
                 {mesSuggestions.map((suggestion) => {
                   const config = statutConfig[suggestion.statut] || statutConfig.nouveau;
                   const Icon = config.icon;
                   return (
-                    <Card key={suggestion.id} className="bg-gradient-to-br from-[#0a0c0c] to-black border-[#171918]">
+                    <Card key={suggestion.id} className="bg-gradient-to-br from-[#000000] to-black border-[#0f1114]">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <p className="text-[#d3d8d6] text-sm mb-2">{suggestion.contenu}</p>
-                            <p className="text-xs text-[#8b9391]">
+                            <p className="text-[#c9cdd6] text-sm mb-2">{suggestion.contenu}</p>
+                            <p className="text-xs text-[#9298a6]">
                               {moment(suggestion.created_date).format('DD MMMM YYYY à HH:mm')}
                             </p>
                           </div>

@@ -10,7 +10,7 @@ import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
 
 export default function AdminDashboardView() {
   return (
-    <div className="min-h-screen bg-[#0b0a09]">
+    <div className="min-h-screen bg-[#000000]">
       {/* Une colonne large et beaucoup d'air : le plan de travail se parcourt
           d'un regard, il ne se déchiffre pas. */}
       <div className="max-w-[1400px] mx-auto px-5 md:px-12 py-10 md:py-16">

@@ -74,7 +74,7 @@ function StatCell({ label, value, highlight }) {
   return (
     <div className="flex flex-col">
       <span className="text-[10px] text-[hsl(var(--background))]">{label}</span>
-      <span className={`text-sm tabular-nums ${highlight ? "text-[#35a79b]" : "text-[#edeae5]"}`}>{value}</span>
+      <span className={`text-sm tabular-nums ${highlight ? "text-[#8fa0f2]" : "text-[#f2f3f5]"}`}>{value}</span>
     </div>);
 
 }
@@ -106,8 +106,8 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
       {/* Niveaux de négociation */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <TrendingDown className="w-4 h-4 text-[#35a79b]" />
-          <h3 className="text-sm text-[#edeae5] font-medium">Simuler une négociation</h3>
+          <TrendingDown className="w-4 h-4 text-[#8fa0f2]" />
+          <h3 className="text-sm text-[#f2f3f5] font-medium">Simuler une négociation</h3>
         </div>
         <div className="flex flex-wrap gap-2">
           {scenarios.map((s) =>
@@ -116,29 +116,29 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
             onClick={() => {setCustomPrix("");setNiveau(s.niveau);}}
             className={`flex flex-col items-center px-4 py-2.5 rounded-md border transition-all duration-300 min-w-[96px] ${
             !customActive && niveau === s.niveau ?
-            "bg-[#35a79b]/15 border-[#35a79b]/50 text-[#edeae5]" :
-            "bg-[#141414] border-[#282b2a] text-[#9aa19e] hover:border-[#edeae5]/[0.2]"}`
+            "bg-[#8fa0f2]/15 border-[#8fa0f2]/50 text-[#f2f3f5]" :
+            "bg-[#141414] border-[#1f2228] text-[#9298a6] hover:border-[#f2f3f5]/[0.2]"}`
             }>
             
               <span className="text-base tabular-nums text-[hsl(var(--background))]">-{s.niveau}%</span>
               <span className="text-[10px] tabular-nums text-[hsl(var(--border))]">{formatCurrency(s.data.prixNegocie)}</span>
             </button>
           )}
-          <div className={`flex flex-col justify-center px-4 py-2 rounded-md border transition-all duration-300 min-w-[140px] ${customActive ? "bg-[#35a79b]/15 border-[#35a79b]/50" : "bg-[#141414] border-[#282b2a]"}`}>
-            <span className="text-[10px] text-[#8b9391] mb-1">Prix personnalisé</span>
+          <div className={`flex flex-col justify-center px-4 py-2 rounded-md border transition-all duration-300 min-w-[140px] ${customActive ? "bg-[#8fa0f2]/15 border-[#8fa0f2]/50" : "bg-[#141414] border-[#1f2228]"}`}>
+            <span className="text-[10px] text-[#9298a6] mb-1">Prix personnalisé</span>
             <input
               type="number"
               value={customPrix}
               onChange={(e) => setCustomPrix(e.target.value)}
               placeholder={formatCurrency(prixRef)}
-              className="sim-num-input bg-transparent text-[#edeae5] text-base tabular-nums w-full outline-none placeholder:text-[#6b7270]" />
+              className="sim-num-input bg-transparent text-[#f2f3f5] text-base tabular-nums w-full outline-none placeholder:text-[#6a7180]" />
             
           </div>
         </div>
       </div>
 
       {/* Détail du scénario sélectionné */}
-      <div key={selected.niveau} className="rounded-md border border-[#282b2a] bg-[#0f0f0f] p-4 animate-in fade-in duration-300">
+      <div key={selected.niveau} className="rounded-md border border-[#1f2228] bg-[#0f0f0f] p-4 animate-in fade-in duration-300">
         <p className="text-[10px] uppercase tracking-[0.18em] mb-3 text-[hsl(var(--background))]">
           Scénario sélectionné · {selected.niveau === "custom" ? "Prix personnalisé" : `Négociation -${selected.niveau}%`}
         </p>
@@ -155,7 +155,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
       </div>
 
       {/* Comparatif de tous les niveaux */}
-      <div className="rounded-md border border-[#282b2a] bg-[#0f0f0f] overflow-x-auto">
+      <div className="rounded-md border border-[#1f2228] bg-[#0f0f0f] overflow-x-auto">
         <table className="w-full min-w-[560px] text-xs table-fixed">
           <colgroup>
             <col className="w-[14%]" />
@@ -165,7 +165,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
             <col className="w-[23%]" />
           </colgroup>
           <thead>
-            <tr className="text-[#8b9391] border-b border-[#282b2a]">
+            <tr className="text-[#9298a6] border-b border-[#1f2228]">
               <th className="text-left font-normal px-3 py-2">Négociation</th>
               <th className="text-right font-normal px-3 py-2">Prix négocié</th>
               <th className="text-right font-normal px-3 py-2">Prix revient</th>
@@ -179,13 +179,13 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
                 <tr
                   key={s.niveau}
                   onClick={() => setNiveau(s.niveau)}
-                  className={`cursor-pointer border-b border-[#232625] transition-colors duration-200 ${niveau === s.niveau ? "bg-[#35a79b]/10" : "hover:bg-[#edeae5]/[0.03]"}`}>
+                  className={`cursor-pointer border-b border-[#15171b] transition-colors duration-200 ${niveau === s.niveau ? "bg-[#8fa0f2]/10" : "hover:bg-[#f2f3f5]/[0.03]"}`}>
                   
-                  <td className="px-3 py-2 text-[#edeae5]">-{s.niveau}%</td>
-                  <td className="px-3 py-2 text-right text-[#d3d8d6] tabular-nums">{formatCurrency(s.data.prixNegocie)}</td>
-                  <td className="px-3 py-2 text-right text-[#d3d8d6] tabular-nums">{formatCurrency(s.data.prixRevient)}</td>
-                  <td className="px-3 py-2 text-right text-[#d3d8d6] tabular-nums">{s.data.rendementBrut} %</td>
-                  <td className="px-3 py-2 text-right text-[#d3d8d6] tabular-nums">{formatCurrency(s.data.margeBrute)}</td>
+                  <td className="px-3 py-2 text-[#f2f3f5]">-{s.niveau}%</td>
+                  <td className="px-3 py-2 text-right text-[#c9cdd6] tabular-nums">{formatCurrency(s.data.prixNegocie)}</td>
+                  <td className="px-3 py-2 text-right text-[#c9cdd6] tabular-nums">{formatCurrency(s.data.prixRevient)}</td>
+                  <td className="px-3 py-2 text-right text-[#c9cdd6] tabular-nums">{s.data.rendementBrut} %</td>
+                  <td className="px-3 py-2 text-right text-[#c9cdd6] tabular-nums">{formatCurrency(s.data.margeBrute)}</td>
                 </tr>);
 
             })}

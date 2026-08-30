@@ -46,20 +46,20 @@ export default function ImportClients() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-8">
-      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-10 max-w-md w-full text-center space-y-6">
-        <div className="w-16 h-16 bg-[#edeae5]/[0.05] rounded-md flex items-center justify-center mx-auto">
-          <Users className="w-8 h-8 text-[#8b9391]" />
+    <div className="min-h-screen bg-[#000000] flex items-center justify-center p-8">
+      <div className="bg-[#000000] border border-[#1f2228] rounded-md p-10 max-w-md w-full text-center space-y-6">
+        <div className="w-16 h-16 bg-[#f2f3f5]/[0.05] rounded-md flex items-center justify-center mx-auto">
+          <Users className="w-8 h-8 text-[#9298a6]" />
         </div>
         <div>
-          <h1 className="text-2xl font-light text-[#edeae5] mb-2">Import Clients</h1>
-          <p className="text-[#8b9391] text-sm">
+          <h1 className="text-2xl font-light text-[#f2f3f5] mb-2">Import Clients</h1>
+          <p className="text-[#9298a6] text-sm">
             Recharge un export JSON de l'entité User. Les adresses déjà en base sont mises à jour (mot de passe et rôle intacts), les autres comptes créés — chacun définit son mot de passe à sa première connexion.
           </p>
         </div>
 
         {resultat && (
-          <div className="flex items-center gap-2 justify-center text-[#7fd3c9] text-sm">
+          <div className="flex items-center gap-2 justify-center text-[#aab6f5] text-sm">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>
               {resultat.crees.length} compte(s) créé(s), {resultat.existants.length} mis à jour
@@ -78,7 +78,7 @@ export default function ImportClients() {
         <Button
           onClick={() => inputRef.current?.click()}
           disabled={loading}
-          className="w-full h-12 bg-[#edeae5]/[0.06] border border-[#3a3e3c] hover:bg-[#edeae5]/[0.1] text-[#edeae5] text-sm"
+          className="w-full h-12 bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] text-sm"
         >
           {loading ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Import en cours...</>

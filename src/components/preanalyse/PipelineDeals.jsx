@@ -48,7 +48,7 @@ export default function PipelineDeals() {
     setParams(suivant);
   };
 
-  if (isLoading) return <p className="text-[#8b9391] text-sm">Chargement du pipeline…</p>;
+  if (isLoading) return <p className="text-[#9298a6] text-sm">Chargement du pipeline…</p>;
 
   const dossiers = pipeline?.dossiers || [];
   const groupes = GROUPES.map((g) => ({
@@ -59,8 +59,8 @@ export default function PipelineDeals() {
   if (!groupes.length) {
     return (
       <div className="text-center py-16">
-        <Inbox className="w-10 h-10 text-[#8b9391]/40 mx-auto mb-4" />
-        <p className="text-[#8b9391] text-sm">
+        <Inbox className="w-10 h-10 text-[#9298a6]/40 mx-auto mb-4" />
+        <p className="text-[#9298a6] text-sm">
           Aucun deal en cours. Lancez « Nouveau deal » ou préanalysez un mail reçu depuis le dashboard.
         </p>
       </div>
@@ -72,11 +72,11 @@ export default function PipelineDeals() {
       {groupes.map((g) => (
         <div key={g.statut} className="mt-9 first:mt-0">
           <div className="flex items-center gap-3.5 mb-3.5">
-            <div className="text-[11.5px] tracking-[.1em] uppercase text-[#d3d8d6]">{g.nom}</div>
-            <div className="text-[11.5px] text-[#6b7270] tabular-nums">
+            <div className="text-[11.5px] tracking-[.1em] uppercase text-[#c9cdd6]">{g.nom}</div>
+            <div className="text-[11.5px] text-[#6a7180] tabular-nums">
               {String(g.deals.length).padStart(2, "0")}
             </div>
-            <div className="h-px flex-1 bg-[#282b2a]" />
+            <div className="h-px flex-1 bg-[#1f2228]" />
           </div>
           <div className="flex flex-col gap-2">
             {g.deals.map((d, iDeal) => {
@@ -96,8 +96,8 @@ export default function PipelineDeals() {
                 <button
                   key={d.deal_id}
                   onClick={() => ouvrir(d.deal_id)}
-                  className={`flex items-center gap-4 w-full px-4 py-3.5 bg-[#0a0c0c] border rounded-[5px] text-left transition-colors hover:border-[#565b59] animate-in fade-in slide-in-from-bottom-1 duration-300 ease-out fill-mode-both ${
-                    enRetard ? "border-[#e2564d]/40" : "border-[#282b2a]"
+                  className={`flex items-center gap-4 w-full px-4 py-3.5 bg-[#000000] border rounded-[5px] text-left transition-colors hover:border-[#3a3f4a] animate-in fade-in slide-in-from-bottom-1 duration-300 ease-out fill-mode-both ${
+                    enRetard ? "border-[#e8746a]/40" : "border-[#1f2228]"
                   }`}
                   style={{ animationDelay: `${Math.min(iDeal * 40, 400)}ms` }}
                 >
@@ -105,33 +105,33 @@ export default function PipelineDeals() {
                     className="w-1.5 h-1.5 rounded-full flex-none"
                     style={{
                       background:
-                        d.statut === "abandonne" ? "#565b59" : enRetard ? "#e2564d" : "#35a79b",
+                        d.statut === "abandonne" ? "#3a3f4a" : enRetard ? "#e8746a" : "#8fa0f2",
                     }}
                   />
                   <span className="flex-1 min-w-0">
-                    <span className="block text-sm text-[#edeae5] truncate mb-0.5">
+                    <span className="block text-sm text-[#f2f3f5] truncate mb-0.5">
                       {d.test && (
-                        <span className="inline-block mr-2 px-1.5 py-px rounded border border-[#e0c9a0]/40 text-[#e0c9a0]/90 text-[9.5px] tracking-[.08em] uppercase align-middle">
+                        <span className="inline-block mr-2 px-1.5 py-px rounded border border-[#a9c5b9]/40 text-[#a9c5b9]/90 text-[9.5px] tracking-[.08em] uppercase align-middle">
                           Test
                         </span>
                       )}
                       {lot.adresse || lot.titre || d.nom_fichier || "Fiche"}
                     </span>
-                    <span className="block text-xs text-[#8b9391] truncate">
+                    <span className="block text-xs text-[#9298a6] truncate">
                       {[lot.ville, d.contact_agent_email].filter(Boolean).join(" · ") || "—"}
                     </span>
                   </span>
-                  <span className="flex-none w-[110px] text-right text-[12.5px] text-[#d3d8d6] tabular-nums">
+                  <span className="flex-none w-[110px] text-right text-[12.5px] text-[#c9cdd6] tabular-nums">
                     {euros(lot.prix_fai)}
                   </span>
                   <span
                     className={`hidden sm:block flex-none w-[190px] text-right text-[11px] truncate ${
-                      enRetard ? "text-[#e2564d]" : "text-[#6b7270]"
+                      enRetard ? "text-[#e8746a]" : "text-[#6a7180]"
                     }`}
                   >
                     {note}
                   </span>
-                  <span className="hidden md:block flex-none w-[84px] text-right text-[11px] text-[#6b7270] whitespace-nowrap">
+                  <span className="hidden md:block flex-none w-[84px] text-right text-[11px] text-[#6a7180] whitespace-nowrap">
                     {fraicheur(d.dernier_suivi?.le || d.cree_le)}
                   </span>
                 </button>
@@ -143,7 +143,7 @@ export default function PipelineDeals() {
 
       <button
         onClick={() => setVoirArchives((v) => !v)}
-        className="mt-7 text-[#6b7270] hover:text-[#edeae5] text-xs px-3 py-1.5 rounded border border-[#303332] hover:border-[#565b59] transition-colors"
+        className="mt-7 text-[#6a7180] hover:text-[#f2f3f5] text-xs px-3 py-1.5 rounded border border-[#22262d] hover:border-[#3a3f4a] transition-colors"
       >
         {voirArchives ? "Masquer les abandonnés" : "Voir les abandonnés"}
       </button>

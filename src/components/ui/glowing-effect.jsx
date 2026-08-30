@@ -100,7 +100,7 @@ const GlowingEffect = memo(
           className={cn(
             "pointer-events-none absolute -inset-px hidden rounded-[inherit] border opacity-0 transition-opacity",
             glow && "opacity-100",
-            variant === "white" && "border-[#edeae5]",
+            variant === "white" && "border-[#f2f3f5]",
             disabled && "!block"
           )}
         />
@@ -120,17 +120,17 @@ const GlowingEffect = memo(
                 var(--black),
                 var(--black) calc(25% / var(--repeating-conic-gradient-times))
               )`
-                : `radial-gradient(circle, #35a79b 10%, #35a79b00 20%),
-              radial-gradient(circle at 40% 40%, #7fd3c9 5%, #7fd3c900 15%),
+                : `radial-gradient(circle, #8fa0f2 10%, #8fa0f200 20%),
+              radial-gradient(circle at 40% 40%, #aab6f5 5%, #aab6f500 15%),
               radial-gradient(circle at 60% 60%, #6366f1 10%, #6366f100 20%), 
               radial-gradient(circle at 40% 60%, #8b5cf6 10%, #8b5cf600 20%),
               repeating-conic-gradient(
                 from 236.84deg at 50% 50%,
-                #35a79b 0%,
-                #7fd3c9 calc(25% / var(--repeating-conic-gradient-times)),
+                #8fa0f2 0%,
+                #aab6f5 calc(25% / var(--repeating-conic-gradient-times)),
                 #6366f1 calc(50% / var(--repeating-conic-gradient-times)), 
                 #8b5cf6 calc(75% / var(--repeating-conic-gradient-times)),
-                #35a79b calc(100% / var(--repeating-conic-gradient-times))
+                #8fa0f2 calc(100% / var(--repeating-conic-gradient-times))
               )`,
           }}
           className={cn(

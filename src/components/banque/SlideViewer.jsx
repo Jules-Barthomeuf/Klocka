@@ -82,12 +82,12 @@ export default function SlideViewer({ slides, title }) {
   if (!slides || slides.length === 0) return null;
 
   return (
-    <div ref={containerRef} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-[9999] bg-[#0a0c0c]' : ''}`}>
+    <div ref={containerRef} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-[9999] bg-[#000000]' : ''}`}>
       {/* Slide area */}
       <div className={`relative ${isFullscreen ? 'flex-1' : ''}`}>
         <div
           ref={slideRef}
-          className="bg-[#0a0c0c] overflow-hidden"
+          className="bg-[#000000] overflow-hidden"
           style={{ aspectRatio: "16/9", width: "100%" }}
         >
           <SlideRenderer slide={slides[current]} />
@@ -95,38 +95,38 @@ export default function SlideViewer({ slides, title }) {
 
         {/* Navigation arrows */}
         {current > 0 && (
-          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#0a0c0c]/60 hover:bg-[#0a0c0c]/80 rounded-full flex items-center justify-center text-[#edeae5] transition-colors">
+          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#000000]/60 hover:bg-[#000000]/80 rounded-full flex items-center justify-center text-[#f2f3f5] transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </button>
         )}
         {current < slides.length - 1 && (
-          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#0a0c0c]/60 hover:bg-[#0a0c0c]/80 rounded-full flex items-center justify-center text-[#edeae5] transition-colors">
+          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#000000]/60 hover:bg-[#000000]/80 rounded-full flex items-center justify-center text-[#f2f3f5] transition-colors">
             <ChevronRight className="w-5 h-5" />
           </button>
         )}
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#0a0c0c] border-t border-[#242726]">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#000000] border-t border-[#1f2228]">
         <div className="flex items-center gap-2">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#35a79b] w-6' : 'bg-[#303332] hover:bg-[#8b9391]'}`}
+              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#8fa0f2] w-6' : 'bg-[#22262d] hover:bg-[#9298a6]'}`}
             />
           ))}
         </div>
-        <span className="text-[#8b9391] text-xs">{current + 1} / {slides.length}</span>
+        <span className="text-[#9298a6] text-xs">{current + 1} / {slides.length}</span>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-[#9aa19e] hover:text-[#edeae5] h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="text-[#9298a6] hover:text-[#f2f3f5] h-8 w-8">
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </Button>
           <Button
             size="sm"
             onClick={exportPDF}
             disabled={isExporting}
-            className="bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] text-xs h-8"
+            className="bg-[#8fa0f2]/15 border border-[#8fa0f2]/30 hover:bg-[#8fa0f2]/25 text-[#f2f3f5] text-xs h-8"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
             {isExporting ? "Export..." : "PDF"}
@@ -135,7 +135,7 @@ export default function SlideViewer({ slides, title }) {
             size="sm"
             onClick={exportPPTX}
             disabled={isExportingPptx || isExporting}
-            className="bg-[#e0c9a0]/15 border border-[#e0c9a0]/30 hover:bg-[#e0c9a0]/25 text-[#edeae5] text-xs h-8"
+            className="bg-[#a9c5b9]/15 border border-[#a9c5b9]/30 hover:bg-[#a9c5b9]/25 text-[#f2f3f5] text-xs h-8"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
             {isExportingPptx ? "Export..." : "PowerPoint"}

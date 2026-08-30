@@ -3,16 +3,16 @@ import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, Cartes
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 
-function Item({ label, value, accent = "text-[#edeae5]", info }) {
+function Item({ label, value, accent = "text-[#f2f3f5]", info }) {
   return (
     <div className="px-4 py-4 min-w-0">
       <div className="flex items-center gap-1">
-        <p className="text-[9px] uppercase tracking-[0.16em] text-[#6b7270] font-medium truncate">{label}</p>
+        <p className="text-[9px] uppercase tracking-[0.16em] text-[#6a7180] font-medium truncate">{label}</p>
         {info && (
           <TooltipProvider delayDuration={100}>
             <UITooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="text-[#6b7270] hover:text-[#d3d8d6] transition-colors flex-shrink-0">
+                <button type="button" className="text-[#6a7180] hover:text-[#c9cdd6] transition-colors flex-shrink-0">
                   <Info className="w-3 h-3" />
                 </button>
               </TooltipTrigger>
@@ -36,7 +36,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
     { label: "Capital restant", value: formatCurrency(ind.capitalARemboursserRevente) },
     { label: "Apport initial", value: formatCurrency(ind.apportInitial) },
     { label: "Cash-flow cumulé", value: formatCurrency(ind.cashFlowCumule) },
-    { label: "Création richesse", value: formatCurrency(ind.creationRichesseBrute), accent: "text-[#35a79b]", info: "La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial." },
+    { label: "Création richesse", value: formatCurrency(ind.creationRichesseBrute), accent: "text-[#8fa0f2]", info: "La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial." },
   ];
 
   const barData = [
@@ -47,23 +47,23 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
   ];
 
   return (
-    <div className="border border-[#282b2a] rounded-md bg-[#0e100f]">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#242726]">
-        <p className="text-[#edeae5] text-sm font-medium">Synthèse à la revente</p>
-        <p className="text-[#35a79b] text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
+    <div className="border border-[#1f2228] rounded-md bg-[#0f1114]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1f2228]">
+        <p className="text-[#f2f3f5] text-sm font-medium">Synthèse à la revente</p>
+        <p className="text-[#8fa0f2] text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-[#242726]">
+      <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-[#1f2228]">
         {items.map((it, i) => (
           <Item key={i} label={it.label} value={it.value} accent={it.accent} info={it.info} />
         ))}
       </div>
-      <div className="h-72 px-2 pt-6 pb-4 border-t border-[#242726]">
+      <div className="h-72 px-2 pt-6 pb-4 border-t border-[#1f2228]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 8 }}>
             <CartesianGrid horizontal={false} stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
             <XAxis
               type="number"
-              tick={{ fill: "#9ca3af", fontSize: 10 }}
+              tick={{ fill: "#9298a6", fontSize: 10 }}
               axisLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
               tickLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
               tickFormatter={(v) => `${Math.round(v / 1000)}k`}
@@ -77,7 +77,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
               axisLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
               tickLine={false}
             />
-            <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 6, fontSize: 11 }} formatter={(v) => [formatCurrency(Math.abs(v)), ""]} />
+            <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} contentStyle={{ background: "#0c0d10", border: "1px solid #333", borderRadius: 6, fontSize: 11 }} formatter={(v) => [formatCurrency(Math.abs(v)), ""]} />
             <Bar dataKey="value" radius={[0, 3, 3, 0]} barSize={22}>
               {barData.map((d, i) => <Cell key={i} fill={d.fill} />)}
             </Bar>

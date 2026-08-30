@@ -20,9 +20,9 @@ const fmtEur = (v) => new Intl.NumberFormat("fr-FR", { style: "currency", curren
 function SectionTitle({ children, accent }) {
   return (
     <div className="flex items-center gap-3 pt-2">
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || "#35a79b" }} />
-      <h3 className="text-[15px] font-semibold text-[#edeae5] tracking-tight">{children}</h3>
-      <div className="flex-1 h-px bg-[#edeae5]/[0.06]" />
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || "#8fa0f2" }} />
+      <h3 className="text-[15px] font-semibold text-[#f2f3f5] tracking-tight">{children}</h3>
+      <div className="flex-1 h-px bg-[#f2f3f5]/[0.06]" />
     </div>
   );
 }
@@ -30,11 +30,11 @@ function SectionTitle({ children, accent }) {
 // Toggle stylé "IMMO OS"
 function ToggleRow({ checked, onCheckedChange, title, description }) {
   return (
-    <div className="flex items-center gap-3 bg-[#121413] border border-[#282b2a] rounded-none px-[18px] py-3.5">
+    <div className="flex items-center gap-3 bg-[#0f1114] border border-[#1f2228] rounded-none px-[18px] py-3.5">
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
       <div>
-        <Label className="text-[#edeae5] text-[14px] font-medium cursor-pointer">{title}</Label>
-        {description && <p className="text-[#8b9391] text-[12px] mt-0.5 leading-snug">{description}</p>}
+        <Label className="text-[#f2f3f5] text-[14px] font-medium cursor-pointer">{title}</Label>
+        {description && <p className="text-[#9298a6] text-[12px] mt-0.5 leading-snug">{description}</p>}
       </div>
     </div>
   );
@@ -43,11 +43,11 @@ function ToggleRow({ checked, onCheckedChange, title, description }) {
 // Select stylé "IMMO OS"
 function FSelect({ label, value, onValueChange, children }) {
   return (
-    <div className="bg-[#121413] border border-[#282b2a] rounded-none px-[18px] py-3 transition-all focus-within:border-[#565b59]">
-      {label && <div className="text-[12px] text-[#8b9391] font-semibold mb-1.5">{label}</div>}
+    <div className="bg-[#0f1114] border border-[#1f2228] rounded-none px-[18px] py-3 transition-all focus-within:border-[#3a3f4a]">
+      {label && <div className="text-[12px] text-[#9298a6] font-semibold mb-1.5">{label}</div>}
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="bg-transparent border-none h-auto p-0 text-[15px] text-[#edeae5] focus:ring-0"><SelectValue /></SelectTrigger>
-        <SelectContent className="bg-[#121413] text-[#edeae5] border-[#282b2a]">{children}</SelectContent>
+        <SelectTrigger className="bg-transparent border-none h-auto p-0 text-[15px] text-[#f2f3f5] focus:ring-0"><SelectValue /></SelectTrigger>
+        <SelectContent className="bg-[#0f1114] text-[#f2f3f5] border-[#1f2228]">{children}</SelectContent>
       </Select>
     </div>
   );
@@ -108,7 +108,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
       />
 
       {modeNetVendeur ? (
-        <div className="space-y-4 p-4 bg-[#edeae5]/[0.02] rounded-none border border-[#242726]">
+        <div className="space-y-4 p-4 bg-[#f2f3f5]/[0.02] rounded-none border border-[#1f2228]">
           <div className="grid md:grid-cols-2 gap-4">
             <FField label="Prix net vendeur (€)">
               <FInput type="number" value={formData.sim_prix_net_vendeur || ''} onChange={(e) => handleNetVendeurChange("sim_prix_net_vendeur", parseFloat(e.target.value) || 0)} />
@@ -120,7 +120,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
 
           {/* Honoraires agent */}
           <div className="pt-2">
-            <p className="text-[12px] text-[#8b9391] mb-3 uppercase tracking-[0.14em] font-semibold">Honoraires agent immobilier</p>
+            <p className="text-[12px] text-[#9298a6] mb-3 uppercase tracking-[0.14em] font-semibold">Honoraires agent immobilier</p>
             <div className="grid md:grid-cols-3 gap-3">
               <FSelect label="Mode de calcul" value={formData.sim_honoraires_agent_mode || "pct_ttc"} onValueChange={(v) => handleNetVendeurChange("sim_honoraires_agent_mode", v)}>
                 <SelectItem value="pct_ttc">% du prix net vendeur — TTC</SelectItem>
@@ -131,9 +131,9 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
               <FField label={(formData.sim_honoraires_agent_mode || "pct_ttc").startsWith("pct") ? "Taux (%)" : "Montant HT (€)"}>
                 <FInput type="number" step="0.1" value={formData.sim_honoraires_agent_montant || ''} onChange={(e) => handleNetVendeurChange("sim_honoraires_agent_montant", parseFloat(e.target.value) || 0)} />
               </FField>
-              <div className="bg-[#121413] border border-[#282b2a] rounded-none px-[18px] py-3">
-                <div className="text-[12px] text-[#8b9391] font-semibold mb-1.5">Honoraires TTC calculés</div>
-                <span className="text-[#edeae5] font-semibold text-[15px]">
+              <div className="bg-[#0f1114] border border-[#1f2228] rounded-none px-[18px] py-3">
+                <div className="text-[12px] text-[#9298a6] font-semibold mb-1.5">Honoraires TTC calculés</div>
+                <span className="text-[#f2f3f5] font-semibold text-[15px]">
                   {honorairesAgent > 0 ? fmtEur(honorairesAgent) : "—"}
                 </span>
               </div>
@@ -141,9 +141,9 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
           </div>
 
           {/* Récap Prix FAI calculé */}
-          <div className="pt-3 border-t border-[#242726] flex items-center justify-between">
-            <span className="text-[#8b9391] text-[13px]">Prix FAI calculé (net vendeur + honoraires) :</span>
-            <span className="text-[#edeae5] font-semibold text-[16px]">
+          <div className="pt-3 border-t border-[#1f2228] flex items-center justify-between">
+            <span className="text-[#9298a6] text-[13px]">Prix FAI calculé (net vendeur + honoraires) :</span>
+            <span className="text-[#f2f3f5] font-semibold text-[16px]">
               {prixFAI > 0 ? fmtEur(prixFAI) : "—"}
             </span>
           </div>
@@ -227,7 +227,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
         description="Remboursement des intérêts uniquement chaque mois — le capital est remboursé en totalité la dernière année"
       />
 
-      <p className="text-[13px] text-[#8b9391] mt-2">Paramètres avancés (renégociation)</p>
+      <p className="text-[13px] text-[#9298a6] mt-2">Paramètres avancés (renégociation)</p>
       <div className="grid md:grid-cols-2 gap-4">
         <FField label="Année de renégociation du crédit">
           <FInput type="number" value={formData.sim_annee_renegociation || ''} onChange={(e) => setFormData({...formData, sim_annee_renegociation: e.target.value})} placeholder="Laisser vide si pas de renégociation" />
@@ -266,7 +266,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
       </div>
 
       <SectionTitle>6. Travaux à la charge du bailleur</SectionTitle>
-      <p className="text-[12px] text-[#8b9391] -mt-2">Saisissez le montant des travaux pour chaque année (laisser vide si aucun travaux)</p>
+      <p className="text-[12px] text-[#9298a6] -mt-2">Saisissez le montant des travaux pour chaque année (laisser vide si aucun travaux)</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {Array.from({ length: 20 }, (_, i) => i + 1).map((annee) => {
           const entry = travauxList.find(t => parseInt(t.annee) === annee);
@@ -304,8 +304,8 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
         </FField>
       </div>
 
-      <SectionTitle accent="#e0c9a0">8. Paramètres Administrateur</SectionTitle>
-      <div className="space-y-4 p-4 bg-[#e0c9a0]/10 rounded-none border border-[#e0c9a0]/30">
+      <SectionTitle accent="#a9c5b9">8. Paramètres Administrateur</SectionTitle>
+      <div className="space-y-4 p-4 bg-[#a9c5b9]/10 rounded-none border border-[#a9c5b9]/30">
         <ToggleRow checked={formData.sim_commission_agent_active ?? false} onCheckedChange={(checked) => setFormData({...formData, sim_commission_agent_active: checked})} title="Honoraires à la charge de l'acquéreur TTC" />
         {formData.sim_commission_agent_active && (
           <div className="space-y-4">

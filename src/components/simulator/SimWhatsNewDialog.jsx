@@ -42,7 +42,7 @@ export default function SimWhatsNewDialog({ onClose }) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="absolute inset-0 bg-[#0a0c0c]/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#000000]/70 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
@@ -50,15 +50,15 @@ export default function SimWhatsNewDialog({ onClose }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 24 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-lg bg-gradient-to-br from-[#0a0c0c] to-black border border-[#edeae5]/[0.1] rounded-md overflow-hidden"
+        className="relative w-full max-w-lg bg-gradient-to-br from-[#000000] to-black border border-[#f2f3f5]/[0.1] rounded-md overflow-hidden"
       >
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 text-[#8b9391] hover:text-[#edeae5] transition-colors">
+        <button onClick={onClose} className="absolute top-4 right-4 z-10 text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
           <X className="w-5 h-5" />
         </button>
 
         <div className="p-8 text-center">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-[#35a79b] mb-2">Nouveautés</p>
-          <h2 className="text-2xl font-light text-[#edeae5] mb-8">Le simulateur fait peau neuve</h2>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[#8fa0f2] mb-2">Nouveautés</p>
+          <h2 className="text-2xl font-light text-[#f2f3f5] mb-8">Le simulateur fait peau neuve</h2>
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -69,11 +69,11 @@ export default function SimWhatsNewDialog({ onClose }) {
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="min-h-[180px] flex flex-col items-center justify-center"
             >
-              <div className="w-16 h-16 rounded-md bg-[#35a79b]/15 border border-[#35a79b]/30 flex items-center justify-center mb-5">
-                <Icon className="w-7 h-7 text-[#35a79b]" />
+              <div className="w-16 h-16 rounded-md bg-[#8fa0f2]/15 border border-[#8fa0f2]/30 flex items-center justify-center mb-5">
+                <Icon className="w-7 h-7 text-[#8fa0f2]" />
               </div>
-              <h3 className="text-lg text-[#edeae5] font-medium mb-3">{slide.title}</h3>
-              <p className="text-sm text-[#9aa19e] leading-relaxed max-w-sm">{slide.desc}</p>
+              <h3 className="text-lg text-[#f2f3f5] font-medium mb-3">{slide.title}</h3>
+              <p className="text-sm text-[#9298a6] leading-relaxed max-w-sm">{slide.desc}</p>
             </motion.div>
           </AnimatePresence>
 
@@ -82,7 +82,7 @@ export default function SimWhatsNewDialog({ onClose }) {
               <button
                 key={i}
                 onClick={() => setIndex(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-6 bg-[#35a79b]" : "w-1.5 bg-[#edeae5]/20 hover:bg-[#edeae5]/40"}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-6 bg-[#8fa0f2]" : "w-1.5 bg-[#f2f3f5]/20 hover:bg-[#f2f3f5]/40"}`}
               />
             ))}
           </div>
@@ -91,7 +91,7 @@ export default function SimWhatsNewDialog({ onClose }) {
             <button
               onClick={prev}
               disabled={index === 0}
-              className="flex items-center gap-1 text-sm text-[#9aa19e] hover:text-[#edeae5] transition-colors disabled:opacity-0 disabled:pointer-events-none"
+              className="flex items-center gap-1 text-sm text-[#9298a6] hover:text-[#f2f3f5] transition-colors disabled:opacity-0 disabled:pointer-events-none"
             >
               <ChevronLeft className="w-4 h-4" /> Précédent
             </button>

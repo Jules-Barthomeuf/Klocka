@@ -10,20 +10,20 @@ function Field({ label, info, children }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-1">
-        <Label className="text-[#9aa19e] text-xs">{label}</Label>
+        <Label className="text-[#9298a6] text-xs">{label}</Label>
         {info && (
           <div className="relative">
             <button
               type="button"
               onClick={() => setShow(v => !v)}
-              className="text-[#6b7270] hover:text-[#edeae5] transition-colors"
+              className="text-[#6a7180] hover:text-[#f2f3f5] transition-colors"
             >
               <Info className="w-3 h-3" />
             </button>
             {show && (
-              <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-[#1a1a1a] border border-[#282b2a] rounded-lg p-2.5 text-xs text-[#d3d8d6] shadow-xl">
+              <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-[#0c0d10] border border-[#1f2228] rounded-lg p-2.5 text-xs text-[#c9cdd6] shadow-xl">
                 {info}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1a1a1a] border-r border-b border-[#282b2a] rotate-45 -mt-1" />
+                <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-[#0c0d10] border-r border-b border-[#1f2228] rotate-45 -mt-1" />
               </div>
             )}
           </div>
@@ -41,7 +41,7 @@ function NumberInput({ value, onChange, placeholder }) {
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value === "" ? null : parseFloat(e.target.value))}
       placeholder={placeholder}
-      className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] h-8 text-sm"
+      className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] h-8 text-sm"
     />
   );
 }
@@ -61,7 +61,7 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
 
       {/* DÉMOGRAPHIE */}
       <div>
-        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Démographie</h3>
+        <h3 className="text-sm font-semibold text-[#9298a6] uppercase tracking-wider mb-3">Démographie</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
           <Field label="Population (hab.)" info="Population municipale au dernier recensement INSEE.">
             <NumberInput value={env.population} onChange={(v) => update("population", v)} placeholder="Ex: 45000" />
@@ -89,17 +89,17 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
           </Field>
         </div>
         <Field label="Tendances démographiques (analyse)" info="Analyse qualitative des tendances : croissance, vieillissement, attractivité, profil des habitants…">
-          <Textarea value={env.analyse_demographie || ""} onChange={(e) => update("analyse_demographie", e.target.value)} placeholder="Ex: Ville en croissance soutenue grâce à l'attractivité économique, afflux de jeunes actifs..." rows={3} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+          <Textarea value={env.analyse_demographie || ""} onChange={(e) => update("analyse_demographie", e.target.value)} placeholder="Ex: Ville en croissance soutenue grâce à l'attractivité économique, afflux de jeunes actifs..." rows={3} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
         </Field>
       </div>
 
       {/* POLITIQUE DE LA VILLE (sans orientation politique) */}
       <div>
-        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Politique de la ville</h3>
+        <h3 className="text-sm font-semibold text-[#9298a6] uppercase tracking-wider mb-3">Politique de la ville</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           <Field label="Stabilité politique" info="Stabilité de la gouvernance municipale : ancienneté du maire, majorité confortable, renouvellements récents…">
             <Select value={env.stabilite_politique || "__none__"} onValueChange={(v) => update("stabilite_politique", v === "__none__" ? null : v)}>
-              <SelectTrigger className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">—</SelectItem>
                 <SelectItem value="Très stable">Très stable</SelectItem>
@@ -115,47 +115,47 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
         </div>
         <div className="space-y-3">
           <Field label="Axes stratégiques de la municipalité" info="Priorités politiques de la ville : urbanisme, mobilité, numérique, environnement, économie… Ces axes influencent le développement du territoire.">
-            <Textarea value={env.axes_strategiques_ville || ""} onChange={(e) => update("axes_strategiques_ville", e.target.value)} placeholder="Ex: Rénovation du centre-ville, développement numérique, mobilités douces..." rows={3} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+            <Textarea value={env.axes_strategiques_ville || ""} onChange={(e) => update("axes_strategiques_ville", e.target.value)} placeholder="Ex: Rénovation du centre-ville, développement numérique, mobilités douces..." rows={3} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
           </Field>
           <Field label="Politique fiscale locale (taxe foncière, CFE...)" info="Niveau de fiscalité locale : taxe foncière, CFE, taxes d'aménagement. Impacte directement les charges pour les propriétaires et les entreprises.">
-            <Textarea value={env.politique_fiscale || ""} onChange={(e) => update("politique_fiscale", e.target.value)} placeholder="Ex: Taxe foncière dans la moyenne nationale, CFE compétitive pour les entreprises..." rows={2} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+            <Textarea value={env.politique_fiscale || ""} onChange={(e) => update("politique_fiscale", e.target.value)} placeholder="Ex: Taxe foncière dans la moyenne nationale, CFE compétitive pour les entreprises..." rows={2} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
           </Field>
         </div>
       </div>
 
       {/* PROJETS URBAINS */}
       <div>
-        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Projets urbains & Aménagements</h3>
+        <h3 className="text-sm font-semibold text-[#9298a6] uppercase tracking-wider mb-3">Projets urbains & Aménagements</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           <Field label="Investissement total prévu (M€)" info="Montant total des investissements publics prévus sur le territoire (ANRU, CRTE, Plan de relance, investissements propres…).">
             <NumberInput value={env.projets_investissement_total} onChange={(v) => update("projets_investissement_total", v)} />
           </Field>
           <Field label="Horizon des projets" info="Période couverte par les projets d'aménagement (ex: 2025–2030). Permet d'évaluer la valorisation future du secteur.">
-            <Input value={env.projets_horizon || ""} onChange={(e) => update("projets_horizon", e.target.value)} placeholder="Ex: 2025–2030" className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] h-8 text-sm" />
+            <Input value={env.projets_horizon || ""} onChange={(e) => update("projets_horizon", e.target.value)} placeholder="Ex: 2025–2030" className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] h-8 text-sm" />
           </Field>
         </div>
         <div className="space-y-3">
           <Field label="Projets en cours / réalisés" info="Aménagements récemment livrés ou en cours de réalisation : transports, équipements, rénovation urbaine…">
-            <Textarea value={env.projets_en_cours || ""} onChange={(e) => update("projets_en_cours", e.target.value)} placeholder="Ex: Réhabilitation du marché couvert (2023), tramway ligne 3 (livraison 2026)..." rows={3} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+            <Textarea value={env.projets_en_cours || ""} onChange={(e) => update("projets_en_cours", e.target.value)} placeholder="Ex: Réhabilitation du marché couvert (2023), tramway ligne 3 (livraison 2026)..." rows={3} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
           </Field>
           <Field label="Projets à venir / prévus" info="Futurs projets d'aménagement annoncés ou en phase de conception. Ces projets peuvent valoriser significativement le bien.">
-            <Textarea value={env.projets_a_venir || ""} onChange={(e) => update("projets_a_venir", e.target.value)} placeholder="Ex: Nouveau quartier d'affaires (2027), zone commerciale Nord (2028)..." rows={3} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+            <Textarea value={env.projets_a_venir || ""} onChange={(e) => update("projets_a_venir", e.target.value)} placeholder="Ex: Nouveau quartier d'affaires (2027), zone commerciale Nord (2028)..." rows={3} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
           </Field>
           <Field label="Zones de revitalisation (QPV, ORT, Action Cœur de Ville…)" info="Dispositifs zonés permettant des avantages fiscaux et financiers : QPV (Quartiers Prioritaires), ORT (Opération de Revitalisation), Action Cœur de Ville, ANRU…">
-            <Textarea value={env.zones_revitalisation || ""} onChange={(e) => update("zones_revitalisation", e.target.value)} placeholder="Ex: Zone ORT depuis 2022, éligible à la loi Pinel+..." rows={2} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+            <Textarea value={env.zones_revitalisation || ""} onChange={(e) => update("zones_revitalisation", e.target.value)} placeholder="Ex: Zone ORT depuis 2022, éligible à la loi Pinel+..." rows={2} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
           </Field>
         </div>
       </div>
 
       {/* ATTRACTIVITÉ */}
       <div>
-        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Attractivité & Rayonnement</h3>
+        <h3 className="text-sm font-semibold text-[#9298a6] uppercase tracking-wider mb-3">Attractivité & Rayonnement</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           <Field label="Score attractivité (/100)" info="Score composite évaluant l'attractivité globale de la ville : emploi, services, qualité de vie, accessibilité. 70+ = très attractive.">
             <NumberInput value={env.score_attractivite} onChange={(v) => update("score_attractivite", v)} />
           </Field>
           <Field label="Classement national (ville)" info="Position ou mention dans des classements reconnus : palmares villes dynamiques, qualité de vie, attractivité économique…">
-            <Input value={env.classement_national || ""} onChange={(e) => update("classement_national", e.target.value)} placeholder="Ex: Top 20 villes dynamiques" className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] h-8 text-sm" />
+            <Input value={env.classement_national || ""} onChange={(e) => update("classement_national", e.target.value)} placeholder="Ex: Top 20 villes dynamiques" className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] h-8 text-sm" />
           </Field>
           <Field label="Nb. touristes / an" info="Fréquentation touristique annuelle. Indique le rayonnement de la ville et peut soutenir la demande locative courte durée.">
             <NumberInput value={env.nb_touristes_an} onChange={(v) => update("nb_touristes_an", v)} />
@@ -171,13 +171,13 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
           </Field>
         </div>
         <Field label="Points forts de la ville (analyse)" info="Synthèse qualitative des atouts majeurs : situation géographique, tissu économique, desserte, qualité de vie, projets structurants…">
-          <Textarea value={env.points_forts_ville || ""} onChange={(e) => update("points_forts_ville", e.target.value)} placeholder="Ex: Ville universitaire dynamique, fort tissu industriel, bonne desserte TGV..." rows={3} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+          <Textarea value={env.points_forts_ville || ""} onChange={(e) => update("points_forts_ville", e.target.value)} placeholder="Ex: Ville universitaire dynamique, fort tissu industriel, bonne desserte TGV..." rows={3} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
         </Field>
       </div>
 
       {/* ÉCONOMIE LOCALE */}
       <div>
-        <h3 className="text-sm font-semibold text-[#8b9391] uppercase tracking-wider mb-3">Économie locale</h3>
+        <h3 className="text-sm font-semibold text-[#9298a6] uppercase tracking-wider mb-3">Économie locale</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
           <Field label="Taux de chômage (%)" info="Taux de chômage local (zone d'emploi). < 7% = marché du travail dynamique, > 10% = marché tendu. Source : INSEE / Pôle Emploi.">
             <NumberInput value={env.taux_chomage} onChange={(v) => update("taux_chomage", v)} />
@@ -200,10 +200,10 @@ export default function ProjectFormEnvironnementTab({ formData, setFormData }) {
         </div>
         <div className="space-y-3">
           <Field label="Principaux secteurs d'activité" info="Secteurs économiques dominants sur le territoire : industrie, services, commerce, tourisme, agriculture, santé…">
-            <Textarea value={env.secteurs_activite_dominants || ""} onChange={(e) => update("secteurs_activite_dominants", e.target.value)} placeholder="Ex: Industrie pharmaceutique, logistique, services aux entreprises, tourisme..." rows={2} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+            <Textarea value={env.secteurs_activite_dominants || ""} onChange={(e) => update("secteurs_activite_dominants", e.target.value)} placeholder="Ex: Industrie pharmaceutique, logistique, services aux entreprises, tourisme..." rows={2} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
           </Field>
           <Field label="Grands employeurs / entreprises majeures" info="Principaux employeurs locaux avec effectifs. La concentration sur un seul employeur peut représenter un risque (dépendance économique).">
-            <Textarea value={env.grands_employeurs || ""} onChange={(e) => update("grands_employeurs", e.target.value)} placeholder="Ex: Michelin (3 000 emplois), CHU (2 500 emplois), Amazon Logistics (800 emplois)..." rows={2} className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] text-sm" />
+            <Textarea value={env.grands_employeurs || ""} onChange={(e) => update("grands_employeurs", e.target.value)} placeholder="Ex: Michelin (3 000 emplois), CHU (2 500 emplois), Amazon Logistics (800 emplois)..." rows={2} className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] text-sm" />
           </Field>
         </div>
       </div>

@@ -20,11 +20,11 @@ function Photo({ src, legende, detail }) {
   const [absente, setAbsente] = useState(false);
   return (
     <figure className="m-0">
-      <div className="border border-[#e0c9a0]/30 bg-[#0e100f] overflow-hidden">
+      <div className="border border-[#a9c5b9]/30 bg-[#0f1114] overflow-hidden">
         {absente ? (
           <div className="aspect-[4/5] flex items-center justify-center p-8 text-center">
-            <p className="m-0 text-[13px] leading-[1.7] text-[#6b7270]">
-              Photo à déposer dans <code className="text-[#e0c9a0]">public{src}</code>
+            <p className="m-0 text-[13px] leading-[1.7] text-[#6a7180]">
+              Photo à déposer dans <code className="text-[#a9c5b9]">public{src}</code>
             </p>
           </div>
         ) : (
@@ -37,8 +37,8 @@ function Photo({ src, legende, detail }) {
         )}
       </div>
       <figcaption className="mt-4">
-        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#e0c9a0]">{legende}</p>
-        <p className="m-0 mt-1.5 text-[14px] leading-[1.6] text-[#9aa19e]">{detail}</p>
+        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#a9c5b9]">{legende}</p>
+        <p className="m-0 mt-1.5 text-[14px] leading-[1.6] text-[#9298a6]">{detail}</p>
       </figcaption>
     </figure>
   );
@@ -75,16 +75,16 @@ function Theme() {
     <>
       <audio ref={audio} src={THEME} preload="auto" onError={() => setEtat("absent")} />
       {etat === "absent" ? (
-        <p className="m-0 text-[12px] text-[#5c5a55]">
-          Thème à déposer dans <code className="text-[#e0c9a0]">public{THEME}</code>
+        <p className="m-0 text-[12px] text-[#6a7180]">
+          Thème à déposer dans <code className="text-[#a9c5b9]">public{THEME}</code>
         </p>
       ) : (
         <button
           onClick={basculer}
           className={`inline-flex items-center gap-2 px-4 py-2 border text-[10.5px] tracking-[.16em] uppercase transition-colors ${
             etat === "joue"
-              ? "border-[#e0c9a0] text-[#e0c9a0]"
-              : "border-[#e0c9a0]/50 text-[#e0c9a0] hover:bg-[#e0c9a0]/[0.08]"
+              ? "border-[#a9c5b9] text-[#a9c5b9]"
+              : "border-[#a9c5b9]/50 text-[#a9c5b9] hover:bg-[#a9c5b9]/[0.08]"
           }`}
         >
           {etat === "joue" ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -97,20 +97,20 @@ function Theme() {
 
 export default function Alexis() {
   return (
-    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5]">
+    <div className="min-h-screen bg-[#000000] text-[#f2f3f5]">
       <div className="max-w-[1100px] mx-auto px-5 md:px-12 py-12 md:py-20">
         <header className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div className="w-10 h-0.5 bg-[#e0c9a0] mb-8" />
-            <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#8b8880]">Page secrète — vous n'êtes jamais venu ici</p>
-            <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#f0ece5]">
+            <div className="w-10 h-0.5 bg-[#a9c5b9] mb-8" />
+            <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#9298a6]">Page secrète — vous n'êtes jamais venu ici</p>
+            <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#ffffff]">
               Alexis
             </h1>
           </div>
           <Theme />
         </header>
 
-        <div className="h-px bg-[#232120] my-12 max-md:my-9" />
+        <div className="h-px bg-[#1f2228] my-12 max-md:my-9" />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-14 items-start">
           {PHOTOS.map((p) => (
@@ -118,7 +118,7 @@ export default function Alexis() {
           ))}
         </div>
 
-        <p className="mt-16 text-[12px] text-[#5c5a55]">
+        <p className="mt-16 text-[12px] text-[#6a7180]">
           Cette page n'apparaît nulle part. Si vous la lisez, gardez le secret.
         </p>
       </div>

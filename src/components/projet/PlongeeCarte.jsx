@@ -177,7 +177,7 @@ const STYLE_ORTHO = {
     },
   },
   layers: [
-    { id: "fond", type: "background", paint: { "background-color": "#0a0c0c" } },
+    { id: "fond", type: "background", paint: { "background-color": "#000000" } },
     { id: "ortho", type: "raster", source: "ortho" },
   ],
 };
@@ -240,8 +240,8 @@ function PlongeeMapLibre({ cible }) {
 
   if (erreurCarte) {
     return (
-      <div className="absolute inset-0 bg-[#0a0c0c] flex items-center justify-center">
-        <p className="text-[#8b9391] text-sm">Affichage 3D indisponible sur cet appareil.</p>
+      <div className="absolute inset-0 bg-[#000000] flex items-center justify-center">
+        <p className="text-[#9298a6] text-sm">Affichage 3D indisponible sur cet appareil.</p>
       </div>
     );
   }
@@ -280,15 +280,15 @@ export default function PlongeeCarte({ project, onClose }) {
 
   if (cible === null || isError) {
     return (
-      <div className="absolute inset-0 bg-[#0a0c0c] flex items-center justify-center">
-        <p className="text-[#8b9391] text-sm">Adresse non localisable — retour à la photo.</p>
+      <div className="absolute inset-0 bg-[#000000] flex items-center justify-center">
+        <p className="text-[#9298a6] text-sm">Adresse non localisable — retour à la photo.</p>
       </div>
     );
   }
   if (cible === undefined || google3D === undefined) {
     return (
-      <div className="absolute inset-0 bg-[#0a0c0c] flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-[#35a79b]/30 border-t-[#35a79b] rounded-full animate-spin" />
+      <div className="absolute inset-0 bg-[#000000] flex items-center justify-center">
+        <div className="w-7 h-7 border-2 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin" />
       </div>
     );
   }

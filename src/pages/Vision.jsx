@@ -201,16 +201,16 @@ function AnimatedStatCard({ icon: Icon, title, value, suffix, description, delay
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       transition={{ delay, duration: 0.5 }}
-      className="border-t border-[#edeae5]/[0.35] pt-6 pb-2">
+      className="border-t border-[#f2f3f5]/[0.35] pt-6 pb-2">
 
       <div className="flex items-center gap-2 mb-4">
-        <Icon className="w-4 h-4 text-[#35a79b]" />
-        <span className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391]">{title}</span>
+        <Icon className="w-4 h-4 text-[#8fa0f2]" />
+        <span className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6]">{title}</span>
       </div>
-      <div className="text-[36px] max-md:text-[28px] font-light text-[#edeae5] leading-none mb-2" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <div className="text-[36px] max-md:text-[28px] font-light text-[#f2f3f5] leading-none mb-2" style={{ fontVariantNumeric: "tabular-nums" }}>
         {formatValue(animatedValue)} {suffix}
       </div>
-      <p className="text-[13px] text-[#8b9391] leading-[1.6] mb-0">{description}</p>
+      <p className="text-[13px] text-[#9298a6] leading-[1.6] mb-0">{description}</p>
     </motion.div>);
 
 }
@@ -391,7 +391,7 @@ export default function Vision() {
 
   if (hasError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0c0c] text-[#edeae5]">
+      <div className="min-h-screen flex items-center justify-center bg-[#000000] text-[#f2f3f5]">
         <div className="text-center">
           <h2 className="text-2xl mb-4">Une erreur est survenue</h2>
           <Button onClick={() => setHasError(false)}>Réessayer</Button>
@@ -402,8 +402,8 @@ export default function Vision() {
 
   const getStrategyColor = () => {
     switch (typeStrategie) {
-      case "agressive":return "#ef4444";
-      case "patrimoniale":return "#35a79b";
+      case "agressive":return "#e8746a";
+      case "patrimoniale":return "#8fa0f2";
       case "mixte":return "#ffffff";
       default:return "#ffffff";
     }
@@ -422,8 +422,8 @@ export default function Vision() {
 
   const getBorderColor = () => {
     switch (typeStrategie) {
-      case "agressive":return "#ef4444";
-      case "patrimoniale":return "#35a79b";
+      case "agressive":return "#e8746a";
+      case "patrimoniale":return "#8fa0f2";
       case "mixte":return "#ffffff";
       default:return "#ffffff";
     }
@@ -454,7 +454,7 @@ export default function Vision() {
 
   return (
     <div
-      className="min-h-screen bg-[#0a0c0c] text-[#edeae5]">
+      className="min-h-screen bg-[#000000] text-[#f2f3f5]">
 
       {/* Écran de chargement */}
       <AnimatePresence>
@@ -464,12 +464,12 @@ export default function Vision() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0c0c]/95 backdrop-blur-3xl">
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#000000]/95 backdrop-blur-3xl">
 
               <div className="flex flex-col items-center gap-5">
-                <span className="text-[15px] tracking-[0.36em] text-[#edeae5] select-none">KLOCKA</span>
-                <div className="w-6 h-6 border-2 border-[#35a79b]/30 border-t-[#35a79b] rounded-full animate-spin" />
-                <span className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391]">Calcul de votre projection</span>
+                <span className="text-[15px] tracking-[0.36em] text-[#f2f3f5] select-none">KLOCKA</span>
+                <div className="w-6 h-6 border-2 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin" />
+                <span className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6]">Calcul de votre projection</span>
               </div>
           </motion.div>
         }
@@ -482,40 +482,40 @@ export default function Vision() {
         {/* Onglets de navigation */}
         {resultat &&
         <Tabs value={`tab-${currentSlide}`} onValueChange={(val) => setCurrentSlide(parseInt(val.split('-')[1]))} className="w-full mb-8 mt-4">
-            <TabsList className="w-full flex justify-center gap-4 max-md:gap-2 bg-transparent border-b border-[#171918] mb-6 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto max-md:overflow-x-scroll scrollbar-hide">
+            <TabsList className="w-full flex justify-center gap-4 max-md:gap-2 bg-transparent border-b border-[#0f1114] mb-6 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto max-md:overflow-x-scroll scrollbar-hide">
               <TabsTrigger
               value="tab-0"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Vue d'ensemble
               </TabsTrigger>
               <TabsTrigger
               value="tab-1"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Timeline
               </TabsTrigger>
               <TabsTrigger
               value="tab-2"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Evolution
               </TabsTrigger>
               <TabsTrigger
               value="tab-3"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Projets
               </TabsTrigger>
               <TabsTrigger
               value="tab-4"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Comparatif
               </TabsTrigger>
               <TabsTrigger
               value="tab-5"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#8b9391] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Chiffres détaillés
               </TabsTrigger>
@@ -541,32 +541,32 @@ export default function Vision() {
                   <div>
                     {currentSlide === 1 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
-                        <span className="text-[#edeae5]">Visualisez l'échelonnement</span><br />
-                        <span className="text-[#7fd3c9] font-light">de vos acquisitions</span>
+                        <span className="text-[#f2f3f5]">Visualisez l'échelonnement</span><br />
+                        <span className="text-[#aab6f5] font-light">de vos acquisitions</span>
                       </h2>
                   }
                     {currentSlide === 2 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
-                        <span className="text-[#edeae5]">Voyons maintenant comment</span><br />
-                        <span className="text-[#7fd3c9] font-light">votre patrimoine évolue</span>
+                        <span className="text-[#f2f3f5]">Voyons maintenant comment</span><br />
+                        <span className="text-[#aab6f5] font-light">votre patrimoine évolue</span>
                       </h2>
                   }
                     {currentSlide === 3 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
-                        <span className="text-[#edeae5]">Découvrez où se situent</span><br />
-                        <span className="text-[#7fd3c9] font-light">vos futurs investissements</span>
+                        <span className="text-[#f2f3f5]">Découvrez où se situent</span><br />
+                        <span className="text-[#aab6f5] font-light">vos futurs investissements</span>
                       </h2>
                   }
                     {currentSlide === 4 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
-                        <span className="text-[#edeae5]">Observez la transformation</span><br />
-                        <span className="text-[#e0c9a0] font-light">de votre investissement</span>
+                        <span className="text-[#f2f3f5]">Observez la transformation</span><br />
+                        <span className="text-[#a9c5b9] font-light">de votre investissement</span>
                       </h2>
                   }
                     {currentSlide === 5 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
-                        <span className="text-[#edeae5]">Pour finir, explorez</span><br />
-                        <span className="text-[#7fd3c9] font-light">le détail année par année</span>
+                        <span className="text-[#f2f3f5]">Pour finir, explorez</span><br />
+                        <span className="text-[#aab6f5] font-light">le détail année par année</span>
                       </h2>
                   }
                   </div>
@@ -578,7 +578,7 @@ export default function Vision() {
                     disabled={currentSlide === 0}
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 bg-[#0a0c0c]/50 border-[#282b2a] text-[#edeae5] hover:bg-[#0a0c0c] disabled:opacity-30">
+                    className="h-10 w-10 bg-[#000000]/50 border-[#1f2228] text-[#f2f3f5] hover:bg-[#000000] disabled:opacity-30">
 
                       <ChevronLeft className="w-5 h-5" />
                     </Button>
@@ -587,16 +587,16 @@ export default function Vision() {
                     disabled={currentSlide === 5}
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 bg-[#0a0c0c]/50 border-[#282b2a] text-[#edeae5] hover:bg-[#0a0c0c] disabled:opacity-30">
+                    className="h-10 w-10 bg-[#000000]/50 border-[#1f2228] text-[#f2f3f5] hover:bg-[#000000] disabled:opacity-30">
 
                       <ChevronRight className="w-5 h-5" />
                     </Button>
-                    <div className="text-sm text-[#9aa19e] font-normal">
+                    <div className="text-sm text-[#9298a6] font-normal">
                       {currentSlide + 1} / 6
                     </div>
                     <Button
                     onClick={() => {setResultat(null);setCurrentSlide(0);}}
-                    className="bg-[#e0c9a0] hover:bg-[#e5a968] text-black font-medium">
+                    className="bg-[#a9c5b9] hover:bg-[#e5a968] text-black font-medium">
 
                       Recommencer
                     </Button>
@@ -620,8 +620,8 @@ export default function Vision() {
                       {/* Titre slide */}
                       <div className="text-center">
                         <h2 className="text-[38px] md:text-[50px] font-light tracking-[-0.02em] leading-[1.08] mb-4">
-                          <span className="text-[#edeae5]">Vue d'ensemble</span><br />
-                          <span className="text-[#35a79b] font-light">Votre stratégie en chiffres</span>
+                          <span className="text-[#f2f3f5]">Vue d'ensemble</span><br />
+                          <span className="text-[#8fa0f2] font-light">Votre stratégie en chiffres</span>
                         </h2>
                       </div>
 
@@ -658,9 +658,9 @@ export default function Vision() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4, duration: 0.6 }}
-                    className="py-2 pl-6 border-l-2 border-[#35a79b] max-w-4xl mx-auto">
+                    className="py-2 pl-6 border-l-2 border-[#8fa0f2] max-w-4xl mx-auto">
 
-                        <p className="text-[#edeae5] font-normal text-base leading-relaxed">
+                        <p className="text-[#f2f3f5] font-normal text-base leading-relaxed">
                           {(() => {
                         const patrimoine30 = resultat.patrimoine30 >= 1000000 ? `${(resultat.patrimoine30 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine30 / 1000)}K€`;
                         const cashflowMensuel30 = Math.round(resultat.cashflow30 / 12);
@@ -687,7 +687,7 @@ export default function Vision() {
 
 
     {/* Container principal de la Timeline */}
-    <div className="relative rounded-[2rem] border border-[#282b2a] bg-[#0a0c0c]/50 shadow-2xl overflow-hidden">
+    <div className="relative rounded-[2rem] border border-[#1f2228] bg-[#000000]/50 shadow-2xl overflow-hidden">
       {/* Effet de lueur en arrière-plan */}
 
       <div className="relative p-6 md:p-10">
@@ -697,14 +697,14 @@ export default function Vision() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 }}
-                        className="mb-12 p-6 rounded-md bg-gradient-to-br from-[#0a0c0c]/80 to-black border border-[#282b2a]/50 shadow-inner">
+                        className="mb-12 p-6 rounded-md bg-gradient-to-br from-[#000000]/80 to-black border border-[#1f2228]/50 shadow-inner">
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-1">
-              <Label className="text-lg text-[#edeae5] font-normal font-semibold flex items-center gap-2">
+              <Label className="text-lg text-[#f2f3f5] font-normal font-semibold flex items-center gap-2">
                 Objectif mensuel souhaité
               </Label>
-              <p className="text-xs text-[#8b9391] font-normal">Revenus nets après crédit et charges</p>
+              <p className="text-xs text-[#9298a6] font-normal">Revenus nets après crédit et charges</p>
             </div>
 
             <div className="flex flex-col gap-4 min-w-[300px]">
@@ -715,8 +715,8 @@ export default function Vision() {
                                 onClick={() => setRevenusMensuels(val)}
                                 className={`h-10 rounded-md border font-medium text-xs transition-all duration-300 ${
                                 revenusMensuels === val ?
-                                'bg-[#35a79b] border-[#35a79b] text-[#edeae5] shadow-[0_0_15px_rgba(42,157,143,0.4)]' :
-                                'bg-[#0a0c0c]/50 border-[#282b2a] text-[#9aa19e] hover:border-[#6b7270]'}`
+                                'bg-[#8fa0f2] border-[#8fa0f2] text-[#f2f3f5] shadow-[0_0_15px_rgba(42,157,143,0.4)]' :
+                                'bg-[#000000]/50 border-[#1f2228] text-[#9298a6] hover:border-[#6a7180]'}`
                                 }>
 
                     {parseInt(val).toLocaleString()}€
@@ -730,9 +730,9 @@ export default function Vision() {
                                 value={revenusMensuels}
                                 onChange={(e) => setRevenusMensuels(e.target.value)}
                                 placeholder="Montant personnalisé..."
-                                className="w-full h-11 px-4 pr-12 rounded-md bg-[#0a0c0c] border border-[#282b2a] group-hover:border-[#35a79b]/50 focus:border-[#35a79b] text-[#edeae5] font-normal text-sm transition-all outline-none" />
+                                className="w-full h-11 px-4 pr-12 rounded-md bg-[#000000] border border-[#1f2228] group-hover:border-[#8fa0f2]/50 focus:border-[#8fa0f2] text-[#f2f3f5] font-normal text-sm transition-all outline-none" />
 
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6b7270] font-normal text-xs group-focus-within:text-[#35a79b]">€ / mois</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6a7180] font-normal text-xs group-focus-within:text-[#8fa0f2]">€ / mois</span>
               </div>
             </div>
           </div>
@@ -766,36 +766,36 @@ export default function Vision() {
                       <div className="grid lg:grid-cols-2 gap-6">
                         {/* Patrimoine */}
                         <div className="space-y-4">
-                          <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#303332] p-2 md:rounded-[1.5rem] md:p-3">
-                            <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                          <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
+                            <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                               <PatrimoineChart data={resultat.chartData} />
                             </div>
                           </div>
-                          <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#303332] p-2 md:rounded-[1.5rem] md:p-3">
-                            <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                          <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
+                            <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                               <div className="flex items-center gap-3 mb-4">
-                                <TrendingUp className="w-4 h-4 text-[#35a79b]" />
-                                <h3 className="text-lg text-[#edeae5] font-medium">Évolution du patrimoine financier et immobilier</h3>
+                                <TrendingUp className="w-4 h-4 text-[#8fa0f2]" />
+                                <h3 className="text-lg text-[#f2f3f5] font-medium">Évolution du patrimoine financier et immobilier</h3>
                               </div>
-                              <p className="text-[#edeae5] text-sm font-normal leading-relaxed mb-6">
+                              <p className="text-[#f2f3f5] text-sm font-normal leading-relaxed mb-6">
                                 Construction progressive de votre richesse immobilière sur 30 ans.
                               </p>
                               <div className="space-y-3">
-                                <div className="p-3 rounded-lg bg-[#0a0c0c]/50 border border-[#282b2a]">
+                                <div className="p-3 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#35a79b]"></div>
-                                    <span className="text-xs text-[#edeae5] font-normal">Patrimoine net</span>
+                                    <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                                    <span className="text-xs text-[#f2f3f5] font-normal">Patrimoine net</span>
                                   </div>
-                                  <p className="text-xs text-[#edeae5] font-normal leading-relaxed">
+                                  <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
                                     Valeur réelle de votre richesse (biens - dettes).
                                   </p>
                                 </div>
-                                <div className="p-3 rounded-lg bg-[#0a0c0c]/50 border border-[#282b2a]">
+                                <div className="p-3 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
                                   <div className="flex items-center gap-2 mb-2">
                                     <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                                    <span className="text-xs text-[#edeae5] font-normal">Dette restante</span>
+                                    <span className="text-xs text-[#f2f3f5] font-normal">Dette restante</span>
                                   </div>
-                                  <p className="text-xs text-[#edeae5] font-normal leading-relaxed">
+                                  <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
                                     Capital restant dû sur vos crédits.
                                   </p>
                                 </div>
@@ -806,36 +806,36 @@ export default function Vision() {
 
                         {/* Cashflow */}
                         <div className="space-y-4">
-                          <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#303332] p-2 md:rounded-[1.5rem] md:p-3">
-                            <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                          <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
+                            <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                               <CashflowChart data={resultat.chartData} />
                             </div>
                           </div>
-                          <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#303332] p-2 md:rounded-[1.5rem] md:p-3">
-                            <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                          <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
+                            <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                               <div className="flex items-center gap-3 mb-4">
-                                <Wallet className="w-4 h-4 text-[#7fd3c9]" />
-                                <h3 className="text-lg text-[#edeae5] font-medium">Revenus locatifs nets</h3>
+                                <Wallet className="w-4 h-4 text-[#aab6f5]" />
+                                <h3 className="text-lg text-[#f2f3f5] font-medium">Revenus locatifs nets</h3>
                               </div>
-                              <p className="text-[#edeae5] text-sm font-normal leading-relaxed mb-6">
+                              <p className="text-[#f2f3f5] text-sm font-normal leading-relaxed mb-6">
                                 Revenu disponible réel après toutes les charges.
                               </p>
                               <div className="space-y-3">
-                                <div className="p-3 rounded-lg bg-[#0a0c0c]/50 border border-[#282b2a]">
+                                <div className="p-3 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
-                                    <span className="text-xs text-[#edeae5] font-normal">Phase 1-20 • Construction</span>
+                                    <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                                    <span className="text-xs text-[#f2f3f5] font-normal">Phase 1-20 • Construction</span>
                                   </div>
-                                  <p className="text-xs text-[#edeae5] font-normal leading-relaxed">
+                                  <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
                                     Investissement pour construire un patrimoine durable.
                                   </p>
                                 </div>
-                                <div className="p-3 rounded-lg bg-[#0a0c0c]/50 border border-[#282b2a]">
+                                <div className="p-3 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#7fd3c9]"></div>
-                                    <span className="text-xs text-[#edeae5] font-normal">Phase 20-30 • Liberté</span>
+                                    <div className="w-3 h-3 rounded-full bg-[#aab6f5]"></div>
+                                    <span className="text-xs text-[#f2f3f5] font-normal">Phase 20-30 • Liberté</span>
                                   </div>
-                                  <p className="text-xs text-[#edeae5] font-normal leading-relaxed">
+                                  <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
                                     Revenus mensuels importants sans crédit.
                                   </p>
                                 </div>
@@ -859,16 +859,16 @@ export default function Vision() {
 
                       <div>
                         <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-2xl text-[#edeae5] font-normal font-semibold">Vos projets immobiliers</h3>
+                          <h3 className="text-2xl text-[#f2f3f5] font-normal font-semibold">Vos projets immobiliers</h3>
                           <div className="flex items-center gap-2">
-                            <span className="text-[#9aa19e] text-sm font-normal">{currentProjIndex + 1} / {projets.length}</span>
+                            <span className="text-[#9298a6] text-sm font-normal">{currentProjIndex + 1} / {projets.length}</span>
                             {projets.length > 1 && (
                               <>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => setCurrentProjIndex((prev) => (prev - 1 + projets.length) % projets.length)}
-                                  className="text-[#edeae5] hover:bg-[#edeae5]/10 h-8 w-8"
+                                  className="text-[#f2f3f5] hover:bg-[#f2f3f5]/10 h-8 w-8"
                                 >
                                   <ChevronLeft className="w-4 h-4" />
                                 </Button>
@@ -876,7 +876,7 @@ export default function Vision() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => setCurrentProjIndex((prev) => (prev + 1) % projets.length)}
-                                  className="text-[#edeae5] hover:bg-[#edeae5]/10 h-8 w-8"
+                                  className="text-[#f2f3f5] hover:bg-[#f2f3f5]/10 h-8 w-8"
                                 >
                                   <ChevronRight className="w-4 h-4" />
                                 </Button>
@@ -885,30 +885,30 @@ export default function Vision() {
                           </div>
                         </div>
 
-                        <div className="bg-[#0a0c0c] p-2 rounded-[1.25rem] relative border-[0.75px] border-[#303332] md:rounded-[1.5rem] md:p-3">
-                          <Card className="relative bg-gradient-to-br from-[#0a0c0c]/95 via-[#35a79b]/5 to-[#0a0c0c]/95 overflow-hidden h-[320px] border-none">
+                        <div className="bg-[#000000] p-2 rounded-[1.25rem] relative border-[0.75px] border-[#22262d] md:rounded-[1.5rem] md:p-3">
+                          <Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#8fa0f2]/5 to-[#000000]/95 overflow-hidden h-[320px] border-none">
                             <CardContent className="p-0 h-full">
                               <div className="h-full p-8 flex flex-col justify-center">
                                 <div className="mb-6">
-                                  <div className="text-xs text-[#35a79b] font-bold uppercase mb-2 font-normal">
+                                  <div className="text-xs text-[#8fa0f2] font-bold uppercase mb-2 font-normal">
                                     Année {currentProjIndex * frequence + 1}
                                   </div>
-                                  <div className="text-5xl font-bold text-[#edeae5] mb-4 font-light">
+                                  <div className="text-5xl font-bold text-[#f2f3f5] mb-4 font-light">
                                     {projets[currentProjIndex].taille >= 1000 ? `${projets[currentProjIndex].taille / 1000}M€` : `${projets[currentProjIndex].taille}K€`}
                                   </div>
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-[#0a0c0c] p-5 rounded-lg border border-[#35a79b]/30">
-                                    <p className="text-[#9aa19e] text-xs mb-2 font-normal">Apport nécessaire</p>
+                                  <div className="bg-[#000000] p-5 rounded-lg border border-[#8fa0f2]/30">
+                                    <p className="text-[#9298a6] text-xs mb-2 font-normal">Apport nécessaire</p>
                                     <p className="text-[#ffe98a] text-2xl font-light">
                                       {Math.round(apportData[projets[currentProjIndex].taille] / 1000)}K€
                                     </p>
                                   </div>
                                   
-                                  <div className="bg-[#7fd3c9]/10 rounded-lg p-5 border border-[#7fd3c9]/30">
-                                    <p className="text-[#9aa19e] text-xs mb-2 font-normal">Stratégie</p>
-                                    <p className="text-[#edeae5] text-2xl font-light">
+                                  <div className="bg-[#aab6f5]/10 rounded-lg p-5 border border-[#aab6f5]/30">
+                                    <p className="text-[#9298a6] text-xs mb-2 font-normal">Stratégie</p>
+                                    <p className="text-[#f2f3f5] text-2xl font-light">
                                       {typeStrategie === 'patrimoniale' ? 'Patrimoniale' : typeStrategie === 'agressive' ? 'Agressive' : 'Mixte'}
                                     </p>
                                   </div>
@@ -922,8 +922,8 @@ export default function Vision() {
                                       onClick={() => setCurrentProjIndex(idx)}
                                       className={`h-1 rounded-full transition-all ${
                                         idx === currentProjIndex ?
-                                        'w-6 bg-[#35a79b]' :
-                                        'w-1 bg-[#343735] hover:bg-[#8b9391]'
+                                        'w-6 bg-[#8fa0f2]' :
+                                        'w-1 bg-[#22262d] hover:bg-[#9298a6]'
                                       }`}
                                     />
                                   ))}
@@ -945,8 +945,8 @@ export default function Vision() {
                   exit={{ opacity: 0, x: -50 }}
                   transition={{ duration: 0.4 }}>
 
-                      <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#303332] p-2 md:rounded-[1.5rem] md:p-3">
-                        <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                      <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
+                        <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                           <ComparatifChart 
                             chartData={resultat.chartData}
                             projets={projets}
@@ -954,31 +954,31 @@ export default function Vision() {
                             apportData={apportData}
                             apportTotal={resultat.apportTotal}
                           />
-                          <p className="text-[#edeae5] text-sm font-normal text-center mt-4">
+                          <p className="text-[#f2f3f5] text-sm font-normal text-center mt-4">
                             Votre investissement de départ de {(resultat.apportTotal / 1000).toFixed(0)}K€ se transforme progressivement en un patrimoine de {(resultat.patrimoine30 / 1000000).toFixed(1)}M€.
                           </p>
                           
                           {/* Annotations */}
                           <div className="grid md:grid-cols-2 gap-4 mt-6">
-                            <div className="p-4 rounded-lg bg-[#0a0c0c]/50 border border-[#7fd3c9]/30">
+                            <div className="p-4 rounded-lg bg-[#000000]/50 border border-[#aab6f5]/30">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="px-2 py-1 rounded-full bg-[#35a79b] text-[#edeae5] text-xs font-bold">
+                                <div className="px-2 py-1 rounded-full bg-[#8fa0f2] text-[#f2f3f5] text-xs font-bold">
                                   {(resultat.chartData[9].patrimoine / resultat.apportTotal).toFixed(1)}x
                                 </div>
-                                <span className="text-xs text-[#edeae5] font-normal">An 10</span>
+                                <span className="text-xs text-[#f2f3f5] font-normal">An 10</span>
                               </div>
-                              <p className="text-xs text-[#edeae5]/70">
+                              <p className="text-xs text-[#f2f3f5]/70">
                                 Votre patrimoine vaut déjà {(resultat.chartData[9].patrimoine / resultat.apportTotal).toFixed(1)} fois votre investissement initial
                               </p>
                             </div>
-                            <div className="p-4 rounded-lg bg-[#0a0c0c]/50 border border-[#7fd3c9]/30">
+                            <div className="p-4 rounded-lg bg-[#000000]/50 border border-[#aab6f5]/30">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="px-2 py-1 rounded-full bg-[#35a79b] text-[#edeae5] text-xs font-bold">
+                                <div className="px-2 py-1 rounded-full bg-[#8fa0f2] text-[#f2f3f5] text-xs font-bold">
                                   {(resultat.chartData[19].patrimoine / resultat.apportTotal).toFixed(1)}x
                                 </div>
-                                <span className="text-xs text-[#edeae5] font-normal">An 20</span>
+                                <span className="text-xs text-[#f2f3f5] font-normal">An 20</span>
                               </div>
-                              <p className="text-xs text-[#edeae5]/70">
+                              <p className="text-xs text-[#f2f3f5]/70">
                                 Votre patrimoine représente {(resultat.chartData[19].patrimoine / resultat.apportTotal).toFixed(1)} fois votre mise de départ
                               </p>
                             </div>
@@ -997,30 +997,30 @@ export default function Vision() {
                   exit={{ opacity: 0, x: -50 }}
                   transition={{ duration: 0.4 }}>
 
-                      <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#303332] p-2 md:rounded-[1.5rem] md:p-3">
+                      <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
                         <motion.div
                       initial={{ opacity: 0, y: 40 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="relative bg-[#0e100f] border border-[#edeae5]/[0.12]">
+                      className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12]">
                        
-                        <div className="p-6 border-b border-[#282b2a] bg-[#edeae5]/5"> 
+                        <div className="p-6 border-b border-[#1f2228] bg-[#f2f3f5]/5"> 
                           <div className="flex items-center gap-2"> 
-                            <BarChart3 className="text-[#7fd3c9] lucide lucide-chart-column w-5 h-5" /> 
-                            <h3 className="text-lg text-[#edeae5] font-medium">Détail par année</h3> 
+                            <BarChart3 className="text-[#aab6f5] lucide lucide-chart-column w-5 h-5" /> 
+                            <h3 className="text-lg text-[#f2f3f5] font-medium">Détail par année</h3> 
                           </div> 
                         </div> 
 
                         <div className="overflow-x-auto"> 
                           <table className="w-full text-sm"> 
                             <thead> 
-                              <tr className="border-b text-xs uppercase tracking-wider border-[#282b2a] bg-[#edeae5]/5"> 
-                                <th className="text-left py-4 px-6 text-[#9aa19e]">Année</th> 
-                                <th className="text-right py-4 px-6 text-[#9aa19e]">Patrimoine net</th> 
-                                <th className="text-right py-4 px-6 text-[#9aa19e]">Cashflow annuel</th> 
-                                <th className="text-right py-4 px-6 text-[#9aa19e]">Capital restant</th> 
+                              <tr className="border-b text-xs uppercase tracking-wider border-[#1f2228] bg-[#f2f3f5]/5"> 
+                                <th className="text-left py-4 px-6 text-[#9298a6]">Année</th> 
+                                <th className="text-right py-4 px-6 text-[#9298a6]">Patrimoine net</th> 
+                                <th className="text-right py-4 px-6 text-[#9298a6]">Cashflow annuel</th> 
+                                <th className="text-right py-4 px-6 text-[#9298a6]">Capital restant</th> 
                               </tr> 
                             </thead> 
-                            <tbody className="divide-y divide-[#282b2a]"> 
+                            <tbody className="divide-y divide-[#1f2228]"> 
                               {resultat.chartData.map((row, index) =>
                             <React.Fragment key={`${resultat.apportTotal}-${index}`}> 
                                   <motion.tr
@@ -1031,7 +1031,7 @@ export default function Vision() {
                                 className="cursor-pointer group"
                                 onClick={() => row.detailsProjets.length > 0 && toggleYearExpansion(row.annee)}>
                                  
-                                    <td className="py-4 px-6 text-[#edeae5] font-medium"> 
+                                    <td className="py-4 px-6 text-[#f2f3f5] font-medium"> 
                                       <div className="flex items-center gap-3"> 
                                         {row.detailsProjets.length > 0 &&
                                     <span className="text-[#00FFD1] text-[10px] transition-transform duration-300"> 
@@ -1041,13 +1041,13 @@ export default function Vision() {
                                         <span>An {row.annee}</span> 
                                       </div> 
                                     </td> 
-                                    <td className="py-4 px-6 text-right text-[#edeae5]"> 
+                                    <td className="py-4 px-6 text-right text-[#f2f3f5]"> 
                                       {row.patrimoine >= 1000000 ? `${(row.patrimoine / 1000000).toFixed(1)}M €` : `${Math.round(row.patrimoine / 1000)}K €`} 
                                     </td> 
                                     <td className={`py-4 px-6 text-right font-medium ${row.cashflow >= 0 ? 'text-[#00FFD1]' : 'text-red-400'}`}> 
                                       {row.cashflow >= 1000000 ? `${(row.cashflow / 1000000).toFixed(1)}M €` : `${Math.round(row.cashflow / 1000)}K €`} 
                                     </td> 
-                                    <td className="py-4 px-6 text-right text-[#d3d8d6]"> 
+                                    <td className="py-4 px-6 text-right text-[#c9cdd6]"> 
                                       {row.capitalRestant >= 1000000 ? `${(row.capitalRestant / 1000000).toFixed(1)}M €` : `${Math.round(row.capitalRestant / 1000)}K €`} 
                                     </td> 
                                   </motion.tr> 
@@ -1059,10 +1059,10 @@ export default function Vision() {
                                   animate={{ opacity: 1, height: 'auto' }}
                                   exit={{ opacity: 0, height: 0 }}>
 
-                                        <td colSpan="4" className="bg-[#edeae5]/[0.02] px-6 py-0">
+                                        <td colSpan="4" className="bg-[#f2f3f5]/[0.02] px-6 py-0">
                                           <div className="border-l-2 border-[#00FFD1]/30 ml-2 my-2">
                                             {row.detailsProjets.map((detail, dIdx) =>
-                                      <div key={dIdx} className="grid grid-cols-4 py-2 pl-4 text-[11px] text-[#9aa19e]">
+                                      <div key={dIdx} className="grid grid-cols-4 py-2 pl-4 text-[11px] text-[#9298a6]">
                                                 <span>Projet {detail.projetIndex}</span>
                                                 <span className="text-right">{Math.round(detail.patrimoine / 1000)}K €</span>
                                                 <span className="text-right">{Math.round(detail.cashflow / 1000)}K €</span>
@@ -1094,8 +1094,8 @@ export default function Vision() {
                 onClick={() => setCurrentSlide(index)}
                 className={`h-2 rounded-full transition-all ${
                 currentSlide === index ?
-                'w-8 bg-[#35a79b]' :
-                'w-2 bg-[#303332] hover:bg-[#6b7270]'}`
+                'w-8 bg-[#8fa0f2]' :
+                'w-2 bg-[#22262d] hover:bg-[#6a7180]'}`
                 } />
 
               )}
@@ -1111,10 +1111,10 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6 }}
-                  className="py-2 pl-6 border-l-2 border-[#35a79b]">
+                  className="py-2 pl-6 border-l-2 border-[#8fa0f2]">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-3">Étape clé • An 20</div>
-                  <p className="text-[#edeae5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
+                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-3">Étape clé • An 20</div>
+                  <p className="text-[#f2f3f5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine20 >= 1000000 ? `${(resultat.patrimoine20 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine20 / 1000)}K€`;
                       const cashflowMensuel = Math.round(resultat.cashflow20 / 12);
@@ -1193,10 +1193,10 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="py-2 pl-6 border-l-2 border-[#7fd3c9]">
+                  className="py-2 pl-6 border-l-2 border-[#aab6f5]">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-3">Accélération • An 25</div>
-                  <p className="text-[#edeae5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
+                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-3">Accélération • An 25</div>
+                  <p className="text-[#f2f3f5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine25 >= 1000000 ? `${(resultat.patrimoine25 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine25 / 1000)}K€`;
                       const cashflowMensuel = Math.round(resultat.cashflow25 / 12);
@@ -1214,10 +1214,10 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="py-5 pl-6 pr-6 border-l-2 border-[#e0c9a0] bg-[#e0c9a0]/[0.05]">
+                  className="py-5 pl-6 pr-6 border-l-2 border-[#a9c5b9] bg-[#a9c5b9]/[0.05]">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-3">Objectif atteint • An 30</div>
-                  <p className="text-[#edeae5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
+                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-3">Objectif atteint • An 30</div>
+                  <p className="text-[#f2f3f5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine30 >= 1000000 ? `${(resultat.patrimoine30 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine30 / 1000)}K€`;
                       const cashflowMensuel = Math.round(resultat.cashflow30 / 12);
@@ -1287,7 +1287,7 @@ export default function Vision() {
                 transition={{ duration: 0.6 }}
                 className="my-12 max-w-4xl mx-auto">
 
-                <p className="text-[#edeae5] text-base font-normal leading-relaxed text-center">
+                <p className="text-[#f2f3f5] text-base font-normal leading-relaxed text-center">
                   Votre stratégie d'investissement s'étale sur 30 ans, avec des acquisitions régulières selon le rythme que vous avez défini. 
                   Chaque projet immobilier commercial vient renforcer votre patrimoine et diversifier vos sources de revenus. 
                   La timeline ci-dessous visualise l'échelonnement de vos investissements dans le temps, vous permettant de comprendre 
@@ -1303,15 +1303,15 @@ export default function Vision() {
                 transition={{ duration: 0.7, ease: "easeOut" }}
                 className="mb-12 relative h-fit rounded-[1.25rem] p-2 md:rounded-[1.5rem] md:p-3 transition-all duration-500">
 
-                <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6 pt-10">
+                <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6 pt-10">
                   {/* Question revenus mensuels souhaités */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="mb-6 p-4 rounded-lg bg-gradient-to-br from-[#35a79b]/10 to-black/30 border border-[#35a79b]/30">
+                    className="mb-6 p-4 rounded-lg bg-gradient-to-br from-[#8fa0f2]/10 to-black/30 border border-[#8fa0f2]/30">
 
-                    <Label className="text-sm text-[#edeae5] mb-3 block font-medium">
+                    <Label className="text-sm text-[#f2f3f5] mb-3 block font-medium">
                       Revenus mensuels souhaités
                     </Label>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
@@ -1326,8 +1326,8 @@ export default function Vision() {
                         onClick={() => setRevenusMensuels(option.value)}
                         className={`h-9 rounded-lg border-2 font-medium text-xs transition-all ${
                         revenusMensuels === option.value ?
-                        'bg-[#35a79b] border-[#35a79b] text-[#edeae5]' :
-                        'bg-[#0a0c0c]/30 border-[#282b2a] text-[#9aa19e] hover:border-[#303332]'}`
+                        'bg-[#8fa0f2] border-[#8fa0f2] text-[#f2f3f5]' :
+                        'bg-[#000000]/30 border-[#1f2228] text-[#9298a6] hover:border-[#22262d]'}`
                         }>
 
                           {option.label}
@@ -1340,9 +1340,9 @@ export default function Vision() {
                         value={revenusMensuels}
                         onChange={(e) => setRevenusMensuels(e.target.value)}
                         placeholder="Personnalisé"
-                        className="w-full h-9 px-3 pr-12 rounded-lg bg-[#0a0c0c]/50 border-2 border-[#282b2a] hover:border-[#35a79b] focus:border-[#35a79b] text-[#edeae5] font-normal text-xs transition-colors outline-none" />
+                        className="w-full h-9 px-3 pr-12 rounded-lg bg-[#000000]/50 border-2 border-[#1f2228] hover:border-[#8fa0f2] focus:border-[#8fa0f2] text-[#f2f3f5] font-normal text-xs transition-colors outline-none" />
 
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b9391] font-normal text-xs">€/mois</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9298a6] font-normal text-xs">€/mois</span>
                     </div>
                   </motion.div>
 
@@ -1358,7 +1358,7 @@ export default function Vision() {
                 transition={{ duration: 0.6 }}
                 className="my-12 max-w-4xl mx-auto">
 
-                <p className="text-[#edeae5] text-base font-normal leading-relaxed text-center">
+                <p className="text-[#f2f3f5] text-base font-normal leading-relaxed text-center">
                   Pour bien comprendre votre stratégie patrimoniale, il est essentiel d'analyser en détail l'évolution de vos indicateurs financiers. 
                   Les graphiques ci-dessous vous permettent de visualiser précisément comment votre patrimoine se construit année après année, 
                   et comment vos revenus locatifs évoluent au fil du temps pour vous offrir une liberté financière progressive.
@@ -1373,11 +1373,11 @@ export default function Vision() {
                 transition={{ duration: 0.6 }}
                 className="mb-12">
 
-                <div className="relative h-fit rounded-[1.5rem] border border-[#282b2a] bg-[#0a0c0c] backdrop-blur-md overflow-hidden">
-                  <div className="p-6 border-b border-[#282b2a] bg-[#0a0c0c]">
+                <div className="relative h-fit rounded-[1.5rem] border border-[#1f2228] bg-[#000000] backdrop-blur-md overflow-hidden">
+                  <div className="p-6 border-b border-[#1f2228] bg-[#000000]">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-[#e0c9a0]" />
-                      <h3 className="text-lg text-[#edeae5] font-medium">Investissement vs Patrimoine</h3>
+                      <TrendingUp className="w-5 h-5 text-[#a9c5b9]" />
+                      <h3 className="text-lg text-[#f2f3f5] font-medium">Investissement vs Patrimoine</h3>
                     </div>
                   </div>
                   <div className="p-6">
@@ -1385,32 +1385,32 @@ export default function Vision() {
                       <LineChart data={resultat.chartData}>
                         <defs>
                           <linearGradient id="patrimoineGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#35a79b" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#35a79b" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#8fa0f2" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#8fa0f2" stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="investGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#e0c9a0" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#e0c9a0" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#a9c5b9" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#a9c5b9" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2c3139" />
                         <XAxis
                           dataKey="annee"
-                          stroke="#9ca3af"
-                          tick={{ fontSize: 12, fill: '#9ca3af' }}
-                          label={{ value: 'Année', position: 'insideBottom', offset: -5, fill: '#9ca3af' }} />
+                          stroke="#9298a6"
+                          tick={{ fontSize: 12, fill: '#9298a6' }}
+                          label={{ value: 'Année', position: 'insideBottom', offset: -5, fill: '#9298a6' }} />
 
                         <YAxis
-                          stroke="#9ca3af"
-                          tick={{ fontSize: 12, fill: '#9ca3af' }}
+                          stroke="#9298a6"
+                          tick={{ fontSize: 12, fill: '#9298a6' }}
                           tickFormatter={(value) => {
                             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                             return `${(value / 1000).toFixed(0)}K`;
                           }}
-                          label={{ value: 'Euros', angle: -90, position: 'insideLeft', fill: '#9ca3af' }} />
+                          label={{ value: 'Euros', angle: -90, position: 'insideLeft', fill: '#9298a6' }} />
 
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #374151', borderRadius: '8px', color: '#fff' }}
+                          contentStyle={{ backgroundColor: '#0c0d10', border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
                           labelStyle={{ color: '#fff' }}
                           formatter={(value) => `${(value / 1000).toFixed(0)}K €`} />
 
@@ -1418,7 +1418,7 @@ export default function Vision() {
                         <Line
                           type="monotone"
                           dataKey={() => resultat.apportTotal}
-                          stroke="#e0c9a0"
+                          stroke="#a9c5b9"
                           strokeWidth={3}
                           strokeDasharray="5 5"
                           name="Investissement initial"
@@ -1427,7 +1427,7 @@ export default function Vision() {
                         <Area
                           type="monotone"
                           dataKey="patrimoine"
-                          stroke="#35a79b"
+                          stroke="#8fa0f2"
                           strokeWidth={3}
                           fill="url(#patrimoineGradient)"
                           name="Patrimoine net" />
@@ -1435,7 +1435,7 @@ export default function Vision() {
                         <Line
                           type="monotone"
                           dataKey="patrimoine"
-                          stroke="#35a79b"
+                          stroke="#8fa0f2"
                           strokeWidth={4}
                           name=""
                           dot={false}
@@ -1443,7 +1443,7 @@ export default function Vision() {
 
                       </LineChart>
                     </ResponsiveContainer>
-                    <p className="text-[#edeae5] text-sm font-normal text-center mt-4">
+                    <p className="text-[#f2f3f5] text-sm font-normal text-center mt-4">
                       Votre investissement de départ de {(resultat.apportTotal / 1000).toFixed(0)}K€ se transforme progressivement en un patrimoine de {(resultat.patrimoine30 / 1000000).toFixed(1)}M€.
                     </p>
                   </div>
@@ -1458,7 +1458,7 @@ export default function Vision() {
                 transition={{ duration: 0.6 }}
                 className="mb-12 space-y-8">
 
-                <h3 className="text-2xl text-[#edeae5] font-normal font-semibold mb-8">Analyse détaillée</h3>
+                <h3 className="text-2xl text-[#f2f3f5] font-normal font-semibold mb-8">Analyse détaillée</h3>
 
                 {/* Patrimoine - Graphique + Explication */}
                 <div className="grid lg:grid-cols-[1fr_2fr] gap-6">
@@ -1469,7 +1469,7 @@ export default function Vision() {
                     transition={{ duration: 0.6 }}
                     className="relative">
 
-                    <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                    <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -1477,15 +1477,15 @@ export default function Vision() {
                         transition={{ delay: 0.2, duration: 0.4 }}
                         className="flex items-center gap-3 mb-4">
 
-                        <TrendingUp className="w-4 h-4 text-[#35a79b]" />
-                        <h3 className="text-lg text-[#edeae5] font-medium">Évolution du patrimoine</h3>
+                        <TrendingUp className="w-4 h-4 text-[#8fa0f2]" />
+                        <h3 className="text-lg text-[#f2f3f5] font-medium">Évolution du patrimoine</h3>
                       </motion.div>
                       <motion.p
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.3, duration: 0.4 }}
-                        className="text-[#edeae5] text-sm font-normal leading-relaxed mb-6">
+                        className="text-[#f2f3f5] text-sm font-normal leading-relaxed mb-6">
 
                         Ce graphique illustre la construction progressive de votre richesse immobilière sur 30 ans. Deux courbes essentielles vous permettent de comprendre votre situation financière réelle.
                       </motion.p>
@@ -1495,13 +1495,13 @@ export default function Vision() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: 0.4, duration: 0.5 }}
-                          className="p-4 rounded-lg bg-[#0a0c0c]/50 border border-[#282b2a]">
+                          className="p-4 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
 
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-[#35a79b]"></div>
-                            <span className="text-xs text-[#edeae5] font-normal uppercase tracking-wider">Courbe verte • Patrimoine net</span>
+                            <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                            <span className="text-xs text-[#f2f3f5] font-normal uppercase tracking-wider">Courbe verte • Patrimoine net</span>
                           </div>
-                          <p className="text-xs text-[#edeae5] font-normal leading-relaxed">
+                          <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
                             Votre patrimoine net représente la valeur réelle de votre richesse : la valeur de marché de vos biens moins les dettes restantes. Chaque mensualité que vous payez augmente automatiquement votre patrimoine net.
                           </p>
                         </motion.div>
@@ -1510,13 +1510,13 @@ export default function Vision() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: 0.5, duration: 0.5 }}
-                          className="p-4 rounded-lg bg-[#0a0c0c]/50 border border-[#282b2a]">
+                          className="p-4 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
 
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                            <span className="text-xs text-[#edeae5] font-normal uppercase tracking-wider">Courbe rouge • Dette restante</span>
+                            <span className="text-xs text-[#f2f3f5] font-normal uppercase tracking-wider">Courbe rouge • Dette restante</span>
                           </div>
-                          <p className="text-xs text-[#edeae5] font-normal leading-relaxed">
+                          <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
                             Cette courbe pointillée montre le capital restant dû sur l'ensemble de vos crédits immobiliers. Elle décroît linéairement jusqu'à atteindre zéro à l'an 20 (fin du crédit typique). Le moment où les deux courbes se croisent marque un tournant psychologique important dans votre parcours d'investisseur.
                           </p>
                         </motion.div>
@@ -1532,7 +1532,7 @@ export default function Vision() {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="relative">
 
-                    <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                    <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                       <PatrimoineChart data={resultat.chartData} />
                     </div>
                   </motion.div>
@@ -1547,7 +1547,7 @@ export default function Vision() {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="relative">
 
-                    <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                    <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -1555,15 +1555,15 @@ export default function Vision() {
                         transition={{ delay: 0.2, duration: 0.4 }}
                         className="flex items-center gap-3 mb-4">
 
-                        <Wallet className="w-4 h-4 text-[#7fd3c9]" />
-                        <h3 className="text-lg text-[#edeae5] font-medium">Revenus locatifs nets</h3>
+                        <Wallet className="w-4 h-4 text-[#aab6f5]" />
+                        <h3 className="text-lg text-[#f2f3f5] font-medium">Revenus locatifs nets</h3>
                       </motion.div>
                       <motion.p
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.3, duration: 0.4 }}
-                        className="text-[#edeae5] text-sm font-normal leading-relaxed mb-6">
+                        className="text-[#f2f3f5] text-sm font-normal leading-relaxed mb-6">
 
                         Le cashflow annuel représente votre revenu disponible réel une fois toutes les charges payées. C'est l'argent qui arrive effectivement sur votre compte chaque année.
                       </motion.p>
@@ -1573,13 +1573,13 @@ export default function Vision() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: 0.4, duration: 0.5 }}
-                          className="p-4 rounded-lg bg-[#0a0c0c]/50 border border-[#282b2a]">
+                          className="p-4 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
 
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
-                            <span className="text-xs text-[#edeae5] font-normal uppercase tracking-wider">Phase 1-20 • Construction</span>
+                            <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                            <span className="text-xs text-[#f2f3f5] font-normal uppercase tracking-wider">Phase 1-20 • Construction</span>
                           </div>
-                          <p className="text-xs text-[#edeae5] font-normal leading-relaxed">
+                          <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
                             Cette phase est un investissement : vous sacrifiez du cashflow immédiat pour construire un patrimoine durable. Même si le cashflow est faible, votre patrimoine croît rapidement en arrière-plan.
                           </p>
                         </motion.div>
@@ -1588,13 +1588,13 @@ export default function Vision() {
                           whileInView={{ opacity: 1, x: 0 }}
                           viewport={{ once: true }}
                           transition={{ delay: 0.5, duration: 0.5 }}
-                          className="p-4 rounded-lg bg-[#0a0c0c]/50 border border-[#282b2a]">
+                          className="p-4 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
 
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-[#7fd3c9]"></div>
-                            <span className="text-xs text-[#edeae5] font-normal uppercase tracking-wider">Phase 20-30 • Liberté financière</span>
+                            <div className="w-3 h-3 rounded-full bg-[#aab6f5]"></div>
+                            <span className="text-xs text-[#f2f3f5] font-normal uppercase tracking-wider">Phase 20-30 • Liberté financière</span>
                           </div>
-                          <p className="text-xs text-[#edeae5] font-normal leading-relaxed">
+                          <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
                             C'est le début de votre véritable liberté financière. Chaque mois, des dizaines de milliers d'euros arrivent sur votre compte sans que vous ayez à travailler pour les obtenir. Vous pouvez choisir de continuer votre activité professionnelle par passion plutôt que par nécessité, ou prendre une retraite anticipée.
                           </p>
                         </motion.div>
@@ -1610,7 +1610,7 @@ export default function Vision() {
                     transition={{ duration: 0.6, delay: 0.4 }}
                     className="relative">
 
-                    <div className="relative bg-[#0e100f] border border-[#edeae5]/[0.12] p-6">
+                    <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                       <CashflowChart data={resultat.chartData} />
                     </div>
                   </motion.div>
@@ -1637,10 +1637,10 @@ export default function Vision() {
     <div className="space-y-8 max-w-md">
       <div>
         <h2 className="text-[38px] md:text-[50px] font-light tracking-[-0.02em] leading-[1.08] mb-4">
-          <span className="text-[#edeae5]">Configurez. Planifiez.</span><br />
-          <span className="text-[#e0c9a0] font-light">Investissez.</span>
+          <span className="text-[#f2f3f5]">Configurez. Planifiez.</span><br />
+          <span className="text-[#a9c5b9] font-light">Investissez.</span>
         </h2>
-        <p className="text-[#edeae5] text-base font-normal ">
+        <p className="text-[#f2f3f5] text-base font-normal ">
           Visualisez l'évolution de votre patrimoine immobilier sur 30 ans.<br />
           {getDescriptionText()}
         </p>
@@ -1648,19 +1648,19 @@ export default function Vision() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-[#0a0c0c]/50 border border-[#282b2a] rounded-md p-6 text-center">
+        <div className="bg-[#000000]/50 border border-[#1f2228] rounded-md p-6 text-center">
           <div className="mb-3 flex justify-center">
-            <TrendingUp className="w-8 h-8 text-[#edeae5]" />
+            <TrendingUp className="w-8 h-8 text-[#f2f3f5]" />
           </div>
-          <div className="text-[#edeae5] font-semibold text-base mb-1 font-normal">Patrimoine net</div>
-          <div className="text-xs text-[#9aa19e] font-normal">Évolution sur 30 ans</div>
+          <div className="text-[#f2f3f5] font-semibold text-base mb-1 font-normal">Patrimoine net</div>
+          <div className="text-xs text-[#9298a6] font-normal">Évolution sur 30 ans</div>
         </div>
-        <div className="bg-[#0a0c0c]/50 border border-[#282b2a] rounded-md p-6 text-center">
+        <div className="bg-[#000000]/50 border border-[#1f2228] rounded-md p-6 text-center">
           <div className="mb-3 flex justify-center">
-            <DollarSign className="w-8 h-8 text-[#edeae5]" />
+            <DollarSign className="w-8 h-8 text-[#f2f3f5]" />
           </div>
-          <div className="text-[#edeae5] font-semibold text-base mb-1 font-normal">Cashflow annuel</div>
-          <div className="text-xs text-[#9aa19e] font-normal">Projection détaillée</div>
+          <div className="text-[#f2f3f5] font-semibold text-base mb-1 font-normal">Cashflow annuel</div>
+          <div className="text-xs text-[#9298a6] font-normal">Projection détaillée</div>
         </div>
       </div>
     </div>
@@ -1672,22 +1672,22 @@ export default function Vision() {
           Le cadre est peint par la couche du dessous, comme sur l'accueil :
           un filet constant, plus un dégradé conique qui tourne lentement —
           la lueur blanche qui parcourt le bord. */}
-      <div className="relative p-px overflow-hidden bg-[#edeae5]/[0.12]">
+      <div className="relative p-px overflow-hidden bg-[#f2f3f5]/[0.12]">
         <div
           aria-hidden="true"
           className="absolute inset-[-100%] animate-[spin_10s_linear_infinite]"
           style={{ background: "conic-gradient(rgba(237,234,229,0) 0deg, rgba(237,234,229,0) 288deg, rgba(237,234,229,0.9) 332deg, rgba(237,234,229,0) 360deg)" }}
         />
-        <div className="relative bg-[#0e100f] p-6 md:p-8">
+        <div className="relative bg-[#0f1114] p-6 md:p-8">
           {/* Progress Bar */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs text-[#9aa19e] font-normal uppercase tracking-wider">Étape {currentStep} sur 4</span>
-              <span className="text-xs text-[#35a79b] font-medium">{Math.round(currentStep / 4 * 100)}%</span>
+              <span className="text-xs text-[#9298a6] font-normal uppercase tracking-wider">Étape {currentStep} sur 4</span>
+              <span className="text-xs text-[#8fa0f2] font-medium">{Math.round(currentStep / 4 * 100)}%</span>
             </div>
-            <div className="h-1.5 bg-[#171918] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[#0f1114] rounded-full overflow-hidden">
               <motion.div
-                        className="h-full bg-gradient-to-r from-[#35a79b] to-[#7fd3c9]"
+                        className="h-full bg-gradient-to-r from-[#8fa0f2] to-[#aab6f5]"
                         initial={{ width: 0 }}
                         animate={{ width: `${currentStep / 4 * 100}%` }}
                         transition={{ duration: 0.5, ease: "easeOut" }} />
@@ -1705,27 +1705,27 @@ export default function Vision() {
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}>
 
-                <h3 className="text-2xl text-[#edeae5] font-medium mb-3">
+                <h3 className="text-2xl text-[#f2f3f5] font-medium mb-3">
                   Parlez-nous de vous
                 </h3>
-                <p className="text-[#edeae5] text-sm mb-8 font-normal">
+                <p className="text-[#f2f3f5] text-sm mb-8 font-normal">
                   Commençons par quelques informations de base pour personnaliser votre stratégie.
                 </p>
 
                 <div className="space-y-6">
                   <div>
-                    <Label className="text-sm text-[#edeae5] mb-3 block font-normal">Quel est votre âge ?</Label>
+                    <Label className="text-sm text-[#f2f3f5] mb-3 block font-normal">Quel est votre âge ?</Label>
                     <input
                             type="number"
                             value={age}
                             onChange={(e) => setAge(e.target.value)}
                             placeholder="Ex: 35"
-                            className="w-full h-14 px-5 rounded-md bg-[#0a0c0c]/50 border-2 border-[#282b2a] hover:border-[#35a79b] focus:border-[#35a79b] text-[#edeae5] text-lg font-normal transition-colors outline-none" />
+                            className="w-full h-14 px-5 rounded-md bg-[#000000]/50 border-2 border-[#1f2228] hover:border-[#8fa0f2] focus:border-[#8fa0f2] text-[#f2f3f5] text-lg font-normal transition-colors outline-none" />
 
                   </div>
 
                   <div>
-                    <Label className="text-sm text-[#edeae5] mb-3 block font-normal">Vous investissez...</Label>
+                    <Label className="text-sm text-[#f2f3f5] mb-3 block font-normal">Vous investissez...</Label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
                             { value: 'seule', label: 'Seul(e)' },
@@ -1737,8 +1737,8 @@ export default function Vision() {
                               onClick={() => setTypeInvestissement(option.value)}
                               className={`h-14 rounded-md border-2 font-medium text-sm transition-all ${
                               typeInvestissement === option.value ?
-                              'bg-[#35a79b] border-[#35a79b] text-[#edeae5]' :
-                              'bg-[#0a0c0c]/30 border-[#282b2a] text-[#9aa19e] hover:border-[#303332]'}`
+                              'bg-[#8fa0f2] border-[#8fa0f2] text-[#f2f3f5]' :
+                              'bg-[#000000]/30 border-[#1f2228] text-[#9298a6] hover:border-[#22262d]'}`
                               }>
 
                           {option.label}
@@ -1759,10 +1759,10 @@ export default function Vision() {
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}>
 
-                <h3 className="text-2xl text-[#edeae5] font-medium mb-3">
+                <h3 className="text-2xl text-[#f2f3f5] font-medium mb-3">
                   Quel est votre objectif ?
                 </h3>
-                <p className="text-[#edeae5] text-sm mb-8 font-normal">
+                <p className="text-[#f2f3f5] text-sm mb-8 font-normal">
                   Définissons ensemble ce que vous souhaitez accomplir avec vos investissements.
                 </p>
 
@@ -1777,23 +1777,23 @@ export default function Vision() {
                           onClick={() => setObjectif(option.value)}
                           className={`w-full p-5 rounded-md border-2 text-left transition-all ${
                           objectif === option.value ?
-                          'bg-[#35a79b]/10 border-[#35a79b]' :
-                          'bg-[#0a0c0c]/30 border-[#282b2a] hover:border-[#303332]'}`
+                          'bg-[#8fa0f2]/10 border-[#8fa0f2]' :
+                          'bg-[#000000]/30 border-[#1f2228] hover:border-[#22262d]'}`
                           }>
 
                       <div className="flex items-start gap-4">
                         <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            objectif === option.value ? 'border-[#35a79b]' : 'border-[#303332]'}`
+                            objectif === option.value ? 'border-[#8fa0f2]' : 'border-[#22262d]'}`
                             }>
-                          {objectif === option.value && <div className="w-3 h-3 rounded-full bg-[#35a79b]" />}
+                          {objectif === option.value && <div className="w-3 h-3 rounded-full bg-[#8fa0f2]" />}
                         </div>
                         <div>
                           <div className={`font-medium mb-1 ${
-                              objectif === option.value ? 'text-[#edeae5]' : 'text-[#d3d8d6]'}`
+                              objectif === option.value ? 'text-[#f2f3f5]' : 'text-[#c9cdd6]'}`
                               }>
                             {option.label}
                           </div>
-                          <div className="text-sm text-[#edeae5]/70 font-normal">{option.desc}</div>
+                          <div className="text-sm text-[#f2f3f5]/70 font-normal">{option.desc}</div>
                         </div>
                       </div>
                     </button>
@@ -1811,10 +1811,10 @@ export default function Vision() {
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}>
 
-                <h3 className="text-2xl text-[#edeae5] font-medium mb-3">
+                <h3 className="text-2xl text-[#f2f3f5] font-medium mb-3">
                   Choisissez votre stratégie
                 </h3>
-                <p className="text-[#edeae5] text-sm mb-8 font-normal">
+                <p className="text-[#f2f3f5] text-sm mb-8 font-normal">
                   Sélectionnez le niveau de rendement qui correspond à votre profil d'investisseur.
                 </p>
 
@@ -1829,28 +1829,28 @@ export default function Vision() {
                           onClick={() => setTypeStrategie(option.value)}
                           className={`w-full p-5 rounded-md border-2 text-left transition-all ${
                           typeStrategie === option.value ?
-                          'bg-[#35a79b]/10 border-[#35a79b]' :
-                          'bg-[#0a0c0c]/30 border-[#282b2a] hover:border-[#303332]'}`
+                          'bg-[#8fa0f2]/10 border-[#8fa0f2]' :
+                          'bg-[#000000]/30 border-[#1f2228] hover:border-[#22262d]'}`
                           }>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-start gap-4">
                           <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              typeStrategie === option.value ? 'border-[#35a79b]' : 'border-[#303332]'}`
+                              typeStrategie === option.value ? 'border-[#8fa0f2]' : 'border-[#22262d]'}`
                               }>
-                            {typeStrategie === option.value && <div className="w-3 h-3 rounded-full bg-[#35a79b]" />}
+                            {typeStrategie === option.value && <div className="w-3 h-3 rounded-full bg-[#8fa0f2]" />}
                           </div>
                           <div>
                             <div className={`font-medium mb-1 ${
-                                typeStrategie === option.value ? 'text-[#edeae5]' : 'text-[#d3d8d6]'}`
+                                typeStrategie === option.value ? 'text-[#f2f3f5]' : 'text-[#c9cdd6]'}`
                                 }>
                               {option.label}
                             </div>
-                            <div className="text-sm text-[#edeae5]/70 font-normal">{option.desc}</div>
+                            <div className="text-sm text-[#f2f3f5]/70 font-normal">{option.desc}</div>
                           </div>
                         </div>
                         <div className={`text-2xl font-bold font-normal ${
-                            typeStrategie === option.value ? 'text-[#35a79b]' : 'text-[#6b7270]'}`
+                            typeStrategie === option.value ? 'text-[#8fa0f2]' : 'text-[#6a7180]'}`
                             }>
                           {option.rate}
                         </div>
@@ -1872,34 +1872,34 @@ export default function Vision() {
                       className="grid md:grid-cols-[1fr_280px] gap-6">
 
                 <div>
-                  <h3 className="text-2xl text-[#edeae5] font-medium mb-3">
+                  <h3 className="text-2xl text-[#f2f3f5] font-medium mb-3">
                     Planifiez vos projets
                   </h3>
-                  <p className="text-[#edeae5] text-sm mb-8 font-normal">
+                  <p className="text-[#f2f3f5] text-sm mb-8 font-normal">
                     Combien de projets souhaitez-vous réaliser et à quel rythme ?
                   </p>
 
                   <div className="space-y-6">
                     <div>
-                      <Label className="text-sm text-[#edeae5] mb-3 block font-normal">Nombre de projets</Label>
+                      <Label className="text-sm text-[#f2f3f5] mb-3 block font-normal">Nombre de projets</Label>
                       <div className="flex items-center gap-3">
                         <Button
                                 variant="outline"
                                 size="icon"
                                 onClick={() => projets.length > 1 && supprimerProjet(projets.length - 1)}
                                 disabled={projets.length <= 1}
-                                className="h-10 w-10 bg-[#0a0c0c]/50 border-2 border-[#282b2a] text-[#edeae5] hover:bg-[#0a0c0c] disabled:opacity-30">
+                                className="h-10 w-10 bg-[#000000]/50 border-2 border-[#1f2228] text-[#f2f3f5] hover:bg-[#000000] disabled:opacity-30">
 
                           <span className="text-lg">-</span>
                         </Button>
-                        <div className="flex-1 text-center border-2 rounded-lg py-2 px-3 bg-[#0a0c0c]/30 border-[#282b2a]">
-                          <span className="text-xl font-bold text-[#edeae5] font-normal">{projets.length}</span>
+                        <div className="flex-1 text-center border-2 rounded-lg py-2 px-3 bg-[#000000]/30 border-[#1f2228]">
+                          <span className="text-xl font-bold text-[#f2f3f5] font-normal">{projets.length}</span>
                         </div>
                         <Button
                                 variant="outline"
                                 size="icon"
                                 onClick={ajouterProjet}
-                                className="h-10 w-10 bg-[#35a79b] hover:bg-[#238276] text-[#edeae5] border-0">
+                                className="h-10 w-10 bg-[#8fa0f2] hover:bg-[#238276] text-[#f2f3f5] border-0">
 
                           <span className="text-lg">+</span>
                         </Button>
@@ -1907,7 +1907,7 @@ export default function Vision() {
                     </div>
 
                     <div>
-                      <Label className="text-sm text-[#edeae5] mb-3 block font-normal">Fréquence d'acquisition</Label>
+                      <Label className="text-sm text-[#f2f3f5] mb-3 block font-normal">Fréquence d'acquisition</Label>
                       <div className="grid grid-cols-3 gap-3">
                         {[
                               { value: '1', label: 'Chaque année' },
@@ -1919,8 +1919,8 @@ export default function Vision() {
                                 onClick={() => setFrequence(Number(option.value))}
                                 className={`h-14 rounded-md border-2 font-medium text-sm transition-all ${
                                 frequence === Number(option.value) ?
-                                'bg-[#35a79b] border-[#35a79b] text-[#edeae5]' :
-                                'bg-[#0a0c0c]/30 border-[#282b2a] text-[#9aa19e] hover:border-[#303332]'}`
+                                'bg-[#8fa0f2] border-[#8fa0f2] text-[#f2f3f5]' :
+                                'bg-[#000000]/30 border-[#1f2228] text-[#9298a6] hover:border-[#22262d]'}`
                                 }>
 
                             {option.label}
@@ -1933,7 +1933,7 @@ export default function Vision() {
 
                 {/* Liste des projets à droite */}
                 <div className="h-fit">
-                  <Label className="text-xs uppercase tracking-wider mb-4 block text-[#edeae5] font-normal">
+                  <Label className="text-xs uppercase tracking-wider mb-4 block text-[#f2f3f5] font-normal">
                     Mes projets ({projets.length})
                   </Label>
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
@@ -1944,17 +1944,17 @@ export default function Vision() {
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: 10 }}
-                              className="p-3 rounded-md border border-[#282b2a] bg-[#0a0c0c]/30 flex items-center gap-2">
+                              className="p-3 rounded-md border border-[#1f2228] bg-[#000000]/30 flex items-center gap-2">
 
                           <div className="flex-1 min-w-0">
-                            <div className="text-[10px] text-[#35a79b] font-bold uppercase mb-1">
+                            <div className="text-[10px] text-[#8fa0f2] font-bold uppercase mb-1">
                               An {index * frequence + 1}
                             </div>
                             <Select
                                   value={projet.taille}
                                   onValueChange={(v) => modifierTailleProjet(index, v)}>
 
-                              <SelectTrigger className="h-8 text-xs bg-[#0a0c0c]/50 text-[#edeae5] border-[#282b2a] font-normal">
+                              <SelectTrigger className="h-8 text-xs bg-[#000000]/50 text-[#f2f3f5] border-[#1f2228] font-normal">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -1972,7 +1972,7 @@ export default function Vision() {
                             variant="ghost"
                             size="icon"
                             onClick={() => dupliquerProjet(index)}
-                            className="h-7 w-7 text-[#35a79b] hover:bg-[#35a79b]/10 shrink-0"
+                            className="h-7 w-7 text-[#8fa0f2] hover:bg-[#8fa0f2]/10 shrink-0"
                             title="Dupliquer ce projet">
 
                             <Copy className="w-3.5 h-3.5" />
@@ -1997,12 +1997,12 @@ export default function Vision() {
           </AnimatePresence>
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between mt-10 pt-6 border-t border-[#282b2a]">
+          <div className="flex items-center justify-between mt-10 pt-6 border-t border-[#1f2228]">
             {currentStep > 1 ?
                     <Button
                       onClick={() => setCurrentStep(currentStep - 1)}
                       variant="outline"
-                      className="h-12 px-6 bg-[#0a0c0c]/50 border-[#282b2a] text-[#edeae5] hover:bg-[#0a0c0c] font-normal">
+                      className="h-12 px-6 bg-[#000000]/50 border-[#1f2228] text-[#f2f3f5] hover:bg-[#000000] font-normal">
 
                 Précédent
               </Button> :
@@ -2010,7 +2010,7 @@ export default function Vision() {
 
             {currentStep < 4 ?
                     <Button
-                      onClick={() => setCurrentStep(currentStep + 1)} className="bg-[#35a79b] text-[#0a0c0c] px-8 py-2 text-sm font-medium rounded-full inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-12 hover:bg-[#238276] shadow-lg">
+                      onClick={() => setCurrentStep(currentStep + 1)} className="bg-[#8fa0f2] text-[#000000] px-8 py-2 text-sm font-medium rounded-full inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-12 hover:bg-[#238276] shadow-lg">
 
 
                 Continuer
@@ -2018,7 +2018,7 @@ export default function Vision() {
 
                     <Button
                       onClick={calculerStrategie}
-                      className="h-12 px-8 bg-[#e0c9a0] hover:bg-[#e5a968] text-black font-medium rounded-full shadow-lg hover:scale-105 transition-all">
+                      className="h-12 px-8 bg-[#a9c5b9] hover:bg-[#e5a968] text-black font-medium rounded-full shadow-lg hover:scale-105 transition-all">
 
                 Voir ma stratégie
               </Button>

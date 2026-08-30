@@ -370,10 +370,10 @@ export default function SimulateurPublic() {
     { id: "avance", label: "Paramètres avancés" },
   ];
 
-  if (!loaded) return <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#35a79b]/30 border-t-[#35a79b] rounded-full animate-spin" /></div>;
+  if (!loaded) return <div className="min-h-screen bg-[#000000] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin" /></div>;
 
   return (
-    <div className="bg-[#0a0c0c] min-h-screen relative w-full max-w-full overflow-x-hidden">
+    <div className="bg-[#000000] min-h-screen relative w-full max-w-full overflow-x-hidden">
       <div className="flex flex-col min-h-screen">
         <div className="flex flex-1 min-h-0">
           {/* Left control rail */}
@@ -394,13 +394,13 @@ export default function SimulateurPublic() {
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between border-b border-[#282b2a] px-4 h-11 sticky top-0 bg-[#0a0c0c] z-10">
+            <div className="flex items-center justify-between border-b border-[#1f2228] px-4 h-11 sticky top-0 bg-[#000000] z-10">
               <div className="flex items-center gap-5 h-full">
                 {tabs.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#35a79b] text-[#edeae5]" : "border-transparent text-[#8b9391] hover:text-[#d3d8d6]"}`}
+                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#8fa0f2] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#c9cdd6]"}`}
                   >
                     {t.label}
                   </button>
@@ -408,8 +408,8 @@ export default function SimulateurPublic() {
               </div>
               <div className="flex items-center gap-2">
                 <ExportExcelFullButton params={exportParams} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
-                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#303332] text-[#d3d8d6] hover:text-[#edeae5] hover:border-[#edeae5]/[0.25] text-xs transition-colors">
-                  {linkCopied ? <Check className="w-3.5 h-3.5 text-[#7fd3c9]" /> : <Link2 className="w-3.5 h-3.5" />}
+                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.25] text-xs transition-colors">
+                  {linkCopied ? <Check className="w-3.5 h-3.5 text-[#aab6f5]" /> : <Link2 className="w-3.5 h-3.5" />}
                   {linkCopied ? 'Copié' : 'Partager'}
                 </button>
               </div>
@@ -417,7 +417,7 @@ export default function SimulateurPublic() {
 
             <div key={activeTab} className="p-4 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
               {negoActive && (
-                <div className="flex items-center gap-2 text-xs text-[#35a79b] bg-[#35a79b]/10 border border-[#35a79b]/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
+                <div className="flex items-center gap-2 text-xs text-[#8fa0f2] bg-[#8fa0f2]/10 border border-[#8fa0f2]/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.
                 </div>
               )}
@@ -451,8 +451,8 @@ export default function SimulateurPublic() {
               {activeTab !== "avance" && (
                 <SimDataTable calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} dureeCredit={values.dureeCredit} />
               )}
-              <p className="text-[10px] text-[#6b7270] italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
-              <p className="text-center text-[#edeae5]/20 text-xs pt-4">Simulation générée par Klocka</p>
+              <p className="text-[10px] text-[#6a7180] italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
+              <p className="text-center text-[#f2f3f5]/20 text-xs pt-4">Simulation générée par Klocka</p>
             </div>
           </main>
         </div>

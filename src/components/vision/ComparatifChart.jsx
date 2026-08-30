@@ -14,7 +14,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
           refY="4"
           orient="auto-start-reverse"
         >
-          <polygon points="0 0, 8 4, 0 8" fill="#7fd3c9" />
+          <polygon points="0 0, 8 4, 0 8" fill="#aab6f5" />
         </marker>
       </defs>
       
@@ -24,7 +24,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         y1={y + 40}
         x2={x}
         y2={y - 40}
-        stroke="#7fd3c9"
+        stroke="#aab6f5"
         strokeWidth="2"
         markerEnd={`url(#arrowhead-${year})`}
       />
@@ -36,7 +36,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         width="60"
         height="30"
         rx="15"
-        fill="#35a79b"
+        fill="#8fa0f2"
       />
       <text
         x={x}
@@ -56,28 +56,28 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
       <LineChart data={chartData}>
         <defs>
           <linearGradient id="patrimoineGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#35a79b" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#35a79b" stopOpacity={0} />
+            <stop offset="5%" stopColor="#8fa0f2" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#8fa0f2" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2c3139" />
         <XAxis
           dataKey="annee"
-          stroke="#9ca3af"
-          tick={{ fontSize: 12, fill: '#9ca3af' }}
-          label={{ value: 'Année', position: 'insideBottom', offset: -5, fill: '#9ca3af' }}
+          stroke="#9298a6"
+          tick={{ fontSize: 12, fill: '#9298a6' }}
+          label={{ value: 'Année', position: 'insideBottom', offset: -5, fill: '#9298a6' }}
         />
         <YAxis
-          stroke="#9ca3af"
-          tick={{ fontSize: 12, fill: '#9ca3af' }}
+          stroke="#9298a6"
+          tick={{ fontSize: 12, fill: '#9298a6' }}
           tickFormatter={(value) => {
             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
             return `${(value / 1000).toFixed(0)}K`;
           }}
-          label={{ value: 'Euros', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
+          label={{ value: 'Euros', angle: -90, position: 'insideLeft', fill: '#9298a6' }}
         />
         <Tooltip
-          contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #374151', borderRadius: '8px', color: '#fff' }}
+          contentStyle={{ backgroundColor: '#0c0d10', border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
           labelStyle={{ color: '#fff' }}
           formatter={(value) => {
             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M €`;
@@ -101,7 +101,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
             });
             return Math.round(currentValue);
           }}
-          stroke="#e0c9a0"
+          stroke="#a9c5b9"
           strokeWidth={3}
           strokeDasharray="8 4"
           name="Livret A (3%)"
@@ -111,7 +111,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         <Area
           type="monotone"
           dataKey="patrimoine"
-          stroke="#35a79b"
+          stroke="#8fa0f2"
           strokeWidth={3}
           fill="url(#patrimoineGradient)"
           name="Patrimoine net"
@@ -120,7 +120,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         <Line
           type="monotone"
           dataKey="patrimoine"
-          stroke="#35a79b"
+          stroke="#8fa0f2"
           strokeWidth={4}
           name=""
           dot={false}

@@ -16,9 +16,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import MobileRecordCard from "@/components/crm/MobileRecordCard";
 
 const statutColors = {
-  compromis: "bg-orange-500 text-[#edeae5]",
-  financement_obtenu: "bg-[#35a79b] text-[#edeae5]",
-  offre_acceptee: "bg-blue-500 text-[#edeae5]"
+  compromis: "bg-orange-500 text-[#f2f3f5]",
+  financement_obtenu: "bg-[#8fa0f2] text-[#f2f3f5]",
+  offre_acceptee: "bg-blue-500 text-[#f2f3f5]"
 };
 
 const statutLabels = {
@@ -189,7 +189,7 @@ export default function CRMTransactions() {
               setIsEditing(false);
             }
           }}
-          className="bg-[#171918] border-[#35a79b] text-[#edeae5] h-8 text-sm"
+          className="bg-[#0f1114] border-[#8fa0f2] text-[#f2f3f5] h-8 text-sm"
         />
       );
     }
@@ -197,7 +197,7 @@ export default function CRMTransactions() {
     return (
       <div
         onClick={() => setIsEditing(true)}
-        className="cursor-pointer hover:bg-[#303332]/50 rounded px-2 py-1 h-[32px] flex items-center text-[#edeae5]"
+        className="cursor-pointer hover:bg-[#22262d]/50 rounded px-2 py-1 h-[32px] flex items-center text-[#f2f3f5]"
       >
         {type === "number" && value ? formatCurrency(value) : (value || "-")}
       </div>
@@ -211,7 +211,7 @@ export default function CRMTransactions() {
           value={value || ""}
           onValueChange={(newValue) => handleCellEdit(transaction.id, field, newValue)}
         >
-          <SelectTrigger className="bg-transparent border-none text-[#edeae5] h-8 hover:bg-[#303332]/50">
+          <SelectTrigger className="bg-transparent border-none text-[#f2f3f5] h-8 hover:bg-[#22262d]/50">
             <SelectValue>
               {value ? (
                 <Badge className={`${statutColors[value]} text-xs`}>
@@ -220,9 +220,9 @@ export default function CRMTransactions() {
               ) : "-"}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent className="bg-[#0a0c0c] border-[#303332]">
+          <SelectContent className="bg-[#000000] border-[#22262d]">
             {options.map(opt => (
-              <SelectItem key={opt.value} value={opt.value} className="text-[#edeae5]">
+              <SelectItem key={opt.value} value={opt.value} className="text-[#f2f3f5]">
                 {opt.label}
               </SelectItem>
             ))}
@@ -233,12 +233,12 @@ export default function CRMTransactions() {
   };
 
   const renderTableau = (transactionsList, titre) => (
-    <div className="relative rounded-[1.25rem] border-[0.75px] border-[#343735] p-2">
+    <div className="relative rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2">
       <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-      <Card className="relative bg-gradient-to-br from-[#171918]/80 to-[#303332]/80 border-none">
+      <Card className="relative bg-gradient-to-br from-[#0f1114]/80 to-[#22262d]/80 border-none">
         <CardContent className="p-6">
           {transactionsList.length === 0 ? (
-            <div className="text-center py-12 text-[#9aa19e]">
+            <div className="text-center py-12 text-[#9298a6]">
               <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Aucune transaction dans cette catégorie</p>
             </div>
@@ -269,52 +269,52 @@ export default function CRMTransactions() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#343735]">
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332] min-w-[250px]">Name</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Subitems</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332] min-w-[200px]">Personne</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332] min-w-[200px]">Client</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Entreprise</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332] min-w-[350px]">Propriétés</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Prix affiché</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Prix négocié</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Agent Immobilier</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Statut</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap border-r border-[#303332]">Honoraires</th>
-                    <th className="text-left py-3 px-3 text-[#d3d8d6] font-semibold whitespace-nowrap">Actions</th>
+                  <tr className="border-b border-[#22262d]">
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d] min-w-[250px]">Name</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Subitems</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d] min-w-[200px]">Personne</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d] min-w-[200px]">Client</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Entreprise</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d] min-w-[350px]">Propriétés</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Prix affiché</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Prix négocié</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Agent Immobilier</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Statut</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap border-r border-[#22262d]">Honoraires</th>
+                    <th className="text-left py-3 px-3 text-[#c9cdd6] font-semibold whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {transactionsList.map((transaction) => (
-                    <tr key={transaction.id} className="border-b border-[#343735] hover:bg-[#303332]/30 transition-colors">
-                      <td className="py-3 px-3 border-r border-[#343735] min-w-[250px]">
+                    <tr key={transaction.id} className="border-b border-[#22262d] hover:bg-[#22262d]/30 transition-colors">
+                      <td className="py-3 px-3 border-r border-[#22262d] min-w-[250px]">
                         <EditableCell transaction={transaction} field="name" value={transaction.name} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735]">
+                      <td className="py-3 px-3 border-r border-[#22262d]">
                         <EditableCell transaction={transaction} field="subitems" value={transaction.subitems} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735] min-w-[200px]">
+                      <td className="py-3 px-3 border-r border-[#22262d] min-w-[200px]">
                         <EditableCell transaction={transaction} field="personne" value={transaction.personne} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735] min-w-[200px]">
+                      <td className="py-3 px-3 border-r border-[#22262d] min-w-[200px]">
                         <EditableCell transaction={transaction} field="client" value={transaction.client} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735]">
+                      <td className="py-3 px-3 border-r border-[#22262d]">
                         <EditableCell transaction={transaction} field="entreprise" value={transaction.entreprise} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735] min-w-[350px]">
+                      <td className="py-3 px-3 border-r border-[#22262d] min-w-[350px]">
                         <EditableCell transaction={transaction} field="proprietes" value={transaction.proprietes} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735]">
+                      <td className="py-3 px-3 border-r border-[#22262d]">
                         <EditableCell transaction={transaction} field="prix_affiche" value={transaction.prix_affiche} type="number" />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735]">
+                      <td className="py-3 px-3 border-r border-[#22262d]">
                         <EditableCell transaction={transaction} field="prix_negocie" value={transaction.prix_negocie} type="number" />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735]">
+                      <td className="py-3 px-3 border-r border-[#22262d]">
                         <EditableCell transaction={transaction} field="agent_immobilier" value={transaction.agent_immobilier} />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735]">
+                      <td className="py-3 px-3 border-r border-[#22262d]">
                         <EditableSelectCell 
                           transaction={transaction} 
                           field="statut" 
@@ -326,7 +326,7 @@ export default function CRMTransactions() {
                           ]}
                         />
                       </td>
-                      <td className="py-3 px-3 border-r border-[#343735]">
+                      <td className="py-3 px-3 border-r border-[#22262d]">
                         <EditableCell transaction={transaction} field="honoraires" value={transaction.honoraires} type="number" />
                       </td>
                       <td className="py-3 px-3">
@@ -363,14 +363,14 @@ export default function CRMTransactions() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#35a79b]"></div>
+      <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-6">
+    <div className="min-h-screen bg-[#000000] text-[#f2f3f5] p-6">
       <div className="max-w-[1800px] mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -378,19 +378,19 @@ export default function CRMTransactions() {
               variant="ghost"
               size="icon"
               onClick={() => navigate(createPageUrl("CRM"))}
-              className="text-[#9aa19e] hover:text-[#edeae5]"
+              className="text-[#9298a6] hover:text-[#f2f3f5]"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-4xl font-geist tracking-tighter text-[#edeae5] mb-2">
+              <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
                 Transactions CRM
               </h1>
-              <div className="h-0.5 w-32 bg-[#35a79b]"></div>
+              <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Badge className="bg-[#35a79b] text-[#edeae5] text-lg px-4 py-2">
+            <Badge className="bg-[#8fa0f2] text-[#f2f3f5] text-lg px-4 py-2">
               Total honoraires: {new Intl.NumberFormat('fr-FR', { 
                 style: 'currency', 
                 currency: 'EUR',
@@ -402,7 +402,7 @@ export default function CRMTransactions() {
                 resetForm();
                 setDialogOpen(true);
               }}
-              className="bg-[#35a79b] hover:bg-[#35a79b]/90"
+              className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90"
             >
               <Plus className="w-4 h-4 mr-2" />
               Nouvelle transaction
@@ -411,22 +411,22 @@ export default function CRMTransactions() {
         </div>
 
         <Tabs defaultValue="en_cours" className="w-full">
-          <TabsList className="w-full flex justify-start gap-4 bg-transparent border-b border-[#171918] mb-8 rounded-none px-0 h-auto pb-0">
+          <TabsList className="w-full flex justify-start gap-4 bg-transparent border-b border-[#0f1114] mb-8 rounded-none px-0 h-auto pb-0">
             <TabsTrigger 
               value="en_cours" 
-              className="relative bg-transparent border-0 text-[#9aa19e] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Transactions en cours ({transactionsEnCours.length})
             </TabsTrigger>
             <TabsTrigger 
               value="finalisee" 
-              className="relative bg-transparent border-0 text-[#9aa19e] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Transactions finalisées ({transactionsFinalisees.length})
             </TabsTrigger>
             <TabsTrigger 
               value="avortee" 
-              className="relative bg-transparent border-0 text-[#9aa19e] hover:text-[#edeae5] data-[state=active]:bg-transparent data-[state=active]:text-[#edeae5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#35a79b] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Transactions avortées ({transactionsAvortees.length})
             </TabsTrigger>
@@ -448,132 +448,132 @@ export default function CRMTransactions() {
 
       {/* Dialog création/édition */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#0a0c0c] border-[#303332] max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-[#000000] border-[#22262d] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#edeae5]">
+            <DialogTitle className="text-[#f2f3f5]">
               {editingTransaction ? "Modifier la transaction" : "Nouvelle transaction"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label className="text-[#9aa19e]">Name *</Label>
+              <Label className="text-[#9298a6]">Name *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#9aa19e]">Subitems</Label>
+                <Label className="text-[#9298a6]">Subitems</Label>
                 <Input
                   value={formData.subitems}
                   onChange={(e) => setFormData({...formData, subitems: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e]">Personne</Label>
+                <Label className="text-[#9298a6]">Personne</Label>
                 <Input
                   value={formData.personne}
                   onChange={(e) => setFormData({...formData, personne: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#9aa19e]">Client</Label>
+                <Label className="text-[#9298a6]">Client</Label>
                 <Input
                   value={formData.client}
                   onChange={(e) => setFormData({...formData, client: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e]">Entreprise</Label>
+                <Label className="text-[#9298a6]">Entreprise</Label>
                 <Input
                   value={formData.entreprise}
                   onChange={(e) => setFormData({...formData, entreprise: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
             </div>
 
             <div>
-              <Label className="text-[#9aa19e]">Propriétés</Label>
+              <Label className="text-[#9298a6]">Propriétés</Label>
               <Input
                 value={formData.proprietes}
                 onChange={(e) => setFormData({...formData, proprietes: e.target.value})}
-                className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
               />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-[#9aa19e]">Prix affiché (€)</Label>
+                <Label className="text-[#9298a6]">Prix affiché (€)</Label>
                 <Input
                   type="number"
                   value={formData.prix_affiche}
                   onChange={(e) => setFormData({...formData, prix_affiche: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e]">Prix négocié (€)</Label>
+                <Label className="text-[#9298a6]">Prix négocié (€)</Label>
                 <Input
                   type="number"
                   value={formData.prix_negocie}
                   onChange={(e) => setFormData({...formData, prix_negocie: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e]">Honoraires (€)</Label>
+                <Label className="text-[#9298a6]">Honoraires (€)</Label>
                 <Input
                   type="number"
                   value={formData.honoraires}
                   onChange={(e) => setFormData({...formData, honoraires: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label className="text-[#9aa19e]">Agent Immobilier</Label>
+                <Label className="text-[#9298a6]">Agent Immobilier</Label>
                 <Input
                   value={formData.agent_immobilier}
                   onChange={(e) => setFormData({...formData, agent_immobilier: e.target.value})}
-                  className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]"
+                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
                 />
               </div>
               <div>
-                <Label className="text-[#9aa19e]">Statut</Label>
+                <Label className="text-[#9298a6]">Statut</Label>
                 <Select value={formData.statut} onValueChange={(val) => setFormData({...formData, statut: val})}>
-                  <SelectTrigger className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]">
+                  <SelectTrigger className="bg-[#000000] border-[#22262d] text-[#f2f3f5]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a0c0c] border-[#303332]">
+                  <SelectContent className="bg-[#000000] border-[#22262d]">
                     {Object.entries(statutLabels).map(([key, label]) => (
-                      <SelectItem key={key} value={key} className="text-[#edeae5]">{label}</SelectItem>
+                      <SelectItem key={key} value={key} className="text-[#f2f3f5]">{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-[#9aa19e]">Catégorie *</Label>
+                <Label className="text-[#9298a6]">Catégorie *</Label>
                 <Select value={formData.categorie} onValueChange={(val) => setFormData({...formData, categorie: val})}>
-                  <SelectTrigger className="bg-[#0a0c0c] border-[#303332] text-[#edeae5]">
+                  <SelectTrigger className="bg-[#000000] border-[#22262d] text-[#f2f3f5]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0a0c0c] border-[#303332]">
-                    <SelectItem value="en_cours" className="text-[#edeae5]">En cours</SelectItem>
-                    <SelectItem value="finalisee" className="text-[#edeae5]">Finalisée</SelectItem>
-                    <SelectItem value="avortee" className="text-[#edeae5]">Avortée</SelectItem>
+                  <SelectContent className="bg-[#000000] border-[#22262d]">
+                    <SelectItem value="en_cours" className="text-[#f2f3f5]">En cours</SelectItem>
+                    <SelectItem value="finalisee" className="text-[#f2f3f5]">Finalisée</SelectItem>
+                    <SelectItem value="avortee" className="text-[#f2f3f5]">Avortée</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -581,10 +581,10 @@ export default function CRMTransactions() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#303332]">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#22262d]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#35a79b] hover:bg-[#35a79b]/90">
+            <Button onClick={handleSubmit} className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90">
               {editingTransaction ? "Modifier" : "Créer"}
             </Button>
           </DialogFooter>

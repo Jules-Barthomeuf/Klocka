@@ -36,14 +36,14 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="w-5 h-5 text-[#8b9391] animate-spin" />
+        <Loader2 className="w-5 h-5 text-[#9298a6] animate-spin" />
       </div>
     );
   }
 
   if (!lignes.length) {
     return (
-      <p className="border-t border-[#2e3230] py-10 text-center text-[13px] text-[#6b7270] m-0">
+      <p className="border-t border-[#22262d] py-10 text-center text-[13px] text-[#6a7180] m-0">
         Rien d'extrait pour l'instant — extraitz des documents depuis l'onglet Documents.
       </p>
     );
@@ -51,7 +51,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
 
   return (
     <div>
-      <p className="m-0 mb-4 text-[12.5px] text-[#9aa19e] leading-[1.6]">
+      <p className="m-0 mb-4 text-[12.5px] text-[#9298a6] leading-[1.6]">
         {rangeables} donnée{rangeables > 1 ? "s" : ""} sur {lignes.length} iront directement dans la
         fiche projet à sa création (étape Plateforme). Les valeurs déjà renseignées par la
         pré-analyse ne sont pas écrasées.
@@ -59,20 +59,20 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
 
       {groupes.map(([section, lignesSection]) => (
         <div key={section} className="mb-6">
-          <h4 className="m-0 mb-2 text-[10.5px] tracking-[0.16em] uppercase text-[#7fd3c9] font-normal">
+          <h4 className="m-0 mb-2 text-[10.5px] tracking-[0.16em] uppercase text-[#aab6f5] font-normal">
             {section === "Sans destination" ? "Relevé, sans case dédiée" : `Projet › ${section}`}
           </h4>
           <div className="overflow-x-auto">
             <table
               className="w-full border-collapse min-w-[820px]
-                [&_th]:border-r [&_td]:border-r [&_th]:border-[#2e3230] [&_td]:border-[#2e3230]
+                [&_th]:border-r [&_td]:border-r [&_th]:border-[#22262d] [&_td]:border-[#22262d]
                 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0
                 [&_th]:pl-3 [&_td]:pl-3"
             >
               <thead>
-                <tr className="border-y border-[#3a3e3c]">
+                <tr className="border-y border-[#2c3139]">
                   {[["Élément relevé", "w-[24%]"], ["Valeur", "w-[40%]"], ["Champ du projet", "w-[24%]"], ["Source", "w-[12%]"]].map(([h, cls]) => (
-                    <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-[#edeae5] font-normal text-left ${cls}`}>
+                    <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-[#f2f3f5] font-normal text-left ${cls}`}>
                       {h}
                     </th>
                   ))}
@@ -82,17 +82,17 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
                 {lignesSection.map((l, i) => {
                   const lien = lienSource(l.document_url, l.page);
                   return (
-                    <tr key={`${l.extraction_id}-${i}`} className="border-b border-[#2e3230] align-top hover:bg-[#edeae5]/[0.02] transition-colors">
-                      <td className="py-3 pr-4 text-[13px] text-[#edeae5]">{l.element}</td>
-                      <td className="py-3 pr-4 text-[13px] text-[#d3d8d6]">
+                    <tr key={`${l.extraction_id}-${i}`} className="border-b border-[#22262d] align-top hover:bg-[#f2f3f5]/[0.02] transition-colors">
+                      <td className="py-3 pr-4 text-[13px] text-[#f2f3f5]">{l.element}</td>
+                      <td className="py-3 pr-4 text-[13px] text-[#c9cdd6]">
                         {l.constat}
                         {l.commentaire && (
-                          <span className="block mt-1 text-[11.5px] text-[#6b7270] italic">{l.commentaire}</span>
+                          <span className="block mt-1 text-[11.5px] text-[#6a7180] italic">{l.commentaire}</span>
                         )}
                       </td>
                       <td className="py-3 pr-4 text-[12.5px]">
                         {l.champ ? (
-                          <span className="inline-flex items-center gap-1.5 text-[#7fd3c9]">
+                          <span className="inline-flex items-center gap-1.5 text-[#aab6f5]">
                             <ArrowRight className="w-3 h-3 flex-shrink-0" /> {l.champ}
                           </span>
                         ) : (
@@ -101,7 +101,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
                       </td>
                       <td className="py-3 pr-4 text-[12.5px] whitespace-nowrap">
                         {lien ? (
-                          <a href={lien} target="_blank" rel="noopener noreferrer" className="text-[#7fd3c9] hover:text-[#edeae5] transition-colors" title={l.document_nom}>
+                          <a href={lien} target="_blank" rel="noopener noreferrer" className="text-[#aab6f5] hover:text-[#f2f3f5] transition-colors" title={l.document_nom}>
                             {l.page ? `page ${l.page}` : "voir"}
                           </a>
                         ) : (

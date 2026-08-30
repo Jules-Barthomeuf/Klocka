@@ -45,20 +45,20 @@ const globalTooltipStyles = `
   [data-state="delayed-open"],
   [data-radix-popper-content-wrapper] [role="tooltip"],
   .recharts-tooltip-wrapper {
-    --tooltip-bg: #1a1a1a !important;
+    --tooltip-bg: #0c0d10 !important;
     --tooltip-text: #fff !important;
   }
   [role="tooltip"] {
-    background-color: #1a1a1a !important;
+    background-color: #0c0d10 !important;
     color: #fff !important;
-    border: 1px solid #374151 !important;
+    border: 1px solid #2c3139 !important;
   }
   [data-radix-popper-content-wrapper] {
     z-index: 50;
   }
   .recharts-tooltip-wrapper .recharts-default-tooltip {
-    background-color: #1a1a1a !important;
-    border: 1px solid #374151 !important;
+    background-color: #0c0d10 !important;
+    border: 1px solid #2c3139 !important;
     border-radius: 8px !important;
   }
   .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-label,
@@ -81,7 +81,7 @@ function Wordmark({ collapsed = false }) {
   return (
     <span className="flex items-center gap-2.5 select-none">
       <img src="/logo-klocka.svg" alt="" className="w-6 h-6 rounded-[5px]" draggable={false} />
-      <span className="text-[13px] tracking-[0.3em] text-[#edeae5]">KLOCKA</span>
+      <span className="text-[13px] tracking-[0.3em] text-[#f2f3f5]">KLOCKA</span>
     </span>
   );
 }
@@ -90,19 +90,19 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
   return (
     <Link to={to} onClick={onClick} title={collapsed ? label : undefined}>
       <div className={`relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group
-        ${isActive ? "text-[#edeae5]" : "text-[#9aa19e] hover:text-[#edeae5]"}
+        ${isActive ? "text-[#f2f3f5]" : "text-[#9298a6] hover:text-[#f2f3f5]"}
         ${collapsed ? "justify-center px-0 py-2" : ""}
       `}>
         <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[2px] rounded-full transition-all duration-200
-          ${isActive ? "h-5 bg-[#35a79b]" : "h-0 bg-transparent group-hover:h-3 group-hover:bg-[#edeae5]/20"}`} />
+          ${isActive ? "h-5 bg-[#8fa0f2]" : "h-0 bg-transparent group-hover:h-3 group-hover:bg-[#f2f3f5]/20"}`} />
         {collapsed ? (
-          <Icon className={`w-[17px] h-[17px] flex-shrink-0 transition-colors ${isActive ? "text-[#35a79b]" : "text-[#6b7270] group-hover:text-[#d3d8d6]"}`} />
+          <Icon className={`w-[17px] h-[17px] flex-shrink-0 transition-colors ${isActive ? "text-[#8fa0f2]" : "text-[#6a7180] group-hover:text-[#c9cdd6]"}`} />
         ) : (
           <>
-            <Icon className={`w-[15px] h-[15px] flex-shrink-0 transition-colors ${isActive ? "text-[#35a79b]" : "text-[#6b7270] group-hover:text-[#d3d8d6]"}`} />
+            <Icon className={`w-[15px] h-[15px] flex-shrink-0 transition-colors ${isActive ? "text-[#8fa0f2]" : "text-[#6a7180] group-hover:text-[#c9cdd6]"}`} />
             <span className="flex-1 truncate">{label}</span>
             {badge && (
-              <Badge className={`${badgeColor || "bg-transparent text-[#7fd3c9]"} text-[9px] tracking-[0.12em] px-1.5 py-0 border-0`}>
+              <Badge className={`${badgeColor || "bg-transparent text-[#aab6f5]"} text-[9px] tracking-[0.12em] px-1.5 py-0 border-0`}>
                 {badge}
               </Badge>
             )}
@@ -117,7 +117,7 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
 function AutreToggle({ open, onClick, collapsed }) {
   return (
     <button onClick={onClick} title="Autre"
-      className={`w-full relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group text-[#6b7270] hover:text-[#edeae5] ${collapsed ? "justify-center px-0 py-2" : ""}`}>
+      className={`w-full relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group text-[#6a7180] hover:text-[#f2f3f5] ${collapsed ? "justify-center px-0 py-2" : ""}`}>
       {collapsed ? (
         <ChevronDown className={`w-[17px] h-[17px] flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       ) : (
@@ -181,12 +181,12 @@ function LayoutContent({ children, currentPageName }) {
           <Wordmark collapsed={sidebarCollapsed && !isMobile} />
         </Link>
         {isMobile && (
-          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-[#9aa19e] hover:text-[#edeae5]">
+          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-[#9298a6] hover:text-[#f2f3f5]">
             <X className="w-5 h-5" />
           </Button>
         )}
       </div>
-      <div className={`h-px bg-gradient-to-r from-transparent via-[#35a79b]/25 to-transparent ${sidebarCollapsed && !isMobile ? "mx-2" : "mx-3.5"}`} />
+      <div className={`h-px bg-gradient-to-r from-transparent via-[#8fa0f2]/25 to-transparent ${sidebarCollapsed && !isMobile ? "mx-2" : "mx-3.5"}`} />
 
       {/* Toggle rester ouvert (desktop uniquement, sidebar ouverte) */}
       {!isMobile && !sidebarCollapsed && (
@@ -194,13 +194,13 @@ function LayoutContent({ children, currentPageName }) {
           <button
             onClick={() => setSidebarPinned((v) => !v)}
             className={`w-full flex items-center gap-2 py-1.5 transition-colors text-[11px] tracking-[0.08em]
-              ${sidebarPinned ? "text-[#35a79b]" : "text-[#6b7270] hover:text-[#d3d8d6]"}`}
+              ${sidebarPinned ? "text-[#8fa0f2]" : "text-[#6a7180] hover:text-[#c9cdd6]"}`}
             title={sidebarPinned ? "La barre reste ouverte" : "Garder la barre ouverte"}
           >
             {sidebarPinned ? <Pin className="w-3 h-3" /> : <PinOff className="w-3 h-3" />}
             <span className="flex-1 text-left">Rester ouvert</span>
-            <span className={`w-7 h-3.5 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-[#35a79b]" : "bg-[#edeae5]/10"}`}>
-              <span className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all ${sidebarPinned ? "left-4 bg-[#0a0c0c]" : "left-0.5 bg-[#edeae5]/70"}`} />
+            <span className={`w-7 h-3.5 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-[#8fa0f2]" : "bg-[#f2f3f5]/10"}`}>
+              <span className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all ${sidebarPinned ? "left-4 bg-[#000000]" : "left-0.5 bg-[#f2f3f5]/70"}`} />
             </span>
           </button>
         </div>
@@ -209,8 +209,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* Admin view switcher */}
       {isAdmin && !(sidebarCollapsed && !isMobile) && (
         <div className="px-3.5 pt-3 pb-1">
-          <div className="flex items-center gap-2 border-b border-[#edeae5]/[0.06] pb-1">
-            <Eye className="w-3.5 h-3.5 text-[#6b7270]" />
+          <div className="flex items-center gap-2 border-b border-[#f2f3f5]/[0.06] pb-1">
+            <Eye className="w-3.5 h-3.5 text-[#6a7180]" />
             <AnimatedDropdown
               value={previewClientMode ? 'client' : 'admin'}
               onChange={(v) => setPreviewClientMode(v === 'client')}
@@ -219,7 +219,7 @@ function LayoutContent({ children, currentPageName }) {
                 { value: 'client', label: 'Vue Client' },
               ]}
               className="flex-1"
-              triggerClassName="bg-transparent border-none text-[#edeae5] h-7 px-0 hover:bg-transparent hover:text-[#edeae5]"
+              triggerClassName="bg-transparent border-none text-[#f2f3f5] h-7 px-0 hover:bg-transparent hover:text-[#f2f3f5]"
             />
           </div>
         </div>
@@ -260,7 +260,7 @@ function LayoutContent({ children, currentPageName }) {
               {autreOpen && (
                 <div className="space-y-px">
                   <NavItem to="/AdminPresentations" icon={Presentation} label="Présentations" isActive={isActivePage("AdminPresentations")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-                  <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#35a79b]/20 text-[#35a79b]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("KlockAI")} icon={Brain} label="KlockAI" badge="IA" badgeColor="bg-[#8fa0f2]/20 text-[#8fa0f2]" isActive={isActivePage("KlockAI")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("Vision")} icon={TrendingUp} label="Vision" isActive={isActivePage("Vision")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   <NavItem to={createPageUrl("Comparateur")} icon={Scale} label="Comparateur" isActive={isActivePage("Comparateur")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   {AFFICHER_DOUBLE_CHECK && (
@@ -281,23 +281,23 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       {/* User & Logout */}
-      <div className="px-3.5 py-3.5 border-t border-[#edeae5]/[0.06]">
+      <div className="px-3.5 py-3.5 border-t border-[#f2f3f5]/[0.06]">
         {!(sidebarCollapsed && !isMobile) ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full border border-[#35a79b]/40 flex items-center justify-center flex-shrink-0">
-              <span className="text-[11px] text-[#35a79b] tracking-[0.06em]">
+            <div className="w-8 h-8 rounded-full border border-[#8fa0f2]/40 flex items-center justify-center flex-shrink-0">
+              <span className="text-[11px] text-[#8fa0f2] tracking-[0.06em]">
                 {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-[#edeae5] truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
-              <p className="text-[10px] text-[#6b7270] truncate">{user?.email}</p>
+              <p className="text-[13px] text-[#f2f3f5] truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
+              <p className="text-[10px] text-[#6a7180] truncate">{user?.email}</p>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-              className="text-[#6b7270] hover:text-[#edeae5] hover:bg-transparent h-8 w-8 flex-shrink-0"
+              className="text-[#6a7180] hover:text-[#f2f3f5] hover:bg-transparent h-8 w-8 flex-shrink-0"
               title="Déconnexion"
             >
               <LogOut className="w-4 h-4" />
@@ -308,7 +308,7 @@ function LayoutContent({ children, currentPageName }) {
             variant="ghost"
             size="icon"
             onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-            className="text-[#8b9391] hover:text-[#edeae5] hover:bg-[#edeae5]/5 h-8 w-8 mx-auto block"
+            className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 h-8 w-8 mx-auto block"
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />
@@ -321,7 +321,7 @@ function LayoutContent({ children, currentPageName }) {
   return (
     // `overflow-x-clip` plutôt que `hidden` : `hidden` créerait un conteneur de
     // défilement qui casserait les positions `sticky` des pages.
-    <div className="min-h-screen flex w-full bg-[#0a0c0c] relative overflow-x-clip">
+    <div className="min-h-screen flex w-full bg-[#000000] relative overflow-x-clip">
       <style>{globalTooltipStyles}</style>
 
       {/* Desktop Sidebar */}
@@ -330,7 +330,7 @@ function LayoutContent({ children, currentPageName }) {
           className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 backdrop-blur-xl transition-all duration-300 ${sidebarCollapsed ? "w-[52px]" : "w-[172px]"}`}
           style={{
             paddingTop: "env(safe-area-inset-top)",
-            background: "linear-gradient(180deg, #070b0a 0%, #0a0c0c 55%, #040605 100%)",
+            background: "linear-gradient(180deg, #070b0a 0%, #000000 55%, #040605 100%)",
             boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)",
           }}
         >
@@ -338,7 +338,7 @@ function LayoutContent({ children, currentPageName }) {
           <button
             onClick={() => { if (!sidebarPinned) setSidebarCollapsed(!sidebarCollapsed); }}
             disabled={sidebarPinned}
-            className={`hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-[#0a0c0c] border border-[#edeae5]/10 items-center justify-center text-[#8b9391] hover:text-[#edeae5] hover:border-[#35a79b]/50 transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-[#000000] border border-[#f2f3f5]/10 items-center justify-center text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#8fa0f2]/50 transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
             title={sidebarPinned ? "Désépinglez pour fermer" : sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
           >
             <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
@@ -348,9 +348,9 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Mobile Top Bar */}
       {!hideNavbar && (
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-[#0a0c0c]/80 backdrop-blur-xl border-b border-[#242726] flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-[#000000]/80 backdrop-blur-xl border-b border-[#1f2228] flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
           {isChildPage ? (
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-[#edeae5] -ml-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-[#f2f3f5] -ml-2">
               <ChevronLeft className="w-5 h-5" />
             </Button>
           ) : (
@@ -358,7 +358,7 @@ function LayoutContent({ children, currentPageName }) {
               <Wordmark />
             </Link>
           )}
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-[#edeae5]">
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-[#f2f3f5]">
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
         </div>
@@ -367,8 +367,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && !hideNavbar && (
         <>
-          <div className="md:hidden fixed inset-0 bg-[#0a0c0c]/60 z-40" onClick={closeMobile} />
-          <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-[#0a0c0c]" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
+          <div className="md:hidden fixed inset-0 bg-[#000000]/60 z-40" onClick={closeMobile} />
+          <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-[#000000]" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
             {sidebarContent(true)}
           </aside>
         </>

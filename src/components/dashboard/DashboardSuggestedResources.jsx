@@ -69,16 +69,16 @@ export default function DashboardSuggestedResources({ user }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.25 }}
-      className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-4"
+      className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-4"
     >
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-[#e0c9a0]" />
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#e0c9a0] m-0">Ressource suggérée</p>
+          <Sparkles className="w-3.5 h-3.5 text-[#a9c5b9]" />
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#a9c5b9] m-0">Ressource suggérée</p>
         </div>
         <button
           onClick={() => navigate(createPageUrl("Ressources"))}
-          className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.16em] uppercase text-[#7fd3c9] hover:text-[#edeae5] transition-colors"
+          className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.16em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors"
         >
           Toutes les ressources
           <ArrowRight className="w-3 h-3" />
@@ -87,10 +87,10 @@ export default function DashboardSuggestedResources({ user }) {
 
       <div
         onClick={handleOpen}
-        className="group cursor-pointer flex gap-4 bg-[#0a0c0c] border border-[#edeae5]/[0.12] hover:border-[#35a79b]/60 transition-colors duration-300 overflow-hidden"
+        className="group cursor-pointer flex gap-4 bg-[#000000] border border-[#f2f3f5]/[0.12] hover:border-[#8fa0f2]/60 transition-colors duration-300 overflow-hidden"
       >
         {/* Thumbnail */}
-        <div className="relative w-40 md:w-52 flex-shrink-0 overflow-hidden bg-[#edeae5]/[0.02]">
+        <div className="relative w-40 md:w-52 flex-shrink-0 overflow-hidden bg-[#f2f3f5]/[0.02]">
           {resource.image_miniature ? (
             <img
               src={resource.image_miniature}
@@ -100,37 +100,37 @@ export default function DashboardSuggestedResources({ user }) {
             />
           ) : (
             <div className="w-full h-full min-h-[100px] flex items-center justify-center">
-              <Play className="w-10 h-10 text-[#35a79b]/30" />
+              <Play className="w-10 h-10 text-[#8fa0f2]/30" />
             </div>
           )}
-          <div className="absolute inset-0 flex items-center justify-center bg-[#0a0c0c]/30 group-hover:bg-[#0a0c0c]/20 transition-colors">
-            <div className="w-10 h-10 rounded-full bg-[#edeae5]/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Play className="w-4 h-4 text-[#edeae5] fill-white ml-0.5" />
+          <div className="absolute inset-0 flex items-center justify-center bg-[#000000]/30 group-hover:bg-[#000000]/20 transition-colors">
+            <div className="w-10 h-10 rounded-full bg-[#f2f3f5]/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 text-[#f2f3f5] fill-white ml-0.5" />
             </div>
           </div>
           {viewedResources.includes(resource.id) && (
-            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#35a79b] flex items-center justify-center">
-              <CheckCircle2 className="w-3 h-3 text-[#edeae5]" />
+            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#8fa0f2] flex items-center justify-center">
+              <CheckCircle2 className="w-3 h-3 text-[#f2f3f5]" />
             </div>
           )}
           {resource.duree_minutes && (
-            <div className="absolute bottom-2 left-2 bg-[#0a0c0c]/70 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-1">
-              <Clock className="w-2.5 h-2.5 text-[#edeae5]/70" />
-              <span className="text-[9px] text-[#edeae5]/70">{resource.duree_minutes} min</span>
+            <div className="absolute bottom-2 left-2 bg-[#000000]/70 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-1">
+              <Clock className="w-2.5 h-2.5 text-[#f2f3f5]/70" />
+              <span className="text-[9px] text-[#f2f3f5]/70">{resource.duree_minutes} min</span>
             </div>
           )}
         </div>
 
         {/* Info */}
         <div className="flex-1 py-3 pr-4 flex flex-col justify-center">
-          <h3 className="text-[#edeae5] text-sm md:text-base font-medium mb-1.5 group-hover:text-[#7fd3c9] transition-colors leading-snug">
+          <h3 className="text-[#f2f3f5] text-sm md:text-base font-medium mb-1.5 group-hover:text-[#aab6f5] transition-colors leading-snug">
             {resource.titre}
           </h3>
-          <p className="text-[#edeae5]/50 text-[11px] md:text-xs leading-relaxed">
+          <p className="text-[#f2f3f5]/50 text-[11px] md:text-xs leading-relaxed">
             {reason}
           </p>
           {allViewed && (
-            <p className="text-[#8b9391] text-[10px] mt-2 mb-0">Déjà vue — un rappel ne fait jamais de mal.</p>
+            <p className="text-[#9298a6] text-[10px] mt-2 mb-0">Déjà vue — un rappel ne fait jamais de mal.</p>
           )}
         </div>
       </div>

@@ -23,22 +23,22 @@ export default function Banque() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5] p-4 md:p-8">
+    <div className="min-h-screen bg-[#000000] text-[#f2f3f5] p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 max-md:mb-6">
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5] m-0">Banque</h1>
-          <p className="text-[13.5px] leading-[1.7] text-[#8b9391] mt-2 mb-0">Les présentations bancaires préparées pour vos projets.</p>
+          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] m-0">Banque</h1>
+          <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mt-2 mb-0">Les présentations bancaires préparées pour vos projets.</p>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#35a79b]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#8fa0f2]" />
           </div>
         ) : presentations.length === 0 ? (
-          <div className="border-t border-[#edeae5]/[0.35] pt-10 pb-16 text-center">
-            <Landmark className="w-8 h-8 text-[#edeae5]/15 mx-auto mb-5" />
-            <h2 className="text-[22px] font-light text-[#edeae5] mb-2">Aucune présentation disponible</h2>
-            <p className="text-[#8b9391] text-sm mb-0">Votre conseiller vous préparera une présentation bancaire pour vos projets.</p>
+          <div className="border-t border-[#f2f3f5]/[0.35] pt-10 pb-16 text-center">
+            <Landmark className="w-8 h-8 text-[#f2f3f5]/15 mx-auto mb-5" />
+            <h2 className="text-[22px] font-light text-[#f2f3f5] mb-2">Aucune présentation disponible</h2>
+            <p className="text-[#9298a6] text-sm mb-0">Votre conseiller vous préparera une présentation bancaire pour vos projets.</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
@@ -48,7 +48,7 @@ export default function Banque() {
                 <button
                   key={pres.id}
                   onClick={() => setViewPres(pres)}
-                  className="text-left bg-[#0e100f] border border-[#edeae5]/[0.12] overflow-hidden hover:border-[#35a79b]/60 transition-colors group"
+                  className="text-left bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden hover:border-[#8fa0f2]/60 transition-colors group"
                 >
                   {/* Slide preview thumbnail */}
                   <div className="relative w-full aspect-video overflow-hidden pointer-events-none">
@@ -56,8 +56,8 @@ export default function Banque() {
                       {coverSlide ? (
                         <SlideRenderer slide={coverSlide} />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-black to-[#0a0c0c] flex items-center justify-center">
-                          <Landmark className="w-12 h-12 text-[#4a4d4b]" />
+                        <div className="w-full h-full bg-gradient-to-br from-black to-[#000000] flex items-center justify-center">
+                          <Landmark className="w-12 h-12 text-[#3a3f4a]" />
                         </div>
                       )}
                     </div>
@@ -65,10 +65,10 @@ export default function Banque() {
                   </div>
                   {/* Info bar */}
                   <div className="p-4">
-                   <p className="text-[#edeae5] font-light text-lg truncate">{pres.project_title}</p>
+                   <p className="text-[#f2f3f5] font-light text-lg truncate">{pres.project_title}</p>
                    <div className="flex items-center justify-between mt-1">
-                     <p className="text-[#8b9391] text-xs">{pres.slides?.length || 0} slides — {new Date(pres.created_date).toLocaleDateString('fr-FR')}</p>
-                     <p className="text-[#35a79b] text-xs group-hover:underline">Voir →</p>
+                     <p className="text-[#9298a6] text-xs">{pres.slides?.length || 0} slides — {new Date(pres.created_date).toLocaleDateString('fr-FR')}</p>
+                     <p className="text-[#8fa0f2] text-xs group-hover:underline">Voir →</p>
                    </div>
                    {pres.pptx_url && (
                      <a
@@ -76,10 +76,10 @@ export default function Banque() {
                        target="_blank"
                        rel="noopener noreferrer"
                        onClick={(e) => e.stopPropagation()}
-                       className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#e0c9a0]/10 border border-[#e0c9a0]/20 hover:bg-[#e0c9a0]/20 transition-colors w-fit"
+                       className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#a9c5b9]/10 border border-[#a9c5b9]/20 hover:bg-[#a9c5b9]/20 transition-colors w-fit"
                      >
-                       <ExternalLink className="w-3.5 h-3.5 text-[#e0c9a0]" />
-                       <span className="text-[#e0c9a0] text-xs font-medium">Ouvrir la présentation (Google Slides)</span>
+                       <ExternalLink className="w-3.5 h-3.5 text-[#a9c5b9]" />
+                       <span className="text-[#a9c5b9] text-xs font-medium">Ouvrir la présentation (Google Slides)</span>
                      </a>
                    )}
                   </div>
@@ -91,9 +91,9 @@ export default function Banque() {
 
         {/* Viewer dialog */}
         <Dialog open={!!viewPres} onOpenChange={() => setViewPres(null)}>
-          <DialogContent className="max-w-4xl p-0 bg-[#0a0c0c] border-[#282b2a] overflow-hidden">
+          <DialogContent className="max-w-4xl p-0 bg-[#000000] border-[#1f2228] overflow-hidden">
             <DialogHeader className="px-6 pt-6 pb-0">
-              <DialogTitle className="text-[#edeae5] font-light">{viewPres?.project_title}</DialogTitle>
+              <DialogTitle className="text-[#f2f3f5] font-light">{viewPres?.project_title}</DialogTitle>
             </DialogHeader>
             <div className="px-4 pb-4">
               {viewPres?.slides && (

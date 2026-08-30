@@ -43,20 +43,20 @@ export default function ImportProjects() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center p-8">
-      <div className="bg-[#0a0c0c] border border-[#242726] rounded-md p-10 max-w-md w-full text-center space-y-6">
-        <div className="w-16 h-16 bg-[#35a79b]/10 rounded-md flex items-center justify-center mx-auto">
-          <Upload className="w-8 h-8 text-[#35a79b]" />
+    <div className="min-h-screen bg-[#000000] flex items-center justify-center p-8">
+      <div className="bg-[#000000] border border-[#1f2228] rounded-md p-10 max-w-md w-full text-center space-y-6">
+        <div className="w-16 h-16 bg-[#8fa0f2]/10 rounded-md flex items-center justify-center mx-auto">
+          <Upload className="w-8 h-8 text-[#8fa0f2]" />
         </div>
         <div>
-          <h1 className="text-2xl font-light text-[#edeae5] mb-2">Import Projets</h1>
-          <p className="text-[#8b9391] text-sm">
+          <h1 className="text-2xl font-light text-[#f2f3f5] mb-2">Import Projets</h1>
+          <p className="text-[#9298a6] text-sm">
             Recharge un export JSON de l'entité Project. Les projets dont l'id existe déjà sont mis à jour, les autres créés.
           </p>
         </div>
 
         {resultat && (
-          <div className="flex items-center gap-2 justify-center text-[#7fd3c9] text-sm">
+          <div className="flex items-center gap-2 justify-center text-[#aab6f5] text-sm">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>
               {resultat.crees} projet(s) créé(s), {resultat.maj} mis à jour
@@ -75,7 +75,7 @@ export default function ImportProjects() {
         <Button
           onClick={() => inputRef.current?.click()}
           disabled={loading}
-          className="w-full h-12 bg-[#35a79b]/15 border border-[#35a79b]/30 hover:bg-[#35a79b]/25 text-[#edeae5] text-sm"
+          className="w-full h-12 bg-[#8fa0f2]/15 border border-[#8fa0f2]/30 hover:bg-[#8fa0f2]/25 text-[#f2f3f5] text-sm"
         >
           {loading ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Import en cours...</>

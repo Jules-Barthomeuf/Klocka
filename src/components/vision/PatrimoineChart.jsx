@@ -103,17 +103,17 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
     <div className="relative">
       <div className="relative overflow-hidden p-6">
         <div className="mb-4 h-[72px]">
-          <p className="text-sm font-medium text-[#9aa19e]">Évolution du patrimoine financier et immobilier</p>
+          <p className="text-sm font-medium text-[#9298a6]">Évolution du patrimoine financier et immobilier</p>
           {hoveredIndex !== null && data[hoveredIndex] && (
             <div className="mt-1 flex items-baseline gap-4">
               <div>
-                <span className="text-xs text-[#8b9391]">Patrimoine</span>
-                <h2 className="text-3xl font-semibold text-[#35a79b]">
+                <span className="text-xs text-[#9298a6]">Patrimoine</span>
+                <h2 className="text-3xl font-semibold text-[#8fa0f2]">
                   {formatValue(data[hoveredIndex].patrimoine)}
                 </h2>
               </div>
               <div>
-                <span className="text-xs text-[#8b9391]">Dette</span>
+                <span className="text-xs text-[#9298a6]">Dette</span>
                 <h2 className="text-3xl font-semibold text-red-400">
                   {formatValue(data[hoveredIndex].capitalRestant)}
                 </h2>
@@ -133,9 +133,9 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
           >
             <defs>
               <linearGradient id="patrimoineAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#35a79b" stopOpacity="0.35" />
-                <stop offset="50%" stopColor="#35a79b" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#35a79b" stopOpacity="0.02" />
+                <stop offset="0%" stopColor="#8fa0f2" stopOpacity="0.35" />
+                <stop offset="50%" stopColor="#8fa0f2" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#8fa0f2" stopOpacity="0.02" />
               </linearGradient>
               <filter id="patrimoineGlow" x="-100%" y="-100%" width="300%" height="300%">
                 <feGaussianBlur stdDeviation="2" result="blur" />
@@ -154,7 +154,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   y1={getY(tick)}
                   x2={chartWidth - padding.right}
                   y2={getY(tick)}
-                  stroke="#374151"
+                  stroke="#2c3139"
                   strokeWidth="1"
                   strokeDasharray="3 5"
                   opacity={0.3}
@@ -164,7 +164,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   y={getY(tick)}
                   textAnchor="end"
                   dominantBaseline="middle"
-                  fill="#9ca3af"
+                  fill="#9298a6"
                   fontSize="10"
                   fontWeight="500"
                 >
@@ -183,7 +183,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                     y1={padding.top}
                     x2={getX(i)}
                     y2={chartHeight - padding.bottom}
-                    stroke="#374151"
+                    stroke="#2c3139"
                     strokeWidth="1"
                     strokeDasharray="3 5"
                     opacity={hoveredIndex === i ? 0.8 : 0.3}
@@ -198,7 +198,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
             <path
               d={generatePath('patrimoine')}
               fill="none"
-              stroke="#35a79b"
+              stroke="#8fa0f2"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -207,7 +207,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
             <path
               d={generatePath('capitalRestant')}
               fill="none"
-              stroke="#ef4444"
+              stroke="#e8746a"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -229,7 +229,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   cy={getY(data[hoveredIndex].patrimoine)}
                   r="8"
                   fill="#262627"
-                  stroke="#35a79b"
+                  stroke="#8fa0f2"
                   strokeWidth="3"
                   filter="url(#patrimoineGlow)"
                 />
@@ -247,7 +247,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   cy={getY(data[hoveredIndex].capitalRestant)}
                   r="8"
                   fill="#262627"
-                  stroke="#ef4444"
+                  stroke="#e8746a"
                   strokeWidth="3"
                   filter="url(#patrimoineGlow)"
                 />
@@ -263,7 +263,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                     x={getX(i)}
                     y={chartHeight - 10}
                     textAnchor="middle"
-                    fill="#9ca3af"
+                    fill="#9298a6"
                     fontSize="11"
                     fontWeight="500"
                   >

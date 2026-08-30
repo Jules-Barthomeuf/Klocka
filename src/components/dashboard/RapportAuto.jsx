@@ -32,7 +32,7 @@ function intitule(passes) {
   return nocturne ? "La nuit" : "Les dernières 24 heures";
 }
 
-const Fort = ({ children }) => <strong className="font-medium text-[#f0ece5]">{children}</strong>;
+const Fort = ({ children }) => <strong className="font-medium text-[#ffffff]">{children}</strong>;
 
 export default function RapportAuto({ onCompte }) {
   const navigate = useNavigate();
@@ -136,9 +136,9 @@ export default function RapportAuto({ onCompte }) {
     <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-x-14 gap-y-10">
       {/* --- Le récit ------------------------------------------------------ */}
       <div>
-        <p className="m-0 mb-6 text-[11px] tracking-[.18em] uppercase text-[#8b8880]">{intitule(passes)}</p>
+        <p className="m-0 mb-6 text-[11px] tracking-[.18em] uppercase text-[#9298a6]">{intitule(passes)}</p>
 
-        <p className="m-0 text-[21px] max-md:text-[18px] leading-[1.55] text-[#b9b5ad] font-light">
+        <p className="m-0 text-[21px] max-md:text-[18px] leading-[1.55] text-[#c9cdd6] font-light">
           Entre {heure(passes[0].le)} et {heure(passes[passes.length - 1].le)}, en {enLettres(passes.length)} passe
           {passes.length > 1 ? "s" : ""}
           {faits.length ? " : " : ", rien n'est passé."}
@@ -161,7 +161,7 @@ export default function RapportAuto({ onCompte }) {
           <>
             <button
               onClick={() => setRegistre((v) => !v)}
-              className="mt-6 text-[13.5px] text-[#d9c08a] border-b border-[#d9c08a]/50 pb-[2px] hover:border-[#d9c08a] transition-colors"
+              className="mt-6 text-[13.5px] text-[#a9c5b9] border-b border-[#a9c5b9]/50 pb-[2px] hover:border-[#a9c5b9] transition-colors"
             >
               {registre ? "Masquer le registre" : "Voir le registre par dossier"}
             </button>
@@ -169,14 +169,14 @@ export default function RapportAuto({ onCompte }) {
             {registre && (
               <div className="mt-5 space-y-3.5">
                 {lignes.map((l, i) => (
-                  <div key={`${l.deal_id}-${i}`} className="border-t border-[#232120] pt-3">
+                  <div key={`${l.deal_id}-${i}`} className="border-t border-[#1f2228] pt-3">
                     <button
                       onClick={() => navigate(`/Analyse?deal_id=${l.deal_id}`)}
-                      className="text-[14px] text-[#e8e4dd] hover:text-[#d9c08a] transition-colors text-left"
+                      className="text-[14px] text-[#f2f3f5] hover:text-[#a9c5b9] transition-colors text-left"
                     >
                       {l.dossier}
                     </button>
-                    <p className="m-0 mt-1 text-[12.5px] text-[#8b8880] leading-[1.55]">
+                    <p className="m-0 mt-1 text-[12.5px] text-[#9298a6] leading-[1.55]">
                       {[
                         `${l.documents.length} document(s) de ${l.de} : ${l.documents.join(", ")}`,
                         l.drive ? `classés dans ${l.drive}` : null,
@@ -196,16 +196,16 @@ export default function RapportAuto({ onCompte }) {
       {/* --- Ce qui a manqué ------------------------------------------------ */}
       {nEchecs > 0 && (
         <div>
-          <p className="m-0 mb-6 text-[11px] tracking-[.18em] uppercase text-[#c4715c]">Ce qui a échoué</p>
+          <p className="m-0 mb-6 text-[11px] tracking-[.18em] uppercase text-[#e8746a]">Ce qui a échoué</p>
 
           <div className="space-y-7">
             {echecs.map((e) => {
               const cle = `${e.rapport_id}:${e.index}`;
               const occupe = relance === cle;
               return (
-                <div key={cle} className="border-l-2 border-[#c4715c]/70 pl-5">
-                  <p className="m-0 text-[16.5px] text-[#e8e4dd] leading-snug">{e.quoi}</p>
-                  <p className="m-0 mt-1.5 text-[13px] text-[#8b8880] leading-[1.5]">
+                <div key={cle} className="border-l-2 border-[#e8746a]/70 pl-5">
+                  <p className="m-0 text-[16.5px] text-[#f2f3f5] leading-snug">{e.quoi}</p>
+                  <p className="m-0 mt-1.5 text-[13px] text-[#9298a6] leading-[1.5]">
                     {heure(e.le)} · {e.operation === "monday" ? "Monday" : e.operation === "drive" ? "Drive" : "Relève"}
                     {" — "}
                     {e.cause}
@@ -216,7 +216,7 @@ export default function RapportAuto({ onCompte }) {
                       relancer.mutate({ rapport_id: e.rapport_id, index: e.index });
                     }}
                     disabled={!!relance}
-                    className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-2 border border-[#c4715c]/60 text-[10.5px] tracking-[.16em] uppercase text-[#c4715c] hover:bg-[#c4715c]/10 disabled:opacity-50 transition-colors"
+                    className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-2 border border-[#e8746a]/60 text-[10.5px] tracking-[.16em] uppercase text-[#e8746a] hover:bg-[#e8746a]/10 disabled:opacity-50 transition-colors"
                   >
                     {occupe && <Loader2 className="w-3 h-3 animate-spin" />}
                     Relancer
@@ -227,8 +227,8 @@ export default function RapportAuto({ onCompte }) {
 
             {/* Les passages d'avant, sans opération nommée : rien à rejouer. */}
             {anciens.map((texte, i) => (
-              <div key={`ancien-${i}`} className="border-l-2 border-[#c4715c]/40 pl-5">
-                <p className="m-0 text-[14px] text-[#b9b5ad] leading-[1.55]">{texte}</p>
+              <div key={`ancien-${i}`} className="border-l-2 border-[#e8746a]/40 pl-5">
+                <p className="m-0 text-[14px] text-[#c9cdd6] leading-[1.55]">{texte}</p>
               </div>
             ))}
           </div>

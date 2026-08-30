@@ -197,27 +197,27 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
   );
 
   return (
-    <div className="border border-[#282b2a] rounded-md overflow-hidden bg-[#0a0c0c]">
+    <div className="border border-[#1f2228] rounded-md overflow-hidden bg-[#000000]">
       {/* Bandeau de décision : rendement AEM live + prix de revient */}
-      <div className={`px-4 py-3 border-b ${dansCible ? "border-[#35a79b]/40 bg-[#35a79b]/10" : "border-[#e0c9a0]/30 bg-[#e0c9a0]/[0.07]"}`}>
+      <div className={`px-4 py-3 border-b ${dansCible ? "border-[#8fa0f2]/40 bg-[#8fa0f2]/10" : "border-[#a9c5b9]/30 bg-[#a9c5b9]/[0.07]"}`}>
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <div>
-            <p className="text-[#9aa19e] text-xs mb-0.5">Rendement AEM</p>
-            <p className={`text-2xl font-light ${dansCible ? "text-[#7fd3c9]" : "text-[#e0c9a0]"}`}>
+            <p className="text-[#9298a6] text-xs mb-0.5">Rendement AEM</p>
+            <p className={`text-2xl font-light ${dansCible ? "text-[#aab6f5]" : "text-[#a9c5b9]"}`}>
               {rendementAem.toFixed(2)} %
             </p>
           </div>
           <div>
-            <p className="text-[#9aa19e] text-xs mb-0.5">Prix de revient</p>
-            <p className="text-[#edeae5] text-lg font-light">{formatCurrency(calculs.prixRevient)}</p>
+            <p className="text-[#9298a6] text-xs mb-0.5">Prix de revient</p>
+            <p className="text-[#f2f3f5] text-lg font-light">{formatCurrency(calculs.prixRevient)}</p>
           </div>
           <div>
-            <p className="text-[#9aa19e] text-xs mb-0.5">Cash-flow / mois</p>
-            <p className={`text-lg font-light ${calculs.indicateurs.cashFlowMoyenMois >= 0 ? "text-[#7fd3c9]" : "text-red-400"}`}>
+            <p className="text-[#9298a6] text-xs mb-0.5">Cash-flow / mois</p>
+            <p className={`text-lg font-light ${calculs.indicateurs.cashFlowMoyenMois >= 0 ? "text-[#aab6f5]" : "text-red-400"}`}>
               {formatCurrency(calculs.indicateurs.cashFlowMoyenMois)}
             </p>
           </div>
-          <p className={`text-xs max-w-md ${dansCible ? "text-[#7fd3c9]/80" : "text-[#e0c9a0]/80"}`}>
+          <p className={`text-xs max-w-md ${dansCible ? "text-[#aab6f5]/80" : "text-[#a9c5b9]/80"}`}>
             {dansCible
               ? `Dans la cible ${rendementCible[0]}–${rendementCible[1]} % AEM.`
               : rendementAem < rendementCible[0]
@@ -228,7 +228,7 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
       </div>
 
       {manquants.length > 0 && (
-        <div className="px-4 py-2 border-b border-[#242726] flex items-start gap-2 text-[11px] text-[#e0c9a0]/80">
+        <div className="px-4 py-2 border-b border-[#1f2228] flex items-start gap-2 text-[11px] text-[#a9c5b9]/80">
           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
           <span>
             Absent du dossier : {manquants.join(", ")}. Les hypothèses sont à poser à la main dans les
@@ -240,12 +240,12 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
       <div className="flex">
         {/* Rail d'hypothèses : colonne à gauche sur grand écran */}
         {!compact && (
-          <aside className="hidden lg:block w-[250px] flex-shrink-0 border-r border-[#282b2a]">{rail}</aside>
+          <aside className="hidden lg:block w-[250px] flex-shrink-0 border-r border-[#1f2228]">{rail}</aside>
         )}
 
         <div className="flex-1 w-0 min-w-0">
           {/* Onglets + actions */}
-          <div className="flex items-center justify-between border-b border-[#282b2a] px-3 h-10 gap-2">
+          <div className="flex items-center justify-between border-b border-[#1f2228] px-3 h-10 gap-2">
             <div className="flex items-center gap-4 h-full overflow-x-auto">
               {ONGLETS.map((o) => (
                 <button
@@ -253,8 +253,8 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
                   onClick={() => { setOngletActif(o.id); if (o.id !== "scenarios") setNegoPct(0); }}
                   className={`text-xs h-full flex items-center border-b-2 whitespace-nowrap transition-colors ${
                     ongletActif === o.id
-                      ? "border-[#35a79b] text-[#edeae5]"
-                      : "border-transparent text-[#8b9391] hover:text-[#d3d8d6]"
+                      ? "border-[#8fa0f2] text-[#f2f3f5]"
+                      : "border-transparent text-[#9298a6] hover:text-[#c9cdd6]"
                   }`}
                 >
                   {o.label}
@@ -264,13 +264,13 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={() => setRailOuvert((o) => !o)}
-                className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-[#303332] text-[#d3d8d6] hover:text-[#edeae5] text-[11px]`}
+                className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] text-[11px]`}
               >
                 <SlidersHorizontal className="w-3 h-3" /> Hypothèses
               </button>
               <button
                 onClick={reinitialiser}
-                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-[#303332] text-[#d3d8d6] hover:text-[#edeae5] text-[11px]"
+                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] text-[11px]"
               >
                 <RefreshCw className="w-3 h-3" /> Dossier
               </button>
@@ -278,11 +278,11 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
           </div>
 
           {/* Rail replié sur petit écran */}
-          {railOuvert && <div className={`${compact ? "" : "lg:hidden "}border-b border-[#282b2a]`}>{rail}</div>}
+          {railOuvert && <div className={`${compact ? "" : "lg:hidden "}border-b border-[#1f2228]`}>{rail}</div>}
 
           <div className="p-3 space-y-3 max-w-full overflow-hidden">
             {negoActive && (
-              <div className="text-xs text-[#35a79b] bg-[#35a79b]/10 border border-[#35a79b]/25 rounded-lg px-3 py-2">
+              <div className="text-xs text-[#8fa0f2] bg-[#8fa0f2]/10 border border-[#8fa0f2]/25 rounded-lg px-3 py-2">
                 Négociation -{negoPct} % appliquée : les chiffres ci-dessus et le tableau reflètent ce scénario.
               </div>
             )}
@@ -332,7 +332,7 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
               <SimDataTable calculs={calculs} anneeRevente={etat.anneeRevente} formatCurrency={formatCurrency} dureeCredit={etat.dureeCredit} />
             )}
 
-            <p className="text-[10px] text-[#6b7270] italic px-1">
+            <p className="text-[10px] text-[#6a7180] italic px-1">
               Projection financière : hypothèses par défaut du simulateur là où le dossier est muet.
             </p>
           </div>

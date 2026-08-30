@@ -11,9 +11,9 @@ import {
 import SectionCard, { KPI } from "./secteur/SectionCard";
 
 const DARK_TOOLTIP = {
-  contentStyle: { backgroundColor: "#121413", border: "1px solid #303332", borderRadius: 8 },
+  contentStyle: { backgroundColor: "#0f1114", border: "1px solid #22262d", borderRadius: 8 },
   labelStyle: { color: "#fff" },
-  itemStyle: { color: "#9aa19e" }
+  itemStyle: { color: "#9298a6" }
 };
 
 export default function EnvironnementIndicateurs({ project }) {
@@ -36,14 +36,14 @@ export default function EnvironnementIndicateurs({ project }) {
   /* ---- RADIAL ATTRACTIVITÉ ---- */
   const hasAttract = env.score_attractivite != null || env.nb_touristes_an != null || env.nb_etudiants != null;
   const radialAttract = [
-    env.score_attractivite != null && { name: "Attractivité", value: env.score_attractivite, fill: "#35a79b" },
+    env.score_attractivite != null && { name: "Attractivité", value: env.score_attractivite, fill: "#8fa0f2" },
   ].filter(Boolean);
 
   /* ---- BAR ÉCONOMIE ---- */
   const hasEco = env.taux_chomage != null || env.nb_entreprises != null;
   const barEco = [
-    env.taux_chomage != null && { name: "Chômage %", val: env.taux_chomage, fill: env.taux_chomage < 7 ? "#35a79b" : env.taux_chomage < 10 ? "#e0c9a0" : "#ef4444" },
-    env.taux_vacance_commerciale != null && { name: "Vacance com. %", val: env.taux_vacance_commerciale, fill: env.taux_vacance_commerciale < 8 ? "#35a79b" : env.taux_vacance_commerciale < 15 ? "#e0c9a0" : "#ef4444" },
+    env.taux_chomage != null && { name: "Chômage %", val: env.taux_chomage, fill: env.taux_chomage < 7 ? "#8fa0f2" : env.taux_chomage < 10 ? "#a9c5b9" : "#e8746a" },
+    env.taux_vacance_commerciale != null && { name: "Vacance com. %", val: env.taux_vacance_commerciale, fill: env.taux_vacance_commerciale < 8 ? "#8fa0f2" : env.taux_vacance_commerciale < 15 ? "#a9c5b9" : "#e8746a" },
   ].filter(Boolean);
 
   /* ---- BAR PROJETS URBAINS ---- */
@@ -53,16 +53,16 @@ export default function EnvironnementIndicateurs({ project }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-cormorant text-[#edeae5]">{env.ville || adresse}</h2>
+        <h2 className="text-2xl font-cormorant text-[#f2f3f5]">{env.ville || adresse}</h2>
         <div className="flex items-center gap-3 mt-1">
-          {env.departement && <Badge className="bg-[#35a79b]/20 text-[#35a79b] border-0">{env.departement}</Badge>}
-          {env.region && <span className="text-sm text-[#9aa19e]">{env.region}</span>}
+          {env.departement && <Badge className="bg-[#8fa0f2]/20 text-[#8fa0f2] border-0">{env.departement}</Badge>}
+          {env.region && <span className="text-sm text-[#9298a6]">{env.region}</span>}
         </div>
       </div>
 
       {/* DÉMOGRAPHIE */}
       {hasDemog && (
-        <SectionCard icon={<Users className="w-5 h-5 text-[#35a79b]" />} title="Démographie">
+        <SectionCard icon={<Users className="w-5 h-5 text-[#8fa0f2]" />} title="Démographie">
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -80,18 +80,18 @@ export default function EnvironnementIndicateurs({ project }) {
                 {env.taux_natalite != null && <KPI label="Taux natalité" value={`${env.taux_natalite}‰`} color="teal" />}
               </div>
               {env.analyse_demographie && (
-                <p className="text-sm text-[#d3d8d6] leading-relaxed bg-[#171918]/40 rounded-md p-4 border border-[#303332]">{env.analyse_demographie}</p>
+                <p className="text-sm text-[#c9cdd6] leading-relaxed bg-[#0f1114]/40 rounded-md p-4 border border-[#22262d]">{env.analyse_demographie}</p>
               )}
             </div>
             {(env.pct_moins_25ans != null || env.pct_plus_65ans != null) && (
               <div>
-                <p className="text-sm text-[#9aa19e] mb-3">Profil démographique — toile</p>
+                <p className="text-sm text-[#9298a6] mb-3">Profil démographique — toile</p>
                 <div className="h-[220px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={radarDemog} cx="50%" cy="50%" outerRadius="70%">
-                      <PolarGrid stroke="#282b2a" />
-                      <PolarAngleAxis dataKey="cat" tick={{ fill: "#9aa19e", fontSize: 10 }} />
-                      <Radar dataKey="val" stroke="#35a79b" fill="#35a79b" fillOpacity={0.2} strokeWidth={2} />
+                      <PolarGrid stroke="#1f2228" />
+                      <PolarAngleAxis dataKey="cat" tick={{ fill: "#9298a6", fontSize: 10 }} />
+                      <Radar dataKey="val" stroke="#8fa0f2" fill="#8fa0f2" fillOpacity={0.2} strokeWidth={2} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
@@ -103,7 +103,7 @@ export default function EnvironnementIndicateurs({ project }) {
 
       {/* POLITIQUE DE LA VILLE */}
       {(env.axes_strategiques_ville || env.politique_fiscale || env.stabilite_politique) && (
-        <SectionCard icon={<Landmark className="w-5 h-5 text-[#35a79b]" />} title="Politique de la ville">
+        <SectionCard icon={<Landmark className="w-5 h-5 text-[#8fa0f2]" />} title="Politique de la ville">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             {env.stabilite_politique && (
               <KPI label="Stabilité politique" value={env.stabilite_politique}
@@ -113,15 +113,15 @@ export default function EnvironnementIndicateurs({ project }) {
           </div>
           <div className="space-y-3">
             {env.axes_strategiques_ville && (
-              <div className="p-4 bg-[#35a79b]/10 rounded-md border border-[#35a79b]/20">
-                <p className="text-xs text-[#35a79b] font-semibold uppercase tracking-wider mb-2">Axes stratégiques</p>
-                <p className="text-sm text-[#d3d8d6] leading-relaxed">{env.axes_strategiques_ville}</p>
+              <div className="p-4 bg-[#8fa0f2]/10 rounded-md border border-[#8fa0f2]/20">
+                <p className="text-xs text-[#8fa0f2] font-semibold uppercase tracking-wider mb-2">Axes stratégiques</p>
+                <p className="text-sm text-[#c9cdd6] leading-relaxed">{env.axes_strategiques_ville}</p>
               </div>
             )}
             {env.politique_fiscale && (
-              <div className="p-4 bg-[#171918]/40 rounded-md border border-[#303332]">
-                <p className="text-xs text-[#9aa19e] font-semibold uppercase tracking-wider mb-2">Politique fiscale</p>
-                <p className="text-sm text-[#d3d8d6] leading-relaxed">{env.politique_fiscale}</p>
+              <div className="p-4 bg-[#0f1114]/40 rounded-md border border-[#22262d]">
+                <p className="text-xs text-[#9298a6] font-semibold uppercase tracking-wider mb-2">Politique fiscale</p>
+                <p className="text-sm text-[#c9cdd6] leading-relaxed">{env.politique_fiscale}</p>
               </div>
             )}
           </div>
@@ -130,7 +130,7 @@ export default function EnvironnementIndicateurs({ project }) {
 
       {/* PROJETS URBAINS */}
       {(env.projets_en_cours || env.projets_a_venir || env.zones_revitalisation || env.projets_investissement_total != null) && (
-        <SectionCard icon={<Building2 className="w-5 h-5 text-[#35a79b]" />} title="Projets urbains & Aménagements">
+        <SectionCard icon={<Building2 className="w-5 h-5 text-[#8fa0f2]" />} title="Projets urbains & Aménagements">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             {env.projets_investissement_total != null && <KPI label="Investissement prévu" value={`${env.projets_investissement_total} M€`} color="teal" />}
             {env.projets_horizon && <KPI label="Horizon" value={env.projets_horizon} color="teal" />}
@@ -138,23 +138,23 @@ export default function EnvironnementIndicateurs({ project }) {
           {/* Timeline visuelle */}
           {(env.projets_en_cours || env.projets_a_venir) && (
             <div className="relative mb-4">
-              <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#35a79b] to-[#35a79b]/20" />
+              <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#8fa0f2] to-[#8fa0f2]/20" />
               <div className="space-y-4 pl-10">
                 {env.projets_en_cours && (
                   <div className="relative">
-                    <div className="absolute -left-7 top-1.5 w-3 h-3 rounded-full bg-[#35a79b] border-2 border-[#121413] ring-2 ring-[#35a79b]/30" />
-                    <div className="p-4 bg-[#35a79b]/10 rounded-md border border-[#35a79b]/20">
-                      <p className="text-xs text-[#35a79b] font-semibold uppercase tracking-wider mb-2">En cours / réalisés</p>
-                      <p className="text-sm text-[#d3d8d6] leading-relaxed whitespace-pre-line">{env.projets_en_cours}</p>
+                    <div className="absolute -left-7 top-1.5 w-3 h-3 rounded-full bg-[#8fa0f2] border-2 border-[#0f1114] ring-2 ring-[#8fa0f2]/30" />
+                    <div className="p-4 bg-[#8fa0f2]/10 rounded-md border border-[#8fa0f2]/20">
+                      <p className="text-xs text-[#8fa0f2] font-semibold uppercase tracking-wider mb-2">En cours / réalisés</p>
+                      <p className="text-sm text-[#c9cdd6] leading-relaxed whitespace-pre-line">{env.projets_en_cours}</p>
                     </div>
                   </div>
                 )}
                 {env.projets_a_venir && (
                   <div className="relative">
-                    <div className="absolute -left-7 top-1.5 w-3 h-3 rounded-full bg-[#121413] border-2 border-[#35a79b]/60 ring-2 ring-[#35a79b]/15" />
-                    <div className="p-4 bg-[#edeae5]/[0.02] rounded-md border border-[#303332]">
-                      <p className="text-xs text-[#7fd3c9] font-semibold uppercase tracking-wider mb-2">À venir / prévus</p>
-                      <p className="text-sm text-[#d3d8d6] leading-relaxed whitespace-pre-line">{env.projets_a_venir}</p>
+                    <div className="absolute -left-7 top-1.5 w-3 h-3 rounded-full bg-[#0f1114] border-2 border-[#8fa0f2]/60 ring-2 ring-[#8fa0f2]/15" />
+                    <div className="p-4 bg-[#f2f3f5]/[0.02] rounded-md border border-[#22262d]">
+                      <p className="text-xs text-[#aab6f5] font-semibold uppercase tracking-wider mb-2">À venir / prévus</p>
+                      <p className="text-sm text-[#c9cdd6] leading-relaxed whitespace-pre-line">{env.projets_a_venir}</p>
                     </div>
                   </div>
                 )}
@@ -162,9 +162,9 @@ export default function EnvironnementIndicateurs({ project }) {
             </div>
           )}
           {env.zones_revitalisation && (
-            <div className="p-4 bg-[#171918]/40 rounded-md border border-[#303332]">
-              <p className="text-xs text-[#9aa19e] font-semibold uppercase tracking-wider mb-2">Zones de revitalisation</p>
-              <p className="text-sm text-[#d3d8d6] leading-relaxed">{env.zones_revitalisation}</p>
+            <div className="p-4 bg-[#0f1114]/40 rounded-md border border-[#22262d]">
+              <p className="text-xs text-[#9298a6] font-semibold uppercase tracking-wider mb-2">Zones de revitalisation</p>
+              <p className="text-sm text-[#c9cdd6] leading-relaxed">{env.zones_revitalisation}</p>
             </div>
           )}
         </SectionCard>
@@ -172,7 +172,7 @@ export default function EnvironnementIndicateurs({ project }) {
 
       {/* ATTRACTIVITÉ */}
       {hasAttract && (
-        <SectionCard icon={<TrendingUp className="w-5 h-5 text-[#35a79b]" />} title="Attractivité & Rayonnement">
+        <SectionCard icon={<TrendingUp className="w-5 h-5 text-[#8fa0f2]" />} title="Attractivité & Rayonnement">
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -187,20 +187,20 @@ export default function EnvironnementIndicateurs({ project }) {
                 {env.nb_hopitaux != null && <KPI label="Hôpitaux / cliniques" value={env.nb_hopitaux} color="teal" />}
               </div>
               {env.points_forts_ville && (
-                <p className="text-sm text-[#d3d8d6] leading-relaxed bg-[#171918]/40 rounded-md p-4 border border-[#303332]">{env.points_forts_ville}</p>
+                <p className="text-sm text-[#c9cdd6] leading-relaxed bg-[#0f1114]/40 rounded-md p-4 border border-[#22262d]">{env.points_forts_ville}</p>
               )}
             </div>
             {radialAttract.length > 0 && (
               <div>
-                <p className="text-sm text-[#9aa19e] mb-3">Scores (/100)</p>
+                <p className="text-sm text-[#9298a6] mb-3">Scores (/100)</p>
                 <div className="h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%"
                       data={radialAttract} startAngle={90} endAngle={-270}
                     >
-                      <RadialBar dataKey="value" cornerRadius={6} background={{ fill: "#171918" }} label={{ fill: "#9aa19e", fontSize: 10 }} />
+                      <RadialBar dataKey="value" cornerRadius={6} background={{ fill: "#0f1114" }} label={{ fill: "#9298a6", fontSize: 10 }} />
                       <Tooltip {...DARK_TOOLTIP} />
-                      <Legend formatter={(v) => <span className="text-xs text-[#9aa19e]">{v}</span>} />
+                      <Legend formatter={(v) => <span className="text-xs text-[#9298a6]">{v}</span>} />
                     </RadialBarChart>
                   </ResponsiveContainer>
                 </div>
@@ -212,7 +212,7 @@ export default function EnvironnementIndicateurs({ project }) {
 
       {/* ÉCONOMIE LOCALE */}
       {hasEco && (
-        <SectionCard icon={<Briefcase className="w-5 h-5 text-[#35a79b]" />} title="Économie locale">
+        <SectionCard icon={<Briefcase className="w-5 h-5 text-[#8fa0f2]" />} title="Économie locale">
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -231,27 +231,27 @@ export default function EnvironnementIndicateurs({ project }) {
               </div>
               <div className="space-y-3">
                 {env.secteurs_activite_dominants && (
-                  <div className="p-4 bg-[#35a79b]/10 rounded-md border border-[#35a79b]/20">
-                    <p className="text-xs text-[#35a79b] font-semibold uppercase tracking-wider mb-2">Secteurs dominants</p>
-                    <p className="text-sm text-[#d3d8d6] leading-relaxed">{env.secteurs_activite_dominants}</p>
+                  <div className="p-4 bg-[#8fa0f2]/10 rounded-md border border-[#8fa0f2]/20">
+                    <p className="text-xs text-[#8fa0f2] font-semibold uppercase tracking-wider mb-2">Secteurs dominants</p>
+                    <p className="text-sm text-[#c9cdd6] leading-relaxed">{env.secteurs_activite_dominants}</p>
                   </div>
                 )}
                 {env.grands_employeurs && (
-                  <div className="p-4 bg-[#171918]/40 rounded-md border border-[#303332]">
-                    <p className="text-xs text-[#9aa19e] font-semibold uppercase tracking-wider mb-2">Grands employeurs</p>
-                    <p className="text-sm text-[#d3d8d6] leading-relaxed">{env.grands_employeurs}</p>
+                  <div className="p-4 bg-[#0f1114]/40 rounded-md border border-[#22262d]">
+                    <p className="text-xs text-[#9298a6] font-semibold uppercase tracking-wider mb-2">Grands employeurs</p>
+                    <p className="text-sm text-[#c9cdd6] leading-relaxed">{env.grands_employeurs}</p>
                   </div>
                 )}
               </div>
             </div>
             {barEco.length > 0 && (
               <div>
-                <p className="text-sm text-[#9aa19e] mb-3">Indicateurs clés (%)</p>
+                <p className="text-sm text-[#9298a6] mb-3">Indicateurs clés (%)</p>
                 <div className="h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={barEco} layout="vertical" margin={{ left: 10, right: 20 }}>
-                      <XAxis type="number" domain={[0, 100]} tick={{ fill: "#6b7270", fontSize: 10 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: "#9aa19e", fontSize: 11 }} width={110} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fill: "#6a7180", fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: "#9298a6", fontSize: 11 }} width={110} />
                       <Tooltip {...DARK_TOOLTIP} formatter={(v) => `${v}%`} />
                       <Bar dataKey="val" radius={[0, 4, 4, 0]}>
                         {barEco.map((entry, i) => <Cell key={i} fill={entry.fill} />)}

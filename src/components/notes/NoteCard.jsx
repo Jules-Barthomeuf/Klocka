@@ -36,26 +36,26 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
     .join(", ");
 
   return (
-    <Card className="bg-[#171918] border-[#edeae5]/[0.1] p-4 space-y-3">
+    <Card className="bg-[#0f1114] border-[#f2f3f5]/[0.1] p-4 space-y-3">
       {editing ? (
         <>
           <Input
             value={titre}
             onChange={(e) => setTitre(e.target.value)}
-            className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726]"
+            className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228]"
             placeholder="Titre"
           />
           <Textarea
             value={contenu}
             onChange={(e) => setContenu(e.target.value)}
-            className="bg-[#edeae5]/[0.03] text-[#edeae5] border-[#242726] min-h-[120px]"
+            className="bg-[#f2f3f5]/[0.03] text-[#f2f3f5] border-[#1f2228] min-h-[120px]"
             placeholder="Contenu de la note..."
           />
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" size="sm" onClick={handleCancel} className="text-[#9aa19e] hover:text-[#edeae5]">
+            <Button variant="ghost" size="sm" onClick={handleCancel} className="text-[#9298a6] hover:text-[#f2f3f5]">
               <X className="w-4 h-4 mr-1" /> Annuler
             </Button>
-            <Button size="sm" onClick={handleSave} className="bg-[#35a79b] hover:bg-[#35a79b]/80 text-[#edeae5]">
+            <Button size="sm" onClick={handleSave} className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/80 text-[#f2f3f5]">
               <Check className="w-4 h-4 mr-1" /> Sauvegarder
             </Button>
           </div>
@@ -63,40 +63,40 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
       ) : (
         <>
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-[#edeae5] font-medium text-sm">{note.titre}</h3>
+            <h3 className="text-[#f2f3f5] font-medium text-sm">{note.titre}</h3>
             <div className="flex gap-1 flex-shrink-0">
-              <Button variant="ghost" size="icon" onClick={() => setEditing(true)} className="h-7 w-7 text-[#8b9391] hover:text-[#edeae5]">
+              <Button variant="ghost" size="icon" onClick={() => setEditing(true)} className="h-7 w-7 text-[#9298a6] hover:text-[#f2f3f5]">
                 <Pencil className="w-3.5 h-3.5" />
               </Button>
               {isOwner && (
-                <Button variant="ghost" size="icon" onClick={() => setShowShare(s => !s)} className={`h-7 w-7 ${showShare || sharedEmails.length > 0 ? "text-[#35a79b]" : "text-[#8b9391]"} hover:text-[#35a79b]`}>
+                <Button variant="ghost" size="icon" onClick={() => setShowShare(s => !s)} className={`h-7 w-7 ${showShare || sharedEmails.length > 0 ? "text-[#8fa0f2]" : "text-[#9298a6]"} hover:text-[#8fa0f2]`}>
                   <Share2 className="w-3.5 h-3.5" />
                 </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={() => onDelete(note.id)} className="h-7 w-7 text-[#8b9391] hover:text-red-400">
+              <Button variant="ghost" size="icon" onClick={() => onDelete(note.id)} className="h-7 w-7 text-[#9298a6] hover:text-red-400">
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
           {note.contenu && (
-            <p className="text-[#9aa19e] text-sm whitespace-pre-wrap leading-relaxed">{note.contenu}</p>
+            <p className="text-[#9298a6] text-sm whitespace-pre-wrap leading-relaxed">{note.contenu}</p>
           )}
-          <p className="text-[#6b7270] text-[10px]">{moment(note.created_date).format("DD/MM/YYYY HH:mm")}</p>
+          <p className="text-[#6a7180] text-[10px]">{moment(note.created_date).format("DD/MM/YYYY HH:mm")}</p>
 
           {isOwner && showShare && (
-            <div className="pt-3 border-t border-[#242726] space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-[#8b9391]">Partager avec un admin</p>
+            <div className="pt-3 border-t border-[#1f2228] space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-[#9298a6]">Partager avec un admin</p>
               {admins.length === 0 ? (
-                <p className="text-xs text-[#8b9391]">Aucun autre admin disponible</p>
+                <p className="text-xs text-[#9298a6]">Aucun autre admin disponible</p>
               ) : (
                 <div className="space-y-1">
                   {admins.map(admin => (
-                    <label key={admin.id} className="flex items-center gap-2 cursor-pointer text-sm text-[#d3d8d6] hover:text-[#edeae5] py-1">
+                    <label key={admin.id} className="flex items-center gap-2 cursor-pointer text-sm text-[#c9cdd6] hover:text-[#f2f3f5] py-1">
                       <input
                         type="checkbox"
                         checked={sharedEmails.includes(admin.email)}
                         onChange={() => toggleShare(admin.email)}
-                        className="accent-[#35a79b] w-4 h-4"
+                        className="accent-[#8fa0f2] w-4 h-4"
                       />
                       <span>{admin.full_name || admin.email}</span>
                     </label>
@@ -107,7 +107,7 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
           )}
 
           {isOwner && sharedEmails.length > 0 && (
-            <p className="text-[11px] text-[#35a79b]">Cette note sera partagée à {sharedNames}</p>
+            <p className="text-[11px] text-[#8fa0f2]">Cette note sera partagée à {sharedNames}</p>
           )}
         </>
       )}

@@ -11,19 +11,19 @@ export default function AdminPortail() {
 
   if (user && user.role !== "admin") {
     return (
-      <div className="min-h-screen bg-[#0a0c0c] flex items-center justify-center">
-        <p className="text-[#edeae5]/30">Accès réservé aux administrateurs.</p>
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+        <p className="text-[#f2f3f5]/30">Accès réservé aux administrateurs.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c] text-[#edeae5]">
+    <div className="min-h-screen bg-[#000000] text-[#f2f3f5]">
       <div className="max-w-2xl mx-auto px-4 md:px-8 py-8 md:py-12">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-2">Administration</p>
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Portail client</h1>
-          <p className="text-[#edeae5]/30 text-sm mt-3">Partagez ces liens avec vos prospects pour leur permettre d'accepter les CGV et procéder au paiement.</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-2">Administration</p>
+          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Portail client</h1>
+          <p className="text-[#f2f3f5]/30 text-sm mt-3">Partagez ces liens avec vos prospects pour leur permettre d'accepter les CGV et procéder au paiement.</p>
         </motion.div>
 
         <div className="space-y-5">

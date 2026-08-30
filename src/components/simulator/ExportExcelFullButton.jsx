@@ -132,7 +132,7 @@ export default function ExportExcelFullButton({ params, calculs, anneeRevente, f
   };
 
   return (
-    <Button variant="ghost" size="sm" onClick={handleExport} className="text-[#edeae5]/50 hover:text-[#edeae5] hover:bg-[#edeae5]/[0.06] text-xs gap-1.5">
+    <Button variant="ghost" size="sm" onClick={handleExport} className="text-[#f2f3f5]/50 hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.06] text-xs gap-1.5">
       <Download className="w-3.5 h-3.5" />
       <span className="hidden md:inline">Export complet</span>
       <span className="md:hidden">Excel</span>

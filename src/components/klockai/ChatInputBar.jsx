@@ -5,14 +5,14 @@ import { NeonButton } from "@/components/ui/neon-button";
 
 export default function ChatInputBar({ inputValue, setInputValue, onSend, onKeyPress, isLoading }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-[#282b2a] bg-[#111] px-4 py-3 focus-within:border-[#35a79b]/40 transition-colors">
+    <div className="flex items-center gap-2 rounded-md border border-[#1f2228] bg-[#111] px-4 py-3 focus-within:border-[#8fa0f2]/40 transition-colors">
       <Input
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyPress={onKeyPress}
         placeholder="Écrivez à KlockAI..."
         disabled={isLoading}
-        className="flex-1 bg-transparent border-0 text-[#edeae5] placeholder:text-[#6b7270] h-12 text-base focus-visible:ring-0 focus-visible:ring-offset-0 px-1"
+        className="flex-1 bg-transparent border-0 text-[#f2f3f5] placeholder:text-[#6a7180] h-12 text-base focus-visible:ring-0 focus-visible:ring-offset-0 px-1"
       />
       <NeonButton
         onClick={onSend}

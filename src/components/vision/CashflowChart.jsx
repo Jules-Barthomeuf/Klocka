@@ -104,7 +104,7 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
     <div className="relative">
       <div className="relative overflow-hidden p-6">
         <div className="mb-4 h-[72px]">
-          <p className="text-sm font-medium text-[#9aa19e]">Cashflow annuel</p>
+          <p className="text-sm font-medium text-[#9298a6]">Cashflow annuel</p>
           {hoveredIndex !== null && data[hoveredIndex] && (
             <h2 className="mt-1 text-3xl font-semibold text-blue-400">
               {formatValue(data[hoveredIndex].cashflow)}
@@ -123,9 +123,9 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
           >
             <defs>
               <linearGradient id="cashflowAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
-                <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02" />
+                <stop offset="0%" stopColor="#8fa0f2" stopOpacity="0.35" />
+                <stop offset="50%" stopColor="#8fa0f2" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#8fa0f2" stopOpacity="0.02" />
               </linearGradient>
               <filter id="cashflowGlow" x="-100%" y="-100%" width="300%" height="300%">
                 <feGaussianBlur stdDeviation="2" result="blur" />
@@ -144,7 +144,7 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
                   y1={getY(tick)}
                   x2={chartWidth - padding.right}
                   y2={getY(tick)}
-                  stroke="#374151"
+                  stroke="#2c3139"
                   strokeWidth="1"
                   strokeDasharray="3 5"
                   opacity={0.3}
@@ -154,7 +154,7 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
                   y={getY(tick)}
                   textAnchor="end"
                   dominantBaseline="middle"
-                  fill="#9ca3af"
+                  fill="#9298a6"
                   fontSize="10"
                   fontWeight="500"
                 >
@@ -173,7 +173,7 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
                     y1={padding.top}
                     x2={getX(i)}
                     y2={chartHeight - padding.bottom}
-                    stroke="#374151"
+                    stroke="#2c3139"
                     strokeWidth="1"
                     strokeDasharray="3 5"
                     opacity={hoveredIndex === i ? 0.8 : 0.3}
@@ -188,7 +188,7 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
             <path
               d={generatePath()}
               fill="none"
-              stroke="#3b82f6"
+              stroke="#8fa0f2"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -208,7 +208,7 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
                   cy={getY(data[hoveredIndex].cashflow)}
                   r="8"
                   fill="#262627"
-                  stroke="#3b82f6"
+                  stroke="#8fa0f2"
                   strokeWidth="3"
                   filter="url(#cashflowGlow)"
                 />
@@ -224,7 +224,7 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
                     x={getX(i)}
                     y={chartHeight - 10}
                     textAnchor="middle"
-                    fill="#9ca3af"
+                    fill="#9298a6"
                     fontSize="11"
                     fontWeight="500"
                   >

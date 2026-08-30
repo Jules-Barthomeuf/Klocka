@@ -22,21 +22,21 @@ export default function Recherche() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0c0c]">
+    <div className="min-h-screen bg-[#000000]">
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#7fd3c9] mb-2">Recherche</p>
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#edeae5]">Profils d'investissement</h1>
-          <p className="text-[#edeae5]/30 text-sm mt-2">Critères de recherche par tranche de budget et projets correspondants.</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-2">Recherche</p>
+          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Profils d'investissement</h1>
+          <p className="text-[#f2f3f5]/30 text-sm mt-2">Critères de recherche par tranche de budget et projets correspondants.</p>
           {isAdmin && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleCopyLink}
-              className="mt-3 border-[#edeae5]/10 bg-[#0a0c0c] text-[#edeae5]/50 hover:text-[#edeae5] hover:bg-[#edeae5]/5 text-xs gap-2"
+              className="mt-3 border-[#f2f3f5]/10 bg-[#000000] text-[#f2f3f5]/50 hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 text-xs gap-2"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-[#7fd3c9]" /> : <Link2 className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-[#aab6f5]" /> : <Link2 className="w-3.5 h-3.5" />}
               {copied ? "Lien copié" : "Copier le lien"}
             </Button>
           )}
@@ -49,7 +49,7 @@ export default function Recherche() {
             className="flex-shrink-0 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 border"
             style={
               activeTab === "synthese"
-                ? { backgroundColor: "rgba(42,157,143,0.15)", color: "#35a79b", borderColor: "rgba(42,157,143,0.4)" }
+                ? { backgroundColor: "rgba(42,157,143,0.15)", color: "#8fa0f2", borderColor: "rgba(42,157,143,0.4)" }
                 : { backgroundColor: "transparent", color: "rgba(255,255,255,0.4)", borderColor: "rgba(255,255,255,0.06)" }
             }
           >
@@ -76,18 +76,18 @@ export default function Recherche() {
         ) : (
           <>
             {/* Profil Details */}
-            <Card className="bg-[#0a0c0c] border border-[#242726] rounded-md mb-8">
+            <Card className="bg-[#000000] border border-[#1f2228] rounded-md mb-8">
               <CardContent className="p-6 md:p-8">
                 <ProfilCard profil={activeProfil} />
               </CardContent>
             </Card>
 
             {/* CTA */}
-            <div className="text-center border border-[#242726] rounded-md bg-[#0a0c0c] p-6 mb-8">
-              <p className="text-[#edeae5]/50 text-sm mb-4">Vous avez un bien correspondant à nos critères ?</p>
+            <div className="text-center border border-[#1f2228] rounded-md bg-[#000000] p-6 mb-8">
+              <p className="text-[#f2f3f5]/50 text-sm mb-4">Vous avez un bien correspondant à nos critères ?</p>
               <Button
                 onClick={() => window.open("https://dpe3smipjxh.typeform.com/to/GD7sREFs", "_blank")}
-                className="bg-[#35a79b] hover:bg-[#35a79b]/90 text-[#edeae5] px-6 py-2.5 gap-2"
+                className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5] px-6 py-2.5 gap-2"
               >
                 Prendre rendez-vous
                 <ArrowRight className="w-4 h-4" />
@@ -97,8 +97,8 @@ export default function Recherche() {
             {/* Projets correspondants */}
             <div>
               <div className="flex items-center gap-3 mb-5">
-                <Search className="w-4 h-4 text-[#edeae5]/30" />
-                <h2 className="text-[#edeae5] text-lg font-light">Projets dans cette tranche</h2>
+                <Search className="w-4 h-4 text-[#f2f3f5]/30" />
+                <h2 className="text-[#f2f3f5] text-lg font-light">Projets dans cette tranche</h2>
               </div>
               <ProfilProjects
                 budgetMin={activeProfil.budgetMin}

@@ -15,30 +15,30 @@ export default function DashboardStrategyCard({ userStrategy }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="bg-[#0e100f] border border-[#edeae5]/[0.12] p-5 h-full"
+      className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-5 h-full"
     >
-      <p className="text-[10px] tracking-[0.2em] uppercase text-[#8b9391] mb-4">Stratégie</p>
+      <p className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6] mb-4">Stratégie</p>
 
       <div style={{ fontVariantNumeric: "tabular-nums" }}>
         {hasBudget && (
-          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
-            <span className="text-[#8b9391]">Budget max</span>
-            <span className="text-[#edeae5]">{fmt(userStrategy.budget_max)} €</span>
+          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#f2f3f5]/[0.12]">
+            <span className="text-[#9298a6]">Budget max</span>
+            <span className="text-[#f2f3f5]">{fmt(userStrategy.budget_max)} €</span>
           </div>
         )}
         {hasApport && (
-          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
-            <span className="text-[#8b9391]">Apport</span>
-            <span className="text-[#7fd3c9]">{fmt(userStrategy.apport)} €</span>
+          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#f2f3f5]/[0.12]">
+            <span className="text-[#9298a6]">Apport</span>
+            <span className="text-[#aab6f5]">{fmt(userStrategy.apport)} €</span>
           </div>
         )}
         {hasFields && userStrategy.fields.map((field, i) => (
-          <div key={i} className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#edeae5]/[0.12]">
-            <span className={field.is_nogo ? "text-red-400" : "text-[#8b9391]"}>
+          <div key={i} className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#f2f3f5]/[0.12]">
+            <span className={field.is_nogo ? "text-red-400" : "text-[#9298a6]"}>
               {field.label}
               {field.is_nogo && <span className="ml-2 text-[9px] tracking-[0.14em] uppercase">No-go</span>}
             </span>
-            {field.value && <span className="text-[#edeae5] text-right">{field.value}</span>}
+            {field.value && <span className="text-[#f2f3f5] text-right">{field.value}</span>}
           </div>
         ))}
       </div>

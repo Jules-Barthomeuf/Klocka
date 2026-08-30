@@ -109,6 +109,14 @@ const COMPETENCES = [
     limite: "L'adresse mail est le minimum. L'entreprise n'est écrite que si elle figure déjà dans la liste du tableau — sinon il le signale.",
   },
   {
+    id: "appel",
+    icone: ClipboardCheck,
+    titre: "Ouvrir un dossier en raccrochant",
+    quoi: "Une phrase — dictée depuis la page Note ou tapée ici — et il fait tout : le dossier, l'agent au CRM, le bien dans Monday, la promesse de documents au registre. La veille guette ensuite le mail de l'agent, et le tableau de bord réclame si rien n'arrive.",
+    exemples: ["J'ai eu Marc de chez Orpi, marc@orpi.fr, un local à Lyon à 400 k€, il m'envoie les documents jeudi"],
+    limite: "Sans l'adresse mail de l'agent, la veille ne reconnaîtra pas son mail : il la demande.",
+  },
+  {
     id: "engagements",
     icone: ClipboardCheck,
     titre: "Tenir le registre des engagements",

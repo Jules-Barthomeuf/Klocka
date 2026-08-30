@@ -19,6 +19,7 @@ const REVERSIBLES = {
   creer_agent_monday: "la fiche agent créée sera supprimée",
   creer_drive_dossier: 'le dossier Drive créé partira à la corbeille',
   noter_engagement: "l'engagement noté sera effacé du registre",
+  creer_dossier: 'le dossier ouvert sera supprimé, avec sa fiche Monday et sa promesse',
 };
 
 /**
@@ -98,6 +99,25 @@ export async function annuler(action) {
     }
     Records.update('AssistantAction', action.id, { annulee: true, annulee_le: new Date().toISOString() });
     return { ok: true, message: `Élément Monday supprimé (${action.resultat?.titre || id}).` };
+  }
+
+  if (action.outil === 'creer_dossier') {
+    const deal = Records.filter('Deal', { deal_id: action.resultat?.deal_id })[0];
+    if (!deal) return { ok: false, message: 'Le dossier est introuvable.' };
+    if (deal.lots?.length) return { ok: false, message: 'Le dossier a été analysé depuis : il ne se supprime plus d\'un mot.' };
+    // La fiche du bien, et l'agent si c'est cette action qui l'a inscrit.
+    for (const id of [action.resultat?.monday_item_id, action.resultat?.agent_item_id].filter(Boolean)) {
+      try {
+        const { supprimerElement } = await import('./monday.js');
+        await supprimerElement(id);
+      } catch (e) {
+        console.warn('[assistant] élément Monday non supprimé :', e?.message || e);
+      }
+    }
+    for (const e of Records.filter('Engagement', { deal_id: deal.deal_id })) Records.delete('Engagement', e.id);
+    Records.delete('Deal', deal.id);
+    Records.update('AssistantAction', action.id, { annulee: true, annulee_le: new Date().toISOString() });
+    return { ok: true, message: `Dossier « ${deal.nom} » supprimé, avec sa fiche Monday et sa promesse.` };
   }
 
   if (action.outil === 'noter_engagement') {

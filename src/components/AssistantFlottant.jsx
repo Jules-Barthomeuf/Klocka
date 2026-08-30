@@ -3,6 +3,7 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { useDictee } from "@/lib/dictee";
 
 // L'assistant : une pilule au repos, un cadre qui s'étire une fois ouvert.
 //
@@ -177,6 +178,11 @@ export default function AssistantFlottant() {
   };
 
   const actif = !!texte.trim();
+
+  // Dicter dans la pilule : le texte se pose dans le champ, on relit, on
+  // envoie. La page Note, elle, envoie dès qu'on se tait — ici on est au
+  // bureau, on peut se relire.
+  const dictee = useDictee({ onTexte: (t) => { setTexte(t); setOuvert(true); } });
 
   return (
     <div
@@ -387,6 +393,29 @@ export default function AssistantFlottant() {
             color: TEXTE, fontFamily: SANS, fontSize: 14,
           }}
         />
+
+        {dictee.supporte && (
+          <button
+            onClick={(e) => { e.stopPropagation(); dictee.ecoute ? dictee.arreter() : dictee.demarrer(); }}
+            aria-label={dictee.ecoute ? "Arrêter la dictée" : "Dicter"}
+            title={dictee.ecoute ? "Arrêter" : "Dicter"}
+            style={{
+              width: 28, height: 28, borderRadius: "50%", flex: "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: dictee.ecoute ? "#e8746a" : "transparent",
+              color: dictee.ecoute ? FOND : META,
+              border: dictee.ecoute ? 0 : `1px solid ${FILET}`,
+              cursor: "pointer", transition: "all .15s",
+              animation: dictee.ecoute ? "assistant-dot 1.2s infinite" : "none",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" x2="12" y1="19" y2="22" />
+            </svg>
+          </button>
+        )}
 
         <button
           onClick={(e) => { e.stopPropagation(); lancer(); }}

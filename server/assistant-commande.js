@@ -232,6 +232,30 @@ const OUTILS = [
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' } } },
   },
   {
+    name: 'creer_dossier',
+    description:
+      "Ouvre un dossier après un appel, avant toute fiche : « j'ai eu Marc de l'agence X, un local à Lyon à 400 k€, il m'envoie les documents ». Crée la coquille, rattache l'agent (et l'inscrit au CRM si on a son mail), pose le bien dans Monday, note la promesse de documents avec son échéance. Ne l'utilise pas si un dossier du même bien existe déjà : cherche d'abord.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        nom: { type: 'string', description: "nom du dossier, ex: « Local commercial — Lyon 3e »" },
+        ville: { type: 'string' },
+        rue: { type: 'string' },
+        prix: { type: 'number', description: 'prix FAI en euros, si entendu' },
+        surface: { type: 'number', description: 'surface en m², si entendue' },
+        loyer: { type: 'number', description: 'loyer annuel HT HC en euros, si entendu' },
+        activite: { type: 'string', description: 'activité du locataire, si entendue' },
+        agent_nom: { type: 'string' },
+        agent_email: { type: 'string' },
+        agent_telephone: { type: 'string' },
+        agence: { type: 'string' },
+        documents_promis: { type: 'boolean', description: "l'agent a promis d'envoyer les documents" },
+        promis_pour: { type: 'string', description: 'date YYYY-MM-DD de la promesse, sinon omise (trois jours par défaut)' },
+      },
+      required: ['nom'],
+    },
+  },
+  {
     name: 'noter_engagement',
     description:
       "Inscrit un engagement au registre : qui doit quoi, pour quand. Ex: « Marc envoie le PV jeudi », « rappeler le notaire lundi ». Le dossier est facultatif — le chercher d'abord avec chercher_dossier quand l'utilisateur en nomme un. Résous les dates relatives en YYYY-MM-DD par rapport à aujourd'hui.",
@@ -688,6 +712,92 @@ async function executerOutil({ name, input }, user) {
     };
   }
 
+  if (name === 'creer_dossier') {
+    const { creerCoquille } = await import('./deal/index.js');
+    const emailAgent = input.agent_email ? String(input.agent_email).trim().toLowerCase() : null;
+    const dossier = creerCoquille({
+      nom: input.nom,
+      responsables: user?.full_name ? [user.full_name] : [],
+      user,
+      contact_agent_email: emailAgent,
+      apercu: {
+        ville: input.ville || null, rue: input.rue || null, prix: input.prix || null,
+        surface: input.surface || null, loyer: input.loyer || null, activite: input.activite || null,
+        agent_nom: input.agent_nom || null, agent_telephone: input.agent_telephone || null, agence: input.agence || null,
+      },
+    });
+    const fait = [];
+    const rates = [];
+
+    // L'agent au CRM — seulement avec son mail, une fiche sans adresse ne sert à rien.
+    let agent = null;
+    if (emailAgent) {
+      try {
+        const { creerAgentMonday } = await import('./deal/monday-sync.js');
+        agent = await creerAgentMonday({
+          nom: input.agent_nom || emailAgent, email: emailAgent, telephone: input.agent_telephone,
+          ville: input.ville, entreprise: input.agence,
+        });
+        if (agent?.ok || agent?.id) fait.push(agent.cree === false ? 'agent déjà au CRM' : 'agent inscrit au CRM');
+        else if (agent?.ignore) rates.push(`CRM : ${agent.raison}`);
+      } catch (e) {
+        rates.push(`CRM : ${e?.message || e}`);
+      }
+    }
+
+    // Le bien dans Monday, avec qui l'a entendu.
+    let monday = null;
+    try {
+      const { pousserBien } = await import('./deal/monday-sync.js');
+      monday = await pousserBien(Records.filter('Deal', { deal_id: dossier.deal_id })[0], {
+        motif: `Entendu au téléphone par ${user?.full_name || user?.email || 'un admin'}`,
+        par: user,
+      });
+      if (monday?.id) fait.push('bien posé dans Monday');
+      else if (monday?.ignore) rates.push(`Monday : ${monday.raison}`);
+    } catch (e) {
+      rates.push(`Monday : ${e?.message || e}`);
+    }
+
+    // La promesse, datée : c'est elle que la veille surveille et que le
+    // tableau de bord réclamera si rien n'arrive.
+    let engagement = null;
+    if (input.documents_promis !== false) {
+      const { noter } = await import('./deal/engagements.js');
+      const echeance = /^\d{4}-\d{2}-\d{2}$/.test(input.promis_pour || '')
+        ? `${input.promis_pour}T12:00:00.000Z`
+        : new Date(Date.now() + 3 * 86400000).toISOString();
+      const r = noter({
+        dealId: dossier.deal_id,
+        de: emailAgent || input.agent_nom || null,
+        quoi: `${input.agent_nom || emailAgent || "L'agent"} envoie les documents du bien`,
+        echeance,
+        user,
+      });
+      if (r.ok) {
+        engagement = r.engagement;
+        fait.push(`promesse notée pour le ${new Date(echeance).toLocaleDateString('fr-FR')}`);
+      }
+    }
+
+    return {
+      ok: true,
+      cree: true,
+      id: dossier.deal_id,
+      deal_id: dossier.deal_id,
+      titre: dossier.nom,
+      fait,
+      rates,
+      monday_item_id: monday?.id || null,
+      agent_item_id: agent?.cree ? agent.id || null : null,
+      engagement_id: engagement?.id || null,
+      lien: `/Analyse?deal_id=${dossier.deal_id}`,
+      ...(emailAgent
+        ? {}
+        : { avertissement: "Sans adresse mail de l'agent, la veille ne pourra pas reconnaître son mail : demandez-la ou ajoutez-la ensuite." }),
+    };
+  }
+
   if (name === 'noter_engagement') {
     const { noter } = await import('./deal/engagements.js');
     const r = noter({
@@ -742,6 +852,8 @@ Tu sais : renseigner sur un dossier ou un projet, rejouer leur simulation financ
 
 Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque, lire ses documents pour répondre à une question précise, envoyer un mail une fois qu'on te l'a demandé, inscrire un agent immobilier au CRM — avec ou sans dossier rattaché — et annuler ta dernière action.
 
+Tu ouvres un dossier en sortant d'un appel : « j'ai eu Marc de l'agence Untel, il a un local à Lyon à 400 k€, il m'envoie les documents » → creer_dossier fait tout — la coquille, l'agent au CRM, le bien dans Monday, la promesse de documents au registre — et tu rends compte de ce qui a été fait et de ce qui a manqué. Demande l'adresse mail de l'agent si elle n'est pas donnée : sans elle, la veille ne reconnaîtra pas son mail. Une phrase dictée est souvent imparfaite (« quatre cents k », « Marc de chez Orpi ») : interprète avec bon sens, et récapitule ce que tu as compris.
+
 Tu tiens le registre des engagements : qui doit quoi, pour quand. « Marc envoie le PV jeudi », « rappeler le notaire lundi », « le syndic nous doit le RCP avant fin de mois » s'inscrivent au registre avec noter_engagement ; « c'est reçu », « il l'a fait » les marquent tenus avec tenir_engagement ; registre_engagements dit ce qui est dû. La date du jour est le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} : résous « jeudi », « la semaine prochaine » en date réelle — « jeudi » est le prochain jeudi à venir, demain s'il tombe demain, jamais celui d'après.
 
 Pour tout le reste — droit des baux commerciaux, financement, fiscalité, méthode d'analyse — réponds directement, sans outil, en restant bref et en disant franchement quand tu ne sais pas.
@@ -794,7 +906,7 @@ export async function commander(historique, user, contexte = null) {
       // n'est pas une preuve d'action.
       const agissant =
         appel.name.startsWith('pousser') ||
-        ['creer_drive_dossier', 'extraire_documents', 'preparer_mail', 'creer_agent_monday', 'envoyer_mail', 'noter_engagement', 'tenir_engagement'].includes(
+        ['creer_drive_dossier', 'extraire_documents', 'preparer_mail', 'creer_agent_monday', 'envoyer_mail', 'noter_engagement', 'tenir_engagement', 'creer_dossier'].includes(
           appel.name
         );
       if (agissant && resultat?.ok) actions.push({ ...appel, resultat });

@@ -277,3 +277,32 @@ export function obtenirDossier(dealId) {
       }
     : null;
 }
+
+/**
+ * Crée un dossier avant toute fiche : une coquille qui porte un nom, un agent,
+ * et ce qu'on sait déjà du bien. C'est ce qu'on ouvre en raccrochant.
+ * @param {{nom, responsables?, user?, contact_agent_email?, apercu?}} p -
+ *   `apercu` : { ville, rue, prix, surface, loyer, activite } tels qu'entendus.
+ */
+export function creerCoquille({ nom, responsables = [], user = null, contact_agent_email = null, apercu = null }) {
+  const dossier = {
+    deal_id: randomUUID(),
+    nom: String(nom || '').trim(),
+    responsables: (responsables || []).map((r) => String(r).trim()).filter(Boolean).slice(0, 8),
+    cree_le: new Date().toISOString(),
+    cree_par: user?.email || null,
+    statut: 'analyse',
+    etape_max: 1,
+    archived: false,
+    relance_prevue_le: null,
+    contact_agent_email: contact_agent_email ? String(contact_agent_email).toLowerCase() : null,
+    apercu: apercu || null,
+    dossier_doc_id: null,
+    projet_id: null,
+    lots: [],
+    multi_lots: false,
+    suivi: [{ le: new Date().toISOString(), par: user?.email || null, type: 'creation', detail: `Dossier créé : ${nom}` }],
+  };
+  Records.create('Deal', dossier, user?.email);
+  return dossier;
+}

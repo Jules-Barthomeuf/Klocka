@@ -79,7 +79,15 @@ const nombre = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
 function vueDuLot(deal) {
   const lot = deal.lots?.[0];
-  if (!lot) return {};
+  // Pas encore de fiche : la coquille porte ce qu'on a entendu au téléphone.
+  if (!lot) {
+    const a = deal.apercu || {};
+    return {
+      ville: a.ville || '', rue: a.rue || '', lat: null, lon: null,
+      prix: nombre(a.prix), loyer: nombre(a.loyer), surface: nombre(a.surface),
+      activite: a.activite || '', verdict: '', motifs: [],
+    };
+  }
   const adresse = val(lot.lot?.adresse) || {};
   const commune = lot.enrichissement?.commune;
   return {

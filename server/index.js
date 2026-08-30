@@ -1050,32 +1050,15 @@ app.post('/api/preanalyse/enseignes', wrap((req, res) => {
 // Création d'un dossier nommé, avant toute analyse : une coquille qui porte
 // le nom et les responsables ; l'analyse de la fiche la remplira (étape 2).
 app.post('/api/preanalyse/dossiers', wrap(async (req, res) => {
-  const { randomUUID } = await import('crypto');
   const user = currentUser(req);
   const nom = String(req.body?.nom || '').trim();
   if (!nom) return res.status(400).json({ error: 'Donnez un nom au dossier.' });
-  const responsables = Array.isArray(req.body?.responsables)
-    ? req.body.responsables.map((r) => String(r).trim()).filter(Boolean).slice(0, 8)
-    : [];
-  const dossier = {
-    deal_id: randomUUID(),
+  const { creerCoquille } = await import('./deal/index.js');
+  ok(res, creerCoquille({
     nom,
-    responsables,
-    cree_le: new Date().toISOString(),
-    cree_par: user?.email || null,
-    statut: 'analyse',
-    etape_max: 1,
-    archived: false,
-    relance_prevue_le: null,
-    contact_agent_email: null,
-    dossier_doc_id: null,
-    projet_id: null,
-    lots: [],
-    multi_lots: false,
-    suivi: [{ le: new Date().toISOString(), par: user?.email || null, type: 'creation', detail: `Dossier créé : ${nom}` }],
-  };
-  Records.create('Deal', dossier, user?.email);
-  ok(res, dossier);
+    responsables: Array.isArray(req.body?.responsables) ? req.body.responsables : [],
+    user,
+  }));
 }));
 
 // Renommer un dossier.

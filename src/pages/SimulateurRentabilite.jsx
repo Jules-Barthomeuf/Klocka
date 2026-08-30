@@ -17,7 +17,7 @@ import SimDataTable from "../components/simulator/layout/SimDataTable";
 import SimScenarios from "../components/simulator/layout/SimScenarios";
 import SimParametresAvances from "../components/simulator/layout/SimParametresAvances";
 import SimWhatsNewDialog from "../components/simulator/SimWhatsNewDialog";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { calculerTVADeductible } from "../components/simulator";
 
 function PMT(rate, nper, pv) {
@@ -495,16 +495,26 @@ export default function SimulateurRentabilite() {
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
             <div className="flex items-center justify-between border-b border-[#1f2228] px-4 h-11 sticky top-0 bg-[#000000] z-10">
-              <div className="flex items-center gap-5 h-full">
-                {tabs.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#c9cdd6]"}`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-[#0f1114] border border-[#1f2228] min-w-0 overflow-x-auto">
+                {tabs.map((t) => {
+                  const active = activeTab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
+                      className={`relative px-3 h-7 rounded-full text-xs whitespace-nowrap transition-colors duration-200 ${active ? "text-[#f2f3f5]" : "text-[#9298a6] hover:text-[#c9cdd6]"}`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="sim-tab-pill"
+                          className="absolute inset-0 rounded-full bg-[#96c0b8]/15 border border-[#96c0b8]/40"
+                          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                        />
+                      )}
+                      <span className="relative">{t.label}</span>
+                    </button>
+                  );
+                })}
               </div>
               <div className="flex items-center gap-2">
                 <ExportExcelFullButton params={{ surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false }} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />

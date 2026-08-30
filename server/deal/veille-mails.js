@@ -124,7 +124,9 @@ export async function relever(uploadDir = null) {
     // jeudi » devient une échéance datée, que la relance saura citer.
     let engagements = { crees: 0 };
     try {
-      const { extraireEnAttente } = await import('./engagements.js');
+      const { extraireEnAttente, solderParMail } = await import('./engagements.js');
+      // Le mail promis est là : la promesse est tenue, avant même de lire le texte.
+      solderParMail();
       engagements = await extraireEnAttente();
       erreurs.push(...(engagements.erreurs || []));
     } catch (e) {

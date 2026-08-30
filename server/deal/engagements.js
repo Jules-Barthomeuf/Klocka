@@ -337,6 +337,29 @@ export function surStatut(dealId, statut, user = null) {
   return clos;
 }
 
+/**
+ * Le mail attendu est arrivé : un message de la personne qui devait, avec des
+ * pièces jointes, sur le dossier concerné, solde ses promesses ouvertes — même
+ * les libres, notées à la voix après un appel. Idempotent par mail.
+ * @returns {number} engagements soldés
+ */
+export function solderParMail() {
+  let clos = 0;
+  const mails = Records.list('MailRecu').filter(
+    (m) => m.deal_id && (m.pieces_jointes || []).length && !m.engagements_soldes
+  );
+  for (const mail of mails) {
+    const de = String(mail.de_email || '').toLowerCase();
+    for (const e of engagementsOuverts(mail.deal_id)) {
+      if (String(e.de || '').toLowerCase() !== de) continue;
+      tenir(e, `mail reçu de ${de} avec ${(mail.pieces_jointes || []).length} pièce(s) jointe(s)`);
+      clos += 1;
+    }
+    Records.update('MailRecu', mail.id, { engagements_soldes: true });
+  }
+  return clos;
+}
+
 /** Cocher à la main. */
 export function clore(id, { user, commentaire } = {}) {
   const e = Records.get('Engagement', id);

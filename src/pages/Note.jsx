@@ -64,7 +64,7 @@ export default function Note() {
         <header className="flex items-end justify-between gap-4">
           <div>
             <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#9298a6]">En raccrochant</p>
-            <h1 className="m-0 mt-2 text-[34px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#ffffff]">
+            <h1 className="m-0 mt-2.5 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">
               Note
             </h1>
           </div>

@@ -78,7 +78,7 @@ export default function Engagements() {
       <div className="max-w-[1100px] mx-auto px-5 md:px-12 py-10 md:py-16">
         {/* --- En-tête --------------------------------------------------- */}
         <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
-          <h1 className="m-0 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#ffffff]">
+          <h1 className="m-0 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">
             Engagements
           </h1>
           <div className="flex items-start gap-10 max-md:gap-7">

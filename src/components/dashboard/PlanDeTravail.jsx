@@ -260,10 +260,10 @@ export default function PlanDeTravail({ chat = null }) {
       {/* --- En-tête : ce qu'il y a à faire, et combien --------------------- */}
       <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
         <div className="min-w-0">
-          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#9298a6]">
+          <p className="m-0 text-[11px] tracking-[.16em] uppercase text-[#9298a6]">
             Équipe Klocka — {maintenant.replace(" à ", ", ")}
           </p>
-          <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#ffffff]">
+          <h1 className="m-0 mt-2.5 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">
             Dashboard
           </h1>
         </div>

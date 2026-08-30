@@ -112,7 +112,7 @@ function vueDuLot(deal) {
  * latitude, on géocode ; si l'adresse reste introuvable, on omet la colonne
  * plutôt que de perdre l'élément entier.
  */
-async function valeurAdresse({ adresse, lat, lon }) {
+export async function valeurAdresse({ adresse, lat, lon }) {
   if (!adresse) return null;
   if (lat != null && lon != null) {
     return { address: adresse, lat: String(lat), lng: String(lon) };
@@ -348,6 +348,11 @@ const COL_AGENT = {
   priorite: 'status5',
 };
 
+
+/** Oublier une lecture en cache — après avoir écrit, on veut relire vrai. */
+export function oublierCache(cle) {
+  cache.delete(cle);
+}
 
 async function lireAvecCache(boardId, cle) {
   const vu = cache.get(cle);

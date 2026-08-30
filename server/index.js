@@ -317,46 +317,22 @@ function urlPublique(req) {
 app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
   const admin = currentUser(req);
   if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { creerInvitation } = await import('./clients-invitation.js');
+  const r = creerInvitation({ email: req.body?.email, full_name: req.body?.full_name, admin, base: urlPublique(req) });
+  if (!r.ok) return res.status(r.error?.includes('invalide') ? 400 : 409).json({ error: r.error });
 
-  const email = normEmail(req.body?.email);
-  const fullName = String(req.body?.full_name || '').trim();
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Adresse invalide.' });
-
-  let user = Records.filter('User', { email })[0];
-  if (user?.mot_de_passe) {
-    return res.status(409).json({ error: `${email} a déjà un mot de passe : le compte est actif.` });
-  }
-  if (user?.role === 'admin') return res.status(409).json({ error: 'Cette adresse est celle d\'un administrateur.' });
-
-  const jeton = randomBytes(24).toString('hex');
-  const expire = new Date(Date.now() + 14 * 86400000).toISOString();
-  const patch = {
-    invitation_jeton: jeton,
-    invitation_expire_le: expire,
-    invite_par: admin.email,
-    invite_le: new Date().toISOString(),
-    ...(fullName ? { full_name: fullName } : {}),
-  };
-  if (user) {
-    user = Records.update('User', user.id, { ...patch, etape_actuelle: Math.max(1, user.etape_actuelle || 0) });
-  } else {
-    user = Records.create('User', { email, role: 'user', etape_actuelle: 1, ...patch }, admin.email);
-  }
-
-  const lien = `${urlPublique(req)}/Bienvenue?jeton=${jeton}`;
-  const prenom = (user.full_name || '').split(' ')[0];
-
+  const prenom = (r.user.full_name || '').split(' ')[0];
   let envoi = null;
   if (req.body?.envoyer) {
     envoi = await sendEmail({
       owner: admin.email,
-      to: email,
+      to: r.user.email,
       subject: 'Votre accès à Klocka',
       body: `Bonjour${prenom ? ` ${prenom}` : ''},
 
 Votre espace Klocka est prêt. Pour y entrer, choisissez votre mot de passe en ouvrant ce lien :
 
-${lien}
+${r.lien}
 
 Il reste valable quatorze jours. Nous y définirons ensemble votre stratégie d'investissement.
 
@@ -364,18 +340,37 @@ Il reste valable quatorze jours. Nous y définirons ensemble votre stratégie d'
 ${admin.full_name || admin.email}`,
     });
   }
-
-  console.log(`[auth] invitation : ${email} par ${admin.email}${envoi ? (envoi.simulated ? ' (mail simulé)' : ' (mail envoyé)') : ''}`);
+  console.log(`[auth] invitation : ${r.user.email} par ${admin.email}${envoi ? (envoi.simulated ? ' (mail simulé)' : ' (mail envoyé)') : ''}`);
   ok(res, {
-    email,
-    user_id: user.id,
-    lien,
-    expire_le: expire,
-    cree: !req.body?.reprise && !user.mot_de_passe_defini_le,
+    email: r.user.email,
+    user_id: r.user.id,
+    lien: r.lien,
+    expire_le: r.expire_le,
     envoye: !!(envoi && envoi.success && !envoi.simulated),
     simule: !!envoi?.simulated,
     erreur_envoi: envoi && !envoi.success && !envoi.simulated ? envoi.error || 'Envoi impossible' : null,
   });
+}));
+
+// Le chat du tableau de bord, mode Client : le compte rendu d'un appel de
+// découverte devient une fiche Monday, un compte Klocka et un lien. Deux
+// temps — lire, puis créer — pour que l'admin relise entre les deux.
+app.post('/api/admin/clients/decouverte/extraire', wrap(async (req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const texte = String(req.body?.texte || '').trim();
+  if (texte.length < 40) return res.status(400).json({ error: 'Collez le compte rendu de l\'appel — il est trop court pour être lu.' });
+  const { extraireClient } = await import('./clients-decouverte.js');
+  ok(res, { champs: await extraireClient(texte, { par: admin }) });
+}));
+
+app.post('/api/admin/clients/decouverte/creer', wrap(async (req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const champs = req.body?.champs || {};
+  if (!champs.prenom && !champs.nom && !champs.email) return res.status(400).json({ error: 'Il faut au moins un nom ou une adresse.' });
+  const { creerClientDepuisDecouverte } = await import('./clients-decouverte.js');
+  ok(res, await creerClientDepuisDecouverte(champs, { admin, base: urlPublique(req) }));
 }));
 
 app.post('/api/auth/connexion', wrap(async (req, res) => {

@@ -13,7 +13,7 @@ import { Records } from '../db.js';
 import { ingerer, archiverSource } from './ingest.js';
 import { extraire } from './extract.js';
 import { enrichir } from './enrich.js';
-import { evaluer, profilsConfigures } from './rules.js';
+import { evaluer, profilsConfigures, grilleCriteres } from './rules.js';
 import { calculerAEM, parametresSimulateur } from './aem.js';
 import { redigerSynthese, redigerMailAgent } from './redact.js';
 import { statutDe, aRelancer } from './lifecycle.js';
@@ -269,6 +269,11 @@ export function obtenirDossier(dealId) {
         ...deal,
         etape_max: etapeMax(deal),
         titre: nettoyerTitre(deal.nom || deal.lots?.[0]?.synthese?.titre || deal.source?.nom_fichier || deal.deal_id),
+        // La grille de critères se calcule à la lecture, jamais stockée : elle
+        // suit rules.json, et un dossier analysé hier la reçoit comme un neuf.
+        lots: (deal.lots || []).map((lot) =>
+          lot?.evaluation ? { ...lot, evaluation: { ...lot.evaluation, grille: grilleCriteres(lot.evaluation) } } : lot
+        ),
       }
     : null;
 }

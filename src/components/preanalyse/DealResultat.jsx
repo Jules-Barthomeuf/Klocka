@@ -44,6 +44,67 @@ export const STATUTS_DEAL = {
   projet_cree: { libelle: "Projet créé", classe: "bg-[#96c0b8]/20 text-[#c3ddd6] border-[#96c0b8]/40" },
 };
 
+// La grille des critères : nos critères à gauche, le bien à droite, et le
+// verdict ligne à ligne — une coche menthe ou une croix corail. C'est ce
+// qu'on voit en premier : le verdict global n'est que la somme de ces lignes.
+function GrilleCriteres({ lignes }) {
+  if (!lignes?.length) return null;
+  const groupes = [];
+  for (const l of lignes) {
+    const g = groupes.find((x) => x.nom === l.groupe);
+    if (g) g.lignes.push(l);
+    else groupes.push({ nom: l.groupe, lignes: [l] });
+  }
+  const passes = lignes.filter((l) => l.ok === true).length;
+  const echecs = lignes.filter((l) => l.ok === false).length;
+  return (
+    <div className="border-b border-[#1f2228]">
+      <div className="flex items-baseline justify-between gap-4 px-5 pt-4 pb-2">
+        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Grille de critères</p>
+        <p className="m-0 text-[12px] text-[#6a7180]">
+          <span className="text-[#96c0b8]">{passes} ✓</span>
+          <span className="mx-2">·</span>
+          <span className={echecs ? "text-[#e8746a]" : ""}>{echecs} ✗</span>
+        </p>
+      </div>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="text-[10px] tracking-[.16em] uppercase text-[#6a7180]">
+            <th className="text-left font-normal px-5 py-2 w-[42%]">Notre critère</th>
+            <th className="text-left font-normal px-3 py-2">Le bien</th>
+            <th className="w-14" />
+          </tr>
+        </thead>
+        {groupes.map((g) => (
+          <tbody key={g.nom}>
+            <tr>
+              <td colSpan={3} className="px-5 pt-3 pb-1 text-[10px] tracking-[.16em] uppercase text-[#96c0b8]/80">
+                {g.nom}
+              </td>
+            </tr>
+            {g.lignes.map((l, i) => (
+              <tr key={`${g.nom}-${l.champ}-${i}`} className="border-t border-[#1f2228]/70" title={l.motif || undefined}>
+                <td className="px-5 py-2 align-top">
+                  <span className="block text-[13px] text-[#f2f3f5]">{l.critere}</span>
+                  <span className="block text-[11.5px] text-[#6a7180]">{l.attendu}</span>
+                </td>
+                <td className={`px-3 py-2 align-top text-[13px] ${l.valeur == null ? "text-[#6a7180] italic" : "text-[#c9cdd6]"}`}>
+                  {l.valeur == null ? "non renseigné" : l.valeur}
+                </td>
+                <td className="px-3 py-2 align-top text-center">
+                  {l.ok === true && <Check className="w-4 h-4 inline text-[#96c0b8]" strokeWidth={2.5} />}
+                  {l.ok === false && <X className="w-4 h-4 inline text-[#e8746a]" strokeWidth={2.5} />}
+                  {l.ok == null && <span className="text-[#6a7180]">—</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        ))}
+      </table>
+    </div>
+  );
+}
+
 const EMPLACEMENTS = [
   { code: "n1", libelle: "N°1" },
   { code: "n1_bis", libelle: "N°1 bis" },
@@ -508,11 +569,16 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
           <Badge className={`${v.classe} flex-shrink-0`}>{libelleVerdict(lot.evaluation.verdict)}</Badge>
         </div>
 
+        {lot.evaluation.profil && (
+          <p className="text-[#c3ddd6] text-xs mb-3">Profil : {lot.evaluation.profil.libelle}</p>
+        )}
+      </div>
+
+      <GrilleCriteres lignes={lot.evaluation.grille} />
+
+      <div className="p-5 border-b border-[#1f2228]">
         <p className="text-[#9298a6] text-sm leading-relaxed">{lot.synthese?.synthese}</p>
 
-        {lot.evaluation.profil && (
-          <p className="text-[#c3ddd6] text-xs mt-2">Profil : {lot.evaluation.profil.libelle}</p>
-        )}
 
         {lot.evaluation.reserves?.length > 0 && (
           <ul className="mt-3 space-y-1">

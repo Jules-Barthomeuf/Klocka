@@ -269,6 +269,186 @@ export function evaluer(lot, enrichissement) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// La grille : nos critères à gauche, le bien à droite, une croix ou une coche.
+//
+// Le verdict se lit ici ligne à ligne. Chaque ligne rejoue la même règle, avec
+// le même `comparer`, sur le même contexte : la grille et le verdict ne
+// peuvent pas se contredire. Calculée à la lecture, elle suit rules.json.
+// ---------------------------------------------------------------------------
+
+const LIBELLES_CHAMPS = {
+  occupe: 'Bien occupé',
+  categorie_activite: 'Activité du locataire',
+  activite_exclue: 'Activité exclue',
+  prix_fai: 'Prix FAI',
+  prix_aem: 'Prix acte en main',
+  loyer_annuel_ht_hc: 'Loyer annuel HT HC',
+  rendement_annonce: 'Rendement annoncé',
+  rendement_fai: 'Rendement FAI',
+  rendement_aem: 'Rendement AEM',
+  surface_m2: 'Surface',
+  adresse: 'Adresse',
+  locataire_nom: 'Locataire',
+  bail_echeance: 'Échéance du bail',
+  bail_type: 'Type de bail',
+  annees_bail_restantes: 'Bail restant',
+  typologie_ville: 'Typologie de ville',
+  population: 'Population',
+  ville_riche: 'Ville riche',
+  paris: 'Paris',
+  emplacement: 'Emplacement',
+  signature: 'Enseigne',
+  signature_confiance: "Signature de l'enseigne",
+  honoraires_inclus: 'Honoraires inclus',
+  extraction_confiance_basse: 'Lecture de la fiche',
+};
+
+const VALEURS_LISIBLES = {
+  petite_ville: 'petite ville',
+  ville_moyenne: 'ville moyenne',
+  grande_ville: 'grande ville',
+  metropole: 'métropole',
+  a_qualifier: 'à qualifier',
+  n1: 'n°1',
+  n1_bis: 'n°1 bis',
+  n2: 'n°2',
+  basse: 'basse',
+  moyenne: 'moyenne',
+  haute: 'haute',
+  etablissement_de_nuit: 'établissement de nuit',
+  profession_liberale: 'profession libérale',
+  restauration_rapide_kebab: 'restauration rapide',
+};
+
+const lisible = (v) => (v in VALEURS_LISIBLES ? VALEURS_LISIBLES[v] : String(v).replace(/_/g, ' '));
+
+function formaterValeur(champ, v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'boolean') return v ? 'oui' : 'non';
+  if (champ === 'adresse' && typeof v === 'object') return [v.rue, v.ville].filter(Boolean).join(', ') || null;
+  if (typeof v === 'number') {
+    if (/prix|loyer/.test(champ)) return `${Math.round(v).toLocaleString('fr-FR')} €`;
+    if (/rendement/.test(champ)) return `${v} %`;
+    if (champ === 'surface_m2') return `${v} m²`;
+    if (champ === 'annees_bail_restantes') return `${Math.round(v * 10) / 10} an${v >= 2 ? 's' : ''}`;
+    if (champ === 'population') return `${Math.round(v).toLocaleString('fr-FR')} hab.`;
+    return String(v);
+  }
+  if (Array.isArray(v)) return v.map(lisible).join(', ');
+  return lisible(v);
+}
+
+function formaterAttendu(champ, condition, attendu) {
+  const f = (x) => formaterValeur(champ, x) ?? lisible(x);
+  switch (condition) {
+    case 'egal': return typeof attendu === 'boolean' ? (attendu ? 'oui' : 'non') : f(attendu);
+    case 'different': return `≠ ${f(attendu)}`;
+    case 'superieur': return `> ${f(attendu)}`;
+    case 'superieur_ou_egal': return `≥ ${f(attendu)}`;
+    case 'inferieur': return `< ${f(attendu)}`;
+    case 'inferieur_ou_egal': return `≤ ${f(attendu)}`;
+    case 'entre': return `entre ${f(attendu[0])} et ${f(attendu[1])}`;
+    case 'dans': return (attendu || []).map(lisible).join(' ou ');
+    case 'pas_dans': return `hors ${(attendu || []).map(lisible).join(', ')}`;
+    case 'vrai': return 'oui';
+    case 'faux': return 'non';
+    default: return String(attendu);
+  }
+}
+
+// Une condition « interdite » (knock-out, réserve) se lit à l'envers : ce que
+// nous voulons, c'est son contraire.
+const CONTRAIRE = {
+  egal: 'different', different: 'egal', superieur: 'inferieur_ou_egal', superieur_ou_egal: 'inferieur',
+  inferieur: 'superieur_ou_egal', inferieur_ou_egal: 'superieur', dans: 'pas_dans', pas_dans: 'dans',
+  vrai: 'faux', faux: 'vrai',
+};
+
+/**
+ * La grille d'un lot évalué.
+ * @param {{contexte: object, profil?: object, trace?: object}} evaluation
+ * @returns {Array<{groupe, champ, critere, attendu, valeur, ok: boolean|null, motif?}>}
+ */
+export function grilleCriteres(evaluation) {
+  const ctx = evaluation?.contexte;
+  if (!ctx) return [];
+  const lignes = [];
+  const absent = (v) => v === null || v === undefined || v === '';
+
+  // 1. Exclusions : ce que nous n'achetons pas.
+  for (const ko of REGLES.knock_outs || []) {
+    const v = ctx[ko.champ];
+    const declenche = comparer(ko.condition, v, ko.valeur);
+    lignes.push({
+      groupe: 'Exclusions',
+      champ: ko.champ,
+      critere: LIBELLES_CHAMPS[ko.champ] || ko.champ,
+      attendu: formaterAttendu(ko.champ, CONTRAIRE[ko.condition] || ko.condition, ko.valeur),
+      valeur: formaterValeur(ko.champ, v),
+      ok: absent(v) ? null : !declenche,
+      motif: declenche ? ko.motif : null,
+    });
+  }
+
+  // 2. Données clés : sans elles, pas de décision.
+  const conf = REGLES.donnees_requises || {};
+  for (const champ of conf.champs || []) {
+    const v = ctx[champ];
+    const manque = absent(v) || (champ === 'adresse' && !v?.ville && !v?.rue);
+    lignes.push({
+      groupe: 'Données clés',
+      champ,
+      critere: LIBELLES_CHAMPS[champ] || conf.libelles?.[champ] || champ,
+      attendu: 'renseigné',
+      valeur: formaterValeur(champ, v),
+      ok: !manque,
+    });
+  }
+
+  // 3. Profil : celui retenu ; sinon celui qui passe le plus de critères — on
+  //    montre ce qui a manqué de peu, pas une liste arbitraire.
+  const profils = (REGLES.profils?.liste || []).filter((p) => p.actif && (p.criteres || []).length);
+  let cible = null;
+  if (evaluation.profil?.code) {
+    cible = profils.find((p) => p.code === evaluation.profil.code && p.criteres.every((c) => comparer(c.condition, ctx[c.champ], c.valeur)))
+      || profils.find((p) => p.code === evaluation.profil.code);
+  } else if (profils.length) {
+    cible = profils
+      .map((p) => ({ p, n: p.criteres.filter((c) => comparer(c.condition, ctx[c.champ], c.valeur)).length / p.criteres.length }))
+      .sort((a, b) => b.n - a.n)[0].p;
+  }
+  if (cible) {
+    for (const c of cible.criteres) {
+      const v = ctx[c.champ];
+      lignes.push({
+        groupe: cible.libelle,
+        champ: c.champ,
+        critere: LIBELLES_CHAMPS[c.champ] || c.champ,
+        attendu: formaterAttendu(c.champ, c.condition, c.valeur),
+        valeur: formaterValeur(c.champ, v),
+        ok: absent(v) ? null : comparer(c.condition, v, c.valeur),
+      });
+    }
+  }
+
+  // 4. Réserves : ce qui reste à lever avant de décider.
+  for (const r of REGLES.reserves?.liste || []) {
+    const v = ctx[r.champ];
+    const declenche = comparer(r.condition, v, r.valeur);
+    lignes.push({
+      groupe: 'Réserves',
+      champ: r.champ,
+      critere: LIBELLES_CHAMPS[r.champ] || r.champ,
+      attendu: formaterAttendu(r.champ, CONTRAIRE[r.condition] || r.condition, r.valeur),
+      valeur: formaterValeur(r.champ, v),
+      ok: absent(v) ? null : !declenche,
+      motif: declenche ? r.motif : null,
+    });
+  }
+  return lignes;
+}
+
 /** Signalé au démarrage : un moteur sans profil ne peut pas trancher. */
 export function profilsConfigures() {
   return (REGLES.profils?.liste || []).filter((p) => p.actif && (p.criteres || []).length).length;

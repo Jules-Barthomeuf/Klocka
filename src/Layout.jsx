@@ -395,7 +395,8 @@ function LayoutContent({ children, currentPageName }) {
       </main>
 
       {/* L'assistant suit l'admin de page en page. */}
-      {isAdmin && !hideNavbar && <AssistantFlottant />}
+      {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}
+      {isAdmin && !hideNavbar && currentPageName !== "Note" && <AssistantFlottant />}
 
       {/* Barre d'onglets mobile */}
       {!hideNavbar && showClientView && <BottomTabs />}

@@ -342,7 +342,7 @@ export default function AssistantFlottant() {
                     onClick={() => envoyerMail.mutate()}
                     disabled={!brouillon.destinataire.trim() || !brouillon.objet.trim() || envoyerMail.isPending}
                     style={{
-                      background: OR, border: 0, borderRadius: 6, color: FOND, fontSize: 12, fontWeight: 500,
+                      background: OR, border: 0, borderRadius: 9999, color: FOND, fontSize: 12, fontWeight: 500,
                       padding: "5px 12px", cursor: "pointer", fontFamily: SANS,
                       opacity: !brouillon.destinataire.trim() || !brouillon.objet.trim() ? 0.4 : 1,
                     }}

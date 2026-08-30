@@ -100,10 +100,14 @@ input[type=range] { accent-color: #96c0b8; }
    remplissages clairs d'hier (ivoire) deviennent la menthe du site ; les
    contours restent des contours. Les champs, onglets et cases ne bougent pas. */
 button.rounded-md, a.rounded-md, button.rounded-lg, a.rounded-lg { border-radius: 9999px; }
-button.bg-\[\#96c0b8\], a.bg-\[\#96c0b8\] { border-radius: 9999px; }
-button.bg-\[\#f2f3f5\], a.bg-\[\#f2f3f5\] { background-color: #96c0b8; color: #000000; border-radius: 9999px; }
-button.bg-\[\#f2f3f5\]:hover, a.bg-\[\#f2f3f5\]:hover { background-color: #abd0c8; }
-button.bg-\[\#ffffff\] { border-radius: 9999px; }
+/* Tout ce qui est rempli de menthe est une pilule — bouton, lien, ou élément
+   qui se fait passer pour un bouton. Le sélecteur d'attribut vise le jeton
+   exact « bg-[#96c0b8] » : les fonds teintés (…/[0.06]) ne sont pas touchés. */
+[class~="bg-[#96c0b8]"] { border-radius: 9999px !important; }
+button[class*="border-[#96c0b8]"], a[class*="border-[#96c0b8]"] { border-radius: 9999px !important; }
+button[class~="bg-[#f2f3f5]"], a[class~="bg-[#f2f3f5]"] { background-color: #96c0b8; color: #000000; border-radius: 9999px !important; }
+button[class~="bg-[#f2f3f5]"]:hover, a[class~="bg-[#f2f3f5]"]:hover { background-color: #abd0c8; }
+button[class~="bg-[#ffffff]"] { border-radius: 9999px !important; }
 
 /* Page projet — identité éditoriale (maquette "Page Projet Klocka") */
 .projet-editorial ::selection { background: rgba(150, 192, 184, .3); }

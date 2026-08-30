@@ -2,7 +2,7 @@
   "name": "Klocka",
   "short_name": "Klocka",
   "description": "L'immobilier commercial clé en main.",
-  "start_url": "/Note",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

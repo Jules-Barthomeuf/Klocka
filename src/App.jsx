@@ -19,6 +19,7 @@ import Banque from '@/pages/Banque';
 
 import Portail from '@/pages/Portail';
 import Bienvenue from "./pages/Bienvenue";
+import Installer from "./pages/Installer";
 import Alexis from "./pages/Alexis";
 
 // Ce qu'un client peut ouvrir : son parcours, ses projets, ses outils. Tout le
@@ -68,11 +69,12 @@ const AuthenticatedApp = () => {
   const isNewUserPage = location.pathname === '/NewUserWelcome';
 
   // Public pages accessible sans authentification (paiement, liens publics)
-  const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic', '/Bienvenue'];
+  const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic', '/Bienvenue', '/Installer'];
   if (publicPaths.includes(location.pathname)) {
     return (
       <Routes>
         <Route path="/Bienvenue" element={<Bienvenue />} />
+        <Route path="/Installer" element={<Installer />} />
         <Route path="/Portail" element={<Portail />} />
         <Route path="/Portail2Fois" element={<Portail2Fois />} />
         <Route path="/SimulateurPublic" element={<SimulateurPublic />} />

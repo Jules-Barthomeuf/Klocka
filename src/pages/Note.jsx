@@ -68,6 +68,15 @@ export default function Note() {
               Note
             </h1>
           </div>
+          <a
+            href="/Installer"
+            target="_blank"
+            rel="noopener"
+            className="text-[11px] tracking-[.14em] uppercase text-[#6a7180] hover:text-[#96c0b8] transition-colors"
+            title="La page à envoyer pour installer l'application"
+          >
+            Lien d'installation
+          </a>
           {messages.length > 0 && (
             <button
               onClick={recommencer}

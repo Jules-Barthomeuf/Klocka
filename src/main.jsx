@@ -18,5 +18,10 @@ if (import.meta.hot) {
   });
 }
 
-
-
+// Installable : le service worker n'intercepte rien, il rend seulement
+// l'application éligible à « Ajouter à l'écran d'accueil » partout.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

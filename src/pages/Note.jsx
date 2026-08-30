@@ -147,7 +147,7 @@ export default function Note() {
                   ? "La note part quand vous vous taisez. Arrêtez pour relire."
                   : supporte
                     ? "Le micro écoute en français."
-                    : "Dictée non prise en charge ici : utilisez celle du clavier."}
+                    : "Ce navigateur n'a pas la reconnaissance vocale — Chrome, Edge ou Safari l'ont, pas Firefox ni l'aperçu intégré de VS Code. La dictée du clavier marche dans le champ."}
               </span>
               <div className="flex items-center gap-2">
                 {supporte && (

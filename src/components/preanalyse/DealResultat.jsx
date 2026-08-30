@@ -704,7 +704,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
       {ongletsOuverts && (
         <div className="px-5 pb-5">
           <Tabs defaultValue="carte">
-            <TabsList className="bg-[#000000] border border-[#1f2228] mb-4">
+            <TabsList className="mb-4 gap-5">
               <TabsTrigger value="extraction">Données extraites</TabsTrigger>
               <TabsTrigger value="enrichissement">Enrichissement</TabsTrigger>
               <TabsTrigger value="carte">Lieu</TabsTrigger>

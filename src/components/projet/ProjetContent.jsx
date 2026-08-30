@@ -683,7 +683,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               // affiche, leur contenu est rendu par le parent.
               ...ongletsSupplementaires.map((o) => ({ v: o.value, l: o.label })),
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent border-0 border-b border-transparent text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:border-[#96c0b8] data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-colors duration-200">
+              <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:text-[#f2f3f5] transition-colors duration-200">
                 {l}
               </TabsTrigger>
             ))}

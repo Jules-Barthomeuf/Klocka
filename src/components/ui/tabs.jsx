@@ -3,13 +3,17 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
+// Les onglets, dans la grammaire du site : des mots en petites capitales sur
+// un filet, et sous celui qui est ouvert un trait d'un pixel, menthe. Pas de
+// boîte, pas de pastille, pas de fond — un trait.
+
 const Tabs = TabsPrimitive.Root
 
 const TabsList = React.forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-9 items-center justify-center rounded-[5px] border border-[#1f2228] bg-[#0f1114] p-[3px] text-[#9298a6]",
+      "inline-flex h-auto items-end gap-6 rounded-none border-0 border-b border-[#1f2228] bg-transparent p-0 text-[#9298a6]",
       className
     )}
     {...props} />
@@ -20,7 +24,9 @@ const TabsTrigger = React.forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded px-3 py-1 text-[12.5px] transition-colors hover:text-[#c9cdd6] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#96c0b8] disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-[#96c0b8]/10 data-[state=active]:text-[#96c0b8]",
+      // Le trait est un pseudo-élément posé sur le filet de la liste : il ne
+      // dépend d'aucune bordure, et n'hérite d'aucun arrondi.
+      "relative inline-flex items-center justify-center whitespace-nowrap rounded-none border-0 bg-transparent px-0 pb-2.5 pt-1 text-[11px] uppercase tracking-[0.16em] text-[#9298a6] transition-colors hover:text-[#f2f3f5] focus-visible:outline-none focus-visible:text-[#f2f3f5] disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-transparent after:transition-colors data-[state=active]:after:bg-[#96c0b8]",
       className
     )}
     {...props} />

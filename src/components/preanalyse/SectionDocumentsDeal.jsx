@@ -238,7 +238,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
 
       <div className="p-5">
         <Tabs defaultValue={documents.length ? "extraction" : "depot"}>
-          <TabsList className="bg-[#000000] border border-[#1f2228] mb-4">
+          <TabsList className="mb-4 gap-5">
             <TabsTrigger value="depot">Dépôt</TabsTrigger>
             <TabsTrigger value="extraction" disabled={!documents.length}>
               Extraction

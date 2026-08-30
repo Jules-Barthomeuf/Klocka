@@ -28,11 +28,6 @@ const MODES = [
   { id: "echeances", label: "Échéances", placeholder: "« Relance tous ceux qui n'ont pas répondu depuis cinq jours »", bouton: "Envoyer" },
 ];
 
-const EXEMPLES_NOTE = [
-  "J'ai eu Marc Dupont de chez Orpi, marc@orpi.fr, il a un local à Lyon 3e à 400 000 €, loué à une boulangerie, il m'envoie les documents d'ici jeudi.",
-  "Note que le syndic nous doit le règlement de copropriété de Mitry-Mory avant fin de mois.",
-];
-
 const CHAMPS = [
   ["prenom", "Prénom"], ["nom", "Nom"], ["email", "E-mail"], ["telephone", "Téléphone"],
   ["fonction", "Fonction"], ["localisation", "Localisation"], ["lieu_recherche", "Lieu de recherche"],
@@ -651,19 +646,6 @@ export default function ChatDashboard() {
           <p className="m-0 mt-2 text-[11.5px] text-[#6a7180]">
             Le dossier est créé et nommé d'après la fiche, passé à la grille de critères, et les clients qui correspondent sont cherchés. Ctrl+Entrée pour lancer.
           </p>
-        )}
-        {mode === "note" && messages.length === 0 && !ecoute && (
-          <div className="mt-2 space-y-1">
-            <p className="m-0 text-[11.5px] text-[#6a7180]">
-              En raccrochant : l'assistant ouvre le dossier, inscrit l'agent, pose le bien dans Monday et note ce qui a été promis.
-              {supporte ? " Le micro écoute en français ; la note part quand vous vous taisez." : ""}
-            </p>
-            {EXEMPLES_NOTE.map((ex) => (
-              <button key={ex} onClick={() => setTexte(ex)} className="block w-full text-left text-[12px] leading-[1.5] text-[#6a7180] hover:text-[#c9cdd6] border-l-2 border-[#22262d] pl-3 transition-colors">
-                {ex}
-              </button>
-            ))}
-          </div>
         )}
       </div>
 

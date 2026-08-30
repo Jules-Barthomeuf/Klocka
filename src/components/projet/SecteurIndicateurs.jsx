@@ -213,7 +213,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="w-10 h-10 text-[#8fa0f2] animate-spin" />
+        <Loader2 className="w-10 h-10 text-[#96c0b8] animate-spin" />
         <p className="text-[#9298a6] text-sm">Récupération des données INSEE...</p>
         <p className="text-[#9298a6] text-xs">{adresse}</p>
       </div>
@@ -240,7 +240,7 @@ IMPORTANT: Remplis un maximum de champs avec les VRAIES données INSEE. Ne laiss
         <div>
           <h2 className="text-2xl font-cormorant text-[#f2f3f5]">{data.ville}</h2>
           <div className="flex items-center gap-3 mt-1">
-            <Badge className="bg-[#8fa0f2]/20 text-[#8fa0f2] border-0">INSEE {data.code_insee}</Badge>
+            <Badge className="bg-[#96c0b8]/20 text-[#96c0b8] border-0">INSEE {data.code_insee}</Badge>
             <span className="text-sm text-[#9298a6]">Données {data.annee_donnees || 2022}</span>
           </div>
         </div>

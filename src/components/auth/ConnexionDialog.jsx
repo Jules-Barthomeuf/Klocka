@@ -127,14 +127,14 @@ export function ConnexionPanel({ invitation = null } = {}) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="vous@exemple.fr"
-                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#8fa0f2] placeholder:text-[#6a7180]"
+                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#96c0b8] placeholder:text-[#6a7180]"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!email.trim() || enCours}
-              className="w-full rounded-none bg-transparent border border-[#8fa0f2] text-[#aab6f5] hover:bg-[#8fa0f2]/[0.16] hover:text-[#aab6f5] text-[11px] tracking-[0.16em] uppercase h-11"
+              className="w-full rounded-none bg-transparent border border-[#96c0b8] text-[#c3ddd6] hover:bg-[#96c0b8]/[0.16] hover:text-[#c3ddd6] text-[11px] tracking-[0.16em] uppercase h-11"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Continuer <ArrowRight className="w-4 h-4 ml-2" />
@@ -148,7 +148,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
             <p className="text-[12px] text-[#6a7180] text-center pt-1 mb-0">
               Pas encore client ?{" "}
               <a href="https://dpe3smipjxh.typeform.com/to/GD7sREFs" target="_blank" rel="noopener noreferrer"
-                className="text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
+                className="text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
                 Créez un compte
               </a>
             </p>
@@ -171,14 +171,14 @@ export function ConnexionPanel({ invitation = null } = {}) {
                 type="password"
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}
-                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#8fa0f2] placeholder:text-[#6a7180]"
+                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#96c0b8] placeholder:text-[#6a7180]"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!motDePasse || enCours}
-              className="w-full rounded-none bg-transparent border border-[#8fa0f2] text-[#aab6f5] hover:bg-[#8fa0f2]/[0.16] hover:text-[#aab6f5] text-[11px] tracking-[0.16em] uppercase h-11"
+              className="w-full rounded-none bg-transparent border border-[#96c0b8] text-[#c3ddd6] hover:bg-[#96c0b8]/[0.16] hover:text-[#c3ddd6] text-[11px] tracking-[0.16em] uppercase h-11"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Se connecter
@@ -209,7 +209,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
                 type="password"
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}
-                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#8fa0f2] placeholder:text-[#6a7180]"
+                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#96c0b8] placeholder:text-[#6a7180]"
               />
             </div>
             <div>
@@ -218,14 +218,14 @@ export function ConnexionPanel({ invitation = null } = {}) {
                 type="password"
                 value={confirmation}
                 onChange={(e) => setConfirmation(e.target.value)}
-                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#8fa0f2] placeholder:text-[#6a7180]"
+                className="bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] rounded-none px-0 text-[15px] text-[#f2f3f5] focus-visible:ring-0 focus-visible:border-[#96c0b8] placeholder:text-[#6a7180]"
               />
             </div>
             {erreur && <Erreur texte={erreur} />}
             <Button
               type="submit"
               disabled={!motDePasse || !confirmation || enCours}
-              className="w-full rounded-none bg-transparent border border-[#8fa0f2] text-[#aab6f5] hover:bg-[#8fa0f2]/[0.16] hover:text-[#aab6f5] text-[11px] tracking-[0.16em] uppercase h-11"
+              className="w-full rounded-none bg-transparent border border-[#96c0b8] text-[#c3ddd6] hover:bg-[#96c0b8]/[0.16] hover:text-[#c3ddd6] text-[11px] tracking-[0.16em] uppercase h-11"
             >
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Enregistrer et entrer
@@ -290,7 +290,7 @@ function EnTete({ icone: Icone, titre, sousTitre, badge }) {
       <div className="flex items-center gap-2.5">
         <h2 className="text-[#f2f3f5] text-[22px] font-light tracking-[-0.02em] m-0">{titre}</h2>
         {badge && (
-          <span className="text-[9px] tracking-[0.14em] uppercase text-[#a9c5b9] border border-[#a9c5b9]/40 rounded-full px-2 py-px">{badge}</span>
+          <span className="text-[9px] tracking-[0.14em] uppercase text-[#96c0b8] border border-[#96c0b8]/40 rounded-full px-2 py-px">{badge}</span>
         )}
       </div>
       {sousTitre && <p className="text-[#9298a6] text-[12.5px] mt-1.5 mb-0 break-all">{sousTitre}</p>}

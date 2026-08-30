@@ -30,7 +30,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" 
   if (!MAPS_KEY) {
     return (
       <div className={`${hauteur} rounded-md border border-[#1f2228] bg-[#000000] flex flex-col items-center justify-center gap-3 text-center px-6`}>
-        <MapPin className="w-6 h-6 text-[#8fa0f2]/50" />
+        <MapPin className="w-6 h-6 text-[#96c0b8]/50" />
         <p className="text-[#9298a6] text-xs max-w-sm">
           Carte intégrée indisponible : renseignez <code className="text-[#c9cdd6]">VITE_GOOGLE_MAPS_API_KEY</code>{" "}
           dans <code className="text-[#c9cdd6]">.env</code> (clé Maps Embed API).
@@ -39,7 +39,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" 
           href={lienExterne}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#aab6f5] hover:text-[#f2f3f5] text-xs flex items-center gap-1.5 transition-colors"
+          className="text-[#c3ddd6] hover:text-[#f2f3f5] text-xs flex items-center gap-1.5 transition-colors"
         >
           Ouvrir dans Google Maps <ExternalLink className="w-3 h-3" />
         </a>

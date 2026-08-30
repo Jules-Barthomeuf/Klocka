@@ -76,7 +76,7 @@ export function ValeurEditable({ champ, children, type = "number" }) {
           if (e.key === "Enter") { e.preventDefault(); valider(); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className="bg-[#0f1413] border border-[#8fa0f2] text-[#f2f3f5] rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit"
+        className="bg-[#0f1413] border border-[#96c0b8] text-[#f2f3f5] rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit"
         style={{ fontVariantNumeric: "tabular-nums" }}
       />
     );
@@ -91,7 +91,7 @@ export function ValeurEditable({ champ, children, type = "number" }) {
         setBrouillon(valeurInitiale());
         setOuvert(true);
       }}
-      className="text-inherit font-inherit bg-transparent border-0 p-0 text-left cursor-text rounded-[3px] px-0.5 -mx-0.5 hover:bg-[#8fa0f2]/[0.18] hover:shadow-[inset_0_-1px_0_#8fa0f2] transition-colors"
+      className="text-inherit font-inherit bg-transparent border-0 p-0 text-left cursor-text rounded-[3px] px-0.5 -mx-0.5 hover:bg-[#96c0b8]/[0.18] hover:shadow-[inset_0_-1px_0_#96c0b8] transition-colors"
     >
       {children}
     </button>
@@ -120,7 +120,7 @@ export function TexteEditable({ champ, children, className = "" }) {
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setOuvert(false); edition.onChamp(champ, brouillon, true); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className={`w-full bg-[#0f1413] border border-[#8fa0f2] text-[#f2f3f5] rounded px-3 py-2 outline-none text-[14px] leading-[1.7] ${className}`}
+        className={`w-full bg-[#0f1413] border border-[#96c0b8] text-[#f2f3f5] rounded px-3 py-2 outline-none text-[14px] leading-[1.7] ${className}`}
       />
     );
   }
@@ -134,7 +134,7 @@ export function TexteEditable({ champ, children, className = "" }) {
         setBrouillon(String(lireChemin(edition.valeurs, champ) ?? ""));
         setOuvert(true);
       }}
-      className={`block w-full text-left text-inherit font-inherit bg-transparent border-0 p-0 cursor-text rounded-[3px] hover:bg-[#8fa0f2]/[0.10] hover:shadow-[inset_0_-1px_0_#8fa0f2] transition-colors ${className}`}
+      className={`block w-full text-left text-inherit font-inherit bg-transparent border-0 p-0 cursor-text rounded-[3px] hover:bg-[#96c0b8]/[0.10] hover:shadow-[inset_0_-1px_0_#96c0b8] transition-colors ${className}`}
     >
       {children}
       <span className="block text-right"><BoutonMasquer champ={champ} titre="Supprimer ce bloc" /></span>
@@ -200,7 +200,7 @@ export function ChampsPersonnalises({ zone, project }) {
                 key={champ.id || i}
                 {...proprietesGlisser(i)}
                 className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 border-l first:border-l-0 md:pl-6 transition-colors
-                  ${survole === i ? "border-[#8fa0f2] bg-[#8fa0f2]/[0.06]" : "border-[#f2f3f5]/[0.12]"}
+                  ${survole === i ? "border-[#96c0b8] bg-[#96c0b8]/[0.06]" : "border-[#f2f3f5]/[0.12]"}
                   ${edition?.onChamp ? "cursor-grab active:cursor-grabbing" : ""}`}
               >
                 <div className="font-cormorant text-[26px] max-md:text-[20px] font-light text-[#f2f3f5]" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -232,7 +232,7 @@ export function ChampsPersonnalises({ zone, project }) {
               onDragLeave={() => setSurvole((v) => (v === i ? null : v))}
               onDrop={(e) => { e.preventDefault(); setSurvole(null); deplacer(source.current, i); }}
               className={`flex justify-between items-start gap-4 py-2.5 text-sm border-t transition-colors
-                ${survole === i ? "border-[#8fa0f2] bg-[#8fa0f2]/[0.06]" : "border-[#f2f3f5]/[0.12]"}
+                ${survole === i ? "border-[#96c0b8] bg-[#96c0b8]/[0.06]" : "border-[#f2f3f5]/[0.12]"}
                 ${edition?.onChamp ? "cursor-grab active:cursor-grabbing" : ""}`}
             >
               <span className="text-[#9298a6] flex-shrink-0 flex items-center gap-2">

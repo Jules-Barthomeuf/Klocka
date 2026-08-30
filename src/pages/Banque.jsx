@@ -32,7 +32,7 @@ export default function Banque() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[#8fa0f2]" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#96c0b8]" />
           </div>
         ) : presentations.length === 0 ? (
           <div className="border-t border-[#f2f3f5]/[0.35] pt-10 pb-16 text-center">
@@ -48,7 +48,7 @@ export default function Banque() {
                 <button
                   key={pres.id}
                   onClick={() => setViewPres(pres)}
-                  className="text-left bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden hover:border-[#8fa0f2]/60 transition-colors group"
+                  className="text-left bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden hover:border-[#96c0b8]/60 transition-colors group"
                 >
                   {/* Slide preview thumbnail */}
                   <div className="relative w-full aspect-video overflow-hidden pointer-events-none">
@@ -68,7 +68,7 @@ export default function Banque() {
                    <p className="text-[#f2f3f5] font-light text-lg truncate">{pres.project_title}</p>
                    <div className="flex items-center justify-between mt-1">
                      <p className="text-[#9298a6] text-xs">{pres.slides?.length || 0} slides — {new Date(pres.created_date).toLocaleDateString('fr-FR')}</p>
-                     <p className="text-[#8fa0f2] text-xs group-hover:underline">Voir →</p>
+                     <p className="text-[#96c0b8] text-xs group-hover:underline">Voir →</p>
                    </div>
                    {pres.pptx_url && (
                      <a
@@ -76,10 +76,10 @@ export default function Banque() {
                        target="_blank"
                        rel="noopener noreferrer"
                        onClick={(e) => e.stopPropagation()}
-                       className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#a9c5b9]/10 border border-[#a9c5b9]/20 hover:bg-[#a9c5b9]/20 transition-colors w-fit"
+                       className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#96c0b8]/10 border border-[#96c0b8]/20 hover:bg-[#96c0b8]/20 transition-colors w-fit"
                      >
-                       <ExternalLink className="w-3.5 h-3.5 text-[#a9c5b9]" />
-                       <span className="text-[#a9c5b9] text-xs font-medium">Ouvrir la présentation (Google Slides)</span>
+                       <ExternalLink className="w-3.5 h-3.5 text-[#96c0b8]" />
+                       <span className="text-[#96c0b8] text-xs font-medium">Ouvrir la présentation (Google Slides)</span>
                      </a>
                    )}
                   </div>

@@ -73,12 +73,12 @@ export default function DashboardSuggestedResources({ user }) {
     >
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-[#a9c5b9]" />
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#a9c5b9] m-0">Ressource suggérée</p>
+          <Sparkles className="w-3.5 h-3.5 text-[#96c0b8]" />
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#96c0b8] m-0">Ressource suggérée</p>
         </div>
         <button
           onClick={() => navigate(createPageUrl("Ressources"))}
-          className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.16em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors"
+          className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.16em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors"
         >
           Toutes les ressources
           <ArrowRight className="w-3 h-3" />
@@ -87,7 +87,7 @@ export default function DashboardSuggestedResources({ user }) {
 
       <div
         onClick={handleOpen}
-        className="group cursor-pointer flex gap-4 bg-[#000000] border border-[#f2f3f5]/[0.12] hover:border-[#8fa0f2]/60 transition-colors duration-300 overflow-hidden"
+        className="group cursor-pointer flex gap-4 bg-[#000000] border border-[#f2f3f5]/[0.12] hover:border-[#96c0b8]/60 transition-colors duration-300 overflow-hidden"
       >
         {/* Thumbnail */}
         <div className="relative w-40 md:w-52 flex-shrink-0 overflow-hidden bg-[#f2f3f5]/[0.02]">
@@ -100,7 +100,7 @@ export default function DashboardSuggestedResources({ user }) {
             />
           ) : (
             <div className="w-full h-full min-h-[100px] flex items-center justify-center">
-              <Play className="w-10 h-10 text-[#8fa0f2]/30" />
+              <Play className="w-10 h-10 text-[#96c0b8]/30" />
             </div>
           )}
           <div className="absolute inset-0 flex items-center justify-center bg-[#000000]/30 group-hover:bg-[#000000]/20 transition-colors">
@@ -109,7 +109,7 @@ export default function DashboardSuggestedResources({ user }) {
             </div>
           </div>
           {viewedResources.includes(resource.id) && (
-            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#8fa0f2] flex items-center justify-center">
+            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#96c0b8] flex items-center justify-center">
               <CheckCircle2 className="w-3 h-3 text-[#f2f3f5]" />
             </div>
           )}
@@ -123,7 +123,7 @@ export default function DashboardSuggestedResources({ user }) {
 
         {/* Info */}
         <div className="flex-1 py-3 pr-4 flex flex-col justify-center">
-          <h3 className="text-[#f2f3f5] text-sm md:text-base font-medium mb-1.5 group-hover:text-[#aab6f5] transition-colors leading-snug">
+          <h3 className="text-[#f2f3f5] text-sm md:text-base font-medium mb-1.5 group-hover:text-[#c3ddd6] transition-colors leading-snug">
             {resource.titre}
           </h3>
           <p className="text-[#f2f3f5]/50 text-[11px] md:text-xs leading-relaxed">

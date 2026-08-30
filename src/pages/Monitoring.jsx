@@ -40,7 +40,7 @@ function Chiffre({ icone: Icone, valeur, libelle }) {
 function Barre({ part }) {
   return (
     <div className="h-1.5 rounded-full bg-[#f2f3f5]/[0.06] overflow-hidden">
-      <div className="h-full bg-[#a9c5b9]" style={{ width: `${Math.max(2, part * 100)}%` }} />
+      <div className="h-full bg-[#96c0b8]" style={{ width: `${Math.max(2, part * 100)}%` }} />
     </div>
   );
 }
@@ -69,7 +69,7 @@ export default function Monitoring() {
   if (error) {
     return (
       <div className="bg-[#000000] min-h-screen text-[#f2f3f5] p-8">
-        <p className="text-[13.5px] text-[#a9c5b9]">{error.message || "Accès refusé."}</p>
+        <p className="text-[13.5px] text-[#96c0b8]">{error.message || "Accès refusé."}</p>
       </div>
     );
   }
@@ -96,7 +96,7 @@ export default function Monitoring() {
                 onClick={() => setJours(f.jours)}
                 className={`px-3 py-1.5 rounded-md text-[12.5px] border transition-colors ${
                   jours === f.jours
-                    ? "border-[#a9c5b9] text-[#a9c5b9] bg-[#a9c5b9]/[0.1]"
+                    ? "border-[#96c0b8] text-[#96c0b8] bg-[#96c0b8]/[0.1]"
                     : "border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"
                 }`}
               >
@@ -122,7 +122,7 @@ export default function Monitoring() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
               {/* Par personne */}
               <div className="border border-[#1f2228] rounded-md p-4">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#a9c5b9] font-normal">
+                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#96c0b8] font-normal">
                   Par personne
                 </h2>
                 {data.personnes.length === 0 ? (
@@ -146,7 +146,7 @@ export default function Monitoring() {
                         <tr key={p.email} className="border-b border-[#15171b]">
                           <td className="py-2.5 text-[12.5px] text-[#f2f3f5] truncate max-w-[190px]">
                             {p.email}
-                            {p.role === "admin" && <span className="text-[#a9c5b9] text-[10px] ml-1.5">admin</span>}
+                            {p.role === "admin" && <span className="text-[#96c0b8] text-[10px] ml-1.5">admin</span>}
                           </td>
                           <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#c9cdd6]">{p.visites}</td>
                           <td className="py-2.5 text-right text-[12.5px] tabular-nums text-[#c9cdd6]">{p.requetes}</td>
@@ -163,7 +163,7 @@ export default function Monitoring() {
 
               {/* Par page */}
               <div className="border border-[#1f2228] rounded-md p-4">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#a9c5b9] font-normal">
+                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#96c0b8] font-normal">
                   Pages les plus consultées
                 </h2>
                 {data.pages.length === 0 ? (
@@ -187,7 +187,7 @@ export default function Monitoring() {
             {/* Outils de l'assistant */}
             {data.outils.length > 0 && (
               <div className="border border-[#1f2228] rounded-md p-4 mb-8">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#a9c5b9] font-normal">
+                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-[#96c0b8] font-normal">
                   Outils de l'assistant les plus appelés
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
@@ -210,7 +210,7 @@ export default function Monitoring() {
         {couts && (
           <div className="border border-[#1f2228] rounded-md p-4 mb-8">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#a9c5b9] font-normal flex items-center gap-2">
+              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#96c0b8] font-normal flex items-center gap-2">
                 <Coins className="w-3.5 h-3.5" /> Ce que coûte l'IA
               </h2>
               <span className="text-[12.5px] text-[#f2f3f5] tabular-nums">
@@ -255,7 +255,7 @@ export default function Monitoring() {
         {/* Historique complet des demandes à l'assistant */}
         <div className="border border-[#1f2228] rounded-md p-4">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#a9c5b9] font-normal">
+            <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#96c0b8] font-normal">
               Toutes les demandes à l'assistant
             </h2>
             <span className="text-[11.5px] text-[#6a7180]">
@@ -316,7 +316,7 @@ export default function Monitoring() {
                                   key={`${o}-${i}`}
                                   className={`text-[11px] px-2 py-0.5 rounded-full border ${
                                     r.actions?.includes(o)
-                                      ? "border-[#a9c5b9]/40 text-[#a9c5b9] bg-[#a9c5b9]/[0.1]"
+                                      ? "border-[#96c0b8]/40 text-[#96c0b8] bg-[#96c0b8]/[0.1]"
                                       : "border-[#22262d] text-[#9298a6]"
                                   }`}
                                   title={r.actions?.includes(o) ? "A modifié quelque chose" : "Lecture seule"}

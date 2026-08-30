@@ -25,7 +25,7 @@ const TEINTE = (e) =>
   e.en_retard
     ? { filet: "border-[#e8746a]", etiquette: "text-[#e8746a]" }
     : e.echeance
-      ? { filet: "border-[#a9c5b9]", etiquette: "text-[#a9c5b9]" }
+      ? { filet: "border-[#96c0b8]", etiquette: "text-[#96c0b8]" }
       : { filet: "border-[#3a3f4a]", etiquette: "text-[#9298a6]" };
 
 const SOURCES = {
@@ -83,7 +83,7 @@ export default function Engagements() {
           </h1>
           <div className="flex items-start gap-10 max-md:gap-7">
             <div className="text-right">
-              <p className="m-0 text-[38px] max-md:text-[30px] font-light leading-none text-[#a9c5b9]">{ouverts.length}</p>
+              <p className="m-0 text-[38px] max-md:text-[30px] font-light leading-none text-[#96c0b8]">{ouverts.length}</p>
               <p className="m-0 mt-2.5 text-[10.5px] tracking-[.16em] uppercase text-[#9298a6]">
                 En cours
               </p>
@@ -120,7 +120,7 @@ export default function Engagements() {
                     {e.deal_id ? (
                       <button
                         onClick={() => navigate(`/Analyse?deal_id=${e.deal_id}`)}
-                        className="text-[11px] tracking-[.16em] uppercase text-[#9298a6] hover:text-[#a9c5b9] transition-colors"
+                        className="text-[11px] tracking-[.16em] uppercase text-[#9298a6] hover:text-[#96c0b8] transition-colors"
                       >
                         {e.dossier}
                       </button>
@@ -166,7 +166,7 @@ export default function Engagements() {
                         <button
                           onClick={() => { if (nouvelleDate) { setOccupe(e.id); repousser.mutate({ id: e.id, date: nouvelleDate }); } }}
                           disabled={!nouvelleDate || !!occupe}
-                          className="px-3 py-2 bg-[#a9c5b9] text-[#000000] text-[10.5px] tracking-[.16em] uppercase disabled:opacity-40"
+                          className="px-3 py-2 bg-[#96c0b8] text-[#000000] text-[10.5px] tracking-[.16em] uppercase disabled:opacity-40"
                         >
                           Valider
                         </button>

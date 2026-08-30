@@ -137,7 +137,7 @@ export default function CRMProspects() {
               setIsEditing(false);
             }
           }}
-          className="bg-[#0f1114] border-[#8fa0f2] text-[#f2f3f5] h-8 text-sm"
+          className="bg-[#0f1114] border-[#96c0b8] text-[#f2f3f5] h-8 text-sm"
         />
       );
     }
@@ -155,7 +155,7 @@ export default function CRMProspects() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -177,7 +177,7 @@ export default function CRMProspects() {
               <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
                 Prospects CRM
               </h1>
-              <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
+              <div className="h-0.5 w-32 bg-[#96c0b8]"></div>
             </div>
           </div>
           <Button
@@ -185,7 +185,7 @@ export default function CRMProspects() {
               resetForm();
               setDialogOpen(true);
             }}
-            className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90"
+            className="bg-[#96c0b8] hover:bg-[#96c0b8]/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouveau prospect
@@ -404,7 +404,7 @@ export default function CRMProspects() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#22262d]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90">
+            <Button onClick={handleSubmit} className="bg-[#96c0b8] hover:bg-[#96c0b8]/90">
               {editingProspect ? "Modifier" : "Créer"}
             </Button>
           </DialogFooter>

@@ -29,7 +29,7 @@ function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-[13px] text-[#c9cdd6]">{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#8fa0f2] h-4 w-7" />
+      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#96c0b8] h-4 w-7" />
     </div>
   );
 }
@@ -54,7 +54,7 @@ export default function SimParametresAvances({ values, advanced, calculs, format
         <div className="flex flex-wrap divide-x divide-[#1f2228]">
           <Kpi label="Cash-flow / mois" value={formatCurrency(ind.cashFlowMoyenMois)} />
           <Kpi label="Cash-flow cumulé" value={formatCurrency(ind.cashFlowCumule)} />
-          <Kpi label="Création de richesse" value={formatCurrency(ind.creationRichesseBrute)} accent="text-[#8fa0f2]" />
+          <Kpi label="Création de richesse" value={formatCurrency(ind.creationRichesseBrute)} accent="text-[#96c0b8]" />
           <Kpi label="Rendement net" value={`${ind.rendementLocatifGlobalNet}%`} />
           <Kpi label="Mois de vacance" value={`${nbVacance} mois`} accent={nbVacance > 0 ? "text-[#E8836B]" : "text-[#f2f3f5]"} />
           <Kpi label="Total travaux" value={formatCurrency(totalTravaux)} accent={totalTravaux > 0 ? "text-[#E8836B]" : "text-[#f2f3f5]"} />
@@ -99,12 +99,12 @@ export default function SimParametresAvances({ values, advanced, calculs, format
           <Input type="number" min="0" max="12" placeholder="mois" value={vacMois} onChange={(e) => setVacMois(e.target.value)} className="bg-[#0c0d10] text-[#f2f3f5] border-[#1f2228] h-8 text-xs w-24 rounded-md" />
           <button
             onClick={() => { if (vacMois) { const n = [...advanced.vacancesLocatives]; n[vacYear - 1] = Number(vacMois); advanced.setVacancesLocatives(n); setVacMois(""); } }}
-            className="w-8 h-8 rounded-md bg-[#8fa0f2] text-black flex items-center justify-center"
+            className="w-8 h-8 rounded-md bg-[#96c0b8] text-black flex items-center justify-center"
           ><Plus className="w-4 h-4" /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">
           {advanced.vacancesLocatives.map((v, i) => v > 0 && (
-            <span key={i} onClick={() => { const n = [...advanced.vacancesLocatives]; n[i] = 0; advanced.setVacancesLocatives(n); }} className="text-[11px] bg-[#a9c5b9]/15 text-[#a9c5b9] px-2 py-1 rounded cursor-pointer">An {i + 1}: {v}m ✕</span>
+            <span key={i} onClick={() => { const n = [...advanced.vacancesLocatives]; n[i] = 0; advanced.setVacancesLocatives(n); }} className="text-[11px] bg-[#96c0b8]/15 text-[#96c0b8] px-2 py-1 rounded cursor-pointer">An {i + 1}: {v}m ✕</span>
           ))}
           {nbVacance === 0 && <span className="text-[11px] text-[#6a7180]">Aucune vacance renseignée</span>}
         </div>
@@ -122,12 +122,12 @@ export default function SimParametresAvances({ values, advanced, calculs, format
           <Input type="number" placeholder="€" value={travauxMontant} onChange={(e) => setTravauxMontant(e.target.value)} className="bg-[#0c0d10] text-[#f2f3f5] border-[#1f2228] h-8 text-xs w-28 rounded-md" />
           <button
             onClick={() => { if (travauxMontant) { const n = [...advanced.travauxBailleur]; n[travauxYear - 1] = Number(travauxMontant); advanced.setTravauxBailleur(n); setTravauxMontant(""); } }}
-            className="w-8 h-8 rounded-md bg-[#8fa0f2] text-black flex items-center justify-center"
+            className="w-8 h-8 rounded-md bg-[#96c0b8] text-black flex items-center justify-center"
           ><Plus className="w-4 h-4" /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">
           {advanced.travauxBailleur.map((t, i) => t > 0 && (
-            <span key={i} onClick={() => { const n = [...advanced.travauxBailleur]; n[i] = 0; advanced.setTravauxBailleur(n); }} className="text-[11px] bg-[#a9c5b9]/15 text-[#a9c5b9] px-2 py-1 rounded cursor-pointer">An {i + 1}: {t.toLocaleString("fr-FR")} € ✕</span>
+            <span key={i} onClick={() => { const n = [...advanced.travauxBailleur]; n[i] = 0; advanced.setTravauxBailleur(n); }} className="text-[11px] bg-[#96c0b8]/15 text-[#96c0b8] px-2 py-1 rounded cursor-pointer">An {i + 1}: {t.toLocaleString("fr-FR")} € ✕</span>
           ))}
           {totalTravaux === 0 && <span className="text-[11px] text-[#6a7180]">Aucun travaux renseigné</span>}
         </div>

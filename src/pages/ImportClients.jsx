@@ -59,7 +59,7 @@ export default function ImportClients() {
         </div>
 
         {resultat && (
-          <div className="flex items-center gap-2 justify-center text-[#aab6f5] text-sm">
+          <div className="flex items-center gap-2 justify-center text-[#c3ddd6] text-sm">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>
               {resultat.crees.length} compte(s) créé(s), {resultat.existants.length} mis à jour

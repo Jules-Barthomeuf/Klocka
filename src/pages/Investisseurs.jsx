@@ -16,7 +16,7 @@ export default function Investisseurs() {
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-2">Investisseurs</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-2">Investisseurs</p>
           <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Profils investisseurs</h1>
           <p className="text-[#f2f3f5]/30 text-sm mt-2">Liste des investisseurs et leurs critères de recherche.</p>
         </div>
@@ -27,8 +27,8 @@ export default function Investisseurs() {
             <Card key={inv.nom} className="bg-[#000000] border border-[#1f2228] rounded-md">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-full bg-[#8fa0f2]/15 flex items-center justify-center">
-                    <span className="text-sm text-[#8fa0f2] font-medium">{inv.nom.charAt(0)}</span>
+                  <div className="w-9 h-9 rounded-full bg-[#96c0b8]/15 flex items-center justify-center">
+                    <span className="text-sm text-[#96c0b8] font-medium">{inv.nom.charAt(0)}</span>
                   </div>
                   <p className="text-[#f2f3f5] font-medium">{inv.nom}</p>
                 </div>
@@ -43,7 +43,7 @@ export default function Investisseurs() {
                   </div>
                   <div className="flex justify-between">
                     <span>AEM</span>
-                    <span className="text-[#8fa0f2] font-medium">{inv.aem}</span>
+                    <span className="text-[#96c0b8] font-medium">{inv.aem}</span>
                   </div>
                 </div>
               </CardContent>
@@ -56,7 +56,7 @@ export default function Investisseurs() {
           <p className="text-[#f2f3f5]/50 text-sm mb-4">Vous avez un bien correspondant à ces critères ?</p>
           <Button
             onClick={() => window.open("https://dpe3smipjxh.typeform.com/to/GD7sREFs", "_blank")}
-            className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5] px-6 py-2.5 gap-2"
+            className="bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5] px-6 py-2.5 gap-2"
           >
             Prendre rendez-vous
             <ArrowRight className="w-4 h-4" />

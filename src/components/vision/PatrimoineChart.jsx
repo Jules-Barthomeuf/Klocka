@@ -108,7 +108,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
             <div className="mt-1 flex items-baseline gap-4">
               <div>
                 <span className="text-xs text-[#9298a6]">Patrimoine</span>
-                <h2 className="text-3xl font-semibold text-[#8fa0f2]">
+                <h2 className="text-3xl font-semibold text-[#96c0b8]">
                   {formatValue(data[hoveredIndex].patrimoine)}
                 </h2>
               </div>
@@ -133,9 +133,9 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
           >
             <defs>
               <linearGradient id="patrimoineAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8fa0f2" stopOpacity="0.35" />
-                <stop offset="50%" stopColor="#8fa0f2" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#8fa0f2" stopOpacity="0.02" />
+                <stop offset="0%" stopColor="#96c0b8" stopOpacity="0.35" />
+                <stop offset="50%" stopColor="#96c0b8" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#96c0b8" stopOpacity="0.02" />
               </linearGradient>
               <filter id="patrimoineGlow" x="-100%" y="-100%" width="300%" height="300%">
                 <feGaussianBlur stdDeviation="2" result="blur" />
@@ -198,7 +198,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
             <path
               d={generatePath('patrimoine')}
               fill="none"
-              stroke="#8fa0f2"
+              stroke="#96c0b8"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -229,7 +229,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   cy={getY(data[hoveredIndex].patrimoine)}
                   r="8"
                   fill="#262627"
-                  stroke="#8fa0f2"
+                  stroke="#96c0b8"
                   strokeWidth="3"
                   filter="url(#patrimoineGlow)"
                 />

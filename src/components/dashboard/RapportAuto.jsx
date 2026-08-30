@@ -161,7 +161,7 @@ export default function RapportAuto({ onCompte }) {
           <>
             <button
               onClick={() => setRegistre((v) => !v)}
-              className="mt-6 text-[13.5px] text-[#a9c5b9] border-b border-[#a9c5b9]/50 pb-[2px] hover:border-[#a9c5b9] transition-colors"
+              className="mt-6 text-[13.5px] text-[#96c0b8] border-b border-[#96c0b8]/50 pb-[2px] hover:border-[#96c0b8] transition-colors"
             >
               {registre ? "Masquer le registre" : "Voir le registre par dossier"}
             </button>
@@ -172,7 +172,7 @@ export default function RapportAuto({ onCompte }) {
                   <div key={`${l.deal_id}-${i}`} className="border-t border-[#1f2228] pt-3">
                     <button
                       onClick={() => navigate(`/Analyse?deal_id=${l.deal_id}`)}
-                      className="text-[14px] text-[#f2f3f5] hover:text-[#a9c5b9] transition-colors text-left"
+                      className="text-[14px] text-[#f2f3f5] hover:text-[#96c0b8] transition-colors text-left"
                     >
                       {l.dossier}
                     </button>

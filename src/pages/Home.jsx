@@ -21,7 +21,7 @@ export default function Home() {
           <div>
             <h1 className="text-[44px] md:text-[64px] font-light tracking-[-0.03em] leading-[1.04] m-0">
               Votre liberté<br />
-              <span className="text-[#aab6f5]">commence ici.</span>
+              <span className="text-[#c3ddd6]">commence ici.</span>
             </h1>
             <p className="text-[#9298a6] text-[15px] md:text-[16px] leading-[1.8] mt-6 mb-0 max-w-[480px]">
               L'immobilier commercial, du sourcing à la signature : analyse des dossiers,
@@ -32,7 +32,7 @@ export default function Home() {
             {/* Repères chiffrés */}
             <div className="flex flex-wrap border-t border-[#f2f3f5]/[0.35] mt-10 max-w-[520px]" style={{ fontVariantNumeric: "tabular-nums" }}>
               <div className="flex-1 min-w-[120px] py-5 pr-5">
-                <div className="text-[26px] font-light text-[#aab6f5]">7–9 %</div>
+                <div className="text-[26px] font-light text-[#c3ddd6]">7–9 %</div>
                 <div className="text-[12px] text-[#9298a6] mt-1">Rendement moyen visé</div>
               </div>
               <div className="flex-1 min-w-[120px] py-5 px-5 md:border-l md:border-[#f2f3f5]/[0.12]">

@@ -165,7 +165,7 @@ export default function Assistant() {
         {/* Le carrousel : une compétence à la fois, pour qu'on la lise vraiment. */}
         <div className="relative mt-9 border border-[#1f2228] rounded-lg bg-[#0f1114] p-6 md:p-8">
           <div className="flex items-start gap-4 mb-5">
-            <span className="w-10 h-10 rounded-md bg-[#8fa0f2]/15 text-[#aab6f5] flex items-center justify-center flex-shrink-0">
+            <span className="w-10 h-10 rounded-md bg-[#96c0b8]/15 text-[#c3ddd6] flex items-center justify-center flex-shrink-0">
               <Icone className="w-5 h-5" />
             </span>
             <div className="min-w-0 flex-1">
@@ -192,7 +192,7 @@ export default function Assistant() {
             </div>
           </div>
 
-          <p className="m-0 mt-6 text-[12.5px] leading-[1.6] text-[#a9c5b9]/80 border-t border-[#1f2228] pt-4">
+          <p className="m-0 mt-6 text-[12.5px] leading-[1.6] text-[#96c0b8]/80 border-t border-[#1f2228] pt-4">
             {c.limite}
           </p>
 
@@ -219,7 +219,7 @@ export default function Assistant() {
               key={x.id}
               onClick={() => setIndex(i)}
               title={x.titre}
-              className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-[#8fa0f2]" : "w-1.5 bg-[#f2f3f5]/20 hover:bg-[#f2f3f5]/40"}`}
+              className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-[#96c0b8]" : "w-1.5 bg-[#f2f3f5]/20 hover:bg-[#f2f3f5]/40"}`}
             />
           ))}
         </div>

@@ -5,7 +5,7 @@ import { NeonButton } from "@/components/ui/neon-button";
 
 export default function ChatInputBar({ inputValue, setInputValue, onSend, onKeyPress, isLoading }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-[#1f2228] bg-[#111] px-4 py-3 focus-within:border-[#8fa0f2]/40 transition-colors">
+    <div className="flex items-center gap-2 rounded-md border border-[#1f2228] bg-[#111] px-4 py-3 focus-within:border-[#96c0b8]/40 transition-colors">
       <Input
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}

@@ -32,7 +32,7 @@ export default function MandataireRessources() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function MandataireRessources() {
           <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
             Ressources Mandataire
           </h1>
-          <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
+          <div className="h-0.5 w-32 bg-[#96c0b8]"></div>
         </div>
 
         {Object.entries(groupedResources).map(([category, categoryResources]) => (
@@ -74,17 +74,17 @@ export default function MandataireRessources() {
                   <div key={resource.id} className="relative rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2">
                     <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
                     <Card 
-                      className="relative bg-gradient-to-br from-[#000000]/95 via-[#8fa0f2]/5 to-[#000000]/95 hover:opacity-90 transition-all cursor-pointer border-none"
+                      className="relative bg-gradient-to-br from-[#000000]/95 via-[#96c0b8]/5 to-[#000000]/95 hover:opacity-90 transition-all cursor-pointer border-none"
                       onClick={() => resource.url_fichier && window.open(resource.url_fichier, '_blank')}
                     >
                       <CardContent className="p-6">
                         <div className="flex items-start gap-4 mb-4">
-                          <div className="w-12 h-12 bg-[#8fa0f2]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Icon className="w-6 h-6 text-[#8fa0f2]" />
+                          <div className="w-12 h-12 bg-[#96c0b8]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Icon className="w-6 h-6 text-[#96c0b8]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="text-[#f2f3f5] font-semibold mb-1">{resource.titre}</h3>
-                            <Badge className="bg-[#8fa0f2]/20 text-[#8fa0f2] text-xs">
+                            <Badge className="bg-[#96c0b8]/20 text-[#96c0b8] text-xs">
                               {resourceTypeLabels[resource.type]}
                             </Badge>
                           </div>
@@ -96,7 +96,7 @@ export default function MandataireRessources() {
                           <p className="text-[#9298a6] text-xs">{resource.duree_minutes} minutes</p>
                         )}
                         <div className="flex items-center justify-end mt-4">
-                          <ExternalLink className="w-4 h-4 text-[#8fa0f2]" />
+                          <ExternalLink className="w-4 h-4 text-[#96c0b8]" />
                         </div>
                       </CardContent>
                     </Card>

@@ -69,7 +69,7 @@ export default function Familles() {
         <div className="mb-8 flex items-start justify-between">
           <div>
             <h1 className="text-4xl font-montserrat text-[#f2f3f5] mb-2">Familles</h1>
-            <div className="h-0.5 w-32 bg-[#8fa0f2] mb-2"></div>
+            <div className="h-0.5 w-32 bg-[#96c0b8] mb-2"></div>
             <p className="text-[#9298a6] text-lg">
               Gérez les groupes de co-investisseurs
             </p>
@@ -85,7 +85,7 @@ export default function Familles() {
         </div>
 
         {/* Search */}
-        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 mb-6">
+        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30 mb-6">
           <CardContent className="p-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9298a6] w-5 h-5" />
@@ -101,7 +101,7 @@ export default function Familles() {
 
         {/* Liste des familles */}
         {filteredFamilles.length === 0 ? (
-          <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
+          <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30">
             <CardContent className="p-12 text-center">
               <Users className="w-16 h-16 text-[#6a7180] mx-auto mb-4" />
               <h2 className="text-xl text-[#f2f3f5] mb-2">Aucune famille créée</h2>
@@ -123,7 +123,7 @@ export default function Familles() {
               return (
                 <Card 
                   key={famille.id} 
-                  className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 hover:border-[#8fa0f2]/60 transition-all cursor-pointer"
+                  className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30 hover:border-[#96c0b8]/60 transition-all cursor-pointer"
                   onClick={() => navigate(`${createPageUrl("Famille")}?users=${famille.user_ids?.join(',')}&familleId=${famille.id}`)}
                 >
                   <CardHeader className="pb-2">
@@ -145,14 +145,14 @@ export default function Familles() {
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {familleUsers.map(u => (
-                        <Badge key={u.id} className="bg-[#8fa0f2]/20 text-[#8fa0f2] border border-[#8fa0f2]/50">
+                        <Badge key={u.id} className="bg-[#96c0b8]/20 text-[#96c0b8] border border-[#96c0b8]/50">
                           {u.full_name || u.email.split('@')[0]}
                         </Badge>
                       ))}
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-[#9298a6]">{familleUsers.length} membres</span>
-                      <Button variant="ghost" size="sm" className="text-[#8fa0f2] hover:text-[#8fa0f2]">
+                      <Button variant="ghost" size="sm" className="text-[#96c0b8] hover:text-[#96c0b8]">
                         <Eye className="w-4 h-4 mr-1" />
                         Voir
                       </Button>

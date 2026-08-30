@@ -78,7 +78,7 @@ export default function Portail({ paiement2Fois = false }) {
         {etape < 4 && (
           <div className="flex items-center gap-2 mb-0 justify-center py-6 bg-[#000000]">
             {[1, 2, 3].map((s) => (
-              <div key={s} className={`w-2 h-2 rounded-full transition-all ${s === etape ? 'bg-[#8fa0f2] w-6' : s < etape ? 'bg-[#8fa0f2]/50' : 'bg-[#f2f3f5]'}`} />
+              <div key={s} className={`w-2 h-2 rounded-full transition-all ${s === etape ? 'bg-[#96c0b8] w-6' : s < etape ? 'bg-[#96c0b8]/50' : 'bg-[#f2f3f5]'}`} />
             ))}
           </div>
         )}
@@ -97,8 +97,8 @@ export default function Portail({ paiement2Fois = false }) {
             <motion.div key="cgv" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
             <div className="max-w-5xl mx-auto px-6 py-8 md:py-12">
               <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-4 h-4 text-[#8fa0f2]" />
-                <p className="text-[#8fa0f2] uppercase tracking-[0.3em] text-[10px] font-medium">Conditions Générales de Vente</p>
+                <Shield className="w-4 h-4 text-[#96c0b8]" />
+                <p className="text-[#96c0b8] uppercase tracking-[0.3em] text-[10px] font-medium">Conditions Générales de Vente</p>
               </div>
               <h1 className="text-2xl md:text-3xl text-[#f2f3f5] tracking-tight mb-2">
                 Nos conditions
@@ -111,7 +111,7 @@ export default function Portail({ paiement2Fois = false }) {
               <div className="bg-[#000000] border border-[#1f2228] rounded-md p-6 md:p-10 mb-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
                 <div className="text-center mb-12">
                   <h2 className="text-[#f2f3f5] text-2xl md:text-4xl font-extrabold tracking-tight mb-2">{CGV_HEADER.title}</h2>
-                  <p className="text-[#8fa0f2] text-sm md:text-base font-medium mb-1">{CGV_HEADER.subtitle}</p>
+                  <p className="text-[#96c0b8] text-sm md:text-base font-medium mb-1">{CGV_HEADER.subtitle}</p>
                   <p className="text-[#f2f3f5]/30 text-xs">{CGV_HEADER.company}</p>
                   <p className="text-[#f2f3f5]/30 text-xs">{CGV_HEADER.address} · {CGV_HEADER.rcs}</p>
                   <p className="text-[#f2f3f5]/30 text-xs">{CGV_HEADER.contact}</p>
@@ -122,8 +122,8 @@ export default function Portail({ paiement2Fois = false }) {
 
               {/* Retractation PDF */}
               <div className="bg-[#f2f3f5]/[0.02] border border-[#1f2228] rounded-md p-4 mb-6 flex items-start gap-3">
-                <div className="w-8 h-8 bg-[#a9c5b9]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-[#a9c5b9]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="w-8 h-8 bg-[#96c0b8]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-[#96c0b8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
@@ -136,7 +136,7 @@ export default function Portail({ paiement2Fois = false }) {
                     href={RETRACTATION_PDF_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[#8fa0f2] hover:text-[#8fa0f2]/80 text-xs font-medium transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[#96c0b8] hover:text-[#96c0b8]/80 text-xs font-medium transition-colors"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Télécharger le formulaire de rétractation (PDF)
@@ -153,7 +153,7 @@ export default function Portail({ paiement2Fois = false }) {
                     onChange={(e) => setCgvChecked(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-5 h-5 rounded-md border-2 border-[#f2f3f5]/20 peer-checked:border-[#8fa0f2] peer-checked:bg-[#8fa0f2] transition-all flex items-center justify-center group-hover:border-[#f2f3f5]/30">
+                  <div className="w-5 h-5 rounded-md border-2 border-[#f2f3f5]/20 peer-checked:border-[#96c0b8] peer-checked:bg-[#96c0b8] transition-all flex items-center justify-center group-hover:border-[#f2f3f5]/30">
                     {cgvChecked && (
                       <svg className="w-3 h-3 text-[#f2f3f5]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -167,7 +167,7 @@ export default function Portail({ paiement2Fois = false }) {
               </label>
 
               <button onClick={accepterCGV} disabled={!cgvChecked}
-                className="w-full flex items-center justify-center gap-2 bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5] font-medium px-6 py-3.5 rounded-md transition-all disabled:opacity-30">
+                className="w-full flex items-center justify-center gap-2 bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5] font-medium px-6 py-3.5 rounded-md transition-all disabled:opacity-30">
                 Accepter et continuer <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -178,7 +178,7 @@ export default function Portail({ paiement2Fois = false }) {
           {etape === 3 && (
             <motion.div key="paiement" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
             <div className="max-w-5xl mx-auto px-6 py-8 md:py-12">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-2">Dernière étape</p>
+              <p className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-2">Dernière étape</p>
               <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] mb-2">
                 Finalisez le paiement
               </h1>
@@ -205,7 +205,7 @@ export default function Portail({ paiement2Fois = false }) {
                     </div>
                     <div className="flex justify-between text-sm pt-2 border-t border-[#1f2228]">
                       <span className="text-[#f2f3f5] font-medium">Total TTC</span>
-                      <span className="text-[#8fa0f2] font-semibold text-lg">7 000,00 €</span>
+                      <span className="text-[#96c0b8] font-semibold text-lg">7 000,00 €</span>
                     </div>
                   </div>
                 </div>
@@ -214,7 +214,7 @@ export default function Portail({ paiement2Fois = false }) {
                   <ul className="mt-2 space-y-1">
                     {['Accès à la plateforme avec espace dédié', 'Ressources d\'acculturation immobilier commercial', 'Accès aux simulateurs de projet', 'Calls d\'accompagnement personnalisés', 'Sourcing de 3 deals en immobilier commercial'].map((item, i) => (
                       <li key={i} className="flex items-center gap-2 text-[#f2f3f5]/50 text-xs">
-                        <CheckCircle2 className="w-3 h-3 text-[#8fa0f2] flex-shrink-0" />
+                        <CheckCircle2 className="w-3 h-3 text-[#96c0b8] flex-shrink-0" />
                         {item}
                       </li>
                     ))}
@@ -225,7 +225,7 @@ export default function Portail({ paiement2Fois = false }) {
               {/* Bouton de paiement */}
               <a href={paiementUrl}
                 target="_blank" rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-3 bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5] font-medium px-6 py-4 rounded-md transition-all mb-4 group">
+                className="w-full flex items-center justify-center gap-3 bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5] font-medium px-6 py-4 rounded-md transition-all mb-4 group">
                 <CreditCard className="w-5 h-5" />
                 <span>{paiement2Fois ? "Procéder au paiement — 2 × 3 500,00 €" : "Procéder au paiement — 7 000,00 €"}</span>
                 <ExternalLink className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -236,8 +236,8 @@ export default function Portail({ paiement2Fois = false }) {
                 <p className="text-[#f2f3f5]/30 text-xs">Paiement sécurisé par carte bancaire via Qonto</p>
               </div>
 
-              <div className="bg-[#8fa0f2]/5 border border-[#8fa0f2]/20 rounded-md p-4 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-[#8fa0f2] flex-shrink-0 mt-0.5" />
+              <div className="bg-[#96c0b8]/5 border border-[#96c0b8]/20 rounded-md p-4 flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-[#96c0b8] flex-shrink-0 mt-0.5" />
                 <p className="text-[#f2f3f5]/50 text-xs leading-relaxed">
                   Vos conditions générales ont été acceptées. Une fois le paiement effectué, nous reviendrons vers vous très rapidement pour lancer votre accompagnement.
                 </p>

@@ -13,7 +13,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Cash-flow annuel",
         subtitle: `Projection sur ${anneeRevente} ans`,
         bigValue: formatCurrency(calculs.indicateurs.cashFlowMoyenAn),
-        color: "#8fa0f2",
+        color: "#96c0b8",
         data: rows.map((r) => ({ annee: `${r.annee}`, value: Math.round(r.cashFlowAnnuel) })),
       };
     }
@@ -38,7 +38,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Patrimoine net",
         subtitle: `Valeur à la revente année ${anneeRevente}`,
         bigValue: formatCurrency(calculs.revente.prixVenteNet),
-        color: "#8fa0f2",
+        color: "#96c0b8",
         data,
         markers: { recupApport, doubleApport },
       };
@@ -85,7 +85,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
           <p className="text-[#f2f3f5] text-sm font-medium">{config.title}</p>
           <p className="text-[#9298a6] text-xs mt-0.5">{config.subtitle}</p>
         </div>
-        <p className="text-[#8fa0f2] text-xl font-medium tabular-nums">{config.bigValue}</p>
+        <p className="text-[#96c0b8] text-xl font-medium tabular-nums">{config.bigValue}</p>
       </div>
       <div className="h-[26rem]">
         <ResponsiveContainer width="100%" height="100%">
@@ -113,7 +113,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "#fff" }} formatter={(v) => [formatCurrency(v), ""]} />
               <Area type="monotone" dataKey="value" stroke={config.color} strokeWidth={2} fill="url(#simHeroFill)" />
               {config.markers?.recupApport && (
-                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill="#a9c5b9" stroke="#0f1114" strokeWidth={2} isFront />
+                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill="#96c0b8" stroke="#0f1114" strokeWidth={2} isFront />
               )}
               {config.markers?.doubleApport && (
                 <ReferenceDot x={config.markers.doubleApport.annee} y={config.markers.doubleApport.value} r={6} fill="#a8894f" stroke="#0f1114" strokeWidth={2} isFront />
@@ -126,7 +126,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
           {config.markers.recupApport && (
             <div className="flex items-center gap-2 border border-[#1f2228] rounded-md px-3 py-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#a9c5b9] flex-shrink-0" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#96c0b8] flex-shrink-0" />
               <div>
                 <p className="text-[#f2f3f5] text-xs font-medium">Récupération de l'apport</p>
                 <p className="text-[#9298a6] text-[11px]">Année {config.markers.recupApport.annee} – Vous récupérez vos {formatCurrency(config.markers.recupApport.montant)}</p>

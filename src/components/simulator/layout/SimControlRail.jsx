@@ -21,7 +21,7 @@ function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-[12px] text-[#9298a6]">{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#8fa0f2] h-4 w-7" />
+      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-[#96c0b8] h-4 w-7" />
     </div>
   );
 }
@@ -105,8 +105,8 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
     <div className="flex flex-col h-full bg-[#0f1114] border-r border-[#1f2228]">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 h-11 border-b border-[#1f2228] flex-shrink-0">
-        <div className="w-5 h-5 rounded bg-[#8fa0f2]/15 flex items-center justify-center">
-          <div className="w-2 h-2 rounded-sm bg-[#8fa0f2]" />
+        <div className="w-5 h-5 rounded bg-[#96c0b8]/15 flex items-center justify-center">
+          <div className="w-2 h-2 rounded-sm bg-[#96c0b8]" />
         </div>
         <span className="text-[#f2f3f5] text-sm font-medium">{titre}</span>
       </div>
@@ -142,8 +142,8 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
       {/* Sliders */}
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         {/* Champs principaux - non repliable */}
-        <div className="mt-3 rounded-lg border border-[#a9c5b9]/40 bg-[#a9c5b9]/[0.06] p-2.5">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[#a9c5b9] font-semibold pb-1">Champs principaux</p>
+        <div className="mt-3 rounded-lg border border-[#96c0b8]/40 bg-[#96c0b8]/[0.06] p-2.5">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[#96c0b8] font-semibold pb-1">Champs principaux</p>
           {acquisitionMainItems.map((it) => (
             <SimSlider
               key={it.key}
@@ -170,8 +170,8 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               className="overflow-hidden"
             >
-              <div className="mt-3 rounded-lg border border-[#8fa0f2]/40 bg-[#8fa0f2]/[0.06] p-2.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[#8fa0f2] font-semibold pb-1">Champs revente</p>
+              <div className="mt-3 rounded-lg border border-[#96c0b8]/40 bg-[#96c0b8]/[0.06] p-2.5">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[#96c0b8] font-semibold pb-1">Champs revente</p>
                 {reventeMainItems.map((it) => (
                   <SimSlider
                     key={it.key}

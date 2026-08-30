@@ -59,7 +59,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
 
       {groupes.map(([section, lignesSection]) => (
         <div key={section} className="mb-6">
-          <h4 className="m-0 mb-2 text-[10.5px] tracking-[0.16em] uppercase text-[#aab6f5] font-normal">
+          <h4 className="m-0 mb-2 text-[10.5px] tracking-[0.16em] uppercase text-[#c3ddd6] font-normal">
             {section === "Sans destination" ? "Relevé, sans case dédiée" : `Projet › ${section}`}
           </h4>
           <div className="overflow-x-auto">
@@ -92,7 +92,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
                       </td>
                       <td className="py-3 pr-4 text-[12.5px]">
                         {l.champ ? (
-                          <span className="inline-flex items-center gap-1.5 text-[#aab6f5]">
+                          <span className="inline-flex items-center gap-1.5 text-[#c3ddd6]">
                             <ArrowRight className="w-3 h-3 flex-shrink-0" /> {l.champ}
                           </span>
                         ) : (
@@ -101,7 +101,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
                       </td>
                       <td className="py-3 pr-4 text-[12.5px] whitespace-nowrap">
                         {lien ? (
-                          <a href={lien} target="_blank" rel="noopener noreferrer" className="text-[#aab6f5] hover:text-[#f2f3f5] transition-colors" title={l.document_nom}>
+                          <a href={lien} target="_blank" rel="noopener noreferrer" className="text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors" title={l.document_nom}>
                             {l.page ? `page ${l.page}` : "voir"}
                           </a>
                         ) : (

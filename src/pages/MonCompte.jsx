@@ -57,9 +57,9 @@ export default function MonCompte() {
   if (showAsClient && userEtape === 1) {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
+        <Card className="max-w-md w-full bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30">
           <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-[#8fa0f2] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-[#96c0b8] rounded-full flex items-center justify-center mx-auto mb-6">
               <Users className="w-10 h-10 text-[#f2f3f5]" />
             </div>
             <h2 className="text-2xl text-[#f2f3f5] mb-4">
@@ -85,7 +85,7 @@ export default function MonCompte() {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-4xl font-montserrat text-[#f2f3f5] mb-2">Mon Compte</h1>
-              <div className="h-0.5 w-32 bg-[#8fa0f2] mb-2"></div>
+              <div className="h-0.5 w-32 bg-[#96c0b8] mb-2"></div>
               <p className="text-[#9298a6] text-lg">
                 Gérez vos informations personnelles
               </p>
@@ -98,7 +98,7 @@ export default function MonCompte() {
                   {user.full_name || user.email.split('@')[0]}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#8fa0f2] to-[#aab6f5] rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#96c0b8] to-[#c3ddd6] rounded-full flex items-center justify-center">
                 <span className="text-[#f2f3f5] font-montserrat text-lg">
                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                 </span>
@@ -113,10 +113,10 @@ export default function MonCompte() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 hover:border-[#8fa0f2]/60 transition-all duration-300">
+              <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30 hover:border-[#96c0b8]/60 transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-                    <User className="w-5 h-5 text-[#8fa0f2]" />
+                    <User className="w-5 h-5 text-[#96c0b8]" />
                     Informations personnelles
                   </CardTitle>
                 </CardHeader>
@@ -164,7 +164,7 @@ export default function MonCompte() {
                     <Button
                       type="submit"
                       disabled={updateMutation.isPending}
-                      className="w-full bg-gradient-to-r from-[#8fa0f2] to-[#aab6f5] hover:from-[#8fa0f2]/90 hover:to-[#aab6f5]/90 transition-all duration-300"
+                      className="w-full bg-gradient-to-r from-[#96c0b8] to-[#c3ddd6] hover:from-[#96c0b8]/90 hover:to-[#c3ddd6]/90 transition-all duration-300"
                     >
                       {updateMutation.isPending ? (
                         <>
@@ -190,10 +190,10 @@ export default function MonCompte() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
+                <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30">
                   <CardHeader>
                     <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-                      <Users className="w-5 h-5 text-[#8fa0f2]" />
+                      <Users className="w-5 h-5 text-[#96c0b8]" />
                       Investir à deux
                     </CardTitle>
                   </CardHeader>
@@ -207,7 +207,7 @@ export default function MonCompte() {
                         {user.comptes_lies.map((email) => (
                           <div key={email} className="p-3 bg-[#0f1114]/50 rounded-lg border border-[#22262d] flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4 text-[#8fa0f2]" />
+                              <Mail className="w-4 h-4 text-[#96c0b8]" />
                               <span className="text-[#f2f3f5]">{email}</span>
                             </div>
                           </div>
@@ -219,7 +219,7 @@ export default function MonCompte() {
 
                     <Button
                       onClick={() => setLinkDialogOpen(true)}
-                      className="w-full bg-[#8fa0f2]/20 text-[#8fa0f2] hover:bg-[#8fa0f2]/30 border border-[#8fa0f2]/50"
+                      className="w-full bg-[#96c0b8]/20 text-[#96c0b8] hover:bg-[#96c0b8]/30 border border-[#96c0b8]/50"
                     >
                       <Users className="w-4 h-4 mr-2" />
                       Gérer les partenaires
@@ -255,14 +255,14 @@ export default function MonCompte() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
+              <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30">
                 <CardHeader>
                   <CardTitle className="text-[#f2f3f5]">Votre profil investisseur</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {user.profil_investisseur ? (
-                    <div className="p-4 bg-[#8fa0f2]/10 rounded-lg border border-[#8fa0f2]/30">
-                      <p className="text-lg font-semibold text-[#8fa0f2] capitalize">
+                    <div className="p-4 bg-[#96c0b8]/10 rounded-lg border border-[#96c0b8]/30">
+                      <p className="text-lg font-semibold text-[#96c0b8] capitalize">
                         {user.profil_investisseur.replace('_', ' ')}
                       </p>
                     </div>

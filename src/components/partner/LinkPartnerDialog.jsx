@@ -65,7 +65,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
       <DialogContent className="bg-[#000000] border-[#22262d] max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[#f2f3f5] flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#8fa0f2]" />
+            <Users className="w-5 h-5 text-[#96c0b8]" />
             Investir à deux
           </DialogTitle>
         </DialogHeader>
@@ -83,7 +83,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
                 {linkedPartners.map((email) => (
                   <div key={email} className="flex items-center justify-between p-3 bg-[#0f1114]/50 rounded-lg border border-[#22262d]">
                     <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-[#8fa0f2]" />
+                      <Mail className="w-4 h-4 text-[#96c0b8]" />
                       <span className="text-[#f2f3f5] text-sm">{email}</span>
                     </div>
                     <Button
@@ -114,7 +114,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
               <Button
                 onClick={handleLinkPartner}
                 disabled={isLinking || !partnerEmail.trim()}
-                className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90"
+                className="bg-[#96c0b8] hover:bg-[#96c0b8]/90"
               >
                 {isLinking ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

@@ -212,10 +212,10 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
 
   if (vertical) {
     return (
-      <div className="border-l-2 border-[#8fa0f2] pl-5 py-1">
+      <div className="border-l-2 border-[#96c0b8] pl-5 py-1">
         <div className="flex items-center gap-2 mb-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#aab6f5]" />
-          <span className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5]">Analyse Klocka</span>
+          <Sparkles className="w-3.5 h-3.5 text-[#c3ddd6]" />
+          <span className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6]">Analyse Klocka</span>
         </div>
         {sousTitre && <div className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6] mb-3">{sousTitre}</div>}
         <div className={vertical ? "transition-opacity duration-300" : ""} key={section || "general"}>{corps}</div>
@@ -224,10 +224,10 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
   }
 
   return (
-    <div className="border border-[#8fa0f2]/40 bg-[#8fa0f2]/[0.05] px-6 py-5 max-md:px-4 max-md:py-4 mb-8 max-md:mb-6">
+    <div className="border border-[#96c0b8]/40 bg-[#96c0b8]/[0.05] px-6 py-5 max-md:px-4 max-md:py-4 mb-8 max-md:mb-6">
       <div className="flex items-center gap-2 mb-2.5">
-        <Sparkles className="w-3.5 h-3.5 text-[#aab6f5]" />
-        <span className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5]">Analyse Klocka</span>
+        <Sparkles className="w-3.5 h-3.5 text-[#c3ddd6]" />
+        <span className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6]">Analyse Klocka</span>
         {sousTitre && <span className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6]">· {sousTitre}</span>}
       </div>
       {corps}
@@ -250,7 +250,7 @@ function InfoDot({ texte }) {
         onMouseLeave={() => setOpen(false)}
         onBlur={() => setOpen(false)}
         className={`w-[15px] h-[15px] rounded-full border text-[9px] leading-none flex items-center justify-center transition-colors
-          ${open ? "border-[#aab6f5] text-[#aab6f5]" : "border-[#f2f3f5]/25 text-[#9298a6] hover:border-[#aab6f5] hover:text-[#aab6f5]"}`}
+          ${open ? "border-[#c3ddd6] text-[#c3ddd6]" : "border-[#f2f3f5]/25 text-[#9298a6] hover:border-[#c3ddd6] hover:text-[#c3ddd6]"}`}
       >
         i
       </button>
@@ -288,7 +288,7 @@ function PointsList({ points }) {
     <ul className="md:columns-2 md:gap-10 space-y-2.5 list-none pl-0 mb-0">
       {list.map((p, i) => (
         <li key={i} className="flex gap-2.5 text-[14px] leading-[1.7] text-[#c9cdd6] break-inside-avoid">
-          <span className="text-[#8fa0f2] flex-shrink-0 mt-[7px] w-1 h-1 rounded-full bg-[#8fa0f2]" />
+          <span className="text-[#96c0b8] flex-shrink-0 mt-[7px] w-1 h-1 rounded-full bg-[#96c0b8]" />
           <span>{p}</span>
         </li>
       ))}
@@ -361,7 +361,7 @@ export default function VilleSecteurIA({ analyse, villeData, secteurData, loadin
             <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
             Actualiser l'analyse
           </button>
-          {error && <span className="text-[11px] text-[#a9c5b9]">{error}</span>}
+          {error && <span className="text-[11px] text-[#96c0b8]">{error}</span>}
         </div>
       )}
     </div>

@@ -13,7 +13,7 @@ import { toast } from "sonner";
 // Le cadre est unique : la barre de saisie du bas est la même que la pilule du
 // repos, simplement étirée. Rien ne se superpose, rien ne se déplace.
 
-const OR = "#a9c5b9";
+const OR = "#96c0b8";
 const FOND = "#000000";
 const TEXTE = "#dcdedb";
 const META = "#8b908c";
@@ -21,13 +21,13 @@ const FILET = "#2c3139";
 const SEPARATEUR = "#1f2321";
 
 // La police du reste de l'application, pas une seconde : l'assistant est une
-// pièce de Klocka, il n'a pas à s'annoncer par sa typographie. IBM Plex Sans
-// tient mieux les petites tailles qu'Inter Tight, dont les chasses serrées
+// pièce de Klocka, il n'a pas à s'annoncer par sa typographie. Instrument Sans
+// tient mieux les petites tailles qu'Instrument Sans, dont les chasses serrées
 // brouillaient les 12,5 px de la barre de saisie.
-const SANS = "'Inter Tight', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif";
+const SANS = "'Instrument Sans', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif";
 // Le libellé en capitales espacées tombait jusqu'ici sur la mono du système —
 // donc sur une police différente selon la machine.
-const MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+const MONO = "'Instrument Sans', ui-monospace, SFMono-Regular, Menlo, monospace";
 
 // L'indicateur de frappe doit se voir : on ne montre jamais la réponse avant.
 const DUREE_FRAPPE = 900;

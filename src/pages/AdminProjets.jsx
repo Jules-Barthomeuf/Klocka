@@ -1039,9 +1039,9 @@ export default function AdminProjets() {
           <div className="flex gap-2 items-center flex-shrink-0">
             <span className="text-[11.5px] mr-1 hidden lg:block" title="État de l'enregistrement">
               {modifieDepuis
-                ? <span className="text-[#a9c5b9]">Modifications non enregistrées</span>
+                ? <span className="text-[#96c0b8]">Modifications non enregistrées</span>
                 : enregistreLe
-                  ? <span className="text-[#aab6f5]">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                  ? <span className="text-[#c3ddd6]">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
                   : null}
             </span>
             <button
@@ -1056,7 +1056,7 @@ export default function AdminProjets() {
             <button
               onClick={() => { setAssistantOuvert(true); setPanneauOuvert(false); }}
               title="Créer des champs personnalisés en langage naturel"
-              className="inline-flex items-center gap-2 bg-transparent border border-[#8fa0f2]/50 text-[#aab6f5] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#8fa0f2]/[0.12] transition-colors"
+              className="inline-flex items-center gap-2 bg-transparent border border-[#96c0b8]/50 text-[#c3ddd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#96c0b8]/[0.12] transition-colors"
             >
               <Sparkles className="w-4 h-4" />
               Assistant
@@ -1068,7 +1068,7 @@ export default function AdminProjets() {
             )}
             <button
               onClick={() => setAssignerOuvert(true)}
-              className="bg-transparent border border-[#a9c5b9]/50 text-[#a9c5b9] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#a9c5b9]/[0.08] transition-colors"
+              className="bg-transparent border border-[#96c0b8]/50 text-[#96c0b8] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#96c0b8]/[0.08] transition-colors"
             >
               Assigner un client
             </button>
@@ -1109,7 +1109,7 @@ export default function AdminProjets() {
                 {[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => (
                   <button key={o.value} onClick={() => setOngletPage(o.value)}
                     className={`text-[11px] tracking-[0.16em] uppercase py-1 border-b whitespace-nowrap transition-colors
-                      ${ongletPage === o.value ? "border-[#8fa0f2] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}>
+                      ${ongletPage === o.value ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}>
                     {o.label}
                   </button>
                 ))}
@@ -1139,7 +1139,7 @@ export default function AdminProjets() {
         <div className={`fixed inset-y-0 right-0 z-[55] w-full md:w-[420px] bg-[#0f1114] border-l border-[#1f2228] flex flex-col transform transition-transform duration-300 ${assistantOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}>
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1f2228] flex-shrink-0">
             <span className="flex items-center gap-2 text-[15px] font-medium">
-              <Sparkles className="w-4 h-4 text-[#aab6f5]" />
+              <Sparkles className="w-4 h-4 text-[#c3ddd6]" />
               Assistant
             </span>
             <button onClick={() => setAssistantOuvert(false)} className="text-[#9298a6] hover:text-[#f2f3f5] transition-colors" title="Fermer">
@@ -1159,7 +1159,7 @@ export default function AdminProjets() {
               onChange={(e) => setAssistantPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) lancerAssistant(); }}
               placeholder="Ex. : ajoute « Hauteur sous plafond » et « Vitrine (ml) » dans l'onglet Bien, présentés comme les chiffres du haut."
-              className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#8fa0f2] rounded-md px-3.5 py-3 text-[14px] text-[#f2f3f5] outline-none placeholder:text-[#3a3f4a] transition-colors"
+              className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#96c0b8] rounded-md px-3.5 py-3 text-[14px] text-[#f2f3f5] outline-none placeholder:text-[#3a3f4a] transition-colors"
             />
             <div className="border-t border-[#1f2228] pt-4">
               <p className="text-[10px] tracking-[0.18em] uppercase text-[#6a7180] mb-2">Exemples</p>
@@ -1170,7 +1170,7 @@ export default function AdminProjets() {
                   "Ajoute « Bailleur » et « Syndic » dans l'onglet Copropriété.",
                 ].map((ex) => (
                   <button key={ex} onClick={() => setAssistantPrompt(ex)}
-                    className="block w-full text-left text-[12.5px] leading-[1.5] text-[#9298a6] hover:text-[#f2f3f5] bg-[#000000] border border-[#1f2228] hover:border-[#8fa0f2]/50 rounded px-3 py-2 transition-colors">
+                    className="block w-full text-left text-[12.5px] leading-[1.5] text-[#9298a6] hover:text-[#f2f3f5] bg-[#000000] border border-[#1f2228] hover:border-[#96c0b8]/50 rounded px-3 py-2 transition-colors">
                     {ex}
                   </button>
                 ))}
@@ -1421,9 +1421,9 @@ export default function AdminProjets() {
 
   const CHIFFRES = [
     { valeur: actifs.length, label: "Projets actifs" },
-    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-[#aab6f5]" },
+    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-[#c3ddd6]" },
     { valeur: compteur("financement"), label: "En financement" },
-    { valeur: compteur("signe"), label: "Signés", accent: "text-[#a9c5b9]" },
+    { valeur: compteur("signe"), label: "Signés", accent: "text-[#96c0b8]" },
     { valeur: nbArchives, label: "Archivés", accent: "text-[#9298a6]" },
   ];
 
@@ -1473,12 +1473,12 @@ export default function AdminProjets() {
           <div className="flex items-center gap-x-7 gap-y-2 flex-wrap">
             {FILTRES.map(({ v, l, n }) => (
               <button key={v} onClick={() => setStatusFilter(v)}
-                className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${statusFilter === v ? "text-[#f2f3f5] border-[#8fa0f2]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
+                className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${statusFilter === v ? "text-[#f2f3f5] border-[#96c0b8]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
                 {l} <span className="text-[#6a7180]">{n}</span>
               </button>
             ))}
             <button onClick={() => setShowArchived(!showArchived)}
-              className={`ml-auto inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${showArchived ? "text-[#a9c5b9] border-[#a9c5b9]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
+              className={`ml-auto inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${showArchived ? "text-[#96c0b8] border-[#96c0b8]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
               <Archive className="w-3.5 h-3.5" />
               {showArchived ? "Masquer les archivés" : `Archivés ${nbArchives}`}
             </button>
@@ -1512,7 +1512,7 @@ export default function AdminProjets() {
                 Les projets n'ont pas pu être récupérés. Vérifiez votre connexion, puis réessayez.
               </p>
               <button onClick={() => rechargerProjets()}
-                className="text-[11px] tracking-[0.16em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
+                className="text-[11px] tracking-[0.16em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
                 Réessayer
               </button>
             </div>
@@ -1520,7 +1520,7 @@ export default function AdminProjets() {
 
           {chargementProjets && !erreurProjets && (
             <div className="col-span-full pt-16 pb-16 flex justify-center">
-              <div className="w-6 h-6 border-2 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin" />
             </div>
           )}
 
@@ -1542,7 +1542,7 @@ export default function AdminProjets() {
                 </button>
               ) : (
                 <button onClick={() => { setSearchTerm(""); setStatusFilter("all"); setShowArchived(false); }}
-                  className="text-[11px] tracking-[0.16em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
+                  className="text-[11px] tracking-[0.16em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
                   Réinitialiser les filtres
                 </button>
               )}

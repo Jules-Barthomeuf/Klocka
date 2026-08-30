@@ -72,7 +72,7 @@ export default function AdminNotes() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowShared(s => !s)}
-              className={`inline-flex items-center gap-2 rounded-md px-5 py-3 text-[14px] font-semibold transition-all border ${showShared ? "bg-[#8fa0f2]/15 border-[#8fa0f2]/40 text-[#f2f3f5]" : "bg-[#0f1114] border-[#1f2228] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/20"}`}
+              className={`inline-flex items-center gap-2 rounded-md px-5 py-3 text-[14px] font-semibold transition-all border ${showShared ? "bg-[#96c0b8]/15 border-[#96c0b8]/40 text-[#f2f3f5]" : "bg-[#0f1114] border-[#1f2228] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/20"}`}
             >
               <Users className="w-4 h-4" /> Partagés avec moi
               {sharedNotes.length > 0 && <span className="ml-0.5 text-[10px] bg-[#f2f3f5]/20 rounded-full px-1.5 py-0.5">{sharedNotes.length}</span>}

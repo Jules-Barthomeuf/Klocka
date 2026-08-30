@@ -298,7 +298,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
               disabled={!accessible && !dossier}
               title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
               className={`text-[12.5px] tracking-[0.02em] pb-1 border-b-2 transition-colors whitespace-nowrap
-                ${active ? "border-[#8fa0f2] text-[#f2f3f5]"
+                ${active ? "border-[#96c0b8] text-[#f2f3f5]"
                   : accessible ? "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"
                   : "border-transparent text-[#3a3f4a] hover:text-[#9298a6]"}`}
             >
@@ -369,7 +369,7 @@ function BandeauTest({ dossier }) {
   });
 
   return (
-    <div className="rounded-md border border-[#a9c5b9]/25 bg-[#a9c5b9]/[0.06] px-4 py-3 flex flex-wrap items-center gap-2 text-sm text-amber-200/90">
+    <div className="rounded-md border border-[#96c0b8]/25 bg-[#96c0b8]/[0.06] px-4 py-3 flex flex-wrap items-center gap-2 text-sm text-amber-200/90">
       <FlaskConical className="w-3.5 h-3.5 flex-shrink-0" />
       <span className="flex-1 min-w-56">
         Mode test — chaque bouton agit réellement (statuts, journal, projet), mais aucun appel API
@@ -847,7 +847,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
         <div className="flex items-center gap-3">
           <span
             className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-              abandonne ? "bg-red-500/15 text-red-300" : "bg-[#8fa0f2]/20 text-[#aab6f5]"
+              abandonne ? "bg-red-500/15 text-red-300" : "bg-[#96c0b8]/20 text-[#c3ddd6]"
             }`}
           >
             {abandonne ? <ThumbsDown className="w-4 h-4" /> : <ThumbsUp className="w-4 h-4" />}
@@ -871,14 +871,14 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
     <div className="grid sm:grid-cols-2 gap-4">
       <button
         onClick={() => ouvrir(intentionOui)}
-        className="bg-[#000000] border border-[#8fa0f2]/30 hover:border-[#8fa0f2]/60 rounded-md p-6 text-left transition-all group"
+        className="bg-[#000000] border border-[#96c0b8]/30 hover:border-[#96c0b8]/60 rounded-md p-6 text-left transition-all group"
       >
-        <span className="w-9 h-9 rounded-md bg-[#8fa0f2]/20 text-[#aab6f5] flex items-center justify-center mb-3">
+        <span className="w-9 h-9 rounded-md bg-[#96c0b8]/20 text-[#c3ddd6] flex items-center justify-center mb-3">
           <ThumbsUp className="w-4 h-4" />
         </span>
         <p className="text-[#f2f3f5] text-sm font-medium mb-1">{titreOui}</p>
         <p className="text-[#9298a6] text-xs leading-relaxed">{descOui}</p>
-        <span className="text-[#aab6f5] text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+        <span className="text-[#c3ddd6] text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
           Rédiger le mail <ArrowRight className="w-3 h-3" />
         </span>
       </button>
@@ -1170,7 +1170,7 @@ function BlocVideoPresentation({ dossier, apercu }) {
       {enCours && (
         <div className="h-1 rounded bg-[#1a1d1c] overflow-hidden">
           <div
-            className="h-full bg-[#8fa0f2] transition-all duration-500"
+            className="h-full bg-[#96c0b8] transition-all duration-500"
             style={{ width: `${Math.max(progression, 3)}%` }}
           />
         </div>
@@ -1231,7 +1231,7 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
           <p className="text-[#9298a6] text-xs mb-2">Rappel de la synthèse documentaire</p>
           <p className="text-[#c9cdd6] text-sm leading-relaxed">{dossier.synthese_documents.resume}</p>
           {dossier.synthese_documents.points_a_verifier?.length > 0 && (
-            <p className="text-[#a9c5b9]/80 text-xs mt-2">
+            <p className="text-[#96c0b8]/80 text-xs mt-2">
               {dossier.synthese_documents.points_a_verifier.length} point(s) à vérifier — détail à l'étape
               Documents.
             </p>

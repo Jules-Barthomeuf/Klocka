@@ -113,7 +113,7 @@ export default function SlideViewer({ slides, title }) {
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#8fa0f2] w-6' : 'bg-[#22262d] hover:bg-[#9298a6]'}`}
+              className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-[#96c0b8] w-6' : 'bg-[#22262d] hover:bg-[#9298a6]'}`}
             />
           ))}
         </div>
@@ -126,7 +126,7 @@ export default function SlideViewer({ slides, title }) {
             size="sm"
             onClick={exportPDF}
             disabled={isExporting}
-            className="bg-[#8fa0f2]/15 border border-[#8fa0f2]/30 hover:bg-[#8fa0f2]/25 text-[#f2f3f5] text-xs h-8"
+            className="bg-[#96c0b8]/15 border border-[#96c0b8]/30 hover:bg-[#96c0b8]/25 text-[#f2f3f5] text-xs h-8"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
             {isExporting ? "Export..." : "PDF"}
@@ -135,7 +135,7 @@ export default function SlideViewer({ slides, title }) {
             size="sm"
             onClick={exportPPTX}
             disabled={isExportingPptx || isExporting}
-            className="bg-[#a9c5b9]/15 border border-[#a9c5b9]/30 hover:bg-[#a9c5b9]/25 text-[#f2f3f5] text-xs h-8"
+            className="bg-[#96c0b8]/15 border border-[#96c0b8]/30 hover:bg-[#96c0b8]/25 text-[#f2f3f5] text-xs h-8"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />
             {isExportingPptx ? "Export..." : "PowerPoint"}

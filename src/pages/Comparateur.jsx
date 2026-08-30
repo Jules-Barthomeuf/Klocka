@@ -104,7 +104,7 @@ export default function Comparateur() {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="mb-2">
-            <p className="text-[#8fa0f2] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
+            <p className="text-[#96c0b8] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
             <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Comparer mes projets</h1>
           </div>
 
@@ -164,7 +164,7 @@ export default function Comparateur() {
                     onClick={() => setActiveTab(t.id)}
                     className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
                       isActive
-                        ? "text-[#8fa0f2] border-[#8fa0f2]"
+                        ? "text-[#96c0b8] border-[#96c0b8]"
                         : "text-[#f2f3f5]/30 border-transparent hover:text-[#f2f3f5]/60"
                     }`}
                   >

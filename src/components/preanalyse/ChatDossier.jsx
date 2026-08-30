@@ -166,7 +166,7 @@ export default function ChatDossier({
 
       {/* Zone de saisie */}
       <div className="max-w-[880px] mx-auto">
-        <div className="bg-[#171a19] border border-[#22262d] rounded-xl px-5 pt-4 pb-3 focus-within:border-[#8fa0f2]/60 transition-colors">
+        <div className="bg-[#171a19] border border-[#22262d] rounded-xl px-5 pt-4 pb-3 focus-within:border-[#96c0b8]/60 transition-colors">
           <textarea
             rows={2}
             value={texte}
@@ -265,7 +265,7 @@ export default function ChatDossier({
           <div className="border-t border-[#15171b]">
             {requetes.map((r) => (
               <div key={r.cle} className="flex items-center gap-4 px-1 py-3.5 border-b border-[#15171b] hover:bg-[#f2f3f5]/[0.02] transition-colors group">
-                <button onClick={r.ouvrir} className="flex-1 min-w-0 text-left text-[13.5px] text-[#f2f3f5] truncate hover:text-[#aab6f5] transition-colors">
+                <button onClick={r.ouvrir} className="flex-1 min-w-0 text-left text-[13.5px] text-[#f2f3f5] truncate hover:text-[#c3ddd6] transition-colors">
                   {r.titre}
                 </button>
                 <span className="hidden md:block w-[130px] flex-shrink-0 text-[12.5px] text-[#9298a6]">{r.type}</span>

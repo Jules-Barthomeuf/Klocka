@@ -29,7 +29,7 @@ export default function DashboardStrategyCard({ userStrategy }) {
         {hasApport && (
           <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#f2f3f5]/[0.12]">
             <span className="text-[#9298a6]">Apport</span>
-            <span className="text-[#aab6f5]">{fmt(userStrategy.apport)} €</span>
+            <span className="text-[#c3ddd6]">{fmt(userStrategy.apport)} €</span>
           </div>
         )}
         {hasFields && userStrategy.fields.map((field, i) => (

@@ -500,7 +500,7 @@ export default function SimulateurRentabilite() {
                   <button
                     key={t.id}
                     onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#8fa0f2] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#c9cdd6]"}`}
+                    className={`text-xs h-full flex items-center border-b-2 transition-all duration-500 ease-out ${activeTab === t.id ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#c9cdd6]"}`}
                   >
                     {t.label}
                   </button>
@@ -510,7 +510,7 @@ export default function SimulateurRentabilite() {
                 <ExportExcelFullButton params={{ surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false }} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                 {isAdmin && (
                   <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.25] text-xs transition-colors">
-                    {linkCopied ? <Check className="w-3.5 h-3.5 text-[#aab6f5]" /> : <Link2 className="w-3.5 h-3.5" />}
+                    {linkCopied ? <Check className="w-3.5 h-3.5 text-[#c3ddd6]" /> : <Link2 className="w-3.5 h-3.5" />}
                     {linkCopied ? 'Copié' : 'Partager'}
                   </button>
                 )}
@@ -522,7 +522,7 @@ export default function SimulateurRentabilite() {
 
             <div key={`${activeTab}-${animKey}`} className={`p-4 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out ${isEtape1 ? 'blur-md' : ''}`}>
               {negoActive && (
-                <div className="flex items-center gap-2 text-xs text-[#8fa0f2] bg-[#8fa0f2]/10 border border-[#8fa0f2]/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
+                <div className="flex items-center gap-2 text-xs text-[#96c0b8] bg-[#96c0b8]/10 border border-[#96c0b8]/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.
                 </div>
               )}
@@ -564,7 +564,7 @@ export default function SimulateurRentabilite() {
         {/* Etape 1 overlay */}
         {isEtape1 && (
           <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
-            <div className="pointer-events-auto p-8 rounded-md bg-gradient-to-br from-[#000000]/95 to-black/95 border-2 border-[#8fa0f2]/50 text-center max-w-md backdrop-blur-sm">
+            <div className="pointer-events-auto p-8 rounded-md bg-gradient-to-br from-[#000000]/95 to-black/95 border-2 border-[#96c0b8]/50 text-center max-w-md backdrop-blur-sm">
               <h3 className="text-2xl text-[#f2f3f5] mb-3">Devenez client pour accéder au simulateur complet</h3>
               <p className="text-[#c9cdd6] mb-6">Débloquez tous les indicateurs, graphiques détaillés et paramètres avancés.</p>
               <NeonButton onClick={() => window.open("https://dpe3smipjxh.typeform.com/to/GD7sREFs", "_blank")} variant="default" className="inline-flex items-center justify-center">

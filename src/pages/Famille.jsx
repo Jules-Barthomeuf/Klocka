@@ -98,7 +98,7 @@ const profilLabels = {
   visionnaire: {
     label: "Le Visionnaire",
     description: "Identifie le potentiel là où d'autres ne le voient pas. Création de valeur à long terme.",
-    color: "bg-[#8fa0f2]"
+    color: "bg-[#96c0b8]"
   }
 };
 
@@ -202,10 +202,10 @@ export default function Famille() {
           <h1 className="text-4xl font-montserrat text-[#f2f3f5] mb-2">
             Comparaison Famille
           </h1>
-          <div className="h-0.5 w-32 bg-[#8fa0f2] mb-4"></div>
+          <div className="h-0.5 w-32 bg-[#96c0b8] mb-4"></div>
           <div className="flex flex-wrap gap-2">
             {selectedUsers.map(u => (
-              <Badge key={u.id} className="bg-[#8fa0f2]/20 text-[#8fa0f2] border border-[#8fa0f2]/50">
+              <Badge key={u.id} className="bg-[#96c0b8]/20 text-[#96c0b8] border border-[#96c0b8]/50">
                 {u.full_name || u.email}
               </Badge>
             ))}
@@ -213,10 +213,10 @@ export default function Famille() {
         </div>
 
         {/* Résumé des profils */}
-        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 mb-6">
+        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30 mb-6">
           <CardHeader>
             <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-              <User className="w-5 h-5 text-[#8fa0f2]" />
+              <User className="w-5 h-5 text-[#96c0b8]" />
               Profils des investisseurs
             </CardTitle>
           </CardHeader>
@@ -290,20 +290,20 @@ export default function Famille() {
 
         {/* Points d'accord */}
         {agreements.length > 0 && (
-          <Card className="bg-gradient-to-br from-[#8fa0f2]/10 to-black border-[#8fa0f2]/30 mb-6">
+          <Card className="bg-gradient-to-br from-[#96c0b8]/10 to-black border-[#96c0b8]/30 mb-6">
             <CardHeader>
               <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-[#8fa0f2]" />
+                <CheckCircle2 className="w-5 h-5 text-[#96c0b8]" />
                 Points d'accord ({agreements.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {agreements.map((agreement, idx) => (
-                <div key={idx} className="p-3 bg-[#0f1114]/50 rounded-lg border border-[#8fa0f2]/30 flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-[#8fa0f2] flex-shrink-0" />
+                <div key={idx} className="p-3 bg-[#0f1114]/50 rounded-lg border border-[#96c0b8]/30 flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-[#96c0b8] flex-shrink-0" />
                   <div>
                     <p className="text-[#f2f3f5] text-sm font-medium">{agreement.question.question}</p>
-                    <p className="text-[#aab6f5] text-sm">{agreement.label}</p>
+                    <p className="text-[#c3ddd6] text-sm">{agreement.label}</p>
                   </div>
                 </div>
               ))}
@@ -312,7 +312,7 @@ export default function Famille() {
         )}
 
         {/* Tableau comparatif détaillé */}
-        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
+        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30">
           <CardHeader>
             <CardTitle className="text-[#f2f3f5]">Comparaison détaillée des réponses</CardTitle>
           </CardHeader>

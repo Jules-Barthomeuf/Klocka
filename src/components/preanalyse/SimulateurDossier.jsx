@@ -199,11 +199,11 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
   return (
     <div className="border border-[#1f2228] rounded-md overflow-hidden bg-[#000000]">
       {/* Bandeau de décision : rendement AEM live + prix de revient */}
-      <div className={`px-4 py-3 border-b ${dansCible ? "border-[#8fa0f2]/40 bg-[#8fa0f2]/10" : "border-[#a9c5b9]/30 bg-[#a9c5b9]/[0.07]"}`}>
+      <div className={`px-4 py-3 border-b ${dansCible ? "border-[#96c0b8]/40 bg-[#96c0b8]/10" : "border-[#96c0b8]/30 bg-[#96c0b8]/[0.07]"}`}>
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <div>
             <p className="text-[#9298a6] text-xs mb-0.5">Rendement AEM</p>
-            <p className={`text-2xl font-light ${dansCible ? "text-[#aab6f5]" : "text-[#a9c5b9]"}`}>
+            <p className={`text-2xl font-light ${dansCible ? "text-[#c3ddd6]" : "text-[#96c0b8]"}`}>
               {rendementAem.toFixed(2)} %
             </p>
           </div>
@@ -213,11 +213,11 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
           </div>
           <div>
             <p className="text-[#9298a6] text-xs mb-0.5">Cash-flow / mois</p>
-            <p className={`text-lg font-light ${calculs.indicateurs.cashFlowMoyenMois >= 0 ? "text-[#aab6f5]" : "text-red-400"}`}>
+            <p className={`text-lg font-light ${calculs.indicateurs.cashFlowMoyenMois >= 0 ? "text-[#c3ddd6]" : "text-red-400"}`}>
               {formatCurrency(calculs.indicateurs.cashFlowMoyenMois)}
             </p>
           </div>
-          <p className={`text-xs max-w-md ${dansCible ? "text-[#aab6f5]/80" : "text-[#a9c5b9]/80"}`}>
+          <p className={`text-xs max-w-md ${dansCible ? "text-[#c3ddd6]/80" : "text-[#96c0b8]/80"}`}>
             {dansCible
               ? `Dans la cible ${rendementCible[0]}–${rendementCible[1]} % AEM.`
               : rendementAem < rendementCible[0]
@@ -228,7 +228,7 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
       </div>
 
       {manquants.length > 0 && (
-        <div className="px-4 py-2 border-b border-[#1f2228] flex items-start gap-2 text-[11px] text-[#a9c5b9]/80">
+        <div className="px-4 py-2 border-b border-[#1f2228] flex items-start gap-2 text-[11px] text-[#96c0b8]/80">
           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
           <span>
             Absent du dossier : {manquants.join(", ")}. Les hypothèses sont à poser à la main dans les
@@ -253,7 +253,7 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
                   onClick={() => { setOngletActif(o.id); if (o.id !== "scenarios") setNegoPct(0); }}
                   className={`text-xs h-full flex items-center border-b-2 whitespace-nowrap transition-colors ${
                     ongletActif === o.id
-                      ? "border-[#8fa0f2] text-[#f2f3f5]"
+                      ? "border-[#96c0b8] text-[#f2f3f5]"
                       : "border-transparent text-[#9298a6] hover:text-[#c9cdd6]"
                   }`}
                 >
@@ -282,7 +282,7 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
 
           <div className="p-3 space-y-3 max-w-full overflow-hidden">
             {negoActive && (
-              <div className="text-xs text-[#8fa0f2] bg-[#8fa0f2]/10 border border-[#8fa0f2]/25 rounded-lg px-3 py-2">
+              <div className="text-xs text-[#96c0b8] bg-[#96c0b8]/10 border border-[#96c0b8]/25 rounded-lg px-3 py-2">
                 Négociation -{negoPct} % appliquée : les chiffres ci-dessus et le tableau reflètent ce scénario.
               </div>
             )}

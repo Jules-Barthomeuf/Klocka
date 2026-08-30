@@ -18,7 +18,7 @@ function FrCompare({ local, national, unit = "%", invert = false }) {
   const diff = local - national;
   const positive = invert ? diff < 0 : diff > 0;
   return (
-    <p className={`text-[10px] mt-1 font-medium ${positive ? 'text-[#aab6f5]' : diff === 0 ? 'text-[#9298a6]' : 'text-red-400'}`}>
+    <p className={`text-[10px] mt-1 font-medium ${positive ? 'text-[#c3ddd6]' : diff === 0 ? 'text-[#9298a6]' : 'text-red-400'}`}>
       FR: {national}{unit} ({diff > 0 ? '+' : ''}{diff.toFixed(1)} pts)
     </p>
   );
@@ -26,26 +26,26 @@ function FrCompare({ local, national, unit = "%", invert = false }) {
 
 export default function LogementSection({ data }) {
   const pieLogement = [
-    data.pct_residences_principales > 0 && { name: "Rés. principales", value: data.pct_residences_principales, fill: "#8fa0f2" },
-    data.pct_residences_secondaires > 0 && { name: "Rés. secondaires", value: data.pct_residences_secondaires, fill: "#aab6f5" },
+    data.pct_residences_principales > 0 && { name: "Rés. principales", value: data.pct_residences_principales, fill: "#96c0b8" },
+    data.pct_residences_secondaires > 0 && { name: "Rés. secondaires", value: data.pct_residences_secondaires, fill: "#c3ddd6" },
     data.pct_logements_vacants > 0 && { name: "Vacants", value: data.pct_logements_vacants, fill: "#e8746a" },
   ].filter(Boolean);
 
   const pieType = [
-    data.pct_maisons > 0 && { name: "Maisons", value: data.pct_maisons, fill: "#8fa0f2" },
+    data.pct_maisons > 0 && { name: "Maisons", value: data.pct_maisons, fill: "#96c0b8" },
     data.pct_appartements > 0 && { name: "Appartements", value: data.pct_appartements, fill: "#1f6b62" },
   ].filter(Boolean);
 
   if (!data.nb_logements && pieLogement.length === 0) return null;
 
   return (
-    <SectionCard icon={<Home className="w-5 h-5 text-[#8fa0f2]" />} title="Logement">
+    <SectionCard icon={<Home className="w-5 h-5 text-[#96c0b8]" />} title="Logement">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {data.nb_logements > 0 && <KPI label="Logements" value={data.nb_logements.toLocaleString()} color="teal" />}
         {data.pct_logements_vacants > 0 && (
-          <div className={`p-4 bg-gradient-to-br ${data.pct_logements_vacants > 8 ? 'from-red-500/20 border-red-500/30' : data.pct_logements_vacants > 5 ? 'from-[#a9c5b9]/20 border-[#a9c5b9]/30' : 'from-[#8fa0f2]/20 border-[#8fa0f2]/30'} to-transparent rounded-md border`}>
+          <div className={`p-4 bg-gradient-to-br ${data.pct_logements_vacants > 8 ? 'from-red-500/20 border-red-500/30' : data.pct_logements_vacants > 5 ? 'from-[#96c0b8]/20 border-[#96c0b8]/30' : 'from-[#96c0b8]/20 border-[#96c0b8]/30'} to-transparent rounded-md border`}>
             <p className="text-sm text-[#9298a6] mb-1">Taux de vacance</p>
-            <p className={`text-2xl font-semibold ${data.pct_logements_vacants > 8 ? 'text-red-400' : data.pct_logements_vacants > 5 ? 'text-[#a9c5b9]' : 'text-[#aab6f5]'}`}>{data.pct_logements_vacants}%</p>
+            <p className={`text-2xl font-semibold ${data.pct_logements_vacants > 8 ? 'text-red-400' : data.pct_logements_vacants > 5 ? 'text-[#96c0b8]' : 'text-[#c3ddd6]'}`}>{data.pct_logements_vacants}%</p>
             <FrCompare local={data.pct_logements_vacants} national={FR_LOG.pct_logements_vacants} invert={true} />
           </div>
         )}
@@ -111,7 +111,7 @@ export default function LogementSection({ data }) {
               <p className="text-sm text-[#9298a6] mb-2">Statut d'occupation</p>
               <div className="relative h-6 rounded-full overflow-hidden flex">
                 {data.pct_proprietaires > 0 && (
-                  <div className="bg-[#8fa0f2] flex items-center justify-center text-[#000000] text-xs font-medium" style={{ width: `${data.pct_proprietaires}%` }}>
+                  <div className="bg-[#96c0b8] flex items-center justify-center text-[#000000] text-xs font-medium" style={{ width: `${data.pct_proprietaires}%` }}>
                     {data.pct_proprietaires}%
                   </div>
                 )}
@@ -122,7 +122,7 @@ export default function LogementSection({ data }) {
                 )}
               </div>
               <div className="flex gap-4 mt-2">
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#8fa0f2]" /><span className="text-xs text-[#9298a6]">Propriétaires</span></div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#96c0b8]" /><span className="text-xs text-[#9298a6]">Propriétaires</span></div>
                 <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#1f6b62]" /><span className="text-xs text-[#9298a6]">Locataires</span></div>
               </div>
             </div>
@@ -165,7 +165,7 @@ function StatLine({ label, value }) {
     <div className="flex items-center gap-2">
       <span className="text-xs text-[#9298a6] w-16">{label}</span>
       <div className="flex-1 h-1.5 bg-[#0f1114] rounded-full overflow-hidden">
-        <div className="h-full rounded-full bg-[#8fa0f2]" style={{ width: `${Math.min(value, 100)}%` }} />
+        <div className="h-full rounded-full bg-[#96c0b8]" style={{ width: `${Math.min(value, 100)}%` }} />
       </div>
       <span className="text-xs text-[#c9cdd6] w-10 text-right">{value}%</span>
     </div>

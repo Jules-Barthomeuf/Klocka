@@ -322,7 +322,7 @@ function SlideBlock({ slide, index }) {
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-3">
-          <span className="text-[#8fa0f2] text-sm font-bold w-8">{slide.num}</span>
+          <span className="text-[#96c0b8] text-sm font-bold w-8">{slide.num}</span>
           <span className="text-[#f2f3f5] text-sm font-light">{slide.title}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -332,8 +332,8 @@ function SlideBlock({ slide, index }) {
               onClick={(e) => { e.stopPropagation(); handleCopy(); }}
               className={`h-7 px-3 text-xs transition-all ${
                 copied
-                  ? "bg-[#8fa0f2]/20 border border-[#8fa0f2]/40 text-[#aab6f5]"
-                  : "bg-[#8fa0f2]/15 border border-[#8fa0f2]/30 hover:bg-[#8fa0f2]/25 text-[#f2f3f5]"
+                  ? "bg-[#96c0b8]/20 border border-[#96c0b8]/40 text-[#c3ddd6]"
+                  : "bg-[#96c0b8]/15 border border-[#96c0b8]/30 hover:bg-[#96c0b8]/25 text-[#f2f3f5]"
               }`}
             >
               {copied ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
@@ -385,7 +385,7 @@ export default function BankPitchGenerator({ project, client }) {
           onClick={handleCopyAll}
           className={`h-8 px-4 text-xs transition-all ${
             copiedAll
-              ? "bg-[#8fa0f2]/20 border border-[#8fa0f2]/40 text-[#aab6f5]"
+              ? "bg-[#96c0b8]/20 border border-[#96c0b8]/40 text-[#c3ddd6]"
               : "bg-[#f2f3f5]/[0.06] border border-[#f2f3f5]/[0.1] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5]"
           }`}
         >

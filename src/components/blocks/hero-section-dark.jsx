@@ -70,7 +70,7 @@ const HeroSection = React.forwardRef(
               </h1>
               <h2 className="text-4xl tracking-tighter font-geist mx-auto md:text-6xl">
                 <span className="text-[#f2f3f5]">{subtitle.regular}</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#8fa0f2] to-[#aab6f5]">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#96c0b8] to-[#c3ddd6]">
                   {subtitle.gradient}
                 </span>
               </h2>

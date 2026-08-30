@@ -214,11 +214,11 @@ export default function Questionnaire() {
     const profilInfo = profilsInfo[profil];
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center p-4">
-        <Card className="max-w-2xl w-full border-[#8fa0f2]/30 bg-gradient-to-br from-[#000000] to-black shadow-2xl">
+        <Card className="max-w-2xl w-full border-[#96c0b8]/30 bg-gradient-to-br from-[#000000] to-black shadow-2xl">
           <CardHeader className="pb-6 border-b border-[#0f1114]">
             <div className="flex items-center gap-4 mb-4">
               <div className="flex-1 text-center">
-                <div className="w-12 h-12 mx-auto mb-2 bg-[#8fa0f2] rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 mx-auto mb-2 bg-[#96c0b8] rounded-full flex items-center justify-center">
                   <CheckCircle2 className="w-6 h-6 text-[#f2f3f5]" />
                 </div>
                 <CardTitle className="text-2xl max-md:text-xl font-montserrat text-[#f2f3f5]">
@@ -233,10 +233,10 @@ export default function Questionnaire() {
               <img 
                 src={profilInfo.image} 
                 alt={profilInfo.nom}
-                className="w-64 h-64 max-md:w-48 max-md:h-48 mx-auto object-cover rounded-md shadow-lg border-2 border-[#8fa0f2]"
+                className="w-64 h-64 max-md:w-48 max-md:h-48 mx-auto object-cover rounded-md shadow-lg border-2 border-[#96c0b8]"
               />
 
-              <h2 className="text-2xl max-md:text-xl text-[#8fa0f2]">
+              <h2 className="text-2xl max-md:text-xl text-[#96c0b8]">
                 {profilInfo.nom}
               </h2>
 
@@ -267,7 +267,7 @@ export default function Questionnaire() {
 
   return (
     <div className="min-h-screen bg-[#000000] flex items-center justify-center p-4 max-md:p-3">
-      <Card className="max-w-3xl w-full border-[#8fa0f2]/30 bg-gradient-to-br from-[#000000] to-black shadow-2xl">
+      <Card className="max-w-3xl w-full border-[#96c0b8]/30 bg-gradient-to-br from-[#000000] to-black shadow-2xl">
         <CardHeader className="space-y-4 pb-8 max-md:pb-6 max-md:space-y-3 border-b border-[#0f1114]">
           <div className="flex justify-between items-center max-md:flex-col max-md:items-start max-md:gap-2">
             <CardTitle className="text-3xl max-md:text-xl text-[#f2f3f5]">
@@ -292,7 +292,7 @@ export default function Questionnaire() {
                   placeholder={question.placeholder}
                   value={reponses[question.id] || ""}
                   onChange={(e) => setReponses({ ...reponses, [question.id]: e.target.value })}
-                  className="h-12 max-md:h-10 text-lg max-md:text-base bg-[#000000] border-[#22262d] text-[#f2f3f5] placeholder:text-[#9298a6] focus:border-[#8fa0f2] focus:ring-[#8fa0f2]"
+                  className="h-12 max-md:h-10 text-lg max-md:text-base bg-[#000000] border-[#22262d] text-[#f2f3f5] placeholder:text-[#9298a6] focus:border-[#96c0b8] focus:ring-[#96c0b8]"
                   autoFocus
                 />
                 
@@ -300,7 +300,7 @@ export default function Questionnaire() {
                 {question.id === "nom_complet" && (
                   <div className="p-4 bg-[#0f1114]/50 rounded-md border border-[#22262d] space-y-4">
                     <div className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-[#8fa0f2]" />
+                      <Users className="w-5 h-5 text-[#96c0b8]" />
                       <Label className="text-[#f2f3f5] font-medium">Investir à deux ? (optionnel)</Label>
                     </div>
                     <p className="text-[#9298a6] text-sm">
@@ -310,7 +310,7 @@ export default function Questionnaire() {
                     {partnerEmails.length > 0 && (
                       <div className="space-y-2">
                         {partnerEmails.map((email) => (
-                          <div key={email} className="flex items-center justify-between p-2 bg-[#8fa0f2]/10 rounded-lg border border-[#8fa0f2]/30">
+                          <div key={email} className="flex items-center justify-between p-2 bg-[#96c0b8]/10 rounded-lg border border-[#96c0b8]/30">
                             <span className="text-[#f2f3f5] text-sm">{email}</span>
                             <button
                               type="button"
@@ -338,7 +338,7 @@ export default function Questionnaire() {
                         onClick={handleAddPartner}
                         disabled={!newPartnerEmail.trim()}
                         variant="outline"
-                        className="border-[#8fa0f2] text-[#8fa0f2] hover:bg-[#8fa0f2]/10"
+                        className="border-[#96c0b8] text-[#96c0b8] hover:bg-[#96c0b8]/10"
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -357,7 +357,7 @@ export default function Questionnaire() {
                     key={option.value}
                     className={`flex items-start space-x-3 p-5 rounded-md border-2 transition-all cursor-pointer hover:shadow-md ${
                       reponses[question.id] === option.value
-                        ? 'border-[#8fa0f2] bg-[#8fa0f2]/20'
+                        ? 'border-[#96c0b8] bg-[#96c0b8]/20'
                         : 'border-[#22262d] hover:border-[#22262d] bg-[#000000]'
                     }`}
                     onClick={() => setReponses({ ...reponses, [question.id]: option.value })}
@@ -370,7 +370,7 @@ export default function Questionnaire() {
                       {option.label}
                     </Label>
                     {reponses[question.id] === option.value && (
-                      <CheckCircle2 className="w-5 h-5 text-[#8fa0f2] flex-shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-[#96c0b8] flex-shrink-0" />
                     )}
                   </div>
                 ))}

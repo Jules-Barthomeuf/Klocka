@@ -56,8 +56,8 @@ export function AnimatedDropdown({
               className={cn(
                 "flex w-full items-center px-3 py-2 text-xs rounded-md transition-colors duration-150",
                 value === option.value
-                  ? "text-[#f2f3f5] bg-[#8fa0f2]/30 border border-[#8fa0f2]/50"
-                  : "text-[#c9cdd6] hover:bg-[#8fa0f2]/10 hover:text-[#f2f3f5]"
+                  ? "text-[#f2f3f5] bg-[#96c0b8]/30 border border-[#96c0b8]/50"
+                  : "text-[#c9cdd6] hover:bg-[#96c0b8]/10 hover:text-[#f2f3f5]"
               )}
             >
               <span className="truncate">{option.label}</span>

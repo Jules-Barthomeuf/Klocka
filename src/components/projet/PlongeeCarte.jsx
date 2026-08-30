@@ -288,7 +288,7 @@ export default function PlongeeCarte({ project, onClose }) {
   if (cible === undefined || google3D === undefined) {
     return (
       <div className="absolute inset-0 bg-[#000000] flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin" />
+        <div className="w-7 h-7 border-2 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin" />
       </div>
     );
   }

@@ -79,7 +79,7 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
             return (
               <button key={admin.email} type="button" onClick={() => setFormData({ ...formData, admin_principal: selected ? "" : admin.email })}
                 className="w-[34px] h-[34px] rounded-full overflow-hidden transition-all"
-                style={{ boxShadow: `0 0 0 2px ${selected ? "#8fa0f2" : "transparent"}, 0 0 0 3px #0f1114` }}>
+                style={{ boxShadow: `0 0 0 2px ${selected ? "#96c0b8" : "transparent"}, 0 0 0 3px #0f1114` }}>
                 <img src={admin.url} alt={admin.email} className="w-full h-full object-cover" />
               </button>
             );
@@ -96,7 +96,7 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
               <div key={email} className="inline-flex items-center gap-2 bg-[#f2f3f5]/[0.05] rounded-full pl-1 pr-2.5 py-1 text-[13px] text-[#f2f3f5]">
                 <span className="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[11px] font-semibold text-[#f2f3f5]" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{initials(nameOf(email))}</span>
                 {nameOf(email)}
-                {principal && <span className="text-[10px] bg-[#8fa0f2] text-[#f2f3f5] px-1.5 py-0.5 rounded font-semibold">Principal</span>}
+                {principal && <span className="text-[10px] bg-[#96c0b8] text-[#f2f3f5] px-1.5 py-0.5 rounded font-semibold">Principal</span>}
                 <span onClick={() => removeClient(email, principal)} className="cursor-pointer text-[#9298a6] hover:text-[#FF7C7C] flex ml-0.5"><X className="w-3.5 h-3.5" strokeWidth={2.2} /></span>
               </div>
             ))}
@@ -158,7 +158,7 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
                     ...(e.target.checked ? {} : { suivi_retour_client: null }),
                   })
                 }
-                className="w-4 h-4 accent-[#8fa0f2]"
+                className="w-4 h-4 accent-[#96c0b8]"
               />
               Message envoyé au client
             </label>
@@ -178,7 +178,7 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
                     className={`px-2.5 py-1 rounded-lg border text-[12px] transition-colors ${
                       formData.suivi_retour_client === v
                         ? v === "oui"
-                          ? "bg-[#8fa0f2]/25 border-[#8fa0f2] text-[#aab6f5]"
+                          ? "bg-[#96c0b8]/25 border-[#96c0b8] text-[#c3ddd6]"
                           : "bg-red-500/20 border-red-400/60 text-red-300"
                         : "border-[#f2f3f5]/15 text-[#9298a6] hover:border-[#f2f3f5]/30"
                     }`}

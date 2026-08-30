@@ -7,10 +7,10 @@ import ShadowReportDialog from "./ShadowReport";
 
 const statutColors = {
   prospect: "text-[#9298a6] border-[#f2f3f5]/[0.18]",
-  analyse: "text-[#aab6f5] border-[#aab6f5]/40",
-  negociation: "text-[#a9c5b9] border-[#a9c5b9]/40",
-  financement: "text-[#a9c5b9] border-[#a9c5b9]/40",
-  signe: "text-[#aab6f5] border-[#8fa0f2] bg-[#8fa0f2]/[0.16]"
+  analyse: "text-[#c3ddd6] border-[#c3ddd6]/40",
+  negociation: "text-[#96c0b8] border-[#96c0b8]/40",
+  financement: "text-[#96c0b8] border-[#96c0b8]/40",
+  signe: "text-[#c3ddd6] border-[#96c0b8] bg-[#96c0b8]/[0.16]"
 };
 
 const statutLabels = {
@@ -155,12 +155,12 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
               <Eye className="w-3.5 h-3.5" />
             </button>
             <button onClick={handleSharePublic} className={`${actionBtn} hover:text-[#f2f3f5] hover:border-[#3a3f4a]`} title="Copier le lien public (accessible sans compte)">
-              {copied ? <Check className="w-3.5 h-3.5 text-[#aab6f5]" /> : <Share2 className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-[#c3ddd6]" /> : <Share2 className="w-3.5 h-3.5" />}
             </button>
             <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-[#f2f3f5] hover:border-[#3a3f4a]`} title="Dupliquer">
               <Copy className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onArchive(project); }} className={`${actionBtn} ${project.archived ? 'text-[#a9c5b9]' : 'hover:text-[#a9c5b9] hover:border-[#a9c5b9]'}`} title={project.archived ? "Désarchiver" : "Archiver"}>
+            <button onClick={(e) => { e.stopPropagation(); onArchive(project); }} className={`${actionBtn} ${project.archived ? 'text-[#96c0b8]' : 'hover:text-[#96c0b8] hover:border-[#96c0b8]'}`} title={project.archived ? "Désarchiver" : "Archiver"}>
               {project.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
             </button>
             <button onClick={(e) => { e.stopPropagation(); onDelete(project.id); }} className={`${actionBtn} hover:text-red-400 hover:border-red-400/40`} title="Supprimer">
@@ -176,7 +176,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
             <p className="text-[10px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0 whitespace-nowrap">Prix de revient</p>
           </div>
           <div className="flex-1 min-w-0 py-4 px-4 border-l border-[#f2f3f5]/[0.12]">
-            <p className="text-[19px] font-light text-[#aab6f5] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+            <p className="text-[19px] font-light text-[#c3ddd6] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
             <p className="text-[10px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0">Rendement</p>
           </div>
           {surface > 0 && (
@@ -192,7 +192,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
       {hasShadow && (
         <button
           onClick={() => setReportOpen(true)}
-          className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#a9c5b9]/30 hover:border-[#a9c5b9] text-[#a9c5b9] text-[10px] tracking-[0.16em] uppercase transition-colors"
+          className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#96c0b8]/30 hover:border-[#96c0b8] text-[#96c0b8] text-[10px] tracking-[0.16em] uppercase transition-colors"
         >
           <FileSearch className="w-3.5 h-3.5" />
           Voir le rapport

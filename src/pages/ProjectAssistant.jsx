@@ -36,9 +36,9 @@ return (
 
 {!isUser && (
 
-<div className="h-7 w-7 rounded-lg bg-[#8fa0f2]/20 flex items-center justify-center mt-0.5 flex-shrink-0">
+<div className="h-7 w-7 rounded-lg bg-[#96c0b8]/20 flex items-center justify-center mt-0.5 flex-shrink-0">
 
-<div className="h-1.5 w-1.5 rounded-full bg-[#8fa0f2]" />
+<div className="h-1.5 w-1.5 rounded-full bg-[#96c0b8]" />
 
 </div>
 
@@ -50,7 +50,7 @@ return (
 
 <div className={`rounded-md px-4 py-2.5 ${
 
-isUser ? "bg-[#8fa0f2] text-[#f2f3f5]" : "bg-[#0f1114] border border-[#22262d]"
+isUser ? "bg-[#96c0b8] text-[#f2f3f5]" : "bg-[#0f1114] border border-[#22262d]"
 
 }`}>
 
@@ -74,13 +74,13 @@ ol: ({ children }) => <ol className="my-1 ml-4 list-decimal text-[#f2f3f5]">{chi
 
 li: ({ children }) => <li className="my-0.5 text-[#f2f3f5]">{children}</li>,
 
-strong: ({ children }) => <strong className="text-[#aab6f5]">{children}</strong>,
+strong: ({ children }) => <strong className="text-[#c3ddd6]">{children}</strong>,
 
 code: ({ inline, children }) =>
 
 inline ?
 
-<code className="px-1 py-0.5 rounded bg-[#000000] text-[#aab6f5] text-xs">{children}</code> :
+<code className="px-1 py-0.5 rounded bg-[#000000] text-[#c3ddd6] text-xs">{children}</code> :
 
 <code className="block p-2 rounded bg-[#000000] text-[#f2f3f5] text-xs">{children}</code>
 
@@ -386,7 +386,7 @@ return (
 
 <div className="relative w-16 h-4">
 
-<div className="absolute w-3 h-3 bg-[#8fa0f2] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
+<div className="absolute w-3 h-3 bg-[#96c0b8] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
 
 </div>
 
@@ -414,7 +414,7 @@ return (
 <div className="min-h-screen bg-[#000000] flex">
 
 {/* Lumière en haut */}
-<div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-gradient-to-br from-[#8fa0f2] via-indigo-500 to-blue-500 opacity-20 blur-[120px] pointer-events-none" />
+<div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-gradient-to-br from-[#96c0b8] via-indigo-500 to-blue-500 opacity-20 blur-[120px] pointer-events-none" />
 
 <div className="flex-1 transition-all duration-300">
 
@@ -457,7 +457,7 @@ Nouvelle conversation
 
 <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
 
-<Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#8fa0f2]/5 to-[#000000]/95 border-none h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col">
+<Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#96c0b8]/5 to-[#000000]/95 border-none h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] flex flex-col">
 
 {/* Messages */}
 
@@ -467,9 +467,9 @@ Nouvelle conversation
 
 <div className="flex flex-col items-center justify-center h-full text-center">
 
-<div className="w-16 h-16 bg-[#8fa0f2]/20 rounded-full flex items-center justify-center mb-4">
+<div className="w-16 h-16 bg-[#96c0b8]/20 rounded-full flex items-center justify-center mb-4">
 
-<div className="w-8 h-8 bg-[#8fa0f2] rounded-full" />
+<div className="w-8 h-8 bg-[#96c0b8] rounded-full" />
 
 </div>
 
@@ -497,9 +497,9 @@ Je peux vous aider à gérer vos projets, analyser leur rentabilité, comparer l
 
 <div className="flex gap-3 justify-start">
 
-<div className="h-7 w-7 rounded-lg bg-[#8fa0f2]/20 flex items-center justify-center mt-0.5">
+<div className="h-7 w-7 rounded-lg bg-[#96c0b8]/20 flex items-center justify-center mt-0.5">
 
-<Loader2 className="h-4 w-4 text-[#8fa0f2] animate-spin" />
+<Loader2 className="h-4 w-4 text-[#96c0b8] animate-spin" />
 
 </div>
 
@@ -607,7 +607,7 @@ className={cn(
 
 inputValue.trim() && !isLoading
 
-? "bg-[#8fa0f2] text-[#f2f3f5] hover:bg-[#8fa0f2]/90"
+? "bg-[#96c0b8] text-[#f2f3f5] hover:bg-[#96c0b8]/90"
 
 : "bg-[#0f1114] text-[#9298a6] cursor-not-allowed"
 

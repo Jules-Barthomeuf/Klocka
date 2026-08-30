@@ -44,8 +44,8 @@ export default function ExportClients() {
   return (
     <div className="min-h-screen bg-[#000000] flex items-center justify-center p-8">
       <div className="bg-[#000000] border border-[#1f2228] rounded-md p-10 max-w-md w-full text-center space-y-6">
-        <div className="w-16 h-16 bg-[#8fa0f2]/10 rounded-md flex items-center justify-center mx-auto">
-          <Download className="w-8 h-8 text-[#8fa0f2]" />
+        <div className="w-16 h-16 bg-[#96c0b8]/10 rounded-md flex items-center justify-center mx-auto">
+          <Download className="w-8 h-8 text-[#96c0b8]" />
         </div>
         <div>
           <h1 className="text-2xl font-light text-[#f2f3f5] mb-2">Export Clients</h1>
@@ -53,7 +53,7 @@ export default function ExportClients() {
         </div>
 
         {done && count !== null && (
-          <div className="flex items-center gap-2 justify-center text-[#aab6f5] text-sm">
+          <div className="flex items-center gap-2 justify-center text-[#c3ddd6] text-sm">
             <CheckCircle2 className="w-4 h-4" />
             <span>{count} client(s) exporté(s) avec succès</span>
           </div>
@@ -62,7 +62,7 @@ export default function ExportClients() {
         <Button
           onClick={handleExport}
           disabled={loading}
-          className="w-full h-12 bg-[#8fa0f2]/15 border border-[#8fa0f2]/30 hover:bg-[#8fa0f2]/25 text-[#f2f3f5] text-sm"
+          className="w-full h-12 bg-[#96c0b8]/15 border border-[#96c0b8]/30 hover:bg-[#96c0b8]/25 text-[#f2f3f5] text-sm"
         >
           {loading ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Chargement en cours...</>

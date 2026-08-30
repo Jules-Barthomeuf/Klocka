@@ -30,7 +30,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
   const hasNote = field.note && field.note.trim().length > 0;
 
   return (
-    <div className={`relative rounded-lg transition-all ${isChecked ? "ring-1 ring-[#8fa0f2]/40" : ""}`}>
+    <div className={`relative rounded-lg transition-all ${isChecked ? "ring-1 ring-[#96c0b8]/40" : ""}`}>
       {/* Contenu du champ */}
       <div className="relative">
         {children}
@@ -43,7 +43,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             title={isChecked ? "Marquer comme non vérifié" : "Marquer comme vérifié"}
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               isChecked
-                ? "border-[#8fa0f2]/50 bg-[#8fa0f2]/10 text-[#aab6f5] hover:bg-[#8fa0f2]/20"
+                ? "border-[#96c0b8]/50 bg-[#96c0b8]/10 text-[#c3ddd6] hover:bg-[#96c0b8]/20"
                 : "border-[#22262d] bg-[#0f1114]/60 text-[#9298a6] hover:text-[#c9cdd6] hover:border-[#22262d]"
             }`}
           >

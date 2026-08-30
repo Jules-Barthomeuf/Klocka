@@ -55,7 +55,7 @@ function CasePhoto({ label, url, suggestions, onChange }) {
         )}
         {envoi && (
           <div className="absolute inset-0 bg-[#000000]/70 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 text-[#aab6f5] animate-spin" />
+            <Loader2 className="w-5 h-5 text-[#c3ddd6] animate-spin" />
           </div>
         )}
       </div>
@@ -75,7 +75,7 @@ function CasePhoto({ label, url, suggestions, onChange }) {
             </>
           )}
           <button onClick={() => fichierRef.current?.click()} title="Importer une image"
-            className="w-6 h-6 flex items-center justify-center text-[#9298a6] hover:text-[#aab6f5] transition-colors">
+            className="w-6 h-6 flex items-center justify-center text-[#9298a6] hover:text-[#c3ddd6] transition-colors">
             <Upload className="w-3.5 h-3.5" />
           </button>
           <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={importer} />
@@ -277,7 +277,7 @@ function LigneProjet({ p, onClick }) {
         {p.adresse_complete && <p className="text-[#6a7180] text-[12px] truncate">{p.adresse_complete}</p>}
       </div>
       {p.presentation_google_slides && (
-        <span className="text-[10px] tracking-[0.12em] uppercase text-[#aab6f5] flex-shrink-0">Générée</span>
+        <span className="text-[10px] tracking-[0.12em] uppercase text-[#c3ddd6] flex-shrink-0">Générée</span>
       )}
     </button>
   );
@@ -408,7 +408,7 @@ export default function AdminPresentations() {
                   <button
                     key={nom}
                     onClick={() => setVille(nom)}
-                    className="text-left bg-[#0f1114] border border-[#1f2228] px-4 py-4 hover:border-[#8fa0f2]/60 hover:bg-[#f2f3f5]/[0.03] transition-all"
+                    className="text-left bg-[#0f1114] border border-[#1f2228] px-4 py-4 hover:border-[#96c0b8]/60 hover:bg-[#f2f3f5]/[0.03] transition-all"
                   >
                     <p className="text-[#f2f3f5] text-[15px] font-medium truncate">{nom}</p>
                     <p className="text-[#6a7180] text-[12px] mt-1">

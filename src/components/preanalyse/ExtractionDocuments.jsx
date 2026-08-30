@@ -260,7 +260,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
       </div>
 
       {doc.classement?.confiance === "basse" && (
-        <p className="px-5 py-2 text-[#a9c5b9]/80 text-xs bg-[#a9c5b9]/[0.07] border-b border-[#a9c5b9]/20 flex items-start gap-2">
+        <p className="px-5 py-2 text-[#96c0b8]/80 text-xs bg-[#96c0b8]/[0.07] border-b border-[#96c0b8]/20 flex items-start gap-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
           Type détecté avec une confiance faible — vérifiez et corrigez au besoin.
         </p>
@@ -269,8 +269,8 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
       {/* IA saturée au moment du dépôt : le document et ses pages sont
           conservés, un clic relance l'extraction sans re-téléverser. */}
       {doc.incidents?.some((i) => i.motif === "ia_indisponible") && (
-        <div className="px-5 py-2.5 bg-[#a9c5b9]/[0.07] border-b border-[#a9c5b9]/20 flex flex-wrap items-center gap-2">
-          <AlertTriangle className="w-3.5 h-3.5 text-[#a9c5b9] flex-shrink-0" />
+        <div className="px-5 py-2.5 bg-[#96c0b8]/[0.07] border-b border-[#96c0b8]/20 flex flex-wrap items-center gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 text-[#96c0b8] flex-shrink-0" />
           <p className="text-amber-200/90 text-xs flex-1 min-w-48">
             L'IA était saturée pendant le dépôt : les champs n'ont pas été extraits. Le document est
             conservé — relancez l'extraction quand vous voulez.
@@ -278,7 +278,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
           <button
             onClick={() => doc.classement?.code && onReclasser(doc.classement.code)}
             disabled={enCours || !doc.classement?.code}
-            className="px-3 py-1.5 text-xs rounded border border-[#a9c5b9]/40 text-amber-200 hover:bg-[#a9c5b9]/10 transition-colors disabled:opacity-50 flex-shrink-0"
+            className="px-3 py-1.5 text-xs rounded border border-[#96c0b8]/40 text-amber-200 hover:bg-[#96c0b8]/10 transition-colors disabled:opacity-50 flex-shrink-0"
           >
             {enCours ? "Extraction…" : "Reextraire"}
           </button>
@@ -316,7 +316,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
             const actif =
               sourceActive?.url === doc.url && !absent && sourceActive?.page === v.page && sourceActive?.champ === c.id;
             return (
-              <div key={c.id} className={`px-5 py-3 ${actif ? "bg-[#8fa0f2]/[0.07]" : ""}`}>
+              <div key={c.id} className={`px-5 py-3 ${actif ? "bg-[#96c0b8]/[0.07]" : ""}`}>
                 <div className="flex items-start gap-3">
                   <span className="text-[#9298a6] text-xs w-44 flex-shrink-0 pt-0.5">{c.libelle}</span>
                   <div className="min-w-0 flex-1">
@@ -325,7 +325,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                     ) : (
                       <>
                         <p className="text-[#f2f3f5] text-sm whitespace-pre-wrap leading-relaxed">{v.valeur}</p>
-                        {c.remarque && <p className="text-[#a9c5b9]/60 text-[11px] mt-1">{c.remarque}</p>}
+                        {c.remarque && <p className="text-[#96c0b8]/60 text-[11px] mt-1">{c.remarque}</p>}
                       </>
                     )}
                   </div>
@@ -343,7 +343,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                       }
                       className={`flex-shrink-0 text-[11px] px-2 py-1 rounded-lg border transition-colors ${
                         actif
-                          ? "border-[#8fa0f2]/40 bg-[#8fa0f2]/20 text-[#aab6f5]"
+                          ? "border-[#96c0b8]/40 bg-[#96c0b8]/20 text-[#c3ddd6]"
                           : "border-[#f2f3f5]/10 text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/25"
                       }`}
                       title={v.citation}
@@ -353,7 +353,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                     </button>
                   )}
                   {!absent && v.confiance === "basse" && (
-                    <Badge className="bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/25 text-[10px] flex-shrink-0">
+                    <Badge className="bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/25 text-[10px] flex-shrink-0">
                       à vérifier
                     </Badge>
                   )}

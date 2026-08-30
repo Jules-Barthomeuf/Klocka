@@ -33,14 +33,14 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  font-family: 'IBM Plex Sans', Inter, system-ui, sans-serif;
+  font-family: 'Instrument Sans', Inter, system-ui, sans-serif;
   background: #000000;
   color: #f2f3f5;
   -webkit-font-smoothing: antialiased;
 }
 
-input[type=range] { accent-color: #8fa0f2; }
-::selection { background: rgba(143, 160, 242, .3); }
+input[type=range] { accent-color: #96c0b8; }
+::selection { background: rgba(150, 192, 184, .3); }
 
 h1 {
   font-size: 3.2em;
@@ -85,7 +85,7 @@ button:focus-visible {
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'Inter Tight', Inter, system-ui, -apple-system, sans-serif;
+  font-family: 'Instrument Sans', Inter, system-ui, -apple-system, sans-serif;
   background: #000000;
   color: #f2f3f5;
   -webkit-font-smoothing: antialiased;
@@ -93,20 +93,20 @@ body {
   letter-spacing: -0.005em;
 }
 h1, h2, h3 { letter-spacing: -0.02em; }
-input[type=range] { accent-color: #8fa0f2; }
-::selection { background: rgba(143, 160, 242, .3); }
+input[type=range] { accent-color: #96c0b8; }
+::selection { background: rgba(150, 192, 184, .3); }
 
 /* Un bouton d'action est une pilule, comme « Commencer gratuitement ». Les
    remplissages clairs d'hier (ivoire) deviennent la menthe du site ; les
    contours restent des contours. Les champs, onglets et cases ne bougent pas. */
 button.rounded-md, a.rounded-md, button.rounded-lg, a.rounded-lg { border-radius: 9999px; }
-button.bg-\[\#a9c5b9\], a.bg-\[\#a9c5b9\] { border-radius: 9999px; }
-button.bg-\[\#f2f3f5\], a.bg-\[\#f2f3f5\] { background-color: #a9c5b9; color: #000000; border-radius: 9999px; }
-button.bg-\[\#f2f3f5\]:hover, a.bg-\[\#f2f3f5\]:hover { background-color: #bcd4c9; }
+button.bg-\[\#96c0b8\], a.bg-\[\#96c0b8\] { border-radius: 9999px; }
+button.bg-\[\#f2f3f5\], a.bg-\[\#f2f3f5\] { background-color: #96c0b8; color: #000000; border-radius: 9999px; }
+button.bg-\[\#f2f3f5\]:hover, a.bg-\[\#f2f3f5\]:hover { background-color: #abd0c8; }
 button.bg-\[\#ffffff\] { border-radius: 9999px; }
 
 /* Page projet — identité éditoriale (maquette "Page Projet Klocka") */
-.projet-editorial ::selection { background: rgba(143, 160, 242, .3); }
+.projet-editorial ::selection { background: rgba(150, 192, 184, .3); }
 
 /* Article lu via /api/lecture : le HTML arrive nettoyé et sans attribut, la
    mise en forme est donc entièrement portée par ces règles. */
@@ -120,11 +120,11 @@ button.bg-\[\#ffffff\] { border-radius: 9999px; }
 .article-lu ul { list-style: disc; }
 .article-lu ol { list-style: decimal; }
 .article-lu li { margin-top: .45em; }
-.article-lu li::marker { color: #8fa0f2; }
-.article-lu a { color: #aab6f5; text-decoration: underline; text-underline-offset: 2px; }
+.article-lu li::marker { color: #96c0b8; }
+.article-lu a { color: #c3ddd6; text-decoration: underline; text-underline-offset: 2px; }
 .article-lu a:hover { color: #f2f3f5; }
 .article-lu strong, .article-lu b { color: #f2f3f5; font-weight: 500; }
-.article-lu blockquote { border-left: 2px solid rgba(143, 160, 242, .6); padding-left: 1em; color: #9298a6; }
+.article-lu blockquote { border-left: 2px solid rgba(150, 192, 184, .6); padding-left: 1em; color: #9298a6; }
 .article-lu table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
 .article-lu th, .article-lu td { border-top: 1px solid rgba(237, 234, 229, .12); padding: .55em .7em; text-align: left; vertical-align: top; }
 .article-lu th { color: #9298a6; font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }

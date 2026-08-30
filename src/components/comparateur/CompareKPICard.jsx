@@ -3,8 +3,8 @@ import InfoTooltip from "./InfoTooltip";
 
 const colorClasses = [
   { bg: "from-red-800/20", border: "border-red-800/50", text: "text-red-800", bar: "bg-red-800" },
-  { bg: "from-[#aab6f5]/20", border: "border-[#aab6f5]/50", text: "text-[#aab6f5]", bar: "bg-[#aab6f5]" },
-  { bg: "from-[#a9c5b9]/20", border: "border-[#a9c5b9]/50", text: "text-[#a9c5b9]", bar: "bg-[#a9c5b9]" },
+  { bg: "from-[#c3ddd6]/20", border: "border-[#c3ddd6]/50", text: "text-[#c3ddd6]", bar: "bg-[#c3ddd6]" },
+  { bg: "from-[#96c0b8]/20", border: "border-[#96c0b8]/50", text: "text-[#96c0b8]", bar: "bg-[#96c0b8]" },
   { bg: "from-purple-400/20", border: "border-purple-400/50", text: "text-purple-400", bar: "bg-purple-400" },
 ];
 

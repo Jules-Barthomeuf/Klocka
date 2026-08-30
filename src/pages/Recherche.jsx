@@ -26,7 +26,7 @@ export default function Recherche() {
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-2">Recherche</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-2">Recherche</p>
           <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Profils d'investissement</h1>
           <p className="text-[#f2f3f5]/30 text-sm mt-2">Critères de recherche par tranche de budget et projets correspondants.</p>
           {isAdmin && (
@@ -36,7 +36,7 @@ export default function Recherche() {
               onClick={handleCopyLink}
               className="mt-3 border-[#f2f3f5]/10 bg-[#000000] text-[#f2f3f5]/50 hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 text-xs gap-2"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-[#aab6f5]" /> : <Link2 className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-[#c3ddd6]" /> : <Link2 className="w-3.5 h-3.5" />}
               {copied ? "Lien copié" : "Copier le lien"}
             </Button>
           )}
@@ -49,7 +49,7 @@ export default function Recherche() {
             className="flex-shrink-0 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 border"
             style={
               activeTab === "synthese"
-                ? { backgroundColor: "rgba(42,157,143,0.15)", color: "#8fa0f2", borderColor: "rgba(42,157,143,0.4)" }
+                ? { backgroundColor: "rgba(42,157,143,0.15)", color: "#96c0b8", borderColor: "rgba(42,157,143,0.4)" }
                 : { backgroundColor: "transparent", color: "rgba(255,255,255,0.4)", borderColor: "rgba(255,255,255,0.06)" }
             }
           >
@@ -87,7 +87,7 @@ export default function Recherche() {
               <p className="text-[#f2f3f5]/50 text-sm mb-4">Vous avez un bien correspondant à nos critères ?</p>
               <Button
                 onClick={() => window.open("https://dpe3smipjxh.typeform.com/to/GD7sREFs", "_blank")}
-                className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5] px-6 py-2.5 gap-2"
+                className="bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5] px-6 py-2.5 gap-2"
               >
                 Prendre rendez-vous
                 <ArrowRight className="w-4 h-4" />

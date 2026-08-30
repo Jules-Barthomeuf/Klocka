@@ -57,7 +57,7 @@ export default function SimWhatsNewDialog({ onClose }) {
         </button>
 
         <div className="p-8 text-center">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-[#8fa0f2] mb-2">Nouveautés</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[#96c0b8] mb-2">Nouveautés</p>
           <h2 className="text-2xl font-light text-[#f2f3f5] mb-8">Le simulateur fait peau neuve</h2>
 
           <AnimatePresence mode="wait">
@@ -69,8 +69,8 @@ export default function SimWhatsNewDialog({ onClose }) {
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="min-h-[180px] flex flex-col items-center justify-center"
             >
-              <div className="w-16 h-16 rounded-md bg-[#8fa0f2]/15 border border-[#8fa0f2]/30 flex items-center justify-center mb-5">
-                <Icon className="w-7 h-7 text-[#8fa0f2]" />
+              <div className="w-16 h-16 rounded-md bg-[#96c0b8]/15 border border-[#96c0b8]/30 flex items-center justify-center mb-5">
+                <Icon className="w-7 h-7 text-[#96c0b8]" />
               </div>
               <h3 className="text-lg text-[#f2f3f5] font-medium mb-3">{slide.title}</h3>
               <p className="text-sm text-[#9298a6] leading-relaxed max-w-sm">{slide.desc}</p>
@@ -82,7 +82,7 @@ export default function SimWhatsNewDialog({ onClose }) {
               <button
                 key={i}
                 onClick={() => setIndex(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-6 bg-[#8fa0f2]" : "w-1.5 bg-[#f2f3f5]/20 hover:bg-[#f2f3f5]/40"}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? "w-6 bg-[#96c0b8]" : "w-1.5 bg-[#f2f3f5]/20 hover:bg-[#f2f3f5]/40"}`}
               />
             ))}
           </div>

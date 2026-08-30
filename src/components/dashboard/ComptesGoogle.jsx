@@ -70,7 +70,7 @@ export default function ComptesGoogle() {
       </div>
 
       {!google.enabled && (
-        <p className="m-0 text-[13.5px] text-[#a9c5b9] leading-[1.6]">
+        <p className="m-0 text-[13.5px] text-[#96c0b8] leading-[1.6]">
           La connexion Google n'est pas configurée côté serveur (GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET).
         </p>
       )}
@@ -98,7 +98,7 @@ export default function ComptesGoogle() {
                     >
                       <dt className="text-[14px] text-[#c9cdd6]">{libelle}</dt>
                       <dd
-                        className={`m-0 text-[13px] ${c[cle] ? "text-[#9298a6]" : "text-[#a9c5b9]"}`}
+                        className={`m-0 text-[13px] ${c[cle] ? "text-[#9298a6]" : "text-[#96c0b8]"}`}
                         title={c[cle] ? undefined : "Reconnectez le compte pour l'accorder"}
                       >
                         {c[cle] ? "accordé" : "non accordé"}
@@ -131,7 +131,7 @@ export default function ComptesGoogle() {
       {/* Une portée manquante ne se rattrape qu'en reconnectant : un jeton déjà
           émis ne l'acquiert jamais rétroactivement. */}
       {comptes.some((c) => !c.peut_lire) && google.gmail_read && (
-        <p className="m-0 mt-7 text-[13px] text-[#a9c5b9] leading-[1.6]">
+        <p className="m-0 mt-7 text-[13px] text-[#96c0b8] leading-[1.6]">
           Un compte n'autorise pas la relève alors que le serveur la demande : reconnectez-le pour que l'assistant
           puisse lire sa boîte.
         </p>

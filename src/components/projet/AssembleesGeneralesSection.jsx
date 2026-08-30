@@ -62,7 +62,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
           <Button
             size="sm"
             onClick={() => setShowForm(!showForm)}
-            className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/80 text-[#f2f3f5] gap-1.5"
+            className="bg-[#96c0b8] hover:bg-[#96c0b8]/80 text-[#f2f3f5] gap-1.5"
           >
             <Plus className="w-4 h-4" />
             Ajouter une AG
@@ -72,7 +72,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
 
       {/* Formulaire d'ajout */}
       {showForm && (
-        <div className="mb-6 p-5 bg-[#0f1114]/50 rounded-md border border-[#8fa0f2]/30 space-y-4">
+        <div className="mb-6 p-5 bg-[#0f1114]/50 rounded-md border border-[#96c0b8]/30 space-y-4">
           <div>
             <label className="text-sm text-[#9298a6] mb-1 block">Année</label>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -120,7 +120,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                 <Button
                   onClick={handleAdd}
                   disabled={saving}
-                  className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/80 text-[#f2f3f5] gap-1.5"
+                  className="bg-[#96c0b8] hover:bg-[#96c0b8]/80 text-[#f2f3f5] gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? "Enregistrement..." : "Enregistrer"}
@@ -153,8 +153,8 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                   className="w-full flex items-center justify-between py-3.5 text-left group"
                 >
                   <div className="flex items-center gap-3">
-                    <CalendarDays className="w-4 h-4 text-[#8fa0f2]" />
-                    <span className="text-[14.5px] text-[#f2f3f5] group-hover:text-[#aab6f5] transition-colors">AG {ag.annee}</span>
+                    <CalendarDays className="w-4 h-4 text-[#96c0b8]" />
+                    <span className="text-[14.5px] text-[#f2f3f5] group-hover:text-[#c3ddd6] transition-colors">AG {ag.annee}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {isAdmin && (
@@ -185,14 +185,14 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                     )}
                     <div className="grid md:grid-cols-2 gap-x-12 gap-y-5">
                       {ag.resolutions_votees && (
-                        <div className="border-l border-[#8fa0f2] pl-5">
-                          <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-2">Résolutions votées</p>
+                        <div className="border-l border-[#96c0b8] pl-5">
+                          <p className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-2">Résolutions votées</p>
                           <p className="text-[14.5px] leading-[1.8] text-[#c9cdd6] whitespace-pre-wrap mb-0">{ag.resolutions_votees}</p>
                         </div>
                       )}
                       {ag.resolutions_refusees && (
-                        <div className="border-l border-[#a9c5b9] pl-5">
-                          <p className="text-[10px] tracking-[0.2em] uppercase text-[#a9c5b9] mb-2">Résolutions non votées</p>
+                        <div className="border-l border-[#96c0b8] pl-5">
+                          <p className="text-[10px] tracking-[0.2em] uppercase text-[#96c0b8] mb-2">Résolutions non votées</p>
                           <p className="text-[14.5px] leading-[1.8] text-[#c9cdd6] whitespace-pre-wrap mb-0">{ag.resolutions_refusees}</p>
                         </div>
                       )}

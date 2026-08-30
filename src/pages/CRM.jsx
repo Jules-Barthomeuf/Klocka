@@ -141,9 +141,9 @@ export default function CRM() {
       icon: DollarSign,
       count: transactions.length,
       subtitle: `${transactionsFinalisees.length} finalisées`,
-      color: "from-[#8fa0f2]/20 to-[#8fa0f2]/10",
-      iconBg: "bg-[#8fa0f2]/20",
-      iconColor: "text-[#aab6f5]",
+      color: "from-[#96c0b8]/20 to-[#96c0b8]/10",
+      iconBg: "bg-[#96c0b8]/20",
+      iconColor: "text-[#c3ddd6]",
       url: "CRMTransactions"
     },
     {
@@ -173,7 +173,7 @@ export default function CRM() {
           <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
             CRM
           </h1>
-          <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
+          <div className="h-0.5 w-32 bg-[#96c0b8]"></div>
           <p className="text-[#9298a6] mt-4">
             Vue d'ensemble de votre activité commerciale
           </p>
@@ -191,7 +191,7 @@ export default function CRM() {
                     <p className="text-3xl font-bold text-[#f2f3f5] mt-1">{transactions.length}</p>
                     <p className="text-xs text-[#9298a6] mt-1">{transactionsEnCours} en cours</p>
                   </div>
-                  <TrendingUp className="w-10 h-10 text-[#aab6f5]" />
+                  <TrendingUp className="w-10 h-10 text-[#c3ddd6]" />
                 </div>
               </CardContent>
             </Card>
@@ -232,7 +232,7 @@ export default function CRM() {
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <div className="relative rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-[#8fa0f2]/10 to-[#7c8ee8]/20 border-none">
+            <Card className="relative bg-gradient-to-br from-[#96c0b8]/10 to-[#7fada4]/20 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -244,9 +244,9 @@ export default function CRM() {
                         maximumFractionDigits: 0 
                       }).format(volumeTransactionsFinalisees)}
                     </p>
-                    <p className="text-xs text-[#aab6f5] mt-1">{transactionsFinalisees.length} transactions</p>
+                    <p className="text-xs text-[#c3ddd6] mt-1">{transactionsFinalisees.length} transactions</p>
                   </div>
-                  <DollarSign className="w-10 h-10 text-[#aab6f5]" />
+                  <DollarSign className="w-10 h-10 text-[#c3ddd6]" />
                 </div>
               </CardContent>
             </Card>
@@ -254,7 +254,7 @@ export default function CRM() {
 
           <div className="relative rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2">
             <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-            <Card className="relative bg-gradient-to-br from-[#8fa0f2]/20 to-[#aab6f5]/20 border-none">
+            <Card className="relative bg-gradient-to-br from-[#96c0b8]/20 to-[#c3ddd6]/20 border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -266,9 +266,9 @@ export default function CRM() {
                         maximumFractionDigits: 0 
                       }).format(totalHonoraires)}
                     </p>
-                    <p className="text-xs text-[#8fa0f2] mt-1">Toutes catégories</p>
+                    <p className="text-xs text-[#96c0b8] mt-1">Toutes catégories</p>
                   </div>
-                  <DollarSign className="w-10 h-10 text-[#8fa0f2]" />
+                  <DollarSign className="w-10 h-10 text-[#96c0b8]" />
                 </div>
               </CardContent>
             </Card>
@@ -288,9 +288,9 @@ export default function CRM() {
                         maximumFractionDigits: 0 
                       }).format(honorairesFinalisees)}
                     </p>
-                    <p className="text-xs text-[#a9c5b9] mt-1">Transactions finalisées</p>
+                    <p className="text-xs text-[#96c0b8] mt-1">Transactions finalisées</p>
                   </div>
-                  <DollarSign className="w-10 h-10 text-[#a9c5b9]" />
+                  <DollarSign className="w-10 h-10 text-[#96c0b8]" />
                 </div>
               </CardContent>
             </Card>
@@ -305,7 +305,7 @@ export default function CRM() {
             <Card className="relative bg-gradient-to-br from-[#000000]/95 to-[#0f1114]/95 border-none">
               <CardHeader>
                 <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-[#8fa0f2]" />
+                  <MapPin className="w-5 h-5 text-[#96c0b8]" />
                   Agents Immobiliers
                 </CardTitle>
               </CardHeader>
@@ -361,7 +361,7 @@ export default function CRM() {
             <Card className="relative bg-gradient-to-br from-[#000000]/95 to-[#0f1114]/95 border-none">
               <CardHeader>
                 <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-[#aab6f5]" />
+                  <TrendingUp className="w-5 h-5 text-[#c3ddd6]" />
                   Transactions
                   <div className="flex gap-3 ml-auto text-xs">
                     <div className="flex items-center gap-1">
@@ -369,7 +369,7 @@ export default function CRM() {
                       <span>En cours</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#96c0b8]"></div>
                       <span>Finalisées</span>
                     </div>
                   </div>
@@ -433,7 +433,7 @@ export default function CRM() {
                               )}
                               {finalisees.length > 0 && (
                                 <div>
-                                  <p className="font-semibold text-[#7c8ee8] mb-1">Finalisées ({finalisees.length})</p>
+                                  <p className="font-semibold text-[#7fada4] mb-1">Finalisées ({finalisees.length})</p>
                                   <div className="space-y-1 max-h-32 overflow-y-auto">
                                     {finalisees.slice(0, 3).map(t => (
                                       <div key={t.id} className="text-xs">

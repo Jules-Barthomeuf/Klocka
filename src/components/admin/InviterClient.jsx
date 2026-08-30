@@ -58,7 +58,7 @@ export default function InviterClient({ onCree } = {}) {
     return (
       <button
         onClick={() => setOuvert(true)}
-        className="inline-flex items-center gap-2 px-4 py-2 text-[10px] tracking-[0.16em] uppercase border border-[#a9c5b9]/50 text-[#a9c5b9] hover:bg-[#a9c5b9]/[0.08] transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 text-[10px] tracking-[0.16em] uppercase border border-[#96c0b8]/50 text-[#96c0b8] hover:bg-[#96c0b8]/[0.08] transition-colors"
       >
         <UserPlus className="w-3.5 h-3.5" /> Inviter un client
       </button>
@@ -66,10 +66,10 @@ export default function InviterClient({ onCree } = {}) {
   }
 
   return (
-    <div className="w-full border border-[#a9c5b9]/30 bg-[#a9c5b9]/[0.03] p-5">
+    <div className="w-full border border-[#96c0b8]/30 bg-[#96c0b8]/[0.03] p-5">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <p className="m-0 text-[10px] tracking-[.18em] uppercase text-[#a9c5b9]">Inviter un client</p>
+          <p className="m-0 text-[10px] tracking-[.18em] uppercase text-[#96c0b8]">Inviter un client</p>
           <p className="m-0 mt-1 text-[12.5px] text-[#9298a6]">
             Le compte est créé tout de suite. La personne ouvre le lien, choisit son mot de passe, entre.
           </p>
@@ -93,7 +93,7 @@ export default function InviterClient({ onCree } = {}) {
               value={nom}
               onChange={(e) => setNom(e.target.value)}
               placeholder="Prénom Nom"
-              className="w-full bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] focus:border-[#a9c5b9] px-0 py-1.5 text-[15px] text-[#f2f3f5] outline-none placeholder:text-[#6a7180]"
+              className="w-full bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] focus:border-[#96c0b8] px-0 py-1.5 text-[15px] text-[#f2f3f5] outline-none placeholder:text-[#6a7180]"
             />
           </label>
           <label className="flex-1 min-w-[220px]">
@@ -104,14 +104,14 @@ export default function InviterClient({ onCree } = {}) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="client@exemple.fr"
-              className="w-full bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] focus:border-[#a9c5b9] px-0 py-1.5 text-[15px] text-[#f2f3f5] outline-none placeholder:text-[#6a7180]"
+              className="w-full bg-transparent border-0 border-b border-[#f2f3f5]/[0.18] focus:border-[#96c0b8] px-0 py-1.5 text-[15px] text-[#f2f3f5] outline-none placeholder:text-[#6a7180]"
             />
           </label>
           <div className="flex items-center gap-2">
             <button
               type="submit"
               disabled={!email.trim() || mutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#a9c5b9] text-[#000000] text-[10px] tracking-[.16em] uppercase font-medium disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#96c0b8] text-[#000000] text-[10px] tracking-[.16em] uppercase font-medium disabled:opacity-40"
             >
               {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               Envoyer le lien
@@ -131,7 +131,7 @@ export default function InviterClient({ onCree } = {}) {
           <p className="m-0 text-[13.5px] text-[#f2f3f5]">
             {resultat.envoye ? (
               <>
-                <Check className="w-3.5 h-3.5 inline-block mr-1.5 text-[#aab6f5] align-[-2px]" />
+                <Check className="w-3.5 h-3.5 inline-block mr-1.5 text-[#c3ddd6] align-[-2px]" />
                 Invitation envoyée à <strong className="font-medium">{resultat.email}</strong>.
               </>
             ) : resultat.simule ? (

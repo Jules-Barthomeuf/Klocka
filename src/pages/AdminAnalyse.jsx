@@ -37,7 +37,7 @@ const categorieIcons = {
 const statutConfig = {
   en_attente: { label: "En attente", color: "bg-[#f2f3f5]/10 text-[#c9cdd6]", icon: Clock },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-400", icon: Loader2 },
-  verifie: { label: "Vérifié", color: "bg-[#8fa0f2]/20 text-[#aab6f5]", icon: CheckCircle2 },
+  verifie: { label: "Vérifié", color: "bg-[#96c0b8]/20 text-[#c3ddd6]", icon: CheckCircle2 },
   non_verifie: { label: "Non vérifié", color: "bg-red-500/20 text-red-400", icon: XCircle }
 };
 
@@ -69,7 +69,7 @@ function DocumentCard({ doc, analyzing, onAnalyze, onDelete, onSelect }) {
           {statut.label}
         </span>
         {doc.points_attention?.length > 0 &&
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#a9c5b9]/15 text-[#a9c5b9]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#96c0b8]/15 text-[#96c0b8]">
             <AlertTriangle className="w-3 h-3" />
             {doc.points_attention.length}
           </span>
@@ -321,7 +321,7 @@ export default function AdminAnalyse() {
             {/* Dropzone */}
             <div
             className={`rounded-md border-2 border-dashed p-8 text-center mb-6 transition-all duration-300 ${
-            dragOver ? 'border-[#8fa0f2] bg-[#8fa0f2]/5' : 'border-[#1f2228] hover:border-[#f2f3f5]/[0.15]'}`
+            dragOver ? 'border-[#96c0b8] bg-[#96c0b8]/5' : 'border-[#1f2228] hover:border-[#f2f3f5]/[0.15]'}`
             }
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -329,7 +329,7 @@ export default function AdminAnalyse() {
             
               {uploading ?
             <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-10 h-10 text-[#8fa0f2] animate-spin" />
+                  <Loader2 className="w-10 h-10 text-[#96c0b8] animate-spin" />
                   <p className="text-[#f2f3f5]/60 text-sm">Upload et extraction en cours...</p>
                 </div> :
 
@@ -377,7 +377,7 @@ export default function AdminAnalyse() {
                   onClick={() => setActiveTab(key)}
                   className={`rounded-md p-2 text-center transition-all border ${
                   activeTab === key ?
-                  'bg-[#8fa0f2]/10 border-[#8fa0f2]/30 text-[#8fa0f2]' :
+                  'bg-[#96c0b8]/10 border-[#96c0b8]/30 text-[#96c0b8]' :
                   'bg-[#f2f3f5]/[0.02] border-[#1f2228] text-[#f2f3f5]/40 hover:text-[#f2f3f5]/60 hover:bg-[#f2f3f5]/[0.04]'}`
                   }>
                   
@@ -390,7 +390,7 @@ export default function AdminAnalyse() {
               onClick={() => setActiveTab("recherche")}
               className={`rounded-md p-2 text-center transition-all border ${
               activeTab === "recherche" ?
-              'bg-[#8fa0f2]/10 border-[#8fa0f2]/30 text-[#8fa0f2]' :
+              'bg-[#96c0b8]/10 border-[#96c0b8]/30 text-[#96c0b8]' :
               'bg-[#f2f3f5]/[0.02] border-[#1f2228] text-[#f2f3f5]/40 hover:text-[#f2f3f5]/60 hover:bg-[#f2f3f5]/[0.04]'}`
               }>
               
@@ -588,14 +588,14 @@ export default function AdminAnalyse() {
               {selectedDoc.points_attention?.length > 0 &&
             <div>
                   <h4 className="text-[#f2f3f5]/50 text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#a9c5b9]" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#96c0b8]" />
                     Points d'attention
                   </h4>
                   <div className="space-y-2">
                     {selectedDoc.points_attention.map((point, idx) => {
                   const niveauStyles = {
                     info: "bg-blue-500/10 border-blue-500/20 text-blue-300",
-                    warning: "bg-[#a9c5b9]/10 border-[#a9c5b9]/20 text-[#a9c5b9]",
+                    warning: "bg-[#96c0b8]/10 border-[#96c0b8]/20 text-[#96c0b8]",
                     critical: "bg-red-500/10 border-red-500/20 text-red-300"
                   }[point.niveau] || "bg-[#f2f3f5]/[0.04] border-[#1f2228] text-[#f2f3f5]/60";
 

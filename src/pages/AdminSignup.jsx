@@ -157,8 +157,8 @@ export default function AdminSignup() {
             Créer un compte / Se connecter
           </Button>
 
-          <div className="bg-[#8fa0f2]/10 border border-[#8fa0f2]/40 rounded-lg p-4">
-            <p className="text-sm text-[#7c8ee8]">
+          <div className="bg-[#96c0b8]/10 border border-[#96c0b8]/40 rounded-lg p-4">
+            <p className="text-sm text-[#7fada4]">
               Lien d'invitation valide. Votre compte sera automatiquement configuré en tant qu'administrateur.
             </p>
           </div>

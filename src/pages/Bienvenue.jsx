@@ -46,7 +46,7 @@ export default function Bienvenue() {
             </div>
           ) : etat.valide ? (
             <>
-              <div className="w-10 h-0.5 bg-[#a9c5b9] mb-8" />
+              <div className="w-10 h-0.5 bg-[#96c0b8] mb-8" />
               <p className="m-0 mb-8 text-[15px] leading-[1.7] text-[#9298a6]">
                 Votre espace est prêt. Il ne manque que votre mot de passe.
               </p>
@@ -54,7 +54,7 @@ export default function Bienvenue() {
             </>
           ) : (
             <>
-              <div className="w-10 h-0.5 bg-[#a9c5b9] mb-8" />
+              <div className="w-10 h-0.5 bg-[#96c0b8] mb-8" />
               <h1 className="m-0 text-[26px] font-light tracking-[-.02em] text-[#f2f3f5]">Lien inutilisable</h1>
               <p className="m-0 mt-4 text-[14.5px] leading-[1.7] text-[#9298a6]">{MESSAGES[etat.raison] || MESSAGES.inconnu}</p>
               <a

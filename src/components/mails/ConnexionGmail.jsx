@@ -103,7 +103,7 @@ export function BoutonConnecterGmail({ onConnecte, libelle = "Connecter Gmail", 
 export function EncartConnexionGmail({ onConnecte, googleConfigure = true }) {
   if (!googleConfigure) {
     return (
-      <div className="rounded-md border border-[#a9c5b9]/25 bg-[#a9c5b9]/[0.07] px-4 py-3">
+      <div className="rounded-md border border-[#96c0b8]/25 bg-[#96c0b8]/[0.07] px-4 py-3">
         <p className="text-amber-200/90 text-xs leading-relaxed">
           La connexion Google n'est pas configurée : ajoutez <code>GOOGLE_CLIENT_ID</code> et{" "}
           <code>GOOGLE_CLIENT_SECRET</code> dans <code>.env</code>, puis redémarrez. En attendant,

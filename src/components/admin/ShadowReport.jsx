@@ -154,7 +154,7 @@ Réponds UNIQUEMENT en JSON.`;
             </div>
             <div className="flex items-center gap-2">
               {totalNumericDiffs > 0 && (
-                <span className="text-[10px] bg-[#a9c5b9]/20 text-[#a9c5b9] px-2 py-0.5 rounded-full">
+                <span className="text-[10px] bg-[#96c0b8]/20 text-[#96c0b8] px-2 py-0.5 rounded-full">
                   {totalNumericDiffs} diff. valeurs
                 </span>
               )}
@@ -164,7 +164,7 @@ Réponds UNIQUEMENT en JSON.`;
                 </span>
               )}
               {totalNumericDiffs === 0 && totalTextDiffsFound === 0 && (
-                <span className="text-[10px] bg-[#8fa0f2]/20 text-[#aab6f5] px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-[10px] bg-[#96c0b8]/20 text-[#c3ddd6] px-2 py-0.5 rounded-full flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> RAS
                 </span>
               )}
@@ -181,8 +181,8 @@ Réponds UNIQUEMENT en JSON.`;
             {numericDiffs.length > 0 ? (
               <div className="space-y-1.5">
                 {numericDiffs.map((diff) => (
-                  <div key={diff.key} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#a9c5b9]/5 border border-[#a9c5b9]/10 group">
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#a9c5b9] flex-shrink-0" />
+                  <div key={diff.key} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#96c0b8]/5 border border-[#96c0b8]/10 group">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#96c0b8] flex-shrink-0" />
                     <span className="text-xs text-[#9298a6] w-44 flex-shrink-0">{diff.label}</span>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-xs text-blue-400 truncate">Actuel: <strong>{String(diff.currentVal)}</strong></span>
@@ -209,9 +209,9 @@ Réponds UNIQUEMENT en JSON.`;
                 ))}
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8fa0f2]/5 border border-[#8fa0f2]/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#aab6f5]" />
-                <span className="text-xs text-[#aab6f5]">Tous les champs numériques correspondent</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#96c0b8]/5 border border-[#96c0b8]/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#c3ddd6]" />
+                <span className="text-xs text-[#c3ddd6]">Tous les champs numériques correspondent</span>
               </div>
             )}
           </div>
@@ -234,9 +234,9 @@ Réponds UNIQUEMENT en JSON.`;
             </div>
 
             {textDiffs && textDiffs.length === 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#8fa0f2]/5 border border-[#8fa0f2]/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#aab6f5]" />
-                <span className="text-xs text-[#aab6f5]">Aucune différence de sens détectée dans les textes</span>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#96c0b8]/5 border border-[#96c0b8]/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#c3ddd6]" />
+                <span className="text-xs text-[#c3ddd6]">Aucune différence de sens détectée dans les textes</span>
               </div>
             )}
 

@@ -55,7 +55,7 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
             <Button variant="ghost" size="sm" onClick={handleCancel} className="text-[#9298a6] hover:text-[#f2f3f5]">
               <X className="w-4 h-4 mr-1" /> Annuler
             </Button>
-            <Button size="sm" onClick={handleSave} className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/80 text-[#f2f3f5]">
+            <Button size="sm" onClick={handleSave} className="bg-[#96c0b8] hover:bg-[#96c0b8]/80 text-[#f2f3f5]">
               <Check className="w-4 h-4 mr-1" /> Sauvegarder
             </Button>
           </div>
@@ -69,7 +69,7 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
                 <Pencil className="w-3.5 h-3.5" />
               </Button>
               {isOwner && (
-                <Button variant="ghost" size="icon" onClick={() => setShowShare(s => !s)} className={`h-7 w-7 ${showShare || sharedEmails.length > 0 ? "text-[#8fa0f2]" : "text-[#9298a6]"} hover:text-[#8fa0f2]`}>
+                <Button variant="ghost" size="icon" onClick={() => setShowShare(s => !s)} className={`h-7 w-7 ${showShare || sharedEmails.length > 0 ? "text-[#96c0b8]" : "text-[#9298a6]"} hover:text-[#96c0b8]`}>
                   <Share2 className="w-3.5 h-3.5" />
                 </Button>
               )}
@@ -96,7 +96,7 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
                         type="checkbox"
                         checked={sharedEmails.includes(admin.email)}
                         onChange={() => toggleShare(admin.email)}
-                        className="accent-[#8fa0f2] w-4 h-4"
+                        className="accent-[#96c0b8] w-4 h-4"
                       />
                       <span>{admin.full_name || admin.email}</span>
                     </label>
@@ -107,7 +107,7 @@ export default function NoteCard({ note, isOwner, admins = [], onUpdate, onDelet
           )}
 
           {isOwner && sharedEmails.length > 0 && (
-            <p className="text-[11px] text-[#8fa0f2]">Cette note sera partagée à {sharedNames}</p>
+            <p className="text-[11px] text-[#96c0b8]">Cette note sera partagée à {sharedNames}</p>
           )}
         </>
       )}

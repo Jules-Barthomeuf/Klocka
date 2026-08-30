@@ -5,8 +5,8 @@ const RADIAN = Math.PI / 180;
 
 export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrency }) {
   const items = useMemo(() => [
-  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: "#8fa0f2" },
-  { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: "#a9c5b9" },
+  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: "#96c0b8" },
+  { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: "#96c0b8" },
   { name: "Honoraires Klocka TTC", value: Math.round(calculs.totalFraisKlocka || 0), color: "#48C7A5" },
   { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: "#E76F51" }].
   filter((d) => d.value > 0), [calculs, prixBienNegocie]);

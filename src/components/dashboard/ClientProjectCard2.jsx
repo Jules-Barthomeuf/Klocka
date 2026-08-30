@@ -59,7 +59,7 @@ export default function ClientProjectCard2({ project }) {
       className="group cursor-pointer"
       onClick={() => navigate(`/ProjetDetail?id=${project.id}`)}
     >
-      <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden hover:border-[#8fa0f2]/60 transition-colors duration-300">
+      <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden hover:border-[#96c0b8]/60 transition-colors duration-300">
         {/* Image band */}
         <div className="relative h-48 md:h-56 overflow-hidden">
           {project.photos && project.photos.length > 0 ? (
@@ -77,7 +77,7 @@ export default function ClientProjectCard2({ project }) {
           
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className="text-[10px] uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-[#000000]/70 backdrop-blur-sm text-[#aab6f5] border border-[#8fa0f2]/50">
+            <span className="text-[10px] uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-[#000000]/70 backdrop-blur-sm text-[#c3ddd6] border border-[#96c0b8]/50">
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -109,7 +109,7 @@ export default function ClientProjectCard2({ project }) {
             <p className="text-[10px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0 whitespace-nowrap">Prix de revient</p>
           </div>
           <div className="flex-1 min-w-0 py-4 px-4 border-l border-[#f2f3f5]/[0.12]">
-            <p className="text-[19px] font-light text-[#aab6f5] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+            <p className="text-[19px] font-light text-[#c3ddd6] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
             <p className="text-[10px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0">Rendement</p>
           </div>
           {surface > 0 && (
@@ -118,8 +118,8 @@ export default function ClientProjectCard2({ project }) {
               <p className="text-[10px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0">Surface</p>
             </div>
           )}
-          <div className="w-9 h-9 flex-shrink-0 rounded-full border border-[#f2f3f5]/[0.14] flex items-center justify-center group-hover:border-[#8fa0f2] transition-colors">
-            <ArrowUpRight className="w-4 h-4 text-[#9298a6] group-hover:text-[#aab6f5] transition-colors" />
+          <div className="w-9 h-9 flex-shrink-0 rounded-full border border-[#f2f3f5]/[0.14] flex items-center justify-center group-hover:border-[#96c0b8] transition-colors">
+            <ArrowUpRight className="w-4 h-4 text-[#9298a6] group-hover:text-[#c3ddd6] transition-colors" />
           </div>
         </div>
       </div>

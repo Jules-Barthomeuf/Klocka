@@ -59,7 +59,7 @@ export default function MesProjets() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#000000]">
         <div className="relative w-16 h-4">
-          <div className="absolute w-3 h-3 bg-[#8fa0f2] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
+          <div className="absolute w-3 h-3 bg-[#96c0b8] rounded-full animate-[bounce-horizontal_1s_ease-in-out_infinite]"></div>
         </div>
         <style>{`
           @keyframes bounce-horizontal {
@@ -84,7 +84,7 @@ export default function MesProjets() {
           </p>
           <button
             onClick={() => refetch()}
-            className="text-[11px] tracking-[0.16em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors"
+            className="text-[11px] tracking-[0.16em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors"
           >
             Réessayer
           </button>
@@ -103,8 +103,8 @@ export default function MesProjets() {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-8 text-center">
-          <div className="w-16 h-16 bg-[#8fa0f2]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-8 h-8 text-[#8fa0f2]" />
+          <div className="w-16 h-16 bg-[#96c0b8]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <Building2 className="w-8 h-8 text-[#96c0b8]" />
           </div>
           <h2 className="text-xl font-light text-[#f2f3f5] mb-3">Accès en attente</h2>
           <p className="text-[#f2f3f5]/30 text-sm">Cette section sera débloquée par votre conseiller.</p>
@@ -118,8 +118,8 @@ export default function MesProjets() {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-8 text-center">
-          <div className="w-16 h-16 bg-[#8fa0f2]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-            <Calendar className="w-8 h-8 text-[#8fa0f2]" />
+          <div className="w-16 h-16 bg-[#96c0b8]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <Calendar className="w-8 h-8 text-[#96c0b8]" />
           </div>
           <h2 className="text-xl font-light text-[#f2f3f5] mb-3">Définissons votre stratégie</h2>
           <p className="text-[#f2f3f5]/30 text-sm mb-6">
@@ -160,7 +160,7 @@ export default function MesProjets() {
 
         {/* Search */}
         {projects.length > 1 && (
-          <div className="mb-8 max-w-md flex items-center gap-3 border-b border-[#f2f3f5]/[0.18] focus-within:border-[#8fa0f2] transition-colors pb-2">
+          <div className="mb-8 max-w-md flex items-center gap-3 border-b border-[#f2f3f5]/[0.18] focus-within:border-[#96c0b8] transition-colors pb-2">
             <Search className="w-4 h-4 text-[#6a7180] flex-shrink-0" />
             <input
               type="text"

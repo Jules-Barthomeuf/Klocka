@@ -161,7 +161,7 @@ export default function BaseDonneesMarche() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#000000]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -173,7 +173,7 @@ export default function BaseDonneesMarche() {
           <h1 className="text-2xl md:text-4xl font-montserrat text-[#f2f3f5] mb-2">
             Base de Données Marché
           </h1>
-          <div className="h-0.5 w-24 md:w-32 bg-[#8fa0f2] mb-2"></div>
+          <div className="h-0.5 w-24 md:w-32 bg-[#96c0b8] mb-2"></div>
           <p className="text-[#9298a6] text-sm md:text-lg">
             Gérez les données de marché pour l'auto-complétion des projets
           </p>
@@ -196,7 +196,7 @@ export default function BaseDonneesMarche() {
                 </div>
                 <Button
                   onClick={() => handleOpenDialog()}
-                  className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5] h-10 md:h-12"
+                  className="bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5] h-10 md:h-12"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Ajouter une donnée
@@ -217,8 +217,8 @@ export default function BaseDonneesMarche() {
                     <div className="flex-1">
                       {/* En-tête */}
                       <div className="flex items-start gap-3 mb-4">
-                        <div className="w-10 h-10 bg-[#8fa0f2]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-5 h-5 text-[#8fa0f2]" />
+                        <div className="w-10 h-10 bg-[#96c0b8]/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <MapPin className="w-5 h-5 text-[#96c0b8]" />
                         </div>
                         <div>
                           <h3 className="text-[#f2f3f5] text-lg font-semibold">{item.ville}</h3>
@@ -254,7 +254,7 @@ export default function BaseDonneesMarche() {
                         {item.evolution_1an !== null && item.evolution_1an !== undefined && (
                           <div className="bg-[#000000]/50 rounded-lg p-3">
                             <p className="text-[#9298a6] text-xs mb-1">Évolution 1 an</p>
-                            <p className={`font-semibold ${item.evolution_1an >= 0 ? 'text-[#8fa0f2]' : 'text-red-500'}`}>
+                            <p className={`font-semibold ${item.evolution_1an >= 0 ? 'text-[#96c0b8]' : 'text-red-500'}`}>
                               {item.evolution_1an > 0 ? '+' : ''}{item.evolution_1an}%
                             </p>
                           </div>
@@ -291,7 +291,7 @@ export default function BaseDonneesMarche() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleOpenDialog(item)}
-                        className="text-[#8fa0f2] hover:bg-[#8fa0f2]/10 h-9 w-9"
+                        className="text-[#96c0b8] hover:bg-[#96c0b8]/10 h-9 w-9"
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
@@ -322,7 +322,7 @@ export default function BaseDonneesMarche() {
               {!searchTerm && (
                 <Button
                   onClick={() => handleOpenDialog()}
-                  className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5]"
+                  className="bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5]"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Ajouter ma première donnée
@@ -338,7 +338,7 @@ export default function BaseDonneesMarche() {
         <DialogContent className="bg-[#000000] border-[#22262d] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#f2f3f5] flex items-center gap-2">
-              <Database className="w-5 h-5 text-[#8fa0f2]" />
+              <Database className="w-5 h-5 text-[#96c0b8]" />
               {editingItem ? "Modifier la donnée de marché" : "Ajouter une donnée de marché"}
             </DialogTitle>
             <DialogDescription className="text-[#9298a6]">
@@ -348,8 +348,8 @@ export default function BaseDonneesMarche() {
 
           <div className="space-y-6">
             {/* Localisation */}
-            <div className="p-4 bg-[#8fa0f2]/10 border border-[#8fa0f2]/30 rounded-lg space-y-4">
-              <h4 className="text-[#8fa0f2] font-medium">Localisation</h4>
+            <div className="p-4 bg-[#96c0b8]/10 border border-[#96c0b8]/30 rounded-lg space-y-4">
+              <h4 className="text-[#96c0b8] font-medium">Localisation</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label className="text-[#9298a6] text-sm">Ville *</Label>
@@ -416,8 +416,8 @@ export default function BaseDonneesMarche() {
             </div>
 
             {/* Évolution */}
-            <div className="p-4 bg-[#8fa0f2]/10 border border-[#8fa0f2]/30 rounded-lg space-y-4">
-              <h4 className="text-[#aab6f5] font-medium">Évolution du marché</h4>
+            <div className="p-4 bg-[#96c0b8]/10 border border-[#96c0b8]/30 rounded-lg space-y-4">
+              <h4 className="text-[#c3ddd6] font-medium">Évolution du marché</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-[#9298a6] text-sm">Évolution 1 an (%)</Label>
@@ -567,7 +567,7 @@ export default function BaseDonneesMarche() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5]"
+              className="bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5]"
               disabled={!formData.ville || createMutation.isPending || updateMutation.isPending}
             >
               {createMutation.isPending || updateMutation.isPending ? "Enregistrement..." : editingItem ? "Mettre à jour" : "Ajouter"}

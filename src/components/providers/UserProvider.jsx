@@ -9,7 +9,7 @@ export function UserProvider({ children }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }

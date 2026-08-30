@@ -55,7 +55,7 @@ export default function DashboardProfileCard({ user }) {
         </div>
         
         <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-          <div className="w-20 h-20 rounded-full overflow-hidden border border-[#8fa0f2]/50 mb-4 flex-shrink-0">
+          <div className="w-20 h-20 rounded-full overflow-hidden border border-[#96c0b8]/50 mb-4 flex-shrink-0">
             <img src={image} alt="" className="w-full h-full object-cover" />
           </div>
           <p className="text-[#f2f3f5] text-[20px] font-light mb-0.5">{profil.label}</p>

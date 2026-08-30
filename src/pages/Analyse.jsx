@@ -221,7 +221,7 @@ export default function Analyse() {
                 {dossiers.map((d) => (
                   <div
                     key={d.deal_id}
-                    className="relative text-left bg-[#0f1114] border border-[#1f2228] rounded-md hover:border-[#8fa0f2]/60 hover:bg-[#f2f3f5]/[0.03] transition-all"
+                    className="relative text-left bg-[#0f1114] border border-[#1f2228] rounded-md hover:border-[#96c0b8]/60 hover:bg-[#f2f3f5]/[0.03] transition-all"
                   >
                     <button onClick={() => montrerDeal(d.deal_id)} className="block w-full text-left px-4 py-4">
                       <div className="flex items-start justify-between gap-2 pr-6">
@@ -232,7 +232,7 @@ export default function Analyse() {
                           <span title="À relancer" className="flex-shrink-0 mt-0.5 text-red-400"><Clock className="w-3.5 h-3.5" /></span>
                         )}
                       </div>
-                      <p className="m-0 mt-2 text-[12px] text-[#aab6f5]">
+                      <p className="m-0 mt-2 text-[12px] text-[#c3ddd6]">
                         Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
                         {d.statut === "abandonne" ? " · Abandonné" : ""}
                       </p>
@@ -309,7 +309,7 @@ export default function Analyse() {
                 onChange={(e) => setNomDossier(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && nomDossier.trim()) creerDossier.mutate(); }}
                 placeholder="Ex. : Boulangerie — Marseille République"
-                className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#8fa0f2] rounded-md px-3.5 py-2.5 text-[14px] text-[#f2f3f5] outline-none placeholder:text-[#3a3f4a] transition-colors mb-4"
+                className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#96c0b8] rounded-md px-3.5 py-2.5 text-[14px] text-[#f2f3f5] outline-none placeholder:text-[#3a3f4a] transition-colors mb-4"
               />
 
               <label className="block text-[11px] tracking-[0.14em] uppercase text-[#9298a6] mb-1.5">Admins responsables</label>
@@ -321,7 +321,7 @@ export default function Analyse() {
                       key={a}
                       onClick={() => setAdminsChoisis((l) => (actif ? l.filter((x) => x !== a) : [...l, a]))}
                       className={`px-3.5 py-1.5 rounded-full text-[13px] border transition-colors
-                        ${actif ? "bg-[#8fa0f2]/[0.15] border-[#8fa0f2] text-[#aab6f5]" : "border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}
+                        ${actif ? "bg-[#96c0b8]/[0.15] border-[#96c0b8] text-[#c3ddd6]" : "border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}
                     >
                       {a}
                     </button>

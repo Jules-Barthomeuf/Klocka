@@ -74,7 +74,7 @@ function StatCell({ label, value, highlight }) {
   return (
     <div className="flex flex-col">
       <span className="text-[10px] text-[hsl(var(--background))]">{label}</span>
-      <span className={`text-sm tabular-nums ${highlight ? "text-[#8fa0f2]" : "text-[#f2f3f5]"}`}>{value}</span>
+      <span className={`text-sm tabular-nums ${highlight ? "text-[#96c0b8]" : "text-[#f2f3f5]"}`}>{value}</span>
     </div>);
 
 }
@@ -106,7 +106,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
       {/* Niveaux de négociation */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <TrendingDown className="w-4 h-4 text-[#8fa0f2]" />
+          <TrendingDown className="w-4 h-4 text-[#96c0b8]" />
           <h3 className="text-sm text-[#f2f3f5] font-medium">Simuler une négociation</h3>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -116,7 +116,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
             onClick={() => {setCustomPrix("");setNiveau(s.niveau);}}
             className={`flex flex-col items-center px-4 py-2.5 rounded-md border transition-all duration-300 min-w-[96px] ${
             !customActive && niveau === s.niveau ?
-            "bg-[#8fa0f2]/15 border-[#8fa0f2]/50 text-[#f2f3f5]" :
+            "bg-[#96c0b8]/15 border-[#96c0b8]/50 text-[#f2f3f5]" :
             "bg-[#141414] border-[#1f2228] text-[#9298a6] hover:border-[#f2f3f5]/[0.2]"}`
             }>
             
@@ -124,7 +124,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
               <span className="text-[10px] tabular-nums text-[hsl(var(--border))]">{formatCurrency(s.data.prixNegocie)}</span>
             </button>
           )}
-          <div className={`flex flex-col justify-center px-4 py-2 rounded-md border transition-all duration-300 min-w-[140px] ${customActive ? "bg-[#8fa0f2]/15 border-[#8fa0f2]/50" : "bg-[#141414] border-[#1f2228]"}`}>
+          <div className={`flex flex-col justify-center px-4 py-2 rounded-md border transition-all duration-300 min-w-[140px] ${customActive ? "bg-[#96c0b8]/15 border-[#96c0b8]/50" : "bg-[#141414] border-[#1f2228]"}`}>
             <span className="text-[10px] text-[#9298a6] mb-1">Prix personnalisé</span>
             <input
               type="number"
@@ -179,7 +179,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
                 <tr
                   key={s.niveau}
                   onClick={() => setNiveau(s.niveau)}
-                  className={`cursor-pointer border-b border-[#15171b] transition-colors duration-200 ${niveau === s.niveau ? "bg-[#8fa0f2]/10" : "hover:bg-[#f2f3f5]/[0.03]"}`}>
+                  className={`cursor-pointer border-b border-[#15171b] transition-colors duration-200 ${niveau === s.niveau ? "bg-[#96c0b8]/10" : "hover:bg-[#f2f3f5]/[0.03]"}`}>
                   
                   <td className="px-3 py-2 text-[#f2f3f5]">-{s.niveau}%</td>
                   <td className="px-3 py-2 text-right text-[#c9cdd6] tabular-nums">{formatCurrency(s.data.prixNegocie)}</td>

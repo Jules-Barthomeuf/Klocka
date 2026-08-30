@@ -23,7 +23,7 @@ export default function Leads() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#000000]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -35,7 +35,7 @@ export default function Leads() {
           <h1 className="text-4xl font-montserrat text-[#f2f3f5] mb-2">
             Leads
           </h1>
-          <div className="h-0.5 w-32 bg-[#8fa0f2] mb-2"></div>
+          <div className="h-0.5 w-32 bg-[#96c0b8] mb-2"></div>
           <p className="text-[#9298a6] text-lg">
             Liste de tous les emails des personnes inscrites
           </p>
@@ -46,8 +46,8 @@ export default function Leads() {
           <Card className="bg-gradient-to-br from-[#000000] to-black border-black">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#8fa0f2]/20 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-[#8fa0f2]" />
+                <div className="w-12 h-12 rounded-full bg-[#96c0b8]/20 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-[#96c0b8]" />
                 </div>
                 <div>
                   <p className="text-[#9298a6] text-sm">Total inscrits</p>
@@ -59,8 +59,8 @@ export default function Leads() {
           <Card className="bg-gradient-to-br from-[#000000] to-black border-black">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#a9c5b9]/20 flex items-center justify-center">
-                  <Crown className="w-6 h-6 text-[#a9c5b9]" />
+                <div className="w-12 h-12 rounded-full bg-[#96c0b8]/20 flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-[#96c0b8]" />
                 </div>
                 <div>
                   <p className="text-[#9298a6] text-sm">Admins</p>
@@ -85,7 +85,7 @@ export default function Leads() {
         </div>
 
         {/* Search */}
-        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 mb-6">
+        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30 mb-6">
           <CardContent className="p-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9298a6] w-5 h-5" />
@@ -100,10 +100,10 @@ export default function Leads() {
         </Card>
 
         {/* Table */}
-        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
+        <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30">
           <CardHeader>
             <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#8fa0f2]" />
+              <Mail className="w-5 h-5 text-[#96c0b8]" />
               Liste des emails ({filteredUsers.length})
             </CardTitle>
           </CardHeader>
@@ -123,7 +123,7 @@ export default function Leads() {
                     <tr key={user.id} className="border-b border-[#0f1114] hover:bg-[#0f1114]/50 transition-colors">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-[#8fa0f2]" />
+                          <Mail className="w-4 h-4 text-[#96c0b8]" />
                           <span className="text-[#f2f3f5]">{user.email}</span>
                         </div>
                       </td>
@@ -132,7 +132,7 @@ export default function Leads() {
                       </td>
                       <td className="p-3">
                         {user.role === 'admin' ? (
-                          <Badge className="bg-amber-100 text-amber-800 border border-[#a9c5b9]">
+                          <Badge className="bg-amber-100 text-amber-800 border border-[#96c0b8]">
                             <Crown className="w-3 h-3 mr-1" />
                             Admin
                           </Badge>

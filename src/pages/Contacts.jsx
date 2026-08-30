@@ -148,7 +148,7 @@ export default function Contacts() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -161,14 +161,14 @@ export default function Contacts() {
             <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
               Contacts
             </h1>
-            <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
+            <div className="h-0.5 w-32 bg-[#96c0b8]"></div>
           </div>
           <Button
             onClick={() => {
               resetForm();
               setDialogOpen(true);
             }}
-            className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90"
+            className="bg-[#96c0b8] hover:bg-[#96c0b8]/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouveau contact
@@ -180,9 +180,9 @@ export default function Contacts() {
           <Card className="relative bg-gradient-to-br from-[#000000]/95 to-[#0f1114]/95 border-none">
             <CardHeader>
               <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-                <User className="w-5 h-5 text-[#8fa0f2]" />
+                <User className="w-5 h-5 text-[#96c0b8]" />
                 Liste des contacts
-                <Badge className="ml-2 bg-[#8fa0f2]/20 text-[#8fa0f2]">
+                <Badge className="ml-2 bg-[#96c0b8]/20 text-[#96c0b8]">
                   {contacts.length}
                 </Badge>
               </CardTitle>
@@ -231,7 +231,7 @@ export default function Contacts() {
                           <td className="py-3 px-3 text-[#c9cdd6]">{contact.entreprise || "-"}</td>
                           <td className="py-3 px-3">
                             {contact.email ? (
-                              <a href={`mailto:${contact.email}`} className="text-[#aab6f5] hover:underline">
+                              <a href={`mailto:${contact.email}`} className="text-[#c3ddd6] hover:underline">
                                 {contact.email}
                               </a>
                             ) : "-"}
@@ -239,7 +239,7 @@ export default function Contacts() {
                           <td className="py-3 px-3 text-[#c9cdd6]">{contact.telephone || "-"}</td>
                           <td className="py-3 px-3 text-[#c9cdd6]">{contact.statut_client || "-"}</td>
                           <td className="py-3 px-3">
-                            <Badge className={contact.mandat_signe ? "bg-[#8fa0f2]/20 text-[#aab6f5] border border-[#8fa0f2]/30" : "bg-[#22262d] text-[#9298a6]"}>
+                            <Badge className={contact.mandat_signe ? "bg-[#96c0b8]/20 text-[#c3ddd6] border border-[#96c0b8]/30" : "bg-[#22262d] text-[#9298a6]"}>
                               {contact.mandat_signe ? "Oui" : "Non"}
                             </Badge>
                           </td>
@@ -368,7 +368,7 @@ export default function Contacts() {
                   <Switch
                     checked={formData.mandat_signe}
                     onCheckedChange={(checked) => setFormData({...formData, mandat_signe: checked})}
-                    className="data-[state=checked]:bg-[#8fa0f2]"
+                    className="data-[state=checked]:bg-[#96c0b8]"
                   />
                   <Label className="text-[#9298a6]">Mandat signé</Label>
                 </div>
@@ -493,7 +493,7 @@ export default function Contacts() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#22262d]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90">
+            <Button onClick={handleSubmit} className="bg-[#96c0b8] hover:bg-[#96c0b8]/90">
               {editingContact ? "Modifier" : "Créer"}
             </Button>
           </DialogFooter>

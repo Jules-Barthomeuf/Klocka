@@ -204,7 +204,7 @@ function AnimatedStatCard({ icon: Icon, title, value, suffix, description, delay
       className="border-t border-[#f2f3f5]/[0.35] pt-6 pb-2">
 
       <div className="flex items-center gap-2 mb-4">
-        <Icon className="w-4 h-4 text-[#8fa0f2]" />
+        <Icon className="w-4 h-4 text-[#96c0b8]" />
         <span className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6]">{title}</span>
       </div>
       <div className="text-[36px] max-md:text-[28px] font-light text-[#f2f3f5] leading-none mb-2" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -403,7 +403,7 @@ export default function Vision() {
   const getStrategyColor = () => {
     switch (typeStrategie) {
       case "agressive":return "#e8746a";
-      case "patrimoniale":return "#8fa0f2";
+      case "patrimoniale":return "#96c0b8";
       case "mixte":return "#ffffff";
       default:return "#ffffff";
     }
@@ -423,7 +423,7 @@ export default function Vision() {
   const getBorderColor = () => {
     switch (typeStrategie) {
       case "agressive":return "#e8746a";
-      case "patrimoniale":return "#8fa0f2";
+      case "patrimoniale":return "#96c0b8";
       case "mixte":return "#ffffff";
       default:return "#ffffff";
     }
@@ -468,7 +468,7 @@ export default function Vision() {
 
               <div className="flex flex-col items-center gap-5">
                 <span className="text-[15px] tracking-[0.36em] text-[#f2f3f5] select-none">KLOCKA</span>
-                <div className="w-6 h-6 border-2 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin" />
                 <span className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6]">Calcul de votre projection</span>
               </div>
           </motion.div>
@@ -485,37 +485,37 @@ export default function Vision() {
             <TabsList className="w-full flex justify-center gap-4 max-md:gap-2 bg-transparent border-b border-[#0f1114] mb-6 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto max-md:overflow-x-scroll scrollbar-hide">
               <TabsTrigger
               value="tab-0"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Vue d'ensemble
               </TabsTrigger>
               <TabsTrigger
               value="tab-1"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Timeline
               </TabsTrigger>
               <TabsTrigger
               value="tab-2"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Evolution
               </TabsTrigger>
               <TabsTrigger
               value="tab-3"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Projets
               </TabsTrigger>
               <TabsTrigger
               value="tab-4"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Comparatif
               </TabsTrigger>
               <TabsTrigger
               value="tab-5"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Chiffres détaillés
               </TabsTrigger>
@@ -542,31 +542,31 @@ export default function Vision() {
                     {currentSlide === 1 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-[#f2f3f5]">Visualisez l'échelonnement</span><br />
-                        <span className="text-[#aab6f5] font-light">de vos acquisitions</span>
+                        <span className="text-[#c3ddd6] font-light">de vos acquisitions</span>
                       </h2>
                   }
                     {currentSlide === 2 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-[#f2f3f5]">Voyons maintenant comment</span><br />
-                        <span className="text-[#aab6f5] font-light">votre patrimoine évolue</span>
+                        <span className="text-[#c3ddd6] font-light">votre patrimoine évolue</span>
                       </h2>
                   }
                     {currentSlide === 3 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-[#f2f3f5]">Découvrez où se situent</span><br />
-                        <span className="text-[#aab6f5] font-light">vos futurs investissements</span>
+                        <span className="text-[#c3ddd6] font-light">vos futurs investissements</span>
                       </h2>
                   }
                     {currentSlide === 4 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-[#f2f3f5]">Observez la transformation</span><br />
-                        <span className="text-[#a9c5b9] font-light">de votre investissement</span>
+                        <span className="text-[#96c0b8] font-light">de votre investissement</span>
                       </h2>
                   }
                     {currentSlide === 5 &&
                   <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-[#f2f3f5]">Pour finir, explorez</span><br />
-                        <span className="text-[#aab6f5] font-light">le détail année par année</span>
+                        <span className="text-[#c3ddd6] font-light">le détail année par année</span>
                       </h2>
                   }
                   </div>
@@ -596,7 +596,7 @@ export default function Vision() {
                     </div>
                     <Button
                     onClick={() => {setResultat(null);setCurrentSlide(0);}}
-                    className="bg-[#a9c5b9] hover:bg-[#e5a968] text-black font-medium">
+                    className="bg-[#96c0b8] hover:bg-[#e5a968] text-black font-medium">
 
                       Recommencer
                     </Button>
@@ -621,7 +621,7 @@ export default function Vision() {
                       <div className="text-center">
                         <h2 className="text-[38px] md:text-[50px] font-light tracking-[-0.02em] leading-[1.08] mb-4">
                           <span className="text-[#f2f3f5]">Vue d'ensemble</span><br />
-                          <span className="text-[#8fa0f2] font-light">Votre stratégie en chiffres</span>
+                          <span className="text-[#96c0b8] font-light">Votre stratégie en chiffres</span>
                         </h2>
                       </div>
 
@@ -658,7 +658,7 @@ export default function Vision() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4, duration: 0.6 }}
-                    className="py-2 pl-6 border-l-2 border-[#8fa0f2] max-w-4xl mx-auto">
+                    className="py-2 pl-6 border-l-2 border-[#96c0b8] max-w-4xl mx-auto">
 
                         <p className="text-[#f2f3f5] font-normal text-base leading-relaxed">
                           {(() => {
@@ -715,7 +715,7 @@ export default function Vision() {
                                 onClick={() => setRevenusMensuels(val)}
                                 className={`h-10 rounded-md border font-medium text-xs transition-all duration-300 ${
                                 revenusMensuels === val ?
-                                'bg-[#8fa0f2] border-[#8fa0f2] text-[#f2f3f5] shadow-[0_0_15px_rgba(42,157,143,0.4)]' :
+                                'bg-[#96c0b8] border-[#96c0b8] text-[#f2f3f5] shadow-[0_0_15px_rgba(42,157,143,0.4)]' :
                                 'bg-[#000000]/50 border-[#1f2228] text-[#9298a6] hover:border-[#6a7180]'}`
                                 }>
 
@@ -730,9 +730,9 @@ export default function Vision() {
                                 value={revenusMensuels}
                                 onChange={(e) => setRevenusMensuels(e.target.value)}
                                 placeholder="Montant personnalisé..."
-                                className="w-full h-11 px-4 pr-12 rounded-md bg-[#000000] border border-[#1f2228] group-hover:border-[#8fa0f2]/50 focus:border-[#8fa0f2] text-[#f2f3f5] font-normal text-sm transition-all outline-none" />
+                                className="w-full h-11 px-4 pr-12 rounded-md bg-[#000000] border border-[#1f2228] group-hover:border-[#96c0b8]/50 focus:border-[#96c0b8] text-[#f2f3f5] font-normal text-sm transition-all outline-none" />
 
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6a7180] font-normal text-xs group-focus-within:text-[#8fa0f2]">€ / mois</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6a7180] font-normal text-xs group-focus-within:text-[#96c0b8]">€ / mois</span>
               </div>
             </div>
           </div>
@@ -774,7 +774,7 @@ export default function Vision() {
                           <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
                             <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                               <div className="flex items-center gap-3 mb-4">
-                                <TrendingUp className="w-4 h-4 text-[#8fa0f2]" />
+                                <TrendingUp className="w-4 h-4 text-[#96c0b8]" />
                                 <h3 className="text-lg text-[#f2f3f5] font-medium">Évolution du patrimoine financier et immobilier</h3>
                               </div>
                               <p className="text-[#f2f3f5] text-sm font-normal leading-relaxed mb-6">
@@ -783,7 +783,7 @@ export default function Vision() {
                               <div className="space-y-3">
                                 <div className="p-3 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                                    <div className="w-3 h-3 rounded-full bg-[#96c0b8]"></div>
                                     <span className="text-xs text-[#f2f3f5] font-normal">Patrimoine net</span>
                                   </div>
                                   <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
@@ -814,7 +814,7 @@ export default function Vision() {
                           <div className="relative h-fit rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2 md:rounded-[1.5rem] md:p-3">
                             <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-6">
                               <div className="flex items-center gap-3 mb-4">
-                                <Wallet className="w-4 h-4 text-[#aab6f5]" />
+                                <Wallet className="w-4 h-4 text-[#c3ddd6]" />
                                 <h3 className="text-lg text-[#f2f3f5] font-medium">Revenus locatifs nets</h3>
                               </div>
                               <p className="text-[#f2f3f5] text-sm font-normal leading-relaxed mb-6">
@@ -823,7 +823,7 @@ export default function Vision() {
                               <div className="space-y-3">
                                 <div className="p-3 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                                    <div className="w-3 h-3 rounded-full bg-[#96c0b8]"></div>
                                     <span className="text-xs text-[#f2f3f5] font-normal">Phase 1-20 • Construction</span>
                                   </div>
                                   <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
@@ -832,7 +832,7 @@ export default function Vision() {
                                 </div>
                                 <div className="p-3 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#aab6f5]"></div>
+                                    <div className="w-3 h-3 rounded-full bg-[#c3ddd6]"></div>
                                     <span className="text-xs text-[#f2f3f5] font-normal">Phase 20-30 • Liberté</span>
                                   </div>
                                   <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
@@ -886,11 +886,11 @@ export default function Vision() {
                         </div>
 
                         <div className="bg-[#000000] p-2 rounded-[1.25rem] relative border-[0.75px] border-[#22262d] md:rounded-[1.5rem] md:p-3">
-                          <Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#8fa0f2]/5 to-[#000000]/95 overflow-hidden h-[320px] border-none">
+                          <Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#96c0b8]/5 to-[#000000]/95 overflow-hidden h-[320px] border-none">
                             <CardContent className="p-0 h-full">
                               <div className="h-full p-8 flex flex-col justify-center">
                                 <div className="mb-6">
-                                  <div className="text-xs text-[#8fa0f2] font-bold uppercase mb-2 font-normal">
+                                  <div className="text-xs text-[#96c0b8] font-bold uppercase mb-2 font-normal">
                                     Année {currentProjIndex * frequence + 1}
                                   </div>
                                   <div className="text-5xl font-bold text-[#f2f3f5] mb-4 font-light">
@@ -899,14 +899,14 @@ export default function Vision() {
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-[#000000] p-5 rounded-lg border border-[#8fa0f2]/30">
+                                  <div className="bg-[#000000] p-5 rounded-lg border border-[#96c0b8]/30">
                                     <p className="text-[#9298a6] text-xs mb-2 font-normal">Apport nécessaire</p>
                                     <p className="text-[#ffe98a] text-2xl font-light">
                                       {Math.round(apportData[projets[currentProjIndex].taille] / 1000)}K€
                                     </p>
                                   </div>
                                   
-                                  <div className="bg-[#aab6f5]/10 rounded-lg p-5 border border-[#aab6f5]/30">
+                                  <div className="bg-[#c3ddd6]/10 rounded-lg p-5 border border-[#c3ddd6]/30">
                                     <p className="text-[#9298a6] text-xs mb-2 font-normal">Stratégie</p>
                                     <p className="text-[#f2f3f5] text-2xl font-light">
                                       {typeStrategie === 'patrimoniale' ? 'Patrimoniale' : typeStrategie === 'agressive' ? 'Agressive' : 'Mixte'}
@@ -922,7 +922,7 @@ export default function Vision() {
                                       onClick={() => setCurrentProjIndex(idx)}
                                       className={`h-1 rounded-full transition-all ${
                                         idx === currentProjIndex ?
-                                        'w-6 bg-[#8fa0f2]' :
+                                        'w-6 bg-[#96c0b8]' :
                                         'w-1 bg-[#22262d] hover:bg-[#9298a6]'
                                       }`}
                                     />
@@ -960,9 +960,9 @@ export default function Vision() {
                           
                           {/* Annotations */}
                           <div className="grid md:grid-cols-2 gap-4 mt-6">
-                            <div className="p-4 rounded-lg bg-[#000000]/50 border border-[#aab6f5]/30">
+                            <div className="p-4 rounded-lg bg-[#000000]/50 border border-[#c3ddd6]/30">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="px-2 py-1 rounded-full bg-[#8fa0f2] text-[#f2f3f5] text-xs font-bold">
+                                <div className="px-2 py-1 rounded-full bg-[#96c0b8] text-[#f2f3f5] text-xs font-bold">
                                   {(resultat.chartData[9].patrimoine / resultat.apportTotal).toFixed(1)}x
                                 </div>
                                 <span className="text-xs text-[#f2f3f5] font-normal">An 10</span>
@@ -971,9 +971,9 @@ export default function Vision() {
                                 Votre patrimoine vaut déjà {(resultat.chartData[9].patrimoine / resultat.apportTotal).toFixed(1)} fois votre investissement initial
                               </p>
                             </div>
-                            <div className="p-4 rounded-lg bg-[#000000]/50 border border-[#aab6f5]/30">
+                            <div className="p-4 rounded-lg bg-[#000000]/50 border border-[#c3ddd6]/30">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="px-2 py-1 rounded-full bg-[#8fa0f2] text-[#f2f3f5] text-xs font-bold">
+                                <div className="px-2 py-1 rounded-full bg-[#96c0b8] text-[#f2f3f5] text-xs font-bold">
                                   {(resultat.chartData[19].patrimoine / resultat.apportTotal).toFixed(1)}x
                                 </div>
                                 <span className="text-xs text-[#f2f3f5] font-normal">An 20</span>
@@ -1005,7 +1005,7 @@ export default function Vision() {
                        
                         <div className="p-6 border-b border-[#1f2228] bg-[#f2f3f5]/5"> 
                           <div className="flex items-center gap-2"> 
-                            <BarChart3 className="text-[#aab6f5] lucide lucide-chart-column w-5 h-5" /> 
+                            <BarChart3 className="text-[#c3ddd6] lucide lucide-chart-column w-5 h-5" /> 
                             <h3 className="text-lg text-[#f2f3f5] font-medium">Détail par année</h3> 
                           </div> 
                         </div> 
@@ -1094,7 +1094,7 @@ export default function Vision() {
                 onClick={() => setCurrentSlide(index)}
                 className={`h-2 rounded-full transition-all ${
                 currentSlide === index ?
-                'w-8 bg-[#8fa0f2]' :
+                'w-8 bg-[#96c0b8]' :
                 'w-2 bg-[#22262d] hover:bg-[#6a7180]'}`
                 } />
 
@@ -1111,9 +1111,9 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6 }}
-                  className="py-2 pl-6 border-l-2 border-[#8fa0f2]">
+                  className="py-2 pl-6 border-l-2 border-[#96c0b8]">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-3">Étape clé • An 20</div>
+                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-3">Étape clé • An 20</div>
                   <p className="text-[#f2f3f5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine20 >= 1000000 ? `${(resultat.patrimoine20 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine20 / 1000)}K€`;
@@ -1193,9 +1193,9 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="py-2 pl-6 border-l-2 border-[#aab6f5]">
+                  className="py-2 pl-6 border-l-2 border-[#c3ddd6]">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-3">Accélération • An 25</div>
+                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-3">Accélération • An 25</div>
                   <p className="text-[#f2f3f5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine25 >= 1000000 ? `${(resultat.patrimoine25 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine25 / 1000)}K€`;
@@ -1214,9 +1214,9 @@ export default function Vision() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="py-5 pl-6 pr-6 border-l-2 border-[#a9c5b9] bg-[#a9c5b9]/[0.05]">
+                  className="py-5 pl-6 pr-6 border-l-2 border-[#96c0b8] bg-[#96c0b8]/[0.05]">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-3">Objectif atteint • An 30</div>
+                  <div className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-3">Objectif atteint • An 30</div>
                   <p className="text-[#f2f3f5] font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine30 >= 1000000 ? `${(resultat.patrimoine30 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine30 / 1000)}K€`;
@@ -1309,7 +1309,7 @@ export default function Vision() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="mb-6 p-4 rounded-lg bg-gradient-to-br from-[#8fa0f2]/10 to-black/30 border border-[#8fa0f2]/30">
+                    className="mb-6 p-4 rounded-lg bg-gradient-to-br from-[#96c0b8]/10 to-black/30 border border-[#96c0b8]/30">
 
                     <Label className="text-sm text-[#f2f3f5] mb-3 block font-medium">
                       Revenus mensuels souhaités
@@ -1326,7 +1326,7 @@ export default function Vision() {
                         onClick={() => setRevenusMensuels(option.value)}
                         className={`h-9 rounded-lg border-2 font-medium text-xs transition-all ${
                         revenusMensuels === option.value ?
-                        'bg-[#8fa0f2] border-[#8fa0f2] text-[#f2f3f5]' :
+                        'bg-[#96c0b8] border-[#96c0b8] text-[#f2f3f5]' :
                         'bg-[#000000]/30 border-[#1f2228] text-[#9298a6] hover:border-[#22262d]'}`
                         }>
 
@@ -1340,7 +1340,7 @@ export default function Vision() {
                         value={revenusMensuels}
                         onChange={(e) => setRevenusMensuels(e.target.value)}
                         placeholder="Personnalisé"
-                        className="w-full h-9 px-3 pr-12 rounded-lg bg-[#000000]/50 border-2 border-[#1f2228] hover:border-[#8fa0f2] focus:border-[#8fa0f2] text-[#f2f3f5] font-normal text-xs transition-colors outline-none" />
+                        className="w-full h-9 px-3 pr-12 rounded-lg bg-[#000000]/50 border-2 border-[#1f2228] hover:border-[#96c0b8] focus:border-[#96c0b8] text-[#f2f3f5] font-normal text-xs transition-colors outline-none" />
 
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9298a6] font-normal text-xs">€/mois</span>
                     </div>
@@ -1376,7 +1376,7 @@ export default function Vision() {
                 <div className="relative h-fit rounded-[1.5rem] border border-[#1f2228] bg-[#000000] backdrop-blur-md overflow-hidden">
                   <div className="p-6 border-b border-[#1f2228] bg-[#000000]">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-[#a9c5b9]" />
+                      <TrendingUp className="w-5 h-5 text-[#96c0b8]" />
                       <h3 className="text-lg text-[#f2f3f5] font-medium">Investissement vs Patrimoine</h3>
                     </div>
                   </div>
@@ -1385,12 +1385,12 @@ export default function Vision() {
                       <LineChart data={resultat.chartData}>
                         <defs>
                           <linearGradient id="patrimoineGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8fa0f2" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#8fa0f2" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#96c0b8" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#96c0b8" stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="investGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#a9c5b9" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#a9c5b9" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#96c0b8" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#96c0b8" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#2c3139" />
@@ -1418,7 +1418,7 @@ export default function Vision() {
                         <Line
                           type="monotone"
                           dataKey={() => resultat.apportTotal}
-                          stroke="#a9c5b9"
+                          stroke="#96c0b8"
                           strokeWidth={3}
                           strokeDasharray="5 5"
                           name="Investissement initial"
@@ -1427,7 +1427,7 @@ export default function Vision() {
                         <Area
                           type="monotone"
                           dataKey="patrimoine"
-                          stroke="#8fa0f2"
+                          stroke="#96c0b8"
                           strokeWidth={3}
                           fill="url(#patrimoineGradient)"
                           name="Patrimoine net" />
@@ -1435,7 +1435,7 @@ export default function Vision() {
                         <Line
                           type="monotone"
                           dataKey="patrimoine"
-                          stroke="#8fa0f2"
+                          stroke="#96c0b8"
                           strokeWidth={4}
                           name=""
                           dot={false}
@@ -1477,7 +1477,7 @@ export default function Vision() {
                         transition={{ delay: 0.2, duration: 0.4 }}
                         className="flex items-center gap-3 mb-4">
 
-                        <TrendingUp className="w-4 h-4 text-[#8fa0f2]" />
+                        <TrendingUp className="w-4 h-4 text-[#96c0b8]" />
                         <h3 className="text-lg text-[#f2f3f5] font-medium">Évolution du patrimoine</h3>
                       </motion.div>
                       <motion.p
@@ -1498,7 +1498,7 @@ export default function Vision() {
                           className="p-4 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
 
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                            <div className="w-3 h-3 rounded-full bg-[#96c0b8]"></div>
                             <span className="text-xs text-[#f2f3f5] font-normal uppercase tracking-wider">Courbe verte • Patrimoine net</span>
                           </div>
                           <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
@@ -1555,7 +1555,7 @@ export default function Vision() {
                         transition={{ delay: 0.2, duration: 0.4 }}
                         className="flex items-center gap-3 mb-4">
 
-                        <Wallet className="w-4 h-4 text-[#aab6f5]" />
+                        <Wallet className="w-4 h-4 text-[#c3ddd6]" />
                         <h3 className="text-lg text-[#f2f3f5] font-medium">Revenus locatifs nets</h3>
                       </motion.div>
                       <motion.p
@@ -1576,7 +1576,7 @@ export default function Vision() {
                           className="p-4 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
 
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-[#8fa0f2]"></div>
+                            <div className="w-3 h-3 rounded-full bg-[#96c0b8]"></div>
                             <span className="text-xs text-[#f2f3f5] font-normal uppercase tracking-wider">Phase 1-20 • Construction</span>
                           </div>
                           <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
@@ -1591,7 +1591,7 @@ export default function Vision() {
                           className="p-4 rounded-lg bg-[#000000]/50 border border-[#1f2228]">
 
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-3 h-3 rounded-full bg-[#aab6f5]"></div>
+                            <div className="w-3 h-3 rounded-full bg-[#c3ddd6]"></div>
                             <span className="text-xs text-[#f2f3f5] font-normal uppercase tracking-wider">Phase 20-30 • Liberté financière</span>
                           </div>
                           <p className="text-xs text-[#f2f3f5] font-normal leading-relaxed">
@@ -1638,7 +1638,7 @@ export default function Vision() {
       <div>
         <h2 className="text-[38px] md:text-[50px] font-light tracking-[-0.02em] leading-[1.08] mb-4">
           <span className="text-[#f2f3f5]">Configurez. Planifiez.</span><br />
-          <span className="text-[#a9c5b9] font-light">Investissez.</span>
+          <span className="text-[#96c0b8] font-light">Investissez.</span>
         </h2>
         <p className="text-[#f2f3f5] text-base font-normal ">
           Visualisez l'évolution de votre patrimoine immobilier sur 30 ans.<br />
@@ -1683,11 +1683,11 @@ export default function Vision() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-[#9298a6] font-normal uppercase tracking-wider">Étape {currentStep} sur 4</span>
-              <span className="text-xs text-[#8fa0f2] font-medium">{Math.round(currentStep / 4 * 100)}%</span>
+              <span className="text-xs text-[#96c0b8] font-medium">{Math.round(currentStep / 4 * 100)}%</span>
             </div>
             <div className="h-1.5 bg-[#0f1114] rounded-full overflow-hidden">
               <motion.div
-                        className="h-full bg-gradient-to-r from-[#8fa0f2] to-[#aab6f5]"
+                        className="h-full bg-gradient-to-r from-[#96c0b8] to-[#c3ddd6]"
                         initial={{ width: 0 }}
                         animate={{ width: `${currentStep / 4 * 100}%` }}
                         transition={{ duration: 0.5, ease: "easeOut" }} />
@@ -1720,7 +1720,7 @@ export default function Vision() {
                             value={age}
                             onChange={(e) => setAge(e.target.value)}
                             placeholder="Ex: 35"
-                            className="w-full h-14 px-5 rounded-md bg-[#000000]/50 border-2 border-[#1f2228] hover:border-[#8fa0f2] focus:border-[#8fa0f2] text-[#f2f3f5] text-lg font-normal transition-colors outline-none" />
+                            className="w-full h-14 px-5 rounded-md bg-[#000000]/50 border-2 border-[#1f2228] hover:border-[#96c0b8] focus:border-[#96c0b8] text-[#f2f3f5] text-lg font-normal transition-colors outline-none" />
 
                   </div>
 
@@ -1737,7 +1737,7 @@ export default function Vision() {
                               onClick={() => setTypeInvestissement(option.value)}
                               className={`h-14 rounded-md border-2 font-medium text-sm transition-all ${
                               typeInvestissement === option.value ?
-                              'bg-[#8fa0f2] border-[#8fa0f2] text-[#f2f3f5]' :
+                              'bg-[#96c0b8] border-[#96c0b8] text-[#f2f3f5]' :
                               'bg-[#000000]/30 border-[#1f2228] text-[#9298a6] hover:border-[#22262d]'}`
                               }>
 
@@ -1777,15 +1777,15 @@ export default function Vision() {
                           onClick={() => setObjectif(option.value)}
                           className={`w-full p-5 rounded-md border-2 text-left transition-all ${
                           objectif === option.value ?
-                          'bg-[#8fa0f2]/10 border-[#8fa0f2]' :
+                          'bg-[#96c0b8]/10 border-[#96c0b8]' :
                           'bg-[#000000]/30 border-[#1f2228] hover:border-[#22262d]'}`
                           }>
 
                       <div className="flex items-start gap-4">
                         <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            objectif === option.value ? 'border-[#8fa0f2]' : 'border-[#22262d]'}`
+                            objectif === option.value ? 'border-[#96c0b8]' : 'border-[#22262d]'}`
                             }>
-                          {objectif === option.value && <div className="w-3 h-3 rounded-full bg-[#8fa0f2]" />}
+                          {objectif === option.value && <div className="w-3 h-3 rounded-full bg-[#96c0b8]" />}
                         </div>
                         <div>
                           <div className={`font-medium mb-1 ${
@@ -1829,16 +1829,16 @@ export default function Vision() {
                           onClick={() => setTypeStrategie(option.value)}
                           className={`w-full p-5 rounded-md border-2 text-left transition-all ${
                           typeStrategie === option.value ?
-                          'bg-[#8fa0f2]/10 border-[#8fa0f2]' :
+                          'bg-[#96c0b8]/10 border-[#96c0b8]' :
                           'bg-[#000000]/30 border-[#1f2228] hover:border-[#22262d]'}`
                           }>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-start gap-4">
                           <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              typeStrategie === option.value ? 'border-[#8fa0f2]' : 'border-[#22262d]'}`
+                              typeStrategie === option.value ? 'border-[#96c0b8]' : 'border-[#22262d]'}`
                               }>
-                            {typeStrategie === option.value && <div className="w-3 h-3 rounded-full bg-[#8fa0f2]" />}
+                            {typeStrategie === option.value && <div className="w-3 h-3 rounded-full bg-[#96c0b8]" />}
                           </div>
                           <div>
                             <div className={`font-medium mb-1 ${
@@ -1850,7 +1850,7 @@ export default function Vision() {
                           </div>
                         </div>
                         <div className={`text-2xl font-bold font-normal ${
-                            typeStrategie === option.value ? 'text-[#8fa0f2]' : 'text-[#6a7180]'}`
+                            typeStrategie === option.value ? 'text-[#96c0b8]' : 'text-[#6a7180]'}`
                             }>
                           {option.rate}
                         </div>
@@ -1899,7 +1899,7 @@ export default function Vision() {
                                 variant="outline"
                                 size="icon"
                                 onClick={ajouterProjet}
-                                className="h-10 w-10 bg-[#8fa0f2] hover:bg-[#238276] text-[#f2f3f5] border-0">
+                                className="h-10 w-10 bg-[#96c0b8] hover:bg-[#238276] text-[#f2f3f5] border-0">
 
                           <span className="text-lg">+</span>
                         </Button>
@@ -1919,7 +1919,7 @@ export default function Vision() {
                                 onClick={() => setFrequence(Number(option.value))}
                                 className={`h-14 rounded-md border-2 font-medium text-sm transition-all ${
                                 frequence === Number(option.value) ?
-                                'bg-[#8fa0f2] border-[#8fa0f2] text-[#f2f3f5]' :
+                                'bg-[#96c0b8] border-[#96c0b8] text-[#f2f3f5]' :
                                 'bg-[#000000]/30 border-[#1f2228] text-[#9298a6] hover:border-[#22262d]'}`
                                 }>
 
@@ -1947,7 +1947,7 @@ export default function Vision() {
                               className="p-3 rounded-md border border-[#1f2228] bg-[#000000]/30 flex items-center gap-2">
 
                           <div className="flex-1 min-w-0">
-                            <div className="text-[10px] text-[#8fa0f2] font-bold uppercase mb-1">
+                            <div className="text-[10px] text-[#96c0b8] font-bold uppercase mb-1">
                               An {index * frequence + 1}
                             </div>
                             <Select
@@ -1972,7 +1972,7 @@ export default function Vision() {
                             variant="ghost"
                             size="icon"
                             onClick={() => dupliquerProjet(index)}
-                            className="h-7 w-7 text-[#8fa0f2] hover:bg-[#8fa0f2]/10 shrink-0"
+                            className="h-7 w-7 text-[#96c0b8] hover:bg-[#96c0b8]/10 shrink-0"
                             title="Dupliquer ce projet">
 
                             <Copy className="w-3.5 h-3.5" />
@@ -2010,7 +2010,7 @@ export default function Vision() {
 
             {currentStep < 4 ?
                     <Button
-                      onClick={() => setCurrentStep(currentStep + 1)} className="bg-[#8fa0f2] text-[#000000] px-8 py-2 text-sm font-medium rounded-full inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-12 hover:bg-[#238276] shadow-lg">
+                      onClick={() => setCurrentStep(currentStep + 1)} className="bg-[#96c0b8] text-[#000000] px-8 py-2 text-sm font-medium rounded-full inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-12 hover:bg-[#238276] shadow-lg">
 
 
                 Continuer
@@ -2018,7 +2018,7 @@ export default function Vision() {
 
                     <Button
                       onClick={calculerStrategie}
-                      className="h-12 px-8 bg-[#a9c5b9] hover:bg-[#e5a968] text-black font-medium rounded-full shadow-lg hover:scale-105 transition-all">
+                      className="h-12 px-8 bg-[#96c0b8] hover:bg-[#e5a968] text-black font-medium rounded-full shadow-lg hover:scale-105 transition-all">
 
                 Voir ma stratégie
               </Button>

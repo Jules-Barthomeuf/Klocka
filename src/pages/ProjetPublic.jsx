@@ -27,7 +27,7 @@ export default function ProjetPublic() {
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin"></div>
       </div>
     );
   }

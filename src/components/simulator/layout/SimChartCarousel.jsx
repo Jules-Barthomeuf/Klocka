@@ -37,7 +37,7 @@ export default function SimChartCarousel({ calculs, anneeRevente, formatCurrency
           <button
             key={c.id}
             onClick={() => setIndex(i)}
-            className={`h-1.5 rounded-full transition-all ${i === index ? "w-5 bg-[#8fa0f2]" : "w-1.5 bg-[#f2f3f5]/20"}`}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-5 bg-[#96c0b8]" : "w-1.5 bg-[#f2f3f5]/20"}`}
           />
         ))}
       </div>

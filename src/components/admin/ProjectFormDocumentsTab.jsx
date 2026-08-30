@@ -69,7 +69,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
                       docs_checklist: { ...checklist, [key]: !!checked }
                     });
                   }}
-                  className="border-[#f2f3f5]/20 data-[state=checked]:bg-[#8fa0f2] data-[state=checked]:border-[#8fa0f2]"
+                  className="border-[#f2f3f5]/20 data-[state=checked]:bg-[#96c0b8] data-[state=checked]:border-[#96c0b8]"
                 />
                 <span className="text-[#f2f3f5] text-sm">{label}</span>
               </label>

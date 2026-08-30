@@ -512,7 +512,7 @@ export default function AdminClients() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-[#8fa0f2] animate-spin" />
+        <Loader2 className="w-6 h-6 text-[#96c0b8] animate-spin" />
       </div>
     );
   }
@@ -547,10 +547,10 @@ export default function AdminClients() {
       <div className="flex flex-wrap border-t border-[#f2f3f5]/[0.35] mb-8 max-md:mb-6">
         {[
           { valeur: clientsActifs.length, label: "Clients actifs" },
-          { valeur: pendingUsers.length, label: "En attente d'activation", accent: "text-[#a9c5b9]" },
-          { valeur: nbParEtape(3), label: "En recherche", accent: "text-[#aab6f5]" },
+          { valeur: pendingUsers.length, label: "En attente d'activation", accent: "text-[#96c0b8]" },
+          { valeur: nbParEtape(3), label: "En recherche", accent: "text-[#c3ddd6]" },
           { valeur: nbParEtape(4), label: "En financement" },
-          { valeur: nbParEtape(5), label: "Signés", accent: "text-[#aab6f5]" },
+          { valeur: nbParEtape(5), label: "Signés", accent: "text-[#c3ddd6]" },
         ].map((c, i) => (
           <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#f2f3f5]/[0.12] md:pl-6" : ""}`}>
             <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-[#f2f3f5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
@@ -585,7 +585,7 @@ export default function AdminClients() {
                 { v: "admin", l: "Admins", n: nbAdmins },
               ].map(({ v, l, n }) => (
                 <button key={v} onClick={() => setEtapeFilter(v)}
-                  className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${etapeFilter === v ? "text-[#f2f3f5] border-[#8fa0f2]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
+                  className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${etapeFilter === v ? "text-[#f2f3f5] border-[#96c0b8]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
                   {l} <span className="text-[#6a7180]">{n}</span>
                 </button>
               ))}
@@ -598,7 +598,7 @@ export default function AdminClients() {
                 return u ?
                 <Badge
                   key={userId}
-                  className="bg-[#8fa0f2]/10 text-[#8fa0f2] border border-[#8fa0f2]/20 cursor-pointer hover:bg-[#8fa0f2]/20 text-xs"
+                  className="bg-[#96c0b8]/10 text-[#96c0b8] border border-[#96c0b8]/20 cursor-pointer hover:bg-[#96c0b8]/20 text-xs"
                   onClick={() => toggleUserSelection(userId)}>
                       {u.full_name || u.email.split('@')[0]} ✕
                     </Badge> :
@@ -623,16 +623,16 @@ export default function AdminClients() {
             onClick={() => setPendingCollapsed(prev => !prev)}
             className="flex items-center gap-2.5 w-full text-left group"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#a9c5b9] animate-pulse" />
-            <span className="text-[10px] tracking-[0.2em] uppercase text-[#a9c5b9] flex-1">En attente d'activation · {pendingUsers.length}</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-[#a9c5b9]/60 group-hover:text-[#a9c5b9] transition-transform ${pendingCollapsed ? "-rotate-90" : ""}`} />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#96c0b8] animate-pulse" />
+            <span className="text-[10px] tracking-[0.2em] uppercase text-[#96c0b8] flex-1">En attente d'activation · {pendingUsers.length}</span>
+            <ChevronDown className={`w-3.5 h-3.5 text-[#96c0b8]/60 group-hover:text-[#96c0b8] transition-transform ${pendingCollapsed ? "-rotate-90" : ""}`} />
           </button>
           {!pendingCollapsed && (
             <div className="mt-4">
               {pendingUsers.map((user) => (
                 <div key={user.id} className="flex items-center gap-4 py-3.5 border-t border-[#f2f3f5]/[0.12]">
-                  <div className="w-9 h-9 rounded-full border border-[#a9c5b9]/40 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[11px] text-[#a9c5b9]">{user.full_name?.charAt(0)?.toUpperCase() || "?"}</span>
+                  <div className="w-9 h-9 rounded-full border border-[#96c0b8]/40 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[11px] text-[#96c0b8]">{user.full_name?.charAt(0)?.toUpperCase() || "?"}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[#f2f3f5] text-[15px] truncate m-0">{user.full_name || "Sans nom"}</p>
@@ -666,28 +666,28 @@ export default function AdminClients() {
           const etape = user.etape_actuelle ?? 0;
 
           return (
-            <div key={user.id} id={`utilisateur-${user.id}`} className={`border-t border-[#f2f3f5]/[0.12] transition-colors ${isSelected ? "bg-[#8fa0f2]/[0.05]" : isExpanded ? "bg-[#f2f3f5]/[0.015]" : ""}`}>
+            <div key={user.id} id={`utilisateur-${user.id}`} className={`border-t border-[#f2f3f5]/[0.12] transition-colors ${isSelected ? "bg-[#96c0b8]/[0.05]" : isExpanded ? "bg-[#f2f3f5]/[0.015]" : ""}`}>
               {/* Rangée principale */}
               <div className="flex items-center gap-4 max-md:gap-3 py-4 max-md:flex-wrap">
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={() => toggleUserSelection(user.id)}
-                  className="border-[#3a3f4a] rounded-none data-[state=checked]:bg-[#8fa0f2] data-[state=checked]:border-[#8fa0f2] flex-shrink-0"
+                  className="border-[#3a3f4a] rounded-none data-[state=checked]:bg-[#96c0b8] data-[state=checked]:border-[#96c0b8] flex-shrink-0"
                   title="Sélectionner pour comparer" />
 
                 <button
                   onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
-                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0 ${isAdmin ? "border-[#a9c5b9]/50" : "border-[#3a3f4a]"}`}>
-                    <span className={`text-[11px] ${isAdmin ? "text-[#a9c5b9]" : "text-[#9298a6]"}`}>
+                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0 ${isAdmin ? "border-[#96c0b8]/50" : "border-[#3a3f4a]"}`}>
+                    <span className={`text-[11px] ${isAdmin ? "text-[#96c0b8]" : "text-[#9298a6]"}`}>
                       {user.full_name?.charAt(0)?.toUpperCase() || "U"}
                     </span>
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-[#f2f3f5] text-[15px] truncate">{user.full_name || "Sans nom"}</span>
-                      {isAdmin && <span className="text-[9px] tracking-[0.16em] uppercase text-[#a9c5b9] border border-[#a9c5b9]/40 rounded-full px-2 py-px">Admin</span>}
+                      {isAdmin && <span className="text-[9px] tracking-[0.16em] uppercase text-[#96c0b8] border border-[#96c0b8]/40 rounded-full px-2 py-px">Admin</span>}
                       {user.role === 'mandataire' && <span className="text-[9px] tracking-[0.16em] uppercase text-[#9298a6] border border-[#9298a6]/40 rounded-full px-2 py-px">Mandataire</span>}
                       {user.est_compte_shadow && user.compte_maitre_email && <span className="text-[9px] tracking-[0.16em] uppercase text-[#9298a6] border border-[#f2f3f5]/[0.18] rounded-full px-2 py-px">Lié</span>}
                       {user.comptes_lies && user.comptes_lies.length > 0 && <span className="text-[9px] tracking-[0.16em] uppercase text-[#9298a6] border border-[#f2f3f5]/[0.18] rounded-full px-2 py-px">{user.comptes_lies.length} lié{user.comptes_lies.length > 1 ? "s" : ""}</span>}
@@ -709,9 +709,9 @@ export default function AdminClients() {
                     </div>
                     <div className="w-24 max-md:w-20 flex items-center gap-2.5">
                       <div className="flex-1 h-px bg-[#f2f3f5]/[0.14] relative">
-                        <div className="absolute inset-y-0 left-0 bg-[#8fa0f2] transition-all duration-500" style={{ width: `${etape / 5 * 100}%`, height: "2px", top: "-0.5px" }} />
+                        <div className="absolute inset-y-0 left-0 bg-[#96c0b8] transition-all duration-500" style={{ width: `${etape / 5 * 100}%`, height: "2px", top: "-0.5px" }} />
                       </div>
-                      <span className="text-[11px] text-[#aab6f5]" style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(etape / 5 * 100)}%</span>
+                      <span className="text-[11px] text-[#c3ddd6]" style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(etape / 5 * 100)}%</span>
                     </div>
                   </div>
                 )}
@@ -753,7 +753,7 @@ export default function AdminClients() {
                         const isSel = user.profil_investisseur === profil.value;
                         return (
                           <button key={profil.value} onClick={() => handleChangeProfil(user.id, profil.value)}
-                            className={`text-[12px] px-3.5 py-1 rounded-full border transition-colors ${isSel ? "bg-[#8fa0f2]/[0.16] border-[#8fa0f2] text-[#aab6f5]" : "border-[#f2f3f5]/[0.18] text-[#9298a6] hover:text-[#f2f3f5]"}`}>
+                            className={`text-[12px] px-3.5 py-1 rounded-full border transition-colors ${isSel ? "bg-[#96c0b8]/[0.16] border-[#96c0b8] text-[#c3ddd6]" : "border-[#f2f3f5]/[0.18] text-[#9298a6] hover:text-[#f2f3f5]"}`}>
                             {profil.label}
                           </button>
                         );
@@ -768,7 +768,7 @@ export default function AdminClients() {
                       <div className="flex flex-wrap gap-x-10 gap-y-3" style={{ fontVariantNumeric: "tabular-nums" }}>
                         {user.revenus_annuels && <div><div className="text-[18px] font-light text-[#f2f3f5]">{(user.revenus_annuels / 1000).toFixed(0)} K€</div><div className="text-[11px] text-[#9298a6] mt-0.5">Revenus / an</div></div>}
                         {user.epargne_annuelle && <div><div className="text-[18px] font-light text-[#f2f3f5]">{(user.epargne_annuelle / 1000).toFixed(0)} K€</div><div className="text-[11px] text-[#9298a6] mt-0.5">Épargne / an</div></div>}
-                        {user.apport_disponible && <div><div className="text-[18px] font-light text-[#aab6f5]">{(user.apport_disponible / 1000).toFixed(0)} K€</div><div className="text-[11px] text-[#9298a6] mt-0.5">Apport disponible</div></div>}
+                        {user.apport_disponible && <div><div className="text-[18px] font-light text-[#c3ddd6]">{(user.apport_disponible / 1000).toFixed(0)} K€</div><div className="text-[11px] text-[#9298a6] mt-0.5">Apport disponible</div></div>}
                         {user.duree_emprunt && <div><div className="text-[18px] font-light text-[#f2f3f5]">{user.duree_emprunt} ans</div><div className="text-[11px] text-[#9298a6] mt-0.5">Durée d'emprunt</div></div>}
                       </div>
                     </div>
@@ -784,20 +784,20 @@ export default function AdminClients() {
                             <input type="file" className="hidden"
                               onChange={(e) => { if (e.target.files[0]) handleUploadDossierBancaire(user.id, e.target.files[0]); }} />
                             {uploadingDossier === user.id
-                              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8fa0f2]" />
-                              : <Upload className={`w-3.5 h-3.5 ${user.dossier_bancaire_url ? "text-[#aab6f5]" : ""}`} />}
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#96c0b8]" />
+                              : <Upload className={`w-3.5 h-3.5 ${user.dossier_bancaire_url ? "text-[#c3ddd6]" : ""}`} />}
                             {user.dossier_bancaire_url ? "Remplacer le dossier bancaire" : "Dossier bancaire"}
                           </label>
                           {user.dossier_bancaire_url && (
                             <a href={user.dossier_bancaire_url} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#aab6f5] hover:text-[#f2f3f5] transition-colors">
+                              className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
                               <Download className="w-3.5 h-3.5" /> Télécharger le dossier
                             </a>
                           )}
                         </>
                       )}
                       <button onClick={() => setAssignerPour(user)}
-                        className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#a9c5b9] hover:text-[#f2f3f5] transition-colors">
+                        className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#96c0b8] hover:text-[#f2f3f5] transition-colors">
                         <Building2 className="w-3.5 h-3.5" /> Assigner un projet
                       </button>
                       {user.est_compte_shadow ? (
@@ -814,7 +814,7 @@ export default function AdminClients() {
                       {!isAdmin && user.role !== 'mandataire' && (
                         <>
                           <button onClick={() => handlePromoteToAdmin(user)}
-                            className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#9298a6] hover:text-[#a9c5b9] transition-colors">
+                            className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#9298a6] hover:text-[#96c0b8] transition-colors">
                             <Crown className="w-3.5 h-3.5" /> Promouvoir admin
                           </button>
                           <button onClick={() => handlePromoteToMandataire(user)}
@@ -825,7 +825,7 @@ export default function AdminClients() {
                       )}
                       {isAdmin && (
                         <button onClick={() => handleDemoteFromAdmin(user)}
-                          className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#a9c5b9] hover:text-[#f2f3f5] transition-colors">
+                          className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#96c0b8] hover:text-[#f2f3f5] transition-colors">
                           <Crown className="w-3.5 h-3.5 fill-current" /> Rétrograder en utilisateur
                         </button>
                       )}
@@ -863,8 +863,8 @@ export default function AdminClients() {
               }
             </DialogDescription>
           </DialogHeader>
-          <div className="bg-[#a9c5b9]/5 border border-[#a9c5b9]/20 rounded-md p-4 my-4">
-            <p className="text-sm text-[#a9c5b9]/80">
+          <div className="bg-[#96c0b8]/5 border border-[#96c0b8]/20 rounded-md p-4 my-4">
+            <p className="text-sm text-[#96c0b8]/80">
               Cette action est irréversible. L'utilisateur devra recréer un compte pour accéder à l'application.
             </p>
           </div>

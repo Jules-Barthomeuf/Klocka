@@ -17,9 +17,9 @@ moment.locale("fr");
 const statutConfig = {
   nouveau: { label: "En attente", color: "bg-[#9298a6]/20 text-[#c9cdd6]", icon: Clock },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300", icon: Loader2 },
-  accepte: { label: "Accepté", color: "bg-[#8fa0f2]/20 text-[#aab6f5]", icon: CheckCircle2 },
+  accepte: { label: "Accepté", color: "bg-[#96c0b8]/20 text-[#c3ddd6]", icon: CheckCircle2 },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300", icon: XCircle },
-  termine: { label: "Terminé", color: "bg-[#8fa0f2]/20 text-[#8fa0f2]", icon: CheckCircle2 }
+  termine: { label: "Terminé", color: "bg-[#96c0b8]/20 text-[#96c0b8]", icon: CheckCircle2 }
 };
 
 export default function Feedback() {
@@ -90,9 +90,9 @@ export default function Feedback() {
   if (showAsClient && userEtape === 1) {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30">
+        <Card className="max-w-md w-full bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30">
           <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-[#8fa0f2] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-[#96c0b8] rounded-full flex items-center justify-center mx-auto mb-6">
               <MessageSquare className="w-10 h-10 text-[#f2f3f5]" />
             </div>
             <h2 className="text-2xl text-[#f2f3f5] mb-4">
@@ -118,7 +118,7 @@ export default function Feedback() {
           <div className="mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-4xl font-montserrat text-[#f2f3f5] mb-2">Suggestions</h1>
-              <div className="h-0.5 w-32 bg-[#8fa0f2] mb-2"></div>
+              <div className="h-0.5 w-32 bg-[#96c0b8] mb-2"></div>
               <p className="text-[#9298a6] text-lg">
                 Proposez vos idées d'amélioration
               </p>
@@ -130,7 +130,7 @@ export default function Feedback() {
                   {user.full_name || user.email.split('@')[0]}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-[#8fa0f2] to-[#aab6f5] rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#96c0b8] to-[#c3ddd6] rounded-full flex items-center justify-center">
                 <span className="text-[#f2f3f5] font-montserrat text-lg">
                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                 </span>
@@ -144,10 +144,10 @@ export default function Feedback() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <Card className="bg-gradient-to-br from-[#000000] to-black border-[#8fa0f2]/30 hover:border-[#8fa0f2]/60 transition-all duration-300 mb-8">
+            <Card className="bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30 hover:border-[#96c0b8]/60 transition-all duration-300 mb-8">
               <CardHeader>
                 <CardTitle className="text-[#f2f3f5] flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#8fa0f2]" />
+                  <MessageSquare className="w-5 h-5 text-[#96c0b8]" />
                   Nouvelle suggestion
                 </CardTitle>
               </CardHeader>
@@ -166,7 +166,7 @@ export default function Feedback() {
                                               animate={{ scale: 1 }}
                                               transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
                                             >
-                                              <CheckCircle2 className="w-20 h-20 text-[#8fa0f2] mx-auto mb-4" />
+                                              <CheckCircle2 className="w-20 h-20 text-[#96c0b8] mx-auto mb-4" />
                                             </motion.div>
                                             <h3 className="text-2xl text-[#f2f3f5] mb-2">Merci pour votre retour !</h3>
                                             <p className="text-[#9298a6]">Votre suggestion a été enregistrée</p>

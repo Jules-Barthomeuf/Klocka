@@ -74,7 +74,7 @@ export default function Ressources() {
   if (!user || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#000000]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -89,8 +89,8 @@ export default function Ressources() {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-10 text-center">
-          <div className="w-16 h-16 bg-[#8fa0f2]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-            <BookOpen className="w-8 h-8 text-[#8fa0f2]" />
+          <div className="w-16 h-16 bg-[#96c0b8]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <BookOpen className="w-8 h-8 text-[#96c0b8]" />
           </div>
           <h2 className="text-xl font-light text-[#f2f3f5] mb-3">
             Accès en attente
@@ -111,7 +111,7 @@ export default function Ressources() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8 md:mb-10">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-2">Formation</p>
+          <p className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-2">Formation</p>
           <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Ressources</h1>
         </div>
 
@@ -120,7 +120,7 @@ export default function Ressources() {
           <div className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-5 mb-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[#f2f3f5]/60 text-xs uppercase tracking-[0.2em]">Progression</span>
-              <span className="text-[#8fa0f2] text-sm font-medium">{progressPercent}%</span>
+              <span className="text-[#96c0b8] text-sm font-medium">{progressPercent}%</span>
             </div>
             <Progress value={progressPercent} className="h-1.5 bg-[#f2f3f5]/[0.04]" />
             <p className="text-[#f2f3f5]/30 text-xs mt-2">
@@ -140,7 +140,7 @@ export default function Ressources() {
                 <div
                   key={resource.id}
                   onClick={() => handleOpenResource(resource)}
-                  className={`group bg-[#0f1114] border border-[#f2f3f5]/[0.12] hover:border-[#8fa0f2]/30 transition-all duration-300 cursor-pointer overflow-hidden ${
+                  className={`group bg-[#0f1114] border border-[#f2f3f5]/[0.12] hover:border-[#96c0b8]/30 transition-all duration-300 cursor-pointer overflow-hidden ${
                     isViewed ? 'opacity-70' : ''
                   }`}
                 >
@@ -150,7 +150,7 @@ export default function Ressources() {
                       <ResourceImage src={resource.image_miniature} alt={resource.titre} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Icon className="w-12 h-12 text-[#8fa0f2]/40" />
+                        <Icon className="w-12 h-12 text-[#96c0b8]/40" />
                       </div>
                     )}
                     {/* Play overlay for videos */}
@@ -163,7 +163,7 @@ export default function Ressources() {
                     )}
                     {/* Viewed badge */}
                     {isViewed && (
-                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#8fa0f2] flex items-center justify-center">
+                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#96c0b8] flex items-center justify-center">
                         <CheckCircle2 className="w-3.5 h-3.5 text-[#f2f3f5]" />
                       </div>
                     )}
@@ -179,10 +179,10 @@ export default function Ressources() {
                   {/* Info */}
                   <div className="p-3">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Icon className="w-3.5 h-3.5 text-[#8fa0f2] flex-shrink-0" />
-                      <span className="text-[10px] text-[#8fa0f2] uppercase tracking-wider">{typeLabels[resource.type]}</span>
+                      <Icon className="w-3.5 h-3.5 text-[#96c0b8] flex-shrink-0" />
+                      <span className="text-[10px] text-[#96c0b8] uppercase tracking-wider">{typeLabels[resource.type]}</span>
                     </div>
-                    <h3 className="text-[#f2f3f5] font-medium text-xs md:text-sm line-clamp-2 group-hover:text-[#8fa0f2] transition-colors leading-snug">
+                    <h3 className="text-[#f2f3f5] font-medium text-xs md:text-sm line-clamp-2 group-hover:text-[#96c0b8] transition-colors leading-snug">
                       {resource.titre}
                     </h3>
                   </div>
@@ -193,8 +193,8 @@ export default function Ressources() {
         ) : (
           /* État vide - bientôt disponible */
           <div className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-10 md:p-16 text-center">
-            <div className="w-16 h-16 bg-[#8fa0f2]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-              <BookOpen className="w-8 h-8 text-[#8fa0f2]" />
+            <div className="w-16 h-16 bg-[#96c0b8]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-8 h-8 text-[#96c0b8]" />
             </div>
 
             <h2 className="text-xl md:text-2xl font-light text-[#f2f3f5] mb-3">

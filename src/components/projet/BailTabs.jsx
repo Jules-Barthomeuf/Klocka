@@ -13,7 +13,7 @@ moment.locale("fr");
 const tabStyle = (active) =>
   `pb-2 text-[11px] tracking-[0.16em] uppercase transition-colors duration-200 border-b ${
     active
-      ? "text-[#aab6f5] border-[#8fa0f2]"
+      ? "text-[#c3ddd6] border-[#96c0b8]"
       : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"
   }`;
 
@@ -28,7 +28,7 @@ function InfoCard({ label, value, accent, badge, note, onDelete, showDelete, cha
           <ValeurEditable champ={champ} type="text">{value}</ValeurEditable>
         </span>
         {badge && (
-          <span className={`ml-2 text-[10px] tracking-[0.12em] uppercase ${badge === "preneur" ? "text-[#aab6f5]" : "text-[#9298a6]"}`}>
+          <span className={`ml-2 text-[10px] tracking-[0.12em] uppercase ${badge === "preneur" ? "text-[#c3ddd6]" : "text-[#9298a6]"}`}>
             {badge === "preneur" ? "Preneur" : "Bailleur"}
           </span>
         )}
@@ -405,7 +405,7 @@ export default function BailTabs({ project }) {
               const isSectionTitle = /^\d{1,2}\.\s+[A-ZÀ-Ü]/.test(section.trim());
               if (isSectionTitle) {
                 return (
-                  <div key={idx} className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] border-t border-[#f2f3f5]/[0.12] pt-5 mt-6 first:mt-0 first:border-0 first:pt-0">
+                  <div key={idx} className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] border-t border-[#f2f3f5]/[0.12] pt-5 mt-6 first:mt-0 first:border-0 first:pt-0">
                     {section.trim()}
                   </div>
                 );

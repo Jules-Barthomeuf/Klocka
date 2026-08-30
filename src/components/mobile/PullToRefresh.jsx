@@ -58,9 +58,9 @@ export default function PullToRefresh({ onRefresh, children }) {
             className="absolute top-0 left-0 right-0 flex items-center justify-center z-20 pointer-events-none"
             style={{ height: pullDistance }}
           >
-            <div className="w-8 h-8 bg-[#8fa0f2]/20 rounded-full flex items-center justify-center border border-[#8fa0f2]/30">
+            <div className="w-8 h-8 bg-[#96c0b8]/20 rounded-full flex items-center justify-center border border-[#96c0b8]/30">
               <RefreshCw
-                className="w-4 h-4 text-[#8fa0f2]"
+                className="w-4 h-4 text-[#96c0b8]"
                 style={{
                   transform: `rotate(${progress * 360}deg)`,
                   animation: refreshing ? "spin 0.8s linear infinite" : "none",

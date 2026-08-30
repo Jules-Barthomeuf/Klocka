@@ -28,7 +28,7 @@ export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, 
         </div>
         <div className="p-2 md:p-4 rounded-md bg-[#f2f3f5]/[0.04] border border-[#1f2228] flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm ${mutedClass} mb-1 flex items-center gap-1`}>Cash-flow cumulé <TooltipInfo field="cashFlowCumule" /></p>
-          <p className={`text-sm md:text-lg font-medium tabular-nums ${calculs.indicateurs.cashFlowCumule >= 0 ? 'text-[#8fa0f2]' : 'text-red-500'}`}>{formatCurrency(calculs.indicateurs.cashFlowCumule)}</p>
+          <p className={`text-sm md:text-lg font-medium tabular-nums ${calculs.indicateurs.cashFlowCumule >= 0 ? 'text-[#96c0b8]' : 'text-red-500'}`}>{formatCurrency(calculs.indicateurs.cashFlowCumule)}</p>
         </div>
         <div className="p-2 md:p-4 rounded-md bg-gradient-to-r from-[#D4AF37]/20 to-[#F5D76E]/20 border border-[#D4AF37]/50 flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm text-[#F5D76E] mb-1 flex items-center gap-1`}>Création richesse <TooltipInfo field="creationRichesse" /></p>
@@ -43,7 +43,7 @@ export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, 
             data={[
               { name: 'Apport', value: apport, fill: '#6B7280' },
               { name: 'Cash-flow cumulé', value: calculs.indicateurs.cashFlowCumule, fill: calculs.indicateurs.cashFlowCumule >= 0 ? '#22C55E' : '#e8746a' },
-              { name: 'Prix revente net', value: calculs.revente.prixVenteNet, fill: '#aab6f5' },
+              { name: 'Prix revente net', value: calculs.revente.prixVenteNet, fill: '#c3ddd6' },
               { name: 'Création richesse', value: calculs.indicateurs.creationRichesseBrute, fill: '#D4AF37' }
             ]}
             layout="vertical"
@@ -61,7 +61,7 @@ export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, 
               {[
                 { name: 'Apport', value: apport, fill: '#6B7280' },
                 { name: 'Cash-flow cumulé', value: calculs.indicateurs.cashFlowCumule, fill: calculs.indicateurs.cashFlowCumule >= 0 ? '#22C55E' : '#e8746a' },
-                { name: 'Prix revente net', value: calculs.revente.prixVenteNet, fill: '#aab6f5' },
+                { name: 'Prix revente net', value: calculs.revente.prixVenteNet, fill: '#c3ddd6' },
                 { name: 'Création richesse', value: calculs.indicateurs.creationRichesseBrute, fill: '#D4AF37' }
               ].map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
             </Bar>

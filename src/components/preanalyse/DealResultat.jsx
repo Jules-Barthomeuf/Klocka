@@ -27,8 +27,8 @@ import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/Conn
 // Les clés sont les valeurs du moteur de règles (invariant serveur) ; seuls
 // les libellés affichés changent — un langage de comité, pas de jargon GO/NO-GO.
 export const VERDICTS = {
-  "GO": { libelle: "Validé", classe: "bg-[#8fa0f2]/15 text-[#aab6f5] border-[#8fa0f2]/30", bord: "border-[#8fa0f2]/40" },
-  "GO SOUS RÉSERVE": { libelle: "Validé sous conditions", classe: "bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/30", bord: "border-[#a9c5b9]/30" },
+  "GO": { libelle: "Validé", classe: "bg-[#96c0b8]/15 text-[#c3ddd6] border-[#96c0b8]/30", bord: "border-[#96c0b8]/40" },
+  "GO SOUS RÉSERVE": { libelle: "Validé sous conditions", classe: "bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/30", bord: "border-[#96c0b8]/30" },
   "INSUFFISANT": { libelle: "Dossier incomplet", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30", bord: "border-sky-500/30" },
   "NO-GO": { libelle: "Non retenu", classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
 };
@@ -38,10 +38,10 @@ export const libelleVerdict = (v) => VERDICTS[v]?.libelle || v;
 export const STATUTS_DEAL = {
   analyse: { libelle: "Analysé", classe: "bg-[#f2f3f5]/10 text-[#c9cdd6] border-[#f2f3f5]/20" },
   documents_demandes: { libelle: "Docs demandés", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
-  documents_recus: { libelle: "Docs reçus", classe: "bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/30" },
-  depouille: { libelle: "Extrait", classe: "bg-[#8fa0f2]/15 text-[#aab6f5] border-[#8fa0f2]/30" },
+  documents_recus: { libelle: "Docs reçus", classe: "bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/30" },
+  depouille: { libelle: "Extrait", classe: "bg-[#96c0b8]/15 text-[#c3ddd6] border-[#96c0b8]/30" },
   abandonne: { libelle: "Abandonné", classe: "bg-red-500/15 text-red-300 border-red-500/30" },
-  projet_cree: { libelle: "Projet créé", classe: "bg-[#8fa0f2]/20 text-[#aab6f5] border-[#8fa0f2]/40" },
+  projet_cree: { libelle: "Projet créé", classe: "bg-[#96c0b8]/20 text-[#c3ddd6] border-[#96c0b8]/40" },
 };
 
 const EMPLACEMENTS = [
@@ -84,7 +84,7 @@ function afficherValeur(champ, valeur) {
 export function Bandeau({ type, items }) {
   const styles =
     type === "alerte"
-      ? "border-[#a9c5b9]/25 bg-[#a9c5b9]/10 text-amber-200/90"
+      ? "border-[#96c0b8]/25 bg-[#96c0b8]/10 text-amber-200/90"
       : "border-[#f2f3f5]/10 bg-[#f2f3f5]/[0.03] text-[#9298a6]";
   return (
     <div className={`rounded-md border px-4 py-3 text-sm ${styles}`}>
@@ -511,13 +511,13 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
         <p className="text-[#9298a6] text-sm leading-relaxed">{lot.synthese?.synthese}</p>
 
         {lot.evaluation.profil && (
-          <p className="text-[#aab6f5] text-xs mt-2">Profil : {lot.evaluation.profil.libelle}</p>
+          <p className="text-[#c3ddd6] text-xs mt-2">Profil : {lot.evaluation.profil.libelle}</p>
         )}
 
         {lot.evaluation.reserves?.length > 0 && (
           <ul className="mt-3 space-y-1">
             {lot.evaluation.reserves.map((r) => (
-              <li key={r.id} className="text-[#a9c5b9]/80 text-xs flex items-start gap-2">
+              <li key={r.id} className="text-[#96c0b8]/80 text-xs flex items-start gap-2">
                 <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
                 {r.motif}
               </li>
@@ -553,7 +553,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
           <MapPin className="w-3.5 h-3.5 text-[#9298a6]" />
           <span className="text-[#9298a6] text-xs">Emplacement — qualification humaine</span>
           {enr?.emplacement === "a_qualifier" && (
-            <Badge className="bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/25 text-[10px]">à qualifier</Badge>
+            <Badge className="bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/25 text-[10px]">à qualifier</Badge>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
@@ -564,7 +564,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               onClick={() => onSaisie?.({ emplacement: e.code })}
               className={`px-3 py-1.5 rounded-lg text-xs border transition-all disabled:opacity-50 ${
                 enr?.emplacement === e.code
-                  ? "bg-[#8fa0f2]/20 border-[#8fa0f2]/40 text-[#aab6f5]"
+                  ? "bg-[#96c0b8]/20 border-[#96c0b8]/40 text-[#c3ddd6]"
                   : "border-[#f2f3f5]/10 text-[#9298a6] hover:border-[#f2f3f5]/25 hover:text-[#f2f3f5]"
               }`}
             >
@@ -661,7 +661,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                         </span>
                       )}
                       {!absent && c.confiance === "basse" && (
-                        <Badge className="bg-[#a9c5b9]/15 text-[#a9c5b9] border-[#a9c5b9]/25 text-[10px]">
+                        <Badge className="bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/25 text-[10px]">
                           confiance basse
                         </Badge>
                       )}
@@ -713,7 +713,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                               href={s.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[#aab6f5] hover:text-[#f2f3f5] text-xs underline underline-offset-2 transition-colors"
+                              className="text-[#c3ddd6] hover:text-[#f2f3f5] text-xs underline underline-offset-2 transition-colors"
                             >
                               {s.titre}
                             </a>
@@ -750,7 +750,7 @@ function Metrique({ label, valeur, sousTitre, accent }) {
   return (
     <div className="px-4 py-3">
       <p className="text-[#9298a6] text-[11px] mb-1">{label}</p>
-      <p className={`text-lg font-light ${accent ? "text-[#aab6f5]" : "text-[#f2f3f5]"}`}>{valeur}</p>
+      <p className={`text-lg font-light ${accent ? "text-[#c3ddd6]" : "text-[#f2f3f5]"}`}>{valeur}</p>
       {sousTitre && <p className="text-[#6a7180] text-[11px]">{sousTitre}</p>}
     </div>
   );
@@ -760,7 +760,7 @@ function LigneDetail({ label, valeur, fort }) {
   return (
     <div className="flex justify-between gap-3 py-1.5 border-b border-[#15171b]">
       <span className="text-[#9298a6]">{label}</span>
-      <span className={fort ? "text-[#aab6f5]" : "text-[#f2f3f5]"}>{valeur}</span>
+      <span className={fort ? "text-[#c3ddd6]" : "text-[#f2f3f5]"}>{valeur}</span>
     </div>
   );
 }
@@ -777,10 +777,10 @@ function ValidationEnseigne({ nom, signature, apercu }) {
     },
   });
 
-  if (fait) return <p className="text-[#aab6f5] text-xs mt-3">Enseigne ajoutée au référentiel.</p>;
+  if (fait) return <p className="text-[#c3ddd6] text-xs mt-3">Enseigne ajoutée au référentiel.</p>;
 
   return (
-    <div className="mt-3 rounded-lg border border-[#a9c5b9]/25 bg-[#a9c5b9]/10 px-3 py-2.5">
+    <div className="mt-3 rounded-lg border border-[#96c0b8]/25 bg-[#96c0b8]/10 px-3 py-2.5">
       <p className="text-amber-200/90 text-xs mb-1">
         « {nom} » est absente du référentiel. Qualification proposée par l'IA : <strong>{signature.niveau}</strong>.
       </p>
@@ -789,7 +789,7 @@ function ValidationEnseigne({ nom, signature, apercu }) {
         size="sm"
         onClick={() => enregistrer.mutate()}
         disabled={apercu || enregistrer.isPending}
-        className="bg-[#a9c5b9]/20 hover:bg-[#a9c5b9]/30 text-amber-200 border-0 h-7 text-xs"
+        className="bg-[#96c0b8]/20 hover:bg-[#96c0b8]/30 text-amber-200 border-0 h-7 text-xs"
       >
         Valider et ajouter au référentiel
       </Button>

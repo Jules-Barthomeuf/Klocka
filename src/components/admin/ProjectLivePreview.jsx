@@ -23,7 +23,7 @@ function Shell({ children, formData }) {
       <div className="px-[18px] pt-[18px] pb-5">
         <div className="flex justify-between items-center mb-3">
           <span className="font-bold text-[17px] truncate">{formData.titre || "Sans titre"}</span>
-          <span className="text-[12px] font-semibold text-[#8fa0f2] bg-[#8fa0f2]/[0.15] px-2.5 py-1 rounded-full flex-shrink-0 ml-2">
+          <span className="text-[12px] font-semibold text-[#96c0b8] bg-[#96c0b8]/[0.15] px-2.5 py-1 rounded-full flex-shrink-0 ml-2">
             {statutLabels[formData.statut] || "Prospect"}
           </span>
         </div>

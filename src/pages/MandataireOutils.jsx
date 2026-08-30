@@ -32,7 +32,7 @@ export default function MandataireOutils() {
           <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
             Outils & Plateformes
           </h1>
-          <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
+          <div className="h-0.5 w-32 bg-[#96c0b8]"></div>
           <p className="text-[#9298a6] mt-4">
             Accédez rapidement à tous vos outils professionnels
           </p>

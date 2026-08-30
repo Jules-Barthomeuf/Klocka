@@ -17,7 +17,7 @@ import { documentsDemo } from "@/components/preanalyse/dossierDemo";
 
 const GRAVITES = {
   bloquant: { icone: OctagonAlert, classe: "text-red-300", bord: "border-red-500/25 bg-red-500/[0.06]" },
-  attention: { icone: AlertTriangle, classe: "text-[#a9c5b9]", bord: "border-[#a9c5b9]/25 bg-[#a9c5b9]/[0.06]" },
+  attention: { icone: AlertTriangle, classe: "text-[#96c0b8]", bord: "border-[#96c0b8]/25 bg-[#96c0b8]/[0.06]" },
   info: { icone: Info, classe: "text-sky-300", bord: "border-sky-500/25 bg-sky-500/[0.06]" },
 };
 
@@ -208,7 +208,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
             href={dossier.drive_folder_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#aab6f5] hover:text-[#f2f3f5] text-xs flex items-center gap-1.5 transition-colors animate-in zoom-in-95 fade-in duration-500"
+            className="text-[#c3ddd6] hover:text-[#f2f3f5] text-xs flex items-center gap-1.5 transition-colors animate-in zoom-in-95 fade-in duration-500"
           >
             <CheckCircle2 className="w-3.5 h-3.5" /> Dossier Drive <ExternalLink className="w-3 h-3" />
           </a>
@@ -301,7 +301,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                     {f.etat === "analyse" ? (
                       <Loader2 className="w-3.5 h-3.5 text-[#9298a6] animate-spin flex-none" />
                     ) : f.etat === "fait" ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#aab6f5] flex-none animate-in zoom-in duration-300" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#c3ddd6] flex-none animate-in zoom-in duration-300" />
                     ) : f.etat === "erreur" ? (
                       <OctagonAlert className="w-3.5 h-3.5 text-red-300 flex-none" />
                     ) : (
@@ -312,7 +312,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                     <span className="text-[12.5px] text-[#c9cdd6] truncate flex-1">{f.nom}</span>
                     <span
                       className={`text-[11px] flex-none ${
-                        f.etat === "erreur" ? "text-red-300" : f.etat === "fait" ? "text-[#aab6f5]" : "text-[#6a7180]"
+                        f.etat === "erreur" ? "text-red-300" : f.etat === "fait" ? "text-[#c3ddd6]" : "text-[#6a7180]"
                       }`}
                     >
                       {f.etat === "en_attente"

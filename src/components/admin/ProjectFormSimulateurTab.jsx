@@ -20,7 +20,7 @@ const fmtEur = (v) => new Intl.NumberFormat("fr-FR", { style: "currency", curren
 function SectionTitle({ children, accent }) {
   return (
     <div className="flex items-center gap-3 pt-2">
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || "#8fa0f2" }} />
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || "#96c0b8" }} />
       <h3 className="text-[15px] font-semibold text-[#f2f3f5] tracking-tight">{children}</h3>
       <div className="flex-1 h-px bg-[#f2f3f5]/[0.06]" />
     </div>
@@ -304,8 +304,8 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
         </FField>
       </div>
 
-      <SectionTitle accent="#a9c5b9">8. Paramètres Administrateur</SectionTitle>
-      <div className="space-y-4 p-4 bg-[#a9c5b9]/10 rounded-none border border-[#a9c5b9]/30">
+      <SectionTitle accent="#96c0b8">8. Paramètres Administrateur</SectionTitle>
+      <div className="space-y-4 p-4 bg-[#96c0b8]/10 rounded-none border border-[#96c0b8]/30">
         <ToggleRow checked={formData.sim_commission_agent_active ?? false} onCheckedChange={(checked) => setFormData({...formData, sim_commission_agent_active: checked})} title="Honoraires à la charge de l'acquéreur TTC" />
         {formData.sim_commission_agent_active && (
           <div className="space-y-4">

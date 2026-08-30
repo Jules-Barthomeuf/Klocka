@@ -69,10 +69,10 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
     <div className="space-y-6 mt-6">
 
       {/* ── Visibilité des sections ── */}
-      <div className="p-4 bg-[#a9c5b9]/5 rounded-md border border-[#a9c5b9]/20">
+      <div className="p-4 bg-[#96c0b8]/5 rounded-md border border-[#96c0b8]/20">
         <div className="flex items-center gap-2 mb-3">
-          <EyeOff className="w-4 h-4 text-[#a9c5b9]" />
-          <h3 className="text-sm text-[#a9c5b9] font-medium">Masquer des sections côté client</h3>
+          <EyeOff className="w-4 h-4 text-[#96c0b8]" />
+          <h3 className="text-sm text-[#96c0b8] font-medium">Masquer des sections côté client</h3>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">

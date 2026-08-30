@@ -42,7 +42,7 @@ function QuestionView({ question, onAnswer }) {
           let border = "border-[#1f2228] hover:border-[#f2f3f5]/[0.15]";
           let bg = "bg-[#f2f3f5]/[0.02] hover:bg-[#f2f3f5]/[0.04]";
           if (show) {
-            if (isCorrect) { border = "border-[#8fa0f2]/50"; bg = "bg-[#8fa0f2]/10"; }
+            if (isCorrect) { border = "border-[#96c0b8]/50"; bg = "bg-[#96c0b8]/10"; }
             else if (isSelected) { border = "border-red-500/50"; bg = "bg-red-500/10"; }
             else { border = "border-[#f2f3f5]/[0.03]"; bg = "bg-[#f2f3f5]/[0.01]"; }
           }
@@ -55,7 +55,7 @@ function QuestionView({ question, onAnswer }) {
               className={`w-full text-left p-3 rounded-md border ${border} ${bg} transition-all duration-300 flex items-center gap-3`}
             >
               <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-medium flex-shrink-0 ${
-                show && isCorrect ? "bg-[#8fa0f2]/20 text-[#8fa0f2]" :
+                show && isCorrect ? "bg-[#96c0b8]/20 text-[#96c0b8]" :
                 show && isSelected && !isCorrect ? "bg-red-500/20 text-red-400" :
                 "bg-[#f2f3f5]/[0.05] text-[#f2f3f5]/60"
               }`}>
@@ -64,7 +64,7 @@ function QuestionView({ question, onAnswer }) {
                  String.fromCharCode(65 + index)}
               </div>
               <span className={`text-xs md:text-sm ${
-                show && isCorrect ? "text-[#8fa0f2]" :
+                show && isCorrect ? "text-[#96c0b8]" :
                 show && isSelected && !isCorrect ? "text-red-400" :
                 hasAnswered ? "text-[#f2f3f5]/50" : "text-[#f2f3f5]"
               }`}>{option}</span>
@@ -108,7 +108,7 @@ function ResultsView({ answers, questions, resources, onRestart }) {
               percent >= 50 ? "Pas mal ! Continuez à vous former." :
               "C'est un début ! Les vidéos ci-dessous vous aideront.";
 
-  const color = percent >= 70 ? "#8fa0f2" : percent >= 50 ? "#a9c5b9" : "#e8746a";
+  const color = percent >= 70 ? "#96c0b8" : percent >= 50 ? "#96c0b8" : "#e8746a";
 
   return (
     <motion.div
@@ -132,7 +132,7 @@ function ResultsView({ answers, questions, resources, onRestart }) {
       {/* Score bar */}
       <div className="grid grid-cols-10 gap-1 mb-5">
         {answers.map((a, i) => (
-          <div key={i} className={`h-1 rounded-full ${a.correct ? "bg-[#8fa0f2]" : "bg-red-500/60"}`} />
+          <div key={i} className={`h-1 rounded-full ${a.correct ? "bg-[#96c0b8]" : "bg-red-500/60"}`} />
         ))}
       </div>
 
@@ -163,17 +163,17 @@ function ResultsView({ answers, questions, resources, onRestart }) {
                 href={resource.url_fichier}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-2.5 rounded-md bg-[#f2f3f5]/[0.02] border border-[#1f2228] hover:border-[#8fa0f2]/30 hover:bg-[#8fa0f2]/5 transition-all group"
+                className="flex items-center gap-3 p-2.5 rounded-md bg-[#f2f3f5]/[0.02] border border-[#1f2228] hover:border-[#96c0b8]/30 hover:bg-[#96c0b8]/5 transition-all group"
               >
                 {resource.image_miniature ? (
                   <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
                     <img src={resource.image_miniature} alt="" className="w-full h-full object-cover" loading="lazy" />
                   </div>
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-[#8fa0f2]/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-[#96c0b8]/10 flex items-center justify-center flex-shrink-0">
                     {resource.type === 'video' || resource.type === 'webinar'
-                      ? <Play className="w-4 h-4 text-[#8fa0f2]" />
-                      : <BookOpen className="w-4 h-4 text-[#8fa0f2]" />}
+                      ? <Play className="w-4 h-4 text-[#96c0b8]" />
+                      : <BookOpen className="w-4 h-4 text-[#96c0b8]" />}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -182,7 +182,7 @@ function ResultsView({ answers, questions, resources, onRestart }) {
                     {categorieLabels[resource.categorie] || resource.categorie}
                   </p>
                 </div>
-                <ArrowRight className="w-3 h-3 text-[#6a7180] group-hover:text-[#8fa0f2] transition-colors flex-shrink-0" />
+                <ArrowRight className="w-3 h-3 text-[#6a7180] group-hover:text-[#96c0b8] transition-colors flex-shrink-0" />
               </a>
             ))}
           </div>
@@ -236,8 +236,8 @@ export default function DashboardQuizInline({ resources }) {
         className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-5 md:p-6"
       >
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="w-10 h-10 rounded-md bg-[#a9c5b9]/[0.1] flex items-center justify-center">
-            <Brain className="w-[18px] h-[18px] text-[#a9c5b9]" />
+          <div className="w-10 h-10 rounded-md bg-[#96c0b8]/[0.1] flex items-center justify-center">
+            <Brain className="w-[18px] h-[18px] text-[#96c0b8]" />
           </div>
           <div>
             <h3 className="text-[#f2f3f5] text-sm font-medium mb-1">Quiz Immobilier Commercial</h3>
@@ -246,7 +246,7 @@ export default function DashboardQuizInline({ resources }) {
             </p>
             <Button
               onClick={() => setStarted(true)}
-              className="bg-[#a9c5b9]/15 border border-[#a9c5b9]/30 hover:bg-[#a9c5b9]/25 text-[#f2f3f5] text-xs h-8 px-4"
+              className="bg-[#96c0b8]/15 border border-[#96c0b8]/30 hover:bg-[#96c0b8]/25 text-[#f2f3f5] text-xs h-8 px-4"
             >
               Commencer le quiz
               <ArrowRight className="w-3.5 h-3.5 ml-2" />
@@ -261,8 +261,8 @@ export default function DashboardQuizInline({ resources }) {
     <div className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-5 md:p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-[#a9c5b9]/[0.1] flex items-center justify-center flex-shrink-0">
-          <Brain className="w-4 h-4 text-[#a9c5b9]" />
+        <div className="w-8 h-8 rounded-lg bg-[#96c0b8]/[0.1] flex items-center justify-center flex-shrink-0">
+          <Brain className="w-4 h-4 text-[#96c0b8]" />
         </div>
         <div className="flex-1">
           <h3 className="text-[#f2f3f5] text-xs font-medium">Quiz Immobilier Commercial</h3>
@@ -278,7 +278,7 @@ export default function DashboardQuizInline({ resources }) {
       {!finished && (
         <div className="h-[2px] bg-[#f2f3f5]/[0.04] rounded-full overflow-hidden mb-5">
           <motion.div
-            className="h-full bg-gradient-to-r from-[#8fa0f2] to-[#a9c5b9]"
+            className="h-full bg-gradient-to-r from-[#96c0b8] to-[#96c0b8]"
             animate={{ width: `${((currentIndex + (answers.length > currentIndex ? 1 : 0)) / quizImmoCommercial.length) * 100}%` }}
             transition={{ duration: 0.4 }}
           />

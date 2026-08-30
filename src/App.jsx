@@ -84,7 +84,7 @@ const AuthenticatedApp = () => {
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#000000]">
-        <div className="w-8 h-8 border-4 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -103,14 +103,14 @@ const AuthenticatedApp = () => {
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-[#000000] px-6">
           <div className="max-w-sm text-center">
-            <div className="w-10 h-0.5 bg-[#a9c5b9] mx-auto mb-8" />
+            <div className="w-10 h-0.5 bg-[#96c0b8] mx-auto mb-8" />
             <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-[#f2f3f5]">Le serveur ne répond pas</h1>
             <p className="m-0 mt-4 text-[14px] leading-[1.7] text-[#9298a6]">
               Il démarre peut-être. Votre session est conservée : réessayez dans un instant.
             </p>
             <button
               onClick={() => checkAppState()}
-              className="mt-8 px-5 py-2.5 border border-[#a9c5b9]/50 text-[11px] tracking-[.16em] uppercase text-[#a9c5b9] hover:bg-[#a9c5b9]/[0.08] transition-colors"
+              className="mt-8 px-5 py-2.5 border border-[#96c0b8]/50 text-[11px] tracking-[.16em] uppercase text-[#96c0b8] hover:bg-[#96c0b8]/[0.08] transition-colors"
             >
               Réessayer
             </button>

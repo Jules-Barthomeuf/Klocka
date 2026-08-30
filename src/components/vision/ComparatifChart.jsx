@@ -14,7 +14,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
           refY="4"
           orient="auto-start-reverse"
         >
-          <polygon points="0 0, 8 4, 0 8" fill="#aab6f5" />
+          <polygon points="0 0, 8 4, 0 8" fill="#c3ddd6" />
         </marker>
       </defs>
       
@@ -24,7 +24,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         y1={y + 40}
         x2={x}
         y2={y - 40}
-        stroke="#aab6f5"
+        stroke="#c3ddd6"
         strokeWidth="2"
         markerEnd={`url(#arrowhead-${year})`}
       />
@@ -36,7 +36,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         width="60"
         height="30"
         rx="15"
-        fill="#8fa0f2"
+        fill="#96c0b8"
       />
       <text
         x={x}
@@ -56,8 +56,8 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
       <LineChart data={chartData}>
         <defs>
           <linearGradient id="patrimoineGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#8fa0f2" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#8fa0f2" stopOpacity={0} />
+            <stop offset="5%" stopColor="#96c0b8" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#96c0b8" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#2c3139" />
@@ -101,7 +101,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
             });
             return Math.round(currentValue);
           }}
-          stroke="#a9c5b9"
+          stroke="#96c0b8"
           strokeWidth={3}
           strokeDasharray="8 4"
           name="Livret A (3%)"
@@ -111,7 +111,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         <Area
           type="monotone"
           dataKey="patrimoine"
-          stroke="#8fa0f2"
+          stroke="#96c0b8"
           strokeWidth={3}
           fill="url(#patrimoineGradient)"
           name="Patrimoine net"
@@ -120,7 +120,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         <Line
           type="monotone"
           dataKey="patrimoine"
-          stroke="#8fa0f2"
+          stroke="#96c0b8"
           strokeWidth={4}
           name=""
           dot={false}

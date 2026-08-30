@@ -26,9 +26,9 @@ moment.locale("fr");
 const statutConfig = {
   nouveau: { label: "Nouveau", color: "bg-[#9298a6]/20 text-[#c9cdd6] border-[#9298a6]/30" },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
-  accepte: { label: "Accepté", color: "bg-[#8fa0f2]/20 text-[#aab6f5] border-[#8fa0f2]/30" },
+  accepte: { label: "Accepté", color: "bg-[#96c0b8]/20 text-[#c3ddd6] border-[#96c0b8]/30" },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300 border-red-500/30" },
-  termine: { label: "Terminé", color: "bg-[#8fa0f2]/20 text-[#8fa0f2] border-[#8fa0f2]/30" }
+  termine: { label: "Terminé", color: "bg-[#96c0b8]/20 text-[#96c0b8] border-[#96c0b8]/30" }
 };
 
 export default function AdminSuggestions() {
@@ -159,7 +159,7 @@ export default function AdminSuggestions() {
             { label: "Total", value: stats.total, color: "text-[#f2f3f5]" },
             { label: "Nouvelles", value: stats.nouveau, color: "text-[#9298a6]" },
             { label: "En cours", value: stats.en_cours, color: "text-blue-400" },
-            { label: "Terminées", value: stats.termine, color: "text-[#8fa0f2]" }
+            { label: "Terminées", value: stats.termine, color: "text-[#96c0b8]" }
           ].map((s) => (
             <div key={s.label} className="bg-[#000000] rounded-md border border-[#1f2228] px-4 py-3">
               <p className="text-[#9298a6] text-[10px] uppercase tracking-[0.15em] mb-1">{s.label}</p>

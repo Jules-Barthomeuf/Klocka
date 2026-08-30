@@ -201,7 +201,7 @@ export default function AdminRessources() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-2">
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-2">
               Administration
             </p>
             <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Ressources</h1>
@@ -218,8 +218,8 @@ export default function AdminRessources() {
         {/* Import Google Drive */}
         <div className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] mb-6 p-5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-md bg-[#a9c5b9]/[0.07] flex items-center justify-center">
-                <FolderOpen className="w-[18px] h-[18px] text-[#a9c5b9]" />
+              <div className="w-9 h-9 rounded-md bg-[#96c0b8]/[0.07] flex items-center justify-center">
+                <FolderOpen className="w-[18px] h-[18px] text-[#96c0b8]" />
               </div>
               <div>
                 <h2 className="text-[#f2f3f5] text-sm font-medium">Import rapide via Google Drive</h2>
@@ -270,7 +270,7 @@ export default function AdminRessources() {
                 <Button
                   onClick={handleAddDriveLink}
                   disabled={!driveLink.trim() || !driveName.trim() || addingDrive}
-                  className="bg-[#a9c5b9]/[0.07] border border-[#a9c5b9]/20 hover:bg-[#a9c5b9]/15 text-[#f2f3f5] h-9 px-4 text-sm disabled:opacity-40"
+                  className="bg-[#96c0b8]/[0.07] border border-[#96c0b8]/20 hover:bg-[#96c0b8]/15 text-[#f2f3f5] h-9 px-4 text-sm disabled:opacity-40"
                 >
                   {addingDrive ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Link2 className="w-4 h-4 mr-2" />}
                   Ajouter
@@ -349,7 +349,7 @@ export default function AdminRessources() {
                             </span>
                           )}
                           {!resource.visible && (
-                            <span className="text-[10px] text-[#a9c5b9] bg-[#a9c5b9]/[0.07] px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] text-[#96c0b8] bg-[#96c0b8]/[0.07] px-2 py-0.5 rounded-full">
                               Masqué
                             </span>
                           )}

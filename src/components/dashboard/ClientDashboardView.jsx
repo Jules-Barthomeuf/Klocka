@@ -27,12 +27,12 @@ function StepProgressBar({ etapes, userEtape }) {
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5] mb-6">Votre parcours</div>
+      <div className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6] mb-6">Votre parcours</div>
       <div className="relative">
         {/* Filet de fond + progression */}
         <div className="absolute left-0 right-0 top-[5px] h-px bg-[#f2f3f5]/[0.14]" />
         <motion.div
-          className="absolute left-0 top-[4.5px] h-[2px] bg-[#8fa0f2]"
+          className="absolute left-0 top-[4.5px] h-[2px] bg-[#96c0b8]"
           initial={{ width: 0 }}
           animate={{ width: `${progression * 100}%` }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -50,13 +50,13 @@ function StepProgressBar({ etapes, userEtape }) {
                   transition={{ delay: i * 0.07, duration: 0.3 }}
                   className={`w-[11px] h-[11px] rounded-full border-2 ${
                     isCurrent
-                      ? "border-[#8fa0f2] bg-[#000000]"
+                      ? "border-[#96c0b8] bg-[#000000]"
                       : isCompleted
-                        ? "border-[#8fa0f2] bg-[#8fa0f2]"
+                        ? "border-[#96c0b8] bg-[#96c0b8]"
                         : "border-[#f2f3f5]/[0.2] bg-[#000000]"
                   }`}
                 />
-                <span className={`mt-3 text-[10px] tracking-[0.14em] uppercase ${isCurrent ? "text-[#aab6f5]" : isCompleted ? "text-[#c9cdd6]" : "text-[#6a7180]"} max-md:hidden`}>
+                <span className={`mt-3 text-[10px] tracking-[0.14em] uppercase ${isCurrent ? "text-[#c3ddd6]" : isCompleted ? "text-[#c9cdd6]" : "text-[#6a7180]"} max-md:hidden`}>
                   {step.titre}
                 </span>
                 {isCurrent && (
@@ -68,7 +68,7 @@ function StepProgressBar({ etapes, userEtape }) {
         </div>
         {/* Mobile : étape courante seule */}
         <div className="md:hidden mt-4">
-          <span className="text-[10px] tracking-[0.14em] uppercase text-[#aab6f5]">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
+          <span className="text-[10px] tracking-[0.14em] uppercase text-[#c3ddd6]">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
           <p className="text-[12px] text-[#9298a6] mt-0.5 mb-0">{etapeDescriptions[userEtape]}</p>
         </div>
       </div>
@@ -83,14 +83,14 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
       onClick={onClick}
-      className="group cursor-pointer border-t border-[#f2f3f5]/[0.35] pt-5 pb-2 transition-colors hover:border-[#8fa0f2]/60"
+      className="group cursor-pointer border-t border-[#f2f3f5]/[0.35] pt-5 pb-2 transition-colors hover:border-[#96c0b8]/60"
     >
       <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-[#8fa0f2]" />
+        <Icon className="w-4 h-4 text-[#96c0b8]" />
         <h3 className="text-[#f2f3f5] text-[15px] font-light m-0">{title}</h3>
       </div>
       <p className="text-[#9298a6] text-[13px] leading-[1.7] mb-4">{description}</p>
-      <span className="inline-flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-[#aab6f5] group-hover:text-[#f2f3f5] transition-colors">
+      <span className="inline-flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-[#c3ddd6] group-hover:text-[#f2f3f5] transition-colors">
         {cta} <ArrowRight className="w-3 h-3" />
       </span>
     </motion.div>

@@ -50,10 +50,10 @@ export default function ClientsCorrespondants({ clients, chargement, configure, 
   const visibles = ouvert ? clients : clients.slice(0, 2);
 
   return (
-    <div className="mt-2 border border-[#a9c5b9]/25 rounded-md bg-[#a9c5b9]/[0.03] px-3 py-2.5">
+    <div className="mt-2 border border-[#96c0b8]/25 rounded-md bg-[#96c0b8]/[0.03] px-3 py-2.5">
       <button onClick={() => setOuvert((o) => !o)} className="w-full flex items-center gap-2 text-left">
-        <Users className="w-3 h-3 text-[#a9c5b9] flex-shrink-0" />
-        <span className="text-[10px] tracking-[.14em] uppercase text-[#a9c5b9] flex-1">
+        <Users className="w-3 h-3 text-[#96c0b8] flex-shrink-0" />
+        <span className="text-[10px] tracking-[.14em] uppercase text-[#96c0b8] flex-1">
           {clients.length} client{clients.length > 1 ? "s" : ""} possible{clients.length > 1 ? "s" : ""}
         </span>
         {clients.length > 2 && (
@@ -78,7 +78,7 @@ export default function ClientsCorrespondants({ clients, chargement, configure, 
       {!ouvert && clients.length > 2 && (
         <button
           onClick={() => setOuvert(true)}
-          className="mt-2 text-[10.5px] text-[#6a7180] hover:text-[#a9c5b9] transition-colors"
+          className="mt-2 text-[10.5px] text-[#6a7180] hover:text-[#96c0b8] transition-colors"
         >
           et {clients.length - 2} autre{clients.length - 2 > 1 ? "s" : ""}
         </button>

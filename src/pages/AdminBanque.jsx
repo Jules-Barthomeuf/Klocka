@@ -154,7 +154,7 @@ export default function AdminBanque() {
                           setEditLinkId(pres.id);
                           setLinkValue(pres.pptx_url || "");
                         }}
-                        className={`h-8 w-8 ${pres.pptx_url ? "text-[#8fa0f2]" : "text-[#9298a6] hover:text-[#a9c5b9]"}`}
+                        className={`h-8 w-8 ${pres.pptx_url ? "text-[#96c0b8]" : "text-[#9298a6] hover:text-[#96c0b8]"}`}
                         title={pres.pptx_url ? "Modifier le lien" : "Ajouter un lien de présentation"}
                       >
                         {pres.pptx_url ? <Pencil className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}

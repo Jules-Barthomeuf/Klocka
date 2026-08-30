@@ -57,13 +57,13 @@ export default function RendezVousStrategique({ user }) {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 px-4">
-      <div className="w-full max-w-lg bg-[#0f1114] border border-[#a9c5b9]/40 p-9 max-md:p-7">
+      <div className="w-full max-w-lg bg-[#0f1114] border border-[#96c0b8]/40 p-9 max-md:p-7">
         {!rdvPris ? (
           <>
-            <div className="w-11 h-11 border border-[#a9c5b9]/40 flex items-center justify-center mb-6">
-              <Calendar className="w-5 h-5 text-[#a9c5b9]" />
+            <div className="w-11 h-11 border border-[#96c0b8]/40 flex items-center justify-center mb-6">
+              <Calendar className="w-5 h-5 text-[#96c0b8]" />
             </div>
-            <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#a9c5b9]">Première étape</p>
+            <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#96c0b8]">Première étape</p>
             <h2 className="m-0 mt-3 text-[28px] max-md:text-[23px] font-light tracking-[-.02em] leading-[1.1] text-[#f2f3f5]">
               Prenez rendez-vous pour définir votre stratégie
             </h2>
@@ -74,7 +74,7 @@ export default function RendezVousStrategique({ user }) {
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <button
                 onClick={prendreRendezVous}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-[#a9c5b9] text-[#000000] text-[11px] tracking-[.16em] uppercase font-medium hover:bg-[#bcd4c9] transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-[#96c0b8] text-[#000000] text-[11px] tracking-[.16em] uppercase font-medium hover:bg-[#abd0c8] transition-colors"
               >
                 Prendre rendez-vous <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -85,10 +85,10 @@ export default function RendezVousStrategique({ user }) {
           </>
         ) : (
           <>
-            <div className="w-11 h-11 border border-[#a9c5b9]/40 flex items-center justify-center mb-6">
-              <BookOpen className="w-5 h-5 text-[#a9c5b9]" />
+            <div className="w-11 h-11 border border-[#96c0b8]/40 flex items-center justify-center mb-6">
+              <BookOpen className="w-5 h-5 text-[#96c0b8]" />
             </div>
-            <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#a9c5b9]">Rendez-vous pris</p>
+            <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#96c0b8]">Rendez-vous pris</p>
             <h2 className="m-0 mt-3 text-[28px] max-md:text-[23px] font-light tracking-[-.02em] leading-[1.1] text-[#f2f3f5]">
               En attendant, acculturez-vous à l'immobilier commercial
             </h2>
@@ -99,7 +99,7 @@ export default function RendezVousStrategique({ user }) {
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => finAcculturation(true)}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-[#a9c5b9] text-[#000000] text-[11px] tracking-[.16em] uppercase font-medium hover:bg-[#bcd4c9] transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-[#96c0b8] text-[#000000] text-[11px] tracking-[.16em] uppercase font-medium hover:bg-[#abd0c8] transition-colors"
               >
                 Accéder aux ressources <ArrowRight className="w-3.5 h-3.5" />
               </button>

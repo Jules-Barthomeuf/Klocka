@@ -7,7 +7,7 @@ const profilConfig = {
   equilibriste: {
     label: "L'Équilibriste",
     icon: Target,
-    color: "#8fa0f2",
+    color: "#96c0b8",
     description: "Recherche un équilibre entre rendement et sécurité, privilégie les projets modérés avec un bon cashflow.",
     weights: {
       rendement: 0.25,
@@ -74,7 +74,7 @@ const profilConfig = {
   },
 };
 
-const PIE_COLORS = ["#e8746a", "#22C55E", "#a9c5b9", "#A855F7"];
+const PIE_COLORS = ["#e8746a", "#22C55E", "#96c0b8", "#A855F7"];
 
 function computeScore(metric, profil, budgetMax) {
   const config = profilConfig[profil];
@@ -174,7 +174,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
   if (!userProfil || !config) {
     return (
       <div className="text-center py-16 bg-[#000000] rounded-md border border-[#1f2228]">
-        <AlertTriangle className="w-10 h-10 text-[#a9c5b9]/50 mx-auto mb-4" />
+        <AlertTriangle className="w-10 h-10 text-[#96c0b8]/50 mx-auto mb-4" />
         <p className="text-[#f2f3f5]/40 text-sm">Aucun profil investisseur n'est défini pour votre compte.</p>
         <p className="text-[#f2f3f5]/20 text-xs mt-1">Contactez votre conseiller pour le configurer.</p>
       </div>
@@ -298,7 +298,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
               <div
                 key={i}
                 className={`bg-[#000000] rounded-md border p-5 transition-all ${
-                  isBest ? "border-[#8fa0f2]/50 ring-1 ring-[#8fa0f2]/20" : "border-[#1f2228]"
+                  isBest ? "border-[#96c0b8]/50 ring-1 ring-[#96c0b8]/20" : "border-[#1f2228]"
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -306,7 +306,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
                     <h4 className="text-[#f2f3f5] font-light">{sc.titre}</h4>
                     {isBest && (
-                      <Badge className="bg-[#8fa0f2]/20 text-[#8fa0f2] text-[10px] border-0">
+                      <Badge className="bg-[#96c0b8]/20 text-[#96c0b8] text-[10px] border-0">
                         <CheckCircle2 className="w-3 h-3 mr-1" />
                         Meilleur choix
                       </Badge>
@@ -335,7 +335,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                           className="h-full rounded-full transition-all duration-700"
                           style={{
                             width: `${sc.details[key]}%`,
-                            backgroundColor: sc.details[key] >= 70 ? "#22C55E" : sc.details[key] >= 40 ? "#a9c5b9" : "#e8746a",
+                            backgroundColor: sc.details[key] >= 70 ? "#22C55E" : sc.details[key] >= 40 ? "#96c0b8" : "#e8746a",
                           }}
                         />
                       </div>

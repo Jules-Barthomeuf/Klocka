@@ -60,7 +60,7 @@ function ProjectCard({ project }) {
       className="group cursor-pointer"
       onClick={() => navigate(`/ProjetDetail?id=${project.id}`)}
     >
-      <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden hover:border-[#8fa0f2]/60 transition-colors duration-300">
+      <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden hover:border-[#96c0b8]/60 transition-colors duration-300">
         {/* Image */}
         <div className="relative h-44 md:h-52 overflow-hidden">
           {project.photos && project.photos.length > 0 ? (
@@ -78,15 +78,15 @@ function ProjectCard({ project }) {
           
           {/* Status */}
           <div className="absolute top-3.5 left-4">
-            <span className="text-[9px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full bg-[#000000]/70 backdrop-blur-sm text-[#aab6f5] border border-[#8fa0f2]/50">
+            <span className="text-[9px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full bg-[#000000]/70 backdrop-blur-sm text-[#c3ddd6] border border-[#96c0b8]/50">
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
 
           {/* Arrow */}
           <div className="absolute top-3.5 right-4">
-            <div className="w-8 h-8 rounded-full bg-[#000000]/40 backdrop-blur-sm border border-[#f2f3f5]/[0.18] flex items-center justify-center group-hover:border-[#8fa0f2] transition-colors">
-              <ArrowUpRight className="w-3.5 h-3.5 text-[#9298a6] group-hover:text-[#aab6f5] transition-colors" />
+            <div className="w-8 h-8 rounded-full bg-[#000000]/40 backdrop-blur-sm border border-[#f2f3f5]/[0.18] flex items-center justify-center group-hover:border-[#96c0b8] transition-colors">
+              <ArrowUpRight className="w-3.5 h-3.5 text-[#9298a6] group-hover:text-[#c3ddd6] transition-colors" />
             </div>
           </div>
 
@@ -114,7 +114,7 @@ function ProjectCard({ project }) {
           )}
           {rendementLocatifMoyen > 0 && (
             <div className="flex-1 min-w-0 py-3.5 px-4 border-l border-[#f2f3f5]/[0.12]">
-              <p className="text-[17px] font-light text-[#aab6f5] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+              <p className="text-[17px] font-light text-[#c3ddd6] m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
               <p className="text-[9px] uppercase tracking-[0.16em] text-[#9298a6] mt-1 m-0">Rendement</p>
             </div>
           )}
@@ -167,14 +167,14 @@ export default function DashboardProjectCard({ projects }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] tracking-[0.2em] uppercase text-[#aab6f5]">
+        <p className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6]">
           {projects.length === 1 ? 'Mon projet' : 'Mes projets'}
         </p>
         {projects.length > 1 && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => manualNav((current - 1 + projects.length) % projects.length)}
-              className="w-6 h-6 rounded-full border border-[#f2f3f5]/[0.14] flex items-center justify-center text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#8fa0f2] transition-colors"
+              className="w-6 h-6 rounded-full border border-[#f2f3f5]/[0.14] flex items-center justify-center text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#96c0b8] transition-colors"
             >
               <ChevronLeft className="w-3 h-3" />
             </button>
@@ -183,7 +183,7 @@ export default function DashboardProjectCard({ projects }) {
             </span>
             <button
               onClick={() => manualNav((current + 1) % projects.length)}
-              className="w-6 h-6 rounded-full border border-[#f2f3f5]/[0.14] flex items-center justify-center text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#8fa0f2] transition-colors"
+              className="w-6 h-6 rounded-full border border-[#f2f3f5]/[0.14] flex items-center justify-center text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#96c0b8] transition-colors"
             >
               <ChevronRight className="w-3 h-3" />
             </button>
@@ -211,7 +211,7 @@ export default function DashboardProjectCard({ projects }) {
               key={i}
               onClick={() => manualNav(i)}
               className={`h-1 rounded-full transition-all duration-300 ${
-                i === current ? 'w-5 bg-[#8fa0f2]' : 'w-1.5 bg-[#f2f3f5]/15 hover:bg-[#f2f3f5]/30'
+                i === current ? 'w-5 bg-[#96c0b8]' : 'w-1.5 bg-[#f2f3f5]/15 hover:bg-[#f2f3f5]/30'
               }`}
             />
           ))}

@@ -1,9 +1,9 @@
 import React from "react";
 import { Check, MapPin, Plus } from "lucide-react";
 
-const BORDER_COLORS = ["border-red-800", "border-[#aab6f5]", "border-[#a9c5b9]", "border-purple-400"];
-const RING_COLORS = ["ring-red-800/30", "ring-[#aab6f5]/30", "ring-[#a9c5b9]/30", "ring-purple-400/30"];
-const DOT_COLORS = ["bg-red-800", "bg-[#aab6f5]", "bg-[#a9c5b9]", "bg-purple-400"];
+const BORDER_COLORS = ["border-red-800", "border-[#c3ddd6]", "border-[#96c0b8]", "border-purple-400"];
+const RING_COLORS = ["ring-red-800/30", "ring-[#c3ddd6]/30", "ring-[#96c0b8]/30", "ring-purple-400/30"];
+const DOT_COLORS = ["bg-red-800", "bg-[#c3ddd6]", "bg-[#96c0b8]", "bg-purple-400"];
 
 const statutLabels = {
   prospect: "Prospect",
@@ -84,7 +84,7 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
 
                 {/* Status badge */}
                 <div className="absolute top-4 left-4">
-                  <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#000000]/60 backdrop-blur-sm text-[#8fa0f2] border border-[#8fa0f2]/20">
+                  <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#000000]/60 backdrop-blur-sm text-[#96c0b8] border border-[#96c0b8]/20">
                     {statutLabels[project.statut] || project.statut}
                   </span>
                 </div>
@@ -120,7 +120,7 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
                 <div className="flex gap-8">
                   <div>
                     <p className="text-[#f2f3f5]/25 text-[10px] uppercase tracking-wider mb-1">Prix de revient</p>
-                    <p className="text-[#8fa0f2] text-lg font-light">{formatPrice(prixRevient)}</p>
+                    <p className="text-[#96c0b8] text-lg font-light">{formatPrice(prixRevient)}</p>
                   </div>
                   <div>
                     <p className="text-[#f2f3f5]/25 text-[10px] uppercase tracking-wider mb-1">Rendement</p>

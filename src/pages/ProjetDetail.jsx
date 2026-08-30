@@ -29,7 +29,7 @@ export default function ProjetDetail() {
 
   if (!user || isLoading || !projectId) return (
     <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-[#8fa0f2]/30 border-t-[#8fa0f2] rounded-full animate-spin"></div>
+      <div className="w-8 h-8 border-4 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin"></div>
     </div>
   );
 
@@ -48,8 +48,8 @@ export default function ProjetDetail() {
     return (
       <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-8 text-center">
-          <div className="w-16 h-16 bg-[#8fa0f2]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-8 h-8 text-[#8fa0f2]" />
+          <div className="w-16 h-16 bg-[#96c0b8]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <Building2 className="w-8 h-8 text-[#96c0b8]" />
           </div>
           <h2 className="text-xl font-light text-[#f2f3f5] mb-3">Accès en attente</h2>
           <p className="text-[#f2f3f5]/30 text-sm">Cette section sera débloquée par votre conseiller.</p>
@@ -63,8 +63,8 @@ export default function ProjetDetail() {
       <AnimatePresence>
         {showDoorAnimation && (
           <motion.div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#000000]" initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5, delay: 1.5 }}>
-            <motion.div className="absolute top-0 left-0 h-full w-1/2 bg-[#000000] border-r border-[#8fa0f2]/30" initial={{ x: 0 }} animate={{ x: "-100%" }} transition={{ duration: 0.8, delay: 1, ease: "easeInOut" }} />
-            <motion.div className="absolute top-0 right-0 h-full w-1/2 bg-[#000000] border-l border-[#8fa0f2]/30" initial={{ x: 0 }} animate={{ x: "100%" }} transition={{ duration: 0.8, delay: 1, ease: "easeInOut" }} />
+            <motion.div className="absolute top-0 left-0 h-full w-1/2 bg-[#000000] border-r border-[#96c0b8]/30" initial={{ x: 0 }} animate={{ x: "-100%" }} transition={{ duration: 0.8, delay: 1, ease: "easeInOut" }} />
+            <motion.div className="absolute top-0 right-0 h-full w-1/2 bg-[#000000] border-l border-[#96c0b8]/30" initial={{ x: 0 }} animate={{ x: "100%" }} transition={{ duration: 0.8, delay: 1, ease: "easeInOut" }} />
             <motion.h1 className="relative z-10 text-5xl max-md:text-3xl font-light text-[#f2f3f5] px-8 text-center" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }} onAnimationComplete={() => setTimeout(() => setShowDoorAnimation(false), 1500)}>
               {project.titre}
             </motion.h1>

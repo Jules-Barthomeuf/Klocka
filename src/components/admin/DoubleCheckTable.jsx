@@ -79,7 +79,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
           <p className="text-purple-400 text-xs uppercase tracking-[0.15em] font-semibold text-center">Check 1</p>
         </div>
         <div className="col-span-4">
-          <p className="text-[#8fa0f2] text-xs uppercase tracking-[0.15em] font-semibold text-center">Check 2</p>
+          <p className="text-[#96c0b8] text-xs uppercase tracking-[0.15em] font-semibold text-center">Check 2</p>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
             <p className="text-purple-400 text-xs uppercase tracking-[0.15em] font-semibold text-center">Check 1</p>
           </div>
           <div className="col-span-4">
-            <p className="text-[#8fa0f2] text-xs uppercase tracking-[0.15em] font-semibold text-center">Check 2</p>
+            <p className="text-[#96c0b8] text-xs uppercase tracking-[0.15em] font-semibold text-center">Check 2</p>
           </div>
         </div>
         <div className="divide-y divide-[#15171b]">
@@ -108,13 +108,13 @@ export default function DoubleCheckTable({ checkData, onChange }) {
                 </div>
                 <div className="col-span-4 flex justify-center gap-1.5">
                   <button type="button" onClick={() => updateField(field.key, "ia", val.ia === "oui" ? "" : "oui")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "oui" ? "bg-[#8fa0f2]/20 text-[#aab6f5] border border-[#8fa0f2]/30" : "bg-[#f2f3f5]/[0.03] text-[#9298a6] border border-[#1f2228] hover:bg-[#f2f3f5]/[0.06]"}`}>Oui</button>
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "oui" ? "bg-[#96c0b8]/20 text-[#c3ddd6] border border-[#96c0b8]/30" : "bg-[#f2f3f5]/[0.03] text-[#9298a6] border border-[#1f2228] hover:bg-[#f2f3f5]/[0.06]"}`}>Oui</button>
                   <button type="button" onClick={() => updateField(field.key, "ia", val.ia === "non" ? "" : "non")}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.ia === "non" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-[#f2f3f5]/[0.03] text-[#9298a6] border border-[#1f2228] hover:bg-[#f2f3f5]/[0.06]"}`}>Non</button>
                 </div>
                 <div className="col-span-4 flex justify-center gap-1.5">
                   <button type="button" onClick={() => updateField(field.key, "human", val.human === "oui" ? "" : "oui")}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "oui" ? "bg-[#8fa0f2]/20 text-[#aab6f5] border border-[#8fa0f2]/30" : "bg-[#f2f3f5]/[0.03] text-[#9298a6] border border-[#1f2228] hover:bg-[#f2f3f5]/[0.06]"}`}>Oui</button>
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "oui" ? "bg-[#96c0b8]/20 text-[#c3ddd6] border border-[#96c0b8]/30" : "bg-[#f2f3f5]/[0.03] text-[#9298a6] border border-[#1f2228] hover:bg-[#f2f3f5]/[0.06]"}`}>Oui</button>
                   <button type="button" onClick={() => updateField(field.key, "human", val.human === "non" ? "" : "non")}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${val.human === "non" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-[#f2f3f5]/[0.03] text-[#9298a6] border border-[#1f2228] hover:bg-[#f2f3f5]/[0.06]"}`}>Non</button>
                 </div>
@@ -150,7 +150,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
                   <div className="col-span-4">
                     <Input
                     value={val.human}
-                    onChange={(e) => updateField(field.key, "human", e.target.value)} className="bg-slate-800 text-[#f2f3f5] px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#8fa0f2]/10 focus:border-[#8fa0f2]/30 h-8 placeholder:text-[#3a3f4a]"
+                    onChange={(e) => updateField(field.key, "human", e.target.value)} className="bg-slate-800 text-[#f2f3f5] px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-[#96c0b8]/10 focus:border-[#96c0b8]/30 h-8 placeholder:text-[#3a3f4a]"
 
                     placeholder="—" />
                   

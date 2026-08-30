@@ -48,8 +48,6 @@ export default function NewUserWelcome({ user }) {
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex flex-col">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap');`}</style>
-
       {/* Navbar simple */}
       <nav className="flex items-center justify-between px-8 md:px-16 py-6">
         <img
@@ -69,9 +67,9 @@ export default function NewUserWelcome({ user }) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-3xl mx-auto w-full text-center">
 
         {/* Greeting */}
-        <div className="w-10 h-0.5 bg-[#8fa0f2] mb-8 mx-auto"></div>
+        <div className="w-10 h-0.5 bg-[#96c0b8] mb-8 mx-auto"></div>
         <h1
-          style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 400 }}
+          style={{ fontFamily: "'Instrument Sans', Georgia, serif", fontWeight: 400 }}
           className="text-4xl md:text-5xl text-[#f2f3f5] mb-4 leading-tight"
         >
           Bienvenue{user?.full_name ? `, ${user.full_name.split(" ")[0]}` : ""} !
@@ -85,7 +83,7 @@ export default function NewUserWelcome({ user }) {
           href="https://dpe3smipjxh.typeform.com/to/GD7sREFs"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 bg-[#8fa0f2] hover:bg-[#8fa0f2]/90 text-[#f2f3f5] font-semibold px-8 py-4 rounded-lg transition-all duration-200 text-sm group mb-12"
+          className="flex items-center gap-2 bg-[#96c0b8] hover:bg-[#96c0b8]/90 text-[#f2f3f5] font-semibold px-8 py-4 rounded-lg transition-all duration-200 text-sm group mb-12"
         >
           Remplir le questionnaire
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -116,7 +114,7 @@ export default function NewUserWelcome({ user }) {
                 transition={{ duration: 0.4 }}
                 className="absolute inset-0 bg-[#f2f3f5]/[0.03] border border-[#1f2228] rounded-md px-8 py-6 flex flex-col items-center justify-center text-center"
               >
-                {React.createElement(features[current].icon, { className: "w-6 h-6 text-[#8fa0f2] mb-3" })}
+                {React.createElement(features[current].icon, { className: "w-6 h-6 text-[#96c0b8] mb-3" })}
                 <h3 className="text-[#f2f3f5] font-medium mb-2">{features[current].titre}</h3>
                 <p className="text-[#9298a6] text-sm leading-relaxed">{features[current].description}</p>
               </motion.div>
@@ -129,7 +127,7 @@ export default function NewUserWelcome({ user }) {
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-[#8fa0f2]" : "w-1.5 bg-[#f2f3f5]/20"}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-[#96c0b8]" : "w-1.5 bg-[#f2f3f5]/20"}`}
               />
             ))}
           </div>

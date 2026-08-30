@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-export default function AnimatedBackground({ color = "#8fa0f2", tintOpacity = 0.6 }) {
+export default function AnimatedBackground({ color = "#96c0b8", tintOpacity = 0.6 }) {
   useEffect(() => {
     // Load Unicorn Studio script
     if (!window.UnicornStudio) {

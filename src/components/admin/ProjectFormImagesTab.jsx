@@ -106,7 +106,7 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
                   onDragEnd={handleDragEnd}
                   className={`relative group transition-all duration-150 ${
                     dragOverIdx === idx && dragIdx.current !== idx
-                      ? 'scale-105 ring-2 ring-[#8fa0f2]'
+                      ? 'scale-105 ring-2 ring-[#96c0b8]'
                       : ''
                   }`}
                   style={{ cursor: 'grab' }}

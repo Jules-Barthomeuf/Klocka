@@ -27,7 +27,7 @@ export default function BottomTabs() {
               key={page}
               to={url}
               className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${
-                isActive ? "text-[#8fa0f2]" : "text-[#f2f3f5]/30"
+                isActive ? "text-[#96c0b8]" : "text-[#f2f3f5]/30"
               }`}
             >
               <Icon className="w-5 h-5" />

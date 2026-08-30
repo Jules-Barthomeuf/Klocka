@@ -68,7 +68,7 @@ export const PROFILS = [
     label: "500K – 1M",
     budgetMin: 500000,
     budgetMax: 1000000,
-    color: "#a9c5b9",
+    color: "#96c0b8",
     titre: "Commerce de centre-ville + entrepôt loué à enseigne",
     sections: [
       {

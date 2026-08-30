@@ -89,8 +89,8 @@ export default function SyntheseRecherche() {
       {/* Intro */}
       <div className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-5">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-9 h-9 rounded-md bg-[#8fa0f2]/10 flex items-center justify-center">
-            <Building2 className="w-5 h-5 text-[#8fa0f2]" />
+          <div className="w-9 h-9 rounded-md bg-[#96c0b8]/10 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-[#96c0b8]" />
           </div>
           <div>
             <h3 className="text-[#f2f3f5] text-sm font-medium">Vue synthétique</h3>

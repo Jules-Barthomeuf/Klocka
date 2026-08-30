@@ -105,13 +105,13 @@ export default function PipelineDeals() {
                     className="w-1.5 h-1.5 rounded-full flex-none"
                     style={{
                       background:
-                        d.statut === "abandonne" ? "#3a3f4a" : enRetard ? "#e8746a" : "#8fa0f2",
+                        d.statut === "abandonne" ? "#3a3f4a" : enRetard ? "#e8746a" : "#96c0b8",
                     }}
                   />
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm text-[#f2f3f5] truncate mb-0.5">
                       {d.test && (
-                        <span className="inline-block mr-2 px-1.5 py-px rounded border border-[#a9c5b9]/40 text-[#a9c5b9]/90 text-[9.5px] tracking-[.08em] uppercase align-middle">
+                        <span className="inline-block mr-2 px-1.5 py-px rounded border border-[#96c0b8]/40 text-[#96c0b8]/90 text-[9.5px] tracking-[.08em] uppercase align-middle">
                           Test
                         </span>
                       )}

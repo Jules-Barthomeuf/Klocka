@@ -13,8 +13,8 @@ const UserNotRegisteredError = () => {
         />
 
         {/* Icône horloge/attente */}
-        <div className="w-16 h-16 rounded-full bg-[#8fa0f2]/10 border border-[#8fa0f2]/20 flex items-center justify-center mx-auto mb-6">
-          <svg className="w-8 h-8 text-[#8fa0f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-16 h-16 rounded-full bg-[#96c0b8]/10 border border-[#96c0b8]/20 flex items-center justify-center mx-auto mb-6">
+          <svg className="w-8 h-8 text-[#96c0b8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -33,7 +33,7 @@ const UserNotRegisteredError = () => {
         </p>
         <button
           onClick={() => base44.auth.logout(window.location.origin)}
-          className="text-[#8fa0f2] text-sm hover:text-[#8fa0f2]/80 transition-colors underline underline-offset-4"
+          className="text-[#96c0b8] text-sm hover:text-[#96c0b8]/80 transition-colors underline underline-offset-4"
         >
           Se déconnecter
         </button>

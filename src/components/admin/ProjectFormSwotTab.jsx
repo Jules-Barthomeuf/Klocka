@@ -108,7 +108,7 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
 
           {/* Score global */}
           <div className="space-y-3 p-4 bg-[#0f1114] border border-[#f2f3f5]/[0.12]">
-            <p className="text-[#aab6f5] text-xs font-semibold uppercase tracking-wider">Score global</p>
+            <p className="text-[#c3ddd6] text-xs font-semibold uppercase tracking-wider">Score global</p>
             <VerificationField fieldKey="swot_score_global" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-[#9298a6] text-xs">Score global (/100)</Label>

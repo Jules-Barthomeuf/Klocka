@@ -179,9 +179,9 @@ export default function InteractiveFranceMap({ projets }) {
                       <div className="text-xs text-[#9298a6] mb-1">Prix d'acquisition</div>
                       <div className="font-bold text-sm">{formatValue(projet.prix_acquisition)}</div>
                     </div>
-                    <div className="bg-[#8fa0f2]/10 rounded-lg p-2">
+                    <div className="bg-[#96c0b8]/10 rounded-lg p-2">
                       <div className="text-xs text-[#9298a6] mb-1">Rendement annuel</div>
-                      <div className="font-bold text-sm text-[#7c8ee8]">{projet.rendement_locatif}%</div>
+                      <div className="font-bold text-sm text-[#7fada4]">{projet.rendement_locatif}%</div>
                     </div>
                   </div>
                 </div>
@@ -201,7 +201,7 @@ export default function InteractiveFranceMap({ projets }) {
           background: white;
           border-radius: 12px;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-          border: 2px solid #a9c5b9;
+          border: 2px solid #96c0b8;
           overflow: visible;
         }
 
@@ -220,7 +220,7 @@ export default function InteractiveFranceMap({ projets }) {
 
         .custom-popup .leaflet-popup-tip {
           background: white;
-          border: 2px solid #a9c5b9;
+          border: 2px solid #96c0b8;
         }
 
         .leaflet-popup-close-button {

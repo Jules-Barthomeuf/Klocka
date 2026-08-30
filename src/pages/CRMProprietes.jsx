@@ -23,7 +23,7 @@ const typeLabels = {
 };
 
 const statutConfig = {
-  disponible: { label: "Disponible", color: "bg-[#8fa0f2]/15 text-[#7c8ee8]" },
+  disponible: { label: "Disponible", color: "bg-[#96c0b8]/15 text-[#7fada4]" },
   sous_offre: { label: "Sous offre", color: "bg-blue-100 text-blue-800" },
   vendu: { label: "Vendu", color: "bg-[#f2f3f5]/10 text-[#0f1114]" },
   loue: { label: "Loué", color: "bg-purple-100 text-purple-800" }
@@ -98,7 +98,7 @@ export default function CRMProprietes() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -119,9 +119,9 @@ export default function CRMProprietes() {
             <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
               Propriétés CRM
             </h1>
-            <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
+            <div className="h-0.5 w-32 bg-[#96c0b8]"></div>
           </div>
-          <Badge className="bg-[#8fa0f2] text-[#f2f3f5] text-lg px-4 py-2">
+          <Badge className="bg-[#96c0b8] text-[#f2f3f5] text-lg px-4 py-2">
             {new Intl.NumberFormat('fr-FR', { 
               style: 'currency', 
               currency: 'EUR',
@@ -143,7 +143,7 @@ export default function CRMProprietes() {
           </div>
           <Button
             onClick={() => setDialogOpen(true)}
-            className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90"
+            className="bg-[#96c0b8] hover:bg-[#96c0b8]/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nouvelle propriété
@@ -155,7 +155,7 @@ export default function CRMProprietes() {
           {filteredProprietes.map((propriete) => (
             <div key={propriete.id} className="relative rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2">
               <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-              <Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#8fa0f2]/5 to-[#000000]/95 border-none">
+              <Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#96c0b8]/5 to-[#000000]/95 border-none">
                 <CardContent className="p-6">
                   <div className="mb-4">
                     <div className="flex items-start justify-between mb-3">
@@ -187,7 +187,7 @@ export default function CRMProprietes() {
                     {propriete.valeur_actuelle && (
                       <div className="flex items-center justify-between">
                         <span className="text-[#9298a6] text-xs">Valeur actuelle</span>
-                        <span className="text-[#8fa0f2] font-semibold">
+                        <span className="text-[#96c0b8] font-semibold">
                           {new Intl.NumberFormat('fr-FR', { 
                             style: 'currency', 
                             currency: 'EUR',
@@ -199,7 +199,7 @@ export default function CRMProprietes() {
                     {propriete.loyer_mensuel && (
                       <div className="flex items-center justify-between">
                         <span className="text-[#9298a6] text-xs">Loyer mensuel</span>
-                        <span className="text-[#aab6f5] font-semibold">
+                        <span className="text-[#c3ddd6] font-semibold">
                           {new Intl.NumberFormat('fr-FR', { 
                             style: 'currency', 
                             currency: 'EUR',
@@ -337,7 +337,7 @@ export default function CRMProprietes() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#22262d]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90">
+            <Button onClick={handleSubmit} className="bg-[#96c0b8] hover:bg-[#96c0b8]/90">
               Créer
             </Button>
           </DialogFooter>

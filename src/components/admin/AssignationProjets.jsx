@@ -21,12 +21,12 @@ function Ligne({ coche, onChange, titre, detail }) {
       type="button"
       onClick={onChange}
       className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-t border-[#f2f3f5]/[0.08] transition-colors ${
-        coche ? "bg-[#a9c5b9]/[0.06]" : "hover:bg-[#f2f3f5]/[0.03]"
+        coche ? "bg-[#96c0b8]/[0.06]" : "hover:bg-[#f2f3f5]/[0.03]"
       }`}
     >
       <span
         className={`w-4 h-4 flex items-center justify-center border flex-shrink-0 ${
-          coche ? "bg-[#a9c5b9] border-[#a9c5b9]" : "border-[#3a3f4a]"
+          coche ? "bg-[#96c0b8] border-[#96c0b8]" : "border-[#3a3f4a]"
         }`}
       >
         {coche && <Check className="w-3 h-3 text-[#000000]" />}
@@ -49,7 +49,7 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           placeholder="Rechercher…"
-          className="w-full bg-[#0f1114] border border-[#1f2228] focus:border-[#a9c5b9] rounded-md pl-9 pr-3 py-2 text-[14px] text-[#f2f3f5] outline-none"
+          className="w-full bg-[#0f1114] border border-[#1f2228] focus:border-[#96c0b8] rounded-md pl-9 pr-3 py-2 text-[14px] text-[#f2f3f5] outline-none"
         />
       </div>
       <div className="max-h-[50vh] overflow-y-auto border-b border-[#f2f3f5]/[0.08]">
@@ -136,7 +136,7 @@ export function DialogueAssignerClient({ ouvert, onClose, users, formData, onVal
             <button onClick={onClose} className="px-4 py-2 border border-[#2c3139] text-[11px] tracking-[.14em] uppercase text-[#c9cdd6] hover:bg-[#f2f3f5]/[0.06]">
               Annuler
             </button>
-            <button onClick={valider} className="px-5 py-2 bg-[#a9c5b9] text-[#000000] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#bcd4c9]">
+            <button onClick={valider} className="px-5 py-2 bg-[#96c0b8] text-[#000000] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8]">
               Assigner
             </button>
           </div>
@@ -253,7 +253,7 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
             <button
               onClick={() => enregistrer.mutate()}
               disabled={enregistrer.isPending}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-[#a9c5b9] text-[#000000] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#bcd4c9] disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-[#96c0b8] text-[#000000] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8] disabled:opacity-40"
             >
               {enregistrer.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Assigner

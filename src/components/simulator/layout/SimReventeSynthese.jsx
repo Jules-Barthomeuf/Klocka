@@ -36,7 +36,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
     { label: "Capital restant", value: formatCurrency(ind.capitalARemboursserRevente) },
     { label: "Apport initial", value: formatCurrency(ind.apportInitial) },
     { label: "Cash-flow cumulé", value: formatCurrency(ind.cashFlowCumule) },
-    { label: "Création richesse", value: formatCurrency(ind.creationRichesseBrute), accent: "text-[#8fa0f2]", info: "La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial." },
+    { label: "Création richesse", value: formatCurrency(ind.creationRichesseBrute), accent: "text-[#96c0b8]", info: "La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial." },
   ];
 
   const barData = [
@@ -50,7 +50,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
     <div className="border border-[#1f2228] rounded-md bg-[#0f1114]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#1f2228]">
         <p className="text-[#f2f3f5] text-sm font-medium">Synthèse à la revente</p>
-        <p className="text-[#8fa0f2] text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
+        <p className="text-[#96c0b8] text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-[#1f2228]">
         {items.map((it, i) => (

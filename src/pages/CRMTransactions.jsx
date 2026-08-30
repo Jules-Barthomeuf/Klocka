@@ -17,7 +17,7 @@ import MobileRecordCard from "@/components/crm/MobileRecordCard";
 
 const statutColors = {
   compromis: "bg-orange-500 text-[#f2f3f5]",
-  financement_obtenu: "bg-[#8fa0f2] text-[#f2f3f5]",
+  financement_obtenu: "bg-[#96c0b8] text-[#f2f3f5]",
   offre_acceptee: "bg-blue-500 text-[#f2f3f5]"
 };
 
@@ -189,7 +189,7 @@ export default function CRMTransactions() {
               setIsEditing(false);
             }
           }}
-          className="bg-[#0f1114] border-[#8fa0f2] text-[#f2f3f5] h-8 text-sm"
+          className="bg-[#0f1114] border-[#96c0b8] text-[#f2f3f5] h-8 text-sm"
         />
       );
     }
@@ -364,7 +364,7 @@ export default function CRMTransactions() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -386,11 +386,11 @@ export default function CRMTransactions() {
               <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
                 Transactions CRM
               </h1>
-              <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
+              <div className="h-0.5 w-32 bg-[#96c0b8]"></div>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Badge className="bg-[#8fa0f2] text-[#f2f3f5] text-lg px-4 py-2">
+            <Badge className="bg-[#96c0b8] text-[#f2f3f5] text-lg px-4 py-2">
               Total honoraires: {new Intl.NumberFormat('fr-FR', { 
                 style: 'currency', 
                 currency: 'EUR',
@@ -402,7 +402,7 @@ export default function CRMTransactions() {
                 resetForm();
                 setDialogOpen(true);
               }}
-              className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90"
+              className="bg-[#96c0b8] hover:bg-[#96c0b8]/90"
             >
               <Plus className="w-4 h-4 mr-2" />
               Nouvelle transaction
@@ -414,19 +414,19 @@ export default function CRMTransactions() {
           <TabsList className="w-full flex justify-start gap-4 bg-transparent border-b border-[#0f1114] mb-8 rounded-none px-0 h-auto pb-0">
             <TabsTrigger 
               value="en_cours" 
-              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Transactions en cours ({transactionsEnCours.length})
             </TabsTrigger>
             <TabsTrigger 
               value="finalisee" 
-              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Transactions finalisées ({transactionsFinalisees.length})
             </TabsTrigger>
             <TabsTrigger 
               value="avortee" 
-              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#8fa0f2] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
+              className="relative bg-transparent border-0 text-[#9298a6] hover:text-[#f2f3f5] data-[state=active]:bg-transparent data-[state=active]:text-[#f2f3f5] data-[state=active]:shadow-none transition-all duration-300 pb-3 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#96c0b8] after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center"
             >
               Transactions avortées ({transactionsAvortees.length})
             </TabsTrigger>
@@ -584,7 +584,7 @@ export default function CRMTransactions() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[#22262d]">
               Annuler
             </Button>
-            <Button onClick={handleSubmit} className="bg-[#8fa0f2] hover:bg-[#8fa0f2]/90">
+            <Button onClick={handleSubmit} className="bg-[#96c0b8] hover:bg-[#96c0b8]/90">
               {editingTransaction ? "Modifier" : "Créer"}
             </Button>
           </DialogFooter>

@@ -239,7 +239,7 @@ Réponds UNIQUEMENT avec le JSON.`;
                       <p className="text-[#9298a6] text-xs mb-3">{adresse}</p>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="h-1.5 flex-1 max-w-[200px] bg-[#f2f3f5]/[0.04] rounded-full overflow-hidden">
-                          <div className="h-full bg-[#8fa0f2] rounded-full transition-all" style={{ width: `${filledCount / totalCount * 100}%` }} />
+                          <div className="h-full bg-[#96c0b8] rounded-full transition-all" style={{ width: `${filledCount / totalCount * 100}%` }} />
                         </div>
                         <span className="text-[#6a7180] text-[10px]">{filledCount}/{totalCount}</span>
                       </div>

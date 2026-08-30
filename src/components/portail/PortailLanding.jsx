@@ -101,7 +101,7 @@ function CTAButton({ onClick, label }) {
   return (
     <div className="text-center">
       <button onClick={onClick}
-        className="inline-flex items-center gap-2.5 bg-[#8fa0f2] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#8fa0f2]/20">
+        className="inline-flex items-center gap-2.5 bg-[#96c0b8] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#96c0b8]/20">
         {label} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
       </button>
       <p className="text-[#6a7180] text-xs mt-3 italic">Places limitées par cohorte</p>
@@ -118,7 +118,7 @@ function Section({ children, id, dark = true }) {
 }
 
 function Label({ children }) {
-  return <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-[#8fa0f2]">{children}</p>;
+  return <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-[#96c0b8]">{children}</p>;
 }
 
 function Title({ children }) {
@@ -141,14 +141,14 @@ export default function PortailLanding({ onContinue }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left — Text */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-[#8fa0f2]/10 border border-[#8fa0f2]/30 rounded-full px-5 py-2 mb-8">
-                <span className="w-2 h-2 rounded-full bg-[#8fa0f2] animate-pulse" />
-                <span className="text-[#8fa0f2] text-xs font-semibold tracking-wide">3 deals sourcés inclus dans l'accompagnement</span>
+              <div className="inline-flex items-center gap-2 bg-[#96c0b8]/10 border border-[#96c0b8]/30 rounded-full px-5 py-2 mb-8">
+                <span className="w-2 h-2 rounded-full bg-[#96c0b8] animate-pulse" />
+                <span className="text-[#96c0b8] text-xs font-semibold tracking-wide">3 deals sourcés inclus dans l'accompagnement</span>
               </div>
 
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#f2f3f5] leading-[1.08] mb-6 uppercase tracking-tight">
                 Votre premier investissement en immobilier commercial,{" "}
-                <span className="text-[#8fa0f2]">réalisé pour vous</span>, depuis votre canapé.
+                <span className="text-[#96c0b8]">réalisé pour vous</span>, depuis votre canapé.
               </h1>
 
               <p className="text-[#9298a6] text-base md:text-lg leading-relaxed mb-8">
@@ -166,7 +166,7 @@ export default function PortailLanding({ onContinue }) {
               </div>
 
               <button onClick={onContinue}
-                className="inline-flex items-center gap-2.5 bg-[#8fa0f2] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-8 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#8fa0f2]/20">
+                className="inline-flex items-center gap-2.5 bg-[#96c0b8] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-8 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#96c0b8]/20">
                 Je veux investir en immobilier commercial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <p className="text-[#6a7180] text-xs mt-3 italic">Places limitées par cohorte</p>
@@ -186,9 +186,9 @@ export default function PortailLanding({ onContinue }) {
       {/* ═══════ SECTION 2 — IDENTIFICATION DU PROBLÈME ═══════ */}
       <section className="bg-[#000000] text-[#f2f3f5]">
         <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
-        <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-[#8fa0f2]">Le constat</p>
+        <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-[#96c0b8]">Le constat</p>
         <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-center leading-tight uppercase tracking-wide text-[#f2f3f5]">
-          Vous savez que l'immobilier commercial est un des meilleurs placements. <span className="text-[#8fa0f2]">Mais vous n'avez jamais franchi le cap.</span>
+          Vous savez que l'immobilier commercial est un des meilleurs placements. <span className="text-[#96c0b8]">Mais vous n'avez jamais franchi le cap.</span>
         </h2>
         <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-10 leading-relaxed text-[#9298a6]">
           Entre le manque de temps, la complexité du marché et la peur de faire une erreur — vous avez toujours reporté à plus tard.
@@ -210,7 +210,7 @@ export default function PortailLanding({ onContinue }) {
             Vous n'avez pas à tout faire seul.
           </p>
           <p className="text-[#f2f3f5] text-xl md:text-2xl font-semibold">
-            C'est exactement pour cela que <span className="text-[#8fa0f2] font-bold">Klocka existe.</span>
+            C'est exactement pour cela que <span className="text-[#96c0b8] font-bold">Klocka existe.</span>
           </p>
         </div>
 
@@ -222,7 +222,7 @@ export default function PortailLanding({ onContinue }) {
       <Section dark>
         <Label>Ce qui rend Klocka radicalement différent</Label>
         <Title>
-          Klocka, ce n'est pas une formation. <span className="text-[#8fa0f2]">C'est votre Deal Maker.</span>
+          Klocka, ce n'est pas une formation. <span className="text-[#96c0b8]">C'est votre Deal Maker.</span>
         </Title>
         <Sub>
           Cette section lève l'objection : « j'ai déjà vu des formations immobilier ».
@@ -245,15 +245,15 @@ export default function PortailLanding({ onContinue }) {
             </div>
           </div>
           {/* Klocka - Green */}
-          <div className="bg-[#8fa0f2]/10 border border-[#8fa0f2]/25 p-6 md:p-8 md:rounded-r-2xl">
+          <div className="bg-[#96c0b8]/10 border border-[#96c0b8]/25 p-6 md:p-8 md:rounded-r-2xl">
             <div className="flex items-center gap-2 mb-6">
-              <Check className="w-5 h-5 text-[#8fa0f2]" />
-              <p className="text-[#8fa0f2] text-xs font-bold uppercase tracking-wider">Klocka — Clé en Main</p>
+              <Check className="w-5 h-5 text-[#96c0b8]" />
+              <p className="text-[#96c0b8] text-xs font-bold uppercase tracking-wider">Klocka — Clé en Main</p>
             </div>
             <div className="space-y-4">
               {COMPARE_KLOCKA.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <Check className="w-4 h-4 text-[#8fa0f2] mt-0.5 flex-shrink-0" />
+                  <Check className="w-4 h-4 text-[#96c0b8] mt-0.5 flex-shrink-0" />
                   <p className="text-[#f2f3f5] text-sm font-medium">{item}</p>
                 </div>
               ))}
@@ -263,7 +263,7 @@ export default function PortailLanding({ onContinue }) {
 
         <div className="bg-[#f2f3f5]/[0.03] border border-[#1f2228] rounded-md px-6 py-5 max-w-2xl mx-auto text-center mb-12">
           <p className="text-[#f2f3f5] text-base">
-            « Vous apportez votre capacité d'investissement. <span className="text-[#8fa0f2] font-bold">Nous apportons tout le reste.</span> »
+            « Vous apportez votre capacité d'investissement. <span className="text-[#96c0b8] font-bold">Nous apportons tout le reste.</span> »
           </p>
         </div>
 
@@ -273,17 +273,17 @@ export default function PortailLanding({ onContinue }) {
       {/* ═══════ SECTION 4 — CE QUE COMPREND L'ACCOMPAGNEMENT ═══════ */}
       <section className="bg-[#000000] text-[#f2f3f5]">
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-4 text-center text-[#8fa0f2]">L'accompagnement</p>
+          <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-4 text-center text-[#96c0b8]">L'accompagnement</p>
           <h2 className="text-3xl md:text-5xl font-black mb-4 text-center leading-tight uppercase tracking-wide text-[#f2f3f5]">
-            Un service complet, <span className="text-[#8fa0f2]">de A à Z</span>.
+            Un service complet, <span className="text-[#96c0b8]">de A à Z</span>.
           </h2>
           <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-14 leading-relaxed text-[#9298a6]">Chaque module montre concrètement que vous n'avez rien à faire de plus que choisir votre deal.</p>
 
           {/* ── OFFRE SOCLE (1-4) ── */}
           <div className="mb-6">
-            <div className="inline-flex items-center gap-2 bg-[#8fa0f2]/10 border border-[#8fa0f2]/30 rounded-full px-5 py-2 mb-6">
-              <span className="w-2 h-2 rounded-full bg-[#8fa0f2]" />
-              <span className="text-[#8fa0f2] text-xs font-bold uppercase tracking-wider">Offre socle — inclus dans l'accompagnement</span>
+            <div className="inline-flex items-center gap-2 bg-[#96c0b8]/10 border border-[#96c0b8]/30 rounded-full px-5 py-2 mb-6">
+              <span className="w-2 h-2 rounded-full bg-[#96c0b8]" />
+              <span className="text-[#96c0b8] text-xs font-bold uppercase tracking-wider">Offre socle — inclus dans l'accompagnement</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {SERVICES.slice(0, 4).map((s) => {
@@ -292,33 +292,33 @@ export default function PortailLanding({ onContinue }) {
                 return (
                   <div key={s.num} className={`rounded-md border transition-all hover:shadow-lg relative overflow-hidden ${
                     isHighlight
-                      ? 'bg-[#000000] border-[#a9c5b9]/50 p-0 shadow-[0_0_30px_rgba(251,191,36,0.08)]'
+                      ? 'bg-[#000000] border-[#96c0b8]/50 p-0 shadow-[0_0_30px_rgba(251,191,36,0.08)]'
                       : 'bg-[#000000] border-[#0f1114] hover:border-[#22262d] p-6'
                   }`}>
                     {isHighlight ? (
                       <div className="p-6 md:p-8 relative">
                         <div className="absolute top-4 right-4">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#a9c5b9] bg-[#a9c5b9]/10 border border-[#a9c5b9]/30 rounded-full px-3 py-1">Étape clé</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#96c0b8] bg-[#96c0b8]/10 border border-[#96c0b8]/30 rounded-full px-3 py-1">Étape clé</span>
                         </div>
                         <div className="flex flex-col md:flex-row md:items-center gap-6">
                           <div className="flex-shrink-0">
-                            <div className="w-16 h-16 rounded-md bg-[#a9c5b9]/10 border border-[#a9c5b9]/20 flex items-center justify-center">
-                              <Icon className="w-8 h-8 text-[#a9c5b9]" />
+                            <div className="w-16 h-16 rounded-md bg-[#96c0b8]/10 border border-[#96c0b8]/20 flex items-center justify-center">
+                              <Icon className="w-8 h-8 text-[#96c0b8]" />
                             </div>
                           </div>
                           <div className="flex-1">
-                            <span className="text-[#a9c5b9]/60 text-xs font-mono font-bold block mb-1">Étape {s.num}</span>
+                            <span className="text-[#96c0b8]/60 text-xs font-mono font-bold block mb-1">Étape {s.num}</span>
                             <h3 className="text-[#f2f3f5] text-xl md:text-2xl font-black leading-tight mb-3">{s.title}</h3>
                             <ul className="space-y-2">
                               {s.items.map((item, j) => (
                                 <li key={j} className="flex items-start gap-2.5 text-base text-[#c9cdd6] leading-relaxed">
-                                  <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#a9c5b9]" />
+                                  <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#96c0b8]" />
                                   {item}
                                 </li>
                               ))}
                             </ul>
-                            <div className="mt-5 inline-flex items-center gap-2 bg-[#a9c5b9]/10 border border-[#a9c5b9]/25 rounded-full px-5 py-2">
-                              <span className="text-[#a9c5b9] text-sm font-bold">3 deals inclus — différenciateur clé de l'accompagnement</span>
+                            <div className="mt-5 inline-flex items-center gap-2 bg-[#96c0b8]/10 border border-[#96c0b8]/25 rounded-full px-5 py-2">
+                              <span className="text-[#96c0b8] text-sm font-bold">3 deals inclus — différenciateur clé de l'accompagnement</span>
                             </div>
                           </div>
                         </div>
@@ -358,7 +358,7 @@ export default function PortailLanding({ onContinue }) {
                 return (
                   <div key={s.num} className="rounded-md p-6 border bg-[#000000] border-[#0f1114] hover:border-[#22262d] transition-all hover:shadow-lg relative overflow-hidden">
                     <div className="absolute top-3 right-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#a9c5b9] bg-[#a9c5b9]/10 border border-[#a9c5b9]/20 rounded-full px-2.5 py-1">Option</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#96c0b8] bg-[#96c0b8]/10 border border-[#96c0b8]/20 rounded-full px-2.5 py-1">Option</span>
                     </div>
                     <div className="w-12 h-12 rounded-md bg-[#0f1114] flex items-center justify-center mb-4">
                       <Icon className="w-6 h-6 text-[#f2f3f5]" />
@@ -389,15 +389,15 @@ export default function PortailLanding({ onContinue }) {
       <Section dark>
         <Label>Plateforme</Label>
         <Title>
-          Investissez depuis n'importe où. <span className="text-[#8fa0f2]">Tout est centralisé.</span>
+          Investissez depuis n'importe où. <span className="text-[#96c0b8]">Tout est centralisé.</span>
         </Title>
         <Sub>Vous recevez des opportunités d'investissement analysées. Pas des devoirs à rendre.</Sub>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto mb-12">
           {PLATFORM.map((f, i) => (
             <div key={i} className="flex items-center gap-4 bg-[#f2f3f5]/[0.04] border border-[#1f2228] rounded-md px-5 py-4">
-              <div className="w-10 h-10 rounded-md bg-[#8fa0f2]/10 flex items-center justify-center flex-shrink-0">
-                <f.icon className="w-5 h-5 text-[#8fa0f2]" />
+              <div className="w-10 h-10 rounded-md bg-[#96c0b8]/10 flex items-center justify-center flex-shrink-0">
+                <f.icon className="w-5 h-5 text-[#96c0b8]" />
               </div>
               <p className="text-[#f2f3f5] text-sm font-medium">{f.label}</p>
             </div>
@@ -409,8 +409,8 @@ export default function PortailLanding({ onContinue }) {
           <div className="rounded-md bg-[#000000] border border-[#1f2228] overflow-hidden">
             <div className="h-7 bg-[#000000] flex items-center gap-1.5 px-3 border-b border-[#1f2228]">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#a9c5b9]/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#8fa0f2]/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#96c0b8]/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#96c0b8]/60" />
             </div>
             <img src="https://media.base44.com/images/public/68f0bd18555df3520e1740ca/fbcc895a0_Capturedecran2026-03-25a165004.png" alt="Plateforme Klocka" className="w-full h-[260px] md:h-[340px] object-cover" />
           </div>
@@ -423,7 +423,7 @@ export default function PortailLanding({ onContinue }) {
       <Section dark={false}>
         <Label>Témoignages</Label>
         <Title>
-          Ils ont investi avec <span className="text-[#8fa0f2]">Klocka</span>.
+          Ils ont investi avec <span className="text-[#96c0b8]">Klocka</span>.
         </Title>
 
         {/* Video témoignage */}
@@ -445,7 +445,7 @@ export default function PortailLanding({ onContinue }) {
       <Section dark>
         <Label>Les fondateurs</Label>
         <Title>
-          Deux experts au service de <span className="text-[#8fa0f2]">votre investissement.</span>
+          Deux experts au service de <span className="text-[#96c0b8]">votre investissement.</span>
         </Title>
         <Sub>
           10 ans d'expertise dans l'immobilier commercial professionnel — entièrement mis au service de vos investissements.
@@ -454,10 +454,10 @@ export default function PortailLanding({ onContinue }) {
         <div className="space-y-6 max-w-3xl mx-auto mb-12">
           {FOUNDERS.map((f, i) => (
             <div key={i} className="bg-[#f2f3f5]/[0.03] border border-[#1f2228] rounded-md p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 hover:border-[#f2f3f5]/[0.14] transition-colors">
-              <img src={f.photo} alt={f.name} className="w-28 h-28 rounded-full object-cover flex-shrink-0 border-2 border-[#8fa0f2]/20" />
+              <img src={f.photo} alt={f.name} className="w-28 h-28 rounded-full object-cover flex-shrink-0 border-2 border-[#96c0b8]/20" />
               <div className="text-center md:text-left">
                 <p className="text-[#f2f3f5] font-bold text-lg mb-0.5">{f.name}</p>
-                <p className="text-[#8fa0f2] text-xs font-semibold uppercase tracking-wider mb-3">{f.role}</p>
+                <p className="text-[#96c0b8] text-xs font-semibold uppercase tracking-wider mb-3">{f.role}</p>
                 <p className="text-[#9298a6] text-sm leading-relaxed">{f.desc}</p>
               </div>
             </div>
@@ -470,7 +470,7 @@ export default function PortailLanding({ onContinue }) {
       {/* ═══════ FINAL CTA ═══════ */}
       <section className="bg-[#000000] text-[#f2f3f5]">
         <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
-          <div className="bg-gradient-to-br from-[#8fa0f2]/15 via-[#8fa0f2]/5 to-transparent border border-[#8fa0f2]/25 rounded-3xl p-8 md:p-14 text-center max-w-3xl mx-auto">
+          <div className="bg-gradient-to-br from-[#96c0b8]/15 via-[#96c0b8]/5 to-transparent border border-[#96c0b8]/25 rounded-3xl p-8 md:p-14 text-center max-w-3xl mx-auto">
             <img src={LOGO_KLOCKA} alt="Klocka" className="h-10 mx-auto mb-6 object-contain" />
             <Label>Dernière étape</Label>
             <h2 className="text-2xl md:text-4xl font-black text-[#f2f3f5] mb-4 uppercase tracking-wide">
@@ -480,7 +480,7 @@ export default function PortailLanding({ onContinue }) {
               Pour finaliser votre inscription, consultez et acceptez nos conditions générales, puis procédez au paiement sécurisé.
             </p>
             <button onClick={onContinue}
-              className="inline-flex items-center gap-2.5 bg-[#8fa0f2] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#8fa0f2]/25">
+              className="inline-flex items-center gap-2.5 bg-[#96c0b8] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#96c0b8]/25">
               Démarrer l'accompagnement <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <p className="text-[#6a7180] text-xs mt-4 italic">Places limitées par cohorte</p>

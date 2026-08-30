@@ -38,7 +38,7 @@ export default function MandataireClients() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#000000] text-[#f2f3f5] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8fa0f2]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96c0b8]"></div>
       </div>
     );
   }
@@ -51,9 +51,9 @@ export default function MandataireClients() {
             <h1 className="text-4xl font-geist tracking-tighter text-[#f2f3f5] mb-2">
               Mes Clients
             </h1>
-            <div className="h-0.5 w-32 bg-[#8fa0f2]"></div>
+            <div className="h-0.5 w-32 bg-[#96c0b8]"></div>
           </div>
-          <Badge className="bg-[#8fa0f2] text-[#f2f3f5] text-lg px-4 py-2">
+          <Badge className="bg-[#96c0b8] text-[#f2f3f5] text-lg px-4 py-2">
             {clients.length} clients
           </Badge>
         </div>
@@ -74,10 +74,10 @@ export default function MandataireClients() {
           {filteredClients.map((client) => (
             <div key={client.id} className="relative rounded-[1.25rem] border-[0.75px] border-[#22262d] p-2">
               <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-              <Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#8fa0f2]/5 to-[#000000]/95 border-none">
+              <Card className="relative bg-gradient-to-br from-[#000000]/95 via-[#96c0b8]/5 to-[#000000]/95 border-none">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="w-12 h-12 bg-[#8fa0f2] rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 bg-[#96c0b8] rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-[#f2f3f5] font-semibold text-lg">
                         {(client.full_name || client.email).charAt(0).toUpperCase()}
                       </span>
@@ -86,7 +86,7 @@ export default function MandataireClients() {
                       <h3 className="text-[#f2f3f5] font-semibold mb-1 truncate">
                         {client.full_name || 'Utilisateur'}
                       </h3>
-                      <Badge className="bg-[#8fa0f2]/20 text-[#8fa0f2] text-xs">
+                      <Badge className="bg-[#96c0b8]/20 text-[#96c0b8] text-xs">
                         {etapeLabels[client.etape_actuelle || 0]}
                       </Badge>
                     </div>

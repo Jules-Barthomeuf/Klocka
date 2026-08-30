@@ -24,8 +24,8 @@ const CATEGORIES = [
 // L'extraction tourne en tâche de fond : chaque pièce porte son état.
 const ETATS = {
   en_attente: { libelle: "En file", classe: "text-[#9298a6]" },
-  en_cours: { libelle: "Analyse…", classe: "text-[#aab6f5]" },
-  fait: { libelle: "Analysé", classe: "text-[#aab6f5]" },
+  en_cours: { libelle: "Analyse…", classe: "text-[#c3ddd6]" },
+  fait: { libelle: "Analysé", classe: "text-[#c3ddd6]" },
   erreur: { libelle: "Échec", classe: "text-red-400" },
 };
 
@@ -143,14 +143,14 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher"
-            className="bg-[#0c0d10] border border-[#1f2228] focus:border-[#8fa0f2]/60 rounded-md px-3.5 py-2 text-[13px] text-[#f2f3f5] outline-none placeholder:text-[#5a615f] transition-colors w-[190px]"
+            className="bg-[#0c0d10] border border-[#1f2228] focus:border-[#96c0b8]/60 rounded-md px-3.5 py-2 text-[13px] text-[#f2f3f5] outline-none placeholder:text-[#5a615f] transition-colors w-[190px]"
           />
           {proposerDrive && dossier?.drive_folder_url && (
             <a
               href={dossier.drive_folder_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[12.5px] text-[#aab6f5] hover:text-[#f2f3f5] transition-colors"
+              className="inline-flex items-center gap-1.5 text-[12.5px] text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors"
             >
               Dossier Drive <ExternalLink className="w-3 h-3" />
             </a>
@@ -188,7 +188,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                     onClick={() => onCocher?.(tousCoches ? [] : documents.map((d) => d.id))}
                     title={tousCoches ? "Tout décocher" : "Tout cocher"}
                     className={`w-[17px] h-[17px] rounded-[4px] border flex items-center justify-center transition-colors
-                      ${tousCoches ? "bg-[#8fa0f2] border-[#8fa0f2] text-[#000000]" : "border-[#2c3139] hover:border-[#aab6f5]"}`}
+                      ${tousCoches ? "bg-[#96c0b8] border-[#96c0b8] text-[#000000]" : "border-[#2c3139] hover:border-[#c3ddd6]"}`}
                   >
                     {tousCoches && <Check className="w-3 h-3" />}
                   </button>
@@ -211,7 +211,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                         onClick={() => basculer(d.id)}
                         title={coche ? "Retirer des sources" : "Interroger ce document"}
                         className={`w-[17px] h-[17px] rounded-[4px] border flex items-center justify-center transition-colors
-                          ${coche ? "bg-[#8fa0f2] border-[#8fa0f2] text-[#000000]" : "border-[#2c3139] hover:border-[#aab6f5]"}`}
+                          ${coche ? "bg-[#96c0b8] border-[#96c0b8] text-[#000000]" : "border-[#2c3139] hover:border-[#c3ddd6]"}`}
                       >
                         {coche && <Check className="w-3 h-3" />}
                       </button>
@@ -224,10 +224,10 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                           onChange={(e) => setRenommage({ id: d.id, nom: e.target.value })}
                           onBlur={() => (renommage.nom.trim() && renommage.nom !== d.nom ? majDocument.mutate({ id: d.id, nom: renommage.nom.trim() }) : setRenommage(null))}
                           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setRenommage(null); }}
-                          className="w-full bg-[#0c0d10] border border-[#8fa0f2] rounded px-2 py-1 text-[13.5px] text-[#f2f3f5] outline-none"
+                          className="w-full bg-[#0c0d10] border border-[#96c0b8] rounded px-2 py-1 text-[13.5px] text-[#f2f3f5] outline-none"
                         />
                       ) : (
-                        <button onClick={() => !apercu && setRenommage({ id: d.id, nom: d.nom })} className="block w-full text-left text-[13.5px] text-[#f2f3f5] truncate hover:text-[#aab6f5] transition-colors" title="Cliquer pour renommer">
+                        <button onClick={() => !apercu && setRenommage({ id: d.id, nom: d.nom })} className="block w-full text-left text-[13.5px] text-[#f2f3f5] truncate hover:text-[#c3ddd6] transition-colors" title="Cliquer pour renommer">
                           {d.nom}
                         </button>
                       )}
@@ -243,8 +243,8 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                         disabled={apercu}
                         title={d.categorie_auto ? "Classée automatiquement — corrigez si besoin" : undefined}
-                        className={`w-[200px] bg-[#0c0d10] rounded-full px-3 py-1 text-[12px] outline-none focus:border-[#8fa0f2]/60 focus:text-[#f2f3f5] transition-colors border
-                          ${d.categorie_auto ? "border-[#a9c5b9]/40 text-[#a9c5b9]" : "border-[#22262d] text-[#9298a6]"}`}
+                        className={`w-[200px] bg-[#0c0d10] rounded-full px-3 py-1 text-[12px] outline-none focus:border-[#96c0b8]/60 focus:text-[#f2f3f5] transition-colors border
+                          ${d.categorie_auto ? "border-[#96c0b8]/40 text-[#96c0b8]" : "border-[#22262d] text-[#9298a6]"}`}
                       />
                     </td>
                     <td className="py-3 pr-4 text-right whitespace-nowrap">
@@ -297,7 +297,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setDriveDemande(false)}>
           <div className="w-full max-w-md bg-[#0f1114] border border-[#1f2228] rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3 mb-3">
-              <FolderPlus className="w-5 h-5 text-[#aab6f5] flex-shrink-0 mt-0.5" />
+              <FolderPlus className="w-5 h-5 text-[#c3ddd6] flex-shrink-0 mt-0.5" />
               <h3 className="m-0 text-[17px] font-medium text-[#f2f3f5]">Créer un dossier Google Drive ?</h3>
             </div>
             <p className="m-0 mb-1.5 text-[13.5px] text-[#9298a6] leading-[1.6]">
@@ -308,7 +308,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
             </p>
 
             {!compteDrive && (
-              <p className="m-0 mb-4 text-[12.5px] text-[#a9c5b9] leading-[1.55]">
+              <p className="m-0 mb-4 text-[12.5px] text-[#96c0b8] leading-[1.55]">
                 Aucun compte Google avec l'accès Drive : connectez-en un depuis le dashboard
                 (GOOGLE_DRIVE doit être actif côté serveur).
               </p>

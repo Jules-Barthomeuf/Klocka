@@ -2,6 +2,13 @@
 //
 // Les sessions vivent en base (entité Session) et non en mémoire : redémarrer le
 // serveur ne déconnecte personne.
+//
+// Une seconde porte : la session « de fenêtre ». Le cookie est commun à toutes
+// les fenêtres d'un navigateur ; pour ouvrir deux comptes côte à côte, une
+// fenêtre peut porter sa propre session dans un en-tête (Authorization:
+// Bearer), gardée par le navigateur dans sessionStorage — propre à la fenêtre.
+// L'en-tête X-Klocka-Fenetre dit au serveur d'ignorer le cookie dans cette
+// fenêtre, même quand aucune session de fenêtre n'est encore ouverte.
 
 import { randomBytes } from 'crypto';
 import { Records } from './db.js';
@@ -40,15 +47,29 @@ function poserCookie(res, token) {
   res.setHeader('Set-Cookie', parts.join('; '));
 }
 
-export function createSession(res, userEmail) {
+/** Le jeton de la requête : l'en-tête d'abord, puis le cookie — sauf si la fenêtre l'a récusé. */
+export function tokenDe(req) {
+  const auth = String(req.headers?.authorization || '');
+  if (/^Bearer\s+\S+/i.test(auth)) return { token: auth.replace(/^Bearer\s+/i, '').trim(), fenetre: true };
+  if (String(req.headers?.['x-klocka-fenetre'] || '') === '1') return { token: null, fenetre: true };
+  return { token: parseCookies(req)[COOKIE_NAME] || null, fenetre: false };
+}
+
+/**
+ * @param {object} [opts]
+ * @param {boolean} [opts.sansCookie] - session de fenêtre : pas de cookie, le
+ *   jeton est rendu à l'appelant qui le garde dans sa fenêtre.
+ */
+export function createSession(res, userEmail, { sansCookie = false } = {}) {
   const token = randomBytes(32).toString('hex');
   Records.create('Session', {
     token,
     user_email: String(userEmail).toLowerCase(),
     expires_at: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
     renouvelee_le: new Date().toISOString(),
+    fenetre: !!sansCookie,
   });
-  poserCookie(res, token);
+  if (!sansCookie) poserCookie(res, token);
   return token;
 }
 
@@ -58,7 +79,7 @@ export function createSession(res, userEmail) {
  * @returns {boolean} true si la session a été prolongée
  */
 export function prolongerSession(req, res) {
-  const token = parseCookies(req)[COOKIE_NAME];
+  const { token, fenetre } = tokenDe(req);
   if (!token) return false;
   const session = Records.filter('Session', { token })[0];
   if (!session) return false;
@@ -68,13 +89,13 @@ export function prolongerSession(req, res) {
     expires_at: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
     renouvelee_le: new Date().toISOString(),
   });
-  poserCookie(res, token);
+  if (!fenetre) poserCookie(res, token);
   return true;
 }
 
 // Returns the session's user email, or null when absent/expired.
 export function sessionEmail(req) {
-  const token = parseCookies(req)[COOKIE_NAME];
+  const { token } = tokenDe(req);
   if (!token) return null;
   const session = Records.filter('Session', { token })[0];
   if (!session) return null;
@@ -86,8 +107,11 @@ export function sessionEmail(req) {
 }
 
 export function destroySession(req, res) {
-  const token = parseCookies(req)[COOKIE_NAME];
+  const { token, fenetre } = tokenDe(req);
   if (token) Records.filter('Session', { token }).forEach((s) => Records.delete('Session', s.id));
+  // Fermer une session de fenêtre ne touche pas au cookie : l'autre compte,
+  // dans les autres fenêtres, reste connecté.
+  if (fenetre) return;
   const parts = [`${COOKIE_NAME}=`, 'HttpOnly', 'Path=/', 'SameSite=Lax', 'Max-Age=0'];
   if (SECURE) parts.push('Secure');
   res.setHeader('Set-Cookie', parts.join('; '));

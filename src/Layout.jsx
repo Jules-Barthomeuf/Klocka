@@ -308,6 +308,15 @@ function LayoutContent({ children, currentPageName }) {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => base44.auth.fenetre.ouvrir()}
+              className="text-[#6a7180] hover:text-[#f2f3f5] hover:bg-transparent h-8 w-8 flex-shrink-0"
+              title="Ouvrir un autre compte dans cette fenêtre — celui-ci reste connecté dans les autres"
+            >
+              <Users className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => base44.auth.logout(window.location.origin + '/Home')}
               className="text-[#6a7180] hover:text-[#f2f3f5] hover:bg-transparent h-8 w-8 flex-shrink-0"
               title="Déconnexion"

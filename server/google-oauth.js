@@ -85,11 +85,12 @@ const GMAIL_SEND_ENDPOINT = 'https://gmail.googleapis.com/gmail/v1/users/me/mess
 const pendingStates = new Map();
 const STATE_TTL_MS = 10 * 60 * 1000;
 
-function rememberState(returnTo, redirectUri, boite = false) {
+function rememberState(returnTo, redirectUri, boite = false, fenetre = false) {
   const state = randomBytes(16).toString('hex');
   // `boite` voyage dans l'état signé, pas dans l'URL : c'est lui — et non les
   // portées que Google renvoie — qui autorise l'enregistrement d'une boîte.
-  pendingStates.set(state, { at: Date.now(), returnTo: returnTo || '/', redirectUri, boite: !!boite });
+  // `fenetre` : la session ira dans la fenêtre, pas dans le cookie.
+  pendingStates.set(state, { at: Date.now(), returnTo: returnTo || '/', redirectUri, boite: !!boite, fenetre: !!fenetre });
   for (const [s, v] of pendingStates) if (Date.now() - v.at > STATE_TTL_MS) pendingStates.delete(s);
   return state;
 }
@@ -120,7 +121,7 @@ function consumeState(state) {
  * @param {object} [opts]
  * @param {string} [opts.returnTo] - path to land on once the round-trip is done
  */
-export function buildAuthUrl({ returnTo, req, boite = false } = {}) {
+export function buildAuthUrl({ returnTo, req, boite = false, fenetre = false } = {}) {
   const redirectUri = redirectUriPour(req);
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
@@ -132,7 +133,7 @@ export function buildAuthUrl({ returnTo, req, boite = false } = {}) {
     ...(boite && besoinOffline
       ? { access_type: 'offline', prompt: 'consent select_account' }
       : { prompt: 'select_account' }),
-    state: rememberState(returnTo, redirectUri, boite),
+    state: rememberState(returnTo, redirectUri, boite, fenetre),
   });
   if (ALLOWED_DOMAIN) params.set('hd', ALLOWED_DOMAIN);
   return `${AUTH_ENDPOINT}?${params}`;
@@ -234,6 +235,7 @@ export async function handleCallback({ code, state, owner }) {
     peut_envoyer: peutEnvoyer,
     peut_lire: peutLire,
     returnTo: stateValue.returnTo,
+    fenetre: !!stateValue.fenetre,
   };
 }
 

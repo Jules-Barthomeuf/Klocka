@@ -11,13 +11,60 @@ function normalizeBase(serverUrl) {
   return serverUrl.replace(/\/$/, '');
 }
 
+// La session « de fenêtre » : un jeton gardé dans sessionStorage — propre à la
+// fenêtre — envoyé en en-tête à la place du cookie. Le drapeau `klocka_fenetre`
+// dit au serveur d'ignorer le cookie dans cette fenêtre, même sans jeton :
+// c'est ce qui permet d'ouvrir un second compte à côté du premier.
+const CLE_JETON = 'klocka_session_fenetre';
+const CLE_DRAPEAU = 'klocka_fenetre';
+const stockage = () => {
+  try {
+    return typeof window !== 'undefined' ? window.sessionStorage : null;
+  } catch {
+    return null;
+  }
+};
+const fenetre = {
+  active: () => stockage()?.getItem(CLE_DRAPEAU) === '1',
+  jeton: () => stockage()?.getItem(CLE_JETON) || null,
+  poserJeton: (j) => {
+    const st = stockage();
+    if (!st) return;
+    st.setItem(CLE_DRAPEAU, '1');
+    if (j) st.setItem(CLE_JETON, j);
+  },
+  ouvrir: () => {
+    const st = stockage();
+    if (!st) return;
+    st.setItem(CLE_DRAPEAU, '1');
+    st.removeItem(CLE_JETON);
+    window.location.href = '/Home';
+  },
+  fermer: () => {
+    const st = stockage();
+    if (!st) return;
+    st.removeItem(CLE_DRAPEAU);
+    st.removeItem(CLE_JETON);
+  },
+};
+// Retour de Google en mode fenêtre : le jeton arrive dans le fragment.
+if (typeof window !== 'undefined') {
+  const m = /[#&]session=([a-f0-9]{16,})/.exec(window.location.hash || '');
+  if (m) {
+    fenetre.poserJeton(m[1]);
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+}
+
 export function createClient(config = {}) {
   const base = normalizeBase(config.serverUrl);
-  const token = config.token;
 
   async function request(method, url, { body, isForm } = {}) {
     const headers = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const jetonFenetre = fenetre.jeton();
+    if (jetonFenetre) headers['Authorization'] = `Bearer ${jetonFenetre}`;
+    else if (config.token) headers['Authorization'] = `Bearer ${config.token}`;
+    if (fenetre.active()) headers['X-Klocka-Fenetre'] = '1';
     if (config.appId) headers['X-App-Id'] = config.appId;
     let payload;
     if (isForm) {
@@ -110,6 +157,8 @@ export function createClient(config = {}) {
       } catch {
         /* logging out is best-effort */
       }
+      // Fermer une session de fenêtre rend la fenêtre au cookie commun.
+      fenetre.fermer();
       if (typeof window !== 'undefined') {
         window.location.href = redirectUrl || '/Home';
       }
@@ -137,6 +186,7 @@ export function createClient(config = {}) {
       }
     },
     deleteMe: () => request('POST', '/api/auth/logout'),
+    fenetre,
   };
 
   // --- Integrations (Core) ---

@@ -52,6 +52,9 @@ export function ConnexionPanel({ invitation = null } = {}) {
   const [googleDispo, setGoogleDispo] = useState(false);
   const champMotDePasse = useRef(null);
   const champCode = useRef(null);
+  // Cette fenêtre veut son propre compte : la session ira dans la fenêtre,
+  // pas dans le cookie commun. L'autre compte reste connecté ailleurs.
+  const enFenetre = base44.auth.fenetre.active();
 
   useEffect(() => {
     let vivant = true;
@@ -115,7 +118,8 @@ export function ConnexionPanel({ invitation = null } = {}) {
     setEnCours(true);
     setErreur(null);
     try {
-      await base44.request("POST", "/api/auth/connexion", { body: { email, mot_de_passe: motDePasse } });
+      const r = await base44.request("POST", "/api/auth/connexion", { body: { email, mot_de_passe: motDePasse, fenetre: enFenetre } });
+      if (r?.jeton_session) base44.auth.fenetre.poserJeton(r.jeton_session);
       // Rechargement complet : l'app rejoue son amorçage avec la session posée.
       window.location.href = "/Dashboard";
     } catch (err) {
@@ -134,9 +138,10 @@ export function ConnexionPanel({ invitation = null } = {}) {
     setEnCours(true);
     setErreur(null);
     try {
-      await base44.request("POST", "/api/auth/definir-mot-de-passe", {
-        body: { email, mot_de_passe: motDePasse, ...(invitation?.jeton ? { jeton: invitation.jeton } : {}) },
+      const r = await base44.request("POST", "/api/auth/definir-mot-de-passe", {
+        body: { email, mot_de_passe: motDePasse, fenetre: enFenetre, ...(invitation?.jeton ? { jeton: invitation.jeton } : {}) },
       });
+      if (r?.jeton_session) base44.auth.fenetre.poserJeton(r.jeton_session);
       window.location.href = "/Dashboard";
     } catch (err) {
       setErreur(err?.message || "Enregistrement impossible.");
@@ -161,7 +166,8 @@ export function ConnexionPanel({ invitation = null } = {}) {
       const r = await base44.request("POST", "/api/auth/inscription/code", { body: { email, full_name: nom } });
       if (r?.sans_code) {
         // Aucun code n'a pu partir : le serveur ouvre l'espace quand même.
-        await base44.request("POST", "/api/auth/inscription/confirmer", { body: { email, mot_de_passe: motDePasse, full_name: nom } });
+        const c = await base44.request("POST", "/api/auth/inscription/confirmer", { body: { email, mot_de_passe: motDePasse, full_name: nom, fenetre: enFenetre } });
+        if (c?.jeton_session) base44.auth.fenetre.poserJeton(c.jeton_session);
         window.location.href = "/Dashboard";
         return;
       }
@@ -195,9 +201,10 @@ export function ConnexionPanel({ invitation = null } = {}) {
     setEnCours(true);
     setErreur(null);
     try {
-      await base44.request("POST", "/api/auth/inscription/confirmer", {
-        body: { email, code: code.replace(/\D/g, ""), mot_de_passe: motDePasse, full_name: nom },
+      const r = await base44.request("POST", "/api/auth/inscription/confirmer", {
+        body: { email, code: code.replace(/\D/g, ""), mot_de_passe: motDePasse, full_name: nom, fenetre: enFenetre },
       });
+      if (r?.jeton_session) base44.auth.fenetre.poserJeton(r.jeton_session);
       window.location.href = "/Dashboard";
     } catch (err) {
       setErreur(err?.message || "Code refusé.");
@@ -216,7 +223,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
         {/* Étape 1 — adresse */}
         {etape === ETAPES.EMAIL && (
           <form onSubmit={verifierEmail} className="space-y-4">
-            <EnTete icone={Mail} titre="Connexion" sousTitre="Saisissez votre adresse professionnelle." />
+            <EnTete icone={Mail} titre="Connexion" sousTitre={enFenetre ? "Cette fenêtre est indépendante : votre autre compte reste connecté dans les autres." : "Saisissez votre adresse professionnelle."} />
             <div>
               <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Adresse email</Label>
               <Input type="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.fr" className={CHAMP} />
@@ -423,7 +430,7 @@ export default function ConnexionDialog({ ouvert, onClose }) {
 function BoutonGoogle({ libelle = "Se connecter avec Google" }) {
   return (
     <a
-      href="/api/auth/google/login?returnTo=%2FDashboard"
+      href={`/api/auth/google/login?returnTo=%2FDashboard${base44.auth.fenetre.active() ? "&fenetre=1" : ""}`}
       className="w-full inline-flex items-center justify-center gap-2.5 bg-[#f2f3f5] text-[#3c4043] font-medium text-sm rounded-none px-4 py-2.5 hover:opacity-90 transition-colors"
     >
       <LogoGoogle />

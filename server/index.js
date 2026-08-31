@@ -300,9 +300,10 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
     invitation_expire_le: null,
   });
 
-  createSession(res, email);
+  const fenetre = !!req.body?.fenetre;
+  const jeton = createSession(res, email, { sansCookie: fenetre });
   console.log(`[auth] mot de passe défini et connexion : ${email} (${user.role || 'user'})`);
-  ok(res, { success: true, email, role: user.role || 'user' });
+  ok(res, { success: true, email, role: user.role || 'user', ...(fenetre ? { jeton_session: jeton } : {}) });
 }));
 
 // --- Inscription libre : l'espace découverte ---------------------------------
@@ -327,9 +328,10 @@ app.post('/api/auth/inscription/confirmer', wrap(async (req, res) => {
     full_name: req.body?.full_name,
   });
   if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
-  createSession(res, r.user.email);
+  const fenetre = !!req.body?.fenetre;
+  const jeton = createSession(res, r.user.email, { sansCookie: fenetre });
   console.log(`[inscription] connexion : ${r.user.email} (${accesDe(r.user)})`);
-  ok(res, { success: true, email: r.user.email, acces: accesDe(r.user) });
+  ok(res, { success: true, email: r.user.email, acces: accesDe(r.user), ...(fenetre ? { jeton_session: jeton } : {}) });
 }));
 
 // L'équipe passe un compte client (ou le repasse en découverte).
@@ -455,10 +457,13 @@ app.post('/api/auth/connexion', wrap(async (req, res) => {
   }
 
   reinitialiserTentatives(email, ip);
-  createSession(res, email);
+  // `fenetre` : session propre à la fenêtre, rendue dans la réponse au lieu
+  // du cookie — pour ouvrir deux comptes côte à côte sur le même navigateur.
+  const fenetre = !!req.body?.fenetre;
+  const jeton = createSession(res, email, { sansCookie: fenetre });
   Records.update('User', user.id, { derniere_connexion: new Date().toISOString() });
-  console.log(`[auth] connexion : ${email} (${user.role || 'user'})`);
-  ok(res, { success: true, email, role: user.role || 'user' });
+  console.log(`[auth] connexion : ${email} (${user.role || 'user'})${fenetre ? ' — session de fenêtre' : ''}`);
+  ok(res, { success: true, email, role: user.role || 'user', ...(fenetre ? { jeton_session: jeton } : {}) });
 }));
 
 app.post('/api/auth/logout', (req, res) => {
@@ -479,7 +484,7 @@ app.get('/api/auth/google/login', (req, res) => {
         "GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont absents du fichier .env. Consultez la section « Connexion » du README.",
     });
   }
-  const url = buildAuthUrl({ returnTo: req.query.returnTo || '/Dashboard', req });
+  const url = buildAuthUrl({ returnTo: req.query.returnTo || '/Dashboard', req, fenetre: req.query.fenetre === '1' });
   // Journalisé à chaque tentative : c'est la seule façon de savoir ce que Google
   // reçoit réellement, et donc de diagnostiquer un redirect_uri_mismatch.
   console.log(`[auth] tentative depuis host=${req.headers.host} proto=${req.headers['x-forwarded-proto'] || req.protocol}`);
@@ -579,6 +584,12 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
     return popupConnectePage(res, profile);
   }
 
+  if (profile.fenetre) {
+    // Session de fenêtre : le jeton voyage dans le fragment (jamais envoyé au
+    // serveur), la page le range dans sa fenêtre et efface l'adresse.
+    const jeton = createSession(res, profile.email, { sansCookie: true });
+    return res.redirect(`${profile.returnTo || '/Dashboard'}#session=${jeton}`);
+  }
   createSession(res, profile.email);
   console.log(`[auth] connecté : ${profile.email}`);
   res.redirect(profile.returnTo || '/Dashboard');

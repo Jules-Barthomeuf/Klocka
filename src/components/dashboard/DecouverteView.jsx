@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
+import { PARCOURS_RENDEZ_VOUS_URL } from "@/lib/rendezVous";
 import DashboardProjectCard from "./DashboardProjectCard";
-import { ArrowRight, Calculator, Calendar, Check } from "lucide-react";
+import { ArrowRight, Calculator, Calendar } from "lucide-react";
 
 // L'espace découverte : ce qu'on voit avant d'être client.
 //
@@ -13,13 +13,10 @@ import { ArrowRight, Calculator, Calendar, Check } from "lucide-react";
 // simulateur. Pas de fenêtre qui s'impose : l'invitation est sur la page.
 
 const OR = "#d9b46a";
-const QUESTIONNAIRE_URL = "https://dpe3smipjxh.typeform.com/to/GD7sREFs";
-const dateLongue = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : "");
 
 export default function DecouverteView({ user }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [rdv, setRdv] = useState(user?.rdv_strategique_le || null);
   const prenom = (user?.full_name || "").split(" ")[0];
 
   // Les projets vitrine : le serveur ne rend que ceux-là à un compte découverte.
@@ -29,10 +26,11 @@ export default function DecouverteView({ user }) {
     initialData: [],
   });
 
+  // Le questionnaire d'abord, qui mène au créneau. La demande est notée pour
+  // l'équipe ; l'écran, lui, ne change pas.
   const prendreRendezVous = async () => {
-    window.open(RENDEZ_VOUS_URL, "_blank", "noopener");
+    window.open(PARCOURS_RENDEZ_VOUS_URL, "_blank", "noopener");
     const le = new Date().toISOString();
-    setRdv(le);
     try {
       await base44.auth.updateMe({ rdv_strategique_le: le });
       queryClient.invalidateQueries({ queryKey: ["current-user"] });
@@ -58,38 +56,28 @@ export default function DecouverteView({ user }) {
 
         {/* --- Le rendez-vous, en or ---------------------------------------- */}
         <section className="mt-8 border rounded-xl px-6 py-6 md:px-8 md:py-7" style={{ borderColor: `${OR}66`, background: "#0f1114" }}>
-          <div className="flex flex-wrap items-start justify-between gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="min-w-0 max-w-[60ch]">
               <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: OR }}>
-                <Calendar className="w-3.5 h-3.5 inline mr-2 align-[-2px]" />
-                {rdv ? "Rendez-vous demandé" : "Première étape"}
+                <Calendar className="w-3.5 h-3.5 inline mr-2 align-[-2px]" />Première étape
               </p>
               <h2 className="m-0 mt-2 text-[22px] max-md:text-[19px] font-light tracking-[-.015em] leading-[1.2] text-[#f2f3f5]">
-                {rdv ? `Rendez-vous demandé le ${dateLongue(rdv)}` : "Prenez rendez-vous pour définir votre stratégie"}
+                Prenez rendez-vous avec un co-fondateur
               </h2>
               <p className="m-0 mt-2.5 text-[14px] leading-[1.7] text-[#c9cdd6]">
-                {rdv
-                  ? "Après l'appel, votre conseiller ouvre votre espace complet : vos projets, votre stratégie, le simulateur en détail. En attendant, explorez."
-                  : "Quarante-cinq minutes avec un conseiller Klocka : votre situation, vos objectifs, ce qu'on peut viser ensemble. C'est après cet appel que votre espace complet s'ouvre."}
+                Quarante-cinq minutes pour parler de votre situation, de vos objectifs et de ce qu'on peut viser ensemble.
+                C'est après cet appel que votre espace complet s'ouvre.
               </p>
             </div>
-            <div className="flex flex-col items-start gap-3">
+            <div className="flex flex-col items-start gap-2">
               <button
                 onClick={prendreRendezVous}
                 className="inline-flex items-center gap-2 px-6 py-3 text-[11px] tracking-[.16em] uppercase font-semibold text-[#000000] transition-opacity hover:opacity-90"
                 style={{ background: OR, borderRadius: 9999 }}
               >
-                {rdv ? <Check className="w-3.5 h-3.5" /> : null}
-                {rdv ? "Reprendre rendez-vous" : "Prendre rendez-vous"}
+                Prendre rendez-vous <ArrowRight className="w-3.5 h-3.5" />
               </button>
-              <a
-                href={QUESTIONNAIRE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
-              >
-                Vous préférez nous écrire d'abord ? Répondez au questionnaire <ArrowRight className="w-3 h-3 inline align-[-2px]" />
-              </a>
+              <span className="text-[11.5px] text-[#6a7180]">Deux minutes de questionnaire, puis le choix de votre créneau.</span>
             </div>
           </div>
         </section>

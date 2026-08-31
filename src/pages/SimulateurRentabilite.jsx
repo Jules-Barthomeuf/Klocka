@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { accesEffectif } from "@/lib/acces";
-import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
+import { RENDEZ_VOUS_URL, PARCOURS_RENDEZ_VOUS_URL } from "@/lib/rendezVous";
 import { Button } from "@/components/ui/button";
 import { Check, Link2, Download, RefreshCw, ArrowRight } from "lucide-react";
 import ExportExcelFullButton from "../components/simulator/ExportExcelFullButton";
@@ -38,9 +38,9 @@ function Voile({ actif, children }) {
       <div className="absolute inset-0 flex items-start justify-center pt-8 px-4">
         <div className="max-w-sm w-full bg-[#0f1114] border rounded-xl px-6 py-5 text-center" style={{ borderColor: "#d9b46a66" }}>
           <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: "#d9b46a" }}>Après votre rendez-vous</p>
-          <p className="m-0 mt-2 text-[14px] leading-[1.6] text-[#c9cdd6]">Le détail s'ouvre une fois votre stratégie définie avec votre conseiller.</p>
+          <p className="m-0 mt-2 text-[14px] leading-[1.6] text-[#c9cdd6]">Le détail s'ouvre après votre rendez-vous avec un co-fondateur.</p>
           <button
-            onClick={() => window.open(RENDEZ_VOUS_URL, "_blank", "noopener")}
+            onClick={() => window.open(PARCOURS_RENDEZ_VOUS_URL, "_blank", "noopener")}
             className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[.16em] uppercase font-semibold text-[#000000]"
             style={{ background: "#d9b46a", borderRadius: 9999 }}
           >

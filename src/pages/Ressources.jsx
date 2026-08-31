@@ -79,8 +79,10 @@ export default function Ressources() {
     );
   }
 
-  const userEtape = user.etape_actuelle ?? 0;
   const isAdmin = user.role === "admin";
+  // Un admin en « Vue Client » regarde comme un client en acculturation :
+  // son propre numéro d'étape (souvent 0) ne doit pas lui fermer la page.
+  const userEtape = isAdmin ? Math.max(1, user.etape_actuelle ?? 0) : (user.etape_actuelle ?? 0);
   const previewClientMode = localStorage.getItem('previewClientMode') === 'true';
   const showAsClient = !isAdmin || previewClientMode;
 

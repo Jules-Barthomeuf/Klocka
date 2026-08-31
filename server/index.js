@@ -242,8 +242,7 @@ app.post('/api/auth/verifier-email', wrap(async (req, res) => {
       return ok(res, { connu: true, email, prenom: null, role: 'admin', mot_de_passe_defini: false });
     }
     // Inconnue : la porte de l'inscription, avec ce qui est ouvert.
-    const { inscriptionParEmailDisponible } = await import('./inscription.js');
-    return ok(res, { connu: false, inscription: { google: googleEnabled, email: await inscriptionParEmailDisponible() } });
+    return ok(res, { connu: false, inscription: { google: googleEnabled, email: true } });
   }
   // Un compte découverte né par Google, sans mot de passe : il se prouve par
   // un code, pas par sa seule adresse.
@@ -316,7 +315,7 @@ app.post('/api/auth/inscription/code', wrap(async (req, res) => {
   const { demanderCode } = await import('./inscription.js');
   const r = await demanderCode({ email: req.body?.email, full_name: req.body?.full_name, ip: ipDe(req) });
   if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
-  ok(res, { envoye: true, expire_le: r.expire_le });
+  ok(res, { envoye: !!r.envoye, sans_code: !!r.sans_code, expire_le: r.expire_le });
 }));
 
 app.post('/api/auth/inscription/confirmer', wrap(async (req, res) => {

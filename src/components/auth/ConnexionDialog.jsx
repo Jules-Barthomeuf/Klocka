@@ -158,7 +158,13 @@ export function ConnexionPanel({ invitation = null } = {}) {
     setEnCours(true);
     setErreur(null);
     try {
-      await base44.request("POST", "/api/auth/inscription/code", { body: { email, full_name: nom } });
+      const r = await base44.request("POST", "/api/auth/inscription/code", { body: { email, full_name: nom } });
+      if (r?.sans_code) {
+        // Aucun code n'a pu partir : le serveur ouvre l'espace quand même.
+        await base44.request("POST", "/api/auth/inscription/confirmer", { body: { email, mot_de_passe: motDePasse, full_name: nom } });
+        window.location.href = "/Dashboard";
+        return;
+      }
       setCode("");
       setRenvoiDans(60);
       setEtape(ETAPES.CODE);

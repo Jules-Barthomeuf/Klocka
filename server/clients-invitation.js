@@ -29,7 +29,11 @@ export function creerInvitation({ email, full_name = '', admin, base, profil = {
   if (user?.role === 'admin') return { ok: false, error: "Cette adresse est celle d'un administrateur." };
   // Un compte découverte déjà actif (inscrit seul, avec Google ou un mot de
   // passe) n'a pas besoin de lien : on le passe client, profil complété.
-  if (user && accesDe(user) === 'decouverte' && (user.mot_de_passe || user.inscrit_le)) {
+  if (user && accesDe(user) === 'decouverte' && user.email_verifie === false) {
+    // Inscrit sans code : personne n'a prouvé qu'il tient cette adresse. Le
+    // mot de passe tombe, le lien d'invitation fait la preuve.
+    user = Records.update('User', user.id, { mot_de_passe: null, mot_de_passe_defini_le: null, email_verifie: true });
+  } else if (user && accesDe(user) === 'decouverte' && (user.mot_de_passe || user.inscrit_le)) {
     const nomInvite = String(full_name || '').trim();
     user = changerAcces(user, 'client', { admin, profil: { ...(profil || {}), ...(nomInvite && !user.full_name ? { full_name: nomInvite } : {}) } });
     return { ok: true, promu: true, user };

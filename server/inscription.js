@@ -27,7 +27,7 @@ function tropVite(cle, max) {
 }
 
 /** Le compte découverte, commun aux deux portes. */
-export function creerCompteDecouverte({ email, full_name = '', picture = null, via = 'email', mot_de_passe = null }) {
+export function creerCompteDecouverte({ email, full_name = '', picture = null, via = 'email', mot_de_passe = null, email_verifie = true }) {
   const user = Records.create('User', {
     email: normEmail(email),
     full_name: String(full_name || '').trim() || null,
@@ -37,6 +37,9 @@ export function creerCompteDecouverte({ email, full_name = '', picture = null, v
     etape_actuelle: 1,
     inscrit_le: new Date().toISOString(),
     inscription_via: via,
+    // Faux quand aucun code n'a pu être envoyé : l'adresse sera prouvée par
+    // le lien d'invitation, le jour où le compte passe client.
+    email_verifie: !!email_verifie,
     ...(mot_de_passe ? { mot_de_passe, mot_de_passe_defini_le: new Date().toISOString() } : {}),
   });
   console.log(`[inscription] compte découverte : ${user.email} (${via})`);
@@ -74,22 +77,33 @@ export async function demanderCode({ email, full_name, ip }) {
   if (tropVite(`adresse:${adresse}`, 3) || (ip && tropVite(`ip:${ip}`, 10))) {
     return { ok: false, statut: 429, error: 'Trop de codes demandés. Réessayez dans une heure.' };
   }
+  for (const ancien of Records.filter('CodeInscription', { email: adresse })) Records.delete('CodeInscription', ancien.id);
+  const expire_le = new Date(Date.now() + DIX_MINUTES).toISOString();
+  const nom = String(full_name || '').trim() || null;
+
+  // Aucune boîte ne peut envoyer, ou l'envoi échoue : on n'enferme personne
+  // dehors. Le compte se crée sans code, adresse non vérifiée ; la preuve
+  // viendra du lien d'invitation quand le compte passera client.
+  const sansCode = () => {
+    Records.create('CodeInscription', { email: adresse, full_name: nom, sans_code: true, expire_le, tentatives: 0 });
+    return { ok: true, envoye: false, sans_code: true, expire_le };
+  };
   if (!(await inscriptionParEmailDisponible())) {
-    return { ok: false, statut: 503, error: "L'inscription par e-mail est momentanément indisponible : continuez avec Google, ou écrivez-nous." };
+    console.warn(`[inscription] aucune boîte d'envoi : ${adresse} s'inscrit sans code`);
+    return sansCode();
   }
 
-  for (const ancien of Records.filter('CodeInscription', { email: adresse })) Records.delete('CodeInscription', ancien.id);
   const code = String(randomInt(0, 1000000)).padStart(6, '0');
-  Records.create('CodeInscription', {
+  const demande = Records.create('CodeInscription', {
     email: adresse,
-    full_name: String(full_name || '').trim() || null,
+    full_name: nom,
     code_hash: await hacherMotDePasse(code),
-    expire_le: new Date(Date.now() + DIX_MINUTES).toISOString(),
+    expire_le,
     tentatives: 0,
   });
 
   const { sendEmail } = await import('./email.js');
-  const prenom = String(full_name || '').trim().split(' ')[0];
+  const prenom = (nom || '').split(' ')[0];
   const r = await sendEmail({
     to: adresse,
     subject: `${code} — votre code Klocka`,
@@ -97,10 +111,11 @@ export async function demanderCode({ email, full_name, ip }) {
     intention: 'code_inscription',
   });
   if (!r?.success) {
-    console.error(`[inscription] envoi du code impossible à ${adresse} :`, r?.error || 'sans détail');
-    return { ok: false, statut: 503, error: "L'envoi du code a échoué de notre côté. Continuez avec Google, ou réessayez dans un instant." };
+    console.error(`[inscription] envoi du code impossible à ${adresse} (inscription sans code) :`, r?.error || 'sans détail');
+    Records.delete('CodeInscription', demande.id);
+    return sansCode();
   }
-  return { ok: true, envoye: true, expire_le: new Date(Date.now() + DIX_MINUTES).toISOString() };
+  return { ok: true, envoye: true, expire_le };
 }
 
 /** Vérifie le code, crée le compte (ou pose le mot de passe sur un compte Google). */
@@ -116,10 +131,12 @@ export async function confirmerInscription({ email, code, mot_de_passe, full_nam
     Records.delete('CodeInscription', demande.id);
     return { ok: false, statut: 429, error: 'Trop d\'essais : demandez un nouveau code.' };
   }
-  const bon = await verifierMotDePasse(String(code || '').replace(/\D/g, ''), demande.code_hash);
-  if (!bon) {
-    Records.update('CodeInscription', demande.id, { tentatives: (demande.tentatives || 0) + 1 });
-    return { ok: false, statut: 401, error: 'Code incorrect.' };
+  if (!demande.sans_code) {
+    const bon = await verifierMotDePasse(String(code || '').replace(/\D/g, ''), demande.code_hash);
+    if (!bon) {
+      Records.update('CodeInscription', demande.id, { tentatives: (demande.tentatives || 0) + 1 });
+      return { ok: false, statut: 401, error: 'Code incorrect.' };
+    }
   }
   const controle = validerMotDePasse(mot_de_passe);
   if (!controle.valide) return { ok: false, statut: 400, error: controle.erreur };
@@ -137,7 +154,7 @@ export async function confirmerInscription({ email, code, mot_de_passe, full_nam
         mot_de_passe_defini_le: new Date().toISOString(),
         ...(nom && !existant.full_name ? { full_name: nom } : {}),
       })
-    : creerCompteDecouverte({ email: adresse, full_name: nom, via: 'email', mot_de_passe: hash });
+    : creerCompteDecouverte({ email: adresse, full_name: nom, via: 'email', mot_de_passe: hash, email_verifie: !demande.sans_code });
   Records.delete('CodeInscription', demande.id);
   return { ok: true, user };
 }

@@ -79,10 +79,26 @@ export default function Ressources() {
     );
   }
 
-  const userEtape = user.etape_actuelle || 1;
+  const userEtape = user.etape_actuelle ?? 0;
   const isAdmin = user.role === "admin";
   const previewClientMode = localStorage.getItem('previewClientMode') === 'true';
   const showAsClient = !isAdmin || previewClientMode;
+
+  // Les ressources s'ouvrent à l'étape 1 (acculturation). Avant, l'accès
+  // attend le conseiller — et cette fois l'étape 0 bloque vraiment.
+  if (showAsClient && userEtape < 1) {
+    return (
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-10 text-center">
+          <div className="w-16 h-16 bg-[#96c0b8]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
+            <BookOpen className="w-8 h-8 text-[#96c0b8]" />
+          </div>
+          <h2 className="text-xl font-light text-[#f2f3f5] mb-3">Accès en attente</h2>
+          <p className="text-[#f2f3f5]/30 text-sm">Cette section sera débloquée par votre conseiller.</p>
+        </div>
+      </div>
+    );
+  }
 
   const hasResources = resources.length > 0;
 

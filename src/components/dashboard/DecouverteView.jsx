@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
 import DashboardProjectCard from "./DashboardProjectCard";
-import { ArrowRight, BookOpen, Calculator, Calendar, Check } from "lucide-react";
+import { ArrowRight, Calculator, Calendar, Check } from "lucide-react";
 
 // L'espace découverte : ce qu'on voit avant d'être client.
 //
@@ -128,25 +128,6 @@ export default function DecouverteView({ user }) {
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#96c0b8] text-[#000000] text-[11px] tracking-[.16em] uppercase font-semibold hover:bg-[#abd0c8]"
           >
             Ouvrir le simulateur <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </section>
-
-        {/* --- Les ressources ----------------------------------------------- */}
-        <section className="mt-6 border border-[#1f2228] rounded-xl bg-[#0f1114] px-6 py-6 md:px-8 flex flex-wrap items-center justify-between gap-6">
-          <div className="min-w-0 max-w-[60ch]">
-            <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#96c0b8]">
-              <BookOpen className="w-3.5 h-3.5 inline mr-2 align-[-2px]" />Les ressources
-            </p>
-            <h2 className="m-0 mt-2 text-[20px] font-light tracking-[-.015em] text-[#f2f3f5]">L'immobilier commercial, à votre rythme</h2>
-            <p className="m-0 mt-2 text-[14px] leading-[1.7] text-[#c9cdd6]">
-              Guides, vidéos et webinars pour comprendre les murs commerciaux — baux 3/6/9, rendements, financement.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate("/Ressources")}
-            className="inline-flex items-center gap-2 px-5 py-2.5 border border-[#2c3139] text-[#f2f3f5] text-[11px] tracking-[.16em] uppercase hover:border-[#96c0b8] hover:text-[#96c0b8] transition-colors"
-          >
-            Ouvrir les ressources <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </section>
 

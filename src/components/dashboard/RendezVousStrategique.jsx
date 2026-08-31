@@ -1,9 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { createPageUrl } from "@/utils";
 import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
-import { ArrowRight, BookOpen, Calendar } from "lucide-react";
+import { ArrowRight, Calendar } from "lucide-react";
 
 // La première chose qu'un client voit en entrant : prendre rendez-vous.
 //
@@ -11,16 +9,14 @@ import { ArrowRight, BookOpen, Calendar } from "lucide-react";
 // pas un : c'est le rendez-vous stratégique qui lance la relation, et les
 // ressources viennent ensuite, à son rythme. La fenêtre le dit dans cet ordre.
 //
-// Deux écrans, un seul composant. Tant que le rendez-vous n'est pas pris, on
-// invite à le prendre — « plus tard » ferme pour la session, pas pour de bon.
-// Une fois pris, on propose l'acculturation, une fois, puis on se tait.
+// Un seul écran. Tant que le rendez-vous n'est pas pris, on invite à le
+// prendre — « plus tard » ferme pour la session, pas pour de bon. Une fois
+// pris, on se tait : les ressources sont dans le menu, à son rythme.
 
 const CLE_SESSION = "rdv-strategique-plus-tard";
 
 export default function RendezVousStrategique({ user }) {
-  const navigate = useNavigate();
   const [rdvPris, setRdvPris] = useState(!!user?.rdv_strategique_le);
-  const [acculturationVue, setAcculturationVue] = useState(!!user?.acculturation_proposee_le);
   const [ferme, setFerme] = useState(() => {
     try {
       return sessionStorage.getItem(CLE_SESSION) === "1";
@@ -29,8 +25,7 @@ export default function RendezVousStrategique({ user }) {
     }
   });
 
-  if (ferme) return null;
-  if (rdvPris && acculturationVue) return null;
+  if (ferme || rdvPris) return null;
 
   const noter = (champs) => base44.auth.updateMe(champs).catch(() => {});
 
@@ -49,17 +44,9 @@ export default function RendezVousStrategique({ user }) {
     setFerme(true);
   };
 
-  const finAcculturation = (versRessources) => {
-    setAcculturationVue(true);
-    noter({ acculturation_proposee_le: new Date().toISOString() });
-    if (versRessources) navigate(createPageUrl("Ressources"));
-  };
-
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 px-4">
       <div className="w-full max-w-lg bg-[#0f1114] border border-[#96c0b8]/40 p-9 max-md:p-7">
-        {!rdvPris ? (
-          <>
             <div className="w-11 h-11 border border-[#96c0b8]/40 flex items-center justify-center mb-6">
               <Calendar className="w-5 h-5 text-[#96c0b8]" />
             </div>
@@ -82,36 +69,6 @@ export default function RendezVousStrategique({ user }) {
                 Plus tard
               </button>
             </div>
-          </>
-        ) : (
-          <>
-            <div className="w-11 h-11 border border-[#96c0b8]/40 flex items-center justify-center mb-6">
-              <BookOpen className="w-5 h-5 text-[#96c0b8]" />
-            </div>
-            <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#96c0b8]">Rendez-vous pris</p>
-            <h2 className="m-0 mt-3 text-[28px] max-md:text-[23px] font-light tracking-[-.02em] leading-[1.1] text-[#f2f3f5]">
-              En attendant, acculturez-vous à l'immobilier commercial
-            </h2>
-            <p className="m-0 mt-4 text-[14px] leading-[1.7] text-[#9298a6]">
-              Nos ressources — guides, vidéos, webinars — vous donnent les repères pour tirer le meilleur du
-              rendez-vous. Rien d'obligatoire : à votre rythme, dans l'ordre qui vous parle.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <button
-                onClick={() => finAcculturation(true)}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-[#96c0b8] text-[#000000] text-[11px] tracking-[.16em] uppercase font-medium hover:bg-[#abd0c8] transition-colors"
-              >
-                Accéder aux ressources <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => finAcculturation(false)}
-                className="text-[12.5px] text-[#6a7180] hover:text-[#f2f3f5] transition-colors"
-              >
-                Plus tard
-              </button>
-            </div>
-          </>
-        )}
       </div>
     </div>
   );

@@ -30,7 +30,7 @@ const PAGES_CLIENT = new Set([
   'KlockAI', 'MonCompte', 'Feedback', 'Famille', 'Familles',
 ]);
 // Ce qu'un inscrit en découverte peut ouvrir : l'aperçu, le simulateur, son compte.
-const PAGES_DECOUVERTE = new Set(['Home', 'Dashboard', 'SimulateurRentabilite', 'ProjetDetail', 'MonCompte', 'Feedback']);
+const PAGES_DECOUVERTE = new Set(['Home', 'Dashboard', 'SimulateurRentabilite', 'ProjetDetail', 'Ressources', 'MonCompte', 'Feedback']);
 import Portail2Fois from '@/pages/Portail2Fois';
 import SimulateurPublic from '@/pages/SimulateurPublic';
 import ProjetPublic from '@/pages/ProjetPublic';

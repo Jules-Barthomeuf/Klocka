@@ -260,8 +260,6 @@ function LayoutContent({ children, currentPageName }) {
             <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Analyse" icon={Search} label="Dossiers" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to="/Assistant" icon={Sparkles} label="Assistant" isActive={isActivePage("Assistant")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to="/Note" icon={Mic} label="Note" isActive={isActivePage("Note")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Engagements" icon={ClipboardCheck} label="Engagements" isActive={isActivePage("Engagements")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Monitoring" icon={Activity} label="Suivi" isActive={isActivePage("Monitoring")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
@@ -417,7 +415,8 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* L'assistant suit l'admin de page en page. */}
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}
-      {isAdmin && !hideNavbar && currentPageName !== "Note" && <AssistantFlottant />}
+      {/* La pilule flottante se tait sur le dashboard : le chat y est déjà. */}
+      {isAdmin && !hideNavbar && currentPageName !== "Dashboard" && <AssistantFlottant />}
 
       {/* Barre d'onglets mobile */}
       {!hideNavbar && showClientView && <BottomTabs />}

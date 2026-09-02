@@ -34,10 +34,10 @@ const ICONES = {
 // L'urgence se lit au filet de gauche, pas à une pastille de couleur : la même
 // grammaire que « Ce qui a échoué », pour que la page se parcoure d'un regard.
 const TEINTES = {
-  1: { filet: "border-[#e8746a]", icone: "text-[#e8746a]", libelle: "À faire aujourd'hui", label: "text-[#e8746a]" },
-  2: { filet: "border-[#96c0b8]", icone: "text-[#96c0b8]", libelle: "Attendu", label: "text-[#96c0b8]" },
-  3: { filet: "border-[#3a3f4a]", icone: "text-[#9298a6]", libelle: "Courant", label: "text-[#9298a6]" },
-  4: { filet: "border-[#22262d]", icone: "text-[#6a7180]", libelle: "Plus tard", label: "text-[#6a7180]" },
+  1: { filet: "border-l-[#e8746a]", icone: "text-[#e8746a]", libelle: "À faire aujourd'hui", label: "text-[#e8746a]" },
+  2: { filet: "border-l-[#96c0b8]", icone: "text-[#96c0b8]", libelle: "Attendu", label: "text-[#96c0b8]" },
+  3: { filet: "border-l-[#3a3f4a]", icone: "text-[#9298a6]", libelle: "Courant", label: "text-[#9298a6]" },
+  4: { filet: "border-l-[#22262d]", icone: "text-[#6a7180]", libelle: "Plus tard", label: "text-[#6a7180]" },
 };
 
 export default function PlanDeTravail({ chat = null }) {
@@ -377,7 +377,7 @@ export default function PlanDeTravail({ chat = null }) {
               <div
                 key={p.id}
                 data-ouverte={estOuverte}
-                className={`flex flex-col h-full border-l-2 ${teinte.filet} pl-5 transition-colors`}
+                className={`flex flex-col h-full rounded-xl border border-[#1f2228] border-l-2 ${teinte.filet} bg-[#0f1114] px-5 py-4 transition-colors`}
               >
                 {/* La carte fermée dit la situation ; les actions se méritent
                     d'un clic, pour ne pas transformer la pile en tableau de bord

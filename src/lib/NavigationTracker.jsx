@@ -35,7 +35,6 @@ const PAGE_TITLES = {
     Portail: "Portail de Démarrage",
     Home: "Accueil",
     Analyse: "Dossiers",
-    Assistant: "Assistant",
     Monitoring: "Suivi de l'usage",
     TableauProjection: "Tableau de Projection",
     QuizImmo: "Quiz Immobilier",

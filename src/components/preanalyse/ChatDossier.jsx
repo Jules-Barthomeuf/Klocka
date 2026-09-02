@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useDictee } from "@/lib/dictee";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { nomOnglet } from "./AnalyseDocuments";
 import { toast } from "sonner";
-import { ArrowRight, Loader2, X } from "lucide-react";
+import { Mic, Square, ArrowRight, Loader2, X } from "lucide-react";
 
 // Le chat du dossier : une grande zone de saisie, trois modes en pastilles,
 // puis la liste des requêtes lancées — on y revient d'un clic.
@@ -143,6 +144,9 @@ export default function ChatDossier({
     })),
   ].sort((x, y) => String(y.date || "").localeCompare(String(x.date || "")));
 
+  // Le micro : la dictée remplit le champ, on relit, on envoie.
+  const { supporte: dicteeOk, ecoute, demarrer, arreter } = useDictee({ onTexte: (t) => setTexte(t) });
+
   return (
     <div className="space-y-4">
       {/* Conversation ouverte */}
@@ -186,6 +190,21 @@ export default function ChatDossier({
             >
               Sources : {nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : documents.length ? "aucune" : "générales"}
             </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+            {dicteeOk && (
+              <button
+                onClick={ecoute ? arreter : demarrer}
+                disabled={apercu || !dossier}
+                aria-label={ecoute ? "Arrêter" : "Dicter"}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30 ${
+                  ecoute
+                    ? "bg-[#e8746a] text-[#000000] shadow-[0_0_0_8px_rgba(232,116,106,.18)] animate-pulse"
+                    : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"
+                }`}
+              >
+                {ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+            )}
             <button
               onClick={lancer}
               disabled={!peutEnvoyer}
@@ -194,6 +213,7 @@ export default function ChatDossier({
             >
               {enCours ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
             </button>
+            </div>
           </div>
         </div>
 

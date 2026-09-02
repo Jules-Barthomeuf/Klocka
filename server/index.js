@@ -64,6 +64,18 @@ restaurerSeedSiNecessaire();
 runSeedIfEmpty();
 // Les comptes restés en salle d'attente deviennent des comptes découverte.
 migrerComptesEnAttente();
+// Les ressources voyagent avec le code : sur une base neuve (déploiement sans
+// disque persistant), elles se réimportent depuis server/ressources-seed.json.
+try {
+  const grainRessources = new URL('./ressources-seed.json', import.meta.url);
+  if (Records.count('Resource') === 0 && fs.existsSync(grainRessources)) {
+    const grains = JSON.parse(fs.readFileSync(grainRessources, 'utf-8'));
+    for (const r of grains) Records.create('Resource', r);
+    console.log(`[seed] ${grains.length} ressource(s) réimportée(s) — base neuve`);
+  }
+} catch (e) {
+  console.warn('[seed] ressources :', e?.message || e);
+}
 ensureMailTemplates();
 purgeExpiredSessions();
 

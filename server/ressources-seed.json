@@ -1,0 +1,29 @@
+[
+ {
+  "titre": "Comprendre le rendement net",
+  "description": "Calculer la vraie rentabilité.",
+  "type": "article",
+  "categorie": "strategie",
+  "duree_minutes": 8,
+  "ordre": 2,
+  "visible": true
+ },
+ {
+  "titre": "Négocier son financement bancaire",
+  "description": "Préparer un dossier solide.",
+  "type": "video",
+  "categorie": "financement",
+  "duree_minutes": 18,
+  "ordre": 3,
+  "visible": true
+ },
+ {
+  "titre": "Introduction à l'immobilier commercial",
+  "description": "Les bases pour démarrer.",
+  "type": "video",
+  "categorie": "acculturation",
+  "duree_minutes": 12,
+  "ordre": 1,
+  "visible": true
+ }
+]

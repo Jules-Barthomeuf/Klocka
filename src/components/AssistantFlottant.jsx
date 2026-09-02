@@ -399,7 +399,7 @@ export default function AssistantFlottant() {
           onChange={(e) => setTexte(e.target.value)}
           onFocus={() => setOuvert(true)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); lancer(); } }}
-          placeholder="Ask the assistant"
+          placeholder="Écrivez à l'assistant…"
           style={{
             flex: 1, minWidth: 0, background: "transparent", border: 0, outline: "none",
             color: TEXTE, fontFamily: SANS, fontSize: 14,

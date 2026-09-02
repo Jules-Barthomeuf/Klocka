@@ -135,7 +135,7 @@ export default function SimulateurRentabilite() {
   const [tauxIncentiveKlocka, setTauxIncentiveKlocka] = useState(20);
   const [apport, setApport] = useState(70000);
   const [dureeCredit, setDureeCredit] = useState(20);
-  const [tauxInteret, setTauxInteret] = useState(3.7);
+  const [tauxInteret, setTauxInteret] = useState(3.9);
   const [tauxAssuranceCredit, setTauxAssuranceCredit] = useState(0.25);
   const [pretInFine, setPretInFine] = useState(false);
   const [renegociationActive, setRenegociationActive] = useState(false);
@@ -180,7 +180,7 @@ export default function SimulateurRentabilite() {
       } else { setRevalorisationActive(false); setAnneeRevalorisation(null); setLoyerRevalorise(0); }
       setApport(selectedProject.sim_apport || 70000);
       setDureeCredit(selectedProject.sim_duree_credit || 20);
-      setTauxInteret(selectedProject.sim_taux_interet || 3.7);
+      setTauxInteret(selectedProject.sim_taux_interet || 3.9);
       setTauxAssuranceCredit(selectedProject.sim_taux_assurance || 0.25);
       if (selectedProject.sim_annee_renegociation && selectedProject.sim_annee_renegociation > 0) {
         setRenegociationActive(true);

@@ -556,11 +556,43 @@ export default function ChatDashboard() {
 
   return (
     <div>
+      {aDuContenu && (
+        <div className="mb-4 space-y-3">
+          {conversationnel && messages.map((m, i) => <Message key={i} m={m} />)}
+          {enCours && conversationnel && (
+            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> L'assistant s'en occupe…</p>
+          )}
+          {conversationnel && suites.length > 0 && !enCours && (
+            <div className="flex flex-wrap gap-2">
+              {suites.map((s) => (
+                <button
+                  key={s.libelle}
+                  onClick={() => (s.href ? navigate(s.href) : lancer(s.texte))}
+                  className={`px-3 py-1.5 text-[10.5px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-[#96c0b8] text-[#000000] hover:bg-[#abd0c8] font-semibold" : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"}`}
+                >
+                  {s.libelle}
+                </button>
+              ))}
+            </div>
+          )}
+          {brouillon && (
+            <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} />
+          )}
+          {mode === "echeances" && <Echeances onBrouillon={setBrouillon} />}
+          {mode === "client" && fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
+          {mode === "client" && resultatClient && <ResultatClient r={resultatClient} />}
+          {mode === "fiche" && analyser.isPending && (
+            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Je lis la fiche et passe le bien à la grille…</p>
+          )}
+          {mode === "fiche" && resultatFiche && <ResultatFiche r={resultatFiche} clients={clientsFiche} />}
+          <div ref={finRef} />
+        </div>
+      )}
       <div
         onDragOver={(e) => { e.preventDefault(); setGlisse(true); }}
         onDragLeave={() => setGlisse(false)}
         onDrop={deposer}
-        className={`bg-[#0f1114] border rounded-xl px-5 pt-4 pb-3 transition-colors ${glisse ? "border-[#96c0b8]" : "border-[#22262d] focus-within:border-[#96c0b8]/60"}`}
+        className={`sticky bottom-4 z-20 bg-[#0f1114] border rounded-xl px-5 pt-4 pb-3 transition-colors shadow-[0_18px_50px_rgba(0,0,0,.55)] ${glisse ? "border-[#96c0b8]" : "border-[#22262d] focus-within:border-[#96c0b8]/60"}`}
       >
         <textarea
           value={texte}
@@ -610,7 +642,7 @@ export default function ChatDashboard() {
                 </button>
               </>
             )}
-            {supporte && conversationnel && (
+            {supporte && (
               <button
                 onClick={ecoute ? arreter : demarrer}
                 disabled={enCours}
@@ -649,38 +681,6 @@ export default function ChatDashboard() {
         )}
       </div>
 
-      {aDuContenu && (
-        <div className="mt-4 space-y-3">
-          {conversationnel && messages.map((m, i) => <Message key={i} m={m} />)}
-          {enCours && conversationnel && (
-            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> L'assistant s'en occupe…</p>
-          )}
-          {conversationnel && suites.length > 0 && !enCours && (
-            <div className="flex flex-wrap gap-2">
-              {suites.map((s) => (
-                <button
-                  key={s.libelle}
-                  onClick={() => (s.href ? navigate(s.href) : lancer(s.texte))}
-                  className={`px-3 py-1.5 text-[10.5px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-[#96c0b8] text-[#000000] hover:bg-[#abd0c8] font-semibold" : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"}`}
-                >
-                  {s.libelle}
-                </button>
-              ))}
-            </div>
-          )}
-          {brouillon && (
-            <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} />
-          )}
-          {mode === "echeances" && <Echeances onBrouillon={setBrouillon} />}
-          {mode === "client" && fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
-          {mode === "client" && resultatClient && <ResultatClient r={resultatClient} />}
-          {mode === "fiche" && analyser.isPending && (
-            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Je lis la fiche et passe le bien à la grille…</p>
-          )}
-          {mode === "fiche" && resultatFiche && <ResultatFiche r={resultatFiche} clients={clientsFiche} />}
-          <div ref={finRef} />
-        </div>
-      )}
     </div>
   );
 }

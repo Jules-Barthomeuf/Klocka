@@ -55,7 +55,7 @@ export default function SimulateurPublic() {
   const [tauxIncentiveKlocka, setTauxIncentiveKlocka] = useState(20);
   const [apport, setApport] = useState(70000);
   const [dureeCredit, setDureeCredit] = useState(20);
-  const [tauxInteret, setTauxInteret] = useState(3.7);
+  const [tauxInteret, setTauxInteret] = useState(3.9);
   const [tauxAssuranceCredit, setTauxAssuranceCredit] = useState(0.25);
   const [pretInFine, setPretInFine] = useState(false);
   const [renegociationActive, setRenegociationActive] = useState(false);

@@ -344,7 +344,6 @@ export default function PlanDeTravail({ chat = null }) {
 
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3 mb-8">
         <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-[#9298a6]">Propositions</p>
           <p className="m-0 text-[13.5px] text-[#6a7180]">
             rien ne part sans votre relecture
             {veille?.minutes ? ` · boîtes relevées toutes les ${veille.minutes} minutes` : ""}

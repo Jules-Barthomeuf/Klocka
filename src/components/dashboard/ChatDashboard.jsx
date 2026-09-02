@@ -599,7 +599,7 @@ export default function ChatDashboard() {
           <div className="flex items-center gap-2">
             {mode === "fiche" && (
               <>
-                <input ref={fichierRef} type="file" accept=".pdf,image/*,.txt,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
+                <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
                 <button
                   onClick={() => fichierRef.current?.click()}
                   className="w-9 h-9 rounded-full flex items-center justify-center border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8] transition-colors"

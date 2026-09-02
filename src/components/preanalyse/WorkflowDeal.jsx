@@ -745,7 +745,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
           <input
             ref={inputFichier}
             type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.txt"
+            accept=".pdf,.doc,.docx,.rtf,.jpg,.jpeg,.png,.webp,.eml,.txt,.md,.csv"
             onChange={onFichier}
             className="hidden"
           />

@@ -340,7 +340,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
               ref={inputFichier}
               type="file"
               multiple
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.txt"
+              accept=".pdf,.doc,.docx,.rtf,.jpg,.jpeg,.png,.webp,.eml,.txt,.md,.csv"
               onChange={onFichiers}
               className="hidden"
             />

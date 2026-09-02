@@ -153,7 +153,36 @@ export async function ingerer({ buffer, filename, mimetype, texte } = {}) {
     return { texte: t, source: 'pdf_scanne', transcrit: true, pages: natif.pages, avertissements };
   }
 
-  throw new Error(`Format non pris en charge : ${filename || mime || 'inconnu'}`);
+  // --- Word (.docx) ---------------------------------------------------------
+  if (ext === '.docx' || mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const mammoth = await import('mammoth');
+    const { value } = await mammoth.extractRawText({ buffer });
+    const t = nettoyer(value || '');
+    if (!t) avertissements.push('Le document Word ne contient aucun texte lisible.');
+    return { texte: t, source: 'docx', transcrit: false, pages: 1, avertissements };
+  }
+  if (ext === '.doc' || mime === 'application/msword') {
+    throw new Error('Le format .doc (Word 97) ne se lit pas ici : réenregistrez le document en .docx ou en PDF.');
+  }
+
+  // --- RTF ------------------------------------------------------------------
+  if (ext === '.rtf' || mime === 'application/rtf' || mime === 'text/rtf') {
+    const brut = buffer.toString('latin1');
+    const t = nettoyer(
+      brut
+        .replace(/\{\\\*[^{}]*\}/g, ' ')
+        .replace(/\\par[d]?\b/g, '\n')
+        .replace(/\\'([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+        .replace(/\\[a-zA-Z]+-?\d* ?/g, '')
+        .replace(/[{}]/g, '')
+    );
+    if (!t) avertissements.push('Le document RTF ne contient aucun texte lisible.');
+    return { texte: t, source: 'rtf', transcrit: false, pages: 1, avertissements };
+  }
+
+  throw new Error(
+    `Format non pris en charge : ${filename || mime || 'inconnu'}. Sont lus : PDF, Word (.docx), images, .eml, texte (.txt, .md, .csv), RTF.`
+  );
 }
 
 /**

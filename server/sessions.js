@@ -47,11 +47,20 @@ function poserCookie(res, token) {
   res.setHeader('Set-Cookie', parts.join('; '));
 }
 
-/** Le jeton de la requête : l'en-tête d'abord, puis le cookie — sauf si la fenêtre l'a récusé. */
+/**
+ * Le jeton de la requête : l'en-tête d'abord, puis le cookie — sauf si la
+ * fenêtre l'a récusé. Un Bearer qui ne correspond à aucune session ne coupe
+ * pas la route au cookie : d'anciens bundles envoient encore un jeton hérité
+ * de Base44, qui ne veut rien dire ici.
+ */
 export function tokenDe(req) {
   const auth = String(req.headers?.authorization || '');
-  if (/^Bearer\s+\S+/i.test(auth)) return { token: auth.replace(/^Bearer\s+/i, '').trim(), fenetre: true };
-  if (String(req.headers?.['x-klocka-fenetre'] || '') === '1') return { token: null, fenetre: true };
+  const recuse = String(req.headers?.['x-klocka-fenetre'] || '') === '1';
+  if (/^Bearer\s+\S+/i.test(auth)) {
+    const token = auth.replace(/^Bearer\s+/i, '').trim();
+    if (Records.filter('Session', { token })[0]) return { token, fenetre: true };
+  }
+  if (recuse) return { token: null, fenetre: true };
   return { token: parseCookies(req)[COOKIE_NAME] || null, fenetre: false };
 }
 

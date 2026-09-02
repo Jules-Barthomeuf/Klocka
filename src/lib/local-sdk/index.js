@@ -61,9 +61,10 @@ export function createClient(config = {}) {
 
   async function request(method, url, { body, isForm } = {}) {
     const headers = {};
+    // Seul le jeton de fenêtre part en Authorization : le jeton hérité de
+    // Base44 (config.token) ne correspond à rien côté serveur.
     const jetonFenetre = fenetre.jeton();
     if (jetonFenetre) headers['Authorization'] = `Bearer ${jetonFenetre}`;
-    else if (config.token) headers['Authorization'] = `Bearer ${config.token}`;
     if (fenetre.active()) headers['X-Klocka-Fenetre'] = '1';
     if (config.appId) headers['X-App-Id'] = config.appId;
     let payload;

@@ -358,6 +358,28 @@ app.post('/api/admin/clients/:id/acces', wrap((req, res) => {
   ok(res, sansSecret(changerAcces(user, acces, { admin })));
 }));
 
+// --- Sauvegarde de la base : on l'emporte, on la ramène -----------------------
+app.get('/api/admin/sauvegarde', wrap(async (req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { exporterTout } = await import('./sauvegarde.js');
+  const dump = exporterTout();
+  res.setHeader('Content-Disposition', `attachment; filename="klocka-sauvegarde-${new Date().toISOString().slice(0, 10)}.json"`);
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(dump));
+  console.log(`[sauvegarde] exportée par ${admin.email} (${dump.records.length} enregistrements)`);
+}));
+
+app.post('/api/admin/sauvegarde', upload.single('fichier'), wrap(async (req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const brut = req.file ? fs.readFileSync(req.file.path, 'utf-8') : JSON.stringify(req.body || {});
+  const { restaurerTout } = await import('./sauvegarde.js');
+  const n = restaurerTout(JSON.parse(brut));
+  console.log(`[sauvegarde] restaurée par ${admin.email}`);
+  ok(res, { ok: true, ...n });
+}));
+
 // Le lien d'invitation : ce qu'il ouvre, avant tout mot de passe.
 app.get('/api/auth/invitation/:jeton', wrap((req, res) => {
   const user = Records.filter('User', { invitation_jeton: req.params.jeton })[0];

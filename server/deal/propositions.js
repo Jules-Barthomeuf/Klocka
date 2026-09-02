@@ -393,9 +393,12 @@ function surStockageEphemere() {
         ['Hébergeur', 'Render (variable RENDER présente)'],
         ['KLOCKA_DATA_DIR', 'non déclaré'],
         ['À faire', 'Disks → Add Disk (ex. /var/data), puis Environment → KLOCKA_DATA_DIR=/var/data, puis redéployer'],
+        ['En attendant', 'téléchargez une sauvegarde avant chaque déploiement, restaurez-la après — les fichiers déposés (documents, photos), eux, ne voyagent pas'],
       ],
       actions: [
-        { id: 'render', libelle: 'Ouvrir Render', mode: 'externe', href: 'https://dashboard.render.com', principal: true },
+        { id: 'sauvegarde', libelle: 'Télécharger une sauvegarde', mode: 'externe', href: '/api/admin/sauvegarde', principal: true },
+        { id: 'restaurer', libelle: 'Restaurer une sauvegarde', mode: 'restaurer' },
+        { id: 'render', libelle: 'Ouvrir Render', mode: 'externe', href: 'https://dashboard.render.com' },
       ],
     },
   ];

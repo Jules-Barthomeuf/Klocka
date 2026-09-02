@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -160,6 +160,22 @@ export default function PlanDeTravail({ chat = null }) {
       .catch(() => {});
   };
 
+  const fichierSauvegardeRef = useRef(null);
+  const restaurerSauvegarde = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const form = new FormData();
+      form.append("fichier", f);
+      const r = await base44.request("POST", "/api/admin/sauvegarde", { body: form, isForm: true });
+      toast.success("Sauvegarde restaurée", { description: `${r.records} enregistrements ramenés` });
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      toast.error(err?.message || "Restauration impossible");
+    }
+  };
+
   // Chaque mode d'action sait ce qu'il déclenche. Aucun n'envoie de lui-même.
   const executer = async (proposition, action) => {
     const cle = `${proposition.id}:${action.id}`;
@@ -171,6 +187,8 @@ export default function PlanDeTravail({ chat = null }) {
     }
     if (action.mode === "externe") noterTraitee(proposition, action);
     if (action.mode === "externe") return window.open(action.href, "_blank", "noopener");
+    // Restaurer une sauvegarde : on choisit le fichier, le serveur fusionne.
+    if (action.mode === "restaurer") return fichierSauvegardeRef.current?.click();
 
     setEnCours(cle);
     try {
@@ -258,6 +276,7 @@ export default function PlanDeTravail({ chat = null }) {
 
   return (
     <div>
+      <input ref={fichierSauvegardeRef} type="file" accept=".json" className="hidden" onChange={restaurerSauvegarde} />
       {/* --- En-tête : ce qu'il y a à faire, et combien --------------------- */}
       <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
         <div className="min-w-0">

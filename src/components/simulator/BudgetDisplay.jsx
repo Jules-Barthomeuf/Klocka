@@ -14,7 +14,8 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
                   { name: 'Prix négocié', value: prixBienNegocie, fill: '#96c0b8' },
                   ...(commissionAgentActive && !commissionAgentInclusFAI && calculs.honorairesChargeAcquereur > 0 ? [{ name: 'Honoraires acquéreur TTC', value: calculs.honorairesChargeAcquereur, fill: '#a8894f' }] : []),
                   { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: '#c3ddd6' },
-                  { name: 'Honoraires Klocka TTC', value: calculs.totalFraisKlocka, fill: '#96c0b8' },
+                  { name: 'Honoraires Klocka TTC', value: calculs.feesKlocka, fill: '#96c0b8' },
+                  { name: 'Incentive Klocka', value: calculs.incentiveKlocka, fill: '#d9b46a' },
                   { name: 'Frais divers', value: calculs.fraisDivers, fill: '#e8746a' }
                 ].filter(d => d.value > 0)}
                 cx="50%"
@@ -30,7 +31,8 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
                   { name: 'Prix négocié', value: prixBienNegocie, fill: '#96c0b8' },
                   ...(commissionAgentActive && !commissionAgentInclusFAI && calculs.honorairesChargeAcquereur > 0 ? [{ name: 'Honoraires acquéreur TTC', value: calculs.honorairesChargeAcquereur, fill: '#a8894f' }] : []),
                   { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: '#c3ddd6' },
-                  { name: 'Honoraires Klocka TTC', value: calculs.totalFraisKlocka, fill: '#96c0b8' },
+                  { name: 'Honoraires Klocka TTC', value: calculs.feesKlocka, fill: '#96c0b8' },
+                  { name: 'Incentive Klocka', value: calculs.incentiveKlocka, fill: '#d9b46a' },
                   { name: 'Frais divers', value: calculs.fraisDivers, fill: '#e8746a' }
                 ].filter(d => d.value > 0).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />)}
               </Pie>
@@ -77,7 +79,11 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
           </div>
           <div className="flex items-center justify-between">
             <p className={`text-xs ${mutedClass}`}>Honoraires Klocka TTC</p>
-            <p className={`text-base font-medium text-[#f2f3f5] tabular-nums`}>{formatCurrency(calculs.totalFraisKlocka)}</p>
+            <p className={`text-base font-medium text-[#f2f3f5] tabular-nums`}>{formatCurrency(calculs.feesKlocka)}</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className={`text-xs ${mutedClass}`}>Incentive Klocka (sur la négociation)</p>
+            <p className={`text-base font-medium text-[#f2f3f5] tabular-nums`}>{formatCurrency(calculs.incentiveKlocka)}</p>
           </div>
           <div className="flex items-center justify-between">
             <p className={`text-xs ${mutedClass}`}>Frais divers à l'acquisition</p>

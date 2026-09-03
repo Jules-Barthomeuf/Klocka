@@ -7,7 +7,8 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
   const items = useMemo(() => [
   { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: "#96c0b8" },
   { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: "#C6A45C" },
-  { name: "Honoraires Klocka TTC", value: Math.round(calculs.totalFraisKlocka || 0), color: "#A594C9" },
+  { name: "Honoraires Klocka TTC", value: Math.round(calculs.feesKlocka || 0), color: "#A594C9" },
+  { name: "Incentive Klocka", value: Math.round(calculs.incentiveKlocka || 0), color: "#d9b46a" },
   { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: "#E76F51" }].
   filter((d) => d.value > 0), [calculs, prixBienNegocie]);
 

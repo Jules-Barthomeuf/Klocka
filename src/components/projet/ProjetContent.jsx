@@ -345,7 +345,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const pieDataBudget = [
     { name: 'Prix négocié', value: prixBienNegocie, fill: '#96c0b8' },
     { name: "Droits enreg.", value: droitsEnregistrement, fill: '#c3ddd6' },
-    { name: 'Honoraires', value: totalFraisKlocka, fill: '#96c0b8' },
+    { name: 'Honoraires Klocka', value: feesKlocka, fill: '#96c0b8' },
+    { name: 'Incentive Klocka', value: incentiveKlocka, fill: '#d9b46a' },
     { name: 'Frais divers', value: fraisDivers, fill: '#a8894f' }
   ];
 
@@ -1172,7 +1173,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     <>
                       <div><p className="text-xs text-[#f2f3f5]/30">Prix du bien négocié FAI</p><p className="text-lg text-[#f2f3f5]">{formatCurrency(prixBienNegocie)}</p></div>
                       <div><p className="text-xs text-[#f2f3f5]/30">Droits d'enregistrement estimés</p><p className="text-lg text-[#f2f3f5]">{formatCurrency(droitsEnregistrement)}</p></div>
-                      <div><p className="text-xs text-[#f2f3f5]/30">Honoraires Klocka</p><p className="text-lg text-[#96c0b8]">{formatCurrency(totalFraisKlocka)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Honoraires Klocka</p><p className="text-lg text-[#96c0b8]">{formatCurrency(feesKlocka)}</p></div>
+                      <div><p className="text-xs text-[#f2f3f5]/30">Incentive Klocka (sur la négociation)</p><p className="text-lg" style={{ color: '#d9b46a' }}>{formatCurrency(incentiveKlocka)}</p></div>
                       <div><p className="text-xs text-[#f2f3f5]/30">Frais divers à l'acquisition</p><p className="text-lg text-[#96c0b8]">{formatCurrency(fraisDivers)}</p></div>
                     </>
                   ) : (

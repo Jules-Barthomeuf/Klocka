@@ -416,9 +416,26 @@ export async function noterAppelAgent({ prenom, nom, email, telephone, ville, en
  * Tout ce qui attend une relance, lu dans le tableau des agents : la date de
  * relance, et les remarques comme résumé. Du plus en retard au plus lointain.
  */
-export async function relancesAgents() {
+export async function relancesAgents({ pour = null } = {}) {
   if (!mondayConfigure() || !TABLEAUX.agents) return [];
-  const lignes = await lireAvecCache(TABLEAUX.agents, 'agents');
+  let lignes = await lireAvecCache(TABLEAUX.agents, 'agents');
+  // Chacun ses relances : la colonne SPOC dit qui a eu l'appel. On ne montre
+  // que les siennes — et celles que personne ne tient, pour qu'elles ne se
+  // perdent pas.
+  if (pour) {
+    let nomMonday = null;
+    try {
+      const { personneMonday } = await import('../monday.js');
+      nomMonday = (await personneMonday({ email: pour.email, nom: pour.full_name }))?.name || null;
+    } catch {
+      /* sans annuaire Monday, le nom Klocka fait foi */
+    }
+    const noms = [nomMonday, pour.full_name].filter(Boolean).map(norm);
+    lignes = lignes.filter((l) => {
+      const spoc = norm(l.colonnes[COL_AGENT.spoc] || '');
+      return !spoc || noms.some((n) => n && spoc.includes(n));
+    });
+  }
   const JOUR = 86400000;
   const minuit = new Date();
   minuit.setHours(0, 0, 0, 0);
@@ -436,6 +453,7 @@ export async function relancesAgents() {
         telephone: l.colonnes[COL_AGENT.telephone] || '',
         ville: l.colonnes[COL_AGENT.ville] || '',
         dernier_appel: l.colonnes[COL_AGENT.date] || null,
+        spoc: l.colonnes[COL_AGENT.spoc] || '',
         relance,
         dans,
         remarques: l.colonnes[COL_AGENT.remarques] || '',

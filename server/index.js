@@ -1788,7 +1788,7 @@ app.post('/api/assistant/note-appel', wrap(async (req, res) => {
 // Tout ce qui attend une relance, lu dans le tableau des agents.
 app.get('/api/assistant/relances', wrap(async (req, res) => {
   const { relancesEnAttente } = await import('./deal/appels.js');
-  ok(res, await relancesEnAttente());
+  ok(res, await relancesEnAttente({ pour: currentUser(req) }));
 }));
 
 app.get('/api/assistant/echeances', wrap(async (req, res) => {

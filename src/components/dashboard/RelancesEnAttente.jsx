@@ -12,6 +12,7 @@ const GROUPES = [
   ["aujourdhui", "Aujourd'hui", "#d9b46a"],
   ["cette_semaine", "Cette semaine", "#96c0b8"],
   ["plus_tard", "Plus tard", "#3a3f4a"],
+  ["sans_responsable", "Sans responsable", "#3a3f4a"],
 ];
 
 const dateCourte = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) : "");
@@ -28,7 +29,7 @@ export function ListeRelances({ compact = false }) {
   if (isLoading) {
     return <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Je relis les fiches…</p>;
   }
-  if (!data?.total) return <p className="m-0 text-[13.5px] text-[#9298a6]">Aucune relance en attente.</p>;
+  if (!data?.total) return <p className="m-0 text-[13.5px] text-[#9298a6]">Aucune relance en attente pour vous.</p>;
   return (
     <div className="space-y-5">
       {GROUPES.map(([cle, libelle, teinte]) => {
@@ -76,8 +77,8 @@ export default function RelancesEnAttente() {
     <section>
       <div className="flex items-baseline justify-between gap-4 mb-5">
         <div>
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">En attente</p>
-          <h2 className="m-0 mt-1.5 text-[20px] font-light tracking-[-.015em] text-[#f2f3f5]">Les relances, telles que Monday les tient</h2>
+          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">En attente — les vôtres seulement</p>
+          <h2 className="m-0 mt-1.5 text-[20px] font-light tracking-[-.015em] text-[#f2f3f5]">Vos relances</h2>
         </div>
       </div>
       <ListeRelances compact />

@@ -153,14 +153,17 @@ export async function traiterNoteAppel(texte, { user } = {}) {
 }
 
 /** Les relances, groupées pour l'écran : en retard, aujourd'hui, cette semaine, plus tard. */
-export async function relancesEnAttente() {
+export async function relancesEnAttente({ pour = null } = {}) {
   const { relancesAgents } = await import('./monday-sync.js');
-  const toutes = await relancesAgents();
+  const toutes = await relancesAgents({ pour });
+  const miennes = toutes.filter((r) => r.spoc);
+  const orphelines = toutes.filter((r) => !r.spoc);
   return {
-    en_retard: toutes.filter((r) => r.dans < 0),
-    aujourdhui: toutes.filter((r) => r.dans === 0),
-    cette_semaine: toutes.filter((r) => r.dans > 0 && r.dans <= 7),
-    plus_tard: toutes.filter((r) => r.dans > 7),
+    en_retard: miennes.filter((r) => r.dans < 0),
+    aujourdhui: miennes.filter((r) => r.dans === 0),
+    cette_semaine: miennes.filter((r) => r.dans > 0 && r.dans <= 7),
+    plus_tard: miennes.filter((r) => r.dans > 7),
+    sans_responsable: orphelines,
     total: toutes.length,
   };
 }

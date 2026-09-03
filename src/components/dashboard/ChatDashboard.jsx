@@ -7,27 +7,18 @@ import { toast } from "sonner";
 import { ArrowRight, Check, Copy, Loader2, Mic, Paperclip, Pencil, Send, Square, X } from "lucide-react";
 import { ListeRelances } from "./RelancesEnAttente";
 
-// Le chat du tableau de bord : une seule zone de saisie, cinq façons de s'en
-// servir. Ce qu'on y met décide de ce qui se passe.
+// Le chat du tableau de bord : une seule zone, on y met ce qu'on veut, il
+// fait le tri — et le nécessaire.
 //
-//   Assistant  — une question, une action, en grand.
-//   Note       — en raccrochant : « j'ai eu Marc, il a un local à… » ; le
-//                dossier, l'agent au CRM, le bien dans Monday, la promesse au
-//                registre. Le micro écoute, la note part quand on se tait.
-//   Fiche      — on colle le mail de l'agent ou on dépose sa fiche : le
-//                dossier naît, nommé d'après ce qu'il contient, analysé.
-//   Client     — le compte rendu de l'appel de découverte devient une fiche
-//                Monday et un compte Klocka avec son lien d'invitation.
-//   Échéances  — les cartes : qui a reçu quoi sans répondre, qui doit quoi
-//                pour quand, quel dossier dort. Et de quoi relancer d'un clic.
+//   Une note en raccrochant  → la fiche de l'agent (prénom, date, remarques,
+//                              relance), le dossier si un bien est décrit.
+//   Le mail ou la fiche d'un agent → le dossier naît, nommé, analysé, avec
+//                              les clients qui correspondent.
+//   Un compte rendu de découverte → la fiche client à valider d'un clic :
+//                              Monday, compte Klocka, lien d'invitation.
+//   Une question, un ordre   → l'assistant.
+//   « Qu'est-ce qui attend ? » → les cartes : sans réponse, rien parti.
 
-const MODES = [
-  { id: "assistant", label: "Assistant", placeholder: "Une question, une action — « quels dossiers attendent des documents ? »", bouton: "Envoyer" },
-  { id: "note", label: "Note d'appel", placeholder: "Dictez ou tapez — « J'ai eu Marc Dupont de chez Orpi, il a un local à Lyon 3e à 400 000 €, il m'envoie les documents jeudi »", bouton: "Noter" },
-  { id: "fiche", label: "Fiche", placeholder: "Collez le mail de l'agent ou le texte de l'annonce — ou déposez la fiche (PDF, image)…", bouton: "Analyser" },
-  { id: "client", label: "Client — compte rendu d'appel", placeholder: "Collez ici le compte rendu Gemini de l'appel de découverte…", bouton: "Lire le compte rendu" },
-  { id: "echeances", label: "Échéances", placeholder: "« Relance tous ceux qui n'ont pas répondu depuis cinq jours »", bouton: "Envoyer" },
-];
 
 const CHAMPS = [
   ["prenom", "Prénom"], ["nom", "Nom"], ["email", "E-mail"], ["telephone", "Téléphone"],
@@ -362,190 +353,157 @@ function Echeances({ onBrouillon }) {
 export default function ChatDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [mode, setMode] = useState("assistant");
   const [texte, setTexte] = useState("");
-  const [messages, setMessages] = useState([]); // assistant, note, échéances
+  const [fil, setFil] = useState([]); // { role, contenu } et blocs { role: "bloc", type, donnees }
   const [brouillon, setBrouillon] = useState(null);
   const [suites, setSuites] = useState([]);
-  const [fiche, setFiche] = useState(null); // client : champs extraits
-  const [resultatClient, setResultatClient] = useState(null);
-  const [resultatFiche, setResultatFiche] = useState(null);
-  const [clientsFiche, setClientsFiche] = useState(null);
+  const [fiche, setFiche] = useState(null); // compte rendu client extrait, à valider
   const [fichier, setFichier] = useState(null);
   const [glisse, setGlisse] = useState(false);
+  const [enCoursTexte, setEnCoursTexte] = useState("");
   const finRef = useRef(null);
   const fichierRef = useRef(null);
-  const modeCourant = MODES.find((m) => m.id === mode);
-  const conversationnel = ["assistant", "note", "echeances"].includes(mode);
 
-  const commander = useMutation({
-    mutationFn: (suite) => base44.request("POST", "/api/assistant/commande", { body: { messages: suite } }),
-    onSuccess: (r, suite) => {
-      setMessages([...suite, { role: "assistant", contenu: r.texte || "(sans réponse)" }]);
-      queryClient.invalidateQueries({ queryKey: ["assistant-propositions"] });
-      queryClient.invalidateQueries({ queryKey: ["echeances"] });
-      const mail = (r.actions || []).find((a) => a.name === "preparer_mail" && a.resultat?.brouillon);
-      if (mail) {
-        setBrouillon({
-          deal_id: mail.resultat.deal_id,
-          intention: mail.resultat.intention,
-          destinataire: mail.resultat.destinataire || "",
-          objet: mail.resultat.objet || "",
-          corps: mail.resultat.corps || "",
-        });
+  const historique = () => fil.filter((m) => m.role === "user" || m.role === "assistant").slice(-12);
+  const pousser = (m) => setFil((f) => [...f, m]);
+
+  const rafraichir = () => {
+    for (const k of ["assistant-propositions", "echeances", "relances-agents", "dossiers", "all-users", "projets-clients"]) {
+      queryClient.invalidateQueries({ queryKey: [k] });
+    }
+  };
+
+  const lireActions = (r) => {
+    const mail = (r.actions || []).find((a) => a.name === "preparer_mail" && a.resultat?.brouillon);
+    if (mail) {
+      setBrouillon({
+        deal_id: mail.resultat.deal_id,
+        intention: mail.resultat.intention,
+        destinataire: mail.resultat.destinataire || "",
+        objet: mail.resultat.objet || "",
+        corps: mail.resultat.corps || "",
+      });
+    }
+    const propositions = [];
+    for (const a of (r.actions || []).filter((a) => a.name !== "preparer_mail")) {
+      if (a.resultat?.url) propositions.push({ libelle: "Ouvrir la fiche", principal: true, href: a.resultat.url });
+      if (a.resultat?.deal_id && a.name === "creer_dossier") propositions.push({ libelle: "Ouvrir le dossier", principal: true, href: `/Analyse?deal_id=${a.resultat.deal_id}` });
+      if (a.resultat?.cree) propositions.push({ libelle: "Annuler", texte: "annule ça" });
+    }
+    return propositions.slice(0, 3);
+  };
+
+  // La boîte : le serveur classe et fait ; on affiche selon ce qu'il a fait.
+  const boite = useMutation({
+    mutationFn: ({ t, type }) => base44.request("POST", "/api/assistant/boite", { body: { texte: t, historique: historique(), type } }),
+    onSuccess: (r) => {
+      rafraichir();
+      if (r.type === "note") {
+        pousser({ role: "assistant", contenu: r.texte || "Noté." });
+        const p = [];
+        if (r.dossier?.lien) p.push({ libelle: "Ouvrir le dossier", principal: true, href: r.dossier.lien });
+        if (r.agent?.url) p.push({ libelle: "Fiche Monday de l'agent", externe: r.agent.url });
+        setSuites(p);
+      } else if (r.type === "fiche") {
+        pousser({ role: "bloc", type: "fiche", donnees: r });
+        setSuites([]);
+      } else if (r.type === "client") {
+        setFiche(r.champs);
+        pousser({ role: "assistant", contenu: "J'ai lu un compte rendu d'appel de découverte : voici la fiche. Relisez, corrigez, puis créez le client." });
+        setSuites([]);
+      } else if (r.type === "echeances") {
+        pousser({ role: "bloc", type: "echeances", donnees: r });
+        setSuites([]);
+      } else {
+        pousser({ role: "assistant", contenu: r.texte || "(sans réponse)" });
+        setSuites(lireActions(r));
       }
-      const agies = (r.actions || []).filter((a) => a.name !== "preparer_mail");
-      const propositions = [];
-      for (const a of agies) {
-        if (a.resultat?.url) propositions.push({ libelle: "Ouvrir la fiche", principal: true, href: a.resultat.url });
-        if (a.resultat?.deal_id && a.name === "creer_dossier") propositions.push({ libelle: "Ouvrir le dossier", principal: true, href: `/Analyse?deal_id=${a.resultat.deal_id}` });
-        if (a.resultat?.cree) propositions.push({ libelle: "Annuler", texte: "annule ça" });
-      }
-      setSuites(propositions.slice(0, 3));
     },
-    onError: (e, suite) => setMessages([...suite, { role: "assistant", contenu: `Impossible : ${e?.message || "erreur"}` }]),
+    onError: (e) => pousser({ role: "assistant", contenu: `Impossible : ${e?.message || "erreur"}` }),
   });
 
-  // La note d'appel : le serveur lit la note, remplit la fiche de l'agent
-  // (prénom, date, remarques, prochaine relance) et ouvre le dossier si un
-  // bien est décrit. Pas de boucle d'outils : un seul aller-retour.
-  const noter = useMutation({
-    mutationFn: (t) => base44.request("POST", "/api/assistant/note-appel", { body: { texte: t } }),
-    onSuccess: (r, t) => {
-      setMessages((m) => [...m, { role: "assistant", contenu: r.texte || "Noté." }]);
-      queryClient.invalidateQueries({ queryKey: ["relances-agents"] });
-      queryClient.invalidateQueries({ queryKey: ["echeances"] });
-      queryClient.invalidateQueries({ queryKey: ["dossiers"] });
-      const propositions = [];
-      if (r.dossier?.lien) propositions.push({ libelle: "Ouvrir le dossier", principal: true, href: r.dossier.lien });
-      if (r.agent?.url) propositions.push({ libelle: "Fiche Monday de l'agent", externe: r.agent.url });
-      setSuites(propositions);
-      void t;
+  const analyser = useMutation({
+    mutationFn: async (f) => {
+      const form = new FormData();
+      form.append("fichier", f);
+      const r = await base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true });
+      let titre = null;
+      let clients = null;
+      try {
+        const d = await base44.request("GET", `/api/preanalyse/dossiers/${r.deal_id}`);
+        titre = d?.titre || null;
+      } catch { /* le titre du lot suffit */ }
+      try {
+        const c = await base44.request("GET", `/api/preanalyse/dossiers/${r.deal_id}/clients`);
+        clients = c?.clients || [];
+      } catch { /* sans Monday, pas de correspondance */ }
+      return { ...r, titre, clients };
     },
-    onError: (e) => setMessages((m) => [...m, { role: "assistant", contenu: `Impossible : ${e?.message || "erreur"}` }]),
+    onSuccess: (r) => {
+      rafraichir();
+      setFichier(null);
+      pousser({ role: "bloc", type: "fiche", donnees: r });
+    },
+    onError: (e) => pousser({ role: "assistant", contenu: `Analyse impossible : ${e?.message || "erreur"}` }),
   });
 
   const envoyerMail = useMutation({
     mutationFn: () =>
       base44.functions.invoke("sendMail", {
-        to: brouillon.destinataire,
-        subject: brouillon.objet,
-        body: brouillon.corps,
-        deal_id: brouillon.deal_id,
-        intention: brouillon.intention,
+        to: brouillon.destinataire, subject: brouillon.objet, body: brouillon.corps, deal_id: brouillon.deal_id, intention: brouillon.intention,
       }),
     onSuccess: (r) => {
       if (r?.success || r?.simulated) {
         toast.success(r?.simulated ? "Envoi simulé" : "Mail envoyé", { description: brouillon.destinataire });
-        setMessages((m) => [...m, { role: "assistant", contenu: `Mail envoyé à ${brouillon.destinataire}.` }]);
+        pousser({ role: "assistant", contenu: `Mail envoyé à ${brouillon.destinataire}.` });
         setBrouillon(null);
-        queryClient.invalidateQueries({ queryKey: ["echeances"] });
-        queryClient.invalidateQueries({ queryKey: ["assistant-propositions"] });
+        rafraichir();
       } else toast.error(r?.error || "Envoi impossible");
     },
     onError: (e) => toast.error(e?.message || "Envoi impossible"),
   });
 
-  const extraire = useMutation({
-    mutationFn: (t) => base44.request("POST", "/api/admin/clients/decouverte/extraire", { body: { texte: t } }),
-    onSuccess: (r) => { setFiche(r.champs); setResultatClient(null); },
-    onError: (e) => toast.error(e?.message || "Lecture impossible"),
-  });
-
   const creer = useMutation({
     mutationFn: (champs) => base44.request("POST", "/api/admin/clients/decouverte/creer", { body: { champs } }),
     onSuccess: (r) => {
-      setResultatClient(r);
       setFiche(null);
-      queryClient.invalidateQueries({ queryKey: ["all-users"] });
-      queryClient.invalidateQueries({ queryKey: ["projets-clients"] });
+      pousser({ role: "bloc", type: "client", donnees: r });
+      rafraichir();
       if (r.rates?.length && !r.fait?.length) toast.error(r.rates[0]);
     },
     onError: (e) => toast.error(e?.message || "Création impossible"),
   });
 
-  // La fiche : texte collé ou fichier déposé, même porte que l'analyse.
-  const analyser = useMutation({
-    mutationFn: async ({ t, f }) => {
-      const form = new FormData();
-      if (f) form.append("fichier", f);
-      if (t) form.append("texte", t);
-      const r = await base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true });
-      let titre = null;
-      try {
-        const d = await base44.request("GET", `/api/preanalyse/dossiers/${r.deal_id}`);
-        titre = d?.titre || null;
-      } catch { /* le titre du lot suffit */ }
-      return { ...r, titre };
-    },
-    onSuccess: async (r) => {
-      setResultatFiche(r);
-      setClientsFiche(null);
-      setFichier(null);
-      queryClient.invalidateQueries({ queryKey: ["dossiers"] });
-      queryClient.invalidateQueries({ queryKey: ["assistant-propositions"] });
-      queryClient.invalidateQueries({ queryKey: ["echeances"] });
-      try {
-        const c = await base44.request("GET", `/api/preanalyse/dossiers/${r.deal_id}/clients`);
-        setClientsFiche(c?.clients || c || []);
-      } catch { /* sans Monday, pas de correspondance */ }
-    },
-    onError: (e) => toast.error(e?.message || "Analyse impossible"),
-  });
-
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [messages, fiche, resultatClient, resultatFiche, brouillon]);
+  }, [fil, fiche, brouillon]);
 
-  const lancer = (contenu) => {
+  const enCours = boite.isPending || analyser.isPending;
+
+  const lancer = (contenu, type = null) => {
     const t = (contenu ?? texte).trim();
-    if (mode === "fiche") {
-      if (!t && !fichier) return;
+    if (enCours) return;
+    if (fichier) {
+      pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
       setTexte("");
-      analyser.mutate({ t, f: fichier });
+      setEnCoursTexte("Je lis la fiche et passe le bien à la grille…");
+      analyser.mutate(fichier);
       return;
     }
     if (!t) return;
-    if (mode === "note") {
-      if (noter.isPending) return;
-      setMessages((m) => [...m, { role: "user", contenu: t }]);
-      setTexte("");
-      setSuites([]);
-      noter.mutate(t);
-      return;
-    }
-    if (conversationnel) {
-      if (commander.isPending) return;
-      const suite = [...messages, { role: "user", contenu: t }];
-      setMessages(suite);
-      setTexte("");
-      setSuites([]);
-      commander.mutate(suite);
-    } else {
-      setTexte("");
-      extraire.mutate(t);
-    }
+    pousser({ role: "user", contenu: t });
+    setTexte("");
+    setSuites([]);
+    setEnCoursTexte("Je fais le tri…");
+    boite.mutate({ t, type });
   };
 
-  // Le micro : en mode Note, la phrase part quand on se tait ; ailleurs, elle
-  // remplit le champ et on relit.
+  // Le micro : la dictée remplit le champ, et part quand on se tait si la
+  // phrase ressemble à une note d'appel ; sinon on relit.
   const { supporte, ecoute, demarrer, arreter, erreur } = useDictee({
     onTexte: (t) => setTexte(t),
-    onFin: (t) => { if (mode === "note") lancer(t); },
+    onFin: (t) => { if (/^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer(t, "note"); },
   });
-
-  const changerMode = (id) => {
-    arreter();
-    setMode(id);
-    setFiche(null);
-    setResultatClient(null);
-    setResultatFiche(null);
-    setBrouillon(null);
-    setSuites([]);
-    setFichier(null);
-  };
-
-  const enCours = commander.isPending || noter.isPending || extraire.isPending || analyser.isPending;
 
   const corriger = (cle, valeur, unite) => {
     const v = valeur.trim();
@@ -556,20 +514,33 @@ export default function ChatDashboard() {
     e.preventDefault();
     setGlisse(false);
     const f = e.dataTransfer?.files?.[0];
-    if (f) { setFichier(f); if (mode !== "fiche") changerMode("fiche"); }
+    if (f) setFichier(f);
   };
 
-  const aDuContenu = messages.length > 0 || fiche || resultatClient || resultatFiche || brouillon || mode === "echeances";
+  const aDuContenu = fil.length > 0 || fiche || brouillon;
 
   return (
     <div>
       {aDuContenu && (
         <div className="mb-4 space-y-3">
-          {conversationnel && messages.map((m, i) => <Message key={i} m={m} />)}
-          {enCours && conversationnel && (
-            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {mode === "note" ? "Je remplis la fiche…" : "L'assistant s'en occupe…"}</p>
+          {fil.map((m, i) =>
+            m.role === "bloc" ? (
+              m.type === "fiche" ? <ResultatFiche key={i} r={m.donnees} clients={m.donnees.clients} />
+              : m.type === "client" ? <ResultatClient key={i} r={m.donnees} />
+              : m.type === "echeances" ? <Echeances key={i} onBrouillon={setBrouillon} />
+              : null
+            ) : (
+              <Message key={i} m={m} />
+            )
           )}
-          {conversationnel && suites.length > 0 && !enCours && (
+          {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
+          {brouillon && (
+            <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} />
+          )}
+          {enCours && (
+            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {enCoursTexte}</p>
+          )}
+          {suites.length > 0 && !enCours && (
             <div className="flex flex-wrap gap-2">
               {suites.map((s) => (
                 <button
@@ -582,19 +553,10 @@ export default function ChatDashboard() {
               ))}
             </div>
           )}
-          {brouillon && (
-            <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} />
-          )}
-          {mode === "echeances" && <Echeances onBrouillon={setBrouillon} />}
-          {mode === "client" && fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
-          {mode === "client" && resultatClient && <ResultatClient r={resultatClient} />}
-          {mode === "fiche" && analyser.isPending && (
-            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Je lis la fiche et passe le bien à la grille…</p>
-          )}
-          {mode === "fiche" && resultatFiche && <ResultatFiche r={resultatFiche} clients={clientsFiche} />}
           <div ref={finRef} />
         </div>
       )}
+
       <div
         onDragOver={(e) => { e.preventDefault(); setGlisse(true); }}
         onDragLeave={() => setGlisse(false)}
@@ -605,13 +567,13 @@ export default function ChatDashboard() {
           value={texte}
           onChange={(e) => setTexte(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey || (conversationnel && !e.shiftKey))) {
+            if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               lancer();
             }
           }}
-          rows={mode === "client" || mode === "fiche" ? 6 : ecoute ? 3 : 2}
-          placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : modeCourant.placeholder}
+          rows={ecoute ? 3 : texte.length > 160 ? 5 : 2}
+          placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : "Une note d'appel, le mail d'un agent, un compte rendu de découverte, une question — je fais le tri."}
           className="w-full bg-transparent border-0 outline-none resize-none text-[15px] leading-[1.6] text-[#f2f3f5] placeholder:text-[#6a7180]"
         />
         {fichier && (
@@ -622,72 +584,43 @@ export default function ChatDashboard() {
         )}
         {erreur && <p className="m-0 mb-2 text-[12px] text-[#e8746a]">{erreur}</p>}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {MODES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => changerMode(m.id)}
-                className={`px-3.5 py-1.5 rounded-full text-[12.5px] border transition-colors ${
-                  mode === m.id ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#000000] font-medium" : "border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
+          <p className="m-0 text-[11.5px] text-[#6a7180]">
+            Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne. Un fichier déposé devient un dossier.
+          </p>
           <div className="flex items-center gap-2">
-            {mode === "fiche" && (
-              <>
-                <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
-                <button
-                  onClick={() => fichierRef.current?.click()}
-                  className="w-9 h-9 rounded-full flex items-center justify-center border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8] transition-colors"
-                  aria-label="Déposer une fiche"
-                  title="Déposer une fiche (PDF, image)"
-                >
-                  <Paperclip className="w-4 h-4" />
-                </button>
-              </>
-            )}
+            <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
+            <button
+              onClick={() => fichierRef.current?.click()}
+              className="w-9 h-9 rounded-full flex items-center justify-center border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8] transition-colors"
+              aria-label="Déposer une fiche"
+              title="Déposer une fiche (PDF, Word, image, mail)"
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
             {supporte && (
               <button
                 onClick={ecoute ? arreter : demarrer}
                 disabled={enCours}
                 aria-label={ecoute ? "Arrêter" : "Dicter"}
-                title={mode === "note" ? "La note part quand vous vous taisez" : "Dicter"}
-                className={`rounded-full flex items-center justify-center transition-all disabled:opacity-40 ${mode === "note" ? "w-11 h-11" : "w-9 h-9"} ${
-                  ecoute
-                    ? "bg-[#e8746a] text-[#000000] shadow-[0_0_0_8px_rgba(232,116,106,.18)] animate-pulse"
-                    : mode === "note"
-                      ? "bg-[#96c0b8] text-[#000000] hover:bg-[#abd0c8]"
-                      : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"
+                title="Dicter — une note d'appel part quand vous vous taisez"
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-40 ${
+                  ecoute ? "bg-[#e8746a] text-[#000000] shadow-[0_0_0_8px_rgba(232,116,106,.18)] animate-pulse" : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"
                 }`}
               >
-                {ecoute ? <Square className="w-4 h-4" /> : <Mic className={mode === "note" ? "w-5 h-5" : "w-4 h-4"} />}
+                {ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
             )}
             <button
               onClick={() => lancer()}
-              disabled={(!texte.trim() && !(mode === "fiche" && fichier)) || enCours}
+              disabled={(!texte.trim() && !fichier) || enCours}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#96c0b8] text-[#000000] text-[12.5px] font-medium hover:bg-[#abd0c8] disabled:opacity-40 transition-colors"
             >
               {enCours ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
-              {modeCourant.bouton}
+              Envoyer
             </button>
           </div>
         </div>
-        {mode === "client" && !fiche && !resultatClient && (
-          <p className="m-0 mt-2 text-[11.5px] text-[#6a7180]">
-            Le modèle relève ce que Monday attend — budget, fonds propres, revenu, lieu de recherche, objectif, statut — et vous relisez avant de créer. Ctrl+Entrée pour lancer.
-          </p>
-        )}
-        {mode === "fiche" && !resultatFiche && (
-          <p className="m-0 mt-2 text-[11.5px] text-[#6a7180]">
-            Le dossier est créé et nommé d'après la fiche, passé à la grille de critères, et les clients qui correspondent sont cherchés. Ctrl+Entrée pour lancer.
-          </p>
-        )}
       </div>
-
     </div>
   );
 }

@@ -1789,6 +1789,19 @@ app.post('/api/assistant/rapports/vus', wrap(async (req, res) => {
 // Le registre des engagements : qui doit quoi, pour quand.
 // Les échéances : nos mails sans réponse, les promesses, les dossiers qui
 // dorment — les cartes du mode « Échéances » du chat du tableau de bord.
+// La boîte : un seul chat, ce qu'on y met est trié et fait.
+app.post('/api/assistant/boite', wrap(async (req, res) => {
+  const texte = String(req.body?.texte || '').trim();
+  if (!texte) return res.status(400).json({ error: 'Rien à traiter.' });
+  const user = currentUser(req);
+  const { traiterBoite } = await import('./assistant-boite.js');
+  const { mesurer } = await import('./llm-couts.js');
+  const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
+    traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null })
+  );
+  ok(res, resultat);
+}));
+
 // La note d'appel : la fiche de l'agent dans Monday (prénom, date, remarques,
 // prochaine relance), et le dossier si un bien est décrit.
 app.post('/api/assistant/note-appel', wrap(async (req, res) => {

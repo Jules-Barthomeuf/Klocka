@@ -16,6 +16,48 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const DATA_DIR = (process.env.KLOCKA_DATA_DIR || '').trim() || path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
+/**
+ * Le dossier de données est-il sur un disque monté ? Déclarer KLOCKA_DATA_DIR
+ * ne suffit pas : si le chemin ne correspond pas au point de montage du
+ * disque, on écrit dans l'éphémère en croyant écrire sur le disque. On
+ * compare le périphérique du dossier à celui de la racine, et on cherche le
+ * chemin dans /proc/mounts.
+ */
+export function infoStockage() {
+  const declare = !!(process.env.KLOCKA_DATA_DIR || '').trim();
+  let monte = false;
+  let pointDeMontage = null;
+  try {
+    const dev = fs.statSync(DATA_DIR).dev;
+    const racine = fs.statSync('/').dev;
+    monte = dev !== racine;
+    if (fs.existsSync('/proc/mounts')) {
+      const points = fs
+        .readFileSync('/proc/mounts', 'utf-8')
+        .split('\n')
+        .map((l) => l.split(' ')[1])
+        .filter((m) => m && m !== '/' && (DATA_DIR === m || DATA_DIR.startsWith(m + '/')))
+        .sort((a, b) => b.length - a.length);
+      pointDeMontage = points[0] || null;
+      if (pointDeMontage) monte = true;
+    }
+  } catch {
+    /* sans /proc ni stat, on s'en tient à la déclaration */
+  }
+  let taille_base_ko = null;
+  try {
+    taille_base_ko = Math.round(fs.statSync(path.join(DATA_DIR, 'klocka.db')).size / 1024);
+  } catch {
+    /* pas encore de base */
+  }
+  return { chemin: DATA_DIR, declare, monte, point_de_montage: pointDeMontage, taille_base_ko };
+}
+
+{
+  const i = infoStockage();
+  console.log(`[base] données dans ${i.chemin}${i.declare ? (i.monte ? ` — disque monté${i.point_de_montage ? ` sur ${i.point_de_montage}` : ''}` : ' — ATTENTION : ce chemin n\'est pas un disque monté, les données seront perdues au prochain déploiement') : ' (dossier du code)'}`);
+}
+
 // Les fichiers déposés suivent la base. Cinq modules définissaient chacun
 // leur chemin « ../uploads » : sur un disque persistant, ils auraient écrit
 // à côté, dans l'éphémère. Un seul chemin, exporté d'ici.

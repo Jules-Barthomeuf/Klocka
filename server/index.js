@@ -16,7 +16,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
+import { Records, Meta, CHEMIN_UPLOADS, infoStockage } from './db.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
 import { accesDe, ACCES, changerAcces, migrerComptesEnAttente } from './clients-acces.js';
 import { restaurerSeedSiNecessaire } from './seed-donnees.js';
@@ -2069,15 +2069,29 @@ app.get('/api/lecture', wrap(async (req, res) => {
 // Une base créée il y a quelques minutes sur un service en ligne depuis des
 // semaines dit tout : le disque est éphémère.
 app.get('/api/health', (req, res) => {
-  const dataDir = (process.env.KLOCKA_DATA_DIR || '').trim();
+  const stockage = infoStockage();
+  const surRender = !!process.env.RENDER;
+  // Le diagnostic dit quoi faire, pas seulement ce qui va mal.
+  const diagnostic = !surRender
+    ? null
+    : !stockage.declare
+      ? "Aucun disque déclaré : dans Render, Disks → Add Disk (Mount Path /var/data), puis Environment → KLOCKA_DATA_DIR=/var/data."
+      : !stockage.monte
+        ? `KLOCKA_DATA_DIR vaut « ${stockage.chemin} » mais ce chemin n'est pas un disque monté : le Mount Path du Disk doit être exactement le même (redéployez après l'avoir attaché).`
+        : 'Disque monté : la base survit aux déploiements.';
   ok(res, {
     status: 'ok',
     version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) || null,
     en_ligne_depuis_s: Math.round(process.uptime()),
     base: {
       creee_le: Meta.get('base_creee_le') || null,
-      persistante: !!dataDir,
-      emplacement: dataDir || 'dossier du code (éphémère chez un hébergeur sans disque)',
+      persistante: stockage.declare && stockage.monte,
+      declaree: stockage.declare,
+      disque_monte: stockage.monte,
+      point_de_montage: stockage.point_de_montage,
+      emplacement: stockage.chemin,
+      taille_ko: stockage.taille_base_ko,
+      diagnostic,
       utilisateurs: Records.count('User'),
       dossiers: Records.count('Deal'),
       projets: Records.count('Project'),

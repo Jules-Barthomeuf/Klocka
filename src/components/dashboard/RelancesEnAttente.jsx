@@ -77,7 +77,7 @@ export default function RelancesEnAttente() {
     <section>
       <div className="flex items-baseline justify-between gap-4 mb-5">
         <div>
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">En attente — les vôtres seulement</p>
+          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">En attente</p>
           <h2 className="m-0 mt-1.5 text-[20px] font-light tracking-[-.015em] text-[#f2f3f5]">Vos relances</h2>
         </div>
       </div>

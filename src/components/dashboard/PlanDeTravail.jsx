@@ -85,6 +85,7 @@ export default function PlanDeTravail({ chat = null }) {
   // Une proposition traitée se déclare : c'est ce qui permet de savoir, plus
   // tard, lesquelles servent à quelque chose et lesquelles personne ne touche.
 
+  const { data: sante } = useQuery({ queryKey: ["sante"], queryFn: () => base44.request("GET", "/api/health"), staleTime: 60000 });
   const fichierSauvegardeRef = useRef(null);
   const restaurerSauvegarde = async (e) => {
     const f = e.target.files?.[0];
@@ -126,6 +127,17 @@ export default function PlanDeTravail({ chat = null }) {
           </h1>
         </div>
       </header>
+
+      {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
+      {sante?.hebergeur === "render" && !sante?.base?.persistante && (
+        <div className="mt-8 border rounded-xl px-5 py-4" style={{ borderColor: "#e8746a66", background: "#0f1114" }}>
+          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#e8746a]">La base sera effacée au prochain déploiement</p>
+          <p className="m-0 mt-1.5 text-[13.5px] leading-[1.6] text-[#c9cdd6]">{sante.base?.diagnostic}</p>
+          <p className="m-0 mt-1.5 text-[12px] text-[#6a7180]">
+            Chemin : {sante.base?.emplacement} · déclaré : {sante.base?.declaree ? "oui" : "non"} · disque monté : {sante.base?.disque_monte ? "oui" : "non"}
+          </p>
+        </div>
+      )}
 
       {/* Le chat vient sous le titre : le tableau de bord se nomme d'abord. */}
       {chat && <div className="mt-10 max-md:mt-8">{chat}</div>}

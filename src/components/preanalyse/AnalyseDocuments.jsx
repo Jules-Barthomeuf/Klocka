@@ -125,6 +125,8 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
         </div>
       </div>
 
+      <ARegarder lignes={extraction.lignes || []} onOuvrir={(l) => setLigneOuverte(l)} />
+
       <div className={ligneOuverte ? "grid lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] gap-5 items-start" : ""}>
       <div className="overflow-x-auto min-w-0">
         <table
@@ -146,15 +148,25 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
             </tr>
           </thead>
           <tbody>
-            {lignes.map((l) => {
+            {lignes.map((l, i) => {
               const lien = lienSource(extraction.document_url, l.page);
               const ouverte = ligneOuverte?.index === l.index;
+              const nouveauBloc = l.bloc && (i === 0 || lignes[i - 1].bloc !== l.bloc);
+              const teinte = l.statut === "Point de vigilance" ? "#e8746a" : l.statut === "À vérifier" ? "#d9b46a" : l.statut === "Conforme" ? "#96c0b8" : "#3a3f4a";
               return (
+                <React.Fragment key={l.index}>
+                {nouveauBloc && (
+                  <tr className="border-b border-[#22262d] bg-[#0f1114]">
+                    <td colSpan={ligneOuverte ? 3 : 4} className="py-2 text-[10.5px] tracking-[.16em] uppercase text-[#c3ddd6]">{l.bloc}</td>
+                  </tr>
+                )}
                 <tr
-                  key={l.index}
                   className={`border-b border-[#22262d] transition-colors align-top ${ouverte ? "bg-[#96c0b8]/[0.07]" : "hover:bg-[#f2f3f5]/[0.02]"}`}
                 >
-                  <td className="py-3 pr-4 text-[13px] text-[#f2f3f5]">{l.element}</td>
+                  <td className="py-3 pr-4 text-[13px] text-[#f2f3f5]">
+                    <span className="inline-block w-2 h-2 rounded-full mr-2 align-middle" style={{ background: teinte }} title={l.statut || "Non renseigné"} />
+                    {l.element}
+                  </td>
 
                   <td className="py-3 pr-4">
                     {edition?.index === l.index && edition.champ === "constat" ? (
@@ -219,6 +231,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
                   )}
 
                 </tr>
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -229,6 +242,37 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
         <Visionneuse extraction={extraction} ligne={ligneOuverte} onFermer={() => setLigneOuverte(null)} />
       )}
       </div>
+    </div>
+  );
+}
+
+// Ce qui décide, avant la table : les points de vigilance (les drapeaux
+// rouges) et ce qu'il faut vérifier. Chaque ligne renvoie à sa page.
+function ARegarder({ lignes, onOuvrir }) {
+  const rouges = lignes.map((l, index) => ({ ...l, index })).filter((l) => l.statut === "Point de vigilance");
+  const oranges = lignes.map((l, index) => ({ ...l, index })).filter((l) => l.statut === "À vérifier");
+  if (!rouges.length && !oranges.length) return null;
+  const Liste = ({ titre, items, teinte }) => (
+    <section className="min-w-0">
+      <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase" style={{ color: teinte }}>{titre} · {items.length}</p>
+      <ul className="m-0 p-0 list-none space-y-1.5">
+        {items.map((l) => (
+          <li key={l.index} className="flex items-start gap-2.5 text-[13px] leading-[1.5]">
+            <span className="mt-[7px] w-1.5 h-1.5 rounded-full flex-none" style={{ background: teinte }} />
+            <button onClick={() => onOuvrir?.(l)} className="text-left text-[#f2f3f5] hover:text-[#c3ddd6] transition-colors min-w-0">
+              <span className="text-[#9298a6]">{l.bloc ? `${l.bloc} — ` : ""}{l.element} : </span>
+              {l.constat}
+              {l.commentaire && <span className="block text-[12px] text-[#9298a6]">{l.commentaire}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+  return (
+    <div className="mb-5 border border-[#1f2228] rounded-xl bg-[#0f1114] px-5 py-4 grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-5">
+      {rouges.length > 0 && <Liste titre="Points de vigilance" items={rouges} teinte="#e8746a" />}
+      {oranges.length > 0 && <Liste titre="À vérifier" items={oranges} teinte="#d9b46a" />}
     </div>
   );
 }

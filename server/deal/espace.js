@@ -14,7 +14,7 @@ import { Records } from '../db.js';
 import { chatDocuments, extraireDonneesDocument, invokeLLMGrounded } from '../llm.js';
 import { vueRedacteur } from './redact.js';
 import { ETAPES, etapeMax } from './etapes.js';
-import { grilleDe, typeDepuisCategorie, categorieDepuisNom, STATUTS_LIGNE } from './grille.js';
+import { grilleDe, typeDepuisCategorie, categorieDepuisNom, STATUTS_LIGNE, BLOCS_PV_AG } from './grille.js';
 
 const brutDe = (dealId) => Records.filter('Deal', { deal_id: dealId })[0] || null;
 
@@ -300,6 +300,9 @@ export async function extraireUnePiece(piece, user) {
       ...piece,
       elements: grille?.elements || null,
       statuts: STATUTS_LIGNE,
+      // Le PV d'AG se lit résolution par résolution, en blocs.
+      parBloc: type === 'pv_ag',
+      groupes: type === 'pv_ag' ? BLOCS_PV_AG : null,
     });
     return { ...base, type, type_label: grille?.label || null, lignes, erreur: null };
   } catch (e) {

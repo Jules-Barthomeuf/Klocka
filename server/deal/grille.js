@@ -61,6 +61,19 @@ export const GRILLE = [
 
 export const grilleDe = (type) => GRILLE.find((g) => g.type === type) || null;
 
+// Le PV d'AG se lit par blocs, une ligne par résolution : les trois éléments
+// de la grille papier deviennent des blocs, complétés de ce qui, dans un PV,
+// pèse sur un acquéreur — l'argent, les procédures, la gestion.
+export const BLOCS_PV_AG = [
+  'Travaux votés',
+  'Travaux en discussion',
+  'Résolutions non votées (récurrentes)',
+  'Finances, charges et impayés',
+  'Procédures et contentieux',
+  'Gestion et syndic',
+  'Autres décisions',
+];
+
 // La catégorie choisie sur le document (libellé affiché) mène à son type de
 // grille. Un document non classé n'a pas de grille : on relève alors ce qui
 // s'y trouve, librement.

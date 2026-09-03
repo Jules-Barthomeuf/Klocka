@@ -628,7 +628,25 @@ export async function extraireDonneesDocument(doc = {}) {
     .map((s) => `"${s}"`)
     .join(', ');
 
-  const consigne = grille
+  // Par bloc (PV d'AG) : le document se lit résolution par résolution. Une
+  // ligne par décision, rangée dans un bloc, avec ce qui décide — qui paie,
+  // combien, quand — et le drapeau quand il faut s'arrêter dessus.
+  const parBloc = !!doc.parBloc && Array.isArray(doc.groupes) && doc.groupes.length;
+  const consigne = parBloc
+    ? `Tu lis un procès-verbal d'assemblée générale de copropriété pour un investisseur qui achète des murs commerciaux dans l'immeuble (il deviendra copropriétaire bailleur : les charges et travaux non récupérables lui incomberont).\n\n` +
+      `Lis le document RÉSOLUTION PAR RÉSOLUTION. Produis UNE LIGNE PAR RÉSOLUTION ou décision (et une par impayé, procédure ou point d'information notable), rangée dans l'un de ces blocs, dans cet ordre :\n` +
+      doc.groupes.map((g, i) => `${i + 1}. ${g}`).join('\n') +
+      `\n\nTermine par un bloc « Synthèse » de deux à quatre lignes : total des travaux votés, appels de fonds à prévoir pour le lot, points de friction dans la copropriété, ce qu'il faut demander (devis, PV suivant, état daté).\n\n` +
+      `Réponds UNIQUEMENT en JSON :\n` +
+      `{"lignes":[{"bloc":"...","element":"...","constat":"...","statut":"...","commentaire":"...","page":1,"citation":"..."}]}\n` +
+      `— "bloc" : repris mot pour mot de la liste ci-dessus (ou « Synthèse »).\n` +
+      `— "element" : « Résolution n°X — objet en quelques mots » (ou l'intitulé du point).\n` +
+      `— "constat" : la décision (adoptée / rejetée / reportée, avec la majorité si dite), le montant, qui paie (copropriété, bailleur, preneur, quote-part du lot si connue), l'échéance. Tel qu'écrit, unités comprises.\n` +
+      `— "statut" : un seul parmi ${statuts}. « Point de vigilance » = drapeau rouge : travaux votés ou annoncés à la charge des copropriétaires (appels de fonds), ravalement, toiture, étanchéité, ascenseur, mise en conformité (amiante, électricité, accessibilité), procédure ou contentieux, impayés (locataire ou copropriétaires), résolution repoussée d'année en année (passif latent), changement de syndic conflictuel, fonds travaux insuffisant, sinistre. « À vérifier » = demande une pièce ou une confirmation (devis, appel de fonds, PV suivant, répartition des tantièmes). « Conforme » = décision courante sans incidence. « Non renseigné » seulement pour la synthèse quand le document ne permet pas de conclure.\n` +
+      `— "commentaire" : pourquoi c'est un point de vigilance ou ce qu'il faut regarder, en une phrase ; sinon chaîne vide.\n` +
+      `— "page" : la page, ou null. — "citation" : la phrase exacte, tronquée à 200 caractères, ou null.\n` +
+      `N'invente rien : pas de résolution qui n'est pas dans le document.`
+    : grille
     ? `Tu extraits un document d'un dossier d'investissement en murs commerciaux, ` +
       `selon une grille de lecture imposée.\n\n` +
       `Réponds pour CHACUN de ces éléments, dans cet ordre exact, sans en ajouter ni en retirer :\n` +
@@ -682,6 +700,7 @@ export async function extraireDonneesDocument(doc = {}) {
   const objet = JSON.parse(brut.slice(debut, fin + 1));
 
   const normaliser = (l) => ({
+    ...(l.bloc ? { bloc: String(l.bloc).slice(0, 120) } : {}),
     element: String(l.element || l.libelle || '').slice(0, 140),
     constat: l.constat == null ? (l.valeur == null ? '' : String(l.valeur)) : String(l.constat),
     statut: String(l.statut || 'Non renseigné').slice(0, 40),
@@ -691,6 +710,19 @@ export async function extraireDonneesDocument(doc = {}) {
   });
 
   const rendues = (Array.isArray(objet?.lignes) ? objet.lignes : []).map(normaliser).filter((l) => l.element);
+
+  // Par bloc : toutes les lignes comptent, rangées dans l'ordre des blocs ; la
+  // synthèse ferme la marche. Un bloc inconnu va dans « Autres décisions ».
+  if (parBloc) {
+    const ordre = [...doc.groupes, 'Autres décisions', 'Synthèse'];
+    const rang = (b) => {
+      const i = ordre.findIndex((g) => g.toLowerCase() === String(b || '').toLowerCase().trim());
+      return i === -1 ? ordre.length - 2 : i;
+    };
+    const lignes = rendues.map((l) => ({ ...l, bloc: ordre[rang(l.bloc)] , constat: String(l.constat).slice(0, 700) }));
+    lignes.sort((a, b) => rang(a.bloc) - rang(b.bloc));
+    return { lignes };
+  }
 
   // Avec une grille, la liste fait foi : on remet les éléments dans l'ordre et
   // on complète ceux que le modèle aurait omis.

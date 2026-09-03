@@ -18,45 +18,18 @@ import { UserPlus,
 // rien ne part vers l'extérieur sans que le texte ait été relu : une action
 // « mail » ouvre un brouillon éditable, jamais un envoi.
 
-const ICONES = {
-  inscrit_decouverte: UserPlus,
-  mail_a_traiter: Inbox,
-  compte_muet: KeyRound,
-  stockage_ephemere: FileWarning,
-  reponse_recue: Mail,
-  documents_manquants: FileWarning,
-  relance_due: Clock,
-  engagement_du: Clock,
-  projet_a_creer: Briefcase,
-  dossier_en_sommeil: MoonStar,
-};
 
 // L'urgence se lit au filet de gauche, pas à une pastille de couleur : la même
 // grammaire que « Ce qui a échoué », pour que la page se parcoure d'un regard.
-const TEINTES = {
-  1: { filet: "border-l-[#e8746a]", icone: "text-[#e8746a]", libelle: "À faire aujourd'hui", label: "text-[#e8746a]" },
-  2: { filet: "border-l-[#96c0b8]", icone: "text-[#96c0b8]", libelle: "Attendu", label: "text-[#96c0b8]" },
-  3: { filet: "border-l-[#3a3f4a]", icone: "text-[#9298a6]", libelle: "Courant", label: "text-[#9298a6]" },
-  4: { filet: "border-l-[#22262d]", icone: "text-[#6a7180]", libelle: "Plus tard", label: "text-[#6a7180]" },
-};
 
 export default function PlanDeTravail({ chat = null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [brouillon, setBrouillon] = useState(null); // { deal_id, intention, objet, corps, destinataire }
-  const [enCours, setEnCours] = useState(null); // id de l'action en cours
-  const [ouverte, setOuverte] = useState(null); // proposition dépliée
   // Le compte des échecs de la nuit remonte du rapport : l'en-tête doit dire
   // d'un coup d'œil combien de choses attendent et combien ont manqué.
   const [echecs, setEchecs] = useState(0);
   const noterEchecs = useCallback((n) => setEchecs(n), []);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["assistant-propositions"],
-    queryFn: () => base44.request("GET", "/api/assistant/propositions"),
-    refetchInterval: 60000,
-    refetchOnWindowFocus: true,
-  });
 
   const { data: statutMail } = useQuery({
     queryKey: ["mail-status"],
@@ -65,8 +38,8 @@ export default function PlanDeTravail({ chat = null }) {
   const compteDrive = (statutMail?.accounts || []).find((c) => c.peut_drive)?.id || null;
   const expediteur = (statutMail?.accounts || []).find((c) => c.peut_envoyer)?.id || null;
 
-  const propositions = data?.propositions || [];
-  const veille = data?.veille;
+
+
 
   const { data: calendrier } = useQuery({
     queryKey: ["assistant-calendrier"],
@@ -106,59 +79,10 @@ export default function PlanDeTravail({ chat = null }) {
     toast.success("Compte reconnecté", { description: "La boîte est relevée dans la foulée." });
   });
 
-  const relever = useMutation({
-    mutationFn: () => base44.request("POST", "/api/assistant/relever"),
-    onSuccess: (r) => {
-      rafraichir();
-      const bouts = [
-        `${r.nouveaux || 0} mail(s) retenu(s)`,
-        r.ecartes ? `${r.ecartes} sans rapport écarté(s)` : null,
-        r.rattaches ? `${r.rattaches} rattaché(s) à un dossier` : null,
-        r.pieces?.documents ? `${r.pieces.documents} pièce(s) jointe(s) versée(s) au dossier` : null,
-        r.pieces?.classes ? `${r.pieces.classes} classée(s) dans le Drive` : null,
-        r.pieces?.fiches ? `${r.pieces.fiches} fiche(s) Monday à jour` : null,
-      ].filter(Boolean);
-      toast.success("Boîtes relevées", { description: bouts.join(" · ") });
-      if (r.erreurs?.length) toast.warning(r.erreurs[0]);
-    },
-    onError: (e) => toast.error(e?.message || "Relève impossible"),
-  });
 
-  const envoyer = useMutation({
-    mutationFn: () =>
-      base44.functions.invoke("sendMail", {
-        from: expediteur || undefined,
-        to: brouillon.destinataire,
-        subject: brouillon.objet,
-        body: brouillon.corps,
-        deal_id: brouillon.deal_id,
-        intention: brouillon.intention,
-      }),
-    onSuccess: (r) => {
-      if (r?.success || r?.simulated) {
-        toast.success(r?.simulated ? "Envoi simulé (aucun compte connecté)" : "Mail envoyé");
-        setBrouillon(null);
-        rafraichir();
-      } else toast.error(r?.error || "Envoi impossible");
-    },
-    onError: (e) => toast.error(e?.message || "Envoi impossible"),
-  });
 
   // Une proposition traitée se déclare : c'est ce qui permet de savoir, plus
   // tard, lesquelles servent à quelque chose et lesquelles personne ne touche.
-  const noterTraitee = (proposition, action) => {
-    base44
-      .request("POST", "/api/assistant/propositions/traitee", {
-        body: {
-          type: proposition.type,
-          deal_id: proposition.deal_id,
-          mail_id: proposition.mail_id,
-          id: proposition.id,
-          action: action.id,
-        },
-      })
-      .catch(() => {});
-  };
 
   const fichierSauvegardeRef = useRef(null);
   const restaurerSauvegarde = async (e) => {
@@ -176,93 +100,6 @@ export default function PlanDeTravail({ chat = null }) {
     }
   };
 
-  // Chaque mode d'action sait ce qu'il déclenche. Aucun n'envoie de lui-même.
-  const executer = async (proposition, action) => {
-    const cle = `${proposition.id}:${action.id}`;
-    // Ouvrir un dossier n'est pas le traiter : seules les actions comptent.
-    if (action.mode === "lien") return navigate(action.href);
-    if (action.mode === "google") {
-      noterTraitee(proposition, action);
-      return connecterGoogle();
-    }
-    if (action.mode === "externe") noterTraitee(proposition, action);
-    if (action.mode === "externe") return window.open(action.href, "_blank", "noopener");
-    // Restaurer une sauvegarde : on choisit le fichier, le serveur fusionne.
-    if (action.mode === "restaurer") return fichierSauvegardeRef.current?.click();
-
-    setEnCours(cle);
-    try {
-      if (action.mode !== "externe") noterTraitee(proposition, action);
-      if (action.mode === "mail") {
-        const r = await base44.request("POST", `/api/preanalyse/dossiers/${proposition.deal_id}/mail`, {
-          body: { intention: action.intention },
-        });
-        setBrouillon({
-          deal_id: proposition.deal_id,
-          intention: action.intention,
-          objet: r.objet || "",
-          corps: r.corps || "",
-          destinataire: r.destinataire || "",
-          ia: r.ia,
-        });
-      } else if (action.mode === "drive") {
-        if (!compteDrive) {
-          toast.error("Aucun compte Google avec l'accès Drive", {
-            description: "Connectez un compte Google autorisant le Drive, ci-dessus.",
-          });
-        } else {
-          const r = await base44.request("POST", `/api/preanalyse/dossiers/${proposition.deal_id}/drive`, {
-            body: { compte: compteDrive },
-          });
-          toast.success("Dossier Drive créé", {
-            description: `${r.envoyes?.length || 0} fichier(s) classé(s)`,
-          });
-          rafraichir();
-        }
-      } else if (action.mode === "projet") {
-        const r = await base44.request("POST", `/api/preanalyse/dossiers/${proposition.deal_id}/lots/0/projet`);
-        toast.success(`Projet créé : ${r.titre}`);
-        navigate(`/AdminProjets?id=${r.project_id}`);
-      } else if (action.mode === "tri") {
-        const r = await base44.request("POST", `/api/assistant/mails/${proposition.mail_id}/tri`, {
-          body: { decision: action.decision, motif: "écarté depuis le plan de travail" },
-        });
-        rafraichir();
-        // Par défaut on n'écarte que ce mail : l'expéditeur peut très bien
-        // envoyer un bon dossier demain. Faire taire l'adresse est un second
-        // geste, explicite.
-        toast.success("C'est noté", {
-          description: `${r.expediteur} continue d'être écouté — ce mail servira d'exemple.`,
-          action: {
-            label: "Ignorer cet expéditeur",
-            onClick: async () => {
-              try {
-                await base44.request("POST", "/api/assistant/tri-expediteur", {
-                  body: {
-                    email: r.expediteur,
-                    decision: "ignorer",
-                    motif: "expéditeur écarté depuis le plan de travail",
-                  },
-                });
-                toast.success(`Plus aucun mail de ${r.expediteur} ne remontera.`);
-                rafraichir();
-              } catch (err) {
-                toast.error(err?.message || "Action impossible");
-              }
-            },
-          },
-        });
-      } else if (action.mode === "preanalyser") {
-        const r = await base44.request("POST", `/api/mails/inbox/${proposition.mail_id}/preanalyser`);
-        toast.success("Fiche analysée");
-        navigate(`/Analyse?deal_id=${r.deal_id}`);
-      }
-    } catch (e) {
-      toast.error(e?.message || "Action impossible");
-    } finally {
-      setEnCours(null);
-    }
-  };
 
   const maintenant = new Date().toLocaleString("fr-FR", {
     weekday: "long",
@@ -277,7 +114,7 @@ export default function PlanDeTravail({ chat = null }) {
   return (
     <div>
       <input ref={fichierSauvegardeRef} type="file" accept=".json" className="hidden" onChange={restaurerSauvegarde} />
-      {/* --- En-tête : ce qu'il y a à faire, et combien --------------------- */}
+      {/* --- En-tête --------------------------------------------------------- */}
       <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
         <div className="min-w-0">
           <p className="m-0 text-[11px] tracking-[.16em] uppercase text-[#9298a6]">
@@ -286,25 +123,6 @@ export default function PlanDeTravail({ chat = null }) {
           <h1 className="m-0 mt-2.5 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">
             Dashboard
           </h1>
-        </div>
-
-        <div className="flex items-start gap-10 max-md:gap-7">
-          <div className="text-right">
-            <p className="m-0 text-[38px] max-md:text-[30px] font-light leading-none text-[#96c0b8]">
-              {propositions.length}
-            </p>
-            <p className="m-0 mt-2.5 text-[10.5px] tracking-[.16em] uppercase text-[#9298a6]">
-              Proposition{propositions.length > 1 ? "s" : ""}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className={`m-0 text-[38px] max-md:text-[30px] font-light leading-none ${echecs ? "text-[#e8746a]" : "text-[#3a3f4a]"}`}>
-              {echecs}
-            </p>
-            <p className="m-0 mt-2.5 text-[10.5px] tracking-[.16em] uppercase text-[#9298a6]">
-              Échec{echecs > 1 ? "s" : ""}
-            </p>
-          </div>
         </div>
       </header>
 
@@ -361,179 +179,26 @@ export default function PlanDeTravail({ chat = null }) {
 
       <div className={REGLE} />
 
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3 mb-8">
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-          <p className="m-0 text-[13.5px] text-[#6a7180]">
-            rien ne part sans votre relecture
-            {veille?.minutes ? ` · boîtes relevées toutes les ${veille.minutes} minutes` : ""}
-          </p>
-        </div>
-        <button
-          onClick={() => relever.mutate()}
-          disabled={relever.isPending}
-          className="inline-flex items-center gap-2 px-3.5 py-2 border border-[#22262d] text-[10.5px] tracking-[.16em] uppercase text-[#c9cdd6] hover:border-[#3a3f4a] disabled:opacity-40 transition-colors"
-        >
-          {relever.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-          Relever les boîtes
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="w-6 h-6 text-[#9298a6] animate-spin" />
-        </div>
-      ) : propositions.length === 0 ? (
-        <p className="m-0 py-6 text-[19px] font-light leading-[1.55] text-[#6a7180]">
-          Rien en attente. Les nouveaux mails et les relances dues apparaîtront ici.
+      {/* --- La base s'emporte : avant de déployer, on la télécharge ; après, on la ramène. --- */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <p className="m-0 text-[13.5px] text-[#6a7180]">
+          Sauvegarde de la base — emportez-la avant de déployer, ramenez-la après.
         </p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-14 gap-y-9 items-start [&>div[data-ouverte=true]]:md:col-span-2 [&>div[data-ouverte=true]]:xl:col-span-3">
-          {propositions.map((p) => {
-            const Icone = ICONES[p.type] || Inbox;
-            const teinte = TEINTES[p.priorite] || TEINTES[3];
-            const estOuverte = ouverte === p.id;
-            return (
-              <div
-                key={p.id}
-                data-ouverte={estOuverte}
-                className={`flex flex-col h-full rounded-xl border border-[#1f2228] border-l-2 ${teinte.filet} bg-[#0f1114] px-5 py-4 transition-colors`}
-              >
-                {/* La carte fermée dit la situation ; les actions se méritent
-                    d'un clic, pour ne pas transformer la pile en tableau de bord
-                    de boutons. */}
-                <button
-                  onClick={() => setOuverte(estOuverte ? null : p.id)}
-                  aria-expanded={estOuverte}
-                  className="text-left w-full group"
-                >
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <Icone className={`w-3.5 h-3.5 flex-shrink-0 ${teinte.icone}`} />
-                    <span className={`text-[10px] tracking-[.16em] uppercase ${teinte.label}`}>{teinte.libelle}</span>
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 ml-auto text-[#6a7180] transition-transform ${estOuverte ? "" : "-rotate-90"}`}
-                    />
-                  </div>
-
-                  <p className="m-0 text-[16.5px] text-[#f2f3f5] leading-snug group-hover:text-[#ffffff] transition-colors">
-                    {p.titre}
-                  </p>
-                  <p className="m-0 mt-1.5 text-[13px] text-[#9298a6] leading-[1.55]">{p.detail}</p>
-
-                  {!estOuverte && (
-                    <p className="m-0 mt-3 text-[12px] text-[#6a7180]">
-                      {p.actions.length} action{p.actions.length > 1 ? "s" : ""} proposée
-                      {p.actions.length > 1 ? "s" : ""}
-                    </p>
-                  )}
-                </button>
-
-                {estOuverte && (
-                  <div className="mt-4">
-                    {/* Sur quoi la proposition se fonde : elle doit pouvoir se
-                        discuter, pas seulement s'exécuter. */}
-                    {p.contexte?.length > 0 && (
-                      <dl className="m-0 mb-5 border-t border-[#1f2228] pt-3.5 space-y-1.5">
-                        {p.contexte.map(([cle, valeur]) => (
-                          <div key={cle} className="flex gap-4 text-[12.5px]">
-                            <dt className="text-[#6a7180] w-[130px] flex-shrink-0">{cle}</dt>
-                            <dd className="m-0 text-[#c9cdd6] min-w-0 break-words">{valeur}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      {p.actions.map((a) => {
-                        const cle = `${p.id}:${a.id}`;
-                        const occupe = enCours === cle;
-                        return (
-                          <button
-                            key={a.id}
-                            onClick={() => executer(p, a)}
-                            disabled={!!enCours}
-                            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-[10.5px] tracking-[.16em] uppercase transition-colors disabled:opacity-40
-                              ${a.principal
-                                ? "bg-[#96c0b8] text-[#000000] hover:bg-[#abd0c8]"
-                                : "border border-[#22262d] text-[#c9cdd6] hover:border-[#3a3f4a]"}`}
-                          >
-                            {occupe && <Loader2 className="w-3 h-3 animate-spin" />}
-                            {a.mode === "mail" && !occupe && <Mail className="w-3 h-3" />}
-                            {a.mode === "drive" && !occupe && <FolderPlus className="w-3 h-3" />}
-                            {a.mode === "projet" && !occupe && <Briefcase className="w-3 h-3" />}
-                            {a.mode === "tri" && !occupe && <ThumbsDown className="w-3 h-3" />}
-                            {a.mode === "externe" && !occupe && <ExternalLink className="w-3 h-3" />}
-                            {a.mode === "google" && !occupe && <KeyRound className="w-3 h-3" />}
-                            {a.libelle}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/api/admin/sauvegarde"
+            className="inline-flex items-center gap-2 px-3.5 py-2 border border-[#22262d] text-[10.5px] tracking-[.16em] uppercase text-[#c9cdd6] hover:border-[#3a3f4a] transition-colors"
+          >
+            Télécharger
+          </a>
+          <button
+            onClick={() => fichierSauvegardeRef.current?.click()}
+            className="inline-flex items-center gap-2 px-3.5 py-2 border border-[#22262d] text-[10.5px] tracking-[.16em] uppercase text-[#c9cdd6] hover:border-[#3a3f4a] transition-colors"
+          >
+            Restaurer
+          </button>
         </div>
-      )}
-
-      {/* Brouillon préparé : relu et modifiable avant tout envoi. */}
-      {brouillon && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setBrouillon(null)}>
-          <div className="w-full max-w-2xl bg-[#0f1114] border border-[#1f2228] rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div>
-                <h3 className="m-0 text-[17px] font-medium text-[#f2f3f5]">Brouillon préparé</h3>
-                <p className="m-0 mt-1 text-[12px] text-[#6a7180]">
-                  {brouillon.ia === false ? "Texte de secours (IA indisponible)" : "Rédigé par l'assistant"} — relisez avant d'envoyer.
-                </p>
-              </div>
-              <button onClick={() => setBrouillon(null)} className="text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <label className="block text-[11px] tracking-[0.14em] uppercase text-[#9298a6] mb-1.5">Destinataire</label>
-            <input
-              value={brouillon.destinataire}
-              onChange={(e) => setBrouillon({ ...brouillon, destinataire: e.target.value })}
-              placeholder="adresse@agence.fr"
-              className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#96c0b8] rounded-md px-3.5 py-2.5 text-[14px] text-[#f2f3f5] outline-none transition-colors mb-3"
-            />
-
-            <label className="block text-[11px] tracking-[0.14em] uppercase text-[#9298a6] mb-1.5">Objet</label>
-            <input
-              value={brouillon.objet}
-              onChange={(e) => setBrouillon({ ...brouillon, objet: e.target.value })}
-              className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#96c0b8] rounded-md px-3.5 py-2.5 text-[14px] text-[#f2f3f5] outline-none transition-colors mb-3"
-            />
-
-            <label className="block text-[11px] tracking-[0.14em] uppercase text-[#9298a6] mb-1.5">Message</label>
-            <textarea
-              rows={12}
-              value={brouillon.corps}
-              onChange={(e) => setBrouillon({ ...brouillon, corps: e.target.value })}
-              className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#96c0b8] rounded-md px-3.5 py-2.5 text-[13.5px] leading-[1.65] text-[#f2f3f5] outline-none resize-y transition-colors mb-5"
-            />
-
-            <div className="flex justify-end gap-2.5">
-              <button
-                onClick={() => setBrouillon(null)}
-                className="bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => envoyer.mutate()}
-                disabled={!brouillon.destinataire.trim() || !brouillon.objet.trim() || envoyer.isPending}
-                className="inline-flex items-center gap-2 text-[#0f1114] bg-[#f2f3f5] rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all"
-              >
-                {envoyer.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Envoyer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

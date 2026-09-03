@@ -302,19 +302,11 @@ function Echeances({ onBrouillon }) {
       setEnCours(null);
     }
   };
-  const tenir = useMutation({
-    mutationFn: (id) => base44.request("POST", `/api/assistant/engagements/${id}/tenu`, { body: {} }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["echeances"] });
-      queryClient.invalidateQueries({ queryKey: ["assistant-propositions"] });
-    },
-    onError: (e) => toast.error(e?.message || "Impossible"),
-  });
 
   if (isLoading) return <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Je relis les échanges…</p>;
-  const { sans_reponse = [], engagements = [], silencieux = [] } = data || {};
-  if (!sans_reponse.length && !engagements.length && !silencieux.length) {
-    return <p className="m-0 text-[13.5px] text-[#9298a6]">Rien n'attend : chaque mail a sa réponse, chaque promesse est tenue.</p>;
+  const { sans_reponse = [], silencieux = [] } = data || {};
+  if (!sans_reponse.length && !silencieux.length) {
+    return <p className="m-0 text-[13.5px] text-[#9298a6]">Rien n'attend : chaque mail a sa réponse.</p>;
   }
   const ouvrir = (dealId) => ({ libelle: "Ouvrir", onClick: () => navigate(`/Analyse?deal_id=${dealId}`) });
   return (
@@ -332,25 +324,6 @@ function Echeances({ onBrouillon }) {
                 actions={[
                   { libelle: "Relancer", principal: true, enCours: enCours === `r-${s.deal_id}`, onClick: () => rediger(s.deal_id, "relance", `r-${s.deal_id}`) },
                   ouvrir(s.deal_id),
-                ]}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-      {engagements.length > 0 && (
-        <section>
-          <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Promis</p>
-          <div className="space-y-2">
-            {engagements.map((e) => (
-              <Carte
-                key={e.id}
-                teinte={e.en_retard ? "#e8746a" : "#96c0b8"}
-                titre={<><span className="font-medium">{e.de || "Quelqu'un"}</span> doit {e.quoi}{e.echeance ? (e.en_retard ? ` — en retard de ${pluriel(e.jours_retard, "jour")}` : e.dans === 0 ? " — aujourd'hui" : ` — dans ${pluriel(e.dans, "jour")}`) : ""}.</>}
-                sous={[e.dossier, e.echeance ? `pour le ${dateCourte(e.echeance)}` : "sans date", e.source?.type === "note" || e.source?.type === "assistant" ? "noté à l'assistant" : e.source?.type === "mail_recu" ? "lu dans son mail" : null].filter(Boolean).join(" · ")}
-                actions={[
-                  { libelle: "Tenu", principal: true, enCours: tenir.isPending && tenir.variables === e.id, onClick: () => tenir.mutate(e.id) },
-                  ...(e.deal_id ? [{ libelle: "Relancer", enCours: enCours === `e-${e.id}`, onClick: () => rediger(e.deal_id, "relance", `e-${e.id}`) }, ouvrir(e.deal_id)] : []),
                 ]}
               />
             ))}

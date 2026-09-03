@@ -76,6 +76,14 @@ try {
 } catch (e) {
   console.warn('[seed] ressources :', e?.message || e);
 }
+// Le projet vitrine de la découverte : un local à 7 %, tant qu'un projet
+// réel n'est pas coché « vitrine ».
+try {
+  const { assurerProjetVitrine } = await import('./seed-vitrine.js');
+  assurerProjetVitrine();
+} catch (e) {
+  console.warn('[seed] projet vitrine :', e?.message || e);
+}
 ensureMailTemplates();
 purgeExpiredSessions();
 
@@ -821,7 +829,12 @@ const projetVitrine = ({ client_email, client_emails, admin_principal, documents
 const filtrerProjets = (user, data) => {
   if (user.role === 'admin') return data;
   if (!Array.isArray(data)) return data;
-  if (accesDe(user) === 'decouverte') return data.filter((p) => p.vitrine && !p.archived).map(projetVitrine);
+  if (accesDe(user) === 'decouverte') {
+    const vitrines = data.filter((p) => p.vitrine && !p.archived);
+    // Le projet de démonstration s'efface dès qu'un projet réel est en vitrine.
+    const reels = vitrines.filter((p) => !p.demo_vitrine);
+    return (reels.length ? reels : vitrines).map(projetVitrine);
+  }
   return data.filter(projetVisiblePar(user));
 };
 // Les comptes : l'équipe et les mandataires voient la liste, un client ne voit que lui.

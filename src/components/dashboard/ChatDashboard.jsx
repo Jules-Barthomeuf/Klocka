@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { toast } from "sonner";
 import { ArrowRight, Check, Copy, Loader2, Mic, Paperclip, Pencil, Send, Square, X } from "lucide-react";
+import { ListeRelances } from "./RelancesEnAttente";
 
 // Le chat du tableau de bord : une seule zone de saisie, cinq façons de s'en
 // servir. Ce qu'on y met décide de ce qui se passe.
@@ -22,7 +23,7 @@ import { ArrowRight, Check, Copy, Loader2, Mic, Paperclip, Pencil, Send, Square,
 
 const MODES = [
   { id: "assistant", label: "Assistant", placeholder: "Une question, une action — « quels dossiers attendent des documents ? »", bouton: "Envoyer" },
-  { id: "note", label: "Note d'appel", placeholder: "Dictez ou tapez — « J'ai eu Marc Dupont de chez Orpi, il a un local à Lyon 3e à 400 000 €… »", bouton: "Noter" },
+  { id: "note", label: "Note d'appel", placeholder: "Dictez ou tapez — « J'ai eu Marc Dupont de chez Orpi, il a un local à Lyon 3e à 400 000 €, il m'envoie les documents jeudi »", bouton: "Noter" },
   { id: "fiche", label: "Fiche", placeholder: "Collez le mail de l'agent ou le texte de l'annonce — ou déposez la fiche (PDF, image)…", bouton: "Analyser" },
   { id: "client", label: "Client — compte rendu d'appel", placeholder: "Collez ici le compte rendu Gemini de l'appel de découverte…", bouton: "Lire le compte rendu" },
   { id: "echeances", label: "Échéances", placeholder: "« Relance tous ceux qui n'ont pas répondu depuis cinq jours »", bouton: "Envoyer" },
@@ -306,11 +307,17 @@ function Echeances({ onBrouillon }) {
   if (isLoading) return <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Je relis les échanges…</p>;
   const { sans_reponse = [], silencieux = [] } = data || {};
   if (!sans_reponse.length && !silencieux.length) {
-    return <p className="m-0 text-[13.5px] text-[#9298a6]">Rien n'attend : chaque mail a sa réponse.</p>;
+    return (
+      <div className="space-y-6">
+        <ListeRelances />
+        <p className="m-0 text-[13.5px] text-[#9298a6]">Côté mails, rien n'attend : chacun a sa réponse.</p>
+      </div>
+    );
   }
   const ouvrir = (dealId) => ({ libelle: "Ouvrir", onClick: () => navigate(`/Analyse?deal_id=${dealId}`) });
   return (
     <div className="space-y-4">
+      <ListeRelances />
       {sans_reponse.length > 0 && (
         <section>
           <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Sans réponse</p>
@@ -399,6 +406,25 @@ export default function ChatDashboard() {
     onError: (e, suite) => setMessages([...suite, { role: "assistant", contenu: `Impossible : ${e?.message || "erreur"}` }]),
   });
 
+  // La note d'appel : le serveur lit la note, remplit la fiche de l'agent
+  // (prénom, date, remarques, prochaine relance) et ouvre le dossier si un
+  // bien est décrit. Pas de boucle d'outils : un seul aller-retour.
+  const noter = useMutation({
+    mutationFn: (t) => base44.request("POST", "/api/assistant/note-appel", { body: { texte: t } }),
+    onSuccess: (r, t) => {
+      setMessages((m) => [...m, { role: "assistant", contenu: r.texte || "Noté." }]);
+      queryClient.invalidateQueries({ queryKey: ["relances-agents"] });
+      queryClient.invalidateQueries({ queryKey: ["echeances"] });
+      queryClient.invalidateQueries({ queryKey: ["dossiers"] });
+      const propositions = [];
+      if (r.dossier?.lien) propositions.push({ libelle: "Ouvrir le dossier", principal: true, href: r.dossier.lien });
+      if (r.agent?.url) propositions.push({ libelle: "Fiche Monday de l'agent", externe: r.agent.url });
+      setSuites(propositions);
+      void t;
+    },
+    onError: (e) => setMessages((m) => [...m, { role: "assistant", contenu: `Impossible : ${e?.message || "erreur"}` }]),
+  });
+
   const envoyerMail = useMutation({
     mutationFn: () =>
       base44.functions.invoke("sendMail", {
@@ -480,6 +506,14 @@ export default function ChatDashboard() {
       return;
     }
     if (!t) return;
+    if (mode === "note") {
+      if (noter.isPending) return;
+      setMessages((m) => [...m, { role: "user", contenu: t }]);
+      setTexte("");
+      setSuites([]);
+      noter.mutate(t);
+      return;
+    }
     if (conversationnel) {
       if (commander.isPending) return;
       const suite = [...messages, { role: "user", contenu: t }];
@@ -511,7 +545,7 @@ export default function ChatDashboard() {
     setFichier(null);
   };
 
-  const enCours = commander.isPending || extraire.isPending || analyser.isPending;
+  const enCours = commander.isPending || noter.isPending || extraire.isPending || analyser.isPending;
 
   const corriger = (cle, valeur, unite) => {
     const v = valeur.trim();
@@ -533,14 +567,14 @@ export default function ChatDashboard() {
         <div className="mb-4 space-y-3">
           {conversationnel && messages.map((m, i) => <Message key={i} m={m} />)}
           {enCours && conversationnel && (
-            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> L'assistant s'en occupe…</p>
+            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {mode === "note" ? "Je remplis la fiche…" : "L'assistant s'en occupe…"}</p>
           )}
           {conversationnel && suites.length > 0 && !enCours && (
             <div className="flex flex-wrap gap-2">
               {suites.map((s) => (
                 <button
                   key={s.libelle}
-                  onClick={() => (s.href ? navigate(s.href) : lancer(s.texte))}
+                  onClick={() => (s.externe ? window.open(s.externe, "_blank", "noopener") : s.href ? navigate(s.href) : lancer(s.texte))}
                   className={`px-3 py-1.5 text-[10.5px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-[#96c0b8] text-[#000000] hover:bg-[#abd0c8] font-semibold" : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"}`}
                 >
                   {s.libelle}

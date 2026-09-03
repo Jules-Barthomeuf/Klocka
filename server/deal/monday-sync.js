@@ -346,7 +346,104 @@ const COL_AGENT = {
   ville: 'text0',
   entreprise: 'dropdown_mkw4w1sz',
   priorite: 'status5',
+  prenom: 'text_mm5g7dnm',
+  date: 'date_mm5034ht',
+  remarques: 'text4',
+  relance: 'date',
+  spoc: 'multiple_person_mkvez9f7',
 };
+
+const jourFr = (iso) => new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+
+/**
+ * La note d'appel, dans la fiche de l'agent : prénom, date de l'appel, ce qui
+ * a été dit dans « Remarques » (daté, au-dessus de ce qui y était), la
+ * prochaine relance dans sa case, et qui a eu l'appel en SPOC. La fiche se
+ * retrouve par l'adresse, sinon par le nom ; sinon elle naît.
+ */
+export async function noterAppelAgent({ prenom, nom, email, telephone, ville, entreprise, remarque, relance, par } = {}) {
+  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!TABLEAUX.agents) return { ignore: true, raison: "le tableau Agent immobilier n'est pas déclaré (MONDAY_BOARD_AGENTS)" };
+
+  const adresse = email ? String(email).trim().toLowerCase() : null;
+  const nomComplet = [prenom, nom].filter(Boolean).join(' ').trim() || adresse || 'Agent';
+  const lignes = await lireAvecCache(TABLEAUX.agents, 'agents');
+  const existante =
+    (adresse && lignes.find((l) => (l.colonnes[COL_AGENT.email] || '').toLowerCase() === adresse)) ||
+    lignes.find((l) => norm(l.nom) === norm(nomComplet)) ||
+    (nom && prenom && lignes.find((l) => norm(l.nom).includes(norm(nom)) && norm(l.nom).includes(norm(prenom)))) ||
+    null;
+
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const ancienne = existante?.colonnes[COL_AGENT.remarques] || '';
+  const ligne = remarque ? `[${jourFr(new Date().toISOString())}] ${String(remarque).trim()}` : null;
+  const colonnes = {
+    ...(prenom ? { [COL_AGENT.prenom]: prenom } : {}),
+    [COL_AGENT.date]: { date: aujourdhui },
+    ...(ligne ? { [COL_AGENT.remarques]: [ligne, ancienne].filter(Boolean).join('\n') } : {}),
+    ...(relance ? { [COL_AGENT.relance]: { date: relance } } : {}),
+    ...(adresse ? { email: { email: adresse, text: adresse } } : {}),
+    ...(telephone ? { phone: { phone: String(telephone).replace(/\s+/g, ''), countryShortName: 'FR' } } : {}),
+    ...(ville ? { text0: ville } : {}),
+  };
+  let entrepriseIgnoree = null;
+  if (entreprise) {
+    const connue = await libelleExistant(TABLEAUX.agents, COL_AGENT.entreprise, entreprise);
+    if (connue) colonnes[COL_AGENT.entreprise] = { labels: [connue] };
+    else entrepriseIgnoree = entreprise;
+  }
+  if (par?.email) {
+    try {
+      const { personneMonday } = await import('../monday.js');
+      const moi = await personneMonday({ email: par.email, nom: par.full_name });
+      if (moi) colonnes[COL_AGENT.spoc] = { personsAndTeams: [{ id: Number(moi.id), kind: 'person' }] };
+    } catch {
+      /* sans correspondance, la case reste telle quelle */
+    }
+  }
+
+  const r = await poserElement(TABLEAUX.agents, {
+    nom: existante?.nom || nomComplet,
+    colonnes,
+    itemId: existante?.id || null,
+    cle: adresse && !existante ? { colonne: 'email', valeur: adresse } : null,
+  });
+  cache.delete('agents');
+  return { ...r, cree: !existante, entreprise_ignoree: entrepriseIgnoree, nom: existante?.nom || nomComplet };
+}
+
+/**
+ * Tout ce qui attend une relance, lu dans le tableau des agents : la date de
+ * relance, et les remarques comme résumé. Du plus en retard au plus lointain.
+ */
+export async function relancesAgents() {
+  if (!mondayConfigure() || !TABLEAUX.agents) return [];
+  const lignes = await lireAvecCache(TABLEAUX.agents, 'agents');
+  const JOUR = 86400000;
+  const minuit = new Date();
+  minuit.setHours(0, 0, 0, 0);
+  return lignes
+    .filter((l) => l.colonnes[COL_AGENT.relance])
+    .map((l) => {
+      const relance = l.colonnes[COL_AGENT.relance];
+      const dans = Math.round((new Date(relance).getTime() - minuit.getTime()) / JOUR);
+      return {
+        id: l.id,
+        nom: l.nom,
+        prenom: l.colonnes[COL_AGENT.prenom] || '',
+        entreprise: l.colonnes[COL_AGENT.entreprise] || '',
+        email: (l.colonnes[COL_AGENT.email] || '').toLowerCase(),
+        telephone: l.colonnes[COL_AGENT.telephone] || '',
+        ville: l.colonnes[COL_AGENT.ville] || '',
+        dernier_appel: l.colonnes[COL_AGENT.date] || null,
+        relance,
+        dans,
+        remarques: l.colonnes[COL_AGENT.remarques] || '',
+        url: `https://klocka-company.monday.com/boards/${TABLEAUX.agents}/pulses/${l.id}`,
+      };
+    })
+    .sort((a, b) => a.dans - b.dans);
+}
 
 
 /** Oublier une lecture en cache — après avoir écrit, on veut relire vrai. */

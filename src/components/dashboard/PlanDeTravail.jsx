@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
+import RelancesEnAttente from "./RelancesEnAttente";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -128,6 +129,11 @@ export default function PlanDeTravail({ chat = null }) {
 
       {/* Le chat vient sous le titre : le tableau de bord se nomme d'abord. */}
       {chat && <div className="mt-10 max-md:mt-8">{chat}</div>}
+
+      <div className={REGLE} />
+
+      {/* Ce qui attend : la note d'appel écrit dans Monday, le tableau de bord relit. */}
+      <RelancesEnAttente />
 
       <div className={REGLE} />
 

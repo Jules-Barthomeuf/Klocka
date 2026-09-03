@@ -297,7 +297,7 @@ const OUTILS = [
   },
 ];
 
-async function executerOutil({ name, input }, user) {
+export async function executerOutil({ name, input }, user) {
   if (name === 'chercher_dossier') {
     const trouves = Records.list('Deal')
       .filter((d) => !d.archived && !d.test)

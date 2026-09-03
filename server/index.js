@@ -1776,6 +1776,21 @@ app.post('/api/assistant/rapports/vus', wrap(async (req, res) => {
 // Le registre des engagements : qui doit quoi, pour quand.
 // Les échéances : nos mails sans réponse, les promesses, les dossiers qui
 // dorment — les cartes du mode « Échéances » du chat du tableau de bord.
+// La note d'appel : la fiche de l'agent dans Monday (prénom, date, remarques,
+// prochaine relance), et le dossier si un bien est décrit.
+app.post('/api/assistant/note-appel', wrap(async (req, res) => {
+  const texte = String(req.body?.texte || '').trim();
+  if (!texte) return res.status(400).json({ error: 'Note vide.' });
+  const { traiterNoteAppel } = await import('./deal/appels.js');
+  ok(res, await traiterNoteAppel(texte, { user: currentUser(req) }));
+}));
+
+// Tout ce qui attend une relance, lu dans le tableau des agents.
+app.get('/api/assistant/relances', wrap(async (req, res) => {
+  const { relancesEnAttente } = await import('./deal/appels.js');
+  ok(res, await relancesEnAttente());
+}));
+
 app.get('/api/assistant/echeances', wrap(async (req, res) => {
   const { echeances } = await import('./deal/echeances.js');
   ok(res, echeances());

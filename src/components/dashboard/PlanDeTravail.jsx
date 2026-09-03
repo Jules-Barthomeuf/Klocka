@@ -131,13 +131,6 @@ export default function PlanDeTravail({ chat = null }) {
 
       <div className={REGLE} />
 
-      {veille && !veille.lecture && (
-        <p className="mb-9 text-[13.5px] text-[#96c0b8] leading-[1.65] border-l-2 border-[#96c0b8]/60 pl-5">
-          La lecture des boîtes Gmail est désactivée : passez <code>GOOGLE_GMAIL_READ=true</code> côté serveur,
-          déclarez la portée <code>gmail.readonly</code> chez Google, puis reconnectez les comptes ci-dessous.
-          Sans cela, l'assistant ne voit passer aucun mail.
-        </p>
-      )}
 
       {/* Ce que la veille a fait seule passe avant le reste : on doit le savoir
           avant de décider quoi faire. */}

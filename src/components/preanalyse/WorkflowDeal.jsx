@@ -184,10 +184,17 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
 
       {/* En-tête du dossier : nom, repères, actions */}
       {dossier && (
-        <div className="flex flex-wrap items-start justify-between gap-4 pb-1">
+        <div className="flex flex-wrap items-end justify-between gap-6 pb-6 border-b border-[#1f2228]">
           <div className="min-w-0">
+            <a
+              href="/Analyse"
+              onClick={(e) => { e.preventDefault(); window.history.length > 1 ? window.history.back() : (window.location.href = "/Analyse"); }}
+              className="inline-flex items-center gap-2 text-[13px] text-[#8f959e] hover:text-[#f2f3f5] transition-colors mb-3.5"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" /> Tous les dossiers
+            </a>
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="m-0 text-[26px] max-md:text-[21px] font-medium tracking-[-.01em] text-[#f2f3f5] truncate">
+              <h1 className="m-0 text-[34px] max-md:text-[24px] font-semibold tracking-[-.01em] text-[#f2f3f5] truncate">
                 {dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom"}
               </h1>
               {aRelancer && (
@@ -196,29 +203,28 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                 </Badge>
               )}
             </div>
-            <p className="m-0 mt-1.5 text-[12.5px] text-[#9298a6]">
+            <p className="m-0 mt-2.5 text-[13px] text-[#8f959e] flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <span className="inline-block bg-[#1a1d22] border border-[#3a3f4a] text-[#e6e8eb] font-medium px-2.5 py-px rounded-full">
+                Étape {etape} · {ETAPES[etape - 1]?.label}
+              </span>
               {[
                 `${(dossier.documents_espace || []).length} document${(dossier.documents_espace || []).length > 1 ? "s" : ""}`,
                 ETAPES[Math.max(0, (dossier.etape_max || 1) - 1)]?.label,
                 (dossier.conversations || []).length ? `${dossier.conversations.length} requête${dossier.conversations.length > 1 ? "s" : ""}` : null,
                 dossier.contact_agent_email || null,
                 !isNaN(new Date(dossier.cree_le)) ? `créé le ${new Date(dossier.cree_le).toLocaleDateString("fr-FR")}` : null,
-              ].filter(Boolean).join(" · ")}
+              ].filter(Boolean).map((x, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <span className="text-[#3a3f4a]">·</span>}
+                  <span>{x}</span>
+                </React.Fragment>
+              ))}
             </p>
           </div>
           {!apercu && (
             <div className="flex items-center gap-2.5 flex-shrink-0 max-md:flex-wrap max-md:flex-shrink max-md:justify-end">
               {dossier && (
                 <BoutonMonday dealId={dossier.deal_id} dejaPose={!!dossier.monday_item_id} />
-              )}
-              {etape < ETAPES.length && (
-                <Button
-                  onClick={() => (etape < debloquee ? setEtape(etape + 1) : passerVersEtape(etape + 1))}
-                  disabled={deblocageEnCours || abandonne}
-                  className="bg-transparent border border-[#22262d] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.06] hover:border-[#3a3f4a] h-9 text-[13px]"
-                >
-                  {deblocageEnCours ? "Passage…" : "Poursuivre"}
-                </Button>
               )}
               {debloquee > 1 && (
                 <Button
@@ -230,7 +236,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                       .catch((e) => toast.error(e?.message || "Retour impossible"));
                   }}
                   disabled={abandonne}
-                  className="bg-transparent border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] h-9 text-[13px]"
+                  className="bg-transparent border-0 text-[#8f959e] hover:text-[#f2f3f5] hover:bg-transparent h-10 px-3 text-[14px]"
                 >
                   Revenir à l'étape 1
                 </Button>
@@ -244,10 +250,19 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                     .catch((e) => toast.error(e?.message || "Abandon impossible"));
                 }}
                 disabled={abandonne || dossier.statut === "projet_cree"}
-                className="bg-transparent border border-[#22262d] text-[#9298a6] hover:text-red-300 hover:border-red-400/40 h-9 text-[13px]"
+                className="bg-transparent border-0 text-[#9aa0a8] hover:text-[#e6e8eb] hover:bg-transparent h-10 px-3 text-[14px]"
               >
                 Abandonner
               </Button>
+              {etape < ETAPES.length && (
+                <Button
+                  onClick={() => (etape < debloquee ? setEtape(etape + 1) : passerVersEtape(etape + 1))}
+                  disabled={deblocageEnCours || abandonne}
+                  className="bg-[#f2f3f5] hover:bg-[#ffffff] text-[#0b0c0e] font-semibold border-0 rounded-[10px] h-10 px-5 text-[14px]"
+                >
+                  {deblocageEnCours ? "Passage…" : "Poursuivre"}
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -287,7 +302,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
 
       {/* Étapes du dossier — libellés seuls, sans pastilles. Toujours visibles :
           on doit pouvoir changer d'étape sans refermer la table ouverte. */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-[#22262d] py-3">
+      <div className="flex flex-wrap items-center gap-x-7 gap-y-2 border-b border-[#1f2228] mt-9">
         {ETAPES.map((e) => {
           const accessible = e.n <= debloquee;
           const active = etape === e.n;
@@ -297,11 +312,11 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
               onClick={() => (accessible ? setEtape(e.n) : dossier && !deblocageEnCours && passerVersEtape(e.n))}
               disabled={!accessible && !dossier}
               title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
-              className={`relative text-[12.5px] tracking-[0.02em] pb-1.5 rounded-none transition-colors whitespace-nowrap
-                after:absolute after:left-0 after:right-0 after:bottom-0 after:h-px after:bg-[#96c0b8] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 after:ease-out
-                ${active ? "after:scale-x-100 text-[#f2f3f5]"
-                  : accessible ? "text-[#9298a6] hover:text-[#f2f3f5]"
-                  : "text-[#3a3f4a] hover:text-[#9298a6]"}`}
+              className={`relative text-[14px] pb-3 px-0.5 rounded-none transition-colors whitespace-nowrap
+                after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 after:ease-out
+                ${active ? "after:scale-x-100 text-[#f2f3f5] font-semibold"
+                  : accessible ? "text-[#8f959e] hover:text-[#c6ccd3]"
+                  : "text-[#4d545d] hover:text-[#8f959e]"}`}
             >
               {e.label}
             </button>
@@ -476,22 +491,22 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 
   if (dossier && !apercu && etapeFranchie) {
     return (
-      <div className="bg-[#000000] border border-[#1f2228] rounded-md p-6">
-        <div className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-md bg-[#f2f3f5]/[0.05] text-[#9298a6] flex items-center justify-center flex-shrink-0">
-            <Mail className="w-4 h-4" />
+      <div className="bg-[#0f1114] border border-[#1f2228] rounded-2xl px-6 py-5">
+        <div className="flex items-center gap-[18px] max-md:flex-wrap">
+          <span className="w-10 h-10 rounded-full bg-[#1a1d22] border border-[#3a3f4a] text-[#e6e8eb] flex items-center justify-center flex-shrink-0">
+            {dossier.source_mail ? <Mail className="w-4 h-4" /> : <Check className="w-4 h-4" strokeWidth={2.2} />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[#f2f3f5] text-sm font-medium">
+            <p className="m-0 text-[#f2f3f5] text-[15px] font-semibold">
               {dossier.source_mail ? "Fiche reçue par mail" : "Étape passée"}
             </p>
-            <p className="text-[#9298a6] text-xs mt-1 leading-relaxed">
+            <p className="m-0 text-[#8f959e] text-[13.5px] mt-[3px] leading-relaxed">
               {dossier.source_mail
                 ? `${dossier.source_mail.de || ""} — « ${dossier.source_mail.objet || ""} » le ${dossier.source_mail.date ? new Date(dossier.source_mail.date).toLocaleString("fr-FR") : "?"}`
                 : `La fiche « ${dossier.source?.nom_fichier || "texte collé"} » a été déposée directement, sans échange de mail préalable dans la plateforme.`}
             </p>
           </div>
-          <Button size="sm" onClick={onSuivant} className="bg-[#f2f3f5]/5 hover:bg-[#f2f3f5]/10 text-[#c9cdd6] border-0 flex-shrink-0">
+          <Button onClick={onSuivant} className="bg-[#1f2228] hover:bg-[#1f2228] border border-[#2c3139] hover:border-[#3a3f4a] text-[#f2f3f5] font-medium rounded-[10px] h-10 px-4 text-[14px] flex-shrink-0">
             Étape suivante <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </Button>
         </div>

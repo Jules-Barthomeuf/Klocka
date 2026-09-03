@@ -170,7 +170,10 @@ export default function ChatDossier({
 
       {/* Zone de saisie */}
       <div className="max-w-[880px] mx-auto">
-        <div className="bg-[#171a19] border border-[#22262d] rounded-xl px-5 pt-4 pb-3 focus-within:border-[#96c0b8]/60 transition-colors">
+        <div className="bg-[#0f1114] border border-[#22262d] rounded-[18px] px-[22px] pt-5 pb-4 shadow-[0_12px_40px_rgba(0,0,0,.35)] focus-within:border-[#3a3f4a] transition-colors">
+          <p className="m-0 mb-2.5 text-[12px] font-semibold tracking-[.08em] uppercase text-[#8f959e]">
+            {modeMail ? "Écrire à l'agent" : modePreanalyse ? "Analyser la fiche" : "Demander au dossier"}
+          </p>
           <textarea
             rows={2}
             value={texte}
@@ -178,53 +181,17 @@ export default function ChatDossier({
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer) { e.preventDefault(); lancer(); } }}
             placeholder={placeholder}
             disabled={apercu || !dossier}
-            className="w-full bg-transparent border-0 outline-none resize-none text-[15px] text-[#f2f3f5] placeholder:text-[#5a615f] disabled:opacity-50"
+            className="w-full bg-transparent border-0 outline-none resize-none text-[15px] text-[#f2f3f5] placeholder:text-[#6c737c] disabled:opacity-50"
           />
-          <div className={`flex items-center gap-3 mt-2 ${modeMail || modePreanalyse ? "justify-end" : "justify-between"}`}>
-            <button
-              onClick={() => onToutCocher?.()}
-              hidden={modeMail || modePreanalyse}
-              disabled={!documents.length}
-              title={documents.length ? "Choisir les documents interrogés" : "Aucun document importé"}
-              className="text-[12.5px] px-3.5 py-1.5 rounded-full border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-40"
-            >
-              Sources : {nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : documents.length ? "aucune" : "générales"}
-            </button>
-            <div className="flex items-center gap-2 flex-shrink-0">
-            {dicteeOk && (
-              <button
-                onClick={ecoute ? arreter : demarrer}
-                disabled={apercu || !dossier}
-                aria-label={ecoute ? "Arrêter" : "Dicter"}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30 ${
-                  ecoute
-                    ? "bg-[#e8746a] text-[#000000] shadow-[0_0_0_8px_rgba(232,116,106,.18)] animate-pulse"
-                    : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"
-                }`}
-              >
-                {ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
-            )}
-            <button
-              onClick={lancer}
-              disabled={!peutEnvoyer}
-              className="w-10 h-10 rounded-full bg-[#f2f3f5] text-[#000000] flex items-center justify-center hover:brightness-95 disabled:opacity-30 transition-all flex-shrink-0"
-              title="Envoyer"
-            >
-              {enCours ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-            </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Modes */}
-        <div className="flex flex-wrap justify-center gap-2.5 mt-4">
+          <div className="flex items-center justify-between gap-4 mt-3.5 pt-3.5 border-t border-[#22262d]">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {modePreanalyse ? (
             <>
               <button
                 onClick={() => fichierRef.current?.click()}
                 disabled={apercu || analyseEnCours}
-                className="px-4 py-2 rounded-full text-[13px] border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50"
+                className="px-3.5 py-1.5 rounded-full text-[13px] bg-[#1f2228] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50"
               >
                 Importer un fichier
               </button>
@@ -245,7 +212,7 @@ export default function ChatDossier({
                   key={g.label}
                   onClick={() => setTexte(g.prompt(dossier))}
                   disabled={apercu}
-                  className="px-4 py-2 rounded-full text-[13px] border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50"
+                  className="px-3.5 py-1.5 rounded-full text-[13px] bg-[#1f2228] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50"
                 >
                   {g.label}
                 </button>
@@ -277,6 +244,42 @@ export default function ChatDossier({
             ))}
         </div>
       </div>
+            <button
+              onClick={() => onToutCocher?.()}
+              hidden={modeMail || modePreanalyse}
+              disabled={!documents.length}
+              title={documents.length ? "Choisir les documents interrogés" : "Aucun document importé"}
+              className="text-[13px] px-3.5 py-1.5 rounded-full bg-[#1f2228] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-40"
+            >
+              Sources : {nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : documents.length ? "aucune" : "générales"}
+            </button>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+            {dicteeOk && (
+              <button
+                onClick={ecoute ? arreter : demarrer}
+                disabled={apercu || !dossier}
+                aria-label={ecoute ? "Arrêter" : "Dicter"}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30 ${
+                  ecoute
+                    ? "bg-[#e8746a] text-[#000000] shadow-[0_0_0_8px_rgba(232,116,106,.18)] animate-pulse"
+                    : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"
+                }`}
+              >
+                {ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+            )}
+            <button
+              onClick={lancer}
+              disabled={!peutEnvoyer}
+              className="w-10 h-10 rounded-full bg-[#f2f3f5] text-[#000000] flex items-center justify-center hover:brightness-95 disabled:opacity-30 transition-all flex-shrink-0"
+              title="Envoyer"
+            >
+              {enCours ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+            </button>
+            </div>
+          </div>
+        </div>
 
       {/* Requêtes récentes */}
       {afficherRequetes && !modeMail && !modePreanalyse && requetes.length > 0 && (

@@ -32,7 +32,7 @@ export default function BoutonMonday({ dealId, projetId, dejaPose = false, class
       onClick={() => envoyer.mutate()}
       disabled={envoyer.isPending}
       title={dejaPose ? "Mettre à jour la fiche Monday" : "Envoyer dans le tableau Monday « Propriétés »"}
-      className={`inline-flex items-center gap-1.5 px-3 h-9 rounded-md border border-[#22262d] text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-50 transition-colors ${className}`}
+      className={`inline-flex items-center gap-2 px-4 h-10 rounded-[10px] border border-[#2c3139] text-[14px] text-[#c6ccd3] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-50 transition-colors ${className}`}
     >
       {envoyer.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
       {dejaPose ? "Mettre à jour Monday" : "Envoyer dans Monday"}

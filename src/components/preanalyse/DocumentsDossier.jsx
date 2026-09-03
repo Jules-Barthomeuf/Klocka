@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus } from "lucide-react";
+import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus } from "lucide-react";
 
 // Les documents du dossier, en tableau : case à cocher pour les soumettre au
 // chat, nom modifiable, catégorie, type, date et taille, et un menu ⋯ par ligne.
@@ -137,13 +137,13 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
     <div className="pt-2">
       {datalist}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h3 className="m-0 text-[16px] font-medium text-[#f2f3f5]">Documents du dossier</h3>
+        <h3 className="m-0 text-[19px] font-semibold text-[#f2f3f5]">Documents du dossier</h3>
         <div className="flex items-center gap-2.5">
           <input
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher"
-            className="bg-[#0c0d10] border border-[#1f2228] focus:border-[#96c0b8]/60 rounded-md px-3.5 py-2 text-[13px] text-[#f2f3f5] outline-none placeholder:text-[#5a615f] transition-colors w-[190px]"
+            className="bg-[#0f1114] border border-[#22262d] focus:border-[#3a3f4a] rounded-[10px] px-3.5 py-2 text-[14px] text-[#f2f3f5] outline-none placeholder:text-[#6c737c] transition-colors w-[190px]"
           />
           {proposerDrive && dossier?.drive_folder_url && (
             <a
@@ -158,7 +158,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
           <button
             onClick={() => inputRef.current?.click()}
             disabled={apercu || importer.isPending || !dossier}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-[13px] border border-[#22262d] text-[#f2f3f5] hover:border-[#3a3f4a] hover:bg-[#f2f3f5]/[0.04] disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[14px] border border-[#2c3139] text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-50 transition-colors"
           >
             {importer.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Ajouter des fichiers
@@ -175,9 +175,13 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
       </div>
 
       {documents.length === 0 ? (
-        <p className="border-t border-[#15171b] py-10 text-center text-[13px] text-[#6a7180] m-0">
-          Aucun document — bail, PV d'assemblée, diagnostics, comptes du locataire : importez ce que vous avez.
-        </p>
+        <div className="mt-1 border-[1.5px] border-dashed border-[#2c3139] rounded-2xl px-6 py-11 flex flex-col items-center gap-2.5 text-center">
+          <Upload className="w-6 h-6 text-[#6c737c]" strokeWidth={1.5} />
+          <p className="m-0 text-[14.5px] font-medium text-[#b7bdc5]">Aucun document pour l'instant</p>
+          <p className="m-0 text-[13.5px] text-[#6c737c] max-w-[480px]">
+            Bail, PV d'assemblée, diagnostics, comptes du locataire : importez ce que vous avez.
+          </p>
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse min-w-[720px]">

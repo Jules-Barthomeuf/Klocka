@@ -338,6 +338,78 @@ function SceneCarte({ carte, duree }) {
 }
 
 // ---------------------------------------------------------------------------
+// Vue aérienne en 3D : quand Street View n'a pas de façade, l'orthophoto IGN
+// du bien prend la même caméra — une perspective qui contourne l'image, un
+// arrière-plan flouté qui glisse plus lentement. Le relief vient du décalage.
+// ---------------------------------------------------------------------------
+
+function SceneVueAerienne({ d, duree }) {
+  const frame = useCurrentFrame();
+  const t = interpolate(frame, [0, duree], [0, 1], clampInterp);
+  const doux = Easing.inOut(Easing.quad)(t);
+  const rotation = -8 + doux * 16;
+  const inclinaison = 14 - doux * 6;
+  const echelle = 1.18 + doux * 0.12;
+  const glissement = (0.5 - doux) * 70;
+  const opacity = interpolate(frame, [0, 14, duree - 14, duree], [0, 1, 1, 0], clampInterp);
+  const centre = mercator(d.carte.lat, d.carte.lon);
+  const titre = [d.adresse, d.commune].filter(Boolean).join(", ") || d.commune || "Le bien";
+
+  return (
+    <AbsoluteFill style={{ opacity, backgroundColor: C.fond, overflow: "hidden" }}>
+      <AbsoluteFill style={{ transform: `scale(1.6) translateX(${glissement / 2}px)`, filter: "blur(26px) brightness(0.45)" }}>
+        <CoucheTuiles centre={centre} L={17} zoomCourant={18.4} />
+      </AbsoluteFill>
+      <AbsoluteFill style={{ perspective: 1500, justifyContent: "center", alignItems: "center" }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            transform: `rotateX(${inclinaison}deg) rotateY(${rotation}deg) scale(${echelle}) translateX(${glissement}px)`,
+            transformStyle: "preserve-3d",
+            boxShadow: "0 60px 140px rgba(0,0,0,0.7)",
+            overflow: "hidden",
+          }}
+        >
+          <CoucheTuiles centre={centre} L={17} zoomCourant={18.6} />
+          {/* Le repère du bien, au centre */}
+          <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+            <div style={{ width: 26, height: 26, borderRadius: 13, background: C.menthe || "#96c0b8", boxShadow: "0 0 0 10px rgba(150,192,184,0.25), 0 0 40px rgba(0,0,0,0.6)" }} />
+          </AbsoluteFill>
+        </div>
+      </AbsoluteFill>
+      <AbsoluteFill
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(10,12,12,0.55) 0%, transparent 28%, rgba(10,12,12,0.55) 62%, rgba(10,12,12,0.97) 100%)",
+        }}
+      />
+      <AbsoluteFill style={{ fontFamily: POLICE, color: C.ivoire, justifyContent: "flex-end", padding: "0 120px 110px" }}>
+        <Montee delai={16}>
+          <Etiquette>{d.type_actif || "Opportunité"}</Etiquette>
+        </Montee>
+        <Montee delai={28} style={{ marginTop: 26 }}>
+          <div
+            style={{
+              fontSize: titre.length > 46 ? 58 : titre.length > 30 ? 72 : 86,
+              fontWeight: 300,
+              lineHeight: 1.12,
+              textShadow: "0 2px 30px rgba(0,0,0,0.95)",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {titre}
+          </div>
+        </Montee>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Devanture : la façade en mouvement 3D.
 //
 // Pas de vraie profondeur — on n'en a pas — mais une caméra qui contourne
@@ -605,8 +677,15 @@ export function construireScenes(props) {
         { duree: DUREE_CARTE, rendu: (n) => <SceneCarte carte={d.carte} duree={n} /> }
       : { duree: 150, rendu: (n) => <SceneOuverture d={d} duree={n} /> };
 
+  // Sans façade mais avec une adresse précise : après la plongée, la vue
+  // aérienne prend la caméra 3D — la vidéo ne perd pas son mouvement.
+  const aerienne = !d.devanture && d.carte && d.carte.zoom >= 17
+    ? [{ duree: 210, rendu: (n) => <SceneVueAerienne d={d} duree={n} /> }]
+    : [];
+
   return [
     ouverture,
+    ...aerienne,
     ...(d.cles ? [{ duree: 270, rendu: (n) => <SceneDonneesCles d={d} duree={n} /> }] : []),
     // Sans chiffres, le bien parle de lui-même plutôt que de laisser un vide.
     ...(d.cles ? [] : [{ duree: 210, rendu: (n) => <SceneBien d={d} duree={n} /> }]),

@@ -68,7 +68,8 @@ function obtenirBundle() {
 const CLE_MAPS = process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '';
 
 async function devantureStreetView({ lat, lon }) {
-  if (!CLE_MAPS || lat == null || lon == null) return null;
+  if (!CLE_MAPS) return { url: null, raison: 'aucune clé Google Maps (VITE_GOOGLE_MAPS_API_KEY) : pas de façade Street View' };
+  if (lat == null || lon == null) return { url: null, raison: null };
   const position = `${lat},${lon}`;
   try {
     // Les métadonnées disent si une prise de vue existe, sans consommer de quota.
@@ -78,17 +79,22 @@ async function devantureStreetView({ lat, lon }) {
     if (meta?.status !== 'OK') {
       // REQUEST_DENIED = l'API Street View Static n'est pas activée sur la clé.
       // Le teaser se rend sans façade, mais l'exploitant doit pouvoir le savoir.
-      if (meta?.status && meta.status !== 'ZERO_RESULTS') {
-        console.warn(`[video] devanture indisponible (${meta.status})${meta.error_message ? ` : ${meta.error_message}` : ''}`);
-      }
-      return null;
+      if (meta?.status === 'ZERO_RESULTS') return { url: null, raison: 'pas de prise de vue Street View à cette adresse' };
+      const raison =
+        meta?.status === 'REQUEST_DENIED'
+          ? "l'API « Street View Static » n'est pas activée sur le projet Google Cloud de la clé : la façade en 3D attend cette activation"
+          : `Street View indisponible (${meta?.status || 'sans réponse'})`;
+      console.warn(`[video] devanture indisponible (${meta?.status})${meta?.error_message ? ` : ${meta.error_message}` : ''}`);
+      return { url: null, raison };
     }
-    return (
-      `https://maps.googleapis.com/maps/api/streetview?size=1280x720&location=${position}` +
-      `&fov=75&pitch=8&source=outdoor&key=${CLE_MAPS}`
-    );
-  } catch {
-    return null;
+    return {
+      url:
+        `https://maps.googleapis.com/maps/api/streetview?size=1280x720&location=${position}` +
+        `&fov=75&pitch=8&source=outdoor&key=${CLE_MAPS}`,
+      raison: null,
+    };
+  } catch (e) {
+    return { url: null, raison: `Street View injoignable : ${e?.message || e}` };
   }
 }
 
@@ -137,7 +143,7 @@ export function lancerVideoLot(dossier, lotIndex) {
   const enCours = travaux.get(k);
   if (enCours?.etat === 'en_cours') return { ...enCours };
 
-  const travail = { etat: 'en_cours', progression: 0, url: null, erreur: null };
+  const travail = { etat: 'en_cours', progression: 0, url: null, erreur: null, avertissements: [] };
   travaux.set(k, travail);
   ecrireEtatPersiste(dossier.deal_id, lotIndex, { etat: 'en_cours', demarre_le: new Date().toISOString() });
 
@@ -150,7 +156,14 @@ export function lancerVideoLot(dossier, lotIndex) {
     const carte = await geocoderPourCarte(base);
     // La devanture se cadre sur les coordonnées du géocodage : sans adresse
     // précise, pas de façade — on ne montre pas la rue d'à côté.
-    const devanture = carte?.zoom >= 17 ? await devantureStreetView(carte) : null;
+    const facade = carte?.zoom >= 17 ? await devantureStreetView(carte) : { url: null, raison: carte ? "adresse trop imprécise pour une façade : la plongée s'arrête sur la ville" : 'bien non géolocalisé' };
+    const devanture = facade.url;
+    // Ce qui manque à la vidéo se dit : sinon on croit la 3D en panne.
+    if (facade.raison) {
+      travail.avertissements = [
+        `Façade Street View absente — ${facade.raison}.${carte?.zoom >= 17 ? ' La vidéo montre la vue aérienne IGN en 3D à la place.' : ''}`,
+      ];
+    }
     const inputProps = { ...base, ...(carte ? { carte } : {}), ...(devanture ? { devanture } : {}) };
     const composition = await selectComposition({ serveUrl, id: 'presentation-deal', inputProps });
     fs.mkdirSync(REPERTOIRE_VIDEOS, { recursive: true });
@@ -173,7 +186,7 @@ export function lancerVideoLot(dossier, lotIndex) {
     travail.etat = 'pret';
     travail.progression = 1;
     travail.url = `/uploads/videos/${fichier}`;
-    ecrireEtatPersiste(dossier.deal_id, lotIndex, { etat: 'pret' });
+    ecrireEtatPersiste(dossier.deal_id, lotIndex, { etat: 'pret', avertissements: travail.avertissements || [] });
   })().catch((e) => {
     console.error('[video] rendu échoué :', e);
     travail.etat = 'erreur';
@@ -191,7 +204,8 @@ export function statutVideo(dealId, lotIndex) {
   // Pas de travail en mémoire (redémarrage ?) mais un MP4 déjà rendu compte.
   const fichier = nomFichier(dealId, lotIndex);
   if (fs.existsSync(path.join(REPERTOIRE_VIDEOS, fichier))) {
-    return { etat: 'pret', progression: 1, url: `/uploads/videos/${fichier}`, erreur: null };
+    const persiste = lireEtatPersiste(dealId, lotIndex);
+    return { etat: 'pret', progression: 1, url: `/uploads/videos/${fichier}`, erreur: null, avertissements: persiste?.avertissements || [] };
   }
   // Ni en mémoire ni sur disque : l'état persistant dit si un rendu a été
   // interrompu (processus tué en cours de route) ou avait échoué.

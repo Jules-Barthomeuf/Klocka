@@ -1181,6 +1181,10 @@ function BlocVideoPresentation({ dossier, apercu }) {
         <p className="text-[#e8746a] text-xs">Le rendu a échoué : {statut?.erreur || "erreur inconnue"}</p>
       )}
 
+      {(statut?.avertissements || []).map((a) => (
+        <p key={a} className="m-0 text-[12px] leading-[1.6] text-[#d9b46a] border-l-2 border-[#d9b46a]/50 pl-3">{a}</p>
+      ))}
+
       {etat === "pret" && statut?.url && (
         <div className="space-y-3">
           <video

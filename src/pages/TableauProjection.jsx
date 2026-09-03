@@ -75,7 +75,7 @@ export default function TableauProjection() {
   const prixHorsDroits = prixBienNegocie - commissionAgent;
   const droitsEnregistrement = prixBienNegocie * (tauxDroitsEnregistrement / 100);
   const feesKlocka = feesKlockaType === "fixe" ? tauxFeesKlocka : prixBienNegocie * (tauxFeesKlocka / 100);
-  const incentiveKlocka = (prixBienFAI - prixBienNegocie) * (tauxIncentiveKlocka / 100);
+  const incentiveKlocka = Math.max(0, (prixBienFAI > 0 ? prixBienFAI : prixBienNegocie) - prixBienNegocie) * (tauxIncentiveKlocka / 100);
   const totalFraisKlocka = feesKlocka + incentiveKlocka;
   const fraisDivers = fraisDossierBancaire + coutCreationSociete + fraisCourtage;
   const travauxAnnee0 = travauxBailleur[0] || 0;

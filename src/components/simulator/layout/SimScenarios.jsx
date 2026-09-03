@@ -23,7 +23,7 @@ function computeScenario(params, prixNegocie) {
   } = params;
 
   const feesKlocka = feesKlockaType === "fixe" ? tauxFeesKlocka : prixNegocie * (tauxFeesKlocka / 100);
-  const incentiveKlocka = (prixBienFAI - prixNegocie) * (tauxIncentiveKlocka / 100);
+  const incentiveKlocka = Math.max(0, (prixBienFAI > 0 ? prixBienFAI : prixNegocie) - prixNegocie) * (tauxIncentiveKlocka / 100);
   const totalFraisKlocka = feesKlocka + incentiveKlocka;
   const droitsEnregistrement = prixNegocie * (tauxDroitsEnregistrement / 100);
   const fraisDivers = fraisDossierBancaire + coutCreationSociete + fraisCourtage;

@@ -40,7 +40,7 @@ export function calculerAEM({ prixFai, prixNegocie, loyerAnnuel, travaux = 0 } =
 
   const droitsEnregistrement = prixHorsDroits * ((p.taux_droits_enregistrement ?? 0) / 100);
   const feesKlocka = negocie * ((p.taux_fees_klocka ?? 0) / 100);
-  const incentiveKlocka = (prixFai - negocie) * ((p.taux_incentive_klocka ?? 0) / 100);
+  const incentiveKlocka = Math.max(0, (prixFai > 0 ? prixFai : negocie) - negocie) * ((p.taux_incentive_klocka ?? 0) / 100);
   const fraisDivers =
     (p.frais_dossier_bancaire ?? 0) + (p.cout_creation_societe ?? 0) + (p.frais_courtage ?? 0);
 

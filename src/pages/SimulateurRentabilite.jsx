@@ -151,7 +151,7 @@ export default function SimulateurRentabilite() {
     if (selectedProject && selectedProject.sim_apport) return;
     const droitsEnreg = prixBienNegocie * (tauxDroitsEnregistrement / 100);
     const feesK = feesKlockaType === "fixe" ? tauxFeesKlocka : prixBienNegocie * (tauxFeesKlocka / 100);
-    const incentiveK = (prixBienFAI - prixBienNegocie) * (tauxIncentiveKlocka / 100);
+    const incentiveK = Math.max(0, (prixBienFAI > 0 ? prixBienFAI : prixBienNegocie) - prixBienNegocie) * (tauxIncentiveKlocka / 100);
     const totalFeesK = feesK + incentiveK;
     const fraisDiv = fraisDossierBancaire + coutCreationSociete + fraisCourtage;
     const prixRevientAuto = prixBienNegocie + droitsEnreg + totalFeesK + fraisDiv;
@@ -160,9 +160,11 @@ export default function SimulateurRentabilite() {
 
   useEffect(() => {
     if (selectedProject) {
-      setPrixBienFAI(selectedProject.sim_prix_bien_fai || 327000);
+      // Sans prix FAI enregistré, le prix négocié (ou le prix d'acquisition) en
+      // tient lieu : un FAI fictif de 327 000 € faussait droits et incentive.
+      setPrixBienFAI(selectedProject.sim_prix_bien_fai || selectedProject.sim_prix_bien_negocie || selectedProject.prix_acquisition || 327000);
       setSurface(selectedProject.sim_surface || 34);
-      setPrixBienNegocie(selectedProject.sim_prix_bien_negocie || 327000);
+      setPrixBienNegocie(selectedProject.sim_prix_bien_negocie || selectedProject.sim_prix_bien_fai || selectedProject.prix_acquisition || 327000);
       setLoyerInitialHTHC(selectedProject.sim_loyer_initial_ht || 27840);
       setIndexation(selectedProject.sim_indexation_loyers || 2);
       setLoyerSoumisTVA(selectedProject.sim_loyer_soumis_tva || false);
@@ -228,7 +230,7 @@ export default function SimulateurRentabilite() {
     const prixHorsDroits = commissionAgentInclusFAI ? (prixBienNegocie - honorairesCA) : prixBienNegocie;
     const droitsEnregistrement = prixHorsDroits * (tauxDroitsEnregistrement / 100);
     const feesKlocka = feesKlockaType === "fixe" ? tauxFeesKlocka : prixBienNegocie * (tauxFeesKlocka / 100);
-    const incentiveKlocka = (prixBienFAI - prixBienNegocie) * (tauxIncentiveKlocka / 100);
+    const incentiveKlocka = Math.max(0, (prixBienFAI > 0 ? prixBienFAI : prixBienNegocie) - prixBienNegocie) * (tauxIncentiveKlocka / 100);
     const totalFraisKlocka = feesKlocka + incentiveKlocka;
     const fraisDivers = fraisDossierBancaire + coutCreationSociete + fraisCourtage;
     const travauxAnnee0 = travauxBailleur[0] || 0;

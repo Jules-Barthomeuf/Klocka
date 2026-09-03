@@ -28,7 +28,7 @@ export default function ClientProjectCard2({ project }) {
   const prixHorsDroits = commissionAgentInclusFAI ? (prixBienNegocie - honorairesCA) : prixBienNegocie;
   const droitsEnregistrement = prixHorsDroits * (tauxDroitsEnregistrement / 100);
   const feesKlocka = feesKlockaType === "fixe" ? tauxFeesKlocka : prixBienNegocie * (tauxFeesKlocka / 100);
-  const incentiveKlocka = (prixBienFAI - prixBienNegocie) * (tauxIncentiveKlocka / 100);
+  const incentiveKlocka = Math.max(0, (prixBienFAI > 0 ? prixBienFAI : prixBienNegocie) - prixBienNegocie) * (tauxIncentiveKlocka / 100);
   const totalFraisKlocka = feesKlocka + incentiveKlocka;
   const fraisDivers = (project.sim_frais_dossier_bancaire || 0) + (project.sim_cout_creation_societe || 0) + (project.sim_frais_courtage || 0);
   const prixRevient = prixBienNegocie > 0

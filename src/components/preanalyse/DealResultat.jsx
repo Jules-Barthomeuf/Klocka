@@ -48,8 +48,9 @@ export const STATUTS_DEAL = {
 // verdict ligne à ligne — une coche menthe ou une croix corail. C'est ce
 // qu'on voit en premier : le verdict global n'est que la somme de ces lignes.
 function GrilleCriteres({ lignes }) {
-  // Une valeur longue se coupe sur une ligne ; un clic la déplie. Les
-  // colonnes restent serrées : comparer, c'est lire côte à côte.
+  // La grille se lit comme un relevé : à gauche le verdict du critère, au
+  // milieu ce qu'on attend, à droite ce que le bien donne. Les critères ratés
+  // remontent en tête de chaque groupe — ce sont eux qui décident.
   const [deplies, setDeplies] = useState(() => new Set());
   if (!lignes?.length) return null;
   const groupes = [];
@@ -58,8 +59,11 @@ function GrilleCriteres({ lignes }) {
     if (g) g.lignes.push(l);
     else groupes.push({ nom: l.groupe, lignes: [l] });
   }
+  const rang = (l) => (l.ok === false ? 0 : l.ok == null ? 1 : 2);
+  for (const g of groupes) g.lignes.sort((a, b) => rang(a) - rang(b));
   const passes = lignes.filter((l) => l.ok === true).length;
   const echecs = lignes.filter((l) => l.ok === false).length;
+  const inconnus = lignes.length - passes - echecs;
   const basculer = (cle) =>
     setDeplies((s) => {
       const n = new Set(s);
@@ -67,58 +71,88 @@ function GrilleCriteres({ lignes }) {
       else n.add(cle);
       return n;
     });
+
   return (
-    <div className="border-b border-[#1f2228] px-5 py-4">
-      <div className="flex items-baseline justify-between gap-4 mb-2 max-w-[640px]">
-        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Grille de critères</p>
-        <p className="m-0 text-[12px] text-[#6a7180]">
-          <span className="text-[#96c0b8]">{passes} ✓</span>
-          <span className="mx-2">·</span>
-          <span className={echecs ? "text-[#e8746a]" : ""}>{echecs} ✗</span>
-        </p>
+    <div className="border-b border-[#1f2228] px-5 py-5">
+      {/* --- Le bilan, en une ligne ---------------------------------------- */}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div>
+          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Grille de critères</p>
+          <p className="m-0 mt-1.5 text-[15px] text-[#f2f3f5]">
+            <span className="text-[#96c0b8]">{passes} tenu{passes > 1 ? "s" : ""}</span>
+            <span className="text-[#6a7180]"> · </span>
+            <span className={echecs ? "text-[#e8746a]" : "text-[#6a7180]"}>{echecs} raté{echecs > 1 ? "s" : ""}</span>
+            {inconnus > 0 && (
+              <>
+                <span className="text-[#6a7180]"> · </span>
+                <span className="text-[#6a7180]">{inconnus} non renseigné{inconnus > 1 ? "s" : ""}</span>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="flex h-1.5 w-[220px] max-w-full overflow-hidden rounded-full bg-[#1f2228]">
+          <div className="h-full bg-[#96c0b8]" style={{ width: `${(passes / lignes.length) * 100}%` }} />
+          <div className="h-full bg-[#e8746a]" style={{ width: `${(echecs / lignes.length) * 100}%` }} />
+        </div>
       </div>
-      <table className="w-full max-w-[640px] table-fixed border-collapse">
-        <colgroup>
-          <col className="w-[44%]" />
-          <col className="w-[46%]" />
-          <col className="w-[10%]" />
-        </colgroup>
-        {groupes.map((g) => (
-          <tbody key={g.nom}>
-            <tr>
-              <td colSpan={3} className="pt-3 pb-1 text-[10px] tracking-[.16em] uppercase text-[#96c0b8]/80">
-                {g.nom}
-              </td>
-            </tr>
-            {g.lignes.map((l, i) => {
-              const cle = `${g.nom}-${l.champ}-${i}`;
-              const ouvert = deplies.has(cle);
-              return (
-                <tr key={cle} className="border-t border-[#1f2228]/70" title={l.motif || undefined}>
-                  <td className="py-1.5 pr-3 align-top">
-                    <span className="block text-[12.5px] leading-snug text-[#f2f3f5] truncate" title={l.critere}>{l.critere}</span>
-                    <span className="block text-[11px] leading-snug text-[#6a7180] truncate" title={l.attendu}>{l.attendu}</span>
-                  </td>
-                  <td
-                    onClick={() => l.valeur != null && basculer(cle)}
-                    title={l.valeur || undefined}
-                    className={`py-1.5 pr-3 align-top text-[12.5px] leading-snug ${
-                      l.valeur == null ? "text-[#6a7180] italic" : "text-[#c9cdd6] cursor-pointer"
-                    } ${ouvert ? "break-words" : "truncate"}`}
-                  >
-                    {l.valeur == null ? "non renseigné" : l.valeur}
-                  </td>
-                  <td className="py-1.5 align-top text-center">
-                    {l.ok === true && <Check className="w-4 h-4 inline text-[#96c0b8]" strokeWidth={2.5} />}
-                    {l.ok === false && <X className="w-4 h-4 inline text-[#e8746a]" strokeWidth={2.5} />}
-                    {l.ok == null && <span className="text-[#6a7180]">—</span>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        ))}
-      </table>
+
+      {/* --- Les groupes ------------------------------------------------------ */}
+      <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-6">
+        {groupes.map((g) => {
+          const ok = g.lignes.filter((l) => l.ok === true).length;
+          const ko = g.lignes.filter((l) => l.ok === false).length;
+          return (
+            <section key={g.nom} className="min-w-0">
+              <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-[#22262d]">
+                <p className="m-0 text-[10px] tracking-[.16em] uppercase text-[#96c0b8]/80">{g.nom}</p>
+                <p className="m-0 text-[11px] text-[#6a7180]">
+                  {ok}/{g.lignes.length}
+                  {ko > 0 && <span className="text-[#e8746a]"> · {ko} raté{ko > 1 ? "s" : ""}</span>}
+                </p>
+              </div>
+              <ul className="m-0 p-0 list-none">
+                {g.lignes.map((l, i) => {
+                  const cle = `${g.nom}-${l.champ}-${i}`;
+                  const ouvert = deplies.has(cle);
+                  const teinte = l.ok === true ? "#96c0b8" : l.ok === false ? "#e8746a" : "#3a3f4a";
+                  return (
+                    <li
+                      key={cle}
+                      title={l.motif || undefined}
+                      className={`flex items-start gap-3 py-2.5 border-b border-[#1f2228]/60 ${l.ok === false ? "bg-[#e8746a]/[0.04] -mx-2 px-2 rounded" : ""}`}
+                    >
+                      <span
+                        className="mt-[3px] flex h-[18px] w-[18px] flex-none items-center justify-center rounded-full"
+                        style={{ background: `${teinte}22`, color: teinte }}
+                      >
+                        {l.ok === true && <Check className="w-3 h-3" strokeWidth={3} />}
+                        {l.ok === false && <X className="w-3 h-3" strokeWidth={3} />}
+                        {l.ok == null && <span className="text-[10px] leading-none">?</span>}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 text-[13px] leading-snug text-[#f2f3f5]">{l.critere}</p>
+                        {l.attendu && <p className="m-0 mt-0.5 text-[11px] leading-snug text-[#6a7180]">attendu : {l.attendu}</p>}
+                        {l.ok === false && l.motif && <p className="m-0 mt-0.5 text-[11px] leading-snug text-[#e8746a]/80">{l.motif}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => l.valeur != null && basculer(cle)}
+                        title={l.valeur || undefined}
+                        className={`max-w-[46%] flex-none text-right text-[13px] leading-snug ${
+                          l.valeur == null ? "text-[#6a7180] italic" : "text-[#c9cdd6]"
+                        } ${ouvert ? "whitespace-normal break-words" : "truncate"}`}
+                        style={{ fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {l.valeur == null ? "non renseigné" : l.valeur}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }

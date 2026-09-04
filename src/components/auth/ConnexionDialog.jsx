@@ -50,6 +50,9 @@ export function ConnexionPanel({ invitation = null } = {}) {
   const [renvoiDans, setRenvoiDans] = useState(0);
   // La connexion Google n'est proposée que si le serveur est configuré pour.
   const [googleDispo, setGoogleDispo] = useState(false);
+  // Les comptes se créent sur invitation ; l'inscription libre n'est proposée
+  // que si le serveur la rouvre (INSCRIPTION_LIBRE=1).
+  const [inscriptionLibre, setInscriptionLibre] = useState(false);
   const champMotDePasse = useRef(null);
   const champCode = useRef(null);
   // Cette fenêtre veut son propre compte : la session ira dans la fenêtre,
@@ -60,7 +63,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
     let vivant = true;
     base44
       .request("GET", "/api/health")
-      .then((r) => vivant && setGoogleDispo(!!r?.google))
+      .then((r) => { if (vivant) { setGoogleDispo(!!r?.google); setInscriptionLibre(!!r?.inscription_libre); } })
       .catch(() => {});
     return () => {
       vivant = false;
@@ -223,7 +226,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
         {/* Étape 1 — adresse */}
         {etape === ETAPES.EMAIL && (
           <form onSubmit={verifierEmail} className="space-y-4">
-            <EnTete icone={Mail} titre="Connexion" sousTitre={enFenetre ? "Cette fenêtre est indépendante : votre autre compte reste connecté dans les autres." : "Saisissez votre adresse professionnelle."} />
+            <EnTete icone={Mail} titre="Connexion" sousTitre={enFenetre ? "Cette fenêtre est indépendante : votre autre compte reste connecté dans les autres." : "Saisissez l'adresse de votre invitation."} />
             <div>
               <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Adresse email</Label>
               <Input type="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.fr" className={CHAMP} />
@@ -239,12 +242,16 @@ export function ConnexionPanel({ invitation = null } = {}) {
                 <BoutonGoogle libelle="Continuer avec Google" />
               </>
             )}
-            <p className="text-[12px] text-[#6a7180] text-center pt-1 mb-0">
-              Pas encore client ?{" "}
-              <button type="button" onClick={ouvrirInscription} className="text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
-                Créez un compte
-              </button>
-            </p>
+            {inscriptionLibre ? (
+              <p className="text-[12px] text-[#6a7180] text-center pt-1 mb-0">
+                Pas encore client ?{" "}
+                <button type="button" onClick={ouvrirInscription} className="text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
+                  Créez un compte
+                </button>
+              </p>
+            ) : (
+              <p className="text-[12px] text-[#6a7180] text-center pt-1 mb-0">Les accès se créent sur invitation.</p>
+            )}
           </form>
         )}
 
@@ -404,8 +411,8 @@ export function ConnexionPanel({ invitation = null } = {}) {
           <div className="space-y-4">
             <EnTete icone={AlertCircle} titre="Adresse non reconnue" sousTitre={email} />
             <p className="text-[#9298a6] text-sm leading-relaxed">
-              Cette adresse ne correspond à aucun compte, et les inscriptions sont momentanément fermées. Vérifiez la
-              saisie, ou rapprochez-vous de votre interlocuteur Klocka.
+              Cette adresse n'a pas d'accès Klocka. Les comptes se créent sur invitation : vérifiez la saisie, ou
+              rapprochez-vous de votre conseiller — il vous enverra votre lien.
             </p>
             <BoutonRetour onClick={reinitialiser} libelle="Essayer une autre adresse" />
           </div>

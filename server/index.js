@@ -19,6 +19,8 @@ import { fileURLToPath } from 'url';
 import { Records, Meta, CHEMIN_UPLOADS, infoStockage } from './db.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
 import { accesDe, ACCES, changerAcces, migrerComptesEnAttente } from './clients-acces.js';
+// Les comptes se créent sur invitation. INSCRIPTION_LIBRE=1 rouvre la porte.
+const INSCRIPTION_LIBRE = /^(1|true|oui)$/i.test(String(process.env.INSCRIPTION_LIBRE || ''));
 import { restaurerSeedSiNecessaire } from './seed-donnees.js';
 import { invokeLLM, llmEnabled, llmStatus } from './llm.js';
 import { sendEmail, sendSMS, listAccounts } from './email.js';
@@ -261,8 +263,8 @@ app.post('/api/auth/verifier-email', wrap(async (req, res) => {
     if (amorcagePossible(email)) {
       return ok(res, { connu: true, email, prenom: null, role: 'admin', mot_de_passe_defini: false });
     }
-    // Inconnue : la porte de l'inscription, avec ce qui est ouvert.
-    return ok(res, { connu: false, inscription: { google: googleEnabled, email: true } });
+    // Inconnue : sur invitation seulement — sauf si l'inscription libre est rouverte.
+    return ok(res, INSCRIPTION_LIBRE ? { connu: false, inscription: { google: googleEnabled, email: true } } : { connu: false });
   }
   // Un compte découverte né par Google, sans mot de passe : il se prouve par
   // un code, pas par sa seule adresse.
@@ -334,6 +336,10 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
 
 app.post('/api/auth/inscription/code', wrap(async (req, res) => {
   const { demanderCode } = await import('./inscription.js');
+  // Un compte né par Google peut toujours se choisir un mot de passe par code ;
+  // une adresse inconnue, non : les comptes se créent sur invitation.
+  const connu = Records.filter('User', { email: normEmail(req.body?.email) })[0];
+  if (!INSCRIPTION_LIBRE && !connu) return res.status(403).json({ error: 'Les comptes Klocka se créent sur invitation : rapprochez-vous de votre conseiller.' });
   const r = await demanderCode({ email: req.body?.email, full_name: req.body?.full_name, ip: ipDe(req) });
   if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
   ok(res, { envoye: !!r.envoye, sans_code: !!r.sans_code, expire_le: r.expire_le });
@@ -341,6 +347,8 @@ app.post('/api/auth/inscription/code', wrap(async (req, res) => {
 
 app.post('/api/auth/inscription/confirmer', wrap(async (req, res) => {
   const { confirmerInscription } = await import('./inscription.js');
+  const connu = Records.filter('User', { email: normEmail(req.body?.email) })[0];
+  if (!INSCRIPTION_LIBRE && !connu) return res.status(403).json({ error: 'Les comptes Klocka se créent sur invitation : rapprochez-vous de votre conseiller.' });
   const r = await confirmerInscription({
     email: req.body?.email,
     code: req.body?.code,
@@ -574,17 +582,18 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
     // librement. Seuls l'amorçage (toute première personne) et l'adresse
     // administrateur déclarée entrent sans avoir été enregistrés au préalable.
     const amorcage = Records.count('User') === 0 || emailGoogle === normEmail(ADMIN_EMAIL);
-    if (!amorcage) {
-      // Inscription libre : le compte naît en découverte, l'identité vient de
-      // Google — rien d'autre à prouver.
+    if (!amorcage && INSCRIPTION_LIBRE) {
+      // Inscription libre (fermée par défaut) : le compte naît en découverte,
+      // l'identité vient de Google — rien d'autre à prouver.
       const { creerCompteDecouverte } = await import('./inscription.js');
       user = creerCompteDecouverte({ email: emailGoogle, full_name: profile.name, picture: profile.picture, via: 'google' });
     }
-    if (false) {
+    if (!amorcage && !INSCRIPTION_LIBRE) {
+      console.log(`[auth] refusé, adresse sans invitation : ${emailGoogle}`);
       return authResultPage(res, {
         ok: false,
         title: 'Adresse non reconnue',
-        detail: `${profile.email} ne correspond à aucun compte Klocka. Les accès sont créés par Klocka : vérifiez le compte Google choisi, ou rapprochez-vous de votre interlocuteur.`,
+        detail: `${profile.email} n'a pas d'accès Klocka. Les comptes se créent sur invitation : rapprochez-vous de votre conseiller, il vous enverra votre lien.`,
       });
     }
     if (!user) {
@@ -2126,6 +2135,7 @@ app.get('/api/health', (req, res) => {
     hebergeur: process.env.RENDER ? 'render' : null,
     ia: llmStatus().label,
     google: googleEnabled,
+    inscription_libre: INSCRIPTION_LIBRE,
     comptes_google: listAccounts().length,
   });
 });

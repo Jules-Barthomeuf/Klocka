@@ -52,6 +52,23 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
           className="w-full bg-[#0f1114] border border-[#1f2228] focus:border-[#96c0b8] rounded-md pl-9 pr-3 py-2 text-[14px] text-[#f2f3f5] outline-none"
         />
       </div>
+      {/* Tout, d'un clic — sur ce que la recherche montre, pas au-delà. */}
+      {elements.length > 1 && (() => {
+        const tousCoches = elements.every((el) => coches.has(el.cle));
+        const nb = elements.filter((el) => coches.has(el.cle)).length;
+        return (
+          <div className="flex items-center justify-between gap-3 px-1 py-2 border-b border-[#f2f3f5]/[0.08]">
+            <span className="text-[12px] text-[#6a7180]">{nb} sur {elements.length} sélectionné{nb > 1 ? "s" : ""}</span>
+            <button
+              type="button"
+              onClick={() => elements.forEach((el) => { if (coches.has(el.cle) === tousCoches) basculer(el.cle); })}
+              className="text-[11px] tracking-[.14em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors"
+            >
+              {tousCoches ? "Tout désélectionner" : recherche ? "Sélectionner les résultats" : "Tout sélectionner"}
+            </button>
+          </div>
+        );
+      })()}
       <div className="max-h-[50vh] overflow-y-auto border-b border-[#f2f3f5]/[0.08]">
         {elements.length === 0 ? (
           <p className="m-0 py-6 text-center text-[13px] text-[#6a7180]">{vide}</p>

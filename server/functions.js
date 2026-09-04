@@ -177,14 +177,17 @@ export const functions = {
     await sendEmail({
       owner: user?.email,
       to: recipient,
-      subject: 'Klocka — un nouveau projet vous a été attribué sur votre espace 🚀',
+      subject: 'Klocka - Un nouveau projet vous a été attribué dans votre espace 🚀',
       body: `Bonjour${prenom ? ` ${prenom}` : ''},
 
-Bonne nouvelle : un nouveau projet vient de vous être attribué sur la plateforme Klocka. Découvrez-le dès maintenant en cliquant sur ce lien :
+Bonne nouvelle ! Un nouveau projet vient de vous être attribué.
+
+Découvrez-le sans plus attendre sur notre plateforme Klocka :
 
 ${lien}
 
 À très vite,
+
 ${user?.full_name?.split(' ')[0] || 'Klocka'}`,
     });
     return { success: true, projet: projectTitle || projectId };

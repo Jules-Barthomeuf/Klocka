@@ -28,6 +28,7 @@ const PAGES_CLIENT = new Set([
   'SimulateurRentabilite', 'TableauProjection', 'Ressources', 'Vision', 'Comparateur',
   'KlockAI', 'MonCompte', 'Feedback', 'Famille', 'Familles',
 ]);
+const PAGES_CLIENT_MIN = new Set([...PAGES_CLIENT].map((p) => p.toLowerCase()));
 import Portail2Fois from '@/pages/Portail2Fois';
 import SimulateurPublic from '@/pages/SimulateurPublic';
 import ProjetPublic from '@/pages/ProjetPublic';
@@ -122,11 +123,13 @@ const AuthenticatedApp = () => {
   // pas en tapant leur adresse : le serveur refuse déjà leurs données, mais
   // une coquille vide en dit encore trop. Seuls les admins ont le choix de vue.
   if (isAuthenticated && !isLoadingUser && currentUser && currentUser.role !== 'admin') {
-    const page = location.pathname.replace(/^\/+|\/+$/g, '');
+    // Les liens de la barre latérale sont en minuscules (createPageUrl), les
+    // routes acceptent les deux : la garde compare sans tenir compte de la casse.
+    const page = location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
     const autorisee =
       page === '' ||
-      PAGES_CLIENT.has(page) ||
-      (currentUser.role === 'mandataire' && page.startsWith('Mandataire'));
+      PAGES_CLIENT_MIN.has(page) ||
+      (currentUser.role === 'mandataire' && page.startsWith('mandataire'));
     if (!autorisee) return <Navigate to="/Dashboard" replace />;
   }
 

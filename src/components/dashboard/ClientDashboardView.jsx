@@ -7,7 +7,6 @@ import {
   Calculator, TrendingUp, Scale, Building2, MapPin, ArrowUpRight, Search
 } from "lucide-react";
 import DashboardProjectCard from "./DashboardProjectCard";
-import RendezVousStrategique from "@/components/dashboard/RendezVousStrategique";
 import DashboardProfileCard from "./DashboardProfileCard";
 import DashboardStrategyCard from "./DashboardStrategyCard";
 import DashboardSuggestedResources from "./DashboardSuggestedResources";
@@ -134,9 +133,8 @@ export default function ClientDashboardView({
           <StepProgressBar etapes={etapes} userEtape={userEtape} />
         </motion.div>
 
-        {/* Étape 1 — le rendez-vous d'abord, l'acculturation ensuite et sans
-            obligation. La fenêtre le dit à l'arrivée ; les cartes le redisent. */}
-        {userEtape === 1 && <RendezVousStrategique user={user} />}
+        {/* Étape 1 — les cartes disent le rendez-vous et l'acculturation ;
+            aucune fenêtre ne s'impose à l'arrivée. */}
         {userEtape === 1 && (
           <div className="space-y-4 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

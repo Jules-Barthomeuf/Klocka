@@ -145,8 +145,10 @@ function LayoutContent({ children, currentPageName }) {
   const navigate = useNavigate();
   const user = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [sidebarPinned, setSidebarPinned] = useState(() => localStorage.getItem('sidebarPinned') === 'true');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebarPinned') !== 'true');
+  // La barre latérale est ouverte par défaut ; elle ne se replie que si on
+  // l'a explicitement détachée.
+  const [sidebarPinned, setSidebarPinned] = useState(() => localStorage.getItem('sidebarPinned') !== 'false');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebarPinned') === 'false');
   const [previewClientMode, setPreviewClientMode] = useState(() => localStorage.getItem('previewClientMode') === 'true');
   const [autreOpen, setAutreOpen] = useState(false);
   const isChildPage = CHILD_PAGES.includes(currentPageName);

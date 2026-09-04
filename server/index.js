@@ -81,6 +81,24 @@ try {
 } catch (e) {
   console.warn('[acces] migration :', e?.message || e);
 }
+// Les comptes importés jamais activés reviennent en attente d'activation
+// (étape 0), comme avant : c'est de là qu'on les invite, et l'invitation les
+// active. Ne touche qu'aux comptes que la migration découverte avait déplacés.
+try {
+  if (!Meta.get('migration_acces_v3')) {
+    let n = 0;
+    for (const u of Records.list('User')) {
+      if (u.role !== 'admin' && u.inscription_via === 'import' && !u.mot_de_passe) {
+        Records.update('User', u.id, { etape_actuelle: 0, inscrit_le: null, inscription_via: null, acces: null });
+        n += 1;
+      }
+    }
+    Meta.set('migration_acces_v3', `${n} le ${new Date().toISOString()}`);
+    if (n) console.log(`[acces] ${n} compte(s) importé(s) remis en attente d'activation`);
+  }
+} catch (e) {
+  console.warn('[acces] migration v3 :', e?.message || e);
+}
 // Les ressources voyagent avec le code : sur une base neuve (déploiement sans
 // disque persistant), elles se réimportent depuis server/ressources-seed.json.
 try {

@@ -83,8 +83,9 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
   const [edition, setEdition] = useState(null); // { index, champ }
   // Ligne dont la source est ouverte dans la visionneuse, à droite.
   const [ligneOuverte, setLigneOuverte] = useState(null);
-  // La table complète se déplie : le relevé sert à corriger, pas à décider.
-  const [tableOuverte, setTableOuverte] = useState(false);
+  // Le relevé est là dès l'ouverture — c'est lui qu'on vient lire ; la revue
+  // des points à regarder le précède, elle ne le remplace pas.
+  const [tableOuverte, setTableOuverte] = useState(true);
 
   // Une analyse ratée se relance sur le même document.
   const reessayer = useMutation({
@@ -162,7 +163,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
         </div>
       )}
 
-      {extraction.synthese && (
+      {extraction.synthese && !(vigilances.length + aVerifier.length) && (
         <p className="m-0 mb-5 text-[13.5px] leading-[1.7] text-[#b5b5bd] border-l-2 border-[#1e1e22] pl-4">{extraction.synthese}</p>
       )}
 
@@ -172,7 +173,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
           className="inline-flex items-center gap-2 text-[13px] text-[#8f959e] hover:text-[#f2f3f5] transition-colors"
         >
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${tableOuverte ? "" : "-rotate-90"}`} />
-          Toutes les lignes ({(extraction.lignes || []).length})
+          Données extraites ({(extraction.lignes || []).length})
         </button>
         <div className={`flex items-center gap-2.5 ${tableOuverte ? "" : "hidden"}`}>
           <input
@@ -308,6 +309,16 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
   );
 }
 
+// Le modèle redit parfois le constat dans le commentaire : on ne l'écrit
+// qu'une fois. Comparaison à la ponctuation et aux accents près.
+const aplati = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const memeTexte = (a, b) => {
+  const x = aplati(a);
+  const y = aplati(b);
+  if (!x || !y) return false;
+  return x === y || (x.length > 24 && (y.includes(x) || x.includes(y)));
+};
+
 // Une colonne de la revue : le point, ce que dit le document, ce qu'on en
 // pense. Au-delà de deux points, le reste se déplie.
 function Colonne({ titre, teinte, lignes, onOuvrir }) {
@@ -327,7 +338,7 @@ function Colonne({ titre, teinte, lignes, onOuvrir }) {
         >
           <span className="text-[16px] font-semibold text-[#f2f3f5] group-hover:text-[#ffffff] transition-colors">{l.element}</span>
           {l.constat && <span className="text-[14px] leading-[1.65] text-[#b5b5bd]">{l.constat}</span>}
-          {l.commentaire && (
+          {l.commentaire && !memeTexte(l.commentaire, l.constat) && (
             <span className="text-[13.5px] leading-[1.6]" style={{ color: teinte === "#e8927c" ? "#e8b04c" : teinte }}>→ {l.commentaire}</span>
           )}
         </button>

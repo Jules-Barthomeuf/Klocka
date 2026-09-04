@@ -186,13 +186,6 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
       {dossier && (
         <div className="flex flex-wrap items-end justify-between gap-6 pb-6 border-b border-[#1f2228]">
           <div className="min-w-0">
-            <a
-              href="/Analyse"
-              onClick={(e) => { e.preventDefault(); window.history.length > 1 ? window.history.back() : (window.location.href = "/Analyse"); }}
-              className="inline-flex items-center gap-2 text-[13px] text-[#8f959e] hover:text-[#f2f3f5] transition-colors mb-3.5"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" /> Tous les dossiers
-            </a>
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="m-0 text-[34px] max-md:text-[24px] font-semibold tracking-[-.01em] text-[#f2f3f5] truncate">
                 {dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom"}

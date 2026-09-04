@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2, X } from "lucide-react";
+import { ChevronDown, Loader2, X } from "lucide-react";
 import DocumentsDossier from "./DocumentsDossier";
 import SimulateurAnalyse from "./SimulateurAnalyse";
 import DonneesExtraites from "./DonneesExtraites";
@@ -83,6 +83,8 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
   const [edition, setEdition] = useState(null); // { index, champ }
   // Ligne dont la source est ouverte dans la visionneuse, à droite.
   const [ligneOuverte, setLigneOuverte] = useState(null);
+  // La table complète se déplie : le relevé sert à corriger, pas à décider.
+  const [tableOuverte, setTableOuverte] = useState(false);
 
   // Une analyse ratée se relance sur le même document.
   const reessayer = useMutation({
@@ -126,11 +128,53 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
     );
   }
 
+  const vigilances = (extraction.lignes || []).map((l, index) => ({ ...l, index })).filter((l) => l.statut === "Point de vigilance");
+  const aVerifier = (extraction.lignes || []).map((l, index) => ({ ...l, index })).filter((l) => l.statut === "À vérifier");
+  const renseignees = (extraction.lignes || []).filter((l) => l.constat).length;
+
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <div />
-        <div className="flex items-center gap-2.5">
+      {/* --- L'analyse en tête : ce qu'elle est, ce qu'elle a trouvé --------- */}
+      <div className="flex flex-wrap items-baseline justify-between gap-4 pb-5 border-b border-[#1e1e22]">
+        <div className="min-w-0">
+          <h3 className="m-0 text-[26px] max-md:text-[21px] font-bold tracking-[-.015em] text-[#f2f3f5]">{nomOnglet(extraction)}</h3>
+          <p className="m-0 mt-1 text-[13px] text-[#77777e]">
+            {[
+              `${renseignees}/${(extraction.lignes || []).length} points relevés`,
+              extraction.extrait_par,
+              extraction.extrait_le ? ilYA(extraction.extrait_le) : null,
+            ].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        <div className="flex items-center gap-5 text-[13px] flex-shrink-0">
+          {vigilances.length > 0 && <span className="font-semibold text-[#e8927c]">{vigilances.length} vigilance{vigilances.length > 1 ? "s" : ""}</span>}
+          {aVerifier.length > 0 && <span className="font-semibold text-[#8fb6e8]">{aVerifier.length} à vérifier</span>}
+          {!vigilances.length && !aVerifier.length && <span className="text-[#7fd1a8] font-semibold">Rien à signaler</span>}
+        </div>
+      </div>
+
+      {/* --- Ce qui décide, en deux colonnes -------------------------------- */}
+      {(vigilances.length > 0 || aVerifier.length > 0) && (
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-x-8 gap-y-8 py-7">
+          <Colonne titre="Points de vigilance" teinte="#e8927c" lignes={vigilances} onOuvrir={setLigneOuverte} />
+          <div className="hidden xl:block w-px h-full bg-[#1e1e22]" />
+          <Colonne titre="À vérifier" teinte="#8fb6e8" lignes={aVerifier} onOuvrir={setLigneOuverte} />
+        </div>
+      )}
+
+      {extraction.synthese && (
+        <p className="m-0 mb-5 text-[13.5px] leading-[1.7] text-[#b5b5bd] border-l-2 border-[#1e1e22] pl-4">{extraction.synthese}</p>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pt-1">
+        <button
+          onClick={() => setTableOuverte((v) => !v)}
+          className="inline-flex items-center gap-2 text-[13px] text-[#8f959e] hover:text-[#f2f3f5] transition-colors"
+        >
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${tableOuverte ? "" : "-rotate-90"}`} />
+          Toutes les lignes ({(extraction.lignes || []).length})
+        </button>
+        <div className={`flex items-center gap-2.5 ${tableOuverte ? "" : "hidden"}`}>
           <input
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
@@ -147,7 +191,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
         <p className="m-0 mb-4 text-[13.5px] leading-[1.7] text-[#c9cdd6] border-l-2 border-[#22262d] pl-4">{extraction.synthese}</p>
       )}
 
-      <div className={ligneOuverte ? "grid lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] gap-5 items-start" : ""}>
+      <div className={`${tableOuverte || ligneOuverte ? "" : "hidden"} ${ligneOuverte ? "grid lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] gap-5 items-start" : ""}`}>
       <div className="overflow-x-auto min-w-0">
         <table
           className={`w-full border-collapse ${ligneOuverte ? "min-w-[560px]" : "min-w-[860px]"}
@@ -264,6 +308,49 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
   );
 }
 
+// Une colonne de la revue : le point, ce que dit le document, ce qu'on en
+// pense. Au-delà de deux points, le reste se déplie.
+function Colonne({ titre, teinte, lignes, onOuvrir }) {
+  const [tout, setTout] = useState(false);
+  if (!lignes.length) return <div />;
+  const montres = tout ? lignes : lignes.slice(0, 2);
+  const reste = lignes.length - montres.length;
+  return (
+    <section className="min-w-0 flex flex-col gap-6">
+      <p className="m-0 text-[12px] tracking-[.16em] uppercase font-semibold" style={{ color: teinte }}>{titre}</p>
+      {montres.map((l) => (
+        <button
+          key={l.index}
+          onClick={() => onOuvrir?.(l)}
+          title={l.page ? `Ouvrir le document page ${l.page}` : undefined}
+          className="text-left flex flex-col gap-2 group"
+        >
+          <span className="text-[16px] font-semibold text-[#f2f3f5] group-hover:text-[#ffffff] transition-colors">{l.element}</span>
+          {l.constat && <span className="text-[14px] leading-[1.65] text-[#b5b5bd]">{l.constat}</span>}
+          {l.commentaire && (
+            <span className="text-[13.5px] leading-[1.6]" style={{ color: teinte === "#e8927c" ? "#e8b04c" : teinte }}>→ {l.commentaire}</span>
+          )}
+        </button>
+      ))}
+      {reste > 0 && (
+        <button onClick={() => setTout(true)} className="text-left text-[13px] text-[#6c6c74] hover:text-[#b5b5bd] transition-colors">
+          + {reste} autre{reste > 1 ? "s" : ""} point{reste > 1 ? "s" : ""}
+        </button>
+      )}
+    </section>
+  );
+}
+
+// Depuis quand : « il y a 18 h », « il y a 3 j ».
+function ilYA(iso) {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!isFinite(ms) || ms < 0) return "";
+  const h = Math.round(ms / 3600000);
+  if (h < 1) return "à l'instant";
+  if (h < 48) return `il y a ${h} h`;
+  return `il y a ${Math.round(h / 24)} j`;
+}
+
 // L'onglet d'une analyse porte la nature du document, pas son nom de fichier.
 const LIBELLE_TYPE = {
   bail: "bail",
@@ -305,63 +392,67 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
 
   return (
     <div>
-      {/* Onglets : Documents, un par document extrait, puis le simulateur */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[#22262d] mb-4">
-          <button
-            onClick={() => setOnglet("documents")}
-            className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "documents" ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}
-          >
-            Documents
-          </button>
-
-          {/* Deuxième onglet : le simulateur, avant les analyses. */}
-          <button
-            onClick={() => setOnglet("simulateur")}
-            className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "simulateur" ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}
-          >
-            Simulateur
-          </button>
-
-          {/* Dès qu'un document est extrait : ce qui ira dans la fiche projet. */}
+      {/* --- À gauche les analyses, à droite celle qu'on lit ------------- */}
+      <div className="flex max-lg:flex-col gap-0 border border-[#1e1e22] rounded-[18px] overflow-hidden bg-[#0f0f11]">
+        <nav className="w-[264px] max-lg:w-full flex-none border-r max-lg:border-r-0 max-lg:border-b border-[#1e1e22] py-5 flex flex-col">
           {extractions.length > 0 && (
+            <>
+              <p className="m-0 px-6 pb-3 text-[11px] tracking-[.16em] uppercase text-[#5f5f66]">Analyses</p>
+              {extractions.map((e) => {
+                const choisi = onglet === e.id;
+                const total = (e.lignes || []).length;
+                const faites = (e.lignes || []).filter((l) => l.constat).length;
+                const complet = total > 0 && faites === total;
+                return renommage?.id === e.id ? (
+                  <input
+                    key={e.id}
+                    autoFocus
+                    defaultValue={renommage.titre}
+                    onBlur={(ev) => renommer.mutate({ id: e.id, titre: ev.target.value })}
+                    onKeyDown={(ev) => { if (ev.key === "Enter") ev.currentTarget.blur(); if (ev.key === "Escape") setRenommage(null); }}
+                    className="mx-6 my-1 bg-[#0c0d10] border border-[#96c0b8] rounded px-2 py-1 text-[14px] text-[#f2f3f5] outline-none"
+                  />
+                ) : (
+                  <button
+                    key={e.id}
+                    onClick={() => (choisi ? setRenommage({ id: e.id, titre: nomOnglet(e) }) : setOnglet(e.id))}
+                    onDoubleClick={() => setRenommage({ id: e.id, titre: nomOnglet(e) })}
+                    title={choisi ? "Cliquer pour renommer" : e.document_nom}
+                    className={`w-full text-left px-6 py-2.5 border-l-2 flex items-baseline justify-between gap-3 transition-colors ${
+                      choisi ? "border-[#e8927c] bg-[#e8927c]/[0.05] text-[#f2f3f5]" : "border-transparent text-[#97979f] hover:text-[#f2f3f5]"
+                    }`}
+                  >
+                    <span className={`text-[14px] truncate ${choisi ? "font-semibold" : ""}`}>{nomOnglet(e)}</span>
+                    <span
+                      className="text-[11px] flex-none tabular-nums"
+                      style={{ color: e.erreur ? "#e8746a" : complet ? "#7fd1a8" : "#e8b04c" }}
+                    >
+                      {e.erreur ? "⚠" : `${faites}/${total}`}
+                    </span>
+                  </button>
+                );
+              })}
+              <div className="h-px bg-[#1e1e22] mx-6 my-3.5" />
+            </>
+          )}
+          {[
+            ["documents", "Documents"],
+            ...(extractions.length ? [["donnees", "Données extraites"]] : []),
+            ["simulateur", "Simulateur"],
+          ].map(([id, libelle]) => (
             <button
-              onClick={() => setOnglet("donnees")}
-              title="Ce que l'extraction remplira dans le projet"
-              className={`text-[12.5px] pb-2 border-b-2 -mb-px transition-colors ${onglet === "donnees" ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}
+              key={id}
+              onClick={() => setOnglet(id)}
+              className={`w-full text-left px-6 py-2.5 border-l-2 text-[14px] transition-colors ${
+                onglet === id ? "border-[#e8927c] bg-[#e8927c]/[0.05] text-[#f2f3f5] font-semibold" : "border-transparent text-[#97979f] hover:text-[#f2f3f5]"
+              }`}
             >
-              Données extraites
+              {libelle}
             </button>
-          )}
+          ))}
+        </nav>
 
-          {extractions.map((e) =>
-            renommage?.id === e.id ? (
-              <input
-                key={e.id}
-                autoFocus
-                defaultValue={renommage.titre}
-                onBlur={(ev) => renommer.mutate({ id: e.id, titre: ev.target.value })}
-                onKeyDown={(ev) => {
-                  if (ev.key === "Enter") ev.currentTarget.blur();
-                  if (ev.key === "Escape") setRenommage(null);
-                }}
-                className="mb-2 w-[180px] bg-[#0c0d10] border border-[#96c0b8] rounded px-2 py-0.5 text-[12.5px] text-[#f2f3f5] outline-none"
-              />
-            ) : (
-              <button
-                key={e.id}
-                onClick={() => (onglet === e.id ? setRenommage({ id: e.id, titre: nomOnglet(e) }) : setOnglet(e.id))}
-                onDoubleClick={() => setRenommage({ id: e.id, titre: nomOnglet(e) })}
-                title={onglet === e.id ? "Cliquer pour renommer" : e.document_nom}
-                className={`text-[12.5px] pb-2 border-b-2 -mb-px max-w-[220px] truncate transition-colors ${onglet === e.id ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}
-              >
-                {nomOnglet(e)}
-                {e.erreur ? " ⚠" : ` · ${(e.lignes || []).filter((l) => l.constat).length}/${(e.lignes || []).length}`}
-              </button>
-            )
-          )}
-
-      </div>
-
+        <div className="flex-1 min-w-0 px-9 max-md:px-5 py-7">
       {onglet === "simulateur" ? (
         <SimulateurAnalyse dossier={dossier} />
       ) : onglet === "donnees" ? (
@@ -371,6 +462,8 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
       ) : (
         <TableExtraction extraction={actif} dealId={dossier.deal_id} onSupprimer={(id) => supprimer.mutate(id)} onRefresh={onRefresh} />
       )}
+        </div>
+      </div>
     </div>
   );
 }

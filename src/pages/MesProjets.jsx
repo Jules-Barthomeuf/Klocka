@@ -98,45 +98,7 @@ export default function MesProjets() {
   const isAdmin = user.role === "admin";
   const showAsClient = !isAdmin || previewClientMode;
 
-  // Étape 1 - Accès bloqué
-  if (showAsClient && userEtape === 1) {
-    return (
-      <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-8 text-center">
-          <div className="w-16 h-16 bg-[#96c0b8]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-8 h-8 text-[#96c0b8]" />
-          </div>
-          <h2 className="text-xl font-light text-[#f2f3f5] mb-3">Accès en attente</h2>
-          <p className="text-[#f2f3f5]/30 text-sm">Cette section sera débloquée par votre conseiller.</p>
-        </div>
-      </div>
-    );
-  }
 
-  // Étape 2 - Prendre rendez-vous
-  if (showAsClient && userEtape === 2) {
-    return (
-      <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-8 text-center">
-          <div className="w-16 h-16 bg-[#96c0b8]/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
-            <Calendar className="w-8 h-8 text-[#96c0b8]" />
-          </div>
-          <h2 className="text-xl font-light text-[#f2f3f5] mb-3">Définissons votre stratégie</h2>
-          <p className="text-[#f2f3f5]/30 text-sm mb-6">
-            Avant d'accéder aux projets, nous devons définir ensemble votre stratégie d'investissement.
-          </p>
-          <NeonButton
-            onClick={() => navigate(createPageUrl("Questionnaire"))}
-            variant="default"
-            className="w-full inline-flex items-center justify-center"
-          >
-            Prendre rendez-vous
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </NeonButton>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>

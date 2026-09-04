@@ -86,26 +86,6 @@ export default function Feedback() {
   const previewClientMode = localStorage.getItem('previewClientMode') === 'true';
   const showAsClient = !isAdmin || previewClientMode;
 
-  // Bloquer l'accès en étape 1
-  if (showAsClient && userEtape === 1) {
-    return (
-      <div className="min-h-screen bg-[#000000] flex items-center justify-center p-6">
-        <Card className="max-w-md w-full bg-gradient-to-br from-[#000000] to-black border-[#96c0b8]/30">
-          <CardContent className="p-8 text-center">
-            <div className="w-20 h-20 bg-[#96c0b8] rounded-full flex items-center justify-center mx-auto mb-6">
-              <MessageSquare className="w-10 h-10 text-[#f2f3f5]" />
-            </div>
-            <h2 className="text-2xl text-[#f2f3f5] mb-4">
-              Accès en attente
-            </h2>
-            <p className="text-[#9298a6] mb-6">
-              Cette section sera débloquée par votre conseiller.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#000000] p-6 md:p-10">

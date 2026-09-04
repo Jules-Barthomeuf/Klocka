@@ -442,7 +442,7 @@ export default function SimulateurRentabilite() {
 
   const userEtape = user?.etape_actuelle || 1;
   const isAdmin = user?.role === "admin";
-  const isEtape2 = user && userEtape === 2 && !isAdmin;
+  const isEtape2 = false;
 
   const setters = { prixBienFAI: setPrixBienFAI, surface: setSurface, prixBienNegocie: setPrixBienNegocie, loyerInitialHTHC: setLoyerInitialHTHC, indexation: setIndexation, chargesCopropriete: setChargesCopropriete, taxeFonciere: setTaxeFonciere, apport: setApport, dureeCredit: setDureeCredit, tauxInteret: setTauxInteret, tauxAssuranceCredit: setTauxAssuranceCredit, anneeRevente: setAnneeRevente, tauxCommissionAgentRevente: setTauxCommissionAgentRevente, rendementBrutAcheteur: setRendementBrutAcheteur, coutCreationSociete: setCoutCreationSociete, fraisDossierBancaire: setFraisDossierBancaire, fraisCourtage: setFraisCourtage, comptabilite: setComptabilite, assurancePNE: setAssurancePNE, gestionLocative: setGestionLocative, chargesDiverses: setChargesDiverses };
   const values = { prixBienFAI, surface, prixBienNegocie, loyerInitialHTHC, indexation, chargesCopropriete, taxeFonciere, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, coutCreationSociete, fraisDossierBancaire, fraisCourtage, comptabilite, assurancePNE, gestionLocative, chargesDiverses };

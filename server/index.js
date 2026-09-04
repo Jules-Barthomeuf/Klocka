@@ -357,19 +357,28 @@ app.get('/api/auth/invitation/:jeton', wrap((req, res) => {
   });
 }));
 
-// Le mail d'accès : court, le lien, une signature. Le même pour tous.
-function mailAcces(prenom, lien, admin) {
-  return `Bonjour${prenom ? ` ${prenom}` : ''},
+// Le mail d'accès : court, le lien sous « Créer mon espace », une signature
+// au prénom, le logo. Le même pour tous. En HTML pour que le lien soit un
+// lien ; en texte pour les boîtes qui ne lisent que ça.
+function mailAcces(prenom, lien, admin, base = '') {
+  const signature = admin?.full_name?.split(' ')[0] || admin?.full_name || 'Klocka';
+  const logo = base ? `${base}/icones/icone-192.png` : null;
+  const esc = (t) => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const body = `Bonjour${prenom ? ` ${prenom}` : ''},
 
-Vous pouvez dès à présent créer votre espace via le lien suivant :
-
-${lien}
-
-Vous pourrez ainsi accéder à différentes ressources et suivre l'évolution de votre projet à chaque étape de son développement.
+Vous pouvez dès à présent créer votre espace via le lien suivant : ${lien}
 
 Hâte de lancer l'accompagnement,
 
-${admin?.full_name?.split(' ')[0] || admin?.full_name || 'Klocka'}`;
+${signature}`;
+  const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.7;color:#111">
+<p>Bonjour${prenom ? ` ${esc(prenom)}` : ''},</p>
+<p>Vous pouvez dès à présent créer votre espace via le lien suivant : <a href="${esc(lien)}" style="color:#1a56db;text-decoration:underline">Créer mon espace</a></p>
+<p>Hâte de lancer l'accompagnement,</p>
+<p>${esc(signature)}</p>
+${logo ? `<p style="margin-top:18px"><img src="${esc(logo)}" alt="Klocka" width="48" height="48" style="border-radius:10px"></p>` : ''}
+</div>`;
+  return { body, html };
 }
 
 const OBJET_ACCES = 'Klocka — Créez votre profil';
@@ -403,7 +412,7 @@ app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
       owner: admin.email,
       to: r.user.email,
       subject: OBJET_ACCES,
-      body: mailAcces(prenom, r.lien, admin),
+      ...mailAcces(prenom, r.lien, admin, urlPublique(req)),
     });
   }
   console.log(`[auth] invitation : ${r.user.email} par ${admin.email}${envoi ? (envoi.simulated ? ' (mail simulé)' : ' (mail envoyé)') : ''}`);
@@ -422,7 +431,7 @@ app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
 app.get('/api/admin/clients/lien-acces', wrap((req, res) => {
   const admin = currentUser(req);
   if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  ok(res, { lien: `${urlPublique(req)}/Bienvenue`, mail: mailAcces('', `${urlPublique(req)}/Bienvenue`, admin) });
+  ok(res, { lien: `${urlPublique(req)}/Bienvenue`, mail: mailAcces('', `${urlPublique(req)}/Bienvenue`, admin, urlPublique(req)).body });
 }));
 
 // Tous les comptes sans mot de passe reçoivent leur lien, d'un coup : c'est
@@ -450,7 +459,7 @@ app.post('/api/admin/clients/inviter-tous', wrap(async (req, res) => {
         owner: admin.email,
         to: r.user.email,
         subject: OBJET_ACCES,
-        body: mailAcces(prenom, r.lien, admin),
+        ...mailAcces(prenom, r.lien, admin, base),
       });
       if (mail?.success && !mail.simulated) envoyes += 1;
     }

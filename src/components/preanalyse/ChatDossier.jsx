@@ -10,7 +10,7 @@ import { Mic, Square, ArrowRight, Loader2, X } from "lucide-react";
 // puis la liste des requêtes lancées — on y revient d'un clic.
 
 const MODES = [
-  { id: "analyse", label: "Analyse (critères du fonds)", court: "Table d'analyse" },
+  { id: "analyse", label: "Critères", court: "Table d'analyse" },
   { id: "verification", label: "Points à vérifier", court: "Points à vérifier" },
   { id: "question", label: "Question libre", court: "Question" },
   { id: "web", label: "Recherche web", court: "Recherche web" },

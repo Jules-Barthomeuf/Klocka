@@ -138,7 +138,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
           <thead>
             <tr className="border-y border-[#2c3139]">
               {(ligneOuverte
-                ? [["Élément", "w-[30%]"], ["Constat / valeur relevée", "w-[54%]"], ["Source", "w-[16%]"]]
+                ? [["Élément", "w-[24%]"], ["Constat / valeur relevée", "w-[40%]"], ["Source", "w-[12%]"], ["Commentaire", "w-[24%]"]]
                 : [["Élément", "w-[22%]"], ["Constat / valeur relevée", "w-[38%]"], ["Source", "w-[12%]"], ["Commentaire", "w-[28%]"]]
               ).map(([h, cls]) => (
                 <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-[#f2f3f5] font-normal text-left ${cls}`}>
@@ -157,7 +157,7 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
                 <React.Fragment key={l.index}>
                 {nouveauBloc && (
                   <tr className="border-b border-[#22262d] bg-[#0f1114]">
-                    <td colSpan={ligneOuverte ? 3 : 4} className="py-2 text-[10.5px] tracking-[.16em] uppercase text-[#c3ddd6]">{l.bloc}</td>
+                    <td colSpan={4} className="py-2 text-[10.5px] tracking-[.16em] uppercase text-[#c3ddd6]">{l.bloc}</td>
                   </tr>
                 )}
                 <tr
@@ -207,7 +207,6 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
                     )}
                   </td>
 
-                  {!ligneOuverte && (
                   <td className="py-3 pr-4">
                     {edition?.index === l.index && edition.champ === "commentaire" ? (
                       <textarea
@@ -228,7 +227,6 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
                       </button>
                     )}
                   </td>
-                  )}
 
                 </tr>
                 </React.Fragment>

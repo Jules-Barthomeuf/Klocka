@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
+import { libelleProfil } from "@/lib/profils";
 import {
   BookOpen, Calendar, ArrowRight, Download, ChevronDown,
   Calculator, TrendingUp, Scale, Building2, MapPin, ArrowUpRight, Search, X
@@ -153,7 +154,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
     ["Apport", user?.apport_disponible ? `${Math.round(user.apport_disponible).toLocaleString("fr-FR")} €` : null],
     ["Objectif", user?.objectif || null],
     ["Lieu de recherche", user?.lieu_recherche || null],
-    ["Profil", user?.profil_investisseur ? user.profil_investisseur.replace(/_/g, " ") : null],
+    ["Profil", libelleProfil(user?.profil_investisseur) || null],
   ].filter(([, v]) => v);
 
   return (

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { libelleProfil } from "@/lib/profils";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -100,7 +101,7 @@ export default function MandataireClients() {
                     {client.profil_investisseur && (
                       <div className="flex items-center gap-2 text-[#9298a6]">
                         <Users className="w-4 h-4" />
-                        <span className="capitalize">{client.profil_investisseur.replace('_', ' ')}</span>
+                        <span>{libelleProfil(client.profil_investisseur)}</span>
                       </div>
                     )}
                   </div>

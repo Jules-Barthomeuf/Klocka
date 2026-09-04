@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { libelleProfil } from "@/lib/profils";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
@@ -243,7 +244,7 @@ export default function MonCompte() {
                   {user.profil_investisseur ? (
                     <div className="p-4 bg-[#96c0b8]/10 rounded-lg border border-[#96c0b8]/30">
                       <p className="text-lg font-semibold text-[#96c0b8] capitalize">
-                        {user.profil_investisseur.replace('_', ' ')}
+                        {libelleProfil(user.profil_investisseur)}
                       </p>
                     </div>
                   ) : (

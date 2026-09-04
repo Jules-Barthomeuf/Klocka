@@ -162,34 +162,51 @@ export default function MesProjets() {
           </div>
         ) : (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="max-w-[560px] mx-auto text-center py-20"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-[640px] mx-auto text-center min-h-[60vh] flex flex-col items-center justify-center py-16"
           >
-            <Building2 className="w-8 h-8 text-[#f2f3f5]/15 mx-auto mb-5" />
+            {/* Un repère net et vivant, plutôt qu'un pictogramme délavé : deux
+                anneaux menthe qui respirent autour de l'icône. */}
+            <div className="relative w-28 h-28 mb-9 flex items-center justify-center">
+              <motion.span
+                className="absolute inset-0 rounded-full border border-[#96c0b8]/30"
+                animate={{ scale: [1, 1.18, 1], opacity: [0.7, 0.15, 0.7] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.span
+                className="absolute inset-3 rounded-full border border-[#96c0b8]/50"
+                animate={{ scale: [1, 1.1, 1], opacity: [0.9, 0.35, 0.9] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+              />
+              <span className="relative w-16 h-16 rounded-full bg-[#96c0b8]/[0.12] border border-[#96c0b8]/60 flex items-center justify-center">
+                {etape >= 3 ? <Search className="w-7 h-7 text-[#96c0b8]" strokeWidth={1.6} /> : <Building2 className="w-7 h-7 text-[#96c0b8]" strokeWidth={1.6} />}
+              </span>
+            </div>
             {searchQuery ? (
               <>
-                <p className="m-0 text-[#9298a6] text-sm">Aucun projet ne correspond</p>
-                <p className="m-0 mt-1 text-[#6a7180] text-xs">Essayez un autre terme.</p>
+                <p className="m-0 text-[22px] font-medium text-[#f2f3f5]">Aucun projet ne correspond.</p>
+                <p className="m-0 mt-2.5 text-[15px] text-[#9298a6]">Essayez un autre terme.</p>
               </>
             ) : (etape >= 3) ? (
               <>
-                <p className="m-0 text-[17px] font-medium text-[#f2f3f5]">Oups…</p>
-                <p className="m-0 mt-2.5 text-[13.5px] leading-[1.7] text-[#9298a6]">
+                <p className="m-0 text-[26px] max-md:text-[22px] font-medium tracking-[-.01em] text-[#f2f3f5]">Oups…</p>
+                <p className="m-0 mt-4 text-[16px] max-md:text-[15px] leading-[1.75] text-[#9298a6]">
                   Aucun projet ne vous a encore été attribué. Nos équipes mettent tout en œuvre pour vous proposer
                   le projet idéal, répondant au mieux à votre cahier des charges.
                 </p>
               </>
             ) : (
               <>
-                <p className="m-0 text-[17px] font-medium text-[#f2f3f5]">Pas encore de projet pour vous</p>
-                <p className="m-0 mt-2.5 text-[13.5px] leading-[1.7] text-[#9298a6]">
+                <p className="m-0 text-[26px] max-md:text-[22px] font-medium tracking-[-.01em] text-[#f2f3f5]">Pas encore de projet pour vous.</p>
+                <p className="m-0 mt-4 text-[16px] max-md:text-[15px] leading-[1.75] text-[#9298a6]">
                   Et c'est normal : définissons d'abord ensemble votre stratégie d'investissement, puis la
                   recherche commence.
                 </p>
                 <button
                   onClick={() => setRdvOuvert(true)}
-                  className="mt-7 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#96c0b8] text-[#000000] text-[13px] font-semibold hover:bg-[#abd0c8] transition-colors"
+                  className="mt-9 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#96c0b8] text-[#000000] text-[14px] font-semibold hover:bg-[#abd0c8] transition-colors"
                 >
                   Prendre rendez-vous <ArrowRight className="w-4 h-4" />
                 </button>

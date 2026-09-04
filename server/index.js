@@ -62,7 +62,6 @@ const APP_ID = process.env.VITE_BASE44_APP_ID || 'klocka-local';
 restaurerSeedSiNecessaire();
 runSeedIfEmpty();
 
-migrerComptesEnAttente();
 // Le mode découverte a vécu : les comptes qui y étaient redeviennent des
 // clients ordinaires (étape 1 au moins), et le projet de démonstration s'en
 // va. Une fois, puis plus jamais.

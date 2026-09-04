@@ -5,6 +5,7 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
 import { libelleProfil } from "@/lib/profils";
+import LogoKlocka from "@/components/LogoKlocka";
 import {
   BookOpen, Calendar, ArrowRight, Download, ChevronDown,
   Calculator, TrendingUp, Scale, Building2, MapPin, ArrowUpRight, Search, X
@@ -135,11 +136,14 @@ export function FenetreRendezVous({ user, onFermer }) {
   return (
     <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4" onClick={onFermer}>
       <div className="w-full max-w-[900px] h-[86vh] bg-[#0f1114] border border-[#22262d] rounded-xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-4 px-5 py-3 border-b border-[#1f2228]">
-          <p className="m-0 text-[13.5px] text-[#f2f3f5]">Prendre rendez-vous — définition de votre stratégie</p>
-          <button onClick={onFermer} className="text-[#6a7180] hover:text-[#f2f3f5] transition-colors" aria-label="Fermer">
-            <X className="w-4 h-4" />
-          </button>
+        <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-[#1f2228]">
+          <LogoKlocka className="h-10" />
+          <div className="flex items-center gap-5">
+            <p className="m-0 text-[12.5px] text-[#9298a6] max-md:hidden">Définition de votre stratégie · 45 min</p>
+            <button onClick={onFermer} className="text-[#6a7180] hover:text-[#f2f3f5] transition-colors" aria-label="Fermer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         <iframe title="Prendre rendez-vous" src={url} className="flex-1 w-full border-0" />
       </div>

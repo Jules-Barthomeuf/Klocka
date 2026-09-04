@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 150" role="img" aria-label="Klocka — Développeur de revenus immobiliers">
+  <!-- Le mot KLOCKA en traits fins, géométriques : blanc, avec la jambe du
+       premier K et celle du A en vert d'eau. Reconstruction du logo en vecteur ;
+       le fichier officiel, s'il est déposé (logo-klocka-complet.png), prime. -->
+  <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- K -->
+    <path d="M22 18 V102" />
+    <path d="M86 18 L26 66" />
+    <path d="M40 55 L86 102" stroke="#8CCFBE" />
+    <!-- L -->
+    <path d="M108 18 V102 H160" />
+    <!-- O -->
+    <circle cx="214" cy="60" r="42" />
+    <!-- C -->
+    <path d="M330 34 A42 42 0 1 0 330 86" />
+    <!-- K -->
+    <path d="M356 18 V102" />
+    <path d="M420 18 L360 66" />
+    <path d="M374 55 L420 102" />
+    <!-- A -->
+    <path d="M440 102 L474 18" />
+    <path d="M474 18 L508 102" stroke="#8CCFBE" />
+    <path d="M454 74 H494" />
+  </g>
+  <text x="22" y="136" fill="#8CCFBE" font-family="Instrument Sans, Inter, system-ui, sans-serif" font-size="14.5" font-weight="300" letter-spacing="4.2">DÉVELOPPEUR DE REVENUS IMMOBILIERS</text>
+</svg>

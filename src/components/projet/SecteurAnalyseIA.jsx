@@ -215,7 +215,7 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
       <div className="border-l-2 border-[#96c0b8] pl-5 py-1">
         <div className="flex items-center gap-2 mb-1.5">
           <Sparkles className="w-3.5 h-3.5 text-[#c3ddd6]" />
-          <span className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6]">Analyse Klocka</span>
+          <span className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6]">Le secteur</span>
         </div>
         {sousTitre && <div className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6] mb-3">{sousTitre}</div>}
         <div className={vertical ? "transition-opacity duration-300" : ""} key={section || "general"}>{corps}</div>
@@ -227,7 +227,7 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
     <div className="border border-[#96c0b8]/40 bg-[#96c0b8]/[0.05] px-6 py-5 max-md:px-4 max-md:py-4 mb-8 max-md:mb-6">
       <div className="flex items-center gap-2 mb-2.5">
         <Sparkles className="w-3.5 h-3.5 text-[#c3ddd6]" />
-        <span className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6]">Analyse Klocka</span>
+        <span className="text-[10px] tracking-[0.2em] uppercase text-[#c3ddd6]">Le secteur</span>
         {sousTitre && <span className="text-[10px] tracking-[0.18em] uppercase text-[#9298a6]">· {sousTitre}</span>}
       </div>
       {corps}

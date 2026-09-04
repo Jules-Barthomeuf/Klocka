@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
@@ -10,6 +10,7 @@ import { Building2, ArrowRight, Calendar, MapPin, ArrowUpRight, Search } from "l
 import { motion } from "framer-motion";
 import { NeonButton } from "@/components/ui/neon-button";
 import ClientProjectCard2 from "@/components/dashboard/ClientProjectCard2";
+import { FenetreRendezVous } from "@/components/dashboard/ClientDashboardView";
 
 const statutLabels = {
   prospect: "Prospect",
@@ -22,6 +23,8 @@ const statutLabels = {
 export default function MesProjets() {
   const navigate = useNavigate();
   const user = useUser();
+  const [rdvOuvert, setRdvOuvert] = useState(false);
+  const etape = user?.etape_actuelle ?? 1;
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = React.useState("");
 
@@ -102,6 +105,7 @@ export default function MesProjets() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
+      {rdvOuvert && <FenetreRendezVous user={user} onFermer={() => setRdvOuvert(false)} />}
     <div className="min-h-screen bg-[#000000]">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
 
@@ -160,13 +164,37 @@ export default function MesProjets() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-20"
+            className="max-w-[560px] mx-auto text-center py-20"
           >
             <Building2 className="w-8 h-8 text-[#f2f3f5]/15 mx-auto mb-5" />
-            <p className="text-[#9298a6] text-sm">Aucun projet pour le moment</p>
-            <p className="text-[#6a7180] text-xs mt-1">
-              {searchQuery ? "Essayez un autre terme" : "Vos projets apparaîtront ici"}
-            </p>
+            {searchQuery ? (
+              <>
+                <p className="m-0 text-[#9298a6] text-sm">Aucun projet ne correspond</p>
+                <p className="m-0 mt-1 text-[#6a7180] text-xs">Essayez un autre terme.</p>
+              </>
+            ) : (etape >= 3) ? (
+              <>
+                <p className="m-0 text-[17px] font-medium text-[#f2f3f5]">La recherche est lancée</p>
+                <p className="m-0 mt-2.5 text-[13.5px] leading-[1.7] text-[#9298a6]">
+                  Nos équipes travaillent ardemment pour vous proposer un projet correspondant à votre cahier des
+                  charges. Vous serez prévenu par e-mail dès qu'un projet vous est attribué.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="m-0 text-[17px] font-medium text-[#f2f3f5]">Pas encore de projet pour vous</p>
+                <p className="m-0 mt-2.5 text-[13.5px] leading-[1.7] text-[#9298a6]">
+                  Et c'est normal : définissons d'abord ensemble votre stratégie d'investissement, puis la
+                  recherche commence.
+                </p>
+                <button
+                  onClick={() => setRdvOuvert(true)}
+                  className="mt-7 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#96c0b8] text-[#000000] text-[13px] font-semibold hover:bg-[#abd0c8] transition-colors"
+                >
+                  Prendre rendez-vous <ArrowRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </motion.div>
         );
         })()}

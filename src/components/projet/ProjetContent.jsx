@@ -17,7 +17,7 @@ import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
-import VilleSecteurIA, { AvisProjetIA, useAnalyseIA } from "./SecteurAnalyseIA";
+import VilleSecteurIA, { useAnalyseIA } from "./SecteurAnalyseIA";
 import AllerPlusLoin from "./AllerPlusLoin";
 
 // Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
@@ -621,7 +621,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 )}
               </div>
               <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-                className="mt-4 inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
+                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#96c0b8] text-[#000000] text-[12.5px] font-semibold hover:bg-[#abd0c8] transition-colors">
                 Simulateur complet <span aria-hidden="true">→</span>
               </button>
             </div>
@@ -638,7 +638,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               </div>
             </div>
             <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-              className="mt-5 inline-flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
+              className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#96c0b8] text-[#000000] text-[13px] font-semibold hover:bg-[#abd0c8] transition-colors">
               Simulateur complet <span aria-hidden="true">→</span>
             </button>
           </div>
@@ -662,12 +662,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         ? "px-3 py-3"
         : "max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12"}>
         <div className="min-w-0">
-        {/* Sur mobile l'analyse revient en tête de page, faute de colonne */}
-        {!apercuOnglet && (
-        <div className="lg:hidden">
-          <AvisProjetIA analyse={analyse} loading={analyseLoading} error={analyseError} section={ongletActif} />
-        </div>
-        )}
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {!apercuOnglet && (
           <TabsList className="w-full min-w-0 flex justify-start flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden gap-x-7 gap-y-2 max-md:gap-x-5 bg-transparent border-0 mb-10 max-md:mb-6 rounded-none px-0 h-auto pt-1 pb-6 max-md:pb-4 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -1255,7 +1249,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         {!apercuOnglet && (
         <aside className="max-lg:hidden">
           <div className="sticky top-8">
-            <AvisProjetIA analyse={analyse} loading={analyseLoading} error={analyseError} vertical section={ongletActif} />
           </div>
         </aside>
         )}

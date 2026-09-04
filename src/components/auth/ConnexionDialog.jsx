@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, ArrowLeft, ArrowRight, KeyRound, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 import { LogoGoogle } from "@/components/mails/ConnexionGmail";
 
 // Connexion en deux temps : on saisit son adresse, l'app reconnaît le compte,
@@ -19,7 +19,6 @@ const ETAPES = {
   EMAIL: "email",
   MOT_DE_PASSE: "mot_de_passe",
   CREATION: "creation",
-  LIEN: "lien",
   INCONNU: "inconnu",
 };
 
@@ -82,8 +81,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
         setEtape(ETAPES.INCONNU);
       } else {
         setCompte(r);
-        // Sans mot de passe, le compte s'ouvre avec son lien d'invitation.
-        setEtape(r.mot_de_passe_defini ? ETAPES.MOT_DE_PASSE : r.lien_requis ? ETAPES.LIEN : ETAPES.CREATION);
+        setEtape(r.mot_de_passe_defini ? ETAPES.MOT_DE_PASSE : ETAPES.CREATION);
       }
     } catch (err) {
       setErreur(err?.message || "Vérification impossible.");
@@ -162,10 +160,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
               sousTitre={email}
               badge={compte?.role === "admin" ? "Administrateur" : null}
             />
-            <div>
-              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Mot de passe</Label>
-              <Input ref={champMotDePasse} type="password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} className={CHAMP} />
-            </div>
+            <ChampMotDePasse libelle="Mot de passe" valeur={motDePasse} onChange={setMotDePasse} champRef={champMotDePasse} />
             {erreur && <Erreur texte={erreur} />}
             <Button type="submit" disabled={!motDePasse || enCours} className={BOUTON}>
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -190,14 +185,8 @@ export function ConnexionPanel({ invitation = null } = {}) {
               sousTitre={`${email} — choisissez votre mot de passe, il vous servira pour les prochaines fois.`}
               badge={compte?.role === "admin" ? "Administrateur" : null}
             />
-            <div>
-              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Mot de passe (8 caractères minimum)</Label>
-              <Input ref={champMotDePasse} type="password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} className={CHAMP} />
-            </div>
-            <div>
-              <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">Confirmation</Label>
-              <Input type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} className={CHAMP} />
-            </div>
+            <ChampMotDePasse libelle="Mot de passe (8 caractères minimum)" valeur={motDePasse} onChange={setMotDePasse} champRef={champMotDePasse} />
+            <ChampMotDePasse libelle="Confirmation" valeur={confirmation} onChange={setConfirmation} />
             {erreur && <Erreur texte={erreur} />}
             <Button type="submit" disabled={!motDePasse || !confirmation || enCours} className={BOUTON}>
               {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -205,19 +194,6 @@ export function ConnexionPanel({ invitation = null } = {}) {
             </Button>
             {!invitation && <BoutonRetour onClick={reinitialiser} />}
           </form>
-        )}
-
-        {/* Le compte existe, sans mot de passe : c'est son lien qui l'ouvre */}
-        {etape === ETAPES.LIEN && (
-          <div className="space-y-4">
-            <EnTete icone={KeyRound} titre={compte?.prenom ? `Bonjour ${compte.prenom}` : "Votre lien d'accès"} sousTitre={email} />
-            <p className="text-[#9298a6] text-sm leading-relaxed">
-              Votre espace est prêt, il s'ouvre avec le lien que Klocka vous a envoyé par e-mail : cliquez dessus
-              pour choisir votre mot de passe. Vous ne l'avez pas ? Demandez-le à votre conseiller, il vous le renvoie
-              en un clic.
-            </p>
-            <BoutonRetour onClick={reinitialiser} />
-          </div>
         )}
 
         {/* Adresse non reconnue */}
@@ -290,6 +266,36 @@ function Erreur({ texte }) {
       <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
       {texte}
     </p>
+  );
+}
+
+// Un mot de passe qu'on ne voit pas se tape deux fois de travers : l'œil le
+// montre le temps de le relire.
+function ChampMotDePasse({ valeur, onChange, libelle, autoFocus, champRef }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div>
+      <Label className="text-[10px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 block">{libelle}</Label>
+      <div className="relative">
+        <Input
+          ref={champRef}
+          autoFocus={autoFocus}
+          type={visible ? "text" : "password"}
+          value={valeur}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${CHAMP} pr-9`}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          aria-label={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+          title={visible ? "Masquer" : "Afficher"}
+          className="absolute right-0 top-1/2 -translate-y-1/2 text-[#6a7180] hover:text-[#c9cdd6] transition-colors p-1"
+        >
+          {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
   );
 }
 

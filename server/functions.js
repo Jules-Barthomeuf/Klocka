@@ -165,15 +165,29 @@ export const functions = {
     return { results };
   },
 
+  // Un projet attribué : le client l'apprend, et le lien l'emmène droit sur
+  // « Mes projets ». Le prénom vient de son compte quand on le connaît.
   async sendProjectAssignmentEmail(params, { user }) {
     const { to, clientEmail, projectTitle, projectId } = params || {};
     const recipient = to || clientEmail;
+    const compte = Records.filter('User', { email: String(recipient || '').toLowerCase() })[0];
+    const prenom = (compte?.full_name || '').split(' ')[0];
+    const base = (process.env.APP_URL || '').replace(/\/$/, '') || '';
+    const lien = `${base}/MesProjets`;
     await sendEmail({
+      owner: user?.email,
       to: recipient,
-      subject: `Un nouveau projet vous a été attribué : ${projectTitle || ''}`,
-      body: `Bonjour,\n\nUn nouveau projet (${projectTitle || projectId}) vous a été attribué sur Klocka.\n\nConnectez-vous pour le consulter.`,
+      subject: 'Klocka — un nouveau projet vous a été attribué sur votre espace 🚀',
+      body: `Bonjour${prenom ? ` ${prenom}` : ''},
+
+Bonne nouvelle : un nouveau projet vient de vous être attribué sur la plateforme Klocka. Découvrez-le dès maintenant en cliquant sur ce lien :
+
+${lien}
+
+À très vite,
+${user?.full_name?.split(' ')[0] || 'Klocka'}`,
     });
-    return { success: true };
+    return { success: true, projet: projectTitle || projectId };
   },
 
   // --- Mails page ---------------------------------------------------------

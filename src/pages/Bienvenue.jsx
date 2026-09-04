@@ -4,11 +4,11 @@ import { base44 } from "@/api/base44Client";
 import { ConnexionPanel } from "@/components/auth/ConnexionDialog";
 import { Loader2 } from "lucide-react";
 
-// La porte d'entrée d'un client invité.
+// La porte d'entrée d'un client.
 //
-// L'équipe crée le compte et envoie un lien ; la personne l'ouvre, voit son
-// prénom, choisit un mot de passe, entre. Ni adresse à taper, ni inscription,
-// ni attente d'activation — le lien porte tout.
+// Le lien est le même pour tout le monde : on l'ouvre, on saisit l'adresse à
+// laquelle Klocka a écrit, on choisit son mot de passe, on entre. Un lien
+// nominatif (avec jeton) reste accepté : il évite même la saisie de l'adresse.
 
 const MESSAGES = {
   inconnu: "Ce lien ne correspond à aucune invitation. Vérifiez qu'il est complet, ou demandez-en un nouveau à votre interlocuteur.",
@@ -22,8 +22,9 @@ export default function Bienvenue() {
   const [etat, setEtat] = useState({ chargement: true });
 
   useEffect(() => {
+    // Sans jeton, c'est le lien commun : on demande l'adresse.
     if (!jeton) {
-      setEtat({ chargement: false, raison: "inconnu" });
+      setEtat({ chargement: false, valide: true, commun: true });
       return;
     }
     base44
@@ -47,10 +48,17 @@ export default function Bienvenue() {
           ) : etat.valide ? (
             <>
               <div className="w-10 h-0.5 bg-[#96c0b8] mb-8" />
-              <p className="m-0 mb-8 text-[15px] leading-[1.7] text-[#9298a6]">
-                Votre espace est prêt. Il ne manque que votre mot de passe.
+              <h1 className="m-0 text-[26px] font-light tracking-[-.02em] text-[#f2f3f5]">Créez votre espace</h1>
+              <p className="m-0 mt-3 mb-8 text-[15px] leading-[1.7] text-[#9298a6]">
+                {etat.commun
+                  ? "Saisissez l'adresse à laquelle Klocka vous a écrit, puis choisissez votre mot de passe."
+                  : "Votre espace est prêt. Il ne manque que votre mot de passe."}
               </p>
-              <ConnexionPanel invitation={{ email: etat.email, prenom: etat.prenom, jeton }} />
+              {etat.commun ? (
+                <ConnexionPanel />
+              ) : (
+                <ConnexionPanel invitation={{ email: etat.email, prenom: etat.prenom, jeton }} />
+              )}
             </>
           ) : (
             <>

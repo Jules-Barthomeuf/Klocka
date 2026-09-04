@@ -295,9 +295,6 @@ app.post('/api/auth/verifier-email', wrap(async (req, res) => {
     role: user.role || 'user',
     // Première connexion : le mot de passe reste à définir.
     mot_de_passe_defini: !!user.mot_de_passe,
-    // Sans mot de passe, le compte s'ouvre avec son lien d'invitation — jamais
-    // avec sa seule adresse, sinon n'importe qui la connaissant le prendrait.
-    lien_requis: !user.mot_de_passe && !amorcagePossible(email),
   });
 }));
 
@@ -315,12 +312,9 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
     return res.status(409).json({ error: 'Un mot de passe existe déjà pour ce compte. Connectez-vous.' });
   }
 
-  // Un compte se réclame avec son lien d'invitation, jamais avec sa seule
-  // adresse : sinon quiconque connaît l'adresse d'un client peut s'approprier
-  // le compte avant lui. Seul l'amorçage (l'adresse admin déclarée) y échappe.
-  if (!user.invitation_jeton && !amorcagePossible(email)) {
-    return res.status(403).json({ error: "Ce compte s'ouvre avec son lien d'invitation : demandez-le à votre conseiller Klocka." });
-  }
+  // Le lien d'accès est le même pour tous : la personne saisit son adresse et
+  // choisit son mot de passe. Un compte qui a reçu un lien nominatif garde sa
+  // preuve par jeton ; les autres entrent par l'adresse.
   if (user.invitation_jeton) {
     const { jeton } = req.body || {};
     const expire = user.invitation_expire_le && new Date(user.invitation_expire_le) < new Date();
@@ -348,6 +342,8 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
 
 // Le lien d'invitation : ce qu'il ouvre, avant tout mot de passe.
 app.get('/api/auth/invitation/:jeton', wrap((req, res) => {
+  // « commun » : le lien unique, sans nom — la personne saisit son adresse.
+  if (req.params.jeton === 'commun') return ok(res, { valide: true, commun: true });
   const user = Records.filter('User', { invitation_jeton: req.params.jeton })[0];
   if (!user) return ok(res, { valide: false, raison: 'inconnu' });
   if (user.mot_de_passe) return ok(res, { valide: false, raison: 'deja_actif', email: user.email });
@@ -360,6 +356,20 @@ app.get('/api/auth/invitation/:jeton', wrap((req, res) => {
     prenom: (user.full_name || '').split(' ')[0] || null,
   });
 }));
+
+// Le mail d'accès : court, le lien, une signature. Le même pour tous.
+function mailAcces(prenom, lien, admin) {
+  return `Bonjour${prenom ? ` ${prenom}` : ''},
+
+Vous pouvez dès à présent créer votre espace via le lien suivant :
+
+${lien}
+
+Hâte de lancer l'accompagnement,
+
+À très vite,
+${admin?.full_name?.split(' ')[0] || admin?.full_name || 'Klocka'}`;
+}
 
 // L'adresse publique de l'application, telle que le navigateur la voit : c'est
 // elle qui figure dans les liens envoyés. APP_URL seul casserait sur Codespaces.
@@ -390,16 +400,7 @@ app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
       owner: admin.email,
       to: r.user.email,
       subject: 'Votre accès à Klocka',
-      body: `Bonjour${prenom ? ` ${prenom}` : ''},
-
-Votre espace Klocka est prêt. Pour y entrer, choisissez votre mot de passe en ouvrant ce lien :
-
-${r.lien}
-
-Il reste valable quatorze jours.
-
-À très vite,
-${admin.full_name || admin.email}`,
+      body: mailAcces(prenom, r.lien, admin),
     });
   }
   console.log(`[auth] invitation : ${r.user.email} par ${admin.email}${envoi ? (envoi.simulated ? ' (mail simulé)' : ' (mail envoyé)') : ''}`);
@@ -414,6 +415,13 @@ ${admin.full_name || admin.email}`,
   });
 }));
 
+// Le lien d'accès, le même pour tous : on le transmet tel quel.
+app.get('/api/admin/clients/lien-acces', wrap((req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  ok(res, { lien: `${urlPublique(req)}/Bienvenue`, mail: mailAcces('', `${urlPublique(req)}/Bienvenue`, admin) });
+}));
+
 // Tous les comptes sans mot de passe reçoivent leur lien, d'un coup : c'est
 // ainsi que les clients importés entrent — ils cliquent, choisissent leur mot
 // de passe, et tout ce qui les attend (étape, projets) est là.
@@ -426,9 +434,12 @@ app.post('/api/admin/clients/inviter-tous', wrap(async (req, res) => {
   const cibles = Records.list('User').filter((u) => u.role !== 'admin' && !u.mot_de_passe && u.email);
   const liens = [];
   let envoyes = 0;
+  const lienCommun = `${base}/Bienvenue`;
   for (const u of cibles) {
     const r = creerInvitation({ email: u.email, admin, base });
     if (!r.ok) continue;
+    // Le même lien pour tout le monde : c'est l'adresse qui identifie.
+    r.lien = lienCommun;
     let mail = null;
     if (envoyer) {
       const prenom = (r.user.full_name || '').split(' ')[0];
@@ -436,7 +447,7 @@ app.post('/api/admin/clients/inviter-tous', wrap(async (req, res) => {
         owner: admin.email,
         to: r.user.email,
         subject: 'Votre accès à Klocka',
-        body: `Bonjour${prenom ? ` ${prenom}` : ''},\n\nVotre espace Klocka est prêt. Pour y entrer, choisissez votre mot de passe en ouvrant ce lien :\n\n${r.lien}\n\nIl reste valable quatorze jours.\n\nÀ très vite,\n${admin.full_name || admin.email}`,
+        body: mailAcces(prenom, r.lien, admin),
       });
       if (mail?.success && !mail.simulated) envoyes += 1;
     }

@@ -396,7 +396,7 @@ Votre espace Klocka est prêt. Pour y entrer, choisissez votre mot de passe en o
 
 ${r.lien}
 
-Il reste valable quatorze jours. Nous y définirons ensemble votre stratégie d'investissement.
+Il reste valable quatorze jours.
 
 À très vite,
 ${admin.full_name || admin.email}`,

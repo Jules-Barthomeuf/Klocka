@@ -174,10 +174,10 @@ export default function MesProjets() {
               </>
             ) : (etape >= 3) ? (
               <>
-                <p className="m-0 text-[17px] font-medium text-[#f2f3f5]">La recherche est lancée</p>
+                <p className="m-0 text-[17px] font-medium text-[#f2f3f5]">Oups…</p>
                 <p className="m-0 mt-2.5 text-[13.5px] leading-[1.7] text-[#9298a6]">
-                  Nos équipes travaillent ardemment pour vous proposer un projet correspondant à votre cahier des
-                  charges. Vous serez prévenu par e-mail dès qu'un projet vous est attribué.
+                  Aucun projet ne vous a encore été attribué. Nos équipes mettent tout en œuvre pour vous proposer
+                  le projet idéal, répondant au mieux à votre cahier des charges.
                 </p>
               </>
             ) : (

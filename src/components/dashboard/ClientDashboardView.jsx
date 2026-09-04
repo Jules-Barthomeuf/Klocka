@@ -166,14 +166,14 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
       <div className="flex items-center gap-2.5 mb-3">
         <Search className="w-4 h-4 text-[#96c0b8]" />
         <h3 className="m-0 text-[17px] font-medium text-[#f2f3f5]">
-          {userEtape >= 3 ? "La recherche est lancée" : "Pas encore de projet"}
+          {userEtape >= 3 ? "Oups…" : "Pas encore de projet"}
         </h3>
       </div>
       {userEtape >= 3 ? (
         <>
           <p className="m-0 text-[13.5px] leading-[1.7] text-[#9298a6]">
-            Nos équipes travaillent ardemment pour vous proposer un projet correspondant à votre cahier des charges.
-            Vous serez prévenu par e-mail dès qu'un projet vous est attribué.
+            Aucun projet ne vous a encore été attribué. Nos équipes mettent tout en œuvre pour vous proposer le
+            projet idéal, répondant au mieux à votre cahier des charges.
           </p>
           {criteres.length > 0 && (
             <dl className="m-0 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">

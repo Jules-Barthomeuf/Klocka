@@ -365,11 +365,14 @@ Vous pouvez dès à présent créer votre espace via le lien suivant :
 
 ${lien}
 
+Vous pourrez ainsi accéder à différentes ressources et suivre l'évolution de votre projet à chaque étape de son développement.
+
 Hâte de lancer l'accompagnement,
 
-À très vite,
 ${admin?.full_name?.split(' ')[0] || admin?.full_name || 'Klocka'}`;
 }
+
+const OBJET_ACCES = 'Klocka — Créez votre profil';
 
 // L'adresse publique de l'application, telle que le navigateur la voit : c'est
 // elle qui figure dans les liens envoyés. APP_URL seul casserait sur Codespaces.
@@ -399,7 +402,7 @@ app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
     envoi = await sendEmail({
       owner: admin.email,
       to: r.user.email,
-      subject: 'Votre accès à Klocka',
+      subject: OBJET_ACCES,
       body: mailAcces(prenom, r.lien, admin),
     });
   }
@@ -446,7 +449,7 @@ app.post('/api/admin/clients/inviter-tous', wrap(async (req, res) => {
       mail = await sendEmail({
         owner: admin.email,
         to: r.user.email,
-        subject: 'Votre accès à Klocka',
+        subject: OBJET_ACCES,
         body: mailAcces(prenom, r.lien, admin),
       });
       if (mail?.success && !mail.simulated) envoyes += 1;

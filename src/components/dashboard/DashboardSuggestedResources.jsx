@@ -20,11 +20,28 @@ const etapeConfig = {
     orders: [6, 7],
     reason: "Vous êtes prêt pour les sujets techniques : modes de calcul, bail commercial et compromis sont essentiels pour sécuriser vos futures opérations."
   },
+  // Financement : le compromis et le dossier bancaire.
+  4: {
+    orders: [7, 8, 9],
+    mots: /compromis|financ|banqu|pr[êe]t|notaire|acte/i,
+    reason: "Le financement se joue maintenant : compromis, dossier bancaire et acte authentique — ce qu'il faut avoir en tête pour tenir les délais."
+  },
+  // Signé : la vie du bien commence — la gestion locative.
+  5: {
+    orders: [9, 10, 11],
+    mots: /gestion locative|locataire|bail|charges|quittance|exploitation/i,
+    reason: "Votre bien est signé : place à la gestion locative — bail, charges, relation locataire, ce qui fait durer un rendement."
+  },
 };
 
 function pickRandomResource(resources, viewedIds, userEtape) {
-  const config = etapeConfig[Math.min(userEtape, 3)] || etapeConfig[1];
-  const tranche = resources.filter(r => config.orders.includes(r.ordre));
+  const config = etapeConfig[Math.min(userEtape, 5)] || etapeConfig[1];
+  // Aux dernières étapes, le thème prime sur le numéro d'ordre : une ressource
+  // de gestion locative peut être arrivée n'importe où dans la liste.
+  const parMots = config.mots
+    ? resources.filter((r) => config.mots.test(`${r.titre || ""} ${r.description || ""} ${r.categorie || ""}`))
+    : [];
+  const tranche = parMots.length ? parMots : resources.filter(r => config.orders.includes(r.ordre));
   const unseen = tranche.filter(r => !viewedIds.includes(r.id));
   
   const pool = unseen.length > 0 ? unseen : tranche;

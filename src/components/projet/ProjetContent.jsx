@@ -29,11 +29,11 @@ function SectionLabel({ children, tone = "muted", className = "" }) {
 // Le chapô (`right`) passe sous le titre : titre → sous-titre → chapô → chiffres.
 function TabHeader({ title, subtitle, left, right }) {
   return (
-    <div className="mb-8 max-md:mb-5">
+    <div className="mb-6 max-md:mb-4">
       <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] mb-2">{title}</h2>
       {subtitle && <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mb-0 max-w-[560px]">{subtitle}</p>}
       {left}
-      {right && <div className="mt-5 max-md:mt-4 max-w-[880px]">{right}</div>}
+      {right && <div className="mt-5 max-md:mt-4 max-w-[880px] order-last">{right}</div>}
     </div>
   );
 }
@@ -47,13 +47,13 @@ function KpiStrip({ items, className = "" }) {
   const list = (items || []).filter(Boolean).filter((it) => !estMasque(edition, it.champ));
   if (!list.length) return null;
   return (
-    <div className={`flex flex-wrap border-t border-[#f2f3f5]/[0.35] mb-10 max-md:mb-6 ${className}`}>
+    <div className={`flex flex-wrap rounded-xl border border-[#22262d] bg-[#0f1114] px-6 max-md:px-4 mb-10 max-md:mb-6 ${className}`}>
       {list.map((it, i) => (
-        <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#f2f3f5]/[0.12] md:pl-6" : ""}`}>
-          <div className={`font-cormorant text-[26px] max-md:text-[20px] font-light ${it.accent || "text-[#f2f3f5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+        <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-6 max-md:py-4 pr-5 ${i > 0 ? "md:border-l md:border-[#1f2228] md:pl-6" : ""}`}>
+          <div className="text-[11px] tracking-[0.16em] uppercase text-[#9298a6] mb-1.5 flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></div>
+          <div className={`font-cormorant text-[30px] max-md:text-[23px] font-light leading-none ${it.accent || "text-[#f2f3f5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
             <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
           </div>
-          <div className="text-[12px] text-[#9298a6] mt-1 flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></div>
         </div>
       ))}
     </div>

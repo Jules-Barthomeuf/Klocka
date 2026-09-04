@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
-import { Users, Search, Trash2, Crown, FileText, Plus, X, Upload, Download, Building2, Link, Unlink, GitCompare, User, TrendingUp, Target, Sparkles, Edit, Loader2, ChevronDown } from "lucide-react";
+import { Mail, Users, Search, Trash2, Crown, FileText, Plus, X, Upload, Download, Building2, Link, Unlink, GitCompare, User, TrendingUp, Target, Sparkles, Edit, Loader2, ChevronDown } from "lucide-react";
 
 import {
   Dialog,
@@ -176,21 +176,21 @@ export default function AdminClients() {
   });
 
   const pendingUsers = users.filter((u) => (u.etape_actuelle ?? 0) === 0 && u.role !== 'admin');
-  // Les inscrits seuls : un compte découverte, en attente de l'appel.
-  const inscrits = users
-    .filter((u) => u.acces === 'decouverte' && u.role !== 'admin')
-    .sort((a, b) => String(b.inscrit_le || b.created_date || '').localeCompare(String(a.inscrit_le || a.created_date || '')));
-  const changerAcces = useMutation({
-    mutationFn: ({ userId, acces }) => base44.request("POST", `/api/admin/clients/${userId}/acces`, { body: { acces } }),
-    onSuccess: (_, { acces }) => {
+  // Les comptes qui n'ont pas encore de mot de passe (importés, ou invités
+  // sans avoir cliqué) : ils entrent par leur lien.
+  const sansMotDePasse = users.filter((u) => u.role !== 'admin' && !u.mot_de_passe_defini).length;
+  const inviterTous = useMutation({
+    mutationFn: () => base44.request("POST", "/api/admin/clients/inviter-tous", { body: { envoyer: true } }),
+    onSuccess: (r) => {
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      toast.success(acces === 'client' ? "Compte passé client" : "Compte repassé en découverte");
+      if (r.envoyes > 0) toast.success(`${r.envoyes} lien${r.envoyes > 1 ? "s" : ""} envoyé${r.envoyes > 1 ? "s" : ""} sur ${r.total}`);
+      else toast.error(`${r.total} lien${r.total > 1 ? "s" : ""} préparé${r.total > 1 ? "s" : ""}, mais aucune boîte d'envoi n'est rattachée : copiez-les un par un avec le bouton Lien.`);
     },
-    onError: (e) => toast.error(e?.message || "Impossible"),
+    onError: (e) => toast.error(e?.message || "Envoi impossible"),
   });
 
   const filteredUsers = users.filter((user) =>
-  ((user.etape_actuelle ?? 0) > 0 || user.role === 'admin') && user.acces !== 'decouverte' &&
+  ((user.etape_actuelle ?? 0) > 0 || user.role === 'admin') &&
   (etapeFilter === "all"
     || (etapeFilter === "admin" && user.role === "admin")
     || (user.role !== "admin" && (user.etape_actuelle ?? 0) === Number(etapeFilter))) &&
@@ -582,6 +582,19 @@ export default function AdminClients() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full bg-transparent border-none text-[15px] text-[#f2f3f5] placeholder:text-[#6a7180] outline-none py-1" />
               </div>
+              {sansMotDePasse > 0 && (
+                <Button
+                  onClick={() => {
+                    if (!window.confirm(`Envoyer un lien d'accès aux ${sansMotDePasse} comptes sans mot de passe ? Chacun cliquera, choisira son mot de passe, et retrouvera son espace.`)) return;
+                    inviterTous.mutate();
+                  }}
+                  disabled={inviterTous.isPending}
+                  className="h-10 text-sm bg-[#f2f3f5] hover:bg-[#ffffff] text-[#0b0c0e] font-semibold border-0 rounded-[10px]"
+                >
+                  {inviterTous.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                  Envoyer les liens ({sansMotDePasse})
+                </Button>
+              )}
               {selectedUsersForCompare.length >= 2 &&
               <Button
                 onClick={handleCompareUsers}
@@ -670,46 +683,6 @@ export default function AdminClients() {
         </div>
       )}
 
-      {/* Les inscrits en découverte — à appeler, puis à passer client */}
-      {inscrits.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-baseline justify-between gap-4 pb-3 border-b border-[#f2f3f5]/[0.12]">
-            <div>
-              <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: '#d9b46a' }}>Inscrits en découverte · {inscrits.length}</p>
-              <p className="m-0 mt-1 text-[12.5px] text-[#9298a6]">Ils voient les projets vitrine et le simulateur. Après l'appel, passez-les client — ou collez le compte rendu dans le chat du dashboard.</p>
-            </div>
-          </div>
-          {inscrits.map((user) => (
-            <div key={user.id} id={`utilisateur-${user.id}`} className="flex items-center gap-4 py-3.5 border-b border-[#f2f3f5]/[0.08] max-md:flex-wrap">
-              <div className="w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0" style={{ borderColor: '#d9b46a66' }}>
-                <span className="text-[11px]" style={{ color: '#d9b46a' }}>{user.full_name?.charAt(0)?.toUpperCase() || "?"}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[#f2f3f5] text-[15px] truncate m-0">{user.full_name || "Sans nom"}</p>
-                <p className="text-[#9298a6] text-xs truncate m-0">
-                  {user.email}
-                  {user.inscrit_le ? ` · inscrit le ${new Date(user.inscrit_le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}
-                  {user.inscription_via === 'google' ? ' · Google' : user.inscription_via === 'email' ? ' · e-mail' : ''}
-                  {user.rdv_strategique_le ? ` · rendez-vous demandé le ${new Date(user.rdv_strategique_le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ' · pas encore de rendez-vous'}
-                </p>
-              </div>
-              <button
-                onClick={() => changerAcces.mutate({ userId: user.id, acces: 'client' })}
-                disabled={changerAcces.isPending}
-                className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase font-semibold text-[#000000] hover:opacity-90 disabled:opacity-40"
-                style={{ background: '#d9b46a', borderRadius: 9999 }}
-              >
-                Passer client
-              </button>
-              <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)}
-                className="h-8 w-8 text-[#6a7180] hover:text-red-400 hover:bg-transparent flex-shrink-0">
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Liste des utilisateurs — rangées filetées, détail repliable */}
       <div className="border-b border-[#f2f3f5]/[0.12]">
         {filteredUsers.map((user) => {
@@ -771,16 +744,7 @@ export default function AdminClients() {
 
                 {/* Actions rapides */}
                 <div className="flex items-center gap-0.5 flex-shrink-0">
-                  {!isAdmin && user.role !== 'mandataire' && (
-                    <button
-                      onClick={() => changerAcces.mutate({ userId: user.id, acces: 'decouverte' })}
-                      disabled={changerAcces.isPending}
-                      title="Repasser ce compte en découverte : il ne verra plus que les projets vitrine et le simulateur"
-                      className="px-2.5 py-1 text-[9.5px] tracking-[0.14em] uppercase text-[#6a7180] hover:text-[#d9b46a] transition-colors max-md:hidden"
-                    >
-                      Découverte
-                    </button>
-                  )}
+                  {!isAdmin && !user.mot_de_passe_defini && <BoutonLienInvitation user={user} />}
                   <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(user)}
                     className="h-8 w-8 text-[#6a7180] hover:text-[#f2f3f5] hover:bg-transparent" title="Modifier la fiche client">
                     <Edit className="w-4 h-4" />

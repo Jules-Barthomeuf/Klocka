@@ -5,8 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { useUser } from "@/components/providers/UserProvider";
 import ClientDashboardView from "@/components/dashboard/ClientDashboardView";
 import AdminDashboardView from "@/components/dashboard/AdminDashboardView";
-import DecouverteView from "@/components/dashboard/DecouverteView";
-import { accesEffectif } from "@/lib/acces";
 
 const etapes = [
   { numero: 0, titre: "Compte", description: "Création du compte" },
@@ -86,11 +84,6 @@ export default function Dashboard() {
     return url;
   };
   const videoAccueilUrl = getEmbedUrl(appSettings.find(s => s.setting_key === 'global')?.video_accueil_url);
-
-  // L'espace découverte : l'aperçu, avant le rendez-vous.
-  if (showAsClient && accesEffectif(user) === "decouverte") {
-    return <DecouverteView user={user} />;
-  }
 
   // Admin view
   if (isAdmin && !previewClientMode) {

@@ -18,9 +18,6 @@ import { fileURLToPath } from 'url';
 
 import { Records, Meta, CHEMIN_UPLOADS, infoStockage } from './db.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
-import { accesDe, ACCES, changerAcces, migrerComptesEnAttente } from './clients-acces.js';
-// Les comptes se créent sur invitation. INSCRIPTION_LIBRE=1 rouvre la porte.
-const INSCRIPTION_LIBRE = /^(1|true|oui)$/i.test(String(process.env.INSCRIPTION_LIBRE || ''));
 import { restaurerSeedSiNecessaire } from './seed-donnees.js';
 import { invokeLLM, llmEnabled, llmStatus } from './llm.js';
 import { sendEmail, sendSMS, listAccounts } from './email.js';
@@ -64,8 +61,27 @@ const APP_ID = process.env.VITE_BASE44_APP_ID || 'klocka-local';
 // le seed de démonstration ensuite — il ne joue que si rien n'a été restauré.
 restaurerSeedSiNecessaire();
 runSeedIfEmpty();
-// Les comptes restés en salle d'attente deviennent des comptes découverte.
+
 migrerComptesEnAttente();
+// Le mode découverte a vécu : les comptes qui y étaient redeviennent des
+// clients ordinaires (étape 1 au moins), et le projet de démonstration s'en
+// va. Une fois, puis plus jamais.
+try {
+  if (!Meta.get('migration_acces_v2')) {
+    let n = 0;
+    for (const u of Records.list('User')) {
+      if (u.acces === 'decouverte') {
+        Records.update('User', u.id, { acces: null, etape_actuelle: Math.max(1, u.etape_actuelle || 0) });
+        n += 1;
+      }
+    }
+    for (const p of Records.list('Project')) if (p.demo_vitrine) Records.delete('Project', p.id);
+    Meta.set('migration_acces_v2', `${n} le ${new Date().toISOString()}`);
+    if (n) console.log(`[acces] ${n} compte(s) découverte redevenu(s) client(s)`);
+  }
+} catch (e) {
+  console.warn('[acces] migration :', e?.message || e);
+}
 // Les ressources voyagent avec le code : sur une base neuve (déploiement sans
 // disque persistant), elles se réimportent depuis server/ressources-seed.json.
 try {
@@ -77,14 +93,6 @@ try {
   }
 } catch (e) {
   console.warn('[seed] ressources :', e?.message || e);
-}
-// Le projet vitrine de la découverte : un local à 7 %, tant qu'un projet
-// réel n'est pas coché « vitrine ».
-try {
-  const { assurerProjetVitrine } = await import('./seed-vitrine.js');
-  assurerProjetVitrine();
-} catch (e) {
-  console.warn('[seed] projet vitrine :', e?.message || e);
 }
 ensureMailTemplates();
 purgeExpiredSessions();
@@ -108,7 +116,7 @@ function currentUser(req) {
 function sansSecret(user) {
   if (!user || typeof user !== 'object') return user;
   const { mot_de_passe, ...reste } = user;
-  return { ...reste, mot_de_passe_defini: !!mot_de_passe, acces: accesDe(user) };
+  return { ...reste, mot_de_passe_defini: !!mot_de_passe };
 }
 
 // Champs qu'un utilisateur ne peut pas se donner à lui-même.
@@ -211,10 +219,7 @@ app.post('/api/auth/updateMe', wrap((req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
   // Sans ce filtre, n'importe qui pourrait s'attribuer le rôle admin.
-  const patch = retirerChampsProteges(req.body);
-  // Un compte découverte n'a pas d'étape à faire avancer.
-  if (accesDe(user) === 'decouverte') delete patch.etape_actuelle;
-  ok(res, sansSecret(Records.update('User', user.id, patch)));
+  ok(res, sansSecret(Records.update('User', user.id, retirerChampsProteges(req.body))));
 }));
 
 // Changer son mot de passe une fois connecté.
@@ -263,13 +268,8 @@ app.post('/api/auth/verifier-email', wrap(async (req, res) => {
     if (amorcagePossible(email)) {
       return ok(res, { connu: true, email, prenom: null, role: 'admin', mot_de_passe_defini: false });
     }
-    // Inconnue : sur invitation seulement — sauf si l'inscription libre est rouverte.
-    return ok(res, INSCRIPTION_LIBRE ? { connu: false, inscription: { google: googleEnabled, email: true } } : { connu: false });
-  }
-  // Un compte découverte né par Google, sans mot de passe : il se prouve par
-  // un code, pas par sa seule adresse.
-  if (!user.mot_de_passe && user.inscrit_le) {
-    return ok(res, { connu: true, email: user.email, prenom: (user.full_name || '').split(' ')[0] || null, role: user.role || 'user', mot_de_passe_defini: false, code_requis: true, google: googleEnabled });
+    // Inconnue : les comptes se créent sur invitation.
+    return ok(res, { connu: false });
   }
   ok(res, {
     connu: true,
@@ -278,6 +278,9 @@ app.post('/api/auth/verifier-email', wrap(async (req, res) => {
     role: user.role || 'user',
     // Première connexion : le mot de passe reste à définir.
     mot_de_passe_defini: !!user.mot_de_passe,
+    // Sans mot de passe, le compte s'ouvre avec son lien d'invitation — jamais
+    // avec sa seule adresse, sinon n'importe qui la connaissant le prendrait.
+    lien_requis: !user.mot_de_passe && !amorcagePossible(email),
   });
 }));
 
@@ -295,14 +298,12 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
     return res.status(409).json({ error: 'Un mot de passe existe déjà pour ce compte. Connectez-vous.' });
   }
 
-  // Un compte inscrit seul (Google) pose son mot de passe avec un code mail.
-  if (user.inscrit_le && !user.invitation_jeton) {
-    return res.status(403).json({ error: 'Ce compte a été créé avec Google : connectez-vous avec Google, ou demandez un code par e-mail pour choisir un mot de passe.', code: 'code_requis' });
+  // Un compte se réclame avec son lien d'invitation, jamais avec sa seule
+  // adresse : sinon quiconque connaît l'adresse d'un client peut s'approprier
+  // le compte avant lui. Seul l'amorçage (l'adresse admin déclarée) y échappe.
+  if (!user.invitation_jeton && !amorcagePossible(email)) {
+    return res.status(403).json({ error: "Ce compte s'ouvre avec son lien d'invitation : demandez-le à votre conseiller Klocka." });
   }
-
-  // Un compte invité se réclame avec son lien, pas avec sa seule adresse :
-  // sinon quiconque connaît l'adresse d'un client peut s'approprier le compte
-  // avant lui. Les comptes sans invitation émise gardent l'ancien parcours.
   if (user.invitation_jeton) {
     const { jeton } = req.body || {};
     const expire = user.invitation_expire_le && new Date(user.invitation_expire_le) < new Date();
@@ -326,74 +327,6 @@ app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
   const jeton = createSession(res, email, { sansCookie: fenetre });
   console.log(`[auth] mot de passe défini et connexion : ${email} (${user.role || 'user'})`);
   ok(res, { success: true, email, role: user.role || 'user', ...(fenetre ? { jeton_session: jeton } : {}) });
-}));
-
-// --- Inscription libre : l'espace découverte ---------------------------------
-//
-// Une adresse, un prénom, un mot de passe ; un code à six chiffres prouve
-// l'adresse. Le compte naît en découverte — projets vitrine, simulateur, et
-// la porte du rendez-vous. L'équipe le passe client après l'appel.
-
-app.post('/api/auth/inscription/code', wrap(async (req, res) => {
-  const { demanderCode } = await import('./inscription.js');
-  // Un compte né par Google peut toujours se choisir un mot de passe par code ;
-  // une adresse inconnue, non : les comptes se créent sur invitation.
-  const connu = Records.filter('User', { email: normEmail(req.body?.email) })[0];
-  if (!INSCRIPTION_LIBRE && !connu) return res.status(403).json({ error: 'Les comptes Klocka se créent sur invitation : rapprochez-vous de votre conseiller.' });
-  const r = await demanderCode({ email: req.body?.email, full_name: req.body?.full_name, ip: ipDe(req) });
-  if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
-  ok(res, { envoye: !!r.envoye, sans_code: !!r.sans_code, expire_le: r.expire_le });
-}));
-
-app.post('/api/auth/inscription/confirmer', wrap(async (req, res) => {
-  const { confirmerInscription } = await import('./inscription.js');
-  const connu = Records.filter('User', { email: normEmail(req.body?.email) })[0];
-  if (!INSCRIPTION_LIBRE && !connu) return res.status(403).json({ error: 'Les comptes Klocka se créent sur invitation : rapprochez-vous de votre conseiller.' });
-  const r = await confirmerInscription({
-    email: req.body?.email,
-    code: req.body?.code,
-    mot_de_passe: req.body?.mot_de_passe,
-    full_name: req.body?.full_name,
-  });
-  if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
-  const fenetre = !!req.body?.fenetre;
-  const jeton = createSession(res, r.user.email, { sansCookie: fenetre });
-  console.log(`[inscription] connexion : ${r.user.email} (${accesDe(r.user)})`);
-  ok(res, { success: true, email: r.user.email, acces: accesDe(r.user), ...(fenetre ? { jeton_session: jeton } : {}) });
-}));
-
-// L'équipe passe un compte client (ou le repasse en découverte).
-app.post('/api/admin/clients/:id/acces', wrap((req, res) => {
-  const admin = currentUser(req);
-  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const user = Records.get('User', req.params.id);
-  if (!user) return res.status(404).json({ error: 'Compte introuvable.' });
-  if (user.role === 'admin') return res.status(400).json({ error: "Un administrateur n'a pas de niveau d'accès." });
-  const acces = String(req.body?.acces || '');
-  if (!ACCES.includes(acces)) return res.status(400).json({ error: `Accès inconnu : ${acces}` });
-  ok(res, sansSecret(changerAcces(user, acces, { admin })));
-}));
-
-// --- Sauvegarde de la base : on l'emporte, on la ramène -----------------------
-app.get('/api/admin/sauvegarde', wrap(async (req, res) => {
-  const admin = currentUser(req);
-  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const { exporterTout } = await import('./sauvegarde.js');
-  const dump = exporterTout();
-  res.setHeader('Content-Disposition', `attachment; filename="klocka-sauvegarde-${new Date().toISOString().slice(0, 10)}.json"`);
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(dump));
-  console.log(`[sauvegarde] exportée par ${admin.email} (${dump.records.length} enregistrements)`);
-}));
-
-app.post('/api/admin/sauvegarde', upload.single('fichier'), wrap(async (req, res) => {
-  const admin = currentUser(req);
-  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const brut = req.file ? fs.readFileSync(req.file.path, 'utf-8') : JSON.stringify(req.body || {});
-  const { restaurerTout } = await import('./sauvegarde.js');
-  const n = restaurerTout(JSON.parse(brut));
-  console.log(`[sauvegarde] restaurée par ${admin.email}`);
-  ok(res, { ok: true, ...n });
 }));
 
 // Le lien d'invitation : ce qu'il ouvre, avant tout mot de passe.
@@ -462,6 +395,38 @@ ${admin.full_name || admin.email}`,
     simule: !!envoi?.simulated,
     erreur_envoi: envoi && !envoi.success && !envoi.simulated ? envoi.error || 'Envoi impossible' : null,
   });
+}));
+
+// Tous les comptes sans mot de passe reçoivent leur lien, d'un coup : c'est
+// ainsi que les clients importés entrent — ils cliquent, choisissent leur mot
+// de passe, et tout ce qui les attend (étape, projets) est là.
+app.post('/api/admin/clients/inviter-tous', wrap(async (req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { creerInvitation } = await import('./clients-invitation.js');
+  const base = urlPublique(req);
+  const envoyer = !!req.body?.envoyer;
+  const cibles = Records.list('User').filter((u) => u.role !== 'admin' && !u.mot_de_passe && u.email);
+  const liens = [];
+  let envoyes = 0;
+  for (const u of cibles) {
+    const r = creerInvitation({ email: u.email, admin, base });
+    if (!r.ok) continue;
+    let mail = null;
+    if (envoyer) {
+      const prenom = (r.user.full_name || '').split(' ')[0];
+      mail = await sendEmail({
+        owner: admin.email,
+        to: r.user.email,
+        subject: 'Votre accès à Klocka',
+        body: `Bonjour${prenom ? ` ${prenom}` : ''},\n\nVotre espace Klocka est prêt. Pour y entrer, choisissez votre mot de passe en ouvrant ce lien :\n\n${r.lien}\n\nIl reste valable quatorze jours.\n\nÀ très vite,\n${admin.full_name || admin.email}`,
+      });
+      if (mail?.success && !mail.simulated) envoyes += 1;
+    }
+    liens.push({ email: r.user.email, nom: r.user.full_name || null, lien: r.lien, envoye: !!(mail?.success && !mail.simulated) });
+  }
+  console.log(`[auth] liens d'invitation : ${liens.length} compte(s), ${envoyes} mail(s) envoyé(s), par ${admin.email}`);
+  ok(res, { total: liens.length, envoyes, liens });
 }));
 
 // Le chat du tableau de bord, mode Client : le compte rendu d'un appel de
@@ -582,13 +547,7 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
     // librement. Seuls l'amorçage (toute première personne) et l'adresse
     // administrateur déclarée entrent sans avoir été enregistrés au préalable.
     const amorcage = Records.count('User') === 0 || emailGoogle === normEmail(ADMIN_EMAIL);
-    if (!amorcage && INSCRIPTION_LIBRE) {
-      // Inscription libre (fermée par défaut) : le compte naît en découverte,
-      // l'identité vient de Google — rien d'autre à prouver.
-      const { creerCompteDecouverte } = await import('./inscription.js');
-      user = creerCompteDecouverte({ email: emailGoogle, full_name: profile.name, picture: profile.picture, via: 'google' });
-    }
-    if (!amorcage && !INSCRIPTION_LIBRE) {
+    if (!amorcage) {
       console.log(`[auth] refusé, adresse sans invitation : ${emailGoogle}`);
       return authResultPage(res, {
         ok: false,
@@ -833,17 +792,9 @@ const projetVisiblePar = (user) => (p) =>
     (Array.isArray(p.client_emails) && p.client_emails.includes(user.email)) ||
     p.created_by === user.email);
 
-// Un projet vitrine se montre sans ses clients ni ses pièces.
-const projetVitrine = ({ client_email, client_emails, admin_principal, documents, dossier_bancaire_url, ...reste }) => reste;
 const filtrerProjets = (user, data) => {
   if (user.role === 'admin') return data;
   if (!Array.isArray(data)) return data;
-  if (accesDe(user) === 'decouverte') {
-    const vitrines = data.filter((p) => p.vitrine && !p.archived);
-    // Le projet de démonstration s'efface dès qu'un projet réel est en vitrine.
-    const reels = vitrines.filter((p) => !p.demo_vitrine);
-    return (reels.length ? reels : vitrines).map(projetVitrine);
-  }
   return data.filter(projetVisiblePar(user));
 };
 // Les comptes : l'équipe et les mandataires voient la liste, un client ne voit que lui.
@@ -883,12 +834,8 @@ app.get('/api/entities/:entity/:id', wrap((req, res) => {
   if (!rec) return res.status(404).json({ error: 'Not found' });
   // Même réponse qu'un enregistrement inexistant : ne pas révéler l'existence
   // d'un projet auquel on n'a pas accès.
-  if (req.params.entity === 'Project' && user.role !== 'admin') {
-    if (accesDe(user) === 'decouverte') {
-      if (!rec.vitrine || rec.archived) return res.status(404).json({ error: 'Not found' });
-      return ok(res, nettoyer('Project', projetVitrine(rec)));
-    }
-    if (!projetVisiblePar(user)(rec)) return res.status(404).json({ error: 'Not found' });
+  if (req.params.entity === 'Project' && user.role !== 'admin' && !projetVisiblePar(user)(rec)) {
+    return res.status(404).json({ error: 'Not found' });
   }
   if (req.params.entity === 'User' && !['admin', 'mandataire'].includes(user.role) && rec.id !== user.id) {
     return res.status(404).json({ error: 'Not found' });
@@ -927,7 +874,7 @@ app.put('/api/entities/:entity/:id', wrap((req, res) => {
   // Un non-admin ne modifie que les projets où il figure.
   if (entity === 'Project' && user.role !== 'admin') {
     const rec = Records.get(entity, id);
-    if (accesDe(user) === 'decouverte' || !rec || !projetVisiblePar(user)(rec)) return res.status(404).json({ error: 'Not found' });
+    if (!rec || !projetVisiblePar(user)(rec)) return res.status(404).json({ error: 'Not found' });
   }
 
   const rec = Records.update(entity, id, patch);
@@ -2135,7 +2082,6 @@ app.get('/api/health', (req, res) => {
     hebergeur: process.env.RENDER ? 'render' : null,
     ia: llmStatus().label,
     google: googleEnabled,
-    inscription_libre: INSCRIPTION_LIBRE,
     comptes_google: listAccounts().length,
   });
 });

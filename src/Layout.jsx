@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { accesEffectif } from "@/lib/acces";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -156,9 +155,7 @@ function LayoutContent({ children, currentPageName }) {
   const pagesWithoutNavbar = ['Questionnaire', 'Home', 'Alexis'];
 
   useEffect(() => { localStorage.setItem('previewClientMode', previewClientMode); }, [previewClientMode]);
-  // Vue Découverte : l'admin voit ce qu'un inscrit voit.
-  const [previewAcces, setPreviewAcces] = useState(() => localStorage.getItem('previewAcces') || 'client');
-  useEffect(() => { localStorage.setItem('previewAcces', previewAcces); }, [previewAcces]);
+
   useEffect(() => {
     localStorage.setItem('sidebarPinned', sidebarPinned);
     if (sidebarPinned) setSidebarCollapsed(false);
@@ -214,15 +211,11 @@ function LayoutContent({ children, currentPageName }) {
           <div className="flex items-center gap-2 border-b border-[#f2f3f5]/[0.06] pb-1">
             <Eye className="w-3.5 h-3.5 text-[#6a7180]" />
             <AnimatedDropdown
-              value={previewClientMode ? (previewAcces === 'decouverte' ? 'decouverte' : 'client') : 'admin'}
-              onChange={(v) => {
-                setPreviewClientMode(v !== 'admin');
-                setPreviewAcces(v === 'decouverte' ? 'decouverte' : 'client');
-              }}
+              value={previewClientMode ? 'client' : 'admin'}
+              onChange={(v) => setPreviewClientMode(v === 'client')}
               options={[
                 { value: 'admin', label: 'Vue Admin' },
                 { value: 'client', label: 'Vue Client' },
-                { value: 'decouverte', label: 'Vue Découverte' },
               ]}
               className="flex-1"
               triggerClassName="bg-transparent border-none text-[#f2f3f5] h-7 px-0 hover:bg-transparent hover:text-[#f2f3f5]"
@@ -233,12 +226,7 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto pl-0 pr-1.5 pt-4 pb-4 space-y-1">
-        {showClientView && accesEffectif(user) === "decouverte" ? (
-          <>
-            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Découverte" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-          </>
-        ) : showClientView ? (
+        {showClientView ? (
           <>
             <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("MesProjets")} icon={Building2} label="Mes projets" isActive={isActivePage("MesProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />

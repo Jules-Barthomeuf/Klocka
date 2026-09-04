@@ -20,7 +20,6 @@ import Portail from '@/pages/Portail';
 import Bienvenue from "./pages/Bienvenue";
 import Installer from "./pages/Installer";
 import Alexis from "./pages/Alexis";
-import { accesDe } from "@/lib/acces";
 
 // Ce qu'un client peut ouvrir : son parcours, ses projets, ses outils. Tout le
 // reste appartient à l'équipe.
@@ -29,8 +28,6 @@ const PAGES_CLIENT = new Set([
   'SimulateurRentabilite', 'TableauProjection', 'Ressources', 'Vision', 'Comparateur',
   'KlockAI', 'MonCompte', 'Feedback', 'Famille', 'Familles',
 ]);
-// Ce qu'un inscrit en découverte peut ouvrir : l'aperçu, le simulateur, son compte.
-const PAGES_DECOUVERTE = new Set(['Home', 'Dashboard', 'SimulateurRentabilite', 'ProjetDetail', 'MonCompte', 'Feedback']);
 import Portail2Fois from '@/pages/Portail2Fois';
 import SimulateurPublic from '@/pages/SimulateurPublic';
 import ProjetPublic from '@/pages/ProjetPublic';
@@ -126,10 +123,9 @@ const AuthenticatedApp = () => {
   // une coquille vide en dit encore trop. Seuls les admins ont le choix de vue.
   if (isAuthenticated && !isLoadingUser && currentUser && currentUser.role !== 'admin') {
     const page = location.pathname.replace(/^\/+|\/+$/g, '');
-    const pages = accesDe(currentUser) === 'decouverte' ? PAGES_DECOUVERTE : PAGES_CLIENT;
     const autorisee =
       page === '' ||
-      pages.has(page) ||
+      PAGES_CLIENT.has(page) ||
       (currentUser.role === 'mandataire' && page.startsWith('Mandataire'));
     if (!autorisee) return <Navigate to="/Dashboard" replace />;
   }

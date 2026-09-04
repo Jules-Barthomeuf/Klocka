@@ -191,10 +191,7 @@ export async function creerClientDepuisDecouverte(champs, { admin, base }) {
         compte_rendu_decouverte: champs.remarque,
       },
     });
-    if (r.ok && r.promu) {
-      invitation = { promu: true, email: champs.email, user_id: r.user.id };
-      fait.push('compte découverte passé client, profil complété — la personne voit l\'espace client à sa prochaine ouverture');
-    } else if (r.ok) {
+    if (r.ok) {
       invitation = { lien: r.lien, email: champs.email, expire_le: r.expire_le, user_id: r.user.id };
       fait.push('compte Klocka créé, lien d\'invitation prêt');
     } else {

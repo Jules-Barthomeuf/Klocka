@@ -7,7 +7,6 @@
 
 import { randomBytes } from 'crypto';
 import { Records } from './db.js';
-import { accesDe, changerAcces } from './clients-acces.js';
 
 const QUATORZE_JOURS = 14 * 86400000;
 
@@ -27,17 +26,6 @@ export function creerInvitation({ email, full_name = '', admin, base, profil = {
 
   let user = Records.filter('User', { email: adresse })[0];
   if (user?.role === 'admin') return { ok: false, error: "Cette adresse est celle d'un administrateur." };
-  // Un compte découverte déjà actif (inscrit seul, avec Google ou un mot de
-  // passe) n'a pas besoin de lien : on le passe client, profil complété.
-  if (user && accesDe(user) === 'decouverte' && user.email_verifie === false) {
-    // Inscrit sans code : personne n'a prouvé qu'il tient cette adresse. Le
-    // mot de passe tombe, le lien d'invitation fait la preuve.
-    user = Records.update('User', user.id, { mot_de_passe: null, mot_de_passe_defini_le: null, email_verifie: true });
-  } else if (user && accesDe(user) === 'decouverte' && (user.mot_de_passe || user.inscrit_le)) {
-    const nomInvite = String(full_name || '').trim();
-    user = changerAcces(user, 'client', { admin, profil: { ...(profil || {}), ...(nomInvite && !user.full_name ? { full_name: nomInvite } : {}) } });
-    return { ok: true, promu: true, user };
-  }
   if (user?.mot_de_passe) return { ok: false, error: `${adresse} a déjà un mot de passe : le compte est actif.`, user };
 
   const jeton = randomBytes(24).toString('hex');
@@ -55,9 +43,9 @@ export function creerInvitation({ email, full_name = '', admin, base, profil = {
     ...champsProfil,
   };
   if (user) {
-    user = Records.update('User', user.id, { ...patch, acces: 'client', etape_actuelle: Math.max(1, user.etape_actuelle || 0) });
+    user = Records.update('User', user.id, { ...patch, etape_actuelle: Math.max(1, user.etape_actuelle || 0) });
   } else {
-    user = Records.create('User', { email: adresse, role: 'user', acces: 'client', etape_actuelle: 1, ...patch }, admin?.email);
+    user = Records.create('User', { email: adresse, role: 'user', etape_actuelle: 1, ...patch }, admin?.email);
   }
   return { ok: true, user, jeton, expire_le: expire, lien: `${base}/Bienvenue?jeton=${jeton}` };
 }

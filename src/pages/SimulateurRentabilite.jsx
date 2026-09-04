@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { accesEffectif } from "@/lib/acces";
 import { RENDEZ_VOUS_URL, PARCOURS_RENDEZ_VOUS_URL } from "@/lib/rendezVous";
 import { Button } from "@/components/ui/button";
 import { Check, Link2, Download, RefreshCw, ArrowRight } from "lucide-react";
@@ -28,29 +27,6 @@ function PMT(rate, nper, pv) {
   return -(rate * pv * pvif) / (pvif - 1);
 }
 
-
-// Le voile de la découverte : le contenu reste là, flou ; la porte est en or.
-function Voile({ actif, children }) {
-  if (!actif) return children;
-  return (
-    <div className="relative overflow-hidden rounded-lg">
-      <div className="blur-[7px] opacity-60 pointer-events-none select-none" aria-hidden="true">{children}</div>
-      <div className="absolute inset-0 flex items-start justify-center pt-8 px-4">
-        <div className="max-w-sm w-full bg-[#0f1114] border rounded-xl px-6 py-5 text-center" style={{ borderColor: "#d9b46a66" }}>
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: "#d9b46a" }}>Après votre rendez-vous</p>
-          <p className="m-0 mt-2 text-[14px] leading-[1.6] text-[#c9cdd6]">Le détail s'ouvre après votre rendez-vous avec un co-fondateur.</p>
-          <button
-            onClick={() => window.open(PARCOURS_RENDEZ_VOUS_URL, "_blank", "noopener")}
-            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[.16em] uppercase font-semibold text-[#000000]"
-            style={{ background: "#d9b46a", borderRadius: 9999 }}
-          >
-            Prendre rendez-vous <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function SimulateurRentabilite() {
   const navigate = useNavigate();
@@ -466,11 +442,7 @@ export default function SimulateurRentabilite() {
 
   const userEtape = user?.etape_actuelle || 1;
   const isAdmin = user?.role === "admin";
-  // En découverte : les indicateurs et le graphique sont ouverts ; le détail
-  // année par année, la revente, la négociation et les paramètres avancés
-  // attendent le rendez-vous.
-  const isDecouverte = accesEffectif(user) === "decouverte";
-  const isEtape2 = user && userEtape === 2 && !isAdmin && !isDecouverte;
+  const isEtape2 = user && userEtape === 2 && !isAdmin;
 
   const setters = { prixBienFAI: setPrixBienFAI, surface: setSurface, prixBienNegocie: setPrixBienNegocie, loyerInitialHTHC: setLoyerInitialHTHC, indexation: setIndexation, chargesCopropriete: setChargesCopropriete, taxeFonciere: setTaxeFonciere, apport: setApport, dureeCredit: setDureeCredit, tauxInteret: setTauxInteret, tauxAssuranceCredit: setTauxAssuranceCredit, anneeRevente: setAnneeRevente, tauxCommissionAgentRevente: setTauxCommissionAgentRevente, rendementBrutAcheteur: setRendementBrutAcheteur, coutCreationSociete: setCoutCreationSociete, fraisDossierBancaire: setFraisDossierBancaire, fraisCourtage: setFraisCourtage, comptabilite: setComptabilite, assurancePNE: setAssurancePNE, gestionLocative: setGestionLocative, chargesDiverses: setChargesDiverses };
   const values = { prixBienFAI, surface, prixBienNegocie, loyerInitialHTHC, indexation, chargesCopropriete, taxeFonciere, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, coutCreationSociete, fraisDossierBancaire, fraisCourtage, comptabilite, assurancePNE, gestionLocative, chargesDiverses };
@@ -487,7 +459,7 @@ export default function SimulateurRentabilite() {
   return (
     <div className="bg-[#000000] min-h-screen relative w-full max-w-full overflow-x-hidden">
       <AnimatePresence>
-        {showWhatsNew && !isEtape2 && !isDecouverte && <SimWhatsNewDialog onClose={closeWhatsNew} />}
+        {showWhatsNew && !isEtape2 && <SimWhatsNewDialog onClose={closeWhatsNew} />}
       </AnimatePresence>
 
       {isEtape2 && (
@@ -548,7 +520,7 @@ export default function SimulateurRentabilite() {
                 })}
               </div>
               <div className="flex items-center gap-2">
-                {!isDecouverte && <ExportExcelFullButton params={{ surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false }} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />}
+                <ExportExcelFullButton params={{ surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false }} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                 {isAdmin && (
                   <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.25] text-xs transition-colors">
                     {linkCopied ? <Check className="w-3.5 h-3.5 text-[#c3ddd6]" /> : <Link2 className="w-3.5 h-3.5" />}
@@ -568,19 +540,19 @@ export default function SimulateurRentabilite() {
                 </div>
               )}
               {activeTab === "scenarios" ? (
-                <Voile actif={isDecouverte}><SimScenarios
+                <SimScenarios
                   params={{ prixBienFAI, prixBienNegocieRef: prixBienNegocie, apport, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, fraisDossierBancaire, coutCreationSociete, fraisCourtage, dureeCredit, tauxInteret, loyerInitialHTHC, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur }}
                   formatCurrency={formatCurrency}
                   selectedNiveau={scenarioNegoPct}
                   onSelectNiveau={setScenarioNegoPct}
-                /></Voile>
+                />
               ) : activeTab === "avance" ? (
-                <Voile actif={isDecouverte}><SimParametresAvances
+                <SimParametresAvances
                   values={values}
                   advanced={advanced}
                   calculs={calculs}
                   formatCurrency={formatCurrency}
-                /></Voile>
+                />
               ) : (
                 <>
                   {activeTab !== "revente" && (
@@ -588,14 +560,14 @@ export default function SimulateurRentabilite() {
                   )}
                   <SimKpiRow calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                   {activeTab === "revente" ? (
-                    <Voile actif={isDecouverte}><SimReventeSynthese calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} /></Voile>
+                    <SimReventeSynthese calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                   ) : (
                     <SimChartCarousel calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                   )}
                 </>
               )}
               {activeTab !== "avance" && (
-                <Voile actif={isDecouverte}><SimDataTable calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} dureeCredit={values.dureeCredit} /></Voile>
+                <SimDataTable calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} dureeCredit={values.dureeCredit} />
               )}
               <p className="text-[10px] text-[#6a7180] italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
             </div>

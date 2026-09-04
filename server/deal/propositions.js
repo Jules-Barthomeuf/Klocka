@@ -410,38 +410,6 @@ function surStockageEphemere() {
  * @param {string[]} [opts.comptes] - boîtes dont on regarde les mails
  * @returns {Array<object>}
  */
-// Les inscrits seuls : un compte découverte, pas encore d'appel. C'est à nous
-// de décrocher — la fiche Monday n'existe qu'après. Une seule ligne, les
-// personnes en contexte, du plus récent au plus ancien.
-function surInscrits() {
-  const inscrits = Records.list('User')
-    .filter((u) => u.role !== 'admin' && u.acces === 'decouverte')
-    .sort((a, b) => String(b.inscrit_le || b.created_date || '').localeCompare(String(a.inscrit_le || a.created_date || '')));
-  if (!inscrits.length) return [];
-  const recents = inscrits.filter((u) => jours(u.inscrit_le || u.created_date) <= 30);
-  const liste = recents.length ? recents : inscrits.slice(0, 8);
-  const nomDe = (u) => u.full_name || u.email;
-  return [
-    {
-      id: `inscrits:${liste.map((u) => u.id).join(',')}`,
-      famille: 'client',
-      type: 'inscrit_decouverte',
-      priorite: P.COURANT,
-      titre: `${inscrits.length} inscrit${inscrits.length > 1 ? 's' : ''} en découverte${recents.length ? `, ${recents.length} ce mois-ci` : ''}`,
-      detail: liste.slice(0, 4).map(nomDe).join(', ') + (liste.length > 4 ? '…' : ''),
-      contexte: liste.slice(0, 8).map((u) => [
-        nomDe(u),
-        [
-          `inscrit le ${leJour(u.inscrit_le || u.created_date)}`,
-          u.inscription_via === 'google' ? 'via Google' : u.inscription_via === 'email' ? 'par e-mail' : null,
-          u.rdv_strategique_le ? `rendez-vous demandé le ${leJour(u.rdv_strategique_le)}` : 'pas encore de rendez-vous',
-        ].filter(Boolean).join(' · '),
-      ]),
-      actions: [{ id: 'clients', libelle: 'Voir les inscrits', mode: 'lien', href: '/AdminClients', principal: true }],
-    },
-  ];
-}
-
 export async function construirePropositions({ comptes = null } = {}) {
   const deals = Records.list('Deal').filter((d) => !d.archived && !d.test);
   const tousMails = Records.list('MailRecu');
@@ -491,7 +459,7 @@ export async function construirePropositions({ comptes = null } = {}) {
       actions: [{ id: 'registre', libelle: 'Voir le registre', mode: 'lien', href: '/Engagements', principal: true }],
     }));
 
-  const pile = [...surStockageEphemere(), ...(await surComptesMuets()), ...libres, ...surInscrits(), ...surMailsOrphelins(mails)];
+  const pile = [...surStockageEphemere(), ...(await surComptesMuets()), ...libres, ...surMailsOrphelins(mails)];
   for (const deal of deals) {
     pile.push(
       ...surReponsesRecues(deal, mails),

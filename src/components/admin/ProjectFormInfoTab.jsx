@@ -144,18 +144,6 @@ export default function ProjectFormInfoTab({ formData, setFormData, users }) {
           </div>
         </div>
         <div className={fieldWrap}>
-          <div className={flabel}>Vitrine</div>
-          <label className="flex items-center gap-2 cursor-pointer text-[13px] text-[#f2f3f5] mt-1">
-            <input
-              type="checkbox"
-              checked={!!formData.vitrine}
-              onChange={(e) => setFormData({ ...formData, vitrine: e.target.checked })}
-              className="w-4 h-4 accent-[#96c0b8]"
-            />
-            Projet vitrine — montré aux inscrits en découverte, sans ses clients ni ses pièces
-          </label>
-        </div>
-        <div className={fieldWrap}>
           <div className={flabel}>Suivi client</div>
           <div className="flex items-center gap-4 mt-1 flex-wrap">
             <label className="flex items-center gap-2 cursor-pointer text-[13px] text-[#f2f3f5]">

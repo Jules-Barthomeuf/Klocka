@@ -85,7 +85,7 @@ export default function AdminProjets() {
     prix_acquisition: 0,
     rendement_locatif: 0,
     adresse_complete: "",
-    statut: "prospect", vitrine: false,
+    statut: "prospect",
     suivi_message_envoye: false,
     suivi_retour_client: null,
     latitude: null,
@@ -327,7 +327,7 @@ export default function AdminProjets() {
     
     setFormData({
       titre: "", admin_principal: "", client_email: "", client_emails: adminEmails, prix_acquisition: 0, rendement_locatif: 0,
-      adresse_complete: "", statut: "prospect", vitrine: false, suivi_message_envoye: false, suivi_retour_client: null,
+      adresse_complete: "", statut: "prospect", suivi_message_envoye: false, suivi_retour_client: null,
       latitude: null, longitude: null, documents: [],
       ville_secteur_champ1: "", ville_secteur_champ2: "", ville_secteur_champ3: "",
       description_ville: "", description_secteur: "",
@@ -403,7 +403,6 @@ export default function AdminProjets() {
       client_emails: updatedClientEmails, prix_acquisition: project.prix_acquisition || 0,
       rendement_locatif: project.rendement_locatif || 0, adresse_complete: project.adresse_complete || "",
       statut: project.statut || "prospect",
-      vitrine: !!project.vitrine,
       suivi_message_envoye: !!project.suivi_message_envoye,
       suivi_retour_client: project.suivi_retour_client || null,
       latitude: project.latitude || null,

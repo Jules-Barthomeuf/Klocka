@@ -17,8 +17,7 @@ import SimReventeSynthese from "../components/simulator/layout/SimReventeSynthes
 import SimDataTable from "../components/simulator/layout/SimDataTable";
 import SimScenarios from "../components/simulator/layout/SimScenarios";
 import SimParametresAvances from "../components/simulator/layout/SimParametresAvances";
-import SimWhatsNewDialog from "../components/simulator/SimWhatsNewDialog";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { calculerTVADeductible } from "../components/simulator";
 
 function PMT(rate, nper, pv) {
@@ -35,9 +34,7 @@ export default function SimulateurRentabilite() {
   const [activeTab, setActiveTab] = useState("graphiques");
   const [linkCopied, setLinkCopied] = useState(false);
   const [scenarioNegoPct, setScenarioNegoPct] = useState(0);
-  const [showWhatsNew, setShowWhatsNew] = useState(() => localStorage.getItem('simWhatsNewSeenV1') !== 'true');
   const [animKey, setAnimKey] = useState(0);
-  const closeWhatsNew = () => { localStorage.setItem('simWhatsNewSeenV1', 'true'); setShowWhatsNew(false); setAnimKey((k) => k + 1); };
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects', user?.email, user?.compte_maitre_email],
@@ -458,9 +455,6 @@ export default function SimulateurRentabilite() {
 
   return (
     <div className="bg-[#000000] min-h-screen relative w-full max-w-full overflow-x-hidden">
-      <AnimatePresence>
-        {showWhatsNew && !isEtape2 && <SimWhatsNewDialog onClose={closeWhatsNew} />}
-      </AnimatePresence>
 
       {isEtape2 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#000000]/50 backdrop-blur-sm">

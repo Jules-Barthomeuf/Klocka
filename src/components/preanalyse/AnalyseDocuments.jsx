@@ -84,6 +84,13 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
   // Ligne dont la source est ouverte dans la visionneuse, à droite.
   const [ligneOuverte, setLigneOuverte] = useState(null);
 
+  // Une analyse ratée se relance sur le même document.
+  const reessayer = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/espace/extraire`, { body: { documents: [extraction.document_id] } }),
+    onSuccess: () => { toast.success("Analyse relancée"); onRefresh?.(); },
+    onError: (e) => toast.error(e?.message || "Relance impossible"),
+  });
+
   const majLigne = useMutation({
     mutationFn: ({ index, ...patch }) =>
       base44.request("POST", `/api/preanalyse/dossiers/${dealId}/espace/extractions/${extraction.id}/lignes/${index}`, { body: patch }),
@@ -102,9 +109,20 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
 
   if (extraction.erreur) {
     return (
-      <p className="border-t border-[#22262d] py-10 text-center text-[13px] text-[#96c0b8] m-0">
-        Extraction impossible : {extraction.erreur}
-      </p>
+      <div className="border-t border-[#22262d] py-10 text-center">
+        <p className="m-0 text-[13.5px] text-[#e8746a]">L'analyse a échoué : {extraction.erreur}</p>
+        <p className="m-0 mt-2 text-[12.5px] text-[#6a7180]">
+          Le plus souvent : quota du modèle atteint, ou document illisible (scan sans texte). Relancez — le document est relu tel quel.
+        </p>
+        <button
+          onClick={() => reessayer.mutate()}
+          disabled={reessayer.isPending}
+          className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-[#f2f3f5] text-[#0b0c0e] text-[11px] tracking-[.14em] uppercase font-semibold rounded-[10px] hover:bg-[#ffffff] disabled:opacity-50"
+        >
+          {reessayer.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+          Relancer l'analyse
+        </button>
+      </div>
     );
   }
 
@@ -125,7 +143,9 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
         </div>
       </div>
 
-      <ARegarder lignes={extraction.lignes || []} onOuvrir={(l) => setLigneOuverte(l)} />
+      {extraction.synthese && (
+        <p className="m-0 mb-4 text-[13.5px] leading-[1.7] text-[#c9cdd6] border-l-2 border-[#22262d] pl-4">{extraction.synthese}</p>
+      )}
 
       <div className={ligneOuverte ? "grid lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] gap-5 items-start" : ""}>
       <div className="overflow-x-auto min-w-0">
@@ -240,37 +260,6 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
         <Visionneuse extraction={extraction} ligne={ligneOuverte} onFermer={() => setLigneOuverte(null)} />
       )}
       </div>
-    </div>
-  );
-}
-
-// Ce qui décide, avant la table : les points de vigilance (les drapeaux
-// rouges) et ce qu'il faut vérifier. Chaque ligne renvoie à sa page.
-function ARegarder({ lignes, onOuvrir }) {
-  const rouges = lignes.map((l, index) => ({ ...l, index })).filter((l) => l.statut === "Point de vigilance");
-  const oranges = lignes.map((l, index) => ({ ...l, index })).filter((l) => l.statut === "À vérifier");
-  if (!rouges.length && !oranges.length) return null;
-  const Liste = ({ titre, items, teinte }) => (
-    <section className="min-w-0">
-      <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase" style={{ color: teinte }}>{titre} · {items.length}</p>
-      <ul className="m-0 p-0 list-none space-y-1.5">
-        {items.map((l) => (
-          <li key={l.index} className="flex items-start gap-2.5 text-[13px] leading-[1.5]">
-            <span className="mt-[7px] w-1.5 h-1.5 rounded-full flex-none" style={{ background: teinte }} />
-            <button onClick={() => onOuvrir?.(l)} className="text-left text-[#f2f3f5] hover:text-[#c3ddd6] transition-colors min-w-0">
-              <span className="text-[#9298a6]">{l.bloc ? `${l.bloc} — ` : ""}{l.element} : </span>
-              {l.constat}
-              {l.commentaire && <span className="block text-[12px] text-[#9298a6]">{l.commentaire}</span>}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-  return (
-    <div className="mb-5 border border-[#1f2228] rounded-xl bg-[#0f1114] px-5 py-4 grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-5">
-      {rouges.length > 0 && <Liste titre="Points de vigilance" items={rouges} teinte="#e8746a" />}
-      {oranges.length > 0 && <Liste titre="À vérifier" items={oranges} teinte="#d9b46a" />}
     </div>
   );
 }

@@ -296,7 +296,7 @@ export async function extraireUnePiece(piece, user) {
   const type = typeDepuisCategorie(piece.categorie, piece.nom);
   const grille = grilleDe(type);
   try {
-    const { lignes } = await extraireDonneesDocument({
+    const { lignes, synthese } = await extraireDonneesDocument({
       ...piece,
       elements: grille?.elements || null,
       statuts: STATUTS_LIGNE,
@@ -304,7 +304,7 @@ export async function extraireUnePiece(piece, user) {
       parBloc: type === 'pv_ag',
       groupes: type === 'pv_ag' ? BLOCS_PV_AG : null,
     });
-    return { ...base, type, type_label: grille?.label || null, lignes, erreur: null };
+    return { ...base, type, type_label: grille?.label || null, synthese: synthese || null, lignes, erreur: null };
   } catch (e) {
     const quota = /quota|rate limit|429/i.test(e?.message || '');
     return {

@@ -250,6 +250,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                     .catch((e) => toast.error(e?.message || "Abandon impossible"));
                 }}
                 disabled={abandonne || dossier.statut === "projet_cree"}
+                title="Classer le dossier sans suite : il reste consultable, il n'avance plus"
                 className="bg-transparent border-0 text-[#9aa0a8] hover:text-[#e6e8eb] hover:bg-transparent h-10 px-3 text-[14px]"
               >
                 Abandonner
@@ -258,9 +259,10 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                 <Button
                   onClick={() => (etape < debloquee ? setEtape(etape + 1) : passerVersEtape(etape + 1))}
                   disabled={deblocageEnCours || abandonne}
+                  title={abandonne ? "Dossier abandonné : il reste consultable, mais n'avance plus" : `Ouvrir l'étape suivante — ${ETAPES[etape]?.label}`}
                   className="bg-[#f2f3f5] hover:bg-[#ffffff] text-[#0b0c0e] font-semibold border-0 rounded-[10px] h-10 px-5 text-[14px]"
                 >
-                  {deblocageEnCours ? "Passage…" : "Poursuivre"}
+                  {deblocageEnCours ? "Passage…" : `Étape suivante : ${ETAPES[etape]?.label || ""}`}
                 </Button>
               )}
             </div>

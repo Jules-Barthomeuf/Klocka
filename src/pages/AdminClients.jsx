@@ -179,6 +179,20 @@ export default function AdminClients() {
   // Les comptes qui n'ont pas encore de mot de passe (importés, ou invités
   // sans avoir cliqué) : ils entrent par leur lien.
   const sansMotDePasse = users.filter((u) => u.role !== 'admin' && !u.mot_de_passe_defini).length;
+  // Un compte à la fois : le lien part par mail si une boîte est rattachée,
+  // sinon il se copie.
+  const inviterUn = useMutation({
+    mutationFn: (u) => base44.request("POST", "/api/admin/clients/inviter", { body: { email: u.email, full_name: u.full_name, envoyer: true } }),
+    onSuccess: async (r) => {
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      if (r.envoye) toast.success(`Lien envoyé à ${r.email}`);
+      else {
+        try { await navigator.clipboard.writeText(r.lien); toast.success("Aucune boîte d'envoi : lien copié, à transmettre"); }
+        catch { window.prompt("Copiez le lien :", r.lien); }
+      }
+    },
+    onError: (e) => toast.error(e?.message || "Invitation impossible"),
+  });
   const inviterTous = useMutation({
     mutationFn: () => base44.request("POST", "/api/admin/clients/inviter-tous", { body: { envoyer: true } }),
     onSuccess: (r) => {
@@ -664,13 +678,21 @@ export default function AdminClients() {
                     <p className="text-[#f2f3f5] text-[15px] truncate m-0">{user.full_name || "Sans nom"}</p>
                     <p className="text-[#9298a6] text-xs truncate m-0">{user.email}</p>
                   </div>
-                  <BoutonLienInvitation user={user} />
+                  <button
+                    onClick={() => inviterUn.mutate(user)}
+                    disabled={inviterUn.isPending}
+                    title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
+                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase font-semibold text-[#0b0c0e] bg-[#f2f3f5] hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
+                  >
+                    {inviterUn.isPending && inviterUn.variables?.id === user.id ? "Envoi…" : "Inviter"}
+                  </button>
                   <button
                     onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
                     disabled={updateUserMutation.isPending}
+                    title="Passer client tout de suite (étape 1), sans envoyer de lien maintenant"
                     className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase border border-[#2c3139] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.06] transition-colors disabled:opacity-40 flex-shrink-0"
                   >
-                    Activer
+                    Client direct
                   </button>
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)}
                     className="h-8 w-8 text-[#6a7180] hover:text-red-400 hover:bg-transparent flex-shrink-0">

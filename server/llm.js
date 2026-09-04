@@ -638,7 +638,8 @@ export async function extraireDonneesDocument(doc = {}) {
       doc.groupes.map((g, i) => `${i + 1}. ${g}`).join('\n') +
       `\n\nTermine par un bloc « Synthèse » de deux à quatre lignes : total des travaux votés, appels de fonds à prévoir pour le lot, points de friction dans la copropriété, ce qu'il faut demander (devis, PV suivant, état daté).\n\n` +
       `Réponds UNIQUEMENT en JSON :\n` +
-      `{"lignes":[{"bloc":"...","element":"...","constat":"...","statut":"...","commentaire":"...","page":1,"citation":"..."}]}\n` +
+      `{"synthese":"...","lignes":[{"bloc":"...","element":"...","constat":"...","statut":"...","commentaire":"...","page":1,"citation":"..."}]}\n` +
+      `— "synthese" : deux ou trois phrases, ce qu'un acquéreur doit retenir de ce PV (ce qui pèse, ce qui rassure, ce qu'il faut demander).\n` +
       `— "bloc" : repris mot pour mot de la liste ci-dessus (ou « Synthèse »).\n` +
       `— "element" : « Résolution n°X — objet en quelques mots » (ou l'intitulé du point).\n` +
       `— "constat" : la décision (adoptée / rejetée / reportée, avec la majorité si dite), le montant, qui paie (copropriété, bailleur, preneur, quote-part du lot si connue), l'échéance. Tel qu'écrit, unités comprises.\n` +
@@ -652,7 +653,8 @@ export async function extraireDonneesDocument(doc = {}) {
       `Réponds pour CHACUN de ces éléments, dans cet ordre exact, sans en ajouter ni en retirer :\n` +
       grille.map((e, i) => `${i + 1}. ${e}`).join('\n') +
       `\n\nRéponds UNIQUEMENT en JSON :\n` +
-      `{"lignes":[{"element":"...","constat":"...","statut":"...","commentaire":"...","page":1,"citation":"..."}]}\n` +
+      `{"synthese":"...","lignes":[{"element":"...","constat":"...","statut":"...","commentaire":"...","page":1,"citation":"..."}]}\n` +
+      `— "synthese" : deux ou trois phrases, ce qu'un investisseur doit retenir de ce document — ce qui pèse, ce qui rassure, ce qui manque.\n` +
       `— "element" : repris mot pour mot de la liste ci-dessus.\n` +
       `— "constat" : la valeur relevée dans le document, telle qu'écrite (unités comprises). ` +
       `Chaîne vide si l'élément n'est pas traité par ce document.\n` +
@@ -667,7 +669,8 @@ export async function extraireDonneesDocument(doc = {}) {
       `Relève les données factuelles utiles : parties, surfaces, loyers, charges, taxes, dates, ` +
       `durées, prix, clauses notables, diagnostics, décisions.\n\n` +
       `Réponds UNIQUEMENT en JSON :\n` +
-      `{"lignes":[{"element":"...","constat":"...","statut":"...","commentaire":"","page":1,"citation":"..."}]}\n` +
+      `{"synthese":"...","lignes":[{"element":"...","constat":"...","statut":"...","commentaire":"","page":1,"citation":"..."}]}\n` +
+      `— "synthese" : deux ou trois phrases, ce qu'un investisseur doit retenir de ce document.\n` +
       `— "element" : le nom de la donnée, court et explicite.\n` +
       `— "constat" : la valeur telle qu'écrite (unités comprises).\n` +
       `— "statut" : un seul parmi ${statuts}.\n` +
@@ -710,6 +713,7 @@ export async function extraireDonneesDocument(doc = {}) {
   });
 
   const rendues = (Array.isArray(objet?.lignes) ? objet.lignes : []).map(normaliser).filter((l) => l.element);
+  const synthese = typeof objet?.synthese === 'string' ? objet.synthese.trim().slice(0, 900) : '';
 
   // Par bloc : toutes les lignes comptent, rangées dans l'ordre des blocs ; la
   // synthèse ferme la marche. Un bloc inconnu va dans « Autres décisions ».
@@ -721,14 +725,15 @@ export async function extraireDonneesDocument(doc = {}) {
     };
     const lignes = rendues.map((l) => ({ ...l, bloc: ordre[rang(l.bloc)] , constat: String(l.constat).slice(0, 700) }));
     lignes.sort((a, b) => rang(a.bloc) - rang(b.bloc));
-    return { lignes };
+    return { synthese, lignes };
   }
 
   // Avec une grille, la liste fait foi : on remet les éléments dans l'ordre et
   // on complète ceux que le modèle aurait omis.
-  if (!grille) return { lignes: rendues };
+  if (!grille) return { synthese, lignes: rendues };
   const parElement = new Map(rendues.map((l) => [l.element.toLowerCase().trim(), l]));
   return {
+    synthese,
     lignes: grille.map((e) => {
       const trouve = parElement.get(e.toLowerCase().trim());
       return trouve

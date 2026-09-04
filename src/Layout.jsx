@@ -405,7 +405,7 @@ function LayoutContent({ children, currentPageName }) {
       {/* L'assistant suit l'admin de page en page. */}
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}
       {/* La pilule flottante se tait sur le dashboard : le chat y est déjà. */}
-      {isAdmin && !hideNavbar && currentPageName !== "Dashboard" && <AssistantFlottant />}
+      {isAdmin && !hideNavbar && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
 
       {/* Barre d'onglets mobile */}
       {!hideNavbar && showClientView && <BottomTabs />}

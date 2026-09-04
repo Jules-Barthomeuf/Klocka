@@ -12,8 +12,7 @@ import { Mic, Square, ArrowRight, Loader2, X } from "lucide-react";
 const MODES = [
   { id: "analyse", label: "Critères", court: "Table d'analyse" },
   { id: "verification", label: "Points à vérifier", court: "Points à vérifier" },
-  { id: "question", label: "Question libre", court: "Question" },
-  { id: "web", label: "Recherche web", court: "Recherche web" },
+  { id: "question", label: "Question", court: "Question" },
 ];
 
 const ilYA = (iso) => {
@@ -121,10 +120,10 @@ export default function ChatDossier({
       ? "Poser une question… (aucun document sélectionné : réponse générale)"
       : "Poser une question…";
 
-  // « Requêtes récentes » réunit les conversations et les extractions : on
-  // revient sur une analyse lancée comme sur une question posée.
-  const requetes = [
-    ...conversations.map((c) => ({
+  // « Requêtes récentes » : les questions posées. Les analyses de documents ont
+  // leur place dans l'étape Analyse, on ne les redouble pas ici.
+  const requetes = conversations
+    .map((c) => ({
       cle: c.id,
       titre: c.titre,
       type: MODES.find((m) => m.id === c.mode)?.court || "Question",
@@ -132,17 +131,8 @@ export default function ChatDossier({
       date: c.maj_le || c.cree_le,
       ouvrir: () => setConversationId(c.id),
       supprimer: () => supprimerConv.mutate(c.id),
-    })),
-    ...extractions.map((e) => ({
-      cle: e.id,
-      titre: nomOnglet(e),
-      type: e.erreur ? "Analyse (échec)" : "Table d'analyse",
-      auteur: e.extrait_par,
-      date: e.extrait_le,
-      ouvrir: () => onOuvrirExtraction?.(e.id),
-      supprimer: null,
-    })),
-  ].sort((x, y) => String(y.date || "").localeCompare(String(x.date || "")));
+    }))
+    .sort((x, y) => String(y.date || "").localeCompare(String(x.date || "")));
 
   // Le micro : la dictée remplit le champ, on relit, on envoie.
   const { supporte: dicteeOk, ecoute, demarrer, arreter } = useDictee({ onTexte: (t) => setTexte(t) });
@@ -232,8 +222,9 @@ export default function ChatDossier({
                     ? `Extraire ${nbCoches} document${nbCoches > 1 ? "s" : ""} — sans question à écrire`
                     : conversation ? "Le mode est fixé par la requête ouverte" : undefined
                 }
-                className={`px-4 py-2 rounded-full text-[13px] border transition-colors disabled:opacity-50
-                  ${mode === m.id ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#000000] font-medium" : "border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}
+                className={`relative text-[13px] py-1 px-0.5 mr-3 rounded-none transition-colors disabled:opacity-50
+                  after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300
+                  ${mode === m.id ? "text-[#f2f3f5] font-medium after:scale-x-100" : "text-[#8f959e] hover:text-[#c6ccd3]"}`}
               >
                 {m.id === "analyse" && extractionEnCours ? (
                   <span className="inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Extraction…</span>
@@ -249,12 +240,12 @@ export default function ChatDossier({
               hidden={modeMail || modePreanalyse}
               disabled={!documents.length}
               title={documents.length ? "Choisir les documents interrogés" : "Aucun document importé"}
-              className="text-[13px] px-3.5 py-1.5 rounded-full bg-[#1f2228] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-40"
+              className="text-[12.5px] py-1 text-[#8f959e] hover:text-[#f2f3f5] underline decoration-dotted underline-offset-4 transition-colors disabled:opacity-40"
             >
               Sources : {nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : documents.length ? "aucune" : "générales"}
             </button>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 self-center">
             {dicteeOk && (
               <button
                 onClick={ecoute ? arreter : demarrer}

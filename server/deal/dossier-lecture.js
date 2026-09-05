@@ -72,6 +72,27 @@ export function dates(texte) {
 }
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+const NOMS_MOIS = /janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[ûu]t|septembre|octobre|novembre|d[ée]cembre/i;
+
+/**
+ * Le loyer annuel que dit une phrase, ou null. Une quittance de mars 2026
+ * porte un mois : la prendre pour une année multipliait le loyer par douze
+ * — ou le divisait, ce qui est pire, car nul ne s'en aperçoit.
+ */
+function loyerAnnuel(texte) {
+  const liste = montants(texte);
+  if (!liste.length) return null;
+  const dit = (motif, x) => motif.test(x.avant) || motif.test(x.extrait);
+  const annuel = liste.find((x) => dit(/annuel|par an|\/\s?an\b|\bh\.?t\.?\s?\/\s?an/i, x));
+  if (annuel) return annuel.valeur;
+  const mensuel = liste.find((x) => dit(/mois|mensuel|\/\s?mois/i, x));
+  if (mensuel) return mensuel.valeur * 12;
+  // Ni « annuel » ni « mensuel » dit, mais un mois nommé dans la phrase :
+  // c'est une échéance, donc un mois.
+  if (NOMS_MOIS.test(texte)) return liste[0].valeur * 12;
+  return liste[0].valeur;
+}
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 const euros = (n) => `${Math.round(n).toLocaleString('fr-FR')} €`;
 
@@ -113,16 +134,14 @@ const FAITS = [
     cle: 'loyer',
     libelle: 'Loyer annuel HT HC',
     motifs: [/conditions financieres|loyer/],
-    types: ['bail', 'quittances'],
+    // Le bail seulement : une quittance dit une échéance, pas l'année.
+    types: ['bail'],
+    // C'est le chiffre de la pré-analyse qui fait foi — celui qu'on a dit au
+    // dossier ; le bail vient le confirmer, ou le contredire plus bas.
+    ficheDabord: true,
     lire: (t) => {
-      // Le plus gros montant d'une clause financière est le loyer annuel ; un
-      // « /mois » juste avant le dit mensuel, on le ramène à l'année.
-      const liste = montants(t);
-      if (!liste.length) return null;
-      const annuel = liste.find((x) => /annuel|par an|\/an/i.test(x.avant + x.extrait)) || liste[0];
-      const mensuel = /mois|mensuel/i.test(annuel.avant) && !/annuel/i.test(annuel.avant);
-      const v = mensuel ? annuel.valeur * 12 : annuel.valeur;
-      return { nombre: v, affiche: euros(v) };
+      const v = loyerAnnuel(t);
+      return v ? { nombre: v, affiche: euros(v) } : null;
     },
   },
   {
@@ -198,14 +217,17 @@ export function ficheBien(deal) {
       (l) => fait.motifs.some((m) => m.test(norm(l.element))) && (!fait.types || fait.types.includes(l.type))
     );
     let retenu = null;
-    for (const c of candidats) {
-      const lu = fait.lire(c.constat);
-      if (lu && (lu.affiche || lu.nombre != null)) {
-        retenu = { ...lu, source: source(c) };
-        break;
+    if (!fait.ficheDabord) {
+      for (const c of candidats) {
+        const lu = fait.lire(c.constat);
+        if (lu && (lu.affiche || lu.nombre != null)) {
+          retenu = { ...lu, source: source(c) };
+          break;
+        }
       }
     }
-    // À défaut de document, la pré-analyse a peut-être la valeur.
+    // La pré-analyse : en dernier recours, ou en premier quand c'est elle qui
+    // fait foi (le loyer qu'on a dit au dossier).
     if (!retenu) {
       const depuisFiche = {
         adresse: () => {
@@ -219,7 +241,17 @@ export function ficheBien(deal) {
         bail: () => (val(lot.bail_echeance) ? { affiche: String(val(lot.bail_echeance)) } : null),
       }[fait.cle];
       const lu = depuisFiche?.();
-      if (lu) retenu = { ...lu, source: { document: 'Fiche commerciale', page: null } };
+      if (lu) retenu = { ...lu, source: { document: 'Pré-analyse', page: null } };
+    }
+    // Rien dans la pré-analyse : les documents reprennent la main.
+    if (!retenu && fait.ficheDabord) {
+      for (const c of candidats) {
+        const lu = fait.lire(c.constat);
+        if (lu && (lu.affiche || lu.nombre != null)) {
+          retenu = { ...lu, source: source(c) };
+          break;
+        }
+      }
     }
     fiche.push({ cle: fait.cle, libelle: fait.libelle, ...(retenu || { affiche: null, source: null }) });
   }
@@ -234,7 +266,7 @@ export function ficheBien(deal) {
       libelle: 'Rendement (loyer / prix FAI)',
       nombre: r,
       affiche: `${r.toFixed(2).replace('.', ',')} %`,
-      source: { document: 'Calculé — loyer du bail sur prix annoncé', page: null },
+      source: { document: 'Calculé — loyer retenu sur prix annoncé', page: null },
     });
   } else {
     fiche.push({ cle: 'rendement', libelle: 'Rendement (loyer / prix FAI)', affiche: null, source: null });
@@ -272,13 +304,10 @@ export function contradictions(deal) {
   for (const l of lignes) {
     if (!/conditions financieres|loyer/.test(norm(l.element))) continue;
     if (!['bail', 'quittances'].includes(l.type)) continue;
-    const liste = montants(l.constat);
-    if (!liste.length) continue;
-    const cand = liste.find((x) => /annuel|par an|\/an/i.test(x.avant + x.extrait)) || liste[0];
-    const mensuel = /mois|mensuel/i.test(cand.avant) && !/annuel/i.test(cand.avant);
-    loyers.push({ valeur: mensuel ? cand.valeur * 12 : cand.valeur, source: source(l) });
+    const v = loyerAnnuel(l.constat);
+    if (v) loyers.push({ valeur: v, source: source(l) });
   }
-  if (val(lot.loyer_annuel_ht_hc)) loyers.push({ valeur: val(lot.loyer_annuel_ht_hc), source: { document: 'Fiche commerciale', page: null, element: 'Loyer annoncé' } });
+  if (val(lot.loyer_annuel_ht_hc)) loyers.push({ valeur: val(lot.loyer_annuel_ht_hc), source: { document: 'Pré-analyse', page: null, element: 'Loyer annoncé' } });
   comparer('Loyer annuel HT HC', loyers, 0.03, (v) => euros(v));
 
   // La surface : bail, diagnostics (Carrez), règlement, fiche.
@@ -288,7 +317,7 @@ export function contradictions(deal) {
     const s = surfaces(l.constat)[0];
     if (s) surf.push({ valeur: s.valeur, source: source(l) });
   }
-  if (val(lot.surface_m2)) surf.push({ valeur: val(lot.surface_m2), source: { document: 'Fiche commerciale', page: null, element: 'Surface annoncée' } });
+  if (val(lot.surface_m2)) surf.push({ valeur: val(lot.surface_m2), source: { document: 'Pré-analyse', page: null, element: 'Surface annoncée' } });
   comparer('Surface', surf, 0.05, (v) => `${v.toLocaleString('fr-FR')} m²`);
 
   // L'échéance du bail : l'année, dite par plusieurs pièces.
@@ -302,7 +331,7 @@ export function contradictions(deal) {
   }
   if (val(lot.bail_echeance)) {
     const d = dates(String(val(lot.bail_echeance)));
-    if (d.length) echeances.push({ annee: d[d.length - 1].annee, source: { document: 'Fiche commerciale', page: null, element: 'Échéance annoncée' } });
+    if (d.length) echeances.push({ annee: d[d.length - 1].annee, source: { document: 'Pré-analyse', page: null, element: 'Échéance annoncée' } });
   }
   const annees = [...new Set(echeances.map((e) => e.annee))];
   if (annees.length > 1) {

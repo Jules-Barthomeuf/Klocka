@@ -58,7 +58,7 @@ function ecrireCache() {
  */
 export async function resoudreCommune(codePostal, nomVille) {
   const cp = String(codePostal || '').trim();
-  if (!/^\d{5}$/.test(cp)) return null;
+  if (!/^\d{5}$/.test(cp)) return resoudreCommuneParNom(nomVille);
 
   const cle = `${cp}|${normaliser(nomVille)}`;
   // Les entrées mises en cache avant l'ajout des coordonnées (champ `centre`)
@@ -94,6 +94,40 @@ export async function resoudreCommune(codePostal, nomVille) {
       ? { lon: trouvee.centre.coordinates[0], lat: trouvee.centre.coordinates[1] }
       : null,
     ambigu: communes.length > 1 && !communes.some((c) => normaliser(c.nom) === cible),
+  };
+  cache[cle] = resultat;
+  ecrireCache();
+  return resultat;
+}
+
+// Sans code postal, le nom suffit souvent : la commune la plus peuplée de ce
+// nom est celle que désigne l'usage (Saint-Étienne, Lyon, Bordeaux…).
+async function resoudreCommuneParNom(nomVille) {
+  const nom = String(nomVille || '').trim();
+  if (nom.length < 2) return null;
+  const cle = `nom|${normaliser(nom)}`;
+  if (cache[cle] && cache[cle].centre !== undefined) return cache[cle];
+  let communes = [];
+  try {
+    const resp = await fetch(
+      `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(nom)}&fields=nom,code,population,codesPostaux,centre&boost=population&limit=5&format=json`
+    );
+    if (resp.ok) communes = await resp.json();
+  } catch {
+    return cache[cle] || null;
+  }
+  const cible = normaliser(nom);
+  const exactes = communes.filter((c) => normaliser(c.nom) === cible);
+  const trouvee = (exactes.length ? exactes : communes).sort((a, b) => (b.population || 0) - (a.population || 0))[0];
+  if (!trouvee) return null;
+  const resultat = {
+    code_insee: trouvee.code,
+    nom: trouvee.nom,
+    population: trouvee.population ?? null,
+    centre: trouvee.centre?.coordinates ? { lon: trouvee.centre.coordinates[0], lat: trouvee.centre.coordinates[1] } : null,
+    // Plusieurs communes portent ce nom : sans code postal, on a pris la plus peuplée.
+    ambigu: exactes.length > 1,
+    par_nom: true,
   };
   cache[cle] = resultat;
   ecrireCache();

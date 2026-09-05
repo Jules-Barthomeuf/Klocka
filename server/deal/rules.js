@@ -436,7 +436,7 @@ export function grilleCriteres(evaluation) {
   for (const r of REGLES.reserves?.liste || []) {
     const v = ctx[r.champ];
     const declenche = comparer(r.condition, v, r.valeur);
-    lignes.push({
+    const ligne = {
       groupe: 'Réserves',
       champ: r.champ,
       critere: LIBELLES_CHAMPS[r.champ] || r.champ,
@@ -444,7 +444,14 @@ export function grilleCriteres(evaluation) {
       valeur: formaterValeur(r.champ, v),
       ok: absent(v) ? null : !declenche,
       motif: declenche ? r.motif : null,
-    });
+    };
+    if (r.champ === 'extraction_confiance_basse') {
+      const n = (ctx.champs_confiance_basse || []).length;
+      ligne.attendu = 'toutes les valeurs lues avec confiance';
+      ligne.valeur = n ? `${n} valeur${n > 1 ? 's' : ''} à recouper` : 'lecture sûre';
+      ligne.details = ctx.champs_confiance_basse || [];
+    }
+    lignes.push(ligne);
   }
   return lignes;
 }

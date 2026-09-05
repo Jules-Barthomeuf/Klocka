@@ -193,6 +193,7 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
       activeTab={ongletActif}
       afficherScenario={false}
       titre="Hypothèses"
+      fermeParDefaut
     />
   );
 

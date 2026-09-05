@@ -47,7 +47,7 @@ export const STATUTS_DEAL = {
 // La grille des critères : nos critères à gauche, le bien à droite, et le
 // verdict ligne à ligne — une coche menthe ou une croix corail. C'est ce
 // qu'on voit en premier : le verdict global n'est que la somme de ces lignes.
-function GrilleCriteres({ lignes }) {
+function GrilleCriteres({ lignes, lot }) {
   // La grille se lit comme un relevé : à gauche le verdict du critère, au
   // milieu ce qu'on attend, à droite ce que le bien donne. Les critères ratés
   // remontent en tête de chaque groupe — ce sont eux qui décident.
@@ -133,10 +133,25 @@ function GrilleCriteres({ lignes }) {
                         <p className="m-0 text-[13px] leading-snug text-[#f2f3f5]">{l.critere}</p>
                         {l.attendu && <p className="m-0 mt-0.5 text-[11px] leading-snug text-[#6a7180]">attendu : {l.attendu}</p>}
                         {l.ok === false && l.motif && <p className="m-0 mt-0.5 text-[11px] leading-snug text-[#e8746a]/80">{l.motif}</p>}
+                        {/* Les valeurs lues avec une confiance basse : lesquelles, et ce que dit la fiche. */}
+                        {ouvert && l.details?.length > 0 && (
+                          <ul className="m-0 mt-2 p-0 list-none space-y-1.5">
+                            {l.details.map((champ) => {
+                              const c = lot?.lot?.[champ];
+                              return (
+                                <li key={champ} className="text-[11.5px] leading-snug">
+                                  <span className="text-[#c9cdd6]">{LIBELLE_CHAMP[champ] || champ}</span>
+                                  <span className="text-[#f2f3f5]"> : {c ? afficherValeur(champ, c.valeur) : "—"}</span>
+                                  {c?.citation && <span className="block text-[#6a7180] italic">« {c.citation} »</span>}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
                       </div>
                       <button
                         type="button"
-                        onClick={() => l.valeur != null && basculer(cle)}
+                        onClick={() => (l.valeur != null || l.details?.length) && basculer(cle)}
                         title={l.valeur || undefined}
                         className={`max-w-[46%] flex-none text-right text-[13px] leading-snug ${
                           l.valeur == null ? "text-[#6a7180] italic" : "text-[#c9cdd6]"
@@ -157,10 +172,13 @@ function GrilleCriteres({ lignes }) {
   );
 }
 
+// Le verdict a son badge : il ne se répète pas dans le titre.
+const sansVerdict = (t) => String(t || "").replace(/\s*[—:-]\s*(GO SOUS R[ÉE]SERVE|NO-?GO|GO|INSUFFISANT|Non retenu)\s*$/i, "").trim();
+
 const EMPLACEMENTS = [
   { code: "n1", libelle: "N°1" },
   { code: "n1_bis", libelle: "N°1 bis" },
-  { code: "intermediaire", libelle: "Intermédiaire" },
+  { code: "intermediaire", libelle: "N°2 · intermédiaire" },
   { code: "secondaire", libelle: "Secondaire" },
 ];
 
@@ -179,6 +197,7 @@ const CHAMPS_AFFICHES = [
   ["bail_echeance", "Échéance du bail"],
   ["occupe", "Occupé"],
 ];
+const LIBELLE_CHAMP = Object.fromEntries(CHAMPS_AFFICHES);
 
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 
@@ -590,7 +609,7 @@ function VuesLieu({ lot, enr }) {
 
 export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
   // Ouvert d'emblée, sur la carte : situer le bien est le premier réflexe.
-  const [ongletsOuverts, setOngletsOuverts] = useState(true);
+  const [ongletsOuverts, setOngletsOuverts] = useState(false);
 
   // À qui ce bien pourrait correspondre, d'après les investisseurs de Monday :
   // dès la pré-analyse, avant même de décider, on sait s'il y a preneur.
@@ -616,7 +635,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="min-w-0">
             {lot.intitule && <p className="text-[#9298a6] text-xs mb-1">{lot.intitule}</p>}
-            <h3 className="text-[#f2f3f5] font-medium leading-snug">{lot.synthese?.titre || "Lot"}</h3>
+            <h3 className="text-[#f2f3f5] font-medium leading-snug">{sansVerdict(lot.synthese?.titre) || "Lot"}</h3>
           </div>
           <Badge className={`${v.classe} flex-shrink-0`}>{libelleVerdict(lot.evaluation.verdict)}</Badge>
         </div>
@@ -626,70 +645,64 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
         )}
       </div>
 
-      <GrilleCriteres lignes={lot.evaluation.grille} />
+      <GrilleCriteres lignes={lot.evaluation.grille} lot={lot} />
 
-      <div className="p-5 border-b border-[#1f2228]">
-        <p className="text-[#9298a6] text-sm leading-relaxed">{lot.synthese?.synthese}</p>
-
-
-        {lot.evaluation.reserves?.length > 0 && (
-          <ul className="mt-3 space-y-1">
-            {lot.evaluation.reserves.map((r) => (
-              <li key={r.id} className="text-[#96c0b8]/80 text-xs flex items-start gap-2">
-                <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                {r.motif}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {lot.mail_agent && (
-          <Button
-            onClick={() => !apercu && setMailOuvert(true)}
-            disabled={apercu}
-            size="sm"
-            className="mt-4 bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border-0"
-          >
-            <Send className="w-3.5 h-3.5 mr-1.5" /> Mail de relance à l'agent
-          </Button>
-        )}
+      {/* Ce qu'on retient : la synthèse à gauche, les réserves à droite. */}
+      <div className="px-5 py-5 border-b border-[#1f2228] grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-x-10 gap-y-5">
+        <div className="min-w-0">
+          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Ce qu'on retient</p>
+          <p className="m-0 mt-2 text-[14px] leading-[1.7] text-[#d6d6db]">{lot.synthese?.synthese || "Pas encore de synthèse."}</p>
+          {lot.mail_agent && (
+            <button
+              onClick={() => !apercu && setMailOuvert(true)}
+              disabled={apercu}
+              className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2c3139] text-[12.5px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40"
+            >
+              <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent — pré-rédigé
+            </button>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">
+            Réserves{lot.evaluation.reserves?.length ? ` · ${lot.evaluation.reserves.length}` : ""}
+          </p>
+          {lot.evaluation.reserves?.length ? (
+            <ul className="m-0 mt-2 p-0 list-none space-y-2">
+              {lot.evaluation.reserves.map((r) => (
+                <li key={r.id} className="flex items-start gap-2.5 text-[12.5px] leading-[1.55] text-[#c9cdd6]">
+                  <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#e8b04c] flex-none" />
+                  {r.motif}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="m-0 mt-2 text-[12.5px] text-[#6a7180]">Aucune réserve à lever.</p>
+          )}
+        </div>
       </div>
 
-      {/* Rendement : annoncé vs AEM */}
+      {/* Les chiffres : annoncé contre tout compris */}
       {aem && (
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#1f2228] border-b border-[#1f2228]">
           <Metrique label="Prix FAI" valeur={euros(aem.prix_fai)} />
-          <Metrique label="Prix AEM" valeur={euros(aem.prix_aem)} accent sousTitre={`+${euros(aem.surcout_vs_fai)}`} />
+          <Metrique label="Prix AEM" valeur={euros(aem.prix_aem)} accent sousTitre={`+${euros(aem.surcout_vs_fai)} tout compris`} />
           <Metrique label="Rendement annoncé" valeur={aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—"} />
           <Metrique label="Rendement AEM" valeur={aem.rendement_aem != null ? `${aem.rendement_aem} %` : "—"} accent />
         </div>
       )}
 
-      {/* Emplacement : saisie humaine */}
+      {/* Emplacement : la seule donnée qui reste humaine — et elle change le verdict. */}
       <div className="px-5 py-4 border-b border-[#1f2228]">
-        <div className="flex items-center gap-2 mb-2">
-          <MapPin className="w-3.5 h-3.5 text-[#9298a6]" />
-          <span className="text-[#9298a6] text-xs">Emplacement — qualification humaine</span>
-          {enr?.emplacement === "a_qualifier" && (
-            <Badge className="bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/25 text-[10px]">à qualifier</Badge>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {EMPLACEMENTS.map((e) => (
-            <button
-              key={e.code}
-              disabled={apercu || enCours}
-              onClick={() => onSaisie?.({ emplacement: e.code })}
-              className={`px-3 py-1.5 rounded-lg text-xs border transition-all disabled:opacity-50 ${
-                enr?.emplacement === e.code
-                  ? "bg-[#96c0b8]/20 border-[#96c0b8]/40 text-[#c3ddd6]"
-                  : "border-[#f2f3f5]/10 text-[#9298a6] hover:border-[#f2f3f5]/25 hover:text-[#f2f3f5]"
-              }`}
-            >
-              {e.code === enr?.emplacement && <Check className="w-3 h-3 inline mr-1" />}
-              {e.libelle}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5 text-[#9298a6]" />
+            <span className="text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Emplacement</span>
+            {enr?.emplacement === "a_qualifier" ? (
+              <span className="text-[11px] text-[#e8b04c]">à qualifier — le verdict reste sous réserve tant qu'il n'est pas tranché</span>
+            ) : (
+              <span className="text-[11px] text-[#6a7180]">qualifié à la main · le verdict est recalculé à chaque changement</span>
+            )}
+          </div>
           {enr?.commune && (
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -697,11 +710,28 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg text-xs border border-[#f2f3f5]/10 text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/25 ml-auto"
+              className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5] underline underline-offset-2"
             >
               Voir sur la carte
             </a>
           )}
+        </div>
+        <div className="mt-3 inline-flex rounded-full border border-[#2c3139] p-0.5">
+          {EMPLACEMENTS.map((e) => (
+            <button
+              key={e.code}
+              disabled={apercu || enCours}
+              onClick={() => onSaisie?.({ emplacement: e.code })}
+              className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${
+                enr?.emplacement === e.code
+                  ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold"
+                  : "text-[#9298a6] hover:text-[#f2f3f5]"
+              }`}
+            >
+              {e.libelle}
+            </button>
+          ))}
+          {enCours && <span className="px-3 self-center text-[11px] text-[#9298a6]">recalcul…</span>}
         </div>
       </div>
 
@@ -731,7 +761,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
         onClick={() => setOngletsOuverts((o) => !o)}
         className="w-full px-5 py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors"
       >
-        <span>Détail de l'extraction et de l'enrichissement</span>
+        <span>Détail — données extraites avec citations, commune et enseigne, lieu, marché local</span>
         {ongletsOuverts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
 
@@ -793,7 +823,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               <div className="space-y-1 text-xs">
                 <LigneDetail label="Commune" valeur={enr?.commune ? `${enr.commune.nom} (${enr.commune.code_insee})` : "non résolue"} />
                 <LigneDetail label="Population" valeur={enr?.commune?.population?.toLocaleString("fr-FR") ?? "—"} />
-                <LigneDetail label="Typologie" valeur={enr?.typologie_ville ?? "—"} />
+                <LigneDetail label="Typologie" valeur={enr?.typologie_ville ? enr.typologie_ville.replace("_", " ") : enr?.commune ? "population inconnue" : "commune non résolue"} />
                 <LigneDetail
                   label="Ville riche"
                   valeur={enr?.ville_riche === null ? "inconnu (revenu médian non renseigné)" : enr?.ville_riche ? "oui" : "non"}

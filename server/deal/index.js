@@ -213,7 +213,7 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   lots[indexLot] = { ...entree, enrichissement, evaluation, synthese, mail_agent: mailAgent };
   Records.update('Deal', dossier.id, { lots });
 
-  return { deal_id: dealId, lot: lots[indexLot] };
+  return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };
 }
 
 // Les anciens titres générés embarquaient le verdict (« … : GO SOUS RÉSERVE »).

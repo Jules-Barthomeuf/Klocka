@@ -109,14 +109,15 @@ export default function Analyse() {
   const majLot = useMutation({
     mutationFn: ({ index, saisie }) =>
       base44.request("POST", `/api/preanalyse/dossiers/${dealId}/lots/${index}`, { body: saisie }),
-    onSuccess: (r) => {
+    onSuccess: (r, vars) => {
+      const idx = r?.lot?.index ?? vars.index;
       setDossier((d) => {
         if (!d) return d;
         const lots = [...d.lots];
-        lots[r.lot.index] = r.lot;
+        lots[idx] = { ...lots[idx], ...r.lot, index: idx };
         return { ...d, lots };
       });
-      toast.success("Verdict recalculé");
+      toast.success(`Verdict recalculé : ${r?.lot?.evaluation?.verdict || "—"}`);
     },
     onError: (e) => toast.error(e?.message || "Recalcul impossible"),
   });

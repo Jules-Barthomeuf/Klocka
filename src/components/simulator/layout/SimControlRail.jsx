@@ -26,10 +26,10 @@ function ToggleRow({ label, checked, onChange }) {
   );
 }
 
-export default function SimControlRail({ projects = [], selectedProjectId, onSelectProject, values, onChange, calculs, formatCurrency, advanced, activeTab, afficherScenario = true, titre = "Simulateur" }) {
+export default function SimControlRail({ projects = [], selectedProjectId, onSelectProject, values, onChange, calculs, formatCurrency, advanced, activeTab, afficherScenario = true, titre = "Simulateur", fermeParDefaut = false }) {
   const [openSections, setOpenSections] = useState({});
-  const toggleSection = (title) => setOpenSections((prev) => ({ ...prev, [title]: prev[title] === undefined ? false : !prev[title] }));
-  const isOpen = (title) => openSections[title] !== false;
+  const isOpen = (title) => openSections[title] ?? !fermeParDefaut;
+  const toggleSection = (title) => setOpenSections((prev) => ({ ...prev, [title]: !(prev[title] ?? !fermeParDefaut) }));
 
   const projectLocked = selectedProjectId && selectedProjectId !== "default";
 

@@ -208,9 +208,9 @@ export function statutColonne(colonne, cellules, contexte = {}) {
 
   if (!pleines.length) {
     // L'annonce et la pré-analyse sont une source, mais une source qu'aucune pièce ne confirme.
-    if (contexte.annonce?.[colonne.id]) return { statut: 'a_verifier', detail: `Seule l'annonce le dit : ${contexte.annonce[colonne.id]} — aucune pièce ne le confirme.` };
-    if (regle === 'presence_ou_hors') return { statut: 'hors_critere', detail: 'Aucun document ne le mentionne : hors critère tant que ce n\'est pas fourni.' };
-    return { statut: 'manquant', detail: 'Aucun document ne répond.' };
+    if (contexte.annonce?.[colonne.id]) return { statut: 'a_verifier', detail: `Seule l'annonce le dit (${contexte.annonce[colonne.id]}).`, annonce: true };
+    if (regle === 'presence_ou_hors') return { statut: 'hors_critere', detail: 'Aucune pièce n\'en parle.' };
+    return { statut: 'manquant', detail: 'Aucune pièce n\'en parle.' };
   }
 
   switch (regle) {
@@ -219,24 +219,31 @@ export function statutColonne(colonne, cellules, contexte = {}) {
       const annees = pleines.map((c) => ({ a: anneesDe(c.reponse), doc: c.document_nom })).filter((x) => x.a.length);
       if (annees.length >= 2) {
         const fins = [...new Set(annees.map((x) => Math.max(...x.a)))];
-        if (fins.length > 1) return { statut: 'contradictoire', detail: `Échéances différentes : ${fins.join(' / ')}.` };
-        return detail(`Même échéance (${fins[0]}) dans ${annees.length} documents.`);
+        if (fins.length > 1) return { statut: 'contradictoire', detail: `Les pièces ne disent pas la même échéance : ${fins.join(' ou ')}.` };
+        return detail(`Même échéance (${fins[0]}) dans ${annees.length} pièces.`);
       }
-      if (pleines.length === 1) return detail('Une seule source.');
+      if (pleines.length === 1) return detail('Une seule pièce.');
       const textes = [...new Set(pleines.map((c) => norm(c.reponse).slice(0, 60)))];
       return textes.length > 1 && pleines.length > 1
-        ? { statut: 'a_verifier', detail: `${pleines.length} sources, formulations différentes — à recouper.` }
-        : detail(`${pleines.length} sources concordantes.`);
+        ? { statut: 'a_verifier', detail: `${pleines.length} pièces le formulent différemment.` }
+        : detail(`${pleines.length} pièces concordent.`);
     }
     case 'surface': {
       const nombres = pleines.map((c) => ({ v: surfaces(c.reponse)[0]?.valeur, doc: c.document_nom })).filter((x) => x.v);
       if (contexte.surface_annoncee) nombres.push({ v: contexte.surface_annoncee, doc: 'Annonce' });
-      if (nombres.length < 2) return detail(nombres.length ? `${nombres[0].v} m² (une source).` : 'Surface citée sans chiffre.');
+      if (nombres.length < 2) return detail(nombres.length ? `${nombres[0].v} m² (une seule pièce).` : 'Surface citée sans chiffre.');
       const min = Math.min(...nombres.map((x) => x.v));
       const max = Math.max(...nombres.map((x) => x.v));
       const e = ecart(min, max);
-      if (e > 0.03) return { statut: 'contradictoire', detail: `Écart ${(e * 100).toFixed(1)} % : ${nombres.map((x) => `${x.v} m² (${x.doc})`).join(' / ')}.` };
-      return detail(`Écart ${(e * 100).toFixed(1)} % — cohérent.`);
+      const annonce = nombres.some((x) => x.doc === 'Annonce');
+      if (e > 0.03) {
+        const pieces = nombres.filter((x) => x.doc !== 'Annonce');
+        const texte = annonce && pieces.length === 1
+          ? `${pieces[0].v} m² dans les pièces contre ${contexte.surface_annoncee} m² annoncés.`
+          : `De ${min} à ${max} m² selon les pièces${annonce ? ` (${contexte.surface_annoncee} m² annoncés)` : ''}.`;
+        return { statut: 'contradictoire', detail: texte, annonce, valeurs: nombres };
+      }
+      return detail(`${nombres.length} pièces concordent (écart ${(e * 100).toFixed(1)} %).`);
     }
     case 'loyer': {
       const annuels = [];
@@ -254,42 +261,50 @@ export function statutColonne(colonne, cellules, contexte = {}) {
         annuels.push({ v, doc: c.document_nom });
       }
       if (contexte.loyer_annonce) annuels.push({ v: contexte.loyer_annonce, doc: 'Annonce' });
-      if (annuels.length < 2) return detail(annuels.length ? `${Math.round(annuels[0].v).toLocaleString('fr-FR')} € (une source).` : 'Loyer cité sans montant.');
+      if (annuels.length < 2) return detail(annuels.length ? `${Math.round(annuels[0].v).toLocaleString('fr-FR')} € par an (une seule pièce).` : 'Loyer cité sans montant.');
       const min = Math.min(...annuels.map((x) => x.v));
       const max = Math.max(...annuels.map((x) => x.v));
       const e = ecart(min, max);
-      if (e > 0.05) return { statut: 'contradictoire', detail: `Écart ${(e * 100).toFixed(1)} % : ${annuels.map((x) => `${Math.round(x.v).toLocaleString('fr-FR')} € (${x.doc})`).join(' / ')}.` };
-      return detail(`Écart ${(e * 100).toFixed(1)} % — cohérent (indexation comprise).`);
+      const eur = (v) => `${Math.round(v).toLocaleString('fr-FR')} €`;
+      const annonce = annuels.some((x) => x.doc === 'Annonce');
+      if (e > 0.05) {
+        const pieces = annuels.filter((x) => x.doc !== 'Annonce');
+        const texte = annonce && pieces.length === 1
+          ? `${eur(pieces[0].v)} dans le bail contre ${eur(contexte.loyer_annonce)} annoncés.`
+          : `De ${eur(min)} à ${eur(max)} par an selon les pièces${annonce ? ` (${eur(contexte.loyer_annonce)} annoncés)` : ''}.`;
+        return { statut: 'contradictoire', detail: texte, annonce, valeurs: annuels };
+      }
+      return detail(`${annuels.length} pièces concordent (écart ${(e * 100).toFixed(1)} %, indexation comprise).`);
     }
     case 'presence':
     case 'presence_ou_hors': {
       const negatif = pleines.every((c) => /^\s*(non\b|aucun|pas de|néant|inconnu|absent|sans )|non (etabli|établi|mentionn|précisé|renseigné)|ne figure pas|n'est pas (mentionn|précisé|indiqué)/i.test(c.reponse));
-      if (negatif) return { statut: regle === 'presence_ou_hors' ? 'hors_critere' : 'manquant', detail: `Les documents disent l'absence : ${pleines[0].reponse.slice(0, 90)}` };
-      return detail(`Présent dans ${pleines.length} document${pleines.length > 1 ? 's' : ''}.`);
+      if (negatif) return { statut: regle === 'presence_ou_hors' ? 'hors_critere' : 'manquant', detail: 'Les pièces disent qu\'il n\'y en a pas.' };
+      return detail(`Présent dans ${pleines.length} pièce${pleines.length > 1 ? 's' : ''}.`);
     }
     case 'permis_par': {
       const bail = pleines.find((c) => /bail/i.test(c.categorie || ''));
       const rcp = pleines.find((c) => /copropri|rcp/i.test(c.categorie || ''));
-      if (bail && rcp) return { statut: 'a_verifier', detail: `Activité du bail (${bail.reponse.slice(0, 50)}) à confronter au règlement (${rcp.reponse.slice(0, 50)}).` };
-      return detail(pleines.length > 1 ? `${pleines.length} sources.` : 'Une seule source.');
+      if (bail && rcp) return { statut: 'a_verifier', detail: 'Activité du bail à confronter au règlement de copropriété.' };
+      return detail(pleines.length > 1 ? `${pleines.length} pièces.` : 'Une seule pièce.');
     }
     case 'rendement': {
       const affiche = pleines.map((c) => Number(String(c.reponse).match(/(\d+(?:[.,]\d+)?)\s*%/)?.[1]?.replace(',', '.'))).find((n) => Number.isFinite(n));
       const recalc = contexte.rendement_recalcule;
       if (affiche && recalc) {
         const d = Math.abs(affiche - recalc);
-        if (d > 0.3) return { statut: 'contradictoire', detail: `Affiché ${affiche.toFixed(2)} % contre ${recalc.toFixed(2)} % recalculé (loyer / prix).` };
-        return detail(`Affiché ${affiche.toFixed(2)} %, recalculé ${recalc.toFixed(2)} %.`);
+        if (d > 0.3) return { statut: 'contradictoire', detail: `${affiche.toFixed(2)} % affichés contre ${recalc.toFixed(2)} % recalculés.`, annonce: true };
+        return detail(`${affiche.toFixed(2)} % affichés, ${recalc.toFixed(2)} % recalculés.`);
       }
-      return detail(affiche ? `Affiché ${affiche.toFixed(2)} % — pas de quoi recalculer.` : 'Rendement cité sans chiffre.');
+      return detail(affiche ? `${affiche.toFixed(2)} % affichés, rien pour recalculer.` : 'Rendement cité sans chiffre.');
     }
     case 'quittances': {
       const impaye = pleines.some((c) => /impay|retard|relance|mise en demeure/i.test(c.reponse));
       if (impaye) return { statut: 'a_verifier', detail: 'Retards ou impayés mentionnés.' };
-      return detail(`Paiements documentés (${pleines.length} source${pleines.length > 1 ? 's' : ''}).`);
+      return detail(`Paiements documentés (${pleines.length} pièce${pleines.length > 1 ? 's' : ''}).`);
     }
     default:
-      return detail(`${pleines.length} source${pleines.length > 1 ? 's' : ''}.`);
+      return detail(`${pleines.length} pièce${pleines.length > 1 ? 's' : ''}.`);
   }
 }
 
@@ -310,7 +325,7 @@ export function lireMatrice(dealId) {
     rendement_recalcule: recalc,
     annonce: {
       prix: prix ? `${Math.round(prix).toLocaleString('fr-FR')} € FAI` : null,
-      rendement_affiche: recalc ? `${recalc.toFixed(2)} % (loyer annoncé / prix FAI)` : null,
+      rendement_affiche: recalc ? `${recalc.toFixed(2)} % recalculés` : null,
       loyer: loyerAnnonce ? `${Math.round(loyerAnnonce).toLocaleString('fr-FR')} € HT/an` : null,
       surface: lot.surface_m2 ? `${lot.surface_m2} m²` : null,
     },
@@ -450,6 +465,8 @@ const rangAutorite = (categorie) => { const i = AUTORITE.indexOf(categorie || 'A
 const CHAMPS_DATES = new Set(['dates_bail', 'duree', 'resiliation', 'creation', 'diagnostics', 'travaux_votes', 'procedures',
   'paiements', 'travaux_conformite', 'etat_lieux', 'indexation', 'origine_fonds']);
 
+const contexteAnnonce = (m, id) => m.synthese[id]?.detail?.match(/\((.+)\)\.$/)?.[1] || null;
+
 export function lireFiche(dealId) {
   const m = lireMatrice(dealId);
   if (!m) return null;
@@ -475,7 +492,7 @@ export function lireFiche(dealId) {
     if (f?.valeur) { retenue = f.valeur; source = 'forcée'; }
     else if (f?.document_id && preuves.some((p) => p.document_id === f.document_id)) { const p = preuves.find((x) => x.document_id === f.document_id); retenue = p.reponse; source = p.document_nom; }
     else if (preuves.length) { retenue = preuves[0].reponse; source = preuves[0].document_nom; }
-    else if (m.synthese[c.id]?.detail?.startsWith("Seule l'annonce")) { retenue = m.synthese[c.id].detail.replace(/^Seule l'annonce le dit : /, '').replace(/ — aucune pièce.*$/, ''); source = 'annonce'; }
+    else if (m.synthese[c.id]?.annonce && !preuves.length) { retenue = contexteAnnonce(m, c.id) || m.synthese[c.id].detail; source = 'annonce'; }
 
     const champ = {
       id: c.id, bloc: c.bloc, libelle: c.libelle, question: c.question, regle: c.regle, criticite: c.criticite,

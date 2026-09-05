@@ -86,7 +86,7 @@ export function lireCarteDeal(dealId) {
     const revue = s.revue?.verdict || null;
     let statut;
     if (revue === 'faux_positif') statut = 'ecarte';
-    else if (s.statut === 'contradictoire') statut = /\(Annonce\)/.test(s.detail || '') ? 'ecart_teaser' : 'contradiction';
+    else if (s.statut === 'contradictoire') statut = s.annonce ? 'ecart_teaser' : 'contradiction';
     else if (s.statut === 'coherent') statut = 'confirme';
     else if (s.statut === 'a_verifier') statut = 'a_verifier';
     else {
@@ -114,7 +114,10 @@ export function lireCarteDeal(dealId) {
     const champ = champs.get(c.id);
     const valeurs = (champ?.preuves || []).map((p) => ({ valeur: p.reponse, source: p.document_nom, page: p.page, document_id: p.document_id, document_url: p.document_url, citation: p.citation }));
     if (r.statut === 'contradiction' || r.statut === 'ecart_teaser') {
-      if (r.statut === 'ecart_teaser') valeurs.push({ valeur: r.detail.match(/\/\s*([^/]+?)\s*\(Annonce\)/)?.[1] || 'annonce', source: 'Teaser (pré-analyse)', page: null });
+      if (r.statut === 'ecart_teaser') {
+        const t = c.id === 'loyer' ? `${Math.round(loyerTeaser || 0).toLocaleString('fr-FR')} € par an` : c.id === 'surface' ? `${surfaceTeaser} m²` : c.id === 'rendement_affiche' ? `${Number(rendementTeaser).toFixed(2)} %` : null;
+        if (t) valeurs.push({ valeur: t, source: 'Teaser (pré-analyse)', page: null });
+      }
       contradictions.push({ champ: c.id, libelle: c.libelle, bloc: c.bloc, statut: r.statut, detail: r.detail, valeurs, gravite: BLOQUANTES.has(c.id) || c.criticite === 'haute' ? 'bloquante' : 'a_lever', revue: r.revue });
     } else if (r.statut === 'piece_manquante') {
       piecesManquantes.push({ champ: c.id, libelle: c.libelle, piece: r.piece_attendue, question: `${r.piece_attendue} — absent de la data room. À demander au vendeur (${c.libelle.toLowerCase()}).`, criticite: c.criticite });

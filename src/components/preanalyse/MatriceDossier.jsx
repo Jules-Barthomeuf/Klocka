@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Check, ChevronDown, Copy, Loader2, Plus, RefreshCw, X } from "lucide-react";
 import DocumentsDossier from "./DocumentsDossier";
 import { Visionneuse, TableExtraction } from "./AnalyseDocuments";
+import FicheDossier, { Frise } from "./FicheDossier";
 
 // L'étape Analyse, brique par brique : les documents, la matrice (une ligne
 // par document, une colonne par question), le gabarit, la revue des anomalies
@@ -161,7 +162,7 @@ function Grille({ m, dealId, onCellule, celluleOuverte }) {
   );
 }
 
-function FormulaireColonne({ onAnnuler, onValider, enCours }) {
+export function FormulaireColonne({ onAnnuler, onValider, enCours }) {
   const [question, setQuestion] = useState("");
   const [libelle, setLibelle] = useState("");
   const [bloc, setBloc] = useState("Questions");
@@ -295,7 +296,10 @@ function Livrables({ dealId, nb }) {
 export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, apercu = false }) {
   const dealId = dossier?.deal_id;
   const queryClient = useQueryClient();
-  const [onglet, setOnglet] = useState("anomalies");
+  const [mode, setMode] = useState(() => { try { return localStorage.getItem("klocka_mode_analyse") || "grille"; } catch { return "grille"; } });
+  const [onglet, setOnglet] = useState(() => (mode === "fiche" ? "fiche" : "anomalies"));
+  const [questionLibre, setQuestionLibre] = useState(false);
+  const changerMode = (m) => { setMode(m); setOnglet(m === "fiche" ? "fiche" : "anomalies"); setCelluleOuverte(null); try { localStorage.setItem("klocka_mode_analyse", m); } catch { /* sans mémoire */ } };
   const [celluleOuverte, setCelluleOuverte] = useState(null);
   const [documentOuvert, setDocumentOuvert] = useState(null);
 
@@ -308,7 +312,7 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
 
   const remplir = useMutation({
     mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/matrice/remplir`, { body: {} }),
-    onSuccess: () => { toast.success("Lecture lancée — la grille se remplit document par document"); queryClient.invalidateQueries({ queryKey: ["matrice", dealId] }); },
+    onSuccess: () => { toast.success("Lecture lancée — la grille se remplit document par document"); queryClient.invalidateQueries({ queryKey: ["matrice", dealId] }); queryClient.invalidateQueries({ queryKey: ["fiche", dealId] }); },
     onError: (e) => toast.error(e?.message || "Lancement impossible"),
   });
 
@@ -316,12 +320,17 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
   const nbAnomalies = m?.anomalies?.length || 0;
   const nbDocs = (dossier?.documents_espace || []).length;
 
-  const ONGLETS = [
-    ["anomalies", `Anomalies${nbAnomalies ? ` · ${nbAnomalies}` : ""}`],
-    ["grille", "Grille"],
-    ["documents", `Documents · ${nbDocs}`],
-    ["livrables", "Livrables"],
-  ];
+  const ONGLETS = mode === "fiche"
+    ? [["fiche", `Fiche${nbAnomalies ? ` · ${nbAnomalies} alertes` : ""}`], ["frise", "Frise"], ["documents", `Documents · ${nbDocs}`], ["livrables", "Livrables"]]
+    : [["anomalies", `Anomalies${nbAnomalies ? ` · ${nbAnomalies}` : ""}`], ["grille", "Grille"], ["documents", `Documents · ${nbDocs}`], ["livrables", "Livrables"]];
+
+  const ajouterLibre = useMutation({
+    mutationFn: (corps) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/matrice/colonnes`, { body: corps }),
+    onSuccess: () => { toast.success("Question ajoutée — elle tourne sur toutes les pièces"); setQuestionLibre(false); queryClient.invalidateQueries({ queryKey: ["matrice", dealId] }); queryClient.invalidateQueries({ queryKey: ["fiche", dealId] }); },
+    onError: (e) => toast.error(e?.message || "Ajout impossible"),
+  });
+  // Une preuve de la fiche ou un fait de la frise s'ouvre dans le même tiroir.
+  const ouvrirPreuve = (p) => setCelluleOuverte({ ligne: { document_id: p.document_id, document_nom: p.document_nom, document_url: p.document_url }, colonne: p.champ || null, cellule: { page: p.page, citation: p.citation } });
 
   return (
     <div className="border border-[#1e1e22] rounded-[18px] bg-[#0f0f11] overflow-hidden">
@@ -335,6 +344,11 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
           ))}
         </div>
         <div className="flex items-center gap-3 py-2">
+          <div className="inline-flex rounded-full border border-[#2c3139] p-0.5 text-[12px]" title="Deux lectures des mêmes faits : la grille (documents × questions) ou la fiche (le bien, champ par champ)">
+            {[["grille", "Grille"], ["fiche", "Fiche"]].map(([m, l]) => (
+              <button key={m} onClick={() => changerMode(m)} className={`px-3 py-1 rounded-full transition-colors ${mode === m ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{l}</button>
+            ))}
+          </div>
           {enCours ? (
             <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {m.remplissage.fait}/{m.remplissage.total ?? "…"} — {m.remplissage.document || "lecture"}</span>
           ) : (
@@ -349,6 +363,22 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
         <div className="min-w-0 flex-1">
           {isLoading || !m ? (
             <Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" />
+          ) : onglet === "fiche" ? (
+            <FicheDossier
+              dealId={dealId}
+              onPreuve={ouvrirPreuve}
+              questionsLibres={
+                <section className="border border-dashed border-[#2c3139] rounded-xl px-4 py-3">
+                  {questionLibre ? (
+                    <FormulaireColonne onAnnuler={() => setQuestionLibre(false)} onValider={(c) => ajouterLibre.mutate(c)} enCours={ajouterLibre.isPending} />
+                  ) : (
+                    <button onClick={() => setQuestionLibre(true)} className="inline-flex items-center gap-2 text-[13px] text-[#9298a6] hover:text-[#f2f3f5]"><Plus className="w-3.5 h-3.5" /> Questions libres — poser une question à toutes les pièces</button>
+                  )}
+                </section>
+              }
+            />
+          ) : onglet === "frise" ? (
+            <FriseFiche dealId={dealId} onPreuve={ouvrirPreuve} />
           ) : onglet === "anomalies" ? (
             <Anomalies m={m} dealId={dealId} onCellule={setCelluleOuverte} />
           ) : onglet === "grille" ? (
@@ -371,4 +401,10 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
       </div>
     </div>
   );
+}
+
+function FriseFiche({ dealId, onPreuve }) {
+  const { data: fiche } = useQuery({ queryKey: ["fiche", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/matrice/fiche`) });
+  if (!fiche) return <Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" />;
+  return <Frise fiche={fiche} onPreuve={onPreuve} />;
 }

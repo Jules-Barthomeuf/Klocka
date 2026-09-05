@@ -432,3 +432,109 @@ function requireSync() {
   return _lecture;
 }
 import('./dossier-lecture.js').then((m) => { _lecture = m; });
+
+// ---------------------------------------------------------------------------
+// Architecture B — la fiche. Un seul objet : le bien. Les cellules de la
+// matrice sont le registre de faits (champ, valeur, document, page, citation) ;
+// la fiche en retient une valeur par champ, selon une règle déterministe que
+// l'humain peut forcer, et déplie les preuves d'un clic.
+// ---------------------------------------------------------------------------
+
+// L'autorité d'une pièce : l'acte prime sur le bail, le bail sur le PV, le PV
+// sur l'annonce. À autorité égale, la première lue.
+const AUTORITE = ['Acte', 'Bail commercial', 'Avenants', 'Règlement de copropriété', 'EDD', "PV d'AG copro", 'Kbis',
+  "PV d'AG preneur", 'Diagnostics', 'Taxe foncière', 'Appels de charges', 'Quittances', 'Plans & Carrez', 'Autre'];
+const rangAutorite = (categorie) => { const i = AUTORITE.indexOf(categorie || 'Autre'); return i < 0 ? AUTORITE.length : i; };
+
+// Les champs dont les réponses portent des dates qui comptent pour la frise.
+const CHAMPS_DATES = new Set(['dates_bail', 'duree', 'resiliation', 'creation', 'diagnostics', 'travaux_votes', 'procedures',
+  'paiements', 'travaux_conformite', 'etat_lieux', 'indexation', 'origine_fonds']);
+
+export function lireFiche(dealId) {
+  const m = lireMatrice(dealId);
+  if (!m) return null;
+  const brut = brutDe(dealId);
+  const forcages = brut.matrice?.forcages || {};
+  const blocs = [];
+  const parBloc = new Map();
+  const frise = [];
+  const vus = new Set();
+
+  for (const c of m.colonnes) {
+    const preuves = m.lignes
+      .filter((l) => l.cellules?.[c.id]?.reponse)
+      .map((l) => ({
+        document_id: l.document_id, document_nom: l.document_nom, document_url: l.document_url, categorie: l.categorie || 'Autre',
+        reponse: l.cellules[c.id].reponse, page: l.cellules[c.id].page || null, citation: l.cellules[c.id].citation || null,
+        autorite: rangAutorite(l.categorie),
+      }))
+      .sort((a, b) => a.autorite - b.autorite);
+    const f = forcages[c.id] || null;
+    let retenue = null;
+    let source = null;
+    if (f?.valeur) { retenue = f.valeur; source = 'forcée'; }
+    else if (f?.document_id && preuves.some((p) => p.document_id === f.document_id)) { const p = preuves.find((x) => x.document_id === f.document_id); retenue = p.reponse; source = p.document_nom; }
+    else if (preuves.length) { retenue = preuves[0].reponse; source = preuves[0].document_nom; }
+    else if (m.synthese[c.id]?.detail?.startsWith("Seule l'annonce")) { retenue = m.synthese[c.id].detail.replace(/^Seule l'annonce le dit : /, '').replace(/ — aucune pièce.*$/, ''); source = 'annonce'; }
+
+    const champ = {
+      id: c.id, bloc: c.bloc, libelle: c.libelle, question: c.question, regle: c.regle, criticite: c.criticite,
+      valeur: retenue, source, forcage: f, statut: m.synthese[c.id]?.statut || 'manquant', detail: m.synthese[c.id]?.detail || '',
+      revue: m.synthese[c.id]?.revue || null, preuves,
+    };
+    if (!parBloc.has(c.bloc)) { parBloc.set(c.bloc, []); blocs.push({ nom: c.bloc, champs: parBloc.get(c.bloc) }); }
+    parBloc.get(c.bloc).push(champ);
+
+    if (CHAMPS_DATES.has(c.id) || c.bloc === 'Questions') {
+      for (const p of preuves) {
+        for (const d of dates(p.reponse)) {
+          if (d.annee < 1990 || d.annee > 2060) continue;
+          const cle = `${c.id}|${d.iso}|${p.document_id}`;
+          if (vus.has(cle)) continue;
+          vus.add(cle);
+          frise.push({ iso: d.iso, champ: c.id, libelle: c.libelle, extrait: d.extrait, document_id: p.document_id, document_nom: p.document_nom,
+            document_url: p.document_url, categorie: p.categorie, page: p.page, citation: p.citation, reponse: p.reponse });
+        }
+      }
+    }
+  }
+  frise.sort((a, b) => a.iso.localeCompare(b.iso));
+
+  // Les incohérences de dates : un même champ, des années de fin différentes selon les pièces.
+  const tensions = [];
+  for (const c of m.colonnes) {
+    const evts = frise.filter((e) => e.champ === c.id);
+    const parDoc = new Map();
+    for (const e of evts) parDoc.set(e.document_id, Math.max(parDoc.get(e.document_id) || 0, Number(e.iso.slice(0, 4))));
+    const fins = [...new Set(parDoc.values())];
+    if (fins.length > 1) tensions.push({ champ: c.id, libelle: c.libelle, annees: fins.sort(), documents: [...parDoc.keys()].map((id) => m.lignes.find((l) => l.document_id === id)?.document_nom) });
+  }
+
+  const tous = blocs.flatMap((b) => b.champs);
+  return {
+    gabarit: m.gabarit,
+    blocs,
+    alertes: {
+      contradictoires: tous.filter((c) => c.statut === 'contradictoire').map((c) => c.id),
+      manquants: tous.filter((c) => c.statut === 'manquant').map((c) => c.id),
+      hors_critere: tous.filter((c) => c.statut === 'hors_critere').map((c) => c.id),
+      a_verifier: tous.filter((c) => c.statut === 'a_verifier').map((c) => c.id),
+    },
+    frise,
+    tensions,
+    nb_documents: m.lignes.length,
+    remplissage: m.remplissage,
+    rempli_le: brut.matrice?.rempli_le || null,
+  };
+}
+
+/** Forcer la valeur retenue d'un champ : une pièce, une valeur libre, ou rien (retour à la règle). */
+export function forcer(dealId, colonneId, { document_id = null, valeur = null, user } = {}) {
+  const brut = brutDe(dealId);
+  if (!brut) return { ok: false, error: 'Dossier introuvable' };
+  const forcages = { ...(brut.matrice?.forcages || {}) };
+  if (document_id || (valeur && String(valeur).trim())) forcages[colonneId] = { document_id: document_id || null, valeur: valeur ? String(valeur).trim() : null, par: user?.email || null, le: new Date().toISOString() };
+  else delete forcages[colonneId];
+  Records.update('Deal', brut.id, { matrice: { ...(brut.matrice || {}), forcages } });
+  return { ok: true };
+}

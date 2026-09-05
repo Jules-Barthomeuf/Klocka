@@ -1919,6 +1919,20 @@ app.post('/api/preanalyse/dossiers/:dealId/matrice/revue/:colonneId', wrap(async
   ok(res, r);
 }));
 
+app.get('/api/preanalyse/dossiers/:dealId/matrice/fiche', wrap(async (req, res) => {
+  const { lireFiche } = await import('./deal/matrice.js');
+  const f = lireFiche(req.params.dealId);
+  if (!f) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, f);
+}));
+
+app.post('/api/preanalyse/dossiers/:dealId/matrice/forcer/:colonneId', wrap(async (req, res) => {
+  const { forcer } = await import('./deal/matrice.js');
+  const r = forcer(req.params.dealId, req.params.colonneId, { document_id: req.body?.document_id || null, valeur: req.body?.valeur || null, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
 app.get('/api/preanalyse/dossiers/:dealId/matrice/livrables', wrap(async (req, res) => {
   const { livrables } = await import('./deal/matrice.js');
   const l = livrables(req.params.dealId);

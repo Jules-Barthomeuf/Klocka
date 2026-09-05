@@ -7,12 +7,14 @@
 
 import { Records } from '../db.js';
 import { changerStatut } from './lifecycle.js';
+import { lotOuVide } from './index.js';
 import { patchDepuisExtractions } from './donnees-projet.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 
 // lot.simulateur (camelCase, aem.js:parametresSimulateur) → champs sim_* du Project.
-function mapperSimulateur(sim = {}) {
+function mapperSimulateur(sim) {
+  sim = sim || {};
   const prixFai = sim.prixBienFAI || 0;
   return {
     sim_prix_bien_fai: prixFai,
@@ -32,7 +34,7 @@ function mapperSimulateur(sim = {}) {
     // Hypothèses de départ, identiques au SimulateurRapide du deal.
     sim_apport: prixFai ? Math.round(prixFai * 0.15) : 0,
     sim_duree_credit: 20,
-    sim_taux_interet: 3.7,
+    sim_taux_interet: 3.9,
     sim_taux_assurance: 0.25,
     sim_indexation_loyers: 2,
     sim_annee_revente: 20,
@@ -78,8 +80,8 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
   const deal = Records.filter('Deal', { deal_id: dealId })[0];
   if (!deal) return { ok: false, error: 'Dossier introuvable' };
   if (deal.projet_id) return { ok: false, error: 'Un projet existe déjà pour ce deal.', project_id: deal.projet_id };
-  const lot = deal.lots?.[Number(lotIndex)] || deal.lots?.[0];
-  if (!lot) return { ok: false, error: 'Lot introuvable' };
+  // Sans pré-analyse, le projet naît d'une fiche vide au nom du dossier.
+  const lot = lotOuVide(deal, lotIndex);
 
   const adresse = val(lot.lot.adresse) || {};
   const commune = lot.enrichissement?.commune;

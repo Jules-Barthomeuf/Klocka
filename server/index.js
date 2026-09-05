@@ -1383,8 +1383,8 @@ app.post('/api/preanalyse/dossiers/:dealId/mail', wrap(async (req, res) => {
   }
   const dossier = obtenirDossier(req.params.dealId);
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const lot = dossier.lots?.[Number(lot_index)] || dossier.lots?.[0];
-  if (!lot) return res.status(404).json({ error: 'Lot introuvable' });
+  const { lotOuVide } = await import('./deal/index.js');
+  const lot = lotOuVide(dossier, lot_index);
 
   const user = currentUser(req);
   const { engagementsOuverts } = await import('./deal/engagements.js');
@@ -1498,9 +1498,9 @@ app.post('/api/preanalyse/dossiers/:dealId/drive', wrap(async (req, res) => {
 app.post('/api/preanalyse/dossiers/:dealId/lots/:index/presentation', wrap(async (req, res) => {
   const dossier = obtenirDossier(req.params.dealId);
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const idx = Number(req.params.index);
-  const lot = dossier.lots?.[idx];
-  if (!lot) return res.status(404).json({ error: 'Lot introuvable' });
+  const idx = Number(req.params.index) || 0;
+  const { lotOuVide } = await import('./deal/index.js');
+  const lot = lotOuVide(dossier, idx);
 
   const { genererPresentationBanque } = await import('./deal/presentation.js');
   const buffer = await genererPresentationBanque(dossier, lot);

@@ -137,7 +137,7 @@ async function geocoderPourCarte({ adresse, commune }) {
  */
 export function lancerVideoLot(dossier, lotIndex) {
   const lot = dossier.lots?.[lotIndex];
-  if (!lot) return { error: 'Lot introuvable' };
+  if (!lot) return { error: "Ce dossier n'a pas encore de bien analysé : la vidéo a besoin d'une adresse. Passez par la pré-analyse d'abord." };
 
   const k = cle(dossier.deal_id, lotIndex);
   const enCours = travaux.get(k);

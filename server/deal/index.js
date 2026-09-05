@@ -11,7 +11,7 @@
 import { randomUUID } from 'crypto';
 import { Records } from '../db.js';
 import { ingerer, archiverSource } from './ingest.js';
-import { extraire } from './extract.js';
+import { extraire, lotVide } from './extract.js';
 import { enrichir } from './enrich.js';
 import { evaluer, profilsConfigures, grilleCriteres } from './rules.js';
 import { calculerAEM, parametresSimulateur } from './aem.js';
@@ -284,6 +284,26 @@ export function obtenirDossier(dealId) {
  * @param {{nom, responsables?, user?, contact_agent_email?, apercu?}} p -
  *   `apercu` : { ville, rue, prix, surface, loyer, activite } tels qu'entendus.
  */
+/**
+ * Le lot d'un dossier, ou une fiche vide à son nom quand la pré-analyse n'a
+ * pas eu lieu : une coquille nommée doit quand même pouvoir devenir un
+ * projet, une présentation ou un mail — à compléter ensuite.
+ */
+export function lotOuVide(dossier, index = 0) {
+  const existant = dossier?.lots?.[Number(index)] || dossier?.lots?.[0];
+  if (existant) return existant;
+  const nom = dossier?.nom || 'Dossier sans fiche';
+  return {
+    lot: { ...lotVide(), intitule_lot: nom },
+    intitule: nom,
+    enrichissement: {},
+    evaluation: { verdict: null, profil: null, motifs: [], reserves: [], libelles_manquants: ['Pré-analyse non faite'] },
+    synthese: { titre: nom },
+    simulateur: null,
+    vide: true,
+  };
+}
+
 export function creerCoquille({ nom, responsables = [], user = null, contact_agent_email = null, apercu = null }) {
   const dossier = {
     deal_id: randomUUID(),

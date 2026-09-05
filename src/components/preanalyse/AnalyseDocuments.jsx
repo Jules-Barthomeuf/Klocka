@@ -6,6 +6,7 @@ import { ChevronDown, Loader2, X } from "lucide-react";
 import DocumentsDossier from "./DocumentsDossier";
 import SimulateurAnalyse from "./SimulateurAnalyse";
 import DonneesExtraites from "./DonneesExtraites";
+import LectureDossier from "./LectureDossier";
 
 // L'étape Analyse : un onglet Documents (la liste cochable) puis un onglet par
 // document extrait, chacun présentant ses données extraites. Chaque ligne
@@ -86,6 +87,15 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
   // Le relevé est là dès l'ouverture — c'est lui qu'on vient lire ; la revue
   // des points à regarder le précède, elle ne le remplace pas.
   const [tableOuverte, setTableOuverte] = useState(true);
+  // Un constat long tient en trois lignes ; un clic le déplie.
+  const [deplies, setDeplies] = useState(() => new Set());
+  const basculerDepli = (i) =>
+    setDeplies((s) => {
+      const n = new Set(s);
+      if (n.has(i)) n.delete(i);
+      else n.add(i);
+      return n;
+    });
 
   // Une analyse ratée se relance sur le même document.
   const reessayer = useMutation({
@@ -245,13 +255,18 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
                       />
                     ) : (
                       <button
-                        onClick={() => setEdition({ index: l.index, champ: "constat" })}
+                        onClick={() => (deplies.has(l.index) ? setEdition({ index: l.index, champ: "constat" }) : basculerDepli(l.index))}
                         className="block w-full text-left text-[13.5px] text-[#f2f3f5] hover:text-[#c3ddd6] transition-colors"
-                        title="Cliquer pour corriger"
+                        title={deplies.has(l.index) ? "Cliquer pour corriger" : "Cliquer pour tout lire"}
                       >
-                        {l.constat || <span className="text-[#3a3f4a]">—</span>}
-                        {l.citation && (
+                        <span className={deplies.has(l.index) ? "" : "line-clamp-3"}>
+                          {l.constat || <span className="text-[#3a3f4a]">—</span>}
+                        </span>
+                        {l.citation && deplies.has(l.index) && (
                           <span className="block mt-1 text-[11.5px] text-[#5a615f] italic leading-[1.5]">« {l.citation} »</span>
+                        )}
+                        {!deplies.has(l.index) && String(l.constat || "").length > 150 && (
+                          <span className="block mt-0.5 text-[11.5px] text-[#6c6c74]">tout lire</span>
                         )}
                       </button>
                     )}
@@ -377,7 +392,7 @@ export function nomOnglet(e) {
 }
 
 export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh, apercu = false, onglet: ongletDemande, onOnglet }) {
-  const [ongletLocal, setOngletLocal] = useState("documents");
+  const [ongletLocal, setOngletLocal] = useState("dossier");
   // L'onglet peut être piloté depuis « Requêtes récentes » : le parent en tient
   // alors l'état, sinon on le garde ici.
   const onglet = ongletDemande ?? ongletLocal;
@@ -406,14 +421,21 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
       {/* --- À gauche les analyses, à droite celle qu'on lit ------------- */}
       <div className="flex max-lg:flex-col gap-0 border border-[#1e1e22] rounded-[18px] overflow-hidden bg-[#0f0f11]">
         <nav className="w-[264px] max-lg:w-full flex-none border-r max-lg:border-r-0 max-lg:border-b border-[#1e1e22] py-5 flex flex-col">
+          <button
+            onClick={() => setOnglet("dossier")}
+            className={`w-full text-left px-6 py-2.5 mb-3 border-l-2 text-[14px] transition-colors ${
+              onglet === "dossier" ? "border-[#e8927c] bg-[#e8927c]/[0.05] text-[#f2f3f5] font-semibold" : "border-transparent text-[#97979f] hover:text-[#f2f3f5]"
+            }`}
+          >
+            Le dossier
+          </button>
           {extractions.length > 0 && (
             <>
-              <p className="m-0 px-6 pb-3 text-[11px] tracking-[.16em] uppercase text-[#5f5f66]">Analyses</p>
+              <p className="m-0 px-6 pb-3 text-[11px] tracking-[.16em] uppercase text-[#5f5f66]">Par document</p>
               {extractions.map((e) => {
                 const choisi = onglet === e.id;
-                const total = (e.lignes || []).length;
-                const faites = (e.lignes || []).filter((l) => l.constat).length;
-                const complet = total > 0 && faites === total;
+                const total = (e.lignes || []).filter((l) => l.constat).length;
+                const vigilances = (e.lignes || []).filter((l) => l.statut === "Point de vigilance").length;
                 return renommage?.id === e.id ? (
                   <input
                     key={e.id}
@@ -435,10 +457,11 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
                   >
                     <span className={`text-[14px] truncate ${choisi ? "font-semibold" : ""}`}>{nomOnglet(e)}</span>
                     <span
-                      className="text-[11px] flex-none tabular-nums"
-                      style={{ color: e.erreur ? "#e8746a" : complet ? "#7fd1a8" : "#e8b04c" }}
+                      className="text-[11px] flex-none"
+                      title={e.erreur ? "L'analyse a échoué" : vigilances ? `${vigilances} point(s) de vigilance` : total === 0 ? "Rien relevé dans ce document" : "Rien à signaler"}
+                      style={{ color: e.erreur ? "#e8746a" : vigilances ? "#e8927c" : total === 0 ? "#6c6c74" : "#7fd1a8" }}
                     >
-                      {e.erreur ? "⚠" : `${faites}/${total}`}
+                      {e.erreur ? "échec" : vigilances ? `${vigilances} ⚑` : total === 0 ? "vide" : "ok"}
                     </span>
                   </button>
                 );
@@ -464,7 +487,9 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
         </nav>
 
         <div className="flex-1 min-w-0 px-9 max-md:px-5 py-7">
-      {onglet === "simulateur" ? (
+      {onglet === "dossier" ? (
+        <LectureDossier dealId={dossier.deal_id} nbExtractions={extractions.length} />
+      ) : onglet === "simulateur" ? (
         <SimulateurAnalyse dossier={dossier} />
       ) : onglet === "donnees" ? (
         <DonneesExtraites dossier={dossier} apercu={apercu} />

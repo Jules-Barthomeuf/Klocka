@@ -1876,6 +1876,15 @@ app.get('/api/monday/projets/clients', wrap(async (req, res) => {
 
 // À qui ce dossier pourrait correspondre, d'après les investisseurs de Monday :
 // budget, apport et zone face au prix du bien. Une piste, pas une attribution.
+// La lecture du dossier : le bien en huit lignes, les contradictions entre
+// documents, les pièces qui manquent, les points à trancher.
+app.get('/api/preanalyse/dossiers/:dealId/lecture', wrap(async (req, res) => {
+  const { lireDossier } = await import('./deal/dossier-lecture.js');
+  const r = lireDossier(req.params.dealId);
+  if (!r) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, r);
+}));
+
 app.get('/api/preanalyse/dossiers/:dealId/clients', wrap(async (req, res) => {
   const dossier = obtenirDossier(req.params.dealId);
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });

@@ -82,7 +82,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
   const [deblocageEnCours, setDeblocageEnCours] = useState(false);
   // Documents cochés dans l'étape Analyse, soumis au chat.
   const [documentsCoches, setDocumentsCoches] = useState([]);
-  const [ongletAnalyse, setOngletAnalyse] = useState("documents");
+  const [ongletAnalyse, setOngletAnalyse] = useState("dossier");
   // Étape Mail : brouillon rédigé depuis le chat du haut.
   const [brouillonMail, setBrouillonMail] = useState(null);
   // Étape Pré-analyse : le chat lance l'analyse (texte collé ou fichier).

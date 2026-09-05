@@ -79,22 +79,49 @@ export const BLOCS_PV_AG = [
 // s'y trouve, librement.
 const PAR_CATEGORIE = {
   'Bail commercial': 'bail',
+  Bail: 'bail',
+  Avenants: 'avenants',
+  Acte: 'acte',
   "Assemblée générale": 'pv_ag',
   'PV AG': 'pv_ag',
+  "PV d'AG copro": 'pv_ag',
+  "PV d'AG preneur": 'pv_ag_preneur',
   'Règlement de copropriété': 'rcp',
   RCP: 'rcp',
+  EDD: 'edd',
   Quittances: 'quittances',
   Diagnostics: 'diagnostics',
+  Kbis: 'kbis',
+  'Plans & Carrez': 'plans',
+  'Appels de charges': 'charges',
+  'Taxe foncière': 'taxe_fonciere',
+  Autre: 'autre',
 };
+
+// La liste fermée des catégories : rien ne reste « À classer ». Ce qui n'est
+// pas reconnu est « Autre », et indexé quand même.
+export const CATEGORIES = [
+  'Acte', 'Bail commercial', 'Avenants', 'Quittances', 'Kbis', "PV d'AG preneur", 'Plans & Carrez',
+  'Diagnostics', 'Règlement de copropriété', 'EDD', "PV d'AG copro", 'Appels de charges', 'Taxe foncière', 'Autre',
+];
 
 // Libellé de catégorie affiché pour un type de grille : le classement
 // automatique doit poser la même valeur que le menu déroulant de l'analyste.
 export const CATEGORIE_PAR_TYPE = {
+  acte: 'Acte',
   bail: 'Bail commercial',
-  pv_ag: 'Assemblée générale',
-  rcp: 'Règlement de copropriété',
+  avenants: 'Avenants',
   quittances: 'Quittances',
+  kbis: 'Kbis',
+  pv_ag_preneur: "PV d'AG preneur",
+  plans: 'Plans & Carrez',
   diagnostics: 'Diagnostics',
+  rcp: 'Règlement de copropriété',
+  edd: 'EDD',
+  pv_ag: "PV d'AG copro",
+  charges: 'Appels de charges',
+  taxe_fonciere: 'Taxe foncière',
+  autre: 'Autre',
 };
 
 /** Catégorie devinée depuis le seul nom de fichier, ou null. */
@@ -110,10 +137,18 @@ export function typeDepuisCategorie(categorie, nom = '') {
   // « BAIL_COM_2024.pdf » échappe à \bbail\b, le tiret bas étant un caractère
   // de mot.
   const n = `${categorie || ''} ${nom}`.toLowerCase().replace(/[_\-.]+/g, ' ');
+  if (/avenant/.test(n)) return 'avenants';
   if (/\bbail\b/.test(n)) return 'bail';
-  if (/\bag\b|assembl|proc[èe]s|\bpv\b/.test(n)) return 'pv_ag';
+  if (/\bacte\b|notari|vente|compromis|promesse/.test(n)) return 'acte';
+  if (/kbis|k bis|extrait rcs|bilan|liasse/.test(n)) return 'kbis';
+  if (/\bedd\b|descriptif de division|etat descriptif/.test(n)) return 'edd';
   if (/copropri[ée]t[ée]|r[èe]glement|\brcp\b/.test(n)) return 'rcp';
-  if (/quittance|loyer/.test(n)) return 'quittances';
-  if (/diagnostic|dpe|amiante|termite|plomb|\berp\b/.test(n)) return 'diagnostics';
+  if (/(\bag\b|assembl|proc[èe]s|\bpv\b).*(preneur|locataire|sarl|sas|societe|associ)/.test(n)) return 'pv_ag_preneur';
+  if (/\bag\b|assembl|proc[èe]s|\bpv\b/.test(n)) return 'pv_ag';
+  if (/quittance|appel de loyer|loyer/.test(n)) return 'quittances';
+  if (/appel de charges|charges|budget|fonds/.test(n)) return 'charges';
+  if (/taxe fonci|fonci[èe]re|teom/.test(n)) return 'taxe_fonciere';
+  if (/carrez|mesurage|\bplan/.test(n)) return 'plans';
+  if (/diagnostic|dpe|amiante|termite|plomb|\berp\b|electric|parasit/.test(n)) return 'diagnostics';
   return null;
 }

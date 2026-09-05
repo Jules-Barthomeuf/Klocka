@@ -801,7 +801,7 @@ const nettoyer = (entity, data) =>
 // Ces entités portent des jetons (sessions, refresh tokens Google) : elles ne
 // transitent JAMAIS par le CRUD HTTP, quel que soit le rôle. Les modules
 // serveur y accèdent en direct.
-const ENTITES_INTERDITES = new Set(['Session', 'MailAccount', 'CodeInscription']);
+const ENTITES_INTERDITES = new Set(['Session', 'MailAccount', 'CodeInscription', 'TemplateMatrice', 'MemoireMatrice']);
 // Outils internes : pipeline de deals, boîte mail, CRM, base marché. Les pages
 // qui les consomment sont toutes réservées aux admins.
 const ENTITES_ADMIN = new Set([
@@ -1876,6 +1876,55 @@ app.get('/api/monday/projets/clients', wrap(async (req, res) => {
 
 // À qui ce dossier pourrait correspondre, d'après les investisseurs de Monday :
 // budget, apport et zone face au prix du bien. Une piste, pas une attribution.
+// La matrice : documents × questions, la ligne de synthèse calculée, la revue
+// des anomalies et les livrables qui en sortent.
+app.get('/api/preanalyse/dossiers/:dealId/matrice', wrap(async (req, res) => {
+  const { lireMatrice } = await import('./deal/matrice.js');
+  const m = lireMatrice(req.params.dealId);
+  if (!m) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, m);
+}));
+
+app.post('/api/preanalyse/dossiers/:dealId/matrice/remplir', wrap(async (req, res) => {
+  const { lancerRemplissage } = await import('./deal/matrice.js');
+  const t = lancerRemplissage(req.params.dealId, {
+    uploadDir: UPLOAD_DIR,
+    user: currentUser(req),
+    seulementColonnes: Array.isArray(req.body?.colonnes) ? req.body.colonnes : null,
+    seulementDocuments: Array.isArray(req.body?.documents) ? req.body.documents : null,
+  });
+  ok(res, t);
+}));
+
+app.post('/api/preanalyse/dossiers/:dealId/matrice/colonnes', wrap(async (req, res) => {
+  const { ajouterColonne, lancerRemplissage } = await import('./deal/matrice.js');
+  const user = currentUser(req);
+  const r = ajouterColonne(req.params.dealId, req.body || {}, { enregistrerGabarit: !!req.body?.enregistrer_gabarit, user });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  // La nouvelle question tourne sur toutes les lignes, tout de suite.
+  lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user, seulementColonnes: [r.colonne.id] });
+  ok(res, r);
+}));
+
+app.post('/api/preanalyse/dossiers/:dealId/matrice/revue/:colonneId', wrap(async (req, res) => {
+  const { reviser } = await import('./deal/matrice.js');
+  const r = reviser(req.params.dealId, req.params.colonneId, { verdict: req.body?.verdict ?? null, commentaire: req.body?.commentaire, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
+app.get('/api/preanalyse/dossiers/:dealId/matrice/livrables', wrap(async (req, res) => {
+  const { livrables } = await import('./deal/matrice.js');
+  const l = livrables(req.params.dealId);
+  if (!l) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, l);
+}));
+
+app.get('/api/preanalyse/gabarit-matrice', wrap(async (req, res) => {
+  const { gabarit, LIBELLE_STATUT } = await import('./deal/matrice.js');
+  ok(res, { gabarit: gabarit(), statuts: LIBELLE_STATUT });
+}));
+
 // La lecture du dossier : le bien en huit lignes, les contradictions entre
 // documents, les pièces qui manquent, les points à trancher.
 app.get('/api/preanalyse/dossiers/:dealId/lecture', wrap(async (req, res) => {

@@ -69,17 +69,20 @@ async function traiter({ dealId, docId, uploadDir, user }) {
     return;
   }
 
-  // Classement par le modèle quand le nom de fichier n'a pas suffi.
-  if (!piece.categorie && piece.buffer) {
-    try {
-      const categorie = await deviner(piece);
-      if (categorie) {
-        classerDocument(dealId, docId, categorie);
-        piece = { ...piece, categorie };
+  // Classement par le modèle quand le nom de fichier n'a pas suffi. Rien ne
+  // reste « À classer » : l'inconnu devient « Autre », indexé quand même.
+  if (!piece.categorie) {
+    let categorie = null;
+    if (piece.buffer) {
+      try {
+        categorie = await deviner(piece);
+      } catch {
+        // Classement impossible : « Autre ».
       }
-    } catch {
-      // Classement impossible : l'extraction se fait sans grille, comme avant.
     }
+    categorie = categorie || 'Autre';
+    classerDocument(dealId, docId, categorie);
+    piece = { ...piece, categorie };
   }
 
   const resultat = await extraireUnePiece(piece, user);

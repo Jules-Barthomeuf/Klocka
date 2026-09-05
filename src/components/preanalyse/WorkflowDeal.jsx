@@ -18,7 +18,7 @@ import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
 import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
-import AnalyseDocuments from "./AnalyseDocuments";
+import MatriceDossier from "@/components/preanalyse/MatriceDossier";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // Workflow d'un deal en cinq étapes, sur une seule page :
@@ -335,14 +335,12 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         )}
         {etape === 3 && (
           <div id="tables-analyse">
-            <AnalyseDocuments
+            <MatriceDossier
               dossier={dossier}
               coches={documentsCoches}
               onCocher={setDocumentsCoches}
               onRefresh={onRefresh}
               apercu={apercu}
-              onglet={ongletAnalyse}
-              onOnglet={setOngletAnalyse}
             />
           </div>
         )}

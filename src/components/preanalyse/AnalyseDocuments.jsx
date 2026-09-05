@@ -32,7 +32,7 @@ const lisibleEnCadre = (url, mime) => {
   return /\.(pdf|png|jpe?g|gif|webp|txt|csv|md)($|\?)/i.test(String(url || ""));
 };
 
-function Visionneuse({ extraction, ligne, onFermer }) {
+export function Visionneuse({ extraction, ligne, onFermer }) {
   const page = ligne?.page || null;
   const url = lienSource(extraction.document_url, page);
   const affichable = lisibleEnCadre(extraction.document_url, extraction.document_mime);
@@ -87,7 +87,7 @@ function Visionneuse({ extraction, ligne, onFermer }) {
 }
 
 
-function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
+export function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
   const [recherche, setRecherche] = useState("");
   const [edition, setEdition] = useState(null); // { index, champ }
   // Ligne dont la source est ouverte dans la visionneuse, à droite.

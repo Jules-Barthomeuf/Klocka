@@ -80,7 +80,7 @@ export function supprimerDocument(dealId, docId, uploadDir) {
 // Conversations
 // ---------------------------------------------------------------------------
 
-function chargerPieces(brut, ids, uploadDir, avecIdentite = false) {
+export function chargerPieces(brut, ids, uploadDir, avecIdentite = false) {
   const voulus = new Set(ids || []);
   return (brut.documents_espace || [])
     .filter((d) => voulus.has(d.id))

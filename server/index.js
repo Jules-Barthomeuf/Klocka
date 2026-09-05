@@ -1922,6 +1922,17 @@ app.post('/api/preanalyse/dossiers/:dealId/matrice/revue/:colonneId', wrap(async
   ok(res, r);
 }));
 
+// La pré-analyse depuis les pièces : quand le dossier a sa data room mais
+// pas de teaser, la fiche se compose depuis les documents.
+app.post('/api/preanalyse/dossiers/:dealId/preanalyse-documents', wrap(async (req, res) => {
+  const { lancerPreanalyseDocuments } = await import('./deal/preanalyse-documents.js');
+  ok(res, lancerPreanalyseDocuments(req.params.dealId, { user: currentUser(req), uploadDir: UPLOAD_DIR }));
+}));
+app.get('/api/preanalyse/dossiers/:dealId/preanalyse-documents', wrap(async (req, res) => {
+  const { etatPreanalyseDocuments } = await import('./deal/preanalyse-documents.js');
+  ok(res, etatPreanalyseDocuments(req.params.dealId) || { etat: null });
+}));
+
 app.get('/api/preanalyse/dossiers/:dealId/carte', wrap(async (req, res) => {
   const { lireCarteDeal } = await import('./deal/carte-deal.js');
   const c = lireCarteDeal(req.params.dealId);

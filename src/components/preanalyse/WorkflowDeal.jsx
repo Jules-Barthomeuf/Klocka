@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -645,7 +645,9 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
     return (
       <>
         {titre}
-        {analyseParChat ? (
+        {dossier?.documents_espace?.length > 0 ? (
+          <PreanalyseDepuisDocuments dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
+        ) : analyseParChat ? (
           <div className="bg-[#000000] border border-[#1f2228] rounded-xl px-6 py-10 text-center">
             <p className="m-0 text-[13.5px] text-[#9298a6]">
               Importez un fichier ou collez l'email dans le chat pour lancer l'analyse.
@@ -1371,5 +1373,50 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       )}
     </div>
     </>
+  );
+}
+
+// Le dossier a ses pièces mais pas de teaser : la fiche se compose depuis les
+// documents, puis passe dans la pré-analyse habituelle.
+function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
+  const dealId = dossier.deal_id;
+  const nb = dossier.documents_espace.length;
+  const { data: etat } = useQuery({
+    queryKey: ["preanalyse-documents", dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/preanalyse-documents`),
+    refetchInterval: (q) => (q.state.data?.etat === "en_cours" ? 3000 : false),
+  });
+  const lancer = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/preanalyse-documents`, { body: {} }),
+    onSuccess: () => toast.success("Pré-analyse lancée depuis les pièces du dossier"),
+    onError: (e) => toast.error(e?.message || "Lancement impossible"),
+  });
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (etat?.etat === "pret") { onRefresh?.(); queryClient.invalidateQueries({ queryKey: ["carte", dealId] }); }
+  }, [etat?.etat]);
+  const enCours = etat?.etat === "en_cours" || lancer.isPending;
+
+  return (
+    <div className="bg-[#000000] border border-[#1f2228] rounded-xl px-6 py-8">
+      <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Pas de teaser, mais {nb} pièce{nb > 1 ? "s" : ""} dans le dossier</p>
+      <p className="m-0 mt-2 text-[14.5px] leading-[1.65] text-[#d6d6db] max-w-[720px]">
+        La fiche se compose depuis les documents — adresse, surface, locataire, bail, loyer, charges — puis passe dans la pré-analyse habituelle : mêmes critères, même verdict. Le prix de vente, absent des pièces, restera à renseigner.
+      </p>
+      <div className="mt-5 flex flex-wrap items-center gap-4">
+        {enCours ? (
+          <span className="inline-flex items-center gap-2 text-[13px] text-[#9298a6]">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}
+          </span>
+        ) : (
+          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-[#f2f3f5] text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+            Pré-analyser à partir des {nb} pièce{nb > 1 ? "s" : ""}
+          </button>
+        )}
+        {etat?.etat === "erreur" && <span className="text-[13px] text-[#e8746a]">{etat.erreur}</span>}
+        <span className="text-[12.5px] text-[#6a7180]">Ou collez le teaser de l'agent dans le chat : il sera analysé dans ce dossier.</span>
+      </div>
+    </div>
   );
 }

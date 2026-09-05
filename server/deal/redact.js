@@ -60,8 +60,8 @@ export function vueRedacteur(dossierLot) {
 const SCHEMA_SYNTHESE = {
   type: 'object',
   properties: {
-    titre: { type: 'string', description: 'Une ligne : nature du bien, ville, verdict.' },
-    synthese: { type: 'string', description: '3 à 6 phrases motivant le verdict.' },
+    titre: { type: 'string', description: 'Une ligne : nature du bien, surface, ville, locataire si connu. Sans le verdict.' },
+    synthese: { type: 'string', description: 'Deux phrases, trois au plus, 60 mots maximum : pourquoi ce verdict, et ce qui manque ou reste à faire.' },
     points_forts: { type: 'array', items: { type: 'string' } },
     points_vigilance: { type: 'array', items: { type: 'string' } },
   },
@@ -78,7 +78,9 @@ RÈGLES IMPÉRATIVES :
 3. Ne remets jamais le verdict en cause et n'en propose pas un autre.
 4. Distingue explicitement le rendement annoncé (sur prix FAI) du rendement AEM (sur prix de revient, droits et honoraires inclus) : c'est le second qui fait foi chez nous.
 5. Ton professionnel, sobre, français, sans superlatif commercial. Pas de markdown, pas de listes à puces dans "synthese".
-6. Si l'emplacement est "a_qualifier", rappelle qu'il n'est pas automatisable et reste à valider par un humain.`;
+6. COURT. La synthèse fait deux phrases, trois au plus, soixante mots maximum. Les chiffres (prix, rendements, surface, échéance) sont déjà affichés à côté : ne les répète pas, sauf un seul s'il décide du verdict. Dis ce qui fait le verdict, puis ce qui manque ou reste à faire. Rien d'autre.
+7. Si l'emplacement est "a_qualifier", dis-le en trois mots au plus dans la dernière phrase ("emplacement à qualifier").
+8. Le titre ne contient pas le verdict.`;
 
 /**
  * Rédige la synthèse motivée d'un lot évalué.
@@ -113,14 +115,9 @@ export async function redigerSynthese(dossierLot) {
 // pas de blocage — le verdict, lui, est déjà calculé.
 function syntheseDeSecours(vue) {
   const ville = vue.marche.commune || vue.bien.adresse?.ville || 'localisation inconnue';
-  const phrases = [`Verdict : ${vue.verdict}.`, ...vue.motifs];
-  if (vue.finances.rendement_aem != null) {
-    phrases.push(
-      `Rendement AEM ${vue.finances.rendement_aem} % pour un prix de revient de ${vue.finances.prix_aem} € (prix FAI ${vue.finances.prix_fai} €).`
-    );
-  }
+  const phrases = vue.motifs.slice(0, 2);
   return {
-    titre: `${vue.bien.type_actif || 'Actif commercial'} — ${ville} — ${vue.verdict}`,
+    titre: `${vue.bien.type_actif || 'Actif commercial'} — ${ville}`,
     synthese: phrases.join(' '),
     points_forts: [],
     points_vigilance: vue.reserves,

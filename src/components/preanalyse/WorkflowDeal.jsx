@@ -280,7 +280,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         gabarits={GABARITS}
         onComposer={(prompt) => composerMail.mutate(prompt)}
         compositionEnCours={composerMail.isPending}
-        modePreanalyse={etape === 2 && !dossier?.lots?.length}
+        modePreanalyse={!dossier?.lots?.length}
         onAnalyserTexte={(texte) => analyserFiche.mutate({ texte })}
         onAnalyserFichier={(fichier) => analyserFiche.mutate({ fichier })}
         analyseEnCours={analyserFiche.isPending}

@@ -1529,9 +1529,12 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/presentation', wrap(async
     }
   }
 
-  const lots = [...(dossier.lots || [])];
-  lots[idx] = { ...lot, presentation: { slides_url, pptx_url, genere_le: new Date().toISOString() } };
-  Records.update('Deal', dossier.id, { lots });
+  // On garde la trace sur le lot analysé ; une fiche vide de secours ne s'enregistre pas.
+  if (!lot.vide && dossier.lots?.[idx]) {
+    const lots = [...dossier.lots];
+    lots[idx] = { ...lot, presentation: { slides_url, pptx_url, genere_le: new Date().toISOString() } };
+    Records.update('Deal', dossier.id, { lots });
+  }
 
   ok(res, { slides_url, pptx_url, erreur_slides });
 }));

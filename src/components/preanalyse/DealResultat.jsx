@@ -27,10 +27,10 @@ import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/Conn
 // Les clés sont les valeurs du moteur de règles (invariant serveur) ; seuls
 // les libellés affichés changent — un langage de comité, pas de jargon GO/NO-GO.
 export const VERDICTS = {
-  "GO": { libelle: "Validé", classe: "bg-[#96c0b8]/15 text-[#c3ddd6] border-[#96c0b8]/30", bord: "border-[#96c0b8]/40" },
-  "GO SOUS RÉSERVE": { libelle: "Validé sous conditions", classe: "bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/30", bord: "border-[#96c0b8]/30" },
+  "GO": { libelle: "Conforme", classe: "bg-[#96c0b8]/15 text-[#c3ddd6] border-[#96c0b8]/30", bord: "border-[#96c0b8]/40" },
+  "GO SOUS RÉSERVE": { libelle: "Conforme sous réserve", classe: "bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/30", bord: "border-[#96c0b8]/30" },
   "INSUFFISANT": { libelle: "Dossier incomplet", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30", bord: "border-sky-500/30" },
-  "NO-GO": { libelle: "Non retenu", classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
+  "NO-GO": { libelle: "Non conforme", classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
 };
 
 export const libelleVerdict = (v) => VERDICTS[v]?.libelle || v;
@@ -173,7 +173,7 @@ function GrilleCriteres({ lignes, lot }) {
 }
 
 // Le verdict a son badge : il ne se répète pas dans le titre.
-const sansVerdict = (t) => String(t || "").replace(/\s*[—:-]\s*(GO SOUS R[ÉE]SERVE|NO-?GO|GO|INSUFFISANT|Non retenu)\s*$/i, "").trim();
+const sansVerdict = (t) => String(t || "").replace(/\s*[—:-]\s*(GO SOUS R[ÉE]SERVE|NO-?GO|GO|INSUFFISANT|Non retenu|Non conforme|Conforme( sous réserve)?)\s*$/i, "").trim();
 
 const EMPLACEMENTS = [
   { code: "n1", libelle: "N°1" },
@@ -263,7 +263,7 @@ const EFFETS_INTENTION = {
   presentation_client: "Décision actée. L'étape Plateforme s'ouvre pour créer le projet.",
 };
 
-export function DialogMailIntention({ dossier, intention, mailInitial, onClose, onDone, onArchiverSansMail }) {
+export function DialogMailIntention({ dossier, intention, mailInitial, onClose, onDone, onArchiverSansMail, parametres = null }) {
   const [objet, setObjet] = useState(mailInitial?.objet || "");
   const [corps, setCorps] = useState(mailInitial?.corps || "");
   const [destinataire, setDestinataire] = useState(dossier.contact_agent_email || "");
@@ -299,7 +299,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial, onClose, 
   // et sauf brouillon déjà fourni).
   useEffect(() => {
     if (!mailInitial && etape === "brouillon" && !corps && !generer.isPending) {
-      generer.mutate({});
+      generer.mutate(parametres || {});
     }
   }, []);
 
@@ -549,7 +549,7 @@ export function JournalSuivi({ suivi }) {
 // Situer le bien de trois façons : le plan, la plongée 3D qui tourne autour
 // de la rue, et la vue piéton. Les deux dernières réutilisent les vues de la
 // page projet, alimentées par l'adresse du lot (ou le centre de la commune).
-function VuesLieu({ lot, enr }) {
+export function VuesLieu({ lot, enr }) {
   const [vue, setVue] = useState("carte");
   const a = lot.lot?.adresse?.valeur;
   const adresse = a?.rue ? [a.rue, a.code_postal, a.ville].filter(Boolean).join(", ") : null;

@@ -124,7 +124,7 @@ export async function redigerMailIntention(
     reference: referenceBien(vue),
     ...(intention === 'demande_documents'
       ? {
-          documents_a_demander: DOCUMENTS_STANDARDS,
+          documents_a_demander: raisons ? String(raisons).split('\n').map((x) => x.trim()).filter(Boolean) : DOCUMENTS_STANDARDS,
           informations_manquantes: vue.informations_manquantes,
         }
       : {}),

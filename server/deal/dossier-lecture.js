@@ -80,7 +80,7 @@ const NOMS_MOIS = /janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[ûu]t|sept
  * porte un mois : la prendre pour une année multipliait le loyer par douze
  * — ou le divisait, ce qui est pire, car nul ne s'en aperçoit.
  */
-function loyerAnnuel(texte) {
+export function loyerAnnuel(texte) {
   const liste = montants(texte);
   if (!liste.length) return null;
   const dit = (motif, x) => motif.test(x.avant) || motif.test(x.extrait);

@@ -18,7 +18,7 @@ import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
 import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
-import MatriceDossier from "@/components/preanalyse/MatriceDossier";
+import CarteDeal from "@/components/preanalyse/CarteDeal";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // Workflow d'un deal en cinq étapes, sur une seule page :
@@ -335,7 +335,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         )}
         {etape === 3 && (
           <div id="tables-analyse">
-            <MatriceDossier
+            <CarteDeal
               dossier={dossier}
               coches={documentsCoches}
               onCocher={setDocumentsCoches}
@@ -1259,10 +1259,10 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
         apercu={apercu}
         intentionOui="presentation_client"
         intentionNon="abandon"
-        titreOui="Oui — on présente au client"
-        descOui="Un mail est pré-rédigé pour annoncer à l'agent que le dossier sera présenté à l'un de nos clients investisseurs. Puis direction l'étape Plateforme."
-        titreNon="Non — on abandonne"
-        descNon="Vous donnez les raisons en une phrase ; un mail professionnel est rédigé pour l'agent. Le deal alimente la base de données marché puis part aux archives."
+        titreOui="Proposer au client"
+        descOui="La fiche de présentation du deal et le mail au client sont pré-rédigés avec les points clés et les réserves. Rien ne part sans validation. Puis direction l'étape Plateforme."
+        titreNon="Abandonner"
+        descNon="Vous donnez les raisons en une phrase ; un mail professionnel est rédigé pour l'agent. Le dossier alimente la base marché puis part aux archives."
         onOui={onOui}
       />
     </>

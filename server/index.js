@@ -1922,6 +1922,13 @@ app.post('/api/preanalyse/dossiers/:dealId/matrice/revue/:colonneId', wrap(async
   ok(res, r);
 }));
 
+app.get('/api/preanalyse/dossiers/:dealId/carte', wrap(async (req, res) => {
+  const { lireCarteDeal } = await import('./deal/carte-deal.js');
+  const c = lireCarteDeal(req.params.dealId);
+  if (!c) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, c);
+}));
+
 app.get('/api/preanalyse/dossiers/:dealId/matrice/fiche', wrap(async (req, res) => {
   const { lireFiche } = await import('./deal/matrice.js');
   const f = lireFiche(req.params.dealId);

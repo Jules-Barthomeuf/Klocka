@@ -40,7 +40,7 @@ function Statut({ statut, petit = false }) {
 }
 
 // Le tiroir : le document à la page de la cellule, à droite.
-function Tiroir({ cellule, ligne, onFermer }) {
+export function Tiroir({ cellule, ligne, onFermer }) {
   if (!cellule || !ligne) return null;
   const extraction = { document_url: ligne.document_url, document_mime: null, document_nom: ligne.document_nom };
   return (
@@ -51,7 +51,7 @@ function Tiroir({ cellule, ligne, onFermer }) {
 }
 
 // --- La grille --------------------------------------------------------------
-function Grille({ m, dealId, onCellule, celluleOuverte }) {
+export function Grille({ m, dealId, onCellule, celluleOuverte }) {
   const [tri, setTri] = useState(null); // colonne triée par statut
   const [edition, setEdition] = useState(null); // colonne dont on édite la question
   const [ajout, setAjout] = useState(false);
@@ -261,7 +261,7 @@ function Anomalies({ m, dealId, onCellule }) {
 }
 
 // --- Les livrables : depuis la grille validée -----------------------------------
-function Livrables({ dealId, nb }) {
+export function Livrables({ dealId, nb }) {
   const { data, isLoading } = useQuery({ queryKey: ["livrables", dealId, nb], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/matrice/livrables`) });
   const copier = async (t, quoi) => { try { await navigator.clipboard.writeText(t); toast.success(`${quoi} copié`); } catch { window.prompt("Copiez :", t); } };
   if (isLoading || !data) return <Loader2 className="w-4 h-4 animate-spin text-[#9298a6]" />;

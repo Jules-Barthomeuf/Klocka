@@ -12,6 +12,14 @@ import LectureDossier from "./LectureDossier";
 // document extrait, chacun présentant ses données extraites. Chaque ligne
 // porte sa source — un clic ouvre le document à la bonne page.
 
+const LIBELLE_TYPE = {
+  bail: "bail",
+  pv_ag: "PV d'AG",
+  rcp: "RCP",
+  quittances: "quittances",
+  diagnostics: "diagnostics",
+};
+
 // Les visionneuses PDF acceptent #page=N ; pour le reste on ouvre le fichier.
 const lienSource = (url, page) => (!url ? null : page && /\.pdf($|\?)/i.test(url) ? `${url}#page=${page}` : url);
 
@@ -141,7 +149,15 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
 
   const vigilances = (extraction.lignes || []).map((l, index) => ({ ...l, index })).filter((l) => l.statut === "Point de vigilance");
   const aVerifier = (extraction.lignes || []).map((l, index) => ({ ...l, index })).filter((l) => l.statut === "À vérifier");
+  const total = (extraction.lignes || []).length;
   const renseignees = (extraction.lignes || []).filter((l) => l.constat).length;
+  // Une grille attendue (bail, diagnostics…) : ce que le document couvre, et
+  // ce qu'il laisse aux autres pièces. Sans grille, on compte simplement.
+  const avecGrille = !!extraction.type && total > 0;
+  const absents = avecGrille ? (extraction.lignes || []).filter((l) => !l.constat).map((l) => l.element) : [];
+  const couverture = avecGrille
+    ? `${renseignees} des ${total} points de la grille ${LIBELLE_TYPE[extraction.type] || ""}`.trim()
+    : `${renseignees} point${renseignees > 1 ? "s" : ""} relevé${renseignees > 1 ? "s" : ""}`;
 
   return (
     <div>
@@ -151,11 +167,16 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
           <h3 className="m-0 text-[26px] max-md:text-[21px] font-bold tracking-[-.015em] text-[#f2f3f5]">{nomOnglet(extraction)}</h3>
           <p className="m-0 mt-1 text-[13px] text-[#77777e]">
             {[
-              `${renseignees}/${(extraction.lignes || []).length} points relevés`,
+              couverture,
               extraction.extrait_par,
               extraction.extrait_le ? ilYA(extraction.extrait_le) : null,
             ].filter(Boolean).join(" · ")}
           </p>
+          {absents.length > 0 && (
+            <p className="m-0 mt-1.5 text-[12.5px] text-[#e8b04c]">
+              Ce document ne traite pas : {absents.join(", ")} — à obtenir séparément.
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-5 text-[13px] flex-shrink-0">
           {vigilances.length > 0 && <span className="font-semibold text-[#e8927c]">{vigilances.length} vigilance{vigilances.length > 1 ? "s" : ""}</span>}
@@ -164,6 +185,10 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
         </div>
       </div>
 
+      {extraction.synthese && (
+        <p className="m-0 mt-5 text-[14px] leading-[1.75] text-[#b5b5bd] border-l-2 border-[#1e1e22] pl-4">{extraction.synthese}</p>
+      )}
+
       {/* --- Ce qui décide, en deux colonnes -------------------------------- */}
       {(vigilances.length > 0 || aVerifier.length > 0) && (
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-x-8 gap-y-8 py-7">
@@ -171,10 +196,6 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
           <div className="hidden xl:block w-px h-full bg-[#1e1e22]" />
           <Colonne titre="À vérifier" teinte="#8fb6e8" lignes={aVerifier} onOuvrir={setLigneOuverte} />
         </div>
-      )}
-
-      {extraction.synthese && !(vigilances.length + aVerifier.length) && (
-        <p className="m-0 mb-5 text-[13.5px] leading-[1.7] text-[#b5b5bd] border-l-2 border-[#1e1e22] pl-4">{extraction.synthese}</p>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pt-1">
@@ -197,10 +218,6 @@ function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
           </button>
         </div>
       </div>
-
-      {extraction.synthese && (
-        <p className="m-0 mb-4 text-[13.5px] leading-[1.7] text-[#c9cdd6] border-l-2 border-[#22262d] pl-4">{extraction.synthese}</p>
-      )}
 
       <div className={`${tableOuverte || ligneOuverte ? "" : "hidden"} ${ligneOuverte ? "grid lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] gap-5 items-start" : ""}`}>
       <div className="overflow-x-auto min-w-0">
@@ -378,13 +395,6 @@ function ilYA(iso) {
 }
 
 // L'onglet d'une analyse porte la nature du document, pas son nom de fichier.
-const LIBELLE_TYPE = {
-  bail: "bail",
-  pv_ag: "PV d'AG",
-  rcp: "RCP",
-  quittances: "quittances",
-  diagnostics: "diagnostics",
-};
 export function nomOnglet(e) {
   if (e.titre) return e.titre;
   const nature = LIBELLE_TYPE[e.type] || (e.document_categorie || "").toLowerCase();

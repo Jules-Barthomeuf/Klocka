@@ -297,7 +297,7 @@ export async function extraireUnePiece(piece, user) {
   const grille = grilleDe(type);
   try {
     const { mesurer } = await import('../llm-couts.js');
-    const { resultat: { lignes, synthese } } = await mesurer({ operation: 'extraction', par: user?.email || null, sur: piece.id }, () => extraireDonneesDocument({
+    const { resultat: { lignes, synthese } } = await mesurer({ operation: 'extraction', par: user?.email || null, sur: piece.id, libelle: piece.nom }, () => extraireDonneesDocument({
       ...piece,
       elements: grille?.elements || null,
       statuts: STATUTS_LIGNE,

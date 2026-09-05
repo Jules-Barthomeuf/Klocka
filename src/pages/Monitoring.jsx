@@ -16,8 +16,13 @@ const FENETRES = [
 ];
 
 // Sous le centime, une somme se lit mieux en millièmes qu'arrondie à zéro.
-const dollars = (n) =>
-  n == null ? "—" : n >= 0.01 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`;
+// Les tarifs du modèle sont en dollars ; on lit en euros, au taux indiqué en bas de carte.
+const EUR_PAR_USD = 0.92;
+const euros = (n) => {
+  if (n == null) return "—";
+  const e = n * EUR_PAR_USD;
+  return e >= 0.01 ? `${e.toFixed(2).replace(".", ",")} €` : `${e.toFixed(4).replace(".", ",")} €`;
+};
 
 const duree = (ms) => (ms < 1000 ? `${Math.round(ms)} ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.floor(ms / 60000)} min ${Math.round((ms % 60000) / 1000)} s`);
 const horodatage = (iso) => {
@@ -64,6 +69,7 @@ export default function Monitoring() {
 
   const [parFiltre, setParFiltre] = useState(null);
   const [limiteCouts, setLimiteCouts] = useState(100);
+  const [gesteOuvert, setGesteOuvert] = useState(null);
   const { data: couts } = useQuery({
     queryKey: ["monitoring-couts", jours, parFiltre, limiteCouts],
     queryFn: () => base44.request("GET", `/api/monitoring/couts?jours=${jours}&limite=${limiteCouts}${parFiltre ? `&par=${encodeURIComponent(parFiltre)}` : ""}`),
@@ -223,7 +229,7 @@ export default function Monitoring() {
                 <Coins className="w-3.5 h-3.5" /> Ce que coûte l'IA
               </h2>
               <span className="text-[12.5px] text-[#f2f3f5] tabular-nums">
-                {dollars(couts.total.cout)} · {couts.journal_total} requête(s) · {couts.total.appels} appel(s) ·{" "}
+                {euros(couts.total.cout)} · {couts.journal_total} requête(s) · {couts.total.appels} appel(s) ·{" "}
                 {Math.round((couts.total.entree + couts.total.sortie) / 1000)} k jetons
               </span>
             </div>
@@ -261,7 +267,7 @@ export default function Monitoring() {
                             <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{p.appels}</td>
                             <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{p.duree_ms ? duree(p.duree_ms / p.requetes) : "—"}</td>
                             <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{Math.round((p.entree + p.sortie) / 1000)} k</td>
-                            <td className="py-2 pl-3 text-right tabular-nums text-[#f2f3f5]">{dollars(p.cout)}</td>
+                            <td className="py-2 pl-3 text-right tabular-nums text-[#f2f3f5]">{euros(p.cout)}</td>
                             <td className="py-2 pl-3"><Barre part={couts.total.cout ? p.cout / couts.total.cout : 0} /></td>
                           </tr>
                         );
@@ -276,7 +282,7 @@ export default function Monitoring() {
                     <div key={o.cle} className="flex justify-between text-[12.5px] py-1 border-b border-[#15171b]">
                       <span className="text-[#c9cdd6]">{o.cle}</span>
                       <span className="text-[#9298a6] tabular-nums">
-                        {dollars(o.cout)} <span className="text-[#3a3f4a]">· {o.requetes} req. · {o.duree_ms ? duree(o.duree_ms / o.requetes) : "—"}</span>
+                        {euros(o.cout)} <span className="text-[#3a3f4a]">· {o.requetes} req. · {o.duree_ms ? duree(o.duree_ms / o.requetes) : "—"}</span>
                       </span>
                     </div>
                   ))}
@@ -285,7 +291,7 @@ export default function Monitoring() {
                 {/* Le journal : une ligne par requête, la plus récente en haut */}
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
                   <p className="m-0 text-[10px] tracking-[.14em] uppercase text-[#6a7180]">
-                    Journal des requêtes{parFiltre ? ` · ${parFiltre}` : ""}
+                    Journal{parFiltre ? ` · ${parFiltre}` : ""}
                   </p>
                   <span className="text-[11.5px] text-[#6a7180] flex items-center gap-3">
                     {couts.journal.length} sur {couts.journal_total}
@@ -308,35 +314,58 @@ export default function Monitoring() {
                       </tr>
                     </thead>
                     <tbody>
-                      {couts.journal.map((l) => (
-                        <tr key={l.id} className="border-t border-[#15171b] hover:bg-[#f2f3f5]/[0.02]">
-                          <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-[#9298a6]">{horodatage(l.le)}</td>
-                          <td className="py-2 px-3 text-[#f2f3f5]">
-                            {l.operation}
-                            {l.modele ? <span className="text-[#3a3f4a]"> · {l.modele}</span> : null}
-                          </td>
-                          <td className="py-2 px-3 text-[#c9cdd6] truncate max-w-[220px]">{l.par || <span className="text-[#6a7180]">automatique</span>}</td>
-                          <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{l.duree_ms != null ? duree(l.duree_ms) : "—"}</td>
-                          <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{l.appels}</td>
-                          <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]" title={`${l.entree} entrée · ${l.sortie} sortie · ${l.cache_lecture} cache`}>
-                            {((l.entree + l.sortie) / 1000).toFixed(1)} k
-                          </td>
-                          <td className="py-2 pl-3 text-right tabular-nums text-[#f2f3f5]">{dollars(l.cout)}</td>
-                        </tr>
-                      ))}
+                      {couts.journal.map((g) => {
+                        const ouvert = gesteOuvert === g.id;
+                        const serie = g.etapes > 1;
+                        return (
+                          <React.Fragment key={g.id}>
+                            <tr onClick={() => serie && setGesteOuvert(ouvert ? null : g.id)} className={`border-t border-[#15171b] ${serie ? "cursor-pointer" : ""} ${ouvert ? "bg-[#f2f3f5]/[0.03]" : "hover:bg-[#f2f3f5]/[0.02]"}`}>
+                              <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-[#9298a6]">
+                                <span className="inline-flex items-center gap-1.5">
+                                  <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${serie ? "text-[#6a7180]" : "text-transparent"} ${ouvert ? "" : "-rotate-90"}`} />
+                                  {horodatage(g.debut)}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-[#f2f3f5]">
+                                {g.operation}
+                                {serie ? <span className="text-[#6a7180]"> · {g.etapes} étapes</span> : null}
+                                {g.modele ? <span className="text-[#3a3f4a]"> · {g.modele}</span> : null}
+                              </td>
+                              <td className="py-2 px-3 text-[#c9cdd6] truncate max-w-[220px]">{g.par || <span className="text-[#6a7180]">automatique</span>}</td>
+                              <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{g.duree_ms != null ? duree(g.duree_ms) : "—"}</td>
+                              <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{g.appels}</td>
+                              <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]" title={`${g.entree} entrée · ${g.sortie} sortie · ${g.cache_lecture} cache`}>
+                                {((g.entree + g.sortie) / 1000).toFixed(1)} k
+                              </td>
+                              <td className="py-2 pl-3 text-right tabular-nums text-[#f2f3f5]">{euros(g.cout)}</td>
+                            </tr>
+                            {ouvert && g.lignes.map((l) => (
+                              <tr key={l.id} className="bg-[#f2f3f5]/[0.015]">
+                                <td className="py-1.5 pr-3 pl-6 whitespace-nowrap tabular-nums text-[11.5px] text-[#6a7180]">{horodatage(l.le).split(" · ")[1] || horodatage(l.le)}</td>
+                                <td className="py-1.5 px-3 text-[11.5px] text-[#c9cdd6] truncate max-w-[360px]" colSpan={2}>{l.libelle || l.sur || "—"}</td>
+                                <td className="py-1.5 px-3 text-right tabular-nums text-[11.5px] text-[#6a7180]">{l.duree_ms != null ? duree(l.duree_ms) : "—"}</td>
+                                <td className="py-1.5 px-3 text-right tabular-nums text-[11.5px] text-[#6a7180]">{l.appels}</td>
+                                <td className="py-1.5 px-3 text-right tabular-nums text-[11.5px] text-[#6a7180]">{((l.entree + l.sortie) / 1000).toFixed(1)} k</td>
+                                <td className="py-1.5 pl-3 text-right tabular-nums text-[11.5px] text-[#9298a6]">{euros(l.cout)}</td>
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
                 {couts.journal_total > couts.journal.length && (
                   <button onClick={() => setLimiteCouts((n) => n + 200)} className="mt-3 text-[12px] text-[#96c0b8] hover:text-[#abd0c8]">
-                    Voir 200 requêtes de plus
+                    Voir 200 de plus
                   </button>
                 )}
               </>
             )}
             <p className="m-0 mt-4 text-[11.5px] leading-[1.6] text-[#6a7180]">
-              Tarifs publics du modèle, lectures de cache comprises. La durée est celle de la requête
-              entière, de la demande à la réponse. « automatique » regroupe ce qui tourne sans personne
+              Tarifs publics du modèle, lectures de cache comprises, convertis au taux de 1 $ = 0,92 €.
+              Une analyse lancée d'un clic fait une ligne : sa durée va du premier au dernier appel, et
+              elle s'ouvre pour voir chaque document. « automatique » regroupe ce qui tourne sans personne
               devant l'écran — veille des boîtes, tâches de fond.
             </p>
           </div>
@@ -379,7 +408,7 @@ export default function Monitoring() {
                             r.duree_ms != null ? `${(r.duree_ms / 1000).toFixed(1)} s` : null,
                             r.outils?.length ? `${r.outils.length} outil(s)` : "sans outil",
                             r.actions?.length ? `${r.actions.length} action(s)` : null,
-                            r.cout != null ? dollars(r.cout) : null,
+                            r.cout != null ? euros(r.cout) : null,
                           ]
                             .filter(Boolean)
                             .join(" · ")}

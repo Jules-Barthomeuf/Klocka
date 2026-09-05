@@ -77,6 +77,8 @@ const ligneDe = (quoi, c, duree_ms) => ({
   operation: quoi.operation,
   par: quoi.par || null,
   sur: quoi.sur || null,
+  groupe: quoi.groupe || null,
+  libelle: quoi.libelle || null,
   modele: c.modele,
   appels: c.appels,
   entree: c.entree,
@@ -164,13 +166,12 @@ export function syntheseCouts(jours = 30, { limite = 100, par = null } = {}) {
     e.duree_ms += l.duree_ms || 0;
     map.set(cle, e);
   };
-  const recentes = [...lignes].sort((a, b) => String(b.le || '').localeCompare(String(a.le || '')));
-  const filtrees = par ? recentes.filter((l) => (l.par || 'automatique') === par) : recentes;
-  const journal = filtrees.slice(0, limite).map((l) => ({
-    id: l.id, le: l.le, operation: l.operation, par: l.par || null, sur: l.sur || null, modele: l.modele || null,
-    appels: l.appels || 0, entree: l.entree || 0, sortie: l.sortie || 0, cache_lecture: l.cache_lecture || 0,
-    cout: l.cout || 0, duree_ms: l.duree_ms ?? null,
-  }));
+  const gestes = regrouper(lignes);
+  const groupes = par ? gestes.filter((g) => (g.par || 'automatique') === par) : gestes;
+  const journal = groupes.slice(0, limite);
+  // Par personne, on compte des gestes, pas des appels : une analyse = une requête.
+  const gestesPar = new Map();
+  for (const g of gestes) gestesPar.set(g.par || 'automatique', (gestesPar.get(g.par || 'automatique') || 0) + 1);
 
   const parOperation = new Map();
   const parPersonne = new Map();
@@ -181,6 +182,7 @@ export function syntheseCouts(jours = 30, { limite = 100, par = null } = {}) {
     cumuler(parJour, (l.le || '').slice(0, 10), l);
   }
 
+  for (const [cle, e] of parPersonne) if (gestesPar.has(cle)) e.requetes = gestesPar.get(cle);
   const tri = (m) => [...m.values()].sort((a, b) => b.cout - a.cout);
   return {
     total: {
@@ -193,6 +195,47 @@ export function syntheseCouts(jours = 30, { limite = 100, par = null } = {}) {
     personnes: tri(parPersonne),
     jours: [...parJour.values()].sort((a, b) => a.cle.localeCompare(b.cle)),
     journal,
-    journal_total: filtrees.length,
+    journal_total: groupes.length,
   };
+}
+
+// Une analyse lancée d'un clic, c'est un geste : vingt lectures de documents
+// étalées sur un quart d'heure font une ligne, qu'on ouvre pour le détail.
+// Les lignes portent un groupe explicite quand l'opération le sait ; sinon,
+// la même opération par la même personne, sans trou de plus de dix minutes,
+// forme un groupe.
+const TROU_MAX_MS = 10 * 60000;
+function regrouper(lignes) {
+  const chrono = [...lignes].sort((a, b) => String(a.le || '').localeCompare(String(b.le || '')));
+  const ouverts = new Map(); // clé → groupe en cours
+  const tous = [];
+  for (const l of chrono) {
+    const t = Date.parse(l.le || '') || 0;
+    const debutLigne = t - (l.duree_ms || 0);
+    const cle = l.groupe || `${l.operation || 'inconnue'}|${l.par || ''}`;
+    let g = ouverts.get(cle);
+    if (g && !l.groupe && debutLigne - g.fin_ms > TROU_MAX_MS) g = null;
+    if (!g) {
+      g = { id: l.id, groupe: l.groupe || null, operation: l.operation || 'inconnue', par: l.par || null, modele: l.modele || null,
+        debut_ms: debutLigne, fin_ms: t, appels: 0, entree: 0, sortie: 0, cache_lecture: 0, cout: 0, lignes: [], sur: new Set() };
+      ouverts.set(cle, g); tous.push(g);
+    }
+    g.debut_ms = Math.min(g.debut_ms, debutLigne);
+    g.fin_ms = Math.max(g.fin_ms, t);
+    g.appels += l.appels || 0; g.entree += l.entree || 0; g.sortie += l.sortie || 0; g.cache_lecture += l.cache_lecture || 0; g.cout += l.cout || 0;
+    if (l.modele) g.modele = l.modele;
+    if (l.sur) g.sur.add(l.sur);
+    g.lignes.push({ id: l.id, le: l.le, libelle: l.libelle || null, sur: l.sur || null, modele: l.modele || null, appels: l.appels || 0,
+      entree: l.entree || 0, sortie: l.sortie || 0, cout: l.cout || 0, duree_ms: l.duree_ms ?? null });
+  }
+  return tous
+    .sort((a, b) => b.fin_ms - a.fin_ms)
+    .map((g) => ({
+      id: g.id, groupe: g.groupe, operation: g.operation, par: g.par, modele: g.modele,
+      debut: new Date(g.debut_ms).toISOString(), fin: new Date(g.fin_ms).toISOString(),
+      // La durée d'un geste isolé est celle de sa requête ; celle d'une série va du premier au dernier appel.
+      duree_ms: g.lignes.length === 1 ? g.lignes[0].duree_ms : g.fin_ms - g.debut_ms,
+      appels: g.appels, entree: g.entree, sortie: g.sortie, cache_lecture: g.cache_lecture, cout: g.cout,
+      sur: [...g.sur], etapes: g.lignes.length, lignes: g.lignes.sort((a, b) => String(a.le).localeCompare(String(b.le))),
+    }));
 }

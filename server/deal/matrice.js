@@ -144,11 +144,12 @@ export async function remplirMatrice(dealId, { uploadDir, user, seulementColonne
     });
   };
   let fait = 0;
+  const groupe = `matrice:${dealId}:${Date.now()}`;
   for (const p of pieces) {
     const existante = lignesExistantes.get(p.id) || { document_id: p.id, document_nom: p.nom, document_url: p.url, categorie: p.categorie, cellules: {} };
     let cellules = { ...(existante.cellules || {}) };
     try {
-      const { resultat: { lignes: reponses } } = await mesurer({ operation: 'matrice', par: user?.email || null, sur: dealId }, () => extraireDonneesDocument({
+      const { resultat: { lignes: reponses } } = await mesurer({ operation: 'matrice', par: user?.email || null, sur: dealId, groupe, libelle: p.nom }, () => extraireDonneesDocument({
         ...p,
         elements: cibles.map((c) => c.question),
         statuts: ['Conforme', 'À vérifier', 'Point de vigilance', 'Non renseigné'],

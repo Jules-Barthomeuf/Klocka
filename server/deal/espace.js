@@ -296,14 +296,15 @@ export async function extraireUnePiece(piece, user) {
   const type = typeDepuisCategorie(piece.categorie, piece.nom);
   const grille = grilleDe(type);
   try {
-    const { lignes, synthese } = await extraireDonneesDocument({
+    const { mesurer } = await import('../llm-couts.js');
+    const { resultat: { lignes, synthese } } = await mesurer({ operation: 'extraction', par: user?.email || null, sur: piece.id }, () => extraireDonneesDocument({
       ...piece,
       elements: grille?.elements || null,
       statuts: STATUTS_LIGNE,
       // Le PV d'AG se lit résolution par résolution, en blocs.
       parBloc: type === 'pv_ag',
       groupes: type === 'pv_ag' ? BLOCS_PV_AG : null,
-    });
+    }));
     return { ...base, type, type_label: grille?.label || null, synthese: synthese || null, lignes, erreur: null };
   } catch (e) {
     const quota = /quota|rate limit|429/i.test(e?.message || '');

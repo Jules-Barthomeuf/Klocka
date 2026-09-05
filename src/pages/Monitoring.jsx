@@ -19,6 +19,12 @@ const FENETRES = [
 const dollars = (n) =>
   n == null ? "—" : n >= 0.01 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`;
 
+const duree = (ms) => (ms < 1000 ? `${Math.round(ms)} ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.floor(ms / 60000)} min ${Math.round((ms % 60000) / 1000)} s`);
+const horodatage = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return `${d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" })} · ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+};
 const quand = (iso) => {
   if (!iso || isNaN(new Date(iso))) return "—";
   const d = new Date(iso);
@@ -56,9 +62,12 @@ export default function Monitoring() {
     refetchOnWindowFocus: true,
   });
 
+  const [parFiltre, setParFiltre] = useState(null);
+  const [limiteCouts, setLimiteCouts] = useState(100);
   const { data: couts } = useQuery({
-    queryKey: ["monitoring-couts", jours],
-    queryFn: () => base44.request("GET", `/api/monitoring/couts?jours=${jours}`),
+    queryKey: ["monitoring-couts", jours, parFiltre, limiteCouts],
+    queryFn: () => base44.request("GET", `/api/monitoring/couts?jours=${jours}&limite=${limiteCouts}${parFiltre ? `&par=${encodeURIComponent(parFiltre)}` : ""}`),
+    placeholderData: (prev) => prev,
   });
 
   const { data: historique } = useQuery({
@@ -206,7 +215,7 @@ export default function Monitoring() {
           </>
         )}
 
-        {/* Ce que coûte l'IA */}
+        {/* Ce que coûte l'IA : chaque requête, datée, chronométrée, attribuée */}
         {couts && (
           <div className="border border-[#1f2228] rounded-md p-4 mb-8">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -214,7 +223,7 @@ export default function Monitoring() {
                 <Coins className="w-3.5 h-3.5" /> Ce que coûte l'IA
               </h2>
               <span className="text-[12.5px] text-[#f2f3f5] tabular-nums">
-                {dollars(couts.total.cout)} · {couts.total.appels} appel(s) ·{" "}
+                {dollars(couts.total.cout)} · {couts.journal_total} requête(s) · {couts.total.appels} appel(s) ·{" "}
                 {Math.round((couts.total.entree + couts.total.sortie) / 1000)} k jetons
               </span>
             </div>
@@ -222,32 +231,113 @@ export default function Monitoring() {
             {couts.total.appels === 0 ? (
               <p className="m-0 text-[12.5px] text-[#6a7180]">Aucun appel au modèle sur la période.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-                <div>
-                  <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#6a7180]">Par opération</p>
-                  {couts.operations.slice(0, 8).map((o) => (
+              <>
+                {/* Par utilisateur : clic pour ne voir que ses requêtes */}
+                <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#6a7180]">Coût par utilisateur</p>
+                <div className="overflow-x-auto mb-6">
+                  <table className="w-full text-[12.5px] border-collapse">
+                    <thead>
+                      <tr className="text-[10px] tracking-[.12em] uppercase text-[#6a7180]">
+                        <th className="text-left font-normal py-1.5 pr-3">Utilisateur</th>
+                        <th className="text-right font-normal py-1.5 px-3">Requêtes</th>
+                        <th className="text-right font-normal py-1.5 px-3">Appels</th>
+                        <th className="text-right font-normal py-1.5 px-3">Durée moy.</th>
+                        <th className="text-right font-normal py-1.5 px-3">Jetons</th>
+                        <th className="text-right font-normal py-1.5 pl-3">Coût</th>
+                        <th className="w-[140px]" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {couts.personnes.map((p) => {
+                        const actif = parFiltre === p.cle;
+                        return (
+                          <tr
+                            key={p.cle}
+                            onClick={() => { setParFiltre(actif ? null : p.cle); setLimiteCouts(100); }}
+                            className={`border-t border-[#15171b] cursor-pointer transition-colors ${actif ? "bg-[#96c0b8]/[0.08]" : "hover:bg-[#f2f3f5]/[0.02]"}`}
+                          >
+                            <td className={`py-2 pr-3 truncate max-w-[260px] ${actif ? "text-[#96c0b8]" : "text-[#f2f3f5]"}`}>{p.cle}</td>
+                            <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{p.requetes}</td>
+                            <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{p.appels}</td>
+                            <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{p.duree_ms ? duree(p.duree_ms / p.requetes) : "—"}</td>
+                            <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{Math.round((p.entree + p.sortie) / 1000)} k</td>
+                            <td className="py-2 pl-3 text-right tabular-nums text-[#f2f3f5]">{dollars(p.cout)}</td>
+                            <td className="py-2 pl-3"><Barre part={couts.total.cout ? p.cout / couts.total.cout : 0} /></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#6a7180]">Par opération</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 mb-6">
+                  {couts.operations.slice(0, 10).map((o) => (
                     <div key={o.cle} className="flex justify-between text-[12.5px] py-1 border-b border-[#15171b]">
                       <span className="text-[#c9cdd6]">{o.cle}</span>
                       <span className="text-[#9298a6] tabular-nums">
-                        {dollars(o.cout)} <span className="text-[#3a3f4a]">· {o.appels}</span>
+                        {dollars(o.cout)} <span className="text-[#3a3f4a]">· {o.requetes} req. · {o.duree_ms ? duree(o.duree_ms / o.requetes) : "—"}</span>
                       </span>
                     </div>
                   ))}
                 </div>
-                <div>
-                  <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-[#6a7180]">Par personne</p>
-                  {couts.personnes.slice(0, 8).map((p) => (
-                    <div key={p.cle} className="flex justify-between text-[12.5px] py-1 border-b border-[#15171b]">
-                      <span className="text-[#c9cdd6] truncate max-w-[200px]">{p.cle}</span>
-                      <span className="text-[#9298a6] tabular-nums">{dollars(p.cout)}</span>
-                    </div>
-                  ))}
+
+                {/* Le journal : une ligne par requête, la plus récente en haut */}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                  <p className="m-0 text-[10px] tracking-[.14em] uppercase text-[#6a7180]">
+                    Journal des requêtes{parFiltre ? ` · ${parFiltre}` : ""}
+                  </p>
+                  <span className="text-[11.5px] text-[#6a7180] flex items-center gap-3">
+                    {couts.journal.length} sur {couts.journal_total}
+                    {parFiltre && (
+                      <button onClick={() => setParFiltre(null)} className="text-[#96c0b8] hover:text-[#abd0c8]">Tout le monde</button>
+                    )}
+                  </span>
                 </div>
-              </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[12.5px] border-collapse">
+                    <thead>
+                      <tr className="text-[10px] tracking-[.12em] uppercase text-[#6a7180]">
+                        <th className="text-left font-normal py-1.5 pr-3 whitespace-nowrap">Date · heure</th>
+                        <th className="text-left font-normal py-1.5 px-3">Opération</th>
+                        <th className="text-left font-normal py-1.5 px-3">Utilisateur</th>
+                        <th className="text-right font-normal py-1.5 px-3">Durée</th>
+                        <th className="text-right font-normal py-1.5 px-3">Appels</th>
+                        <th className="text-right font-normal py-1.5 px-3">Jetons</th>
+                        <th className="text-right font-normal py-1.5 pl-3">Coût</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {couts.journal.map((l) => (
+                        <tr key={l.id} className="border-t border-[#15171b] hover:bg-[#f2f3f5]/[0.02]">
+                          <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-[#9298a6]">{horodatage(l.le)}</td>
+                          <td className="py-2 px-3 text-[#f2f3f5]">
+                            {l.operation}
+                            {l.modele ? <span className="text-[#3a3f4a]"> · {l.modele}</span> : null}
+                          </td>
+                          <td className="py-2 px-3 text-[#c9cdd6] truncate max-w-[220px]">{l.par || <span className="text-[#6a7180]">automatique</span>}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{l.duree_ms != null ? duree(l.duree_ms) : "—"}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{l.appels}</td>
+                          <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]" title={`${l.entree} entrée · ${l.sortie} sortie · ${l.cache_lecture} cache`}>
+                            {((l.entree + l.sortie) / 1000).toFixed(1)} k
+                          </td>
+                          <td className="py-2 pl-3 text-right tabular-nums text-[#f2f3f5]">{dollars(l.cout)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {couts.journal_total > couts.journal.length && (
+                  <button onClick={() => setLimiteCouts((n) => n + 200)} className="mt-3 text-[12px] text-[#96c0b8] hover:text-[#abd0c8]">
+                    Voir 200 requêtes de plus
+                  </button>
+                )}
+              </>
             )}
             <p className="m-0 mt-4 text-[11.5px] leading-[1.6] text-[#6a7180]">
-              Tarifs publics du modèle, lectures de cache comprises. « automatique » regroupe ce qui
-              tourne sans personne devant l'écran — extraction des documents, veille des boîtes.
+              Tarifs publics du modèle, lectures de cache comprises. La durée est celle de la requête
+              entière, de la demande à la réponse. « automatique » regroupe ce qui tourne sans personne
+              devant l'écran — veille des boîtes, tâches de fond.
             </p>
           </div>
         )}

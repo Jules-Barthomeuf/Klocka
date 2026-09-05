@@ -17,6 +17,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { Records, Meta, CHEMIN_UPLOADS, infoStockage } from './db.js';
+import { mesurerRequetes } from './llm-couts.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
 import { restaurerSeedSiNecessaire } from './seed-donnees.js';
 import { invokeLLM, llmEnabled, llmStatus } from './llm.js';
@@ -164,6 +165,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '25mb' }));
+// Chaque requête à l'API sait ce qu'elle a coûté en modèle, et à qui.
+app.use(mesurerRequetes(currentUser));
 // Les fichiers déposés (fiches, baux, photos) sont réservés aux personnes
 // connectées : rien de tout cela n'est public.
 app.use(
@@ -1608,7 +1611,10 @@ app.get('/api/monitoring/propositions', wrap(async (req, res) => {
 app.get('/api/monitoring/couts', wrap(async (req, res) => {
   if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
   const { syntheseCouts } = await import('./llm-couts.js');
-  ok(res, syntheseCouts(Number(req.query.jours) || 30));
+  ok(res, syntheseCouts(Number(req.query.jours) || 30, {
+    limite: Math.min(2000, Number(req.query.limite) || 100),
+    par: req.query.par ? String(req.query.par) : null,
+  }));
 }));
 
 // Correction du tri par l'équipe. Elle vaut pour l'expéditeur entier : la

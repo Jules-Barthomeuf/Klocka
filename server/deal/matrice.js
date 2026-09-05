@@ -123,6 +123,7 @@ export async function remplirMatrice(dealId, { uploadDir, user, seulementColonne
 
   const { chargerPieces } = await import('./espace.js');
   const { extraireDonneesDocument } = await import('../llm.js');
+  const { mesurer } = await import('../llm-couts.js');
   const docs = (brut.documents_espace || []).filter((d) => !seulementDocuments || seulementDocuments.includes(d.id));
   const pieces = chargerPieces(brut, docs.map((d) => d.id), uploadDir, true);
 
@@ -147,11 +148,11 @@ export async function remplirMatrice(dealId, { uploadDir, user, seulementColonne
     const existante = lignesExistantes.get(p.id) || { document_id: p.id, document_nom: p.nom, document_url: p.url, categorie: p.categorie, cellules: {} };
     let cellules = { ...(existante.cellules || {}) };
     try {
-      const { lignes: reponses } = await extraireDonneesDocument({
+      const { resultat: { lignes: reponses } } = await mesurer({ operation: 'matrice', par: user?.email || null, sur: dealId }, () => extraireDonneesDocument({
         ...p,
         elements: cibles.map((c) => c.question),
         statuts: ['Conforme', 'À vérifier', 'Point de vigilance', 'Non renseigné'],
-      });
+      }));
       cibles.forEach((c, i) => {
         const r = reponses[i];
         const vide = !r || VIDE(r.constat);

@@ -64,23 +64,68 @@ export function enregistrerUsage(modele, usage) {
  * @param {{operation: string, par?: string, sur?: string}} quoi
  */
 export async function mesurer(quoi, fn) {
-  const compteur = { appels: 0, entree: 0, sortie: 0, cache_lecture: 0, cache_ecriture: 0, cout: 0, modele: null };
+  const compteur = nouveauCompteur();
+  const debut = Date.now();
   const resultat = await contexte.run(compteur, fn);
-  if (compteur.appels) {
-    ecrire({
-      operation: quoi.operation,
-      par: quoi.par || null,
-      sur: quoi.sur || null,
-      modele: compteur.modele,
-      appels: compteur.appels,
-      entree: compteur.entree,
-      sortie: compteur.sortie,
-      cache_lecture: compteur.cache_lecture,
-      cache_ecriture: compteur.cache_ecriture,
-      cout: compteur.cout,
-    });
-  }
+  if (compteur.appels) ecrire(ligneDe(quoi, compteur, Date.now() - debut));
   return { resultat, consommation: compteur };
+}
+
+const nouveauCompteur = () => ({ appels: 0, entree: 0, sortie: 0, cache_lecture: 0, cache_ecriture: 0, cout: 0, modele: null });
+
+const ligneDe = (quoi, c, duree_ms) => ({
+  operation: quoi.operation,
+  par: quoi.par || null,
+  sur: quoi.sur || null,
+  modele: c.modele,
+  appels: c.appels,
+  entree: c.entree,
+  sortie: c.sortie,
+  cache_lecture: c.cache_lecture,
+  cache_ecriture: c.cache_ecriture,
+  cout: c.cout,
+  duree_ms,
+});
+
+// Ce qu'une route consomme sans être mesurée explicitement est quand même
+// attribué : à la personne connectée, à la route, avec la durée de la réponse.
+// Une opération mesurée à l'intérieur écrit sa propre ligne, et la route n'en
+// écrit pas une seconde : le compteur le plus proche gagne.
+export function mesurerRequetes(lireUser) {
+  return (req, res, next) => {
+    if (!req.path.startsWith('/api/')) return next();
+    const compteur = nouveauCompteur();
+    const debut = Date.now();
+    res.on('finish', () => {
+      if (!compteur.appels) return;
+      let par = null;
+      try { par = lireUser(req)?.email || null; } catch { /* sans identité */ }
+      const route = req.route?.path || req.path;
+      ecrire(ligneDe({ operation: libelleRoute(req.method, route), par, sur: req.params?.dealId || req.params?.id || null }, compteur, Date.now() - debut));
+    });
+    contexte.run(compteur, next);
+  };
+}
+
+const LIBELLES_ROUTE = [
+  [/\/functions\/(\w+)/, (m) => `fonction ${m[1]}`],
+  [/\/integrations\/invoke-llm/, () => 'modèle (direct)'],
+  [/\/preanalyse\/dossiers\/[^/]+\/matrice/, () => 'matrice'],
+  [/\/preanalyse\/dossiers\/[^/]+\/(extraction|extraire)/, () => 'extraction'],
+  [/\/preanalyse\/dossiers\/[^/]+\/(conversation|question|converser)/, () => 'chat du dossier'],
+  [/\/preanalyse\/dossiers\/[^/]+\/video/, () => 'vidéo'],
+  [/\/preanalyse\/dossiers\/[^/]+\/presentation/, () => 'présentation'],
+  [/\/preanalyse\/dossiers\/[^/]+\/mails?/, () => 'mail du dossier'],
+  [/\/preanalyse\/dossiers\/[^/]+\/(redaction|redact|fiche)/, () => 'rédaction'],
+  [/\/preanalyse/, () => 'pré-analyse'],
+  [/\/assistant\/boite/, () => 'boîte'],
+  [/\/assistant/, () => 'assistant'],
+  [/\/mails/, () => 'mails'],
+  [/\/monday/, () => 'monday'],
+];
+function libelleRoute(methode, route) {
+  for (const [motif, l] of LIBELLES_ROUTE) { const m = route.match(motif); if (m) return l(m); }
+  return `${methode} ${route}`;
 }
 
 // Au-delà, l'historique pèse sans rien apprendre de plus.
@@ -101,19 +146,31 @@ function ecrire(ligne) {
   }
 }
 
-/** Synthèse des coûts sur une fenêtre : par opération, par personne, par jour. */
-export function syntheseCouts(jours = 30) {
+/**
+ * Synthèse des coûts sur une fenêtre : par opération, par personne, par jour,
+ * et le journal ligne à ligne, du plus récent au plus ancien.
+ */
+export function syntheseCouts(jours = 30, { limite = 100, par = null } = {}) {
   const depuis = new Date(Date.now() - jours * 86400000).toISOString();
   const lignes = Records.list('CoutIA').filter((l) => (l.le || '') >= depuis);
 
   const cumuler = (map, cle, l) => {
-    const e = map.get(cle) || { cle, appels: 0, entree: 0, sortie: 0, cout: 0 };
+    const e = map.get(cle) || { cle, requetes: 0, appels: 0, entree: 0, sortie: 0, cout: 0, duree_ms: 0 };
+    e.requetes += 1;
     e.appels += l.appels || 0;
     e.entree += l.entree || 0;
     e.sortie += l.sortie || 0;
     e.cout += l.cout || 0;
+    e.duree_ms += l.duree_ms || 0;
     map.set(cle, e);
   };
+  const recentes = [...lignes].sort((a, b) => String(b.le || '').localeCompare(String(a.le || '')));
+  const filtrees = par ? recentes.filter((l) => (l.par || 'automatique') === par) : recentes;
+  const journal = filtrees.slice(0, limite).map((l) => ({
+    id: l.id, le: l.le, operation: l.operation, par: l.par || null, sur: l.sur || null, modele: l.modele || null,
+    appels: l.appels || 0, entree: l.entree || 0, sortie: l.sortie || 0, cache_lecture: l.cache_lecture || 0,
+    cout: l.cout || 0, duree_ms: l.duree_ms ?? null,
+  }));
 
   const parOperation = new Map();
   const parPersonne = new Map();
@@ -135,5 +192,7 @@ export function syntheseCouts(jours = 30) {
     operations: tri(parOperation),
     personnes: tri(parPersonne),
     jours: [...parJour.values()].sort((a, b) => a.cle.localeCompare(b.cle)),
+    journal,
+    journal_total: filtrees.length,
   };
 }

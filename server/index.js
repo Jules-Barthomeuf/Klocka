@@ -1941,6 +1941,12 @@ app.get('/api/preanalyse/dossiers/:dealId/etape1', wrap(async (req, res) => {
   if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
   ok(res, e);
 }));
+app.get('/api/preanalyse/dossiers/:dealId/etape2', wrap(async (req, res) => {
+  const { lireEtape2 } = await import('./deal/etapes-analyse.js');
+  const e = lireEtape2(req.params.dealId);
+  if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, e);
+}));
 app.post('/api/preanalyse/dossiers/:dealId/etape/:n', wrap(async (req, res) => {
   const { lancerEtape } = await import('./deal/etapes-analyse.js');
   const r = lancerEtape(req.params.dealId, Number(req.params.n), { user: currentUser(req), uploadDir: UPLOAD_DIR });

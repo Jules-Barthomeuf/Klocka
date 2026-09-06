@@ -130,7 +130,36 @@ export function lireEtape1(dealId) {
   } else if (loyer && !prixFai) {
     phrase = `Loyer du bail : ${eur(loyer)} HT/an. Le prix de vente n'est pas connu : la rentabilité se calculera dès qu'il sera renseigné.`;
   }
+  // Le simulateur reprend le bail : loyer, surface, TVA, charges de copro et
+  // taxe foncière selon qui les paie, article 606 pour le bailleur.
+  const texteTVA = `${v('loyer') || ''} ${v('charges') || ''}`;
+  const soumisTVA = /soumis(e)? à la TVA|assujetti|option (pour la|à la) TVA|TVA en sus|\+ ?TVA|HT et TVA/i.test(texteTVA) && !/non soumis|exonér|sans TVA/i.test(texteTVA);
+  const chargesCopro = montants(v('charges_copro') || '')[0]?.valeur ?? 0;
+  const coproRefacturee = /preneur|locataire/i.test(String(v('charges') || '')) && /copropri|charges communes|charges générales/i.test(String(v('charges') || ''));
+  const taxeMontant = montants(v('taxe_fonciere') || '')[0]?.valeur ?? 0;
+  const simulateur = {
+    ...(lot?.simulateur || {}),
+    prixBienFAI: prixFai ?? lot?.simulateur?.prixBienFAI ?? 0,
+    prixBienNegocie: prixFai ?? lot?.simulateur?.prixBienNegocie ?? 0,
+    loyerInitialHTHC: loyer ? Math.round(loyer) : lot?.simulateur?.loyerInitialHTHC ?? 0,
+    surface: surfaces(v('surface') || '')[0]?.valeur ?? lot?.simulateur?.surface ?? 0,
+    loyerSoumisTVA: soumisTVA,
+    tauxTVA: 20,
+    chargesCoproRefacturables: coproRefacturee || !chargesCopro ? true : false,
+    chargesCopropriete: Math.round(chargesCopro),
+    taxeFonciereRefacturable: taxeRefacturee,
+    taxeFonciere: Math.round(taxeMontant),
+    chargesDiverses: Math.round(chargesNonRecup || 0),
+  };
+  const hypotheses = [
+    loyer ? `Loyer ${eur(loyer)} HT/an, du bail.` : 'Loyer : non trouvé dans le bail.',
+    soumisTVA ? 'Loyer soumis à TVA : la TVA est facturée au preneur.' : 'Loyer hors champ ou sans mention de TVA : pas de TVA sur le loyer.',
+    coproRefacturee ? `Charges de copropriété refacturées au preneur${chargesCopro ? ` (${eur(chargesCopro)}/an)` : ''}.` : chargesCopro ? `Charges de copropriété ${eur(chargesCopro)}/an, à la charge du bailleur.` : 'Charges de copropriété : montant non trouvé.',
+    taxeRefacturee ? `Taxe foncière refacturée au preneur${taxeMontant ? ` (${eur(taxeMontant)})` : ''}.` : taxeMontant ? `Taxe foncière ${eur(taxeMontant)} à la charge du bailleur.` : 'Taxe foncière : à la charge du bailleur par défaut, montant inconnu.',
+    chargesNonRecup ? `Charges non récupérables (art. 606) estimées à ${eur(chargesNonRecup)}/an.` : 'Article 606 (grosses réparations) : au bailleur, sans montant.',
+  ];
   const rentabilite = {
+    simulateur, hypotheses,
     prix_fai: prixFai, prix_aem: aem?.prix_aem ?? null, loyer_bail: loyer, charges_non_recup: chargesNonRecup || null, taxe_fonciere_bailleur: taxe || null,
     rendement_brut_aem: aem?.rendement_aem ?? null, rendement_net_aem: rendementNet != null ? Number(rendementNet.toFixed(2)) : null,
     rendement_teaser: rendementTeaser != null ? Number(Number(rendementTeaser).toFixed(2)) : null, seuil: Number(seuil), dans_criteres: aem ? (rendementNet ?? aem.rendement_aem) >= Number(seuil) : null,
@@ -205,5 +234,166 @@ export function lireEtape1(dealId) {
     fiche, rentabilite, ecarts, ecarts_significatifs: ecartsSignificatifs.length, deal_breakers: db, recommandation, notables, documents_etape2: documentsEtape2,
     demandes_texte: demandes,
     motif_passer: durs.map((x) => x.libelle).join(' ; ') || null,
+  };
+}
+
+// Les grilles d'extraction par catégorie : les pièces d'une même famille
+// répondent aux mêmes questions, la contradiction se voit sur la ligne.
+const GRILLES = [
+  { id: 'baux', titre: 'Baux', categories: ['Bail commercial', 'Avenants'], colonnes: ['parties', 'destination', 'dates_bail', 'duree', 'loyer', 'indexation', 'charges', 'depot', 'caution', 'cession', 'resiliation', 'travaux_conformite'] },
+  { id: 'copro', titre: 'Copropriété', categories: ['Règlement de copropriété', 'EDD', "PV d'AG copro", 'Appels de charges'], colonnes: ['destination', 'restrictions', 'tantiemes', 'travaux_votes', 'procedures', 'charges_copro'] },
+  { id: 'diagnostics', titre: 'Diagnostics', categories: ['Diagnostics', 'Plans & Carrez'], colonnes: ['diagnostics', 'surface', 'travaux_conformite'] },
+  { id: 'quittances', titre: 'Quittances', categories: ['Quittances'], colonnes: ['loyer', 'paiements', 'charges'] },
+];
+export function grillesParCategorie(m) {
+  return GRILLES.map((g) => {
+    const colonnes = g.colonnes.map((id) => m.colonnes.find((c) => c.id === id)).filter(Boolean);
+    const lignes = m.lignes.filter((l) => g.categories.includes(l.categorie || 'Autre')).map((l) => ({
+      document_id: l.document_id, document_nom: l.document_nom, document_url: l.document_url, categorie: l.categorie, date_document: l.date_document || null, perime: !!l.perime,
+      cellules: Object.fromEntries(colonnes.map((c) => [c.id, l.cellules?.[c.id] || null])),
+    }));
+    return { id: g.id, titre: g.titre, colonnes: colonnes.map((c) => ({ id: c.id, libelle: c.libelle, question: c.question })), lignes };
+  }).filter((g) => g.lignes.length);
+}
+
+// Étape 2 — Immeuble et copropriété. Le bail tient ; le bien physique et son
+// environnement méritent-ils qu'on y mette de l'argent ?
+const SUJETS_DIAG = [
+  ['Amiante', /amiante/i], ['DPE', /\bDPE\b|performance énergétique|classe énergétique/i], ['ERP', /\bERP\b|risques et pollutions|PPRN|PPRI|sismi/i],
+  ['Électricité', /électri|electri/i], ['Gaz', /\bgaz\b/i], ['Parasites', /termite|parasit|mérule/i], ['Plomb', /plomb|CREP/i],
+];
+const phrasesSur = (texte, motif) => String(texte || '').split(/(?<=[.;])\s+|\s+—\s+/).filter((ph) => motif.test(ph));
+
+export function lireEtape2(dealId) {
+  const e1 = lireEtape1(dealId);
+  if (!e1) return null;
+  const m = lireMatrice(dealId);
+  const f = lireFiche(dealId);
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const lot = brut.lots?.[0] || null;
+  const champs = new Map(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
+  const ch = (id) => champs.get(id);
+  const v = (id) => ch(id)?.valeur || null;
+  const src = (id) => { const p = ch(id)?.preuves?.[0]; return p ? { document_id: p.document_id, document_nom: p.document_nom, document_url: p.document_url, page: p.page, citation: p.citation } : null; };
+  const vivantes = m.lignes.filter((l) => !l.perime);
+  const etape2 = ETAPES[1];
+  const lusEtape2 = vivantes.filter((l) => etape2.categories.includes(l.categorie || 'Autre')).length;
+  const lue = lusEtape2 > 0;
+  const loyer = e1.rentabilite.loyer_bail;
+
+  // --- Bloc 1 : copropriété -----------------------------------------------------------------
+  const restrictions = v('restrictions');
+  const destination = v('destination') || '';
+  const GENERIQUES = new Set(['commerce', 'commerces', 'vente', 'produits', 'activité', 'activités', 'exclusive', 'destination', 'exercice', 'exploitation', 'local', 'locaux', 'usage', 'titre', 'accessoire', 'toute', 'toutes', 'autres', 'sous', 'réserve']);
+  const motsActivite = (destination.toLowerCase().match(/[a-zéèêàç]{5,}/g) || []).filter((w) => !GENERIQUES.has(w));
+  const interdit = /interdit|prohib|exclu|ne (peut|pourra|sont) (pas|être)|défense/i.test(restrictions || '');
+  const restrictionTouche = restrictions && !negation(restrictions) && interdit && motsActivite.some((w) => restrictions.toLowerCase().includes(w));
+  const conformite = !restrictions ? { statut: 'inconnu', texte: 'Règlement de copropriété non lu : conformité de l\'activité à vérifier.' }
+    : negation(restrictions) ? { statut: 'ok', texte: 'Le règlement ne restreint pas l\'activité du preneur.' }
+    : restrictionTouche ? { statut: 'ko', texte: `Le règlement vise l\'activité exercée : ${court(restrictions, 140)}` }
+    : { statut: 'a_verifier', texte: `Le règlement pose des restrictions, sans viser l\'activité en termes exprès : ${court(restrictions, 120)}` };
+  const travaux = v('travaux_votes');
+  const montantTravaux = montants(travaux || '')[0]?.valeur ?? null;
+  const travauxLourds = travaux && !negation(travaux) && (montantTravaux != null ? montantTravaux > Math.max(10000, (loyer || 0) * 0.2) : /ravalement|toiture|ascenseur|structure|façade/i.test(travaux));
+  const litige = v('procedures');
+  const litigePositif = litige && !negation(litige) && /procédure|contentieux|litige|impayé|redressement|liquidation|sauvegarde/i.test(litige) && !/aucun/i.test(litige);
+  const chargesCopro = montants(v('charges_copro') || '')[0]?.valeur ?? null;
+  const copro = {
+    conformite: { ...conformite, source: src('restrictions') },
+    travaux: { statut: !travaux ? 'inconnu' : negation(travaux) ? 'ok' : travauxLourds ? 'ko' : 'a_verifier', texte: !travaux ? 'Aucun PV d\'AG lu : travaux votés inconnus.' : negation(travaux) ? 'Aucun travaux voté ni en discussion.' : `${court(travaux, 160)}${montantTravaux ? ` — ${eur(montantTravaux)}` : ''}`, source: src('travaux_votes') },
+    litiges: { statut: !litige ? 'inconnu' : litigePositif ? 'ko' : 'ok', texte: !litige ? 'Procédures : rien de lu.' : litigePositif ? court(litige, 160) : 'Aucune procédure ni contentieux mentionné.', source: src('procedures') },
+    cout: { statut: chargesCopro != null ? 'ok' : 'inconnu', texte: chargesCopro != null ? `${eur(chargesCopro)}/an de charges de copropriété${loyer ? ` (${((chargesCopro / loyer) * 100).toFixed(0)} % du loyer)` : ''}${/preneur|locataire/i.test(String(v('charges') || '')) ? ', refacturées au preneur' : ''}.` : 'Coût de la copropriété : aucun appel de charges ni budget lu.', source: src('charges_copro') },
+    tantiemes: v('tantiemes') ? { texte: court(v('tantiemes'), 120), source: src('tantiemes') } : null,
+  };
+
+  // --- Bloc 2 : état du bien, une réponse par sujet ------------------------------------------
+  const textesDiag = (ch('diagnostics')?.preuves || []).map((p) => ({ texte: p.reponse, source: { document_id: p.document_id, document_nom: p.document_nom, document_url: p.document_url, page: p.page } }));
+  const etatBien = SUJETS_DIAG.map(([sujet, motif]) => {
+    const trouves = textesDiag.flatMap((t) => phrasesSur(t.texte, motif).map((ph) => ({ ph, source: t.source })));
+    if (!trouves.length) return { sujet, statut: 'absent', resultat: 'Aucun diagnostic lu sur ce sujet.', action: null, source: null };
+    const texte = trouves.map((x) => x.ph).join(' ');
+    const negatif = /absence|aucun|néant|non détect|pas de|conforme|sans anomalie|négatif|vierge/i.test(texte) && !/non conforme|présence|détecté|positif|anomalie/i.test(texte);
+    const action = /travaux|à réaliser|non conforme|présence|anomalie|mise en sécurité|retrait|obligation|à refaire|expir|périmé/i.test(texte) ? court(texte.match(/[^.;]*(travaux|à réaliser|non conforme|présence|anomalie|mise en sécurité|retrait|obligation|à refaire|expir|périmé)[^.;]*/i)?.[0] || texte, 120) : null;
+    const validite = dates(texte).map((d) => d.iso).sort().pop() || null;
+    const cout = montants(texte)[0]?.valeur ?? null;
+    return { sujet, statut: action ? 'action' : negatif ? 'ok' : 'a_lire', resultat: court(texte, 160), action, cout, validite, source: trouves[0].source };
+  });
+
+  // --- Bloc 3 : surfaces, toutes les sources -----------------------------------------------
+  const sourcesSurface = [];
+  for (const l of vivantes) {
+    const cel = l.cellules?.surface;
+    if (!cel?.reponse) continue;
+    for (const sf of surfaces(cel.reponse).slice(0, 1)) sourcesSurface.push({ source: l.document_nom, categorie: l.categorie || 'Autre', valeur: sf.valeur, extrait: court(sf.extrait || cel.reponse, 60), document_id: l.document_id, document_url: l.document_url, page: cel.page || null });
+  }
+  const teaserSurface = val(lot?.lot?.surface_m2);
+  if (teaserSurface) sourcesSurface.push({ source: 'Teaser (pré-analyse)', categorie: 'Annonce', valeur: teaserSurface, extrait: null });
+  const valeurs = sourcesSurface.map((x) => x.valeur);
+  const minS = valeurs.length ? Math.min(...valeurs) : null;
+  const maxS = valeurs.length ? Math.max(...valeurs) : null;
+  const incoherence = minS && maxS && (maxS - minS) / maxS > 0.03;
+  const bailSurf = sourcesSurface.filter((x) => /^bail/i.test(x.categorie)).map((x) => x.valeur);
+  const autresSurf = sourcesSurface.filter((x) => !/^bail/i.test(x.categorie) && x.categorie !== 'Annonce').map((x) => x.valeur);
+  const pieceMultiLots = bailSurf.length && autresSurf.length && Math.max(...bailSurf) < Math.max(...autresSurf) * 0.85;
+  const surfacesBloc = {
+    sources: sourcesSurface, min: minS, max: maxS, incoherence: !!incoherence,
+    lecture: !sourcesSurface.length ? 'Aucune surface lue.' : !incoherence ? `Toutes les sources concordent autour de ${maxS} m².` : pieceMultiLots ? `Le bail porte sur ${Math.max(...bailSurf)} m² quand les autres pièces décrivent jusqu'à ${Math.max(...autresSurf)} m² : le bail couvre une partie seulement, le périmètre du deal est à clarifier.` : `Les sources vont de ${minS} à ${maxS} m² : périmètre à clarifier (Carrez, utile, au sol).`,
+  };
+
+  // --- Bloc 4 : marché ----------------------------------------------------------------------
+  const enr = lot?.enrichissement || {};
+  const surfaceRef = surfacesBloc.max || teaserSurface || null;
+  const loyerM2 = loyer && surfaceRef ? Math.round(loyer / surfaceRef) : null;
+  const marche = {
+    commune: enr.commune ? `${enr.commune.nom}${enr.commune.population ? ` · ${enr.commune.population.toLocaleString('fr-FR')} habitants` : ''}${enr.typologie_ville ? ` · ${String(enr.typologie_ville).replace('_', ' ')}` : ''}` : null,
+    revenu_median: enr.revenu_median ?? null,
+    loyer_m2: loyerM2,
+    contexte: lot?.contexte_marche ? { resume: lot.contexte_marche.resume, sources: lot.contexte_marche.sources || [] } : null,
+    indisponibles: ['Flux piéton', 'Enseignes présentes', 'Vacance commerciale', 'Comparables de loyer au m²', 'Projets urbains'].filter((x) => !(lot?.contexte_marche?.resume || '').toLowerCase().includes(x.toLowerCase().split(' ')[0])),
+    question: loyerM2 ? `Une relocation au même loyer suppose de retrouver un preneur à ${loyerM2} €/m²/an : à confronter aux comparables du secteur.` : 'Sans loyer ni surface fiables, la relocation ne peut pas être appréciée.',
+  };
+
+  // --- Bloc 5 : synthèse en quatre lignes ------------------------------------------------------
+  const statutCopro = [copro.conformite.statut, copro.travaux.statut, copro.litiges.statut].includes('ko') ? 'ko' : [copro.conformite.statut, copro.travaux.statut, copro.litiges.statut].includes('a_verifier') ? 'a_verifier' : [copro.conformite.statut, copro.travaux.statut, copro.litiges.statut].every((x) => x === 'inconnu') ? 'inconnu' : 'ok';
+  const statutBien = etatBien.some((x) => x.statut === 'action') ? 'a_verifier' : etatBien.every((x) => x.statut === 'absent') ? 'inconnu' : 'ok';
+  const statutSurfaces = !sourcesSurface.length ? 'inconnu' : incoherence ? (pieceMultiLots ? 'ko' : 'a_verifier') : 'ok';
+  const statutMarche = marche.contexte ? 'a_verifier' : 'inconnu';
+  const mot = { ok: 'OK', ko: 'non', a_verifier: 'à clarifier', inconnu: 'non lu' };
+  const synthese = [
+    { sujet: 'Copropriété', statut: statutCopro, texte: statutCopro === 'ok' ? 'Copropriété OK : activité admise, pas de travaux lourds, pas de litige.' : statutCopro === 'ko' ? 'Copropriété : un point bloquant (activité, travaux ou litige).' : statutCopro === 'inconnu' ? 'Copropriété non lue.' : 'Copropriété à clarifier.' },
+    { sujet: 'Bien', statut: statutBien, texte: statutBien === 'ok' ? 'Bien OK : diagnostics sans action requise.' : statutBien === 'inconnu' ? 'Aucun diagnostic lu.' : `Bien : ${etatBien.filter((x) => x.statut === 'action').map((x) => x.sujet).join(', ')} avec action requise.` },
+    { sujet: 'Surfaces', statut: statutSurfaces, texte: statutSurfaces === 'ok' ? 'Surfaces claires.' : statutSurfaces === 'inconnu' ? 'Surfaces non lues.' : 'Surfaces à clarifier : les sources ne concordent pas.' },
+    { sujet: 'Marché', statut: statutMarche, texte: statutMarche === 'a_verifier' ? 'Marché : contexte web disponible, comparables à confronter.' : 'Marché : données externes non disponibles.' },
+  ].map((x) => ({ ...x, mot: mot[x.statut] }));
+
+  // --- Deal-breakers de l'étape, recommandation, demandes cumulées -------------------------------
+  const db = [];
+  if (copro.litiges.statut === 'ko') db.push({ ok: false, gravite: 'dur', libelle: 'Litige ou procédure dans la copropriété', detail: copro.litiges.texte, source: copro.litiges.source });
+  else db.push({ ok: true, libelle: 'Pas de litige dans la copropriété' });
+  if (copro.travaux.statut === 'ko') db.push({ ok: false, gravite: 'clarifier', libelle: 'Travaux lourds votés ou en discussion', detail: copro.travaux.texte, source: copro.travaux.source, action: 'Répartition et échéance à clarifier avant de poursuivre.' });
+  else if (copro.travaux.statut === 'ok') db.push({ ok: true, libelle: 'Pas de travaux lourds votés' });
+  if (copro.conformite.statut === 'ko') db.push({ ok: false, gravite: 'dur', libelle: 'Activité non conforme au règlement de copropriété', detail: copro.conformite.texte, source: copro.conformite.source });
+  else if (copro.conformite.statut === 'ok') db.push({ ok: true, libelle: 'Activité conforme au règlement de copropriété' });
+  if (pieceMultiLots) db.push({ ok: false, gravite: 'clarifier', libelle: 'Périmètre du deal incertain', detail: surfacesBloc.lecture, action: 'Le bail ne couvre pas l\'ensemble : à clarifier.' });
+  const diagAction = etatBien.filter((x) => x.statut === 'action');
+  if (diagAction.length) db.push({ ok: false, gravite: 'clarifier', libelle: `Diagnostics avec action requise : ${diagAction.map((x) => x.sujet).join(', ')}`, detail: diagAction.map((x) => x.action).join(' · '), source: diagAction[0].source });
+  else if (etatBien.some((x) => x.statut === 'ok')) db.push({ ok: true, libelle: 'Diagnostics sans action requise' });
+  const durs = db.filter((x) => !x.ok && x.gravite === 'dur');
+  const aClarifier = db.filter((x) => !x.ok && x.gravite === 'clarifier');
+  const recommandation = durs.length ? 'passer' : aClarifier.length ? 'complements' : 'continuer';
+  const demandesEtape2 = [
+    ...aClarifier.map((x) => `${x.libelle} : ${x.detail}`),
+    ...(copro.conformite.statut === 'inconnu' ? ['Règlement de copropriété — conformité de l\'activité à confirmer.'] : []),
+    ...(!v('etat_lieux') || negation(v('etat_lieux')) ? ['État des lieux d\'entrée — absent de la data room.'] : []),
+  ];
+  const demandes = [e1.demandes_texte, ...demandesEtape2].filter(Boolean).join('\n');
+
+  return {
+    etape: e1.etape, etapes: e1.etapes, remplissage: m.remplissage,
+    progression: { ...e1.progression, lus_etape: lusEtape2, presents_etape: (brut.documents_espace || []).filter((d) => etape2.categories.includes(d.categorie || 'Autre')).length },
+    lue,
+    copro, etat_bien: etatBien, surfaces: surfacesBloc, marche, synthese,
+    deal_breakers: db, recommandation, demandes_texte: demandes, motif_passer: durs.map((x) => x.libelle).join(' ; ') || null,
+    grilles: grillesParCategorie(m),
   };
 }

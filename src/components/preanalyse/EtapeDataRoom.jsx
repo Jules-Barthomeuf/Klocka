@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { ArrowRight, Check, Loader2, Send, X } from "lucide-react";
 import { DialogMailIntention } from "./DealResultat";
+import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
 // Étape 1 — Bail et locataire. Ce que l'analyste lit en quinze secondes :
 // le bien en dix lignes, la rentabilité réelle, ce qui a bougé depuis le
@@ -110,6 +111,12 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
           </div>
         ) : null}
         <p className="m-0 text-[14px] leading-[1.7] text-[#d6d6db] max-w-[860px]">{r.phrase || "Le loyer n'a pas été trouvé dans le bail : la rentabilité ne peut pas encore être calculée."}</p>
+        {r.simulateur && (r.simulateur.prixBienFAI || r.simulateur.loyerInitialHTHC) ? (
+          <div className="mt-5">
+            <p className="m-0 mb-2 text-[12px] text-[#9298a6]">Hypothèses reprises du bail : {r.hypotheses.join(" ")}</p>
+            <SimulateurDossier key={`${r.simulateur.loyerInitialHTHC}-${r.simulateur.loyerSoumisTVA}-${r.simulateur.taxeFonciereRefacturable}`} parametres={r.simulateur} />
+          </div>
+        ) : null}
       </div>
 
       {/* Bloc 3 — écarts teaser → bail */}

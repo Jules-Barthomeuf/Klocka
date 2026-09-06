@@ -10,6 +10,7 @@ import FicheDossier from "./FicheDossier";
 import { Grille, Tiroir, Livrables, FormulaireColonne } from "./MatriceDossier";
 import { VERDICTS, libelleVerdict, VuesLieu, DialogMailIntention } from "./DealResultat";
 import EtapeDataRoom, { BarreEtapes } from "./EtapeDataRoom";
+import EtapeDataRoom2 from "./EtapeDataRoom2";
 
 // La carte de deal : la data room confrontée au teaser, avec les mots de la
 // carte de pré-analyse. Le verdict d'abord, les écarts, les problèmes en trois
@@ -168,13 +169,19 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
     enabled: !!dealId,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   });
+  const { data: e2 } = useQuery({
+    queryKey: ["etape2", dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape2`),
+    enabled: !!dealId && (e1?.etape || 1) === 2,
+    refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
+  });
   const changerEtape = useMutation({
     mutationFn: (n) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/etape/${n}`, { body: {} }),
-    onSuccess: () => ["etape1", "carte"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] })),
+    onSuccess: () => ["etape1", "etape2", "carte"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] })),
   });
   const { data: m } = useQuery({ queryKey: ["matrice", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/matrice`), enabled: !!dealId && onglet === "grille" });
 
-  const tout = () => ["carte", "matrice", "fiche", "livrables", "etape1"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
+  const tout = () => ["carte", "matrice", "fiche", "livrables", "etape1", "etape2"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
   const remplir = useMutation({
     mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/matrice/remplir`, { body: {} }),
     onSuccess: () => { toast.success("Lecture lancée — la data room est extraite question par question"); tout(); },
@@ -193,14 +200,18 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
 
   if (isLoading || !carte || !e1) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
 
-  // Étape 1 : bail et locataire — l'écran de lecture rapide. Les étapes 2 et 3 gardent la carte complète.
-  if ((e1.etape || 1) === 1) {
+  // Étapes 1 et 2 : les écrans de lecture. L'étape 3 garde la carte complète.
+  const etapeCourante = e1.etape || 1;
+  if (etapeCourante <= 2) {
+    if (etapeCourante === 2 && !e2) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
     return (
       <div className="bg-[#000000] border border-[#1f2228] rounded-md overflow-hidden">
-        <BarreEtapes e={e1} apercu={apercu} onEtape={(n) => changerEtape.mutate(n)} />
+        <BarreEtapes e={etapeCourante === 2 ? e2 : e1} apercu={apercu} onEtape={(n) => changerEtape.mutate(n)} />
         <div className={preuve ? "lg:flex lg:gap-6 lg:items-start" : ""}>
           <div className="min-w-0 flex-1">
-            <EtapeDataRoom dossier={dossier} e={e1} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />
+            {etapeCourante === 2
+              ? <EtapeDataRoom2 dossier={dossier} e={e2} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />
+              : <EtapeDataRoom dossier={dossier} e={e1} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />}
             <div className="border-t border-[#1f2228]">
               <button onClick={() => setDetailOuvert((o) => !o)} className="w-full px-5 py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">
                 <span>Documents du dossier — importer, classer, vérifier la couverture</span>

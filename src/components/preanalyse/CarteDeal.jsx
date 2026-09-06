@@ -212,12 +212,10 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
             {etapeCourante === 2
               ? <EtapeDataRoom2 dossier={dossier} e={e2} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />
               : <EtapeDataRoom dossier={dossier} e={e1} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />}
-            <div className="border-t border-[#1f2228]">
-              <button onClick={() => setDetailOuvert((o) => !o)} className="w-full px-5 py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">
-                <span>Documents du dossier — importer, classer, vérifier la couverture</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${detailOuvert ? "rotate-180" : ""}`} />
-              </button>
-              {detailOuvert && <div className="px-5 pb-5"><DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={() => { onRefresh?.(); tout(); queryClient.invalidateQueries({ queryKey: ["etape1", dealId] }); }} apercu={apercu} proposerDrive /></div>}
+            {/* Les documents restent toujours visibles : c'est là qu'on importe et qu'on classe. */}
+            <div className="border-t border-[#1f2228] px-5 py-5">
+              <p className="m-0 mb-3 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Documents du dossier</p>
+              <DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={() => { onRefresh?.(); tout(); queryClient.invalidateQueries({ queryKey: ["etape1", dealId] }); }} apercu={apercu} proposerDrive />
             </div>
           </div>
           {preuve && <div className="px-5 pb-5 lg:pt-5 lg:pr-5"><Tiroir cellule={preuve.cellule} ligne={preuve.ligne} onFermer={() => setPreuve(null)} /></div>}

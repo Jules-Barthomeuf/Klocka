@@ -4,7 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { nomOnglet } from "./AnalyseDocuments";
 import { toast } from "sonner";
-import { Mic, Square, ArrowRight, Loader2, X } from "lucide-react";
+import { Mic, Square, Loader2, X, Plus, PanelRight } from "lucide-react";
+import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 
 // Le chat du dossier : une grande zone de saisie, trois modes en pastilles,
 // puis la liste des requêtes lancées — on y revient d'un clic.
@@ -160,117 +161,55 @@ export default function ChatDossier({
 
       {/* Zone de saisie */}
       <div className="max-w-[880px] mx-auto">
-        <div className="bg-[#0f1114] border border-[#22262d] rounded-[18px] px-[22px] pt-5 pb-4 shadow-[0_12px_40px_rgba(0,0,0,.35)] focus-within:border-[#3a3f4a] transition-colors">
-          <p className="m-0 mb-2.5 text-[12px] font-semibold tracking-[.08em] uppercase text-[#8f959e]">
-            {modeMail ? "Écrire à l'agent" : modePreanalyse ? "Analyser la fiche" : "Demander au dossier"}
-          </p>
-          <textarea
-            rows={2}
-            value={texte}
-            onChange={(e) => setTexte(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer) { e.preventDefault(); lancer(); } }}
-            placeholder={placeholder}
-            disabled={apercu || !dossier}
-            className="w-full bg-transparent border-0 outline-none resize-none text-[15px] text-[#f2f3f5] placeholder:text-[#6c737c] disabled:opacity-50"
-          />
-          <div className="flex items-center justify-between gap-4 mt-3.5 pt-3.5 border-t border-[#22262d]">
-            <div className="flex flex-wrap items-center gap-2 min-w-0">
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
-          {modePreanalyse ? (
+        <BoiteSaisie
+          valeur={texte}
+          onChange={setTexte}
+          placeholder={placeholder}
+          onEnvoyer={lancer}
+          peutEnvoyer={peutEnvoyer}
+          enCours={enCours}
+          disabled={apercu || !dossier}
+          libelle={modeMail ? "Rédiger le mail" : modePreanalyse ? "Lancer l'analyse" : "Envoyer"}
+          gauche={
             <>
-              <button
-                onClick={() => fichierRef.current?.click()}
-                disabled={apercu || analyseEnCours}
-                className="px-3.5 py-1.5 rounded-full text-[13px] bg-[#1f2228] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50"
-              >
-                Importer un fichier
-              </button>
-              <input
-                ref={fichierRef}
-                type="file"
-                accept=".pdf,.doc,.docx,.txt,.eml,.png,.jpg,.jpeg"
-                className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onAnalyserFichier?.(f); }}
-              />
-              <span className="px-1 py-2 text-[12.5px] text-[#6a7180]">
-                ou collez l'email dans le chat pour lancer l'analyse
-              </span>
+              {modePreanalyse ? (
+                <>
+                  <BoutonBarre onClick={() => fichierRef.current?.click()} disabled={apercu || analyseEnCours} title="Importer un fichier (PDF, Word, image, mail)"><Plus className="w-4 h-4" /></BoutonBarre>
+                  <input
+                    ref={fichierRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt,.eml,.png,.jpg,.jpeg"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onAnalyserFichier?.(f); }}
+                  />
+                </>
+              ) : modeMail ? (
+                gabarits.map((g) => (
+                  <button key={g.label} onClick={() => setTexte(g.prompt(dossier))} disabled={apercu} className="px-3 py-1 rounded-full text-[12.5px] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50">{g.label}</button>
+                ))
+              ) : (
+                <>
+                  {MODES.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => { if (m.id === "analyse" && nbCoches && onExtraire) return onExtraire(); setMode(m.id); }}
+                      disabled={!!conversation || (m.id === "analyse" && extractionEnCours)}
+                      title={m.id === "analyse" && nbCoches ? `Extraire ${nbCoches} document${nbCoches > 1 ? "s" : ""}` : conversation ? "Le mode est fixé par la requête ouverte" : undefined}
+                      className={`relative text-[12.5px] py-1 px-0.5 mr-2 transition-colors disabled:opacity-50 after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${mode === m.id ? "text-[#f2f3f5] font-medium after:scale-x-100" : "text-[#8f959e] hover:text-[#c6ccd3]"}`}
+                    >
+                      {m.id === "analyse" && extractionEnCours ? <span className="inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Extraction…</span> : m.label}
+                    </button>
+                  ))}
+                  <BoutonBarre onClick={() => onToutCocher?.()} disabled={!documents.length} actif={nbCoches > 0} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"}><PanelRight className="w-4 h-4" /></BoutonBarre>
+                </>
+              )}
+              {dicteeOk && (
+                <BoutonBarre onClick={ecoute ? arreter : demarrer} disabled={apercu || !dossier} alerte={ecoute} title={ecoute ? "Arrêter" : "Dicter"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
+              )}
             </>
-          ) : modeMail
-            ? gabarits.map((g) => (
-                <button
-                  key={g.label}
-                  onClick={() => setTexte(g.prompt(dossier))}
-                  disabled={apercu}
-                  className="px-3.5 py-1.5 rounded-full text-[13px] bg-[#1f2228] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50"
-                >
-                  {g.label}
-                </button>
-              ))
-            : MODES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => {
-                  // « Analyse » sur des documents cochés part sans prompt :
-                  // l'extraction est une action, pas une question.
-                  if (m.id === "analyse" && nbCoches && onExtraire) return onExtraire();
-                  setMode(m.id);
-                }}
-                disabled={!!conversation || (m.id === "analyse" && extractionEnCours)}
-                title={
-                  m.id === "analyse" && nbCoches
-                    ? `Extraire ${nbCoches} document${nbCoches > 1 ? "s" : ""} — sans question à écrire`
-                    : conversation ? "Le mode est fixé par la requête ouverte" : undefined
-                }
-                className={`relative text-[13px] py-1 px-0.5 mr-3 rounded-none transition-colors disabled:opacity-50
-                  after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300
-                  ${mode === m.id ? "text-[#f2f3f5] font-medium after:scale-x-100" : "text-[#8f959e] hover:text-[#c6ccd3]"}`}
-              >
-                {m.id === "analyse" && extractionEnCours ? (
-                  <span className="inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Extraction…</span>
-                ) : (
-                  m.label
-                )}
-              </button>
-            ))}
-        </div>
+          }
+        />
       </div>
-            <button
-              onClick={() => onToutCocher?.()}
-              hidden={modeMail || modePreanalyse}
-              disabled={!documents.length}
-              title={documents.length ? "Choisir les documents interrogés" : "Aucun document importé"}
-              className="text-[12.5px] py-1 text-[#8f959e] hover:text-[#f2f3f5] underline decoration-dotted underline-offset-4 transition-colors disabled:opacity-40"
-            >
-              Sources : {nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : documents.length ? "aucune" : "générales"}
-            </button>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0 self-center">
-            {dicteeOk && (
-              <button
-                onClick={ecoute ? arreter : demarrer}
-                disabled={apercu || !dossier}
-                aria-label={ecoute ? "Arrêter" : "Dicter"}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30 ${
-                  ecoute
-                    ? "bg-[#e8746a] text-[#000000] shadow-[0_0_0_8px_rgba(232,116,106,.18)] animate-pulse"
-                    : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"
-                }`}
-              >
-                {ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
-            )}
-            <button
-              onClick={lancer}
-              disabled={!peutEnvoyer}
-              className="w-10 h-10 rounded-full bg-[#f2f3f5] text-[#000000] flex items-center justify-center hover:brightness-95 disabled:opacity-30 transition-all flex-shrink-0"
-              title="Envoyer"
-            >
-              {enCours ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-            </button>
-            </div>
-          </div>
-        </div>
 
       {/* Requêtes récentes */}
       {afficherRequetes && !modeMail && !modePreanalyse && requetes.length > 0 && (

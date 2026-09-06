@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { toast } from "sonner";
-import { ArrowRight, Check, Copy, Loader2, Mic, Paperclip, Pencil, Send, Square, X } from "lucide-react";
+import { ArrowRight, Check, Copy, Loader2, Mic, Paperclip, Pencil, Plus, Send, Square, X } from "lucide-react";
+import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { ListeRelances } from "./RelancesEnAttente";
 
 // Le chat du tableau de bord : une seule zone, on y met ce qu'on veut, il
@@ -557,70 +558,38 @@ export default function ChatDashboard() {
         </div>
       )}
 
-      <div
-        onDragOver={(e) => { e.preventDefault(); setGlisse(true); }}
-        onDragLeave={() => setGlisse(false)}
-        onDrop={deposer}
-        className={`sticky bottom-4 z-20 bg-[#0f1114] border rounded-xl px-5 pt-4 pb-3 transition-colors shadow-[0_18px_50px_rgba(0,0,0,.55)] ${glisse ? "border-[#96c0b8]" : "border-[#22262d] focus-within:border-[#96c0b8]/60"}`}
-      >
-        <textarea
-          value={texte}
-          onChange={(e) => setTexte(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              lancer();
-            }
-          }}
-          rows={ecoute ? 3 : texte.length > 160 ? 5 : 2}
-          placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : "Une note d'appel, le mail d'un agent, un compte rendu de découverte, une question — je fais le tri."}
-          className="w-full bg-transparent border-0 outline-none resize-none text-[15px] leading-[1.6] text-[#f2f3f5] placeholder:text-[#6a7180]"
-        />
-        {fichier && (
-          <p className="m-0 mb-2 inline-flex items-center gap-2 text-[12.5px] text-[#c9cdd6]">
-            <Paperclip className="w-3.5 h-3.5 text-[#96c0b8]" /> {fichier.name}
-            <button onClick={() => setFichier(null)} className="text-[#6a7180] hover:text-[#e8746a]" aria-label="Retirer"><X className="w-3.5 h-3.5" /></button>
-          </p>
-        )}
-        {erreur && <p className="m-0 mb-2 text-[12px] text-[#e8746a]">{erreur}</p>}
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <p className="m-0 text-[11.5px] text-[#6a7180]">
-            Entrée pour envoyer, Maj+Entrée pour une nouvelle ligne. Un fichier déposé devient un dossier.
-          </p>
-          <div className="flex items-center gap-2">
-            <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
-            <button
-              onClick={() => fichierRef.current?.click()}
-              className="w-9 h-9 rounded-full flex items-center justify-center border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8] transition-colors"
-              aria-label="Déposer une fiche"
-              title="Déposer une fiche (PDF, Word, image, mail)"
-            >
-              <Paperclip className="w-4 h-4" />
-            </button>
-            {supporte && (
-              <button
-                onClick={ecoute ? arreter : demarrer}
-                disabled={enCours}
-                aria-label={ecoute ? "Arrêter" : "Dicter"}
-                title="Dicter — une note d'appel part quand vous vous taisez"
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-40 ${
-                  ecoute ? "bg-[#e8746a] text-[#000000] shadow-[0_0_0_8px_rgba(232,116,106,.18)] animate-pulse" : "border border-[#2c3139] text-[#c9cdd6] hover:border-[#96c0b8] hover:text-[#96c0b8]"
-                }`}
-              >
-                {ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
+      <BoiteSaisie
+        conteneur={{ onDragOver: (e) => { e.preventDefault(); setGlisse(true); }, onDragLeave: () => setGlisse(false), onDrop: deposer, className: `sticky bottom-4 z-20 ${glisse ? "!border-[#96c0b8]" : ""}` }}
+        valeur={texte}
+        onChange={setTexte}
+        rows={ecoute ? 3 : texte.length > 160 ? 5 : 3}
+        placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : "Une note d'appel, le mail d'un agent, un compte rendu de découverte, une question — je fais le tri."}
+        onEnvoyer={() => lancer()}
+        peutEnvoyer={!!texte.trim() || !!fichier}
+        enCours={enCours}
+        libelle="Envoyer"
+        sous={
+          <>
+            {fichier && (
+              <p className="m-0 mb-2 inline-flex items-center gap-2 text-[12.5px] text-[#c9cdd6]">
+                <Paperclip className="w-3.5 h-3.5 text-[#96c0b8]" /> {fichier.name}
+                <button onClick={() => setFichier(null)} className="text-[#6a7180] hover:text-[#e8746a]" aria-label="Retirer"><X className="w-3.5 h-3.5" /></button>
+              </p>
             )}
-            <button
-              onClick={() => lancer()}
-              disabled={(!texte.trim() && !fichier) || enCours}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#96c0b8] text-[#000000] text-[12.5px] font-medium hover:bg-[#abd0c8] disabled:opacity-40 transition-colors"
-            >
-              {enCours ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
-              Envoyer
-            </button>
-          </div>
-        </div>
-      </div>
+            {erreur && <p className="m-0 mb-2 text-[12px] text-[#e8746a]">{erreur}</p>}
+          </>
+        }
+        gauche={
+          <>
+            <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
+            <BoutonBarre onClick={() => fichierRef.current?.click()} title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"><Plus className="w-4 h-4" /></BoutonBarre>
+            {supporte && (
+              <BoutonBarre onClick={ecoute ? arreter : demarrer} disabled={enCours} alerte={ecoute} title="Dicter — une note d'appel part quand vous vous taisez">{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
+            )}
+            <span className="text-[11.5px] text-[#4d545d] ml-1 max-md:hidden">Entrée pour envoyer · Maj+Entrée pour une nouvelle ligne</span>
+          </>
+        }
+      />
     </div>
   );
 }

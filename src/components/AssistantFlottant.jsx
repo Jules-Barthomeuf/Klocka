@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -376,82 +377,25 @@ export default function AssistantFlottant() {
         </div>
       )}
 
-      {/* La saisie : une pilule, ouverte ou non. */}
-      <div
-        onClick={() => { setOuvert(true); champRef.current?.focus(); }}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 11,
-          padding: "12px 12px 12px 18px",
-          background: FOND,
-          border: `1px solid ${OR}`,
-          borderRadius: 26,
-          boxShadow: ouvert ? "0 20px 50px rgba(0,0,0,.7)" : "none",
-          cursor: "text",
-        }}
-      >
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: OR, flex: "none" }} />
-
-        <input
-          ref={champRef}
-          value={texte}
-          onChange={(e) => setTexte(e.target.value)}
-          onFocus={() => setOuvert(true)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); lancer(); } }}
+      {/* La saisie : la même boîte que partout, en compact. */}
+      <div onClick={() => { setOuvert(true); champRef.current?.focus(); }} style={{ boxShadow: ouvert ? "0 20px 50px rgba(0,0,0,.7)" : "none", borderRadius: 20 }}>
+        <BoiteSaisie
+          compact
+          rows={ouvert ? 2 : 1}
+          valeur={texte}
+          onChange={setTexte}
           placeholder="Écrivez à l'assistant…"
-          style={{
-            flex: 1, minWidth: 0, background: "transparent", border: 0, outline: "none",
-            color: TEXTE, fontFamily: SANS, fontSize: 14,
-          }}
+          onEnvoyer={lancer}
+          peutEnvoyer={actif}
+          libelle="Envoyer"
+          gauche={
+            dictee.supporte ? (
+              <BoutonBarre onClick={(e) => { e.stopPropagation(); dictee.ecoute ? dictee.arreter() : dictee.demarrer(); }} alerte={dictee.ecoute} title={dictee.ecoute ? "Arrêter" : "Dicter"}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></svg>
+              </BoutonBarre>
+            ) : null
+          }
         />
-
-        {dictee.supporte && (
-          <button
-            onClick={(e) => { e.stopPropagation(); dictee.ecoute ? dictee.arreter() : dictee.demarrer(); }}
-            aria-label={dictee.ecoute ? "Arrêter la dictée" : "Dicter"}
-            title={dictee.ecoute ? "Arrêter" : "Dicter"}
-            style={{
-              width: 28, height: 28, borderRadius: "50%", flex: "none",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: dictee.ecoute ? "#e8746a" : "transparent",
-              color: dictee.ecoute ? FOND : META,
-              border: dictee.ecoute ? 0 : `1px solid ${FILET}`,
-              cursor: "pointer", transition: "all .15s",
-              animation: dictee.ecoute ? "assistant-dot 1.2s infinite" : "none",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" x2="12" y1="19" y2="22" />
-            </svg>
-          </button>
-        )}
-
-        <button
-          onClick={(e) => { e.stopPropagation(); lancer(); }}
-          aria-label="Envoyer"
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
-            flex: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 13,
-            cursor: actif ? "pointer" : "default",
-            // Plein or une fois ouvert, contour sombre au repos.
-            background: ouvert ? OR : "#1a1c1b",
-            color: ouvert ? FOND : "#cfcabb",
-            border: ouvert ? 0 : `1px solid ${FILET}`,
-            opacity: ouvert && !actif ? 0.55 : 1,
-            transition: "all .15s",
-          }}
-        >
-          ↑
-        </button>
       </div>
     </div>
   );

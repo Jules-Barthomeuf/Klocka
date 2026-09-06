@@ -1933,6 +1933,21 @@ app.get('/api/preanalyse/dossiers/:dealId/preanalyse-documents', wrap(async (req
   ok(res, etatPreanalyseDocuments(req.params.dealId) || { etat: null });
 }));
 
+// L'analyse en trois étapes de lecture : l'étape 1 (bail et locataire) et le
+// passage à l'étape suivante, qui lit les pièces restantes.
+app.get('/api/preanalyse/dossiers/:dealId/etape1', wrap(async (req, res) => {
+  const { lireEtape1 } = await import('./deal/etapes-analyse.js');
+  const e = lireEtape1(req.params.dealId);
+  if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, e);
+}));
+app.post('/api/preanalyse/dossiers/:dealId/etape/:n', wrap(async (req, res) => {
+  const { lancerEtape } = await import('./deal/etapes-analyse.js');
+  const r = lancerEtape(req.params.dealId, Number(req.params.n), { user: currentUser(req), uploadDir: UPLOAD_DIR });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
 app.get('/api/preanalyse/dossiers/:dealId/carte', wrap(async (req, res) => {
   const { lireCarteDeal } = await import('./deal/carte-deal.js');
   const c = lireCarteDeal(req.params.dealId);

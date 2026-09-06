@@ -9,6 +9,7 @@ import DocumentsDossier from "./DocumentsDossier";
 import FicheDossier from "./FicheDossier";
 import { Grille, Tiroir, Livrables, FormulaireColonne } from "./MatriceDossier";
 import { VERDICTS, libelleVerdict, VuesLieu, DialogMailIntention } from "./DealResultat";
+import EtapeDataRoom, { BarreEtapes } from "./EtapeDataRoom";
 
 // La carte de deal : la data room confrontée au teaser, avec les mots de la
 // carte de pré-analyse. Le verdict d'abord, les écarts, les problèmes en trois
@@ -161,9 +162,19 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
     enabled: !!dealId,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   });
+  const { data: e1 } = useQuery({
+    queryKey: ["etape1", dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape1`),
+    enabled: !!dealId,
+    refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
+  });
+  const changerEtape = useMutation({
+    mutationFn: (n) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/etape/${n}`, { body: {} }),
+    onSuccess: () => ["etape1", "carte"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] })),
+  });
   const { data: m } = useQuery({ queryKey: ["matrice", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/matrice`), enabled: !!dealId && onglet === "grille" });
 
-  const tout = () => ["carte", "matrice", "fiche", "livrables"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
+  const tout = () => ["carte", "matrice", "fiche", "livrables", "etape1"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
   const remplir = useMutation({
     mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/matrice/remplir`, { body: {} }),
     onSuccess: () => { toast.success("Lecture lancée — la data room est extraite question par question"); tout(); },
@@ -180,13 +191,36 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
   const v = VERDICTS[carte?.verdict] || {};
   const ouvrirPreuve = (p) => setPreuve({ ligne: { document_id: p.document_id, document_nom: p.document_nom || p.source, document_url: p.document_url }, cellule: { page: p.page, citation: p.citation } });
 
-  if (isLoading || !carte) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
+  if (isLoading || !carte || !e1) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
+
+  // Étape 1 : bail et locataire — l'écran de lecture rapide. Les étapes 2 et 3 gardent la carte complète.
+  if ((e1.etape || 1) === 1) {
+    return (
+      <div className="bg-[#000000] border border-[#1f2228] rounded-md overflow-hidden">
+        <BarreEtapes e={e1} apercu={apercu} onEtape={(n) => changerEtape.mutate(n)} />
+        <div className={preuve ? "lg:flex lg:gap-6 lg:items-start" : ""}>
+          <div className="min-w-0 flex-1">
+            <EtapeDataRoom dossier={dossier} e={e1} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />
+            <div className="border-t border-[#1f2228]">
+              <button onClick={() => setDetailOuvert((o) => !o)} className="w-full px-5 py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">
+                <span>Documents du dossier — importer, classer, vérifier la couverture</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${detailOuvert ? "rotate-180" : ""}`} />
+              </button>
+              {detailOuvert && <div className="px-5 pb-5"><DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={() => { onRefresh?.(); tout(); queryClient.invalidateQueries({ queryKey: ["etape1", dealId] }); }} apercu={apercu} proposerDrive /></div>}
+            </div>
+          </div>
+          {preuve && <div className="px-5 pb-5 lg:pt-5 lg:pr-5"><Tiroir cellule={preuve.cellule} ligne={preuve.ligne} onFermer={() => setPreuve(null)} /></div>}
+        </div>
+      </div>
+    );
+  }
 
   const parametresSim = source === "data_room" ? carte.simulateur.data_room || carte.simulateur.teaser : carte.simulateur.teaser;
   const ONGLETS = [["fiche", "Fiche du bien"], ["documents", `Documents · ${nbDocs}`], ["grille", `Grille · ${carte.nb_questions} questions`], ["livrables", "Livrables"], ...(carte.lot ? [["lieu", "Carte et commune"]] : [])];
 
   return (
     <div className={`bg-[#000000] border rounded-md overflow-hidden ${v.bord || "border-[#1f2228]"}`}>
+      <BarreEtapes e={e1} apercu={apercu} onEtape={(n) => changerEtape.mutate(n)} />
       {/* En-tête : le verdict */}
       <div className="p-5 border-b border-[#1f2228]">
         <div className="flex flex-wrap items-start justify-between gap-4">

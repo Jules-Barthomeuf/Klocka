@@ -308,13 +308,49 @@ export function statutColonne(colonne, cellules, contexte = {}) {
   }
 }
 
+// La date d'une pièce : la prise d'effet pour un bail, sinon une date dans le
+// nom du fichier (« 16 mars 26 », « 2026_… », « 12-03-2025 »), sinon rien.
+const MOIS_NOM = { janvier: 1, janv: 1, fevrier: 2, février: 2, fev: 2, fév: 2, mars: 3, avril: 4, avr: 4, mai: 5, juin: 6, juillet: 7, juil: 7, aout: 8, août: 8, septembre: 9, sept: 9, octobre: 10, oct: 10, novembre: 11, nov: 11, decembre: 12, décembre: 12, dec: 12, déc: 12 };
+export function dateDepuisNom(nom) {
+  const t = String(nom || '').replace(/[_]+/g, ' ');
+  let m = t.match(/(\d{1,2})\s*(?:er)?\s+([a-zéûôA-ZÉÛÔ]{3,9})\.?\s+(\d{4}|\d{2})\b/);
+  if (m && MOIS_NOM[m[2].toLowerCase()]) { const an = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]); return `${an}-${String(MOIS_NOM[m[2].toLowerCase()]).padStart(2, '0')}-${String(Number(m[1])).padStart(2, '0')}`; }
+  m = t.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
+  if (m) return `${m[3]}-${String(Number(m[2])).padStart(2, '0')}-${String(Number(m[1])).padStart(2, '0')}`;
+  m = t.match(/\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
+  if (m) return `${m[1]}-${String(Number(m[2])).padStart(2, '0')}-${String(Number(m[3])).padStart(2, '0')}`;
+  m = t.match(/\b(20\d{2})\b/);
+  if (m) return `${m[1]}-01-01`;
+  return null;
+}
+function dateDocument(l) {
+  if (/bail/i.test(l.categorie || '')) {
+    const ds = dates(l.cellules?.dates_bail?.reponse || '').map((d) => d.iso).sort();
+    if (ds.length) return ds[0];
+  }
+  return dateDepuisNom(l.document_nom);
+}
+// Plusieurs baux : le plus récent fait foi, les précédents sont périmés (ils
+// restent lisibles dans la grille, mais ne comptent plus dans la synthèse).
+function daterEtPerimer(lignes) {
+  const datees = lignes.map((l) => ({ ...l, date_document: dateDocument(l), perime: false }));
+  const baux = datees.filter((l) => /^bail/i.test(l.categorie || ''));
+  if (baux.length > 1) {
+    const dates_ = baux.map((b) => b.date_document).filter(Boolean).sort();
+    const plusRecente = dates_[dates_.length - 1];
+    if (plusRecente) for (const b of baux) if (b.date_document && b.date_document < plusRecente) b.perime = true;
+  }
+  return datees;
+}
+
 /** La matrice lue : colonnes, lignes, et la ligne de synthèse calculée. */
 export function lireMatrice(dealId) {
   const brut = brutDe(dealId);
   if (!brut) return null;
   const g = gabarit();
   const colonnes = [...g.colonnes, ...(brut.matrice?.colonnes_locales || [])];
-  const lignes = brut.matrice?.lignes || [];
+  const lignes = daterEtPerimer(brut.matrice?.lignes || []);
+  const vivantes = lignes.filter((l) => !l.perime);
   const lot = brut.lots?.[0]?.lot || {};
   const loyerAnnonce = val(lot.loyer_annuel_ht_hc);
   const prix = val(lot.prix_fai);
@@ -332,7 +368,7 @@ export function lireMatrice(dealId) {
   };
   const synthese = {};
   for (const c of colonnes) {
-    const cellules = lignes.map((l) => ({ ...(l.cellules?.[c.id] || {}), document_nom: l.document_nom, document_id: l.document_id, categorie: l.categorie }));
+    const cellules = vivantes.map((l) => ({ ...(l.cellules?.[c.id] || {}), document_nom: l.document_nom, document_id: l.document_id, categorie: l.categorie }));
     synthese[c.id] = { ...statutColonne(c, cellules, contexte), revue: brut.matrice?.revue?.[c.id] || null };
   }
   const anomalies = colonnes
@@ -479,13 +515,13 @@ export function lireFiche(dealId) {
 
   for (const c of m.colonnes) {
     const preuves = m.lignes
-      .filter((l) => l.cellules?.[c.id]?.reponse)
+      .filter((l) => !l.perime && l.cellules?.[c.id]?.reponse)
       .map((l) => ({
         document_id: l.document_id, document_nom: l.document_nom, document_url: l.document_url, categorie: l.categorie || 'Autre',
         reponse: l.cellules[c.id].reponse, page: l.cellules[c.id].page || null, citation: l.cellules[c.id].citation || null,
-        autorite: rangAutorite(l.categorie),
+        autorite: rangAutorite(l.categorie), date_document: l.date_document || null,
       }))
-      .sort((a, b) => a.autorite - b.autorite);
+      .sort((a, b) => (a.autorite - b.autorite) || String(b.date_document || '').localeCompare(String(a.date_document || '')));
     const f = forcages[c.id] || null;
     let retenue = null;
     let source = null;

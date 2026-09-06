@@ -120,7 +120,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
               <tr key={l.document_id} className="hover:bg-[#f2f3f5]/[0.02]">
                 <td className="sticky left-0 z-10 bg-[#0f0f11] px-4 py-3 border-b border-r border-[#1e1e22] align-top">
                   <span className="block text-[13px] text-[#f2f3f5] truncate max-w-[220px]" title={l.document_nom}>{l.document_nom}</span>
-                  <span className="block text-[11px] text-[#5f5f66]">{l.categorie || "Autre"}{l.erreur ? " · lecture en échec" : ""}</span>
+                  <span className="block text-[11px] text-[#5f5f66]">{l.categorie || "Autre"}{l.date_document ? ` · ${l.date_document.split("-").reverse().join("/")}` : ""}{l.erreur ? " · lecture en échec" : ""}{l.perime ? <span className="text-[#e8b04c]"> · bail antérieur, remplacé</span> : null}</span>
                 </td>
                 {colonnes.map((c) => {
                   const cel = l.cellules?.[c.id];

@@ -264,8 +264,8 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
       <span className="flex items-center gap-3">
         {relanceEnCours ? <Mono className="text-[#9298a6]">{relance.phase === "preanalyse" ? "pré-analyse…" : relance.phase?.startsWith("etape") ? `relecture ${relance.fait ?? 0}/${relance.total ?? "…"}` : "en cours…"}</Mono> : (
           <>
-            {etapeCourante <= 2 && e1.lue && <button onClick={() => !apercu && relancerAnalyse.mutate()} disabled={apercu} className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5]">Relancer l'analyse</button>}
-            {dossier.lots?.length > 0 && <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse depuis le teaser, puis relire la data room ?") && relancerPre.mutate()} disabled={apercu} className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5]">Relancer la pré-analyse</button>}
+            <button onClick={() => !apercu && window.confirm(`Relire toutes les pièces de l'étape ${Math.min(etapeCourante, 2)} ?`) && relancerAnalyse.mutate()} disabled={apercu || !nbDocs || enCours} title={nbDocs ? "Relit toutes les pièces de l'étape, même celles déjà lues" : "Importez des documents d'abord"} className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] disabled:opacity-40">Relancer l'analyse</button>
+            <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse depuis le teaser (ou les pièces), puis relire la data room ?") && relancerPre.mutate()} disabled={apercu || enCours} title="Rejoue la pré-analyse, puis l'analyse jusqu'à l'étape atteinte" className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] disabled:opacity-40">Relancer la pré-analyse</button>
           </>
         )}
       </span>

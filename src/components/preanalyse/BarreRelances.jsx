@@ -6,7 +6,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 
 // Relancer la pré-analyse (puis l'analyse) ou relire toutes les pièces. En
 // dehors de la carte : entre les onglets et la carte, et sous la carte.
-export default function BarreRelances({ dossier, onRefresh, apercu = false, bas = false }) {
+export default function BarreRelances({ dossier, onRefresh, apercu = false, bas = false, nue = false }) {
   const dealId = dossier?.deal_id;
   const queryClient = useQueryClient();
   const nbDocs = (dossier?.documents_espace || []).length;
@@ -40,7 +40,7 @@ export default function BarreRelances({ dossier, onRefresh, apercu = false, bas 
   const occupe = preEnCours || lectureEnCours;
 
   return (
-    <div className={`flex flex-wrap items-center gap-3 ${bas ? "mt-5" : "mb-5"}`}>
+    <div className={`flex flex-wrap items-center gap-3 ${nue ? "" : bas ? "mt-5" : "mb-5"}`}>
       <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse depuis le teaser (ou les pièces), puis relire la data room ?") && relancerPre.mutate()} disabled={apercu || occupe || relancerPre.isPending} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#f2f3f5] text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
         <RefreshCw className="w-3.5 h-3.5" /> Relancer la pré-analyse
       </button>

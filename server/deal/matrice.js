@@ -39,11 +39,15 @@ export const GABARIT_MURS = {
     { id: 'destination', bloc: 'Bien', libelle: 'Destination', question: "Activité autorisée ou exercée dans le local (destination du bail, activités permises ou interdites par le règlement)", regle: 'permis_par', criticite: 'haute' },
     { id: 'diagnostics', bloc: 'Bien', libelle: 'Diagnostics', question: 'Diagnostics présents (DPE, amiante, ERP, termites, plomb, électricité) avec leur date et leur conclusion', regle: 'presence', criticite: 'moyenne' },
     // Bail
-    { id: 'parties', bloc: 'Bail', libelle: 'Parties', question: 'Bailleur et preneur (dénomination, forme, représentant)', regle: 'identique', criticite: 'moyenne' },
+    { id: 'type_bail', bloc: 'Bail', libelle: 'Type de bail', question: 'Type de bail : commercial 3-6-9, dérogatoire ou précaire, professionnel ; tacite reconduction prévue ou non', regle: 'information', criticite: 'haute' },
+    { id: 'parties', bloc: 'Bail', libelle: 'Parties', question: 'Bailleur et preneur (dénomination, forme, représentant) — le preneur est-il une société ou une personne physique ?', regle: 'identique', criticite: 'moyenne' },
     { id: 'dates_bail', bloc: 'Bail', libelle: 'Dates du bail', question: 'Date de prise d\'effet et date de fin du bail en cours (jour/mois/année)', regle: 'identique', criticite: 'haute' },
     { id: 'duree', bloc: 'Bail', libelle: 'Durée', question: 'Durée du bail (années) et périodes triennales', regle: 'identique', criticite: 'moyenne' },
     { id: 'resiliation', bloc: 'Bail', libelle: 'Résiliation triennale', question: 'Faculté de résiliation triennale du preneur : maintenue, écartée, ou aménagée', regle: 'information', criticite: 'moyenne' },
     { id: 'loyer', bloc: 'Bail', libelle: 'Loyer HT/an', question: 'Loyer annuel hors taxes hors charges, et sa périodicité de paiement (mensuel/trimestriel)', regle: 'loyer', criticite: 'haute' },
+    { id: 'conditions_exceptionnelles', bloc: 'Bail', libelle: 'Conditions exceptionnelles', question: 'Franchise de loyer, loyer par paliers ou progressif, remise : montants, périodes et dates de fin', regle: 'information', criticite: 'haute' },
+    { id: 'mode_reglement', bloc: 'Bail', libelle: 'Mode de règlement', question: "Périodicité et mode de règlement du loyer : mensuel ou trimestriel, d'avance ou à terme échu, virement ou prélèvement", regle: 'information', criticite: 'moyenne' },
+    { id: 'tva_loyer', bloc: 'Bail', libelle: 'TVA sur le loyer', question: 'Le loyer est-il soumis à la TVA (option du bailleur, mention HT + TVA) ou exonéré ?', regle: 'information', criticite: 'haute' },
     { id: 'indexation', bloc: 'Bail', libelle: 'Indexation', question: "Indice d'indexation du loyer (ILC, ILAT, ICC), indice de base et date de révision", regle: 'information', criticite: 'moyenne' },
     { id: 'charges', bloc: 'Bail', libelle: 'Charges refacturées', question: 'Charges, taxes et travaux à la charge du preneur (taxe foncière, TEOM, charges de copropriété, article 606)', regle: 'information', criticite: 'haute' },
     { id: 'depot', bloc: 'Bail', libelle: 'Dépôt de garantie', question: 'Montant du dépôt de garantie et son équivalent en mois de loyer', regle: 'presence', criticite: 'moyenne' },
@@ -82,7 +86,9 @@ export const LIBELLE_STATUT = {
 export function gabarit() {
   const enregistre = Records.filter('TemplateMatrice', { cle: GABARIT_MURS.id })[0];
   if (!enregistre) return { ...GABARIT_MURS, enregistre_id: null };
-  return { ...GABARIT_MURS, ...enregistre.gabarit, enregistre_id: enregistre.id };
+  const codes = new Set(GABARIT_MURS.colonnes.map((c) => c.id));
+  const propres = (enregistre.gabarit?.colonnes || []).filter((c) => !codes.has(c.id));
+  return { ...GABARIT_MURS, ...enregistre.gabarit, colonnes: [...GABARIT_MURS.colonnes, ...propres], enregistre_id: enregistre.id };
 }
 
 /** Une colonne de plus au gabarit, et une version de plus. */

@@ -1993,6 +1993,16 @@ app.post('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
   ok(res, { ok: true });
 }));
 
+app.get('/api/preanalyse/dossiers/:dealId/grille-bail', wrap(async (req, res) => {
+  const { lireGrilleBail } = await import('./deal/grille-bail.js');
+  const g = lireGrilleBail(req.params.dealId);
+  if (!g) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, g);
+}));
+app.post('/api/preanalyse/dossiers/:dealId/grille-bail/completer', wrap(async (req, res) => {
+  const { lireColonnesManquantes } = await import('./deal/grille-bail.js');
+  ok(res, lireColonnesManquantes(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req) }));
+}));
 app.post('/api/preanalyse/dossiers/:dealId/relancer-analyse', wrap(async (req, res) => {
   const { lancerRemplissage } = await import('./deal/matrice.js');
   const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];

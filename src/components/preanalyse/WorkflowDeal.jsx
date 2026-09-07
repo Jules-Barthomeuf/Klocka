@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowRight, Briefcase, Check, Clock, Download, ExternalLink, Eye, Film, FlaskConical, FolderCheck,
-  ChevronLeft, ChevronRight, Loader2, Lock, Mail, Microscope, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload,, RefreshCw } from "lucide-react";
+  ChevronLeft, ChevronRight, Loader2, Lock, Mail, Microscope, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   Bandeau, CarteLot, DialogMailIntention, JournalSuivi,

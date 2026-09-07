@@ -16,7 +16,6 @@ function Source({ s, onPreuve, texte }) {
   return <button onClick={() => onPreuve(s)} className="font-mono text-[10.5px] tracking-[.06em] text-[#6a7180] hover:text-[#f2f3f5] whitespace-nowrap">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 28)}{s.page ? ` p. ${s.page}` : ""}</button>;
 }
 
-const Glyphe = ({ statut }) => <span className={`w-4 flex-none text-[13px] ${statut === "ko" ? "text-[#e8927c]" : statut === "ok" ? "text-[#7fd1a8]" : "text-[#e8b04c]"}`}>{statut === "ko" ? "✕" : statut === "ok" ? "✓" : "!"}</span>;
 
 export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu = false, dialog, setDialog }) {
   const dealId = dossier.deal_id;
@@ -52,7 +51,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
     );
   }
 
-  const { fiche, rentabilite: r, bandeau, anomalies, documents_etape2: d2 } = e;
+  const { fiche, rentabilite: r, bandeau, documents_etape2: d2 } = e;
   const postes = [
     ["Loyer annuel HT", null, r.loyer_bail, fiche.lignes.find((l) => l.id === "loyer")?.source, null],
     r.charges_non_recup ? ["Charges propriétaire", null, r.charges_non_recup, fiche.lignes.find((l) => l.id === "charges")?.source, null] : null,
@@ -131,21 +130,6 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
             })}
           </div>
         ) : <p className="m-0 text-[13px] text-[#9298a6]">Aucun écart significatif avec la pré-analyse.</p>}
-      </Section>
-
-      {/* Anomalies */}
-      <Section id="anomalies" titre="Anomalies" droite={anomalies.length ? `${anomalies.filter((a) => a.statut === "ko").length} ✕ · ${anomalies.filter((a) => a.statut === "a_verifier").length} ! · ${anomalies.filter((a) => a.statut === "ok").length} ✓` : "aucune"}>
-        {anomalies.length ? (
-          <ul className="m-0 p-0 list-none">
-            {anomalies.map((a, i) => (
-              <li key={i} className="flex items-start gap-3 py-3 border-t border-[#15171b] first:border-t-0">
-                <Glyphe statut={a.statut} />
-                <p className="m-0 flex-1 min-w-0 text-[14px] leading-[1.55] text-[#d6d6db]"><span className="font-semibold text-[#f2f3f5]">{a.titre}</span>{a.detail ? <span className="text-[#c9cdd6]"> — {a.detail}</span> : null}{a.action ? <span className="text-[#6a7180]"> {a.action}</span> : null}</p>
-                <Source s={a.source} onPreuve={onPreuve} />
-              </li>
-            ))}
-          </ul>
-        ) : <p className="m-0 text-[13px] text-[#7fd1a8]">Rien à signaler : le bail tient et les chiffres sont vrais.</p>}
       </Section>
 
       {/* Le bien en dix lignes */}

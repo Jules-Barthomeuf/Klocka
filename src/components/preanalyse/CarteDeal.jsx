@@ -247,7 +247,10 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
       </>
     );
     const actions = (
-      <button onClick={() => setNotesOuvertes((o) => !o)} className={`text-[12.5px] px-3 py-1.5 border transition-colors ${notesOuvertes ? "border-[#f2f3f5] text-[#f2f3f5]" : "border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5]"}`}>Notes et suite</button>
+      <span className="flex items-center gap-3">
+        <button onClick={() => setNotesOuvertes((o) => !o)} className={`text-[12.5px] px-3 py-1.5 border transition-colors ${notesOuvertes ? "border-[#f2f3f5] text-[#f2f3f5]" : "border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5]"}`}>Notes et suite</button>
+        {suivante && <button onClick={() => !apercu && avancer()} disabled={apercu || donnees.lue === false} className="text-[12.5px] px-3.5 py-1.5 bg-[#f2f3f5] text-[#0b0c0e] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Étape {suivante.n} · {suivante.titre} →</button>}
+      </span>
     );
     const propsEtape = { dossier, onPreuve: ouvrirPreuve, onRefresh, apercu, dialog: dialogEtape, setDialog: setDialogEtape };
     return (

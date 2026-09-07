@@ -594,7 +594,7 @@ export async function lireEtape4(dealId) {
 
   // La timeline : le journal du dossier, les compléments, les mails — chaque ligne dit qui a agi.
   const evenements = [];
-  for (const s of brut.suivi || []) evenements.push({ date: s.le, libelle: s.detail || s.type, acteur: s.par ? 'analyste' : s.type === 'etape' ? 'systeme' : 'automatique', type: s.type });
+  for (const s of brut.suivi || []) evenements.push({ date: s.le, libelle: s.detail || s.type, acteur: s.type === 'etape' ? 'systeme' : s.par ? 'analyste' : 'automatique', type: s.type });
   for (const d of brut.documents_espace || []) evenements.push({ date: d.ajoute_le, libelle: `Pièce reçue : ${d.nom}`, acteur: 'analyste', type: 'piece' });
   if (brut.matrice?.rempli_le) evenements.push({ date: brut.matrice.rempli_le, libelle: 'Data room lue', acteur: 'automatique', type: 'lecture' });
   if (brut.conclusion?.le) evenements.push({ date: brut.conclusion.le, libelle: `Conclusion : ${brut.conclusion.etat}${brut.conclusion.motif ? ` — ${brut.conclusion.motif}` : ''}`, acteur: 'analyste', type: 'conclusion' });

@@ -94,7 +94,8 @@ export async function relever(uploadDir = null) {
   try {
     for (const compte of comptesLisibles()) {
       try {
-        const r = await releverBoite(compte.email, { max: 25 });
+        const { mesurer } = await import('../llm-couts.js');
+        const { resultat: r } = await mesurer({ operation: 'veille de la boîte', par: compte.email }, () => releverBoite(compte.email, { max: 25 }));
         nouveaux += r?.nouveaux || 0;
         ecartes += r?.ecartes || 0;
       } catch (e) {

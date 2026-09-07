@@ -53,10 +53,9 @@ function GrilleCategorie({ g, onPreuve }) {
   );
 }
 
-export default function EtapeDataRoom2({ dossier, e, onPreuve, onRefresh, apercu = false }) {
+export default function EtapeDataRoom2({ dossier, e, onPreuve, onRefresh, apercu = false, dialog, setDialog }) {
   const dealId = dossier.deal_id;
   const queryClient = useQueryClient();
-  const [dialog, setDialog] = useState(null);
   const [vue, setVue] = useState("blocs");
   const tout = () => ["etape1", "etape2", "carte", "matrice", "fiche", "livrables"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
   const lancer = useMutation({
@@ -188,22 +187,6 @@ export default function EtapeDataRoom2({ dossier, e, onPreuve, onRefresh, apercu
           </div>
         </>
       )}
-
-      {/* La décision de fin d'étape */}
-      <div className="px-5 py-5 grid sm:grid-cols-3 gap-4">
-        <button onClick={() => !apercu && lancer.mutate(3)} disabled={apercu || enCours} className={`text-left rounded-md p-5 border transition-colors ${e.recommandation === "continuer" ? "border-[#96c0b8]/50 hover:border-[#96c0b8]" : "border-[#1f2228] hover:border-[#2c3139]"} disabled:opacity-50`}>
-          <p className="m-0 text-[14px] font-semibold text-[#f2f3f5] flex items-center gap-2">Continuer <ArrowRight className="w-3.5 h-3.5" /> Étape 3</p>
-          <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">Prix et négociation : le simulateur avec les données réelles, les livrables.{e.recommandation === "continuer" ? " Cas par défaut : pas de nouveau deal-breaker." : ""}</p>
-        </button>
-        <button onClick={() => !apercu && setDialog("demande_documents")} disabled={apercu} className={`text-left rounded-md p-5 border transition-colors ${e.recommandation === "complements" ? "border-[#e8b04c]/60 hover:border-[#e8b04c]" : "border-[#1f2228] hover:border-[#2c3139]"} disabled:opacity-50`}>
-          <p className="m-0 text-[14px] font-semibold text-[#f2f3f5] flex items-center gap-2"><Send className="w-3.5 h-3.5" /> Demander des compléments</p>
-          <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">Le mail cumule les demandes des étapes 1 et 2. Rien ne part sans validation.</p>
-        </button>
-        <button onClick={() => !apercu && setDialog("abandon")} disabled={apercu} className={`text-left rounded-md p-5 border transition-colors ${e.recommandation === "passer" ? "border-[#e8746a]/60 hover:border-[#e8746a]" : "border-[#1f2228] hover:border-[#2c3139]"} disabled:opacity-50`}>
-          <p className="m-0 text-[14px] font-semibold text-[#f2f3f5]">Passer</p>
-          <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">Deal-breaker copropriété ou technique : archivé avec le motif{e.motif_passer ? ` (${e.motif_passer})` : ""}, refus pré-rédigé.</p>
-        </button>
-      </div>
 
       {dialog && <DialogMailIntention dossier={dossier} intention={dialog} parametres={dialog === "demande_documents" ? { raisons: e.demandes_texte } : { raisons: e.motif_passer || undefined }} onClose={() => setDialog(null)} onDone={() => { setDialog(null); onRefresh?.(); tout(); }} />}
     </>

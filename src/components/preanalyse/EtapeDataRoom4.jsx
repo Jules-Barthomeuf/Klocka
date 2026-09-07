@@ -17,7 +17,7 @@ const Titre = ({ children, droite }) => (
 const ACTEUR = { automatique: ["#8fb6e8", "automatique"], analyste: ["#96c0b8", "analyste"], systeme: ["#6a7180", "système"] };
 const quand = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 
-export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu = false }) {
+export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu = false, dialog, setDialog }) {
   const dealId = dossier.deal_id;
   const queryClient = useQueryClient();
   const [profil, setProfil] = useState(e.presentations[1]?.id || e.presentations[0]?.id);

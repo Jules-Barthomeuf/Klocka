@@ -9,7 +9,8 @@ import DocumentsDossier from "./DocumentsDossier";
 import FicheDossier from "./FicheDossier";
 import { Grille, Tiroir, Livrables, FormulaireColonne } from "./MatriceDossier";
 import { VERDICTS, libelleVerdict, VuesLieu, DialogMailIntention } from "./DealResultat";
-import EtapeDataRoom, { BarreEtapes } from "./EtapeDataRoom";
+import EtapeDataRoom from "./EtapeDataRoom";
+import CadreEtapes, { Mono } from "./CadreEtapes";
 import EtapeDataRoom2 from "./EtapeDataRoom2";
 import EtapeDataRoom3 from "./EtapeDataRoom3";
 import EtapeDataRoom4 from "./EtapeDataRoom4";
@@ -177,7 +178,8 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
     enabled: !!dealId && (e1?.etape || 1) === 2,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   });
-  const { data: e3 } = useQuery({ queryKey: ["etape3", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape3`), enabled: !!dealId && (e1?.etape || 1) === 3 });
+  const { data: e3 } = useQuery({ queryKey: ["etape3", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape3`), enabled: !!dealId && !!e1?.lue });
+  const [dialogEtape, setDialogEtape] = useState(null);
   const { data: e4 } = useQuery({ queryKey: ["etape4", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape4`), enabled: !!dealId && (e1?.etape || 1) === 4 });
   const changerEtape = useMutation({
     mutationFn: (n) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/etape/${n}`, { body: {} }),
@@ -204,29 +206,49 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
 
   if (isLoading || !carte || !e1) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
 
-  // Les quatre étapes ont chacune leur écran ; la carte complète reste derrière, pour vérifier.
+  // Les quatre étapes ont chacune leur écran, dans le même cadre.
   const etapeCourante = e1.etape || 1;
   const donnees = { 1: e1, 2: e2, 3: e3, 4: e4 }[etapeCourante];
   if (etapeCourante <= 4) {
     if (!donnees) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
+    const prog = donnees.progression || e1.progression;
+    const compteurs = { 1: `${e1.progression.lus_etape}/${prog.total}`, 2: e2 ? `${e2.progression.lus_etape}/${prog.total}` : `${Math.max(0, prog.lus - e1.progression.lus_etape)}/${prog.total}`, 3: "0 doc", 4: e4?.complements?.pieces?.length ? `+${e4.complements.pieces.length}` : "" };
+    const SECTIONS = {
+      1: [{ id: "rentabilite", titre: "Rentabilité réelle" }, { id: "anomalies", titre: "Anomalies", droite: e1.anomalies?.length ? `${e1.anomalies.filter((a) => a.statut === "ko").length} ✕` : "", alerte: e1.anomalies?.some((a) => a.statut === "ko") }, { id: "fiche", titre: "Le bien" }, { id: "simulateur", titre: "Simulateur" }, { id: "pieces", titre: "Documents pour l'étape 2" }],
+      2: [],
+      3: [{ id: "risques", titre: "Les risques", droite: String(e3?.risques?.length || 0) }, { id: "prix", titre: "Le prix" }, { id: "match", titre: "Match investisseur" }, { id: "decision", titre: "La décision" }],
+      4: [],
+    };
+    const TITRES = { 1: ["Bail et locataire", e1.lue ? "En cours" : "À lire", "Le bail tient-il, les chiffres sont-ils vrais ?"], 2: ["Bien, copro, marché", e2?.lue ? "En cours" : "À lire", "Le bien et son environnement méritent-ils qu'on y mette de l'argent ?"], 3: ["Risques, prix et décision", "Décision", "Aucune lecture : assemblage, chiffrage, décision."], 4: ["Présentation et closing", "Closing", "La présentation, la négociation, la conclusion."] };
+    const [titre, statut, question] = TITRES[etapeCourante];
+    const suivante = e1.etapes[etapeCourante];
+    const pied = (
+      <>
+        <Mono>Étape {etapeCourante} / {e1.etapes.length}</Mono>
+        <span className="flex items-center gap-4">
+          {etapeCourante < 4 && donnees.lue !== false && <button onClick={() => !apercu && setDialogEtape("demande_documents")} className="text-[12.5px] text-[#9298a6] hover:text-[#f2f3f5]">Demander des compléments</button>}
+          {etapeCourante < 4 && donnees.lue !== false && <button onClick={() => !apercu && setDialogEtape("abandon")} className="text-[12.5px] text-[#9298a6] hover:text-[#e8746a]">Passer</button>}
+          {suivante && <button onClick={() => !apercu && changerEtape.mutate(etapeCourante + 1)} disabled={apercu || donnees.lue === false} className="text-[13.5px] text-[#f2f3f5] hover:text-[#ffffff] disabled:opacity-40">Étape {suivante.n} · {suivante.titre} →</button>}
+        </span>
+      </>
+    );
+    const propsEtape = { dossier, onPreuve: ouvrirPreuve, onRefresh, apercu, dialog: dialogEtape, setDialog: setDialogEtape };
     return (
-      <div className="bg-[#000000] border border-[#1f2228] rounded-md overflow-hidden">
-        <BarreEtapes e={donnees} apercu={apercu} onEtape={(n) => changerEtape.mutate(n)} />
+      <CadreEtapes etapes={e1.etapes} etape={etapeCourante} compteurs={compteurs} sections={SECTIONS[etapeCourante]} prixCourant={e3?.prix?.courant || null} titre={titre} statut={statut} question={question} progression={prog} onEtape={(n) => changerEtape.mutate(n)} apercu={apercu} pied={pied}>
         <div className={preuve ? "lg:flex lg:gap-6 lg:items-start" : ""}>
           <div className="min-w-0 flex-1">
-            {etapeCourante === 4 ? <EtapeDataRoom4 dossier={dossier} e={e4} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />
-              : etapeCourante === 3 ? <EtapeDataRoom3 dossier={dossier} e={e3} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />
-              : etapeCourante === 2 ? <EtapeDataRoom2 dossier={dossier} e={e2} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />
-              : <EtapeDataRoom dossier={dossier} e={e1} onPreuve={ouvrirPreuve} onRefresh={onRefresh} apercu={apercu} />}
-            {/* Les documents restent toujours visibles : c'est là qu'on importe et qu'on classe. */}
-            <div className="border-t border-[#1f2228] px-5 py-5">
-              <p className="m-0 mb-3 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Documents du dossier</p>
-              <DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={() => { onRefresh?.(); tout(); queryClient.invalidateQueries({ queryKey: ["etape1", dealId] }); }} apercu={apercu} proposerDrive />
+            {etapeCourante === 4 ? <EtapeDataRoom4 e={e4} {...propsEtape} />
+              : etapeCourante === 3 ? <EtapeDataRoom3 e={e3} {...propsEtape} />
+              : etapeCourante === 2 ? <EtapeDataRoom2 e={e2} {...propsEtape} />
+              : <EtapeDataRoom e={e1} {...propsEtape} />}
+            <div className="border-t border-[#1f2228] px-6 max-md:px-4 py-5">
+              <Mono>Documents du dossier</Mono>
+              <div className="mt-3"><DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={() => { onRefresh?.(); tout(); }} apercu={apercu} proposerDrive /></div>
             </div>
           </div>
           {preuve && <div className="px-5 pb-5 lg:pt-5 lg:pr-5"><Tiroir cellule={preuve.cellule} ligne={preuve.ligne} onFermer={() => setPreuve(null)} /></div>}
         </div>
-      </div>
+      </CadreEtapes>
     );
   }
 
@@ -235,7 +257,6 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
 
   return (
     <div className={`bg-[#000000] border rounded-md overflow-hidden ${v.bord || "border-[#1f2228]"}`}>
-      <BarreEtapes e={e1} apercu={apercu} onEtape={(n) => changerEtape.mutate(n)} />
       {/* En-tête : le verdict */}
       <div className="p-5 border-b border-[#1f2228]">
         <div className="flex flex-wrap items-start justify-between gap-4">

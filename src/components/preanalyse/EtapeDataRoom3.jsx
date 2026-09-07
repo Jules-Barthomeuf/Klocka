@@ -2,148 +2,159 @@ import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Check, ChevronDown, Copy, Send } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { DialogMailIntention } from "./DealResultat";
+import { Mono, Section, eur, fourchette } from "./CadreEtapes";
 
-// Étape 3 — Risques, prix, décision. Rien n'est lu ici : tout s'assemble.
-// Cinq risques avec leur raisonnement ; l'analyste confirme, ajuste ou écarte,
-// et la décote, le prix ajusté, le rendement et le score bougent. Trois
-// leviers de négociation, plafonnés au prix demandé. Le match investisseur
-// suit. Puis la décision, avec ses livrables.
+// Étape 3 — Risques, prix et décision. Aucune lecture : assemblage,
+// chiffrage, décision. Les risques en lignes dépliables, le prix en deux
+// colonnes (décotes et bonifications ; conditions de négociation), le match
+// investisseur, la décision.
 
-const TEINTE = { fort: "#e8927c", moyen: "#e8b04c", faible: "#7fd1a8" };
-const Titre = ({ children, droite }) => (
-  <div className="flex items-baseline justify-between gap-3 mb-3">
-    <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">{children}</p>
-    {droite ? <span className="text-[12px] text-[#9298a6]">{droite}</span> : null}
-  </div>
-);
-const eur = (v) => (v == null ? "—" : `${Math.round(v).toLocaleString("fr-FR")} €`);
+const NIVEAU = { fort: "text-[#e8927c]", moyen: "text-[#e8b04c]", faible: "text-[#6a7180]" };
+const neg = (f) => (!f || (f[0] === 0 && f[1] === 0) ? null : f[0] === f[1] ? `−${Math.round(f[0]).toLocaleString("fr-FR")} €` : `−${Math.round(f[0]).toLocaleString("fr-FR")} à −${Math.round(f[1]).toLocaleString("fr-FR")} €`);
+const plus = (f) => (!f || (f[0] === 0 && f[1] === 0) ? "—" : `+${Math.round(f[0] / 1000)} à +${Math.round(f[1] / 1000)} k€`);
 
-export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu = false }) {
+function Sources({ liste, onPreuve }) {
+  if (!liste?.length) return <Mono className="normal-case tracking-[.06em] text-[#4d545d]">calcul</Mono>;
+  return <span className="flex flex-wrap gap-x-3">{liste.map((s, i) => <button key={i} onClick={() => onPreuve(s)} className="font-mono text-[10.5px] tracking-[.06em] text-[#6a7180] hover:text-[#f2f3f5]">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 26)}{s.page ? ` p. ${s.page}` : ""}</button>)}</span>;
+}
+
+export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu = false, dialog, setDialog }) {
   const dealId = dossier.deal_id;
   const queryClient = useQueryClient();
-  const [dialog, setDialog] = useState(null);
-  const [ouverts, setOuverts] = useState(() => new Set());
+  const [ouverts, setOuverts] = useState(() => new Set(e.risques.filter((r) => !r.replie).map((r) => r.id)));
   const tout = () => ["etape3", "etape4", "carte"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
-  const reviser = useMutation({
-    mutationFn: ({ id, verdict }) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/risques/${id}`, { body: { verdict } }),
-    onSuccess: tout, onError: (x) => toast.error(x?.message || "Impossible"),
-  });
-  const leviers = useMutation({
-    mutationFn: (ids) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/leviers`, { body: { leviers: ids } }),
-    onSuccess: tout, onError: (x) => toast.error(x?.message || "Impossible"),
-  });
-  const avancer = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/etape/4`, { body: {} }),
-    onSuccess: () => { toast.success("Étape 4 — présentation et closing"); ["etape1", "etape2", "etape3", "etape4", "carte"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] })); },
-  });
+  const reviser = useMutation({ mutationFn: ({ id, verdict }) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/risques/${id}`, { body: { verdict } }), onSuccess: tout, onError: (x) => toast.error(x?.message || "Impossible") });
+  const leviers = useMutation({ mutationFn: (ids) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/leviers`, { body: { leviers: ids } }), onSuccess: tout, onError: (x) => toast.error(x?.message || "Impossible") });
   const copier = async (t, quoi) => { try { await navigator.clipboard.writeText(t); toast.success(`${quoi} copié`); } catch { window.prompt("Copiez :", t); } };
   const coches = e.leviers.filter((l) => l.coche).map((l) => l.id);
-  const basculerLevier = (id) => leviers.mutate(coches.includes(id) ? coches.filter((x) => x !== id) : [...coches, id]);
+  const basculer = (id) => leviers.mutate(coches.includes(id) ? coches.filter((x) => x !== id) : [...coches, id]);
+  const bascule = (id) => setOuverts((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const { prix } = e;
-  const visibles = e.risques.filter((r) => !r.replie || ouverts.has("faibles"));
-  const faibles = e.risques.filter((r) => r.replie);
+  const VERDICT = { confirme: "confirmé", ajuste: "ajusté −50 %", ecarte: "écarté" };
 
   return (
     <>
-      {/* Le prix, en direct */}
-      <div className="px-5 py-5 border-b border-[#1f2228]">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          {[["Prix demandé", eur(prix.demande)], ["Décote retenue", `${prix.decote_pct} %`], ["Prix ajusté", eur(prix.ajuste)], ["Rendement net AEM", prix.rendement_net_ajuste != null ? `${prix.rendement_net_ajuste.toFixed(2)} %` : "—"], ["Score", `${prix.score}/100`]].map(([l, v], i) => (
-            <div key={l}><p className="m-0 text-[11px] text-[#6a7180]">{l}</p><p className={`m-0 text-[20px] font-light tabular-nums ${i === 3 ? (prix.rendement_net_ajuste >= prix.seuil_rendement ? "text-[#7fd1a8]" : "text-[#e8927c]") : i === 4 ? (prix.score >= 60 ? "text-[#7fd1a8]" : prix.score >= 40 ? "text-[#e8b04c]" : "text-[#e8927c]") : "text-[#f2f3f5]"}`}>{v}</p></div>
-          ))}
-        </div>
-        <p className="m-0 mt-3 text-[12.5px] text-[#9298a6]">Seuil de rendement {prix.seuil_rendement.toFixed(2)} %{prix.seuil ? ` · prix FAI au seuil ${eur(prix.seuil)}` : ""} · le prix ajusté ne dépasse jamais le prix demandé.</p>
-      </div>
+      <p className="m-0 px-6 max-md:px-4 py-4 text-[14px] leading-[1.65] text-[#c9cdd6] border-b border-[#1f2228] max-w-[900px]">Aucun nouveau document lu. Cette étape assemble ce que les étapes 1 et 2 ont trouvé, le traduit en risques chiffrés, calcule un prix et matche avec un investisseur.</p>
 
-      {/* Les risques */}
-      <div className="px-5 py-5 border-b border-[#1f2228]">
-        <Titre droite={`${e.risques.filter((r) => r.niveau === "fort").length} fort · ${e.risques.filter((r) => r.niveau === "moyen").length} moyen · ${faibles.length} faible`}>Risques</Titre>
-        <div className="space-y-3">
-          {visibles.map((r) => (
-            <div key={r.id} className={`rounded-xl border px-4 py-3.5 ${r.verdict === "ecarte" || r.neutralise_par ? "border-[#1e1e22] opacity-60" : "border-[#22262d]"}`}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 text-[14.5px] font-semibold text-[#f2f3f5] flex items-center gap-2.5"><span className="w-2 h-2 rounded-full" style={{ background: TEINTE[r.niveau] }} />{r.titre} <span className="text-[11.5px] font-normal" style={{ color: TEINTE[r.niveau] }}>{r.niveau}</span> <span className="text-[11.5px] font-normal text-[#6a7180]">· décote {r.decote_pct} % → {r.decote_retenue_pct} %</span></p>
-                  <p className="m-0 mt-1.5 text-[13px] leading-[1.6] text-[#c9cdd6]">{r.raisonnement}</p>
-                  <p className="m-0 mt-1.5 text-[11.5px] text-[#6a7180]">
-                    Se nourrit de : {r.nourri_de.join(" · ")}
-                    {r.sources.length > 0 && <> · Sources : {r.sources.map((s, i) => <button key={i} onClick={() => onPreuve(s)} className="text-[#9298a6] hover:text-[#f2f3f5] underline decoration-dotted underline-offset-2 mr-2">{s.document_nom}{s.page ? ` p.${s.page}` : ""}</button>)}</>}
-                    {r.neutralise_par && <span className="text-[#7fd1a8]"> · neutralisé par le levier « {r.neutralise_par} »</span>}
-                  </p>
-                </div>
-                <div className="flex gap-1.5 flex-none">
-                  {[["confirme", "Confirmer"], ["ajuste", "Ajuster −50 %"], ["ecarte", "Écarter"]].map(([v, l]) => (
-                    <button key={v} onClick={() => !apercu && reviser.mutate({ id: r.id, verdict: v })} disabled={apercu} className={`px-3 py-1 rounded-full text-[11.5px] border transition-colors ${r.verdict === v ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#0b0c0e] font-semibold" : "border-[#2c3139] text-[#c9cdd6] hover:border-[#3a3f4a]"}`}>{l}</button>
-                  ))}
-                </div>
+      {/* 1 · Les risques */}
+      <Section id="risques" titre="1 · Les risques" droite={`${prix.nb_ecartes} écarté(s) · ${prix.nb_ajustes} ajusté(s) · décote retenue ${prix.courant ? fourchette(prix.courant.decote) : "—"}`}>
+        <div className="divide-y divide-[#15171b]">
+          {e.risques.map((r) => {
+            const ouvert = ouverts.has(r.id);
+            return (
+              <div key={r.id} className="py-3">
+                <button onClick={() => bascule(r.id)} className="w-full text-left flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                  <span className="flex-1 min-w-[240px] text-[15px] text-[#f2f3f5]"><span className="font-semibold">{r.titre}</span> <span className="text-[#9298a6]">— {r.une_ligne}</span></span>
+                  <Mono className={`${NIVEAU[r.niveau]} w-[70px] text-right`}>{r.niveau_libelle}</Mono>
+                  <span className={`w-[190px] text-right tabular-nums text-[14px] ${r.verdict === "ecarte" ? "line-through text-[#4d545d]" : "text-[#f2f3f5]"}`}>{r.integre_au_prix ? <span className="text-[#9298a6]">intégré au prix</span> : neg(r.fourchette) || "—"}</span>
+                  <span className="w-4 text-[#6a7180] text-[11px]">{ouvert ? "▲" : "▼"}</span>
+                </button>
+                {ouvert && (
+                  <div className="mt-3 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+                    <div className="min-w-0">
+                      <p className="m-0 text-[14px] leading-[1.7] text-[#d6d6db]">{r.raisonnement}</p>
+                      <div className="mt-2"><Sources liste={r.sources} onPreuve={onPreuve} /></div>
+                    </div>
+                    <div className="border border-[#1f2228] px-4 py-3">
+                      <Mono>Se nourrit de</Mono>
+                      <p className="m-0 mt-1.5 text-[13px] leading-[1.6] text-[#c9cdd6]">{r.nourri_de.join(", ")}.</p>
+                      <div className="mt-3 pt-3 border-t border-[#1f2228]"><Mono>Statut · {VERDICT[r.verdict]}</Mono></div>
+                      <div className="mt-2 flex gap-1.5">
+                        {[["confirme", "Confirmer"], ["ajuste", "Ajuster −50 %"], ["ecarte", "Écarter"]].map(([v, l]) => (
+                          <button key={v} onClick={() => !apercu && reviser.mutate({ id: r.id, verdict: v })} disabled={apercu} className={`px-3 py-1.5 text-[12.5px] border transition-colors ${r.verdict === v ? "border-[#f2f3f5] text-[#f2f3f5]" : "border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5]"}`}>{l}</button>
+                        ))}
+                      </div>
+                      {r.condition?.coche && <p className="m-0 mt-2 text-[12px] text-[#7fd1a8]">Condition obtenue : {r.condition.titre}.</p>}
+                    </div>
+                  </div>
+                )}
               </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* 2 · Le prix */}
+      <Section id="prix" titre="2 · Le prix">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="border border-[#1f2228] px-6 py-5">
+            <div className="flex items-baseline justify-between gap-4 pb-4 border-b border-[#1f2228]">
+              <span className="text-[14px] text-[#c9cdd6]">Prix demandé</span>
+              <span className="text-right"><span className="block text-[22px] font-light tabular-nums text-[#f2f3f5]">{eur(prix.demande)}</span>{prix.rdt_brut_demande != null && <span className="text-[12px] text-[#9298a6]">rdt brut {prix.rdt_brut_demande.toFixed(2).replace(".", ",")} %</span>}</span>
             </div>
-          ))}
+            <div className="pt-4"><Mono>Décotes</Mono></div>
+            {e.risques.filter((r) => !r.integre_au_prix && r.verdict !== "ecarte" && !(r.condition?.coche)).map((r) => (
+              <div key={r.id} className="flex items-baseline justify-between gap-4 py-2 border-b border-[#15171b] text-[14px]"><span className="text-[#c9cdd6]">{r.titre}</span><span className="tabular-nums text-[#f2f3f5]">{neg(r.decote_retenue) || "—"}</span></div>
+            ))}
+            {e.bonifications.length > 0 && (
+              <>
+                <div className="pt-4"><Mono>Bonifications</Mono></div>
+                {e.bonifications.map((b) => <div key={b.titre} className="flex items-baseline justify-between gap-4 py-2 border-b border-[#15171b] text-[14px]"><span className="text-[#c9cdd6]">{b.titre}</span><span className="tabular-nums text-[#f2f3f5]">{plus(b.fourchette).replace(/k€/g, "000 €").replace("+", "+").replace(" à ", " à ")}</span></div>)}
+              </>
+            )}
+            <div className="flex items-baseline justify-between gap-4 pt-5">
+              <span className="text-[15px] font-semibold text-[#f2f3f5]">Prix ajusté</span>
+              <span className="text-right"><span className="block text-[22px] font-light tabular-nums text-[#f2f3f5]">{prix.courant ? fourchette(prix.courant.fourchette) : "—"}</span>{prix.courant?.rdt_brut && <span className="text-[12px] text-[#9298a6]">rdt brut {prix.courant.rdt_brut[0]} % – {prix.courant.rdt_brut[1]} %</span>}</span>
+            </div>
+          </div>
+          <div className="border border-[#1f2228] px-6 py-5">
+            <div className="flex items-baseline justify-between gap-4"><Mono>Simulateur · conditions de négociation</Mono><span className="text-[12px] text-[#9298a6]">{coches.length} / {e.leviers.length} cochées</span></div>
+            <div className="mt-3 space-y-2">
+              {e.leviers.map((l) => (
+                <button key={l.id} onClick={() => !apercu && basculer(l.id)} disabled={apercu} className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border transition-colors ${l.coche ? "border-[#96c0b8]/60 bg-[#96c0b8]/[0.05]" : "border-[#1f2228] hover:border-[#2c3139]"}`}>
+                  <span className={`w-4 h-4 border flex items-center justify-center flex-none ${l.coche ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#000000]" : "border-[#3a3f4a]"}`}>{l.coche && <Check className="w-3 h-3" strokeWidth={3} />}</span>
+                  <span className="flex-1 text-[14px] text-[#f2f3f5]">{l.titre}</span>
+                  <Mono className="normal-case tracking-[.04em] text-[#9298a6]">{plus(l.gain)}</Mono>
+                </button>
+              ))}
+            </div>
+            <div className="mt-5 pt-4 border-t border-[#1f2228] flex items-baseline justify-between gap-4">
+              <span className="text-[15px] font-semibold text-[#f2f3f5]">{coches.length ? "Prix avec conditions obtenues" : "Prix sans condition obtenue"}</span>
+              <span className="text-right"><span className="block text-[22px] font-light tabular-nums text-[#f2f3f5]">{prix.courant ? fourchette(prix.courant.fourchette) : "—"}</span>{prix.courant?.rdt_brut && <span className="text-[12px] text-[#9298a6]">rdt brut {prix.courant.rdt_brut[0]} % – {prix.courant.rdt_brut[1]} %</span>}</span>
+            </div>
+            <p className="m-0 mt-3 text-[13px] leading-[1.6] text-[#9298a6]">{coches.length ? `${coches.length} condition${coches.length > 1 ? "s" : ""} obtenue${coches.length > 1 ? "s" : ""} : la décote correspondante s'efface. Sans elles, le prix serait ${prix.sans_condition ? fourchette(prix.sans_condition.fourchette) : "—"}.` : "Sans condition obtenue, la décote s'applique en totalité : le prix demandé n'est pas justifiable."}</p>
+          </div>
         </div>
-        {faibles.length > 0 && (
-          <button onClick={() => setOuverts((s) => { const n = new Set(s); if (n.has("faibles")) n.delete("faibles"); else n.add("faibles"); return n; })} className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] text-[#9298a6] hover:text-[#f2f3f5]">
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${ouverts.has("faibles") ? "rotate-180" : ""}`} /> {ouverts.has("faibles") ? "Replier" : "Voir"} les {faibles.length} risques faibles ({faibles.map((r) => r.titre.toLowerCase()).join(", ")})
-          </button>
-        )}
-      </div>
+      </Section>
 
-      {/* Les leviers de négociation */}
-      <div className="px-5 py-5 border-b border-[#1f2228]">
-        <Titre droite="cochez ce que vous demandez au vendeur">Leviers de négociation</Titre>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {e.leviers.map((l) => (
-            <button key={l.id} onClick={() => !apercu && basculerLevier(l.id)} disabled={apercu} className={`text-left rounded-xl border px-4 py-3 transition-colors ${l.coche ? "border-[#96c0b8] bg-[#96c0b8]/[0.06]" : "border-[#22262d] hover:border-[#3a3f4a]"}`}>
-              <p className="m-0 text-[13.5px] font-semibold text-[#f2f3f5] flex items-center gap-2"><span className={`w-4 h-4 rounded border flex items-center justify-center ${l.coche ? "bg-[#96c0b8] border-[#96c0b8] text-[#000000]" : "border-[#3a3f4a]"}`}>{l.coche && <Check className="w-3 h-3" strokeWidth={3} />}</span>{l.titre}</p>
-              <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-[#9298a6]">{l.detail}</p>
-              <p className="m-0 mt-1 text-[11.5px] text-[#6a7180]">{l.effet === "prix" ? `Ramène le prix au seuil : ${eur(prix.seuil)}` : `Neutralise le risque ${l.effet.split(":")[1]}`}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Le match investisseur */}
-      <div className="px-5 py-5 border-b border-[#1f2228]">
-        <Titre droite={e.match.configure ? `au prix ajusté ${eur(prix.ajuste)}` : "Monday non connecté"}>Match investisseur</Titre>
+      {/* 3 · Match investisseur */}
+      <Section id="match" titre="3 · Match investisseur" droite={e.match.configure ? `au prix courant ${prix.courant ? fourchette(prix.courant.fourchette) : ""}` : "Monday non connecté"}>
         {!e.match.configure ? <p className="m-0 text-[13px] text-[#9298a6]">Le rapprochement avec les investisseurs se fait depuis Monday.</p> : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[["Prêts au prix ajusté", e.match.prets, "#7fd1a8"], ["Possibles avec le levier prix", e.match.possibles, "#e8b04c"], ["Hors budget", e.match.hors, "#4d545d"]].map(([l, liste, t]) => (
+            {[["Prêts au prix courant", e.match.prets, "text-[#7fd1a8]"], ["Possibles au prix du seuil", e.match.possibles, "text-[#e8b04c]"], ["Hors budget", e.match.hors, "text-[#6a7180]"]].map(([l, liste, c]) => (
               <div key={l}>
-                <p className="m-0 mb-2 text-[12px] font-semibold flex items-center gap-2" style={{ color: t }}><span className="w-1.5 h-1.5 rounded-full" style={{ background: t }} />{l} · {liste.length}</p>
-                {liste.length ? liste.map((c, i) => <p key={i} className="m-0 text-[13px] text-[#f2f3f5]">{c.nom} <span className="text-[#6a7180] text-[11.5px]">{c.raisons?.join(" · ")}{c.si ? ` · si ${c.si}` : ""}</span></p>) : <p className="m-0 text-[12.5px] text-[#4d545d]">Personne.</p>}
+                <Mono className={c}>{l} · {liste.length}</Mono>
+                <div className="mt-2 space-y-1">{liste.length ? liste.map((x, i) => <p key={i} className="m-0 text-[13.5px] text-[#f2f3f5]">{x.nom} <span className="text-[#6a7180] text-[11.5px]">{x.raisons?.join(" · ")}</span></p>) : <p className="m-0 text-[12.5px] text-[#4d545d]">Personne.</p>}</div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </Section>
 
-      {/* La décision et ses livrables */}
-      <div className="px-5 py-5 grid sm:grid-cols-3 gap-4">
-        <div className="rounded-md p-5 border border-[#96c0b8]/50">
-          <p className="m-0 text-[14px] font-semibold text-[#f2f3f5]">Proposer au client</p>
-          <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">La note de synthèse et le mail au client, prêts à relire. Puis la présentation par profil à l'étape 4.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button onClick={() => copier(e.note, "La note de synthèse")} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full border border-[#2c3139] text-[#c9cdd6] hover:text-[#f2f3f5]"><Copy className="w-3.5 h-3.5" /> Note de synthèse</button>
-            <button onClick={() => !apercu && avancer.mutate()} disabled={apercu} className="inline-flex items-center gap-1.5 text-[12px] px-3.5 py-1.5 rounded-full bg-[#f2f3f5] text-[#0b0c0e] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Étape 4 → présentation</button>
+      {/* 4 · La décision */}
+      <Section id="decision" titre="4 · La décision" sansFilet>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div className="border border-[#96c0b8]/50 px-5 py-4">
+            <p className="m-0 text-[14px] font-semibold text-[#f2f3f5]">Proposer au client</p>
+            <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">Note de synthèse et mail prêts à relire ; la présentation par profil à l'étape 4.</p>
+            <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => copier(e.note, "La note")} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 border border-[#2c3139] text-[#c9cdd6] hover:text-[#f2f3f5]"><Copy className="w-3.5 h-3.5" /> Note de synthèse</button></div>
+          </div>
+          <div className="border border-[#1f2228] px-5 py-4">
+            <p className="m-0 text-[14px] font-semibold text-[#f2f3f5]">Demander des compléments</p>
+            <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">Le mail au vendeur cumule les demandes des trois étapes et les conditions cochées.</p>
+            <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => !apercu && setDialog("demande_documents")} disabled={apercu} className="text-[12px] px-3.5 py-1.5 bg-[#f2f3f5] text-[#0b0c0e] font-semibold disabled:opacity-40">Rédiger le mail</button></div>
+          </div>
+          <div className="border border-[#1f2228] px-5 py-4">
+            <p className="m-0 text-[14px] font-semibold text-[#f2f3f5]">Passer</p>
+            <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">Refus pré-rédigé, archivé avec le motif{e.motif_passer ? ` (${e.motif_passer})` : ""}.</p>
+            <div className="mt-3"><button onClick={() => !apercu && setDialog("abandon")} disabled={apercu} className="text-[12px] px-3.5 py-1.5 border border-[#e8746a]/50 text-[#e8746a] hover:border-[#e8746a] disabled:opacity-40">Rédiger le refus</button></div>
           </div>
         </div>
-        <div className="rounded-md p-5 border border-[#1f2228]">
-          <p className="m-0 text-[14px] font-semibold text-[#f2f3f5] flex items-center gap-2"><Send className="w-3.5 h-3.5" /> Demander des compléments</p>
-          <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">Le mail au vendeur cumule les demandes des trois étapes et les leviers cochés.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button onClick={() => copier([e.demandes_texte, ...coches.map((id) => `Levier : ${e.leviers.find((l) => l.id === id)?.titre}`)].filter(Boolean).join("\n"), "La liste")} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full border border-[#2c3139] text-[#c9cdd6] hover:text-[#f2f3f5]"><Copy className="w-3.5 h-3.5" /> Liste</button>
-            <button onClick={() => !apercu && setDialog("demande_documents")} disabled={apercu} className="inline-flex items-center gap-1.5 text-[12px] px-3.5 py-1.5 rounded-full bg-[#f2f3f5] text-[#0b0c0e] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Rédiger le mail</button>
-          </div>
-        </div>
-        <div className="rounded-md p-5 border border-[#1f2228]">
-          <p className="m-0 text-[14px] font-semibold text-[#f2f3f5]">Passer</p>
-          <p className="m-0 mt-1 text-[12px] leading-[1.55] text-[#9298a6]">Refus pré-rédigé, archivé avec le motif{e.motif_passer ? ` (${e.motif_passer})` : ""}. Le dossier alimente la base marché.</p>
-          <div className="mt-3"><button onClick={() => !apercu && setDialog("abandon")} disabled={apercu} className="inline-flex items-center gap-1.5 text-[12px] px-3.5 py-1.5 rounded-full border border-[#e8746a]/50 text-[#e8746a] hover:border-[#e8746a] disabled:opacity-40">Rédiger le refus</button></div>
-        </div>
-      </div>
+      </Section>
 
-      {dialog && <DialogMailIntention dossier={dossier} intention={dialog} parametres={dialog === "demande_documents" ? { raisons: [e.demandes_texte, ...coches.map((id) => `Levier de négociation : ${e.leviers.find((l) => l.id === id)?.titre}`)].filter(Boolean).join("\n") } : { raisons: e.motif_passer || undefined }} onClose={() => setDialog(null)} onDone={() => { setDialog(null); onRefresh?.(); tout(); }} />}
+      {dialog && <DialogMailIntention dossier={dossier} intention={dialog} parametres={dialog === "demande_documents" ? { raisons: [e.demandes_texte, ...coches.map((id) => `Condition de négociation : ${e.leviers.find((l) => l.id === id)?.titre}`)].filter(Boolean).join("\n") } : { raisons: e.motif_passer || undefined }} onClose={() => setDialog(null)} onDone={() => { setDialog(null); onRefresh?.(); tout(); }} />}
     </>
   );
 }

@@ -56,7 +56,7 @@ export function enregistrerUsage(modele, usage) {
     courant.modele = modele;
     return;
   }
-  ecrire({ operation: 'hors contexte', modele, appels: 1, ...usage, cout: cout || 0, par: null });
+  ecrire({ operation: 'hors contexte', modele, appels: 1, ...usage, cout: cout || 0, par: null, duree_ms: null });
 }
 
 /**
@@ -64,10 +64,13 @@ export function enregistrerUsage(modele, usage) {
  * @param {{operation: string, par?: string, sur?: string}} quoi
  */
 export async function mesurer(quoi, fn) {
-  const compteur = nouveauCompteur();
+  // Sans personne nommée, la mesure hérite de celle de la requête qui l'a lancée.
+  const parent = contexte.getStore();
+  const par = quoi.par || parent?.par || null;
+  const compteur = { ...nouveauCompteur(), par };
   const debut = Date.now();
   const resultat = await contexte.run(compteur, fn);
-  if (compteur.appels) ecrire(ligneDe(quoi, compteur, Date.now() - debut));
+  if (compteur.appels) ecrire(ligneDe({ ...quoi, par }, compteur, Date.now() - debut));
   return { resultat, consommation: compteur };
 }
 
@@ -97,11 +100,13 @@ export function mesurerRequetes(lireUser) {
   return (req, res, next) => {
     if (!req.path.startsWith('/api/')) return next();
     const compteur = nouveauCompteur();
+    // La personne est connue dès l'entrée : tout ce que la requête déclenche,
+    // même en tâche de fond après la réponse, lui est attribué.
+    try { compteur.par = lireUser(req)?.email || null; } catch { compteur.par = null; }
     const debut = Date.now();
     res.on('finish', () => {
       if (!compteur.appels) return;
-      let par = null;
-      try { par = lireUser(req)?.email || null; } catch { /* sans identité */ }
+      const par = compteur.par;
       const route = req.route?.path || req.path;
       ecrire(ligneDe({ operation: libelleRoute(req.method, route), par, sur: req.params?.dealId || req.params?.id || null }, compteur, Date.now() - debut));
     });
@@ -167,18 +172,18 @@ export function syntheseCouts(jours = 30, { limite = 100, par = null } = {}) {
     map.set(cle, e);
   };
   const gestes = regrouper(lignes);
-  const groupes = par ? gestes.filter((g) => (g.par || 'automatique') === par) : gestes;
+  const groupes = par ? gestes.filter((g) => (g.par || 'tâche de fond') === par) : gestes;
   const journal = groupes.slice(0, limite);
   // Par personne, on compte des gestes, pas des appels : une analyse = une requête.
   const gestesPar = new Map();
-  for (const g of gestes) gestesPar.set(g.par || 'automatique', (gestesPar.get(g.par || 'automatique') || 0) + 1);
+  for (const g of gestes) gestesPar.set(g.par || 'tâche de fond', (gestesPar.get(g.par || 'tâche de fond') || 0) + 1);
 
   const parOperation = new Map();
   const parPersonne = new Map();
   const parJour = new Map();
   for (const l of lignes) {
     cumuler(parOperation, l.operation || 'inconnue', l);
-    cumuler(parPersonne, l.par || 'automatique', l);
+    cumuler(parPersonne, l.par || 'tâche de fond', l);
     cumuler(parJour, (l.le || '').slice(0, 10), l);
   }
 

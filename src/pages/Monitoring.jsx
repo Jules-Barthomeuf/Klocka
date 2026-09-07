@@ -331,7 +331,7 @@ export default function Monitoring() {
                                 {serie ? <span className="text-[#6a7180]"> · {g.etapes} étapes</span> : null}
                                 {g.modele ? <span className="text-[#3a3f4a]"> · {g.modele}</span> : null}
                               </td>
-                              <td className="py-2 px-3 text-[#c9cdd6] truncate max-w-[220px]">{g.par || <span className="text-[#6a7180]">automatique</span>}</td>
+                              <td className="py-2 px-3 text-[#c9cdd6] truncate max-w-[220px]">{g.par || <span className="text-[#6a7180]">tâche de fond</span>}</td>
                               <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{g.duree_ms != null ? duree(g.duree_ms) : "—"}</td>
                               <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]">{g.appels}</td>
                               <td className="py-2 px-3 text-right tabular-nums text-[#9298a6]" title={`${g.entree} entrée · ${g.sortie} sortie · ${g.cache_lecture} cache`}>
@@ -365,7 +365,7 @@ export default function Monitoring() {
             <p className="m-0 mt-4 text-[11.5px] leading-[1.6] text-[#6a7180]">
               Tarifs publics du modèle, lectures de cache comprises, convertis au taux de 1 $ = 0,92 €.
               Une analyse lancée d'un clic fait une ligne : sa durée va du premier au dernier appel, et
-              elle s'ouvre pour voir chaque document. « automatique » regroupe ce qui tourne sans personne
+              elle s'ouvre pour voir chaque document. Chaque ligne porte la personne qui l'a demandée ; « tâche de fond » ne reste que pour ce qui tourne sans personne
               devant l'écran — veille des boîtes, tâches de fond.
             </p>
           </div>

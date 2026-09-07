@@ -162,7 +162,7 @@ export function lireEtape1(dealId) {
   ];
   const rentabilite = {
     simulateur, hypotheses,
-    prix_fai: prixFai, prix_aem: aem?.prix_aem ?? null, loyer_bail: loyer, charges_non_recup: chargesNonRecup || null, taxe_fonciere_bailleur: taxe || null,
+    prix_fai: prixFai, prix_aem: aem?.prix_aem ?? null, prix_aem_teaser: aemTeaser?.prix_aem ?? null, loyer_bail: loyer, charges_non_recup: chargesNonRecup || null, taxe_fonciere_bailleur: taxe || null,
     rendement_brut_aem: aem?.rendement_aem ?? null, rendement_net_aem: rendementNet != null ? Number(rendementNet.toFixed(2)) : null,
     rendement_teaser: rendementTeaser != null ? Number(Number(rendementTeaser).toFixed(2)) : null, seuil: Number(seuil), dans_criteres: aem ? (rendementNet ?? aem.rendement_aem) >= Number(seuil) : null,
     phrase, cible,
@@ -422,8 +422,12 @@ export function lireEtape2(dealId) {
 // le rendement et le score bougent en direct. Trois leviers de négociation,
 // plafonnés au prix demandé. Le match investisseur suit.
 // ---------------------------------------------------------------------------
+// Les décotes se disent en fourchettes, en pourcentage du prix demandé.
+const FOURCHETTE_NIVEAU = { fort: [6, 9], moyen: [1.5, 3.5], faible: [0.4, 0.7] };
 const NIVEAU_DECOTE = { fort: 8, moyen: 4, faible: 0 };
 const FACTEUR_VERDICT = { confirme: 1, ajuste: 0.5, ecarte: 0 };
+const LIBELLE_NIVEAU = { fort: 'élevé', moyen: 'modéré', faible: 'faible' };
+const UNE_LIGNE = { vacance: 'le locataire peut partir ou faire défaut', rendement: "le rendement réel diffère de ce qu'annonçait le teaser", juridique: 'un vice dans le montage', technique: 'un problème physique', copropriete: 'des surprises de la copropriété' };
 
 function evaluerRisques(e1, e2) {
   const r = e1.rentabilite;
@@ -474,10 +478,11 @@ function evaluerRisques(e1, e2) {
   return risques.map((x) => ({ ...x, decote_pct: NIVEAU_DECOTE[x.niveau] }));
 }
 
+// Les conditions de négociation : chacune, obtenue, efface la décote d'un risque.
 const LEVIERS = [
-  { id: 'prix', titre: 'Baisse du prix', detail: 'Ramener le prix au seuil de rendement.', effet: 'prix' },
-  { id: 'garanties', titre: 'Garanties du bail', detail: 'Caution ou dépôt renforcé, avenant signé avant la vente.', effet: 'risque:vacance' },
-  { id: 'travaux', titre: 'Travaux et charges au vendeur', detail: 'Diagnostics à action et travaux votés pris en charge par le vendeur.', effet: 'risque:technique' },
+  { id: 'garanties', titre: 'Caution personnelle ou garantie bancaire obtenue', detail: 'Avenant signé avant la vente.', effet: 'risque:vacance' },
+  { id: 'duree', titre: 'Durée ferme confirmée', detail: 'Le vendeur lève l\'incohérence de dates par écrit.', effet: 'risque:juridique' },
+  { id: 'etat_lieux', titre: "État des lieux d'entrée fourni", detail: 'Et les diagnostics à action pris en charge.', effet: 'risque:technique' },
 ];
 
 export async function lireEtape3(dealId) {
@@ -490,24 +495,40 @@ export async function lireEtape3(dealId) {
   const r = e1.rentabilite;
   const prix = r.prix_fai || null;
 
+  const arrondi = (v) => Math.round(v / 1000) * 1000;
   const risques = evaluerRisques(e1, e2).map((x) => {
-    let verdict = revue[x.id] || 'confirme';
-    // Un levier coché neutralise le risque qu'il adresse.
-    const levier = LEVIERS.find((l) => l.effet === `risque:${x.id}` && leviersCoches.has(l.id));
-    const facteur = levier ? 0 : FACTEUR_VERDICT[verdict] ?? 1;
-    return { ...x, verdict, decote_retenue_pct: Number((x.decote_pct * facteur).toFixed(1)), neutralise_par: levier?.titre || null, replie: x.niveau === 'faible' };
+    const verdict = revue[x.id] || 'confirme';
+    const facteur = FACTEUR_VERDICT[verdict] ?? 1;
+    const condition = LEVIERS.find((l) => l.effet === `risque:${x.id}`);
+    const integre = x.id === 'rendement'; // l'écart de rendement est déjà porté par le prix : pas de double compte
+    const [pmin, pmax] = integre ? [0, 0] : FOURCHETTE_NIVEAU[x.niveau];
+    const fourchette = prix ? [arrondi(prix * pmin / 100), arrondi(prix * pmax / 100)] : [0, 0];
+    const retenue = fourchette.map((v) => arrondi(v * facteur));
+    return { ...x, verdict, une_ligne: UNE_LIGNE[x.id], niveau_libelle: LIBELLE_NIVEAU[x.niveau], integre_au_prix: integre, fourchette, decote_retenue: retenue, decote_retenue_pct: Number((x.decote_pct * facteur).toFixed(1)), condition: condition ? { id: condition.id, titre: condition.titre, coche: leviersCoches.has(condition.id) } : null, replie: x.niveau === 'faible' };
   });
-  const decoteTotale = Number(risques.reduce((n, x) => n + x.decote_retenue_pct, 0).toFixed(1));
-  // Le levier prix vise le seuil ; jamais au-dessus du prix demandé.
+  // Les bonifications : ce qui joue pour l'acheteur.
+  const bonifications = e1.notables.filter((n) => /favorable à l'investisseur/i.test(n.renvoi)).map((n) => ({ titre: n.titre, fourchette: prix ? [arrondi(prix * 0.015), arrondi(prix * 0.025)] : [0, 0] }));
+  const somme = (liste, i) => liste.reduce((n, x) => n + (x[i] || 0), 0);
+  const decotesSans = risques.map((x) => x.decote_retenue);
+  const conditions = LEVIERS.map((l) => {
+    const risque = risques.find((x) => `risque:${x.id}` === l.effet);
+    return { ...l, coche: leviersCoches.has(l.id), gain: risque ? risque.decote_retenue : [0, 0] };
+  });
+  const gainCoche = conditions.filter((c) => c.coche).map((c) => c.gain);
+  const bonifs = bonifications.map((b) => b.fourchette);
+  const plafond = (v) => (prix ? Math.min(prix, v) : v);
+  const prixSans = prix ? [plafond(prix - somme(decotesSans, 1) + somme(bonifs, 0)), plafond(prix - somme(decotesSans, 0) + somme(bonifs, 1))] : null;
+  const prixAvec = prix ? [plafond(prixSans[0] + somme(gainCoche, 0)), plafond(prixSans[1] + somme(gainCoche, 1))] : null;
+  const rdt = (p) => (r.loyer_bail && p ? Number(((r.loyer_bail / p) * 100).toFixed(2)) : null);
+  const decoteTotale = prix && prixAvec ? Number((((prix - (prixAvec[0] + prixAvec[1]) / 2) / prix) * 100).toFixed(1)) : 0;
   const prixSeuil = r.cible?.prix_fai || null;
-  let prixAjuste = prix ? Math.round(prix * (1 - decoteTotale / 100)) : null;
-  if (leviersCoches.has('prix') && prixSeuil && prixAjuste && prixSeuil < prixAjuste) prixAjuste = prixSeuil;
-  if (prix && prixAjuste > prix) prixAjuste = prix;
+  const prixAjuste = prixAvec ? Math.round((prixAvec[0] + prixAvec[1]) / 2) : null;
   const aemAjuste = prix && r.loyer_bail && prixAjuste ? calculerAEM({ prixFai: prix, prixNegocie: prixAjuste, loyerAnnuel: r.loyer_bail }) : null;
   const loyerNet = r.loyer_bail ? r.loyer_bail - (r.charges_non_recup || 0) - (r.taxe_fonciere_bailleur || 0) : null;
   const rendementNetAjuste = aemAjuste && loyerNet ? Number(((loyerNet / aemAjuste.prix_aem) * 100).toFixed(2)) : null;
   const poids = { fort: 30, moyen: 15, faible: 5 };
-  const score = Math.max(0, Math.min(100, Math.round(100 - risques.reduce((n, x) => n + poids[x.niveau] * (x.neutralise_par ? 0 : FACTEUR_VERDICT[x.verdict] ?? 1), 0))));
+  const score = Math.max(0, Math.min(100, Math.round(100 - risques.reduce((n, x) => n + poids[x.niveau] * (x.condition?.coche ? 0 : FACTEUR_VERDICT[x.verdict] ?? 1), 0))));
+  const prixCourant = prixAvec ? { fourchette: prixAvec, rdt_brut: [rdt(prixAvec[1]), rdt(prixAvec[0])], decote: [prix - prixAvec[1], prix - prixAvec[0]] } : null;
 
   // Le match investisseur : prêts au prix ajusté, possibles avec les leviers, hors budget.
   let match = { configure: false, prets: [], possibles: [], hors: [] };
@@ -529,8 +550,10 @@ export async function lireEtape3(dealId) {
   const liv = livrables(dealId) || { demandes_texte: '', note: '' };
   return {
     etape: e1.etape, etapes: e1.etapes, progression: e1.progression,
-    risques, leviers: LEVIERS.map((l) => ({ ...l, coche: leviersCoches.has(l.id) })),
-    prix: { demande: prix, seuil: prixSeuil, ajuste: prixAjuste, decote_pct: decoteTotale, rendement_net_ajuste: rendementNetAjuste, rendement_brut_ajuste: aemAjuste?.rendement_aem ?? null, seuil_rendement: r.seuil, score },
+    risques, leviers: conditions, bonifications,
+    prix: { demande: prix, rdt_brut_demande: rdt(prix), seuil: prixSeuil, ajuste: prixAjuste, decote_pct: decoteTotale, rendement_net_ajuste: rendementNetAjuste, rendement_brut_ajuste: aemAjuste?.rendement_aem ?? null, seuil_rendement: r.seuil, score,
+      sans_condition: prixSans ? { fourchette: prixSans, rdt_brut: [rdt(prixSans[1]), rdt(prixSans[0])] } : null, courant: prixCourant,
+      nb_ecartes: risques.filter((x) => x.verdict === 'ecarte').length, nb_ajustes: risques.filter((x) => x.verdict === 'ajuste').length },
     match,
     demandes_texte: [e1.demandes_texte, e2?.demandes_texte].filter(Boolean).join('\n'),
     note: liv.note,

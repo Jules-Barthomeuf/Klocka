@@ -1977,9 +1977,13 @@ app.post('/api/preanalyse/dossiers/:dealId/conclusion', wrap(async (req, res) =>
   if (!r.ok) return res.status(400).json({ error: r.error });
   ok(res, r);
 }));
+app.post('/api/preanalyse/dossiers/:dealId/relancer-preanalyse', wrap(async (req, res) => {
+  const { relancerPreanalyse } = await import('./deal/preanalyse-documents.js');
+  ok(res, relancerPreanalyse(req.params.dealId, { user: currentUser(req), uploadDir: UPLOAD_DIR }));
+}));
 app.post('/api/preanalyse/dossiers/:dealId/etape/:n', wrap(async (req, res) => {
   const { lancerEtape } = await import('./deal/etapes-analyse.js');
-  const r = lancerEtape(req.params.dealId, Number(req.params.n), { user: currentUser(req), uploadDir: UPLOAD_DIR });
+  const r = lancerEtape(req.params.dealId, Number(req.params.n), { user: currentUser(req), uploadDir: UPLOAD_DIR, relire: !!req.body?.relire });
   if (!r.ok) return res.status(400).json({ error: r.error });
   ok(res, r);
 }));

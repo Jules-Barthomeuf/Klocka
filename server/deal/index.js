@@ -112,6 +112,7 @@ export async function analyserFiche(entree, ctx = {}) {
       transcrit: ingestion.transcrit,
       pages: ingestion.pages,
       url: sourceUrl,
+      texte: String(ingestion.texte || '').slice(0, 80000),
       avertissements: ingestion.avertissements,
       // Conservé pour l'audit du garde-fou, jamais transmis au rédacteur.
       texte_source: ingestion.texte,

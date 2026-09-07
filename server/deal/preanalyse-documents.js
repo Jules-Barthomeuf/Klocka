@@ -8,6 +8,8 @@
 
 import { Records } from '../db.js';
 import { lireMatrice, lireFiche, lancerRemplissage, etatRemplissage } from './matrice.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -81,5 +83,56 @@ export function lancerPreanalyseDocuments(dealId, { user, uploadDir } = {}) {
     Records.update('Deal', brut.id, { preanalyse_depuis_documents: { le: new Date().toISOString(), par: user?.email || null, pieces: (brut.documents_espace || []).length } });
     travail.etat = 'pret'; travail.phase = 'fait'; travail.deal_id = r.deal_id;
   })().catch((e) => { travail.etat = 'erreur'; travail.erreur = e?.message || 'Pré-analyse impossible'; });
+  return travail;
+}
+
+/**
+ * Relance la pré-analyse depuis sa source (le teaser gardé sur le dossier, le
+ * fichier d'origine, ou les pièces), puis relit la data room pour les étapes
+ * déjà atteintes. Tâche de fond ; l'état se suit avec etatPreanalyseDocuments.
+ */
+export function relancerPreanalyse(dealId, { user, uploadDir } = {}) {
+  const enCours = travaux.get(dealId);
+  if (enCours?.etat === 'en_cours') return enCours;
+  const travail = { etat: 'en_cours', phase: 'preanalyse', erreur: null, demarre_le: new Date().toISOString(), relance: true };
+  travaux.set(dealId, travail);
+  (async () => {
+    const brut = Records.filter('Deal', { deal_id: dealId })[0];
+    if (!brut) throw new Error('Dossier introuvable');
+    const { analyserFiche } = await import('./index.js');
+    const { lancerEtape, ETAPES } = await import('./etapes-analyse.js');
+
+    // 1. La source de la pré-analyse.
+    let entree = null;
+    if (brut.source?.texte) entree = { texte: brut.source.texte, filename: brut.source.nom_fichier || 'teaser.txt' };
+    else if (brut.source?.url && uploadDir && brut.source.url.startsWith('/uploads/')) {
+      const chemin = path.join(uploadDir, brut.source.url.replace('/uploads/', ''));
+      if (chemin.startsWith(uploadDir) && fs.existsSync(chemin)) entree = { buffer: fs.readFileSync(chemin), filename: brut.source.nom_fichier || path.basename(chemin), sourceUrl: brut.source.url };
+    }
+    if (!entree) {
+      const texte = ficheDepuisDocuments(dealId);
+      if (!texte) throw new Error('Ni teaser conservé, ni pièces exploitables : rien pour relancer la pré-analyse.');
+      entree = { texte, filename: 'fiche-depuis-data-room.txt' };
+    }
+    await analyserFiche(entree, { user, dealId, uploadDir });
+
+    // 2. L'analyse repart, étape par étape, jusqu'à celle qui était atteinte.
+    const max = Math.max(Number(brut.analyse_etape_max) || 1, Number(brut.analyse_etape) || 1);
+    for (const e of ETAPES.filter((x) => x.n <= Math.min(max, 2))) {
+      travail.phase = `etape${e.n}`;
+      const r = lancerEtape(dealId, e.n, { user, uploadDir, relire: true });
+      if (r.rien_a_lire) continue;
+      const debut = Date.now();
+      while (etatRemplissage(dealId)?.etat === 'en_cours' && Date.now() - debut < 40 * 60000) {
+        const et = etatRemplissage(dealId);
+        travail.fait = et.fait; travail.total = et.total; travail.document = et.document;
+        await attendre(2000);
+      }
+    }
+    // L'étape affichée revient à celle qui était atteinte.
+    const apres = Records.filter('Deal', { deal_id: dealId })[0];
+    Records.update('Deal', apres.id, { analyse_etape: max });
+    travail.etat = 'pret'; travail.phase = 'fait';
+  })().catch((e) => { travail.etat = 'erreur'; travail.erreur = e?.message || 'Relance impossible'; });
   return travail;
 }

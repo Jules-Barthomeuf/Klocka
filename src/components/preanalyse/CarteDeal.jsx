@@ -172,15 +172,36 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
     enabled: !!dealId,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   });
+  // L'étape affichée est un choix d'écran ; l'étape atteinte vient du serveur.
+  const [vue, setVue] = useState(null);
+  const etapeMax = Math.max(e1?.etape_max || 1, e1?.etape || 1);
+  const etapeVue = Math.min(vue || e1?.etape || 1, etapeMax);
   const { data: e2 } = useQuery({
     queryKey: ["etape2", dealId],
     queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape2`),
-    enabled: !!dealId && (e1?.etape || 1) === 2,
+    enabled: !!dealId && etapeVue === 2,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   });
   const { data: e3 } = useQuery({ queryKey: ["etape3", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape3`), enabled: !!dealId && !!e1?.lue });
   const [dialogEtape, setDialogEtape] = useState(null);
-  const { data: e4 } = useQuery({ queryKey: ["etape4", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape4`), enabled: !!dealId && (e1?.etape || 1) === 4 });
+  const { data: relance } = useQuery({
+    queryKey: ["preanalyse-documents", dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/preanalyse-documents`),
+    enabled: !!dealId,
+    refetchInterval: (q) => (q.state.data?.etat === "en_cours" ? 3000 : false),
+  });
+  const relancerPre = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/relancer-preanalyse`, { body: {} }),
+    onSuccess: () => { toast.success("Pré-analyse relancée — l'analyse suivra"); queryClient.invalidateQueries({ queryKey: ["preanalyse-documents", dealId] }); },
+    onError: (x) => toast.error(x?.message || "Impossible"),
+  });
+  const relancerAnalyse = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/etape/${Math.min(etapeVue, 2)}`, { body: { relire: true } }),
+    onSuccess: () => { toast.success("Relecture lancée"); ["etape1", "etape2", "etape3", "etape4", "carte", "matrice", "fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] })); },
+    onError: (x) => toast.error(x?.message || "Impossible"),
+  });
+  React.useEffect(() => { if (relance?.etat === "pret" && relance?.relance) { onRefresh?.(); tout(); } }, [relance?.etat]);
+  const { data: e4 } = useQuery({ queryKey: ["etape4", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape4`), enabled: !!dealId && etapeVue === 4 });
   const changerEtape = useMutation({
     mutationFn: (n) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/etape/${n}`, { body: {} }),
     onSuccess: () => ["etape1", "etape2", "etape3", "etape4", "carte"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] })),
@@ -207,7 +228,7 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
   if (isLoading || !carte || !e1) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
 
   // Les quatre étapes ont chacune leur écran, dans le même cadre.
-  const etapeCourante = e1.etape || 1;
+  const etapeCourante = etapeVue;
   const donnees = { 1: e1, 2: e2, 3: e3, 4: e4 }[etapeCourante];
   if (etapeCourante <= 4) {
     if (!donnees) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
@@ -219,22 +240,39 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
       3: [{ id: "risques", titre: "Les risques", droite: String(e3?.risques?.length || 0) }, { id: "prix", titre: "Le prix" }, { id: "match", titre: "Match investisseur" }, { id: "decision", titre: "La décision" }],
       4: [],
     };
-    const TITRES = { 1: ["Bail et locataire", e1.lue ? "En cours" : "À lire", "Le bail tient-il, les chiffres sont-ils vrais ?"], 2: ["Bien, copro, marché", e2?.lue ? "En cours" : "À lire", "Le bien et son environnement méritent-ils qu'on y mette de l'argent ?"], 3: ["Risques, prix et décision", "Décision", "Aucune lecture : assemblage, chiffrage, décision."], 4: ["Présentation et closing", "Closing", "La présentation, la négociation, la conclusion."] };
+    const TITRES = { 1: ["Bail et locataire", e1.lue ? "En cours" : "À lire", "Le bail tient-il, les chiffres sont-ils vrais ?"], 2: ["Bien, copropriété et marché", e2?.lue ? "En cours" : "À lire", "Le bien et son environnement méritent-ils qu'on y mette de l'argent ?"], 3: ["Risques, prix et décision", "Décision", "Aucune lecture : assemblage, chiffrage, décision."], 4: ["Présentation et closing", e4?.conclusion ? "Conclu" : "En négociation", "Proposer n'est pas closer : le deal est suivi jusqu'à sa conclusion."] };
     const [titre, statut, question] = TITRES[etapeCourante];
     const suivante = e1.etapes[etapeCourante];
+    const precedente = e1.etapes[etapeCourante - 2];
+    // Vers l'avant : déjà atteinte, on s'y rend ; sinon on la lance.
+    const avancer = () => { if (etapeCourante + 1 <= etapeMax) setVue(etapeCourante + 1); else changerEtape.mutate(etapeCourante + 1, { onSuccess: () => setVue(etapeCourante + 1) }); };
     const pied = (
       <>
+        <span className="flex items-center gap-6">
+          {precedente ? <button onClick={() => setVue(etapeCourante - 1)} className="text-[13.5px] text-[#9298a6] hover:text-[#f2f3f5]">← Étape {precedente.n} · {precedente.titre}</button> : <span />}
+        </span>
         <Mono>Étape {etapeCourante} / {e1.etapes.length}</Mono>
         <span className="flex items-center gap-4">
           {etapeCourante < 4 && donnees.lue !== false && <button onClick={() => !apercu && setDialogEtape("demande_documents")} className="text-[12.5px] text-[#9298a6] hover:text-[#f2f3f5]">Demander des compléments</button>}
           {etapeCourante < 4 && donnees.lue !== false && <button onClick={() => !apercu && setDialogEtape("abandon")} className="text-[12.5px] text-[#9298a6] hover:text-[#e8746a]">Passer</button>}
-          {suivante && <button onClick={() => !apercu && changerEtape.mutate(etapeCourante + 1)} disabled={apercu || donnees.lue === false} className="text-[13.5px] text-[#f2f3f5] hover:text-[#ffffff] disabled:opacity-40">Étape {suivante.n} · {suivante.titre} →</button>}
+          {suivante && <button onClick={() => !apercu && avancer()} disabled={apercu || donnees.lue === false} className="text-[13.5px] text-[#f2f3f5] hover:text-[#ffffff] disabled:opacity-40">Étape {suivante.n} · {suivante.titre} →</button>}
         </span>
       </>
     );
+    const relanceEnCours = relance?.etat === "en_cours";
+    const actions = (
+      <span className="flex items-center gap-3">
+        {relanceEnCours ? <Mono className="text-[#9298a6]">{relance.phase === "preanalyse" ? "pré-analyse…" : relance.phase?.startsWith("etape") ? `relecture ${relance.fait ?? 0}/${relance.total ?? "…"}` : "en cours…"}</Mono> : (
+          <>
+            {etapeCourante <= 2 && e1.lue && <button onClick={() => !apercu && relancerAnalyse.mutate()} disabled={apercu} className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5]">Relancer l'analyse</button>}
+            {dossier.lots?.length > 0 && <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse depuis le teaser, puis relire la data room ?") && relancerPre.mutate()} disabled={apercu} className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5]">Relancer la pré-analyse</button>}
+          </>
+        )}
+      </span>
+    );
     const propsEtape = { dossier, onPreuve: ouvrirPreuve, onRefresh, apercu, dialog: dialogEtape, setDialog: setDialogEtape };
     return (
-      <CadreEtapes etapes={e1.etapes} etape={etapeCourante} compteurs={compteurs} sections={SECTIONS[etapeCourante]} prixCourant={e3?.prix?.courant || null} titre={titre} statut={statut} question={question} progression={prog} onEtape={(n) => changerEtape.mutate(n)} apercu={apercu} pied={pied}>
+      <CadreEtapes etapes={e1.etapes} etape={etapeCourante} etapeMax={etapeMax} compteurs={compteurs} sections={SECTIONS[etapeCourante]} prixCourant={e3?.prix?.courant || null} titre={titre} statut={statut} question={question} progression={prog} onEtape={(n) => setVue(n)} apercu={apercu} pied={pied} actions={actions}>
         <div className={preuve ? "lg:flex lg:gap-6 lg:items-start" : ""}>
           <div className="min-w-0 flex-1">
             {etapeCourante === 4 ? <EtapeDataRoom4 e={e4} {...propsEtape} />

@@ -20,7 +20,7 @@ export function Section({ id, titre, droite, children, sansFilet = false }) {
   );
 }
 
-export default function CadreEtapes({ etapes, etape, compteurs = {}, sections = [], prixCourant = null, titre, statut, question, progression, onEtape, apercu, pied, children }) {
+export default function CadreEtapes({ etapes, etape, etapeMax = etape, compteurs = {}, sections = [], prixCourant = null, titre, statut, question, progression, onEtape, apercu, pied, actions = null, children }) {
   const aller = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   const part = progression?.total ? Math.round((progression.lus / progression.total) * 100) : 0;
   return (
@@ -31,7 +31,7 @@ export default function CadreEtapes({ etapes, etape, compteurs = {}, sections = 
         <ul className="m-0 p-0 list-none">
           {etapes.map((x) => (
             <li key={x.n}>
-              <button onClick={() => x.n <= etape && onEtape?.(x.n)} disabled={apercu || x.n > etape} className={`w-full text-left px-5 py-2.5 flex items-baseline justify-between gap-3 border-l-2 ${x.n === etape ? "border-[#f2f3f5] bg-[#f2f3f5]/[0.04] text-[#f2f3f5]" : x.n < etape ? "border-transparent text-[#c9cdd6] hover:text-[#f2f3f5]" : "border-transparent text-[#4d545d]"}`}>
+              <button onClick={() => x.n <= etapeMax && onEtape?.(x.n)} disabled={apercu || x.n > etapeMax} className={`w-full text-left px-5 py-2.5 flex items-baseline justify-between gap-3 border-l-2 ${x.n === etape ? "border-[#f2f3f5] bg-[#f2f3f5]/[0.04] text-[#f2f3f5]" : x.n <= etapeMax ? "border-transparent text-[#c9cdd6] hover:text-[#f2f3f5]" : "border-transparent text-[#4d545d]"}`}>
                 <span className="text-[13.5px]">{x.n} {x.titre}</span>
                 <Mono className={x.n === etape ? "text-[#9298a6]" : ""}>{compteurs[x.n] ?? ""}</Mono>
               </button>
@@ -66,6 +66,7 @@ export default function CadreEtapes({ etapes, etape, compteurs = {}, sections = 
             {statut && <Mono className="text-[#9298a6]">{statut}</Mono>}
             {question && <span className="text-[13px] text-[#9298a6]">{question}</span>}
           </div>
+          {actions}
           {progression && (
             <div className="flex items-center gap-3 flex-none">
               <div className="w-[120px] h-px bg-[#2c3139] relative"><div className="absolute left-0 top-[-1px] h-[3px] bg-[#f2f3f5]" style={{ width: `${part}%` }} /></div>

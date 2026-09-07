@@ -17,9 +17,9 @@ import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
 import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
-import CarteDeal from "@/components/preanalyse/CarteDeal";
 import BarreRelances from "@/components/preanalyse/BarreRelances";
 import GrilleBail from "@/components/preanalyse/GrilleBail";
+import DocumentsDossier from "@/components/preanalyse/DocumentsDossier";
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
@@ -81,8 +81,6 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
   // En aperçu, tout est déverrouillé pour parcourir les écrans librement.
   const debloquee = apercu ? ETAPES.length : etapeDebloquee(dossier);
   const [etape, setEtape] = useState(() => (apercu ? 1 : debloquee));
-  const [partieAnalyse, setPartieAnalyse] = useState(() => { try { return localStorage.getItem("klocka_partie_analyse") || "etapes"; } catch { return "etapes"; } });
-  useEffect(() => { try { localStorage.setItem("klocka_partie_analyse", partieAnalyse); } catch { /* sans mémoire */ } }, [partieAnalyse]);
   const [preuveGrille, setPreuveGrille] = useState(null);
   const [deblocageEnCours, setDeblocageEnCours] = useState(false);
   // Documents cochés dans l'étape Analyse, soumis au chat.
@@ -340,25 +338,12 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         )}
         {etape === 3 && (
           <div id="tables-analyse">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-              <div className="inline-flex border border-[#2c3139] p-0.5 text-[13px]">
-                {[["etapes", "Les étapes"], ["grille", "Grille · Bail"]].map(([id, l]) => (
-                  <button key={id} onClick={() => setPartieAnalyse(id)} className={`px-4 py-1.5 transition-colors ${partieAnalyse === id ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{l}</button>
-                ))}
-              </div>
-              <BarreRelances dossier={dossier} onRefresh={onRefresh} apercu={apercu} nue />
+            <BarreRelances dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
+            <GrilleBail dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
+            <div className="mt-5 bg-[#000000] border border-[#1f2228] rounded-md px-6 max-md:px-4 py-5">
+              <p className="m-0 mb-3 font-mono text-[10px] tracking-[.18em] uppercase text-[#6a7180]">Documents du dossier</p>
+              <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive />
             </div>
-            {partieAnalyse === "grille" ? (
-              <GrilleBail dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
-            ) : (
-              <CarteDeal
-                dossier={dossier}
-                coches={documentsCoches}
-                onCocher={setDocumentsCoches}
-                onRefresh={onRefresh}
-                apercu={apercu}
-              />
-            )}
             {preuveGrille && (
               <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-[#000000] border-l border-[#22262d] shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} />

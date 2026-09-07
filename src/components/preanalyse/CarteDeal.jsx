@@ -193,16 +193,6 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
     enabled: !!dealId,
     refetchInterval: (q) => (q.state.data?.etat === "en_cours" ? 3000 : false),
   });
-  const relancerPre = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/relancer-preanalyse`, { body: {} }),
-    onSuccess: () => { toast.success("Pré-analyse relancée — l'analyse suivra"); queryClient.invalidateQueries({ queryKey: ["preanalyse-documents", dealId] }); },
-    onError: (x) => toast.error(x?.message || "Impossible"),
-  });
-  const relancerAnalyse = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/etape/${Math.min(etapeVue, 2)}`, { body: { relire: true } }),
-    onSuccess: () => { toast.success("Relecture lancée"); ["etape1", "etape2", "etape3", "etape4", "carte", "matrice", "fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] })); },
-    onError: (x) => toast.error(x?.message || "Impossible"),
-  });
   React.useEffect(() => { if (relance?.etat === "pret" && relance?.relance) { onRefresh?.(); tout(); } }, [relance?.etat]);
   const { data: e4 } = useQuery({ queryKey: ["etape4", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape4`), enabled: !!dealId && etapeVue === 4 });
   const changerEtape = useMutation({
@@ -256,17 +246,8 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
         </span>
       </>
     );
-    const relanceEnCours = relance?.etat === "en_cours";
     const actions = (
-      <span className="flex items-center gap-3">
-        <button onClick={() => setNotesOuvertes((o) => !o)} className={`font-mono text-[10px] tracking-[.14em] uppercase ${notesOuvertes ? "text-[#f2f3f5]" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>Notes et suite</button>
-        {relanceEnCours ? <Mono className="text-[#9298a6]">{relance.phase === "preanalyse" ? "pré-analyse…" : relance.phase?.startsWith("etape") ? `relecture ${relance.fait ?? 0}/${relance.total ?? "…"}` : "en cours…"}</Mono> : (
-          <>
-            <button onClick={() => !apercu && window.confirm(`Relire toutes les pièces de l'étape ${Math.min(etapeCourante, 2)} ?`) && relancerAnalyse.mutate()} disabled={apercu || !nbDocs || enCours} title={nbDocs ? "Relit toutes les pièces de l'étape, même celles déjà lues" : "Importez des documents d'abord"} className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] disabled:opacity-40">Relancer l'analyse</button>
-            <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse depuis le teaser (ou les pièces), puis relire la data room ?") && relancerPre.mutate()} disabled={apercu || enCours} title="Rejoue la pré-analyse, puis l'analyse jusqu'à l'étape atteinte" className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] disabled:opacity-40">Relancer la pré-analyse</button>
-          </>
-        )}
-      </span>
+      <button onClick={() => setNotesOuvertes((o) => !o)} className={`text-[12.5px] px-3 py-1.5 border transition-colors ${notesOuvertes ? "border-[#f2f3f5] text-[#f2f3f5]" : "border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5]"}`}>Notes et suite</button>
     );
     const propsEtape = { dossier, onPreuve: ouvrirPreuve, onRefresh, apercu, dialog: dialogEtape, setDialog: setDialogEtape };
     return (

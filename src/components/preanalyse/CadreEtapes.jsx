@@ -7,12 +7,14 @@ export const Mono = ({ children, className = "" }) => <span className={`font-mon
 export const eur = (v) => (v == null ? "—" : `${Math.round(v).toLocaleString("fr-FR")} €`);
 export const fourchette = (f, suffixe = " €") => (!f || f[0] == null ? "—" : f[0] === f[1] ? `${Math.round(f[0]).toLocaleString("fr-FR")}${suffixe}` : `${Math.round(f[0]).toLocaleString("fr-FR")} – ${Math.round(f[1]).toLocaleString("fr-FR")}${suffixe}`);
 
+// Le titre d'une sous-partie a la même voix que celui de l'étape :
+// « 1 · Copropriété », en gras, pas en mono.
 export function Section({ id, titre, droite, children, sansFilet = false }) {
   return (
-    <section id={id} className={`px-6 max-md:px-4 py-5 ${sansFilet ? "" : "border-b border-[#1f2228]"}`}>
-      <div className="flex items-baseline justify-between gap-4 mb-3">
-        <Mono>{titre}</Mono>
-        {droite ? <span className="text-[12px] text-[#9298a6]">{droite}</span> : null}
+    <section id={id} className={`px-6 max-md:px-4 py-6 ${sansFilet ? "" : "border-b border-[#1f2228]"}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-4">
+        <h3 className="m-0 text-[17px] font-semibold text-[#f2f3f5] tracking-[-.01em]">{titre}</h3>
+        {droite ? <span className="text-[12.5px] text-[#9298a6]">{droite}</span> : null}
       </div>
       {children}
     </section>

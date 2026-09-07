@@ -1993,6 +1993,14 @@ app.post('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
   ok(res, { ok: true });
 }));
 
+app.post('/api/preanalyse/dossiers/:dealId/relancer-analyse', wrap(async (req, res) => {
+  const { lancerRemplissage } = await import('./deal/matrice.js');
+  const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
+  const ids = (d.documents_espace || []).map((x) => x.id);
+  if (!ids.length) return res.status(400).json({ error: 'Aucune pièce à relire.' });
+  ok(res, lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementDocuments: ids }));
+}));
 app.post('/api/preanalyse/dossiers/:dealId/relancer-preanalyse', wrap(async (req, res) => {
   const { relancerPreanalyse } = await import('./deal/preanalyse-documents.js');
   ok(res, relancerPreanalyse(req.params.dealId, { user: currentUser(req), uploadDir: UPLOAD_DIR }));

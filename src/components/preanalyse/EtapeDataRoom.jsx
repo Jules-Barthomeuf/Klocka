@@ -110,20 +110,27 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
 
       {/* Écarts teaser → data room */}
       <Section id="ecarts" titre="Écarts avec la pré-analyse" droite={e.ecarts.length ? `${e.ecarts.length} champ${e.ecarts.length > 1 ? "s" : ""} qui bouge${e.ecarts.length > 1 ? "nt" : ""}` : null}>
-        {e.ecarts.length ? e.ecarts.map((x) => (
-          <div key={x.libelle} className="grid grid-cols-[130px_1fr] max-md:grid-cols-1 gap-x-6 py-4 border-t border-[#15171b] first:border-t-0">
-            <span className="text-[13px] text-[#6a7180] pt-1">{x.libelle}</span>
-            <div className="min-w-0">
-              <p className="m-0 flex flex-wrap items-baseline gap-x-3">
-                {x.teaser != null ? <span className="text-[16px] text-[#6a7180] line-through">{x.teaser}</span> : <Mono>non annoncé</Mono>}
-                <span className="text-[#4d545d]">→</span>
-                <span className="text-[20px] font-semibold text-[#f2f3f5]">{x.bail}</span>
-                {x.etiquette && <Mono className="text-[#9298a6]">{x.etiquette}</Mono>}
-              </p>
-              <p className="m-0 mt-1.5 text-[13.5px] leading-[1.6] text-[#c9cdd6] max-w-[760px]">{x.commentaire}</p>
-            </div>
+        {e.ecarts.length ? (
+          <div className="divide-y divide-[#15171b]">
+            {e.ecarts.map((x) => {
+              const court = (t) => (String(t).length > 44 ? `${String(t).slice(0, 42)}…` : String(t));
+              return (
+                <div key={x.libelle} className="grid grid-cols-[130px_minmax(0,1fr)_140px] max-md:grid-cols-1 gap-x-6 gap-y-1 py-4 items-baseline">
+                  <span className="text-[13px] text-[#6a7180]">{x.libelle}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-x-3 min-w-0">
+                      {x.teaser != null ? <span className="text-[15px] text-[#6a7180] line-through whitespace-nowrap flex-none" title={String(x.teaser)}>{court(x.teaser)}</span> : <Mono className="flex-none">non annoncé</Mono>}
+                      <span className="text-[#4d545d] flex-none">→</span>
+                      <span className="text-[19px] font-semibold text-[#f2f3f5] truncate" title={String(x.bail)}>{x.bail}</span>
+                    </div>
+                    <p className="m-0 mt-1 text-[13px] leading-[1.6] text-[#9298a6] max-w-[760px]">{x.commentaire}</p>
+                  </div>
+                  <span className="md:text-right">{x.etiquette && x.etiquette !== "non annoncé" ? <Mono className="text-[#9298a6]">{x.etiquette}</Mono> : null}</span>
+                </div>
+              );
+            })}
           </div>
-        )) : <p className="m-0 text-[13px] text-[#9298a6]">Aucun écart significatif avec la pré-analyse.</p>}
+        ) : <p className="m-0 text-[13px] text-[#9298a6]">Aucun écart significatif avec la pré-analyse.</p>}
       </Section>
 
       {/* Anomalies */}

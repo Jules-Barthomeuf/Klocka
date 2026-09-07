@@ -7,7 +7,7 @@
 // Étape 2 — Immeuble et copropriété. Étape 3 — Prix et négociation.
 
 import { Records } from '../db.js';
-import { lireMatrice, lireFiche, lancerRemplissage } from './matrice.js';
+import { lireMatrice, lireFiche, lancerRemplissage, livrables } from './matrice.js';
 import { montants, surfaces, dates, loyerAnnuel } from './dossier-lecture.js';
 import { calculerAEM } from './aem.js';
 import { REGLES } from './enrich.js';
@@ -15,7 +15,8 @@ import { REGLES } from './enrich.js';
 export const ETAPES = [
   { n: 1, titre: 'Bail et locataire', categories: ['Bail commercial', 'Avenants', 'Quittances', 'Kbis', "PV d'AG preneur"] },
   { n: 2, titre: 'Immeuble et copropriété', categories: ['Règlement de copropriété', 'EDD', "PV d'AG copro", 'Appels de charges', 'Diagnostics', 'Plans & Carrez', 'Taxe foncière', 'Acte', 'Autre'] },
-  { n: 3, titre: 'Prix et négociation', categories: [] },
+  { n: 3, titre: 'Risques, prix, décision', categories: [] },
+  { n: 4, titre: 'Présentation et closing', categories: [] },
 ];
 
 const val = (c) => (c && c.absent === false ? c.valeur : c?.valeur ?? null);
@@ -38,6 +39,7 @@ export function lancerEtape(dealId, n, { user, uploadDir } = {}) {
   const etape = ETAPES.find((e) => e.n === Number(n)) || ETAPES[0];
   const docs = inventaire(brut, m).filter((d) => !d.lu && (etape.n >= 3 || etape.categories.includes(d.categorie)));
   Records.update('Deal', brut.id, { analyse_etape: etape.n });
+  if (etape.n >= 3) photographierFiche(dealId);
   if (!docs.length) return { ok: true, etape: etape.n, rien_a_lire: true };
   const t = lancerRemplissage(dealId, { user, uploadDir, seulementDocuments: docs.map((d) => d.id) });
   return { ok: true, etape: etape.n, remplissage: t, documents: docs.length };
@@ -225,9 +227,24 @@ export function lireEtape1(dealId) {
 
   const demandes = [...aClarifier.map((x) => `${x.libelle} : ${x.detail}`), ...manquants.map((x) => `${x.piece} — ${x.detail}. Pouvez-vous nous le transmettre ?`)].join('\n');
 
+  // Le bandeau : loyer, revenu net, net AEM, écart teaser. Puis les anomalies, triées par gravité.
+  const revenuNet = loyer ? loyer - (chargesNonRecup || 0) - (taxe || 0) - (coproRefacturee ? 0 : chargesCopro || 0) : null;
+  const bandeau = {
+    loyer, revenu_net: revenuNet != null ? Math.round(revenuNet) : null,
+    net_aem: rentabilite.rendement_net_aem, brut_aem: rentabilite.rendement_brut_aem,
+    ecart_teaser_pt: aem && aemTeaser ? Number((aem.rendement_aem - aemTeaser.rendement_aem).toFixed(2)) : null,
+    rendement_teaser: aemTeaser?.rendement_aem ?? null,
+  };
+  const anomalies = [
+    ...db.filter((x) => !x.ok).map((x) => ({ gravite: x.gravite === 'dur' ? 0 : 1, statut: x.gravite === 'dur' ? 'ko' : 'a_verifier', titre: x.libelle, detail: x.detail || '', source: x.source, action: x.action || null })),
+    ...ecartsSignificatifs.map((x) => ({ gravite: 2, statut: 'a_verifier', titre: `${x.libelle} : teaser ${x.teaser ?? '—'} → bail ${x.bail}`, detail: x.commentaire, source: null })),
+    ...notables.map((n) => ({ gravite: /favorable/i.test(n.renvoi) ? 4 : 3, statut: /favorable/i.test(n.renvoi) ? 'ok' : 'a_verifier', titre: n.titre, detail: n.detail, source: n.source, action: n.renvoi })),
+  ].sort((a, b) => a.gravite - b.gravite);
+
   return {
     etape: etapeCourante,
     etapes: ETAPES.map((e) => ({ n: e.n, titre: e.titre })),
+    bandeau, anomalies,
     progression: { lus: docs.filter((d) => d.lu).length, total: docs.length, lus_etape: lusEtape1, presents_etape: presentsEtape1 },
     remplissage: m.remplissage,
     lue,
@@ -396,4 +413,233 @@ export function lireEtape2(dealId) {
     deal_breakers: db, recommandation, demandes_texte: demandes, motif_passer: durs.map((x) => x.libelle).join(' ; ') || null,
     grilles: grillesParCategorie(m),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Étape 3 — Risques, prix, décision. Aucune lecture : de l'assemblage.
+// Cinq risques, chacun avec son raisonnement, ses sources et ce dont il se
+// nourrit. L'analyste confirme, ajuste ou écarte : la décote, le prix ajusté,
+// le rendement et le score bougent en direct. Trois leviers de négociation,
+// plafonnés au prix demandé. Le match investisseur suit.
+// ---------------------------------------------------------------------------
+const NIVEAU_DECOTE = { fort: 8, moyen: 4, faible: 0 };
+const FACTEUR_VERDICT = { confirme: 1, ajuste: 0.5, ecarte: 0 };
+
+function evaluerRisques(e1, e2) {
+  const r = e1.rentabilite;
+  const restant = (() => { const x = e1.deal_breakers.find((d) => /Durée .*restante/i.test(d.libelle)); const m = x?.libelle.match(/(\d+)\s*an/); return m ? Number(m[1]) : null; })();
+  const locataireFragile = e1.notables.find((n) => /fragile/i.test(n.titre));
+  const sansCaution = e1.fiche.lignes.find((l) => l.id === 'caution')?.valeur === 'Aucune';
+  const marcheInconnu = !e2?.marche?.contexte;
+  const risques = [];
+
+  // 1. Vacance
+  {
+    const facteurs = [];
+    if (restant != null && restant < 3) facteurs.push(`bail à moins de trois ans (${restant})`);
+    if (locataireFragile) facteurs.push('locataire fragile');
+    if (sansCaution) facteurs.push('aucune caution');
+    if (marcheInconnu) facteurs.push('marché non documenté');
+    if (e2?.surfaces?.incoherence) facteurs.push('périmètre de surface incertain');
+    const niveau = facteurs.length >= 3 ? 'fort' : facteurs.length >= 1 ? 'moyen' : 'faible';
+    risques.push({ id: 'vacance', titre: 'Vacance', niveau, raisonnement: facteurs.length ? `Si le preneur part, la relocation dépend de : ${facteurs.join(', ')}.` : 'Bail long, preneur solide, marché lisible : la vacance est un risque ordinaire.', sources: [e1.fiche.lignes.find((l) => l.id === 'bail')?.source, e1.fiche.lignes.find((l) => l.id === 'caution')?.source].filter(Boolean), nourri_de: ['Étape 1 · bail et locataire', 'Étape 2 · marché'] });
+  }
+  // 2. Rendement
+  {
+    const net = r.rendement_net_aem;
+    const niveau = net == null ? 'moyen' : net < r.seuil - 1 ? 'fort' : net < r.seuil ? 'moyen' : 'faible';
+    risques.push({ id: 'rendement', titre: 'Rendement', niveau, raisonnement: net == null ? 'Rentabilité non calculable : prix ou loyer manquant.' : `${net.toFixed(2)} % net AEM contre un seuil de ${r.seuil.toFixed(2)} %${e1.bandeau.ecart_teaser_pt != null ? `, ${e1.bandeau.ecart_teaser_pt >= 0 ? '+' : ''}${e1.bandeau.ecart_teaser_pt} pt par rapport au teaser` : ''}.`, sources: [e1.fiche.lignes.find((l) => l.id === 'loyer')?.source].filter(Boolean), nourri_de: ['Étape 1 · rentabilité réelle', 'Étape 1 · écarts avec le teaser'] });
+  }
+  // 3. Juridique
+  {
+    const pts = e1.deal_breakers.filter((d) => !d.ok);
+    if (e2?.copro?.conformite?.statut === 'ko') pts.push({ libelle: 'Activité non conforme au RCP', gravite: 'dur' });
+    const niveau = pts.some((x) => x.gravite === 'dur') ? 'fort' : pts.length ? 'moyen' : 'faible';
+    risques.push({ id: 'juridique', titre: 'Juridique', niveau, raisonnement: pts.length ? pts.map((x) => x.libelle).join(' ; ') + '.' : 'Bail classique, pas de clause de sortie libre, pas de litige, activité admise.', sources: pts.map((x) => x.source).filter(Boolean), nourri_de: ['Étape 1 · deal-breakers', 'Étape 2 · copropriété'] });
+  }
+  // 4. Technique
+  {
+    const actions = (e2?.etat_bien || []).filter((x) => x.statut === 'action');
+    const absents = (e2?.etat_bien || []).filter((x) => x.statut === 'absent').length;
+    const niveau = actions.length >= 2 ? 'fort' : actions.length === 1 || absents >= 5 ? 'moyen' : 'faible';
+    risques.push({ id: 'technique', titre: 'Technique', niveau, raisonnement: actions.length ? `Action requise : ${actions.map((x) => `${x.sujet} (${x.action})`).join(' ; ')}.` : absents >= 5 ? 'Diagnostics largement absents : l\'état du bien n\'est pas documenté.' : 'Diagnostics sans action requise.', sources: actions.map((x) => x.source).filter(Boolean), nourri_de: ['Étape 2 · état du bien'] });
+  }
+  // 5. Copropriété
+  {
+    const c = e2?.copro;
+    const statuts = c ? [c.travaux.statut, c.litiges.statut, c.cout.statut] : [];
+    const niveau = statuts.includes('ko') ? 'fort' : statuts.includes('a_verifier') || statuts.every((x) => x === 'inconnu') ? 'moyen' : 'faible';
+    risques.push({ id: 'copropriete', titre: 'Copropriété', niveau, raisonnement: c ? [c.travaux.texte, c.litiges.texte, c.cout.texte].join(' ') : 'Copropriété non lue.', sources: c ? [c.travaux.source, c.litiges.source].filter(Boolean) : [], nourri_de: ['Étape 2 · copropriété'] });
+  }
+  return risques.map((x) => ({ ...x, decote_pct: NIVEAU_DECOTE[x.niveau] }));
+}
+
+const LEVIERS = [
+  { id: 'prix', titre: 'Baisse du prix', detail: 'Ramener le prix au seuil de rendement.', effet: 'prix' },
+  { id: 'garanties', titre: 'Garanties du bail', detail: 'Caution ou dépôt renforcé, avenant signé avant la vente.', effet: 'risque:vacance' },
+  { id: 'travaux', titre: 'Travaux et charges au vendeur', detail: 'Diagnostics à action et travaux votés pris en charge par le vendeur.', effet: 'risque:technique' },
+];
+
+export async function lireEtape3(dealId) {
+  const e1 = lireEtape1(dealId);
+  if (!e1) return null;
+  const e2 = lireEtape2(dealId);
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const revue = brut.risques_revue || {};
+  const leviersCoches = new Set(brut.negociation?.leviers || []);
+  const r = e1.rentabilite;
+  const prix = r.prix_fai || null;
+
+  const risques = evaluerRisques(e1, e2).map((x) => {
+    let verdict = revue[x.id] || 'confirme';
+    // Un levier coché neutralise le risque qu'il adresse.
+    const levier = LEVIERS.find((l) => l.effet === `risque:${x.id}` && leviersCoches.has(l.id));
+    const facteur = levier ? 0 : FACTEUR_VERDICT[verdict] ?? 1;
+    return { ...x, verdict, decote_retenue_pct: Number((x.decote_pct * facteur).toFixed(1)), neutralise_par: levier?.titre || null, replie: x.niveau === 'faible' };
+  });
+  const decoteTotale = Number(risques.reduce((n, x) => n + x.decote_retenue_pct, 0).toFixed(1));
+  // Le levier prix vise le seuil ; jamais au-dessus du prix demandé.
+  const prixSeuil = r.cible?.prix_fai || null;
+  let prixAjuste = prix ? Math.round(prix * (1 - decoteTotale / 100)) : null;
+  if (leviersCoches.has('prix') && prixSeuil && prixAjuste && prixSeuil < prixAjuste) prixAjuste = prixSeuil;
+  if (prix && prixAjuste > prix) prixAjuste = prix;
+  const aemAjuste = prix && r.loyer_bail && prixAjuste ? calculerAEM({ prixFai: prix, prixNegocie: prixAjuste, loyerAnnuel: r.loyer_bail }) : null;
+  const loyerNet = r.loyer_bail ? r.loyer_bail - (r.charges_non_recup || 0) - (r.taxe_fonciere_bailleur || 0) : null;
+  const rendementNetAjuste = aemAjuste && loyerNet ? Number(((loyerNet / aemAjuste.prix_aem) * 100).toFixed(2)) : null;
+  const poids = { fort: 30, moyen: 15, faible: 5 };
+  const score = Math.max(0, Math.min(100, Math.round(100 - risques.reduce((n, x) => n + poids[x.niveau] * (x.neutralise_par ? 0 : FACTEUR_VERDICT[x.verdict] ?? 1), 0))));
+
+  // Le match investisseur : prêts au prix ajusté, possibles avec les leviers, hors budget.
+  let match = { configure: false, prets: [], possibles: [], hors: [] };
+  try {
+    const { mondayConfigure } = await import('../monday.js');
+    if (mondayConfigure() && prix) {
+      const { investisseursPourBien } = await import('./monday-sync.js');
+      const ville = e1.fiche.titre.split(' — ').pop() || '';
+      const auPrix = await investisseursPourBien({ cout: prixAjuste || prix, ville });
+      const auSeuil = prixSeuil && prixSeuil < (prixAjuste || prix) ? await investisseursPourBien({ cout: prixSeuil, ville }) : [];
+      const cle = (c) => c.client?.email || c.client?.nom;
+      const prets = auPrix.map((c) => ({ nom: c.client.nom, email: c.client.email, raisons: c.raisons }));
+      const dejaPrets = new Set(prets.map((x) => x.email || x.nom));
+      const possibles = auSeuil.filter((c) => !dejaPrets.has(cle(c))).map((c) => ({ nom: c.client.nom, email: c.client.email, raisons: c.raisons, si: 'baisse du prix au seuil' }));
+      match = { configure: true, prets, possibles, hors: [] };
+    }
+  } catch { /* sans Monday, pas de rapprochement */ }
+
+  const liv = livrables(dealId) || { demandes_texte: '', note: '' };
+  return {
+    etape: e1.etape, etapes: e1.etapes, progression: e1.progression,
+    risques, leviers: LEVIERS.map((l) => ({ ...l, coche: leviersCoches.has(l.id) })),
+    prix: { demande: prix, seuil: prixSeuil, ajuste: prixAjuste, decote_pct: decoteTotale, rendement_net_ajuste: rendementNetAjuste, rendement_brut_ajuste: aemAjuste?.rendement_aem ?? null, seuil_rendement: r.seuil, score },
+    match,
+    demandes_texte: [e1.demandes_texte, e2?.demandes_texte].filter(Boolean).join('\n'),
+    note: liv.note,
+    motif_passer: [e1.motif_passer, e2?.motif_passer].filter(Boolean).join(' ; ') || risques.filter((x) => x.niveau === 'fort' && x.verdict === 'confirme').map((x) => x.titre).join(', ') || null,
+  };
+}
+
+export function reviserRisque(dealId, id, verdict) {
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!brut) return { ok: false, error: 'Dossier introuvable' };
+  if (!['confirme', 'ajuste', 'ecarte'].includes(verdict)) return { ok: false, error: 'Verdict inconnu' };
+  Records.update('Deal', brut.id, { risques_revue: { ...(brut.risques_revue || {}), [id]: verdict } });
+  return { ok: true };
+}
+export function cocherLeviers(dealId, ids) {
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!brut) return { ok: false, error: 'Dossier introuvable' };
+  const valides = LEVIERS.map((l) => l.id);
+  Records.update('Deal', brut.id, { negociation: { ...(brut.negociation || {}), leviers: (ids || []).filter((x) => valides.includes(x)) } });
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Étape 4 — Présentation et closing.
+// ---------------------------------------------------------------------------
+const PROFILS = [
+  { id: 'pere_de_famille', titre: 'Père de famille', accent: 'la sécurité du flux : bail, garanties, locataire, copropriété saine.' },
+  { id: 'equilibre', titre: 'Équilibré', accent: 'le rapport rendement / risque : net AEM, décote négociée, points levés.' },
+  { id: 'opportuniste', titre: 'Opportuniste', accent: 'le potentiel : loyer de marché, revalorisation, leviers de négociation.' },
+];
+
+export async function lireEtape4(dealId) {
+  const e3 = await lireEtape3(dealId);
+  if (!e3) return null;
+  const e1 = lireEtape1(dealId);
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const f = lireFiche(dealId);
+  const m = lireMatrice(dealId);
+  const eurs = (v) => (v == null ? '—' : `${Math.round(v).toLocaleString('fr-FR')} €`);
+  const lignes = Object.fromEntries(e1.fiche.lignes.map((l) => [l.id, l.valeur]));
+
+  // La présentation, par profil, en trois formats : pitch, mail, fiche.
+  const faits = [
+    lignes.bail && `Bail : ${lignes.bail}`, lignes.loyer && `Loyer : ${lignes.loyer}`, lignes.locataire && `Locataire : ${lignes.locataire}`,
+    e3.prix.demande && `Prix demandé : ${eurs(e3.prix.demande)}${e3.prix.ajuste && e3.prix.ajuste < e3.prix.demande ? ` · prix cible ${eurs(e3.prix.ajuste)} (décote ${e3.prix.decote_pct} %)` : ''}`,
+    e3.prix.rendement_net_ajuste != null && `Rendement net AEM au prix cible : ${e3.prix.rendement_net_ajuste} %`,
+  ].filter(Boolean);
+  const risquesForts = e3.risques.filter((x) => x.niveau !== 'faible' && x.verdict !== 'ecarte');
+  const presentations = PROFILS.map((p) => {
+    const angle = p.id === 'pere_de_famille'
+      ? [lignes.bail && `Un bail ${lignes.bail.toLowerCase()}`, lignes.caution === 'Aucune' ? 'Point à sécuriser : aucune caution — garantie à négocier.' : lignes.caution && `Garantie : ${lignes.caution}`, lignes.charges && `Charges : ${lignes.charges}`]
+      : p.id === 'equilibre'
+        ? [e3.prix.rendement_net_ajuste != null && `${e3.prix.rendement_net_ajuste} % net AEM au prix cible, seuil ${e3.prix.seuil_rendement.toFixed(2)} %`, `Score de risque ${e3.prix.score}/100`, risquesForts.length ? `Risques traités : ${risquesForts.map((x) => x.titre.toLowerCase()).join(', ')}` : 'Aucun risque fort']
+        : [e1.rentabilite.loyer_bail && f ? `Loyer en place ${eurs(e1.rentabilite.loyer_bail)}/an` : null, e3.leviers.filter((l) => l.coche).length ? `Leviers : ${e3.leviers.filter((l) => l.coche).map((l) => l.titre.toLowerCase()).join(', ')}` : 'Leviers de négociation ouverts', lignes.indexation && `Indexation : ${lignes.indexation}`];
+    const points = angle.filter(Boolean);
+    const pitch = [e1.fiche.titre, ...points.slice(0, 3), faits.find((x) => x.startsWith('Prix'))].filter(Boolean);
+    const mail = `Bonjour,\n\nNous avons analysé pour vous ${e1.fiche.titre}.\n\n${points.map((x) => `– ${x}`).join('\n')}\n\n${faits.map((x) => `– ${x}`).join('\n')}\n\nNous restons à votre disposition pour en parler.\n\nL'équipe Klocka`;
+    const fiche = `# ${e1.fiche.titre}\n\n## Pour un profil ${p.titre.toLowerCase()}\nCe qui compte : ${p.accent}\n\n${points.map((x) => `- ${x}`).join('\n')}\n\n## Les faits\n${faits.map((x) => `- ${x}`).join('\n')}\n\n## Les risques\n${e3.risques.map((x) => `- ${x.titre} (${x.niveau}${x.verdict !== 'confirme' ? `, ${x.verdict}` : ''}) : ${x.raisonnement}`).join('\n')}`;
+    return { ...p, pitch, mail, fiche };
+  });
+
+  // La timeline : le journal du dossier, les compléments, les mails — chaque ligne dit qui a agi.
+  const evenements = [];
+  for (const s of brut.suivi || []) evenements.push({ date: s.le, libelle: s.detail || s.type, acteur: s.par ? 'analyste' : s.type === 'etape' ? 'systeme' : 'automatique', type: s.type });
+  for (const d of brut.documents_espace || []) evenements.push({ date: d.ajoute_le, libelle: `Pièce reçue : ${d.nom}`, acteur: 'analyste', type: 'piece' });
+  if (brut.matrice?.rempli_le) evenements.push({ date: brut.matrice.rempli_le, libelle: 'Data room lue', acteur: 'automatique', type: 'lecture' });
+  if (brut.conclusion?.le) evenements.push({ date: brut.conclusion.le, libelle: `Conclusion : ${brut.conclusion.etat}${brut.conclusion.motif ? ` — ${brut.conclusion.motif}` : ''}`, acteur: 'analyste', type: 'conclusion' });
+  const timeline = evenements.filter((x) => x.date).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+  // Les compléments reçus depuis le passage à l'étape 3 : impact ligne par ligne, ancienne valeur.
+  const instantane = brut.fiche_instantane || null;
+  const complements = [];
+  if (instantane) {
+    const apres = Object.fromEntries(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, { valeur: c.valeur, source: c.source }]));
+    const depuis = instantane.le;
+    const nouvelles = (brut.documents_espace || []).filter((d) => d.ajoute_le > depuis);
+    for (const c of f.blocs.flatMap((b) => b.champs)) {
+      const avant = instantane.valeurs?.[c.id] ?? null;
+      const maintenant = apres[c.id]?.valeur ?? null;
+      if ((avant || maintenant) && avant !== maintenant) complements.push({ champ: c.id, libelle: c.libelle, avant, apres: maintenant, source: apres[c.id]?.source || null });
+    }
+    complements.nouvelles = nouvelles.length;
+    return {
+      etape: e1.etape, etapes: e1.etapes, progression: e1.progression,
+      presentations, timeline, complements: { depuis, pieces: nouvelles.map((d) => d.nom), lignes: complements },
+      conclusion: brut.conclusion || null, titre: e1.fiche.titre,
+    };
+  }
+  return { etape: e1.etape, etapes: e1.etapes, progression: e1.progression, presentations, timeline, complements: { depuis: null, pieces: [], lignes: [] }, conclusion: brut.conclusion || null, titre: e1.fiche.titre };
+}
+
+/** En passant à l'étape 3, la fiche est photographiée : les compléments se mesurent contre elle. */
+export function photographierFiche(dealId) {
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!brut || brut.fiche_instantane) return;
+  const f = lireFiche(dealId);
+  if (!f) return;
+  Records.update('Deal', brut.id, { fiche_instantane: { le: new Date().toISOString(), valeurs: Object.fromEntries(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, c.valeur])) } });
+}
+
+export async function conclure(dealId, { etat, motif, user }) {
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!brut) return { ok: false, error: 'Dossier introuvable' };
+  if (!['signe', 'perdu', 'abandonne'].includes(etat)) return { ok: false, error: 'Conclusion inconnue' };
+  const conclusion = { etat, motif: motif || null, par: user?.email || null, le: new Date().toISOString() };
+  Records.update('Deal', brut.id, { conclusion });
+  const { changerStatut } = await import('./lifecycle.js');
+  const libelle = { signe: 'Signé', perdu: 'Perdu', abandonne: 'Abandonné' }[etat];
+  if (etat !== 'signe') changerStatut({ ...brut, conclusion }, 'abandonne', { user, note: `${libelle}${motif ? ` — ${motif}` : ''}` });
+  else changerStatut({ ...brut, conclusion }, brut.projet_id ? 'projet_cree' : 'depouille', { user, note: `Signé${motif ? ` — ${motif}` : ''}` });
+  return { ok: true, conclusion, destination: etat === 'signe' ? 'Dossiers signés — le projet vit sur la plateforme.' : etat === 'perdu' ? 'Archives — perdu ; le prix et le loyer alimentent la base marché.' : 'Archives — abandonné ; le motif alimente la base marché.' };
 }

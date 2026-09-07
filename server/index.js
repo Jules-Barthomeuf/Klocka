@@ -1947,6 +1947,36 @@ app.get('/api/preanalyse/dossiers/:dealId/etape2', wrap(async (req, res) => {
   if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
   ok(res, e);
 }));
+app.get('/api/preanalyse/dossiers/:dealId/etape3', wrap(async (req, res) => {
+  const { lireEtape3 } = await import('./deal/etapes-analyse.js');
+  const e = await lireEtape3(req.params.dealId);
+  if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, e);
+}));
+app.post('/api/preanalyse/dossiers/:dealId/risques/:id', wrap(async (req, res) => {
+  const { reviserRisque } = await import('./deal/etapes-analyse.js');
+  const r = reviserRisque(req.params.dealId, req.params.id, req.body?.verdict);
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+app.post('/api/preanalyse/dossiers/:dealId/leviers', wrap(async (req, res) => {
+  const { cocherLeviers } = await import('./deal/etapes-analyse.js');
+  const r = cocherLeviers(req.params.dealId, Array.isArray(req.body?.leviers) ? req.body.leviers : []);
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+app.get('/api/preanalyse/dossiers/:dealId/etape4', wrap(async (req, res) => {
+  const { lireEtape4 } = await import('./deal/etapes-analyse.js');
+  const e = await lireEtape4(req.params.dealId);
+  if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, e);
+}));
+app.post('/api/preanalyse/dossiers/:dealId/conclusion', wrap(async (req, res) => {
+  const { conclure } = await import('./deal/etapes-analyse.js');
+  const r = await conclure(req.params.dealId, { etat: req.body?.etat, motif: req.body?.motif, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
 app.post('/api/preanalyse/dossiers/:dealId/etape/:n', wrap(async (req, res) => {
   const { lancerEtape } = await import('./deal/etapes-analyse.js');
   const r = lancerEtape(req.params.dealId, Number(req.params.n), { user: currentUser(req), uploadDir: UPLOAD_DIR });

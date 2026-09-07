@@ -100,6 +100,15 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
         </dl>
       </div>
 
+      {/* Le bandeau de chiffres */}
+      {e.bandeau?.loyer ? (
+        <div className="px-5 py-4 border-b border-[#1f2228] grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[["Loyer", `${eur(e.bandeau.loyer)}/an`], ["Revenu net", e.bandeau.revenu_net != null ? `${eur(e.bandeau.revenu_net)}/an` : "—"], ["Net AEM", e.bandeau.net_aem != null ? `${e.bandeau.net_aem.toFixed(2)} %` : "—"], ["Écart teaser", e.bandeau.ecart_teaser_pt != null ? `${e.bandeau.ecart_teaser_pt >= 0 ? "+" : "−"}${Math.abs(e.bandeau.ecart_teaser_pt).toFixed(2)} pt` : "—"]].map(([l, v], i) => (
+            <div key={l}><p className="m-0 text-[11px] text-[#6a7180]">{l}</p><p className={`m-0 text-[20px] font-light tabular-nums ${i === 3 ? (e.bandeau.ecart_teaser_pt >= 0 ? "text-[#7fd1a8]" : "text-[#e8927c]") : "text-[#f2f3f5]"}`}>{v}</p></div>
+          ))}
+        </div>
+      ) : null}
+
       {/* Bloc 2 — la rentabilité réelle */}
       <div className="px-5 py-5 border-b border-[#1f2228]">
         <Titre>La rentabilité réelle</Titre>
@@ -136,6 +145,24 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
           </div>
         ) : <p className="m-0 text-[13.5px] text-[#9298a6]">Aucun écart significatif avec la pré-analyse.</p>}
       </div>
+
+      {/* Les anomalies, triées */}
+      {e.anomalies?.length > 0 && (
+        <div className="px-5 py-5 border-b border-[#1f2228]">
+          <Titre droite={String(e.anomalies.length)}>Anomalies</Titre>
+          <ul className="m-0 p-0 list-none space-y-2">
+            {e.anomalies.map((a, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="mt-[7px] w-2 h-2 rounded-full flex-none" style={{ background: a.statut === "ko" ? "#e8927c" : a.statut === "ok" ? "#7fd1a8" : "#e8b04c" }} />
+                <div className="min-w-0">
+                  <p className="m-0 text-[13.5px] text-[#f2f3f5]">{a.titre} <Source s={a.source} onPreuve={onPreuve} /></p>
+                  {a.detail && <p className="m-0 text-[12.5px] leading-[1.5] text-[#9298a6]">{a.detail}{a.action ? <span className="text-[#6a7180]"> → {a.action}</span> : null}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Bloc 4 — deal-breakers */}
       <div className="px-5 py-5 border-b border-[#1f2228]">

@@ -31,7 +31,7 @@ export function montants(texte) {
   while ((m = re.exec(t))) {
     const brut = m[1].replace(NBSP, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
     const v = Number(brut);
-    if (Number.isFinite(v) && v > 0) trouves.push({ valeur: v, extrait: m[0].trim(), avant: t.slice(Math.max(0, m.index - 60), m.index) });
+    if (Number.isFinite(v) && v > 0) trouves.push({ valeur: v, extrait: m[0].trim(), avant: t.slice(Math.max(0, m.index - 60), m.index), apres: t.slice(m.index + m[0].length, m.index + m[0].length + 40) });
   }
   return trouves.sort((a, b) => b.valeur - a.valeur);
 }
@@ -83,7 +83,8 @@ const NOMS_MOIS = /janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[ûu]t|sept
 export function loyerAnnuel(texte) {
   const liste = montants(texte);
   if (!liste.length) return null;
-  const dit = (motif, x) => motif.test(x.avant) || motif.test(x.extrait);
+  // « par an » se dit avant ou après le montant.
+  const dit = (motif, x) => motif.test(x.avant) || motif.test(x.extrait) || motif.test(x.apres || '');
   const annuel = liste.find((x) => dit(/annuel|par an|\/\s?an\b|\bh\.?t\.?\s?\/\s?an/i, x));
   if (annuel) return annuel.valeur;
   const mensuel = liste.find((x) => dit(/mois|mensuel|\/\s?mois/i, x));

@@ -75,6 +75,7 @@ export function lireEtape1(dealId) {
 
   // --- Bloc 1 : le bien en dix lignes --------------------------------------------------
   const loyer = loyerAnnuel(v('loyer') || '') || null;
+  const loyerForce = ch('loyer')?.forcage?.valeur ? { valeur: loyer, par: ch('loyer').forcage.par || null, le: ch('loyer').forcage.le || null } : null;
   const capital = montants(v('capital') || '')[0]?.valeur ?? null;
   const depot = montants(v('depot') || '')[0]?.valeur ?? null;
   const datesBail = dates(v('dates_bail') || '');
@@ -247,7 +248,7 @@ export function lireEtape1(dealId) {
   return {
     etape: etapeCourante, etape_max: etapeMax,
     etapes: ETAPES.map((e) => ({ n: e.n, titre: e.titre })),
-    bandeau, anomalies,
+    bandeau: { ...bandeau, loyer_force: loyerForce }, anomalies,
     progression: { lus: docs.filter((d) => d.lu).length, total: docs.length, lus_etape: lusEtape1, presents_etape: presentsEtape1 },
     remplissage: m.remplissage,
     lue,

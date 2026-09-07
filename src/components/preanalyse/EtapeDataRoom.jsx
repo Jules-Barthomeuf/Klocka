@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil, RotateCcw } from "lucide-react";
 import { DialogMailIntention } from "./DealResultat";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 import { Mono, Section, eur } from "./CadreEtapes";
@@ -29,6 +29,15 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
   });
   const enCours = e.remplissage?.etat === "en_cours";
   const nbDocs = e.progression.total;
+  // Le loyer se corrige à la main : tout se recalcule depuis cette valeur.
+  const [editionLoyer, setEditionLoyer] = useState(false);
+  const [loyerSaisi, setLoyerSaisi] = useState("");
+  const forcerLoyer = useMutation({
+    mutationFn: (valeur) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/matrice/forcer/loyer`, { body: valeur == null ? {} : { valeur } }),
+    onSuccess: (_, valeur) => { toast.success(valeur == null ? "Loyer du bail rétabli" : "Loyer modifié — tout est recalculé"); setEditionLoyer(false); tout(); },
+    onError: (x) => toast.error(x?.message || "Impossible"),
+  });
+  const validerLoyer = () => { const n = Number(String(loyerSaisi).replace(/[^\d.,]/g, "").replace(",", ".")); if (!n) return toast.error("Un montant annuel HT, en euros"); forcerLoyer.mutate(`${Math.round(n).toLocaleString("fr-FR")} € HT par an (saisi à la main)`); };
 
   if (!e.lue) {
     return (
@@ -61,8 +70,23 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
 
       {/* Le bandeau */}
       <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-[#1f2228] border-b border-[#1f2228]">
-        {[["Loyer HT/an", bandeau.loyer != null ? eur(bandeau.loyer) : "—", ""], ["Revenu net", bandeau.revenu_net != null ? eur(bandeau.revenu_net) : "—", ""], ["Net AEM", bandeau.net_aem != null ? `${bandeau.net_aem.toFixed(2).replace(".", ",")} %` : "—", bandeau.net_aem != null && bandeau.net_aem >= r.seuil ? "text-[#7fd1a8]" : "text-[#e8927c]"], ["Écart teaser", bandeau.ecart_teaser_pt != null ? `${bandeau.ecart_teaser_pt >= 0 ? "+" : "−"}${Math.abs(bandeau.ecart_teaser_pt).toFixed(2).replace(".", ",")} pt` : "—", bandeau.ecart_teaser_pt != null && bandeau.ecart_teaser_pt < 0 ? "text-[#e8927c]" : "text-[#9298a6]"]].map(([l, v, c]) => (
-          <div key={l} className="px-6 max-md:px-4 py-5"><Mono>{l}</Mono><p className={`m-0 mt-2 text-[22px] font-light tabular-nums ${c || "text-[#f2f3f5]"}`}>{v}</p></div>
+        {[["Loyer HT/an", bandeau.loyer != null ? eur(bandeau.loyer) : "—", "", true], ["Revenu net", bandeau.revenu_net != null ? eur(bandeau.revenu_net) : "—", ""], ["Net AEM", bandeau.net_aem != null ? `${bandeau.net_aem.toFixed(2).replace(".", ",")} %` : "—", bandeau.net_aem != null && bandeau.net_aem >= r.seuil ? "text-[#7fd1a8]" : "text-[#e8927c]"], ["Écart teaser", bandeau.ecart_teaser_pt != null ? `${bandeau.ecart_teaser_pt >= 0 ? "+" : "−"}${Math.abs(bandeau.ecart_teaser_pt).toFixed(2).replace(".", ",")} pt` : "—", bandeau.ecart_teaser_pt != null && bandeau.ecart_teaser_pt < 0 ? "text-[#e8927c]" : "text-[#9298a6]"]].map(([l, v, c, loyer]) => (
+          <div key={l} className="px-6 max-md:px-4 py-5">
+            <div className="flex items-center justify-between gap-2"><Mono>{l}</Mono>{loyer && !editionLoyer && <button onClick={() => { setLoyerSaisi(bandeau.loyer ? String(Math.round(bandeau.loyer)) : ""); setEditionLoyer(true); }} disabled={apercu} title="Modifier le loyer : tout se recalcule" className="text-[#6a7180] hover:text-[#f2f3f5]"><Pencil className="w-3.5 h-3.5" /></button>}</div>
+            {loyer && editionLoyer ? (
+              <div className="mt-2 flex items-center gap-2">
+                <input autoFocus value={loyerSaisi} onChange={(x) => setLoyerSaisi(x.target.value)} onKeyDown={(x) => { if (x.key === "Enter") validerLoyer(); if (x.key === "Escape") setEditionLoyer(false); }} inputMode="numeric" className="w-[130px] bg-transparent border-b border-[#3a3f4a] focus:border-[#f2f3f5] outline-none text-[20px] font-light tabular-nums text-[#f2f3f5]" />
+                <span className="text-[12px] text-[#6a7180]">€ HT/an</span>
+                <button onClick={validerLoyer} disabled={forcerLoyer.isPending} className="text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold">OK</button>
+                <button onClick={() => setEditionLoyer(false)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+              </div>
+            ) : (
+              <p className={`m-0 mt-2 text-[22px] font-light tabular-nums ${c || "text-[#f2f3f5]"}`}>{v}</p>
+            )}
+            {loyer && bandeau.loyer_force && !editionLoyer && (
+              <p className="m-0 mt-1 flex items-center gap-2 text-[11.5px] text-[#d9b46a]">saisi à la main{bandeau.loyer_force.par ? ` · ${bandeau.loyer_force.par}` : ""}<button onClick={() => forcerLoyer.mutate(null)} title="Revenir au loyer du bail" className="inline-flex items-center gap-1 text-[#9298a6] hover:text-[#f2f3f5]"><RotateCcw className="w-3 h-3" /> bail</button></p>
+            )}
+          </div>
         ))}
       </div>
 

@@ -11,6 +11,7 @@ import { Grille, Tiroir, Livrables, FormulaireColonne } from "./MatriceDossier";
 import { VERDICTS, libelleVerdict, VuesLieu, DialogMailIntention } from "./DealResultat";
 import EtapeDataRoom from "./EtapeDataRoom";
 import CadreEtapes, { Mono } from "./CadreEtapes";
+import NotesEtSuite from "./NotesEtSuite";
 import EtapeDataRoom2 from "./EtapeDataRoom2";
 import EtapeDataRoom3 from "./EtapeDataRoom3";
 import EtapeDataRoom4 from "./EtapeDataRoom4";
@@ -184,6 +185,8 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
   });
   const { data: e3 } = useQuery({ queryKey: ["etape3", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/etape3`), enabled: !!dealId && !!e1?.lue });
   const [dialogEtape, setDialogEtape] = useState(null);
+  const [notesOuvertes, setNotesOuvertes] = useState(() => { try { return localStorage.getItem("klocka_notes_analyse") !== "ferme"; } catch { return true; } });
+  React.useEffect(() => { try { localStorage.setItem("klocka_notes_analyse", notesOuvertes ? "ouvert" : "ferme"); } catch { /* sans mémoire */ } }, [notesOuvertes]);
   const { data: relance } = useQuery({
     queryKey: ["preanalyse-documents", dealId],
     queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/preanalyse-documents`),
@@ -234,12 +237,6 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
     if (!donnees) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
     const prog = donnees.progression || e1.progression;
     const compteurs = { 1: `${e1.progression.lus_etape}/${prog.total}`, 2: e2 ? `${e2.progression.lus_etape}/${prog.total}` : `${Math.max(0, prog.lus - e1.progression.lus_etape)}/${prog.total}`, 3: "0 doc", 4: e4?.complements?.pieces?.length ? `+${e4.complements.pieces.length}` : "" };
-    const SECTIONS = {
-      1: [{ id: "rentabilite", titre: "Rentabilité réelle" }, { id: "anomalies", titre: "Anomalies", droite: e1.anomalies?.length ? `${e1.anomalies.filter((a) => a.statut === "ko").length} ✕` : "", alerte: e1.anomalies?.some((a) => a.statut === "ko") }, { id: "fiche", titre: "Le bien" }, { id: "simulateur", titre: "Simulateur" }, { id: "pieces", titre: "Documents pour l'étape 2" }],
-      2: [],
-      3: [{ id: "risques", titre: "Les risques", droite: String(e3?.risques?.length || 0) }, { id: "prix", titre: "Le prix" }, { id: "match", titre: "Match investisseur" }, { id: "decision", titre: "La décision" }],
-      4: [],
-    };
     const TITRES = { 1: ["Bail et locataire", e1.lue ? "En cours" : "À lire", "Le bail tient-il, les chiffres sont-ils vrais ?"], 2: ["Bien, copropriété et marché", e2?.lue ? "En cours" : "À lire", "Le bien et son environnement méritent-ils qu'on y mette de l'argent ?"], 3: ["Risques, prix et décision", "Décision", "Aucune lecture : assemblage, chiffrage, décision."], 4: ["Présentation et closing", e4?.conclusion ? "Conclu" : "En négociation", "Proposer n'est pas closer : le deal est suivi jusqu'à sa conclusion."] };
     const [titre, statut, question] = TITRES[etapeCourante];
     const suivante = e1.etapes[etapeCourante];
@@ -262,6 +259,7 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
     const relanceEnCours = relance?.etat === "en_cours";
     const actions = (
       <span className="flex items-center gap-3">
+        <button onClick={() => setNotesOuvertes((o) => !o)} className={`font-mono text-[10px] tracking-[.14em] uppercase ${notesOuvertes ? "text-[#f2f3f5]" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>Notes et suite</button>
         {relanceEnCours ? <Mono className="text-[#9298a6]">{relance.phase === "preanalyse" ? "pré-analyse…" : relance.phase?.startsWith("etape") ? `relecture ${relance.fait ?? 0}/${relance.total ?? "…"}` : "en cours…"}</Mono> : (
           <>
             <button onClick={() => !apercu && window.confirm(`Relire toutes les pièces de l'étape ${Math.min(etapeCourante, 2)} ?`) && relancerAnalyse.mutate()} disabled={apercu || !nbDocs || enCours} title={nbDocs ? "Relit toutes les pièces de l'étape, même celles déjà lues" : "Importez des documents d'abord"} className="font-mono text-[10px] tracking-[.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] disabled:opacity-40">Relancer l'analyse</button>
@@ -272,9 +270,9 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
     );
     const propsEtape = { dossier, onPreuve: ouvrirPreuve, onRefresh, apercu, dialog: dialogEtape, setDialog: setDialogEtape };
     return (
-      <CadreEtapes etapes={e1.etapes} etape={etapeCourante} etapeMax={etapeMax} compteurs={compteurs} sections={SECTIONS[etapeCourante]} prixCourant={e3?.prix?.courant || null} titre={titre} statut={statut} question={question} progression={prog} onEtape={(n) => setVue(n)} apercu={apercu} pied={pied} actions={actions}>
-        <div className={preuve ? "lg:flex lg:gap-6 lg:items-start" : ""}>
-          <div className="min-w-0 flex-1">
+      <CadreEtapes etapes={e1.etapes} etape={etapeCourante} etapeMax={etapeMax} compteurs={compteurs} titre={titre} statut={statut} question={question} progression={prog} onEtape={(n) => setVue(n)} apercu={apercu} pied={pied} actions={actions} bandeau={notesOuvertes ? <NotesEtSuite dealId={dealId} etape={etapeCourante} apercu={apercu} /> : null}>
+        <div>
+          <div className="min-w-0">
             {etapeCourante === 4 ? <EtapeDataRoom4 e={e4} {...propsEtape} />
               : etapeCourante === 3 ? <EtapeDataRoom3 e={e3} {...propsEtape} />
               : etapeCourante === 2 ? <EtapeDataRoom2 e={e2} {...propsEtape} />
@@ -284,8 +282,12 @@ export default function CarteDeal({ dossier, coches, onCocher, onRefresh, apercu
               <div className="mt-3"><DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={() => { onRefresh?.(); tout(); }} apercu={apercu} proposerDrive /></div>
             </div>
           </div>
-          {preuve && <div className="px-5 pb-5 lg:pt-5 lg:pr-5"><Tiroir cellule={preuve.cellule} ligne={preuve.ligne} onFermer={() => setPreuve(null)} /></div>}
         </div>
+        {preuve && (
+          <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-[#000000] border-l border-[#22262d] shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
+            <Tiroir cellule={preuve.cellule} ligne={preuve.ligne} onFermer={() => setPreuve(null)} />
+          </div>
+        )}
       </CadreEtapes>
     );
   }

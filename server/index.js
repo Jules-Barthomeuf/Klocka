@@ -1977,6 +1977,22 @@ app.post('/api/preanalyse/dossiers/:dealId/conclusion', wrap(async (req, res) =>
   if (!r.ok) return res.status(400).json({ error: r.error });
   ok(res, r);
 }));
+// Les notes de l'analyste et ce qu'il reste à faire, sur le dossier.
+app.get('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
+  const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, { notes: d.notes_analyse || '', taches: d.taches_analyse || [], maj_le: d.notes_maj_le || null, maj_par: d.notes_maj_par || null });
+}));
+app.post('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
+  const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
+  const patch = { notes_maj_le: new Date().toISOString(), notes_maj_par: currentUser(req)?.email || null };
+  if (typeof req.body?.notes === 'string') patch.notes_analyse = req.body.notes.slice(0, 20000);
+  if (Array.isArray(req.body?.taches)) patch.taches_analyse = req.body.taches.slice(0, 200).map((t) => ({ id: String(t.id || Date.now().toString(36)), texte: String(t.texte || '').slice(0, 300), fait: !!t.fait, etape: t.etape || null }));
+  Records.update('Deal', d.id, patch);
+  ok(res, { ok: true });
+}));
+
 app.post('/api/preanalyse/dossiers/:dealId/relancer-preanalyse', wrap(async (req, res) => {
   const { relancerPreanalyse } = await import('./deal/preanalyse-documents.js');
   ok(res, relancerPreanalyse(req.params.dealId, { user: currentUser(req), uploadDir: UPLOAD_DIR }));

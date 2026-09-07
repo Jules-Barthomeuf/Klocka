@@ -44,7 +44,7 @@ export function Tiroir({ cellule, ligne, onFermer }) {
   if (!cellule || !ligne) return null;
   const extraction = { document_url: ligne.document_url, document_mime: null, document_nom: ligne.document_nom };
   return (
-    <div className="w-full lg:w-[680px] flex-none">
+    <div className="w-full">
       <Visionneuse extraction={extraction} ligne={{ page: cellule.page, citation: cellule.citation }} onFermer={onFermer} />
     </div>
   );

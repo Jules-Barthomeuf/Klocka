@@ -110,7 +110,7 @@ export default function EtapeDataRoom2({ dossier, e, onPreuve, onRefresh, apercu
                     <td className="py-3 pr-4 text-[14px] text-[#c9cdd6] whitespace-nowrap">{d.sujet}</td>
                     <td className="py-3 pr-4 text-[14px] text-[#f2f3f5]">{d.resultat} <Source s={d.source} onPreuve={onPreuve} /></td>
                     <td className={`py-3 pr-4 text-[14px] ${d.statut === "action" ? "text-[#f2f3f5]" : "text-[#9298a6]"}`}>{d.action}</td>
-                    <td className="py-3 text-right tabular-nums text-[14px] text-[#f2f3f5] whitespace-nowrap">{d.cout_texte}</td>
+                    <td className="py-3 text-right tabular-nums font-light text-[15px] text-[#f2f3f5] whitespace-nowrap">{d.cout_texte}</td>
                   </tr>
                 ))}
               </tbody>
@@ -126,7 +126,7 @@ export default function EtapeDataRoom2({ dossier, e, onPreuve, onRefresh, apercu
                     <tr key={i} className="border-t border-[#15171b]">
                       <td className="py-3 pr-4 text-[14px] text-[#c9cdd6]">{x.document_id ? <button onClick={() => onPreuve(x)} className="hover:text-[#f2f3f5] text-left">{x.categorie === "Annonce" ? x.source : x.categorie}</button> : x.source}</td>
                       <td className="py-3 pr-4 text-[14px] text-[#f2f3f5]">{x.perimetre}</td>
-                      <td className="py-3 pr-6 text-right tabular-nums text-[14px] text-[#f2f3f5] whitespace-nowrap">{String(x.valeur).replace(".", ",")} m²</td>
+                      <td className="py-3 pr-6 text-right tabular-nums font-light text-[15px] text-[#f2f3f5] whitespace-nowrap">{String(x.valeur).replace(".", ",")} m²</td>
                       <td className="py-3 text-[13px] text-[#9298a6]">{x.observation}</td>
                     </tr>
                   ))}

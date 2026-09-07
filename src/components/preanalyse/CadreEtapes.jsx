@@ -29,7 +29,7 @@ export default function CadreEtapes({ etapes, etape, etapeMax = etape, compteurs
       <div className="flex items-stretch border-b border-[#1f2228] overflow-x-auto">
         {etapes.map((x) => (
           <button key={x.n} onClick={() => x.n <= etapeMax && onEtape?.(x.n)} disabled={apercu || x.n > etapeMax} className={`flex-1 min-w-[180px] text-left px-5 py-3.5 flex items-baseline justify-between gap-3 border-b-2 -mb-px transition-colors ${x.n === etape ? "border-[#f2f3f5] text-[#f2f3f5]" : x.n <= etapeMax ? "border-transparent text-[#c9cdd6] hover:text-[#f2f3f5]" : "border-transparent text-[#4d545d]"}`}>
-            <span className="text-[13.5px]"><span className="font-mono text-[11px] mr-2 text-[#6a7180]">{x.n}</span>{x.titre}</span>
+            <span className="text-[14px] font-light"><span className="font-mono text-[11px] mr-2 text-[#6a7180]">{x.n}</span>{x.titre}</span>
             <Mono className={x.n === etape ? "text-[#9298a6]" : ""}>{compteurs[x.n] ?? ""}</Mono>
           </button>
         ))}
@@ -37,7 +37,7 @@ export default function CadreEtapes({ etapes, etape, etapeMax = etape, compteurs
 
       <header className="px-6 max-md:px-4 py-4 border-b border-[#1f2228] flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 min-w-0">
-          <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">Étape {etape} · {titre}</h2>
+          <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]"><span className="font-light tabular-nums">Étape {etape}</span> · {titre}</h2>
           {statut && <Mono className="text-[#9298a6]">{statut}</Mono>}
           {question && <span className="text-[13px] text-[#9298a6]">{question}</span>}
         </div>

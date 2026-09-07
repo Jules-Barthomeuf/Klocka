@@ -48,7 +48,7 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
                 <button onClick={() => bascule(r.id)} className="w-full text-left flex flex-wrap items-baseline gap-x-4 gap-y-1">
                   <span className="flex-1 min-w-[240px] text-[15px] text-[#f2f3f5]"><span className="font-semibold">{r.titre}</span> <span className="text-[#9298a6]">— {r.une_ligne}</span></span>
                   <Mono className={`${NIVEAU[r.niveau]} w-[70px] text-right`}>{r.niveau_libelle}</Mono>
-                  <span className={`w-[190px] text-right tabular-nums text-[14px] ${r.verdict === "ecarte" ? "line-through text-[#4d545d]" : "text-[#f2f3f5]"}`}>{r.integre_au_prix ? <span className="text-[#9298a6]">intégré au prix</span> : neg(r.fourchette) || "—"}</span>
+                  <span className={`w-[190px] text-right tabular-nums font-light text-[15px] ${r.verdict === "ecarte" ? "line-through text-[#4d545d]" : "text-[#f2f3f5]"}`}>{r.integre_au_prix ? <span className="text-[#9298a6]">intégré au prix</span> : neg(r.fourchette) || "—"}</span>
                   <span className="w-4 text-[#6a7180] text-[11px]">{ouvert ? "▲" : "▼"}</span>
                 </button>
                 {ouvert && (
@@ -86,12 +86,12 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
             </div>
             <div className="pt-4"><Mono>Décotes</Mono></div>
             {e.risques.filter((r) => !r.integre_au_prix && r.verdict !== "ecarte" && !(r.condition?.coche)).map((r) => (
-              <div key={r.id} className="flex items-baseline justify-between gap-4 py-2 border-b border-[#15171b] text-[14px]"><span className="text-[#c9cdd6]">{r.titre}</span><span className="tabular-nums text-[#f2f3f5]">{neg(r.decote_retenue) || "—"}</span></div>
+              <div key={r.id} className="flex items-baseline justify-between gap-4 py-2 border-b border-[#15171b] text-[14px]"><span className="text-[#c9cdd6]">{r.titre}</span><span className="tabular-nums font-light text-[15px] text-[#f2f3f5]">{neg(r.decote_retenue) || "—"}</span></div>
             ))}
             {e.bonifications.length > 0 && (
               <>
                 <div className="pt-4"><Mono>Bonifications</Mono></div>
-                {e.bonifications.map((b) => <div key={b.titre} className="flex items-baseline justify-between gap-4 py-2 border-b border-[#15171b] text-[14px]"><span className="text-[#c9cdd6]">{b.titre}</span><span className="tabular-nums text-[#f2f3f5]">{plus(b.fourchette).replace(/k€/g, "000 €").replace("+", "+").replace(" à ", " à ")}</span></div>)}
+                {e.bonifications.map((b) => <div key={b.titre} className="flex items-baseline justify-between gap-4 py-2 border-b border-[#15171b] text-[14px]"><span className="text-[#c9cdd6]">{b.titre}</span><span className="tabular-nums font-light text-[15px] text-[#f2f3f5]">{plus(b.fourchette).replace(/k€/g, "000 €").replace("+", "+").replace(" à ", " à ")}</span></div>)}
               </>
             )}
             <div className="flex items-baseline justify-between gap-4 pt-5">

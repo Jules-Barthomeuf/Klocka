@@ -98,8 +98,8 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
             {postes.map(([l, t, d, src, note, u]) => (
               <tr key={l} className="border-t border-[#15171b]">
                 <td className="py-3 text-[14px] text-[#c9cdd6]">{l}</td>
-                <td className="py-3 pr-6 text-right tabular-nums text-[14px] text-[#6a7180]">{fmt(t, u)}</td>
-                <td className="py-3 text-right tabular-nums text-[14px] text-[#f2f3f5] font-medium">{fmt(d, u)}</td>
+                <td className="py-3 pr-6 text-right tabular-nums font-light text-[15px] text-[#6a7180]">{fmt(t, u)}</td>
+                <td className="py-3 text-right tabular-nums font-light text-[14px] text-[#f2f3f5]">{fmt(d, u)}</td>
                 <td className="py-3 pl-5"><Source s={src} onPreuve={onPreuve} texte={note} /></td>
               </tr>
             ))}
@@ -119,9 +119,9 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
                   <span className="text-[13px] text-[#6a7180]">{x.libelle}</span>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-x-3 min-w-0">
-                      {x.teaser != null ? <span className="text-[15px] text-[#6a7180] line-through whitespace-nowrap flex-none" title={String(x.teaser)}>{court(x.teaser)}</span> : <Mono className="flex-none">non annoncé</Mono>}
+                      {x.teaser != null ? <span className="text-[15px] font-light tabular-nums text-[#6a7180] line-through whitespace-nowrap flex-none" title={String(x.teaser)}>{court(x.teaser)}</span> : <Mono className="flex-none">non annoncé</Mono>}
                       <span className="text-[#4d545d] flex-none">→</span>
-                      <span className="text-[19px] font-semibold text-[#f2f3f5] truncate" title={String(x.bail)}>{x.bail}</span>
+                      <span className="text-[20px] font-light tabular-nums text-[#f2f3f5] truncate" title={String(x.bail)}>{x.bail}</span>
                     </div>
                     <p className="m-0 mt-1 text-[13px] leading-[1.6] text-[#9298a6] max-w-[760px]">{x.commentaire}</p>
                   </div>

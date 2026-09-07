@@ -44,7 +44,7 @@ export default function BarreRelances({ dossier, onRefresh, apercu = false, bas 
       <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse depuis le teaser (ou les pièces), puis relire la data room ?") && relancerPre.mutate()} disabled={apercu || occupe || relancerPre.isPending} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#f2f3f5] text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
         <RefreshCw className="w-3.5 h-3.5" /> Relancer la pré-analyse
       </button>
-      <button onClick={() => !apercu && window.confirm(`Relire les ${nbDocs} pièce${nbDocs > 1 ? "s" : ""} de la data room ?`) && relancerAnalyse.mutate()} disabled={apercu || occupe || !nbDocs || relancerAnalyse.isPending} title={nbDocs ? "Relit toutes les pièces, même celles déjà lues" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] border border-[#2c3139] text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40">
+      <button onClick={() => !apercu && window.confirm(`Relire les ${nbDocs} pièce${nbDocs > 1 ? "s" : ""} de la data room ?`) && relancerAnalyse.mutate()} disabled={apercu || occupe || !nbDocs || relancerAnalyse.isPending} title={nbDocs ? "Relit toutes les pièces, même celles déjà lues" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#96c0b8] text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">
         <RefreshCw className="w-3.5 h-3.5" /> Relancer l'analyse
       </button>
       {occupe && (

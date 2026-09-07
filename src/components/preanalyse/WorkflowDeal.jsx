@@ -19,7 +19,6 @@ import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
 import BarreRelances from "@/components/preanalyse/BarreRelances";
 import GrilleBail from "@/components/preanalyse/GrilleBail";
-import DocumentsDossier from "@/components/preanalyse/DocumentsDossier";
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 

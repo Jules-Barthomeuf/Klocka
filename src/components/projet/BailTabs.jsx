@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
+import { TableCriteres } from "@/components/preanalyse/GrilleCriteres";
 import { ValeurEditable, TexteEditable } from "./EditionEnPlace";
 import moment from "moment";
 import "moment/locale/fr";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus } from "lucide-react";
@@ -396,7 +397,8 @@ export default function BailTabs({ project }) {
         )
       )}
 
-      {/* Analyse du bail */}
+      {/* Analyse du bail : l'essentiel lu dans les pièces, puis l'analyse complète */}
+      {tab === "analyse" && <AnalyseBailLue projectId={project.id} />}
       {tab === "analyse" && (
         hasAnalyse ? (
           <TexteEditable champ="analyse_bail">
@@ -423,6 +425,42 @@ export default function BailTabs({ project }) {
         ) : (
           <SectionEmpty text="Aucune analyse du bail renseignée." />
         )
+      )}
+    </div>
+  );
+}
+
+// L'essentiel du bail, lu dans la data room : l'échéance, le loyer de
+// signature, le dépôt, ce qui est refacturé — et la situation actuelle tirée
+// des quittances. L'analyse complète se déplie en dessous.
+function AnalyseBailLue({ projectId }) {
+  const [complet, setComplet] = React.useState(false);
+  const { data } = useQuery({ queryKey: ["analyse-bail", projectId], queryFn: () => base44.request("GET", `/api/projets/${projectId}/analyse-bail`), enabled: !!projectId, staleTime: 60000 });
+  if (!data?.disponible) return null;
+  const Ligne = ({ l }) => (
+    <div className="py-3 border-b border-[#1f2228] grid grid-cols-[minmax(160px,1fr)_2fr] gap-x-6">
+      <span className="text-[13px] text-[#9298a6]">{l.libelle}</span>
+      <span className="text-[14px] text-[#f2f3f5]">{l.valeur || <span className="text-[#4d545d]">—</span>}</span>
+    </div>
+  );
+  return (
+    <div className="mb-8">
+      <div className="grid md:grid-cols-2 gap-x-12">
+        <div>
+          <p className="m-0 mb-1 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Le bail</p>
+          {data.essentiel.map((l) => <Ligne key={l.id} l={l} />)}
+        </div>
+        <div>
+          <p className="m-0 mb-1 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Situation actuelle · quittances</p>
+          {data.quittances_essentiel.length ? data.quittances_essentiel.map((l) => <Ligne key={l.id} l={l} />) : <p className="m-0 py-3 text-[13px] text-[#6a7180]">Aucune quittance dans le dossier.</p>}
+        </div>
+      </div>
+      <button onClick={() => setComplet((o) => !o)} className="mt-5 px-4 py-2 rounded-full border border-[#2c3139] text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]">{complet ? "Replier l'analyse du bail" : "Analyse du bail complète"}</button>
+      {complet && (
+        <div className="mt-4 bg-[#000000] border border-[#1f2228] rounded-[18px] overflow-hidden">
+          {data.bail && <TableCriteres g={data.bail} sansSources titre="Bail" />}
+          {data.quittances && <div className="border-t border-[#1f2228]"><TableCriteres g={data.quittances} sansSources titre="Quittances" /></div>}
+        </div>
       )}
     </div>
   );

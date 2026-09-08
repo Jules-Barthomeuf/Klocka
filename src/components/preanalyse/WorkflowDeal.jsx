@@ -17,8 +17,7 @@ import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
 import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
-import BarreRelances from "@/components/preanalyse/BarreRelances";
-import GrilleBail from "@/components/preanalyse/GrilleBail";
+import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
@@ -268,6 +267,8 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
       {/* Le chat du dossier : questions, analyses, points à vérifier */}
       <ChatDossier
         afficherRequetes={etape === 2 || etape === 3}
+        panneauDocuments={dossier ? <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive /> : null}
+        nbDocuments={(dossier?.documents_espace || []).length}
         onOuvrirExtraction={(id) => {
           setOngletAnalyse(id);
           // Ouvrir une table depuis une autre étape emmène à l'étape Analyse,
@@ -336,19 +337,15 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
           />
         )}
         {etape === 3 && (
-          <div id="tables-analyse">
-            <BarreRelances dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
-            <GrilleBail dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
-            <div className="mt-5 bg-[#000000] border border-[#1f2228] rounded-md px-6 max-md:px-4 py-5">
-              <p className="m-0 mb-3 font-mono text-[10px] tracking-[.18em] uppercase text-[#6a7180]">Documents du dossier</p>
-              <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive />
-            </div>
+          <div id="tables-analyse" className="space-y-5">
+            <GrilleCriteres ids={["bail", "quittances"]} titre="Bail" sousTitre="Le bail, puis les quittances." dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
+            <GrilleCriteres ids={["pv_ag", "rcp"]} titre="Copropriété" sousTitre="Les procès-verbaux d'assemblée, puis le règlement." dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
+            <GrilleCriteres ids={["diagnostics"]} titre="Diagnostics" sousTitre="L'état du bien, diagnostic par diagnostic." dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
             {preuveGrille && (
               <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-[#000000] border-l border-[#22262d] shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} />
               </div>
             )}
-            <BarreRelances dossier={dossier} onRefresh={onRefresh} apercu={apercu} bas />
           </div>
         )}
         {etape === 3 && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}

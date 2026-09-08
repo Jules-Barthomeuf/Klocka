@@ -1993,6 +1993,36 @@ app.post('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
   ok(res, { ok: true });
 }));
 
+app.get('/api/preanalyse/dossiers/:dealId/grille/:id', wrap(async (req, res) => {
+  const { lireGrilleFormatee } = await import('./deal/grilles.js');
+  const g = await lireGrilleFormatee(req.params.dealId, req.params.id, { user: currentUser(req), force: req.query.force === '1' });
+  if (!g) return res.status(404).json({ error: 'Grille ou dossier introuvable' });
+  ok(res, g);
+}));
+
+// Ce que le client voit du bail sur sa page projet : quelques lignes, et
+// l'analyse complète derrière — sans les pièces.
+app.get('/api/projets/:id/analyse-bail', wrap(async (req, res) => {
+  const user = currentUser(req);
+  const projet = Records.get('Project', req.params.id);
+  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+  const email = String(user?.email || '').toLowerCase();
+  const autorise = user?.role === 'admin' || (projet.client_emails || []).map((e) => String(e).toLowerCase()).includes(email) || String(projet.client_email || '').toLowerCase() === email;
+  if (!autorise) return res.status(403).json({ error: 'Accès refusé' });
+  const deal = projet.deal_id ? Records.filter('Deal', { deal_id: projet.deal_id })[0] : null;
+  if (!deal) return ok(res, { disponible: false });
+  const { lireGrilleFormatee } = await import('./deal/grilles.js');
+  const bail = await lireGrilleFormatee(deal.deal_id, 'bail', { user });
+  const quittances = await lireGrilleFormatee(deal.deal_id, 'quittances', { user });
+  const sansPieces = (g) => g && { ...g, lignes: g.lignes.map((l) => ({ ...l, preuves: user?.role === 'admin' ? l.preuves : [] })) };
+  const clefs = ['echeance', 'loyer_signature', 'depot', 'charges', 'taxes'];
+  ok(res, {
+    disponible: true,
+    essentiel: (bail?.lignes || []).filter((l) => clefs.includes(l.id)).map((l) => ({ id: l.id, libelle: l.libelle, valeur: l.valeur })),
+    quittances_essentiel: (quittances?.lignes || []).map((l) => ({ id: l.id, libelle: l.libelle, valeur: l.valeur })),
+    bail: sansPieces(bail), quittances: sansPieces(quittances),
+  });
+}));
 app.get('/api/preanalyse/dossiers/:dealId/grille-bail', wrap(async (req, res) => {
   const { lireGrilleBail } = await import('./deal/grille-bail.js');
   const g = lireGrilleBail(req.params.dealId);
@@ -2000,8 +2030,11 @@ app.get('/api/preanalyse/dossiers/:dealId/grille-bail', wrap(async (req, res) =>
   ok(res, g);
 }));
 app.post('/api/preanalyse/dossiers/:dealId/grille-bail/completer', wrap(async (req, res) => {
-  const { lireColonnesManquantes } = await import('./deal/grille-bail.js');
-  ok(res, lireColonnesManquantes(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req) }));
+  const { colonnesNonLues } = await import('./deal/grilles.js');
+  const { lancerRemplissage } = await import('./deal/matrice.js');
+  const ids = colonnesNonLues(req.params.dealId);
+  if (!ids.length) return ok(res, { ok: true, rien: true });
+  ok(res, { ok: true, colonnes: ids, remplissage: lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementColonnes: ids }) });
 }));
 app.post('/api/preanalyse/dossiers/:dealId/relancer-analyse', wrap(async (req, res) => {
   const { lancerRemplissage } = await import('./deal/matrice.js');

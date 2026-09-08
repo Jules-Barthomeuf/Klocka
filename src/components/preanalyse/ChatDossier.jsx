@@ -64,6 +64,8 @@ export default function ChatDossier({
   // Les requêtes n'accompagnent que le travail d'analyse : elles n'ont rien à
   // faire sur les étapes Mail, Vidéo, Plateforme et Présentation.
   afficherRequetes = true,
+  panneauDocuments = null,
+  nbDocuments = 0,
 }) {
   const [mode, setMode] = useState("question");
   const [texte, setTexte] = useState("");
@@ -104,6 +106,8 @@ export default function ChatDossier({
     onError: (e) => toast.error(e?.message || "Suppression impossible"),
   });
 
+  const [docsOuverts, setDocsOuverts] = useState(false);
+  const [requetesOuvertes, setRequetesOuvertes] = useState(false);
   const enCours = modeMail ? compositionEnCours : modePreanalyse ? analyseEnCours : envoyer.isPending;
   const lancer = () => {
     if (modeMail) return onComposer?.(texte.trim());
@@ -211,11 +215,23 @@ export default function ChatDossier({
         />
       </div>
 
-      {/* Requêtes récentes */}
+      {/* Documents, puis requêtes récentes : repliés, un clic les ouvre. */}
+      {panneauDocuments && !modeMail && (
+        <div className="pt-5">
+          <button onClick={() => setDocsOuverts((o) => !o)} className="w-full flex items-center justify-between py-3 border-t border-b border-[#15171b] text-left">
+            <span className="text-[16px] font-medium text-[#f2f3f5]">Documents{nbDocuments ? <span className="text-[#6a7180] font-normal"> · {nbDocuments}</span> : null}</span>
+            <span className="text-[#6a7180] text-[11px]">{docsOuverts ? "▲" : "▼"}</span>
+          </button>
+          {docsOuverts && <div className="pt-4">{panneauDocuments}</div>}
+        </div>
+      )}
       {afficherRequetes && !modeMail && !modePreanalyse && requetes.length > 0 && (
-        <div className="pt-4">
-          <h3 className="m-0 mb-3 text-[16px] font-medium text-[#f2f3f5]">Requêtes récentes</h3>
-          <div className="border-t border-[#15171b]">
+        <div className={panneauDocuments ? "" : "pt-5"}>
+          <button onClick={() => setRequetesOuvertes((o) => !o)} className="w-full flex items-center justify-between py-3 border-b border-[#15171b] text-left">
+            <span className="text-[16px] font-medium text-[#f2f3f5]">Requêtes récentes<span className="text-[#6a7180] font-normal"> · {requetes.length}</span></span>
+            <span className="text-[#6a7180] text-[11px]">{requetesOuvertes ? "▲" : "▼"}</span>
+          </button>
+          <div className={requetesOuvertes ? "" : "hidden"}>
             {requetes.map((r) => (
               <div key={r.cle} className="flex items-center gap-4 px-1 py-3.5 border-b border-[#15171b] hover:bg-[#f2f3f5]/[0.02] transition-colors group">
                 <button onClick={r.ouvrir} className="flex-1 min-w-0 text-left text-[13.5px] text-[#f2f3f5] truncate hover:text-[#c3ddd6] transition-colors">

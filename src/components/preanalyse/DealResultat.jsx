@@ -608,11 +608,11 @@ export function VuesLieu({ lot, enr }) {
 }
 
 export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
-  // Ouvert d'emblée, sur la carte : situer le bien est le premier réflexe.
-  const [ongletsOuverts, setOngletsOuverts] = useState(false);
+  // Le détail (critères, données extraites, enrichissement, lieu, marché) se
+  // déplie en bas : on y descend pour vérifier, pas pour lire.
+  const [detailOuvert, setDetailOuvert] = useState(false);
 
-  // À qui ce bien pourrait correspondre, d'après les investisseurs de Monday :
-  // dès la pré-analyse, avant même de décider, on sait s'il y a preneur.
+  // À qui ce bien pourrait correspondre, d'après les investisseurs de Monday.
   const {
     data: correspondances,
     isLoading: chargementCorrespondances,
@@ -624,156 +624,92 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
     staleTime: 5 * 60 * 1000,
   });
   const [mailOuvert, setMailOuvert] = useState(false);
-  const v = VERDICTS[lot.evaluation.verdict] || {};
+  const verdict = lot.evaluation.verdict;
   const aem = lot.evaluation.aem;
   const enr = lot.enrichissement;
+  const PASTILLE = { "GO": "#2f7a5a", "GO SOUS RÉSERVE": "#a8752a", "INSUFFISANT": "#a8752a", "NO-GO": "#9b3b32" };
+  const Kicker = ({ children }) => <div className="font-mono text-[10px] uppercase tracking-[.18em] text-[#6a7180]">{children}</div>;
+  const nbCriteres = lot.evaluation.grille?.length || 0;
+  const ratés = (lot.evaluation.grille || []).filter((l) => l.ok === false).length;
 
   return (
-    <div className={`bg-[#000000] border rounded-md overflow-hidden ${v.bord || "border-[#1f2228]"}`}>
-      {/* En-tête */}
-      <div className="p-5 border-b border-[#1f2228]">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <div className="min-w-0">
-            {lot.intitule && <p className="text-[#9298a6] text-xs mb-1">{lot.intitule}</p>}
-            <h3 className="text-[#f2f3f5] font-medium leading-snug">{sansVerdict(lot.synthese?.titre) || "Lot"}</h3>
-          </div>
-          <Badge className={`${v.classe} flex-shrink-0`}>{libelleVerdict(lot.evaluation.verdict)}</Badge>
-        </div>
-
-        {lot.evaluation.profil && (
-          <p className="text-[#c3ddd6] text-xs mb-3">Profil : {lot.evaluation.profil.libelle}</p>
-        )}
-      </div>
-
-      <GrilleCriteres lignes={lot.evaluation.grille} lot={lot} />
-
-      {/* Ce qu'on retient : la synthèse à gauche, les réserves à droite. */}
-      <div className="px-5 py-5 border-b border-[#1f2228] grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-x-10 gap-y-5">
+    <div className="text-[#f2f3f5]">
+      {/* L'en-tête : le statut à droite */}
+      <div className="flex items-end justify-between gap-6 flex-wrap pb-5 border-b border-[#2c3139]">
         <div className="min-w-0">
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Ce qu'on retient</p>
-          <p className="m-0 mt-2 text-[14px] leading-[1.7] text-[#d6d6db]">{lot.synthese?.synthese || "Pas encore de synthèse."}</p>
-          {lot.mail_agent && (
-            <button
-              onClick={() => !apercu && setMailOuvert(true)}
-              disabled={apercu}
-              className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2c3139] text-[12.5px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40"
-            >
-              <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent — pré-rédigé
+          {lot.intitule && <Kicker>{lot.intitule}</Kicker>}
+          <p className="m-0 mt-2 text-[19px] font-light leading-[1.55] max-w-[620px]">{sansVerdict(lot.synthese?.titre) || "Lot"}</p>
+        </div>
+        <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-semibold text-white" style={{ background: PASTILLE[verdict] || "#2c3139" }}>
+          <span className="w-2 h-2 rounded-full bg-white" />{libelleVerdict(verdict)}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] gap-x-14 gap-y-8 items-start pt-9">
+        {/* La colonne principale */}
+        <main className="min-w-0">
+          {/* Ce qu'on retient */}
+          <section className="pb-8 border-b border-[#1f2228]">
+            <Kicker>Ce qu'on retient</Kicker>
+            <p className="m-0 mt-3 text-[15px] font-light leading-[1.75] text-[#c9cdd6] max-w-[640px]">{lot.synthese?.synthese || "Pas encore de synthèse."}</p>
+            <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+              <Kicker>Réserves</Kicker>
+              {lot.evaluation.reserves?.length ? (
+                <ul className="m-0 p-0 list-none space-y-1">
+                  {lot.evaluation.reserves.map((r) => <li key={r.id} className="text-[13.5px] text-[#c9cdd6] flex items-start gap-2.5"><span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#d9b46a] flex-none" />{r.motif}</li>)}
+                </ul>
+              ) : <span className="text-[13.5px] text-[#9298a6]">Aucune réserve à lever.</span>}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button onClick={() => setDetailOuvert((o) => !o)} className="text-[13px] text-[#9298a6] hover:text-[#f2f3f5] underline decoration-dotted underline-offset-4">
+                {nbCriteres} critères{ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""} — {detailOuvert ? "replier le détail" : "voir le détail"}
+              </button>
+              {lot.mail_agent && (
+                <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-[#2c3139] px-3.5 py-1.5 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40">
+                  <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* Le simulateur, tel quel */}
+          <section className="py-8 border-b border-[#1f2228]">
+            <div className="flex items-baseline gap-3 flex-wrap mb-5">
+              <h2 className="m-0 text-[17px] font-semibold">Simulateur</h2>
+              <span className="text-[13px] text-[#6a7180]">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
+            </div>
+            <SimulateurDossier parametres={lot.simulateur} />
+          </section>
+
+          {/* Les clients à qui ce bien pourrait correspondre */}
+          <section className="pt-8">
+            <div className="flex items-baseline gap-3 flex-wrap mb-3">
+              <h2 className="m-0 text-[17px] font-semibold">Clients à qui ce bien pourrait correspondre</h2>
+              <span className="text-[13px] text-[#6a7180]">budget, apport et zone de recherche, d'après Monday</span>
+            </div>
+            <ClientsCorrespondants clients={correspondances?.clients} chargement={chargementCorrespondances} configure={correspondances?.configure} erreur={erreurCorrespondances} />
+          </section>
+
+          {/* Le détail */}
+          <div className="mt-8 border-t border-[#1f2228]">
+            <button onClick={() => setDetailOuvert((o) => !o)} className="w-full py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">
+              <span>Détail — critères, données extraites avec citations, commune et enseigne, lieu, marché local</span>
+              {detailOuvert ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">
-            Réserves{lot.evaluation.reserves?.length ? ` · ${lot.evaluation.reserves.length}` : ""}
-          </p>
-          {lot.evaluation.reserves?.length ? (
-            <ul className="m-0 mt-2 p-0 list-none space-y-2">
-              {lot.evaluation.reserves.map((r) => (
-                <li key={r.id} className="flex items-start gap-2.5 text-[12.5px] leading-[1.55] text-[#c9cdd6]">
-                  <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#e8b04c] flex-none" />
-                  {r.motif}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="m-0 mt-2 text-[12.5px] text-[#6a7180]">Aucune réserve à lever.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Les chiffres : annoncé contre tout compris */}
-      {aem && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#1f2228] border-b border-[#1f2228]">
-          <Metrique label="Prix FAI" valeur={euros(aem.prix_fai)} />
-          <Metrique label="Prix AEM" valeur={euros(aem.prix_aem)} accent sousTitre={`+${euros(aem.surcout_vs_fai)} tout compris`} />
-          <Metrique label="Rendement annoncé" valeur={aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—"} />
-          <Metrique label="Rendement AEM" valeur={aem.rendement_aem != null ? `${aem.rendement_aem} %` : "—"} accent />
-        </div>
-      )}
-
-      {/* Emplacement : la seule donnée qui reste humaine — et elle change le verdict. */}
-      <div className="px-5 py-4 border-b border-[#1f2228]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-3.5 h-3.5 text-[#9298a6]" />
-            <span className="text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Emplacement</span>
-            {enr?.emplacement === "a_qualifier" ? (
-              <span className="text-[11px] text-[#e8b04c]">à qualifier — le verdict reste sous réserve tant qu'il n'est pas tranché</span>
-            ) : (
-              <span className="text-[11px] text-[#6a7180]">qualifié à la main · le verdict est recalculé à chaque changement</span>
-            )}
-          </div>
-          {enr?.commune && (
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                [lot.lot.adresse?.valeur?.rue, enr.commune.nom].filter(Boolean).join(", ")
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5] underline underline-offset-2"
-            >
-              Voir sur la carte
-            </a>
-          )}
-        </div>
-        <div className="mt-3 inline-flex rounded-full border border-[#2c3139] p-0.5">
-          {EMPLACEMENTS.map((e) => (
-            <button
-              key={e.code}
-              disabled={apercu || enCours}
-              onClick={() => onSaisie?.({ emplacement: e.code })}
-              className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${
-                enr?.emplacement === e.code
-                  ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold"
-                  : "text-[#9298a6] hover:text-[#f2f3f5]"
-              }`}
-            >
-              {e.libelle}
-            </button>
-          ))}
-          {enCours && <span className="px-3 self-center text-[11px] text-[#9298a6]">recalcul…</span>}
-        </div>
-      </div>
-
-      {/* Simulateur complet, pré-rempli — remplace le calcul AEM figé */}
-      <div className="px-5 py-5 border-b border-[#1f2228]">
-        <p className="text-[#9298a6] text-xs mb-3">
-          Simulateur — pré-rempli avec ce dossier, tous les paramètres sont manipulables
-        </p>
-        <SimulateurDossier parametres={lot.simulateur} />
-      </div>
-
-      {/* Clients à qui ce bien pourrait correspondre */}
-      <div className="px-5 py-5 border-b border-[#1f2228]">
-        <p className="text-[#9298a6] text-xs mb-1">
-          Clients à qui ce bien pourrait correspondre — budget, apport et zone de recherche, d'après Monday
-        </p>
-        <ClientsCorrespondants
-          clients={correspondances?.clients}
-          chargement={chargementCorrespondances}
-          configure={correspondances?.configure}
-          erreur={erreurCorrespondances}
-        />
-      </div>
-
-      {/* Détail */}
-      <button
-        onClick={() => setOngletsOuverts((o) => !o)}
-        className="w-full px-5 py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors"
-      >
-        <span>Détail — données extraites avec citations, commune et enseigne, lieu, marché local</span>
-        {ongletsOuverts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </button>
-
-      {ongletsOuverts && (
-        <div className="px-5 pb-5">
+      {detailOuvert && (
+        <div className="pb-5">
           <Tabs defaultValue="carte">
             <TabsList className="mb-4 gap-5">
+              <TabsTrigger value="criteres">Critères</TabsTrigger>
               <TabsTrigger value="extraction">Données extraites</TabsTrigger>
               <TabsTrigger value="enrichissement">Enrichissement</TabsTrigger>
               <TabsTrigger value="carte">Lieu</TabsTrigger>
               {lot.contexte_marche && <TabsTrigger value="marche">Marché local</TabsTrigger>}
             </TabsList>
+
+            <TabsContent value="criteres">
+              <div className="-mx-5"><GrilleCriteres lignes={lot.evaluation.grille} lot={lot} /></div>
+            </TabsContent>
 
             <TabsContent value="extraction">
               {lot.incidents_garde_fou?.length > 0 && (
@@ -880,6 +816,55 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
           </Tabs>
         </div>
       )}
+
+          </div>
+        </main>
+
+        {/* La colonne de droite, collée */}
+        <aside className="lg:sticky lg:top-6 flex flex-col gap-4">
+          <div className="border border-[#22262d] rounded-[20px] bg-[#0f1114] overflow-hidden">
+            {aem ? [
+              ["Prix FAI", euros(aem.prix_fai), "#f2f3f5", null],
+              ["Prix AEM", euros(aem.prix_aem), "#f2f3f5", `+${euros(aem.surcout_vs_fai)} tout compris`],
+              ["Rendement annoncé", aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—", "#f2f3f5", null],
+              ["Rendement AEM", aem.rendement_aem != null ? `${aem.rendement_aem} %` : "—", "#96c0b8", null],
+            ].map(([l, v, c, note]) => (
+              <div key={l} className="px-5 py-4 border-b border-[#1f2228]">
+                <Kicker>{l}</Kicker>
+                <div className="mt-1.5 text-[22px] font-light tabular-nums" style={{ color: c }}>{v}</div>
+                {note && <div className="text-[12px] text-[#d9b46a] tabular-nums">{note}</div>}
+              </div>
+            )) : <div className="px-5 py-4 border-b border-[#1f2228] text-[13px] text-[#9298a6]">Prix ou loyer manquant : pas de rendement calculable.</div>}
+            {/* L'emplacement : la seule donnée humaine, elle change le verdict */}
+            <div className="px-5 py-4 flex flex-col gap-2.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[13.5px] text-[#c9cdd6]">Emplacement</span>
+                <span className="border border-[#3a3f4a] rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? "#e8b04c" : "#d9b46a" }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
+              </div>
+              <div className="inline-flex flex-wrap rounded-full border border-[#2c3139] p-0.5 self-start">
+                {EMPLACEMENTS.map((e) => (
+                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3 py-1 rounded-full text-[12px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{e.libelle}</button>
+                ))}
+              </div>
+              <span className="text-[12.5px] text-[#6a7180]">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>
+              {enr?.commune && (
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([lot.lot.adresse?.valeur?.rue, enr.commune.nom].filter(Boolean).join(", "))}`} target="_blank" rel="noopener noreferrer" className="self-start border border-[#2c3139] rounded-full px-3.5 py-1.5 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]">Voir sur la carte</a>
+              )}
+            </div>
+          </div>
+
+          <div className="border border-[#1f2228] rounded-[20px] bg-[#0f1114] px-5 py-4 flex flex-col gap-2">
+            <Kicker>Commune et enseigne</Kicker>
+            <div className="flex flex-col">
+              {[["Commune", enr?.commune ? enr.commune.nom : "non résolue"], ["Population", enr?.commune?.population?.toLocaleString("fr-FR") ?? "—"], ["Typologie", enr?.typologie_ville ? enr.typologie_ville.replace("_", " ") : "—"], ["Enseigne", enr?.signature?.niveau ?? "—"], ["Activité", enr?.activite?.libelle ?? "—"]].map(([l, v]) => (
+                <div key={l} className="flex items-baseline justify-between gap-3 py-2 border-b border-[#1f2228] last:border-b-0"><span className="text-[13px] text-[#9298a6]">{l}</span><span className="text-[14px] font-light text-right">{v}</span></div>
+              ))}
+            </div>
+          </div>
+
+          <p className="m-0 text-[12.5px] text-[#6a7180]">La décision Oui / Non se prend en bas de page : elle pré-rédige le mail et clôt l'étape.</p>
+        </aside>
+      </div>
 
       {mailOuvert && (
         <DialogMailIntention

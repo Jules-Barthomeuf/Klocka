@@ -216,6 +216,7 @@ export default function ChatDossier({
       {/* Zone de saisie */}
       <div className="max-w-[880px] mx-auto">
         <BoiteSaisie
+          lumiere
           valeur={texte}
           onChange={setTexte}
           placeholder={placeholder}

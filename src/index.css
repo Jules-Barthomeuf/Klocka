@@ -303,3 +303,16 @@ input[type="number"] {
 body[data-editeur-projet] .assistant-flottant {
   display: none;
 }
+
+/* La lueur qui fait le tour du chat IA : un dégradé conique qui tourne
+   lentement derrière le cadre ; seul le liseré d'un pixel dépasse de la boîte.
+   Menthe pâle, jamais criard. Immobile si la personne préfère moins de mouvement. */
+.lumiere-tour {
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 285deg, rgba(150, 192, 184, .12) 315deg, rgba(150, 192, 184, .9) 345deg, transparent 360deg);
+  animation: lumiere-tour 9s linear infinite;
+  will-change: transform;
+}
+@keyframes lumiere-tour { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .lumiere-tour { animation: none; opacity: .45; }
+}

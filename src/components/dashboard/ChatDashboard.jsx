@@ -639,7 +639,8 @@ export default function ChatDashboard() {
       )}
 
       <BoiteSaisie
-        conteneur={{ onDragOver: (e) => { e.preventDefault(); setGlisse(true); }, onDragLeave: () => setGlisse(false), onDrop: deposer, className: `sticky bottom-4 z-20 ${glisse ? "!border-[#96c0b8]" : ""}` }}
+        conteneur={{ onDragOver: (e) => { e.preventDefault(); setGlisse(true); }, onDragLeave: () => setGlisse(false), onDrop: deposer, className: `sticky bottom-4 z-20 ${glisse ? "glisse" : ""}` }}
+        lumiere
         valeur={texte}
         onChange={setTexte}
         rows={ecoute ? 3 : texte.length > 160 ? 5 : 3}

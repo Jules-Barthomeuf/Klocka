@@ -20,11 +20,20 @@ export default function BoiteSaisie({
   compact = false,
   conteneur = {},
   className = "",
+  // lumiere : une lueur discrète fait lentement le tour du cadre — le chat IA
+  // du dossier et du dashboard la portent, pas les boîtes utilitaires.
+  lumiere = false,
 }) {
+  const { className: classeConteneur = "", ...propsConteneur } = conteneur;
   return (
+    <div {...propsConteneur} className={`relative ${classeConteneur}`}>
+      {lumiere && (
+        <div aria-hidden className="absolute -inset-[1.5px] rounded-[21.5px] overflow-hidden pointer-events-none">
+          <div className="lumiere-tour absolute inset-[-60%]" />
+        </div>
+      )}
     <div
-      {...conteneur}
-      className={`bg-[#0a0a0b] border border-[#1f2228] rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,.45)] focus-within:border-[#3a3f4a] transition-colors ${conteneur.className || ""} ${className}`}
+      className={`relative bg-[#0a0a0b] border border-[#1f2228] rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,.45)] focus-within:border-[#3a3f4a] transition-colors [.glisse_&]:border-[#96c0b8] ${className}`}
     >
       <div className={compact ? "px-5 pt-3" : "px-7 max-md:px-5 pt-6"}>
         <textarea
@@ -52,6 +61,7 @@ export default function BoiteSaisie({
           {enCours ? <Loader2 className={compact ? "w-4 h-4 animate-spin" : "w-[18px] h-[18px] animate-spin"} /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
         </button>
       </div>
+    </div>
     </div>
   );
 }

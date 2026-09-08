@@ -368,6 +368,8 @@ export default function BailTabs({ project }) {
 
   return (
     <div>
+      {/* L'essentiel du bail lu dans les pièces, dès l'ouverture ; l'analyse complète derrière un bouton. */}
+      <AnalyseBailLue projectId={project.id} />
       <div className="flex gap-7 mb-7">
         <button className={tabStyle(tab === "administratif")} onClick={() => setTab("administratif")}>Résumé</button>
         <button className={tabStyle(tab === "analyse")} onClick={() => setTab("analyse")}>Analyse du bail</button>
@@ -397,8 +399,6 @@ export default function BailTabs({ project }) {
         )
       )}
 
-      {/* Analyse du bail : l'essentiel lu dans les pièces, puis l'analyse complète */}
-      {tab === "analyse" && <AnalyseBailLue projectId={project.id} />}
       {tab === "analyse" && (
         hasAnalyse ? (
           <TexteEditable champ="analyse_bail">

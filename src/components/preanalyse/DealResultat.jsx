@@ -710,6 +710,67 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
   );
 }
 
+// Un champ de la fiche, modifiable d'un clic : nombre, texte, oui/non ou
+// adresse. La valeur enregistrée est marquée saisie à la main et tout se
+// recalcule. Vider le champ le remet à « non renseigné ».
+const BOOLEENS = new Set(["honoraires_inclus", "occupe"]);
+const texteBrut = (champ, c) => {
+  if (!c || c.absent) return "";
+  const v = c.valeur;
+  if (champ === "adresse" && v && typeof v === "object") return [v.rue, [v.code_postal, v.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  return v == null ? "" : String(v);
+};
+export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
+  const c = lot?.lot?.[champ];
+  const absent = !c || c.absent;
+  const [edition, setEdition] = useState(null);
+  const modifiable = !apercu && !!onSaisie;
+  const valider = (v) => { onSaisie?.({ [champ]: v }); setEdition(null); };
+
+  if (BOOLEENS.has(champ)) {
+    const actuel = absent ? null : c.valeur === true;
+    return (
+      <span className="inline-flex items-center gap-1">
+        {[["Oui", true], ["Non", false]].map(([mot, v]) => (
+          <button key={mot} onClick={() => modifiable && actuel !== v && valider(v)} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-colors disabled:cursor-default ${actuel === v ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#0b0c0e] font-semibold" : "border-[#2c3139] text-[#6a7180] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}>{mot}</button>
+        ))}
+        {!absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-[#d9b46a]">saisi à la main</span>}
+      </span>
+    );
+  }
+
+  if (edition !== null) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-2 justify-end">
+        <input
+          autoFocus
+          value={edition}
+          onChange={(e) => setEdition(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") valider(edition.trim()); if (e.key === "Escape") setEdition(null); }}
+          placeholder={champ === "adresse" ? "12 rue Exemple, 69002 Lyon" : ""}
+          className="min-w-[220px] bg-transparent border-b border-[#3a3f4a] focus:border-[#f2f3f5] outline-none text-[14px] font-light tabular-nums text-[#f2f3f5] py-0.5 placeholder:text-[#3a3f4a]"
+        />
+        <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
+        <button onClick={() => setEdition(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => modifiable && setEdition(texteBrut(champ, c))}
+      disabled={!modifiable || enCours}
+      title={modifiable ? "Modifier" : c?.citation || undefined}
+      className={`group inline-flex items-baseline gap-2 text-right text-[14px] tabular-nums font-light min-w-0 disabled:cursor-default ${absent ? "text-[#4d545d]" : "text-[#f2f3f5]"}`}
+    >
+      <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
+      {!absent && c.confiance === "basse" && <span className="text-[11px] text-[#d9b46a] font-normal">confiance basse</span>}
+      {!absent && c.saisi_a_la_main && <span className="text-[11px] text-[#d9b46a] font-normal">saisi à la main</span>}
+      {modifiable && <Pencil className="w-3 h-3 text-[#4d545d] opacity-0 group-hover:opacity-100 transition-opacity flex-none" />}
+    </button>
+  );
+}
+
 export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false }) {
   // Vérifier un critère à la main : vert, jaune, ou retour au calcul.
   const verifier = useMutation({
@@ -809,24 +870,12 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               <span className="text-[13px] text-[#6a7180]">ce que la fiche commerciale donne, champ par champ</span>
             </div>
             <dl className="m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12">
-              {CHAMPS_AFFICHES.map(([champ, libelle]) => {
-                const c = lot.lot[champ];
-                const absent = !c || c.absent;
-                return (
-                  <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-[#15171b]">
-                    <dt className="text-[13px] text-[#9298a6] flex-none">{libelle}</dt>
-                    {champ === "prix_fai" ? (
-                      <dd className="m-0 text-right min-w-0"><PrixFai lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} compact /></dd>
-                    ) : (
-                    <dd className={`m-0 text-right text-[14px] tabular-nums font-light min-w-0 ${absent ? "text-[#4d545d]" : "text-[#f2f3f5]"}`} title={c?.citation || undefined}>
-                      {absent ? "non renseigné" : afficherValeur(champ, c.valeur)}
-                      {!absent && c.confiance === "basse" && <span className="ml-2 text-[11px] text-[#d9b46a] font-normal">confiance basse</span>}
-                      {!absent && c.saisi_a_la_main && <span className="ml-2 text-[11px] text-[#d9b46a] font-normal">saisi à la main</span>}
-                    </dd>
-                    )}
-                  </div>
-                );
-              })}
+              {CHAMPS_AFFICHES.map(([champ, libelle]) => (
+                <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-[#15171b]">
+                  <dt className="text-[13px] text-[#9298a6] flex-none">{libelle}</dt>
+                  <dd className="m-0 text-right min-w-0"><ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
+                </div>
+              ))}
             </dl>
           </section>
 

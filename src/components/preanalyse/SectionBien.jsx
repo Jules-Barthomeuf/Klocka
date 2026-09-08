@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Loader2 } from "lucide-react";
-import { CHAMPS_AFFICHES, afficherValeur, VuesLieu, PrixFai } from "@/components/preanalyse/DealResultat";
+import { CHAMPS_AFFICHES, afficherValeur, VuesLieu, ChampFiche } from "@/components/preanalyse/DealResultat";
 
 // Le bien : ce qu'on sait de lui. À gauche les faits de la fiche, à droite ce
 // que les pièces ont reconstitué — chaque valeur avec sa pastille et le nombre
@@ -47,14 +47,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
             {champs.map((c) => (
               <div key={c.champ} className="flex items-baseline justify-between gap-6 py-2 border-b border-[#15171b]">
                 <dt className="text-[13px] text-[#9298a6] flex-none">{c.libelle}</dt>
-                {c.champ === "prix_fai" ? (
-                  <dd className="m-0 text-right"><PrixFai lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} compact /></dd>
-                ) : (
-                  <dd className={`m-0 text-right text-[14px] tabular-nums font-light ${c.valeur ? "text-[#f2f3f5]" : "text-[#4d545d]"}`}>
-                    {c.valeur || "—"}
-                    {c.valeur && c.confiance != null && c.confiance < 0.6 && <span className="ml-2 text-[11px] text-[#d9b46a] font-normal">confiance basse</span>}
-                  </dd>
-                )}
+                <dd className="m-0 text-right min-w-0"><ChampFiche champ={c.champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
               </div>
             ))}
           </dl>

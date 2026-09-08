@@ -180,7 +180,47 @@ async function completerContexteMarche(dossier) {
  * négociation). L'extraction n'est PAS relancée : le texte source et les
  * citations restent ceux du dépôt initial, seule la décision est recalculée.
  */
-const FAITS_SAISISSABLES = { prix_fai: 'Prix', loyer_annuel_ht_hc: 'Loyer', surface_m2: 'Surface' };
+// Les champs de la fiche qu'on peut corriger à la main, et comment les lire.
+const CHAMPS_SAISISSABLES = {
+  prix_fai: { libelle: 'Prix', type: 'nombre' },
+  loyer_annuel_ht_hc: { libelle: 'Loyer', type: 'nombre' },
+  surface_m2: { libelle: 'Surface', type: 'decimal' },
+  montant_honoraires: { libelle: 'Honoraires', type: 'nombre' },
+  rendement_annonce: { libelle: 'Rendement', type: 'decimal' },
+  honoraires_inclus: { libelle: 'Honoraires inclus', type: 'booleen' },
+  occupe: { libelle: 'Occupé', type: 'booleen' },
+  type_actif: { libelle: "Type d'actif", type: 'texte' },
+  locataire_nom: { libelle: 'Locataire', type: 'texte' },
+  locataire_activite: { libelle: 'Activité', type: 'texte' },
+  bail_type: { libelle: 'Type de bail', type: 'texte' },
+  bail_echeance: { libelle: 'Échéance du bail', type: 'texte' },
+  adresse: { libelle: 'Adresse', type: 'adresse' },
+};
+
+// « 45 rue Victor Hugo, 69002 Lyon » → { rue, code_postal, ville }.
+function lireAdresse(v) {
+  if (v && typeof v === 'object') return { rue: v.rue || null, code_postal: v.code_postal || null, ville: v.ville || null };
+  const t = String(v || '').trim();
+  const m = t.match(/^(.*?)[,\s]*\b(\d{5})\s+(.+)$/);
+  if (m) return { rue: m[1].trim().replace(/,$/, '') || null, code_postal: m[2], ville: m[3].trim() };
+  const parties = t.split(',').map((x) => x.trim()).filter(Boolean);
+  if (parties.length >= 2) return { rue: parties.slice(0, -1).join(', '), code_postal: null, ville: parties.at(-1) };
+  return { rue: null, code_postal: null, ville: t || null };
+}
+
+function lireValeur(champ, brut) {
+  const def = CHAMPS_SAISISSABLES[champ];
+  if (!def) return { erreur: 'Champ inconnu' };
+  if (brut === '' || brut == null) return { vide: true };
+  switch (def.type) {
+    // « abc » ne vaut pas 0 : sans chiffre, ou à zéro, la valeur est refusée.
+    case 'nombre': { const t = String(brut).replace(/[^\d.,-]/g, '').replace(',', '.'); const n = Number(t); if (!/\d/.test(t) || !isFinite(n) || n <= 0) return { erreur: `${def.libelle} invalide` }; return { valeur: Math.round(n) }; }
+    case 'decimal': { const t = String(brut).replace(/[^\d.,-]/g, '').replace(',', '.'); const n = Number(t); if (!/\d/.test(t) || !isFinite(n) || n <= 0) return { erreur: `${def.libelle} invalide` }; return { valeur: Math.round(n * 100) / 100 }; }
+    case 'booleen': return { valeur: brut === true || /^(oui|true|1|yes)$/i.test(String(brut)) };
+    case 'adresse': return { valeur: lireAdresse(brut) };
+    default: return { valeur: String(brut).trim().slice(0, 300) };
+  }
+}
 
 export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   const dossier = Records.filter('Deal', { deal_id: dealId })[0];
@@ -197,19 +237,16 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   // données du lot, avec leur provenance. Tout en dépend : le verdict, l'AEM,
   // le simulateur. D'où l'écriture sur le lot lui-même.
   let lot = entree.lot;
-  for (const [champ, libelle] of Object.entries(FAITS_SAISISSABLES)) {
-    if (saisie[champ] == null || saisie[champ] === '') continue;
-    const montant = Number(saisie[champ]);
-    if (!isFinite(montant) || montant <= 0) return { error: `${libelle} invalide` };
+  for (const champ of Object.keys(CHAMPS_SAISISSABLES)) {
+    if (!Object.prototype.hasOwnProperty.call(saisie, champ)) continue;
+    const lu = lireValeur(champ, saisie[champ]);
+    if (lu.erreur) return { error: lu.erreur };
+    // Une valeur vidée : le champ redevient absent, comme si la fiche ne le disait pas.
     lot = {
       ...lot,
-      [champ]: {
-        valeur: champ === 'surface_m2' ? Math.round(montant * 10) / 10 : Math.round(montant),
-        absent: false,
-        confiance: 1,
-        citation: 'Saisi à la main.',
-        saisi_a_la_main: true,
-      },
+      [champ]: lu.vide
+        ? { valeur: null, absent: true, confiance: null, citation: null, saisi_a_la_main: true }
+        : { valeur: lu.valeur, absent: false, confiance: 1, citation: 'Saisi à la main.', saisi_a_la_main: true },
     };
   }
 

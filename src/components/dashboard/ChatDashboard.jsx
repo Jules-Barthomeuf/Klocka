@@ -17,6 +17,7 @@ const MODES = [
   { id: "mail", label: "Mail", type: "assistant", placeholder: "Décrivez le mail à écrire, ou choisissez un mail type et remplacez les valeurs entre crochets…" },
   { id: "client", label: "Client", type: "client", placeholder: "Collez le compte rendu de l'appel de découverte : la fiche client est à valider ensuite." },
   { id: "question", label: "Question", type: "assistant", placeholder: "Une question, un ordre : dossiers, mails, Monday, simulation…" },
+  { id: "rappel", label: "Rappel", type: "rappel", placeholder: "Rappelle-moi dans 3 jours de rappeler Marc, voici son numéro : 06…", gabarit: "Rappelle-moi dans [x] jours de rappeler [nom], voici son numéro : [numéro]" },
 ];
 
 // Le chat du tableau de bord : une seule zone, on y met ce qu'on veut, il
@@ -362,6 +363,52 @@ function Echeances({ onBrouillon }) {
   );
 }
 
+// Les rappels du jour, sous le chat : ceux qui sont dus d'abord, en couleur ;
+// les prochains en dessous, discrets. « Fait » les range.
+function Rappels() {
+  const queryClient = useQueryClient();
+  const { data } = useQuery({ queryKey: ["rappels"], queryFn: () => base44.request("GET", "/api/assistant/rappels"), refetchInterval: 5 * 60000 });
+  const fait = useMutation({
+    mutationFn: (id) => base44.request("POST", `/api/assistant/rappels/${id}/fait`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rappels"] }),
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const supprimer = useMutation({
+    mutationFn: (id) => base44.request("DELETE", `/api/assistant/rappels/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rappels"] }),
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  if (!data?.total) return null;
+  const quand = (r) => (r.dans < 0 ? `en retard de ${-r.dans} j` : r.dans === 0 ? "aujourd'hui" : r.dans === 1 ? "demain" : `dans ${r.dans} j`);
+  const Ligne = ({ r, du }) => (
+    <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${du ? "border-[#d9b46a]/50 bg-[#d9b46a]/[0.07]" : "border-[#1f2228] bg-[#0f1114]"}`}>
+      <div className="w-[2px] flex-none self-stretch rounded" style={{ background: du ? (r.dans < 0 ? "#e8746a" : "#d9b46a") : "#3a3f4a" }} />
+      <div className="min-w-0 flex-1">
+        <p className="m-0 text-[13.5px] leading-[1.5] text-[#f2f3f5]">
+          Rappeler <span className="font-medium">{r.nom}</span>
+          {r.telephone && <> au <a href={`tel:${r.telephone}`} className="tabular-nums text-[#96c0b8] hover:text-[#f2f3f5]">{r.telephone.replace(/(\d{2})(?=\d)/g, "$1 ")}</a></>}
+          <span className="text-[#9298a6]"> — {quand(r)}</span>
+        </p>
+        {r.note && r.note !== r.nom && <p className="m-0 mt-0.5 text-[12.5px] leading-[1.5] text-[#6a7180] line-clamp-2">{r.note}</p>}
+      </div>
+      <div className="flex items-center gap-1 flex-none">
+        <button onClick={() => fait.mutate(r.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#2c3139] text-[12px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"><Check className="w-3 h-3" /> Fait</button>
+        <button onClick={() => window.confirm("Supprimer ce rappel ?") && supprimer.mutate(r.id)} className="w-7 h-7 flex items-center justify-center text-[#3f4644] hover:text-[#e8746a]" aria-label="Supprimer"><X className="w-3.5 h-3.5" /></button>
+      </div>
+    </div>
+  );
+  return (
+    <section className="mt-6">
+      <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Rappels{data.dus.length ? <span className="text-[#d9b46a]"> · {data.dus.length} à faire</span> : null}</p>
+      <div className="space-y-2">
+        {data.dus.map((r) => <Ligne key={r.id} r={r} du />)}
+        {data.a_venir.slice(0, 5).map((r) => <Ligne key={r.id} r={r} />)}
+        {data.a_venir.length > 5 && <p className="m-0 text-[12px] text-[#6a7180]">et {data.a_venir.length - 5} autre{data.a_venir.length - 5 > 1 ? "s" : ""} à venir</p>}
+      </div>
+    </section>
+  );
+}
+
 export default function ChatDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -493,9 +540,27 @@ export default function ChatDashboard() {
 
   const enCours = boite.isPending || analyser.isPending;
 
+  // Un rappel : la phrase est lue, le rappel est noté, il reviendra sous le chat.
+  const rappeler = useMutation({
+    mutationFn: (t) => base44.request("POST", "/api/assistant/rappels", { body: { texte: t } }),
+    onSuccess: (r) => {
+      const d = new Date(r.rappel.echeance);
+      pousser({ role: "assistant", contenu: `Noté : rappeler ${r.rappel.nom}${r.rappel.telephone ? ` au ${r.rappel.telephone}` : ""} le ${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}. Le rappel s'affichera ici ce jour-là.` });
+      queryClient.invalidateQueries({ queryKey: ["rappels"] });
+    },
+    onError: (e) => pousser({ role: "assistant", contenu: e?.message || "Je n'ai pas pu noter ce rappel." }),
+  });
+
   const lancer = (contenu, type = null) => {
     const t = (contenu ?? texte).trim();
-    if (enCours) return;
+    if (enCours || rappeler.isPending) return;
+    if (mode === "rappel" && !fichier) {
+      if (!t) return;
+      pousser({ role: "user", contenu: t });
+      setTexte("");
+      rappeler.mutate(t);
+      return;
+    }
     if (fichier) {
       pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
       setTexte("");
@@ -598,7 +663,7 @@ export default function ChatDashboard() {
             {MODES.map((m) => (
               <button
                 key={m.id}
-                onClick={() => setMode(mode === m.id ? null : m.id)}
+                onClick={() => { const suivant = mode === m.id ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); }}
                 title={mode === m.id ? "Revenir au tri automatique" : m.placeholder}
                 className={`relative text-[12.5px] py-1 px-0.5 mr-2 transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${mode === m.id ? "text-[#f2f3f5] font-medium after:scale-x-100" : "text-[#8f959e] hover:text-[#c6ccd3]"}`}
               >
@@ -614,6 +679,8 @@ export default function ChatDashboard() {
           </>
         }
       />
+
+      <Rappels />
     </div>
   );
 }

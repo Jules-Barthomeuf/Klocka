@@ -1910,6 +1910,30 @@ app.post('/api/assistant/note-appel', wrap(async (req, res) => {
 }));
 
 // Tout ce qui attend une relance, lu dans le tableau des agents.
+// Les rappels dits au chat : « rappelle-moi dans trois jours de rappeler Marc ».
+app.post('/api/assistant/rappels', wrap(async (req, res) => {
+  const { creerRappel } = await import('./rappels.js');
+  const r = await creerRappel({ texte: req.body?.texte, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+app.get('/api/assistant/rappels', wrap(async (req, res) => {
+  const { listerRappels } = await import('./rappels.js');
+  ok(res, listerRappels(currentUser(req)));
+}));
+app.post('/api/assistant/rappels/:id/fait', wrap(async (req, res) => {
+  const { terminerRappel } = await import('./rappels.js');
+  const r = terminerRappel(req.params.id, currentUser(req));
+  if (!r.ok) return res.status(404).json({ error: r.error });
+  ok(res, r);
+}));
+app.delete('/api/assistant/rappels/:id', wrap(async (req, res) => {
+  const { supprimerRappel } = await import('./rappels.js');
+  const r = supprimerRappel(req.params.id);
+  if (!r.ok) return res.status(404).json({ error: r.error });
+  ok(res, r);
+}));
+
 app.get('/api/assistant/relances', wrap(async (req, res) => {
   const { relancesEnAttente } = await import('./deal/appels.js');
   ok(res, await relancesEnAttente({ pour: currentUser(req) }));

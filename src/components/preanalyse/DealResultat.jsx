@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Loader2, MapPin, Quote, Send, X,
+  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Loader2, MapPin, Pencil, Quote, Send, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
@@ -648,6 +648,49 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
   );
 }
 
+// Le prix FAI, modifiable partout où il s'affiche : la fiche ne le donne pas
+// toujours, et tout en dépend — verdict, rendement AEM, simulateur, puis le
+// projet créé depuis le deal. Un clic, un nombre, tout se recalcule.
+export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = false }) {
+  const c = lot?.lot?.prix_fai;
+  const valeur = c && c.absent !== true && typeof c.valeur === "number" ? c.valeur : null;
+  const [edition, setEdition] = useState(null);
+  const montant = Number(String(edition ?? "").replace(/[^\d.,]/g, "").replace(",", "."));
+  const valide = isFinite(montant) && montant > 0;
+  const valider = () => { if (valide) { onSaisie?.({ prix_fai: Math.round(montant) }); setEdition(null); } };
+  const modifiable = !apercu && !!onSaisie;
+
+  if (edition !== null) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          autoFocus
+          value={edition}
+          onChange={(e) => setEdition(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") valider(); if (e.key === "Escape") setEdition(null); }}
+          placeholder="400 000"
+          inputMode="numeric"
+          className={`w-[150px] bg-transparent border-b border-[#3a3f4a] focus:border-[#f2f3f5] outline-none tabular-nums font-light text-[#f2f3f5] placeholder:text-[#3a3f4a] ${compact ? "text-[14px] py-0.5" : "text-[22px] py-1"}`}
+        />
+        <button onClick={valider} disabled={!valide || enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
+        <button onClick={() => setEdition(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => modifiable && setEdition(valeur != null ? String(valeur) : "")}
+      disabled={!modifiable || enCours}
+      title={modifiable ? "Modifier le prix affiché" : undefined}
+      className={`group inline-flex items-baseline gap-2 text-left tabular-nums font-light ${compact ? "text-[14px]" : "text-[22px]"} ${valeur == null ? "text-[#d9b46a]" : "text-[#f2f3f5]"} disabled:cursor-default`}
+    >
+      {valeur == null ? "à renseigner" : euros(valeur)}
+      {modifiable && <Pencil className={`${compact ? "w-3 h-3" : "w-3.5 h-3.5"} text-[#4d545d] opacity-0 group-hover:opacity-100 transition-opacity`} />}
+    </button>
+  );
+}
+
 export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
   // Le détail (critères, données extraites, enrichissement, lieu, marché) se
   // déplie en bas : on y descend pour vérifier, pas pour lire.
@@ -723,11 +766,15 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                 return (
                   <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-[#15171b]">
                     <dt className="text-[13px] text-[#9298a6] flex-none">{libelle}</dt>
+                    {champ === "prix_fai" ? (
+                      <dd className="m-0 text-right min-w-0"><PrixFai lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} compact /></dd>
+                    ) : (
                     <dd className={`m-0 text-right text-[14px] tabular-nums font-light min-w-0 ${absent ? "text-[#4d545d]" : "text-[#f2f3f5]"}`} title={c?.citation || undefined}>
                       {absent ? "non renseigné" : afficherValeur(champ, c.valeur)}
                       {!absent && c.confiance === "basse" && <span className="ml-2 text-[11px] text-[#d9b46a] font-normal">confiance basse</span>}
                       {!absent && c.saisi_a_la_main && <span className="ml-2 text-[11px] text-[#d9b46a] font-normal">saisi à la main</span>}
                     </dd>
+                    )}
                   </div>
                 );
               })}
@@ -904,8 +951,12 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
         {/* La colonne de droite, collée */}
         <aside className="lg:sticky lg:top-6 flex flex-col gap-4">
           <div className="border border-[#22262d] rounded-[20px] bg-[#0f1114] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1f2228]">
+              <Kicker>Prix FAI</Kicker>
+              <div className="mt-1.5"><PrixFai lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></div>
+              {lot.lot?.prix_fai?.saisi_a_la_main && <div className="text-[12px] text-[#d9b46a]">saisi à la main</div>}
+            </div>
             {aem ? [
-              ["Prix FAI", euros(aem.prix_fai), "#f2f3f5", null],
               ["Prix AEM", euros(aem.prix_aem), "#f2f3f5", `+${euros(aem.surcout_vs_fai)} tout compris`],
               ["Rendement annoncé", aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—", "#f2f3f5", null],
               ["Rendement AEM", aem.rendement_aem != null ? `${aem.rendement_aem} %` : "—", "#96c0b8", null],
@@ -915,7 +966,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                 <div className="mt-1.5 text-[22px] font-light tabular-nums" style={{ color: c }}>{v}</div>
                 {note && <div className="text-[12px] text-[#d9b46a] tabular-nums">{note}</div>}
               </div>
-            )) : <div className="px-5 py-4 border-b border-[#1f2228] text-[13px] text-[#9298a6]">Prix ou loyer manquant : pas de rendement calculable.</div>}
+            )) : <div className="px-5 py-4 border-b border-[#1f2228] text-[13px] text-[#9298a6]">Sans prix ou sans loyer, pas de rendement calculable.</div>}
           </div>
 
           <div className="border border-[#1f2228] rounded-[20px] bg-[#0f1114] px-5 py-4 flex flex-col gap-2">

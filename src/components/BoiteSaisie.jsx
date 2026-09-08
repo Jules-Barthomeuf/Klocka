@@ -25,15 +25,23 @@ export default function BoiteSaisie({
   lumiere = false,
 }) {
   const { className: classeConteneur = "", ...propsConteneur } = conteneur;
+  // Même cadre que la connexion : la couche du dessous peint un filet constant
+  // tout autour, et un dégradé conique qui tourne lentement fait courir une
+  // lueur blanche sur ce filet. Le fond de la boîte couvre le reste.
   return (
-    <div {...propsConteneur} className={`relative ${classeConteneur}`}>
+    <div
+      {...propsConteneur}
+      className={`relative rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,.45)] ${lumiere ? "p-px overflow-hidden bg-[#f2f3f5]/[0.12] [.glisse_&]:bg-[#96c0b8]" : ""} ${classeConteneur}`}
+    >
       {lumiere && (
-        <div aria-hidden className="absolute -inset-[1.5px] rounded-[21.5px] overflow-hidden pointer-events-none">
-          <div className="lumiere-tour absolute inset-[-60%]" />
-        </div>
+        <div
+          aria-hidden="true"
+          className="absolute inset-[-100%] animate-[spin_10s_linear_infinite] motion-reduce:animate-none pointer-events-none"
+          style={{ background: "conic-gradient(rgba(237,234,229,0) 0deg, rgba(237,234,229,0) 288deg, rgba(237,234,229,0.9) 332deg, rgba(237,234,229,0) 360deg)" }}
+        />
       )}
     <div
-      className={`relative bg-[#0a0a0b] border border-[#1f2228] rounded-[20px] shadow-[0_18px_50px_rgba(0,0,0,.45)] focus-within:border-[#3a3f4a] transition-colors [.glisse_&]:border-[#96c0b8] ${className}`}
+      className={`relative bg-[#0a0a0b] transition-colors ${lumiere ? "rounded-[19px]" : "border border-[#1f2228] rounded-[20px] focus-within:border-[#3a3f4a] [.glisse_&]:border-[#96c0b8]"} ${className}`}
     >
       <div className={compact ? "px-5 pt-3" : "px-7 max-md:px-5 pt-6"}>
         <textarea

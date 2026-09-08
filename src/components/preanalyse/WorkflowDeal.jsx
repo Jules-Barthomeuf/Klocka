@@ -275,6 +275,30 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
       )}
 
       {/* Le chat du dossier : questions, analyses, points à vérifier */}
+      {/* Étapes du dossier — libellés seuls, sans pastilles. Toujours visibles :
+          on doit pouvoir changer d'étape sans refermer la table ouverte. */}
+      <div className="flex flex-wrap items-center gap-x-7 gap-y-2 border-b border-[#1f2228] mb-8">
+        {ETAPES.map((e) => {
+          const accessible = e.n <= debloquee;
+          const active = etape === e.n;
+          return (
+            <button
+              key={e.id}
+              onClick={() => (accessible ? setEtape(e.n) : dossier && !deblocageEnCours && passerVersEtape(e.n))}
+              disabled={!accessible && !dossier}
+              title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
+              className={`relative text-[14px] pb-3 px-0.5 rounded-none transition-colors whitespace-nowrap
+                after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 after:ease-out
+                ${active ? "after:scale-x-100 text-[#f2f3f5] font-semibold"
+                  : accessible ? "text-[#8f959e] hover:text-[#c6ccd3]"
+                  : "text-[#4d545d] hover:text-[#8f959e]"}`}
+            >
+              {e.label}
+            </button>
+          );
+        })}
+      </div>
+
       <ChatDossier
         afficherRequetes={etape === 2 || etape === 3}
         panneauDocuments={dossier ? <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive /> : null}
@@ -307,30 +331,6 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         onRefresh={onRefresh}
         apercu={apercu}
       />
-
-      {/* Étapes du dossier — libellés seuls, sans pastilles. Toujours visibles :
-          on doit pouvoir changer d'étape sans refermer la table ouverte. */}
-      <div className="flex flex-wrap items-center gap-x-7 gap-y-2 border-b border-[#1f2228] mt-9">
-        {ETAPES.map((e) => {
-          const accessible = e.n <= debloquee;
-          const active = etape === e.n;
-          return (
-            <button
-              key={e.id}
-              onClick={() => (accessible ? setEtape(e.n) : dossier && !deblocageEnCours && passerVersEtape(e.n))}
-              disabled={!accessible && !dossier}
-              title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
-              className={`relative text-[14px] pb-3 px-0.5 rounded-none transition-colors whitespace-nowrap
-                after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 after:ease-out
-                ${active ? "after:scale-x-100 text-[#f2f3f5] font-semibold"
-                  : accessible ? "text-[#8f959e] hover:text-[#c6ccd3]"
-                  : "text-[#4d545d] hover:text-[#8f959e]"}`}
-            >
-              {e.label}
-            </button>
-          );
-        })}
-      </div>
 
       {/* Contenu de l'étape courante */}
       <div key={etape} className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out space-y-5">

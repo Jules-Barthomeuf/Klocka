@@ -7,13 +7,22 @@ import { Loader2 } from "lucide-react";
 // Une grille de critères : critère, valeur lue au format voulu, statut en
 // case colorée, source à droite. La règle se lit d'un clic sur le critère.
 
-const FOND = { ok: "#2f7a5a", warning: "#a8752a", a_verifier: "#a8752a", vide: "#2c3139", non_lu: "#2c3139" };
-const MOT = { ok: "OK", warning: "À vérifier", a_verifier: "À vérifier", vide: "Non trouvé", non_lu: "Non lu" };
+const FOND = { ok: "#2f7a5a", warning: "#a8752a", a_verifier: "#a8752a", no_go: "#9b3b32", vide: "#2c3139", non_lu: "#2c3139" };
+const MOT = { ok: "OK", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
 const Th = ({ children, className = "" }) => <th className={`text-left text-[11.5px] font-semibold tracking-[.02em] text-[#9298a6] px-4 py-2.5 border-b border-r border-[#1f2228] last:border-r-0 ${className}`}>{children}</th>;
 
-export function TableCriteres({ g, onPreuve, sansSources = false, titre = null }) {
+export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, dealId = null, lectureSeule = false }) {
   const [ouverts, setOuverts] = useState(() => new Set());
+  const [details, setDetails] = useState(() => new Set());
+  const [choix, setChoix] = useState(null);
+  const queryClient = useQueryClient();
   const bascule = (id) => setOuverts((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const basculeDetail = (id) => setDetails((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const decider = useMutation({
+    mutationFn: ({ critere, statut }) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${g.id}/statut/${critere}`, { body: { statut } }),
+    onSuccess: () => { setChoix(null); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
   return (
     <div>
       {titre && <p className="m-0 px-5 pt-4 pb-2 text-[15px] font-semibold text-[#f2f3f5]">{titre}</p>}
@@ -26,12 +35,26 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null }
                 <button onClick={() => bascule(l.id)} className="text-left text-[14px] text-[#f2f3f5] hover:text-[#ffffff]">{l.libelle}</button>
                 {ouverts.has(l.id) && <p className="m-0 mt-1 text-[11.5px] leading-[1.45] text-[#6a7180]">{l.regle}</p>}
               </td>
-              <td className="px-4 py-3 border-b border-r border-[#1f2228]">
-                {l.valeur ? <p className="m-0 text-[14px] leading-[1.55] text-[#f2f3f5]">{l.valeur}</p> : <span className="text-[13px] text-[#4d545d]">—</span>}
-                {l.motif && l.statut !== "ok" && <p className="m-0 mt-1 text-[12px] leading-[1.45] text-[#9298a6]">{l.motif}</p>}
+              <td className={`px-4 py-3 border-b border-r border-[#1f2228] ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
+                {l.valeur ? <p className="m-0 text-[14px] leading-[1.55] text-[#f2f3f5] whitespace-pre-line">{l.valeur}</p> : <span className="text-[13px] text-[#4d545d]">—</span>}
+                {l.motif && l.statut_calcule !== "ok" && <p className="m-0 mt-1 text-[12px] leading-[1.45] text-[#9298a6]">{l.motif}{l.details ? <span className="text-[#6a7180]"> · {details.has(l.id) ? "replier" : "voir les valeurs"}</span> : null}</p>}
+                {l.details && details.has(l.id) && (
+                  <div className="mt-2 border border-[#2c3139] rounded-lg px-3 py-2 space-y-1">
+                    {l.details.map((d, i) => <p key={i} className="m-0 flex items-baseline justify-between gap-4 text-[12.5px]"><span className="text-[#9298a6]">{d.libelle}</span><span className="text-[#f2f3f5] tabular-nums font-light text-[14px]">{d.valeur}</span></p>)}
+                  </div>
+                )}
               </td>
-              <td className={`px-4 py-3 border-b border-[#1f2228] ${sansSources ? "" : "border-r"}`} style={{ background: FOND[l.statut] || FOND.vide }}>
+              <td className={`px-4 py-3 border-b border-[#1f2228] relative ${sansSources ? "" : "border-r"} ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
                 <span className="text-[13px] font-medium text-[#ffffff]">{MOT[l.statut] || l.statut}</span>
+                {l.decision && <span className="block text-[10.5px] text-[#ffffff]/70">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
+                {choix === l.id && (
+                  <div className="absolute left-2 top-full mt-1 z-20 bg-[#0f1114] border border-[#2c3139] rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px]" onClick={(e) => e.stopPropagation()}>
+                    {[["ok", "OK"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([st, mot]) => (
+                      <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="text-left text-[12.5px] text-[#ffffff] px-3 py-1.5 rounded-md" style={{ background: FOND[st] }}>{mot}</button>
+                    ))}
+                    {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="text-left text-[12px] text-[#9298a6] hover:text-[#f2f3f5] px-3 py-1">Revenir au calcul</button>}
+                  </div>
+                )}
               </td>
               {!sansSources && (
                 <td className="px-4 py-3 border-b border-[#1f2228]">
@@ -67,7 +90,7 @@ export default function GrilleCriteres({ dossier, ids, titre, sousTitre, onPreuv
   });
   const grilles = requetes.map((r) => r.data).filter(Boolean);
   const chargement = requetes.some((r) => r.isLoading);
-  const resume = grilles.reduce((a, g) => ({ ok: a.ok + g.resume.ok, warning: a.warning + g.resume.warning + g.resume.a_verifier, vide: a.vide + g.resume.vide + g.resume.non_lu, non_lues: a.non_lues + (g.non_lues || 0) }), { ok: 0, warning: 0, vide: 0, non_lues: 0 });
+  const resume = grilles.reduce((a, g) => ({ ok: a.ok + g.resume.ok, warning: a.warning + g.resume.warning + g.resume.a_verifier, no_go: a.no_go + (g.resume.no_go || 0), vide: a.vide + g.resume.vide + g.resume.non_lu, non_lues: a.non_lues + (g.non_lues || 0) }), { ok: 0, warning: 0, no_go: 0, vide: 0, non_lues: 0 });
   const enCours = grilles.some((g) => g.remplissage?.etat === "en_cours");
 
   return (
@@ -82,6 +105,7 @@ export default function GrilleCriteres({ dossier, ids, titre, sousTitre, onPreuv
             <span className="flex items-center gap-3 text-[12px] text-[#c9cdd6]">
               <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.ok }} />{resume.ok} OK</span>
               <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.warning }} />{resume.warning} à vérifier</span>
+              {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.no_go }} />{resume.no_go} no go</span>}
               {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.vide }} />{resume.vide} sans valeur</span>}
             </span>
           )}
@@ -91,7 +115,7 @@ export default function GrilleCriteres({ dossier, ids, titre, sousTitre, onPreuv
       </header>
       {chargement && !grilles.length ? <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div> : grilles.map((g, i) => (
         <div key={g.id} className={i > 0 ? "border-t border-[#1f2228]" : ""}>
-          <TableCriteres g={g} onPreuve={onPreuve} titre={ids.length > 1 ? g.titre : null} />
+          <TableCriteres g={g} onPreuve={onPreuve} dealId={dealId} titre={i > 0 ? g.titre : null} />
         </div>
       ))}
     </div>

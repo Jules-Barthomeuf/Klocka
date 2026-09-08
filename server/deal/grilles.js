@@ -176,7 +176,7 @@ function warnings(id, cid, x, ctx) {
     case 'bail.parties': if (x.personne_physique) return w('Le locataire est une personne physique.'); if (x.locataire_actuel_identique === false) return { statut: 'a_verifier', motif: 'Le locataire actuel n\'est pas celui du bail.' }; return null;
     case 'bail.loyer_signature': {
       const fiche = ctx.loyer_fiche; const bail = x.annuel_ht;
-      if (fiche && bail) { const annees = ctx.debut ? Math.max(0, (Date.now() - ctx.debut) / (365.25 * 86400000)) : 0; const indexe = bail * Math.pow(1.02, annees); const ecart = Math.abs(fiche - indexe) / indexe; if (ecart > 0.05) return w(`Écart de ${(ecart * 100).toFixed(0)} % avec la fiche commerciale (${eur(fiche)}), indexation ~2 %/an comprise.`); }
+      if (fiche && bail) { const annees = ctx.debut ? Math.max(0, (Date.now() - ctx.debut) / (365.25 * 86400000)) : 0; const indexe = bail * Math.pow(1.02, annees); const ecart = Math.abs(fiche - indexe) / indexe; if (ecart > 0.05) return { ...w(`Écart de ${(ecart * 100).toFixed(0)} % avec la fiche commerciale (${eur(fiche)}), indexation ~2 %/an comprise.`), details: [{ libelle: 'Fiche commerciale', valeur: `${eur(fiche)} / an` }, { libelle: 'Loyer de signature (bail)', valeur: `${eur(bail)} / an` }, { libelle: `Loyer indexé (~2 %/an sur ${annees.toFixed(1)} an)`, valeur: `${eur(indexe)} / an` }] }; }
       return null;
     }
     case 'bail.conditions_exceptionnelles': if (x.presentes && x.en_cours) return w('Franchise ou paliers encore en cours.'); return null;
@@ -190,10 +190,10 @@ function warnings(id, cid, x, ctx) {
     case 'bail.taxes': if (x.taxe_fonciere_refacturee === false) return w('La taxe foncière n\'est pas refacturable au locataire.'); return null;
     case 'quittances.loyer_hc_ht': {
       const fiche = ctx.loyer_fiche; const mont = x.montant;
-      if (fiche && mont) { const annuel = x.periodicite === 'trimestriel' ? mont * 4 : x.periodicite === 'annuel' ? mont : mont * 12; if (Math.abs(annuel - fiche) / fiche > 0.05) return w(`${eur(annuel)}/an sur quittances contre ${eur(fiche)} sur la fiche commerciale.`); }
+      if (fiche && mont) { const annuel = x.periodicite === 'trimestriel' ? mont * 4 : x.periodicite === 'annuel' ? mont : mont * 12; if (Math.abs(annuel - fiche) / fiche > 0.05) return { ...w(`${eur(annuel)}/an sur quittances contre ${eur(fiche)} sur la fiche commerciale.`), details: [{ libelle: 'Fiche commerciale', valeur: `${eur(fiche)} / an` }, { libelle: 'Quittances', valeur: `${eur(mont)} ${x.periodicite === 'trimestriel' ? 'par trimestre' : 'par mois'} · ${eur(annuel)} / an` }] }; }
       return null;
     }
-    case 'quittances.provision': if (x.mentionnee && ctx.provision_bail && x.montant && Math.abs(x.montant - ctx.provision_bail) / ctx.provision_bail > 0.1) return w(`Provision ${eur(x.montant)} contre ${eur(ctx.provision_bail)} au bail.`); return null;
+    case 'quittances.provision': if (x.mentionnee && ctx.provision_bail && x.montant && Math.abs(x.montant - ctx.provision_bail) / ctx.provision_bail > 0.1) return { ...w(`Provision ${eur(x.montant)} contre ${eur(ctx.provision_bail)} au bail.`), details: [{ libelle: 'Bail', valeur: eur(ctx.provision_bail) }, { libelle: 'Quittances', valeur: eur(x.montant) }] }; return null;
     case 'quittances.tva': if (ctx.tva_bail != null && x.oui != null && x.oui !== ctx.tva_bail) return w(`Quittances ${x.oui ? 'avec' : 'sans'} TVA, bail ${ctx.tva_bail ? 'avec' : 'sans'}.`); return null;
     case 'pv_ag.travaux_votes': if (x.article_606) return w('Gros travaux votés relevant de l\'article 606.'); return null;
     case 'pv_ag.travaux_discussion': if (x.article_606 && (x.non_votes_ou_reportes ?? true)) return w('Gros travaux (article 606) non votés ou reportés.'); return null;
@@ -218,7 +218,14 @@ function texteDe(id, cid, x) {
     case 'pv_ag.impayes': return ouiNon(x.oui) || t || null;
     case 'diagnostics.termites': case 'diagnostics.plomb': return x.presence == null ? (t || null) : `${ouiNon(x.presence)}${t ? ` — ${t}` : ''}`;
     case 'diagnostics.dpe': return x.classe || t || null;
-    case 'bail.charges': case 'bail.taxes': { if (x.oui == null && !t) return null; const o = ouiNon(x.oui); const l = (x.locataire || []).length ? `Locataire : ${x.locataire.join(', ')}` : ''; const b = (x.bailleur || []).length ? `Bailleur : ${x.bailleur.join(', ')}` : ''; return [o, l, b].filter(Boolean).join(' · ') || t; }
+    case 'bail.charges': case 'bail.taxes': {
+      if (x.oui == null && !t) return null;
+      const o = ouiNon(x.oui);
+      const liste = (titre, items) => ((items || []).length ? `${titre} :\n${items.map((i) => `- ${String(i).trim()}`).join('\n')}` : '');
+      const l = liste('Locataire', x.locataire);
+      const b = liste('Bailleur', x.bailleur);
+      return [o ? `${o}${l ? ' · ' : ''}` : '', l, b].filter(Boolean).join(o && l ? '' : '\n').replace(/ · \n?Locataire/, ' · Locataire') || t;
+    }
     case 'bail.depot': return t || (x.montant != null ? `${eur(x.montant)}${x.mois != null ? ` soit ${Number(x.mois).toFixed(x.mois % 1 ? 1 : 0)} mois du loyer de signature` : ''}` : null);
     case 'bail.pas_de_porte': if (x.present === false) return null; return t || (x.montant != null ? `${eur(x.montant)}${x.mois != null ? ` soit ${x.mois} mois du loyer de signature` : ''}` : null);
     case 'bail.loyer_signature': return t || (x.annuel_ht != null ? `${eur(x.annuel_ht)} / an` : null);
@@ -255,14 +262,18 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
     const valeur = texteDe(id, c.id, x);
     let statut = !estLu ? 'non_lu' : valeur ? 'ok' : 'vide';
     let motif = null;
-    if (estLu && valeur) { const r = warnings(id, c.id, x, ctx); if (r) { statut = r.statut; motif = r.motif; } }
+    let details = null;
+    if (estLu && valeur) { const r = warnings(id, c.id, x, ctx); if (r) { statut = r.statut; motif = r.motif; details = r.details || null; } }
     if (statut === 'vide') motif = 'Aucune pièce ne répond.';
     if (statut === 'non_lu') motif = 'Question pas encore lue.';
+    const statutCalcule = statut;
+    const decision = brut.grilles_statuts?.[`${id}.${c.id}`] || null;
+    if (decision?.statut) statut = decision.statut;
     const masquee = c.masquer_si_absent && (!x || x.present === false || !valeur);
-    return { id: c.id, libelle: c.libelle, regle: c.regle, format: c.format, valeur, statut, motif, masquee, preuves: preuvesDe(c.champs).slice(0, 6) };
+    return { id: c.id, libelle: c.libelle, regle: c.regle, format: c.format, valeur, statut, statut_calcule: statutCalcule, decision, motif, details, masquee, preuves: preuvesDe(c.champs).slice(0, 6) };
   }).filter((l) => !l.masquee);
   const nb = (s) => lignes.filter((l) => l.statut === s).length;
-  return { id, titre: grille.titre, lignes, resume: { ok: nb('ok'), warning: nb('warning'), a_verifier: nb('a_verifier'), vide: nb('vide'), non_lu: nb('non_lu') }, formatee_le: cache?.le || null, remplissage: m.remplissage, non_lues: grille.criteres.flatMap((c) => c.champs).filter((ch) => !lu.includes(ch)).length };
+  return { id, titre: grille.titre, lignes, resume: { ok: nb('ok'), warning: nb('warning'), a_verifier: nb('a_verifier'), no_go: nb('no_go'), vide: nb('vide'), non_lu: nb('non_lu') }, formatee_le: cache?.le || null, remplissage: m.remplissage, non_lues: grille.criteres.flatMap((c) => c.champs).filter((ch) => !lu.includes(ch)).length };
 }
 
 /** Les questions du gabarit jamais lues sur ce dossier. */
@@ -270,4 +281,17 @@ export function colonnesNonLues(dealId) {
   const m = lireMatrice(dealId);
   if (!m || !m.lignes.length) return [];
   return m.colonnes.filter((c) => !m.lignes.some((l) => l.cellules && Object.prototype.hasOwnProperty.call(l.cellules, c.id))).map((c) => c.id);
+}
+
+/** Le statut décidé à la main sur un critère : ok, a_verifier, no_go, ou rien (retour au calcul). */
+export function deciderStatut(dealId, grilleId, critereId, statut, user) {
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!brut) return { ok: false, error: 'Dossier introuvable' };
+  if (statut && !['ok', 'a_verifier', 'no_go'].includes(statut)) return { ok: false, error: 'Statut inconnu' };
+  const cle = `${grilleId}.${critereId}`;
+  const statuts = { ...(brut.grilles_statuts || {}) };
+  if (statut) statuts[cle] = { statut, par: user?.email || null, le: new Date().toISOString() };
+  else delete statuts[cle];
+  Records.update('Deal', brut.id, { grilles_statuts: statuts });
+  return { ok: true };
 }

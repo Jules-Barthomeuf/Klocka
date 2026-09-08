@@ -458,8 +458,8 @@ function AnalyseBailLue({ projectId }) {
       <button onClick={() => setComplet((o) => !o)} className="mt-5 px-4 py-2 rounded-full border border-[#2c3139] text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]">{complet ? "Replier l'analyse du bail" : "Analyse du bail complète"}</button>
       {complet && (
         <div className="mt-4 bg-[#000000] border border-[#1f2228] rounded-[18px] overflow-hidden">
-          {data.bail && <TableCriteres g={data.bail} sansSources titre="Bail" />}
-          {data.quittances && <div className="border-t border-[#1f2228]"><TableCriteres g={data.quittances} sansSources titre="Quittances" /></div>}
+          {data.bail && <TableCriteres g={data.bail} sansSources lectureSeule />}
+          {data.quittances && <div className="border-t border-[#1f2228]"><TableCriteres g={data.quittances} sansSources lectureSeule titre="Quittances" /></div>}
         </div>
       )}
     </div>

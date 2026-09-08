@@ -2023,6 +2023,12 @@ app.get('/api/projets/:id/analyse-bail', wrap(async (req, res) => {
     bail: sansPieces(bail), quittances: sansPieces(quittances),
   });
 }));
+app.post('/api/preanalyse/dossiers/:dealId/grille/:id/statut/:critere', wrap(async (req, res) => {
+  const { deciderStatut } = await import('./deal/grilles.js');
+  const r = deciderStatut(req.params.dealId, req.params.id, req.params.critere, req.body?.statut || null, currentUser(req));
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
 app.get('/api/preanalyse/dossiers/:dealId/grille-bail', wrap(async (req, res) => {
   const { lireGrilleBail } = await import('./deal/grille-bail.js');
   const g = lireGrilleBail(req.params.dealId);

@@ -15,11 +15,11 @@ import "moment/locale/fr";
 moment.locale("fr");
 
 const statutConfig = {
-  nouveau: { label: "En attente", color: "bg-[#9298a6]/20 text-[#c9cdd6]", icon: Clock },
+  nouveau: { label: "À faire", color: "bg-[#9298a6]/20 text-[#c9cdd6]", icon: Clock },
   en_cours: { label: "En cours", color: "bg-blue-500/20 text-blue-300", icon: Loader2 },
-  accepte: { label: "Accepté", color: "bg-[#96c0b8]/20 text-[#c3ddd6]", icon: CheckCircle2 },
+  accepte: { label: "En cours", color: "bg-blue-500/20 text-blue-300", icon: Loader2 },
   refuse: { label: "Refusé", color: "bg-red-500/20 text-red-300", icon: XCircle },
-  termine: { label: "Terminé", color: "bg-[#96c0b8]/20 text-[#96c0b8]", icon: CheckCircle2 }
+  termine: { label: "Fait", color: "bg-[#96c0b8]/20 text-[#96c0b8]", icon: CheckCircle2 }
 };
 
 export default function Feedback() {

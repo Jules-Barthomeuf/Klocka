@@ -17,6 +17,7 @@ import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
 import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
+import { GABARITS } from "./gabaritsMail";
 import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
 
 // Les parties de l'analyse : une par famille de pièces.
@@ -34,8 +35,8 @@ import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/Conn
 //   1. Mail        — écrire à l'agent pendant l'appel… ou passer l'étape
 //   2. Pré-analyse — la fiche décortiquée, décision Oui / Non à la fin
 //   3. Documents   — analyse de tous les documents (dépôt, extraction, Drive, synthèse)
-//   4. Décision    — mail Oui (présentation client) / Non (abandon), comme à l'étape 2
-//   5. Plateforme  — si Oui : entrée dans la plateforme (projet pré-rempli)
+//   4. Plateforme  — entrée dans la plateforme (projet pré-rempli), puis le teaser vidéo
+//   5. Présentation — dossier banque
 //
 // Le workflow existe avant même le deal : sans dossier, seules les étapes 1 et
 // 2 sont ouvertes ; l'analyse (étape 2) crée le deal et déroule la suite.
@@ -45,9 +46,8 @@ const ETAPES = [
   { n: 1, id: "mail", label: "Mail", sub: "agent" },
   { n: 2, id: "preanalyse", label: "Pré-analyse", sub: "fiche du bien" },
   { n: 3, id: "analyse", label: "Analyse", sub: "documents et décision" },
-  { n: 4, id: "video", label: "Vidéo", sub: "présentation client" },
-  { n: 5, id: "plateforme", label: "Plateforme", sub: "création du projet" },
-  { n: 6, id: "presentation", label: "Présentation", sub: "dossier banque" },
+  { n: 4, id: "plateforme", label: "Plateforme", sub: "création du projet, puis vidéo" },
+  { n: 5, id: "presentation", label: "Présentation", sub: "dossier banque" },
 ];
 
 // En-tête numéroté d'une étape : « 01 · Titre » + description, comme la maquette.
@@ -58,7 +58,7 @@ export function TitreEtape({ n, titre, description }) {
         {n != null && <div className="text-xs text-[#9298a6] tabular-nums">{String(n).padStart(2, "0")}</div>}
         <h2 className="m-0 text-[22px] font-medium text-[#f2f3f5]">{titre}</h2>
       </div>
-      <p className="m-0 text-[13.5px] text-[#9298a6] max-w-[64ch] leading-[1.65]">{description}</p>
+      <p className="m-0 text-[13.5px] text-[#9298a6] leading-[1.65]">{description}</p>
     </div>
   );
 }
@@ -207,43 +207,11 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                 </Badge>
               )}
             </div>
-            <p className="m-0 mt-2.5 text-[13px] text-[#8f959e] flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              <span className="inline-block bg-[#1a1d22] border border-[#3a3f4a] text-[#e6e8eb] font-medium px-2.5 py-px rounded-full">
-                Étape {etape} · {ETAPES[etape - 1]?.label}
-              </span>
-              {[
-                `${(dossier.documents_espace || []).length} document${(dossier.documents_espace || []).length > 1 ? "s" : ""}`,
-                ETAPES[Math.max(0, (dossier.etape_max || 1) - 1)]?.label,
-                (dossier.conversations || []).length ? `${dossier.conversations.length} requête${dossier.conversations.length > 1 ? "s" : ""}` : null,
-                dossier.contact_agent_email || null,
-                !isNaN(new Date(dossier.cree_le)) ? `créé le ${new Date(dossier.cree_le).toLocaleDateString("fr-FR")}` : null,
-              ].filter(Boolean).map((x, i) => (
-                <React.Fragment key={i}>
-                  {i > 0 && <span className="text-[#3a3f4a]">·</span>}
-                  <span>{x}</span>
-                </React.Fragment>
-              ))}
-            </p>
           </div>
           {!apercu && (
             <div className="flex items-center gap-2.5 flex-shrink-0 max-md:flex-wrap max-md:flex-shrink max-md:justify-end">
               {dossier && (
                 <BoutonMonday dealId={dossier.deal_id} dejaPose={!!dossier.monday_item_id} />
-              )}
-              {debloquee > 1 && (
-                <Button
-                  onClick={() => {
-                    if (!window.confirm("Ramener ce dossier à l'étape 1 ? Documents et analyses sont conservés.")) return;
-                    base44
-                      .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/revenir`, { body: { etape: 1 } })
-                      .then(() => { toast.success("Retour à l'étape 1"); setEtape(1); onRefresh?.(); })
-                      .catch((e) => toast.error(e?.message || "Retour impossible"));
-                  }}
-                  disabled={abandonne}
-                  className="bg-transparent border-0 text-[#8f959e] hover:text-[#f2f3f5] hover:bg-transparent h-10 px-3 text-[14px]"
-                >
-                  Revenir à l'étape 1
-                </Button>
               )}
               <Button
                 onClick={() => {
@@ -259,16 +227,6 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
               >
                 Abandonner
               </Button>
-              {etape < ETAPES.length && (
-                <Button
-                  onClick={() => (etape < debloquee ? setEtape(etape + 1) : passerVersEtape(etape + 1))}
-                  disabled={deblocageEnCours || abandonne}
-                  title={abandonne ? "Dossier abandonné : il reste consultable, mais n'avance plus" : `Ouvrir l'étape suivante — ${ETAPES[etape]?.label}`}
-                  className="bg-[#f2f3f5] hover:bg-[#ffffff] text-[#0b0c0e] font-semibold border-0 rounded-[10px] h-10 px-5 text-[14px]"
-                >
-                  {deblocageEnCours ? "Passage…" : `Étape suivante : ${ETAPES[etape]?.label || ""}`}
-                </Button>
-              )}
             </div>
           )}
         </div>
@@ -365,21 +323,10 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
           </div>
         )}
         {etape === 3 && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
-        {etape === 4 && <BlocVideoPresentation dossier={dossier} apercu={apercu} />}
-        {etape === 5 && <EtapePlateforme dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
-        {etape === 6 && <EtapePresentation dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
+        {etape === 4 && <EtapePlateforme dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
+        {etape === 5 && <EtapePresentation dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
       </div>
 
-      {/* Documents du dossier — toujours accessibles */}
-      {dossier && etape !== 3 && (
-        <DocumentsDossier
-          dossier={dossier}
-          coches={documentsCoches}
-          onCocher={setDocumentsCoches}
-          onRefresh={onRefresh}
-          apercu={apercu}
-        />
-      )}
     </div>
   );
 }
@@ -428,19 +375,6 @@ function BandeauTest({ dossier }) {
 
 // Gabarits de l'étape 1 : chacun pré-écrit l'instruction de composition, à
 // compléter avec l'adresse du bien et le nom de l'agent.
-const GABARITS = [
-  { label: "Fiche commerciale", prompt: (d) => `Demande la fiche commerciale du bien ${ref(d)} auprès de ${agent(d)}. Précise : surface utile, état locatif, charges, taxe foncière.` },
-  { label: "Prise de contact", prompt: (d) => `Premier contact avec ${agent(d)} au sujet de ${ref(d)}. Présente-nous brièvement et demande un échange téléphonique.` },
-  { label: "Demande de documents", prompt: (d) => `Demande les documents du bien ${ref(d)} : baux, taxe foncière, DPE, trois derniers PV d'AG.` },
-  { label: "Demande de visite", prompt: (d) => `Demande une visite du bien ${ref(d)}, en proposant deux créneaux.` },
-  { label: "Relance", prompt: (d) => `Relance ${agent(d)} sur les documents demandés il y a une semaine pour ${ref(d)}.` },
-  { label: "Négociation prix", prompt: (d) => `Propose une offre sous le prix affiché pour ${ref(d)}, en justifiant par le marché local.` },
-];
-const ref = (d) => {
-  const a = d?.lots?.[0]?.lot?.adresse?.valeur;
-  return a?.rue ? `${a.rue}${a.ville ? ` à ${a.ville}` : ""}` : "[adresse du bien]";
-};
-const agent = (d) => d?.contact_agent_email || "[email de l'agent]";
 
 function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, onBrouillon }) {
   const [brouillonLocal, setBrouillonLocal] = useState(null);
@@ -519,9 +453,6 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
                 : `La fiche « ${dossier.source?.nom_fichier || "texte collé"} » a été déposée directement, sans échange de mail préalable dans la plateforme.`}
             </p>
           </div>
-          <Button onClick={onSuivant} className="bg-[#1f2228] hover:bg-[#1f2228] border border-[#2c3139] hover:border-[#3a3f4a] text-[#f2f3f5] font-medium rounded-[10px] h-10 px-4 text-[14px] flex-shrink-0">
-            Étape suivante <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-          </Button>
         </div>
       </div>
     );
@@ -1080,7 +1011,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
   return (
     <>
       <TitreEtape
-        n={6}
+        n={5}
         titre="Présentation"
         description="Le dossier de présentation bancaire du bien, généré depuis les données du deal : le bien, le bail, l'opération, le plan de financement, le marché et les points forts. Modifiable ensuite dans Google Slides."
       />
@@ -1293,7 +1224,7 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
 }
 
 // ---------------------------------------------------------------------------
-// Étape 5 — Plateforme : entrée du deal dans la plateforme (projet pré-rempli)
+// Étape 4 — Plateforme : entrée du deal dans la plateforme (projet pré-rempli), puis la vidéo
 // ---------------------------------------------------------------------------
 
 function EtapePlateforme({ dossier, onRefresh, apercu }) {
@@ -1323,7 +1254,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
 
   const titre = (
     <TitreEtape
-      n={5}
+      n={4}
       titre="Plateforme"
       description="Le deal devient un projet pré-rempli : adresse, locataire, bail, simulateur et données de marché issues de la base. Le suivi client se poursuit sur la fiche projet."
     />
@@ -1348,6 +1279,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
           <ExternalLink className="w-4 h-4 mr-2" /> Ouvrir le projet
         </Button>
       </div>
+      <BlocVideoPresentation dossier={dossier} apercu={apercu} />
       </>
     );
   }
@@ -1360,7 +1292,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         <Briefcase className="w-5 h-5" />
       </span>
       <p className="text-[#f2f3f5] text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
-      <p className="text-[#9298a6] text-xs mb-4 max-w-md mx-auto">
+      <p className="text-[#9298a6] text-xs mb-4">
         Le projet est créé pré-rempli : adresse, locataire, bail, simulateur (mêmes chiffres que la
         pré-analyse), données de marché issues de la base, et tout ce que l'extraction a relevé —
         bail, copropriété, diagnostics. Il s'ouvre ensuite dans l'éditeur pour compléter photos,
@@ -1385,7 +1317,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         </p>
       ) : analyses.length > 0 ? (
         <p className="text-[#6a7180] text-[11px] mt-3">
-          Les données de l'onglet « Données extraites » (étape 3) seront reportées dans la fiche.
+          Les données extraites à l'étape Analyse seront reportées dans la fiche.
         </p>
       ) : (
         <p className="text-[#6a7180] text-[11px] mt-3">
@@ -1461,10 +1393,7 @@ function RelancePreanalyse({ dossier, onRefresh, apercu }) {
   const enCours = etat?.etat === "en_cours";
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 -mt-2 mb-4">
-      <p className="m-0 text-[12.5px] text-[#6a7180]">
-        {dossier.source?.texte ? "Le teaser est conservé : la pré-analyse peut être rejouée à tout moment." : dossier.source?.url ? "La fiche d'origine est conservée : la pré-analyse peut être rejouée." : "Sans teaser conservé, la relance compose la fiche depuis les pièces."}
-        {etat?.etat === "erreur" && <span className="text-[#e8746a]"> {etat.erreur}</span>}
-      </p>
+      <p className="m-0 text-[12.5px] text-[#e8746a]">{etat?.etat === "erreur" ? etat.erreur : ""}</p>
       {enCours ? (
         <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {etat.phase === "preanalyse" ? "Pré-analyse en cours…" : etat.phase?.startsWith("etape") ? `Relecture de la data room ${etat.fait ?? 0}/${etat.total ?? "…"}` : "En cours…"}</span>
       ) : (

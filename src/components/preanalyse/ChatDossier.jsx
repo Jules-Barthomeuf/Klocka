@@ -6,14 +6,17 @@ import { nomOnglet } from "./AnalyseDocuments";
 import { toast } from "sonner";
 import { Mic, Square, Loader2, X, Plus, PanelRight } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
+import { SuggestionsMail } from "./gabaritsMail";
 
-// Le chat du dossier : une grande zone de saisie, trois modes en pastilles,
+// Le chat du dossier : une grande zone de saisie, les gabarits de mail,
 // puis la liste des requêtes lancées — on y revient d'un clic.
 
+// Un seul mode : la question. Les tables d'analyse ont leur place dans l'étape
+// Analyse, les anciennes requêtes gardent leur libellé.
 const MODES = [
-  { id: "analyse", label: "Critères", court: "Table d'analyse" },
-  { id: "verification", label: "Points à vérifier", court: "Points à vérifier" },
-  { id: "question", label: "Question", court: "Question" },
+  { id: "analyse", court: "Table d'analyse" },
+  { id: "verification", court: "Points à vérifier" },
+  { id: "question", court: "Question" },
 ];
 
 const ilYA = (iso) => {
@@ -62,12 +65,12 @@ export default function ChatDossier({
   extractionEnCours = false,
   onOuvrirExtraction,
   // Les requêtes n'accompagnent que le travail d'analyse : elles n'ont rien à
-  // faire sur les étapes Mail, Vidéo, Plateforme et Présentation.
+  // faire sur les étapes Mail, Plateforme et Présentation.
   afficherRequetes = true,
   panneauDocuments = null,
   nbDocuments = 0,
 }) {
-  const [mode, setMode] = useState("question");
+  const mode = "question";
   const [texte, setTexte] = useState("");
   const [conversationId, setConversationId] = useState(null);
   const finRef = useRef(null);
@@ -188,22 +191,9 @@ export default function ChatDossier({
                   />
                 </>
               ) : modeMail ? (
-                gabarits.map((g) => (
-                  <button key={g.label} onClick={() => setTexte(g.prompt(dossier))} disabled={apercu} className="px-3 py-1 rounded-full text-[12.5px] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50">{g.label}</button>
-                ))
+                <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
               ) : (
                 <>
-                  {MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => { if (m.id === "analyse" && nbCoches && onExtraire) return onExtraire(); setMode(m.id); }}
-                      disabled={!!conversation || (m.id === "analyse" && extractionEnCours)}
-                      title={m.id === "analyse" && nbCoches ? `Extraire ${nbCoches} document${nbCoches > 1 ? "s" : ""}` : conversation ? "Le mode est fixé par la requête ouverte" : undefined}
-                      className={`relative text-[12.5px] py-1 px-0.5 mr-2 transition-colors disabled:opacity-50 after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${mode === m.id ? "text-[#f2f3f5] font-medium after:scale-x-100" : "text-[#8f959e] hover:text-[#c6ccd3]"}`}
-                    >
-                      {m.id === "analyse" && extractionEnCours ? <span className="inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Extraction…</span> : m.label}
-                    </button>
-                  ))}
                   <BoutonBarre onClick={() => onToutCocher?.()} disabled={!documents.length} actif={nbCoches > 0} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"}><PanelRight className="w-4 h-4" /></BoutonBarre>
                 </>
               )}

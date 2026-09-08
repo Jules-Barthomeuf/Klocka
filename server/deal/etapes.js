@@ -1,4 +1,4 @@
-// Les six étapes d'un dossier, source unique partagée par le serveur et le
+// Les cinq étapes d'un dossier, source unique partagée par le serveur et le
 // front (le front importe le même descripteur via l'API).
 //
 // Une étape n'est accessible que si elle a été DÉBLOQUÉE : l'utilisateur passe
@@ -9,9 +9,8 @@ export const ETAPES = [
   { n: 1, id: 'mail', label: 'Mail', sub: 'agent' },
   { n: 2, id: 'preanalyse', label: 'Pré-analyse', sub: 'fiche du bien' },
   { n: 3, id: 'analyse', label: 'Analyse', sub: 'documents et décision' },
-  { n: 4, id: 'video', label: 'Vidéo', sub: 'présentation client' },
-  { n: 5, id: 'plateforme', label: 'Plateforme', sub: 'création du projet' },
-  { n: 6, id: 'presentation', label: 'Présentation', sub: 'dossier banque' },
+  { n: 4, id: 'plateforme', label: 'Plateforme', sub: 'création du projet, puis vidéo' },
+  { n: 5, id: 'presentation', label: 'Présentation', sub: 'dossier banque' },
 ];
 
 // Étape minimale déduite du statut, pour les dossiers créés avant `etape_max`.
@@ -20,7 +19,7 @@ const PAR_STATUT = {
   documents_demandes: 3,
   documents_recus: 3,
   depouille: 4,
-  projet_cree: 6,
+  projet_cree: 5,
   abandonne: 3,
 };
 

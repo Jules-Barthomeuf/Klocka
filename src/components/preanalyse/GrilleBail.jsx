@@ -13,18 +13,18 @@ const STATUT = {
   ok: ["#7fd1a8", "OK"], warning: ["#e8b04c", "À vérifier"], a_verifier: ["#e8b04c", "À vérifier"], vide: ["#4d545d", "Non trouvé"], non_lu: ["#4d545d", "Non lu"],
 };
 
-export default function GrilleBail({ dossier, onPreuve, apercu = false }) {
+export default function GrilleBail({ dossier, onPreuve, apercu = false, id = "bail" }) {
   const dealId = dossier?.deal_id;
   const queryClient = useQueryClient();
   const { data: g, isLoading } = useQuery({
-    queryKey: ["grille-bail", dealId],
-    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille-bail`),
+    queryKey: ["grille", id, dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille/${id}`),
     enabled: !!dealId,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   });
   const completer = useMutation({
     mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille-bail/completer`, { body: {} }),
-    onSuccess: (r) => { toast.success(r.rien ? "Tout est déjà lu" : `Lecture de ${r.colonnes.length} question${r.colonnes.length > 1 ? "s" : ""} lancée`); queryClient.invalidateQueries({ queryKey: ["grille-bail", dealId] }); },
+    onSuccess: (r) => { toast.success(r.rien ? "Tout est déjà lu" : `Lecture de ${r.colonnes.length} question${r.colonnes.length > 1 ? "s" : ""} lancée`); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   if (isLoading || !g) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>;
@@ -35,8 +35,8 @@ export default function GrilleBail({ dossier, onPreuve, apercu = false }) {
     <div className="bg-[#000000] border border-[#1f2228] rounded-md overflow-hidden">
       <header className="px-6 max-md:px-4 py-4 border-b border-[#1f2228] flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">Grille · Bail</h2>
-          <span className="text-[13px] text-[#9298a6]">Les critères Klocka, la valeur lue dans les pièces, et ce qui s'allume.</span>
+          <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">Grille · {g.titre}</h2>
+          <span className="text-[13px] text-[#9298a6]">{id === "bail" ? "Les critères Klocka, la valeur lue dans les pièces, et ce qui s'allume." : id === "pv_ag" ? "Ce que disent les procès-verbaux d'assemblée." : "Ce que dit le règlement de copropriété."}</span>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-3 text-[12px]">
@@ -85,7 +85,7 @@ export default function GrilleBail({ dossier, onPreuve, apercu = false }) {
           })}
         </tbody>
       </table>
-      <p className="m-0 px-6 max-md:px-4 py-3 text-[11.5px] text-[#6a7180]">Un clic sur une source ouvre la pièce à la page, avec la citation. Le loyer de signature est indexé à ~2 % par an depuis la prise d'effet pour la comparaison avec la fiche.</p>
+      {id === "bail" && <p className="m-0 px-6 max-md:px-4 py-3 text-[11.5px] text-[#6a7180]">Un clic sur une source ouvre la pièce à la page, avec la citation. Le loyer de signature est indexé à ~2 % par an depuis la prise d'effet pour la comparaison avec la fiche.</p>}
     </div>
   );
 }

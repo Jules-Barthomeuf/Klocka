@@ -29,7 +29,111 @@ export const CRITERES_BAIL = [
   { id: 'taxes', libelle: 'Taxes refacturées', champs: ['taxe_fonciere', 'charges'], regle: 'Warning si la taxe foncière ne peut pas être refacturée au locataire.' },
 ];
 
-export function lireGrilleBail(dealId) {
+const GROS_TRAVAUX = /\b606\b|gros ?œuvre|gros ?oeuvre|toiture|charpente|ravalement|façade|facade|étanchéité|etancheite|ascenseur|structure|fondation|mur(s)? porteur|réfection complète|refection complete|chaufferie|colonne(s)? montante/i;
+
+export const CRITERES_PV_AG = [
+  { id: 'travaux_votes', libelle: 'Travaux votés', champs: ['travaux_votes'], regle: 'Warning si gros travaux relevant de l\'article 606.' },
+  { id: 'travaux_discussion', libelle: 'Travaux en discussion', champs: ['travaux_discussion'], regle: 'Warning si gros travaux (article 606) non votés ou reportés.' },
+  { id: 'resolutions_non_votees', libelle: 'Résolutions non votées', champs: ['resolutions_non_votees'], regle: 'Warning si des gros travaux (article 606) reviennent de manière récurrente sans être votés.' },
+  { id: 'impayes', libelle: 'Impayés au sein de la copropriété', champs: ['impayes_copro', 'procedures'], regle: 'Warning si impayés dans la copropriété.' },
+];
+export const CRITERES_RCP = [
+  { id: 'activites_autorisees', libelle: 'Activités autorisées', champs: ['activites_autorisees', 'restrictions'], regle: 'Information : les activités que le règlement admet.' },
+  { id: 'activites_interdites', libelle: 'Activités non autorisées', champs: ['activites_interdites', 'restrictions'], regle: 'S\'il y en a, il faut le savoir.' },
+  { id: 'quote_part', libelle: 'Quote-part (%)', champs: ['quote_part', 'tantiemes'], regle: 'Part du bailleur dans la copropriété. Warning si supérieure à 20 %.' },
+];
+export const GRILLES = {
+  bail: { id: 'bail', titre: 'Bail', criteres: CRITERES_BAIL },
+  pv_ag: { id: 'pv_ag', titre: "PV d'AG", criteres: CRITERES_PV_AG },
+  rcp: { id: 'rcp', titre: 'RCP', criteres: CRITERES_RCP },
+};
+
+// Les tantièmes en pourcentage : « 50/10.150èmes » → 0,49 %. Plusieurs lots s'additionnent.
+function quotePart(texte) {
+  const t = String(texte || '');
+  const pct = t.match(/(\d{1,2}(?:[.,]\d+)?)\s?%/);
+  // Un total annoncé (« soit un total de 910/10.150èmes ») prime sur l'addition des lots.
+  const total = t.match(/(?:total|soit|ensemble|au total)[^\d/]{0,40}(\d[\d .]*)\s?\/\s?(\d[\d .]*)/i);
+  if (total) { const a = Number(total[1].replace(/[ .]/g, '')), b = Number(total[2].replace(/[ .]/g, '')); if (a > 0 && b > a) return { pct: (a / b) * 100, detail: `${a}/${b}` }; }
+  const fractions = [...t.matchAll(/(\d[\d .]*)\s?\/\s?(\d[\d .]*)\s?(?:èmes|emes|e|ièmes|iemes|tantièmes)?/gi)].map((m) => [Number(m[1].replace(/[ .]/g, '')), Number(m[2].replace(/[ .]/g, ''))]).filter(([a, b]) => a > 0 && b > 0 && a < b);
+  if (fractions.length) {
+    const total = fractions[0][1];
+    const memeTotal = fractions.filter(([, b]) => b === total);
+    const somme = memeTotal.reduce((n, [a]) => n + a, 0);
+    return { pct: (somme / total) * 100, detail: `${somme}/${total}` };
+  }
+  if (pct) return { pct: Number(pct[1].replace(',', '.')), detail: `${pct[1]} %` };
+  return null;
+}
+
+export function lireGrilleBail(dealId) { return lireGrille(dealId, 'bail'); }
+
+export function lireGrille(dealId, id) {
+  if (id === 'bail') return lireGrilleBailInterne(dealId);
+  const g = GRILLES[id];
+  if (!g) return null;
+  const f = lireFiche(dealId);
+  if (!f) return null;
+  const m = lireMatrice(dealId);
+  const champs = new Map(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
+  const v = (x) => champs.get(x)?.valeur || null;
+  const preuvesDe = (ids) => ids.flatMap((x) => (champs.get(x)?.preuves || []).map((p) => ({ champ: x, document_id: p.document_id, document_nom: p.document_nom, document_url: p.document_url, page: p.page, citation: p.citation, reponse: p.reponse })));
+  const lu = (ids) => ids.some((x) => m.lignes.some((l) => l.cellules && Object.prototype.hasOwnProperty.call(l.cellules, x)));
+
+  const lignes = g.criteres.map((c) => {
+    const principal = v(c.champs[0]);
+    const texte = c.champs.map((x) => v(x)).filter(Boolean).join(' · ');
+    let statut = !lu([c.champs[0]]) ? 'non_lu' : texte ? 'ok' : 'vide';
+    let motif = null;
+    let valeur = principal || texte || null;
+    if (statut !== 'non_lu') {
+      switch (c.id) {
+        case 'travaux_votes':
+          if (principal && !neg(principal) && GROS_TRAVAUX.test(principal)) { statut = 'warning'; motif = 'Gros travaux votés relevant de l\'article 606.'; }
+          else if (principal && neg(principal)) valeur = 'Aucun';
+          break;
+        case 'travaux_discussion':
+          if (principal && !neg(principal) && GROS_TRAVAUX.test(principal)) { statut = 'warning'; motif = 'Gros travaux (article 606) en discussion, non votés ou reportés.'; }
+          else if (principal && neg(principal)) valeur = 'Aucun';
+          break;
+        case 'resolutions_non_votees':
+          if (principal && !neg(principal) && GROS_TRAVAUX.test(principal) && dit(principal, /récurren|recurren|à nouveau|de nouveau|reporté|reporte|chaque année|plusieurs assemblées|depuis \d{4}/)) { statut = 'warning'; motif = 'Des gros travaux (article 606) reviennent sans être votés.'; }
+          else if (principal && !neg(principal) && GROS_TRAVAUX.test(principal)) { statut = 'a_verifier'; motif = 'Gros travaux non votés : vérifier s\'ils reviennent d\'une assemblée à l\'autre.'; }
+          else if (principal && neg(principal)) valeur = 'Aucune';
+          break;
+        case 'impayes': {
+          const t = texte;
+          if (t && !neg(principal || t) && dit(t, /impay|débiteur|debiteur|recouvrement|retard de paiement|créance|creance/) && !dit(t, /aucun impay|pas d'impay|sans impay/)) { statut = 'warning'; motif = 'Impayés au sein de la copropriété.'; }
+          else if (principal && neg(principal)) valeur = 'Aucun';
+          break;
+        }
+        case 'activites_autorisees':
+          if (principal && neg(principal)) valeur = 'Aucune mention';
+          break;
+        case 'activites_interdites':
+          if (principal && !neg(principal)) { statut = 'warning'; motif = 'Des activités sont interdites ou restreintes : à confronter à l\'activité du preneur.'; }
+          else if (principal && neg(principal)) valeur = 'Aucune';
+          break;
+        case 'quote_part': {
+          const q = quotePart(principal) || quotePart(v('tantiemes'));
+          if (q) {
+            valeur = `${q.pct.toFixed(2).replace('.', ',')} % (${q.detail})`;
+            if (q.pct > 20) { statut = 'warning'; motif = 'Le bailleur détient plus de 20 % de la copropriété.'; }
+          }
+          break;
+        }
+        default: break;
+      }
+    }
+    if (statut === 'vide') motif = motif || 'Aucune pièce ne répond.';
+    if (statut === 'non_lu') motif = 'Question pas encore lue : lire les questions manquantes.';
+    return { ...c, valeur, statut, motif, preuves: preuvesDe(c.champs).slice(0, 6) };
+  });
+  const nb = (s) => lignes.filter((l) => l.statut === s).length;
+  return { id: g.id, titre: g.titre, lignes, resume: { ok: nb('ok'), warning: nb('warning'), a_verifier: nb('a_verifier'), vide: nb('vide'), non_lu: nb('non_lu') }, gabarit_version: m.gabarit.version, remplissage: m.remplissage };
+}
+
+function lireGrilleBailInterne(dealId) {
   const f = lireFiche(dealId);
   if (!f) return null;
   const m = lireMatrice(dealId);
@@ -160,7 +264,7 @@ export function lireGrilleBail(dealId) {
   });
 
   const nb = (s) => lignes.filter((l) => l.statut === s).length;
-  return { lignes, resume: { ok: nb('ok'), warning: nb('warning'), a_verifier: nb('a_verifier'), vide: nb('vide'), non_lu: nb('non_lu') }, gabarit_version: m.gabarit.version, remplissage: m.remplissage };
+  return { id: 'bail', titre: 'Bail', lignes, resume: { ok: nb('ok'), warning: nb('warning'), a_verifier: nb('a_verifier'), vide: nb('vide'), non_lu: nb('non_lu') }, gabarit_version: m.gabarit.version, remplissage: m.remplissage };
 }
 
 /** Les questions du gabarit jamais lues sur ce dossier : à lancer d'un clic. */

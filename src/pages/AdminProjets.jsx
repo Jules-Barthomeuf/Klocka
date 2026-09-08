@@ -1434,10 +1434,10 @@ export default function AdminProjets() {
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>
             <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] m-0">Gestion des projets</h1>
-            <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mt-2 mb-0 max-w-[520px]">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
+            <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mt-2 mb-0">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-[#2c3139] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.08] transition-colors">
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13.5px] font-semibold bg-transparent border border-[#96c0b8]/50 text-[#96c0b8] hover:bg-[#96c0b8]/[0.08] transition-colors">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>

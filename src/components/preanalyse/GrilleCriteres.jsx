@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Check, Loader2, Pencil, RotateCcw } from "lucide-react";
+import { Check, Loader2, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 
 // Une grille de critères : critère, valeur lue au format voulu, statut en
 // case colorée, source à droite. La règle se lit d'un clic sur le critère.
@@ -107,10 +107,11 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
     enabled: !!dealId,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   })) });
-  const completer = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille-bail/completer`, { body: {} }),
-    onSuccess: (r) => { toast.success(r.rien ? "Tout est déjà lu" : `Lecture de ${r.colonnes.length} question${r.colonnes.length > 1 ? "s" : ""} lancée`); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
-    onError: (e) => toast.error(e?.message || "Impossible"),
+  // Relancer l'analyse : toutes les pièces sont relues, toutes les grilles suivent.
+  const relancer = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/relancer-analyse`, { body: {} }),
+    onSuccess: () => { toast.success("Analyse relancée"); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
+    onError: (e) => toast.error(e?.message || "Relance impossible"),
   });
 
   return (
@@ -136,8 +137,11 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                     {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.vide }} />{resume.vide} sans valeur</span>}
                   </span>
                 )}
-                {(g?.non_lues || 0) > 0 && (enCours ? <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> lecture…</span>
-                  : <button onClick={() => !apercu && completer.mutate()} disabled={apercu || completer.isPending} className="text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">Lire les questions manquantes</button>)}
+                {enCours ? (
+                  <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {g.remplissage?.total ? `Relecture des pièces ${g.remplissage.fait ?? 0}/${g.remplissage.total}` : "Relecture des pièces…"}</span>
+                ) : (
+                  <button onClick={() => !apercu && window.confirm("Relancer l'analyse de toutes les pièces du dossier ?") && relancer.mutate()} disabled={apercu || relancer.isPending} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Relancer l'analyse</button>
+                )}
               </div>
             </header>
             {g ? <TableCriteres g={g} onPreuve={onPreuve} dealId={dealId} /> : <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>}

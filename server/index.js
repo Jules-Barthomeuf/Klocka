@@ -1174,8 +1174,16 @@ app.get('/api/preanalyse/dossiers/:dealId', wrap((req, res) => {
 // Les chiffres du simulateur, enregistrés sur le lot pour y revenir.
 app.post('/api/preanalyse/dossiers/:dealId/lots/:index/simulateur', wrap(async (req, res) => {
   const { enregistrerSimulateur } = await import('./deal/index.js');
-  const r = enregistrerSimulateur(req.params.dealId, Number(req.params.index), req.body || {}, currentUser(req));
+  const r = await enregistrerSimulateur(req.params.dealId, Number(req.params.index), req.body || {}, currentUser(req));
   if (r.error) return res.status(404).json(r);
+  ok(res, r);
+}));
+
+// Un critère vérifié à la main : vert quand c'est contrôlé, jaune en cas de doute.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/verification', wrap(async (req, res) => {
+  const { verifierCritere } = await import('./deal/index.js');
+  const r = verifierCritere(req.params.dealId, Number(req.params.index), String(req.body?.cle || ''), req.body?.statut || null, currentUser(req));
+  if (r.error) return res.status(400).json(r);
   ok(res, r);
 }));
 

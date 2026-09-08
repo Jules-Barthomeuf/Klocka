@@ -51,7 +51,11 @@ export const STATUTS_DEAL = {
 // La grille des critères : nos critères à gauche, le bien à droite, et le
 // verdict ligne à ligne — une coche menthe ou une croix corail. C'est ce
 // qu'on voit en premier : le verdict global n'est que la somme de ces lignes.
-function GrilleCriteres({ lignes, lot }) {
+// Vérifié à la main : vert ; pas sûr : jaune. Un clic sur la ligne fait le tour.
+const VERIF = { verifie: { fond: "#2f7a5a", mot: "Vérifié" }, incertain: { fond: "#a8752a", mot: "Pas sûr" } };
+const cleLigne = (l) => `${l.groupe}|${l.champ}`;
+
+function GrilleCriteres({ lignes, lot, onVerifier = null }) {
   // La grille se lit comme un relevé : à gauche le verdict du critère, au
   // milieu ce qu'on attend, à droite ce que le bien donne. Les critères ratés
   // remontent en tête de chaque groupe — ce sont eux qui décident.
@@ -118,11 +122,14 @@ function GrilleCriteres({ lignes, lot }) {
                   const cle = `${g.nom}-${l.champ}-${i}`;
                   const ouvert = deplies.has(cle);
                   const teinte = l.ok === true ? "#96c0b8" : l.ok === false ? "#e8746a" : "#3a3f4a";
+                  const verif = lot?.verifications?.[cleLigne(l)]?.statut || null;
+                  const suivant = verif === null ? "verifie" : verif === "verifie" ? "incertain" : null;
                   return (
                     <li
                       key={cle}
                       title={l.motif || undefined}
-                      className={`flex items-start gap-3 py-2.5 border-b border-[#1f2228]/60 ${l.ok === false ? "bg-[#e8746a]/[0.04] -mx-2 px-2 rounded" : ""}`}
+                      style={verif ? { background: `${VERIF[verif].fond}22`, boxShadow: `inset 3px 0 0 ${VERIF[verif].fond}` } : undefined}
+                      className={`flex items-start gap-3 py-2.5 border-b border-[#1f2228]/60 ${verif ? "-mx-2 px-2 rounded" : l.ok === false ? "bg-[#e8746a]/[0.04] -mx-2 px-2 rounded" : ""}`}
                     >
                       <span
                         className="mt-[3px] flex h-[18px] w-[18px] flex-none items-center justify-center rounded-full"
@@ -133,7 +140,19 @@ function GrilleCriteres({ lignes, lot }) {
                         {l.ok == null && <span className="text-[10px] leading-none">?</span>}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-[13px] leading-snug text-[#f2f3f5]">{l.critere}</p>
+                        <p className="m-0 text-[13px] leading-snug text-[#f2f3f5] flex items-center gap-2 flex-wrap">
+                          {onVerifier ? (
+                            <button
+                              type="button"
+                              onClick={() => onVerifier(cleLigne(l), suivant)}
+                              title={verif === null ? "Marquer comme vérifié" : verif === "verifie" ? "Marquer comme pas sûr" : "Revenir au calcul"}
+                              className="text-left hover:text-[#ffffff]"
+                            >
+                              {l.critere}
+                            </button>
+                          ) : l.critere}
+                          {verif && <span className="text-[10px] font-semibold text-white px-1.5 py-px rounded" style={{ background: VERIF[verif].fond }}>{VERIF[verif].mot}</span>}
+                        </p>
                         {l.attendu && <p className="m-0 mt-0.5 text-[11px] leading-snug text-[#6a7180]">attendu : {l.attendu}</p>}
                         {l.ok === false && l.motif && <p className="m-0 mt-0.5 text-[11px] leading-snug text-[#e8746a]/80">{l.motif}</p>}
                         {/* Les valeurs lues avec une confiance basse : lesquelles, et ce que dit la fiche. */}
@@ -692,6 +711,12 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
 }
 
 export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false }) {
+  // Vérifier un critère à la main : vert, jaune, ou retour au calcul.
+  const verifier = useMutation({
+    mutationFn: ({ cle, statut }) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot.index ?? 0}/verification`, { body: { cle, statut } }),
+    onSuccess: () => onRefresh?.(),
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
   // Le détail (critères, données extraites, enrichissement, lieu, marché) se
   // déplie en bas : on y descend pour vérifier, pas pour lire.
   const [detailOuvert, setDetailOuvert] = useState(false);
@@ -812,7 +837,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                 <h2 className="m-0 text-[17px] font-semibold">Grille de critères</h2>
                 <span className="text-[13px] text-[#6a7180]">{nbCriteres} critères{ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""} — le verdict n'est que leur somme</span>
               </div>
-              <div className="-mx-5"><GrilleCriteres lignes={lot.evaluation.grille} lot={lot} /></div>
+              <div className="-mx-5"><GrilleCriteres lignes={lot.evaluation.grille} lot={lot} onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })} /></div>
             </section>
           )}
 

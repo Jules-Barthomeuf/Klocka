@@ -180,6 +180,8 @@ async function completerContexteMarche(dossier) {
  * négociation). L'extraction n'est PAS relancée : le texte source et les
  * citations restent ceux du dépôt initial, seule la décision est recalculée.
  */
+const FAITS_SAISISSABLES = { prix_fai: 'Prix', loyer_annuel_ht_hc: 'Loyer', surface_m2: 'Surface' };
+
 export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   const dossier = Records.filter('Deal', { deal_id: dealId })[0];
   if (!dossier) return { error: 'Dossier introuvable' };
@@ -191,20 +193,21 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   const entree = dossier.lots?.[indexLot];
   if (!entree) return { error: 'Lot introuvable' };
 
-  // Le prix affiché, saisi à la main quand ni le mail ni la fiche ne le
-  // portaient : il devient une donnée du lot, avec sa provenance. Tout en
-  // dépend — le verdict, l'AEM, le simulateur — d'où l'écriture sur le lot.
+  // Les faits saisis à la main — prix affiché, loyer, surface — deviennent des
+  // données du lot, avec leur provenance. Tout en dépend : le verdict, l'AEM,
+  // le simulateur. D'où l'écriture sur le lot lui-même.
   let lot = entree.lot;
-  if (saisie.prix_fai != null && saisie.prix_fai !== '') {
-    const montant = Number(saisie.prix_fai);
-    if (!isFinite(montant) || montant <= 0) return { error: 'Prix invalide' };
+  for (const [champ, libelle] of Object.entries(FAITS_SAISISSABLES)) {
+    if (saisie[champ] == null || saisie[champ] === '') continue;
+    const montant = Number(saisie[champ]);
+    if (!isFinite(montant) || montant <= 0) return { error: `${libelle} invalide` };
     lot = {
       ...lot,
-      prix_fai: {
-        valeur: Math.round(montant),
+      [champ]: {
+        valeur: champ === 'surface_m2' ? Math.round(montant * 10) / 10 : Math.round(montant),
         absent: false,
         confiance: 1,
-        citation: 'Saisi à la main : absent du mail et de la fiche.',
+        citation: 'Saisi à la main.',
         saisi_a_la_main: true,
       },
     };
@@ -369,11 +372,22 @@ export function creerCoquille({ nom, responsables = [], user = null, contact_age
  * et le projet créé depuis le deal en hérite. Les faits du dossier (prix,
  * loyer, surface) restent ceux du lot ; ici on garde les hypothèses jouées.
  */
-export function enregistrerSimulateur(dealId, indexLot, parametres = {}, user) {
+export async function enregistrerSimulateur(dealId, indexLot, parametres = {}, user) {
   const dossier = Records.filter('Deal', { deal_id: dealId })[0];
   if (!dossier) return { error: 'Dossier introuvable' };
   const entree = dossier.lots?.[indexLot];
   if (!entree) return { error: 'Lot introuvable' };
+
+  // Les faits du dossier joués dans le simulateur (prix, loyer, surface) : s'ils
+  // ont bougé, ils entrent dans la fiche et tout se recalcule — mais seulement
+  // à l'enregistrement, jamais au fil des curseurs.
+  const faits = {};
+  const paires = [['prixBienFAI', 'prix_fai'], ['loyerInitialHTHC', 'loyer_annuel_ht_hc'], ['surface', 'surface_m2']];
+  for (const [cleSim, champ] of paires) {
+    const v = Number(parametres?.[cleSim]);
+    if (!isFinite(v) || v <= 0) continue;
+    if (Math.round(v) !== Math.round(Number(val(entree.lot?.[champ])) || 0)) faits[champ] = v;
+  }
   const propres = {};
   for (const [cle, v] of Object.entries(parametres || {})) {
     if (v === undefined || typeof v === 'function') continue;
@@ -388,6 +402,28 @@ export function enregistrerSimulateur(dealId, indexLot, parametres = {}, user) {
   };
   const lots = [...dossier.lots];
   lots[indexLot] = { ...entree, simulateur };
+  Records.update('Deal', dossier.id, { lots });
+  // Des faits ont changé : le lot est rejoué avec, les hypothèses restant.
+  if (Object.keys(faits).length) return reevaluerLot(dealId, indexLot, faits);
+  return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };
+}
+
+/**
+ * La vérification d'un critère, à la main : « vérifié » quand on l'a contrôlé,
+ * « incertain » quand on doute, rien pour revenir au calcul. Elle ne change pas
+ * le verdict, elle dit où en est la relecture humaine.
+ */
+export function verifierCritere(dealId, indexLot, cle, statut, user) {
+  const dossier = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!dossier) return { error: 'Dossier introuvable' };
+  const entree = dossier.lots?.[indexLot];
+  if (!entree) return { error: 'Lot introuvable' };
+  if (statut && !['verifie', 'incertain'].includes(statut)) return { error: 'Statut inconnu' };
+  const verifications = { ...(entree.verifications || {}) };
+  if (statut) verifications[cle] = { statut, par: user?.email || null, le: new Date().toISOString() };
+  else delete verifications[cle];
+  const lots = [...dossier.lots];
+  lots[indexLot] = { ...entree, verifications };
   Records.update('Deal', dossier.id, { lots });
   return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };
 }

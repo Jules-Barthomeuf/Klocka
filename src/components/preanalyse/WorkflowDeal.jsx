@@ -18,6 +18,14 @@ import ChatDossier from "./ChatDossier";
 import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
 import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
+
+// Les parties de l'analyse : une par famille de pièces.
+const GRILLES_ANALYSE = [
+  { id: "bail", ids: ["bail"], titre: "Bail", sousTitre: "Les critères du bail." },
+  { id: "quittances", ids: ["quittances"], titre: "Quittances", sousTitre: "La situation actuelle, tirée des quittances." },
+  { id: "copropriete", ids: ["pv_ag", "rcp"], titre: "Copropriété", sousTitre: "Les procès-verbaux d'assemblée, puis le règlement." },
+  { id: "diagnostics", ids: ["diagnostics"], titre: "Diagnostics", sousTitre: "L'état du bien, diagnostic par diagnostic." },
+];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
@@ -80,6 +88,8 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
   const debloquee = apercu ? ETAPES.length : etapeDebloquee(dossier);
   const [etape, setEtape] = useState(() => (apercu ? 1 : debloquee));
   const [preuveGrille, setPreuveGrille] = useState(null);
+  const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "bail"; } catch { return "bail"; } });
+  useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   const [deblocageEnCours, setDeblocageEnCours] = useState(false);
   // Documents cochés dans l'étape Analyse, soumis au chat.
   const [documentsCoches, setDocumentsCoches] = useState([]);
@@ -338,9 +348,15 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         )}
         {etape === 3 && (
           <div id="tables-analyse" className="space-y-5">
-            <GrilleCriteres ids={["bail", "quittances"]} titre="Bail" sousTitre="Le bail, puis les quittances." dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
-            <GrilleCriteres ids={["pv_ag", "rcp"]} titre="Copropriété" sousTitre="Les procès-verbaux d'assemblée, puis le règlement." dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
-            <GrilleCriteres ids={["diagnostics"]} titre="Diagnostics" sousTitre="L'état du bien, diagnostic par diagnostic." dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
+            {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
+            <div className="flex gap-6 border-b border-[#1f2228]">
+              {GRILLES_ANALYSE.map((g) => (
+                <button key={g.id} onClick={() => setGrilleAnalyse(g.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${grilleAnalyse === g.id ? "text-[#f2f3f5] font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>{g.titre}</button>
+              ))}
+            </div>
+            {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse).map((g) => (
+              <GrilleCriteres key={g.id} ids={g.ids} titre={g.titre} sousTitre={g.sousTitre} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
+            ))}
             {preuveGrille && (
               <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-[#000000] border-l border-[#22262d] shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} />

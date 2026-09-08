@@ -237,12 +237,16 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
     evaluation,
     synthese,
     mail_agent: mailAgent,
-    // Le simulateur part du prix : il se refait dès que celui-ci bouge.
-    simulateur: parametresSimulateur({
-      prixFai: val(lot.prix_fai),
-      loyerAnnuel: val(lot.loyer_annuel_ht_hc),
-      surface: val(lot.surface_m2),
-    }),
+    // Le simulateur part du prix : ses faits se refont dès que celui-ci bouge,
+    // les hypothèses enregistrées à la main (taux, durée, apport…) restent.
+    simulateur: {
+      ...(entree.simulateur || {}),
+      ...parametresSimulateur({
+        prixFai: val(lot.prix_fai),
+        loyerAnnuel: val(lot.loyer_annuel_ht_hc),
+        surface: val(lot.surface_m2),
+      }),
+    },
   };
   Records.update('Deal', dossier.id, { lots });
 
@@ -358,4 +362,32 @@ export function creerCoquille({ nom, responsables = [], user = null, contact_age
   };
   Records.create('Deal', dossier, user?.email);
   return dossier;
+}
+
+/**
+ * Enregistre les chiffres du simulateur sur le lot : on y revient plus tard,
+ * et le projet créé depuis le deal en hérite. Les faits du dossier (prix,
+ * loyer, surface) restent ceux du lot ; ici on garde les hypothèses jouées.
+ */
+export function enregistrerSimulateur(dealId, indexLot, parametres = {}, user) {
+  const dossier = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!dossier) return { error: 'Dossier introuvable' };
+  const entree = dossier.lots?.[indexLot];
+  if (!entree) return { error: 'Lot introuvable' };
+  const propres = {};
+  for (const [cle, v] of Object.entries(parametres || {})) {
+    if (v === undefined || typeof v === 'function') continue;
+    if (Array.isArray(v) && v.length > 30) continue;
+    propres[cle] = v;
+  }
+  const simulateur = {
+    ...(entree.simulateur || {}),
+    ...propres,
+    enregistre_le: new Date().toISOString(),
+    enregistre_par: user?.email || null,
+  };
+  const lots = [...dossier.lots];
+  lots[indexLot] = { ...entree, simulateur };
+  Records.update('Deal', dossier.id, { lots });
+  return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };
 }

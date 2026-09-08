@@ -67,7 +67,7 @@ export function TitreEtape({ n, titre, description }) {
         {n != null && <div className="text-xs text-[#9298a6] tabular-nums">{String(n).padStart(2, "0")}</div>}
         <h2 className="m-0 text-[22px] font-medium text-[#f2f3f5]">{titre}</h2>
       </div>
-      <p className="m-0 text-[13.5px] text-[#9298a6] leading-[1.65]">{description}</p>
+      {description && <p className="m-0 text-[13.5px] text-[#9298a6] leading-[1.65]">{description}</p>}
     </div>
   );
 }
@@ -95,7 +95,21 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
   const abandonne = dossier?.statut === "abandonne";
   // En aperçu, tout est déverrouillé pour parcourir les écrans librement.
   const debloquee = apercu ? ETAPES.length : etapeDebloquee(dossier);
-  const [etape, setEtape] = useState(() => (apercu ? 1 : debloquee));
+  // On revient sur le dossier là où on l'a laissé : l'étape ouverte en dernier
+  // est gardée par dossier. Sans mémoire, l'étape la plus avancée fait foi.
+  const cleEtape = dossier?.deal_id ? `klocka_etape_${dossier.deal_id}` : null;
+  const [etape, setEtapeBrut] = useState(() => {
+    if (apercu) return 1;
+    try {
+      const gardee = cleEtape ? Number(localStorage.getItem(cleEtape)) : 0;
+      if (gardee >= 1 && gardee <= debloquee) return gardee;
+    } catch { /* sans mémoire */ }
+    return debloquee;
+  });
+  const setEtape = (n) => {
+    setEtapeBrut(n);
+    try { if (cleEtape && !apercu) localStorage.setItem(cleEtape, String(n)); } catch { /* sans mémoire */ }
+  };
   const [preuveGrille, setPreuveGrille] = useState(null);
   const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "bail"; } catch { return "bail"; } });
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
@@ -151,9 +165,14 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
     onError: (e) => toast.error(e?.message || "Composition impossible"),
   });
 
-  // Changer de dossier (ou le voir avancer) recale la vue sur le front débloqué.
+  // Changer de dossier reprend l'étape gardée pour lui ; à défaut, ou si elle
+  // n'est plus accessible, le front débloqué fait foi.
   useEffect(() => {
-    if (!apercu) setEtape(etapeDebloquee(dossier));
+    if (apercu) return;
+    const front = etapeDebloquee(dossier);
+    let gardee = 0;
+    try { gardee = cleEtape ? Number(localStorage.getItem(cleEtape)) : 0; } catch { /* sans mémoire */ }
+    setEtapeBrut(gardee >= 1 && gardee <= front ? gardee : front);
   }, [dossier?.deal_id, dossier?.etape_max]);
 
   // Aller à une étape non atteinte la débloque — et valide automatiquement
@@ -327,7 +346,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} />}
             {grilleAnalyse === "simulateur" && (
               dossier?.lots?.[0]?.simulateur
-                ? <SimulateurDossier parametres={dossier.lots[0].simulateur} />
+                ? <SimulateurDossier parametres={dossier.lots[0].simulateur} dealId={dossier.deal_id} lotIndex={0} onEnregistre={onRefresh} />
                 : <p className="m-0 py-8 text-[13.5px] text-[#6a7180]">Le simulateur se remplit à la pré-analyse : lancez-la d'abord.</p>
             )}
             {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse && g.grilles).map((g) => (
@@ -602,11 +621,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 
 function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, apercu, analyseParChat = false }) {
   const titre = (
-    <TitreEtape
-      n={2}
-      titre="Pré-analyse"
-      description="La fiche est passée sur nos critères : verdict déterministe, métriques AEM, simulateur pré-rempli, carte et marché local. L'étape se clôt par un Oui / Non."
-    />
+    <TitreEtape n={2} titre="Pré-analyse" />
   );
 
   // --- Nouveau dossier, ou coquille nommée sans analyse : la fiche entre ici.
@@ -653,6 +668,7 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
           lot={lot}
           dossier={dossier}
           onSaisie={(saisie) => onSaisie?.(lot.index, saisie)}
+          onRefresh={onRefresh}
           enCours={enCours}
           apercu={apercu}
         />

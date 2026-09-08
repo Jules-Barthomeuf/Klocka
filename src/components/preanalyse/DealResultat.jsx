@@ -691,7 +691,7 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
   );
 }
 
-export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
+export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false }) {
   // Le détail (critères, données extraites, enrichissement, lieu, marché) se
   // déplie en bas : on y descend pour vérifier, pas pour lire.
   const [detailOuvert, setDetailOuvert] = useState(false);
@@ -729,13 +729,37 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] gap-x-14 gap-y-8 items-start pt-9">
-        {/* La colonne principale */}
+      {/* Les chiffres, en ligne sous le titre : le prix se modifie ici. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-[#1f2228]">
+        <div className="px-1 py-5 lg:border-r border-[#1f2228]">
+          <Kicker>Prix FAI</Kicker>
+          <div className="mt-1.5"><PrixFai lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></div>
+          {lot.lot?.prix_fai?.saisi_a_la_main && <div className="text-[12px] text-[#d9b46a]">saisi à la main</div>}
+        </div>
+        {(aem ? [
+          ["Prix AEM", euros(aem.prix_aem), "#f2f3f5", `+${euros(aem.surcout_vs_fai)} tout compris`],
+          ["Rendement annoncé", aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—", "#f2f3f5", null],
+          ["Rendement AEM", aem.rendement_aem != null ? `${aem.rendement_aem} %` : "—", "#96c0b8", null],
+        ] : [
+          ["Prix AEM", "—", "#4d545d", "sans prix ou sans loyer"],
+          ["Rendement annoncé", "—", "#4d545d", null],
+          ["Rendement AEM", "—", "#4d545d", null],
+        ]).map(([l, v, c, note], i) => (
+          <div key={l} className={`px-5 py-5 ${i < 2 ? "lg:border-r border-[#1f2228]" : ""}`}>
+            <Kicker>{l}</Kicker>
+            <div className="mt-1.5 text-[22px] font-light tabular-nums" style={{ color: c }}>{v}</div>
+            {note && <div className="text-[12px] text-[#d9b46a] tabular-nums">{note}</div>}
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-2">
+        {/* Tout prend la largeur : plus de colonne de droite. */}
         <main className="min-w-0">
           {/* Ce qu'on retient */}
           <section className="pb-8 border-b border-[#1f2228]">
             <Kicker>Ce qu'on retient</Kicker>
-            <p className="m-0 mt-3 text-[15px] font-light leading-[1.75] text-[#c9cdd6] max-w-[640px]">{lot.synthese?.synthese || "Pas encore de synthèse."}</p>
+            <p className="m-0 mt-3 text-[15px] font-light leading-[1.75] text-[#c9cdd6]">{lot.synthese?.synthese || "Pas encore de synthèse."}</p>
             <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2">
               <Kicker>Réserves</Kicker>
               {lot.evaluation.reserves?.length ? (
@@ -798,7 +822,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               <h2 className="m-0 text-[17px] font-semibold">Simulateur</h2>
               <span className="text-[13px] text-[#6a7180]">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
             </div>
-            <SimulateurDossier parametres={lot.simulateur} />
+            <SimulateurDossier parametres={lot.simulateur} dealId={dossier?.deal_id || null} lotIndex={lot.index ?? 0} onEnregistre={onRefresh} />
           </section>
 
           {/* L'emplacement : la seule donnée humaine, elle change le verdict.
@@ -817,6 +841,11 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               <span className="border border-[#3a3f4a] rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? "#e8b04c" : "#d9b46a" }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
             </div>
             <VuesLieu lot={lot} enr={enr} coteACote />
+            <dl className="m-0 mt-5 grid grid-cols-2 sm:grid-cols-5 gap-x-6 gap-y-3">
+              {[["Commune", enr?.commune ? enr.commune.nom : "non résolue"], ["Population", enr?.commune?.population?.toLocaleString("fr-FR") ?? "—"], ["Typologie", enr?.typologie_ville ? enr.typologie_ville.replace("_", " ") : "—"], ["Enseigne", enr?.signature?.niveau ?? "—"], ["Activité", enr?.activite?.libelle ?? "—"]].map(([l, v]) => (
+                <div key={l} className="min-w-0"><dt className="text-[11px] tracking-[.14em] uppercase text-[#6a7180]">{l}</dt><dd className="m-0 mt-1 text-[14px] font-light text-[#f2f3f5] truncate" title={String(v)}>{v}</dd></div>
+              ))}
+            </dl>
           </section>
 
           {/* Les clients à qui ce bien pourrait correspondre */}
@@ -948,38 +977,6 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
           </div>
         </main>
 
-        {/* La colonne de droite, collée */}
-        <aside className="lg:sticky lg:top-6 flex flex-col gap-4">
-          <div className="border border-[#22262d] rounded-[20px] bg-[#0f1114] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1f2228]">
-              <Kicker>Prix FAI</Kicker>
-              <div className="mt-1.5"><PrixFai lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></div>
-              {lot.lot?.prix_fai?.saisi_a_la_main && <div className="text-[12px] text-[#d9b46a]">saisi à la main</div>}
-            </div>
-            {aem ? [
-              ["Prix AEM", euros(aem.prix_aem), "#f2f3f5", `+${euros(aem.surcout_vs_fai)} tout compris`],
-              ["Rendement annoncé", aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—", "#f2f3f5", null],
-              ["Rendement AEM", aem.rendement_aem != null ? `${aem.rendement_aem} %` : "—", "#96c0b8", null],
-            ].map(([l, v, c, note]) => (
-              <div key={l} className="px-5 py-4 border-b border-[#1f2228]">
-                <Kicker>{l}</Kicker>
-                <div className="mt-1.5 text-[22px] font-light tabular-nums" style={{ color: c }}>{v}</div>
-                {note && <div className="text-[12px] text-[#d9b46a] tabular-nums">{note}</div>}
-              </div>
-            )) : <div className="px-5 py-4 border-b border-[#1f2228] text-[13px] text-[#9298a6]">Sans prix ou sans loyer, pas de rendement calculable.</div>}
-          </div>
-
-          <div className="border border-[#1f2228] rounded-[20px] bg-[#0f1114] px-5 py-4 flex flex-col gap-2">
-            <Kicker>Commune et enseigne</Kicker>
-            <div className="flex flex-col">
-              {[["Commune", enr?.commune ? enr.commune.nom : "non résolue"], ["Population", enr?.commune?.population?.toLocaleString("fr-FR") ?? "—"], ["Typologie", enr?.typologie_ville ? enr.typologie_ville.replace("_", " ") : "—"], ["Enseigne", enr?.signature?.niveau ?? "—"], ["Activité", enr?.activite?.libelle ?? "—"]].map(([l, v]) => (
-                <div key={l} className="flex items-baseline justify-between gap-3 py-2 border-b border-[#1f2228] last:border-b-0"><span className="text-[13px] text-[#9298a6]">{l}</span><span className="text-[14px] font-light text-right">{v}</span></div>
-              ))}
-            </div>
-          </div>
-
-          <p className="m-0 text-[12.5px] text-[#6a7180]">La décision Poursuivre / Abandonner reste en bas de l'écran : elle pré-rédige le mail et clôt l'étape.</p>
-        </aside>
       </div>
 
       {mailOuvert && (

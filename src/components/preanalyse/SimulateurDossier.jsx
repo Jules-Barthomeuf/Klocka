@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, SlidersHorizontal, AlertTriangle } from "lucide-react";
+import { RefreshCw, SlidersHorizontal, AlertTriangle, Save, Loader2, Check } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 import { calculerTableauAnnuel } from "@/components/simulator/CalculFinancier";
 import SimControlRail from "@/components/simulator/layout/SimControlRail";
 import SimKpiRow from "@/components/simulator/layout/SimKpiRow";
@@ -85,17 +88,20 @@ const formatCurrency = (value) =>
 
 // compact : colonne étroite (étape Analyse) — le rail d'hypothèses passe en
 // panneau dépliable au lieu d'occuper une colonne de gauche.
-export default function SimulateurDossier({ parametres, rendementCible = [5, 7], compact = false }) {
+// dealId + lotIndex : les chiffres s'enregistrent sur le lot, on y revient
+// plus tard et le projet créé depuis le deal en hérite.
+export default function SimulateurDossier({ parametres, rendementCible = [5, 7], compact = false, dealId = null, lotIndex = 0, onEnregistre }) {
   const [etat, setEtat] = useState(() => etatInitial(parametres));
   // Tableaux annuels : hors CHAMPS car ils ne viennent jamais du dossier.
   const [vacancesLocatives, setVacancesLocatives] = useState(() => Array(25).fill(0));
   const [travauxBailleur, setTravauxBailleur] = useState(() => Array(25).fill(0));
-  const [apport, setApport] = useState(0);
+  // Un apport enregistré est repris tel quel ; sinon il suit les 15 %.
+  const [apport, setApport] = useState(() => (parametres?.apport != null ? parametres.apport : 0));
   const [ongletActif, setOngletActif] = useState("graphiques");
   const [negoPct, setNegoPct] = useState(0);
   const [railOuvert, setRailOuvert] = useState(false);
   // Tant que l'apport n'a pas été touché, il suit les 15 % du prix de revient.
-  const apportTouche = useRef(false);
+  const apportTouche = useRef(parametres?.apport != null);
 
   // Le dossier change (autre lot, réanalyse) : on repart de ses chiffres.
   const signature = JSON.stringify(parametres || {});
@@ -104,8 +110,17 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
     setVacancesLocatives(Array(25).fill(0));
     setTravauxBailleur(Array(25).fill(0));
     setNegoPct(0);
-    apportTouche.current = false;
+    apportTouche.current = parametres?.apport != null;
+    if (parametres?.apport != null) setApport(parametres.apport);
   }, [signature]);
+
+  // Enregistrer : les hypothèses jouées, telles quelles, sur le lot.
+  const enregistrer = useMutation({
+    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/lots/${lotIndex}/simulateur`, { body: { ...etat, apport } }),
+    onSuccess: () => { toast.success("Chiffres enregistrés", { description: "Vous les retrouverez en revenant sur le dossier." }); onEnregistre?.(); },
+    onError: (e) => toast.error(e?.message || "Enregistrement impossible"),
+  });
+  const enregistreLe = parametres?.enregistre_le ? new Date(parametres.enregistre_le) : null;
 
   const maj = (cle, valeur) => {
     if (cle === "apport") {
@@ -169,7 +184,8 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
     setVacancesLocatives(Array(25).fill(0));
     setTravauxBailleur(Array(25).fill(0));
     setNegoPct(0);
-    apportTouche.current = false;
+    apportTouche.current = parametres?.apport != null;
+    if (parametres?.apport != null) setApport(parametres.apport);
   };
 
   // Rendement AEM : le loyer sur le prix de revient, recalculé à chaque curseur.
@@ -275,6 +291,17 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
               >
                 <RefreshCw className="w-3 h-3" /> Dossier
               </button>
+              {dealId && (
+                <button
+                  onClick={() => enregistrer.mutate()}
+                  disabled={enregistrer.isPending}
+                  title={enregistreLe ? `Enregistré le ${enregistreLe.toLocaleDateString("fr-FR")} à ${enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "Garder ces chiffres sur le dossier"}
+                  className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] text-[11px] disabled:opacity-40"
+                >
+                  {enregistrer.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : enregistreLe ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
+                  {enregistreLe ? "Enregistrer à nouveau" : "Enregistrer les chiffres"}
+                </button>
+              )}
             </div>
           </div>
 

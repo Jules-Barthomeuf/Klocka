@@ -4,9 +4,10 @@ import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { nomOnglet } from "./AnalyseDocuments";
 import { toast } from "sonner";
-import { Mic, Square, Loader2, X, Plus, PanelRight } from "lucide-react";
+import { Mic, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { SuggestionsMail } from "./gabaritsMail";
+import ImportDrive from "./ImportDrive";
 
 // Le chat du dossier : une grande zone de saisie, les gabarits de mail,
 // puis la liste des requêtes lancées — on y revient d'un clic.
@@ -30,17 +31,16 @@ const ilYA = (iso) => {
 };
 
 function Message({ m }) {
-  const moi = m.role === "user";
-  return (
-    <div className={`flex ${moi ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[86%] rounded-lg px-4 py-3 text-[13.5px] leading-[1.7] whitespace-pre-wrap
-          ${moi ? "bg-[#1a1d1c] text-[#f2f3f5] border border-[#22262d]" : "bg-transparent text-[#c9cdd6] border border-[#1f2228]"}`}
-      >
-        {m.contenu}
+  // La question dans une bulle à droite ; la réponse en texte plein, sans
+  // cadre, pour qu'elle se lise comme une page.
+  if (m.role === "user") {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-[20px] bg-[#1a1d1c] px-5 py-3.5 text-[15px] leading-[1.6] text-[#f2f3f5] whitespace-pre-wrap">{m.contenu}</div>
       </div>
-    </div>
-  );
+    );
+  }
+  return <div className="text-[15px] leading-[1.75] text-[#e6e8eb] whitespace-pre-wrap">{m.contenu}</div>;
 }
 
 export default function ChatDossier({
@@ -103,6 +103,17 @@ export default function ChatDossier({
     },
   });
 
+  // Hors pré-analyse, un fichier déposé rejoint les pièces du dossier.
+  const deposer = useMutation({
+    mutationFn: (fichier) => {
+      const form = new FormData();
+      form.append("fichier", fichier);
+      return base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/documents`, { body: form, isForm: true });
+    },
+    onSuccess: (d) => { toast.success(`« ${d.nom} » ajouté`, { description: "L'extraction se fait toute seule." }); onRefresh?.(); },
+    onError: (e) => toast.error(e?.message || "Dépôt impossible"),
+  });
+
   const supprimerConv = useMutation({
     mutationFn: (id) => base44.request("DELETE", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/conversations/${id}`),
     onSuccess: (_, id) => { if (conversationId === id) setConversationId(null); onRefresh?.(); },
@@ -111,6 +122,8 @@ export default function ChatDossier({
 
   const [docsOuverts, setDocsOuverts] = useState(false);
   const [requetesOuvertes, setRequetesOuvertes] = useState(false);
+  const [driveOuvert, setDriveOuvert] = useState(false);
+  const [menuPlus, setMenuPlus] = useState(false);
   const enCours = modeMail ? compositionEnCours : modePreanalyse ? analyseEnCours : envoyer.isPending;
   const lancer = () => {
     if (modeMail) return onComposer?.(texte.trim());
@@ -147,21 +160,33 @@ export default function ChatDossier({
 
   return (
     <div className="space-y-4">
-      {/* Conversation ouverte */}
-      {!modeMail && !modePreanalyse && conversation && (
-        <div className="border border-[#22262d] rounded-xl bg-[#131615]">
-          <div className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-[#1f2228]">
-            <p className="m-0 text-[13.5px] text-[#f2f3f5] truncate">{conversation.titre}</p>
-            <button onClick={() => setConversationId(null)} className="text-[12.5px] text-[#9298a6] hover:text-[#f2f3f5] transition-colors flex-shrink-0">
-              Nouvelle requête
-            </button>
-          </div>
-          <div className="px-5 py-4 space-y-3 max-h-[460px] overflow-y-auto">
-            {conversation.messages.map((m, i) => <Message key={i} m={m} />)}
+      {/* La requête s'ouvre dans un panneau : la page ne bouge pas, on la
+          referme et on la retrouve depuis « Requêtes récentes ». */}
+      {!modeMail && !modePreanalyse && (conversation || envoyer.isPending) && (
+        <div className="fixed inset-y-0 right-0 z-[60] w-full sm:w-[680px] bg-[#0a0a0b] border-l border-[#22262d] shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col animate-in slide-in-from-right duration-300 ease-out">
+          <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-[#1f2228] flex-none">
+            <p className="m-0 text-[14px] text-[#f2f3f5] truncate">{conversation?.titre || "Nouvelle requête"}</p>
+            <button onClick={() => setConversationId(null)} className="text-[#6a7180] hover:text-[#f2f3f5] flex-shrink-0" aria-label="Fermer"><X className="w-4 h-4" /></button>
+          </header>
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
+            {(conversation?.messages || []).map((m, i) => <Message key={i} m={m} />)}
             {envoyer.isPending && (
-              <div className="flex items-center gap-2 text-[#9298a6] text-[12.5px]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Réflexion…</div>
+              <div className="flex items-center gap-2 text-[#9298a6] text-[13px]"><Loader2 className="w-4 h-4 animate-spin" /> Réflexion…</div>
             )}
             <div ref={finRef} />
+          </div>
+          <div className="flex-none px-6 py-4 border-t border-[#1f2228]">
+            <BoiteSaisie
+              compact
+              valeur={texte}
+              onChange={setTexte}
+              rows={2}
+              placeholder="Poursuivre la requête…"
+              onEnvoyer={() => envoyer.mutate()}
+              peutEnvoyer={!!texte.trim() && !envoyer.isPending}
+              enCours={envoyer.isPending}
+              libelle="Envoyer"
+            />
           </div>
         </div>
       )}
@@ -179,24 +204,36 @@ export default function ChatDossier({
           libelle={modeMail ? "Rédiger le mail" : modePreanalyse ? "Lancer l'analyse" : "Envoyer"}
           gauche={
             <>
-              {modePreanalyse ? (
-                <>
-                  <BoutonBarre onClick={() => fichierRef.current?.click()} disabled={apercu || analyseEnCours} title="Importer un fichier (PDF, Word, image, mail)"><Plus className="w-4 h-4" /></BoutonBarre>
+              {!modeMail && (
+                <div className="relative">
+                  <BoutonBarre onClick={() => setMenuPlus((o) => !o)} disabled={apercu || (!dossier && !modePreanalyse)} actif={menuPlus} title="Ajouter un document"><Plus className="w-4 h-4" /></BoutonBarre>
+                  {menuPlus && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setMenuPlus(false)} />
+                      <div className="absolute bottom-full left-0 mb-2 z-20 bg-[#0f1114] border border-[#2c3139] rounded-xl shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 min-w-[240px]">
+                        <button onClick={() => { setMenuPlus(false); fichierRef.current?.click(); }} className="w-full flex items-center gap-2.5 text-left text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.05] px-3 py-2 rounded-lg">
+                          <Paperclip className="w-3.5 h-3.5" /> Depuis cet ordinateur
+                        </button>
+                        <button onClick={() => { setMenuPlus(false); setDriveOuvert(true); }} disabled={!dossier} className="w-full flex items-center gap-2.5 text-left text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.05] px-3 py-2 rounded-lg disabled:opacity-40">
+                          <HardDrive className="w-3.5 h-3.5" /> Depuis le Google Drive
+                        </button>
+                      </div>
+                    </>
+                  )}
                   <input
                     ref={fichierRef}
                     type="file"
                     accept=".pdf,.doc,.docx,.txt,.eml,.png,.jpg,.jpeg"
                     className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onAnalyserFichier?.(f); }}
+                    onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; if (modePreanalyse) onAnalyserFichier?.(f); else deposer.mutate(f); }}
                   />
-                </>
-              ) : modeMail ? (
-                <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
-              ) : (
-                <>
-                  <BoutonBarre onClick={() => onToutCocher?.()} disabled={!documents.length} actif={nbCoches > 0} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"}><PanelRight className="w-4 h-4" /></BoutonBarre>
-                </>
+                </div>
               )}
+              {modeMail ? (
+                <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
+              ) : !modePreanalyse ? (
+                <BoutonBarre onClick={() => onToutCocher?.()} disabled={!documents.length} actif={nbCoches > 0} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"}><PanelRight className="w-4 h-4" /></BoutonBarre>
+              ) : null}
               {dicteeOk && (
                 <BoutonBarre onClick={ecoute ? arreter : demarrer} disabled={apercu || !dossier} alerte={ecoute} title={ecoute ? "Arrêter" : "Dicter"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
               )}
@@ -245,6 +282,10 @@ export default function ChatDossier({
             ))}
           </div>
         </div>
+      )}
+
+      {driveOuvert && dossier && (
+        <ImportDrive dealId={dossier.deal_id} onFermer={() => setDriveOuvert(false)} onImporte={() => onRefresh?.()} />
       )}
     </div>
   );

@@ -243,3 +243,53 @@ export async function uploaderEnSlides(compteEmail, { nom, buffer }) {
 
   return { id: fichier.id, slides_url: `https://docs.google.com/presentation/d/${fichier.id}/edit` };
 }
+
+/**
+ * Les fichiers du Drive qu'on peut importer dans un dossier : ceux du dossier
+ * du deal s'il existe, sinon les documents récents du compte. Les Google Docs
+ * natifs sont exclus : seuls les fichiers binaires se rapatrient tels quels.
+ * @param {string} compteEmail
+ * @param {{ dossierId?: string, recherche?: string, limite?: number }} options
+ */
+export async function listerFichiers(compteEmail, { dossierId = null, recherche = '', limite = 50 } = {}) {
+  const account = compteDrive(compteEmail);
+  const token = await accessTokenFor(account);
+  const clauses = ["trashed = false", "not mimeType contains 'application/vnd.google-apps'"];
+  if (dossierId) clauses.push(`'${q(dossierId)}' in parents`);
+  if (recherche) clauses.push(`name contains '${q(recherche)}'`);
+  const params = new URLSearchParams({
+    q: clauses.join(' and '),
+    fields: 'files(id,name,mimeType,size,modifiedTime,webViewLink,parents)',
+    orderBy: 'modifiedTime desc',
+    pageSize: String(Math.min(200, limite)),
+    supportsAllDrives: 'true',
+    includeItemsFromAllDrives: 'true',
+    corpora: 'allDrives',
+  });
+  const data = await driveFetch(token, `${DRIVE_API}/files?${params}`);
+  return (data.files || []).map((f) => ({
+    id: f.id,
+    nom: f.name,
+    mime: f.mimeType,
+    taille: Number(f.size) || 0,
+    modifie_le: f.modifiedTime || null,
+    url: f.webViewLink || null,
+  }));
+}
+
+/** Rapatrie un fichier du Drive : son contenu et son nom. */
+export async function telechargerFichier(compteEmail, fileId) {
+  const account = compteDrive(compteEmail);
+  const token = await accessTokenFor(account);
+  const meta = await driveFetch(
+    token,
+    `${DRIVE_API}/files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,size&supportsAllDrives=true`
+  );
+  const resp = await fetch(
+    `${DRIVE_API}/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!resp.ok) throw new Error(`Drive a répondu ${resp.status} au téléchargement de « ${meta.name} »`);
+  const buffer = Buffer.from(await resp.arrayBuffer());
+  return { nom: meta.name, mime: meta.mimeType, buffer };
+}

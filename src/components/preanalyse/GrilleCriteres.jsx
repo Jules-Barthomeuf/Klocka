@@ -29,11 +29,18 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
     onSuccess: () => { setChoix(null); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+  // La note : un commentaire libre, ce qu'on veut, à côté de la valeur.
+  const [note, setNote] = useState(null); // { id, texte }
+  const noter = useMutation({
+    mutationFn: ({ critere, texte }) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${g.id}/note/${critere}`, { body: { texte } }),
+    onSuccess: () => { setNote(null); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
   return (
     <div>
       {titre && <p className="m-0 px-5 pt-4 pb-2 text-[15px] font-semibold text-[#f2f3f5]">{titre}</p>}
       <table className="w-full border-collapse">
-        <thead><tr><Th className="w-[240px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[170px]">Statut</Th>{!sansSources && <Th className="w-[210px]">Source</Th>}</tr></thead>
+        <thead><tr><Th className="w-[220px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[150px]">Statut</Th><Th className="w-[200px]">Notes</Th>{!sansSources && <Th className="w-[190px]">Source</Th>}</tr></thead>
         <tbody>
           {g.lignes.map((l) => (
             <tr key={l.id} className="align-top">
@@ -65,7 +72,7 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
                   </div>
                 )}
               </td>
-              <td className={`px-4 py-3 border-b border-[#1f2228] relative ${sansSources ? "" : "border-r"} ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
+              <td className={`px-4 py-3 border-b border-r border-[#1f2228] relative ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
                 <span className="text-[13px] font-medium text-[#ffffff]">{MOT[l.statut] || l.statut}</span>
                 {l.decision && <span className="block text-[10.5px] text-[#ffffff]/70">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
                 {choix === l.id && (
@@ -75,6 +82,30 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
                     ))}
                     {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="text-left text-[12px] text-[#9298a6] hover:text-[#f2f3f5] px-3 py-1">Revenir au calcul</button>}
                   </div>
+                )}
+              </td>
+              <td className={`px-4 py-3 border-b border-[#1f2228] group ${sansSources ? "" : "border-r"}`}>
+                {note?.id === l.id ? (
+                  <div>
+                    <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-[#3a3f4a] focus:border-[#f2f3f5] rounded-md px-2.5 py-1.5 outline-none text-[13px] leading-[1.5] text-[#f2f3f5] resize-y placeholder:text-[#4d545d]" />
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
+                      <button onClick={() => setNote(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+                    </div>
+                  </div>
+                ) : lectureSeule || !dealId ? (
+                  l.note ? <p className="m-0 text-[13px] leading-[1.5] text-[#c9cdd6] whitespace-pre-line">{l.note.texte}</p> : <span className="text-[13px] text-[#4d545d]">—</span>
+                ) : (
+                  <button onClick={() => setNote({ id: l.id, texte: l.note?.texte || "" })} title={l.note ? "Modifier la note" : "Écrire une note"} className="w-full text-left">
+                    {l.note ? (
+                      <>
+                        <span className="block text-[13px] leading-[1.5] text-[#c9cdd6] whitespace-pre-line">{l.note.texte}</span>
+                        {l.note.par && <span className="block mt-1 text-[11px] text-[#6a7180]">{l.note.par.split("@")[0]}</span>}
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-[13px] text-[#4d545d] group-hover:text-[#9298a6] transition-colors"><Pencil className="w-3 h-3" /> Ajouter une note</span>
+                    )}
+                  </button>
                 )}
               </td>
               {!sansSources && (
@@ -107,9 +138,10 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
     enabled: !!dealId,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   })) });
-  // Relancer l'analyse : toutes les pièces sont relues, toutes les grilles suivent.
+  // Relancer l'analyse d'une grille : ses questions seules sont relues sur
+  // toutes les pièces ; les autres tableaux ne bougent pas.
   const relancer = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/relancer-analyse`, { body: {} }),
+    mutationFn: (id) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${id}/relancer`, { body: {} }),
     onSuccess: () => { toast.success("Analyse relancée"); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
     onError: (e) => toast.error(e?.message || "Relance impossible"),
   });
@@ -140,7 +172,7 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                 {enCours ? (
                   <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {g.remplissage?.total ? `Relecture des pièces ${g.remplissage.fait ?? 0}/${g.remplissage.total}` : "Relecture des pièces…"}</span>
                 ) : (
-                  <button onClick={() => !apercu && window.confirm("Relancer l'analyse de toutes les pièces du dossier ?") && relancer.mutate()} disabled={apercu || relancer.isPending} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Relancer l'analyse</button>
+                  <button onClick={() => !apercu && relancer.mutate(v.id)} disabled={apercu || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} »`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Relancer l'analyse</button>
                 )}
               </div>
             </header>

@@ -19,11 +19,16 @@ import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
 import { GABARITS } from "./gabaritsMail";
 import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
+import SectionBien from "@/components/preanalyse/SectionBien";
+import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
 // Les parties de l'analyse : une par famille de pièces.
 // Une partie par famille de pièces ; chaque tableau d'une partie a son cadre.
+// Le bien et le simulateur ouvrent la série, à gauche du bail.
 const GRILLES_ANALYSE = [
-  { id: "bail", titre: "Bail", grilles: [{ id: "bail", titre: "Bail", sousTitre: "Les critères du bail." }] },
+  { id: "bien", titre: "Bien", grilles: null },
+  { id: "simulateur", titre: "Simulateur", grilles: null },
+  { id: "bail", titre: "Bail", grilles: [{ id: "bail", titre: "Bail" }] },
   { id: "quittances", titre: "Quittances", grilles: [{ id: "quittances", titre: "Quittances", sousTitre: "La situation actuelle, tirée des quittances." }] },
   { id: "copropriete", titre: "Copropriété", grilles: [
     { id: "pv_ag", titre: "PV d'AG", sousTitre: "Les procès-verbaux d'assemblée : travaux, résolutions, impayés." },
@@ -261,6 +266,8 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         })}
       </div>
 
+      {/* Le chat n'a rien à faire sur Plateforme ni Présentation : là, on génère. */}
+      {etape <= 3 && (
       <ChatDossier
         afficherRequetes={etape === 2 || etape === 3}
         panneauDocuments={dossier ? <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive /> : null}
@@ -293,6 +300,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         onRefresh={onRefresh}
         apercu={apercu}
       />
+      )}
 
       {/* Contenu de l'étape courante */}
       <div key={etape} className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out space-y-5">
@@ -316,7 +324,13 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                 <button key={g.id} onClick={() => setGrilleAnalyse(g.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${grilleAnalyse === g.id ? "text-[#f2f3f5] font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>{g.titre}</button>
               ))}
             </div>
-            {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse).map((g) => (
+            {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} />}
+            {grilleAnalyse === "simulateur" && (
+              dossier?.lots?.[0]?.simulateur
+                ? <SimulateurDossier parametres={dossier.lots[0].simulateur} />
+                : <p className="m-0 py-8 text-[13.5px] text-[#6a7180]">Le simulateur se remplit à la pré-analyse : lancez-la d'abord.</p>
+            )}
+            {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse && g.grilles).map((g) => (
               <GrilleCriteres key={g.id} grilles={g.grilles} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
             ))}
             {preuveGrille && (
@@ -1248,7 +1262,11 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       const details = [
         r.analyse ? `${r.analyse.documents} document(s) extrait(s), ${r.analyse.donnees} donnée(s)` : null,
         r.champs_remplis?.length ? `${r.champs_remplis.length} champ(s) pré-rempli(s)` : null,
+        r.photos ? `${r.photos} image(s) du bien et de la ville` : null,
       ].filter(Boolean);
+      // Une clé Maps absente ou une adresse sans Street View : on le dit, le
+      // projet est créé quand même et les photos s'ajoutent à la main.
+      (r.photos_raisons || []).forEach((m) => toast.message("Images automatiques", { description: m }));
       toast.success(`Projet créé : ${r.titre}`, details.length ? { description: details.join(" · ") } : undefined);
       onRefresh?.();
       navigate(`/AdminProjets?id=${r.project_id}`);
@@ -1299,8 +1317,9 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       <p className="text-[#9298a6] text-xs mb-4">
         Le projet est créé pré-rempli : adresse, locataire, bail, simulateur (mêmes chiffres que la
         pré-analyse), données de marché issues de la base, et tout ce que l'extraction a relevé —
-        bail, copropriété, diagnostics. Il s'ouvre ensuite dans l'éditeur pour compléter photos,
-        secteur et documents client.
+        bail, copropriété, diagnostics. Les images suivent toutes seules : la devanture vue de la
+        rue, le quartier vu du ciel, le plan de la ville. Il s'ouvre ensuite dans l'éditeur pour
+        compléter secteur et documents client.
       </p>
       <Button
         onClick={() => creerProjet.mutate()}

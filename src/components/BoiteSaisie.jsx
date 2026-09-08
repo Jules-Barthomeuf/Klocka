@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 
 // La boîte de saisie, la même partout : un cadre sombre arrondi, le texte,
 // une barre en bas avec les commandes discrètes à gauche et le bouton blanc à
@@ -40,13 +40,16 @@ export default function BoiteSaisie({
       </div>
       <div className={`flex items-center justify-between gap-4 border-t border-[#1f2228] ${compact ? "px-4 py-2" : "px-7 max-md:px-5 py-4"}`}>
         <div className="flex flex-wrap items-center gap-2 min-w-0 text-[#9298a6]">{gauche}</div>
+        {/* Le bouton d'envoi ne dit plus « Envoyer » : une flèche ronde, comme
+            dans les chats qu'on connaît. Le libellé reste l'intitulé accessible. */}
         <button
           onClick={onEnvoyer}
           disabled={!peutEnvoyer || enCours || disabled}
-          className={`inline-flex items-center gap-3 rounded-full bg-[#f2f3f5] text-[#0b0c0e] font-medium hover:bg-[#ffffff] disabled:opacity-40 transition-colors flex-shrink-0 ${compact ? "px-4 py-1.5 text-[13px]" : "px-6 py-3 text-[16px] max-md:px-4 max-md:py-2 max-md:text-[14px]"}`}
+          title={libelle}
+          aria-label={libelle}
+          className={`inline-flex items-center justify-center rounded-full bg-[#f2f3f5] text-[#0b0c0e] hover:bg-[#ffffff] disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8" : "w-10 h-10"}`}
         >
-          {libelle}
-          {enCours ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+          {enCours ? <Loader2 className={compact ? "w-4 h-4 animate-spin" : "w-[18px] h-[18px] animate-spin"} /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
         </button>
       </div>
     </div>

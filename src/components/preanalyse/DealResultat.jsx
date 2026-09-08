@@ -182,7 +182,7 @@ const EMPLACEMENTS = [
   { code: "secondaire", libelle: "Secondaire" },
 ];
 
-const CHAMPS_AFFICHES = [
+export const CHAMPS_AFFICHES = [
   ["adresse", "Adresse"],
   ["type_actif", "Type d'actif"],
   ["surface_m2", "Surface"],
@@ -201,7 +201,7 @@ const LIBELLE_CHAMP = Object.fromEntries(CHAMPS_AFFICHES);
 
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 
-function afficherValeur(champ, valeur) {
+export function afficherValeur(champ, valeur) {
   if (valeur == null) return "—";
   if (champ === "adresse") {
     return [valeur.rue, [valeur.code_postal, valeur.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ");

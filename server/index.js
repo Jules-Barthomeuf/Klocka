@@ -1449,6 +1449,59 @@ app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'),
   ok(res, { ...r, deal: { deal_id: dossier.deal_id, statut: statutDe(Records.get('Deal', dossier.id)), dossier_doc_id: patch.dossier_doc_id || dossier.dossier_doc_id, synthese_documents: patch.synthese_documents || dossier.synthese_documents } });
 }));
 
+// Les fichiers du Drive qu'on peut rapatrier : le dossier du deal s'il existe,
+// sinon les documents récents du compte.
+app.get('/api/preanalyse/dossiers/:dealId/drive/fichiers', wrap(async (req, res) => {
+  const compte = String(req.query?.compte || '');
+  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
+  if (!compteAutorise(req, compte)) return res.status(403).json({ error: "Ce compte ne vous appartient pas." });
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { listerFichiers } = await import('./google-drive.js');
+  const fichiers = await listerFichiers(compte, {
+    dossierId: dossier.drive_folder_id || null,
+    recherche: String(req.query?.recherche || '').trim(),
+  });
+  ok(res, { fichiers, dossier_du_deal: !!dossier.drive_folder_id, folder_url: dossier.drive_folder_url || null });
+}));
+
+// Rapatrie des fichiers du Drive dans le dossier : mêmes pièces, même
+// extraction en tâche de fond qu'un dépôt manuel.
+app.post('/api/preanalyse/dossiers/:dealId/drive/importer', wrap(async (req, res) => {
+  const compte = String(req.body?.compte || '');
+  const ids = Array.isArray(req.body?.fichiers) ? req.body.fichiers.slice(0, 40) : [];
+  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
+  if (!compteAutorise(req, compte)) return res.status(403).json({ error: "Ce compte ne vous appartient pas." });
+  if (!ids.length) return res.status(400).json({ error: 'Aucun fichier choisi' });
+  const user = currentUser(req);
+  const { telechargerFichier } = await import('./google-drive.js');
+  const fs = await import('fs');
+  const path = await import('path');
+  const { randomUUID } = await import('crypto');
+
+  const importes = [];
+  const erreurs = [];
+  for (const id of ids) {
+    try {
+      const f = await telechargerFichier(compte, id);
+      const nomFichier = `${randomUUID()}${path.extname(f.nom || '') || ''}`;
+      fs.writeFileSync(path.join(UPLOAD_DIR, nomFichier), f.buffer);
+      const r = ajouterDocumentEspace(req.params.dealId, {
+        nom: f.nom, url: `/uploads/${nomFichier}`, mime: f.mime, taille: f.buffer.length,
+      }, user);
+      if (!r.ok) { erreurs.push(`${f.nom} : ${r.error}`); continue; }
+      importes.push(r.document);
+    } catch (e) {
+      erreurs.push(`${id} : ${e?.message || e}`);
+    }
+  }
+  if (importes.length) {
+    const { enfiler } = await import('./deal/file-extraction.js');
+    enfiler(req.params.dealId, importes.map((d) => d.id), { uploadDir: UPLOAD_DIR, user });
+  }
+  ok(res, { importes, erreurs });
+}));
+
 // Classement des documents du deal dans le Drive du compte connecté.
 app.post('/api/preanalyse/dossiers/:dealId/drive', wrap(async (req, res) => {
   // Deal de test : classement simulé, aucun appel Google.
@@ -1565,7 +1618,31 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap(async (req,
 
   const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user);
   if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });
-  ok(res, { project_id: r.project.id, titre: r.project.titre, champs_remplis: r.champs_remplis, analyse });
+
+  // Les images du bien et de la ville se cherchent toutes seules : devanture
+  // Street View, quartier vu du ciel, plan de la ville. Jamais bloquant.
+  let photos = { photos: [], raisons: [] };
+  try {
+    const { photosDuBien } = await import('./deal/photos-auto.js');
+    photos = await photosDuBien({
+      adresse: r.project.adresse_complete || null,
+      lat: r.project.latitude ?? null,
+      lon: r.project.longitude ?? null,
+      ville: r.project.ville_secteur_champ1 || null,
+    }, UPLOAD_DIR);
+    if (photos.photos.length) Records.update('Project', r.project.id, { photos: photos.photos });
+  } catch (e) {
+    photos.raisons = [`images automatiques indisponibles : ${e?.message || e}`];
+  }
+
+  ok(res, {
+    project_id: r.project.id,
+    titre: r.project.titre,
+    champs_remplis: r.champs_remplis,
+    analyse,
+    photos: photos.photos.length,
+    photos_raisons: photos.raisons,
+  });
 }));
 
 // ---------------------------------------------------------------------------
@@ -2034,6 +2111,21 @@ app.post('/api/preanalyse/dossiers/:dealId/grille/:id/statut/:critere', wrap(asy
   const r = deciderStatut(req.params.dealId, req.params.id, req.params.critere, req.body?.statut || null, currentUser(req));
   if (!r.ok) return res.status(400).json({ error: r.error });
   ok(res, r);
+}));
+app.post('/api/preanalyse/dossiers/:dealId/grille/:id/note/:critere', wrap(async (req, res) => {
+  const { noterCritere } = await import('./deal/grilles.js');
+  const r = noterCritere(req.params.dealId, req.params.id, req.params.critere, req.body?.texte ?? '', currentUser(req));
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+// Relancer l'analyse d'une seule grille : ses questions sont relues sur toutes
+// les pièces, les autres grilles ne bougent pas.
+app.post('/api/preanalyse/dossiers/:dealId/grille/:id/relancer', wrap(async (req, res) => {
+  const { colonnesDeGrille } = await import('./deal/grilles.js');
+  const { lancerRemplissage } = await import('./deal/matrice.js');
+  const ids = colonnesDeGrille(req.params.id);
+  if (!ids.length) return res.status(404).json({ error: 'Grille inconnue' });
+  ok(res, lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementColonnes: ids }));
 }));
 app.get('/api/preanalyse/dossiers/:dealId/grille-bail', wrap(async (req, res) => {
   const { lireGrilleBail } = await import('./deal/grille-bail.js');

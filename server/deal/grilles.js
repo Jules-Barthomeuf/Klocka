@@ -259,7 +259,7 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
   const lignes = grille.criteres.map((c) => {
     const x = valeurs[c.id];
     const estLu = c.champs.some((ch) => lu.includes(ch));
-    const valeur = texteDe(id, c.id, x);
+    let valeur = texteDe(id, c.id, x);
     let statut = !estLu ? 'non_lu' : valeur ? 'ok' : 'vide';
     let motif = null;
     let details = null;

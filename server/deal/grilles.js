@@ -5,6 +5,7 @@
 // ce que la matrice a lu, puis des warnings décidés par le code sur des
 // champs structurés. La citation exacte reste derrière la source.
 
+import { createHash } from 'crypto';
 import { Records } from '../db.js';
 import { lireFiche, lireMatrice } from './matrice.js';
 import { invokeLLM } from '../llm.js';
@@ -136,8 +137,15 @@ function matiere(m, f, grille) {
   return { parChamp, lu: ids.filter((id) => lignes.some((l) => l.cellules && Object.prototype.hasOwnProperty.call(l.cellules, id))) };
 }
 
-function empreinte(m, brut, id) {
-  return `${m.gabarit.version}|${brut.matrice?.rempli_le || ''}|${JSON.stringify(brut.matrice?.forcages || {})}|${id}|${m.lignes.length}`;
+// L'empreinte d'une grille : ce dont ELLE dépend, et rien d'autre. Compter les
+// lignes de la matrice faisait tout refaire dès qu'une pièce arrivait — un
+// diagnostic déposé relançait la lecture du bail. Ici, tant que les réponses
+// retenues pour les champs de la grille ne bougent pas, le cache tient.
+function empreinte(m, brut, id, parChamp) {
+  const ids = [...new Set(GRILLES[id].criteres.flatMap((c) => c.champs))].sort();
+  const matiere = ids.map((ch) => `${ch}=${parChamp[ch]?.retenue ?? ''}~${(parChamp[ch]?.reponses || []).map((r) => `${r.document}:${r.reponse}`).join('§')}`).join('|');
+  const somme = createHash('sha1').update(matiere).digest('hex').slice(0, 16);
+  return `${m.gabarit.version}|${JSON.stringify(brut.matrice?.forcages || {})}|${id}|${somme}`;
 }
 
 /** Les valeurs formatées d'une grille, mises en cache sur le dossier tant que la lecture ne change pas. */
@@ -148,11 +156,12 @@ export async function formaterGrille(dealId, id, { user, force = false } = {}) {
   if (!brut) return null;
   const m = lireMatrice(dealId);
   const f = lireFiche(dealId);
-  const cle = empreinte(m, brut, id);
-  const cache = brut.grilles_formatees?.[id];
-  if (!force && cache && cache.cle === cle) return cache.valeurs;
+  // La matière d'abord : c'est elle qui dit si la grille a changé.
   const { parChamp, lu } = matiere(m, f, grille);
   if (!lu.length) return null;
+  const cle = empreinte(m, brut, id, parChamp);
+  const cache = brut.grilles_formatees?.[id];
+  if (!force && cache && cache.cle === cle) return cache.valeurs;
   const lot = brut.lots?.[0]?.lot || {};
   const contexte = { loyer_fiche_commerciale_ht_an: val(lot.loyer_annuel_ht_hc), surface_fiche: val(lot.surface_m2), locataire_fiche: val(lot.locataire_nom), date_du_jour: new Date().toISOString().slice(0, 10) };
   const consigne = `Tu mets en forme, pour l'équipe Klocka, ce que la lecture des pièces a trouvé. Une valeur simple par critère, au format demandé, en français. Jamais de citation : ce qui est demandé est ce que c'est, pas le texte de la pièce. Si rien ne répond, texte vide et champs à null. Ne devine rien. Dates au format JJ/MM/AAAA. Aujourd'hui : ${contexte.date_du_jour}.`;

@@ -919,35 +919,35 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
     );
   }
 
+  // La décision reste sous la main : une barre posée en bas de l'écran, qu'on
+  // remonte ou qu'on descende. Un clic écrit le mail, tout de suite.
   return (
-    <div className="grid sm:grid-cols-2 gap-4">
-      <button
-        onClick={() => ouvrir(intentionOui)}
-        className="bg-[#000000] border border-[#96c0b8]/30 hover:border-[#96c0b8]/60 rounded-md p-6 text-left transition-all group"
-      >
-        <span className="w-9 h-9 rounded-md bg-[#96c0b8]/20 text-[#c3ddd6] flex items-center justify-center mb-3">
-          <ThumbsUp className="w-4 h-4" />
-        </span>
-        <p className="text-[#f2f3f5] text-sm font-medium mb-1">{titreOui}</p>
-        <p className="text-[#9298a6] text-xs leading-relaxed">{descOui}</p>
-        <span className="text-[#c3ddd6] text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
-          Rédiger le mail <ArrowRight className="w-3 h-3" />
-        </span>
-      </button>
-
-      <button
-        onClick={() => ouvrir(intentionNon)}
-        className="bg-[#000000] border border-[#1f2228] hover:border-red-500/40 rounded-md p-6 text-left transition-all group"
-      >
-        <span className="w-9 h-9 rounded-md bg-red-500/15 text-red-300 flex items-center justify-center mb-3">
-          <ThumbsDown className="w-4 h-4" />
-        </span>
-        <p className="text-[#f2f3f5] text-sm font-medium mb-1">{titreNon}</p>
-        <p className="text-[#9298a6] text-xs leading-relaxed">{descNon}</p>
-        <span className="text-red-300 text-xs mt-3 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
-          Rédiger le mail <ArrowRight className="w-3 h-3" />
-        </span>
-      </button>
+    <>
+      {/* La place que la barre occupe : le contenu ne passe pas dessous. */}
+      <div className="h-[92px]" aria-hidden />
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:pl-[172px] pointer-events-none">
+        <div className="pointer-events-auto mx-auto max-w-[1180px] m-3 md:m-4 rounded-[18px] border border-[#22262d] bg-[#0a0a0bee] backdrop-blur-md shadow-[0_-10px_40px_rgba(0,0,0,.55)] px-4 py-3 flex items-center gap-4">
+          <p className="m-0 min-w-0 flex-1 text-[13px] text-[#9298a6] max-md:hidden truncate">
+            {titreOui} <span className="text-[#3a3f4a]">·</span> {titreNon} — le mail part pré-rédigé, rien ne s'envoie sans vous.
+          </p>
+          <div className="flex items-center gap-2.5 flex-none max-md:flex-1">
+            <button
+              onClick={() => ouvrir(intentionNon)}
+              title={descNon}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] border border-[#9b3b32]/60 text-[#e8746a] text-[13.5px] font-semibold hover:bg-[#9b3b32]/15 hover:border-[#9b3b32] transition-colors max-md:flex-1 max-md:justify-center"
+            >
+              <ThumbsDown className="w-4 h-4" /> Abandonner
+            </button>
+            <button
+              onClick={() => ouvrir(intentionOui)}
+              title={descOui}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-[#96c0b8] text-[#0b0c0e] text-[13.5px] font-semibold hover:bg-[#abd0c8] transition-colors max-md:flex-1 max-md:justify-center"
+            >
+              <ThumbsUp className="w-4 h-4" /> Poursuivre
+            </button>
+          </div>
+        </div>
+      </div>
 
       {dialogIntention && (
         <DialogMailIntention
@@ -973,7 +973,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
           }
         />
       )}
-    </div>
+    </>
   );
 }
 

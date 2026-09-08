@@ -22,6 +22,9 @@ export default function SectionBien({ dossier, apercu = false }) {
     queryKey: ["fiche", dealId],
     queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/matrice/fiche`),
     enabled: !!dealId && !apercu,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    placeholderData: (precedent) => precedent,
   });
 
   if (!lot) {

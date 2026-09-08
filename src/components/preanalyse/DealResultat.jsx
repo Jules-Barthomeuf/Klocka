@@ -18,6 +18,10 @@ import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
 import CarteGoogle from "@/components/CarteGoogle";
 import PlongeeCarte from "@/components/projet/PlongeeCarte";
 import StreetViewRue from "@/components/projet/StreetViewRue";
+
+// Sans clé Maps, ni la rue ni le plan ne s'affichent : on le dit plutôt que de
+// laisser deux cadres noirs.
+const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // Bibliothèque partagée du workflow d'analyse : verdicts, statuts, carte d'un
@@ -77,8 +81,7 @@ function GrilleCriteres({ lignes, lot }) {
       {/* --- Le bilan, en une ligne ---------------------------------------- */}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Grille de critères</p>
-          <p className="m-0 mt-1.5 text-[15px] text-[#f2f3f5]">
+          <p className="m-0 text-[15px] text-[#f2f3f5]">
             <span className="text-[#96c0b8]">{passes} tenu{passes > 1 ? "s" : ""}</span>
             <span className="text-[#6a7180]"> · </span>
             <span className={echecs ? "text-[#e8746a]" : "text-[#6a7180]"}>{echecs} raté{echecs > 1 ? "s" : ""}</span>
@@ -549,7 +552,7 @@ export function JournalSuivi({ suivi }) {
 // Situer le bien de trois façons : le plan, la plongée 3D qui tourne autour
 // de la rue, et la vue piéton. Les deux dernières réutilisent les vues de la
 // page projet, alimentées par l'adresse du lot (ou le centre de la commune).
-export function VuesLieu({ lot, enr }) {
+export function VuesLieu({ lot, enr, coteACote = false }) {
   const [vue, setVue] = useState("carte");
   const a = lot.lot?.adresse?.valeur;
   const adresse = a?.rue ? [a.rue, a.code_postal, a.ville].filter(Boolean).join(", ") : null;
@@ -567,6 +570,44 @@ export function VuesLieu({ lot, enr }) {
     { id: "3d", label: "Vue 3D" },
     { id: "street", label: "Street View" },
   ];
+
+  // Dans la pré-analyse, on juge l'emplacement sur pièces : la rue à gauche,
+  // le plan à droite, les deux d'un coup d'œil. La vue 3D reste à un clic.
+  if (coteACote) {
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <figure className="m-0">
+            <figcaption className="mb-2 font-mono text-[10px] uppercase tracking-[.18em] text-[#6a7180]">Depuis la rue</figcaption>
+            <div className="relative h-[300px] rounded-[14px] overflow-hidden border border-[#1f2228] bg-[#000000]">
+              {!CLE_MAPS ? (
+                <p className="absolute inset-0 flex items-center justify-center m-0 px-6 text-center text-[12px] text-[#9298a6]">Street View indisponible : renseignez <code className="text-[#c9cdd6] mx-1">VITE_GOOGLE_MAPS_API_KEY</code>.</p>
+              ) : localisable ? <StreetViewRue project={lieu} /> : (
+                <p className="absolute inset-0 flex items-center justify-center m-0 text-[13px] text-[#6a7180]">Adresse inconnue pour ce lot.</p>
+              )}
+            </div>
+          </figure>
+          <figure className="m-0">
+            <figcaption className="mb-2 font-mono text-[10px] uppercase tracking-[.18em] text-[#6a7180]">Sur le plan</figcaption>
+            <div className="[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]">
+              <CarteGoogle adresse={adresse} lat={enr?.commune?.centre?.lat} lon={enr?.commune?.centre?.lon} hauteur="h-[300px]" />
+            </div>
+          </figure>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button onClick={() => setVue(vue === "3d" ? "carte" : "3d")} disabled={!localisable} className="px-3.5 py-1.5 rounded-full text-[12.5px] border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-40">
+            {vue === "3d" ? "Replier la vue 3D" : "Vue 3D"}
+          </button>
+          {!adresse && <span className="text-[12px] text-[#6a7180]">Adresse précise absente de la fiche : les vues sont centrées sur la commune.</span>}
+        </div>
+        {vue === "3d" && (
+          <div className="relative h-[420px] rounded-[14px] overflow-hidden border border-[#1f2228]">
+            <PlongeeCarte project={lieu} onClose={() => setVue("carte")} />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -661,9 +702,6 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               ) : <span className="text-[13.5px] text-[#9298a6]">Aucune réserve à lever.</span>}
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button onClick={() => setDetailOuvert((o) => !o)} className="text-[13px] text-[#9298a6] hover:text-[#f2f3f5] underline decoration-dotted underline-offset-4">
-                {nbCriteres} critères{ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""} — {detailOuvert ? "replier le détail" : "voir le détail"}
-              </button>
               {lot.mail_agent && (
                 <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-[#2c3139] px-3.5 py-1.5 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40">
                   <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent
@@ -672,6 +710,41 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
             </div>
           </section>
 
+          {/* La fiche du bien : ce que la fiche commerciale dit, champ par champ */}
+          <section className="py-8 border-b border-[#1f2228]">
+            <div className="flex items-baseline gap-3 flex-wrap mb-4">
+              <h2 className="m-0 text-[17px] font-semibold">Fiche du bien</h2>
+              <span className="text-[13px] text-[#6a7180]">ce que la fiche commerciale donne, champ par champ</span>
+            </div>
+            <dl className="m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12">
+              {CHAMPS_AFFICHES.map(([champ, libelle]) => {
+                const c = lot.lot[champ];
+                const absent = !c || c.absent;
+                return (
+                  <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-[#15171b]">
+                    <dt className="text-[13px] text-[#9298a6] flex-none">{libelle}</dt>
+                    <dd className={`m-0 text-right text-[14px] tabular-nums font-light min-w-0 ${absent ? "text-[#4d545d]" : "text-[#f2f3f5]"}`} title={c?.citation || undefined}>
+                      {absent ? "non renseigné" : afficherValeur(champ, c.valeur)}
+                      {!absent && c.confiance === "basse" && <span className="ml-2 text-[11px] text-[#d9b46a] font-normal">confiance basse</span>}
+                      {!absent && c.saisi_a_la_main && <span className="ml-2 text-[11px] text-[#d9b46a] font-normal">saisi à la main</span>}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </section>
+
+          {/* La grille de critères : coche menthe, croix corail, sous les yeux */}
+          {nbCriteres > 0 && (
+            <section className="py-8 border-b border-[#1f2228]">
+              <div className="flex items-baseline gap-3 flex-wrap mb-1">
+                <h2 className="m-0 text-[17px] font-semibold">Grille de critères</h2>
+                <span className="text-[13px] text-[#6a7180]">{nbCriteres} critères{ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""} — le verdict n'est que leur somme</span>
+              </div>
+              <div className="-mx-5"><GrilleCriteres lignes={lot.evaluation.grille} lot={lot} /></div>
+            </section>
+          )}
+
           {/* Le simulateur, tel quel */}
           <section className="py-8 border-b border-[#1f2228]">
             <div className="flex items-baseline gap-3 flex-wrap mb-5">
@@ -679,6 +752,24 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               <span className="text-[13px] text-[#6a7180]">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
             </div>
             <SimulateurDossier parametres={lot.simulateur} />
+          </section>
+
+          {/* L'emplacement : la seule donnée humaine, elle change le verdict.
+              On le juge sur pièces — la rue, puis le plan. */}
+          <section className="py-8 border-b border-[#1f2228]">
+            <div className="flex items-baseline gap-3 flex-wrap mb-4">
+              <h2 className="m-0 text-[17px] font-semibold">Emplacement</h2>
+              <span className="text-[13px] text-[#6a7180]">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              <div className="inline-flex flex-wrap rounded-full border border-[#2c3139] p-0.5">
+                {EMPLACEMENTS.map((e) => (
+                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{e.libelle}</button>
+                ))}
+              </div>
+              <span className="border border-[#3a3f4a] rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? "#e8b04c" : "#d9b46a" }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
+            </div>
+            <VuesLieu lot={lot} enr={enr} coteACote />
           </section>
 
           {/* Les clients à qui ce bien pourrait correspondre */}
@@ -693,23 +784,17 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
           {/* Le détail */}
           <div className="mt-8 border-t border-[#1f2228]">
             <button onClick={() => setDetailOuvert((o) => !o)} className="w-full py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">
-              <span>Détail — critères, données extraites avec citations, commune et enseigne, lieu, marché local</span>
+              <span>Détail — données extraites avec citations, enrichissement{lot.contexte_marche ? ", marché local" : ""}</span>
               {detailOuvert ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
       {detailOuvert && (
         <div className="pb-5">
-          <Tabs defaultValue="carte">
+          <Tabs defaultValue="extraction">
             <TabsList className="mb-4 gap-5">
-              <TabsTrigger value="criteres">Critères</TabsTrigger>
               <TabsTrigger value="extraction">Données extraites</TabsTrigger>
               <TabsTrigger value="enrichissement">Enrichissement</TabsTrigger>
-              <TabsTrigger value="carte">Lieu</TabsTrigger>
               {lot.contexte_marche && <TabsTrigger value="marche">Marché local</TabsTrigger>}
             </TabsList>
-
-            <TabsContent value="criteres">
-              <div className="-mx-5"><GrilleCriteres lignes={lot.evaluation.grille} lot={lot} /></div>
-            </TabsContent>
 
             <TabsContent value="extraction">
               {lot.incidents_garde_fou?.length > 0 && (
@@ -777,10 +862,6 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
               )}
             </TabsContent>
 
-            <TabsContent value="carte">
-              <VuesLieu lot={lot} enr={enr} />
-            </TabsContent>
-
             {lot.contexte_marche && (
               <TabsContent value="marche">
                 <div className="space-y-3">
@@ -835,22 +916,6 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
                 {note && <div className="text-[12px] text-[#d9b46a] tabular-nums">{note}</div>}
               </div>
             )) : <div className="px-5 py-4 border-b border-[#1f2228] text-[13px] text-[#9298a6]">Prix ou loyer manquant : pas de rendement calculable.</div>}
-            {/* L'emplacement : la seule donnée humaine, elle change le verdict */}
-            <div className="px-5 py-4 flex flex-col gap-2.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[13.5px] text-[#c9cdd6]">Emplacement</span>
-                <span className="border border-[#3a3f4a] rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? "#e8b04c" : "#d9b46a" }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
-              </div>
-              <div className="inline-flex flex-wrap rounded-full border border-[#2c3139] p-0.5 self-start">
-                {EMPLACEMENTS.map((e) => (
-                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3 py-1 rounded-full text-[12px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{e.libelle}</button>
-                ))}
-              </div>
-              <span className="text-[12.5px] text-[#6a7180]">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>
-              {enr?.commune && (
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([lot.lot.adresse?.valeur?.rue, enr.commune.nom].filter(Boolean).join(", "))}`} target="_blank" rel="noopener noreferrer" className="self-start border border-[#2c3139] rounded-full px-3.5 py-1.5 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]">Voir sur la carte</a>
-              )}
-            </div>
           </div>
 
           <div className="border border-[#1f2228] rounded-[20px] bg-[#0f1114] px-5 py-4 flex flex-col gap-2">
@@ -862,7 +927,7 @@ export function CarteLot({ lot, dossier, onSaisie, enCours, apercu = false }) {
             </div>
           </div>
 
-          <p className="m-0 text-[12.5px] text-[#6a7180]">La décision Oui / Non se prend en bas de page : elle pré-rédige le mail et clôt l'étape.</p>
+          <p className="m-0 text-[12.5px] text-[#6a7180]">La décision Poursuivre / Abandonner reste en bas de l'écran : elle pré-rédige le mail et clôt l'étape.</p>
         </aside>
       </div>
 

@@ -136,6 +136,11 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
     queryKey: ["grille", v.id, dealId],
     queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille/${v.id}`),
     enabled: !!dealId,
+    // On revient sur le dossier : l'analyse déjà lue s'affiche tout de suite,
+    // la relecture éventuelle se fait derrière, sans écran d'attente.
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    placeholderData: (precedent) => precedent,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   })) });
   // Relancer l'analyse d'une grille : ses questions seules sont relues sur

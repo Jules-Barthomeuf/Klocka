@@ -173,7 +173,7 @@ function GrilleCriteres({ lignes, lot }) {
 }
 
 // Le verdict a son badge : il ne se répète pas dans le titre.
-const sansVerdict = (t) => String(t || "").replace(/\s*[—:-]\s*(GO SOUS R[ÉE]SERVE|NO-?GO|GO|INSUFFISANT|Non retenu|Non conforme|Conforme( sous réserve)?)\s*$/i, "").trim();
+export const sansVerdict = (t) => String(t || "").replace(/\s*[—:-]\s*(GO SOUS R[ÉE]SERVE|NO-?GO|GO|INSUFFISANT|Non retenu|Non conforme|Conforme( sous réserve)?)\s*$/i, "").trim();
 
 const EMPLACEMENTS = [
   { code: "n1", libelle: "N°1" },

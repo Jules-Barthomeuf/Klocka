@@ -11,7 +11,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, Lock, Mail, Microscope, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Bandeau, CarteLot, DialogMailIntention, JournalSuivi,
+  Bandeau, CarteLot, DialogMailIntention, JournalSuivi, sansVerdict,
 } from "@/components/preanalyse/DealResultat";
 import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
@@ -648,17 +648,29 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
         <Bandeau type="info" items={[`Cette fiche décrit ${dossier.lots.length} lots, analysés séparément.`]} />
       )}
       {dossier.lots.map((lot) => (
-        <CarteLot
-          key={lot.index}
-          lot={lot}
-          dossier={dossier}
-          onSaisie={(saisie) => onSaisie?.(lot.index, saisie)}
-          enCours={enCours}
-          apercu={apercu}
-        />
+        prixDuLot(lot) == null ? (
+          <DemandePrix
+            key={lot.index}
+            lot={lot}
+            onSaisie={(saisie) => onSaisie?.(lot.index, saisie)}
+            enCours={enCours}
+            apercu={apercu}
+          />
+        ) : (
+          <CarteLot
+            key={lot.index}
+            lot={lot}
+            dossier={dossier}
+            onSaisie={(saisie) => onSaisie?.(lot.index, saisie)}
+            enCours={enCours}
+            apercu={apercu}
+          />
+        )
       ))}
 
-      {/* La décision Oui / Non clôt l'étape. */}
+      {/* La décision Oui / Non clôt l'étape — mais pas sans prix : tout en
+          dépend, du verdict au simulateur. */}
+      {dossier.lots.every((l) => prixDuLot(l) != null) && (
       <BlocDecision
         dossier={dossier}
         onRefresh={onRefresh}
@@ -672,7 +684,66 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
         descNon="Un mail de refus courtois est pré-rédigé (« nous restons en recherche d'opportunités »). Le deal alimente la base de données marché puis part aux archives."
         descInactif="Étape dépassée — le deal a avancé sans refus ni demande de documents formelle."
       />
+      )}
     </>
+  );
+}
+
+// Le prix affiché du lot, ou null s'il manque : la pré-analyse ne conclut pas
+// sans lui — le verdict, l'AEM et le simulateur en partent tous.
+export function prixDuLot(lot) {
+  const c = lot?.lot?.prix_fai;
+  if (!c || c.absent === true) return null;
+  const v = typeof c === "object" ? c.valeur : c;
+  return typeof v === "number" && v > 0 ? v : null;
+}
+
+// Ni le mail ni la fiche ne portaient le prix : on le demande avant d'aller
+// plus loin. Le reste de la pré-analyse attend derrière.
+function DemandePrix({ lot, onSaisie, enCours, apercu }) {
+  const [prix, setPrix] = useState("");
+  const montant = Number(String(prix).replace(/[^\d.,]/g, "").replace(",", "."));
+  const valide = isFinite(montant) && montant > 0;
+  const valider = () => { if (valide && !apercu) onSaisie?.({ prix_fai: Math.round(montant) }); };
+
+  return (
+    <div className="bg-[#000000] border border-[#d9b46a]/40 rounded-[18px] px-6 py-8">
+      <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#d9b46a]">Le prix manque</p>
+      <p className="m-0 mt-2.5 text-[19px] font-light leading-[1.5] text-[#f2f3f5] max-w-[620px]">
+        {lot.synthese?.titre ? sansVerdict(lot.synthese.titre) : lot.intitule || "Ce lot"} n'a pas de prix affiché.
+      </p>
+      <p className="m-0 mt-2.5 text-[14px] leading-[1.65] text-[#9298a6] max-w-[640px]">
+        Ni le mail de l'agent ni la fiche commerciale ne le donnent. Le verdict, le rendement AEM et le
+        simulateur en partent tous : saisissez-le pour continuer la pré-analyse. Il sera marqué comme
+        saisi à la main.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="inline-flex items-baseline gap-2 border-b border-[#3a3f4a] focus-within:border-[#f2f3f5] transition-colors">
+          <input
+            autoFocus
+            value={prix}
+            onChange={(e) => setPrix(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") valider(); }}
+            placeholder="400 000"
+            disabled={apercu || enCours}
+            inputMode="numeric"
+            className="w-[180px] bg-transparent border-0 outline-none py-2 text-[22px] font-light tabular-nums text-[#f2f3f5] placeholder:text-[#3a3f4a] disabled:opacity-50"
+          />
+          <span className="text-[16px] text-[#9298a6]">€ FAI</span>
+        </div>
+        <button
+          onClick={valider}
+          disabled={!valide || apercu || enCours}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-[#f2f3f5] text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40"
+        >
+          {enCours ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Continuer la pré-analyse
+        </button>
+      </div>
+      <p className="m-0 mt-4 text-[12.5px] text-[#6a7180]">
+        Prix affiché, honoraires d'agence inclus. La négociation se fait ensuite, dans le simulateur.
+      </p>
+    </div>
   );
 }
 

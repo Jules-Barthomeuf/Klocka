@@ -191,27 +191,59 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   const entree = dossier.lots?.[indexLot];
   if (!entree) return { error: 'Lot introuvable' };
 
-  const enrichissement = await enrichir(entree.lot, { emplacement: saisie.emplacement });
-  const evaluation = evaluer(entree.lot, enrichissement);
+  // Le prix affiché, saisi à la main quand ni le mail ni la fiche ne le
+  // portaient : il devient une donnée du lot, avec sa provenance. Tout en
+  // dépend — le verdict, l'AEM, le simulateur — d'où l'écriture sur le lot.
+  let lot = entree.lot;
+  if (saisie.prix_fai != null && saisie.prix_fai !== '') {
+    const montant = Number(saisie.prix_fai);
+    if (!isFinite(montant) || montant <= 0) return { error: 'Prix invalide' };
+    lot = {
+      ...lot,
+      prix_fai: {
+        valeur: Math.round(montant),
+        absent: false,
+        confiance: 1,
+        citation: 'Saisi à la main : absent du mail et de la fiche.',
+        saisi_a_la_main: true,
+      },
+    };
+  }
+
+  const enrichissement = await enrichir(lot, { emplacement: saisie.emplacement });
+  const evaluation = evaluer(lot, enrichissement);
 
   // Le prix négocié ne change pas le verdict (les règles portent sur le prix
   // FAI), mais il alimente le simulateur.
   if (saisie.prix_negocie) {
     evaluation.aem = calculerAEM({
-      prixFai: val(entree.lot.prix_fai),
+      prixFai: val(lot.prix_fai),
       prixNegocie: saisie.prix_negocie,
-      loyerAnnuel: val(entree.lot.loyer_annuel_ht_hc),
+      loyerAnnuel: val(lot.loyer_annuel_ht_hc),
     });
   }
 
-  const dossierLot = { lot: entree.lot, enrichissement, evaluation };
+  const dossierLot = { lot, enrichissement, evaluation };
   const [synthese, mailAgent] = await Promise.all([
     redigerSynthese(dossierLot),
     evaluation.verdict === 'INSUFFISANT' ? redigerMailAgent(dossierLot, {}) : null,
   ]);
 
   const lots = [...dossier.lots];
-  lots[indexLot] = { ...entree, enrichissement, evaluation, synthese, mail_agent: mailAgent };
+  lots[indexLot] = {
+    ...entree,
+    lot,
+    enrichissement,
+    evaluation,
+    synthese,
+    mail_agent: mailAgent,
+    // Le simulateur part du prix : il se refait dès que celui-ci bouge.
+    simulateur: parametresSimulateur({
+      prixFai: val(lot.prix_fai),
+      loyerAnnuel: val(lot.loyer_annuel_ht_hc),
+      surface: val(lot.surface_m2),
+    }),
+  };
   Records.update('Deal', dossier.id, { lots });
 
   return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };

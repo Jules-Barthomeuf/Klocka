@@ -266,11 +266,13 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
     if (estLu && valeur) { const r = warnings(id, c.id, x, ctx); if (r) { statut = r.statut; motif = r.motif; details = r.details || null; } }
     if (statut === 'vide') motif = 'Aucune pièce ne répond.';
     if (statut === 'non_lu') motif = 'Question pas encore lue.';
+    const correction = brut.grilles_valeurs?.[`${id}.${c.id}`] || null;
+    if (correction?.valeur) { valeur = correction.valeur; if (statut === 'vide' || statut === 'non_lu') { statut = 'ok'; motif = null; } }
     const statutCalcule = statut;
     const decision = brut.grilles_statuts?.[`${id}.${c.id}`] || null;
     if (decision?.statut) statut = decision.statut;
     const masquee = c.masquer_si_absent && (!x || x.present === false || !valeur);
-    return { id: c.id, libelle: c.libelle, regle: c.regle, format: c.format, valeur, statut, statut_calcule: statutCalcule, decision, motif, details, masquee, preuves: preuvesDe(c.champs).slice(0, 6) };
+    return { id: c.id, libelle: c.libelle, regle: c.regle, format: c.format, valeur, valeur_lue: texteDe(id, c.id, x), correction, statut, statut_calcule: statutCalcule, decision, motif, details, masquee, preuves: preuvesDe(c.champs).slice(0, 6) };
   }).filter((l) => !l.masquee);
   const nb = (s) => lignes.filter((l) => l.statut === s).length;
   return { id, titre: grille.titre, lignes, resume: { ok: nb('ok'), warning: nb('warning'), a_verifier: nb('a_verifier'), no_go: nb('no_go'), vide: nb('vide'), non_lu: nb('non_lu') }, formatee_le: cache?.le || null, remplissage: m.remplissage, non_lues: grille.criteres.flatMap((c) => c.champs).filter((ch) => !lu.includes(ch)).length };
@@ -293,5 +295,18 @@ export function deciderStatut(dealId, grilleId, critereId, statut, user) {
   if (statut) statuts[cle] = { statut, par: user?.email || null, le: new Date().toISOString() };
   else delete statuts[cle];
   Records.update('Deal', brut.id, { grilles_statuts: statuts });
+  return { ok: true };
+}
+
+/** La valeur corrigée à la main d'un critère ; vide pour revenir à la valeur lue. */
+export function corrigerValeur(dealId, grilleId, critereId, valeur, user) {
+  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!brut) return { ok: false, error: 'Dossier introuvable' };
+  const cle = `${grilleId}.${critereId}`;
+  const valeurs = { ...(brut.grilles_valeurs || {}) };
+  const v = String(valeur || '').trim().slice(0, 2000);
+  if (v) valeurs[cle] = { valeur: v, par: user?.email || null, le: new Date().toISOString() };
+  else delete valeurs[cle];
+  Records.update('Deal', brut.id, { grilles_valeurs: valeurs });
   return { ok: true };
 }

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2, Pencil, RotateCcw } from "lucide-react";
 
 // Une grille de critères : critère, valeur lue au format voulu, statut en
 // case colorée, source à droite. La règle se lit d'un clic sur le critère.
@@ -18,6 +18,12 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
   const queryClient = useQueryClient();
   const bascule = (id) => setOuverts((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const basculeDetail = (id) => setDetails((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const [edition, setEdition] = useState(null); // { id, texte }
+  const corriger = useMutation({
+    mutationFn: ({ critere, valeur }) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${g.id}/valeur/${critere}`, { body: { valeur } }),
+    onSuccess: () => { setEdition(null); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
   const decider = useMutation({
     mutationFn: ({ critere, statut }) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${g.id}/statut/${critere}`, { body: { statut } }),
     onSuccess: () => { setChoix(null); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
@@ -35,8 +41,23 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
                 <button onClick={() => bascule(l.id)} className="text-left text-[14px] text-[#f2f3f5] hover:text-[#ffffff]">{l.libelle}</button>
                 {ouverts.has(l.id) && <p className="m-0 mt-1 text-[11.5px] leading-[1.45] text-[#6a7180]">{l.regle}</p>}
               </td>
-              <td className={`px-4 py-3 border-b border-r border-[#1f2228] ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
-                {l.valeur ? <p className="m-0 text-[14px] leading-[1.55] text-[#f2f3f5] whitespace-pre-line">{l.valeur}</p> : <span className="text-[13px] text-[#4d545d]">—</span>}
+              <td className={`px-4 py-3 border-b border-r border-[#1f2228] group ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && !edition && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
+                {edition?.id === l.id ? (
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-[#3a3f4a] focus:border-[#f2f3f5] rounded-md px-2.5 py-1.5 outline-none text-[14px] leading-[1.55] text-[#f2f3f5] resize-y" />
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
+                      <button onClick={() => setEdition(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+                      {l.correction && <button onClick={() => corriger.mutate({ critere: l.id, valeur: "" })} className="inline-flex items-center gap-1 text-[12px] text-[#9298a6] hover:text-[#f2f3f5] ml-auto"><RotateCcw className="w-3 h-3" /> Revenir à la valeur lue</button>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2">
+                    {l.valeur ? <p className="m-0 flex-1 text-[14px] leading-[1.55] text-[#f2f3f5] whitespace-pre-line">{l.valeur}</p> : <span className="flex-1 text-[13px] text-[#4d545d]">—</span>}
+                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} title="Modifier la valeur" className="flex-none text-[#4d545d] hover:text-[#f2f3f5] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
+                  </div>
+                )}
+                {l.correction && edition?.id !== l.id && <p className="m-0 mt-1 text-[11px] text-[#d9b46a]">corrigé à la main{l.correction.par ? ` · ${l.correction.par.split("@")[0]}` : ""}{l.valeur_lue ? <span className="text-[#6a7180]"> · lu : {String(l.valeur_lue).slice(0, 60)}{String(l.valeur_lue).length > 60 ? "…" : ""}</span> : null}</p>}
                 {l.motif && l.statut_calcule !== "ok" && <p className="m-0 mt-1 text-[12px] leading-[1.45] text-[#9298a6]">{l.motif}{l.details ? <span className="text-[#6a7180]"> · {details.has(l.id) ? "replier" : "voir les valeurs"}</span> : null}</p>}
                 {l.details && details.has(l.id) && (
                   <div className="mt-2 border border-[#2c3139] rounded-lg px-3 py-2 space-y-1">

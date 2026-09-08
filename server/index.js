@@ -2370,7 +2370,9 @@ app.delete('/api/alexis/dossiers/:id/documents/:docId', wrap((req, res) => {
 // ---------------------------------------------------------------------------
 app.post('/api/functions/:name', wrap(async (req, res) => {
   const user = currentUser(req);
-  ok(res, await callFunction(req.params.name, req.body || {}, { user }));
+  // `base` porte l'adresse publique telle que le navigateur la voit : les mails
+  // partis d'ici contiennent des liens cliquables, même sans APP_URL.
+  ok(res, await callFunction(req.params.name, req.body || {}, { user, base: urlPublique(req) }));
 }));
 
 // ---------------------------------------------------------------------------

@@ -956,21 +956,9 @@ export default function AdminProjets() {
       const previousClientEmails = editingProject?.client_emails || [];
       const newClientEmails = currentFormData.client_emails.filter(email => !previousClientEmails.includes(email));
 
-      if (isNewAssignment && currentFormData.client_email) {
-        try {
-          await base44.functions.invoke('sendProjectAssignmentEmail', {
-            clientEmail: currentFormData.client_email, projectTitle: currentFormData.titre, projectId: editingProject?.id
-          });
-        } catch (error) { console.error("Erreur envoi email:", error); }
-      }
-      for (const email of newClientEmails) {
-        try {
-          await base44.functions.invoke('sendProjectAssignmentEmail', {
-            clientEmail: email, projectTitle: currentFormData.titre, projectId: editingProject?.id
-          });
-        } catch (error) { console.error("Erreur envoi email:", error); }
-      }
-
+      // Le projet d'abord, le mail ensuite : sans identifiant enregistré, le
+      // lien envoyé au client ne pourrait pas pointer sur son projet.
+      let projetId = editingProject?.id || null;
       if (editingProject) {
         const maj = await updateProjectMutation.mutateAsync({ id: editingProject.id, data });
         setEditingProject({ ...editingProject, ...data, ...(maj || {}) });
@@ -979,6 +967,22 @@ export default function AdminProjets() {
         const newProject = await createProjectMutation.mutateAsync(data);
         if (!discret) toast.success("Projet créé", { duration: 1800 });
         setEditingProject(newProject);
+        projetId = newProject?.id || null;
+      }
+
+      if (isNewAssignment && currentFormData.client_email) {
+        try {
+          await base44.functions.invoke('sendProjectAssignmentEmail', {
+            clientEmail: currentFormData.client_email, projectTitle: currentFormData.titre, projectId: projetId
+          });
+        } catch (error) { console.error("Erreur envoi email:", error); }
+      }
+      for (const email of newClientEmails) {
+        try {
+          await base44.functions.invoke('sendProjectAssignmentEmail', {
+            clientEmail: email, projectTitle: currentFormData.titre, projectId: projetId
+          });
+        } catch (error) { console.error("Erreur envoi email:", error); }
       }
       setFormData(currentFormData);
       rafraichirApercu(currentFormData);

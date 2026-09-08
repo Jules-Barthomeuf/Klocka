@@ -165,22 +165,26 @@ export const functions = {
     return { results };
   },
 
-  // Un projet attribué : le client l'apprend, et le lien l'emmène droit sur
-  // « Mes projets ». Le prénom vient de son compte quand on le connaît.
-  async sendProjectAssignmentEmail(params, { user }) {
+  // Un projet attribué : le client l'apprend, et le lien l'emmène droit sur ce
+  // projet-là, pas sur la liste. Le prénom vient de son compte quand on le
+  // connaît. L'adresse publique vient de la requête : un lien relatif dans un
+  // mail n'est cliquable nulle part.
+  async sendProjectAssignmentEmail(params, { user, base: basePublique }) {
     const { to, clientEmail, projectTitle, projectId } = params || {};
     const recipient = to || clientEmail;
     const compte = Records.filter('User', { email: String(recipient || '').toLowerCase() })[0];
     const prenom = (compte?.full_name || '').split(' ')[0];
-    const base = (process.env.APP_URL || '').replace(/\/$/, '') || '';
-    const lien = `${base}/MesProjets`;
+    const base = (basePublique || process.env.APP_URL || '').replace(/\/$/, '');
+    // Sans identifiant de projet, la liste reste le meilleur repli.
+    const lien = projectId ? `${base}/ProjetDetail?id=${encodeURIComponent(projectId)}` : `${base}/MesProjets`;
+    const titre = String(projectTitle || '').trim();
     await sendEmail({
       owner: user?.email,
       to: recipient,
       subject: 'Klocka - Un nouveau projet vous a été attribué dans votre espace 🚀',
       body: `Bonjour${prenom ? ` ${prenom}` : ''},
 
-Bonne nouvelle ! Un nouveau projet vient de vous être attribué.
+Bonne nouvelle ! Un nouveau projet vient de vous être attribué${titre ? ` : ${titre}` : ''}.
 
 Découvrez-le sans plus attendre sur notre plateforme Klocka :
 

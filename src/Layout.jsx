@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard,
   Building2,
@@ -388,18 +387,11 @@ function LayoutContent({ children, currentPageName }) {
       <main
         className={`flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${!hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""} ${!hideNavbar ? (isAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0") : ""}`}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, x: 18 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -18 }}
-            transition={{ duration: 0.22, ease: "easeInOut" }}
-            className="min-h-screen"
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        {/* Entrée animée en CSS, sans animation de sortie : une sortie qui
+            n'aboutit pas (framer-motion + layoutId) laissait l'écran noir. */}
+        <div key={location.pathname} className="min-h-screen animate-in fade-in slide-in-from-right-4 duration-300 ease-out">
+          {children}
+        </div>
       </main>
 
       {/* L'assistant suit l'admin de page en page. */}

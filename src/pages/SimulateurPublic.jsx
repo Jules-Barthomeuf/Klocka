@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Check, Link2, RefreshCw } from "lucide-react";
 import ExportExcelFullButton from "../components/simulator/ExportExcelFullButton";
 import { calculerTVADeductible } from "../components/simulator";
@@ -405,13 +404,9 @@ export default function SimulateurPublic() {
                       onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
                       className={`relative px-3 h-7 rounded-full text-xs whitespace-nowrap transition-colors duration-200 ${active ? "text-[#f2f3f5]" : "text-[#9298a6] hover:text-[#c9cdd6]"}`}
                     >
-                      {active && (
-                        <motion.span
-                          layoutId="sim-tab-pill"
-                          className="absolute inset-0 rounded-full bg-[#96c0b8]/15 border border-[#96c0b8]/40"
-                          transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                        />
-                      )}
+                      {/* Pastille sans layoutId : l'animation partagée de framer-motion
+                          bloquait la sortie de page (écran noir en quittant le simulateur). */}
+                      <span className={`absolute inset-0 rounded-full border transition-all duration-200 ${active ? "bg-[#96c0b8]/15 border-[#96c0b8]/40 opacity-100" : "bg-transparent border-transparent opacity-0"}`} />
                       <span className="relative">{t.label}</span>
                     </button>
                   );

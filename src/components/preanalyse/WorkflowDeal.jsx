@@ -21,11 +21,15 @@ import { GABARITS } from "./gabaritsMail";
 import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
 
 // Les parties de l'analyse : une par famille de pièces.
+// Une partie par famille de pièces ; chaque tableau d'une partie a son cadre.
 const GRILLES_ANALYSE = [
-  { id: "bail", ids: ["bail"], titre: "Bail", sousTitre: "Les critères du bail." },
-  { id: "quittances", ids: ["quittances"], titre: "Quittances", sousTitre: "La situation actuelle, tirée des quittances." },
-  { id: "copropriete", ids: ["pv_ag", "rcp"], titre: "Copropriété", sousTitre: "Les procès-verbaux d'assemblée, puis le règlement." },
-  { id: "diagnostics", ids: ["diagnostics"], titre: "Diagnostics", sousTitre: "L'état du bien, diagnostic par diagnostic." },
+  { id: "bail", titre: "Bail", grilles: [{ id: "bail", titre: "Bail", sousTitre: "Les critères du bail." }] },
+  { id: "quittances", titre: "Quittances", grilles: [{ id: "quittances", titre: "Quittances", sousTitre: "La situation actuelle, tirée des quittances." }] },
+  { id: "copropriete", titre: "Copropriété", grilles: [
+    { id: "pv_ag", titre: "PV d'AG", sousTitre: "Les procès-verbaux d'assemblée : travaux, résolutions, impayés." },
+    { id: "rcp", titre: "Règlement de copropriété", sousTitre: "Activités autorisées ou non, quote-part." },
+  ] },
+  { id: "diagnostics", titre: "Diagnostics", grilles: [{ id: "diagnostics", titre: "Diagnostics", sousTitre: "L'état du bien, diagnostic par diagnostic." }] },
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
@@ -313,7 +317,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
               ))}
             </div>
             {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse).map((g) => (
-              <GrilleCriteres key={g.id} ids={g.ids} titre={g.titre} sousTitre={g.sousTitre} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
+              <GrilleCriteres key={g.id} grilles={g.grilles} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
             ))}
             {preuveGrille && (
               <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-[#000000] border-l border-[#22262d] shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">

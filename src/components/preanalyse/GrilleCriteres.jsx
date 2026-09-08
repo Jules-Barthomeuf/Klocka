@@ -94,13 +94,16 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
   );
 }
 
-// Une grille chargée depuis le dossier, avec son en-tête et ses sous-tables.
-export default function GrilleCriteres({ dossier, ids, titre, sousTitre, onPreuve, apercu = false }) {
+// Les grilles d'une partie, chargées depuis le dossier : un cadre par tableau,
+// avec son titre, son sous-titre et son propre résumé.
+export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre, sousTitre, onPreuve, apercu = false }) {
   const dealId = dossier?.deal_id;
   const queryClient = useQueryClient();
-  const requetes = useQueries({ queries: ids.map((id) => ({
-    queryKey: ["grille", id, dealId],
-    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille/${id}`),
+  // `grilles` porte titre et sous-titre par tableau ; `ids` seul reste accepté.
+  const voulues = demandees || (ids || []).map((id, i) => ({ id, titre: i === 0 ? titre : null, sousTitre: i === 0 ? sousTitre : null }));
+  const requetes = useQueries({ queries: voulues.map((v) => ({
+    queryKey: ["grille", v.id, dealId],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille/${v.id}`),
     enabled: !!dealId,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   })) });
@@ -109,36 +112,38 @@ export default function GrilleCriteres({ dossier, ids, titre, sousTitre, onPreuv
     onSuccess: (r) => { toast.success(r.rien ? "Tout est déjà lu" : `Lecture de ${r.colonnes.length} question${r.colonnes.length > 1 ? "s" : ""} lancée`); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
-  const grilles = requetes.map((r) => r.data).filter(Boolean);
-  const chargement = requetes.some((r) => r.isLoading);
-  const resume = grilles.reduce((a, g) => ({ ok: a.ok + g.resume.ok, warning: a.warning + g.resume.warning + g.resume.a_verifier, no_go: a.no_go + (g.resume.no_go || 0), vide: a.vide + g.resume.vide + g.resume.non_lu, non_lues: a.non_lues + (g.non_lues || 0) }), { ok: 0, warning: 0, no_go: 0, vide: 0, non_lues: 0 });
-  const enCours = grilles.some((g) => g.remplissage?.etat === "en_cours");
 
   return (
-    <div className="bg-[#000000] border border-[#1f2228] rounded-[18px] overflow-hidden">
-      <header className="px-5 py-4 border-b border-[#1f2228] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">{titre}</h2>
-          {sousTitre && <span className="text-[13px] text-[#9298a6]">{sousTitre}</span>}
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          {grilles.length > 0 && (
-            <span className="flex items-center gap-3 text-[12px] text-[#c9cdd6]">
-              <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.ok }} />{resume.ok} OK</span>
-              <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.warning }} />{resume.warning} à vérifier</span>
-              {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.no_go }} />{resume.no_go} no go</span>}
-              {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.vide }} />{resume.vide} sans valeur</span>}
-            </span>
-          )}
-          {resume.non_lues > 0 && (enCours ? <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> lecture…</span>
-            : <button onClick={() => !apercu && completer.mutate()} disabled={apercu || completer.isPending} className="text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">Lire les questions manquantes</button>)}
-        </div>
-      </header>
-      {chargement && !grilles.length ? <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div> : grilles.map((g, i) => (
-        <div key={g.id} className={i > 0 ? "border-t border-[#1f2228]" : ""}>
-          <TableCriteres g={g} onPreuve={onPreuve} dealId={dealId} titre={i > 0 ? g.titre : null} />
-        </div>
-      ))}
+    <div className="space-y-5">
+      {voulues.map((v, i) => {
+        const r = requetes[i];
+        const g = r?.data;
+        const resume = g ? { ok: g.resume.ok, warning: g.resume.warning + g.resume.a_verifier, no_go: g.resume.no_go || 0, vide: g.resume.vide + g.resume.non_lu } : null;
+        const enCours = g?.remplissage?.etat === "en_cours";
+        return (
+          <div key={v.id} className="bg-[#000000] border border-[#1f2228] rounded-[18px] overflow-hidden">
+            <header className="px-5 py-4 border-b border-[#1f2228] flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">{v.titre || g?.titre || v.id}</h2>
+                {v.sousTitre && <span className="text-[13px] text-[#9298a6]">{v.sousTitre}</span>}
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                {resume && (
+                  <span className="flex items-center gap-3 text-[12px] text-[#c9cdd6]">
+                    <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.ok }} />{resume.ok} OK</span>
+                    <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.warning }} />{resume.warning} à vérifier</span>
+                    {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.no_go }} />{resume.no_go} no go</span>}
+                    {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.vide }} />{resume.vide} sans valeur</span>}
+                  </span>
+                )}
+                {(g?.non_lues || 0) > 0 && (enCours ? <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> lecture…</span>
+                  : <button onClick={() => !apercu && completer.mutate()} disabled={apercu || completer.isPending} className="text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">Lire les questions manquantes</button>)}
+              </div>
+            </header>
+            {g ? <TableCriteres g={g} onPreuve={onPreuve} dealId={dealId} /> : <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>}
+          </div>
+        );
+      })}
     </div>
   );
 }

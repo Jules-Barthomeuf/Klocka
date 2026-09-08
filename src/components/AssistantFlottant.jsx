@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useDictee } from "@/lib/dictee";
+import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 
 // L'assistant : une pilule au repos, un cadre qui s'étire une fois ouvert.
 //
@@ -292,7 +293,7 @@ export default function AssistantFlottant() {
                 <div key={i} style={{ display: "flex", gap: 12 }}>
                   <div style={{ width: 1.5, flex: "none", background: FILET }} />
                   <div style={{ fontSize: 13.5, lineHeight: 1.6, color: TEXTE, whiteSpace: "pre-wrap" }}>
-                    {m.contenu}
+                    {sansMarkdown(m.contenu)}
                   </div>
                 </div>
               )

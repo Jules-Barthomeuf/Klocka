@@ -2,12 +2,24 @@ import React, { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
-import { Image as ImageIcon, Loader2, Trash2, X } from "lucide-react";
+import { Image as ImageIcon, Loader2, Mic, Square, Trash2, X } from "lucide-react";
+import { useDictee } from "@/lib/dictee";
 import { toast } from "sonner";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 
 // Le feedback : un chat, une capture d'écran si on veut, rien d'autre. Chaque
 // remarque a un état qu'on change d'un clic : à faire, en cours, fait, refusé.
+
+// L'urgence, de 1 à 5 : on la règle au curseur en écrivant, on la lit d'un
+// coup d'œil ensuite. Cinq crans, du gris au corail.
+const URGENCES = [
+  { n: 1, mot: "Quand vous pouvez", teinte: "#4d545d" },
+  { n: 2, mot: "Peu pressé", teinte: "#6a7180" },
+  { n: 3, mot: "Normal", teinte: "#96c0b8" },
+  { n: 4, mot: "Pressé", teinte: "#d9b46a" },
+  { n: 5, mot: "Urgent", teinte: "#e8746a" },
+];
+const urgenceDe = (n) => URGENCES[Math.min(5, Math.max(1, Number(n) || 3)) - 1];
 
 const STATUTS = [
   { id: "nouveau", label: "À faire", fond: "#2c3139" },
@@ -32,7 +44,10 @@ export default function AdminSuggestions() {
   const [apercu, setApercu] = useState(null); // URL locale
   const [filtre, setFiltre] = useState("tous");
   const [zoom, setZoom] = useState(null);
+  const [urgence, setUrgence] = useState(3);
   const fichierRef = useRef(null);
+  // Le micro : la dictée remplit le champ, on relit, on envoie.
+  const { supporte: dicteeOk, ecoute, demarrer, arreter } = useDictee({ onTexte: (t) => setTexte(t) });
 
   const { data: remarques = [], isLoading } = useQuery({
     queryKey: ["all-suggestions"],
@@ -58,12 +73,13 @@ export default function AdminSuggestions() {
       return base44.entities.Suggestion.create({
         contenu: texte.trim(),
         capture_url,
+        urgence,
         statut: "nouveau",
         client_email: user?.email || "admin@klocka.fr",
         client_name: user?.full_name || user?.email || "Admin Klocka",
       });
     },
-    onSuccess: () => { setTexte(""); retirerCapture(); rafraichir(); },
+    onSuccess: () => { setTexte(""); retirerCapture(); setUrgence(3); rafraichir(); },
     onError: (e) => toast.error(e?.message || "Envoi impossible"),
   });
 
@@ -80,7 +96,10 @@ export default function AdminSuggestions() {
   });
 
   const compte = (id) => remarques.filter((r) => normaliser(r.statut) === id).length;
-  const visibles = remarques.filter((r) => filtre === "tous" || normaliser(r.statut) === filtre);
+  // Les plus urgentes d'abord, puis les plus récentes.
+  const visibles = remarques
+    .filter((r) => filtre === "tous" || normaliser(r.statut) === filtre)
+    .sort((a, b) => (Number(b.urgence) || 3) - (Number(a.urgence) || 3) || String(b.created_date || "").localeCompare(String(a.created_date || "")));
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#f2f3f5] px-5 md:px-10 py-8 md:py-12">
@@ -100,17 +119,36 @@ export default function AdminSuggestions() {
           peutEnvoyer={!!texte.trim() || !!capture}
           enCours={envoyer.isPending}
           libelle="Envoyer"
-          sous={apercu ? (
-            <div className="relative inline-block mb-3">
-              <img src={apercu} alt="Capture" className="max-h-[160px] rounded-lg border border-[#22262d]" />
-              <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#0a0a0b] border border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5] flex items-center justify-center" aria-label="Retirer la capture"><X className="w-3.5 h-3.5" /></button>
-            </div>
-          ) : null}
+          sous={
+            <>
+              {apercu && (
+                <div className="relative inline-block mb-3">
+                  <img src={apercu} alt="Capture" className="max-h-[160px] rounded-lg border border-[#22262d]" />
+                  <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#0a0a0b] border border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5] flex items-center justify-center" aria-label="Retirer la capture"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              )}
+              {/* Le curseur d'urgence : cinq crans, la couleur suit. */}
+              <div className="flex flex-wrap items-center gap-4 mb-2">
+                <span className="text-[11px] tracking-[.14em] uppercase text-[#6a7180]">Urgence</span>
+                <input
+                  type="range" min={1} max={5} step={1} value={urgence}
+                  onChange={(e) => setUrgence(Number(e.target.value))}
+                  aria-label="Urgence"
+                  className="w-[180px] h-1 cursor-pointer rounded-full bg-[#22262d]"
+                  style={{ accentColor: urgenceDe(urgence).teinte }}
+                />
+                <span className="text-[12.5px] font-medium" style={{ color: urgenceDe(urgence).teinte }}>{urgenceDe(urgence).mot}</span>
+              </div>
+            </>
+          }
           gauche={
             <>
               <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={(e) => { choisirCapture(e.target.files?.[0]); e.target.value = ""; }} />
               <BoutonBarre onClick={() => fichierRef.current?.click()} actif={!!capture} title="Joindre une capture d'écran"><ImageIcon className="w-4 h-4" /></BoutonBarre>
-              <span className="text-[11.5px] text-[#4d545d] ml-1 max-md:hidden">Ctrl+V colle une capture</span>
+              {dicteeOk && (
+                <BoutonBarre onClick={ecoute ? arreter : demarrer} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
+              )}
+              <span className="text-[11.5px] text-[#4d545d] ml-1 max-md:hidden">{ecoute ? "Je vous écoute…" : "Ctrl+V colle une capture"}</span>
             </>
           }
         />
@@ -141,7 +179,14 @@ export default function AdminSuggestions() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="m-0 text-[14.5px] leading-[1.65] text-[#f2f3f5] whitespace-pre-wrap">{r.contenu}</p>
-                    <p className="m-0 mt-1.5 text-[12px] text-[#6a7180]">{r.client_name || r.client_email}{r.created_date ? ` · ${quand(r.created_date)}` : ""}</p>
+                    <p className="m-0 mt-1.5 text-[12px] text-[#6a7180] flex flex-wrap items-center gap-x-2">
+                      <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n}/5`}>
+                        <span className="inline-flex gap-px">{[1, 2, 3, 4, 5].map((n) => <span key={n} className="w-1.5 h-2.5 rounded-[2px]" style={{ background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : "#22262d" }} />)}</span>
+                        <span style={{ color: urgenceDe(r.urgence).teinte }}>{urgenceDe(r.urgence).mot}</span>
+                      </span>
+                      <span className="text-[#3a3f4a]">·</span>
+                      <span>{r.client_name || r.client_email}{r.created_date ? ` · ${quand(r.created_date)}` : ""}</span>
+                    </p>
                   </div>
                   <div className="flex-none flex items-start gap-1.5">
                     {STATUTS.map((s) => (

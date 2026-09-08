@@ -7,8 +7,10 @@ import { Check, Loader2, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 // Une grille de critères : critère, valeur lue au format voulu, statut en
 // case colorée, source à droite. La règle se lit d'un clic sur le critère.
 
-const FOND = { ok: "#2f7a5a", warning: "#a8752a", a_verifier: "#a8752a", no_go: "#9b3b32", vide: "#2c3139", non_lu: "#2c3139" };
-const MOT = { ok: "OK", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
+// « À checker » : bleu clair pâle, texte blanc — la valeur est là, un humain
+// doit encore la valider en OK.
+const FOND = { ok: "#2f7a5a", a_checker: "#5a8db5", warning: "#a8752a", a_verifier: "#a8752a", no_go: "#9b3b32", vide: "#2c3139", non_lu: "#2c3139" };
+const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
 const Th = ({ children, className = "" }) => <th className={`text-left text-[11.5px] font-semibold tracking-[.02em] text-[#9298a6] px-4 py-2.5 border-b border-r border-[#1f2228] last:border-r-0 ${className}`}>{children}</th>;
 
 export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, dealId = null, lectureSeule = false }) {
@@ -77,7 +79,7 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
                 {l.decision && <span className="block text-[10.5px] text-[#ffffff]/70">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
                 {choix === l.id && (
                   <div className="absolute left-2 top-full mt-1 z-20 bg-[#0f1114] border border-[#2c3139] rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px]" onClick={(e) => e.stopPropagation()}>
-                    {[["ok", "OK"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([st, mot]) => (
+                    {[["ok", "OK"], ["a_checker", "À checker"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([st, mot]) => (
                       <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="text-left text-[12.5px] text-[#ffffff] px-3 py-1.5 rounded-md" style={{ background: FOND[st] }}>{mot}</button>
                     ))}
                     {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="text-left text-[12px] text-[#9298a6] hover:text-[#f2f3f5] px-3 py-1">Revenir au calcul</button>}
@@ -156,7 +158,7 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
       {voulues.map((v, i) => {
         const r = requetes[i];
         const g = r?.data;
-        const resume = g ? { ok: g.resume.ok, warning: g.resume.warning + g.resume.a_verifier, no_go: g.resume.no_go || 0, vide: g.resume.vide + g.resume.non_lu } : null;
+        const resume = g ? { ok: g.resume.ok, a_checker: g.resume.a_checker || 0, warning: g.resume.warning + g.resume.a_verifier, no_go: g.resume.no_go || 0, vide: g.resume.vide + g.resume.non_lu } : null;
         const enCours = g?.remplissage?.etat === "en_cours";
         return (
           <div key={v.id} className="bg-[#000000] border border-[#1f2228] rounded-[18px] overflow-hidden">
@@ -169,6 +171,7 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                 {resume && (
                   <span className="flex items-center gap-3 text-[12px] text-[#c9cdd6]">
                     <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.ok }} />{resume.ok} OK</span>
+                    {resume.a_checker > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.a_checker }} />{resume.a_checker} à checker</span>}
                     <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.warning }} />{resume.warning} à vérifier</span>
                     {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.no_go }} />{resume.no_go} no go</span>}
                     {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.vide }} />{resume.vide} sans valeur</span>}

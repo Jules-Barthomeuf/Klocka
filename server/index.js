@@ -1256,6 +1256,32 @@ app.post('/api/preanalyse/dossiers/:dealId/espace/documents', upload.single('fic
   ok(res, r.document);
 }));
 
+// Le texte d'une page d'une pièce, lu à la demande : c'est lui qu'on surligne
+// dans le tiroir des sources. Une pièce sans couche texte rend une page vide.
+app.get('/api/preanalyse/dossiers/:dealId/espace/documents/:docId/page/:n', wrap(async (req, res) => {
+  const dossier = obtenirDossier(req.params.dealId);
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const { chargerPieces } = await import('./deal/espace.js');
+  const piece = chargerPieces(dossier, [req.params.docId], UPLOAD_DIR, true)[0];
+  if (!piece || !piece.buffer) return res.status(404).json({ error: 'Pièce introuvable' });
+  const n = Math.max(1, Number(req.params.n) || 1);
+  if (piece.mimetype !== 'application/pdf') {
+    const { ingerer } = await import('./deal/ingest.js');
+    const lu = await ingerer({ buffer: piece.buffer, filename: piece.nom, mimetype: piece.mimetype }).catch(() => null);
+    return ok(res, { page: 1, total: 1, texte: lu?.texte || '', scanne: !!lu?.transcrit });
+  }
+  const { PDFParse } = await import('pdf-parse');
+  const parser = new PDFParse({ data: new Uint8Array(piece.buffer) });
+  try {
+    const r = await parser.getText();
+    const pages = r.pages || [];
+    const page = pages[n - 1];
+    ok(res, { page: n, total: pages.length, texte: String(page?.text || '').replace(/\r\n?/g, '\n').replace(/[ \t\u00a0]+/g, ' ').trim() });
+  } finally {
+    await parser.destroy().catch(() => {});
+  }
+}));
+
 app.post('/api/preanalyse/dossiers/:dealId/espace/documents/:docId/renommer', wrap((req, res) => {
   const r = renommerDocumentEspace(req.params.dealId, req.params.docId, req.body?.nom, req.body?.categorie);
   if (!r.ok) return res.status(400).json({ error: r.error });
@@ -1269,10 +1295,11 @@ app.delete('/api/preanalyse/dossiers/:dealId/espace/documents/:docId', wrap((req
 }));
 
 app.post('/api/preanalyse/dossiers/:dealId/espace/chat', wrap(async (req, res) => {
-  const { message, mode, documents, conversation_id } = req.body || {};
+  const { message, mode, documents, conversation_id, profondeur } = req.body || {};
   const r = await converser(req.params.dealId, {
     message,
     mode: ['analyse', 'verification', 'web'].includes(mode) ? mode : 'question',
+    profondeur: profondeur === 'reflexion' ? 'reflexion' : 'rapide',
     documents: Array.isArray(documents) ? documents : [],
     conversationId: conversation_id || null,
     uploadDir: UPLOAD_DIR,

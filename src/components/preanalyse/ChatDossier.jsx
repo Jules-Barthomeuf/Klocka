@@ -30,6 +30,25 @@ const ilYA = (iso) => {
   return j < 30 ? `il y a ${j} j` : new Date(iso).toLocaleDateString("fr-FR");
 };
 
+// Le modèle a beau avoir la consigne, un astérisque passe parfois : on nettoie
+// à l'affichage. Les listes « - » restent, le gras et les titres deviennent
+// du texte, les puces « * » deviennent des tirets.
+export const sansMarkdown = (t) => String(t || "")
+  .replace(/\r\n?/g, "\n")
+  .replace(/^[ \t]*```[^\n]*$/gm, "")
+  .replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, "")
+  .replace(/^[ \t]*\|?[ \t]*:?-{2,}:?[ \t]*(\|[ \t]*:?-{2,}:?[ \t]*)*\|?[ \t]*$/gm, "")
+  .replace(/^[ \t]*\|(.+)\|[ \t]*$/gm, (_, l) => l.split("|").map((c) => c.trim()).filter(Boolean).join(" — "))
+  .replace(/^([ \t]*)[*+•][ \t]+/gm, "$1- ")
+  .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+  .replace(/__([^_\n]+)__/g, "$1")
+  .replace(/(^|[^*\w])\*(?=\S)([^*\n]+?)(?<=\S)\*(?=[^*\w]|$)/g, "$1$2")
+  .replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, "$1 ($2)")
+  .replace(/`([^`\n]+)`/g, "$1")
+  .replace(/^[ \t]*(---+|\*\*\*+|___+)[ \t]*$/gm, "")
+  .replace(/\n{3,}/g, "\n\n")
+  .trim();
+
 function Message({ m }) {
   // La question dans une bulle à droite ; la réponse en texte plein, sans
   // cadre, pour qu'elle se lise comme une page.
@@ -40,7 +59,7 @@ function Message({ m }) {
       </div>
     );
   }
-  return <div className="text-[15px] leading-[1.75] text-[#e6e8eb] whitespace-pre-wrap">{m.contenu}</div>;
+  return <div className="text-[15px] leading-[1.75] text-[#e6e8eb] whitespace-pre-wrap">{sansMarkdown(m.contenu)}</div>;
 }
 
 export default function ChatDossier({
@@ -72,6 +91,9 @@ export default function ChatDossier({
 }) {
   const mode = "question";
   const [texte, setTexte] = useState("");
+  // Rapidité : une réponse courte et directe. Réflexion : l'analyse des pièces.
+  const [profondeur, setProfondeur] = useState(() => { try { return localStorage.getItem("klocka_profondeur") || "rapide"; } catch { return "rapide"; } });
+  useEffect(() => { try { localStorage.setItem("klocka_profondeur", profondeur); } catch { /* sans mémoire */ } }, [profondeur]);
   const [conversationId, setConversationId] = useState(null);
   const finRef = useRef(null);
   const fichierRef = useRef(null);
@@ -89,7 +111,7 @@ export default function ChatDossier({
   const envoyer = useMutation({
     mutationFn: () =>
       base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/chat`, {
-        body: { message: texte.trim(), mode, documents: documentsCoches, conversation_id: conversationId },
+        body: { message: texte.trim(), mode, profondeur, documents: documentsCoches, conversation_id: conversationId },
       }),
     onSuccess: (conv) => { setTexte(""); setConversationId(conv.id); onRefresh?.(); },
     onError: (e) => {
@@ -181,7 +203,7 @@ export default function ChatDossier({
               valeur={texte}
               onChange={setTexte}
               rows={2}
-              placeholder="Poursuivre la requête…"
+              placeholder={profondeur === "reflexion" ? "Poursuivre — réflexion, analyse des pièces…" : "Poursuivre — réponse rapide…"}
               onEnvoyer={() => envoyer.mutate()}
               peutEnvoyer={!!texte.trim() && !envoyer.isPending}
               enCours={envoyer.isPending}
@@ -232,7 +254,14 @@ export default function ChatDossier({
               {modeMail ? (
                 <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
               ) : !modePreanalyse ? (
-                <BoutonBarre onClick={() => onToutCocher?.()} disabled={!documents.length} actif={nbCoches > 0} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"}><PanelRight className="w-4 h-4" /></BoutonBarre>
+                <>
+                  <BoutonBarre onClick={() => onToutCocher?.()} disabled={!documents.length} actif={nbCoches > 0} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"}><PanelRight className="w-4 h-4" /></BoutonBarre>
+                  <span className="inline-flex items-center rounded-full border border-[#2c3139] p-0.5 ml-1">
+                    {[["rapide", "Rapidité", "Une réponse courte et directe"], ["reflexion", "Réflexion", "L'analyse des pièces, plus longue"]].map(([id, mot, titre]) => (
+                      <button key={id} onClick={() => setProfondeur(id)} title={titre} className={`px-3 py-1 rounded-full text-[12px] transition-colors ${profondeur === id ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{mot}</button>
+                    ))}
+                  </span>
+                </>
               ) : null}
               {dicteeOk && (
                 <BoutonBarre onClick={ecoute ? arreter : demarrer} disabled={apercu || !dossier} alerte={ecoute} title={ecoute ? "Arrêter" : "Dicter"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>

@@ -40,12 +40,12 @@ function Statut({ statut, petit = false }) {
 }
 
 // Le tiroir : le document à la page de la cellule, à droite.
-export function Tiroir({ cellule, ligne, onFermer }) {
+export function Tiroir({ cellule, ligne, onFermer, dealId = null }) {
   if (!cellule || !ligne) return null;
-  const extraction = { document_url: ligne.document_url, document_mime: null, document_nom: ligne.document_nom };
+  const extraction = { document_id: ligne.document_id, document_url: ligne.document_url, document_mime: null, document_nom: ligne.document_nom };
   return (
     <div className="w-full">
-      <Visionneuse extraction={extraction} ligne={{ page: cellule.page, citation: cellule.citation }} onFermer={onFermer} />
+      <Visionneuse extraction={extraction} ligne={{ page: cellule.page, citation: cellule.citation }} onFermer={onFermer} dealId={dealId} />
     </div>
   );
 }

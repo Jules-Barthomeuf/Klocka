@@ -51,6 +51,7 @@ async function deviner(piece) {
   const reponse = await generateFromDocument({
     buffer: piece.buffer,
     mimetype: piece.mimetype || 'application/pdf',
+    nom: piece.nom,
     prompt:
       `Ce document est destiné à un dossier d'investissement en murs commerciaux. ` +
       `Réponds par UNE SEULE de ces catégories, sans phrase ni ponctuation : ` +

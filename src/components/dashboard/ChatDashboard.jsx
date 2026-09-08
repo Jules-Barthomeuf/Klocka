@@ -8,6 +8,7 @@ import { ArrowRight, Check, Copy, Loader2, Mic, Paperclip, Pencil, Plus, Send, S
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
+import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -55,7 +56,7 @@ function Message({ m }) {
         className={`max-w-[86%] rounded-lg px-4 py-3 text-[13.5px] leading-[1.7] whitespace-pre-wrap
           ${moi ? "bg-[#1a1d1c] text-[#f2f3f5] border border-[#22262d]" : "bg-transparent text-[#c9cdd6] border border-[#1f2228]"}`}
       >
-        {m.contenu}
+        {moi ? m.contenu : sansMarkdown(m.contenu)}
       </div>
     </div>
   );

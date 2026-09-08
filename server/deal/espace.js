@@ -132,7 +132,8 @@ function consigne(brut, mode, pieces) {
       base +
       ` Mode ANALYSE : examine les documents joints au regard des critères d'investissement ` +
       `(emplacement, signature du locataire, économie du bail, rendement, liquidité à la revente). ` +
-      `Structure en sections courtes — Synthèse, Points clés, Risques et réserves — et cite la pièce, ` +
+      `Trois parties annoncées par une ligne courte terminée par un deux-points — Synthèse :, Points clés :, ` +
+      `Risques et réserves : — puis des lignes commençant par « - ». Cite la pièce, ` +
       `la page ou la clause. Ne déduis rien qui ne soit pas écrit.` +
       (faits ? ` Faits connus du dossier : ${faits}` : '')
     );
@@ -193,7 +194,26 @@ const titreDepuis = (message, mode) => {
  * Pose une question (ou lance une analyse) dans une conversation, nouvelle
  * ou existante. Renvoie la conversation complète mise à jour.
  */
-export async function converser(dealId, { message, mode = 'question', documents = [], conversationId = null, uploadDir, user }) {
+// Deux profondeurs : « rapide » répond en quelques phrases à la question posée
+// (l'échéance du bail tient en une ligne) ; « reflexion » lit les pièces à fond
+// et développe. Dans les deux cas, jamais de markdown : le chat affiche du
+// texte brut, les astérisques et les dièses y seraient des taches.
+const SANS_MARKDOWN =
+  ` Écris en texte brut, sans aucun markdown : pas d'astérisques, pas de dièses, pas de gras, ` +
+  `pas de titres. Les listes se font avec un tiret et un espace en début de ligne.`;
+const PROFONDEURS = {
+  rapide:
+    ` Réponds court : la réponse d'abord, en une à trois phrases, avec la pièce et la page entre ` +
+    `parenthèses. Pas de préambule, pas de rappel du contexte, pas de conseils non demandés. ` +
+    `Si la question appelle une liste, cinq lignes au plus.`,
+  reflexion:
+    ` Prends le temps de l'analyse : lis les pièces en entier, croise-les, relève les incohérences ` +
+    `et les points à vérifier, cite les clauses et les pages. Des paragraphes courts, une idée par ` +
+    `paragraphe ; une liste seulement quand les éléments sont réellement parallèles.`,
+};
+export const profondeurValide = (p) => (p === 'reflexion' ? 'reflexion' : 'rapide');
+
+export async function converser(dealId, { message, mode = 'question', profondeur = 'rapide', documents = [], conversationId = null, uploadDir, user }) {
   const brut = brutDe(dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const texte = String(message || '').trim();
@@ -218,15 +238,17 @@ export async function converser(dealId, { message, mode = 'question', documents 
     conv.documents = [...new Set([...(conv.documents || []), ...documents])];
   }
 
+  conv.profondeur = profondeurValide(profondeur);
   conv.messages.push({ role: 'user', contenu: texte, le: maintenant });
   const pieces = chargerPieces(brut, conv.documents, uploadDir);
   const reponse =
     conv.mode === 'web'
       ? await reponseWeb(brut, conv.messages)
       : await chatDocuments({
-          system: consigne(brut, conv.mode, pieces),
+          system: consigne(brut, conv.mode, pieces) + SANS_MARKDOWN + PROFONDEURS[profondeurValide(profondeur)],
           messages: conv.messages.map((m) => ({ role: m.role, contenu: m.contenu })),
           documents: pieces,
+          profondeur: profondeurValide(profondeur),
         });
   conv.messages.push({ role: 'assistant', contenu: reponse, le: new Date().toISOString() });
   conv.maj_le = new Date().toISOString();
@@ -251,9 +273,10 @@ export async function questionnerDocuments(dealId, { question, documents = null,
 
   const pieces = chargerPieces(brut, ids, uploadDir);
   const reponse = await chatDocuments({
-    system: consigne(brut, 'question', pieces),
+    system: consigne(brut, 'question', pieces) + SANS_MARKDOWN + PROFONDEURS.rapide,
     messages: [{ role: 'user', contenu: question }],
     documents: pieces,
+    profondeur: 'rapide',
   });
   return { ok: true, reponse, documents_lus: pieces.length };
 }

@@ -278,6 +278,9 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
     const correction = brut.grilles_valeurs?.[`${id}.${c.id}`] || null;
     if (correction?.valeur) { valeur = correction.valeur; if (statut === 'vide' || statut === 'non_lu') { statut = 'ok'; motif = null; } }
     const statutCalcule = statut;
+    // Un « OK » calculé n'est pas un OK validé : il s'affiche « à checker »
+    // tant qu'un humain ne l'a pas passé en OK. Les alertes restent des alertes.
+    if (statut === 'ok') statut = 'a_checker';
     const decision = brut.grilles_statuts?.[`${id}.${c.id}`] || null;
     const note = brut.grilles_notes?.[`${id}.${c.id}`] || null;
     if (decision?.statut) statut = decision.statut;
@@ -285,7 +288,7 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
     return { id: c.id, libelle: c.libelle, regle: c.regle, format: c.format, valeur, valeur_lue: texteDe(id, c.id, x), correction, note, statut, statut_calcule: statutCalcule, decision, motif, details, masquee, preuves: preuvesDe(c.champs).slice(0, 6) };
   }).filter((l) => !l.masquee);
   const nb = (s) => lignes.filter((l) => l.statut === s).length;
-  return { id, titre: grille.titre, lignes, resume: { ok: nb('ok'), warning: nb('warning'), a_verifier: nb('a_verifier'), no_go: nb('no_go'), vide: nb('vide'), non_lu: nb('non_lu') }, formatee_le: cache?.le || null, remplissage: m.remplissage, non_lues: grille.criteres.flatMap((c) => c.champs).filter((ch) => !lu.includes(ch)).length };
+  return { id, titre: grille.titre, lignes, resume: { ok: nb('ok'), a_checker: nb('a_checker'), warning: nb('warning'), a_verifier: nb('a_verifier'), no_go: nb('no_go'), vide: nb('vide'), non_lu: nb('non_lu') }, formatee_le: cache?.le || null, remplissage: m.remplissage, non_lues: grille.criteres.flatMap((c) => c.champs).filter((ch) => !lu.includes(ch)).length };
 }
 
 /** Les questions du gabarit jamais lues sur ce dossier. */
@@ -299,7 +302,7 @@ export function colonnesNonLues(dealId) {
 export function deciderStatut(dealId, grilleId, critereId, statut, user) {
   const brut = Records.filter('Deal', { deal_id: dealId })[0];
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
-  if (statut && !['ok', 'a_verifier', 'no_go'].includes(statut)) return { ok: false, error: 'Statut inconnu' };
+  if (statut && !['ok', 'a_checker', 'a_verifier', 'no_go'].includes(statut)) return { ok: false, error: 'Statut inconnu' };
   const cle = `${grilleId}.${critereId}`;
   const statuts = { ...(brut.grilles_statuts || {}) };
   if (statut) statuts[cle] = { statut, par: user?.email || null, le: new Date().toISOString() };

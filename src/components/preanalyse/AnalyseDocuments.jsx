@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { ChevronDown, Loader2, X } from "lucide-react";
@@ -32,10 +32,85 @@ const lisibleEnCadre = (url, mime) => {
   return /\.(pdf|png|jpe?g|gif|webp|txt|csv|md)($|\?)/i.test(String(url || ""));
 };
 
-export function Visionneuse({ extraction, ligne, onFermer }) {
+// Comparer sans se soucier des accents, de la casse, des espaces ni de la
+// ponctuation : le modèle recopie rarement une citation au caractère près.
+// On garde, pour chaque caractère normalisé, l'index d'origine : le surlignage
+// retombe sur le vrai texte.
+function normaliserAvecCarte(texte) {
+  const carte = [];
+  let sortie = "";
+  const brut = String(texte || "");
+  for (let i = 0; i < brut.length; i++) {
+    const c = brut[i].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const ch = /[a-z0-9]/.test(c) ? c : " ";
+    if (ch === " " && sortie.endsWith(" ")) continue;
+    sortie += ch;
+    carte.push(i);
+  }
+  return { texte: sortie, carte };
+}
+
+// Où la citation se trouve dans le texte de la page : la citation entière,
+// sinon son début, sinon rien. Rend [début, fin] dans le texte d'origine.
+export function trouverPassage(texteBrut, citation) {
+  if (!texteBrut || !citation) return null;
+  const page = normaliserAvecCarte(texteBrut);
+  const cible = normaliserAvecCarte(citation).texte.trim();
+  if (cible.length < 8) return null;
+  for (const longueur of [cible.length, 120, 80, 50, 30, 18]) {
+    const morceau = cible.slice(0, longueur).trim();
+    if (morceau.length < 12 && longueur !== cible.length) continue;
+    const i = page.texte.indexOf(morceau);
+    if (i >= 0) {
+      const fin = Math.min(page.carte.length - 1, i + morceau.length - 1);
+      return [page.carte[i], page.carte[fin] + 1];
+    }
+  }
+  return null;
+}
+
+// Le texte de la page, le passage cité surligné et amené sous les yeux.
+function TextePage({ dealId, documentId, page, citation }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["page-texte", dealId, documentId, page],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/espace/documents/${documentId}/page/${page || 1}`),
+    enabled: !!dealId && !!documentId,
+    staleTime: 60 * 60 * 1000,
+  });
+  const ref = useRef(null);
+  const texte = data?.texte || "";
+  const passage = useMemo(() => trouverPassage(texte, citation), [texte, citation]);
+  useEffect(() => { ref.current?.scrollIntoView({ block: "center" }); }, [passage]);
+
+  if (isLoading) return <p className="m-0 px-4 py-3 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Lecture de la page…</p>;
+  if (isError || !texte) return <p className="m-0 px-4 py-3 text-[12.5px] text-[#6a7180]">Pas de couche texte sur cette page : le passage se lit dans le PDF, à la page {page || 1}.</p>;
+  return (
+    <div className="px-4 py-3 text-[13px] leading-[1.7] text-[#c9cdd6] whitespace-pre-wrap">
+      {passage ? (
+        <>
+          {texte.slice(0, passage[0])}
+          <mark ref={ref} className="bg-[#d9b46a] text-[#0b0c0e] rounded-[3px] px-0.5 font-medium">{texte.slice(passage[0], passage[1])}</mark>
+          {texte.slice(passage[1])}
+        </>
+      ) : (
+        <>
+          <p className="m-0 mb-3 text-[12px] text-[#d9b46a]">Le passage exact n'a pas été retrouvé mot pour mot dans cette page : voici son texte entier.</p>
+          {texte}
+        </>
+      )}
+    </div>
+  );
+}
+
+export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
   const page = ligne?.page || null;
   const url = lienSource(extraction.document_url, page);
   const affichable = lisibleEnCadre(extraction.document_url, extraction.document_mime);
+  // Le passage d'abord : le texte de la page avec la citation surlignée. Le
+  // PDF reste à un clic, ouvert à la bonne page.
+  const peutSurligner = !!(dealId && extraction.document_id && ligne?.citation);
+  const [vue, setVue] = useState(peutSurligner ? "passage" : "document");
+  useEffect(() => { setVue(peutSurligner ? "passage" : "document"); }, [peutSurligner, extraction.document_id, page, ligne?.citation]);
 
   return (
     <div className="bg-[#000000] border border-[#1f2228] rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] [.panneau-source_&]:static">
@@ -46,6 +121,13 @@ export function Visionneuse({ extraction, ligne, onFermer }) {
             {ligne?.element}{page ? ` · page ${page}` : ""}
           </p>
         </div>
+        {peutSurligner && (
+          <span className="inline-flex items-center rounded-full border border-[#2c3139] p-0.5 flex-shrink-0">
+            {[["passage", "Passage"], ["document", "Document"]].map(([id, mot]) => (
+              <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11.5px] transition-colors ${vue === id ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{mot}</button>
+            ))}
+          </span>
+        )}
         <a
           href={url}
           target="_blank"
@@ -59,7 +141,19 @@ export function Visionneuse({ extraction, ligne, onFermer }) {
         </button>
       </div>
 
-      {affichable ? (
+      {/* La citation, en évidence : c'est elle qu'on est venu voir. */}
+      {ligne?.citation && (
+        <div className="px-4 py-3 border-b border-[#22262d] flex-shrink-0 bg-[#d9b46a]/[0.07]">
+          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#d9b46a]">Passage cité{page ? ` · page ${page}` : ""}</p>
+          <p className="m-0 mt-1 text-[13.5px] leading-[1.6] text-[#f2f3f5] border-l-2 border-[#d9b46a] pl-3">{ligne.citation}</p>
+        </div>
+      )}
+
+      {vue === "passage" && peutSurligner ? (
+        <div className="flex-1 overflow-y-auto">
+          <TextePage dealId={dealId} documentId={extraction.document_id} page={page} citation={ligne.citation} />
+        </div>
+      ) : affichable ? (
         <iframe
           key={url}
           src={url}
@@ -77,11 +171,6 @@ export function Visionneuse({ extraction, ligne, onFermer }) {
         </div>
       )}
 
-      {ligne?.citation && (
-        <div className="px-4 py-2.5 border-t border-[#22262d] flex-shrink-0">
-          <p className="m-0 text-[11.5px] text-[#9298a6] italic leading-[1.5]">« {ligne.citation} »</p>
-        </div>
-      )}
     </div>
   );
 }

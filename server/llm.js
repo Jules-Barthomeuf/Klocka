@@ -370,9 +370,42 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
  * @param {string} opts.mimetype - ex. application/pdf, image/jpeg
  * @param {string} opts.prompt
  */
-export async function generateFromDocument({ buffer, mimetype, prompt } = {}) {
+// Ce que le modèle lit tel quel : le PDF et les images courantes. Tout le
+// reste — texte, mail .eml, Word, RTF — passe d'abord par le convertisseur de
+// la pré-analyse (ingest.js) et arrive au modèle comme du texte. Sans cela, un
+// bail en .docx partait comme « image » et l'API le refusait : « Échec » sans
+// explication pour la personne qui l'avait déposé.
+const LISIBLE_NATIF = (m) => m === 'application/pdf' || /^image\/(jpeg|png|gif|webp)$/.test(String(m || ''));
+
+async function texteDeLaPiece({ buffer, mimetype, nom }) {
+  // Import différé : ingest.js dépend de vision.js, qui dépend de ce fichier.
+  const { ingerer } = await import('./deal/ingest.js');
+  const lu = await ingerer({ buffer, filename: nom || 'document', mimetype });
+  const texte = String(lu?.texte || '').trim();
+  if (!texte) throw new Error(`« ${nom || 'ce document'} » ne contient pas de texte lisible (${mimetype || 'format inconnu'}).`);
+  return texte;
+}
+
+export async function generateFromDocument({ buffer, mimetype, prompt, nom } = {}) {
   if (!llmEnabled) throw new Error('Aucune clé IA configurée : impossible de lire un document scanné.');
   if (!buffer?.length) throw new Error('Document vide.');
+
+  if (!LISIBLE_NATIF(mimetype)) {
+    const texte = await texteDeLaPiece({ buffer, mimetype, nom });
+    const corps = `Document${nom ? ` « ${nom} »` : ''} :\n${texte.slice(0, 120000)}\n\n${prompt}`;
+    if (provider === 'gemini') {
+      const resp = await geminiGenerate({ contents: [{ role: 'user', parts: [{ text: corps }] }] });
+      return geminiText(resp);
+    }
+    const message = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 16000,
+      messages: [{ role: 'user', content: [{ type: 'text', text: corps }] }],
+    });
+    compter(ANTHROPIC_MODEL, message.usage);
+    return (message.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+  }
+
   const data = Buffer.from(buffer).toString('base64');
 
   if (provider === 'gemini') {
@@ -538,9 +571,26 @@ async function runAgentAnthropic({ system, messages, tools, onTool }) {
  * @param {Array<{nom:string, buffer?:Buffer, mimetype?:string, texte?:string}>} p.documents
  * @returns {Promise<string>} la réponse
  */
-export async function chatDocuments({ system, messages = [], documents = [] } = {}) {
+// Rapidité : une sortie courte et un effort de réflexion bas ; Réflexion :
+// la pleine mesure. L'effort est un réglage du modèle (output_config), vérifié
+// accepté par claude-opus-5 ; le plafond de jetons n'est qu'un filet.
+const REGLAGES_PROFONDEUR = {
+  rapide: { max_tokens: 2500, output_config: { effort: 'low' } },
+  reflexion: { max_tokens: 16000, output_config: { effort: 'high' } },
+};
+const reglagesDe = (p) => REGLAGES_PROFONDEUR[p === 'reflexion' ? 'reflexion' : 'rapide'];
+
+export async function chatDocuments({ system, messages = [], documents = [], profondeur = 'reflexion' } = {}) {
   if (!llmEnabled) throw new Error('Aucune clé IA configurée.');
   const derniers = messages.slice(-12); // fenêtre de contexte raisonnable
+
+  // Les pièces que le modèle ne lit pas telles quelles deviennent du texte,
+  // au lieu d'être annoncées « contenu non lisible ».
+  documents = await Promise.all(documents.map(async (d) => {
+    if (d.texte || !d.buffer?.length || LISIBLE_NATIF(d.mimetype)) return d;
+    try { return { ...d, texte: await texteDeLaPiece({ buffer: d.buffer, mimetype: d.mimetype, nom: d.nom }), buffer: null }; }
+    catch { return d; }
+  }));
 
   if (provider === 'gemini') {
     const pieces = documents.flatMap((d) => {
@@ -595,11 +645,13 @@ export async function chatDocuments({ system, messages = [], documents = [] } = 
 
   const message = await anthropic.messages.create({
     model: ANTHROPIC_MODEL,
-    max_tokens: 16000,
+    ...reglagesDe(profondeur),
     ...(system ? { system } : {}),
     messages: convo.length ? convo : [{ role: 'user', content: [...pieces, { type: 'text', text: '?' }] }],
   });
   compter(ANTHROPIC_MODEL, message.usage);
+  // Une réponse coupée par le plafond : on le note, pour régler le filet.
+  if (message.stop_reason === 'max_tokens') console.warn(`[chat] réponse coupée au plafond (${profondeur}, ${reglagesDe(profondeur).max_tokens} jetons)`);
   const texte = (message.content || [])
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
@@ -679,16 +731,17 @@ export async function extraireDonneesDocument(doc = {}) {
 
   let brut = '';
   if (provider === 'gemini') {
-    const parts = doc.buffer?.length && doc.mimetype
+    const texteConverti = doc.buffer?.length && doc.mimetype && !LISIBLE_NATIF(doc.mimetype) ? await texteDeLaPiece({ buffer: doc.buffer, mimetype: doc.mimetype, nom: doc.nom }) : null;
+    const parts = doc.buffer?.length && doc.mimetype && !texteConverti
       ? [{ inlineData: { mimeType: doc.mimetype, data: Buffer.from(doc.buffer).toString('base64') } }, { text: consigne }]
-      : [{ text: `Document « ${doc.nom} » :\n${String(doc.texte || '').slice(0, 120000)}\n\n${consigne}` }];
+      : [{ text: `Document « ${doc.nom} » :\n${String(texteConverti || doc.texte || '').slice(0, 120000)}\n\n${consigne}` }];
     const data = await geminiGenerate({ contents: [{ role: 'user', parts }], json: true });
     brut = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
   } else if (doc.buffer?.length && doc.mimetype) {
     // Claude lit le PDF ou l'image nativement. Sans ce chemin, on n'envoyait
     // que `doc.texte` — que l'appelant ne fournit pas : le modèle recevait un
     // document vide et rendait des constats vides, sans la moindre erreur.
-    brut = await generateFromDocument({ buffer: doc.buffer, mimetype: doc.mimetype, prompt: consigne });
+    brut = await generateFromDocument({ buffer: doc.buffer, mimetype: doc.mimetype, prompt: consigne, nom: doc.nom });
   } else {
     const r = await invokeLLM({
       prompt: `Document « ${doc.nom} » :\n${String(doc.texte || '').slice(0, 60000)}\n\n${consigne}`,

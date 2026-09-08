@@ -844,6 +844,14 @@ export async function executerOutil({ name, input }, user) {
   return { erreur: `Outil inconnu : ${name}` };
 }
 
+// Le chat affiche du texte brut : astérisques et dièses y seraient des taches.
+// Et une réponse courte d'abord : la question posée, pas une page.
+const SANS_MARKDOWN =
+  ` Écris en texte brut, sans aucun markdown : pas d'astérisques, pas de dièses, pas de gras, ` +
+  `pas de titres ; les listes avec un tiret et un espace. Réponds court : la réponse d'abord, ` +
+  `en une à trois phrases, sans préambule ni rappel du contexte ; développe seulement si on te ` +
+  `demande une analyse.`;
+
 const consigne = () => `Tu es l'assistant de Klocka, conseil en investissement dans les murs commerciaux.
 
 Tu exécutes des demandes courtes portant sur les dossiers de préanalyse et les projets de la plateforme. Tu réponds en français, en une ou deux phrases, sans formule d'attente ni superlatif.
@@ -896,7 +904,7 @@ export async function commander(historique, user, contexte = null) {
   // journal doit pouvoir dire ce que l'assistant a consulté.
   const outils = [];
   const { text } = await runAgent({
-    system: consigne() + consigneContexte(contexte),
+    system: consigne() + consigneContexte(contexte) + SANS_MARKDOWN,
     messages: historique.map((m) => ({ role: m.role, content: m.contenu })),
     tools: OUTILS,
     onTool: async (appel) => {

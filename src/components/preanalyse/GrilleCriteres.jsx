@@ -61,7 +61,7 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
       <table className="w-full border-collapse">
         <thead><tr><Th className="w-[220px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[150px]">Statut</Th><Th className="w-[200px]">Notes</Th>{!sansSources && <Th className="w-[190px]">Source</Th>}</tr></thead>
         <tbody>
-          {g.lignes.map((l) => (
+          {g.lignes.map((l, iLigne) => (
             <tr key={l.id} className="align-top">
               <td className="px-4 py-3 border-b border-r border-[#1f2228]">
                 <button onClick={() => bascule(l.id)} className="text-left text-[14px] text-[#f2f3f5] hover:text-[#ffffff]">{l.libelle}</button>
@@ -100,8 +100,11 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
               <td className={`px-4 py-3 border-b border-r border-[#1f2228] relative ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
                 <span className="text-[13px] font-medium text-[#ffffff]">{MOT[l.statut] || l.statut}</span>
                 {l.decision && <span className="block text-[10.5px] text-[#ffffff]/70">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
+                {/* Sur les deux dernières lignes, le menu s'ouvre vers le
+                    haut : posé en dessous, il sortait du tableau et les statuts
+                    n'étaient plus cliquables. */}
                 {choix === l.id && (
-                  <div className="absolute left-2 top-full mt-1 z-20 bg-[#0f1114] border border-[#2c3139] rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px]" onClick={(e) => e.stopPropagation()}>
+                  <div className={`absolute left-2 z-20 bg-[#0f1114] border border-[#2c3139] rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
                     {[["ok", "OK"], ["a_checker", "À checker"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([st, mot]) => (
                       <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="text-left text-[12.5px] text-[#ffffff] px-3 py-1.5 rounded-md" style={{ background: FOND[st] }}>{mot}</button>
                     ))}

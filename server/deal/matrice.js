@@ -59,7 +59,7 @@ export const GABARIT_MURS = {
     { id: 'mode_reglement', bloc: 'Bail', libelle: 'Mode de règlement', question: "Périodicité et mode de règlement du loyer : mensuel ou trimestriel, d'avance ou à terme échu, virement ou prélèvement", regle: 'information', criticite: 'moyenne' },
     { id: 'tva_loyer', bloc: 'Bail', libelle: 'TVA sur le loyer', question: 'Le loyer est-il soumis à la TVA (option du bailleur, mention HT + TVA) ou exonéré ?', regle: 'information', criticite: 'haute' },
     { id: 'indexation', bloc: 'Bail', libelle: 'Indexation', question: "Indice d'indexation du loyer (ILC, ILAT, ICC), indice de base et date de révision", regle: 'information', criticite: 'moyenne' },
-    { id: 'charges', bloc: 'Bail', libelle: 'Charges refacturées', question: 'Charges, taxes et travaux à la charge du preneur (taxe foncière, TEOM, charges de copropriété, article 606)', regle: 'information', criticite: 'haute' },
+    { id: 'charges', bloc: 'Bail', libelle: 'Charges refacturées', question: "Charges, taxes et travaux à la charge du preneur, et ce qui reste au bailleur. Relève tout ce que le bail met au preneur, quel que soit le mot employé : charges de copropriété, entretien et réparations, assurances, honoraires de syndic, article 606, TEOM, et l'impôt foncier — que le bail nomme aussi « taxe foncière », « impôts fonciers », « contributions et taxes », « charges fiscales » ou « TF ».", regle: 'information', criticite: 'haute' },
     { id: 'depot', bloc: 'Bail', libelle: 'Dépôt de garantie', question: 'Montant du dépôt de garantie et son équivalent en mois de loyer', regle: 'presence', criticite: 'moyenne' },
     { id: 'pas_de_porte', bloc: 'Bail', libelle: 'Pas-de-porte', question: "Pas-de-porte ou droit d'entrée versé, montant", regle: 'information', criticite: 'basse' },
     { id: 'caution', bloc: 'Bail', libelle: 'Caution', question: 'Caution personnelle ou garantie bancaire du preneur (qui, combien, durée)', regle: 'presence_ou_hors', criticite: 'haute' },
@@ -89,7 +89,7 @@ export const GABARIT_MURS = {
     { id: 'prix', bloc: 'Prix & flux', libelle: 'Prix', question: 'Prix de vente (FAI ou net vendeur, honoraires)', regle: 'identique', criticite: 'haute' },
     { id: 'rendement_affiche', bloc: 'Prix & flux', libelle: 'Rendement affiché', question: 'Rendement annoncé par le vendeur ou l\'agent (%)', regle: 'rendement', criticite: 'haute' },
     { id: 'charges_non_recup', bloc: 'Prix & flux', libelle: 'Charges non récupérables', question: 'Charges qui restent au bailleur (non refacturées au preneur)', regle: 'information', criticite: 'moyenne' },
-    { id: 'taxe_fonciere', bloc: 'Prix & flux', libelle: 'Taxe foncière', question: 'Montant de la taxe foncière et qui la paie', regle: 'presence', criticite: 'moyenne' },
+    { id: 'taxe_fonciere', bloc: 'Prix & flux', libelle: 'Taxe foncière', question: "Taxe foncière : son montant et qui la paie. Le bail l'appelle souvent autrement — « impôt foncier », « impôts fonciers », « contributions et taxes », « charges fiscales », « taxes annexes », « TF » : ce sont les mêmes. Relève aussi la TEOM et la taxe sur les bureaux si elles sont citées.", regle: 'presence', criticite: 'moyenne' },
   ],
 };
 

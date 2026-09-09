@@ -140,6 +140,9 @@ export default function ChatDossier({
   const [menuPlus, setMenuPlus] = useState(false);
   const enCours = modeMail ? compositionEnCours : modePreanalyse ? analyseEnCours : envoyer.isPending;
   const lancer = () => {
+    // Envoyer clôt la dictée : sinon le micro reste ouvert et la suite de ce
+    // qu'on dit s'écrit dans la question suivante.
+    if (ecoute) arreter();
     if (modeMail) return onComposer?.(texte.trim());
     if (modePreanalyse) return onAnalyserTexte?.(texte.trim());
     return envoyer.mutate(texte);

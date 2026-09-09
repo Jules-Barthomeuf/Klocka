@@ -554,6 +554,10 @@ export default function ChatDashboard() {
   const lancer = (contenu, type = null) => {
     const t = (contenu ?? texte).trim();
     if (enCours || rappeler.isPending) return;
+    // Envoyer clôt la dictée : sinon le micro reste ouvert et la suite de ce
+    // qu'on dit s'écrit dans la question suivante. On note l'envoi : arrêter la
+    // dictée déclenche `onFin`, qui sans cela renverrait le même texte.
+    if (ecoute) { envoiFait.current = true; arreter(); }
     if (mode === "rappel" && !fichier) {
       if (!t) return;
       pousser({ role: "user", contenu: t });
@@ -580,9 +584,15 @@ export default function ChatDashboard() {
 
   // Le micro : la dictée remplit le champ, et part quand on se tait si la
   // phrase ressemble à une note d'appel ; sinon on relit.
+  // Vrai le temps d'un envoi déclenché à la main : la fin de dictée qui suit
+  // ne doit pas renvoyer le même texte une seconde fois.
+  const envoiFait = useRef(false);
   const { supporte, ecoute, demarrer, arreter, erreur } = useDictee({
     onTexte: (t) => setTexte(t),
-    onFin: (t) => { if (/^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer(t, "note"); },
+    onFin: (t) => {
+      if (envoiFait.current) { envoiFait.current = false; return; }
+      if (/^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer(t, "note");
+    },
   });
 
   const corriger = (cle, valeur, unite) => {

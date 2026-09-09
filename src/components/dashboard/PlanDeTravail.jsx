@@ -7,6 +7,7 @@ import ComptesGoogle from "@/components/dashboard/ComptesGoogle";
 import RapportAuto from "@/components/dashboard/RapportAuto";
 import { useConnexionGmail } from "@/components/mails/ConnexionGmail";
 import { toast } from "sonner";
+import { useUser } from "@/components/providers/UserProvider";
 import { UserPlus,
   Loader2, Mail, FolderPlus, Briefcase, RefreshCw, Clock, FileWarning, Inbox, MoonStar, Send, X,
   CalendarDays, ExternalLink, ThumbsDown, ChevronDown, KeyRound,
@@ -23,7 +24,13 @@ import { UserPlus,
 // L'urgence se lit au filet de gauche, pas à une pastille de couleur : la même
 // grammaire que « Ce qui a échoué », pour que la page se parcoure d'un regard.
 
+// Une phrase d'accueil, tirée au sort à chaque venue, avec le prénom.
+const SALUTS = (p) => [`Bonjour ${p}`, "Je vous écoute", `Bonsoir ${p}`, `À vous, ${p}`, "Je suis prêt", `On y va, ${p}`, "Dites-moi tout", `De retour, ${p}`, "Prêt quand vous voulez", "On reprend\u202f?"];
+
 export default function PlanDeTravail({ chat = null }) {
+  const utilisateur = useUser();
+  const prenom = (utilisateur?.full_name || utilisateur?.email || "").split(/[ @]/)[0] || "";
+  const [salut] = useState(() => { const l = SALUTS(prenom ? prenom.charAt(0).toUpperCase() + prenom.slice(1) : "Jules"); return l[Math.floor(Math.random() * l.length)]; });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // Le compte des échecs de la nuit remonte du rapport : l'en-tête doit dire
@@ -119,16 +126,16 @@ export default function PlanDeTravail({ chat = null }) {
       {/* --- En-tête --------------------------------------------------------- */}
       {/* On arrive sur une question, pas sur un tableau : le chat au centre,
           un halo menthe derrière, les gestes courants juste en dessous. */}
-      <header className="relative text-center pt-6 max-md:pt-2">
-        <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[-120px] -translate-x-1/2 w-[900px] h-[620px] max-w-[140vw]" style={{ background: "radial-gradient(ellipse at center, rgba(150,192,184,0.16) 0%, rgba(150,192,184,0.06) 35%, rgba(0,0,0,0) 70%)" }} />
-        <p className="relative m-0 text-[11px] tracking-[.16em] uppercase text-[#6a7180]">
+      {/* L'accueil : un salut en italique, deux halos sauge, le chat au centre. */}
+      <header className="accueil relative text-center pt-[10vh] max-md:pt-6">
+        <div aria-hidden="true" className="accueil-halo-a" />
+        <div aria-hidden="true" className="accueil-halo-b" />
+        <p className="relative m-0 text-[11px] tracking-[.16em] uppercase text-[#5c646b]" style={{ fontFamily: "Figtree, sans-serif" }}>
           Équipe Klocka — {maintenant.replace(" à ", ", ")}
         </p>
-        <h1 className="relative m-0 mt-4 text-[40px] max-md:text-[28px] font-medium tracking-[-0.02em] leading-[1.1] text-[#f2f3f5]">
-          Comment puis-je <span className="text-[#9298a6]">vous aider</span> ?
+        <h1 className="relative m-0 mt-5 text-[40px] max-md:text-[30px] font-normal italic tracking-[-.01em] leading-[1.1] text-white" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+          {salut}
         </h1>
-        <div aria-hidden="true" className="relative mx-auto mt-3 h-px w-[420px] max-w-[70%]" style={{ background: "linear-gradient(90deg, rgba(150,192,184,0) 0%, rgba(150,192,184,.55) 50%, rgba(150,192,184,0) 100%)" }} />
-        <p className="relative m-0 mt-4 text-[16px] max-md:text-[14px] text-[#9298a6]">Écrivez une consigne ou posez une question.</p>
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
@@ -143,7 +150,7 @@ export default function PlanDeTravail({ chat = null }) {
       )}
 
       {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
-      {chat && <div className="relative mt-10 max-md:mt-8 max-w-[960px] mx-auto">{chat}</div>}
+      {chat && <div className="relative mt-11 max-md:mt-8 max-w-[900px] mx-auto">{chat}</div>}
 
       <div className={REGLE} />
 

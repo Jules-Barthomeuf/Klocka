@@ -303,3 +303,49 @@ input[type="number"] {
 body[data-editeur-projet] .assistant-flottant {
   display: none;
 }
+
+/* --- L'accueil du dashboard : halos sauge, composeur, faisceau en mode voix. --- */
+.accueil-halo-a, .accueil-halo-b { position: absolute; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.accueil-halo-a { top: 40%; width: 1100px; height: 680px; max-width: 160vw; filter: blur(6px);
+  background: radial-gradient(closest-side, rgba(156,195,188,.20), rgba(156,195,188,.06) 55%, rgba(0,0,0,0)); }
+.accueil-halo-b { top: 180%; width: 860px; height: 520px; max-width: 140vw;
+  background: radial-gradient(closest-side, rgba(156,195,188,.13), rgba(0,0,0,0)); }
+
+.accueil-wrap { position: relative; width: 100%; }
+.accueil-ring-sage, .accueil-ring, .accueil-ring-halo { position: absolute; pointer-events: none; }
+.accueil-ring-sage { inset: 0; border-radius: 16px; transition: opacity .6s ease, box-shadow .3s ease;
+  box-shadow: 0 0 0 1px rgba(156,195,188,.14), 0 0 34px rgba(156,195,188,.18), 0 0 90px rgba(156,195,188,.12); }
+.accueil-ring { inset: -1.5px; border-radius: 17.5px; overflow: hidden; opacity: 0; transition: opacity .5s ease; }
+.accueil-ring-halo { inset: -10px; border-radius: 26px; overflow: hidden; filter: blur(16px); opacity: 0; transition: opacity .8s ease; }
+.accueil-beam { position: absolute; left: 50%; top: 50%; width: 1100px; height: 1100px; margin: -550px 0 0 -550px; will-change: transform;
+  background: conic-gradient(from 0deg, rgba(0,0,0,0) 0 62%, rgba(156,195,188,.35) 68%, #9CC3BC 76%, #7896EB 84%, #D684C4 91%, #E8B278 97%, rgba(0,0,0,0) 100%); }
+.accueil-wrap.voix .accueil-ring { opacity: 1; }
+.accueil-wrap.voix .accueil-ring-halo { opacity: .5; }
+.accueil-wrap.voix .accueil-ring-sage { opacity: 0; }
+.accueil-wrap.voix .accueil-beam { animation: accueil-spin 10s linear infinite; }
+@keyframes accueil-spin { to { transform: rotate(360deg); } }
+@keyframes accueil-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.8); } }
+@media (prefers-reduced-motion: reduce) { .accueil-wrap.voix .accueil-beam { animation: none; } #accueil-voix[aria-pressed="true"] .dot { animation: none; } }
+
+.accueil-composer { position: relative; border: 1px solid rgba(255,255,255,.10); border-radius: 16px; background: #121414; box-shadow: 0 26px 70px rgba(0,0,0,.55); }
+.accueil-composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent;
+  padding: 26px 28px 30px; font: 300 18px/1.5 Figtree, "Instrument Sans", sans-serif; color: #eaeaea; max-height: 13.5em; overflow-y: auto; }
+.accueil-composer textarea::placeholder { color: #6f6f6f; }
+.accueil-composer textarea:disabled { opacity: .6; }
+.accueil-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-top: 1px solid rgba(255,255,255,.07); }
+.accueil-tools { display: flex; align-items: center; gap: 10px; }
+.accueil-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 9px; border: 1px solid rgba(255,255,255,.08); background: transparent; color: #9a9a9a; font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
+.accueil-icon.mono { font: 11px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .04em; }
+.accueil-icon:hover { border-color: rgba(156,195,188,.5); color: #9CC3BC; }
+#accueil-voix { display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid rgba(255,255,255,.08); background: transparent; color: #9a9a9a; font: 14px Figtree, sans-serif; cursor: pointer; transition: all .24s; }
+#accueil-voix:disabled { opacity: .5; cursor: default; }
+#accueil-voix .dot { width: 8px; height: 8px; border-radius: 50%; background: #6a6a6a; }
+#accueil-voix[aria-pressed="true"] { border-color: rgba(156,195,188,.65); background: rgba(156,195,188,.16); color: #C4DED9; }
+#accueil-voix[aria-pressed="true"] .dot { background: #9CC3BC; box-shadow: 0 0 12px rgba(156,195,188,.9); animation: accueil-pulse 1.4s ease-in-out infinite; }
+.accueil-send { display: flex; align-items: center; gap: 9px; padding: 10px 20px; border: 0; border-radius: 9px; background: #9CC3BC; color: #0b1211; font: 500 15px Figtree, sans-serif; cursor: pointer; transition: background .2s; }
+.accueil-send:hover { background: #B4D3CE; }
+.accueil-send:disabled { opacity: .45; cursor: default; }
+.accueil-chips { margin-top: 44px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.accueil-chips button { padding: 11px 20px; border-radius: 9px; border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.02); color: #c8c8c8; font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
+.accueil-chips button:hover, .accueil-chips button[aria-pressed="true"] { border-color: rgba(156,195,188,.45); color: #fff; }
+.accueil-chips button[aria-pressed="true"] { background: rgba(156,195,188,.12); }

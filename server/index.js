@@ -38,7 +38,7 @@ import { releverBoite, listerBoite, telechargerRaw } from './gmail-inbox.js';
 import { classerDansDrive } from './google-drive.js';
 import { syntheseDocuments } from './deal/synthese-docs.js';
 import { ajouterDocument as ajouterDocumentEspace, renommerDocument as renommerDocumentEspace, supprimerDocument as supprimerDocumentEspace, converser, supprimerConversation, renommerConversation, extraireDocuments, supprimerExtraction, renommerExtraction, majLigneExtraction } from './deal/espace.js';
-import { creerProjetDepuisDeal } from './deal/projet.js';
+import { creerProjetDepuisDeal, completerAvantProjet } from './deal/projet.js';
 import { ajouterAuReferentiel } from './deal/enrich.js';
 import { profilsConfigures } from './deal/rules.js';
 import {
@@ -1670,6 +1670,10 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap(async (req,
       donnees: r.extractions.reduce((n, e) => n + (e.lignes || []).filter((l) => l.constat).length, 0),
     };
   }
+
+  // Ce qui manque au dossier pour remplir les cases de la fiche — département,
+  // région, chiffres du marché — se complète ici, avant la création.
+  await completerAvantProjet(req.params.dealId, Number(req.params.index) || 0);
 
   const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user);
   if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });

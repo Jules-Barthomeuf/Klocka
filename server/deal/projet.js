@@ -49,27 +49,105 @@ function mapperSimulateur(sim) {
 
 // Données de marché : reprise de la base DonneeMarche si une entrée existe
 // pour la ville (alimentée par les refus précédents ou saisie à la main).
-function mapperMarche(ville, codePostal) {
+function mapperMarche(ville, codePostal, chiffres = null) {
   if (!ville) return {};
   const entree =
     Records.filter('DonneeMarche', { ville, code_postal: codePostal || '' })[0] ||
     Records.filter('DonneeMarche', { ville })[0];
-  if (!entree) return {};
-  const n = (x) => (x == null ? 0 : x);
+  // Les chiffres relevés dans le point de marché servent de fond de carte : la
+  // base garde le dernier mot partout où elle a une valeur, et ne laisse plus
+  // une case vide là où le point de marché en donne une. Mieux vaut une case
+  // remplie et sourcée qu'un paragraphe que personne ne lit.
+  const repli = chiffres ? mapperChiffres(chiffres) : {};
+  if (!entree) return repli;
+  // Une valeur absente de la base (null ou 0) laisse passer celle du repli.
+  const paires = [
+    ['marche_prix_m2_bas', entree.prix_m2_bas],
+    ['marche_prix_m2_median', entree.prix_m2_median],
+    ['marche_prix_m2_haut', entree.prix_m2_haut],
+    ['marche_evolution_1an', entree.evolution_1an],
+    ['marche_evolution_5ans', entree.evolution_5ans],
+    ['marche_offre_bas', entree.offre_bas],
+    ['marche_offre_moyenne', entree.offre_moyenne],
+    ['marche_offre_haut', entree.offre_haut],
+    ['marche_baux_bas', entree.baux_bas],
+    ['marche_baux_moyenne', entree.baux_moyenne],
+    ['marche_baux_haut', entree.baux_haut],
+  ];
+  const deLaBase = {};
+  for (const [cle, v] of paires) if (v != null && v !== 0) deLaBase[cle] = v;
   return {
-    marche_prix_m2_bas: n(entree.prix_m2_bas),
-    marche_prix_m2_median: n(entree.prix_m2_median),
-    marche_prix_m2_haut: n(entree.prix_m2_haut),
-    marche_evolution_1an: n(entree.evolution_1an),
-    marche_evolution_5ans: n(entree.evolution_5ans),
-    marche_offre_bas: n(entree.offre_bas),
-    marche_offre_moyenne: n(entree.offre_moyenne),
-    marche_offre_haut: n(entree.offre_haut),
-    marche_baux_bas: n(entree.baux_bas),
-    marche_baux_moyenne: n(entree.baux_moyenne),
-    marche_baux_haut: n(entree.baux_haut),
-    marche_quartier_nom: entree.secteur || '',
+    ...repli,
+    ...deLaBase,
+    marche_quartier_nom: entree.secteur || repli.marche_quartier_nom || '',
   };
+}
+
+// Les chiffres du point de marché, rangés dans les cases de la fiche. Un zéro
+// veut dire « le texte ne le dit pas » : le formulaire laisse la case vide.
+function mapperChiffres(c) {
+  const n = (x) => (Number.isFinite(x) && x > 0 ? x : 0);
+  return {
+    marche_prix_m2_bas: n(c.prix_m2_bas),
+    marche_prix_m2_median: n(c.prix_m2_median),
+    marche_prix_m2_haut: n(c.prix_m2_haut),
+    marche_evolution_1an: Number.isFinite(c.evolution_1an) ? c.evolution_1an : 0,
+    marche_evolution_5ans: Number.isFinite(c.evolution_5ans) ? c.evolution_5ans : 0,
+    marche_offre_bas: n(c.loyer_offre_bas),
+    marche_offre_moyenne: n(c.loyer_offre_moyen),
+    marche_offre_haut: n(c.loyer_offre_haut),
+    marche_baux_bas: n(c.loyer_baux_bas),
+    marche_baux_moyenne: n(c.loyer_baux_moyen),
+    marche_baux_haut: n(c.loyer_baux_haut),
+    marche_quartier_nom: String(c.quartier || '').slice(0, 120),
+  };
+}
+
+/**
+ * Complète ce qui manque au dossier avant d'en faire un projet.
+ *
+ * Les dossiers analysés avant que la commune porte son département et sa
+ * région, ou avant que le point de marché soit chiffré, n'ont pas de quoi
+ * remplir les cases de la fiche. On va chercher ce qui manque ici, une fois,
+ * plutôt que de laisser l'utilisateur ressaisir ce qui est public.
+ * Jamais bloquant : ce qui échoue laisse simplement la case vide.
+ */
+export async function completerAvantProjet(dealId, lotIndex = 0) {
+  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  if (!deal || deal.projet_id) return;
+  const lots = [...(deal.lots || [])];
+  const lot = lots[lotIndex];
+  if (!lot) return;
+  let change = false;
+
+  // Département et région de la commune.
+  const commune = lot.enrichissement?.commune;
+  if (commune?.nom && commune.departement === undefined) {
+    try {
+      const { resoudreCommune } = await import('./enrich.js');
+      const a = val(lot.lot?.adresse) || {};
+      const frais = await resoudreCommune(a.code_postal, commune.nom);
+      if (frais?.departement) {
+        lots[lotIndex] = { ...lot, enrichissement: { ...lot.enrichissement, commune: { ...commune, ...frais } } };
+        change = true;
+      }
+    } catch { /* la case restera vide */ }
+  }
+
+  // Chiffres du marché, quand le point de marché n'a que sa prose.
+  const contexte = lots[lotIndex].contexte_marche;
+  if (contexte?.resume && !contexte.chiffres) {
+    try {
+      const { chiffresDuMarche } = await import('./contexte-marche.js');
+      const chiffres = await chiffresDuMarche(contexte.resume, lots[lotIndex].enrichissement?.commune?.nom || '');
+      if (chiffres) {
+        lots[lotIndex] = { ...lots[lotIndex], contexte_marche: { ...contexte, chiffres } };
+        change = true;
+      }
+    } catch { /* les cases resteront vides */ }
+  }
+
+  if (change) Records.update('Deal', deal.id, { lots });
 }
 
 /**
@@ -106,7 +184,11 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     client_emails: [...new Set([...(adminEmails || []), user?.email].filter(Boolean))],
 
     adresse_complete: adresseComplete,
+    // Les trois cases du secteur : ville, département, région. Données
+    // publiques de la commune, personne n'a à les ressaisir.
     ville_secteur_champ1: ville,
+    ville_secteur_champ2: commune?.departement || '',
+    ville_secteur_champ3: commune?.region || '',
     latitude: commune?.centre?.lat ?? null,
     longitude: commune?.centre?.lon ?? null,
     surface_m2: val(lot.lot.surface_m2) ?? 0,
@@ -121,14 +203,13 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     bien_champ2: val(lot.lot.surface_m2) ? `${val(lot.lot.surface_m2)} m²` : '',
     bien_champ3: '',
     secteur_revenu_median: lot.enrichissement?.revenu_median ?? null,
-    // Contexte web sourcé : point de départ éditable, marqué comme généré.
-    description_secteur: lot.contexte_marche?.resume
-      ? `${lot.contexte_marche.resume}\n\n(Généré avec recherche web — à relire.)`
-      : '',
+    // Le point de marché reste sur le dossier, avec ses sources : ce sont ses
+    // chiffres qui entrent dans la fiche, pas ses douze phrases.
+    description_secteur: '',
     analyse_bail: lot.synthese?.synthese || '',
 
     ...mapperSimulateur(lot.simulateur),
-    ...mapperMarche(ville, adresse.code_postal),
+    ...mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres),
 
     // Traçabilité et suivi client (toggles à plat).
     deal_id: deal.deal_id,

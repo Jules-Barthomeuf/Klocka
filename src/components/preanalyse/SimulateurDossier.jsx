@@ -210,6 +210,8 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
       afficherScenario={false}
       titre="Hypothèses"
       fermeParDefaut
+      ouvertes={["ACQUISITION"]}
+      alertes={{ prixBienFAI: !etat.prixBienFAI ? "Prix FAI à renseigner : sans lui, rien ne se calcule." : null, prixBienNegocie: !etat.prixBienNegocie ? "Prix négocié à 0." : null }}
     />
   );
 

@@ -34,7 +34,8 @@ export const GRILLES = {
       { id: 'indexation', libelle: 'Indexation', champs: ['indexation'], format: '« ILC / ICC / ILAT » + « TRIMESTRE ANNÉE » de l\'indice de base, ex. « ILC 1T 2024 ».', regle: 'Warning si absence de clause d\'indexation, ou indexation sur l\'ICC.' },
       { id: 'depot', libelle: 'Dépôt de garantie', champs: ['depot', 'loyer'], format: '« XXXX € » + « soit X mois du loyer de signature », ex. « 3 000 € soit 3 mois du loyer de signature ».', regle: 'Warning si moins d\'un mois de loyer de signature inscrit dans le bail.' },
       { id: 'pas_de_porte', libelle: 'Pas-de-porte', champs: ['pas_de_porte', 'loyer'], format: 'Si pas-de-porte : « XXXX € soit X mois du loyer de signature ». Sinon rien (la ligne ne s\'affiche pas).', regle: 'Information.', masquer_si_absent: true },
-      { id: 'charges', libelle: 'Charges refacturées', champs: ['charges', 'charges_copro'], format: '« OUI » ou « NON » ; si OUI, lister les charges refacturées au locataire et celles restant au bailleur.', regle: 'Warning si les charges de copropriété ne peuvent pas être refacturées au locataire.' },
+      { id: 'charges', libelle: 'Charges refacturées', champs: ['charges', 'charges_copro'], format: '« OUI » ou « NON » ; si OUI, lister uniquement les charges refacturées au locataire. Ce qui reste au bailleur va dans « charges_bailleur », pas ici.', regle: 'Warning si les charges de copropriété ne peuvent pas être refacturées au locataire.' },
+      { id: 'charges_bailleur', libelle: 'Charges et travaux restant au bailleur', champs: ['charges', 'charges_copro', 'charges_non_recup'], format: 'Lister ce que le bail laisse à la charge du bailleur : grosses réparations de l\'article 606, honoraires afférents, charges non récupérables, travaux. Sinon « Aucune ».', regle: 'Warning si autre chose que les grosses réparations de l\'article 606 reste au bailleur.' },
       { id: 'taxes', libelle: 'Taxes refacturées', champs: ['taxe_fonciere', 'charges'], format: '« OUI » ou « NON » ; si OUI, lister les taxes refacturées au locataire et celles restant au bailleur.', regle: 'Warning si la taxe foncière ne peut pas être refacturée au locataire.' },
     ],
     schema: {
@@ -50,7 +51,8 @@ export const GRILLES = {
       indexation: { type: 'object', properties: { texte: { type: 'string' }, indice: { type: 'string', enum: ['ILC', 'ICC', 'ILAT', 'autre', 'aucun'] }, absente: { type: 'boolean' } } },
       depot: { type: 'object', properties: { texte: { type: 'string' }, montant: { type: 'number' }, mois: { type: 'number' } } },
       pas_de_porte: { type: 'object', properties: { texte: { type: 'string' }, present: { type: 'boolean' }, montant: { type: 'number' }, mois: { type: 'number' } } },
-      charges: { type: 'object', properties: { texte: { type: 'string' }, oui: { type: 'boolean' }, copro_refacturee: { type: 'boolean' }, locataire: { type: 'array', items: { type: 'string' } }, bailleur: { type: 'array', items: { type: 'string' } } } },
+      charges: { type: 'object', properties: { texte: { type: 'string' }, oui: { type: 'boolean' }, copro_refacturee: { type: 'boolean' }, locataire: { type: 'array', items: { type: 'string' } } } },
+      charges_bailleur: { type: 'object', properties: { texte: { type: 'string' }, items: { type: 'array', items: { type: 'string' }, description: 'chaque poste restant au bailleur' }, seulement_606: { type: 'boolean', description: 'true si tout ce qui reste au bailleur relève des grosses réparations de l\'article 606 et de leurs honoraires' } } },
       taxes: { type: 'object', properties: { texte: { type: 'string' }, oui: { type: 'boolean' }, taxe_fonciere_refacturee: { type: 'boolean' }, locataire: { type: 'array', items: { type: 'string' } }, bailleur: { type: 'array', items: { type: 'string' } } } },
     },
   },
@@ -145,7 +147,8 @@ function empreinte(m, brut, id, parChamp) {
   const ids = [...new Set(GRILLES[id].criteres.flatMap((c) => c.champs))].sort();
   const matiere = ids.map((ch) => `${ch}=${parChamp[ch]?.retenue ?? ''}~${(parChamp[ch]?.reponses || []).map((r) => `${r.document}:${r.reponse}`).join('§')}`).join('|');
   const somme = createHash('sha1').update(matiere).digest('hex').slice(0, 16);
-  return `${m.gabarit.version}|${JSON.stringify(brut.matrice?.forcages || {})}|${id}|${somme}`;
+  const criteres = GRILLES[id].criteres.map((c) => c.id).join(',');
+  return `${m.gabarit.version}|${JSON.stringify(brut.matrice?.forcages || {})}|${id}|${somme}|${createHash('sha1').update(criteres).digest('hex').slice(0, 8)}`;
 }
 
 /** Les valeurs formatées d'une grille, mises en cache sur le dossier tant que la lecture ne change pas. */
@@ -196,6 +199,7 @@ function warnings(id, cid, x, ctx) {
     case 'bail.indexation': if (x.absente || x.indice === 'aucun') return w('Aucune clause d\'indexation.'); if (x.indice === 'ICC') return w('Indexation sur l\'ICC.'); return null;
     case 'bail.depot': if (x.mois != null && x.mois < 1) return w('Moins d\'un mois de loyer de signature.'); if (x.montant == null && x.texte === '') return null; return null;
     case 'bail.charges': if (x.copro_refacturee === false) return w('Les charges de copropriété ne sont pas refacturables au locataire.'); return null;
+    case 'bail.charges_bailleur': if ((x.items || []).length && x.seulement_606 === false) return w('Le bailleur garde des charges au-delà des grosses réparations de l\'article 606.'); return null;
     case 'bail.taxes': if (x.taxe_fonciere_refacturee === false) return w('La taxe foncière n\'est pas refacturable au locataire.'); return null;
     case 'quittances.loyer_hc_ht': {
       const fiche = ctx.loyer_fiche; const mont = x.montant;
@@ -232,8 +236,14 @@ function texteDe(id, cid, x) {
       const o = ouiNon(x.oui);
       const liste = (titre, items) => ((items || []).length ? `${titre} :\n${items.map((i) => `- ${String(i).trim()}`).join('\n')}` : '');
       const l = liste('Locataire', x.locataire);
-      const b = liste('Bailleur', x.bailleur);
+      // Ce qui reste au bailleur a sa propre ligne (charges_bailleur) ; on ne le répète pas ici.
+      const b = cid === 'taxes' ? liste('Bailleur', x.bailleur) : '';
       return [o ? `${o}${l ? ' · ' : ''}` : '', l, b].filter(Boolean).join(o && l ? '' : '\n').replace(/ · \n?Locataire/, ' · Locataire') || t;
+    }
+    case 'bail.charges_bailleur': {
+      const items = (x.items || []).map((i) => String(i).trim()).filter(Boolean);
+      if (items.length) return items.map((i) => `- ${i}`).join('\n');
+      return t || null;
     }
     case 'bail.depot': return t || (x.montant != null ? `${eur(x.montant)}${x.mois != null ? ` soit ${Number(x.mois).toFixed(x.mois % 1 ? 1 : 0)} mois du loyer de signature` : ''}` : null);
     case 'bail.pas_de_porte': if (x.present === false) return null; return t || (x.montant != null ? `${eur(x.montant)}${x.mois != null ? ` soit ${x.mois} mois du loyer de signature` : ''}` : null);

@@ -109,6 +109,8 @@ export default function Analyse() {
   const majLot = useMutation({
     mutationFn: ({ index, saisie }) =>
       base44.request("POST", `/api/preanalyse/dossiers/${dealId}/lots/${index}`, { body: saisie }),
+    // Le recalcul se voit tout de suite : un toast qui attend, puis le verdict.
+    onMutate: () => { toast.loading("Recalcul en cours…", { id: "recalcul", description: "Verdict, rendements et simulateur se mettent à jour." }); },
     onSuccess: (r, vars) => {
       const idx = r?.lot?.index ?? vars.index;
       setDossier((d) => {
@@ -117,9 +119,9 @@ export default function Analyse() {
         lots[idx] = { ...lots[idx], ...r.lot, index: idx };
         return { ...d, lots };
       });
-      toast.success(`Verdict recalculé : ${r?.lot?.evaluation?.verdict || "—"}`);
+      toast.success(`Verdict recalculé : ${r?.lot?.evaluation?.verdict || "—"}`, { id: "recalcul", description: undefined });
     },
-    onError: (e) => toast.error(e?.message || "Recalcul impossible"),
+    onError: (e) => toast.error(e?.message || "Recalcul impossible", { id: "recalcul", description: undefined }),
   });
 
   const enWorkflow = dealId || nouveau;

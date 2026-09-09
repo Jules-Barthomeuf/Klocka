@@ -9,6 +9,21 @@ import { demanderNotifications, prevenir } from "@/lib/notifications";
 // Une grille de critères : critère, valeur lue au format voulu, statut en
 // case colorée, source à droite. La règle se lit d'un clic sur le critère.
 
+// La dernière lecture d'une grille, gardée sur le poste : en revenant sur le
+// dossier, le tableau est là avant même la réponse du serveur. Un rafraîchis-
+// sement se fait derrière et remplace ce qui est montré s'il a changé.
+const cleLocale = (dealId, id) => `klocka_grille_${dealId}_${id}`;
+function garder(dealId, id, g) {
+  try { localStorage.setItem(cleLocale(dealId, id), JSON.stringify({ le: Date.now(), g })); } catch { /* sans mémoire */ }
+}
+function lire(dealId, id) {
+  try { const b = localStorage.getItem(cleLocale(dealId, id)); return b ? JSON.parse(b) : null; } catch { return null; }
+}
+// Une analyse gardée depuis plus d'une semaine ne sert plus de point de départ.
+const FRAICHEUR = 7 * 24 * 60 * 60 * 1000;
+const gardee = (dealId, id) => { const c = lire(dealId, id); return c && Date.now() - c.le < FRAICHEUR ? c.g : undefined; };
+const gardeeLe = (dealId, id) => lire(dealId, id)?.le ?? 0;
+
 // « À checker » : bleu clair pâle, texte blanc — la valeur est là, un humain
 // doit encore la valider en OK.
 const FOND = { ok: "#2f7a5a", a_checker: "#5a8db5", warning: "#a8752a", a_verifier: "#a8752a", no_go: "#9b3b32", vide: "#2c3139", non_lu: "#2c3139" };
@@ -138,10 +153,17 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
   const voulues = demandees || (ids || []).map((id, i) => ({ id, titre: i === 0 ? titre : null, sousTitre: i === 0 ? sousTitre : null }));
   const requetes = useQueries({ queries: voulues.map((v) => ({
     queryKey: ["grille", v.id, dealId],
-    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille/${v.id}`),
+    queryFn: async () => {
+      const g = await base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille/${v.id}`);
+      garder(dealId, v.id, g);
+      return g;
+    },
     enabled: !!dealId,
     // On revient sur le dossier : l'analyse déjà lue s'affiche tout de suite,
-    // la relecture éventuelle se fait derrière, sans écran d'attente.
+    // même après un rechargement de la page — elle est gardée sur le poste.
+    // La relecture éventuelle se fait derrière, sans écran d'attente.
+    initialData: () => gardee(dealId, v.id),
+    initialDataUpdatedAt: () => gardeeLe(dealId, v.id),
     staleTime: 10 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     placeholderData: (precedent) => precedent,

@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { nomOnglet } from "./AnalyseDocuments";
 import { toast } from "sonner";
-import { Mic, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip } from "lucide-react";
+import { Mic, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip, ChevronDown } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import PenseeIA from "@/components/PenseeIA";
 import Message from "@/components/MessageIA";
@@ -291,23 +291,16 @@ export default function ChatDossier({
         </div>
       </div>
 
-      {/* Documents, puis requêtes récentes : repliés, un clic les ouvre. */}
+      {/* Documents, puis requêtes récentes : repliés, un clic les ouvre. Le
+          chevron tourne, le contenu se déplie en hauteur — rien ne saute. */}
       {panneauDocuments && !modeMail && (
-        <div className="pt-5">
-          <button onClick={() => setDocsOuverts((o) => !o)} className="w-full flex items-center justify-between py-3 border-t border-b border-[#15171b] text-left">
-            <span className="text-[16px] font-medium text-[#f2f3f5]">Documents{nbDocuments ? <span className="text-[#6a7180] font-normal"> · {nbDocuments}</span> : null}</span>
-            <span className="text-[#6a7180] text-[11px]">{docsOuverts ? "▲" : "▼"}</span>
-          </button>
-          {docsOuverts && <div className="pt-4">{panneauDocuments}</div>}
-        </div>
+        <Volet titre="Documents" nombre={nbDocuments} ouvert={docsOuverts} onBasculer={() => setDocsOuverts((o) => !o)} className="mt-6">
+          <div className="pt-4 pb-2">{panneauDocuments}</div>
+        </Volet>
       )}
       {afficherRequetes && !modeMail && !modePreanalyse && requetes.length > 0 && (
-        <div className={panneauDocuments ? "" : "pt-5"}>
-          <button onClick={() => setRequetesOuvertes((o) => !o)} className="w-full flex items-center justify-between py-3 border-b border-[#15171b] text-left">
-            <span className="text-[16px] font-medium text-[#f2f3f5]">Requêtes récentes<span className="text-[#6a7180] font-normal"> · {requetes.length}</span></span>
-            <span className="text-[#6a7180] text-[11px]">{requetesOuvertes ? "▲" : "▼"}</span>
-          </button>
-          <div className={requetesOuvertes ? "" : "hidden"}>
+        <Volet titre="Requêtes récentes" nombre={requetes.length} ouvert={requetesOuvertes} onBasculer={() => setRequetesOuvertes((o) => !o)} className={panneauDocuments ? "mt-4" : "mt-6"}>
+          <div className="pb-2">
             {requetes.map((r) => (
               <div key={r.cle} className="flex items-center gap-4 px-1 py-3.5 border-b border-[#15171b] hover:bg-[#f2f3f5]/[0.02] transition-colors group">
                 <button onClick={r.ouvrir} className="flex-1 min-w-0 text-left text-[13.5px] text-[#f2f3f5] truncate hover:text-[#c3ddd6] transition-colors">
@@ -330,12 +323,30 @@ export default function ChatDossier({
               </div>
             ))}
           </div>
-        </div>
+        </Volet>
       )}
 
       {driveOuvert && dossier && (
         <ImportDrive dealId={dossier.deal_id} onFermer={() => setDriveOuvert(false)} onImporte={() => onRefresh?.()} />
       )}
+    </div>
+  );
+}
+
+// Un volet repliable : le titre, le compte, un chevron qui tourne, et le
+// contenu qui se déplie en hauteur (grille 0fr → 1fr) au lieu d'apparaître.
+function Volet({ titre, nombre = 0, ouvert, onBasculer, className = "", children }) {
+  return (
+    <div className={className}>
+      <button type="button" onClick={onBasculer} aria-expanded={ouvert} className="w-full flex items-center justify-between py-3 border-t border-b border-[#15171b] text-left group">
+        <span className="text-[16px] font-medium text-[#f2f3f5]">{titre}{nombre ? <span className="text-[#6a7180] font-normal"> · {nombre}</span> : null}</span>
+        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[#6a7180] group-hover:text-[#f2f3f5] group-hover:bg-[#f2f3f5]/5 transition-all duration-300 ${ouvert ? "rotate-180" : ""}`}>
+          <ChevronDown className="w-4 h-4" />
+        </span>
+      </button>
+      <div className="grid transition-[grid-template-rows] duration-300 ease-out" style={{ gridTemplateRows: ouvert ? "1fr" : "0fr" }} aria-hidden={!ouvert}>
+        <div className={`min-h-0 overflow-hidden transition-opacity duration-300 ${ouvert ? "opacity-100" : "opacity-0"}`}>{children}</div>
+      </div>
     </div>
   );
 }

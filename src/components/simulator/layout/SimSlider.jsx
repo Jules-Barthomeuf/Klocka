@@ -22,7 +22,8 @@ const sliderStyle = `
 .sim-num-input{ -moz-appearance:textfield; appearance:textfield; }
 `;
 
-export default function SimSlider({ label, value, onChange, min, max, step = 1, unit = "", disabled, muted }) {
+// `alerte` : un mot d'explication, et tout passe en corail — la valeur manque.
+export default function SimSlider({ label, value, onChange, min, max, step = 1, unit = "", disabled, muted, alerte = null }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -43,7 +44,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
   return (
     <div className="py-1.5">
       <div className="flex items-center justify-between text-[13px] leading-tight">
-        <span className="text-[#9298a6] truncate pr-2">{label}</span>
+        <span className={`truncate pr-2 ${alerte ? "text-[#e8746a]" : "text-[#9298a6]"}`}>{label}</span>
         {editing ? (
           <input
             autoFocus
@@ -57,8 +58,8 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
         ) : (
           <button
             onClick={beginEdit}
-            className={`tabular-nums font-medium transition-all duration-300 ease-out ${muted ? "text-[#c9cdd6]" : "text-[#f2f3f5]"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-[#96c0b8]"}`}
-            title="Cliquer pour modifier"
+            className={`tabular-nums font-medium transition-all duration-300 ease-out ${alerte ? "text-[#e8746a]" : muted ? "text-[#c9cdd6]" : "text-[#f2f3f5]"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-[#96c0b8]"}`}
+            title={alerte || "Cliquer pour modifier"}
           >
             {display}{unit}
           </button>
@@ -73,8 +74,9 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
         className="sim-slider-input w-full mt-1.5"
-        style={{ background: `linear-gradient(to right, #96c0b8 ${pct}%, #262626 ${pct}%)` }}
+        style={{ background: alerte ? `linear-gradient(to right, #e8746a ${pct}%, #3a1f1c ${pct}%)` : `linear-gradient(to right, #96c0b8 ${pct}%, #262626 ${pct}%)` }}
       />
+      {alerte && <p className="m-0 mt-1 text-[11px] text-[#e8746a]">{alerte}</p>}
       <style>{sliderStyle}</style>
     </div>
   );

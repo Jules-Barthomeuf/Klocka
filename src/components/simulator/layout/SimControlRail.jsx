@@ -26,10 +26,12 @@ function ToggleRow({ label, checked, onChange }) {
   );
 }
 
-export default function SimControlRail({ projects = [], selectedProjectId, onSelectProject, values, onChange, calculs, formatCurrency, advanced, activeTab, afficherScenario = true, titre = "Simulateur", fermeParDefaut = false }) {
+export default function SimControlRail({ projects = [], selectedProjectId, onSelectProject, values, onChange, calculs, formatCurrency, advanced, activeTab, afficherScenario = true, titre = "Simulateur", fermeParDefaut = false, ouvertes = [], alertes = {} }) {
   const [openSections, setOpenSections] = useState({});
-  const isOpen = (title) => openSections[title] ?? !fermeParDefaut;
-  const toggleSection = (title) => setOpenSections((prev) => ({ ...prev, [title]: !(prev[title] ?? !fermeParDefaut) }));
+  // `ouvertes` : les sections dépliées d'office même quand tout est replié.
+  const parDefaut = (title) => !fermeParDefaut || ouvertes.includes(title);
+  const isOpen = (title) => openSections[title] ?? parDefaut(title);
+  const toggleSection = (title) => setOpenSections((prev) => ({ ...prev, [title]: !(prev[title] ?? parDefaut(title)) }));
 
   const projectLocked = selectedProjectId && selectedProjectId !== "default";
 
@@ -204,6 +206,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
                 step={it.step}
                 unit={it.unit}
                 disabled={it.disabled}
+                alerte={alertes[it.key] || null}
               />
             ))}
             {isOpen(g.title) && g.title === "LOCATION" && (

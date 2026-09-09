@@ -16,8 +16,9 @@ import { toast } from "sonner";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
 import CarteGoogle from "@/components/CarteGoogle";
-import PlongeeCarte from "@/components/projet/PlongeeCarte";
 import StreetViewRue from "@/components/projet/StreetViewRue";
+import FicheSource from "@/components/preanalyse/FicheSource";
+import PenseeIA from "@/components/PenseeIA";
 
 // Sans clé Maps, ni la rue ni le plan ne s'affichent : on le dit plutôt que de
 // laisser deux cadres noirs.
@@ -206,7 +207,6 @@ const EMPLACEMENTS = [
 
 export const CHAMPS_AFFICHES = [
   ["adresse", "Adresse"],
-  ["type_actif", "Type d'actif"],
   ["surface_m2", "Surface"],
   ["prix_fai", "Prix FAI"],
   ["honoraires_inclus", "Honoraires inclus"],
@@ -568,8 +568,7 @@ export function JournalSuivi({ suivi }) {
 // Carte d'un lot analysé (extraite d'AnalyseAnnonces)
 // ---------------------------------------------------------------------------
 
-// Situer le bien de trois façons : le plan, la plongée 3D qui tourne autour
-// de la rue, et la vue piéton. Les deux dernières réutilisent les vues de la
+// Situer le bien de deux façons : le plan et la vue piéton, qui réutilisent les vues de la
 // page projet, alimentées par l'adresse du lot (ou le centre de la commune).
 export function VuesLieu({ lot, enr, coteACote = false }) {
   const [vue, setVue] = useState("carte");
@@ -586,12 +585,11 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
 
   const VUES = [
     { id: "carte", label: "Plan" },
-    { id: "3d", label: "Vue 3D" },
     { id: "street", label: "Street View" },
   ];
 
   // Dans la pré-analyse, on juge l'emplacement sur pièces : la rue à gauche,
-  // le plan à droite, les deux d'un coup d'œil. La vue 3D reste à un clic.
+  // le plan à droite, les deux d'un coup d'œil.
   if (coteACote) {
     return (
       <div className="space-y-3">
@@ -613,17 +611,7 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
             </div>
           </figure>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => setVue(vue === "3d" ? "carte" : "3d")} disabled={!localisable} className="px-3.5 py-1.5 rounded-full text-[12.5px] border border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-40">
-            {vue === "3d" ? "Replier la vue 3D" : "Vue 3D"}
-          </button>
-          {!adresse && <span className="text-[12px] text-[#6a7180]">Adresse précise absente de la fiche : les vues sont centrées sur la commune.</span>}
-        </div>
-        {vue === "3d" && (
-          <div className="relative h-[420px] rounded-[14px] overflow-hidden border border-[#1f2228]">
-            <PlongeeCarte project={lieu} onClose={() => setVue("carte")} />
-          </div>
-        )}
+        {!adresse && <p className="m-0 text-[12px] text-[#6a7180]">Adresse précise absente de la fiche : les vues sont centrées sur la commune.</p>}
       </div>
     );
   }
@@ -647,11 +635,6 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
 
       {vue === "carte" && (
         <CarteGoogle adresse={adresse} lat={enr?.commune?.centre?.lat} lon={enr?.commune?.centre?.lon} />
-      )}
-      {vue === "3d" && (
-        <div className="relative h-[420px] rounded-md overflow-hidden border border-[#1f2228]">
-          <PlongeeCarte project={lieu} onClose={() => setVue("carte")} />
-        </div>
       )}
       {vue === "street" && (
         <div className="relative h-[420px] rounded-md overflow-hidden border border-[#1f2228]">
@@ -724,17 +707,26 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
   const c = lot?.lot?.[champ];
   const absent = !c || c.absent;
   const [edition, setEdition] = useState(null);
+  const [choix, setChoix] = useState(null);
+  useEffect(() => { if (!enCours) setChoix(null); }, [enCours]);
   const modifiable = !apercu && !!onSaisie;
   const valider = (v) => { onSaisie?.({ [champ]: v }); setEdition(null); };
 
   if (BOOLEENS.has(champ)) {
     const actuel = absent ? null : c.valeur === true;
+    // Le clic répond tout de suite : le bouton choisi passe en menthe et
+    // respire pendant le recalcul, avant même que le serveur ait répondu.
+    const choisi = choix !== null && enCours ? choix : actuel;
     return (
       <span className="inline-flex items-center gap-1">
-        {[["Oui", true], ["Non", false]].map(([mot, v]) => (
-          <button key={mot} onClick={() => modifiable && actuel !== v && valider(v)} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-colors disabled:cursor-default ${actuel === v ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#0b0c0e] font-semibold" : "border-[#2c3139] text-[#6a7180] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}>{mot}</button>
-        ))}
-        {!absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-[#d9b46a]">saisi à la main</span>}
+        {[["Oui", true], ["Non", false]].map(([mot, v]) => {
+          const actif = choisi === v;
+          const attend = enCours && choix === v;
+          return (
+            <button key={mot} onClick={() => { if (modifiable && actuel !== v) { setChoix(v); valider(v); } }} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-all duration-200 disabled:cursor-default ${attend ? "bg-[#96c0b8] border-[#96c0b8] text-[#0b0c0e] font-semibold animate-pulse" : actif ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#0b0c0e] font-semibold" : "border-[#2c3139] text-[#6a7180] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}>{mot}</button>
+          );
+        })}
+        {enCours && choix !== null ? <span className="ml-1 text-[11px] text-[#96c0b8]">recalcul…</span> : !absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-[#d9b46a]">saisi à la main</span>}
       </span>
     );
   }
@@ -771,6 +763,18 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
   );
 }
 
+// Un champ vient d'être changé : le verdict, les rendements et le simulateur
+// se recalculent. On le dit là où on a cliqué, pas seulement dans un toast.
+export function BandeauRecalcul({ actif }) {
+  if (!actif) return null;
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-[12px] border border-[#96c0b8]/40 bg-[#96c0b8]/10 px-4 py-2.5 animate-in fade-in duration-200">
+      <PenseeIA etat="working" taille={18} />
+      <p className="m-0 text-[13px] text-[#c3ddd6]">Recalcul en cours — verdict, rendements et simulateur se mettent à jour.</p>
+    </div>
+  );
+}
+
 export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false }) {
   // Vérifier un critère à la main : vert, jaune, ou retour au calcul.
   const verifier = useMutation({
@@ -794,81 +798,29 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
     staleTime: 5 * 60 * 1000,
   });
   const [mailOuvert, setMailOuvert] = useState(false);
-  const verdict = lot.evaluation.verdict;
-  const aem = lot.evaluation.aem;
   const enr = lot.enrichissement;
-  const PASTILLE = { "GO": "#2f7a5a", "GO SOUS RÉSERVE": "#a8752a", "INSUFFISANT": "#a8752a", "NO-GO": "#9b3b32" };
-  const Kicker = ({ children }) => <div className="font-mono text-[10px] uppercase tracking-[.18em] text-[#6a7180]">{children}</div>;
   const nbCriteres = lot.evaluation.grille?.length || 0;
   const ratés = (lot.evaluation.grille || []).filter((l) => l.ok === false).length;
 
   return (
     <div className="text-[#f2f3f5]">
-      {/* L'en-tête : le statut à droite */}
-      <div className="flex items-end justify-between gap-6 flex-wrap pb-5 border-b border-[#2c3139]">
-        <div className="min-w-0">
-          {lot.intitule && <Kicker>{lot.intitule}</Kicker>}
-          <p className="m-0 mt-2 text-[19px] font-light leading-[1.55] max-w-[620px]">{sansVerdict(lot.synthese?.titre) || "Lot"}</p>
-        </div>
-        <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-semibold text-white" style={{ background: PASTILLE[verdict] || "#2c3139" }}>
-          <span className="w-2 h-2 rounded-full bg-white" />{libelleVerdict(verdict)}
-        </span>
-      </div>
-
-      {/* Les chiffres, en ligne sous le titre : le prix se modifie ici. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-[#1f2228]">
-        <div className="px-1 py-5 lg:border-r border-[#1f2228]">
-          <Kicker>Prix FAI</Kicker>
-          <div className="mt-1.5"><PrixFai lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></div>
-          {lot.lot?.prix_fai?.saisi_a_la_main && <div className="text-[12px] text-[#d9b46a]">saisi à la main</div>}
-        </div>
-        {(aem ? [
-          ["Prix AEM", euros(aem.prix_aem), "#f2f3f5", `+${euros(aem.surcout_vs_fai)} tout compris`],
-          ["Rendement annoncé", aem.rendement_fai != null ? `${aem.rendement_fai} %` : "—", "#f2f3f5", null],
-          ["Rendement AEM", aem.rendement_aem != null ? `${aem.rendement_aem} %` : "—", "#96c0b8", null],
-        ] : [
-          ["Prix AEM", "—", "#4d545d", "sans prix ou sans loyer"],
-          ["Rendement annoncé", "—", "#4d545d", null],
-          ["Rendement AEM", "—", "#4d545d", null],
-        ]).map(([l, v, c, note], i) => (
-          <div key={l} className={`px-5 py-5 ${i < 2 ? "lg:border-r border-[#1f2228]" : ""}`}>
-            <Kicker>{l}</Kicker>
-            <div className="mt-1.5 text-[22px] font-light tabular-nums" style={{ color: c }}>{v}</div>
-            {note && <div className="text-[12px] text-[#d9b46a] tabular-nums">{note}</div>}
-          </div>
-        ))}
-      </div>
-
       <div className="pt-2">
-        {/* Tout prend la largeur : plus de colonne de droite. */}
         <main className="min-w-0">
-          {/* Ce qu'on retient */}
-          <section className="pb-8 border-b border-[#1f2228]">
-            <Kicker>Ce qu'on retient</Kicker>
-            <p className="m-0 mt-3 text-[15px] font-light leading-[1.75] text-[#c9cdd6]">{lot.synthese?.synthese || "Pas encore de synthèse."}</p>
-            <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2">
-              <Kicker>Réserves</Kicker>
-              {lot.evaluation.reserves?.length ? (
-                <ul className="m-0 p-0 list-none space-y-1">
-                  {lot.evaluation.reserves.map((r) => <li key={r.id} className="text-[13.5px] text-[#c9cdd6] flex items-start gap-2.5"><span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#d9b46a] flex-none" />{r.motif}</li>)}
-                </ul>
-              ) : <span className="text-[13.5px] text-[#9298a6]">Aucune réserve à lever.</span>}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              {lot.mail_agent && (
-                <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-[#2c3139] px-3.5 py-1.5 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40">
-                  <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent
-                </button>
-              )}
-            </div>
-          </section>
-
           {/* La fiche du bien : ce que la fiche commerciale dit, champ par champ */}
-          <section className="py-8 border-b border-[#1f2228]">
-            <div className="flex items-baseline gap-3 flex-wrap mb-4">
+          <section className="pb-8 border-b border-[#1f2228]">
+            <div className="flex items-center gap-3 flex-wrap mb-4">
               <h2 className="m-0 text-[17px] font-semibold">Fiche du bien</h2>
               <span className="text-[13px] text-[#6a7180]">ce que la fiche commerciale donne, champ par champ</span>
+              <div className="ml-auto flex items-center gap-2">
+                <FicheSource dossier={dossier} />
+                {lot.mail_agent && (
+                  <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-[#2c3139] px-3.5 py-1.5 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40">
+                    <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent
+                  </button>
+                )}
+              </div>
             </div>
+            <BandeauRecalcul actif={enCours} />
             <dl className="m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12">
               {CHAMPS_AFFICHES.map(([champ, libelle]) => (
                 <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-[#15171b]">

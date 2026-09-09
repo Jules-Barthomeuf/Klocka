@@ -878,34 +878,27 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
     );
   }
 
-  // La décision reste sous la main : une barre posée en bas de l'écran, qu'on
-  // remonte ou qu'on descende. Un clic écrit le mail, tout de suite.
+  // La décision reste sous la main : deux boutons posés en bas à droite de
+  // l'écran, au-dessus de la bulle d'assistant. Un clic écrit le mail.
   return (
     <>
-      {/* La place que la barre occupe : le contenu ne passe pas dessous. */}
-      <div className="h-[92px]" aria-hidden />
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:pl-[172px] pointer-events-none">
-        <div className="pointer-events-auto mx-auto max-w-[1180px] m-3 md:m-4 rounded-[18px] border border-[#22262d] bg-[#0a0a0bee] backdrop-blur-md shadow-[0_-10px_40px_rgba(0,0,0,.55)] px-4 py-3 flex items-center gap-4">
-          <p className="m-0 min-w-0 flex-1 text-[13px] text-[#9298a6] max-md:hidden truncate">
-            {titreOui} <span className="text-[#3a3f4a]">·</span> {titreNon} — le mail part pré-rédigé, rien ne s'envoie sans vous.
-          </p>
-          <div className="flex items-center gap-2.5 flex-none max-md:flex-1">
-            <button
-              onClick={() => ouvrir(intentionNon)}
-              title={descNon}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] border border-[#9b3b32]/60 text-[#e8746a] text-[13.5px] font-semibold hover:bg-[#9b3b32]/15 hover:border-[#9b3b32] transition-colors max-md:flex-1 max-md:justify-center"
-            >
-              <ThumbsDown className="w-4 h-4" /> Abandonner
-            </button>
-            <button
-              onClick={() => ouvrir(intentionOui)}
-              title={descOui}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-[#96c0b8] text-[#0b0c0e] text-[13.5px] font-semibold hover:bg-[#abd0c8] transition-colors max-md:flex-1 max-md:justify-center"
-            >
-              <ThumbsUp className="w-4 h-4" /> Poursuivre
-            </button>
-          </div>
-        </div>
+      {/* La place que les boutons occupent : le contenu ne passe pas dessous. */}
+      <div className="h-[72px]" aria-hidden />
+      <div className="fixed z-40 right-5 bottom-[84px] max-md:right-3 max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom)+70px)] flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <button
+          onClick={() => ouvrir(intentionNon)}
+          title={`${titreNon} — ${descNon}`}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#9b3b32]/60 bg-[#0a0a0bee] backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,.5)] text-[#e8746a] text-[13.5px] font-semibold hover:bg-[#9b3b32]/20 hover:border-[#9b3b32] transition-colors"
+        >
+          <ThumbsDown className="w-4 h-4" /> Abandonner
+        </button>
+        <button
+          onClick={() => ouvrir(intentionOui)}
+          title={`${titreOui} — ${descOui}`}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#96c0b8] shadow-[0_10px_30px_rgba(0,0,0,.5)] text-[#0b0c0e] text-[13.5px] font-semibold hover:bg-[#abd0c8] transition-colors"
+        >
+          <ThumbsUp className="w-4 h-4" /> Poursuivre
+        </button>
       </div>
 
       {dialogIntention && (
@@ -1305,11 +1298,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
   });
 
   const titre = (
-    <TitreEtape
-      n={4}
-      titre="Plateforme"
-      description="Le deal devient un projet pré-rempli : adresse, locataire, bail, simulateur et données de marché issues de la base. Le suivi client se poursuit sur la fiche projet."
-    />
+    <TitreEtape n={4} titre="Plateforme" />
   );
 
   if (statut === "projet_cree" && dossier.projet_id) {
@@ -1344,13 +1333,6 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         <Briefcase className="w-5 h-5" />
       </span>
       <p className="text-[#f2f3f5] text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
-      <p className="text-[#9298a6] text-xs mb-4">
-        Le projet est créé pré-rempli : adresse, locataire, bail, simulateur (mêmes chiffres que la
-        pré-analyse), données de marché issues de la base, et tout ce que l'extraction a relevé —
-        bail, copropriété, diagnostics. Les images suivent toutes seules : la devanture vue de la
-        rue, le quartier vu du ciel, le plan de la ville. Il s'ouvre ensuite dans l'éditeur pour
-        compléter secteur et documents client.
-      </p>
       <Button
         onClick={() => creerProjet.mutate()}
         disabled={apercu || creerProjet.isPending}
@@ -1368,11 +1350,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
           {documents.length} document{documents.length > 1 ? "s" : ""} pas encore extrait
           {documents.length > 1 ? "s" : ""} : ils le seront à la création, ce qui peut prendre une minute.
         </p>
-      ) : analyses.length > 0 ? (
-        <p className="text-[#6a7180] text-[11px] mt-3">
-          Les données extraites à l'étape Analyse seront reportées dans la fiche.
-        </p>
-      ) : (
+      ) : analyses.length > 0 ? null : (
         <p className="text-[#6a7180] text-[11px] mt-3">
           Aucun document au dossier : le projet part des seules données de la pré-analyse.
         </p>

@@ -36,6 +36,7 @@ export const GABARIT_MURS = {
     // Bien
     { id: 'adresse', bloc: 'Bien', libelle: 'Adresse / lots', question: "Adresse du bien et lots concernés (numéros de lots, étage, tantièmes s'ils sont dits)", regle: 'identique', criticite: 'haute' },
     { id: 'surface', bloc: 'Bien', libelle: 'Surface', question: 'Surface du local en m² (Carrez, utile ou déclarée — dire laquelle)', regle: 'surface', criticite: 'haute' },
+    { id: 'niveaux', bloc: 'Bien', libelle: 'Surfaces par niveau', question: 'Surface de chaque niveau du local en m² (rez-de-chaussée, sous-sol ou cave, étage, réserve, terrasse), tel que les pièces le donnent', regle: 'information', criticite: 'moyenne' },
     { id: 'destination', bloc: 'Bien', libelle: 'Destination', question: "Activité autorisée ou exercée dans le local (destination du bail, activités permises ou interdites par le règlement)", regle: 'permis_par', criticite: 'haute' },
     { id: 'dtg', bloc: 'Bien', libelle: 'DTG', question: "Diagnostic technique global : état des lieux du bâtiment et travaux conseillés, avec les gros travaux (toiture, façade, structure, article 606)", regle: 'information', criticite: 'haute' },
     { id: 'dpe', bloc: 'Bien', libelle: 'DPE', question: 'Classe énergétique du DPE (A à G), consommation, date et validité', regle: 'information', criticite: 'moyenne' },

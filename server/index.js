@@ -2206,6 +2206,15 @@ app.post('/api/preanalyse/dossiers/:dealId/grille/:id/note/:critere', wrap(async
   if (!r.ok) return res.status(400).json({ error: r.error });
   ok(res, r);
 }));
+// Ce qu'une relecture coûtera, avant de la lancer : jetons comptés par l'API,
+// prix appliqué au modèle courant. Rien n'est facturé par ce comptage.
+app.get('/api/preanalyse/dossiers/:dealId/estimation', wrap(async (req, res) => {
+  const { estimerLecture } = await import('./deal/estimation.js');
+  const r = await estimerLecture(req.params.dealId, { uploadDir: UPLOAD_DIR, grille: req.query.grille || null });
+  if (!r) return res.status(404).json({ error: 'Dossier introuvable' });
+  ok(res, r);
+}));
+
 // Relancer l'analyse d'une seule grille : ses questions sont relues sur toutes
 // les pièces, les autres grilles ne bougent pas.
 app.post('/api/preanalyse/dossiers/:dealId/grille/:id/relancer', wrap(async (req, res) => {
@@ -2213,7 +2222,7 @@ app.post('/api/preanalyse/dossiers/:dealId/grille/:id/relancer', wrap(async (req
   const { lancerRemplissage } = await import('./deal/matrice.js');
   const ids = colonnesDeGrille(req.params.id);
   if (!ids.length) return res.status(404).json({ error: 'Grille inconnue' });
-  ok(res, lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementColonnes: ids }));
+  ok(res, lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementColonnes: ids, force: true }));
 }));
 app.get('/api/preanalyse/dossiers/:dealId/grille-bail', wrap(async (req, res) => {
   const { lireGrilleBail } = await import('./deal/grille-bail.js');
@@ -2234,7 +2243,7 @@ app.post('/api/preanalyse/dossiers/:dealId/relancer-analyse', wrap(async (req, r
   if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
   const ids = (d.documents_espace || []).map((x) => x.id);
   if (!ids.length) return res.status(400).json({ error: 'Aucune pièce à relire.' });
-  ok(res, lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementDocuments: ids }));
+  ok(res, lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementDocuments: ids, force: true }));
 }));
 app.post('/api/preanalyse/dossiers/:dealId/relancer-preanalyse', wrap(async (req, res) => {
   const { relancerPreanalyse } = await import('./deal/preanalyse-documents.js');

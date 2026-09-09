@@ -173,8 +173,17 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
   // toutes les pièces ; les autres tableaux ne bougent pas.
   const relancer = useMutation({
     mutationFn: (id) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${id}/relancer`, { body: {} }),
-    onSuccess: () => { demanderNotifications(); toast.success("Analyse relancée", { description: "Vous serez prévenu quand elle sera terminée." }); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
+    onSuccess: () => { setDevis(null); demanderNotifications(); toast.success("Analyse relancée", { description: "Vous serez prévenu quand elle sera terminée." }); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
     onError: (e) => toast.error(e?.message || "Relance impossible"),
+  });
+  // Relire, c'est repayer la lecture des pièces. On annonce le prix avant, pas
+  // sur la facture : les jetons sont comptés par l'API, ce comptage est gratuit.
+  const [devis, setDevis] = useState(null); // { id, cout, pieces, jetons }
+  const chiffrer = useMutation({
+    mutationFn: (id) => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/estimation?grille=${id}`),
+    onSuccess: (r, id) => setDevis({ id, ...r }),
+    // Sans estimation, on ne bloque pas : on relance en le disant.
+    onError: () => setDevis({ id: chiffrer.variables, cout: null }),
   });
 
   // La relecture s'achève alors qu'on est peut-être ailleurs : on prévient, et
@@ -220,8 +229,19 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                 )}
                 {enCours ? (
                   <PenseeIA etat="searching" taille={20} texte={g.remplissage?.total ? `Relecture des pièces ${g.remplissage.fait ?? 0}/${g.remplissage.total}` : "Relecture des pièces…"} />
+                ) : devis?.id === v.id ? (
+                  <span className="inline-flex items-center gap-2.5 rounded-full border border-[#d9b46a]/40 bg-[#d9b46a]/10 pl-3.5 pr-1.5 py-1">
+                    <span className="text-[12.5px] text-[#d9b46a] tabular-nums">
+                      {devis.cout == null ? "Coût inconnu" : `≈ ${devis.cout < 0.01 ? "moins d'un centime" : `${devis.cout.toFixed(2)} $`}`}
+                      {devis.pieces ? <span className="text-[#9298a6]"> · {devis.pieces} pièce{devis.pieces > 1 ? "s" : ""}</span> : null}
+                    </span>
+                    <button onClick={() => relancer.mutate(v.id)} disabled={relancer.isPending} className="text-[12.5px] px-3 py-1 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">Relire</button>
+                    <button onClick={() => setDevis(null)} className="text-[12.5px] px-2.5 py-1 text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+                  </span>
                 ) : (
-                  <button onClick={() => !apercu && relancer.mutate(v.id)} disabled={apercu || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} »`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Relancer l'analyse</button>
+                  <button onClick={() => !apercu && chiffrer.mutate(v.id)} disabled={apercu || chiffrer.isPending || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} » — le prix s'affiche avant`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">
+                    {chiffrer.isPending && chiffrer.variables === v.id ? <PenseeIA etat="working" taille={20} /> : <RefreshCw className="w-3.5 h-3.5" />} Relancer l'analyse
+                  </button>
                 )}
               </div>
             </header>

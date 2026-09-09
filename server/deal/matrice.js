@@ -11,6 +11,7 @@
 // quand l'équipe ajoute une colonne et l'enregistre. Au bout de vingt
 // dossiers, la grille est la méthode Klocka.
 
+import { createHash } from 'crypto';
 import { Records } from '../db.js';
 import { montants, surfaces, dates } from './dossier-lecture.js';
 
@@ -133,7 +134,7 @@ function brutDe(dealId) {
 }
 
 /** Remplit (ou complète) la matrice du dossier : chaque document, toutes les colonnes. */
-export async function remplirMatrice(dealId, { uploadDir, user, seulementColonnes = null, seulementDocuments = null, onProgres = null } = {}) {
+export async function remplirMatrice(dealId, { uploadDir, user, seulementColonnes = null, seulementDocuments = null, onProgres = null, force = false } = {}) {
   const brut = brutDe(dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const g = gabarit();
@@ -165,10 +166,34 @@ export async function remplirMatrice(dealId, { uploadDir, user, seulementColonne
     });
   };
   let fait = 0;
+  let sautees = 0;
   const groupe = `matrice:${dealId}:${Date.now()}`;
+  // Ce qu'une lecture dépend : la pièce, les questions posées, la version du
+  // gabarit. Tant que rien de cela ne bouge, relire ne peut rien apprendre de
+  // neuf — et une lecture de bail coûte plus d'un dollar. Le bouton
+  // « Relancer l'analyse » passe `force` et relit malgré tout.
+  const empreinteLecture = (piece) =>
+    createHash('sha1')
+      .update(`${g.version}|${piece.id}|${cibles.map((c) => `${c.id}:${c.question}`).join('|')}`)
+      .digest('hex')
+      .slice(0, 16);
+
   for (const p of pieces) {
     const existante = lignesExistantes.get(p.id) || { document_id: p.id, document_nom: p.nom, document_url: p.url, categorie: p.categorie, cellules: {} };
     let cellules = { ...(existante.cellules || {}) };
+    const empreinte = empreinteLecture(p);
+    const dejaLue =
+      !force &&
+      existante.empreinte === empreinte &&
+      !existante.erreur &&
+      cibles.every((c) => Object.prototype.hasOwnProperty.call(cellules, c.id));
+    if (dejaLue) {
+      lignes.push({ ...existante, categorie: p.categorie, cellules, empreinte });
+      sautees += 1;
+      fait += 1;
+      onProgres?.({ fait, total: pieces.length, document: p.nom });
+      continue;
+    }
     try {
       const { resultat: { lignes: reponses } } = await mesurer({ operation: 'matrice', par: user?.email || null, sur: dealId, groupe, libelle: p.nom }, () => extraireDonneesDocument({
         ...p,
@@ -186,13 +211,14 @@ export async function remplirMatrice(dealId, { uploadDir, user, seulementColonne
     } catch (e) {
       existante.erreur = e?.message || 'Lecture impossible';
     }
-    lignes.push({ ...existante, categorie: p.categorie, cellules, lu_le: new Date().toISOString() });
+    lignes.push({ ...existante, categorie: p.categorie, cellules, empreinte, lu_le: new Date().toISOString() });
     fait += 1;
     onProgres?.({ fait, total: pieces.length, document: p.nom });
     ecrire(true);
   }
   ecrire(false);
-  return { ok: true, matrice: lireMatrice(dealId) };
+  if (sautees) console.log(`[matrice] ${sautees} pièce(s) déjà lue(s) sur ${pieces.length} : relecture évitée.`);
+  return { ok: true, matrice: lireMatrice(dealId), sautees };
 }
 
 // Le remplissage tourne en tâche de fond ; l'écran interroge l'avancement.

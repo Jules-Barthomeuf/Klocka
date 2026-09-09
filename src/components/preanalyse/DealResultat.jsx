@@ -769,7 +769,7 @@ export function BandeauRecalcul({ actif }) {
   if (!actif) return null;
   return (
     <div className="mb-4 flex items-center gap-3 rounded-[12px] border border-[#96c0b8]/40 bg-[#96c0b8]/10 px-4 py-2.5 animate-in fade-in duration-200">
-      <PenseeIA etat="working" taille={18} />
+      <PenseeIA etat="working" taille={20} />
       <p className="m-0 text-[13px] text-[#c3ddd6]">Recalcul en cours — verdict, rendements et simulateur se mettent à jour.</p>
     </div>
   );

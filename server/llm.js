@@ -377,6 +377,14 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
 // explication pour la personne qui l'avait déposé.
 const LISIBLE_NATIF = (m) => m === 'application/pdf' || /^image\/(jpeg|png|gif|webp)$/.test(String(m || ''));
 
+// Le cache de prompt : un document déjà envoyé est relu à un dixième du prix
+// pendant une heure. La condition est que le bloc marqué soit en TÊTE de la
+// requête et identique au caractère près — d'où l'ordre document puis consigne
+// partout ici. L'écriture coûte un quart de plus que l'envoi normal : on ne
+// marque que les pièces, jamais une consigne de quelques lignes.
+const CACHE = { type: 'ephemeral', ttl: '1h' };
+const enCache = (bloc) => ({ ...bloc, cache_control: CACHE });
+
 async function texteDeLaPiece({ buffer, mimetype, nom }) {
   // Import différé : ingest.js dépend de vision.js, qui dépend de ce fichier.
   const { ingerer } = await import('./deal/ingest.js');
@@ -392,15 +400,15 @@ export async function generateFromDocument({ buffer, mimetype, prompt, nom } = {
 
   if (!LISIBLE_NATIF(mimetype)) {
     const texte = await texteDeLaPiece({ buffer, mimetype, nom });
-    const corps = `Document${nom ? ` « ${nom} »` : ''} :\n${texte.slice(0, 120000)}\n\n${prompt}`;
     if (provider === 'gemini') {
+      const corps = `Document${nom ? ` « ${nom} »` : ''} :\n${texte.slice(0, 120000)}\n\n${prompt}`;
       const resp = await geminiGenerate({ contents: [{ role: 'user', parts: [{ text: corps }] }] });
       return geminiText(resp);
     }
     const message = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
       max_tokens: 16000,
-      messages: [{ role: 'user', content: [{ type: 'text', text: corps }] }],
+      messages: [{ role: 'user', content: [enCache({ type: 'text', text: texte.slice(0, 120000) }), { type: 'text', text: prompt }] }],
     });
     compter(ANTHROPIC_MODEL, message.usage);
     return (message.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
@@ -428,10 +436,12 @@ export async function generateFromDocument({ buffer, mimetype, prompt, nom } = {
       {
         role: 'user',
         content: [
-          {
+          // La pièce d'abord, mise en cache : la même sera relue par les autres
+          // grilles et à la relance, sans être refacturée au prix plein.
+          enCache({
             type: isPdf ? 'document' : 'image',
             source: { type: 'base64', media_type: mimetype, data },
-          },
+          }),
           { type: 'text', text: prompt },
         ],
       },
@@ -629,6 +639,11 @@ export async function chatDocuments({ system, messages = [], documents = [], pro
     if (d.texte) return [{ type: 'text', text: `Document « ${d.nom} » :\n${String(d.texte).slice(0, 120000)}` }];
     return [{ type: 'text', text: `Document « ${d.nom} » (contenu non lisible).` }];
   });
+  // La dernière pièce porte la marque du cache : tout ce qui la précède est
+  // gardé une heure. Les pièces sont donc placées en TÊTE de la conversation
+  // et n'en bougent plus — attachées au dernier message, elles changeaient de
+  // place à chaque tour et le cache ne retenait jamais rien.
+  if (pieces.length) pieces[pieces.length - 1] = enCache(pieces[pieces.length - 1]);
 
   // La conversation doit commencer par un message utilisateur.
   const fenetre = [...derniers];
@@ -636,11 +651,7 @@ export async function chatDocuments({ system, messages = [], documents = [], pro
 
   const convo = fenetre.map((m, i) => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
-    // Les pièces accompagnent le dernier message de l'utilisateur.
-    content:
-      i === fenetre.length - 1 && m.role !== 'assistant'
-        ? [...pieces, { type: 'text', text: m.contenu }]
-        : m.contenu,
+    content: i === 0 && m.role !== 'assistant' ? [...pieces, { type: 'text', text: m.contenu }] : m.contenu,
   }));
 
   const message = await anthropic.messages.create({
@@ -669,6 +680,40 @@ export async function chatDocuments({ system, messages = [], documents = [], pro
  * @param {{nom:string, buffer?:Buffer, mimetype?:string, texte?:string}} doc
  * @returns {Promise<{lignes: Array<{libelle:string, valeur:string, page:number|null, citation:string|null}>}>}
  */
+/**
+ * Ce qu'une lecture coûtera, avant de la lancer : le compteur de jetons de
+ * l'API, facturé zéro. Renvoie null si le fournisseur n'est pas Anthropic ou
+ * si le comptage échoue — une estimation absente ne doit jamais bloquer.
+ * @param {{buffer?:Buffer, mimetype?:string, texte?:string}} piece
+ */
+export async function compterJetons({ buffer, mimetype, texte, consigne = '' } = {}) {
+  const cle = (process.env.ANTHROPIC_API_KEY || '').trim();
+  if (provider !== 'anthropic' || !cle) return null;
+  try {
+    const content = buffer?.length && LISIBLE_NATIF(mimetype)
+      ? [{
+          type: mimetype === 'application/pdf' ? 'document' : 'image',
+          source: { type: 'base64', media_type: mimetype, data: Buffer.from(buffer).toString('base64') },
+        }, { type: 'text', text: consigne }]
+      : [{ type: 'text', text: `${String(texte || '').slice(0, 120000)}\n\n${consigne}` }];
+    // Le SDK embarqué (0.32) ne connaît pas encore ce point d'entrée : on
+    // l'appelle directement. Il ne facture rien.
+    const resp = await fetch('https://api.anthropic.com/v1/messages/count_tokens', {
+      method: 'POST',
+      headers: { 'x-api-key': cle, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: ANTHROPIC_MODEL, messages: [{ role: 'user', content }] }),
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok) throw new Error(data?.error?.message || `comptage refusé (${resp.status})`);
+    return data?.input_tokens ?? null;
+  } catch (e) {
+    console.warn('[llm] comptage impossible :', e?.message || e);
+    return null;
+  }
+}
+
+export const modeleCourant = () => (provider === 'anthropic' ? ANTHROPIC_MODEL : provider === 'gemini' ? GEMINI_MODEL : null);
+
 export async function extraireDonneesDocument(doc = {}) {
   if (!llmEnabled) throw new Error('Aucune clé IA configurée.');
 

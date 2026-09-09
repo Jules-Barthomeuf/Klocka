@@ -610,7 +610,12 @@ export default function ChatDashboard() {
               : m.type === "echeances" ? <Echeances key={i} onBrouillon={setBrouillon} />
               : null
             ) : (
-              <Message key={i} m={m} />
+              <Message
+                key={i}
+                m={m}
+                question={m.role === "assistant" ? [...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null : null}
+                surface={m.role === "assistant" ? "dashboard" : null}
+              />
             )
           )}
           {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}

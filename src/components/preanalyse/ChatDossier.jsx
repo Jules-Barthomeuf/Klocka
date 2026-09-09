@@ -183,7 +183,15 @@ export default function ChatDossier({
             <button onClick={() => setConversationId(null)} className="text-[#6a7180] hover:text-[#f2f3f5] flex-shrink-0" aria-label="Fermer"><X className="w-4 h-4" /></button>
           </header>
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
-            {(conversation?.messages || []).map((m, i) => <Message key={i} m={m} />)}
+            {(conversation?.messages || []).map((m, i) => (
+              <Message
+                key={i}
+                m={m}
+                question={m.role === "assistant" ? (conversation.messages[i - 1]?.role === "user" ? conversation.messages[i - 1].contenu : null) : null}
+                surface={m.role === "assistant" ? "dossier" : null}
+                dealId={dossier?.deal_id || null}
+              />
+            ))}
             {envoyer.isPending && (
               <PenseeIA etat={profondeur === "reflexion" ? "solving" : "working"} taille={64} texte={profondeur === "reflexion" ? "Je lis les pièces…" : "Réflexion…"} />
             )}

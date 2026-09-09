@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
-import { Check, Image as ImageIcon, Loader2, Mic, Pencil, Square, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Copy, Image as ImageIcon, Loader2, Mic, Pencil, Square, Trash2, X } from "lucide-react";
 import { useDictee } from "@/lib/dictee";
 import { toast } from "sonner";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
@@ -35,6 +35,44 @@ const quand = (iso) => {
   const d = new Date(iso);
   return `${d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} · ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
 };
+
+// Le prompt rédigé pour Claude, sous une remarque née d'un pouce : on le copie,
+// on le colle, il corrige la cause. L'échange se déplie en dessous.
+function PromptCorrection({ r }) {
+  const [copie, setCopie] = useState(false);
+  const [echange, setEchange] = useState(false);
+  const copier = async () => {
+    try { await navigator.clipboard.writeText(r.prompt_correction); setCopie(true); setTimeout(() => setCopie(false), 1800); }
+    catch { window.prompt("Copiez le prompt :", r.prompt_correction); }
+  };
+  const bas = r.pouce === "bas";
+  return (
+    <div className="mt-3 rounded-xl border border-[#22262d] bg-[#0a0a0b] px-4 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: bas ? "#e8746a" : "#96c0b8" }}>
+          {bas ? "À corriger" : "À préserver"} — prompt pour Claude
+        </p>
+        <button onClick={copier} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1 rounded-full border border-[#2c3139] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]">
+          {copie ? <Check className="w-3 h-3 text-[#96c0b8]" /> : <Copy className="w-3 h-3" />}{copie ? "Copié" : "Copier"}
+        </button>
+      </div>
+      <p className="m-0 mt-2 text-[13px] leading-[1.6] text-[#c9cdd6] whitespace-pre-wrap max-h-[240px] overflow-y-auto">{r.prompt_correction}</p>
+      {r.echange?.reponse && (
+        <>
+          <button onClick={() => setEchange((o) => !o)} className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-[#6a7180] hover:text-[#c9cdd6]">
+            <ChevronDown className={`w-3 h-3 transition-transform ${echange ? "rotate-180" : ""}`} /> {echange ? "Replier l'échange" : "Voir l'échange"}
+          </button>
+          {echange && (
+            <div className="mt-2 space-y-2 border-t border-[#1f2228] pt-2">
+              {r.echange.question && <p className="m-0 text-[12.5px] leading-[1.6] text-[#9298a6] whitespace-pre-wrap"><span className="text-[#6a7180]">Question — </span>{r.echange.question}</p>}
+              <p className="m-0 text-[12.5px] leading-[1.6] text-[#c9cdd6] whitespace-pre-wrap"><span className="text-[#6a7180]">Réponse — </span>{r.echange.reponse}</p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function AdminSuggestions() {
   const user = useUser();
@@ -219,6 +257,7 @@ export default function AdminSuggestions() {
                     ) : (
                       <p className="m-0 text-[14.5px] leading-[1.65] text-[#f2f3f5] whitespace-pre-wrap">{r.contenu}</p>
                     )}
+                    {r.prompt_correction && <PromptCorrection r={r} />}
                     <p className="m-0 mt-1.5 text-[12px] text-[#6a7180] flex flex-wrap items-center gap-x-2">
                       <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n} sur 5 — cliquez une barre pour la changer`}>
                         <span className="inline-flex items-end gap-px">

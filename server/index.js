@@ -840,6 +840,11 @@ const filtrerProjets = (user, data) => {
   if (!Array.isArray(data)) return data;
   return data.filter(projetVisiblePar(user));
 };
+// Les remarques : l'équipe voit tout, un client ne voit que les siennes — les
+// avis sur les réponses de l'IA portent des échanges de dossiers.
+const filtrerSuggestions = (user, data) =>
+  user.role === 'admin' || !Array.isArray(data) ? data : data.filter((s) => s.client_email === user.email);
+
 // Les comptes : l'équipe et les mandataires voient la liste, un client ne voit que lui.
 const filtrerUsers = (user, data) =>
   ['admin', 'mandataire'].includes(user.role) || !Array.isArray(data) ? data : data.filter((u) => u.id === user.id);
@@ -856,6 +861,7 @@ app.get('/api/entities/:entity', wrap((req, res) => {
   });
   if (entity === 'Project') data = filtrerProjets(user, data);
   if (entity === 'User') data = filtrerUsers(user, data);
+  if (entity === 'Suggestion') data = filtrerSuggestions(user, data);
   ok(res, nettoyer(entity, data));
 }));
 
@@ -867,6 +873,7 @@ app.post('/api/entities/:entity/filter', wrap((req, res) => {
   let data = Records.filter(entity, query, { sort, limit: limit != null ? Number(limit) : undefined });
   if (entity === 'Project') data = filtrerProjets(user, data);
   if (entity === 'User') data = filtrerUsers(user, data);
+  if (entity === 'Suggestion') data = filtrerSuggestions(user, data);
   ok(res, nettoyer(entity, data));
 }));
 
@@ -881,6 +888,11 @@ app.get('/api/entities/:entity/:id', wrap((req, res) => {
     return res.status(404).json({ error: 'Not found' });
   }
   if (req.params.entity === 'User' && !['admin', 'mandataire'].includes(user.role) && rec.id !== user.id) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  // Une remarque porte un échange de dossier : elle n'appartient qu'à l'équipe
+  // et à celui qui l'a écrite.
+  if (req.params.entity === 'Suggestion' && user.role !== 'admin' && rec.client_email !== user.email) {
     return res.status(404).json({ error: 'Not found' });
   }
   ok(res, nettoyer(req.params.entity, rec));
@@ -1938,6 +1950,15 @@ app.post('/api/assistant/note-appel', wrap(async (req, res) => {
 
 // Tout ce qui attend une relance, lu dans le tableau des agents.
 // Les rappels dits au chat : « rappelle-moi dans trois jours de rappeler Marc ».
+// L'avis sur une réponse de l'IA : la remarque est créée, et le prompt de
+// correction rédigé dans la foulée.
+app.post('/api/assistant/avis', wrap(async (req, res) => {
+  const { enregistrerAvis } = await import('./avis.js');
+  const r = await enregistrerAvis({ ...(req.body || {}), user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, r);
+}));
+
 app.post('/api/assistant/rappels', wrap(async (req, res) => {
   const { creerRappel } = await import('./rappels.js');
   const r = await creerRappel({ texte: req.body?.texte, user: currentUser(req) });

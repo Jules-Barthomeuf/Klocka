@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useDictee } from "@/lib/dictee";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
+import { AvisReponse } from "@/components/MessageIA";
 
 // L'assistant : une pilule au repos, un cadre qui s'étire une fois ouvert.
 //
@@ -294,8 +295,11 @@ export default function AssistantFlottant() {
                 // Tour assistant : texte plein derrière un filet vertical.
                 <div key={i} style={{ display: "flex", gap: 12 }}>
                   <div style={{ width: 1.5, flex: "none", background: FILET }} />
-                  <div style={{ fontSize: 13.5, lineHeight: 1.6, color: TEXTE, whiteSpace: "pre-wrap" }}>
-                    {sansMarkdown(m.contenu)}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: TEXTE, whiteSpace: "pre-wrap" }}>
+                      {sansMarkdown(m.contenu)}
+                    </div>
+                    {m.contenu && <AvisReponse question={messages[i - 1]?.role === "user" ? messages[i - 1].contenu : null} reponse={m.contenu} surface="assistant" />}
                   </div>
                 </div>
               )

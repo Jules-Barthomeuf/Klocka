@@ -104,6 +104,48 @@ function mapperChiffres(c) {
 }
 
 /**
+ * Détache un projet supprimé de son dossier, et rouvre le dossier là où il en
+ * était. Sans cela, le dossier reste marqué « projet créé » en pointant un
+ * projet disparu, et on ne peut plus le faire entrer dans la plateforme.
+ *
+ * L'écriture est directe : `projet_cree` est un statut terminal, aucune
+ * transition n'en sort — c'est voulu pour le parcours normal, mais la
+ * suppression d'un projet n'est pas le parcours normal.
+ *
+ * @param {string} projectId
+ * @returns {{deal_id: string, statut: string}|null} le dossier rouvert
+ */
+export function delierProjet(projectId, user = null) {
+  if (!projectId) return null;
+  const deal = Records.filter('Deal', { projet_id: projectId })[0];
+  if (!deal) return null;
+  // On revient à l'étape réellement atteinte, pas à zéro : les pièces lues et
+  // la pré-analyse restent acquises.
+  const statut = (deal.extractions || []).length || deal.matrice?.lignes?.length
+    ? 'depouille'
+    : (deal.documents_espace || []).length
+    ? 'documents_recus'
+    : 'analyse';
+  Records.update('Deal', deal.id, {
+    projet_id: null,
+    statut,
+    archived: false,
+    suivi: [
+      ...(deal.suivi || []),
+      {
+        le: new Date().toISOString(),
+        par: user?.email || null,
+        type: 'projet_supprime',
+        de: 'projet_cree',
+        vers: statut,
+        detail: 'Projet supprimé : le dossier peut de nouveau entrer dans la plateforme.',
+      },
+    ],
+  });
+  return { deal_id: deal.deal_id, statut };
+}
+
+/**
  * Complète ce qui manque au dossier avant d'en faire un projet.
  *
  * Les dossiers analysés avant que la commune porte son département et sa
@@ -157,7 +199,15 @@ export async function completerAvantProjet(dealId, lotIndex = 0) {
 export function creerProjetDepuisDeal(dealId, lotIndex, user) {
   const deal = Records.filter('Deal', { deal_id: dealId })[0];
   if (!deal) return { ok: false, error: 'Dossier introuvable' };
-  if (deal.projet_id) return { ok: false, error: 'Un projet existe déjà pour ce deal.', project_id: deal.projet_id };
+  // Un projet supprimé laissait son identifiant sur le dossier : la plateforme
+  // refusait alors d'en créer un autre, en désignant un projet qui n'existe
+  // plus. On ne refuse que si le projet est encore là.
+  if (deal.projet_id) {
+    if (Records.get('Project', deal.projet_id)) {
+      return { ok: false, error: 'Un projet existe déjà pour ce deal.', project_id: deal.projet_id };
+    }
+    delierProjet(deal.projet_id, user);
+  }
   // Sans pré-analyse, le projet naît d'une fiche vide au nom du dossier.
   const lot = lotOuVide(deal, lotIndex);
 

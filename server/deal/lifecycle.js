@@ -26,10 +26,14 @@ export const LIBELLES_STATUTS = {
 
 // Transitions autorisées. L'abandon est possible à tout moment tant que le
 // deal n'est pas déjà clos.
+// Entrer dans la plateforme ne demande plus d'être passé par le dépouillement :
+// l'écran le permet depuis n'importe quelle étape, et le journal doit pouvoir
+// le dire. Sans ces transitions, le projet était créé mais le dossier restait
+// marqué « analyse », et l'étape reproposait d'y entrer.
 const TRANSITIONS = {
-  analyse: ['documents_demandes', 'documents_recus', 'abandonne'],
-  documents_demandes: ['documents_recus', 'depouille', 'abandonne'],
-  documents_recus: ['depouille', 'abandonne'],
+  analyse: ['documents_demandes', 'documents_recus', 'projet_cree', 'abandonne'],
+  documents_demandes: ['documents_recus', 'depouille', 'projet_cree', 'abandonne'],
+  documents_recus: ['depouille', 'projet_cree', 'abandonne'],
   depouille: ['projet_cree', 'abandonne'],
   abandonne: [],
   projet_cree: [],

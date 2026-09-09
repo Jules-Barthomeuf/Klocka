@@ -937,14 +937,22 @@ app.put('/api/entities/:entity/:id', wrap((req, res) => {
   ok(res, nettoyer(entity, rec));
 }));
 
-app.delete('/api/entities/:entity/:id', wrap((req, res) => {
+app.delete('/api/entities/:entity/:id', wrap(async (req, res) => {
   const user = accesEntite(req, res, req.params.entity);
   if (!user) return;
   // La suppression est un geste d'administrateur, quelle que soit l'entité.
   if (user.role !== 'admin') {
     return res.status(403).json({ error: 'Réservé aux administrateurs.' });
   }
-  ok(res, Records.delete(req.params.entity, req.params.id));
+  const supprime = Records.delete(req.params.entity, req.params.id);
+  // Un projet supprimé libère son dossier : sans cela le dossier reste marqué
+  // « projet créé » en pointant un projet disparu, et refuse d'en créer un autre.
+  let dossier_libere = null;
+  if (req.params.entity === 'Project') {
+    const { delierProjet } = await import('./deal/projet.js');
+    dossier_libere = delierProjet(req.params.id, user);
+  }
+  ok(res, { ...(supprime && typeof supprime === 'object' ? supprime : {}), dossier_libere });
 }));
 
 // ---------------------------------------------------------------------------

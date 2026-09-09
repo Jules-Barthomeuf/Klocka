@@ -1301,7 +1301,10 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
     <TitreEtape n={4} titre="Plateforme" />
   );
 
-  if (statut === "projet_cree" && dossier.projet_id) {
+  // Le projet existe : le deal est dans la plateforme, quel que soit le statut
+  // écrit sur le dossier. Se fier au seul statut faisait reproposer la création
+  // d'un projet déjà créé, qui échouait ensuite.
+  if (dossier.projet_id) {
     return (
       <>
       {titre}

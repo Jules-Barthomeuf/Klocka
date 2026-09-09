@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Mic, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import PenseeIA from "@/components/PenseeIA";
+import Message from "@/components/MessageIA";
 import { SuggestionsMail } from "./gabaritsMail";
 import ImportDrive from "./ImportDrive";
 
@@ -49,19 +50,6 @@ export const sansMarkdown = (t) => String(t || "")
   .replace(/^[ \t]*(---+|\*\*\*+|___+)[ \t]*$/gm, "")
   .replace(/\n{3,}/g, "\n\n")
   .trim();
-
-function Message({ m }) {
-  // La question dans une bulle à droite ; la réponse en texte plein, sans
-  // cadre, pour qu'elle se lise comme une page.
-  if (m.role === "user") {
-    return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-[20px] bg-[#1a1d1c] px-5 py-3.5 text-[15px] leading-[1.6] text-[#f2f3f5] whitespace-pre-wrap">{m.contenu}</div>
-      </div>
-    );
-  }
-  return <div className="text-[15px] leading-[1.75] text-[#e6e8eb] whitespace-pre-wrap">{sansMarkdown(m.contenu)}</div>;
-}
 
 export default function ChatDossier({
   dossier,
@@ -218,23 +206,39 @@ export default function ChatDossier({
         </div>
       )}
 
-      {/* Zone de saisie */}
-      <div className="max-w-[880px] mx-auto">
-        <BoiteSaisie
-          lumiere
-          valeur={texte}
-          onChange={setTexte}
-          placeholder={placeholder}
-          onEnvoyer={lancer}
-          peutEnvoyer={peutEnvoyer}
-          enCours={enCours}
-          disabled={apercu || !dossier}
-          libelle={modeMail ? "Rédiger le mail" : modePreanalyse ? "Lancer l'analyse" : "Envoyer"}
-          gauche={
-            <>
+      {/* Zone de saisie : le composeur de l'accueil, avec ce que le dossier a
+          en plus — les sources, la profondeur, les mails types. */}
+      <div className={`accueil-wrap max-w-[880px] mx-auto ${ecoute ? "voix" : ""}`}>
+        <div aria-hidden="true" className="accueil-ring-sage" />
+        <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
+        <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>
+
+        <div className="accueil-composer">
+          <textarea
+            rows={Math.min(5, Math.max(3, texte.split("\n").length))}
+            value={texte}
+            onChange={(e) => setTexte(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer) { e.preventDefault(); lancer(); } }}
+            placeholder={placeholder}
+            disabled={apercu || !dossier}
+          />
+          {modeMail && (
+            <div className="px-7 pb-3 -mt-4 flex flex-wrap items-center gap-2">
+              <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
+            </div>
+          )}
+          <div className="accueil-bar">
+            <div className="accueil-tools">
+              <input
+                ref={fichierRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt,.eml,.png,.jpg,.jpeg"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; if (modePreanalyse) onAnalyserFichier?.(f); else deposer.mutate(f); }}
+              />
               {!modeMail && (
                 <div className="relative">
-                  <BoutonBarre onClick={() => setMenuPlus((o) => !o)} disabled={apercu || (!dossier && !modePreanalyse)} actif={menuPlus} title="Ajouter un document"><Plus className="w-4 h-4" /></BoutonBarre>
+                  <button type="button" className="accueil-icon" title="Ajouter un document" aria-label="Ajouter un document" onClick={() => setMenuPlus((o) => !o)} disabled={apercu || (!dossier && !modePreanalyse)}><Paperclip className="w-4 h-4" /></button>
                   {menuPlus && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setMenuPlus(false)} />
@@ -248,33 +252,35 @@ export default function ChatDossier({
                       </div>
                     </>
                   )}
-                  <input
-                    ref={fichierRef}
-                    type="file"
-                    accept=".pdf,.doc,.docx,.txt,.eml,.png,.jpg,.jpeg"
-                    className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; if (modePreanalyse) onAnalyserFichier?.(f); else deposer.mutate(f); }}
-                  />
                 </div>
               )}
-              {modeMail ? (
-                <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
-              ) : !modePreanalyse ? (
+              {!modeMail && !modePreanalyse && (
                 <>
-                  <BoutonBarre onClick={() => onToutCocher?.()} disabled={!documents.length} actif={nbCoches > 0} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"}><PanelRight className="w-4 h-4" /></BoutonBarre>
-                  <span className="inline-flex items-center rounded-full border border-[#2c3139] p-0.5 ml-1">
+                  <button type="button" className={`accueil-icon ${nbCoches ? "!border-[#96c0b8]/60 !text-[#96c0b8]" : ""}`} onClick={() => onToutCocher?.()} disabled={!documents.length} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"} aria-label="Sources"><PanelRight className="w-4 h-4" /></button>
+                  <span className="inline-flex items-center rounded-[9px] border border-white/[0.08] p-0.5">
                     {[["rapide", "Rapidité", "Une réponse courte et directe"], ["reflexion", "Réflexion", "L'analyse des pièces, plus longue"]].map(([id, mot, titre]) => (
-                      <button key={id} onClick={() => setProfondeur(id)} title={titre} className={`px-3 py-1 rounded-full text-[12px] transition-colors ${profondeur === id ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{mot}</button>
+                      <button key={id} type="button" onClick={() => setProfondeur(id)} title={titre} className={`px-3 py-1.5 rounded-[7px] text-[13px] transition-colors ${profondeur === id ? "bg-[#9CC3BC] text-[#0b1211] font-medium" : "text-[#9a9a9a] hover:text-[#f2f3f5]"}`} style={{ fontFamily: "Figtree, sans-serif" }}>{mot}</button>
                     ))}
                   </span>
                 </>
-              ) : null}
-              {dicteeOk && (
-                <BoutonBarre onClick={ecoute ? arreter : demarrer} disabled={apercu || !dossier} alerte={ecoute} title={ecoute ? "Arrêter" : "Dicter"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
               )}
-            </>
-          }
-        />
+              <button
+                type="button"
+                id="accueil-voix"
+                aria-pressed={ecoute}
+                disabled={apercu || !dossier}
+                onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
+                title={ecoute ? "Arrêter la voix" : "Dicter"}
+              >
+                <span className="dot" /><span>Voix</span>
+              </button>
+            </div>
+            <button type="button" className="accueil-send" onClick={lancer} disabled={!peutEnvoyer}>
+              {enCours ? <PenseeIA etat="working" taille={20} clair /> : null}
+              {modeMail ? "Rédiger le mail" : modePreanalyse ? "Lancer l'analyse" : "Envoyer"}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Documents, puis requêtes récentes : repliés, un clic les ouvre. */}

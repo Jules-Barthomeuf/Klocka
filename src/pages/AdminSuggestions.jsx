@@ -91,6 +91,13 @@ export default function AdminSuggestions() {
     onError: (e) => toast.error(e?.message || "Changement impossible"),
   });
 
+  // L'urgence se corrige d'un clic sur une barre, sans rouvrir la remarque.
+  const noter = useMutation({
+    mutationFn: ({ id, urgence: n }) => base44.entities.Suggestion.update(id, { urgence: n }),
+    onSuccess: rafraichir,
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+
   // Une remarque se corrige après coup, sans la refaire.
   const modifier = useMutation({
     mutationFn: ({ id, contenu }) => base44.entities.Suggestion.update(id, { contenu }),
@@ -139,16 +146,22 @@ export default function AdminSuggestions() {
                   <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#0a0a0b] border border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5] flex items-center justify-center" aria-label="Retirer la capture"><X className="w-3.5 h-3.5" /></button>
                 </div>
               )}
-              {/* Le curseur d'urgence : cinq crans, la couleur suit. */}
-              <div className="flex flex-wrap items-center gap-4 mb-2">
+              {/* L'urgence : cinq barres, on clique celle qu'on veut. */}
+              <div className="flex flex-wrap items-center gap-3 mb-2">
                 <span className="text-[11px] tracking-[.14em] uppercase text-[#6a7180]">Urgence</span>
-                <input
-                  type="range" min={1} max={5} step={1} value={urgence}
-                  onChange={(e) => setUrgence(Number(e.target.value))}
-                  aria-label="Urgence"
-                  className="w-[180px] h-1 cursor-pointer rounded-full bg-[#22262d]"
-                  style={{ accentColor: urgenceDe(urgence).teinte }}
-                />
+                <span className="inline-flex items-end gap-1" role="group" aria-label="Urgence">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setUrgence(n)}
+                      aria-pressed={urgence === n}
+                      title={URGENCES[n - 1].mot}
+                      className="w-3.5 rounded-[2px] transition-all hover:opacity-100"
+                      style={{ height: 8 + n * 3, background: n <= urgence ? urgenceDe(urgence).teinte : "#22262d", opacity: n <= urgence ? 1 : .85 }}
+                    />
+                  ))}
+                </span>
                 <span className="text-[12.5px] font-medium" style={{ color: urgenceDe(urgence).teinte }}>{urgenceDe(urgence).mot}</span>
               </div>
             </>
@@ -207,8 +220,12 @@ export default function AdminSuggestions() {
                       <p className="m-0 text-[14.5px] leading-[1.65] text-[#f2f3f5] whitespace-pre-wrap">{r.contenu}</p>
                     )}
                     <p className="m-0 mt-1.5 text-[12px] text-[#6a7180] flex flex-wrap items-center gap-x-2">
-                      <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n}/5`}>
-                        <span className="inline-flex gap-px">{[1, 2, 3, 4, 5].map((n) => <span key={n} className="w-1.5 h-2.5 rounded-[2px]" style={{ background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : "#22262d" }} />)}</span>
+                      <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n} sur 5 — cliquez une barre pour la changer`}>
+                        <span className="inline-flex items-end gap-px">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button key={n} type="button" onClick={() => noter.mutate({ id: r.id, urgence: n })} title={URGENCES[n - 1].mot} className="w-1.5 rounded-[2px] transition-colors" style={{ height: 5 + n * 1.6, background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : "#22262d" }} />
+                          ))}
+                        </span>
                         <span style={{ color: urgenceDe(r.urgence).teinte }}>{urgenceDe(r.urgence).mot}</span>
                       </span>
                       <span className="text-[#3a3f4a]">·</span>

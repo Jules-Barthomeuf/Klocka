@@ -134,10 +134,7 @@ export default function PlanDeTravail({ chat = null }) {
       <header className="accueil relative text-center pt-[10vh] max-md:pt-6">
         <div aria-hidden="true" className="accueil-halo-a" />
         <div aria-hidden="true" className="accueil-halo-b" />
-        <p className="relative m-0 text-[11px] tracking-[.16em] uppercase text-[#5c646b]" style={{ fontFamily: "Figtree, sans-serif" }}>
-          Équipe Klocka — {maintenant.replace(" à ", ", ")}
-        </p>
-        <h1 className="relative m-0 mt-5 text-[40px] max-md:text-[30px] font-normal italic tracking-[-.01em] leading-[1.1] text-white" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+        <h1 className="relative m-0 text-[40px] max-md:text-[30px] font-normal italic tracking-[-.01em] leading-[1.1] text-white" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
           {salut}
         </h1>
       </header>

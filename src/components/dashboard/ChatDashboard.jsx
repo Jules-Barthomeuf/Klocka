@@ -4,12 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { toast } from "sonner";
-import { ArrowRight, Bell, Check, Copy, FileText, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, Square, User, X } from "lucide-react";
+import { ArrowRight, Bell, Check, Copy, FileText, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, Settings, Square, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
-import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
+import Message from "@/components/MessageIA";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -59,20 +59,6 @@ const euros = (n) => (typeof n === "number" ? `${Math.round(n).toLocaleString("f
 const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
 const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 const INTENTIONS_LIBELLES = { demande_documents: "la demande de documents", relance: "la relance", presentation_client: "la présentation client", refus: "le refus", abandon: "l'abandon" };
-
-function Message({ m }) {
-  const moi = m.role === "user";
-  return (
-    <div className={`flex ${moi ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[86%] rounded-lg px-4 py-3 text-[13.5px] leading-[1.7] whitespace-pre-wrap
-          ${moi ? "bg-[#1a1d1c] text-[#f2f3f5] border border-[#22262d]" : "bg-transparent text-[#c9cdd6] border border-[#1f2228]"}`}
-      >
-        {moi ? m.contenu : sansMarkdown(m.contenu)}
-      </div>
-    </div>
-  );
-}
 
 // Un brouillon de mail à relire : rien ne part sans un clic humain.
 function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
@@ -616,7 +602,7 @@ export default function ChatDashboard() {
   return (
     <div>
       {aDuContenu && (
-        <div className="mb-4 space-y-3">
+        <div className="mb-6 space-y-7">
           {fil.map((m, i) =>
             m.role === "bloc" ? (
               m.type === "fiche" ? <ResultatFiche key={i} r={m.donnees} clients={m.donnees.clients} />
@@ -689,7 +675,7 @@ export default function ChatDashboard() {
               <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
               <button type="button" className="accueil-icon" title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier" onClick={() => fichierRef.current?.click()}><Paperclip className="w-4 h-4" /></button>
               <div className="relative">
-                <button type="button" className="accueil-icon mono" title="Commandes" onClick={() => setCommandes((o) => !o)}>Cmd</button>
+                <button type="button" className="accueil-icon" title="Commandes types" aria-label="Commandes types" onClick={() => setCommandes((o) => !o)}><Settings className="w-4 h-4" /></button>
                 {commandes && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />

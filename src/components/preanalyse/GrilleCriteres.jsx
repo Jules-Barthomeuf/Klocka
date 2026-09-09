@@ -83,6 +83,12 @@ export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, 
                     {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} title="Modifier la valeur" className="flex-none text-[#4d545d] hover:text-[#f2f3f5] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
                   </div>
                 )}
+                {/* Une valeur venue d'une pièce qui ne relève pas de cette
+                    grille : on le dit, sinon elle passe pour une lecture de la
+                    pièce attendue. */}
+                {l.hors_grille && l.lue_dans && edition?.id !== l.id && (
+                  <p className="m-0 mt-1 text-[11px] text-[#d9b46a]">lu dans « {l.lue_dans} », pas dans les pièces de cette partie</p>
+                )}
                 {l.correction && edition?.id !== l.id && <p className="m-0 mt-1 text-[11px] text-[#d9b46a]">corrigé à la main{l.correction.par ? ` · ${l.correction.par.split("@")[0]}` : ""}{l.valeur_lue ? <span className="text-[#6a7180]"> · lu : {String(l.valeur_lue).slice(0, 60)}{String(l.valeur_lue).length > 60 ? "…" : ""}</span> : null}</p>}
                 {l.motif && l.statut_calcule !== "ok" && <p className="m-0 mt-1 text-[12px] leading-[1.45] text-[#9298a6]">{l.motif}{l.details ? <span className="text-[#6a7180]"> · {details.has(l.id) ? "replier" : "voir les valeurs"}</span> : null}</p>}
                 {l.details && details.has(l.id) && (

@@ -142,7 +142,10 @@ function matiere(m, f, grille) {
     parChamp[id] = {
       question: champs.get(id)?.question || id,
       retenue: sienne ? sienne.reponse : champs.get(id)?.valeur || null,
-      retenue_de: sienne ? sienne.document : null,
+      // La pièce d'où sort la valeur, et si elle relève bien de cette grille.
+      // Une valeur reprise d'ailleurs reste utile, mais doit se dire.
+      retenue_de: sienne ? sienne.document : reponses[0]?.document || null,
+      dans_la_grille: !!sienne,
       reponses,
     };
   }
@@ -182,7 +185,11 @@ export async function formaterGrille(dealId, id, { user, force = false } = {}) {
   // le loyer du bail et celui des quittances sans que rien ne le signale.
   const criteres = grille.criteres.map((c) => `- ${c.id} (${c.libelle}) — format : ${c.format}\n  champs lus : ${c.champs.map((ch) => {
     const p = parChamp[ch];
-    const source = p?.retenue_de ? ` (lu dans « ${p.retenue_de} »)` : ' (aucune pièce de cette grille ne répond : valeur reprise du dossier)';
+    const source = !p?.retenue_de
+      ? ' (aucune pièce ne répond)'
+      : p.dans_la_grille
+      ? ` (lu dans « ${p.retenue_de} »)`
+      : ` (aucune pièce de cette grille ne répond ; valeur reprise de « ${p.retenue_de} »)`;
     const autres = p?.reponses?.length > 1 ? ` ; autres pièces : ${JSON.stringify(p.reponses.slice(1, 4).map((r) => `${r.document} : ${r.reponse}`))}` : '';
     return `${ch} = ${JSON.stringify(p?.retenue || null)}${source}${autres}`;
   }).join('\n  ')}`).join('\n');
@@ -222,7 +229,7 @@ function warnings(id, cid, x, ctx) {
     case 'bail.taxes': if (x.taxe_fonciere_refacturee === false) return w('La taxe foncière n\'est pas refacturable au locataire.'); return null;
     case 'quittances.loyer_hc_ht': {
       const fiche = ctx.loyer_fiche; const mont = x.montant;
-      if (fiche && mont) { const annuel = x.periodicite === 'trimestriel' ? mont * 4 : x.periodicite === 'annuel' ? mont : mont * 12; if (Math.abs(annuel - fiche) / fiche > 0.05) return { ...w(`${eur(annuel)}/an sur quittances contre ${eur(fiche)} sur la fiche commerciale.`), details: [{ libelle: 'Fiche commerciale', valeur: `${eur(fiche)} / an` }, { libelle: 'Quittances', valeur: `${eur(mont)} ${x.periodicite === 'trimestriel' ? 'par trimestre' : 'par mois'} · ${eur(annuel)} / an` }] }; }
+      if (fiche && mont) { const annuel = x.periodicite === 'trimestriel' ? mont * 4 : x.periodicite === 'annuel' ? mont : mont * 12; if (Math.abs(annuel - fiche) / fiche > 0.05) return { ...w(`${eur(annuel)}/an relevé contre ${eur(fiche)} sur la fiche commerciale.`), details: [{ libelle: 'Fiche commerciale', valeur: `${eur(fiche)} / an` }, { libelle: 'Relevé', valeur: `${eur(mont)} ${x.periodicite === 'trimestriel' ? 'par trimestre' : 'par mois'} · ${eur(annuel)} / an` }] }; }
       return null;
     }
     case 'quittances.provision': if (x.mentionnee && ctx.provision_bail && x.montant && Math.abs(x.montant - ctx.provision_bail) / ctx.provision_bail > 0.1) return { ...w(`Provision ${eur(x.montant)} contre ${eur(ctx.provision_bail)} au bail.`), details: [{ libelle: 'Bail', valeur: eur(ctx.provision_bail) }, { libelle: 'Quittances', valeur: eur(x.montant) }] }; return null;
@@ -311,15 +318,27 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
     if (statut === 'non_lu') motif = 'Question pas encore lue.';
     const correction = brut.grilles_valeurs?.[`${id}.${c.id}`] || null;
     if (correction?.valeur) { valeur = correction.valeur; if (statut === 'vide' || statut === 'non_lu') { statut = 'ok'; motif = null; } }
+    const origines = c.champs.map((ch) => parChamp[ch]).filter((p) => p?.retenue_de);
+    const propre = origines.find((p) => p.dans_la_grille);
+    const dehors = !propre && origines[0] && valeur ? origines[0] : null;
     const statutCalcule = statut;
     // Un « OK » calculé n'est pas un OK validé : il s'affiche « à checker »
     // tant qu'un humain ne l'a pas passé en OK. Les alertes restent des alertes.
     if (statut === 'ok') statut = 'a_checker';
+    // Une valeur lue dans une pièce étrangère à cette partie demande la pièce
+    // attendue : un DPE relevé dans un bail n'est pas un diagnostic lu.
+    if (dehors && (statut === 'a_checker' || statut === 'ok')) {
+      statut = 'a_verifier';
+      motif = `Relevé dans « ${dehors.retenue_de} » : à confirmer sur la pièce de cette partie.`;
+    }
     const decision = brut.grilles_statuts?.[`${id}.${c.id}`] || null;
     const note = brut.grilles_notes?.[`${id}.${c.id}`] || null;
     if (decision?.statut) statut = decision.statut;
     const masquee = c.masquer_si_absent && (!x || x.present === false || !valeur);
-    return { id: c.id, libelle: c.libelle, regle: c.regle, format: c.format, valeur, valeur_lue: texteDe(id, c.id, x), correction, note, statut, statut_calcule: statutCalcule, decision, motif, details, masquee, preuves: preuvesDe(c.champs).slice(0, 6) };
+    // D'où vient la valeur affichée : la pièce, et si elle relève de cette
+    // grille. Une valeur lue ailleurs se signale plutôt que de se faire passer
+    // pour une lecture de la pièce attendue.
+    return { id: c.id, libelle: c.libelle, regle: c.regle, format: c.format, valeur, valeur_lue: texteDe(id, c.id, x), correction, note, statut, statut_calcule: statutCalcule, decision, motif, details, masquee, lue_dans: (propre || dehors)?.retenue_de || null, hors_grille: !!dehors, preuves: preuvesDe(c.champs).slice(0, 6) };
   }).filter((l) => !l.masquee);
   const nb = (s) => lignes.filter((l) => l.statut === s).length;
   return { id, titre: grille.titre, lignes, resume: { ok: nb('ok'), a_checker: nb('a_checker'), warning: nb('warning'), a_verifier: nb('a_verifier'), no_go: nb('no_go'), vide: nb('vide'), non_lu: nb('non_lu') }, formatee_le: cache?.le || null, remplissage: m.remplissage, non_lues: grille.criteres.flatMap((c) => c.champs).filter((ch) => !lu.includes(ch)).length };

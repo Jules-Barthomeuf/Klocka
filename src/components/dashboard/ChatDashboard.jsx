@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { toast } from "sonner";
-import { ArrowRight, Check, Copy, Loader2, Mic, Paperclip, Pencil, Plus, Send, Square, X } from "lucide-react";
+import { ArrowRight, Bell, Check, Copy, FileText, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, Square, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
@@ -13,12 +13,12 @@ import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
 const MODES = [
-  { id: "note", label: "Note d'appel", type: "note", placeholder: "J'ai eu Marc de l'agence X, il me rappelle jeudi…" },
-  { id: "fiche", label: "Fiche d'agent", type: "fiche", placeholder: "Collez le mail ou l'annonce de l'agent : le dossier naît, nommé et analysé." },
-  { id: "mail", label: "Mail", type: "assistant", placeholder: "Décrivez le mail à écrire, ou choisissez un mail type et remplacez les valeurs entre crochets…" },
-  { id: "client", label: "Client", type: "client", placeholder: "Collez le compte rendu de l'appel de découverte : la fiche client est à valider ensuite." },
-  { id: "question", label: "Question", type: "assistant", placeholder: "Une question, un ordre : dossiers, mails, Monday, simulation…" },
-  { id: "rappel", label: "Rappel", type: "rappel", placeholder: "Rappelle-moi dans 3 jours de rappeler Marc, voici son numéro : 06…", gabarit: "Rappelle-moi dans [x] jours de rappeler [nom], voici son numéro : [numéro]" },
+  { id: "note", label: "Note d'appel", icone: Phone, type: "note", placeholder: "J'ai eu Marc de l'agence X, il me rappelle jeudi…" },
+  { id: "fiche", label: "Fiche d'agent", icone: FileText, type: "fiche", placeholder: "Collez le mail ou l'annonce de l'agent : le dossier naît, nommé et analysé." },
+  { id: "mail", label: "Mail", icone: Mail, type: "assistant", placeholder: "Décrivez le mail à écrire, ou choisissez un mail type et remplacez les valeurs entre crochets…" },
+  { id: "client", label: "Client", icone: User, type: "client", placeholder: "Collez le compte rendu de l'appel de découverte : la fiche client est à valider ensuite." },
+  { id: "question", label: "Question", icone: MessageCircle, type: "assistant", placeholder: "Une question, un ordre : dossiers, mails, Monday, simulation…" },
+  { id: "rappel", label: "Rappel", icone: Bell, type: "rappel", placeholder: "Rappelle-moi dans 3 jours de rappeler Marc, voici son numéro : 06…", gabarit: "Rappelle-moi dans [x] jours de rappeler [nom], voici son numéro : [numéro]" },
 ];
 
 // Le chat du tableau de bord : une seule zone, on y met ce qu'on veut, il
@@ -662,16 +662,6 @@ export default function ChatDashboard() {
         }
         gauche={
           <>
-            {MODES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => { const suivant = mode === m.id ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); }}
-                title={mode === m.id ? "Revenir au tri automatique" : m.placeholder}
-                className={`relative text-[12.5px] py-1 px-0.5 mr-2 transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-px after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${mode === m.id ? "text-[#f2f3f5] font-medium after:scale-x-100" : "text-[#8f959e] hover:text-[#c6ccd3]"}`}
-              >
-                {m.label}
-              </button>
-            ))}
             {mode === "mail" && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
             <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
             <BoutonBarre onClick={() => fichierRef.current?.click()} title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"><Plus className="w-4 h-4" /></BoutonBarre>
@@ -681,6 +671,26 @@ export default function ChatDashboard() {
           </>
         }
       />
+
+      {/* Les gestes courants, sous la boîte : un clic choisit le mode, un second
+          revient au tri automatique. */}
+      <div className="mt-6 flex flex-wrap justify-center gap-2.5">
+        {MODES.map((m) => {
+          const Icone = m.icone;
+          const actif = mode === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => { const suivant = actif ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); }}
+              title={actif ? "Revenir au tri automatique" : m.placeholder}
+              className={`inline-flex items-center gap-2.5 px-4 py-2.5 rounded-[10px] border text-[14px] transition-colors ${actif ? "border-[#96c0b8] bg-[#96c0b8]/[0.12] text-[#f2f3f5]" : "border-[#22262d] bg-[#0f1114] text-[#c9cdd6] hover:border-[#3a3f4a] hover:text-[#f2f3f5]"}`}
+            >
+              <Icone className={`w-4 h-4 ${actif ? "text-[#96c0b8]" : "text-[#9298a6]"}`} />
+              {m.label}
+            </button>
+          );
+        })}
+      </div>
 
       <Rappels />
     </div>

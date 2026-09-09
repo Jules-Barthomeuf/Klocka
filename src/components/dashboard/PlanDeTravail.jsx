@@ -117,15 +117,18 @@ export default function PlanDeTravail({ chat = null }) {
     <div>
       <input ref={fichierSauvegardeRef} type="file" accept=".json" className="hidden" onChange={restaurerSauvegarde} />
       {/* --- En-tête --------------------------------------------------------- */}
-      <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
-        <div className="min-w-0">
-          <p className="m-0 text-[11px] tracking-[.16em] uppercase text-[#9298a6]">
-            Équipe Klocka — {maintenant.replace(" à ", ", ")}
-          </p>
-          <h1 className="m-0 mt-2.5 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">
-            Dashboard
-          </h1>
-        </div>
+      {/* On arrive sur une question, pas sur un tableau : le chat au centre,
+          un halo menthe derrière, les gestes courants juste en dessous. */}
+      <header className="relative text-center pt-6 max-md:pt-2">
+        <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[-120px] -translate-x-1/2 w-[900px] h-[620px] max-w-[140vw]" style={{ background: "radial-gradient(ellipse at center, rgba(150,192,184,0.16) 0%, rgba(150,192,184,0.06) 35%, rgba(0,0,0,0) 70%)" }} />
+        <p className="relative m-0 text-[11px] tracking-[.16em] uppercase text-[#6a7180]">
+          Équipe Klocka — {maintenant.replace(" à ", ", ")}
+        </p>
+        <h1 className="relative m-0 mt-4 text-[40px] max-md:text-[28px] font-medium tracking-[-0.02em] leading-[1.1] text-[#f2f3f5]">
+          Comment puis-je <span className="text-[#9298a6]">vous aider</span> ?
+        </h1>
+        <div aria-hidden="true" className="relative mx-auto mt-3 h-px w-[420px] max-w-[70%]" style={{ background: "linear-gradient(90deg, rgba(150,192,184,0) 0%, rgba(150,192,184,.55) 50%, rgba(150,192,184,0) 100%)" }} />
+        <p className="relative m-0 mt-4 text-[16px] max-md:text-[14px] text-[#9298a6]">Écrivez une consigne ou posez une question.</p>
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
@@ -139,8 +142,8 @@ export default function PlanDeTravail({ chat = null }) {
         </div>
       )}
 
-      {/* Le chat vient sous le titre : le tableau de bord se nomme d'abord. */}
-      {chat && <div className="mt-10 max-md:mt-8">{chat}</div>}
+      {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
+      {chat && <div className="relative mt-10 max-md:mt-8 max-w-[960px] mx-auto">{chat}</div>}
 
       <div className={REGLE} />
 

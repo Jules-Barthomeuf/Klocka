@@ -221,6 +221,8 @@ De : ${mail.de || mail.de_email || 'inconnu'}
 
 ${String(mail.texte).slice(0, 6000)}`,
       response_json_schema: SCHEMA_PROMESSES,
+      // Relever une promesse datée dans un mail : lecture littérale.
+      effort: 'low',
     })
   );
 

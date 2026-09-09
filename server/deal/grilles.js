@@ -173,6 +173,8 @@ export async function formaterGrille(dealId, id, { user, force = false } = {}) {
   const { resultat } = await mesurer({ operation: `grille ${grille.titre}`, par: user?.email || null, sur: dealId }, () => invokeLLM({
     prompt: `${consigne}\n\nContexte de la fiche commerciale : ${JSON.stringify(contexte)}\n\nCritères :\n${criteres}\n\nRéponds en JSON, une clé par critère.`,
     response_json_schema: schema,
+    // Mise en forme de valeurs déjà lues : rien à raisonner.
+    effort: 'low',
   }));
   const valeurs = resultat && typeof resultat === 'object' ? resultat : {};
   Records.update('Deal', brut.id, { grilles_formatees: { ...(brut.grilles_formatees || {}), [id]: { cle, le: new Date().toISOString(), valeurs } } });

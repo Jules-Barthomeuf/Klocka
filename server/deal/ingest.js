@@ -37,11 +37,41 @@ async function lirePdf(buffer) {
     const pages = r.pages || [];
     return {
       texte: nettoyer(pages.map((pg) => pg.text || '').join('\n\n')),
+      // La même chose, page par page : le modèle doit pouvoir citer « p. 12 ».
+      parPage: pages.map((pg) => nettoyer(pg.text || '')),
       pages: pages.length || 1,
     };
   } finally {
     await parser.destroy().catch(() => {});
   }
+}
+
+/**
+ * La couche texte d'un PDF natif, bornée par des marques de page.
+ *
+ * Envoyer le PDF tel quel fait rendre chaque page en image : un bail de cent
+ * pages pèse alors 280 000 jetons contre 91 000 pour son texte, trois fois
+ * plus cher pour la même lecture (mesuré, valeurs extraites identiques). On ne
+ * bascule que si la couche texte est dense : un scan n'en a pas, et lui doit
+ * partir en image.
+ *
+ * @returns {Promise<{texte:string, pages:number}|null>} null si le PDF est un
+ *   scan, illisible, ou trop pauvre en texte pour être lu ainsi.
+ */
+export async function coucheTexteDuPdf(buffer) {
+  let lu;
+  try {
+    lu = await lirePdf(buffer);
+  } catch {
+    return null;
+  }
+  if (!lu?.texte) return null;
+  if (lu.texte.length / Math.max(1, lu.pages) < MIN_CHARS_PAR_PAGE) return null;
+  const texte = (lu.parPage || [])
+    .map((t, i) => `\n--- page ${i + 1} ---\n${t}`)
+    .join('\n')
+    .trim();
+  return { texte: texte || lu.texte, pages: lu.pages };
 }
 
 async function lireEml(buffer) {

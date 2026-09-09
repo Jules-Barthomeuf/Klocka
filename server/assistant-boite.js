@@ -66,6 +66,8 @@ ${String(texte || '').slice(0, 6000)}
         properties: { type: { type: 'string', enum: TYPES }, raison: { type: 'string' } },
         required: ['type'],
       },
+      // Ranger un texte dans cinq familles : une décision, pas une analyse.
+      effort: 'low',
     })
   );
   return TYPES.includes(resultat?.type) ? resultat.type : 'assistant';

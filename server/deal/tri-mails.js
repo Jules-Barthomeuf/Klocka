@@ -277,6 +277,8 @@ Objet : ${mail.objet || '(sans objet)'}
 Extrait : ${(mail.extrait || '').slice(0, 400)}
 Pièces jointes : ${(mail.pieces_jointes || []).map((p) => p.nom).join(', ') || 'aucune'}${exemples}`,
       response_json_schema: SCHEMA_JUGEMENT,
+      // Garder ou écarter un mail : une décision courte, pas une réflexion.
+      effort: 'low',
     });
     return {
       garder: !!r?.transmet_un_bien,

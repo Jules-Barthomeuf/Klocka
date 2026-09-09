@@ -305,7 +305,7 @@ function toGeminiTools(tools = []) {
  * @param {string[]} [opts.file_urls] - resolved to text and appended to the prompt
  * @param {function} [opts.resolveFileText] - async (url) => string
  */
-export async function invokeLLM({ prompt, response_json_schema, file_urls, resolveFileText } = {}) {
+export async function invokeLLM({ prompt, response_json_schema, file_urls, resolveFileText, effort = null } = {}) {
   const wantsJson = !!response_json_schema;
 
   if (!llmEnabled) {
@@ -339,6 +339,11 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
     const message = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
       max_tokens: 16000,
+      // `effort` règle la profondeur de réflexion du modèle, donc les jetons de
+      // sortie — les plus chers. « low » sur un geste mécanique : mettre en
+      // forme une valeur déjà lue, trier un mail, ranger une phrase. Jamais sur
+      // une lecture de pièce, où le raisonnement est le travail.
+      ...(effort ? { output_config: { effort } } : {}),
       ...(system ? { system } : {}),
       messages: [{ role: 'user', content: fullPrompt }],
     });
@@ -382,6 +387,23 @@ const LISIBLE_NATIF = (m) => m === 'application/pdf' || /^image\/(jpeg|png|gif|w
 // requête et identique au caractère près — d'où l'ordre document puis consigne
 // partout ici. L'écriture coûte un quart de plus que l'envoi normal : on ne
 // marque que les pièces, jamais une consigne de quelques lignes.
+// Un PDF envoyé tel quel voit chacune de ses pages rendue en image, en plus de
+// son texte : trois fois plus de jetons pour la même lecture. Quand la couche
+// texte est dense — un bail, un PV d'AG, un règlement — on envoie le texte,
+// borné page par page pour que les citations gardent leur « p. 12 ». Un scan
+// n'a pas de couche texte : il repart en image, comme avant.
+// KLOCKA_PDF_NATIF=1 rétablit l'ancien comportement partout.
+const PDF_TOUJOURS_NATIF = process.env.KLOCKA_PDF_NATIF === '1';
+async function texteDuPdf(buffer, mimetype) {
+  if (PDF_TOUJOURS_NATIF || mimetype !== 'application/pdf' || !buffer?.length) return null;
+  try {
+    const { coucheTexteDuPdf } = await import('./deal/ingest.js');
+    return await coucheTexteDuPdf(buffer);
+  } catch {
+    return null;
+  }
+}
+
 const CACHE = { type: 'ephemeral', ttl: '1h' };
 const enCache = (bloc) => ({ ...bloc, cache_control: CACHE });
 
@@ -409,6 +431,19 @@ export async function generateFromDocument({ buffer, mimetype, prompt, nom } = {
       model: ANTHROPIC_MODEL,
       max_tokens: 16000,
       messages: [{ role: 'user', content: [enCache({ type: 'text', text: texte.slice(0, 120000) }), { type: 'text', text: prompt }] }],
+    });
+    compter(ANTHROPIC_MODEL, message.usage);
+    return (message.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+  }
+
+  // Le PDF a une couche texte exploitable : on l'envoie, trois fois moins cher.
+  const couche = await texteDuPdf(buffer, mimetype);
+  if (couche && provider === 'anthropic') {
+    const corps = `Document${nom ? ` « ${nom} »` : ''} — ${couche.pages} page(s), texte du PDF, les marques « --- page N --- » donnent la page :\n${couche.texte.slice(0, 400000)}`;
+    const message = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 16000,
+      messages: [{ role: 'user', content: [enCache({ type: 'text', text: corps }), { type: 'text', text: prompt }] }],
     });
     compter(ANTHROPIC_MODEL, message.usage);
     return (message.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
@@ -597,6 +632,12 @@ export async function chatDocuments({ system, messages = [], documents = [], pro
   // Les pièces que le modèle ne lit pas telles quelles deviennent du texte,
   // au lieu d'être annoncées « contenu non lisible ».
   documents = await Promise.all(documents.map(async (d) => {
+    // Les PDF à couche texte deviennent du texte : même contenu, trois fois
+    // moins de jetons, et les pages restent citables.
+    if (!d.texte && d.buffer?.length && d.mimetype === 'application/pdf') {
+      const couche = await texteDuPdf(d.buffer, d.mimetype);
+      if (couche) return { ...d, texte: `${couche.pages} page(s), texte du PDF, les marques « --- page N --- » donnent la page :\n${couche.texte}`, buffer: null };
+    }
     if (d.texte || !d.buffer?.length || LISIBLE_NATIF(d.mimetype)) return d;
     try { return { ...d, texte: await texteDeLaPiece({ buffer: d.buffer, mimetype: d.mimetype, nom: d.nom }), buffer: null }; }
     catch { return d; }

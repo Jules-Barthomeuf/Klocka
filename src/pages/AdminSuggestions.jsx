@@ -269,6 +269,14 @@ export default function AdminSuggestions() {
                       </span>
                       <span className="text-[#3a3f4a]">·</span>
                       <span>{r.client_name || r.client_email}{r.created_date ? ` · ${quand(r.created_date)}` : ""}</span>
+                      {/* D'où part la remarque : « ça ne marche pas » ne dit
+                          pas où, l'adresse de la page le dit. */}
+                      {r.page && (
+                        <>
+                          <span className="text-[#3a3f4a]">·</span>
+                          <a href={r.page} className="text-[#6a7180] hover:text-[#96c0b8] underline decoration-[#22262d] underline-offset-2" title="Ouvrir la page d'où vient la remarque">{r.page}</a>
+                        </>
+                      )}
                     </p>
                   </div>
                   <div className="flex-none flex items-start gap-1.5">

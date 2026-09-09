@@ -37,6 +37,7 @@ import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 import { useQuery } from "@tanstack/react-query";
 import { UserProvider, useUser } from "@/components/providers/UserProvider";
 import AssistantFlottant from "@/components/AssistantFlottant";
+import FeedbackFlottant from "@/components/FeedbackFlottant";
 
 const globalTooltipStyles = `
   [role="tooltip"],
@@ -393,6 +394,10 @@ function LayoutContent({ children, currentPageName }) {
           {children}
         </div>
       </main>
+
+      {/* Signaler quelque chose sans quitter la page : l'icône reste en haut à
+          droite, le panneau s'ouvre dessous et la remarque part de là. */}
+      {isAdmin && !hideNavbar && <FeedbackFlottant />}
 
       {/* L'assistant suit l'admin de page en page. */}
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}

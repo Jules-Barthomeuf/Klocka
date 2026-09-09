@@ -19,6 +19,7 @@ import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
 import { GABARITS } from "./gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
+import { demanderNotifications, prevenir } from "@/lib/notifications";
 import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
 import SectionBien from "@/components/preanalyse/SectionBien";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
@@ -1393,12 +1394,16 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
   });
   const lancer = useMutation({
     mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/preanalyse-documents`, { body: {} }),
-    onSuccess: () => toast.success("Pré-analyse lancée depuis les pièces du dossier"),
+    onSuccess: () => { demanderNotifications(); toast.success("Pré-analyse lancée depuis les pièces du dossier", { description: "Vous serez prévenu quand elle sera terminée." }); },
     onError: (e) => toast.error(e?.message || "Lancement impossible"),
   });
   const queryClient = useQueryClient();
   useEffect(() => {
-    if (etat?.etat === "pret") { onRefresh?.(); queryClient.invalidateQueries({ queryKey: ["carte", dealId] }); }
+    if (etat?.etat === "pret") {
+      onRefresh?.();
+      queryClient.invalidateQueries({ queryKey: ["carte", dealId] });
+      prevenir("Pré-analyse terminée", dossier.titre || dossier.nom || "Le dossier est prêt", `/Analyse?deal_id=${dealId}`);
+    }
   }, [etat?.etat]);
   const enCours = etat?.etat === "en_cours" || lancer.isPending;
 
@@ -1438,10 +1443,16 @@ function RelancePreanalyse({ dossier, onRefresh, apercu }) {
   });
   const relancer = useMutation({
     mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/relancer-preanalyse`, { body: {} }),
-    onSuccess: () => { toast.success("Pré-analyse relancée — l'analyse suivra"); queryClient.invalidateQueries({ queryKey: ["preanalyse-documents", dealId] }); },
+    onSuccess: () => { demanderNotifications(); toast.success("Pré-analyse relancée — l'analyse suivra", { description: "Vous serez prévenu quand elle sera terminée." }); queryClient.invalidateQueries({ queryKey: ["preanalyse-documents", dealId] }); },
     onError: (e) => toast.error(e?.message || "Relance impossible"),
   });
-  useEffect(() => { if (etat?.etat === "pret" && etat?.relance) { onRefresh?.(); ["etape1", "etape2", "etape3", "etape4", "carte", "matrice", "fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] })); } }, [etat?.etat]);
+  useEffect(() => {
+    if (etat?.etat === "pret" && etat?.relance) {
+      onRefresh?.();
+      ["etape1", "etape2", "etape3", "etape4", "carte", "matrice", "fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
+      prevenir("Pré-analyse terminée", dossier.titre || dossier.nom || "Le dossier est à jour", `/Analyse?deal_id=${dealId}`);
+    }
+  }, [etat?.etat]);
   const enCours = etat?.etat === "en_cours";
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 -mt-2 mb-4">

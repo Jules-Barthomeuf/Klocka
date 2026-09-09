@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Check, Loader2, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 import PenseeIA from "@/components/PenseeIA";
+import { demanderNotifications, prevenir } from "@/lib/notifications";
 
 // Une grille de critères : critère, valeur lue au format voulu, statut en
 // case colorée, source à droite. La règle se lit d'un clic sur le critère.
@@ -150,9 +151,26 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
   // toutes les pièces ; les autres tableaux ne bougent pas.
   const relancer = useMutation({
     mutationFn: (id) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${id}/relancer`, { body: {} }),
-    onSuccess: () => { toast.success("Analyse relancée"); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
+    onSuccess: () => { demanderNotifications(); toast.success("Analyse relancée", { description: "Vous serez prévenu quand elle sera terminée." }); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
     onError: (e) => toast.error(e?.message || "Relance impossible"),
   });
+
+  // La relecture s'achève alors qu'on est peut-être ailleurs : on prévient, et
+  // le message ramène sur le dossier.
+  const enCoursPrecedent = useRef(new Set());
+  useEffect(() => {
+    requetes.forEach((r, i) => {
+      const etat = r.data?.remplissage?.etat;
+      const cle = voulues[i]?.id;
+      if (!cle) return;
+      if (etat === "en_cours") enCoursPrecedent.current.add(cle);
+      else if (enCoursPrecedent.current.has(cle)) {
+        enCoursPrecedent.current.delete(cle);
+        const titre = voulues[i]?.titre || r.data?.titre || cle;
+        prevenir("Analyse terminée", `${titre} — ${dossier?.titre || dossier?.nom || "dossier"}`, dealId ? `/Analyse?deal_id=${dealId}` : null);
+      }
+    });
+  }, [requetes.map((r) => r.data?.remplissage?.etat || "").join("|")]);
 
   return (
     <div className="space-y-5">

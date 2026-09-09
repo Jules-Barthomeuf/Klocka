@@ -651,7 +651,7 @@ export default function ChatDashboard() {
 
         <div className="accueil-composer">
           <textarea
-            rows={Math.min(5, Math.max(3, texte.split("\n").length))}
+            rows={Math.min(4, Math.max(2, texte.split("\n").length))}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}

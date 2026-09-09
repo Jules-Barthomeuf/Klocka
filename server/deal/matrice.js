@@ -228,10 +228,20 @@ export function lancerRemplissage(dealId, opts = {}) {
   if (enCours?.etat === 'en_cours') return enCours;
   const travail = { etat: 'en_cours', fait: 0, total: null, document: null, erreur: null, demarre_le: new Date().toISOString() };
   travaux.set(dealId, travail);
-  remplirMatrice(dealId, { ...opts, onProgres: (p) => Object.assign(travail, p) })
-    .then((r) => { travail.etat = r.ok ? 'pret' : 'erreur'; travail.erreur = r.ok ? null : r.error; })
-    .catch((e) => { travail.etat = 'erreur'; travail.erreur = e?.message || 'Remplissage impossible'; });
+  // La promesse s'exécute après la réponse HTTP : sans contexte à elle, ce
+  // qu'elle consomme retombait « hors contexte ». Chaque pièce garde en plus
+  // sa propre mesure, plus fine.
+  lireEnFond(dealId, opts, travail);
   return travail;
+}
+
+async function lireEnFond(dealId, opts, travail) {
+  const { mesurer } = await import('../llm-couts.js');
+  return mesurer({ operation: 'lecture des pièces', par: opts?.user?.email || null, sur: dealId }, () =>
+    remplirMatrice(dealId, { ...opts, onProgres: (p) => Object.assign(travail, p) })
+  )
+    .then(({ resultat: r }) => { travail.etat = r.ok ? 'pret' : 'erreur'; travail.erreur = r.ok ? null : r.error; })
+    .catch((e) => { travail.etat = 'erreur'; travail.erreur = e?.message || 'Remplissage impossible'; });
 }
 export const etatRemplissage = (dealId) => travaux.get(dealId) || null;
 

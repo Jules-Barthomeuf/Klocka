@@ -86,6 +86,16 @@ export function rattacherMailsOrphelins() {
  */
 export async function relever(uploadDir = null) {
   if (enCours) return dernier;
+  const { mesurer } = await import('../llm-couts.js');
+  // Tout ce que la veille déclenche — tri des mails, lecture des pièces
+  // jointes, engagements — porte son nom dans le journal des coûts. Sans ce
+  // contexte, la moitié de la dépense de fond s'y affichait « hors contexte »,
+  // c'est-à-dire nulle part.
+  const { resultat } = await mesurer({ operation: 'veille des boîtes' }, () => releverVraiment(uploadDir));
+  return resultat;
+}
+
+async function releverVraiment(uploadDir = null) {
   enCours = true;
   const erreurs = [];
   const echecs = [];

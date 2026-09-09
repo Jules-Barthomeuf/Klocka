@@ -102,9 +102,14 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
   const ids = (liste.messages || []).map((m) => m.id);
   if (!ids.length) return { nouveaux: 0, total: 0 };
 
-  const connus = new Set(
-    Records.filter('MailRecu', { compte: account.email }).map((m) => m.gmail_message_id)
-  );
+  // Les mails déjà vus : ceux qu'on a gardés, et ceux qu'on a écartés. Sans
+  // cette seconde liste, un mail refusé restait inconnu et repassait devant le
+  // modèle à chaque relève — toutes les cinq minutes, tant qu'il dormait dans
+  // la boîte. Une décision se prend une fois.
+  const connus = new Set([
+    ...Records.filter('MailRecu', { compte: account.email }).map((m) => m.gmail_message_id),
+    ...Records.filter('MailEcarte', { compte: account.email }).map((m) => m.gmail_message_id),
+  ]);
 
   // Référentiel de tri chargé une fois : qui est interne, qui est un agent connu.
   const ref = referentielTri();
@@ -145,6 +150,17 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
       }
 
       if (!garder) {
+        // On garde la trace de la décision, pas le mail : de quoi ne plus
+        // jamais le relire. Le tri qui a coûté un appel au modèle est noté.
+        Records.create('MailEcarte', {
+          compte: account.email,
+          gmail_message_id: msg.id,
+          de_email: mail.de_email,
+          objet: String(mail.objet || '').slice(0, 200),
+          raison: String(raison || '').slice(0, 200),
+          juge_par_ia: !!incertain,
+          le: new Date().toISOString(),
+        });
         ecartes++;
         continue;
       }
@@ -157,7 +173,20 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
     }
   }
 
+  elaguerEcartes(account.email);
   return { nouveaux, ecartes, total: ids.length };
+}
+
+// Au-delà, la liste des mails écartés pèse sans rien apprendre de plus : seuls
+// comptent ceux qui peuvent encore remonter dans la boîte de réception.
+const PLAFOND_ECARTES = 2000;
+function elaguerEcartes(compte) {
+  const tout = Records.filter('MailEcarte', { compte });
+  if (tout.length <= PLAFOND_ECARTES) return;
+  const trop = tout
+    .sort((a, b) => String(a.le || '').localeCompare(String(b.le || '')))
+    .slice(0, tout.length - PLAFOND_ECARTES);
+  for (const m of trop) Records.delete('MailEcarte', m.id);
 }
 
 /**

@@ -176,10 +176,16 @@ function evaluerReserves(ctx) {
  * @returns {{verdict: string, profil: object|null, motifs: string[], reserves: object[],
  *            manquants: string[], contexte: object, trace: object}}
  */
-export function evaluer(lot, enrichissement) {
+export function evaluer(lot, enrichissement, { prixNegocie = null, travaux = 0 } = {}) {
+  // Le prix négocié et les travaux à la charge du bailleur, quand l'analyste
+  // les a posés dans le simulateur, entrent dans le prix de revient. Sans eux,
+  // le rendement AEM du verdict et celui affiché par le simulateur, juste en
+  // dessous, ne parlaient pas du même bien.
   const aem = calculerAEM({
     prixFai: val(lot.prix_fai),
+    prixNegocie,
     loyerAnnuel: val(lot.loyer_annuel_ht_hc),
+    travaux,
   });
   const ctx = construireContexte(lot, enrichissement, aem);
 

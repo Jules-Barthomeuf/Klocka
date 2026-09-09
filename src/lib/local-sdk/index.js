@@ -110,6 +110,29 @@ export function createClient(config = {}) {
     return ct.includes('application/json') ? resp.json() : resp.text();
   }
 
+  /**
+   * Rapporte un fichier servi par l'API (par ex. /uploads/xxx.pdf) sous forme
+   * de Blob, avec la session en cours.
+   * @param {string} chemin - chemin absolu côté serveur, ancre comprise ou non
+   * @returns {Promise<Blob>}
+   */
+  async function fichier(chemin) {
+    const headers = {};
+    const jetonFenetre = fenetre.jeton();
+    if (jetonFenetre) headers['Authorization'] = `Bearer ${jetonFenetre}`;
+    if (fenetre.active()) headers['X-Klocka-Fenetre'] = '1';
+    if (config.appId) headers['X-App-Id'] = config.appId;
+    // L'ancre (#page=9) ne regarde que le navigateur : on ne l'envoie pas.
+    const sansAncre = String(chemin || '').split('#')[0];
+    const resp = await fetch(`${base}${sansAncre}`, { headers, credentials: 'include' });
+    if (!resp.ok) {
+      const err = new Error(resp.status === 401 ? 'Votre session a expiré : reconnectez-vous.' : `Le serveur a répondu ${resp.status}`);
+      err.status = resp.status;
+      throw err;
+    }
+    return resp.blob();
+  }
+
   const qs = (params) => {
     const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== null);
     if (!entries.length) return '';
@@ -267,6 +290,11 @@ export function createClient(config = {}) {
     appLogs,
     // Accès direct pour les endpoints hors surface Base44 (préanalyse, etc.).
     request,
+    // Un fichier déposé, rapporté en binaire. Un <iframe src="/uploads/…">
+    // n'emporte ni le jeton de fenêtre ni la bonne origine : le document
+    // restait blanc alors que le passage cité s'affichait. Ici la requête
+    // passe par le même chemin que les autres, donc avec la session.
+    fichier,
   };
 }
 

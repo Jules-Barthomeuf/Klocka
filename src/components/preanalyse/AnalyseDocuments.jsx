@@ -7,6 +7,7 @@ import DocumentsDossier from "./DocumentsDossier";
 import SimulateurAnalyse from "./SimulateurAnalyse";
 import DonneesExtraites from "./DonneesExtraites";
 import LectureDossier from "./LectureDossier";
+import PenseeIA from "@/components/PenseeIA";
 
 // L'étape Analyse : un onglet Documents (la liste cochable) puis un onglet par
 // document extrait, chacun présentant ses données extraites. Chaque ligne
@@ -104,8 +105,26 @@ function TextePage({ dealId, documentId, page, citation }) {
 
 export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
   const page = ligne?.page || null;
-  const url = lienSource(extraction.document_url, page);
-  const affichable = lisibleEnCadre(extraction.document_url, extraction.document_mime);
+  // Le document est rapporté par le client authentifié, puis affiché depuis la
+  // mémoire du navigateur. Un <iframe src="/uploads/…"> n'emporte ni le jeton
+  // de fenêtre ni l'origine de l'API : le cadre restait blanc pendant que le
+  // passage cité, lui, s'affichait — c'est qu'il passe par l'API.
+  const { data: local, isLoading: chargementFichier, isError: erreurFichier } = useQuery({
+    queryKey: ["fichier-source", extraction.document_url],
+    queryFn: async () => {
+      const blob = await base44.fichier(extraction.document_url);
+      return { url: URL.createObjectURL(blob), type: blob.type || null };
+    },
+    enabled: !!extraction.document_url,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: false,
+  });
+  // L'objet créé pour le cadre doit être rendu, sinon la mémoire le garde.
+  useEffect(() => () => { if (local?.url) URL.revokeObjectURL(local.url); }, [local?.url]);
+
+  const url = local?.url ? (page && /pdf/i.test(local.type || extraction.document_url || "") ? `${local.url}#page=${page}` : local.url) : lienSource(extraction.document_url, page);
+  const affichable = lisibleEnCadre(extraction.document_url, local?.type || extraction.document_mime);
   // Le passage d'abord : le texte de la page avec la citation surlignée. Le
   // PDF reste à un clic, ouvert à la bonne page.
   const peutSurligner = !!(dealId && extraction.document_id && ligne?.citation);
@@ -128,14 +147,16 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
             ))}
           </span>
         )}
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[11.5px] text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors flex-shrink-0"
-        >
-          Plein écran
-        </a>
+        {local?.url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11.5px] text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors flex-shrink-0"
+          >
+            Plein écran
+          </a>
+        )}
         <button onClick={onFermer} className="text-[#6a7180] hover:text-[#f2f3f5] transition-colors flex-shrink-0" title="Fermer">
           <X className="w-4 h-4" />
         </button>
@@ -153,6 +174,15 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
         <div className="flex-1 overflow-y-auto">
           <TextePage dealId={dealId} documentId={extraction.document_id} page={page} citation={ligne.citation} />
         </div>
+      ) : chargementFichier ? (
+        <div className="flex-1 flex items-center justify-center">
+          <PenseeIA etat="breathing" taille={20} texte="Ouverture du document…" />
+        </div>
+      ) : erreurFichier ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <p className="m-0 text-[13px] text-[#e8746a]">Le document n'a pas pu être ouvert.</p>
+          <p className="m-0 text-[12.5px] text-[#6a7180]">Il a peut-être été supprimé du dossier, ou votre session a expiré.</p>
+        </div>
       ) : affichable ? (
         <iframe
           key={url}
@@ -165,8 +195,8 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
           <p className="m-0 text-[13px] text-[#9298a6]">
             Ce format ne s'affiche pas dans le navigateur.
           </p>
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
-            Ouvrir le document
+          <a href={url} download={extraction.document_nom || true} className="text-[13px] text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
+            Télécharger le document
           </a>
         </div>
       )}

@@ -134,7 +134,17 @@ function matiere(m, f, grille) {
     const reponses = lignes.filter((l) => l.cellules?.[id]?.reponse).map((l) => ({ document: l.document_nom, categorie: l.categorie, page: l.cellules[id].page, reponse: l.cellules[id].reponse }));
     // Les pièces de la grille d'abord, mais tout ce qui répond compte.
     reponses.sort((a, b) => (grille.categories.includes(b.categorie) ? 1 : 0) - (grille.categories.includes(a.categorie) ? 1 : 0));
-    parChamp[id] = { question: champs.get(id)?.question || id, retenue: champs.get(id)?.valeur || null, reponses };
+    // La valeur retenue est celle des pièces de CETTE grille quand elles
+    // répondent. La fiche du dossier, elle, arbitre entre toutes les pièces et
+    // fait primer le bail : la grille Quittances annonçait donc le loyer du
+    // bail, pas celui des quittances — et se comparait à elle-même.
+    const sienne = reponses.find((r) => grille.categories.includes(r.categorie));
+    parChamp[id] = {
+      question: champs.get(id)?.question || id,
+      retenue: sienne ? sienne.reponse : champs.get(id)?.valeur || null,
+      retenue_de: sienne ? sienne.document : null,
+      reponses,
+    };
   }
   return { parChamp, lu: ids.filter((id) => lignes.some((l) => l.cellules && Object.prototype.hasOwnProperty.call(l.cellules, id))) };
 }
@@ -167,8 +177,15 @@ export async function formaterGrille(dealId, id, { user, force = false } = {}) {
   if (!force && cache && cache.cle === cle) return cache.valeurs;
   const lot = brut.lots?.[0]?.lot || {};
   const contexte = { loyer_fiche_commerciale_ht_an: val(lot.loyer_annuel_ht_hc), surface_fiche: val(lot.surface_m2), locataire_fiche: val(lot.locataire_nom), date_du_jour: new Date().toISOString().slice(0, 10) };
-  const consigne = `Tu mets en forme, pour l'équipe Klocka, ce que la lecture des pièces a trouvé. Une valeur simple par critère, au format demandé, en français. Jamais de citation : ce qui est demandé est ce que c'est, pas le texte de la pièce. Si rien ne répond, texte vide et champs à null. Ne devine rien. Dates au format JJ/MM/AAAA. Aujourd'hui : ${contexte.date_du_jour}.`;
-  const criteres = grille.criteres.map((c) => `- ${c.id} (${c.libelle}) — format : ${c.format}\n  champs lus : ${c.champs.map((ch) => `${ch} = ${JSON.stringify(parChamp[ch]?.retenue || null)}${parChamp[ch]?.reponses?.length > 1 ? ` ; autres pièces : ${JSON.stringify(parChamp[ch].reponses.slice(1, 4).map((r) => `${r.document} : ${r.reponse}`))}` : ''}`).join('\n  ')}`).join('\n');
+  const consigne = `Tu mets en forme, pour l'équipe Klocka, ce que la lecture des pièces a trouvé. Cette grille porte sur : ${grille.categories.join(', ')} — retiens ce que DISENT CES PIÈCES-LÀ, jamais ce qu'une autre pièce dit à leur place. Une valeur simple par critère, au format demandé, en français. Jamais de citation : ce qui est demandé est ce que c'est, pas le texte de la pièce. Si rien ne répond, texte vide et champs à null. Ne devine rien. Dates au format JJ/MM/AAAA. Aujourd'hui : ${contexte.date_du_jour}.`;
+  // La pièce d'où vient chaque valeur est nommée : sans elle, le modèle mêlait
+  // le loyer du bail et celui des quittances sans que rien ne le signale.
+  const criteres = grille.criteres.map((c) => `- ${c.id} (${c.libelle}) — format : ${c.format}\n  champs lus : ${c.champs.map((ch) => {
+    const p = parChamp[ch];
+    const source = p?.retenue_de ? ` (lu dans « ${p.retenue_de} »)` : ' (aucune pièce de cette grille ne répond : valeur reprise du dossier)';
+    const autres = p?.reponses?.length > 1 ? ` ; autres pièces : ${JSON.stringify(p.reponses.slice(1, 4).map((r) => `${r.document} : ${r.reponse}`))}` : '';
+    return `${ch} = ${JSON.stringify(p?.retenue || null)}${source}${autres}`;
+  }).join('\n  ')}`).join('\n');
   const schema = { type: 'object', properties: grille.schema, required: Object.keys(grille.schema) };
   const { resultat } = await mesurer({ operation: `grille ${grille.titre}`, par: user?.email || null, sur: dealId }, () => invokeLLM({
     prompt: `${consigne}\n\nContexte de la fiche commerciale : ${JSON.stringify(contexte)}\n\nCritères :\n${criteres}\n\nRéponds en JSON, une clé par critère.`,
@@ -265,7 +282,12 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
   const f = lireFiche(dealId);
   const { parChamp, lu } = matiere(m, f, grille);
   const champs = new Map(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
-  const preuvesDe = (ids) => ids.flatMap((x) => (champs.get(x)?.preuves || []).map((p) => ({ champ: x, document_id: p.document_id, document_nom: p.document_nom, document_url: p.document_url, page: p.page, citation: p.citation, reponse: p.reponse })));
+  // Les sources d'un critère : les pièces de la grille d'abord. Sans ce tri,
+  // la colonne Source de la grille Quittances renvoyait au bail.
+  const preuvesDe = (ids) =>
+    ids
+      .flatMap((x) => (champs.get(x)?.preuves || []).map((p) => ({ champ: x, document_id: p.document_id, document_nom: p.document_nom, document_url: p.document_url, page: p.page, citation: p.citation, reponse: p.reponse, categorie: p.categorie })))
+      .sort((a, b) => (grille.categories.includes(b.categorie) ? 1 : 0) - (grille.categories.includes(a.categorie) ? 1 : 0));
   const valeurs = lu.length ? (await formaterGrille(dealId, id, { user, force })) || {} : {};
   // Le contexte des règles : fiche commerciale, bail, quittances.
   const lot = brut.lots?.[0]?.lot || {};

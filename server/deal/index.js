@@ -251,17 +251,17 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   }
 
   const enrichissement = await enrichir(lot, { emplacement: saisie.emplacement });
-  const evaluation = evaluer(lot, enrichissement);
-
-  // Le prix négocié ne change pas le verdict (les règles portent sur le prix
-  // FAI), mais il alimente le simulateur.
-  if (saisie.prix_negocie) {
-    evaluation.aem = calculerAEM({
-      prixFai: val(lot.prix_fai),
-      prixNegocie: saisie.prix_negocie,
-      loyerAnnuel: val(lot.loyer_annuel_ht_hc),
-    });
-  }
+  // Ce que l'analyste a posé dans le simulateur compte dans le prix de revient :
+  // le prix négocié et les travaux bailleur de la première année. Le verdict,
+  // lui, reste jugé sur le prix FAI — ce sont les règles qui le disent.
+  const sim = entree.simulateur || {};
+  const negocie = Number(saisie.prix_negocie) > 0
+    ? Number(saisie.prix_negocie)
+    : Number(sim.prixBienNegocie) > 0
+    ? Number(sim.prixBienNegocie)
+    : null;
+  const travauxAn0 = Array.isArray(sim.travauxBailleur) ? Number(sim.travauxBailleur[0]) || 0 : 0;
+  const evaluation = evaluer(lot, enrichissement, { prixNegocie: negocie, travaux: travauxAn0 });
 
   const dossierLot = { lot, enrichissement, evaluation };
   const [synthese, mailAgent] = await Promise.all([
@@ -279,14 +279,21 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
     mail_agent: mailAgent,
     // Le simulateur part du prix : ses faits se refont dès que celui-ci bouge,
     // les hypothèses enregistrées à la main (taux, durée, apport…) restent.
-    simulateur: {
-      ...(entree.simulateur || {}),
-      ...parametresSimulateur({
-        prixFai: val(lot.prix_fai),
-        loyerAnnuel: val(lot.loyer_annuel_ht_hc),
-        surface: val(lot.surface_m2),
-      }),
-    },
+    simulateur: (() => {
+      const refait = {
+        ...(entree.simulateur || {}),
+        ...parametresSimulateur({
+          prixFai: val(lot.prix_fai),
+          loyerAnnuel: val(lot.loyer_annuel_ht_hc),
+          surface: val(lot.surface_m2),
+        }),
+      };
+      // Le prix négocié est une décision, pas un fait de la fiche : le refaire
+      // à partir du prix FAI l'effaçait à chaque réévaluation, et le rendement
+      // AEM repartait comme si rien n'avait été négocié.
+      if (negocie) refait.prixBienNegocie = negocie;
+      return refait;
+    })(),
   };
   Records.update('Deal', dossier.id, { lots });
 
@@ -442,6 +449,16 @@ export async function enregistrerSimulateur(dealId, indexLot, parametres = {}, u
   Records.update('Deal', dossier.id, { lots });
   // Des faits ont changé : le lot est rejoué avec, les hypothèses restant.
   if (Object.keys(faits).length) return reevaluerLot(dealId, indexLot, faits);
+  // Le prix négocié et les travaux bailleur entrent dans le prix de revient :
+  // s'ils bougent, le rendement AEM du dossier bouge aussi. Sans ce rejeu, la
+  // grille de critères gardait l'ancien rendement pendant que le simulateur,
+  // juste en dessous, en affichait un autre.
+  const avant = entree.simulateur || {};
+  const chiffre = (o, cle) => Number(o?.[cle]) || 0;
+  const travauxDe = (o) => (Array.isArray(o?.travauxBailleur) ? Number(o.travauxBailleur[0]) || 0 : 0);
+  if (chiffre(avant, 'prixBienNegocie') !== chiffre(simulateur, 'prixBienNegocie') || travauxDe(avant) !== travauxDe(simulateur)) {
+    return reevaluerLot(dealId, indexLot, {});
+  }
   return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };
 }
 

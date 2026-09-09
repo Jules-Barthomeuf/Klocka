@@ -6,6 +6,7 @@ import { nomOnglet } from "./AnalyseDocuments";
 import { toast } from "sonner";
 import { Mic, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
+import PenseeIA from "@/components/PenseeIA";
 import { SuggestionsMail } from "./gabaritsMail";
 import ImportDrive from "./ImportDrive";
 
@@ -91,6 +92,9 @@ export default function ChatDossier({
 }) {
   const mode = "question";
   const [texte, setTexte] = useState("");
+  // La suite d'une conversation se tape dans le panneau, pas dans la boîte de
+  // la page : deux champs, sinon on voit l'un s'écrire dans l'autre.
+  const [suite, setSuite] = useState("");
   // Rapidité : une réponse courte et directe. Réflexion : l'analyse des pièces.
   const [profondeur, setProfondeur] = useState(() => { try { return localStorage.getItem("klocka_profondeur") || "rapide"; } catch { return "rapide"; } });
   useEffect(() => { try { localStorage.setItem("klocka_profondeur", profondeur); } catch { /* sans mémoire */ } }, [profondeur]);
@@ -109,11 +113,11 @@ export default function ChatDossier({
   }, [conversation?.messages?.length]);
 
   const envoyer = useMutation({
-    mutationFn: () =>
+    mutationFn: (message) =>
       base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/chat`, {
-        body: { message: texte.trim(), mode, profondeur, documents: documentsCoches, conversation_id: conversationId },
+        body: { message: String(message || "").trim(), mode, profondeur, documents: documentsCoches, conversation_id: conversationId },
       }),
-    onSuccess: (conv) => { setTexte(""); setConversationId(conv.id); onRefresh?.(); },
+    onSuccess: (conv) => { setTexte(""); setSuite(""); setConversationId(conv.id); onRefresh?.(); },
     onError: (e) => {
       // Une coupure réseau ne dit rien d'utile telle quelle : on nomme la cause
       // probable, l'analyse étant longue et le serveur parfois redémarré.
@@ -150,7 +154,7 @@ export default function ChatDossier({
   const lancer = () => {
     if (modeMail) return onComposer?.(texte.trim());
     if (modePreanalyse) return onAnalyserTexte?.(texte.trim());
-    return envoyer.mutate();
+    return envoyer.mutate(texte);
   };
   const peutEnvoyer = !!texte.trim() && !enCours && !apercu && (modeMail || modePreanalyse || !!dossier);
   const placeholder = modeMail
@@ -193,19 +197,20 @@ export default function ChatDossier({
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
             {(conversation?.messages || []).map((m, i) => <Message key={i} m={m} />)}
             {envoyer.isPending && (
-              <div className="flex items-center gap-2 text-[#9298a6] text-[13px]"><Loader2 className="w-4 h-4 animate-spin" /> Réflexion…</div>
+              <PenseeIA etat={profondeur === "reflexion" ? "solving" : "working"} taille={64} texte={profondeur === "reflexion" ? "Je lis les pièces…" : "Réflexion…"} />
             )}
             <div ref={finRef} />
           </div>
           <div className="flex-none px-6 py-4 border-t border-[#1f2228]">
             <BoiteSaisie
               compact
-              valeur={texte}
-              onChange={setTexte}
+              valeur={suite}
+              onChange={setSuite}
               rows={2}
+              maxLignes={5}
               placeholder={profondeur === "reflexion" ? "Poursuivre — réflexion, analyse des pièces…" : "Poursuivre — réponse rapide…"}
-              onEnvoyer={() => envoyer.mutate()}
-              peutEnvoyer={!!texte.trim() && !envoyer.isPending}
+              onEnvoyer={() => envoyer.mutate(suite)}
+              peutEnvoyer={!!suite.trim() && !envoyer.isPending}
               enCours={envoyer.isPending}
               libelle="Envoyer"
             />

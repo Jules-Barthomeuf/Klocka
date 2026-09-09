@@ -203,7 +203,9 @@ export default function AssistantFlottant() {
         // Sur téléphone, la barre de navigation occupe le bas : la pilule se
         // pose juste au-dessus, elle ne la recouvre pas.
         bottom: mobile ? "calc(3.5rem + env(safe-area-inset-bottom) + 10px)" : 20,
-        width: ouvert ? 420 : 330,
+        // Au repos : une petite bulle. Ouvert : le cadre de conversation.
+        width: ouvert ? 420 : "auto",
+        alignItems: ouvert ? "stretch" : "flex-end",
         maxWidth: mobile ? "calc(100vw - 24px)" : "calc(100vw - 40px)",
         // Sous les fenêtres modales (z-50) : une pilule qui flotte par-dessus
         // une boîte de dialogue n'a rien à y faire.
@@ -378,11 +380,27 @@ export default function AssistantFlottant() {
         </div>
       )}
 
-      {/* La saisie : la même boîte que partout, en compact. */}
-      <div onClick={() => { setOuvert(true); champRef.current?.focus(); }} style={{ boxShadow: ouvert ? "0 20px 50px rgba(0,0,0,.7)" : "none", borderRadius: 20 }}>
+      {/* Au repos, une bulle ; un clic l'ouvre. Ouvert, la même boîte que partout, en compact. */}
+      {!ouvert ? (
+        <button
+          onClick={() => { setOuvert(true); setTimeout(() => champRef.current?.focus(), 50); }}
+          aria-label="Ouvrir l'assistant"
+          title="Assistant"
+          style={{
+            width: 48, height: 48, borderRadius: 999, cursor: "pointer",
+            background: FOND, border: `1px solid ${OR}`, color: OR,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 10px 30px rgba(0,0,0,.6), 0 0 0 4px rgba(217,180,106,.08)",
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" /><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7.7-2z" /></svg>
+        </button>
+      ) : (
+      <div style={{ boxShadow: "0 20px 50px rgba(0,0,0,.7)", borderRadius: 20 }}>
         <BoiteSaisie
           compact
-          rows={ouvert ? 2 : 1}
+          rows={2}
+          maxLignes={5}
           valeur={texte}
           onChange={setTexte}
           placeholder="Écrivez à l'assistant…"
@@ -398,6 +416,7 @@ export default function AssistantFlottant() {
           }
         />
       </div>
+      )}
     </div>
   );
 }

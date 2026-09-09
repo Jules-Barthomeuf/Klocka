@@ -8,6 +8,7 @@ import { ArrowRight, Bell, Check, Copy, FileText, Loader2, Mail, MessageCircle, 
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
+import PenseeIA from "@/components/PenseeIA";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
@@ -619,7 +620,7 @@ export default function ChatDashboard() {
             <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} />
           )}
           {enCours && (
-            <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {enCoursTexte}</p>
+            <PenseeIA etat={/lis la fiche/i.test(enCoursTexte) ? "searching" : "working"} taille={64} texte={enCoursTexte} />
           )}
           {suites.length > 0 && !enCours && (
             <div className="flex flex-wrap gap-2">

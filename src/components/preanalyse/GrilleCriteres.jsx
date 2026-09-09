@@ -3,6 +3,7 @@ import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Check, Loader2, Pencil, RefreshCw, RotateCcw } from "lucide-react";
+import PenseeIA from "@/components/PenseeIA";
 
 // Une grille de critères : critère, valeur lue au format voulu, statut en
 // case colorée, source à droite. La règle se lit d'un clic sur le critère.
@@ -178,13 +179,13 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                   </span>
                 )}
                 {enCours ? (
-                  <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {g.remplissage?.total ? `Relecture des pièces ${g.remplissage.fait ?? 0}/${g.remplissage.total}` : "Relecture des pièces…"}</span>
+                  <PenseeIA etat="searching" taille={20} texte={g.remplissage?.total ? `Relecture des pièces ${g.remplissage.fait ?? 0}/${g.remplissage.total}` : "Relecture des pièces…"} />
                 ) : (
                   <button onClick={() => !apercu && relancer.mutate(v.id)} disabled={apercu || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} »`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40"><RefreshCw className="w-3.5 h-3.5" /> Relancer l'analyse</button>
                 )}
               </div>
             </header>
-            {g ? <TableCriteres g={g} onPreuve={onPreuve} dealId={dealId} /> : <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" /></div>}
+            {g ? <TableCriteres g={g} onPreuve={onPreuve} dealId={dealId} /> : <div className="p-6"><PenseeIA etat="breathing" taille={20} texte="Lecture…" /></div>}
           </div>
         );
       })}

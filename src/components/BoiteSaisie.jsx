@@ -1,5 +1,6 @@
 import React from "react";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp } from "lucide-react";
+import PenseeIA from "@/components/PenseeIA";
 
 // La boîte de saisie, la même partout : un cadre sombre arrondi, le texte,
 // une barre en bas avec les commandes discrètes à gauche et le bouton blanc à
@@ -16,6 +17,9 @@ export default function BoiteSaisie({
   gauche = null,
   sous = null,
   rows = 3,
+  // maxLignes : la zone grandit avec le texte, jusqu'à ce nombre de lignes,
+  // puis défile. Sans lui, la hauteur est celle de rows.
+  maxLignes = null,
   disabled = false,
   compact = false,
   conteneur = {},
@@ -45,7 +49,8 @@ export default function BoiteSaisie({
     >
       <div className={compact ? "px-5 pt-3" : "px-7 max-md:px-5 pt-6"}>
         <textarea
-          rows={rows}
+          rows={maxLignes ? Math.min(maxLignes, Math.max(rows, String(valeur || "").split("\n").length)) : rows}
+          style={maxLignes ? { maxHeight: `${maxLignes * 1.55}em`, overflowY: "auto" } : undefined}
           value={valeur}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer && !enCours) { e.preventDefault(); onEnvoyer(); } }}
@@ -66,7 +71,7 @@ export default function BoiteSaisie({
           aria-label={libelle}
           className={`inline-flex items-center justify-center rounded-full bg-[#f2f3f5] text-[#0b0c0e] hover:bg-[#ffffff] disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8" : "w-10 h-10"}`}
         >
-          {enCours ? <Loader2 className={compact ? "w-4 h-4 animate-spin" : "w-[18px] h-[18px] animate-spin"} /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
+          {enCours ? <PenseeIA etat="working" taille={20} clair /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
         </button>
       </div>
     </div>

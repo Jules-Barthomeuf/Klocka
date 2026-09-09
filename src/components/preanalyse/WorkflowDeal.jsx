@@ -18,6 +18,7 @@ import ChatDossier from "./ChatDossier";
 import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
 import { GABARITS } from "./gabaritsMail";
+import PenseeIA from "@/components/PenseeIA";
 import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
 import SectionBien from "@/components/preanalyse/SectionBien";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
@@ -72,6 +73,18 @@ export function TitreEtape({ n, titre, description }) {
   );
 }
 
+// La dernière étape réellement faite : c'est là qu'on arrive quand rien n'a
+// été gardé. Présentation si elle a été générée, Plateforme si le projet
+// existe, Analyse dès qu'il y a des pièces, Pré-analyse dès qu'il y a un lot.
+function etapeCompletee(dossier) {
+  if (!dossier) return 1;
+  if (dossier.lots?.[0]?.presentation) return 5;
+  if (dossier.projet_id) return 4;
+  if ((dossier.documents_espace || []).length) return 3;
+  if (dossier.lots?.length) return 2;
+  return 1;
+}
+
 // Étape la plus avancée déverrouillée selon le statut.
 // L'étape atteinte vient du serveur (etape_max, débloquée explicitement).
 function etapeDebloquee(dossier) {
@@ -104,7 +117,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
       const gardee = cleEtape ? Number(localStorage.getItem(cleEtape)) : 0;
       if (gardee >= 1 && gardee <= debloquee) return gardee;
     } catch { /* sans mémoire */ }
-    return debloquee;
+    return Math.min(debloquee, etapeCompletee(dossier));
   });
   const setEtape = (n) => {
     setEtapeBrut(n);
@@ -172,7 +185,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
     const front = etapeDebloquee(dossier);
     let gardee = 0;
     try { gardee = cleEtape ? Number(localStorage.getItem(cleEtape)) : 0; } catch { /* sans mémoire */ }
-    setEtapeBrut(gardee >= 1 && gardee <= front ? gardee : front);
+    setEtapeBrut(gardee >= 1 && gardee <= front ? gardee : Math.min(front, etapeCompletee(dossier)));
   }, [dossier?.deal_id, dossier?.etape_max]);
 
   // Aller à une étape non atteinte la débloque — et valide automatiquement
@@ -764,7 +777,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
           className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114]"
         >
           {analyser.isPending ? (
-            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyse…</>
+            <><PenseeIA etat="searching" taille={20} clair className="mr-2" /> Analyse…</>
           ) : (
             <><Microscope className="w-4 h-4 mr-2" /> Analyser</>
           )}
@@ -1067,7 +1080,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
             title={apercu ? "Indisponible en mode aperçu" : undefined}
           >
             {generer.isPending ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Génération…</>
+              <><PenseeIA etat="composing" taille={20} clair className="mr-2" /> Génération…</>
             ) : (
               <><Briefcase className="w-4 h-4 mr-2" /> {pres ? "Regénérer" : "Générer la présentation"}</>
             )}
@@ -1157,7 +1170,7 @@ function BlocVideoPresentation({ dossier, apercu }) {
           title={apercu ? "Indisponible en mode aperçu" : undefined}
         >
           {enCours ? (
-            <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />Rendu {progression}%</>
+            <><PenseeIA etat="shaping" taille={20} className="mr-2" />Rendu {progression}%</>
           ) : (
             <><Film className="w-3.5 h-3.5 mr-2" />{etat === "pret" ? "Regénérer" : "Générer la vidéo"}</>
           )}
@@ -1398,7 +1411,7 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
       <div className="mt-5 flex flex-wrap items-center gap-4">
         {enCours ? (
           <span className="inline-flex items-center gap-2 text-[13px] text-[#9298a6]">
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <PenseeIA etat="searching" taille={20} />
             {etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}
           </span>
         ) : (
@@ -1434,7 +1447,7 @@ function RelancePreanalyse({ dossier, onRefresh, apercu }) {
     <div className="flex flex-wrap items-center justify-between gap-3 -mt-2 mb-4">
       <p className="m-0 text-[12.5px] text-[#e8746a]">{etat?.etat === "erreur" ? etat.erreur : ""}</p>
       {enCours ? (
-        <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {etat.phase === "preanalyse" ? "Pré-analyse en cours…" : etat.phase?.startsWith("etape") ? `Relecture de la data room ${etat.fait ?? 0}/${etat.total ?? "…"}` : "En cours…"}</span>
+        <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><PenseeIA etat="searching" taille={20} /> {etat.phase === "preanalyse" ? "Pré-analyse en cours…" : etat.phase?.startsWith("etape") ? `Relecture de la data room ${etat.fait ?? 0}/${etat.total ?? "…"}` : "En cours…"}</span>
       ) : (
         <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse, puis l'analyse de la data room ?") && relancer.mutate()} disabled={apercu || relancer.isPending} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2c3139] text-[12.5px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40">
           <RefreshCw className="w-3.5 h-3.5" /> Relancer la pré-analyse

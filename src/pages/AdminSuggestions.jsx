@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
-import { Image as ImageIcon, Loader2, Mic, Square, Trash2, X } from "lucide-react";
+import { Check, Image as ImageIcon, Loader2, Mic, Pencil, Square, Trash2, X } from "lucide-react";
 import { useDictee } from "@/lib/dictee";
 import { toast } from "sonner";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
@@ -45,6 +45,8 @@ export default function AdminSuggestions() {
   const [filtre, setFiltre] = useState("tous");
   const [zoom, setZoom] = useState(null);
   const [urgence, setUrgence] = useState(3);
+  const [tri, setTri] = useState("date"); // date | urgence
+  const [edition, setEdition] = useState(null); // { id, texte }
   const fichierRef = useRef(null);
   // Le micro : la dictée remplit le champ, on relit, on envoie.
   const { supporte: dicteeOk, ecoute, demarrer, arreter } = useDictee({ onTexte: (t) => setTexte(t) });
@@ -89,6 +91,13 @@ export default function AdminSuggestions() {
     onError: (e) => toast.error(e?.message || "Changement impossible"),
   });
 
+  // Une remarque se corrige après coup, sans la refaire.
+  const modifier = useMutation({
+    mutationFn: ({ id, contenu }) => base44.entities.Suggestion.update(id, { contenu }),
+    onSuccess: () => { setEdition(null); rafraichir(); },
+    onError: (e) => toast.error(e?.message || "Modification impossible"),
+  });
+
   const supprimer = useMutation({
     mutationFn: (id) => base44.entities.Suggestion.delete(id),
     onSuccess: rafraichir,
@@ -96,10 +105,11 @@ export default function AdminSuggestions() {
   });
 
   const compte = (id) => remarques.filter((r) => normaliser(r.statut) === id).length;
-  // Les plus urgentes d'abord, puis les plus récentes.
+  // Tri au choix : les plus récentes, ou les plus urgentes (puis les plus récentes).
+  const parDate = (a, b) => String(b.created_date || "").localeCompare(String(a.created_date || ""));
   const visibles = remarques
     .filter((r) => filtre === "tous" || normaliser(r.statut) === filtre)
-    .sort((a, b) => (Number(b.urgence) || 3) - (Number(a.urgence) || 3) || String(b.created_date || "").localeCompare(String(a.created_date || "")));
+    .sort((a, b) => (tri === "urgence" ? ((Number(b.urgence) || 3) - (Number(a.urgence) || 3)) || parDate(a, b) : parDate(a, b)));
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#f2f3f5] px-5 md:px-10 py-8 md:py-12">
@@ -114,6 +124,8 @@ export default function AdminSuggestions() {
           }}
           valeur={texte}
           onChange={setTexte}
+          rows={2}
+          maxLignes={5}
           placeholder="Une remarque, un bug, une idée… Collez une capture d'écran directement ici."
           onEnvoyer={() => envoyer.mutate()}
           peutEnvoyer={!!texte.trim() || !!capture}
@@ -145,21 +157,26 @@ export default function AdminSuggestions() {
             <>
               <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={(e) => { choisirCapture(e.target.files?.[0]); e.target.value = ""; }} />
               <BoutonBarre onClick={() => fichierRef.current?.click()} actif={!!capture} title="Joindre une capture d'écran"><ImageIcon className="w-4 h-4" /></BoutonBarre>
-              {dicteeOk && (
-                <BoutonBarre onClick={ecoute ? arreter : demarrer} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
-              )}
+              <BoutonBarre onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter votre remarque"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
               <span className="text-[11.5px] text-[#4d545d] ml-1 max-md:hidden">{ecoute ? "Je vous écoute…" : "Ctrl+V colle une capture"}</span>
             </>
           }
         />
 
-        {/* Filtres par état */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-10 mb-4 border-b border-[#1f2228]">
-          {[{ id: "tous", label: "Tout" }, ...STATUTS].map((s) => (
-            <button key={s.id} onClick={() => setFiltre(s.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${filtre === s.id ? "text-[#f2f3f5] font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>
-              {s.label}<span className="ml-1.5 text-[#6a7180] font-normal tabular-nums">{s.id === "tous" ? remarques.length : compte(s.id)}</span>
-            </button>
-          ))}
+        {/* Filtres par état, et le tri à droite */}
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 mt-10 mb-4 border-b border-[#1f2228]">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            {[{ id: "tous", label: "Tout" }, ...STATUTS].map((s) => (
+              <button key={s.id} onClick={() => setFiltre(s.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${filtre === s.id ? "text-[#f2f3f5] font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>
+                {s.label}<span className="ml-1.5 text-[#6a7180] font-normal tabular-nums">{s.id === "tous" ? remarques.length : compte(s.id)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="inline-flex items-center rounded-full border border-[#2c3139] p-0.5 mb-2">
+            {[["date", "Plus récentes"], ["urgence", "Plus urgentes"]].map(([id, mot]) => (
+              <button key={id} onClick={() => setTri(id)} className={`px-3 py-1 rounded-full text-[12px] transition-colors ${tri === id ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{mot}</button>
+            ))}
+          </div>
         </div>
 
         {isLoading ? (
@@ -178,7 +195,17 @@ export default function AdminSuggestions() {
                     </button>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="m-0 text-[14.5px] leading-[1.65] text-[#f2f3f5] whitespace-pre-wrap">{r.contenu}</p>
+                    {edition?.id === r.id ? (
+                      <div>
+                        <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: r.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); modifier.mutate({ id: r.id, contenu: edition.texte.trim() }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-[#3a3f4a] focus:border-[#f2f3f5] rounded-md px-3 py-2 outline-none text-[14.5px] leading-[1.6] text-[#f2f3f5] resize-y" />
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <button onClick={() => modifier.mutate({ id: r.id, contenu: edition.texte.trim() })} disabled={modifier.isPending || !edition.texte.trim()} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> Enregistrer</button>
+                          <button onClick={() => setEdition(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="m-0 text-[14.5px] leading-[1.65] text-[#f2f3f5] whitespace-pre-wrap">{r.contenu}</p>
+                    )}
                     <p className="m-0 mt-1.5 text-[12px] text-[#6a7180] flex flex-wrap items-center gap-x-2">
                       <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n}/5`}>
                         <span className="inline-flex gap-px">{[1, 2, 3, 4, 5].map((n) => <span key={n} className="w-1.5 h-2.5 rounded-[2px]" style={{ background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : "#22262d" }} />)}</span>
@@ -199,7 +226,8 @@ export default function AdminSuggestions() {
                         {s.label}
                       </button>
                     ))}
-                    <button onClick={() => window.confirm("Supprimer cette remarque ?") && supprimer.mutate(r.id)} className="ml-2 text-[#3f4644] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => setEdition({ id: r.id, texte: r.contenu || "" })} className="ml-2 text-[#3f4644] hover:text-[#f2f3f5] opacity-0 group-hover:opacity-100 transition-opacity" title="Modifier"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => window.confirm("Supprimer cette remarque ?") && supprimer.mutate(r.id)} className="text-[#3f4644] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               );

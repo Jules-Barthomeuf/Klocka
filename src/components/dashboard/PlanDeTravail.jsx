@@ -24,13 +24,17 @@ import { UserPlus,
 // L'urgence se lit au filet de gauche, pas à une pastille de couleur : la même
 // grammaire que « Ce qui a échoué », pour que la page se parcoure d'un regard.
 
-// Une phrase d'accueil, tirée au sort à chaque venue, avec le prénom.
-const SALUTS = (p) => [`Bonjour ${p}`, "Je vous écoute", `Bonsoir ${p}`, `À vous, ${p}`, "Je suis prêt", `On y va, ${p}`, "Dites-moi tout", `De retour, ${p}`, "Prêt quand vous voulez", "On reprend\u202f?"];
+// Une phrase d'accueil, tirée au sort à chaque venue, avec le prénom — et à
+// l'heure : « Bonjour » jusqu'à 18 h, « Bonsoir » ensuite, jamais l'inverse.
+const SALUTS = (p, heure) => [
+  heure >= 18 || heure < 5 ? `Bonsoir ${p}` : `Bonjour ${p}`,
+  "Je vous écoute", `À vous, ${p}`, "Je suis prêt", `On y va, ${p}`, "Dites-moi tout", `De retour, ${p}`, "Prêt quand vous voulez", "On reprend\u202f?",
+];
 
 export default function PlanDeTravail({ chat = null }) {
   const utilisateur = useUser();
   const prenom = (utilisateur?.full_name || utilisateur?.email || "").split(/[ @]/)[0] || "";
-  const [salut] = useState(() => { const l = SALUTS(prenom ? prenom.charAt(0).toUpperCase() + prenom.slice(1) : "Jules"); return l[Math.floor(Math.random() * l.length)]; });
+  const [salut] = useState(() => { const l = SALUTS(prenom ? prenom.charAt(0).toUpperCase() + prenom.slice(1) : "Jules", new Date().getHours()); return l[Math.floor(Math.random() * l.length)]; });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // Le compte des échecs de la nuit remonte du rapport : l'en-tête doit dire

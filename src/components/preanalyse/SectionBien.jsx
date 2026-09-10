@@ -3,8 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { VuesLieu, ChampFiche } from "@/components/preanalyse/DealResultat";
-import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
-import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 
 // Le bien, et lui seul : ce que la fiche annonce, et sous chaque ligne le
 // détail que les pièces apportent. Le bail, les quittances, la copropriété et
@@ -145,12 +143,6 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
             </section>
           );
         })}
-      </div>
-
-      {/* Le loyer face au marché de la rue, d'après Data-B. */}
-      <div className="mt-8 flex flex-col gap-4">
-        <ValeurLocativeDataB dossier={dossier} lot={lot} apercu={apercu} onRefresh={onRefresh} />
-        <AnalyseLoyerEquimmox dossier={dossier} lot={lot} apercu={apercu} onRefresh={onRefresh} />
       </div>
     </div>
   );

@@ -22,6 +22,8 @@ import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
 import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
 import SectionBien from "@/components/preanalyse/SectionBien";
+import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
+import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
 // Les parties de l'analyse : une par famille de pièces.
@@ -37,6 +39,9 @@ const GRILLES_ANALYSE = [
     { id: "rcp", titre: "Règlement de copropriété", sousTitre: "Activités autorisées ou non, quote-part." },
   ] },
   { id: "diagnostics", titre: "Diagnostics", grilles: [{ id: "diagnostics", titre: "Diagnostics", sousTitre: "L'état du bien, diagnostic par diagnostic." }] },
+  // Ce que disent les services extérieurs sur le loyer : Data-B pour la
+  // fourchette de la rue, Equimmox pour les baux comparables autour.
+  { id: "marche", titre: "Marché", grilles: null },
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
@@ -365,6 +370,12 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
               ))}
             </div>
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
+            {grilleAnalyse === "marche" && (
+              <div className="flex flex-col gap-4">
+                <ValeurLocativeDataB dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
+                <AnalyseLoyerEquimmox dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
+              </div>
+            )}
             {grilleAnalyse === "simulateur" && (
               dossier?.lots?.[0]?.simulateur
                 ? <SimulateurDossier parametres={dossier.lots[0].simulateur} dealId={dossier.deal_id} lotIndex={0} onEnregistre={onRefresh} />

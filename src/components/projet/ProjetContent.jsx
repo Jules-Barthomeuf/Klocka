@@ -708,7 +708,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 <div className="mb-10 max-md:mb-6">
                   <SectionLabel tone="teal">Localisation</SectionLabel>
                   {project.transactions_fonds ? (
-                    <CarteCessions project={project} />
+                    <CarteCessions
+                      resultat={project.transactions_fonds}
+                      titre={project.titre}
+                      adresse={project.adresse_complete}
+                      lat={project.latitude}
+                      lon={project.longitude}
+                    />
                   ) : (
                   <div className="relative h-[420px] max-md:h-[260px] overflow-hidden bg-[#0f1114]">
                     <iframe src={mapUrl} className="w-full h-full" style={{ border: 0, filter: 'saturate(0.85) contrast(1.04)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du secteur" />

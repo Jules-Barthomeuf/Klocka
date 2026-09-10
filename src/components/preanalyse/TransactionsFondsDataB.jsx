@@ -5,6 +5,7 @@ import { ExternalLink, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import PenseeIA from "@/components/PenseeIA";
 import ConnexionExterne from "@/components/preanalyse/ConnexionExterne";
+import CarteCessions from "@/components/projet/CarteCessions";
 
 // Les cessions de fonds de commerce autour du bien, d'après Data-B.
 //
@@ -163,8 +164,18 @@ export default function TransactionsFondsDataB({ dossier, lot, apercu = false, o
             </p>
           ) : null}
 
-          {/* Les cessions, le proche d'abord. */}
+          {/* Les cessions autour du bien : on les voit avant de les lire. */}
           <div className="mt-4">
+            <CarteCessions
+              resultat={resultat}
+              titre={lot?.lot?.locataire_nom?.valeur || "Le bien"}
+              adresse={resultat.adresse}
+              hauteur={360}
+            />
+          </div>
+
+          {/* Les cessions, le proche d'abord. */}
+          <div className="mt-5">
             {visibles.map((t, i) => (
               <div
                 key={`${t.date}-${t.enseigne}-${i}`}

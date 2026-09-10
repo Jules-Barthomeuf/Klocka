@@ -34,15 +34,16 @@ function icôneBien() {
   });
 }
 
-export default function CarteCessions({ project, hauteur = 420 }) {
-  const t = project?.transactions_fonds || null;
+// `resultat` est ce que Data-B a rendu : il vit sur un lot pendant l'analyse,
+// puis sur le projet. La carte se moque de savoir lequel des deux l'appelle.
+export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, hauteur = 420 }) {
   const [filtre, setFiltre] = useState("toutes");
 
   const centre = useMemo(() => {
-    const lat = Number(t?.lat ?? project?.latitude);
-    const lon = Number(t?.lon ?? project?.longitude);
-    return Number.isFinite(lat) && Number.isFinite(lon) ? [lat, lon] : null;
-  }, [t, project]);
+    const y = Number(t?.lat ?? lat);
+    const x = Number(t?.lon ?? lon);
+    return Number.isFinite(y) && Number.isFinite(x) ? [y, x] : null;
+  }, [t, lat, lon]);
 
   const cessions = useMemo(
     () => (t?.transactions || []).filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lon)),
@@ -100,8 +101,8 @@ export default function CarteCessions({ project, hauteur = 420 }) {
           {/* Le bien, par-dessus les cessions. */}
           <Marker position={centre} icon={icôneBien()}>
             <Popup>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{project?.titre || "Le bien"}</div>
-              <div style={{ fontSize: 12, color: "#5a5f66" }}>{project?.adresse_complete || t?.adresse}</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{titre || "Le bien"}</div>
+              <div style={{ fontSize: 12, color: "#5a5f66" }}>{adresse || t?.adresse}</div>
             </Popup>
           </Marker>
         </MapContainer>

@@ -812,7 +812,7 @@ const ENTITES_ADMIN = new Set([
   'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto', 'Engagement',
   // Un rappel porte un nom et un numéro de téléphone : il n'a rien à faire
   // devant un compte client. Il manquait à cette liste.
-  'Rappel', 'MailEcarte', 'DataBRecherche', 'EquimmoxRecherche',
+  'Rappel', 'MailEcarte', 'DataBRecherche', 'EquimmoxRecherche', 'DataBTransactions',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -2264,6 +2264,28 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', 
   const lots = [...dossier.lots];
   lots[index] = { ...entree, valeur_locative: r.resultat };
   Records.update('Deal', dossier.id, { lots });
+  ok(res, { resultat: r.resultat });
+}));
+
+// Data-B, transactions de fonds : ce qui s'est vendu autour du bien, à quel
+// prix, pour quelles activités. La rue est comptée à part.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/transactions', wrap(async (req, res) => {
+  const { transactionsFonds } = await import('./data-b-transactions.js');
+  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const index = Number(req.params.index) || 0;
+  const entree = dossier.lots?.[index];
+  if (!entree) return res.status(404).json({ error: 'Lot introuvable' });
+  const a = entree.lot?.adresse?.valeur;
+  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
+  const adresse = String(req.body?.adresse || adresseDossier).trim();
+  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
+  const r = await transactionsFonds(adresse, { rayon: Number(req.body?.rayon) || 500, forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0] || dossier;
+  const lots = [...courant.lots];
+  lots[index] = { ...lots[index], transactions_fonds: r.resultat };
+  Records.update('Deal', courant.id, { lots });
   ok(res, { resultat: r.resultat });
 }));
 

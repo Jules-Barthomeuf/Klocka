@@ -25,14 +25,17 @@ const CACHE_JOURS = 30;
 // --- La session ---------------------------------------------------------------------------
 let session = { cookie: null, depuis: 0 };
 
-async function appel(url, { method = 'GET', form = null, cookie = null } = {}) {
+async function appel(url, { method = 'GET', form = null, cookie = null, referer = null } = {}) {
   const headers = { 'user-agent': UA, accept: 'text/html,*/*' };
   if (cookie) headers.cookie = cookie;
   let body;
   if (form) {
     headers['content-type'] = 'application/x-www-form-urlencoded';
-    headers.origin = 'https://data-b.com';
-    headers.referer = 'https://data-b.com/login';
+    // Data-B vérifie d'où vient l'appel : la connexion vient de sa page, le
+    // chargement des résultats vient du module qui les demande.
+    const base = referer ? new URL(referer).origin : 'https://data-b.com';
+    headers.origin = base;
+    headers.referer = referer || 'https://data-b.com/login';
     body = new URLSearchParams(form).toString();
   }
   // Le réseau hoquette parfois : trois essais espacés avant de renoncer.
@@ -76,6 +79,58 @@ async function cookieValide() {
   return connecter();
 }
 
+/**
+ * Une page de Data-B, session comprise. Une session périmée renvoie vers la
+ * connexion : on se reconnecte une fois et on redemande.
+ * @returns {Promise<string|null>} le HTML, ou null si la session est refusée
+ */
+export async function pageDataB(url) {
+  for (let essai = 0; essai < 2; essai++) {
+    const cookie = essai === 0 ? await cookieValide() : await connecter();
+    const r = await appel(url, { cookie });
+    if (r.status === 302 || r.status === 301) continue;
+    if (!r.ok) throw new Error(`Data-B a répondu ${r.status}.`);
+    return r.text();
+  }
+  return null;
+}
+
+/**
+ * Un appel POST à Data-B, session comprise. Les modules chargent leurs
+ * résultats ainsi, une fois la page de recherche obtenue.
+ */
+export async function postDataB(url, form) {
+  for (let essai = 0; essai < 2; essai++) {
+    const cookie = essai === 0 ? await cookieValide() : await connecter();
+    const r = await appel(url, { method: 'POST', cookie, form, referer: url });
+    if (r.status === 302 || r.status === 301) continue;
+    if (!r.ok) throw new Error(`Data-B a répondu ${r.status}.`);
+    return r.text();
+  }
+  return null;
+}
+
+/**
+ * Les composantes d'adresse que les modules de Data-B attendent dans leur URL
+ * de recherche. Elles viennent de la Base Adresse Nationale, gratuite.
+ */
+export function parametresAdresse(adresse) {
+  return {
+    submit: 'true',
+    magic_btn: 'acheteur_potentiel',
+    autocomplete: adresse.label + ', France',
+    street_number: adresse.numero,
+    route: adresse.rue,
+    locality: adresse.ville,
+    sublocality: '',
+    administrative_area_level_1: adresse.region,
+    administrative_area_level_2: adresse.departement,
+    postal_code: adresse.code_postal,
+    country: 'France',
+    geometry: `${adresse.lat},${adresse.lon}`,
+  };
+}
+
 // --- L'adresse, résolue par la Base Adresse Nationale ------------------------------------
 /**
  * @returns {Promise<{label, numero, rue, ville, code_postal, departement, region, lat, lon, score}|null>}
@@ -111,7 +166,7 @@ const nombre = (s) => {
 };
 
 /** Le HTML de Data-B ramené à ses lignes de texte. */
-function lignesDe(html) {
+export function lignesDe(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -169,31 +224,12 @@ export async function valeurLocative(texteAdresse, { forcer = false, user = null
     if (recent) return { ok: true, resultat: { ...recent.resultat, du_cache: true } };
   }
 
-  const params = new URLSearchParams({
-    submit: 'true',
-    magic_btn: 'acheteur_potentiel',
-    autocomplete: adresse.label + ', France',
-    street_number: adresse.numero,
-    route: adresse.rue,
-    locality: adresse.ville,
-    sublocality: '',
-    administrative_area_level_1: adresse.region,
-    administrative_area_level_2: adresse.departement,
-    postal_code: adresse.code_postal,
-    country: 'France',
-    geometry: `${adresse.lat},${adresse.lon}`,
-  });
-  const url = `https://valeurlocative.data-b.com/search?${params.toString()}`;
-
-  // Une session périmée renvoie vers la connexion : on se reconnecte une fois.
-  let html = null;
-  for (let essai = 0; essai < 2; essai++) {
-    const cookie = essai === 0 ? await cookieValide() : await connecter();
-    const r = await appel(url, { cookie });
-    if (r.status === 302 || r.status === 301) continue;
-    if (!r.ok) return { ok: false, error: `Data-B a répondu ${r.status}.` };
-    html = await r.text();
-    break;
+  const url = `https://valeurlocative.data-b.com/search?${new URLSearchParams(parametresAdresse(adresse))}`;
+  let html;
+  try {
+    html = await pageDataB(url);
+  } catch (e) {
+    return { ok: false, error: e.message };
   }
   if (!html) return { ok: false, error: 'Data-B refuse la session : vérifiez le compte dans .env.' };
 

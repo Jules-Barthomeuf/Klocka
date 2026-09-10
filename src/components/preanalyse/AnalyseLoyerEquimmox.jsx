@@ -192,7 +192,6 @@ export default function AnalyseLoyerEquimmox({ dossier, lot, apercu = false, onR
           pret={pret}
           dureeEtape={4200}
           onFini={finir}
-          onPasser={finir}
         />
       )}
     </section>

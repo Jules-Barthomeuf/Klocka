@@ -198,7 +198,6 @@ export default function ValeurLocativeDataB({ dossier, lot, apercu = false, onRe
           pret={pret}
           dureeEtape={3000}
           onFini={finir}
-          onPasser={finir}
         />
       )}
     </section>

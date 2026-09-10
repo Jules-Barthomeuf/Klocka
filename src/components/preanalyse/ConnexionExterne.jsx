@@ -15,12 +15,15 @@ import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 //   pret       : la réponse est arrivée
 //   dureeEtape : durée d'une étape, en ms
 //   onFini     : l'animation est allée au bout, la réponse est là
-//   onPasser   : l'animation a été passée
+//
+// L'animation ne s'interrompt pas : elle raconte un travail réel, qui se
+// poursuit de toute façon. L'abréger ne ferait qu'afficher un écran vide en
+// attendant la réponse.
 
 const MENTHE = "#96c0b8";
 const PART_FRAPPE = 0.4; // la ligne se tape sur les 40 % premiers de l'étape
 
-export default function ConnexionExterne({ service, etapes, attendA, pret, dureeEtape = 3000, onFini, onPasser }) {
+export default function ConnexionExterne({ service, etapes, attendA, pret, dureeEtape = 3000, onFini }) {
   const [i, setI] = useState(0);
   const [avance, setAvance] = useState(0); // 0 → 1 dans l'étape
   const [opacite, setOpacite] = useState(0);
@@ -76,19 +79,6 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
     return () => clearTimeout(t);
   }, [fini]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const passer = () => {
-    if (arrete.current) return;
-    arrete.current = true;
-    setOpacite(0);
-    setTimeout(() => onPasser?.(), 400);
-  };
-
-  useEffect(() => {
-    const k = (e) => { if (e.key === "Escape") passer(); };
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const e = etapes[i];
   const frappes = Math.round(Math.min(1, avance / PART_FRAPPE) * e.ligne.length);
   const progression = ((i + Math.min(avance, 1)) / etapes.length) * 100;
@@ -139,13 +129,6 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
           <div className="mt-[14px] h-[2px] rounded-[2px] overflow-hidden bg-white/10">
             <div className="h-full" style={{ background: MENTHE, transition: "width .12s linear", width: `${progression.toFixed(2)}%` }} />
           </div>
-          <button
-            type="button"
-            onClick={passer}
-            className="self-start mt-2.5 border-0 bg-transparent p-0 text-[13px] text-[#6d716f] hover:text-[#c9cdcb] cursor-pointer"
-          >
-            Passer l'animation →
-          </button>
         </div>
       </div>
 

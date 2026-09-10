@@ -314,6 +314,10 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     // surface comparable — remplissent « Baux existants » si elle est vide.
     ...mapperAnalyseLoyer(lot.analyse_loyer, mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres)),
 
+    // Les cessions de fonds relevées sur le dossier suivent le projet : c'est
+    // sur sa carte qu'elles se lisent, à côté du bien.
+    transactions_fonds: lot.transactions_fonds || null,
+
     // Traçabilité et suivi client (toggles à plat).
     deal_id: deal.deal_id,
     suivi_message_envoye: false,

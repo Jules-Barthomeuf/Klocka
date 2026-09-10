@@ -17,6 +17,7 @@ import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
+import CarteCessions from "./CarteCessions";
 import VilleSecteurIA, { useAnalyseIA } from "./SecteurAnalyseIA";
 
 // Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
@@ -703,9 +704,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 </div>
               </div>
 
-              {mapUrl && (
+              {(mapUrl || project.transactions_fonds) && (
                 <div className="mb-10 max-md:mb-6">
                   <SectionLabel tone="teal">Localisation</SectionLabel>
+                  {project.transactions_fonds ? (
+                    <CarteCessions project={project} />
+                  ) : (
                   <div className="relative h-[420px] max-md:h-[260px] overflow-hidden bg-[#0f1114]">
                     <iframe src={mapUrl} className="w-full h-full" style={{ border: 0, filter: 'saturate(0.85) contrast(1.04)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du secteur" />
                     <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[#f2f3f5]/[0.13]" />
@@ -727,6 +731,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       )}
                     </div>
                   </div>
+                  )}
                   <div className="md:hidden">
                     <KVRow champ="adresse_complete" typeChamp="text" label="Adresse" value={project.adresse_complete} />
                     <KVRow label="Surface" value={project.surface_m2 > 0 ? `${project.surface_m2} m²` : null} champ="surface_m2" />

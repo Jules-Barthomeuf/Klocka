@@ -47,18 +47,21 @@ function isoDe(jjmmaaaa) {
 /**
  * Lit les transactions dans le bloc de résultats.
  *
- * Chaque fiche suit toujours le même ordre : enseigne, « Fonds de commerce »,
- * activité, date, adresse, « Prix du fonds », montant. C'est ce motif qu'on
- * suit, plutôt que la structure HTML, qui bouge à chaque refonte.
+ * Chaque fiche est un bloc « dbModuleCompact__head », et suit toujours le même
+ * ordre : enseigne, « Fonds de commerce », activité, date, adresse, « Prix du
+ * fonds », montant. Découper d'abord par bloc garantit que les coordonnées
+ * relevées dans le bouton « Voir l'emplacement » vont bien à leur fiche.
  *
  * @returns {{total: number, transactions: Array}}
  */
 export function lireTransactions(html) {
-  const l = lignesDe(html);
-  const total = nombre(l.find((x) => /nombre de r[ée]sultats/i.test(x))?.split(':')[1]) ?? null;
+  const total = nombre(lignesDe(html).find((x) => /nombre de r[ée]sultats/i.test(x))?.split(':')[1]);
+  const blocs = html.split('class="dbModuleCompact__head"').slice(1);
   const transactions = [];
-  for (let i = 1; i < l.length; i++) {
-    if (!/^fonds de commerce$/i.test(l[i])) continue;
+  for (const bloc of blocs) {
+    const l = lignesDe(bloc);
+    const i = l.findIndex((x) => /^fonds de commerce$/i.test(x));
+    if (i < 0) continue;
     const enseigne = l[i - 1];
     // Après « Fonds de commerce » : l'activité, puis la date, puis l'adresse.
     const activite = l[i + 1] && !isoDe(l[i + 1]) ? l[i + 1] : null;
@@ -72,7 +75,15 @@ export function lireTransactions(html) {
       if (/^prix du fonds$/i.test(l[k])) { prix = nombre(l[k + 1]); break; }
     }
     const detail = l.slice(iDate + 2, iDate + 12).find((x) => /acquis|c[ée]d[ée]|apport|achat/i.test(x)) || null;
-    transactions.push({ enseigne, activite, date, adresse, prix, detail });
+    // Le bouton « Voir l'emplacement » porte le point exact : c'est lui qui
+    // permet de poser la cession sur la carte du projet.
+    const geo = bloc.match(/id="streetview"[^>]*lat="([\d.-]+)"[^>]*lng="([\d.-]+)"/i);
+    const siret = bloc.match(/siret="(\d{9,14})"/i)?.[1] || null;
+    transactions.push({
+      enseigne, activite, date, adresse, prix, detail, siret,
+      lat: geo ? Number(geo[1]) : null,
+      lon: geo ? Number(geo[2]) : null,
+    });
   }
   return { total: total ?? transactions.length, transactions };
 }
@@ -139,7 +150,7 @@ const cleCache = (a, rayon) => `${a.numero} ${a.rue} ${a.code_postal} ${a.ville}
  * @param {{rayon?: number, forcer?: boolean, user?: object, garder?: number}} opts
  * @returns {Promise<{ok: true, resultat: object} | {ok: false, error: string}>}
  */
-export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, forcer = false, user = null, garder = 40 } = {}) {
+export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, forcer = false, user = null, garder = 200 } = {}) {
   const adresse = await resoudreAdresse(texteAdresse);
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texteAdresse || '').slice(0, 80)} ».` };
 
@@ -190,8 +201,9 @@ export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, fo
   const dansLaRue = transactions.filter((t) => t.dans_la_rue);
   const surPlace = transactions.filter((t) => t.sur_place);
 
-  // On garde ce qui touche le bien, puis les plus récentes autour : la liste
-  // entière pèse des mégaoctets, et c'est le marché résumé qui sert à comparer.
+  // On garde ce qui touche le bien, puis les plus récentes autour. Deux cents
+  // suffisent à peupler la carte sans alourdir la fiche ; le marché résumé,
+  // lui, est calculé sur la totalité.
   const parDate = (a, b) => String(b.date).localeCompare(String(a.date));
   const retenues = [
     ...surPlace.sort(parDate),
@@ -202,6 +214,9 @@ export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, fo
   const resultat = {
     source: 'Data-B · Transactions de fonds de commerce',
     adresse: adresse.label,
+    // Le point du bien : la carte se centre dessus, les cessions tournent autour.
+    lat: adresse.lat,
+    lon: adresse.lon,
     rayon: r >= 1000 ? `${r / 1000} km` : `${r} m`,
     total,
     marche: marcheDe(transactions),

@@ -2289,6 +2289,21 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/transactions', wra
   ok(res, { resultat: r.resultat });
 }));
 
+// Les mêmes cessions, pour un projet : un projet créé avant que le dossier ne
+// les relève peut les chercher depuis son éditeur.
+app.post('/api/projects/:id/data-b/transactions', wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+  const { transactionsFonds } = await import('./data-b-transactions.js');
+  const projet = Records.get('Project', req.params.id);
+  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+  const adresse = String(req.body?.adresse || projet.adresse_complete || '').trim();
+  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
+  const r = await transactionsFonds(adresse, { rayon: Number(req.body?.rayon) || 500, forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  Records.update('Project', projet.id, { transactions_fonds: r.resultat });
+  ok(res, { resultat: r.resultat });
+}));
+
 // Equimmox, analyse de loyer : les loyers observés à 500 m, pour des locaux de
 // surface comparable. Sur un lot, l'adresse et la surface du dossier servent
 // par défaut ; le résultat reste avec lui. Une recherche prend une minute.

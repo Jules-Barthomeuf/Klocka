@@ -83,7 +83,9 @@ export default function TransactionsFondsDataB({ dossier, lot, apercu = false, o
   const lancer = (forcer) => { enAttente.current = null; setPret(false); setEcran(true); chercher.mutate({ forcer }); };
   const finir = () => { setEcran(false); if (enAttente.current) poser(enAttente.current); enAttente.current = null; };
 
-  const lignes = resultat?.transactions || [];
+  // La liste sert à lire quelques cessions, pas à les parcourir toutes : la
+  // carte du projet s'en charge. On en montre huit, quarante au plus.
+  const lignes = (resultat?.transactions || []).slice(0, 40);
   const visibles = tout ? lignes : lignes.slice(0, 8);
   const activite = lot?.lot?.locataire_activite?.valeur || null;
 

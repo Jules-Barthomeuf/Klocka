@@ -61,7 +61,18 @@ async function lancerNavigateur() {
     return navigateur;
   }
   try {
-    navigateur = await chromium.launch({ executablePath: CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    navigateur = await chromium.launch({
+      executablePath: CHROMIUM,
+      // Un Chromium tient facilement trois cents mégaoctets ; sur une petite
+      // machine, c'est ce qui reste au serveur. On lui retire tout ce dont une
+      // lecture de page n'a pas besoin.
+      args: [
+        '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
+        '--disable-extensions', '--disable-background-networking',
+        '--disable-default-apps', '--mute-audio', '--no-first-run',
+        '--js-flags=--max-old-space-size=256',
+      ],
+    });
   } catch (e) {
     // Le message brut de Playwright parle d'un chemin et d'une commande npx :
     // il n'apprend rien à qui clique sur « Chercher sur Equimmox ».
@@ -219,7 +230,73 @@ export async function analyseLoyer(adresse, { surface = null, forcer = false, us
     return { ok: false, error: e?.message || 'Equimmox n\'a pas répondu.' };
   } finally {
     if (ctx) await ctx.close().catch(() => {});
+    // Le navigateur ne survit pas à la recherche : le garder ouvert immobilisait
+    // sa mémoire en permanence, et une petite machine finissait par tomber.
+    // Sauf s'il est distant : celui-là ne nous appartient pas.
+    if (!CDP && navigateur) {
+      const n = navigateur;
+      navigateur = null;
+      await n.close().catch(() => {});
+    }
   }
+}
+
+// ---------------------------------------------------------------------------
+// La recherche en fond
+// ---------------------------------------------------------------------------
+//
+// Elle prend une minute et demie. Une requête HTTP qui dure aussi longtemps
+// meurt chez l'hébergeur, entre le proxy et ses délais : on rend la main tout
+// de suite et la page vient demander où ça en est.
+
+const travaux = new Map();
+const PLAFOND_TRAVAUX = 50;
+
+/** Démarre — ou retrouve — la recherche pour cette adresse et cette surface. */
+export function lancerAnalyseLoyer(adresse, opts = {}) {
+  const cle = cleCache(adresse, Number(opts.surface) > 0 ? Math.round(Number(opts.surface)) : null);
+  const enCours = travaux.get(cle);
+  if (enCours?.etat === 'en_cours') return { cle, ...enCours };
+
+  const travail = { etat: 'en_cours', resultat: null, erreur: null, depuis: new Date().toISOString() };
+  travaux.set(cle, travail);
+  // Les travaux terminés s'oublient : on n'en garde qu'une poignée, le temps
+  // que la page vienne chercher son résultat.
+  if (travaux.size > PLAFOND_TRAVAUX) {
+    for (const [k, t] of travaux) {
+      if (t.etat !== 'en_cours') travaux.delete(k);
+      if (travaux.size <= PLAFOND_TRAVAUX) break;
+    }
+  }
+
+  analyseLoyer(adresse, opts)
+    .then((r) => {
+      travail.etat = r.ok ? 'pret' : 'erreur';
+      travail.resultat = r.ok ? r.resultat : null;
+      travail.erreur = r.ok ? null : r.error;
+      if (r.ok && typeof opts.onFini === 'function') { try { opts.onFini(r.resultat); } catch { /* le résultat reste lisible */ } }
+    })
+    .catch((e) => {
+      travail.etat = 'erreur';
+      travail.erreur = e?.message || 'Equimmox n\'a pas répondu.';
+    });
+
+  return { cle, ...travail };
+}
+
+/** Où en est la recherche lancée pour cette clé. */
+export function etatAnalyseLoyer(cle) {
+  const t = travaux.get(cle);
+  return t ? { cle, etat: t.etat, resultat: t.resultat, erreur: t.erreur, depuis: t.depuis } : null;
+}
+
+/** Le résultat déjà gardé pour cette adresse, s'il en existe un de moins de trente jours. */
+export function analyseLoyerEnCache(adresse, surface = null) {
+  const cle = cleCache(adresse, Number(surface) > 0 ? Math.round(Number(surface)) : null);
+  const recent = Records.filter('EquimmoxRecherche', { cle })
+    .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000)
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+  return recent ? { ...recent.resultat, du_cache: true } : null;
 }
 
 // Le curseur de rayon a neuf crans ; leur valeur en mètres se lit dans le

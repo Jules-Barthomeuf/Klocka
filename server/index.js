@@ -2270,8 +2270,11 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', 
 // Equimmox, analyse de loyer : les loyers observés à 500 m, pour des locaux de
 // surface comparable. Sur un lot, l'adresse et la surface du dossier servent
 // par défaut ; le résultat reste avec lui. Une recherche prend une minute.
+// La recherche dure une minute et demie : trop pour une requête HTTP, qui
+// meurt en chemin chez l'hébergeur. On répond tout de suite — le résultat gardé
+// s'il existe, sinon « en cours » — et la page revient demander où ça en est.
 app.post('/api/preanalyse/dossiers/:dealId/lots/:index/equimmox/analyse-loyer', wrap(async (req, res) => {
-  const { analyseLoyer } = await import('./equimmox.js');
+  const { lancerAnalyseLoyer, analyseLoyerEnCache } = await import('./equimmox.js');
   const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
   const index = Number(req.params.index) || 0;
@@ -2282,22 +2285,50 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/equimmox/analyse-loyer', 
   const adresse = String(req.body?.adresse || adresseDossier).trim();
   if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
   const surface = Number(req.body?.surface) > 0 ? Number(req.body.surface) : Number(entree.lot?.surface_m2?.valeur) > 0 ? Number(entree.lot.surface_m2.valeur) : null;
-  const r = await analyseLoyer(adresse, { surface, forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0] || dossier;
-  const lots = [...courant.lots];
-  lots[index] = { ...lots[index], analyse_loyer: r.resultat };
-  Records.update('Deal', courant.id, { lots });
-  ok(res, { resultat: r.resultat });
+
+  // Le résultat trouvé sur le lot : on le repose là où la page le lit.
+  const poser = (resultat) => {
+    const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    if (!courant) return;
+    const lots = [...courant.lots];
+    lots[index] = { ...lots[index], analyse_loyer: resultat };
+    Records.update('Deal', courant.id, { lots });
+  };
+
+  if (!req.body?.forcer) {
+    const garde = analyseLoyerEnCache(adresse, surface);
+    if (garde) { poser(garde); return ok(res, { resultat: garde }); }
+  }
+
+  const t = lancerAnalyseLoyer(adresse, { surface, forcer: !!req.body?.forcer, user: currentUser(req), onFini: poser });
+  if (t.etat === 'pret' && t.resultat) { poser(t.resultat); return ok(res, { resultat: t.resultat }); }
+  if (t.etat === 'erreur') return res.status(400).json({ error: t.erreur });
+  ok(res, { en_cours: true, cle: t.cle });
+}));
+
+// Où en est la recherche lancée juste avant.
+app.get('/api/equimmox/analyse-loyer/etat', wrap(async (req, res) => {
+  const { etatAnalyseLoyer } = await import('./equimmox.js');
+  const t = etatAnalyseLoyer(String(req.query.cle || ''));
+  if (!t) return res.status(404).json({ error: 'Recherche inconnue : relancez-la.' });
+  if (t.etat === 'erreur') return res.status(400).json({ error: t.erreur });
+  ok(res, t.etat === 'pret' ? { resultat: t.resultat } : { en_cours: true, cle: t.cle });
 }));
 
 // La même analyse, sans dossier : une adresse, une surface, trois chiffres.
 app.post('/api/equimmox/analyse-loyer', wrap(async (req, res) => {
   if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
-  const { analyseLoyer } = await import('./equimmox.js');
-  const r = await analyseLoyer(String(req.body?.adresse || ''), { surface: Number(req.body?.surface) > 0 ? Number(req.body.surface) : null, forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, { resultat: r.resultat });
+  const { lancerAnalyseLoyer, analyseLoyerEnCache } = await import('./equimmox.js');
+  const adresse = String(req.body?.adresse || '');
+  const surface = Number(req.body?.surface) > 0 ? Number(req.body.surface) : null;
+  if (!req.body?.forcer) {
+    const garde = analyseLoyerEnCache(adresse, surface);
+    if (garde) return ok(res, { resultat: garde });
+  }
+  const t = lancerAnalyseLoyer(adresse, { surface, forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (t.etat === 'pret' && t.resultat) return ok(res, { resultat: t.resultat });
+  if (t.etat === 'erreur') return res.status(400).json({ error: t.erreur });
+  ok(res, { en_cours: true, cle: t.cle });
 }));
 
 // La même recherche, sans dossier : une adresse, une fourchette.

@@ -60,20 +60,40 @@ export default function AnalyseLoyerEquimmox({ dossier, lot, apercu = false, onR
     onRefresh?.();
   };
 
+  // La recherche dure plus d'une minute : le serveur rend la main tout de suite
+  // et on vient demander où elle en est, toutes les quatre secondes. Une
+  // requête tenue ouverte aussi longtemps ne survivrait pas à l'hébergeur.
+  const suivi = useRef(null);
+  useEffect(() => () => clearTimeout(suivi.current), []);
+
+  const recevoir = (r) => {
+    if (r?.en_cours) { suivi.current = setTimeout(() => interroger(r.cle), 4000); return; }
+    if (!ecranRef.current || r?.resultat?.du_cache) { setEcran(false); poser(r?.resultat); return; }
+    enAttente.current = r?.resultat;
+    setPret(true);
+  };
+  const echouer = (e) => {
+    clearTimeout(suivi.current);
+    setEcran(false);
+    toast.error(e?.message || "Equimmox n'a pas répondu");
+  };
+  const interroger = (cle) => {
+    base44.request("GET", `/api/equimmox/analyse-loyer/etat?cle=${encodeURIComponent(cle)}`)
+      .then(recevoir)
+      .catch(echouer);
+  };
+
   const chercher = useMutation({
     mutationFn: ({ forcer = false } = {}) =>
       base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot?.index ?? 0}/equimmox/analyse-loyer`, {
         body: { adresse, surface: Number(surface) > 0 ? Number(surface) : null, forcer },
       }),
-    onSuccess: (r) => {
-      if (!ecranRef.current || r.resultat?.du_cache) { setEcran(false); poser(r.resultat); return; }
-      enAttente.current = r.resultat;
-      setPret(true);
-    },
-    onError: (e) => { setEcran(false); toast.error(e?.message || "Equimmox n'a pas répondu"); },
+    onSuccess: recevoir,
+    onError: echouer,
   });
 
   const lancer = (forcer) => {
+    clearTimeout(suivi.current);
     enAttente.current = null;
     setPret(false);
     setEcran(true);
@@ -102,7 +122,7 @@ export default function AnalyseLoyerEquimmox({ dossier, lot, apercu = false, onR
           value={adresse}
           onChange={(e) => setAdresse(e.target.value)}
           placeholder="12 rue Exemple, 69002 Lyon"
-          disabled={apercu || chercher.isPending}
+          disabled={apercu || ecran}
           className="flex-1 min-w-[220px] bg-transparent border border-[#2c3139] focus:border-[#f2f3f5] rounded-full px-4 py-2 outline-none text-[13.5px] text-[#f2f3f5] placeholder:text-[#3a3f4a] disabled:opacity-60"
         />
         <label className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]">
@@ -111,20 +131,20 @@ export default function AnalyseLoyerEquimmox({ dossier, lot, apercu = false, onR
             onChange={(e) => setSurface(e.target.value.replace(/[^\d]/g, ""))}
             inputMode="numeric"
             placeholder="80"
-            disabled={apercu || chercher.isPending}
+            disabled={apercu || ecran}
             className="w-[64px] bg-transparent border border-[#2c3139] focus:border-[#f2f3f5] rounded-full px-3 py-2 outline-none text-[13.5px] text-[#f2f3f5] tabular-nums text-right placeholder:text-[#3a3f4a] disabled:opacity-60"
           />
           m²
         </label>
         <button
           type="submit"
-          disabled={apercu || chercher.isPending || !adresse.trim()}
+          disabled={apercu || ecran || !adresse.trim()}
           className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-2 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40"
         >
-          {chercher.isPending ? <PenseeIA etat="searching" taille={20} /> : <Search className="w-3.5 h-3.5" />}
-          {chercher.isPending ? "Equimmox cherche…" : "Chercher sur Equimmox"}
+          {ecran ? <PenseeIA etat="searching" taille={20} /> : <Search className="w-3.5 h-3.5" />}
+          {ecran ? "Equimmox cherche…" : "Chercher sur Equimmox"}
         </button>
-        {resultat && !chercher.isPending && (
+        {resultat && !ecran && (
           <button
             type="button"
             onClick={() => lancer(true)}

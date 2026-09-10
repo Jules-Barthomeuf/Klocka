@@ -243,7 +243,10 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         <div className="flex flex-wrap items-end justify-between gap-6 pb-6 border-b border-[#1f2228]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="m-0 text-[34px] max-md:text-[24px] font-semibold tracking-[-.01em] text-[#f2f3f5] truncate">
+              <h1
+                className="m-0 text-[40px] max-md:text-[30px] font-normal italic tracking-[-.01em] leading-[1.1] text-white truncate"
+                style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
+              >
                 {dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom"}
               </h1>
               {aRelancer && (

@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from "framer-motion";
 import ProjectFormLocataireTab from "../components/admin/ProjectFormLocataireTab";
-import ProjectFormInfoTab from "../components/admin/ProjectFormInfoTab";
+import ProjectFormInfoTab, { CarteCollaborateurs, CarteClients, CarteDocuments } from "../components/admin/ProjectFormInfoTab";
 import ProjectFormDocumentsTab from "../components/admin/ProjectFormDocumentsTab";
 import ProjectFormDiagnosticsTab from "../components/admin/ProjectFormDiagnosticsTab";
 import ProjectFormSimulateurTab from "../components/admin/ProjectFormSimulateurTab";
@@ -1036,13 +1036,24 @@ export default function AdminProjets() {
     return (
       <div className="h-screen flex flex-col bg-[#000000] text-[#f2f3f5] overflow-hidden">
         {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. */}
-        <div className="flex-shrink-0 px-6 max-md:px-4 pt-5 pb-4 border-b border-[#1f2228]">
-          <h1
-            className="m-0 text-[40px] max-md:text-[30px] font-normal italic tracking-[-.01em] leading-[1.1] text-white truncate"
-            style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
-          >
-            {formData.titre || "Nouveau projet"}
-          </h1>
+        <div className="flex-shrink-0 px-6 max-md:px-4 pt-4 pb-3.5 border-b border-[#1c1c1c]">
+          <div className="flex items-start gap-5">
+            <h1
+              className="flex-1 min-w-0 m-0 text-[clamp(22px,2.4vw,36px)] font-normal italic tracking-[-.01em] leading-[1.05] text-white"
+              style={{ fontFamily: "'Instrument Serif', Georgia, serif", textWrap: "pretty" }}
+            >
+              {formData.titre || "Nouveau projet"}
+            </h1>
+            {editingProject?.id && (
+              <button
+                onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")}
+                title="Ouvrir la page telle que le client la verra"
+                className="flex-shrink-0 w-[34px] h-[34px] rounded-full border border-[#2a2a2a] text-[#8a8a8a] hover:text-[#f2f3f5] hover:border-[#4d4d4d] transition-colors inline-flex items-center justify-center"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button onClick={goToProjectsList} className={BOUTON}>Retour aux projets</button>
@@ -1103,8 +1114,8 @@ export default function AdminProjets() {
 
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
-        <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1fr)_540px] max-xl:grid-cols-[minmax(0,1fr)_440px] max-lg:grid-cols-1 max-lg:overflow-y-auto">
-        <div className="min-h-0 overflow-y-auto border-r border-[#1f2228] max-lg:border-r-0 max-lg:overflow-visible">
+        <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-lg:grid-cols-1 max-lg:overflow-y-auto">
+        <div className="min-h-0 overflow-y-auto border-r border-[#1c1c1c] max-lg:border-r-0 max-lg:overflow-visible">
           {ongletPage === "simulateur" ? (
             <div className="max-w-[1100px] mx-auto px-4 md:px-6 pb-8">
               {/* La barre d'onglets de la page reste accessible au-dessus des chiffres. */}
@@ -1139,19 +1150,29 @@ export default function AdminProjets() {
         </div>
 
         <aside
-          className="min-h-0 flex flex-col bg-[#0a0a0b] max-lg:min-h-[60vh]"
+          className="min-h-0 flex flex-col bg-black max-lg:min-h-[60vh]"
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
         >
-          <div className="flex gap-1.5 px-4 py-2.5 border-b border-[#1f2228] overflow-x-auto flex-shrink-0">
+          <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => setActiveTab(t.value)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors ${activeTab === t.value ? "text-[#0f1114] font-semibold bg-[#f2f3f5]" : "bg-[#f2f3f5]/[0.05] text-[#9298a6] hover:text-[#f2f3f5]"}`}>
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-[#96c0b8] text-[#04140c] border-[#96c0b8] font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-[#3a3f4a] hover:text-[#f2f3f5]"}`}>
                 {t.label}
               </button>
             ))}
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5">
+
+          {/* Ce qui ne dépend d'aucune section reste sous les yeux. */}
+          <div className="flex-shrink-0 px-[18px] pb-3 flex flex-col gap-3">
+            <CarteCollaborateurs formData={formData} setFormData={setFormData} />
+            <CarteClients formData={formData} setFormData={setFormData} users={users} />
+            <p className="m-0 mt-1 text-[11px] tracking-[.18em] uppercase text-[#7d7d7d]">
+              {editorTabs.find((t) => t.value === activeTab)?.label || "Modifier"}
+            </p>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto px-[18px] pb-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
                 <div className="p-6 bg-[#0f1114] rounded-none border border-[#1f2228]">
@@ -1325,8 +1346,12 @@ export default function AdminProjets() {
               <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} /></motion.div></TabsContent>
             </Tabs>
           </div>
-          <div className="px-5 py-3 border-t border-[#1f2228] flex-shrink-0">
-            <span className="text-[11px] text-[#6a7180]">Entrée met la page de gauche à jour sans enregistrer.</span>
+          {/* Les documents étudiés, au pied du panneau, quelle que soit la section. */}
+          <div className="flex-shrink-0 px-[18px] pb-3">
+            <CarteDocuments formData={formData} setFormData={setFormData} />
+          </div>
+          <div className="px-[18px] py-2.5 border-t border-[#1c1c1c] flex-shrink-0 text-center">
+            <span className="text-[12px] text-[#6a6a6a]">Entrée met la page de gauche à jour sans enregistrer.</span>
           </div>
         </aside>
         </div>

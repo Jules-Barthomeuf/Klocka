@@ -1,9 +1,9 @@
 import React from "react";
 
 // Style "IMMO OS" partagé — aligné sur l'onglet Infos
-export const fieldWrap = "bg-[#0f1114] border border-[#1f2228] rounded-[14px] px-[18px] py-4 transition-all focus-within:border-[#3a3f4a] focus-within:shadow-[0_0_0_3px_rgba(237,234,229,0.08)]";
+export const fieldWrap = "bg-transparent border border-[#1e1e1e] rounded-[12px] px-4 py-3.5 transition-colors focus-within:border-[#3a3f4a]";
 export const fieldInput = "w-full bg-transparent border-none text-[#f2f3f5] outline-none placeholder:text-[#6a7180]";
-export const fieldLabel = "text-[12px] text-[#9298a6] font-semibold mb-1.5";
+export const fieldLabel = "text-[12px] text-[#9a9a9a] mb-2";
 
 // Champ texte / nombre
 export function FField({ label, labelColor, children, className = "" }) {

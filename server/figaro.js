@@ -205,10 +205,10 @@ export function contoursCommune(codeInsee) {
 /**
  * Les prix et loyers du résidentiel autour d'une adresse, d'après Le Figaro.
  * @param {string} texteAdresse
- * @param {{forcer?: boolean, user?: object, carte?: boolean}} opts
+ * @param {{forcer?: boolean, user?: object}} opts
  * @returns {Promise<{ok: true, resultat: object} | {ok: false, error: string}>}
  */
-export async function prixResidentiel(texteAdresse, { forcer = false, user = null, carte = true } = {}) {
+export async function prixResidentiel(texteAdresse, { forcer = false, user = null } = {}) {
   const adresse = await resoudreAdresse(texteAdresse);
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texteAdresse || '').slice(0, 80)} ».` };
   if (!adresse.code_insee) return { ok: false, error: 'Commune non identifiée : le code INSEE manque.' };
@@ -233,12 +233,25 @@ export async function prixResidentiel(texteAdresse, { forcer = false, user = nul
   if (!chiffres) return { ok: false, error: `Le Figaro ne publie pas de prix pour ${adresse.ville}.` };
 
   let carteDesPrix = null;
-  if (carte) {
+  try {
+    carteDesPrix = await lireCarte(html, url);
+  } catch { /* la commune n'a pas de découpage par quartier */ }
+  const trouve = carteDesPrix ? quartierDuPoint(carteDesPrix.quartiers, adresse.lat, adresse.lon) : null;
+
+  // La moyenne d'une commune ne dit rien d'une rue : Paris entier est à
+  // 10 726 €/m², Clignancourt-Jules Joffrin à 9 383. On va donc lire la page du
+  // quartier, qui porte les mêmes chiffres à la bonne échelle.
+  let quartier = null;
+  if (trouve?.lien) {
     try {
-      carteDesPrix = await lireCarte(html, url);
-    } catch { /* la commune n'a pas de découpage par quartier */ }
+      const pageQuartier = await (await page(trouve.lien, url)).text();
+      const c = lireChiffres(pageQuartier);
+      if (c) quartier = { nom: trouve.nom, ...c, lien: trouve.lien };
+    } catch { /* le quartier n'a pas de page : on garde son prix de la carte */ }
   }
-  const quartier = carteDesPrix ? quartierDuPoint(carteDesPrix.quartiers, adresse.lat, adresse.lon) : null;
+  if (!quartier && trouve) {
+    quartier = { nom: trouve.nom, prix: { median: trouve.prix }, loyer: null, lien: trouve.lien || null };
+  }
 
   const resultat = {
     source: 'Le Figaro Immobilier',
@@ -247,10 +260,10 @@ export async function prixResidentiel(texteAdresse, { forcer = false, user = nul
     adresse: adresse.label,
     lat: adresse.lat,
     lon: adresse.lon,
-    ...chiffres,
-    // Le quartier de l'adresse, quand le découpage existe : c'est lui qu'on
-    // compare, pas la moyenne de la ville.
-    quartier: quartier ? { nom: quartier.nom, prix: quartier.prix, lien: quartier.lien } : null,
+    // Les deux échelles. Le quartier est celui qu'on compare au commerce ; la
+    // commune sert de repère plus large.
+    commune: { nom: adresse.ville, ...chiffres, lien: url },
+    quartier,
     // La carte, sans ses contours : cent trente-deux polygones pèsent cent
     // vingt-six kilo-octets, qu'on ne recopie pas sur chaque dossier parisien.
     // Ils restent dans l'enregistrement de cache, servis par commune.
@@ -270,6 +283,6 @@ export async function prixResidentiel(texteAdresse, { forcer = false, user = nul
     le: resultat.le,
     par: resultat.par,
   });
-  console.log(`[figaro] ${adresse.ville} : ${chiffres.prix?.median ?? '—'} €/m² · loyer ${chiffres.loyer?.median ?? '—'} €/m²${quartier ? ` · quartier ${quartier.nom}` : ''}`);
+  console.log(`[figaro] ${adresse.ville} ${chiffres.prix?.median ?? '—'} €/m²${quartier ? ` · ${quartier.nom} ${quartier.prix?.median ?? '—'} €/m², loyer ${quartier.loyer?.median ?? '—'} €/m²` : ' · sans quartier'}`);
   return { ok: true, resultat };
 }

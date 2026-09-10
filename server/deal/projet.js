@@ -98,6 +98,18 @@ function mapperValeurLocative(vl, deja = {}) {
   return sortie;
 }
 
+// Equimmox : bas, moyenne et haut des loyers observés, en € par m² et par an,
+// l'unité des cases « Baux existants ». Seules les cases vides sont remplies.
+function mapperAnalyseLoyer(al, deja = {}) {
+  if (!al || (al.bas == null && al.moyenne == null && al.haut == null)) return {};
+  const vide = (cle) => !deja[cle];
+  const sortie = {};
+  if (al.bas > 0 && vide('marche_baux_bas')) sortie.marche_baux_bas = al.bas;
+  if (al.moyenne > 0 && vide('marche_baux_moyenne')) sortie.marche_baux_moyenne = al.moyenne;
+  if (al.haut > 0 && vide('marche_baux_haut')) sortie.marche_baux_haut = al.haut;
+  return sortie;
+}
+
 // Les chiffres du point de marché, rangés dans les cases de la fiche. Un zéro
 // veut dire « le texte ne le dit pas » : le formulaire laisse la case vide.
 function mapperChiffres(c) {
@@ -279,6 +291,9 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     // de la rue entre dans « Offre actuelle », le quartier nomme le secteur.
     // Elle passe après la base marché et le point de marché, sans les écraser.
     ...mapperValeurLocative(lot.valeur_locative, mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres)),
+    // Les loyers observés par Equimmox — des baux en place autour du bien, à
+    // surface comparable — remplissent « Baux existants » si elle est vide.
+    ...mapperAnalyseLoyer(lot.analyse_loyer, mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres)),
 
     // Traçabilité et suivi client (toggles à plat).
     deal_id: deal.deal_id,

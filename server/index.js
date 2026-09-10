@@ -812,7 +812,7 @@ const ENTITES_ADMIN = new Set([
   'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto', 'Engagement',
   // Un rappel porte un nom et un numéro de téléphone : il n'a rien à faire
   // devant un compte client. Il manquait à cette liste.
-  'Rappel', 'MailEcarte', 'DataBRecherche',
+  'Rappel', 'MailEcarte', 'DataBRecherche', 'EquimmoxRecherche',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -2264,6 +2264,39 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', 
   const lots = [...dossier.lots];
   lots[index] = { ...entree, valeur_locative: r.resultat };
   Records.update('Deal', dossier.id, { lots });
+  ok(res, { resultat: r.resultat });
+}));
+
+// Equimmox, analyse de loyer : les loyers observés à 500 m, pour des locaux de
+// surface comparable. Sur un lot, l'adresse et la surface du dossier servent
+// par défaut ; le résultat reste avec lui. Une recherche prend une minute.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/equimmox/analyse-loyer', wrap(async (req, res) => {
+  const { analyseLoyer } = await import('./equimmox.js');
+  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const index = Number(req.params.index) || 0;
+  const entree = dossier.lots?.[index];
+  if (!entree) return res.status(404).json({ error: 'Lot introuvable' });
+  const a = entree.lot?.adresse?.valeur;
+  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
+  const adresse = String(req.body?.adresse || adresseDossier).trim();
+  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
+  const surface = Number(req.body?.surface) > 0 ? Number(req.body.surface) : Number(entree.lot?.surface_m2?.valeur) > 0 ? Number(entree.lot.surface_m2.valeur) : null;
+  const r = await analyseLoyer(adresse, { surface, forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0] || dossier;
+  const lots = [...courant.lots];
+  lots[index] = { ...lots[index], analyse_loyer: r.resultat };
+  Records.update('Deal', courant.id, { lots });
+  ok(res, { resultat: r.resultat });
+}));
+
+// La même analyse, sans dossier : une adresse, une surface, trois chiffres.
+app.post('/api/equimmox/analyse-loyer', wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+  const { analyseLoyer } = await import('./equimmox.js');
+  const r = await analyseLoyer(String(req.body?.adresse || ''), { surface: Number(req.body?.surface) > 0 ? Number(req.body.surface) : null, forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
   ok(res, { resultat: r.resultat });
 }));
 

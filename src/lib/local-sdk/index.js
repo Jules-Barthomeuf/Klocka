@@ -59,7 +59,7 @@ if (typeof window !== 'undefined') {
 export function createClient(config = {}) {
   const base = normalizeBase(config.serverUrl);
 
-  async function request(method, url, { body, isForm } = {}) {
+  async function request(method, url, { body, isForm, signal } = {}) {
     const headers = {};
     // Seul le jeton de fenêtre part en Authorization : le jeton hérité de
     // Base44 (config.token) ne correspond à rien côté serveur.
@@ -77,7 +77,9 @@ export function createClient(config = {}) {
     // Même origine : le cookie de session part de lui-même. `credentials` le
     // dit explicitement — un hébergeur qui sert le front sous un autre nom
     // que l'API ne doit pas perdre la session en silence.
-    const resp = await fetch(`${base}${url}`, { method, headers, body: payload, credentials: 'include' });
+    // `signal` : l'appelant peut interrompre la requête — une analyse longue
+    // qu'on ne veut plus attendre.
+    const resp = await fetch(`${base}${url}`, { method, headers, body: payload, credentials: 'include', signal });
     if (!resp.ok) {
       let data = null;
       try {

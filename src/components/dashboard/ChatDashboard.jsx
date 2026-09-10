@@ -409,8 +409,13 @@ export default function ChatDashboard() {
   };
 
   // La boîte : le serveur classe et fait ; on affiche selon ce qu'il a fait.
+  // Une requête qu'on ne veut plus attendre s'interrompt.
+  const controleur = useRef(null);
   const boite = useMutation({
-    mutationFn: ({ t, type }) => base44.request("POST", "/api/assistant/boite", { body: { texte: t, historique: historique(), type } }),
+    mutationFn: ({ t, type }) => {
+      controleur.current = new AbortController();
+      return base44.request("POST", "/api/assistant/boite", { body: { texte: t, historique: historique(), type }, signal: controleur.current.signal });
+    },
     onSuccess: (r) => {
       rafraichir();
       if (r.type === "note") {
@@ -434,14 +439,15 @@ export default function ChatDashboard() {
         setSuites(lireActions(r));
       }
     },
-    onError: (e) => pousser({ role: "assistant", contenu: `Impossible : ${e?.message || "erreur"}` }),
+    onError: (e) => e?.name === "AbortError" ? null : pousser({ role: "assistant", contenu: `Impossible : ${e?.message || "erreur"}` }),
   });
 
   const analyser = useMutation({
     mutationFn: async (f) => {
       const form = new FormData();
       form.append("fichier", f);
-      const r = await base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true });
+      controleur.current = new AbortController();
+      const r = await base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true, signal: controleur.current.signal });
       let titre = null;
       let clients = null;
       try {
@@ -459,7 +465,7 @@ export default function ChatDashboard() {
       setFichier(null);
       pousser({ role: "bloc", type: "fiche", donnees: r });
     },
-    onError: (e) => pousser({ role: "assistant", contenu: `Analyse impossible : ${e?.message || "erreur"}` }),
+    onError: (e) => e?.name === "AbortError" ? null : pousser({ role: "assistant", contenu: `Analyse impossible : ${e?.message || "erreur"}` }),
   });
 
   const envoyerMail = useMutation({
@@ -672,10 +678,16 @@ export default function ChatDashboard() {
                 <span className="dot" /><span>Voix</span>
               </button>
             </div>
+            {enCours ? (
+              <button type="button" className="accueil-send" onClick={() => controleur.current?.abort()} title="Interrompre la requête en cours">
+                <PenseeIA etat="working" taille={20} clair /> Arrêter
+              </button>
+            ) : (
             <button type="button" className="accueil-send" onClick={() => lancer()} disabled={(!texte.trim() && !fichier) || enCours}>
               {enCours ? <PenseeIA etat="working" taille={20} clair /> : null}
               Envoyer
             </button>
+            )}
           </div>
         </div>
       </div>

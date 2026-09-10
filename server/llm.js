@@ -625,7 +625,7 @@ const REGLAGES_PROFONDEUR = {
 };
 const reglagesDe = (p) => REGLAGES_PROFONDEUR[p === 'reflexion' ? 'reflexion' : 'rapide'];
 
-export async function chatDocuments({ system, messages = [], documents = [], profondeur = 'reflexion' } = {}) {
+export async function chatDocuments({ system, messages = [], documents = [], profondeur = 'reflexion', signal = null } = {}) {
   if (!llmEnabled) throw new Error('Aucune clé IA configurée.');
   const derniers = messages.slice(-12); // fenêtre de contexte raisonnable
 
@@ -700,7 +700,7 @@ export async function chatDocuments({ system, messages = [], documents = [], pro
     ...reglagesDe(profondeur),
     ...(system ? { system } : {}),
     messages: convo.length ? convo : [{ role: 'user', content: [...pieces, { type: 'text', text: '?' }] }],
-  });
+  }, signal ? { signal } : undefined);
   compter(ANTHROPIC_MODEL, message.usage);
   // Une réponse coupée par le plafond : on le note, pour régler le filet.
   if (message.stop_reason === 'max_tokens') console.warn(`[chat] réponse coupée au plafond (${profondeur}, ${reglagesDe(profondeur).max_tokens} jetons)`);

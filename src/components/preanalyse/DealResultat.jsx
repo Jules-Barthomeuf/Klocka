@@ -575,9 +575,13 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
   const a = lot.lot?.adresse?.valeur;
   const adresse = a?.rue ? [a.rue, a.code_postal, a.ville].filter(Boolean).join(", ") : null;
   // Les vues de la page projet attendent un objet « projet » : on le compose.
+  // La géolocalisation est mise en cache sur cet identifiant. « lot-0 » était
+  // le même d'un dossier à l'autre : la rue affichée restait celle du dossier
+  // précédent. L'adresse elle-même fait une clé qui change quand il le faut.
+  const adresseComplete = adresse || [a?.code_postal, a?.ville].filter(Boolean).join(" ") || enr?.commune?.nom || null;
   const lieu = {
-    id: `lot-${lot.index ?? 0}`,
-    adresse_complete: adresse || [a?.code_postal, a?.ville].filter(Boolean).join(" ") || enr?.commune?.nom || null,
+    id: `lot-${adresseComplete || `${enr?.commune?.centre?.lat ?? "?"},${enr?.commune?.centre?.lon ?? "?"}`}`,
+    adresse_complete: adresseComplete,
     latitude: adresse ? null : enr?.commune?.centre?.lat || null,
     longitude: adresse ? null : enr?.commune?.centre?.lon || null,
   };

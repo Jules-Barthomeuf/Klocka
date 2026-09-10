@@ -213,7 +213,7 @@ const PROFONDEURS = {
 };
 export const profondeurValide = (p) => (p === 'reflexion' ? 'reflexion' : 'rapide');
 
-export async function converser(dealId, { message, mode = 'question', profondeur = 'rapide', documents = [], conversationId = null, uploadDir, user }) {
+export async function converser(dealId, { message, mode = 'question', profondeur = 'rapide', documents = [], conversationId = null, uploadDir, user, signal = null }) {
   const brut = brutDe(dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const texte = String(message || '').trim();
@@ -248,6 +248,7 @@ export async function converser(dealId, { message, mode = 'question', profondeur
           system: consigne(brut, conv.mode, pieces) + SANS_MARKDOWN + PROFONDEURS[profondeurValide(profondeur)],
           messages: conv.messages.map((m) => ({ role: m.role, contenu: m.contenu })),
           documents: pieces,
+          signal,
           profondeur: profondeurValide(profondeur),
         });
   conv.messages.push({ role: 'assistant', contenu: reponse, le: new Date().toISOString() });

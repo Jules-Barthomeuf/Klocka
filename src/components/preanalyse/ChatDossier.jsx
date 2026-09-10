@@ -68,6 +68,8 @@ export default function ChatDossier({
   onAnalyserTexte,
   onAnalyserFichier,
   analyseEnCours = false,
+  // Arrêter la pré-analyse en cours : la mutation vit chez l'appelant.
+  onArreter = null,
   // Étape Analyse : extraire les documents cochés, sans passer par un prompt.
   onExtraire,
   extractionEnCours = false,
@@ -100,13 +102,21 @@ export default function ChatDossier({
     finRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [conversation?.messages?.length]);
 
+  // Une requête qu'on ne veut plus attendre s'interrompt : le contrôleur vit le
+  // temps d'un envoi, et le serveur coupe l'appel au modèle à son tour.
+  const controleur = useRef(null);
   const envoyer = useMutation({
-    mutationFn: (message) =>
-      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/chat`, {
+    mutationFn: (message) => {
+      controleur.current = new AbortController();
+      return base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/chat`, {
         body: { message: String(message || "").trim(), mode, profondeur, documents: documentsCoches, conversation_id: conversationId },
-      }),
+        signal: controleur.current.signal,
+      });
+    },
     onSuccess: (conv) => { setTexte(""); setSuite(""); setConversationId(conv.id); onRefresh?.(); },
     onError: (e) => {
+      // Arrêtée à la main : rien à signaler, c'est ce qu'on a demandé.
+      if (e?.name === "AbortError") return;
       // Une coupure réseau ne dit rien d'utile telle quelle : on nomme la cause
       // probable, l'analyse étant longue et le serveur parfois redémarré.
       const reseau = /NetworkError|Failed to fetch|fetch failed/i.test(e?.message || "");
@@ -148,6 +158,10 @@ export default function ChatDossier({
     return envoyer.mutate(texte);
   };
   const peutEnvoyer = !!texte.trim() && !enCours && !apercu && (modeMail || modePreanalyse || !!dossier);
+  // Ce qu'« Arrêter » interrompt dépend de ce qui tourne.
+  const peutArreter = enCours && (modePreanalyse ? !!onArreter : !modeMail);
+  // « arreter » est déjà pris par la dictée : ici on interrompt la requête.
+  const interrompre = () => { if (modePreanalyse) onArreter?.(); else controleur.current?.abort(); };
   const placeholder = modeMail
     ? "Décrivez le mail à écrire à l'agent, ou choisissez un gabarit…"
     : modePreanalyse
@@ -286,10 +300,16 @@ export default function ChatDossier({
                 <span className="dot" /><span>Voix</span>
               </button>
             </div>
-            <button type="button" className="accueil-send" onClick={lancer} disabled={!peutEnvoyer}>
-              {enCours ? <PenseeIA etat="working" taille={20} clair /> : null}
-              {modeMail ? "Rédiger le mail" : modePreanalyse ? "Lancer l'analyse" : "Envoyer"}
-            </button>
+            {peutArreter ? (
+              <button type="button" className="accueil-send" onClick={interrompre} title="Interrompre la requête en cours">
+                <PenseeIA etat="working" taille={20} clair /> Arrêter
+              </button>
+            ) : (
+              <button type="button" className="accueil-send" onClick={lancer} disabled={!peutEnvoyer}>
+                {enCours ? <PenseeIA etat="working" taille={20} clair /> : null}
+                {modeMail ? "Rédiger le mail" : modePreanalyse ? "Lancer l'analyse" : "Envoyer"}
+              </button>
+            )}
           </div>
         </div>
       </div>

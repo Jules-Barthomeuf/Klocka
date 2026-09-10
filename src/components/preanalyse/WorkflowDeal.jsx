@@ -134,21 +134,24 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
   // Étape Mail : brouillon rédigé depuis le chat du haut.
   const [brouillonMail, setBrouillonMail] = useState(null);
   // Étape Pré-analyse : le chat lance l'analyse (texte collé ou fichier).
+  // Arrêter la pré-analyse : le contrôleur vit le temps d'une requête.
+  const arretAnalyse = useRef(null);
   const analyserFiche = useMutation({
     mutationFn: async ({ fichier, texte }) => {
+      arretAnalyse.current = new AbortController();
       const form = new FormData();
       if (fichier) form.append("fichier", fichier);
       if (texte) form.append("texte", texte);
       // Un dossier nommé existe déjà : l'analyse le remplit au lieu d'en créer un.
       if (dossier?.deal_id) form.append("deal_id", dossier.deal_id);
-      return base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true });
+      return base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true, signal: arretAnalyse.current.signal });
     },
     onSuccess: (d) => {
       toast.success(d.multi_lots ? `${d.lots.length} lots analysés` : "Fiche analysée");
       onAnalyse?.(d);
       onRefresh?.();
     },
-    onError: (e) => toast.error(e?.message || "Analyse impossible"),
+    onError: (e) => e?.name === "AbortError" ? null : toast.error(e?.message || "Analyse impossible"),
   });
 
   // Étape Analyse : extraire les documents cochés, sans prompt.
@@ -323,6 +326,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         onAnalyserTexte={(texte) => analyserFiche.mutate({ texte })}
         onAnalyserFichier={(fichier) => analyserFiche.mutate({ fichier })}
         analyseEnCours={analyserFiche.isPending}
+        onArreter={() => arretAnalyse.current?.abort()}
         onExtraire={() => extraire.mutate()}
         extractionEnCours={extraire.isPending}
         documentsCoches={documentsCoches}

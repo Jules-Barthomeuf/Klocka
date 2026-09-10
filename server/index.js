@@ -1319,7 +1319,15 @@ app.delete('/api/preanalyse/dossiers/:dealId/espace/documents/:docId', wrap((req
 
 app.post('/api/preanalyse/dossiers/:dealId/espace/chat', wrap(async (req, res) => {
   const { message, mode, documents, conversation_id, profondeur } = req.body || {};
+  // Le client a raccroché avant la réponse : on arrête l'appel au modèle.
+  // On écoute la RÉPONSE, pas la requête : depuis Node 16, `req` émet `close`
+  // dès que son corps est lu, donc avant le travail — et l'on coupait son
+  // propre appel. `res` n'émet `close` qu'à la fermeture de la connexion, ou
+  // une fois la réponse finie : d'où le test sur `writableEnded`.
+  const arret = new AbortController();
+  res.on('close', () => { if (!res.writableEnded) arret.abort(); });
   const r = await converser(req.params.dealId, {
+    signal: arret.signal,
     message,
     mode: ['analyse', 'verification', 'web'].includes(mode) ? mode : 'question',
     profondeur: profondeur === 'reflexion' ? 'reflexion' : 'rapide',

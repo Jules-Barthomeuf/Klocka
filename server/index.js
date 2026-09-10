@@ -810,6 +810,9 @@ const ENTITES_INTERDITES = new Set(['Session', 'MailAccount', 'CodeInscription',
 const ENTITES_ADMIN = new Set([
   'Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail', 'AssistantAction',
   'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto', 'Engagement',
+  // Un rappel porte un nom et un numéro de téléphone : il n'a rien à faire
+  // devant un compte client. Il manquait à cette liste.
+  'Rappel', 'MailEcarte',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -1755,6 +1758,15 @@ app.get('/api/monitoring/propositions', wrap(async (req, res) => {
   ok(res, syntheseTraitement(Number(req.query.jours) || 30));
 }));
 
+// Ce que coûte un geste, ramené à son unité : lire une pièce, rédiger un mail,
+// poser une question. Le journal parle en noms de code ; personne ne travaille
+// en ces termes.
+app.get('/api/monitoring/couts-par-action', wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { coutsParAction } = await import('./llm-couts.js');
+  ok(res, coutsParAction(Number(req.query.jours) || 30));
+}));
+
 app.get('/api/monitoring/couts', wrap(async (req, res) => {
   if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
   const { syntheseCouts } = await import('./llm-couts.js');
@@ -1989,9 +2001,16 @@ app.post('/api/assistant/rappels/:id/fait', wrap(async (req, res) => {
 }));
 app.delete('/api/assistant/rappels/:id', wrap(async (req, res) => {
   const { supprimerRappel } = await import('./rappels.js');
-  const r = supprimerRappel(req.params.id);
+  const r = supprimerRappel(req.params.id, currentUser(req));
   if (!r.ok) return res.status(404).json({ error: r.error });
   ok(res, r);
+}));
+
+// Ce qui vous attend : rappels, promesses des agents et relances de dossiers,
+// en une seule liste datée.
+app.get('/api/assistant/attend', wrap(async (req, res) => {
+  const { ceQuiAttend } = await import('./attend.js');
+  ok(res, ceQuiAttend(currentUser(req)));
 }));
 
 app.get('/api/assistant/relances', wrap(async (req, res) => {

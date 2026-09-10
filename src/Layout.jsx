@@ -17,6 +17,7 @@ import {
   FileText,
   MessageSquare,
   Lightbulb,
+  Coins,
   UserPlus,
   Scale,
   Search,
@@ -164,6 +165,16 @@ function LayoutContent({ children, currentPageName }) {
   }, [sidebarPinned]);
 
   const isAdmin = user?.role === "admin";
+  // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un
+  // rappel dû n'existe que si l'on retourne au tableau de bord.
+  const { data: attend } = useQuery({
+    queryKey: ["ce-qui-attend"],
+    queryFn: () => base44.request("GET", "/api/assistant/attend"),
+    enabled: isAdmin,
+    refetchInterval: 60 * 1000,
+    staleTime: 30 * 1000,
+  });
+  const enRetard = attend?.en_retard || 0;
   const showClientView = !isAdmin || previewClientMode;
   const hideNavbar = pagesWithoutNavbar.includes(currentPageName);
 
@@ -230,7 +241,7 @@ function LayoutContent({ children, currentPageName }) {
       <div className="flex-1 overflow-y-auto pl-0 pr-1.5 pt-4 pb-4 space-y-1">
         {showClientView ? (
           <>
-            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-[#e8746a]/20 text-[#e8746a]" />
             <NavItem to={createPageUrl("MesProjets")} icon={Building2} label="Mes projets" isActive={isActivePage("MesProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("Ressources")} icon={BookOpen} label="Ressources" isActive={isActivePage("Ressources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
@@ -247,10 +258,11 @@ function LayoutContent({ children, currentPageName }) {
           </>
         ) : isAdmin && !previewClientMode ? (
           <>
-            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-[#e8746a]/20 text-[#e8746a]" />
             <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Analyse" icon={Search} label="Dossiers" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Monitoring" icon={Activity} label="Suivi" isActive={isActivePage("Monitoring")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to="/CoutsIA" icon={Coins} label="Coûts IA" isActive={isActivePage("CoutsIA")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />

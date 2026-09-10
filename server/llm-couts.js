@@ -244,3 +244,121 @@ function regrouper(lignes) {
       sur: [...g.sur], etapes: g.lignes.length, lignes: g.lignes.sort((a, b) => String(a.le).localeCompare(String(b.le))),
     }));
 }
+
+// ---------------------------------------------------------------------------
+// Ce que coûte un geste, et non une opération technique.
+//
+// Le journal parle en noms de code — « matrice », « grille Bail », « hors
+// contexte ». Personne ne travaille en ces termes : on lit une pièce, on
+// rédige un mail, on pose une question. Cette vue traduit, et surtout ramène
+// chaque coût à SON unité. « Matrice : 25 € » ne dit rien ; « lire une pièce :
+// 0,35 € » dit tout, parce qu'on sait combien de pièces on dépose par semaine.
+// ---------------------------------------------------------------------------
+
+// `parAppel` : le coût se ramène à un appel au modèle (une pièce lue, un mail
+// jugé). Sinon il se ramène au geste entier, quel que soit le nombre d'appels
+// qu'il a fallu.
+const ACTIONS = [
+  { cle: 'lecture_piece', libelle: 'Lire une pièce du dossier', unite: 'par document', parAppel: true, operations: ['matrice', 'lecture des pièces'], ou: "Étape Analyse, à l'arrivée d'une pièce ou sur « Relancer l'analyse »" },
+  { cle: 'extraction', libelle: 'Extraire un document déposé', unite: 'par document', parAppel: true, operations: ['extraction'], ou: 'Au dépôt dans l’espace du dossier' },
+  { cle: 'preanalyse', libelle: 'Analyser une fiche commerciale', unite: 'par fiche', parAppel: false, operations: ['pré-analyse'], ou: 'Étape Pré-analyse, ou fiche collée dans un chat' },
+  { cle: 'grille', libelle: 'Mettre en forme une grille', unite: 'par grille', parAppel: false, prefixe: 'grille ', ou: 'Onglets Bail, Quittances, Copropriété, Diagnostics' },
+  { cle: 'question', libelle: 'Poser une question sur les pièces', unite: 'par question', parAppel: false, operations: ['chat du dossier'], ou: 'Chat du dossier, étape Analyse' },
+  { cle: 'assistant', libelle: "Demander quelque chose à l'assistant", unite: 'par demande', parAppel: false, operations: ['assistant'], ou: 'Bulle flottante et page Note' },
+  { cle: 'mail', libelle: 'Rédiger un mail', unite: 'par mail', parAppel: false, operations: ['mail du dossier', 'mails', 'rédaction'], ou: 'Étape Mail, décision Oui/Non, relance' },
+  { cle: 'boite', libelle: 'Trier ce qu’on colle dans la boîte', unite: 'par dépôt', parAppel: false, operations: ['boîte', 'boîte : tri'], ou: 'Chat du tableau de bord' },
+  { cle: 'note_appel', libelle: 'Transformer une note d’appel en fiche', unite: 'par note', parAppel: false, operations: ["note d'appel"], ou: 'Chat du tableau de bord, dictée' },
+  { cle: 'client', libelle: 'Créer un client depuis un appel', unite: 'par compte rendu', parAppel: false, operations: ['découverte client'], ou: 'Chat du tableau de bord' },
+  { cle: 'veille', libelle: 'Juger un mail entrant', unite: 'par mail douteux', parAppel: true, operations: ['veille des boîtes', 'veille de la boîte'], ou: 'Veille automatique des boîtes', fond: true },
+  { cle: 'engagement', libelle: 'Relever une promesse dans un mail', unite: 'par mail', parAppel: false, operations: ['engagements'], ou: 'Veille automatique', fond: true },
+  { cle: 'annonce', libelle: 'Retrouver l’annonce en ligne', unite: 'par bien', parAppel: false, operations: ['annonce'], ou: 'À l’analyse, en arrière-plan', fond: true },
+  { cle: 'marche', libelle: 'Faire le point de marché', unite: 'par ville', parAppel: false, operations: ['contexte marché', 'marché'], ou: 'À l’analyse, en arrière-plan', fond: true },
+  { cle: 'presentation', libelle: 'Générer une présentation', unite: 'par dossier', parAppel: false, operations: ['présentation', 'vidéo'], ou: 'Étape Présentation' },
+  { cle: 'avis', libelle: 'Écrire un prompt de correction', unite: 'par pouce', parAppel: false, operations: ['avis sur une réponse'], ou: 'Sous une réponse de l’IA' },
+  { cle: 'direct', libelle: 'Appel direct au modèle', unite: 'par appel', parAppel: false, operations: ['modèle (direct)'], ou: 'Écrans qui appellent le modèle sans passer par un geste nommé' },
+  { cle: 'non_attribue', libelle: 'Non attribué', unite: 'par appel', parAppel: false, operations: ['hors contexte', 'inconnue'], ou: 'Travail de fond sans contexte de mesure', fond: true },
+];
+
+const actionDe = (operation) => {
+  const op = String(operation || 'inconnue');
+  for (const a of ACTIONS) {
+    if (a.prefixe && op.startsWith(a.prefixe)) return a;
+    if ((a.operations || []).includes(op)) return a;
+  }
+  return null;
+};
+
+/** La médiane : une moyenne se fait emporter par un dossier hors norme. */
+function mediane(valeurs) {
+  if (!valeurs.length) return 0;
+  const v = [...valeurs].sort((a, b) => a - b);
+  const m = Math.floor(v.length / 2);
+  return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+}
+
+/**
+ * Coût par geste sur une fenêtre, plus de quoi juger les leviers.
+ * @param {number} jours
+ */
+export function coutsParAction(jours = 30) {
+  const depuis = new Date(Date.now() - jours * 86400000).toISOString();
+  const lignes = Records.list('CoutIA').filter((l) => (l.le || '') >= depuis);
+
+  const par = new Map();
+  const inconnues = new Map();
+  for (const l of lignes) {
+    const a = actionDe(l.operation);
+    if (!a) {
+      inconnues.set(l.operation || 'inconnue', (inconnues.get(l.operation || 'inconnue') || 0) + (l.cout || 0));
+      continue;
+    }
+    const e = par.get(a.cle) || { ...a, operations: undefined, prefixe: undefined, unites: 0, gestes: 0, cout: 0, entree: 0, sortie: 0, cache_lecture: 0, cache_ecriture: 0, duree_ms: 0, echantillon: [] };
+    const unites = a.parAppel ? Math.max(1, l.appels || 1) : 1;
+    e.unites += unites;
+    e.gestes += 1;
+    e.cout += l.cout || 0;
+    e.entree += l.entree || 0;
+    e.sortie += l.sortie || 0;
+    e.cache_lecture += l.cache_lecture || 0;
+    e.cache_ecriture += l.cache_ecriture || 0;
+    e.duree_ms += l.duree_ms || 0;
+    e.echantillon.push((l.cout || 0) / unites);
+    par.set(a.cle, e);
+  }
+
+  const actions = [...par.values()]
+    .map((e) => ({
+      cle: e.cle,
+      libelle: e.libelle,
+      unite: e.unite,
+      ou: e.ou,
+      fond: !!e.fond,
+      unites: e.unites,
+      gestes: e.gestes,
+      cout: e.cout,
+      moyenne: e.unites ? e.cout / e.unites : 0,
+      mediane: mediane(e.echantillon),
+      maxi: e.echantillon.length ? Math.max(...e.echantillon) : 0,
+      jetons: e.entree + e.sortie + e.cache_lecture + e.cache_ecriture,
+      part_cache: e.entree + e.cache_lecture > 0 ? e.cache_lecture / (e.entree + e.cache_lecture) : 0,
+      duree_moyenne_ms: e.gestes ? e.duree_ms / e.gestes : 0,
+    }))
+    .sort((a, b) => b.cout - a.cout);
+
+  const total = actions.reduce((n, a) => n + a.cout, 0);
+  const fond = actions.filter((a) => a.fond).reduce((n, a) => n + a.cout, 0);
+  const entree = lignes.reduce((n, l) => n + (l.entree || 0), 0);
+  const cacheLu = lignes.reduce((n, l) => n + (l.cache_lecture || 0), 0);
+
+  return {
+    jours,
+    total,
+    depuis,
+    fond,
+    part_fond: total ? fond / total : 0,
+    part_cache: entree + cacheLu > 0 ? cacheLu / (entree + cacheLu) : 0,
+    actions,
+    // Une opération qu'aucun geste ne réclame : à ranger, plutôt qu'à cacher.
+    non_classees: [...inconnues.entries()].map(([operation, cout]) => ({ operation, cout })).sort((a, b) => b.cout - a.cout),
+  };
+}

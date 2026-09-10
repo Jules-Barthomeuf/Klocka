@@ -55,15 +55,41 @@ export function lireNom(texte) {
   return null;
 }
 
+// « Rappelle-moi de… » : le modèle rend parfois « moi », « moi-même » comme
+// personne à joindre. Ce n'est personne, c'est celui qui pose le rappel.
+const SOI = /^(moi|moi[- ]m[eê]me|me|je|nous|soi)$/i;
+
+/**
+ * Ce qu'il faut faire, quand la phrase ne nomme personne : ce qui suit « de »
+ * après le moment. « Rappelle-moi jeudi de vérifier le bail » → « vérifier le
+ * bail ».
+ */
+export function objetDuRappel(texte) {
+  const t = String(texte || '').trim();
+  let m;
+  if ((m = t.match(/\bde\s+([^\n.;]{3,120})/i))) return m[1].trim().replace(/\s+$/, '');
+  // Sans « de », on ampute la phrase de sa formule d'ouverture ET du moment,
+  // qui est déjà lu par ailleurs : « rappelle-moi dans 3 jours le PV d'AG »
+  // laisse « le PV d'AG », pas « dans 3 jours le PV d'AG ».
+  const nu = t
+    .replace(/^\s*(rappelle[- ]moi|rappel|pense[rz]?\s+à|note)\b[\s,:]*/i, '')
+    .replace(/^\s*(dans\s+\d{1,3}\s*(?:jours?|j|semaines?|mois)|demain|apr[eè]s[- ]demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|le\s+\d{1,2}[\/.]\d{1,2}(?:[\/.]\d{2,4})?)\b[\s,:]*/i, '')
+    .trim();
+  return nu.length >= 3 ? nu.slice(0, 120) : null;
+}
+
 async function lireParModele(texte) {
-  const { resultat } = await invokeLLM({
+  const { mesurer } = await import('./llm-couts.js');
+  const { resultat } = await mesurer({ operation: 'rappel' }, () => invokeLLM({
     prompt: `Lis cette demande de rappel et réponds en JSON : nom de la personne à rappeler, numéro de téléphone s'il y en a un, nombre de jours avant le rappel (0 si aujourd'hui), et une note courte sur le motif. Aujourd'hui : ${new Date().toISOString().slice(0, 10)}.\n\n« ${texte} »`,
     response_json_schema: {
       type: 'object',
       properties: { nom: { type: 'string' }, telephone: { type: 'string' }, dans_jours: { type: 'number' }, note: { type: 'string' } },
       required: ['nom', 'dans_jours'],
     },
-  }).then((r) => ({ resultat: r })).catch(() => ({ resultat: null }));
+    // Lire une date et un nom dans une phrase : rien à raisonner.
+    effort: 'low',
+  })).catch(() => ({ resultat: null }));
   return resultat && typeof resultat === 'object' ? resultat : null;
 }
 
@@ -83,18 +109,25 @@ export async function creerRappel({ texte, user }) {
   if (!echeance || !nom) {
     const lu = await lireParModele(brut);
     if (lu) {
-      if (!nom && lu.nom) nom = String(lu.nom).trim();
+      if (!nom && lu.nom && !SOI.test(String(lu.nom).trim())) nom = String(lu.nom).trim();
       if (!telephone && lu.telephone) telephone = lireTelephone(lu.telephone) || String(lu.telephone).trim();
       if (!echeance && isFinite(Number(lu.dans_jours))) echeance = dansNJours(Math.max(0, Math.round(Number(lu.dans_jours))));
       if (lu.note) note = String(lu.note).trim();
     }
   }
   if (!echeance) return { ok: false, error: 'Je ne lis pas quand : dites « dans 3 jours », « lundi » ou une date.' };
-  if (!nom) return { ok: false, error: 'Je ne lis pas qui rappeler : donnez son nom.' };
+  // Un rappel n'est pas toujours un appel : « rappelle-moi jeudi de vérifier la
+  // surface Carrez » est un rappel valable, sans personne à joindre. Le titre
+  // devient alors ce qu'il y a à faire.
+  const quoi = nom ? null : objetDuRappel(brut);
+  if (!nom && !quoi) return { ok: false, error: 'Je ne lis pas ce qu\'il faut faire : dites « de rappeler Marc » ou « de vérifier le bail ».' };
   const rappel = Records.create('Rappel', {
     nom,
+    quoi,
     telephone: telephone || null,
-    note: note || brut,
+    // La note dit le motif, pas la phrase qu'on a dictée : « rappelle-moi dans
+    // 2 jours de rappeler Marc » laisse « rappeler Marc », pas tout le reste.
+    note: note || objetDuRappel(brut) || brut,
     echeance: echeance.toISOString(),
     cree_le: new Date().toISOString(),
     cree_par: user?.email || null,
@@ -114,16 +147,36 @@ export function listerRappels(user) {
   return { dus: tous.filter((r) => r.dans <= 0), a_venir: tous.filter((r) => r.dans > 0), total: tous.length };
 }
 
+// Un rappel appartient à qui l'a posé : personne d'autre ne le clôt ni ne le
+// supprime. Les rappels d'avant cette règle n'ont pas d'auteur : ils restent
+// ouverts à tous, faute de savoir à qui les rendre.
+const sien = (r, user) => !r.cree_par || !user?.email || r.cree_par === user.email;
+
 export function terminerRappel(id, user) {
   const r = Records.get('Rappel', id);
   if (!r) return { ok: false, error: 'Rappel introuvable' };
+  if (!sien(r, user)) return { ok: false, error: 'Ce rappel est celui de quelqu\'un d\'autre.' };
   Records.update('Rappel', id, { fait_le: new Date().toISOString(), fait_par: user?.email || null });
+  elaguer();
   return { ok: true };
 }
 
-export function supprimerRappel(id) {
+export function supprimerRappel(id, user) {
   const r = Records.get('Rappel', id);
   if (!r) return { ok: false, error: 'Rappel introuvable' };
+  if (!sien(r, user)) return { ok: false, error: 'Ce rappel est celui de quelqu\'un d\'autre.' };
   Records.delete('Rappel', id);
   return { ok: true };
+}
+
+// Les rappels faits ne servent plus qu'à se souvenir qu'on les a faits. Au-delà
+// de ce nombre, les plus anciens partent.
+const PLAFOND_FAITS = 300;
+function elaguer() {
+  const faits = Records.list('Rappel').filter((r) => r.fait_le);
+  if (faits.length <= PLAFOND_FAITS) return;
+  faits
+    .sort((a, b) => String(a.fait_le).localeCompare(String(b.fait_le)))
+    .slice(0, faits.length - PLAFOND_FAITS)
+    .forEach((r) => Records.delete('Rappel', r.id));
 }

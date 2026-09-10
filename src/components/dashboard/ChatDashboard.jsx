@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
+import { demanderNotifications } from "@/lib/notifications";
 import { toast } from "sonner";
 import { ArrowRight, Bell, Check, Copy, FileText, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, Settings, Square, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
@@ -362,52 +363,6 @@ function Echeances({ onBrouillon }) {
   );
 }
 
-// Les rappels du jour, sous le chat : ceux qui sont dus d'abord, en couleur ;
-// les prochains en dessous, discrets. « Fait » les range.
-function Rappels() {
-  const queryClient = useQueryClient();
-  const { data } = useQuery({ queryKey: ["rappels"], queryFn: () => base44.request("GET", "/api/assistant/rappels"), refetchInterval: 5 * 60000 });
-  const fait = useMutation({
-    mutationFn: (id) => base44.request("POST", `/api/assistant/rappels/${id}/fait`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rappels"] }),
-    onError: (e) => toast.error(e?.message || "Impossible"),
-  });
-  const supprimer = useMutation({
-    mutationFn: (id) => base44.request("DELETE", `/api/assistant/rappels/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rappels"] }),
-    onError: (e) => toast.error(e?.message || "Impossible"),
-  });
-  if (!data?.total) return null;
-  const quand = (r) => (r.dans < 0 ? `en retard de ${-r.dans} j` : r.dans === 0 ? "aujourd'hui" : r.dans === 1 ? "demain" : `dans ${r.dans} j`);
-  const Ligne = ({ r, du }) => (
-    <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${du ? "border-[#d9b46a]/50 bg-[#d9b46a]/[0.07]" : "border-[#1f2228] bg-[#0f1114]"}`}>
-      <div className="w-[2px] flex-none self-stretch rounded" style={{ background: du ? (r.dans < 0 ? "#e8746a" : "#d9b46a") : "#3a3f4a" }} />
-      <div className="min-w-0 flex-1">
-        <p className="m-0 text-[13.5px] leading-[1.5] text-[#f2f3f5]">
-          Rappeler <span className="font-medium">{r.nom}</span>
-          {r.telephone && <> au <a href={`tel:${r.telephone}`} className="tabular-nums text-[#96c0b8] hover:text-[#f2f3f5]">{r.telephone.replace(/(\d{2})(?=\d)/g, "$1 ")}</a></>}
-          <span className="text-[#9298a6]"> — {quand(r)}</span>
-        </p>
-        {r.note && r.note !== r.nom && <p className="m-0 mt-0.5 text-[12.5px] leading-[1.5] text-[#6a7180] line-clamp-2">{r.note}</p>}
-      </div>
-      <div className="flex items-center gap-1 flex-none">
-        <button onClick={() => fait.mutate(r.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#2c3139] text-[12px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"><Check className="w-3 h-3" /> Fait</button>
-        <button onClick={() => window.confirm("Supprimer ce rappel ?") && supprimer.mutate(r.id)} className="w-7 h-7 flex items-center justify-center text-[#3f4644] hover:text-[#e8746a]" aria-label="Supprimer"><X className="w-3.5 h-3.5" /></button>
-      </div>
-    </div>
-  );
-  return (
-    <section className="mt-6">
-      <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Rappels{data.dus.length ? <span className="text-[#d9b46a]"> · {data.dus.length} à faire</span> : null}</p>
-      <div className="space-y-2">
-        {data.dus.map((r) => <Ligne key={r.id} r={r} du />)}
-        {data.a_venir.slice(0, 5).map((r) => <Ligne key={r.id} r={r} />)}
-        {data.a_venir.length > 5 && <p className="m-0 text-[12px] text-[#6a7180]">et {data.a_venir.length - 5} autre{data.a_venir.length - 5 > 1 ? "s" : ""} à venir</p>}
-      </div>
-    </section>
-  );
-}
-
 export default function ChatDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -542,11 +497,13 @@ export default function ChatDashboard() {
 
   // Un rappel : la phrase est lue, le rappel est noté, il reviendra sous le chat.
   const rappeler = useMutation({
-    mutationFn: (t) => base44.request("POST", "/api/assistant/rappels", { body: { texte: t } }),
+    // L'autorisation de notifier se demande ici : au moment où l'on pose un
+    // rappel, pas au chargement de la page où elle n'aurait aucun sens.
+    mutationFn: (t) => { demanderNotifications(); return base44.request("POST", "/api/assistant/rappels", { body: { texte: t } }); },
     onSuccess: (r) => {
       const d = new Date(r.rappel.echeance);
       pousser({ role: "assistant", contenu: `Noté : rappeler ${r.rappel.nom}${r.rappel.telephone ? ` au ${r.rappel.telephone}` : ""} le ${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}. Le rappel s'affichera ici ce jour-là.` });
-      queryClient.invalidateQueries({ queryKey: ["rappels"] });
+      queryClient.invalidateQueries({ queryKey: ["ce-qui-attend"] });
     },
     onError: (e) => pousser({ role: "assistant", contenu: e?.message || "Je n'ai pas pu noter ce rappel." }),
   });
@@ -741,8 +698,6 @@ export default function ChatDashboard() {
           );
         })}
       </div>
-
-      <Rappels />
     </div>
   );
 }

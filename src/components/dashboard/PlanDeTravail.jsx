@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import ReprisePlace from "./ReprisePlace";
+import CeQuiVousAttend from "@/components/dashboard/CeQuiVousAttend";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -89,6 +90,13 @@ export default function PlanDeTravail({ chat = null }) {
 
       {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
       {chat && <div className="relative mt-11 max-md:mt-8 max-w-[900px] mx-auto">{chat}</div>}
+
+      <div className={REGLE} />
+
+      {/* Ce qui est dû : rappels, promesses des agents, relances de dossiers.
+          Avant « Reprenez là où vous en étiez » : ce qui attend passe avant ce
+          qu'on avait laissé en plan. */}
+      <CeQuiVousAttend />
 
       <div className={REGLE} />
 

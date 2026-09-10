@@ -42,7 +42,7 @@ export default function AdminProjets() {
     return params.get('action') === 'create';
   });
   const [editingProject, setEditingProject] = useState(null);
-  const [activeTab, setActiveTab] = useState("informations");
+  const [activeTab, setActiveTab] = useState("secteur");
   // Aperçu « page projet » — rafraîchi sur Entrée, Enregistrer ou fermeture du panneau.
   const [apercuProjet, setApercuProjet] = useState(null);
   // Onglet courant de la page projet, à gauche.
@@ -95,6 +95,14 @@ export default function AdminProjets() {
     ville_secteur_champ1: "",
     ville_secteur_champ2: "",
     ville_secteur_champ3: "",
+    // Les cinq chiffres de la bande du haut, et les paragraphes sous eux.
+    ville_habitants: null,
+    ville_evolution_pop: null,
+    ville_revenu_median: null,
+    ville_chomage: null,
+    ville_prix_m2: null,
+    ville_points: [],
+    secteur_points: [],
     description_ville: "",
     description_secteur: "",
     bien_champ1: "",
@@ -331,6 +339,8 @@ export default function AdminProjets() {
       adresse_complete: "", statut: "prospect", suivi_message_envoye: false, suivi_retour_client: null,
       latitude: null, longitude: null, documents: [],
       ville_secteur_champ1: "", ville_secteur_champ2: "", ville_secteur_champ3: "",
+      ville_habitants: null, ville_evolution_pop: null, ville_revenu_median: null,
+      ville_chomage: null, ville_prix_m2: null, ville_points: [], secteur_points: [],
       description_ville: "", description_secteur: "",
       env_data: {},
       bien_champ1: "", bien_champ2: "", bien_champ3: "", description_bien: "",
@@ -409,7 +419,12 @@ export default function AdminProjets() {
       latitude: project.latitude || null,
       longitude: project.longitude || null, documents: project.documents || [],
       ville_secteur_champ1: project.ville_secteur_champ1 || "", ville_secteur_champ2: project.ville_secteur_champ2 || "",
-      ville_secteur_champ3: project.ville_secteur_champ3 || "", description_ville: project.description_ville || "",
+      ville_secteur_champ3: project.ville_secteur_champ3 || "",
+      ville_habitants: project.ville_habitants ?? null, ville_evolution_pop: project.ville_evolution_pop ?? null,
+      ville_revenu_median: project.ville_revenu_median ?? null, ville_chomage: project.ville_chomage ?? null,
+      ville_prix_m2: project.ville_prix_m2 ?? null,
+      ville_points: project.ville_points || [], secteur_points: project.secteur_points || [],
+      description_ville: project.description_ville || "",
       description_secteur: project.description_secteur || "", bien_champ1: project.bien_champ1 || "",
       bien_champ2: project.bien_champ2 || "", bien_champ3: project.bien_champ3 || "",
       description_bien: project.description_bien || "", nom_locataire: project.nom_locataire || "",
@@ -1004,12 +1019,12 @@ export default function AdminProjets() {
     }
   };
 
+  // Les onglets du panneau, dans l'ordre de la page projet : on regarde une
+  // partie à gauche, on trouve ses champs à la même place à droite.
   const editorTabs = [
-    { value: "ai-extract", label: "IA", accent: "teal" },
-    { value: "images", label: "Images" },
-    { value: "informations", label: "Bien" },
     { value: "secteur", label: "Secteur" },
     { value: "marche", label: "Marché" },
+    { value: "informations", label: "Bien" },
     { value: "locataire", label: "Locataire" },
     { value: "bail", label: "Analyse du bail" },
     { value: "copropriete", label: "Copropriété" },
@@ -1174,6 +1189,9 @@ export default function AdminProjets() {
 
           <div className="flex-1 min-h-0 overflow-y-auto px-[18px] pb-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              {/* « IA » et « Images » n'ont plus de pastille : les onglets du
+                  panneau suivent ceux de la page projet. Leur contenu reste, le
+                  jour où on leur redonnera une porte d'entrée. */}
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
                 <div className="p-6 bg-[#0f1114] rounded-none border border-[#1f2228]">
                   <div className="flex items-center gap-3 mb-4">
@@ -1282,11 +1300,60 @@ export default function AdminProjets() {
                 {/* Ville & Secteur */}
                 <div className="space-y-4">
                   <h3 className="text-lg text-[#f2f3f5]">Ville & Secteur</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FField><FInput value={formData.ville_secteur_champ1} onChange={(e) => setFormData({...formData, ville_secteur_champ1: e.target.value})} placeholder="Champ 1 (ex: Ville)" /></FField>
-                    <FField><FInput value={formData.ville_secteur_champ2} onChange={(e) => setFormData({...formData, ville_secteur_champ2: e.target.value})} placeholder="Champ 2 (ex: Département)" /></FField>
-                    <FField><FInput value={formData.ville_secteur_champ3} onChange={(e) => setFormData({...formData, ville_secteur_champ3: e.target.value})} placeholder="Champ 3 (ex: Région)" /></FField>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FField label="Commune"><FInput value={formData.ville_secteur_champ1} onChange={(e) => setFormData({...formData, ville_secteur_champ1: e.target.value})} placeholder="Lyon" /></FField>
+                    <FField label="Département"><FInput value={formData.ville_secteur_champ2} onChange={(e) => setFormData({...formData, ville_secteur_champ2: e.target.value})} placeholder="Rhône" /></FField>
+                    <FField label="Région" className="col-span-2"><FInput value={formData.ville_secteur_champ3} onChange={(e) => setFormData({...formData, ville_secteur_champ3: e.target.value})} placeholder="Auvergne-Rhône-Alpes" /></FField>
                   </div>
+
+                  {/* Les cinq chiffres de la bande du haut. Ce qui est saisi ici
+                      l'emporte sur le jeu de données : on corrige une commune
+                      mal couverte et la page le montre. */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      ["ville_habitants", "Habitants", "522 000"],
+                      ["ville_evolution_pop", "Population / an (%)", "+0,4"],
+                      ["ville_revenu_median", "Revenu médian / UC (€)", "24 300"],
+                      ["ville_chomage", "Taux de chômage (%)", "11"],
+                      ["ville_prix_m2", "Prix médian appartement /m² (€)", "4 700"],
+                    ].map(([champ, libelle, exemple]) => (
+                      <FField key={champ} label={libelle} className={champ === "ville_prix_m2" ? "col-span-2" : ""}>
+                        <FInput
+                          type="number"
+                          step="any"
+                          value={formData[champ] ?? ""}
+                          onChange={(e) => setFormData({ ...formData, [champ]: e.target.value === "" ? null : parseFloat(e.target.value) })}
+                          placeholder={exemple}
+                        />
+                      </FField>
+                    ))}
+                  </div>
+
+                  {/* Les petits paragraphes affichés sous les chiffres. */}
+                  {[
+                    ["ville_points", "Ce qu'il faut savoir sur la commune", "Premier marché commercial d'Europe continentale : la valeur se joue au numéro de rue."],
+                    ["secteur_points", "Ce qu'il faut savoir sur le secteur", "Le 9e arrondissement s'est mué en pôle tertiaire desservi par le métro D."],
+                  ].map(([champ, libelle, exemple]) => (
+                    <div key={champ} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[#f2f3f5]">{libelle}</Label>
+                        <Button type="button" variant="outline" size="sm"
+                          onClick={() => setFormData({ ...formData, [champ]: [...(formData[champ] || []), ""] })}
+                          className="border-[#1f2228] text-[#f2f3f5]/30 hover:text-[#f2f3f5] hover:border-[#3a3f4a]">
+                          <Plus className="w-4 h-4 mr-1" />Ajouter
+                        </Button>
+                      </div>
+                      {(formData[champ] || []).map((texte, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <FField className="flex-1">
+                            <FTextarea rows={2} value={texte} placeholder={exemple}
+                              onChange={(e) => { const u = [...(formData[champ] || [])]; u[idx] = e.target.value; setFormData({ ...formData, [champ]: u }); }} />
+                          </FField>
+                          <Button variant="ghost" size="icon" onClick={() => setFormData({ ...formData, [champ]: (formData[champ] || []).filter((_, i) => i !== idx) })} className="text-red-500 hover:bg-red-500/10 mt-1"><X className="w-4 h-4" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
                   <div className="grid grid-cols-2 gap-4">
                     <FField label="Description de la ville"><FTextarea value={formData.description_ville} onChange={(e) => setFormData({...formData, description_ville: e.target.value})} rows={4} placeholder="Description de la ville..." /></FField>
                     <FField label="Description du secteur"><FTextarea value={formData.description_secteur} onChange={(e) => setFormData({...formData, description_secteur: e.target.value})} rows={4} placeholder="Description du secteur..." /></FField>

@@ -499,19 +499,32 @@ function infoPrix(prix) {
   return base + "Marché bon marché : les rendements affichés sont élevés, mais la revente demande plus de temps et la revalorisation est incertaine.";
 }
 
+/**
+ * Les cinq chiffres clés d'une commune, mis en forme. Le dataset s'en sert pour
+ * ses villes, et la page projet pour les valeurs saisies à la main : une ville
+ * corrigée dans la fiche s'affiche comme les autres, commentaire compris.
+ *
+ * @param {{nom?: string, pop?: number, evo?: number, revenu?: number, chomage?: number, prixM2?: number}} v
+ */
+export function chiffresVille(v) {
+  const chiffres = [];
+  if (v.pop > 0) chiffres.push({ valeur: nf.format(v.pop), label: "Habitants", info: infoPopulation(v.nom || "", v.pop) });
+  if (Number.isFinite(v.evo)) chiffres.push({ valeur: `${v.evo > 0 ? "+" : ""}${String(v.evo).replace(".", ",")} %`, label: "Population / an", info: infoEvolution(v.evo) });
+  if (v.revenu > 0) chiffres.push({ valeur: `${nf.format(v.revenu)} €`, label: "Revenu médian / UC", info: infoRevenu(v.revenu) });
+  if (v.chomage > 0) chiffres.push({ valeur: `${String(v.chomage).replace(".", ",")} %`, label: "Taux de chômage", info: infoChomage(v.chomage) });
+  if (v.prixM2 > 0) chiffres.push({ valeur: `${nf.format(v.prixM2)} €`, label: "Prix médian appartement /m²", info: infoPrix(v.prixM2) });
+  return chiffres;
+}
+
 function construire(v) {
   return {
     nom: v.nom,
     matchers: v.matchers,
     points: v.points,
     secteurs: v.secteurs,
-    chiffres: [
-      { valeur: nf.format(v.pop), label: "Habitants", info: infoPopulation(v.nom, v.pop) },
-      { valeur: `${v.evo > 0 ? "+" : ""}${v.evo.toString().replace(".", ",")} %`, label: "Population / an", info: infoEvolution(v.evo) },
-      { valeur: `${nf.format(v.revenu)} €`, label: "Revenu médian / UC", info: infoRevenu(v.revenu) },
-      { valeur: `${v.chomage} %`, label: "Taux de chômage", info: infoChomage(v.chomage) },
-      { valeur: `${nf.format(v.prixM2)} €`, label: "Prix médian appartement /m²", info: infoPrix(v.prixM2) },
-    ],
+    // Les valeurs brutes servent à pré-remplir la fiche d'un projet.
+    pop: v.pop, evo: v.evo, revenu: v.revenu, chomage: v.chomage, prixM2: v.prixM2,
+    chiffres: chiffresVille(v),
   };
 }
 

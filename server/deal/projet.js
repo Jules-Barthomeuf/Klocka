@@ -9,6 +9,7 @@ import { Records } from '../db.js';
 import { changerStatut } from './lifecycle.js';
 import { lotOuVide } from './index.js';
 import { patchDepuisExtractions } from './donnees-projet.js';
+import { trouverVille, trouverSecteur } from '../../src/data/villes.js';
 
 const val = (champ) => (champ && champ.absent === false ? champ.valeur : null);
 
@@ -96,6 +97,24 @@ function mapperValeurLocative(vl, deja = {}) {
   if (r.basse > 0 && r.haute > 0 && vide('marche_offre_moyenne')) sortie.marche_offre_moyenne = Math.round((r.basse + r.haute) / 2);
   if (vl.quartier?.nom && vide('marche_quartier_nom')) sortie.marche_quartier_nom = String(vl.quartier.nom).slice(0, 120);
   return sortie;
+}
+
+// Ce qu'on sait d'une commune sans rien demander à personne : les cinq
+// chiffres de la bande du haut et les points marquants, tirés du jeu de données
+// partagé avec la page projet. Une fiche naît remplie plutôt que vide.
+function chiffresDeLaCommune(ville, adresseComplete) {
+  const v = trouverVille(adresseComplete || ville);
+  if (!v) return {};
+  const s = trouverSecteur(v, adresseComplete || '');
+  return {
+    ville_habitants: v.pop ?? null,
+    ville_evolution_pop: v.evo ?? null,
+    ville_revenu_median: v.revenu ?? null,
+    ville_chomage: v.chomage ?? null,
+    ville_prix_m2: v.prixM2 ?? null,
+    ville_points: v.points || [],
+    secteur_points: s?.points || [],
+  };
 }
 
 // Le titre d'un projet : « Locataire - Adresse ». Sans locataire, le bien se
@@ -280,6 +299,11 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     client_emails: [...new Set([...(adminEmails || []), user?.email].filter(Boolean))],
 
     adresse_complete: adresseComplete,
+    // Les chiffres de la commune et les points à en dire, quand elle figure
+    // dans le jeu de données des villes de plus de cent mille habitants. En
+    // dessous, l'IA prend le relais à l'affichage et les cases restent vides.
+    ...chiffresDeLaCommune(ville, adresseComplete),
+
     // Les trois cases du secteur : ville, département, région. Données
     // publiques de la commune, personne n'a à les ressaisir.
     ville_secteur_champ1: ville,

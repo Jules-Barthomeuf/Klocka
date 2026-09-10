@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { RefreshCw, Sparkles } from "lucide-react";
-import { trouverVille, trouverSecteur } from "@/data/villes";
+import { trouverVille, trouverSecteur, chiffresVille } from "@/data/villes";
 
 // Analyse IA de la page projet : avis de synthèse + chiffres clés et points
 // marquants pour la ville et le secteur. Un SEUL appel LLM couvre les trois
@@ -325,10 +325,30 @@ function Bloc({ label, nom, chiffres, points, loading, fallback }) {
 // Blocs « La ville » et « Le secteur » alimentés par l'IA, avec repli sur les
 // descriptions saisies par l'administrateur si l'analyse échoue.
 export default function VilleSecteurIA({ analyse, villeData, secteurData, loading, error, refresh, project, isPublic }) {
-  // Dataset d'abord (instantané), IA ensuite si la ville n'est pas couverte.
-  const ville = villeData || analyse?.ville;
-  const secteur = secteurData || analyse?.secteur;
-  const attenteIA = loading && !villeData;
+  // Ce que la fiche porte l'emporte : un chiffre corrigé à la main doit
+  // s'afficher, sinon on corrigerait dans le vide. Le dataset vient ensuite,
+  // l'IA en dernier pour les communes qu'il ne couvre pas.
+  const propres = chiffresVille({
+    nom: project.ville_secteur_champ1,
+    pop: Number(project.ville_habitants) || 0,
+    evo: Number.isFinite(Number(project.ville_evolution_pop)) && project.ville_evolution_pop !== "" && project.ville_evolution_pop !== null ? Number(project.ville_evolution_pop) : undefined,
+    revenu: Number(project.ville_revenu_median) || 0,
+    chomage: Number(project.ville_chomage) || 0,
+    prixM2: Number(project.ville_prix_m2) || 0,
+  });
+  const dataset = villeData || analyse?.ville;
+  const ville = propres.length || project.ville_points?.length
+    ? {
+        nom: project.ville_secteur_champ1 || dataset?.nom,
+        chiffres: propres.length ? propres : dataset?.chiffres,
+        points: project.ville_points?.length ? project.ville_points : dataset?.points,
+      }
+    : dataset;
+  const secteurBase = secteurData || analyse?.secteur;
+  const secteur = project.secteur_points?.length
+    ? { ...(secteurBase || {}), points: project.secteur_points }
+    : secteurBase;
+  const attenteIA = loading && !villeData && !propres.length;
   const rien = !loading && !ville && !secteur && !project.description_ville && !project.description_secteur;
 
   if (rien) {

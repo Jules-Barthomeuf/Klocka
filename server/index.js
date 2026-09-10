@@ -812,7 +812,7 @@ const ENTITES_ADMIN = new Set([
   'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto', 'Engagement',
   // Un rappel porte un nom et un numéro de téléphone : il n'a rien à faire
   // devant un compte client. Il manquait à cette liste.
-  'Rappel', 'MailEcarte', 'DataBRecherche', 'EquimmoxRecherche', 'DataBTransactions',
+  'Rappel', 'MailEcarte', 'DataBRecherche', 'EquimmoxRecherche', 'DataBTransactions', 'FigaroPrix',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -2264,6 +2264,51 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', 
   const lots = [...dossier.lots];
   lots[index] = { ...entree, valeur_locative: r.resultat };
   Records.update('Deal', dossier.id, { lots });
+  ok(res, { resultat: r.resultat });
+}));
+
+// Le Figaro Immobilier : les prix et loyers du résidentiel de la commune et du
+// quartier. C'est le point de comparaison du commerce — ce que coûterait un
+// appartement au même endroit, et ce qu'il rapporterait.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/figaro/prix', wrap(async (req, res) => {
+  const { prixResidentiel } = await import('./figaro.js');
+  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const index = Number(req.params.index) || 0;
+  const entree = dossier.lots?.[index];
+  if (!entree) return res.status(404).json({ error: 'Lot introuvable' });
+  const a = entree.lot?.adresse?.valeur;
+  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
+  const adresse = String(req.body?.adresse || adresseDossier).trim();
+  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
+  const r = await prixResidentiel(adresse, { forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0] || dossier;
+  const lots = [...courant.lots];
+  lots[index] = { ...lots[index], prix_residentiel: r.resultat };
+  Records.update('Deal', courant.id, { lots });
+  ok(res, { resultat: r.resultat });
+}));
+
+// Les contours des quartiers d'une commune, pour tracer la carte des prix.
+app.get('/api/figaro/carte', wrap(async (req, res) => {
+  const { contoursCommune } = await import('./figaro.js');
+  const c = contoursCommune(String(req.query.insee || ''));
+  if (!c) return res.status(404).json({ error: 'Carte inconnue : lancez d\'abord la lecture du Figaro.' });
+  ok(res, c);
+}));
+
+// La même lecture pour un projet.
+app.post('/api/projects/:id/figaro/prix', wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+  const { prixResidentiel } = await import('./figaro.js');
+  const projet = Records.get('Project', req.params.id);
+  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+  const adresse = String(req.body?.adresse || projet.adresse_complete || '').trim();
+  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
+  const r = await prixResidentiel(adresse, { forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  Records.update('Project', projet.id, { prix_residentiel: r.resultat });
   ok(res, { resultat: r.resultat });
 }));
 

@@ -133,7 +133,7 @@ export function parametresAdresse(adresse) {
 
 // --- L'adresse, résolue par la Base Adresse Nationale ------------------------------------
 /**
- * @returns {Promise<{label, numero, rue, ville, code_postal, departement, region, lat, lon, score}|null>}
+ * @returns {Promise<{label, code_insee, numero, rue, ville, code_postal, departement, region, lat, lon, score}|null>}
  */
 export async function resoudreAdresse(texte) {
   const q = String(texte || '').trim();
@@ -147,6 +147,8 @@ export async function resoudreAdresse(texte) {
   const contexte = String(p.context || '').split(',').map((x) => x.trim());
   return {
     label: p.label,
+    // Le code INSEE de la commune : c'est lui qui adresse les pages du Figaro.
+    code_insee: p.citycode || '',
     numero: p.housenumber || '',
     rue: p.street || p.name || '',
     ville: p.city || '',

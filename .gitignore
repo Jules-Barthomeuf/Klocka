@@ -40,3 +40,6 @@ data-import/
 
 # Copie imbriquée périmée du dépôt — jamais suivie.
 server/Klocka/
+
+# Le navigateur téléchargé pour Equimmox chez un hébergeur.
+.playwright/

@@ -18,6 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import { Records, DATA_DIR } from './db.js';
 import { resoudreAdresse } from './data-b.js';
+import { poserChemin } from './chromium.js';
 
 const EMAIL = (process.env.EQUIMMOX_EMAIL || '').trim();
 const MDP = (process.env.EQUIMMOX_MOT_DE_PASSE || '').trim();
@@ -45,11 +46,34 @@ function lireLigne(lignes, motif) {
   return m ? nombre(m[1]) : null;
 }
 
+// Un navigateur ailleurs : chez un hébergeur qui ne peut pas faire tourner
+// Chromium, EQUIMMOX_CDP_URL désigne un navigateur distant (Browserless et
+// consorts) et Klocka s'y connecte au lieu d'en lancer un.
+const CDP = (process.env.EQUIMMOX_CDP_URL || '').trim();
+
 let navigateur = null;
 async function lancerNavigateur() {
+  poserChemin();
   const { chromium } = await import('playwright-core');
   if (navigateur && navigateur.isConnected()) return navigateur;
-  navigateur = await chromium.launch({ executablePath: CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  if (CDP) {
+    navigateur = await chromium.connectOverCDP(CDP, { timeout: 30000 });
+    return navigateur;
+  }
+  try {
+    navigateur = await chromium.launch({ executablePath: CHROMIUM, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  } catch (e) {
+    // Le message brut de Playwright parle d'un chemin et d'une commande npx :
+    // il n'apprend rien à qui clique sur « Chercher sur Equimmox ».
+    if (/Executable doesn't exist|ENOENT/i.test(e?.message || '')) {
+      throw new Error(
+        "Equimmox a besoin d'un navigateur, et le serveur n'en a pas. " +
+        "Installez-le avec « npm run chromium » au déploiement, ou indiquez-en un " +
+        "avec CHROMIUM_PATH, ou un navigateur distant avec EQUIMMOX_CDP_URL."
+      );
+    }
+    throw e;
+  }
   return navigateur;
 }
 
@@ -95,15 +119,18 @@ export async function analyseLoyer(adresse, { surface = null, forcer = false, us
     if (recent) return { ok: true, resultat: { ...recent.resultat, du_cache: true } };
   }
 
-  const b = await lancerNavigateur();
-  const ctx = await b.newContext({
-    viewport: { width: 1400, height: 950 },
-    locale: 'fr-FR',
-    ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}),
-  });
-  const p = await ctx.newPage();
-  p.on('dialog', (d) => d.accept().catch(() => {}));
+  // Le lancement du navigateur fait partie de la recherche : s'il échoue, la
+  // page reçoit une phrase, pas une trace de Playwright.
+  let ctx = null;
   try {
+    const b = await lancerNavigateur();
+    ctx = await b.newContext({
+      viewport: { width: 1400, height: 950 },
+      locale: 'fr-FR',
+      ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}),
+    });
+    const p = await ctx.newPage();
+    p.on('dialog', (d) => d.accept().catch(() => {}));
     await p.goto('https://app.equimmox.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await p.waitForTimeout(4000);
     if (/connexion/.test(p.url())) {
@@ -191,7 +218,7 @@ export async function analyseLoyer(adresse, { surface = null, forcer = false, us
   } catch (e) {
     return { ok: false, error: e?.message || 'Equimmox n\'a pas répondu.' };
   } finally {
-    await ctx.close().catch(() => {});
+    if (ctx) await ctx.close().catch(() => {});
   }
 }
 

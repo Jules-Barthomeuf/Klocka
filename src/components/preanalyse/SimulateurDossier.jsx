@@ -90,7 +90,7 @@ const formatCurrency = (value) =>
 // panneau dépliable au lieu d'occuper une colonne de gauche.
 // dealId + lotIndex : les chiffres s'enregistrent sur le lot, on y revient
 // plus tard et le projet créé depuis le deal en hérite.
-export default function SimulateurDossier({ parametres, rendementCible = [5, 7], compact = false, dealId = null, lotIndex = 0, onEnregistre }) {
+export default function SimulateurDossier({ parametres, compact = false, dealId = null, lotIndex = 0, onEnregistre }) {
   const [etat, setEtat] = useState(() => etatInitial(parametres));
   // Tableaux annuels : hors CHAMPS car ils ne viennent jamais du dossier.
   const [vacancesLocatives, setVacancesLocatives] = useState(() => Array(25).fill(0));
@@ -188,9 +188,6 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
     if (parametres?.apport != null) setApport(parametres.apport);
   };
 
-  // Rendement AEM : le loyer sur le prix de revient, recalculé à chaque curseur.
-  const rendementAem = calculs.prixRevient > 0 ? (etat.loyerInitialHTHC / calculs.prixRevient) * 100 : 0;
-  const dansCible = rendementAem >= rendementCible[0] && rendementAem <= rendementCible[1];
 
   // Données manquantes : on ne bloque pas, on signale ce qui est à poser à la main.
   const manquants = [
@@ -217,35 +214,6 @@ export default function SimulateurDossier({ parametres, rendementCible = [5, 7],
 
   return (
     <div className="border border-[#1f2228] rounded-md overflow-hidden bg-[#000000]">
-      {/* Bandeau de décision : rendement AEM live + prix de revient */}
-      <div className={`px-4 py-3 border-b ${dansCible ? "border-[#96c0b8]/40 bg-[#96c0b8]/10" : "border-[#96c0b8]/30 bg-[#96c0b8]/[0.07]"}`}>
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <div>
-            <p className="text-[#9298a6] text-xs mb-0.5">Rendement AEM</p>
-            <p className={`text-2xl font-light ${dansCible ? "text-[#c3ddd6]" : "text-[#96c0b8]"}`}>
-              {rendementAem.toFixed(2)} %
-            </p>
-          </div>
-          <div>
-            <p className="text-[#9298a6] text-xs mb-0.5">Prix de revient</p>
-            <p className="text-[#f2f3f5] text-lg font-light">{formatCurrency(calculs.prixRevient)}</p>
-          </div>
-          <div>
-            <p className="text-[#9298a6] text-xs mb-0.5">Cash-flow / mois</p>
-            <p className={`text-lg font-light ${calculs.indicateurs.cashFlowMoyenMois >= 0 ? "text-[#c3ddd6]" : "text-red-400"}`}>
-              {formatCurrency(calculs.indicateurs.cashFlowMoyenMois)}
-            </p>
-          </div>
-          <p className={`text-xs max-w-md ${dansCible ? "text-[#c3ddd6]/80" : "text-[#96c0b8]/80"}`}>
-            {dansCible
-              ? `Dans la cible ${rendementCible[0]}–${rendementCible[1]} % AEM.`
-              : rendementAem < rendementCible[0]
-                ? `Sous la cible ${rendementCible[0]}–${rendementCible[1]} % : jouez sur le prix négocié pour voir ce qu'il faudrait obtenir.`
-                : `Au-dessus de la cible ${rendementCible[0]}–${rendementCible[1]} % : à vérifier (risque locatif ?).`}
-          </p>
-        </div>
-      </div>
-
       {manquants.length > 0 && (
         <div className="px-4 py-2 border-b border-[#1f2228] flex items-start gap-2 text-[11px] text-[#96c0b8]/80">
           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />

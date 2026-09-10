@@ -98,6 +98,21 @@ function mapperValeurLocative(vl, deja = {}) {
   return sortie;
 }
 
+// Le titre d'un projet : « Locataire - Adresse ». Sans locataire, le bien se
+// nomme par ce qu'il est ; sans adresse, le locataire suffit à le reconnaître.
+//
+//   Patounes + 15 rue Exemple, Paris  →  « Patounes - 15 rue Exemple, Paris »
+//   15 rue Exemple, Paris seule       →  « Murs commerciaux - 15 rue Exemple, Paris »
+//   Patounes seul                     →  « Patounes - Murs commerciaux »
+export function titreProjet(locataire, adresse) {
+  const l = String(locataire || '').trim();
+  const a = String(adresse || '').trim();
+  if (l && a) return `${l} - ${a}`;
+  if (a) return `Murs commerciaux - ${a}`;
+  if (l) return `${l} - Murs commerciaux`;
+  return 'Murs commerciaux';
+}
+
 // Equimmox : bas, moyenne et haut des loyers observés, en € par m² et par an,
 // l'unité des cases « Baux existants ». Seules les cases vides sont remplies.
 function mapperAnalyseLoyer(al, deja = {}) {
@@ -183,7 +198,11 @@ export function delierProjet(projectId, user = null) {
  */
 export async function completerAvantProjet(dealId, lotIndex = 0) {
   const deal = Records.filter('Deal', { deal_id: dealId })[0];
-  if (!deal || deal.projet_id) return;
+  if (!deal) return;
+  // Un identifiant de projet périmé — le projet a été supprimé — laissait le
+  // dossier sans département ni chiffres de marché, et la fiche naissait à
+  // moitié vide. Comme à la création, on ne s'arrête que si le projet est là.
+  if (deal.projet_id && Records.get('Project', deal.projet_id)) return;
   const lots = [...(deal.lots || [])];
   const lot = lots[lotIndex];
   if (!lot) return;
@@ -253,7 +272,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
   const projet = {
     // Un projet issu d'un deal de test est marqué pour être repérable (et
     // supprimé avec le deal).
-    titre: `${deal.test ? '[TEST] ' : ''}${lot.synthese?.titre || `Deal ${ville || dealId.slice(0, 8)}`}`,
+    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom), adresseComplete)}`,
     statut: 'analyse',
     archived: false,
     admin_principal: user?.email || adminEmails[0] || null,

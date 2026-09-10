@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2 } from "lucide-react";
+import { Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
 import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
@@ -45,15 +45,16 @@ export default function AdminProjets() {
   const [activeTab, setActiveTab] = useState("informations");
   // Aperçu « page projet » — rafraîchi sur Entrée, Enregistrer ou fermeture du panneau.
   const [apercuProjet, setApercuProjet] = useState(null);
-  // Panneau latéral des champs (caché par défaut) et onglet courant de la page.
-  const [panneauOuvert, setPanneauOuvert] = useState(false);
+  // Onglet courant de la page projet, à gauche.
   // Assigner un client sans ouvrir le panneau : le bouton vit dans la barre.
   const [assignerOuvert, setAssignerOuvert] = useState(false);
   const [ongletPage, setOngletPage] = useState("secteur");
   // Historique des modifications faites sur la page, pour le retour en arrière.
   const [historique, setHistorique] = useState([]);
-  // Assistant de création de champs personnalisés (prompt libre), en panneau droit.
-  const [assistantOuvert, setAssistantOuvert] = useState(false);
+  // Ce qu'on a annulé et qu'on peut refaire. Toute modification neuve la vide :
+  // on ne refait pas un futur qui n'existe plus.
+  const [refaits, setRefaits] = useState([]);
+  // Assistant de création de champs personnalisés (prompt libre).
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [assistantEnCours, setAssistantEnCours] = useState(false);
   // Suivi de l'enregistrement, affiché dans la barre d'actions.
@@ -786,23 +787,17 @@ export default function AdminProjets() {
       return data;
   };
 
-  // À l'ouverture de l'éditeur : panneau ouvert d'emblée pour un nouveau
-  // projet (rien à montrer sur la page), fermé sinon ; aperçu remis à zéro.
-  useEffect(() => {
-    if (isDialogOpen) setPanneauOuvert(!editingProject);
-  }, [isDialogOpen]);
-
-  // L'onglet Simulateur de la page va de pair avec ses champs : les chiffres à
-  // gauche, le panneau de saisie à droite, ouvert d'office.
+  // Les champs de droite suivent l'onglet de gauche, dès l'ouverture : on
+  // regarde une partie de la page, on a ses champs sous la main.
+  const FORM_PAR_ONGLET = {
+    bien: "informations", secteur: "secteur", marche: "marche", locataire: "locataire",
+    bail: "bail", copropriete: "copropriete", diagnostique: "diagnostique",
+    documents_projet: "docs_projet", simulateur: "simulateur",
+  };
   useEffect(() => {
     if (!isDialogOpen) return;
-    if (ongletPage === "simulateur") {
-      setActiveTab("simulateur");
-      setAssistantOuvert(false);
-      setPanneauOuvert(true);
-    } else if (activeTab === "simulateur") {
-      setPanneauOuvert(false);
-    }
+    const f = FORM_PAR_ONGLET[ongletPage];
+    if (f) setActiveTab(f);
   }, [ongletPage, isDialogOpen]);
 
   // Pendant l'édition, la bulle « Un problème ? » est masquée (voir index.css).
@@ -831,6 +826,7 @@ export default function AdminProjets() {
 
   const modifierChamp = (champ, valeur, enregistrer = false) => {
     setHistorique((h) => [...h.slice(-29), formData]); // 30 pas conservés
+    setRefaits([]);
     setModifieDepuis(true);
     let suivant = ecrireChemin(formData, champ, valeur);
     // Le loyer au m² est un ratio : le saisir revient à fixer le loyer annuel.
@@ -856,9 +852,22 @@ export default function AdminProjets() {
     if (!historique.length) return;
     const precedent = historique[historique.length - 1];
     setHistorique((h) => h.slice(0, -1));
+    setRefaits((r) => [...r.slice(-29), formData]);
     setFormData(precedent);
     rafraichirApercu(precedent);
     if (editingProject) handleSubmit({}, { source: precedent, discret: true });
+  };
+
+  // Revenir sur une annulation : l'état repart dans l'historique, pour pouvoir
+  // faire l'aller-retour autant de fois qu'on veut.
+  const refaireDerniereModification = () => {
+    if (!refaits.length) return;
+    const suivant = refaits[refaits.length - 1];
+    setRefaits((r) => r.slice(0, -1));
+    setHistorique((h) => [...h.slice(-29), formData]);
+    setFormData(suivant);
+    rafraichirApercu(suivant);
+    if (editingProject) handleSubmit({}, { source: suivant, discret: true });
   };
 
   // L'assistant traduit une demande en langage naturel (« ajoute Hauteur sous
@@ -1015,78 +1024,67 @@ export default function AdminProjets() {
     { value: "bail", label: "Analyse du bail" }, { value: "copropriete", label: "Copropriété" },
     { value: "diagnostique", label: "Diagnostique" }, { value: "documents_projet", label: "Documents" },
   ];
-  // Onglet de la page projet -> onglet du panneau de champs correspondant.
-  const FORM_PAR_ONGLET = {
-    bien: "informations", secteur: "secteur", marche: "marche", locataire: "locataire",
-    bail: "bail", copropriete: "copropriete", diagnostique: "diagnostique", documents_projet: "docs_projet",
-    simulateur: "simulateur",
-  };
   const projetAffiche = apercuProjet || editingProject || null;
 
   if (isDialogOpen) {
-    const closeEditor = () => { setIsDialogOpen(false); resetForm(); setPanneauOuvert(false); const url = new URL(window.location); url.searchParams.delete('action'); window.history.replaceState({}, '', url); };
-    const goToProjectsList = () => { setIsDialogOpen(false); resetForm(); setPanneauOuvert(false); navigate(createPageUrl("AdminProjets")); };
+    const goToProjectsList = () => { setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); };
     const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
-    const ouvrirPanneau = (ongletFormulaire) => { if (ongletFormulaire) setActiveTab(ongletFormulaire); setAssistantOuvert(false); setPanneauOuvert(true); };
-    const fermerPanneau = () => { setPanneauOuvert(false); rafraichirApercu(formData); };
+    // Le dossier de pré-analyse dont ce projet est issu, s'il y en a un.
+    const dossierLie = editingProject?.deal_id || formData.deal_id || null;
+    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-[#2c3139] px-4 py-2 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors";
+    const FLECHE = "inline-flex items-center justify-center w-9 h-9 rounded-full border border-[#2c3139] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-30 disabled:cursor-not-allowed";
     return (
       <div className="h-screen flex flex-col bg-[#000000] text-[#f2f3f5] overflow-hidden">
-        {/* Barre d'actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-7 py-3 border-b border-[#1f2228] flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <img src="/logo-klocka.svg" alt="" className="w-[18px] h-[18px] rounded-[4px]" draggable={false} />
-            <div className="min-w-0">
-              <p className="m-0 text-[15px] font-medium truncate">{formData.titre || (editingProject ? "Projet" : "Nouveau projet")}</p>
-              <p className="m-0 text-[11px] text-[#6a7180] max-md:hidden">Cliquez une valeur pour la modifier sur place — Entrée valide, Enregistrer sauvegarde.</p>
+        {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. */}
+        <div className="flex-shrink-0 px-6 max-md:px-4 pt-5 pb-4 border-b border-[#1f2228]">
+          <h1
+            className="m-0 text-[40px] max-md:text-[30px] font-normal italic tracking-[-.01em] leading-[1.1] text-white truncate"
+            style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
+          >
+            {formData.titre || "Nouveau projet"}
+          </h1>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button onClick={goToProjectsList} className={BOUTON}>Retour aux projets</button>
+            {dossierLie && (
+              <button onClick={() => navigate(`${createPageUrl("Analyse")}?deal_id=${dossierLie}`)} className={BOUTON}>
+                Retour au dossier
+              </button>
+            )}
+            <button onClick={() => setAssignerOuvert(true)} className={BOUTON}>Assigner à un client</button>
+            <button
+              onClick={() => handleSubmit()}
+              disabled={!formData.titre || isSaving}
+              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-semibold text-[#0b0c0e] bg-[#96c0b8] hover:bg-[#abd0c8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement…</> : "Enregistrer"}
+            </button>
+
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-[11.5px] max-lg:hidden" title="État de l'enregistrement">
+                {modifieDepuis
+                  ? <span className="text-[#96c0b8]">Modifications non enregistrées</span>
+                  : enregistreLe
+                    ? <span className="text-[#6a7180]">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                    : null}
+              </span>
+              <button
+                onClick={annulerDerniereModification}
+                disabled={!historique.length}
+                title={historique.length ? "Revenir à l'état précédent" : "Rien à annuler"}
+                className={FLECHE}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={refaireDerniereModification}
+                disabled={!refaits.length}
+                title={refaits.length ? "Refaire ce qui vient d'être annulé" : "Rien à refaire"}
+                className={FLECHE}
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-          <div className="flex gap-2 items-center flex-shrink-0">
-            <span className="text-[11.5px] mr-1 hidden lg:block" title="État de l'enregistrement">
-              {modifieDepuis
-                ? <span className="text-[#96c0b8]">Modifications non enregistrées</span>
-                : enregistreLe
-                  ? <span className="text-[#c3ddd6]">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
-                  : null}
-            </span>
-            <button
-              onClick={annulerDerniereModification}
-              disabled={!historique.length}
-              title={historique.length ? "Annuler la dernière modification" : "Aucune modification à annuler"}
-              className="inline-flex items-center gap-2 bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Undo2 className="w-4 h-4" />
-              Retour en arrière
-            </button>
-            <button
-              onClick={() => { setAssistantOuvert(true); setPanneauOuvert(false); }}
-              title="Créer des champs personnalisés en langage naturel"
-              className="inline-flex items-center gap-2 bg-transparent border border-[#96c0b8]/50 text-[#c3ddd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#96c0b8]/[0.12] transition-colors"
-            >
-              <Sparkles className="w-4 h-4" />
-              Assistant
-            </button>
-            <button onClick={() => ouvrirPanneau(FORM_PAR_ONGLET[ongletPage] || "informations")} className="bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors">Modifier les informations</button>
-            <button onClick={closeEditor} className="bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors">Annuler</button>
-            {editingProject && (
-              <button onClick={goToProjectsList} className="bg-transparent border border-[#f2f3f5]/[0.14] text-[#c9cdd6] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#f2f3f5]/[0.06] transition-colors">Retour aux projets</button>
-            )}
-            <button
-              onClick={() => setAssignerOuvert(true)}
-              className="bg-transparent border border-[#96c0b8]/50 text-[#96c0b8] rounded-md px-4 py-2.5 text-[13.5px] font-semibold hover:bg-[#96c0b8]/[0.08] transition-colors"
-            >
-              Assigner un client
-            </button>
-            {editingProject?.id && (
-              <BoutonMonday
-                projetId={editingProject.id}
-                dejaPose={!!editingProject.monday_item_id}
-                className="h-auto py-2.5 px-4 text-[13.5px] font-semibold"
-              />
-            )}
-            <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 text-[#0f1114] rounded-md px-5 py-2.5 text-[13.5px] font-bold hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: "#f2f3f5" }}>
-              {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
-            </button>
           </div>
         </div>
 
@@ -1103,15 +1101,16 @@ export default function AdminProjets() {
           }}
         />
 
-        {/* La page projet, pleine largeur — les valeurs s'éditent sur place ;
-            le panneau ne s'ouvre que par le bouton « Modifier les informations ». */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* Deux colonnes : à gauche la page telle que le client la verra, à
+            droite les champs. Les valeurs restent éditables au clic à gauche. */}
+        <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1fr)_540px] max-xl:grid-cols-[minmax(0,1fr)_440px] max-lg:grid-cols-1 max-lg:overflow-y-auto">
+        <div className="min-h-0 overflow-y-auto border-r border-[#1f2228] max-lg:border-r-0 max-lg:overflow-visible">
           {ongletPage === "simulateur" ? (
             <div className="max-w-[1100px] mx-auto px-4 md:px-6 pb-8">
               {/* La barre d'onglets de la page reste accessible au-dessus des chiffres. */}
               <div className="flex flex-wrap gap-x-7 gap-y-2 pt-6 pb-6 overflow-x-auto">
                 {[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => (
-                  <button key={o.value} onClick={() => setOngletPage(o.value)}
+                  <button key={o.value} onClick={() => { setOngletPage(o.value); const f = FORM_PAR_ONGLET[o.value]; if (f) setActiveTab(f); }}
                     className={`text-[11px] tracking-[0.16em] uppercase py-1 border-b whitespace-nowrap transition-colors
                       ${ongletPage === o.value ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}>
                     {o.label}
@@ -1125,7 +1124,7 @@ export default function AdminProjets() {
               project={projetAffiche}
               isAdmin={false}
               showAsClient
-              onOngletChange={setOngletPage}
+              onOngletChange={(o) => { setOngletPage(o); const f = FORM_PAR_ONGLET[o]; if (f) setActiveTab(f); }}
               modeEdition
               onChamp={modifierChamp}
               ongletsSupplementaires={[{ value: "simulateur", label: "Simulateur" }]}
@@ -1133,76 +1132,17 @@ export default function AdminProjets() {
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-[#6a7180] text-sm max-w-sm text-center px-6">
-                Renseignez le projet dans le panneau, puis appuyez sur Entrée ou Enregistrer : la page projet apparaîtra ici.
+                Renseignez le projet à droite, puis appuyez sur Entrée ou Enregistrer : la page telle que le client la verra apparaîtra ici.
               </p>
             </div>
           )}
         </div>
 
-        {/* Assistant — panneau latéral droit */}
-        <div className={`fixed inset-y-0 right-0 z-[55] w-full md:w-[420px] bg-[#0f1114] border-l border-[#1f2228] flex flex-col transform transition-transform duration-300 ${assistantOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}>
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1f2228] flex-shrink-0">
-            <span className="flex items-center gap-2 text-[15px] font-medium">
-              <Sparkles className="w-4 h-4 text-[#c3ddd6]" />
-              Assistant
-            </span>
-            <button onClick={() => setAssistantOuvert(false)} className="text-[#9298a6] hover:text-[#f2f3f5] transition-colors" title="Fermer">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-4">
-            <p className="text-[#9298a6] text-[13px] leading-[1.65] m-0">
-              Décrivez les champs à créer, l'onglet où les placer et leur présentation —
-              en lignes ou en grands chiffres comme la bande du haut. Ils sont ensuite
-              modifiables au clic, déplaçables au glisser-déposer et supprimables.
-            </p>
-            <textarea
-              rows={5}
-              value={assistantPrompt}
-              onChange={(e) => setAssistantPrompt(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) lancerAssistant(); }}
-              placeholder="Ex. : ajoute « Hauteur sous plafond » et « Vitrine (ml) » dans l'onglet Bien, présentés comme les chiffres du haut."
-              className="w-full bg-[#000000] border border-[#1f2228] focus:border-[#96c0b8] rounded-md px-3.5 py-3 text-[14px] text-[#f2f3f5] outline-none placeholder:text-[#3a3f4a] transition-colors"
-            />
-            <div className="border-t border-[#1f2228] pt-4">
-              <p className="text-[10px] tracking-[0.18em] uppercase text-[#6a7180] mb-2">Exemples</p>
-              <div className="space-y-1.5">
-                {[
-                  "Ajoute « Hauteur sous plafond » dans l'onglet Bien.",
-                  "Dans Marché, ajoute « Flux piéton » et « Vacance commerciale » comme les chiffres du haut.",
-                  "Ajoute « Bailleur » et « Syndic » dans l'onglet Copropriété.",
-                ].map((ex) => (
-                  <button key={ex} onClick={() => setAssistantPrompt(ex)}
-                    className="block w-full text-left text-[12.5px] leading-[1.5] text-[#9298a6] hover:text-[#f2f3f5] bg-[#000000] border border-[#1f2228] hover:border-[#96c0b8]/50 rounded px-3 py-2 transition-colors">
-                    {ex}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[#1f2228] flex-shrink-0">
-            <span className="text-[11px] text-[#6a7180]">⌘/Ctrl + Entrée</span>
-            <button onClick={lancerAssistant} disabled={assistantEnCours || !assistantPrompt.trim()}
-              className="inline-flex items-center gap-2 text-[#0f1114] rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#f2f3f5" }}>
-              {assistantEnCours ? <><Loader2 className="w-4 h-4 animate-spin" />Création…</> : "Créer les champs"}
-            </button>
-          </div>
-        </div>
-
-        {/* Panneau latéral des champs */}
-        <div
-          className={`fixed inset-y-0 right-0 z-50 w-full md:w-[600px] bg-[#0f1114] border-l border-[#1f2228] flex flex-col transform transition-transform duration-300 ${panneauOuvert ? "translate-x-0 shadow-2xl" : "translate-x-full"}`}
+        <aside
+          className="min-h-0 flex flex-col bg-[#0a0a0b] max-lg:min-h-[60vh]"
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
         >
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1f2228] flex-shrink-0">
-            <span className="text-[15px] font-medium">{editorTabs.find(t => t.value === activeTab)?.label || "Modifier"}</span>
-            <button onClick={fermerPanneau} className="text-[#9298a6] hover:text-[#f2f3f5] transition-colors" title="Fermer — met la page à jour">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
           <div className="flex gap-1.5 px-4 py-2.5 border-b border-[#1f2228] overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => setActiveTab(t.value)}
@@ -1385,13 +1325,10 @@ export default function AdminProjets() {
               <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} /></motion.div></TabsContent>
             </Tabs>
           </div>
-          <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-[#1f2228] flex-shrink-0">
-            <span className="text-[11px] text-[#6a7180]">Entrée met la page à jour sans enregistrer.</span>
-            <button onClick={() => handleSubmit()} disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 text-[#0f1114] rounded-md px-5 py-2.5 text-[14px] font-bold disabled:opacity-50 hover:brightness-95 transition-all" style={{ background: "#f2f3f5" }}>
-              {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : "Enregistrer"}
-            </button>
+          <div className="px-5 py-3 border-t border-[#1f2228] flex-shrink-0">
+            <span className="text-[11px] text-[#6a7180]">Entrée met la page de gauche à jour sans enregistrer.</span>
           </div>
+        </aside>
         </div>
       </div>
     );

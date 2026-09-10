@@ -18,7 +18,6 @@ import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
 import VilleSecteurIA, { useAnalyseIA } from "./SecteurAnalyseIA";
-import AllerPlusLoin from "./AllerPlusLoin";
 
 // Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
 function SectionLabel({ children, tone = "muted", className = "" }) {
@@ -690,13 +689,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <div className="mb-8 max-md:mb-5">
                 <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] mb-2">Secteur</h2>
                 <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mb-0 max-w-[560px]">Du macro au micro : la ville, le quartier, puis l'emplacement.</p>
-                {(project.ville_secteur_champ1 || project.ville_secteur_champ2 || project.ville_secteur_champ3) && (
-                  <div className="flex gap-2 mt-4 flex-wrap">
-                    {project.ville_secteur_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-[#96c0b8]/[0.16] border border-[#96c0b8] text-[#c3ddd6]"><ValeurEditable champ="ville_secteur_champ1" type="text">{project.ville_secteur_champ1}</ValeurEditable></span>}
-                    {project.ville_secteur_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#c3ddd6]/40 text-[#c3ddd6]"><ValeurEditable champ="ville_secteur_champ2" type="text">{project.ville_secteur_champ2}</ValeurEditable></span>}
-                    {project.ville_secteur_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-[#f2f3f5]/[0.18] text-[#c9cdd6]"><ValeurEditable champ="ville_secteur_champ3" type="text">{project.ville_secteur_champ3}</ValeurEditable></span>}
-                  </div>
-                )}
                 <div className="mt-6 max-md:mt-5">
                   <VilleSecteurIA
                     analyse={analyse}
@@ -747,7 +739,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <EnvironnementIndicateurs project={project} />
               <NotesBlock notes={project.notes_secteur} />
               <ChampsPersonnalises zone="secteur" project={project} />
-              <AllerPlusLoin section="secteur" project={project} />
             </motion.div>
           </TabsContent>
 
@@ -821,7 +812,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 && (!project.marche_secteurs || project.marche_secteurs.length === 0)
                 && (!project.notes_marche || project.notes_marche.length === 0) && <EmptyTab />}
               <ChampsPersonnalises zone="marche" project={project} />
-              <AllerPlusLoin section="marche" project={project} />
             </motion.div>
           </TabsContent>
 
@@ -877,7 +867,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {!project.description_bien && !project.bien_champ1 && !project.bien_champ2 && !project.bien_champ3
                 && surfaceRef <= 0 && (!project.notes_bien || project.notes_bien.length === 0) && <EmptyTab />}
               <ChampsPersonnalises zone="bien" project={project} />
-              <AllerPlusLoin section="bien" project={project} />
             </motion.div>
           </TabsContent>
 
@@ -934,7 +923,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {!project.nom_locataire && !project.activite_locataire && loyerAnnuel <= 0 && !project.echeance_bail
                 && (!project.notes_locataire || project.notes_locataire.length === 0) && <EmptyTab />}
               <ChampsPersonnalises zone="locataire" project={project} />
-              <AllerPlusLoin section="locataire" project={project} />
             </motion.div>
           </TabsContent>
 
@@ -968,7 +956,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <BailTabs project={project} />
               <ChampsPersonnalises zone="bail" project={project} />
-              <AllerPlusLoin section="bail" project={project} />
             </motion.div>
           </TabsContent>
 
@@ -1049,7 +1036,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 && !project.activites_autorisees && !project.activites_interdites
                 && !project.synthese_assemblee_generale && <EmptyTab />}
               <ChampsPersonnalises zone="copropriete" project={project} />
-              <AllerPlusLoin section="copropriete" project={project} />
             </motion.div>
           </TabsContent>
 
@@ -1095,7 +1081,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 <EmptyTab text="Aucune donnée de diagnostic disponible pour ce projet." />
               )}
               <ChampsPersonnalises zone="diagnostique" project={project} />
-              <AllerPlusLoin section="diagnostique" project={project} />
             </motion.div>
           </TabsContent>
 
@@ -1128,7 +1113,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 <EmptyTab text="Aucun document disponible pour ce projet." />
               )}
               <ChampsPersonnalises zone="documents_projet" project={project} />
-              <AllerPlusLoin section="documents_projet" project={project} />
             </motion.div>
           </TabsContent>
         </Tabs>

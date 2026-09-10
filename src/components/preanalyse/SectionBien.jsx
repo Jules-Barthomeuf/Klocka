@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { VuesLieu, ChampFiche } from "@/components/preanalyse/DealResultat";
+import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
 
 // Le bien, et lui seul : ce que la fiche annonce, et sous chaque ligne le
 // détail que les pièces apportent. Le bail, les quittances, la copropriété et
@@ -50,7 +51,7 @@ function ChampLu({ c }) {
   );
 }
 
-export default function SectionBien({ dossier, apercu = false, onSaisie, enCours = false }) {
+export default function SectionBien({ dossier, apercu = false, onSaisie, enCours = false, onRefresh }) {
   const dealId = dossier?.deal_id;
   const lot = dossier?.lots?.[0];
   const [ouvertes, setOuvertes] = useState(() => new Set());
@@ -143,6 +144,11 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
             </section>
           );
         })}
+      </div>
+
+      {/* Le loyer face au marché de la rue, d'après Data-B. */}
+      <div className="mt-8">
+        <ValeurLocativeDataB dossier={dossier} lot={lot} apercu={apercu} onRefresh={onRefresh} />
       </div>
     </div>
   );

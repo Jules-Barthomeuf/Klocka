@@ -361,7 +361,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                 <button key={g.id} onClick={() => setGrilleAnalyse(g.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${grilleAnalyse === g.id ? "text-[#f2f3f5] font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>{g.titre}</button>
               ))}
             </div>
-            {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} />}
+            {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
             {grilleAnalyse === "simulateur" && (
               dossier?.lots?.[0]?.simulateur
                 ? <SimulateurDossier parametres={dossier.lots[0].simulateur} dealId={dossier.deal_id} lotIndex={0} onEnregistre={onRefresh} />

@@ -812,7 +812,7 @@ const ENTITES_ADMIN = new Set([
   'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto', 'Engagement',
   // Un rappel porte un nom et un numéro de téléphone : il n'a rien à faire
   // devant un compte client. Il manquait à cette liste.
-  'Rappel', 'MailEcarte',
+  'Rappel', 'MailEcarte', 'DataBRecherche',
 ]);
 
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
@@ -2245,6 +2245,37 @@ app.post('/api/preanalyse/dossiers/:dealId/grille/:id/note/:critere', wrap(async
   if (!r.ok) return res.status(400).json({ error: r.error });
   ok(res, r);
 }));
+// Data-B, valeurs locatives : la fourchette de loyer au m² d'une adresse.
+// Sur un lot, le résultat est gardé avec lui ; l'adresse peut être celle du
+// dossier ou une autre, saisie à la main.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', wrap(async (req, res) => {
+  const { valeurLocative } = await import('./data-b.js');
+  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const index = Number(req.params.index) || 0;
+  const entree = dossier.lots?.[index];
+  if (!entree) return res.status(404).json({ error: 'Lot introuvable' });
+  const a = entree.lot?.adresse?.valeur;
+  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
+  const adresse = String(req.body?.adresse || adresseDossier).trim();
+  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
+  const r = await valeurLocative(adresse, { forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  const lots = [...dossier.lots];
+  lots[index] = { ...entree, valeur_locative: r.resultat };
+  Records.update('Deal', dossier.id, { lots });
+  ok(res, { resultat: r.resultat });
+}));
+
+// La même recherche, sans dossier : une adresse, une fourchette.
+app.post('/api/data-b/valeur-locative', wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+  const { valeurLocative } = await import('./data-b.js');
+  const r = await valeurLocative(String(req.body?.adresse || ''), { forcer: !!req.body?.forcer, user: currentUser(req) });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, { resultat: r.resultat });
+}));
+
 // Ce qu'une relecture coûtera, avant de la lancer : jetons comptés par l'API,
 // prix appliqué au modèle courant. Rien n'est facturé par ce comptage.
 app.get('/api/preanalyse/dossiers/:dealId/estimation', wrap(async (req, res) => {

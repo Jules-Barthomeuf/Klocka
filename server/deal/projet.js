@@ -83,6 +83,21 @@ function mapperMarche(ville, codePostal, chiffres = null) {
   };
 }
 
+// Data-B donne le loyer de la rue, du quartier et de la ville, en € HT HC par
+// m² et par an — l'unité même des cases « Offre actuelle ». On ne remplit que
+// ce qui est encore vide.
+function mapperValeurLocative(vl, deja = {}) {
+  if (!vl?.rue) return {};
+  const vide = (cle) => !deja[cle];
+  const r = vl.rue;
+  const sortie = {};
+  if (r.basse > 0 && vide('marche_offre_bas')) sortie.marche_offre_bas = r.basse;
+  if (r.haute > 0 && vide('marche_offre_haut')) sortie.marche_offre_haut = r.haute;
+  if (r.basse > 0 && r.haute > 0 && vide('marche_offre_moyenne')) sortie.marche_offre_moyenne = Math.round((r.basse + r.haute) / 2);
+  if (vl.quartier?.nom && vide('marche_quartier_nom')) sortie.marche_quartier_nom = String(vl.quartier.nom).slice(0, 120);
+  return sortie;
+}
+
 // Les chiffres du point de marché, rangés dans les cases de la fiche. Un zéro
 // veut dire « le texte ne le dit pas » : le formulaire laisse la case vide.
 function mapperChiffres(c) {
@@ -260,6 +275,10 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
 
     ...mapperSimulateur(lot.simulateur),
     ...mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres),
+    // La valeur locative lue sur Data-B, si elle a été cherchée : la fourchette
+    // de la rue entre dans « Offre actuelle », le quartier nomme le secteur.
+    // Elle passe après la base marché et le point de marché, sans les écraser.
+    ...mapperValeurLocative(lot.valeur_locative, mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres)),
 
     // Traçabilité et suivi client (toggles à plat).
     deal_id: deal.deal_id,

@@ -14,6 +14,7 @@
 
 import { Records } from './db.js';
 import { resoudreAdresse } from './data-b.js';
+import { ErreurSource } from './marche/erreurs.js';
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36';
 const BASE = 'https://immobilier.lefigaro.fr';
@@ -29,7 +30,7 @@ async function page(url, referer = BASE) {
         redirect: 'follow',
         signal: AbortSignal.timeout(DELAI_MS),
       });
-      if (!r.ok) throw new Error(`Le Figaro a répondu ${r.status}.`);
+      if (!r.ok) throw new ErreurSource(`Le Figaro a répondu ${r.status}.`, { service: 'Le Figaro', statut: r.status });
       return r;
     } catch (e) {
       derniere = e;
@@ -209,7 +210,12 @@ export function contoursCommune(codeInsee) {
  * @returns {Promise<{ok: true, resultat: object} | {ok: false, error: string}>}
  */
 export async function prixResidentiel(texteAdresse, { forcer = false, user = null } = {}) {
-  const adresse = await resoudreAdresse(texteAdresse);
+  let adresse;
+  try {
+    adresse = await resoudreAdresse(texteAdresse);
+  } catch (e) {
+    return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null };
+  }
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texteAdresse || '').slice(0, 80)} ».` };
   if (!adresse.code_insee) return { ok: false, error: 'Commune non identifiée : le code INSEE manque.' };
 
@@ -226,7 +232,12 @@ export async function prixResidentiel(texteAdresse, { forcer = false, user = nul
   try {
     html = await (await page(url)).text();
   } catch (e) {
-    return { ok: false, error: `Le Figaro n'a pas répondu pour ${adresse.ville} (${e.message}).` };
+    return {
+      ok: false,
+      error: `Le Figaro n'a pas répondu pour ${adresse.ville} (${e.message}).`,
+      statut: e.statut ?? null,
+      classe: e.classe ?? null,
+    };
   }
 
   const chiffres = lireChiffres(html);

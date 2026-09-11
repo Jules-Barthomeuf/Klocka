@@ -27,6 +27,7 @@ import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFondsDataB from "@/components/preanalyse/TransactionsFondsDataB";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
 import AlexMarche from "@/components/preanalyse/AlexMarche";
+import TracabiliteMarche from "@/components/preanalyse/TracabiliteMarche";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
 // Les parties de l'analyse : une par famille de pièces.
@@ -373,6 +374,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
             {grilleAnalyse === "marche" && (
               <div className="flex flex-col gap-4">
                 <AlexMarche dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
+                <TracabiliteMarche dossier={dossier} lotIndex={0} />
                 <ValeurLocativeDataB dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
                 <AnalyseLoyerEquimmox dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
                 <TransactionsFondsDataB dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />

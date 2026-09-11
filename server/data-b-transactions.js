@@ -151,7 +151,14 @@ const cleCache = (a, rayon) => `${a.numero} ${a.rue} ${a.code_postal} ${a.ville}
  * @returns {Promise<{ok: true, resultat: object} | {ok: false, error: string}>}
  */
 export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, forcer = false, user = null, garder = 200 } = {}) {
-  const adresse = await resoudreAdresse(texteAdresse);
+  let adresse;
+  try {
+    adresse = await resoudreAdresse(texteAdresse);
+  } catch (e) {
+    // La Base Adresse Nationale en panne est une panne, pas une adresse
+    // inconnue : le statut voyage pour que le réessai ait lieu.
+    return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null };
+  }
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texteAdresse || '').slice(0, 80)} ».` };
 
   const r = RAYONS.reduce((a, b) => (Math.abs(b - rayon) < Math.abs(a - rayon) ? b : a), RAYONS[0]);
@@ -173,7 +180,7 @@ export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, fo
   try {
     page = await pageDataB(url);
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null };
   }
   if (!page) return { ok: false, error: 'Data-B refuse la session : vérifiez le compte dans .env.' };
   if (/utilis[ée] par quelqu/i.test(page)) {
@@ -190,7 +197,7 @@ export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, fo
   try {
     contenu = await postDataB('https://transaction.data-b.com/frontend/load/search_content.php', { token: jeton, id });
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null };
   }
   if (!contenu) return { ok: false, error: 'Data-B n\'a pas rendu les transactions.' };
 

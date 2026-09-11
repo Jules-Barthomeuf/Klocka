@@ -667,8 +667,14 @@ app.use((req, res, next) => {
   // après coup — assistant, monday, journal, monitoring — répondaient sans la
   // moindre authentification, alors que l'assistant écrit dans Monday, crée des
   // dossiers Drive et envoie des mails.
+  //
+  // Les routes de marché — marche, equimmox, data-b, figaro — étaient dans le
+  // même cas : l'état d'une recherche et son journal portent l'adresse du bien,
+  // ses loyers et le nom du dossier. Leurs seuls appelants sont l'écran
+  // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
+  // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring)\b/.test(
+    !/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro)\b/.test(
       req.path
     )
   ) {
@@ -2277,7 +2283,9 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/marche/alex', wrap(async 
   const index = Number(req.params.index) || 0;
   if (!dossier.lots?.[index]) return res.status(404).json({ error: 'Lot introuvable' });
   const t = lancerRechercheMarche(req.params.dealId, index, { user: currentUser(req), forcer: !!req.body?.forcer });
-  ok(res, { cle: t.cle, etat: t.etat, etape: t.etape, total: 4 });
+  // Les étapes viennent du serveur : la chaîne des sources est configurable,
+  // l'écran ne peut plus les tenir en dur.
+  ok(res, t);
 }));
 
 app.get('/api/marche/alex/etat', wrap(async (req, res) => {
@@ -2285,6 +2293,17 @@ app.get('/api/marche/alex/etat', wrap(async (req, res) => {
   const t = etatRechercheMarche(String(req.query.cle || ''));
   if (!t) return res.status(404).json({ error: 'Recherche inconnue : relancez Alex.' });
   ok(res, t);
+}));
+
+// Le journal des lectures de marché : chaque tentative, chaque source, chaque
+// échec. C'est ce qui permet de dire d'où vient un chiffre trois jours après.
+app.get('/api/marche/journal', wrap(async (req, res) => {
+  const { journalDuLot } = await import('./marche/journal.js');
+  const dealId = String(req.query.deal_id || '').trim();
+  if (!dealId) return res.status(400).json({ error: 'deal_id manquant.' });
+  const index = Number(req.query.index) || 0;
+  const passages = journalDuLot(dealId, index, Math.min(Number(req.query.limite) || 5, 20));
+  ok(res, { passages, dernier: passages[0] || null });
 }));
 
 // Le Figaro Immobilier : les prix et loyers du résidentiel de la commune et du
@@ -2849,6 +2868,13 @@ import('./deal/veille-mails.js').then(({ demarrerVeille }) => {
       ? `  ▸ Veille des boîtes mail active (toutes les ${process.env.MAIL_VEILLE_MINUTES || 5} min)`
       : '  ▸ Veille des boîtes mail inactive (GOOGLE_GMAIL_READ absent)'
   );
+});
+
+// Lectures de marché restées incomplètes : on avait promis d'y revenir, un
+// redémarrage n'annule pas la promesse.
+import('./marche/replanification.js').then(({ reprendreLesPromesses }) => {
+  const n = reprendreLesPromesses();
+  if (n) console.log(`  ▸ ${n} lecture(s) de marché à reprendre`);
 });
 
 app.listen(PORT, () => {

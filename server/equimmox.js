@@ -19,6 +19,7 @@ import path from 'path';
 import { Records, DATA_DIR } from './db.js';
 import { resoudreAdresse } from './data-b.js';
 import { poserChemin } from './chromium.js';
+import { ErreurSource } from './marche/erreurs.js';
 
 const EMAIL = (process.env.EQUIMMOX_EMAIL || '').trim();
 const MDP = (process.env.EQUIMMOX_MOT_DE_PASSE || '').trim();
@@ -88,6 +89,23 @@ async function lancerNavigateur() {
   return navigateur;
 }
 
+// Aller sur une page EN REGARDANT ce que le serveur a répondu.
+//
+// Playwright ne se plaint pas d'un 502 : il rend la page d'erreur de Bubble et
+// la suite échoue plus loin, sur un « le menu Analyse est introuvable » qui
+// désigne le mauvais coupable. Une panne passagère passait ainsi pour un
+// changement d'interface, et n'était jamais réessayée. On lit donc le statut
+// tout de suite, et on le porte dans l'erreur : c'est lui qui décide s'il faut
+// repasser dans cinq secondes ou prévenir tout de suite.
+async function aller(p, url, timeout = 60000) {
+  const r = await p.goto(url, { waitUntil: 'domcontentloaded', timeout });
+  const statut = r?.status?.() ?? null;
+  if (statut != null && statut >= 400) {
+    throw new ErreurSource(`Equimmox a répondu ${statut}.`, { service: 'Equimmox', statut });
+  }
+  return r;
+}
+
 const texteDe = async (p) => (await p.evaluate(() => document.body.innerText)).split('\n').map((l) => l.trim()).filter(Boolean);
 const cliquerTexte = async (p, motif, delai = 2000) => {
   const el = p.locator(`text=${motif}`).first();
@@ -98,7 +116,7 @@ const cliquerTexte = async (p, motif, delai = 2000) => {
 };
 
 async function seConnecter(p) {
-  await p.goto('https://app.equimmox.com/connexion', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await aller(p, 'https://app.equimmox.com/connexion');
   await p.waitForTimeout(3000);
   const email = p.locator('input[type="email"]').first();
   const mdp = p.locator('input[type="password"]').first();
@@ -142,11 +160,11 @@ export async function analyseLoyer(adresse, { surface = null, forcer = false, us
     });
     const p = await ctx.newPage();
     p.on('dialog', (d) => d.accept().catch(() => {}));
-    await p.goto('https://app.equimmox.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await aller(p, 'https://app.equimmox.com');
     await p.waitForTimeout(4000);
     if (/connexion/.test(p.url())) {
       await seConnecter(p);
-      await p.goto('https://app.equimmox.com', { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await aller(p, 'https://app.equimmox.com');
       await p.waitForTimeout(4000);
     }
     // Les avertissements d'entrée, s'ils se présentent.
@@ -227,7 +245,14 @@ export async function analyseLoyer(adresse, { surface = null, forcer = false, us
     console.log(`[equimmox] analyse de loyer lue pour « ${texteAdresse} »${s ? ` (${s} m²)` : ''}${user?.email ? ` (${user.email})` : ''}`);
     return { ok: true, resultat };
   } catch (e) {
-    return { ok: false, error: e?.message || 'Equimmox n\'a pas répondu.' };
+    // Le statut et la classe survivent au passage par `{ok:false}` : c'est
+    // d'eux que dépend le réessai, plus loin, dans marche/connecteur.js.
+    return {
+      ok: false,
+      error: e?.message || 'Equimmox n\'a pas répondu.',
+      statut: e?.statut ?? null,
+      classe: e?.classe ?? null,
+    };
   } finally {
     if (ctx) await ctx.close().catch(() => {});
     // Le navigateur ne survit pas à la recherche : le garder ouvert immobilisait

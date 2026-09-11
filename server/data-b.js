@@ -12,6 +12,7 @@
 // résultat trente jours, par adresse, et on ne redemande que sur ordre.
 
 import { Records } from './db.js';
+import { ErreurSource } from './marche/erreurs.js';
 
 const EMAIL = (process.env.DATAB_EMAIL || '').trim();
 const MDP = (process.env.DATAB_MOT_DE_PASSE || '').trim();
@@ -89,7 +90,7 @@ export async function pageDataB(url) {
     const cookie = essai === 0 ? await cookieValide() : await connecter();
     const r = await appel(url, { cookie });
     if (r.status === 302 || r.status === 301) continue;
-    if (!r.ok) throw new Error(`Data-B a répondu ${r.status}.`);
+    if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
     return r.text();
   }
   return null;
@@ -104,7 +105,7 @@ export async function postDataB(url, form) {
     const cookie = essai === 0 ? await cookieValide() : await connecter();
     const r = await appel(url, { method: 'POST', cookie, form, referer: url });
     if (r.status === 302 || r.status === 301) continue;
-    if (!r.ok) throw new Error(`Data-B a répondu ${r.status}.`);
+    if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
     return r.text();
   }
   return null;
@@ -138,9 +139,22 @@ export function parametresAdresse(adresse) {
 export async function resoudreAdresse(texte) {
   const q = String(texte || '').trim();
   if (q.length < 4) return null;
-  const r = await fetch(`https://api-adresse.data.gouv.fr/search/?limit=1&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(15000) });
-  if (!r.ok) return null;
+  // « La BAN n'a pas répondu » et « la BAN ne connaît pas cette adresse » sont
+  // deux choses différentes, et les confondre coûtait cher : les trois
+  // collecteurs HTTP passent par ici, et un service d'adresses en panne les
+  // faisait tous annoncer « adresse introuvable ». Une absence de donnée ne se
+  // réessaie pas — la lecture de marché restait donc vide sans que personne ne
+  // repasse. Une panne de transport est désormais une panne, et remonte comme
+  // telle.
+  let r;
+  try {
+    r = await fetch(`https://api-adresse.data.gouv.fr/search/?limit=1&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(15000) });
+  } catch (e) {
+    throw new ErreurSource(`La Base Adresse Nationale n'a pas répondu (${e?.message || e}).`, { service: 'BAN', cause: e });
+  }
+  if (!r.ok) throw new ErreurSource(`La Base Adresse Nationale a répondu ${r.status}.`, { service: 'BAN', statut: r.status });
   const f = (await r.json()).features?.[0];
+  // Là, en revanche, elle a bien répondu : elle ne connaît pas cette adresse.
   if (!f || (f.properties?.score ?? 0) < 0.4) return null;
   const p = f.properties;
   // « 06, Alpes-Maritimes, Provence-Alpes-Côte d'Azur »
@@ -215,7 +229,12 @@ const cleCache = (a) => `${a.numero} ${a.rue} ${a.code_postal} ${a.ville}`.toLow
  * @returns {Promise<{ok: true, resultat: object} | {ok: false, error: string}>}
  */
 export async function valeurLocative(texteAdresse, { forcer = false, user = null } = {}) {
-  const adresse = await resoudreAdresse(texteAdresse);
+  let adresse;
+  try {
+    adresse = await resoudreAdresse(texteAdresse);
+  } catch (e) {
+    return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null };
+  }
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texteAdresse || '').slice(0, 80)} ».` };
 
   const cle = cleCache(adresse);
@@ -231,7 +250,7 @@ export async function valeurLocative(texteAdresse, { forcer = false, user = null
   try {
     html = await pageDataB(url);
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null };
   }
   if (!html) return { ok: false, error: 'Data-B refuse la session : vérifiez le compte dans .env.' };
 

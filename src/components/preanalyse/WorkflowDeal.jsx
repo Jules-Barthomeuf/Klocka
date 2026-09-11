@@ -25,6 +25,7 @@ import SectionBien from "@/components/preanalyse/SectionBien";
 import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFondsDataB from "@/components/preanalyse/TransactionsFondsDataB";
+import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
 // Les parties de l'analyse : une par famille de pièces.
@@ -373,6 +374,7 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
                 <ValeurLocativeDataB dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
                 <AnalyseLoyerEquimmox dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
                 <TransactionsFondsDataB dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
+                <MarcheResidentielFigaro dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
               </div>
             )}
             {grilleAnalyse === "simulateur" && (

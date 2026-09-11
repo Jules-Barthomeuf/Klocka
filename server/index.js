@@ -2267,6 +2267,26 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', 
   ok(res, { resultat: r.resultat });
 }));
 
+// Alex : la recherche de marché complète, les trois services l'un après
+// l'autre. Elle dure deux minutes — la requête rend la main tout de suite et la
+// page vient demander où Alex en est.
+app.post('/api/preanalyse/dossiers/:dealId/lots/:index/marche/alex', wrap(async (req, res) => {
+  const { lancerRechercheMarche } = await import('./alex.js');
+  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
+  const index = Number(req.params.index) || 0;
+  if (!dossier.lots?.[index]) return res.status(404).json({ error: 'Lot introuvable' });
+  const t = lancerRechercheMarche(req.params.dealId, index, { user: currentUser(req), forcer: !!req.body?.forcer });
+  ok(res, { cle: t.cle, etat: t.etat, etape: t.etape, total: 4 });
+}));
+
+app.get('/api/marche/alex/etat', wrap(async (req, res) => {
+  const { etatRechercheMarche } = await import('./alex.js');
+  const t = etatRechercheMarche(String(req.query.cle || ''));
+  if (!t) return res.status(404).json({ error: 'Recherche inconnue : relancez Alex.' });
+  ok(res, t);
+}));
+
 // Le Figaro Immobilier : les prix et loyers du résidentiel de la commune et du
 // quartier. C'est le point de comparaison du commerce — ce que coûterait un
 // appartement au même endroit, et ce qu'il rapporterait.

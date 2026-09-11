@@ -16,6 +16,10 @@ import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 //   dureeEtape : durée d'une étape, en ms
 //   onFini     : l'animation est allée au bout, la réponse est là
 //
+//   etapeServeur : quand un agent mène le travail, c'est lui qui dit où il en
+//                  est. L'écran ne défile plus tout seul, il suit. La frappe
+//                  reste animée, elle seule.
+//
 // L'animation ne s'interrompt pas : elle raconte un travail réel, qui se
 // poursuit de toute façon. L'abréger ne ferait qu'afficher un écran vide en
 // attendant la réponse.
@@ -23,7 +27,7 @@ import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 const MENTHE = "#96c0b8";
 const PART_FRAPPE = 0.4; // la ligne se tape sur les 40 % premiers de l'étape
 
-export default function ConnexionExterne({ service, etapes, attendA, pret, dureeEtape = 3000, onFini }) {
+export default function ConnexionExterne({ service, etapes, attendA, pret, dureeEtape = 3000, onFini, etapeServeur = null }) {
   const [i, setI] = useState(0);
   const [avance, setAvance] = useState(0); // 0 → 1 dans l'étape
   const [opacite, setOpacite] = useState(0);
@@ -40,9 +44,33 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
     return () => cancelAnimationFrame(t);
   }, []);
 
+  // Quand un agent mène : l'étape vient de lui, la frappe seule s'anime.
+  const pilote = etapeServeur != null;
+  useEffect(() => {
+    if (!pilote) return;
+    if (etapeServeur >= etapes.length) { setAvance(1); setFini(true); return; }
+    iRef.current = etapeServeur;
+    debut.current = performance.now();
+    setI(etapeServeur);
+    setAvance(0);
+  }, [pilote, etapeServeur, etapes.length]);
+
+  useEffect(() => {
+    if (!pilote) return;
+    let raf;
+    const tick = () => {
+      // La ligne se tape, puis l'étape attend que l'agent passe à la suivante.
+      setAvance(Math.min(1, (performance.now() - debut.current) / dureeEtape));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [pilote, i, dureeEtape]);
+
   // Le temps qui passe : la frappe, puis l'étape suivante — sauf celle qui
   // attend la réponse, qui reste tant qu'elle n'est pas là.
   useEffect(() => {
+    if (pilote) return;
     let raf;
     const tick = () => {
       if (arrete.current) return;
@@ -69,7 +97,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [dureeEtape, attendA, etapes.length]);
+  }, [pilote, dureeEtape, attendA, etapes.length]);
 
   // Au bout : fondu de sortie, puis on rend la main.
   useEffect(() => {
@@ -79,7 +107,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
     return () => clearTimeout(t);
   }, [fini]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const e = etapes[i];
+  const e = etapes[Math.min(i, etapes.length - 1)];
   const frappes = Math.round(Math.min(1, avance / PART_FRAPPE) * e.ligne.length);
   const progression = ((i + Math.min(avance, 1)) / etapes.length) * 100;
 

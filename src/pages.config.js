@@ -53,6 +53,10 @@
 // télécharger en entier pour voir son tableau de bord.
 import { lazy } from 'react';
 
+const ALX = lazy(() => import('./pages/ALX'));
+const ALXVilles = lazy(() => import('./pages/ALXVilles'));
+const ALXCible = lazy(() => import('./pages/ALXCible'));
+const ALXBilan = lazy(() => import('./pages/ALXBilan'));
 const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminProjets = lazy(() => import('./pages/AdminProjets'));
 const AdminRessources = lazy(() => import('./pages/AdminRessources'));
@@ -77,6 +81,10 @@ import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "ALX": ALX,
+    "ALXVilles": ALXVilles,
+    "ALXCible": ALXCible,
+    "ALXBilan": ALXBilan,
     "AdminClients": AdminClients,
     "AdminProjets": AdminProjets,
     "AdminRessources": AdminRessources,

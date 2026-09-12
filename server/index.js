@@ -45,6 +45,7 @@ import { monterAlexis } from './routes/alexis.js';
 import { monterCourriel } from './routes/courriel.js';
 import { monterIntegrations } from './routes/integrations.js';
 import { monterMonday } from './routes/monday.js';
+import { monterAlx } from './routes/alx.js';
 // Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
 import {
   UPLOAD_DIR,
@@ -639,7 +640,7 @@ app.use((req, res, next) => {
   // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
   // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro|projets|projects)\b/.test(
+    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro|projets|projects|alx)\b/.test(
       req.path
     )
   ) {
@@ -657,7 +658,7 @@ app.use((req, res, next) => {
 // concernent que l'équipe. Sans ce filtre, un compte client — il y en a
 // soixante-quinze — pouvait lire les verdicts, les prix et les adresses des
 // agents, et déclencher des actions en son nom.
-const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring)\b/;
+const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring|alx)\b/;
 
 app.use((req, res, next) => {
   if (AUTH_DESACTIVEE) return next();
@@ -998,6 +999,7 @@ monterCourriel(app);
 monterIntegrations(app);
 
 monterMonday(app);
+monterAlx(app);
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {

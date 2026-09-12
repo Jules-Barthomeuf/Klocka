@@ -1,0 +1,96 @@
+{
+  "_lisez_moi": [
+    "Les règles du classement ALX. Comme rules.json pour le verdict : tout se lit ici, rien n'est deviné.",
+    "Trois piles : appeler (un signal fort), ecrire (un signal patient), surveiller (aucun signal).",
+    "Une cible est écartée avant tout classement si un knock-out la touche.",
+    "Les seuils sont ceux du point de départ : à caler sur la première ville, avec le tableau Bilan."
+  ],
+  "version": 1,
+  "perimetre": {
+    "prix_min": 200000,
+    "prix_max": 1000000,
+    "_commentaire": "Toujours des murs entre 200 000 et 1 000 000. Une cible dont la fourchette estimée est entièrement hors de ces bornes est écartée."
+  },
+  "signaux_forts": [
+    {
+      "cle": "marchand_fenetre",
+      "libelle": "Marchand de biens dans sa fenêtre de revente",
+      "detail": "Code APE 6810Z et parcelle achetée il y a 18 à 48 mois. C'est une inférence : DVF donne la date, Pappers le code, personne ne dit qu'ils sont liés. À vérifier en première question de l'appel.",
+      "fenetre_mois": [18, 48]
+    },
+    {
+      "cle": "evenement_recent",
+      "libelle": "Un événement récent sur la société",
+      "detail": "Changement de gérant, transfert de siège, procédure, dans les six derniers mois. Ne jamais le mentionner dans le courrier : on écrit, le calendrier fait le reste.",
+      "fenetre_mois": 6
+    },
+    {
+      "cle": "echeance_proche",
+      "libelle": "Échéance de bail dans les deux ans",
+      "detail": "Une triennale ou une fin de bail proche inquiète un bailleur qui n'est pas sûr que son locataire reste.",
+      "fenetre_mois": 24
+    }
+  ],
+  "signaux_patients": [
+    {
+      "cle": "detention_longue",
+      "libelle": "Détenu depuis plus de vingt ans",
+      "detail": "Aucune mutation DVF depuis vingt ans, ou société créée il y a plus de vingt ans sans mutation depuis. Une succession se prépare.",
+      "annees_min": 20
+    },
+    {
+      "cle": "gerant_age",
+      "libelle": "Gérant de plus de 70 ans",
+      "detail": "Ils ne vendent pas cette année, mais ils vendront. Relance annuelle.",
+      "tranche": "70+"
+    },
+    {
+      "cle": "famille",
+      "libelle": "Plusieurs gérants du même nom",
+      "detail": "Une SCI familiale : plusieurs héritiers à mettre d'accord un jour."
+    },
+    {
+      "cle": "loyer_bas",
+      "libelle": "Loyer nettement sous le marché",
+      "detail": "Un bailleur passif qui ne suit pas son actif accepte souvent un prix raisonnable parce qu'il ne connaît pas sa valeur.",
+      "ratio_max": 0.7
+    },
+    {
+      "cle": "bien_isole",
+      "libelle": "Un seul bien, loin du siège",
+      "detail": "Un propriétaire d'un lot isolé à plus de cent kilomètres de chez lui est structurellement plus vendeur.",
+      "distance_km_min": 100
+    }
+  ],
+  "drapeaux": [
+    {
+      "cle": "droit_partiel",
+      "libelle": "Usufruit ou nue-propriété",
+      "detail": "Un usufruitier seul ne vend pas la pleine propriété.",
+      "effet": "bloquant"
+    },
+    {
+      "cle": "indivision",
+      "libelle": "Indivision",
+      "detail": "Plusieurs accords à obtenir. Sauf indivision successorale, qui est un vivier : elle passe en pile patiente.",
+      "effet": "lent"
+    },
+    {
+      "cle": "vente_en_bloc",
+      "libelle": "Acheté en bloc",
+      "detail": "Le local n'est peut-être pas vendable seul sans état descriptif de division. Métier d'un marchand, obstacle pour un patrimonial.",
+      "effet": "lent"
+    },
+    {
+      "cle": "droit_preference",
+      "libelle": "Droit de préférence du locataire",
+      "detail": "Sur tout local commercial loué vendu isolément. Change la structure de l'offre, pas seulement le calendrier.",
+      "effet": "information"
+    }
+  ],
+  "knock_outs": [
+    { "cle": "activite_exclue", "libelle": "Activité exclue du périmètre" },
+    { "cle": "hors_prix", "libelle": "Fourchette de prix entièrement hors 200 000 – 1 000 000" },
+    { "cle": "local_vide", "libelle": "Local vide : nous n'achetons que de l'occupé" }
+  ]
+}

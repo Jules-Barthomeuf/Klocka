@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import ReprisePlace from "./ReprisePlace";
 import CeQuiVousAttend from "@/components/dashboard/CeQuiVousAttend";
+import TuileAlx from "@/components/dashboard/TuileAlx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -80,6 +81,11 @@ export default function PlanDeTravail({ chat = null }) {
           Avant « Reprenez là où vous en étiez » : ce qui attend passe avant ce
           qu'on avait laissé en plan. */}
       <CeQuiVousAttend />
+
+      <div className={REGLE} />
+
+      {/* La prospection off-market : ce qu'il y a à faire cette semaine. */}
+      <TuileAlx />
 
       <div className={REGLE} />
 

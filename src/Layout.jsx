@@ -31,7 +31,7 @@ import {
   ExternalLink,
   Pin,
   PinOff,
-  Upload, Mic } from "lucide-react";
+  Upload, Mic, Compass } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
@@ -175,6 +175,15 @@ function LayoutContent({ children, currentPageName }) {
     staleTime: 30 * 1000,
   });
   const enRetard = attend?.en_retard || 0;
+  // ALX suit de même : les cibles à appeler cette semaine, en pastille.
+  const { data: alx } = useQuery({
+    queryKey: ["alx-etat"],
+    queryFn: () => base44.request("GET", "/api/alx/etat"),
+    enabled: isAdmin,
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+  });
+  const alxAFaire = alx?.a_faire?.a_appeler || 0;
   const showClientView = !isAdmin || previewClientMode;
   const hideNavbar = pagesWithoutNavbar.includes(currentPageName);
 
@@ -261,6 +270,7 @@ function LayoutContent({ children, currentPageName }) {
             <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-alerte/20 text-alerte" />
             <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Analyse" icon={Search} label="Dossiers" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to="/ALX" icon={Compass} label="ALX" isActive={isActivePage("ALX") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={alxAFaire || null} badgeColor="bg-alerte/20 text-alerte" />
             <NavItem to="/Monitoring" icon={Activity} label="Suivi" isActive={isActivePage("Monitoring")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/CoutsIA" icon={Coins} label="Coûts IA" isActive={isActivePage("CoutsIA")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />

@@ -231,3 +231,46 @@ export async function vitaliteCommerciale(texteAdresse, { mois = MOIS_DEFAUT, fo
   console.log(`[bodacc] ${surLaRue.length} annonce(s) sur « ${adresse.rue} » sur ${mois} mois (${candidats.length} candidat(e)s lus sur ${adresse.code_postal})`);
   return { ok: true, resultat };
 }
+
+// ---------------------------------------------------------------------------
+// ALX : les événements d'UNE société, par SIREN
+// ---------------------------------------------------------------------------
+//
+// À l'échelle d'une rue, « modification » est du bruit administratif. À
+// l'échelle d'une société propriétaire, c'est le signal : un changement de
+// gérant, un transfert de siège, une dissolution disent qu'une décision se
+// prend. On ne filtre donc plus par famille ici.
+
+const TYPE_DE = (a) => {
+  const t = `${a.familleavis || ''} ${a.typeavis || ''} ${JSON.stringify(a.listepersonnes || '')} ${JSON.stringify(a.modificationsgenerales || '')}`.toLowerCase();
+  if (/liquidation|redressement|sauvegarde|collective/.test(t)) return 'procédure collective';
+  if (/dissolution|radiation/.test(t)) return 'radiation ou dissolution';
+  if (/g[ée]rant|dirigeant|administrat/.test(t)) return 'changement de gérance';
+  if (/si[èe]ge|transfert/.test(t)) return 'transfert de siège';
+  if (/cession|vente/.test(t)) return 'cession';
+  if (a.familleavis === 'creation') return 'création';
+  return a.familleavis || 'modification';
+};
+
+/**
+ * Les annonces BODACC d'une société, les plus récentes en premier.
+ * @param {string} siren
+ * @param {{mois?: number}} [opts]
+ * @returns {Promise<{date: string, type: string, detail: string, source: 'BODACC'}[]>}
+ */
+export async function evenementsSociete(siren, { mois = 36 } = {}) {
+  const propre = String(siren || '').replace(/\s/g, '');
+  if (!/^\d{9}$/.test(propre)) return [];
+  const depuis = new Date(Date.now() - mois * 30.44 * 86400000).toISOString().slice(0, 10);
+  const d = await appeler({
+    where: `registre like "${propre}%" and dateparution >= date'${depuis}'`,
+    order_by: 'dateparution desc',
+    limit: '50',
+  });
+  return (d.results || []).map((a) => ({
+    date: a.dateparution,
+    type: TYPE_DE(a),
+    detail: [a.commercant, a.typeavis].filter(Boolean).join(' · ').slice(0, 200),
+    source: 'BODACC',
+  }));
+}

@@ -11,49 +11,58 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
-import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { Records, Meta, CHEMIN_UPLOADS, infoStockage } from './db.js';
+import { Records, Meta, infoStockage } from './db.js';
 import { mesurerRequetes } from './llm-couts.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
 import { restaurerSeedSiNecessaire } from './seed-donnees.js';
-import { invokeLLM, llmEnabled, llmStatus } from './llm.js';
-import { sendEmail, sendSMS, listAccounts } from './email.js';
+import { llmEnabled, llmStatus } from './llm.js';
+import { sendEmail, listAccounts } from './email.js';
 import { ensureMailTemplates } from './mail.js';
 import { googleEnabled, googleStatus, buildAuthUrl, handleCallback, redirectUriPour } from './google-oauth.js';
 import { createSession, sessionEmail, destroySession, purgeExpiredSessions, prolongerSession } from './sessions.js';
 import {
-  hacherMotDePasse, verifierMotDePasse, validerMotDePasse,
-  tropDeTentatives, enregistrerEchec, reinitialiserTentatives, minutesDAttente,
+  hacherMotDePasse,
+  verifierMotDePasse,
+  validerMotDePasse,
+  tropDeTentatives,
+  enregistrerEchec,
+  reinitialiserTentatives,
+  minutesDAttente,
 } from './passwords.js';
-import { analyserFiche, reevaluerLot, listerDossiers, obtenirDossier } from './deal/index.js';
-import { changerStatut, statutDe, ajouterSuivi as ajouterSuiviDeal, STATUTS, LIBELLES_STATUTS } from './deal/lifecycle.js';
-import { redigerMailIntention, INTENTIONS } from './deal/mails-cycle.js';
-import { alimenterBaseMarche } from './deal/marche.js';
-import { releverBoite, listerBoite, telechargerRaw } from './gmail-inbox.js';
-import { classerDansDrive } from './google-drive.js';
-import { syntheseDocuments } from './deal/synthese-docs.js';
-import { ajouterDocument as ajouterDocumentEspace, renommerDocument as renommerDocumentEspace, supprimerDocument as supprimerDocumentEspace, converser, supprimerConversation, renommerConversation, extraireDocuments, supprimerExtraction, renommerExtraction, majLigneExtraction } from './deal/espace.js';
-import { creerProjetDepuisDeal, completerAvantProjet } from './deal/projet.js';
-import { ajouterAuReferentiel } from './deal/enrich.js';
-import {
-  analyserDocument, listerDossiers as listerDossiersDoc, obtenirDossier as obtenirDossierDoc,
-  renommerDossier, supprimerDocument, reclasserDocument, TYPES,
-} from './assistant/index.js';
 import { callFunction } from './functions.js';
 import { lireArticle } from './lecture.js';
-import { verdictAcces, visiblePar, filtrerListe } from './acces-entites.js';
+import { RETOUR_POPUP, authResultPage, popupConnectePage } from './pages-oauth.js';
+import { monterPreanalyse } from './routes/preanalyse.js';
+import { monterAssistant } from './routes/assistant.js';
+import { monterMarche } from './routes/marche.js';
+import { monterEntites } from './routes/entites.js';
+import { monterAlexis } from './routes/alexis.js';
+import { monterCourriel } from './routes/courriel.js';
+import { monterIntegrations } from './routes/integrations.js';
+import { monterMonday } from './routes/monday.js';
+// Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
+import {
+  UPLOAD_DIR,
+  PORT,
+  APP_URL_PROD,
+  EN_PRODUCTION,
+  AUTH_DESACTIVEE,
+  currentUser,
+  sansSecret,
+  retirerChampsProteges,
+  normEmail,
+  urlPublique,
+  ok,
+  wrap,
+  upload,
+  compteAutorise,
+} from './contexte.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Les fichiers déposés suivent la base : sur un disque persistant quand
-// KLOCKA_DATA_DIR le désigne, sinon à côté du code. Un document versé à un
-// dossier ne doit pas survivre moins longtemps que le dossier lui-même.
-const UPLOAD_DIR = CHEMIN_UPLOADS;
-
-const PORT = process.env.PORT || 3001;
 const APP_ID = process.env.VITE_BASE44_APP_ID || 'klocka-local';
 
 // Les données réelles chiffrées du dépôt d'abord (déploiement autoportant),
@@ -113,41 +122,6 @@ try {
 ensureMailTemplates();
 purgeExpiredSessions();
 
-// L'authentification est désormais toujours exigée : le compte se résout par le
-// cookie de session, jamais par un repli implicite sur l'admin.
-// AUTH_DESACTIVEE=true rétablit l'ancien comportement, uniquement pour du
-// développement local — jamais sur un serveur accessible.
-const AUTH_DESACTIVEE = /^(1|true|oui|yes)$/i.test(process.env.AUTH_DESACTIVEE || '');
-
-function currentUser(req) {
-  if (AUTH_DESACTIVEE) {
-    return Records.filter('User', { email: ADMIN_EMAIL })[0] || Records.list('User')[0] || null;
-  }
-  const email = req ? sessionEmail(req) : null;
-  if (!email) return null;
-  return Records.filter('User', { email })[0] || null;
-}
-
-// L'empreinte du mot de passe ne doit jamais quitter le serveur.
-function sansSecret(user) {
-  if (!user || typeof user !== 'object') return user;
-  const { mot_de_passe, ...reste } = user;
-  return { ...reste, mot_de_passe_defini: !!mot_de_passe };
-}
-
-// Champs qu'un utilisateur ne peut pas se donner à lui-même.
-const CHAMPS_PROTEGES = ['role', 'mot_de_passe', 'mot_de_passe_defini', 'email', 'id', 'invitation_jeton', 'invitation_expire_le', 'acces', 'inscrit_le', 'inscription_via', 'promu_client_le', 'promu_par'];
-function retirerChampsProteges(patch) {
-  const copie = { ...(patch || {}) };
-  for (const c of CHAMPS_PROTEGES) delete copie[c];
-  return copie;
-}
-
-// APP_URL en https = déploiement : cookies Secure (sessions.js), CORS fermé,
-// pas de données de démo. Derrière un proxy (Render, etc.), les en-têtes
-// x-forwarded-* font foi.
-const APP_URL_PROD = (process.env.APP_URL || '').replace(/\/$/, '');
-const EN_PRODUCTION = APP_URL_PROD.startsWith('https://');
 
 // AUTH_DESACTIVEE ouvre l'application en grand, avec les droits de l'admin et
 // sans mot de passe. C'est une commodité de poste de travail. Sur une adresse
@@ -196,43 +170,8 @@ app.use(
   express.static(UPLOAD_DIR)
 );
 
-// Les dépôts sont bornés : sans limite, une seule requête peut remplir le disque
-// de l'hébergeur — et avec lui la base, qui vit sur le même volume.
-// 50 Mo couvre largement un bail scanné ; 20 fichiers, un dossier complet.
-const TAILLE_MAX_FICHIER = 50 * 1024 * 1024;
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOAD_DIR,
-    filename: (req, file, cb) => {
-      const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-      cb(null, `${Date.now()}-${safe}`);
-    },
-  }),
-  limits: { fileSize: TAILLE_MAX_FICHIER, files: 20 },
-});
 
-// Read a locally-stored uploaded file back to text (for LLM file_urls).
-async function resolveFileText(url) {
-  if (!url || typeof url !== 'string') return '';
-  const m = url.match(/\/uploads\/(.+)$/);
-  if (!m) return '';
-  const filePath = path.join(UPLOAD_DIR, m[1]);
-  if (!fs.existsSync(filePath)) return '';
-  const ext = path.extname(filePath).toLowerCase();
-  const textExts = ['.txt', '.md', '.csv', '.json', '.html', '.xml'];
-  if (textExts.includes(ext)) return fs.readFileSync(filePath, 'utf-8').slice(0, 100000);
-  return `[fichier binaire ${path.basename(filePath)} — extraction texte non disponible en local]`;
-}
 
-const ok = (res, data) => res.json(data);
-const wrap = (fn) => async (req, res) => {
-  try {
-    await fn(req, res);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: String(e?.message || e) });
-  }
-};
 
 // ---------------------------------------------------------------------------
 // App public settings — consumed by AuthContext to bootstrap the app.
@@ -291,7 +230,6 @@ app.post('/api/auth/changer-mot-de-passe', wrap(async (req, res) => {
 // connexion. Seuls les emails déjà présents en base peuvent se connecter :
 // personne ne crée de compte librement.
 
-const normEmail = (e) => String(e || '').trim().toLowerCase();
 const ipDe = (req) => (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
 
 // Même amorçage que la connexion Google : l'adresse admin déclarée dans .env
@@ -409,13 +347,6 @@ ${logo ? `<p style="margin-top:18px"><img src="${esc(logo)}" alt="Klocka" width=
 
 const OBJET_ACCES = 'Klocka — Créez votre profil';
 
-// L'adresse publique de l'application, telle que le navigateur la voit : c'est
-// elle qui figure dans les liens envoyés. APP_URL seul casserait sur Codespaces.
-function urlPublique(req) {
-  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
-  const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
-  return host ? `${proto}://${host}` : APP_URL_PROD || 'http://localhost:3001';
-}
 
 // Inviter un client : le compte est créé par l'équipe, la personne reçoit un
 // lien et n'a qu'à choisir son mot de passe. Le compte entre directement à
@@ -787,1923 +718,144 @@ app.post('/api/admin/projets/:id/presentation', wrap(async (req, res) => {
   ok(res, { slides_url, pptx_url, erreur_slides });
 }));
 
-// ---------------------------------------------------------------------------
-// Entities (generic CRUD)
-//
-// L'entité User est traitée à part : ses enregistrements portent l'empreinte du
-// mot de passe et le rôle. On les nettoie en lecture, et on interdit d'y
-// toucher via ce CRUD générique — le rôle se change entre admins seulement,
-// le mot de passe uniquement par son propriétaire.
-// ---------------------------------------------------------------------------
-const estUser = (entity) => entity === 'User';
-const nettoyer = (entity, data) =>
-  !estUser(entity) ? data : Array.isArray(data) ? data.map(sansSecret) : sansSecret(data);
 
-// Les règles d'accès vivent dans leur propre module, avec leur test : une
-// entité qui se rouvre par erreur ne casse aucun écran et n'apparaît dans aucun
-// journal. Voir server/acces-entites.js.
-//
-// Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
-// avoir répondu 401/403.
-// @param {boolean} [ecriture] - la requête modifie-t-elle quelque chose ?
-function accesEntite(req, res, entity, { ecriture = false } = {}) {
-  const user = currentUser(req);
-  const verdict = verdictAcces(user, entity, { ecriture });
-  if (!verdict.ok) {
-    res.status(verdict.statut).json({ error: verdict.erreur });
-    return null;
-  }
-  return user;
-}
 
-app.get('/api/entities/:entity', wrap((req, res) => {
-  const { entity } = req.params;
-  const user = accesEntite(req, res, entity);
-  if (!user) return;
-  const { sort, limit, skip } = req.query;
-  let data = Records.list(entity, {
-    sort,
-    limit: limit != null ? Number(limit) : undefined,
-    skip: skip != null ? Number(skip) : undefined,
-  });
-  ok(res, nettoyer(entity, filtrerListe(user, entity, data)));
-}));
 
-app.post('/api/entities/:entity/filter', wrap((req, res) => {
-  const { entity } = req.params;
-  const user = accesEntite(req, res, entity);
-  if (!user) return;
-  const { query, sort, limit } = req.body || {};
-  let data = Records.filter(entity, query, { sort, limit: limit != null ? Number(limit) : undefined });
-  ok(res, nettoyer(entity, filtrerListe(user, entity, data)));
-}));
 
-app.get('/api/entities/:entity/:id', wrap((req, res) => {
-  const user = accesEntite(req, res, req.params.entity);
-  if (!user) return;
-  const rec = Records.get(req.params.entity, req.params.id);
-  if (!rec) return res.status(404).json({ error: 'Not found' });
-  // Même réponse qu'un enregistrement inexistant : ne pas révéler l'existence
-  // d'un dossier auquel on n'a pas accès.
-  const visible = visiblePar(user, req.params.entity);
-  if (visible && !visible(rec)) return res.status(404).json({ error: 'Not found' });
-  ok(res, nettoyer(req.params.entity, rec));
-}));
 
-app.post('/api/entities/:entity', wrap((req, res) => {
-  const user = accesEntite(req, res, req.params.entity, { ecriture: true });
-  if (!user) return;
-  if (estUser(req.params.entity) && user?.role !== 'admin') {
-    return res.status(403).json({ error: 'Seul un administrateur peut créer un compte.' });
-  }
-  const corps = estUser(req.params.entity)
-    ? { ...retirerChampsProteges(req.body), email: normEmail(req.body?.email), role: req.body?.role === 'admin' ? 'admin' : 'user' }
-    : req.body || {};
-  ok(res, nettoyer(req.params.entity, Records.create(req.params.entity, corps, user?.email)));
-}));
 
-app.put('/api/entities/:entity/:id', wrap((req, res) => {
-  const { entity, id } = req.params;
-  const user = accesEntite(req, res, entity, { ecriture: true });
-  if (!user) return;
-  let patch = req.body || {};
 
-  if (estUser(entity)) {
-    const estAdmin = user?.role === 'admin';
-    if (!estAdmin && user?.id !== id) {
-      return res.status(403).json({ error: 'Vous ne pouvez modifier que votre propre compte.' });
-    }
-    // Le mot de passe ne passe jamais par ici. Le rôle, seulement entre admins.
-    patch = retirerChampsProteges(patch);
-    if (estAdmin && (req.body?.role === 'admin' || req.body?.role === 'user')) patch.role = req.body.role;
-  }
 
-  // Un non-admin ne modifie que ce qui le concerne — un projet où il figure,
-  // sa propre stratégie. Le contrôle ne visait que les projets : la stratégie
-  // et la remarque d'un autre se modifiaient en connaissant leur identifiant.
-  const visible = visiblePar(user, entity);
-  if (visible) {
-    const rec = Records.get(entity, id);
-    if (!rec || !visible(rec)) return res.status(404).json({ error: 'Not found' });
-  }
 
-  const rec = Records.update(entity, id, patch);
-  if (!rec) return res.status(404).json({ error: 'Not found' });
-  ok(res, nettoyer(entity, rec));
-}));
 
-app.delete('/api/entities/:entity/:id', wrap(async (req, res) => {
-  const user = accesEntite(req, res, req.params.entity, { ecriture: true });
-  if (!user) return;
-  // La suppression est un geste d'administrateur, quelle que soit l'entité.
-  if (user.role !== 'admin') {
-    return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  }
-  const supprime = Records.delete(req.params.entity, req.params.id);
-  // Un projet supprimé libère son dossier : sans cela le dossier reste marqué
-  // « projet créé » en pointant un projet disparu, et refuse d'en créer un autre.
-  let dossier_libere = null;
-  if (req.params.entity === 'Project') {
-    const { delierProjet } = await import('./deal/projet.js');
-    dossier_libere = delierProjet(req.params.id, user);
-  }
-  ok(res, { ...(supprime && typeof supprime === 'object' ? supprime : {}), dossier_libere });
-}));
 
-// ---------------------------------------------------------------------------
-// Integrations (Core)
-// ---------------------------------------------------------------------------
-app.post('/api/integrations/invoke-llm', wrap(async (req, res) => {
-  const result = await invokeLLM({ ...(req.body || {}), resolveFileText });
-  ok(res, result);
-}));
 
-app.post('/api/integrations/upload-file', upload.single('file'), wrap((req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file' });
-  ok(res, { file_url: `/uploads/${req.file.filename}` });
-}));
-
-app.post('/api/integrations/send-email', wrap(async (req, res) => {
-  // `owner` borne les boîtes d'envoi à celles de l'appelant — même règle que
-  // sendMail, et jamais surchargée par le corps de la requête.
-  ok(res, await sendEmail({ ...(req.body || {}), owner: currentUser(req)?.email }));
-}));
-
-app.post('/api/integrations/send-sms', wrap(async (req, res) => {
-  ok(res, await sendSMS(req.body || {}));
-}));
-
-app.post('/api/integrations/generate-image', wrap((req, res) => {
-  const prompt = (req.body?.prompt || 'image').slice(0, 40);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="100%" height="100%" fill="#0f1720"/><text x="50%" y="50%" fill="#2A9D8F" font-family="sans-serif" font-size="20" text-anchor="middle">${prompt}</text></svg>`;
-  const uri = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-  ok(res, { url: uri });
-}));
-
-app.post('/api/integrations/extract-data', wrap(async (req, res) => {
-  const { file_url, json_schema } = req.body || {};
-  const output = await invokeLLM({
-    prompt: 'Extrais les données structurées de ce document selon le schéma.',
-    response_json_schema: json_schema,
-    file_urls: file_url ? [file_url] : [],
-    resolveFileText,
-  });
-  ok(res, { status: 'success', output });
-}));
 
 // ---------------------------------------------------------------------------
 // Connexion Google (envoi de mails)
 // ---------------------------------------------------------------------------
 
-// Small HTML page used to report the outcome of the OAuth round-trip.
-// Canal de dialogue entre la fenêtre surgissante de connexion et la page qui
-// l'a ouverte : elle garde ainsi son brouillon de mail intact.
-const CANAL_POPUP = 'klocka-google';
-const RETOUR_POPUP = '__popup__';
 
-const echapper = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
-function authResultPage(res, { ok, title, detail }) {
-  const color = ok ? '#2A9D8F' : '#e76f51';
-  res.status(ok ? 200 : 400).send(`<!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><title>${title}</title></head>
-<body style="margin:0;background:#000;color:#fff;font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
-  <div style="max-width:520px;padding:32px;text-align:center">
-    <div style="font-size:40px;margin-bottom:12px">${ok ? '✓' : '!'}</div>
-    <h1 style="color:${color};font-size:20px;margin:0 0 12px">${title}</h1>
-    <p style="color:#9ca3af;font-size:14px;line-height:1.6;margin:0 0 24px">${detail}</p>
-    <a href="/Dashboard" id="retour" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:14px">Retour au dashboard</a>
-  </div>
-  <script>
-    // Ouverte en fenêtre surgissante : prévenir la page appelante et proposer
-    // de fermer plutôt que de naviguer.
-    if (window.opener) {
-      window.opener.postMessage(
-        { type: ${JSON.stringify(CANAL_POPUP)}, ok: false, error: ${JSON.stringify(String(detail || title))} },
-        window.location.origin
-      );
-      var b = document.getElementById('retour');
-      b.textContent = 'Fermer cette fenêtre';
-      b.href = '#';
-      b.onclick = function (e) { e.preventDefault(); window.close(); };
-    }
-  </script>
-</body></html>`);
-}
 
-// Fin de parcours en fenêtre surgissante : on prévient la page appelante que
-// la boîte est connectée, puis on se referme.
-function popupConnectePage(res, { email }) {
-  res.send(`<!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><title>Boîte connectée</title></head>
-<body style="margin:0;background:#000;color:#fff;font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
-  <div style="text-align:center">
-    <div style="font-size:40px;margin-bottom:12px">✓</div>
-    <p style="color:#9ca3af;font-size:14px">${echapper(email)} connectée. Cette fenêtre se referme…</p>
-  </div>
-  <script>
-    if (window.opener) {
-      window.opener.postMessage(
-        { type: ${JSON.stringify(CANAL_POPUP)}, ok: true, email: ${JSON.stringify(email)} },
-        window.location.origin
-      );
-    }
-    setTimeout(function () { window.close(); }, 600);
-  </script>
-</body></html>`);
-}
-
-// Rattacher une boîte d'équipe : réservé aux admins, et c'est le seul parcours
-// qui demande à Google les portées Gmail, Drive et Agenda. Un client n'y
-// accède pas — sa connexion ne cède que son identité.
-function rattachementBoite(req, res, returnTo) {
-  if (currentUser(req)?.role !== 'admin') {
-    return authResultPage(res, {
-      ok: false,
-      title: 'Réservé à l\'équipe',
-      detail: "Seul un administrateur connecté peut rattacher une boîte Google à Klocka.",
-    });
-  }
-  res.redirect(buildAuthUrl({ returnTo, req, boite: true }));
-}
-
-app.get('/api/mail/google/connect', (req, res) => rattachementBoite(req, res, '/Dashboard'));
-
-// Variante en fenêtre surgissante : la page appelante (et son brouillon de
-// mail en cours de rédaction) n'est jamais quittée.
-app.get('/api/mail/google/connect-popup', (req, res) => rattachementBoite(req, res, RETOUR_POPUP));
 
 // ---------------------------------------------------------------------------
 // Boîte de réception (relève Gmail, sur action utilisateur — pas de polling)
 // ---------------------------------------------------------------------------
-// Un utilisateur ne peut relever que les boîtes qu'il a lui-même connectées.
-function compteAutorise(req, compte) {
-  const user = currentUser(req);
-  return listAccounts(user?.email).some((a) => a.id === String(compte || '').toLowerCase());
-}
-
-app.post('/api/mails/inbox/relever', wrap(async (req, res) => {
-  const { compte } = req.body || {};
-  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
-  if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
-  ok(res, await releverBoite(compte));
-}));
-
-app.get('/api/mails/inbox', wrap((req, res) => {
-  const compte = req.query.compte;
-  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
-  if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
-  ok(res, listerBoite(compte));
-}));
-
-// Préanalyse d'un mail reçu : téléchargement RFC 822 → pipeline .eml existant
-// (texte + pièces jointes), puis liaison mail ↔ deal et mémorisation de
-// l'expéditeur comme contact agent.
-app.post('/api/mails/inbox/:id/preanalyser', wrap(async (req, res) => {
-  const mailRecu = Records.get('MailRecu', req.params.id);
-  if (!mailRecu) return res.status(404).json({ error: 'Mail introuvable' });
-  if (!compteAutorise(req, mailRecu.compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
-  if (mailRecu.deal_id) {
-    return res.status(409).json({ error: 'Ce mail a déjà été préanalysé.', deal_id: mailRecu.deal_id });
-  }
-
-  const user = currentUser(req);
-  const buffer = await telechargerRaw(mailRecu.compte, mailRecu.gmail_message_id);
-  const dossier = await analyserFiche(
-    {
-      buffer,
-      filename: `${(mailRecu.objet || 'mail').slice(0, 60)}.eml`,
-      mimetype: 'message/rfc822',
-      contactEmail: mailRecu.de_email || null,
-    },
-    { user, uploadDir: UPLOAD_DIR }
-  );
-
-  Records.update('MailRecu', mailRecu.id, { deal_id: dossier.deal_id });
-  Records.update('Deal', Records.filter('Deal', { deal_id: dossier.deal_id })[0].id, {
-    source_mail: {
-      mail_recu_id: mailRecu.id,
-      de: mailRecu.de,
-      objet: mailRecu.objet,
-      date: mailRecu.date,
-    },
-  });
-  ok(res, dossier);
-}));
-
-// ---------------------------------------------------------------------------
-// Préanalyse de fiches commerciales
-// ---------------------------------------------------------------------------
-app.post('/api/preanalyse/analyser', upload.single('fichier'), wrap(async (req, res) => {
-  const user = currentUser(req);
-  // multer a déjà écrit le fichier dans UPLOAD_DIR : on le relit plutôt que
-  // d'en archiver une seconde copie.
-  const dossier = await analyserFiche(
-    {
-      buffer: req.file ? fs.readFileSync(req.file.path) : null,
-      filename: req.file?.originalname,
-      mimetype: req.file?.mimetype,
-      texte: req.body?.texte,
-      sourceUrl: req.file ? `/uploads/${req.file.filename}` : null,
-    },
-    { user, dealId: req.body?.deal_id || null }
-  );
-  ok(res, dossier);
-}));
-
-app.get('/api/preanalyse/dossiers', wrap((req, res) => ok(res, listerDossiers())));
-
-// Mode test : crée un deal fictif réel (statut 'analyse') pour parcourir tout
-// le cycle sans appel API — mails simulés, documents fictifs, marché intact.
-app.post('/api/preanalyse/test', wrap(async (req, res) => {
-  const { creerDealTest } = await import('./deal/test.js');
-  ok(res, creerDealTest(currentUser(req)));
-}));
-
-// Simule la réception + l'extraction des documents d'un deal de test.
-app.post('/api/preanalyse/dossiers/:dealId/documents/simuler', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { simulerDocumentsTest } = await import('./deal/test.js');
-  const r = simulerDocumentsTest(dossier, currentUser(req));
-  if (r.error) return res.status(400).json(r);
-  ok(res, r);
-}));
-
-// Suppression — réservée aux deals de test (nettoyage après le parcours).
-app.delete('/api/preanalyse/dossiers/:dealId', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { supprimerDealTest } = await import('./deal/test.js');
-  const r = supprimerDealTest(dossier);
-  if (r.error) return res.status(403).json(r);
-  ok(res, r);
-}));
-
-app.get('/api/preanalyse/dossiers/:dealId', wrap((req, res) => {
-  const d = obtenirDossier(req.params.dealId);
-  if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, d);
-}));
-
-// Les chiffres du simulateur, enregistrés sur le lot pour y revenir.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/simulateur', wrap(async (req, res) => {
-  const { enregistrerSimulateur } = await import('./deal/index.js');
-  const r = await enregistrerSimulateur(req.params.dealId, Number(req.params.index), req.body || {}, currentUser(req));
-  if (r.error) return res.status(404).json(r);
-  ok(res, r);
-}));
-
-// Un critère vérifié à la main : vert quand c'est contrôlé, jaune en cas de doute.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/verification', wrap(async (req, res) => {
-  const { verifierCritere } = await import('./deal/index.js');
-  const r = verifierCritere(req.params.dealId, Number(req.params.index), String(req.body?.cle || ''), req.body?.statut || null, currentUser(req));
-  if (r.error) return res.status(400).json(r);
-  ok(res, r);
-}));
-
-// Saisie humaine (emplacement, prix négocié) : rejoue les blocs déterministes.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index', wrap(async (req, res) => {
-  const r = await reevaluerLot(req.params.dealId, Number(req.params.index), req.body || {});
-  if (r.error) return res.status(404).json(r);
-  ok(res, r);
-}));
-
-// Valide une enseigne qualifiée par l'IA et l'inscrit au référentiel.
-app.post('/api/preanalyse/enseignes', wrap((req, res) => {
-  ok(res, ajouterAuReferentiel(req.body || {}));
-}));
-
-// Vue pipeline : tous les dossiers avec statut + compteurs par étape.
-// Création d'un dossier nommé, avant toute analyse : une coquille qui porte
-// le nom et les responsables ; l'analyse de la fiche la remplira (étape 2).
-app.post('/api/preanalyse/dossiers', wrap(async (req, res) => {
-  const user = currentUser(req);
-  const nom = String(req.body?.nom || '').trim();
-  if (!nom) return res.status(400).json({ error: 'Donnez un nom au dossier.' });
-  const { creerCoquille } = await import('./deal/index.js');
-  ok(res, creerCoquille({
-    nom,
-    responsables: Array.isArray(req.body?.responsables) ? req.body.responsables : [],
-    user,
-  }));
-}));
-
-// Renommer un dossier.
-app.post('/api/preanalyse/dossiers/:dealId/renommer', wrap((req, res) => {
-  const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
-  const nom = String(req.body?.nom || '').trim();
-  if (!nom) return res.status(400).json({ error: 'Le nom ne peut pas être vide.' });
-  Records.update('Deal', brut.id, { nom });
-  ajouterSuiviDeal(Records.get('Deal', brut.id), { type: 'renommage', detail: `Renommé : ${nom}` }, currentUser(req));
-  ok(res, { nom });
-}));
-
-// Abandonner un dossier directement depuis la liste (sans mail).
-app.post('/api/preanalyse/dossiers/:dealId/abandonner', wrap((req, res) => {
-  const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
-  const r = changerStatut(brut, 'abandonne', { user: currentUser(req), note: req.body?.note || 'Abandon depuis la liste' });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, { statut: 'abandonne' });
-}));
-
-// ---------------------------------------------------------------------------
-// Espace de travail d'un dossier : documents importés et conversations (chat
-// libre ou analyses sur documents cochés). Voir deal/espace.js.
-// ---------------------------------------------------------------------------
-app.post('/api/preanalyse/dossiers/:dealId/espace/documents', upload.single('fichier'), wrap(async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Fichier manquant' });
-  const user = currentUser(req);
-  const r = ajouterDocumentEspace(req.params.dealId, {
-    nom: req.body?.nom || req.file.originalname,
-    url: `/uploads/${req.file.filename}`,
-    mime: req.file.mimetype,
-    taille: req.file.size,
-  }, user);
-  if (!r.ok) return res.status(404).json({ error: r.error });
-
-  // L'extraction part tout seul, en tâche de fond : la réponse n'attend
-  // pas l'analyse, et personne ne reste devant l'écran.
-  const { enfiler } = await import('./deal/file-extraction.js');
-  enfiler(req.params.dealId, [r.document.id], { uploadDir: UPLOAD_DIR, user });
-  ok(res, r.document);
-}));
-
-// Le texte d'une page d'une pièce, lu à la demande : c'est lui qu'on surligne
-// dans le tiroir des sources. Une pièce sans couche texte rend une page vide.
-app.get('/api/preanalyse/dossiers/:dealId/espace/documents/:docId/page/:n', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { chargerPieces } = await import('./deal/espace.js');
-  const piece = chargerPieces(dossier, [req.params.docId], UPLOAD_DIR, true)[0];
-  if (!piece || !piece.buffer) return res.status(404).json({ error: 'Pièce introuvable' });
-  const n = Math.max(1, Number(req.params.n) || 1);
-  if (piece.mimetype !== 'application/pdf') {
-    const { ingerer } = await import('./deal/ingest.js');
-    const lu = await ingerer({ buffer: piece.buffer, filename: piece.nom, mimetype: piece.mimetype }).catch(() => null);
-    return ok(res, { page: 1, total: 1, texte: lu?.texte || '', scanne: !!lu?.transcrit });
-  }
-  const { PDFParse } = await import('pdf-parse');
-  const parser = new PDFParse({ data: new Uint8Array(piece.buffer) });
-  try {
-    const r = await parser.getText();
-    const pages = r.pages || [];
-    const page = pages[n - 1];
-    ok(res, { page: n, total: pages.length, texte: String(page?.text || '').replace(/\r\n?/g, '\n').replace(/[ \t\u00a0]+/g, ' ').trim() });
-  } finally {
-    await parser.destroy().catch(() => {});
-  }
-}));
-
-app.post('/api/preanalyse/dossiers/:dealId/espace/documents/:docId/renommer', wrap((req, res) => {
-  const r = renommerDocumentEspace(req.params.dealId, req.params.docId, req.body?.nom, req.body?.categorie);
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.delete('/api/preanalyse/dossiers/:dealId/espace/documents/:docId', wrap((req, res) => {
-  const r = supprimerDocumentEspace(req.params.dealId, req.params.docId, UPLOAD_DIR);
-  if (!r.ok) return res.status(404).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.post('/api/preanalyse/dossiers/:dealId/espace/chat', wrap(async (req, res) => {
-  const { message, mode, documents, conversation_id, profondeur } = req.body || {};
-  // Le client a raccroché avant la réponse : on arrête l'appel au modèle.
-  // On écoute la RÉPONSE, pas la requête : depuis Node 16, `req` émet `close`
-  // dès que son corps est lu, donc avant le travail — et l'on coupait son
-  // propre appel. `res` n'émet `close` qu'à la fermeture de la connexion, ou
-  // une fois la réponse finie : d'où le test sur `writableEnded`.
-  const arret = new AbortController();
-  res.on('close', () => { if (!res.writableEnded) arret.abort(); });
-  const r = await converser(req.params.dealId, {
-    signal: arret.signal,
-    message,
-    mode: ['analyse', 'verification', 'web'].includes(mode) ? mode : 'question',
-    profondeur: profondeur === 'reflexion' ? 'reflexion' : 'rapide',
-    documents: Array.isArray(documents) ? documents : [],
-    conversationId: conversation_id || null,
-    uploadDir: UPLOAD_DIR,
-    user: currentUser(req),
-  });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r.conversation);
-}));
-
-// Extraction : chaque document coché devient une table de données sourcées
-// (libellé, valeur, page, citation), consultable en onglets sous le chat.
-app.post('/api/preanalyse/dossiers/:dealId/espace/extraire', wrap(async (req, res) => {
-  const r = await extraireDocuments(req.params.dealId, {
-    documents: Array.isArray(req.body?.documents) ? req.body.documents : [],
-    uploadDir: UPLOAD_DIR,
-    user: currentUser(req),
-  });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r.extractions);
-}));
-
-// Correction manuelle d'une ligne : constat, statut ou commentaire.
-app.post('/api/preanalyse/dossiers/:dealId/espace/extractions/:extId/lignes/:index', wrap((req, res) => {
-  const r = majLigneExtraction(req.params.dealId, req.params.extId, Number(req.params.index), req.body || {});
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-// La grille de lecture, pour que le front propose les mêmes statuts.
-app.get('/api/preanalyse/grille', wrap(async (req, res) => {
-  const { GRILLE, STATUTS_LIGNE } = await import('./deal/grille.js');
-  ok(res, { grille: GRILLE, statuts: STATUTS_LIGNE });
-}));
-
-// L'onglet d'une analyse porte un titre libre, à défaut sa catégorie.
-app.post('/api/preanalyse/dossiers/:dealId/espace/extractions/:extId/renommer', wrap((req, res) => {
-  const r = renommerExtraction(req.params.dealId, req.params.extId, req.body?.titre);
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.delete('/api/preanalyse/dossiers/:dealId/espace/extractions/:extId', wrap((req, res) => {
-  const r = supprimerExtraction(req.params.dealId, req.params.extId);
-  if (!r.ok) return res.status(404).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.post('/api/preanalyse/dossiers/:dealId/espace/conversations/:convId/renommer', wrap((req, res) => {
-  const r = renommerConversation(req.params.dealId, req.params.convId, req.body?.titre);
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.delete('/api/preanalyse/dossiers/:dealId/espace/conversations/:convId', wrap((req, res) => {
-  const r = supprimerConversation(req.params.dealId, req.params.convId);
-  if (!r.ok) return res.status(404).json({ error: r.error });
-  ok(res, r);
-}));
-
-// Descripteur des étapes d'un dossier : le front consomme la même source que
-// le serveur au lieu de la réécrire.
-app.get('/api/preanalyse/etapes', wrap(async (req, res) => {
-  const { ETAPES } = await import('./deal/etapes.js');
-  ok(res, { etapes: ETAPES });
-}));
-
-// Déblocage explicite : « passer à l'étape suivante ». L'étape atteinte ne
-// recule jamais ; on ne peut débloquer que l'étape immédiatement suivante.
-app.post('/api/preanalyse/dossiers/:dealId/etape-suivante', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { ETAPES, etapeMax } = await import('./deal/etapes.js');
-  const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  const courante = etapeMax(brut);
-  // Une étape cible peut être demandée : y aller valide toutes les
-  // précédentes d'un coup. Sans cible, on avance d'un cran. Jamais en arrière.
-  const cible = Number(req.body?.etape);
-  const suivante = Math.min(ETAPES.length, Math.max(courante, isFinite(cible) && cible > 0 ? cible : courante + 1));
-  if (suivante <= courante) return ok(res, { etape_max: courante });
-  Records.update('Deal', brut.id, { etape_max: suivante });
-  const user = currentUser(req);
-  ajouterSuiviDeal(Records.get('Deal', brut.id), {
-    type: 'etape',
-    detail: `Étape débloquée : ${ETAPES[suivante - 1].label}`,
-  }, user);
-  ok(res, { etape_max: suivante });
-}));
-
-// Revenir à une étape antérieure : le dossier redevient modifiable à partir
-// de là (le mail se rouvre, la pré-analyse se refait). Les données déjà
-// produites — lots, documents, conversations — ne sont jamais effacées.
-app.post('/api/preanalyse/dossiers/:dealId/revenir', wrap(async (req, res) => {
-  const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { ETAPES } = await import('./deal/etapes.js');
-  const demandee = Number(req.body?.etape);
-  const cible = Math.min(ETAPES.length, Math.max(1, isFinite(demandee) && demandee > 0 ? demandee : 1));
-  Records.update('Deal', brut.id, { etape_max: cible });
-  ajouterSuiviDeal(Records.get('Deal', brut.id), {
-    type: 'etape',
-    detail: `Retour à l'étape ${cible} — ${ETAPES[cible - 1].label}`,
-  }, currentUser(req));
-  ok(res, { etape_max: cible });
-}));
-
-app.get('/api/preanalyse/pipeline', wrap((req, res) => {
-  const dossiers = listerDossiers(200);
-  const compteurs = {};
-  for (const s of STATUTS) compteurs[s] = 0;
-  let aRelancerTotal = 0;
-  for (const d of dossiers) {
-    compteurs[d.statut] = (compteurs[d.statut] || 0) + 1;
-    if (d.a_relancer) aRelancerTotal++;
-  }
-  ok(res, { dossiers, compteurs, a_relancer: aRelancerTotal, libelles: LIBELLES_STATUTS });
-}));
-
-// Brouillon de mail d'intention (refus, demande de documents, relance,
-// abandon, présentation client). Rien n'est envoyé ici.
-app.post('/api/preanalyse/dossiers/:dealId/mail', wrap(async (req, res) => {
-  const { intention, lot_index = 0, raisons } = req.body || {};
-  if (!INTENTIONS.includes(intention)) {
-    return res.status(400).json({ error: `Intention inconnue : ${intention}` });
-  }
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { lotOuVide } = await import('./deal/index.js');
-  const lot = lotOuVide(dossier, lot_index);
-
-  const user = currentUser(req);
-  const { engagementsOuverts } = await import('./deal/engagements.js');
-  const mail = await redigerMailIntention(lot, intention, {
-    signature: user?.full_name || user?.email,
-    raisons,
-    // Deal de test : texte de secours directement, aucun appel LLM.
-    sansIA: !!dossier.test,
-    // La relance sait ce que le registre attend — elle cite ses faits.
-    engagements: engagementsOuverts(req.params.dealId),
-  });
-  ok(res, { ...mail, intention, destinataire: dossier.contact_agent_email || '' });
-}));
-
-// Dépôt d'un document sur le deal : extraction via le pipeline Alexis,
-// liaison Deal ↔ DossierDoc, avancement du statut et synthèse recalculée.
-app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'), wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  if (dossier.test) {
-    return res.status(400).json({ error: 'Deal de test : utilisez « Simuler la réception des documents ».' });
-  }
-  if (!req.file) return res.status(400).json({ error: 'Fichier manquant' });
-
-  const user = currentUser(req);
-  const r = await analyserDocument(
-    {
-      buffer: fs.readFileSync(req.file.path),
-      filename: req.file.originalname,
-      mimetype: req.file.mimetype,
-      url: `/uploads/${req.file.filename}`,
-    },
-    { dossierId: dossier.dossier_doc_id || undefined, typeForce: req.body?.type || undefined, user }
-  );
-
-  const patch = {};
-  if (!dossier.dossier_doc_id) {
-    patch.dossier_doc_id = r.dossier_id;
-    // Le dossier documentaire porte le titre du deal pour s'y retrouver.
-    const titre = dossier.lots?.[0]?.synthese?.titre;
-    if (titre) renommerDossier(r.dossier_id, titre);
-  }
-
-  // La synthèse « points à vérifier » est recalculée à chaque dépôt.
-  const dossierDoc = obtenirDossierDoc(r.dossier_id);
-  const synthese = await syntheseDocuments(dossier.lots?.[0], dossierDoc);
-  if (synthese) patch.synthese_documents = synthese;
-  if (Object.keys(patch).length) Records.update('Deal', dossier.id, patch);
-
-  // Avancement : demandes → reçus → extrait (les transitions invalides sont
-  // ignorées, un dépôt sur un deal déjà extrait ne change rien).
-  const enrichi = { ...dossier, ...patch };
-  if (statutDe(enrichi) === 'documents_demandes' || statutDe(enrichi) === 'analyse') {
-    changerStatut(enrichi, 'documents_recus', { user, note: `Document reçu : ${req.file.originalname}` });
-    enrichi.statut = 'documents_recus';
-    enrichi.suivi = Records.get('Deal', dossier.id)?.suivi || enrichi.suivi;
-  }
-  if (statutDe(enrichi) === 'documents_recus') {
-    changerStatut(enrichi, 'depouille', { user, note: 'Extraction effectuée' });
-  }
-
-  ok(res, { ...r, deal: { deal_id: dossier.deal_id, statut: statutDe(Records.get('Deal', dossier.id)), dossier_doc_id: patch.dossier_doc_id || dossier.dossier_doc_id, synthese_documents: patch.synthese_documents || dossier.synthese_documents } });
-}));
-
-// Les fichiers du Drive qu'on peut rapatrier : le dossier du deal s'il existe,
-// sinon les documents récents du compte.
-app.get('/api/preanalyse/dossiers/:dealId/drive/fichiers', wrap(async (req, res) => {
-  const compte = String(req.query?.compte || '');
-  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
-  if (!compteAutorise(req, compte)) return res.status(403).json({ error: "Ce compte ne vous appartient pas." });
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { listerFichiers } = await import('./google-drive.js');
-  const fichiers = await listerFichiers(compte, {
-    dossierId: dossier.drive_folder_id || null,
-    recherche: String(req.query?.recherche || '').trim(),
-  });
-  ok(res, { fichiers, dossier_du_deal: !!dossier.drive_folder_id, folder_url: dossier.drive_folder_url || null });
-}));
-
-// Rapatrie des fichiers du Drive dans le dossier : mêmes pièces, même
-// extraction en tâche de fond qu'un dépôt manuel.
-app.post('/api/preanalyse/dossiers/:dealId/drive/importer', wrap(async (req, res) => {
-  const compte = String(req.body?.compte || '');
-  const ids = Array.isArray(req.body?.fichiers) ? req.body.fichiers.slice(0, 40) : [];
-  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
-  if (!compteAutorise(req, compte)) return res.status(403).json({ error: "Ce compte ne vous appartient pas." });
-  if (!ids.length) return res.status(400).json({ error: 'Aucun fichier choisi' });
-  const user = currentUser(req);
-  const { telechargerFichier } = await import('./google-drive.js');
-  const fs = await import('fs');
-  const path = await import('path');
-  const { randomUUID } = await import('crypto');
-
-  const importes = [];
-  const erreurs = [];
-  for (const id of ids) {
-    try {
-      const f = await telechargerFichier(compte, id);
-      const nomFichier = `${randomUUID()}${path.extname(f.nom || '') || ''}`;
-      fs.writeFileSync(path.join(UPLOAD_DIR, nomFichier), f.buffer);
-      const r = ajouterDocumentEspace(req.params.dealId, {
-        nom: f.nom, url: `/uploads/${nomFichier}`, mime: f.mime, taille: f.buffer.length,
-      }, user);
-      if (!r.ok) { erreurs.push(`${f.nom} : ${r.error}`); continue; }
-      importes.push(r.document);
-    } catch (e) {
-      erreurs.push(`${id} : ${e?.message || e}`);
-    }
-  }
-  if (importes.length) {
-    const { enfiler } = await import('./deal/file-extraction.js');
-    enfiler(req.params.dealId, importes.map((d) => d.id), { uploadDir: UPLOAD_DIR, user });
-  }
-  ok(res, { importes, erreurs });
-}));
-
-// Classement des documents du deal dans le Drive du compte connecté.
-app.post('/api/preanalyse/dossiers/:dealId/drive', wrap(async (req, res) => {
-  // Deal de test : classement simulé, aucun appel Google.
-  const dossierTest = obtenirDossier(req.params.dealId);
-  if (dossierTest?.test) {
-    ajouterSuiviDeal(dossierTest, { type: 'documents_recus', detail: 'Classement Drive simulé (mode test)' }, currentUser(req));
-    return ok(res, {
-      simulated: true,
-      envoyes: [{ nom: 'bail-commercial.pdf' }, { nom: 'pv-ag-2025.pdf' }, { nom: 'diagnostics.pdf' }],
-      erreurs: [],
-      folder_url: null,
-    });
-  }
-
-  const { compte } = req.body || {};
-  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
-  if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
-
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-
-  const fichiers = [];
-  // Les documents extraits, plus la fiche commerciale d'origine.
-  const dossierDoc = dossier.dossier_doc_id ? obtenirDossierDoc(dossier.dossier_doc_id) : null;
-  for (const d of dossierDoc?.documents || []) {
-    if (d.url) fichiers.push({ nom: d.nom_fichier, chemin: d.url });
-  }
-  if (dossier.source?.url) {
-    fichiers.push({ nom: dossier.source.nom_fichier || 'fiche-commerciale', chemin: dossier.source.url });
-  }
-  // Aucun fichier n'empêche rien : le dossier Drive peut être créé en avance,
-  // les documents s'y classeront au fil de l'eau.
-
-  const titre = dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || dossier.deal_id;
-  const r = await classerDansDrive(compte, titre, fichiers, UPLOAD_DIR);
-
-  Records.update('Deal', dossier.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
-  const user = currentUser(req);
-  const dealMaj = Records.get('Deal', dossier.id);
-  ajouterSuiviDeal(dealMaj, { type: 'documents_recus', detail: `${r.envoyes.length} fichier(s) classé(s) dans le Drive` }, user);
-  ok(res, r);
-}));
-
-// Présentation bancaire du lot : PPTX généré depuis les données du deal,
-// converti en Google Slides (modifiable) quand un compte Drive est fourni.
-// Le PPTX reste téléchargeable dans tous les cas.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/presentation', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const idx = Number(req.params.index) || 0;
-  const { lotOuVide } = await import('./deal/index.js');
-  const lot = lotOuVide(dossier, idx);
-
-  const { genererPresentationBanque } = await import('./deal/presentation.js');
-  const buffer = await genererPresentationBanque(dossier, lot);
-
-  const nomFichier = `presentation-banque-${String(dossier.deal_id).replace(/[^a-zA-Z0-9_-]/g, '_')}-lot${idx}.pptx`;
-  const dossierPres = path.join(UPLOAD_DIR, 'presentations');
-  fs.mkdirSync(dossierPres, { recursive: true });
-  fs.writeFileSync(path.join(dossierPres, nomFichier), buffer);
-  const pptx_url = `/uploads/presentations/${nomFichier}`;
-
-  const { compte } = req.body || {};
-  let slides_url = null;
-  let erreur_slides = null;
-  if (compte) {
-    if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
-    try {
-      const { uploaderEnSlides } = await import('./google-drive.js');
-      const r = await uploaderEnSlides(compte, {
-        nom: `Présentation banque — ${lot.synthese?.titre || dossier.deal_id}`,
-        buffer,
-      });
-      slides_url = r.slides_url;
-    } catch (e) {
-      erreur_slides = e?.message || String(e);
-      console.error('[presentation] conversion Slides impossible :', erreur_slides);
-    }
-  }
-
-  // On garde la trace sur le lot analysé ; une fiche vide de secours ne s'enregistre pas.
-  if (!lot.vide && dossier.lots?.[idx]) {
-    const lots = [...dossier.lots];
-    lots[idx] = { ...lot, presentation: { slides_url, pptx_url, genere_le: new Date().toISOString() } };
-    Records.update('Deal', dossier.id, { lots });
-  }
-
-  ok(res, { slides_url, pptx_url, erreur_slides });
-}));
-
-// Création d'un projet pré-rempli depuis un lot du deal.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/projet', wrap(async (req, res) => {
-  const user = currentUser(req);
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-
-  // Documents présents mais jamais extraits : on extrait d'abord, puis on
-  // crée le projet avec les données relevées. Entrer le deal dans la plateforme
-  // ne demande donc plus d'être passé par l'étape 3 à la main.
-  let analyse = null;
-  const aDesDocuments = (dossier.documents_espace || []).length > 0;
-  if (aDesDocuments && !(dossier.extractions || []).length) {
-    const r = await extraireDocuments(req.params.dealId, {
-      documents: (dossier.documents_espace || []).map((d) => d.id),
-      uploadDir: UPLOAD_DIR,
-      user,
-    });
-    if (!r.ok) return res.status(400).json({ error: r.error });
-    analyse = {
-      documents: r.extractions.length,
-      donnees: r.extractions.reduce((n, e) => n + (e.lignes || []).filter((l) => l.constat).length, 0),
-    };
-  }
-
-  // Ce qui manque au dossier pour remplir les cases de la fiche — département,
-  // région, chiffres du marché — se complète ici, avant la création.
-  await completerAvantProjet(req.params.dealId, Number(req.params.index) || 0);
-
-  const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user);
-  if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });
-
-  // Les images du bien et de la ville se cherchent toutes seules : devanture
-  // Street View, quartier vu du ciel, plan de la ville. Jamais bloquant.
-  let photos = { photos: [], raisons: [] };
-  try {
-    const { photosDuBien } = await import('./deal/photos-auto.js');
-    photos = await photosDuBien({
-      adresse: r.project.adresse_complete || null,
-      lat: r.project.latitude ?? null,
-      lon: r.project.longitude ?? null,
-      ville: r.project.ville_secteur_champ1 || null,
-    }, UPLOAD_DIR);
-    if (photos.photos.length) Records.update('Project', r.project.id, { photos: photos.photos });
-  } catch (e) {
-    photos.raisons = [`images automatiques indisponibles : ${e?.message || e}`];
-  }
-
-  ok(res, {
-    project_id: r.project.id,
-    titre: r.project.titre,
-    champs_remplis: r.champs_remplis,
-    analyse,
-    photos: photos.photos.length,
-    photos_raisons: photos.raisons,
-  });
-}));
-
-// ---------------------------------------------------------------------------
-// Assistant : le plan de travail.
-// La pile est calculée à la demande depuis l'état en base — rien n'est stocké,
-// donc rien ne se périme. Aucune action n'est déclenchée ici.
-// ---------------------------------------------------------------------------
-app.get('/api/assistant/propositions', wrap(async (req, res) => {
-  const user = currentUser(req);
-  const { construirePropositions } = await import('./deal/propositions.js');
-  const { etatVeille } = await import('./deal/veille-mails.js');
-  // Chacun ne voit que les boîtes qu'il a connectées.
-  const comptes = listAccounts(user?.email).map((c) => c.id);
-  const propositions = await construirePropositions({ comptes });
-
-  // Une proposition montrée est notée : sans cela, rien ne dit ce qui est suivi
-  // d'effet et les priorités restent des constantes jamais confrontées.
-  const { noterVues } = await import('./suivi-propositions.js');
-  noterVues(propositions, user);
-
-  ok(res, { propositions, veille: etatVeille() });
-}));
-
-// Relève immédiate, sans attendre le prochain passage de la veille.
-app.post('/api/assistant/relever', wrap(async (req, res) => {
-  const { relever } = await import('./deal/veille-mails.js');
-  ok(res, await relever());
-}));
-
-// Une proposition traitée : c'est ce qui ferme la boucle de mesure.
-app.post('/api/assistant/propositions/traitee', wrap(async (req, res) => {
-  const { type, deal_id, mail_id, id, action } = req.body || {};
-  if (!type) return res.status(400).json({ error: 'Type manquant' });
-  const { noterTraitee } = await import('./suivi-propositions.js');
-  const r = noterTraitee({ type, deal_id, mail_id, id, action, user: currentUser(req) });
-  ok(res, { notee: !!r });
-}));
-
-// Ce que deviennent les propositions, et ce que coûte l'IA.
-app.get('/api/monitoring/propositions', wrap(async (req, res) => {
-  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const { syntheseTraitement } = await import('./suivi-propositions.js');
-  ok(res, syntheseTraitement(Number(req.query.jours) || 30));
-}));
-
-// Ce que coûte un geste, ramené à son unité : lire une pièce, rédiger un mail,
-// poser une question. Le journal parle en noms de code ; personne ne travaille
-// en ces termes.
-app.get('/api/monitoring/couts-par-action', wrap(async (req, res) => {
-  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const { coutsParAction } = await import('./llm-couts.js');
-  ok(res, coutsParAction(Number(req.query.jours) || 30));
-}));
-
-app.get('/api/monitoring/couts', wrap(async (req, res) => {
-  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const { syntheseCouts } = await import('./llm-couts.js');
-  ok(res, syntheseCouts(Number(req.query.jours) || 30, {
-    limite: Math.min(2000, Number(req.query.limite) || 100),
-    par: req.query.par ? String(req.query.par) : null,
-  }));
-}));
-
-// Correction du tri par l'équipe. Elle vaut pour l'expéditeur entier : la
-// question ne se repose jamais deux fois.
-app.post('/api/assistant/mails/:id/tri', wrap(async (req, res) => {
-  const { decision, motif, portee } = req.body || {};
-  if (!['garder', 'ignorer'].includes(decision)) {
-    return res.status(400).json({ error: 'Décision inconnue' });
-  }
-  const mail = Records.get('MailRecu', req.params.id);
-  if (!mail) return res.status(404).json({ error: 'Mail introuvable' });
-
-  const { apprendre } = await import('./deal/tri-mails.js');
-  const email = String(mail.de_email || '').toLowerCase();
-  const r = apprendre({
-    email,
-    decision,
-    motif,
-    // Défaut volontaire : ce mail-ci, pas tout l'expéditeur. Un agent envoie de
-    // bons biens et des mails sans intérêt ; le faire taire serait pire.
-    portee: ['expediteur', 'domaine'].includes(portee) ? portee : 'mail',
-    exemple: mail,
-    par: currentUser(req)?.email,
-  });
-  if (!r.ok) return res.status(400).json(r);
-
-  // Un mail écarté n'a plus à figurer dans la pile : la correction le retire.
-  if (decision === 'ignorer') Records.delete('MailRecu', mail.id);
-  ok(res, { ...r, expediteur: mail.de_email });
-}));
-
-// Faire taire un expéditeur, ou le réhabiliter. Séparé de la correction d'un
-// mail : celui-ci est supprimé au passage, il ne peut plus servir de référence.
-app.post('/api/assistant/tri-expediteur', wrap(async (req, res) => {
-  const { email, decision, motif, portee } = req.body || {};
-  if (!['garder', 'ignorer'].includes(decision)) {
-    return res.status(400).json({ error: 'Décision inconnue' });
-  }
-  if (!email) return res.status(400).json({ error: 'Expéditeur manquant' });
-
-  const { apprendre } = await import('./deal/tri-mails.js');
-  const r = apprendre({
-    email,
-    decision,
-    motif,
-    portee: portee === 'domaine' ? 'domaine' : 'expediteur',
-    par: currentUser(req)?.email,
-  });
-  if (!r.ok) return res.status(400).json(r);
-
-  // Les mails déjà remontés de cet expéditeur quittent la pile.
-  let retires = 0;
-  if (decision === 'ignorer') {
-    for (const m of Records.filter('MailRecu', { de_email: String(email).toLowerCase() })) {
-      if (m.deal_id) continue; // un mail rattaché à un dossier reste
-      Records.delete('MailRecu', m.id);
-      retires += 1;
-    }
-  }
-  ok(res, { ...r, retires });
-}));
-
-// Monday : découverte des tableaux et de leurs colonnes. Sans les identifiants
-// de colonnes, impossible d'écrire quoi que ce soit — chacune est adressée par
-// son id, pas par son titre.
-app.get('/api/monday/tableaux', wrap(async (req, res) => {
-  const { mondayConfigure, listerTableaux, TABLEAUX } = await import('./monday.js');
-  if (!mondayConfigure()) {
-    return ok(res, { configure: false, tableaux: [], vises: TABLEAUX });
-  }
-  const tableaux = await listerTableaux();
-  ok(res, {
-    configure: true,
-    vises: TABLEAUX,
-    tableaux: tableaux.map((t) => ({
-      id: t.id,
-      nom: t.name,
-      colonnes: (t.columns || []).map((c) => ({ id: c.id, titre: c.title, type: c.type })),
-    })),
-  });
-}));
-
-// L'assistant de commande : une phrase, une action.
-app.post('/api/assistant/commande', wrap(async (req, res) => {
-  const { messages, contexte } = req.body || {};
-  if (!Array.isArray(messages) || !messages.length) {
-    return res.status(400).json({ error: 'Message manquant' });
-  }
-  const user = currentUser(req);
-  const { commander } = await import('./assistant-commande.js');
-  const debut = Date.now();
-  // La demande est mesurée : une seule question peut déclencher six appels au
-  // modèle, ils comptent tous pour elle.
-  const { mesurer } = await import('./llm-couts.js');
-  const { resultat: r, consommation } = await mesurer(
-    { operation: 'assistant', par: user?.email, sur: contexte?.deal_id || contexte?.projet_id },
-    () => commander(messages.slice(-12), user, contexte)
-  );
-
-  // Chaque échange laisse une ligne : la question, la réponse, les outils
-  // consultés et ceux qui ont agi.
-  const { consignerRequete } = await import('./journal-usage.js');
-  consignerRequete({
-    question: messages[messages.length - 1]?.contenu,
-    reponse: r.texte,
-    outils: r.outils,
-    actions: (r.actions || []).map((a) => a.name),
-    user,
-    duree_ms: Date.now() - debut,
-    cout: consommation?.cout ?? null,
-    jetons: consommation ? consommation.entree + consommation.sortie : null,
-    contexte,
-  });
-
-  // Le fil survit au rechargement : il vit en base, pas dans l'onglet.
-  const { enregistrerFil } = await import('./assistant-fil.js');
-  enregistrerFil(user, [...messages, { role: 'assistant', contenu: r.texte }]);
-  ok(res, r);
-}));
-
-// Consignation d'une page ouverte. Ouvert à tout utilisateur connecté : c'est
-// son propre passage qu'il déclare.
-app.post('/api/journal/page', wrap(async (req, res) => {
-  const { consignerVisite } = await import('./journal-usage.js');
-  consignerVisite({ page: req.body?.page, url: req.body?.url, user: currentUser(req) });
-  ok(res, { consigne: true });
-}));
-
-// Centre de suivi : réservé aux administrateurs, il expose l'usage de chacun.
-app.get('/api/monitoring', wrap(async (req, res) => {
-  const user = currentUser(req);
-  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const { synthese } = await import('./journal-usage.js');
-  ok(res, synthese(Number(req.query.jours) || 30));
-}));
-
-// L'historique complet des échanges avec l'assistant.
-app.get('/api/monitoring/requetes', wrap(async (req, res) => {
-  const user = currentUser(req);
-  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const { historiqueRequetes } = await import('./journal-usage.js');
-  ok(
-    res,
-    historiqueRequetes({
-      limite: Math.min(Number(req.query.limite) || 50, 200),
-      depuis: Number(req.query.depuis) || 0,
-      par: req.query.par || null,
-    })
-  );
-}));
-
-// Ce que la plateforme a fait toute seule, et ce que cette personne n'a pas
-// encore vu.
-app.get('/api/assistant/rapports', wrap(async (req, res) => {
-  const { rapports } = await import('./rapport-auto.js');
-  ok(res, rapports(currentUser(req), { jours: Number(req.query.jours) || 7 }));
-}));
-
-// Rattraper une opération manquée pendant la nuit, sans rejouer tout le passage.
-app.post('/api/assistant/rapports/:id/relancer', wrap(async (req, res) => {
-  const { relancer } = await import('./rapport-auto.js');
-  try {
-    ok(res, await relancer(req.params.id, Number(req.body?.index)));
-  } catch (e) {
-    res.status(400).json({ error: e?.message || 'Relance impossible' });
-  }
-}));
-
-app.post('/api/assistant/rapports/vus', wrap(async (req, res) => {
-  const { marquerVus } = await import('./rapport-auto.js');
-  ok(res, { marques: marquerVus(currentUser(req), req.body?.ids) });
-}));
-
-// Le registre des engagements : qui doit quoi, pour quand.
-// Les échéances : nos mails sans réponse, les promesses, les dossiers qui
-// dorment — les cartes du mode « Échéances » du chat du tableau de bord.
-// La boîte : un seul chat, ce qu'on y met est trié et fait.
-app.post('/api/assistant/boite', wrap(async (req, res) => {
-  const texte = String(req.body?.texte || '').trim();
-  if (!texte) return res.status(400).json({ error: 'Rien à traiter.' });
-  const user = currentUser(req);
-  const { traiterBoite } = await import('./assistant-boite.js');
-  const { mesurer } = await import('./llm-couts.js');
-  const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
-    traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null })
-  );
-  ok(res, resultat);
-}));
-
-// La note d'appel : la fiche de l'agent dans Monday (prénom, date, remarques,
-// prochaine relance), et le dossier si un bien est décrit.
-app.post('/api/assistant/note-appel', wrap(async (req, res) => {
-  const texte = String(req.body?.texte || '').trim();
-  if (!texte) return res.status(400).json({ error: 'Note vide.' });
-  const { traiterNoteAppel } = await import('./deal/appels.js');
-  ok(res, await traiterNoteAppel(texte, { user: currentUser(req) }));
-}));
-
-// Tout ce qui attend une relance, lu dans le tableau des agents.
-// Les rappels dits au chat : « rappelle-moi dans trois jours de rappeler Marc ».
-// L'avis sur une réponse de l'IA : la remarque est créée, et le prompt de
-// correction rédigé dans la foulée.
-app.post('/api/assistant/avis', wrap(async (req, res) => {
-  const { enregistrerAvis } = await import('./avis.js');
-  const r = await enregistrerAvis({ ...(req.body || {}), user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.post('/api/assistant/rappels', wrap(async (req, res) => {
-  const { creerRappel } = await import('./rappels.js');
-  const r = await creerRappel({ texte: req.body?.texte, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-app.get('/api/assistant/rappels', wrap(async (req, res) => {
-  const { listerRappels } = await import('./rappels.js');
-  ok(res, listerRappels(currentUser(req)));
-}));
-app.post('/api/assistant/rappels/:id/fait', wrap(async (req, res) => {
-  const { terminerRappel } = await import('./rappels.js');
-  const r = terminerRappel(req.params.id, currentUser(req));
-  if (!r.ok) return res.status(404).json({ error: r.error });
-  ok(res, r);
-}));
-app.delete('/api/assistant/rappels/:id', wrap(async (req, res) => {
-  const { supprimerRappel } = await import('./rappels.js');
-  const r = supprimerRappel(req.params.id, currentUser(req));
-  if (!r.ok) return res.status(404).json({ error: r.error });
-  ok(res, r);
-}));
-
-// Ce qui vous attend : rappels, promesses des agents et relances de dossiers,
-// en une seule liste datée.
-app.get('/api/assistant/attend', wrap(async (req, res) => {
-  const { ceQuiAttend } = await import('./attend.js');
-  ok(res, ceQuiAttend(currentUser(req)));
-}));
-
-app.get('/api/assistant/relances', wrap(async (req, res) => {
-  const { relancesEnAttente } = await import('./deal/appels.js');
-  ok(res, await relancesEnAttente({ pour: currentUser(req) }));
-}));
-
-app.get('/api/assistant/echeances', wrap(async (req, res) => {
-  const { echeances } = await import('./deal/echeances.js');
-  ok(res, echeances());
-}));
-
-app.get('/api/assistant/engagements', wrap(async (req, res) => {
-  const { tousLesEngagements, enRetard } = await import('./deal/engagements.js');
-  ok(res, { engagements: tousLesEngagements().map((e) => ({ ...e, en_retard: enRetard(e) })) });
-}));
-
-app.post('/api/assistant/engagements/:id/tenu', wrap(async (req, res) => {
-  const { clore } = await import('./deal/engagements.js');
-  const r = clore(req.params.id, { user: currentUser(req), commentaire: req.body?.commentaire });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.post('/api/assistant/engagements/:id/echeance', wrap(async (req, res) => {
-  const { repousser } = await import('./deal/engagements.js');
-  const r = repousser(req.params.id, req.body?.date, currentUser(req));
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-// Le fil de conversation de l'utilisateur, tel qu'il l'a laissé.
-app.get('/api/assistant/fil', wrap(async (req, res) => {
-  const { lireFil } = await import('./assistant-fil.js');
-  ok(res, { messages: lireFil(currentUser(req)) });
-}));
-
-app.delete('/api/assistant/fil', wrap(async (req, res) => {
-  const { effacerFil } = await import('./assistant-fil.js');
-  effacerFil(currentUser(req));
-  ok(res, { efface: true });
-}));
-
-// À qui correspond chaque projet, d'après les investisseurs tenus dans Monday.
-// Un seul appel pour toute la page : la liste des investisseurs est en cache,
-// une requête par projet la relirait pour rien.
-app.get('/api/monday/projets/clients', wrap(async (req, res) => {
-  const { mondayConfigure } = await import('./monday.js');
-  if (!mondayConfigure()) return ok(res, { configure: false, par_projet: {} });
-
-  const { investisseursPourProjet } = await import('./deal/monday-sync.js');
-  const projets = Records.list('Project').filter((p) => !p.archived);
-
-  const parProjet = {};
-  for (const projet of projets) {
-    const candidats = await investisseursPourProjet(projet);
-    if (candidats.length) {
-      parProjet[projet.id] = candidats.map((c) => ({
-        nom: c.client.nom,
-        budget: c.client.budget,
-        statut: c.client.statut,
-        raisons: c.raisons,
-      }));
-    }
-  }
-  ok(res, { configure: true, par_projet: parProjet });
-}));
-
-// À qui ce dossier pourrait correspondre, d'après les investisseurs de Monday :
-// budget, apport et zone face au prix du bien. Une piste, pas une attribution.
-// La matrice : documents × questions, la ligne de synthèse calculée, la revue
-// des anomalies et les livrables qui en sortent.
-app.get('/api/preanalyse/dossiers/:dealId/matrice', wrap(async (req, res) => {
-  const { lireMatrice } = await import('./deal/matrice.js');
-  const m = lireMatrice(req.params.dealId);
-  if (!m) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, m);
-}));
-
-app.post('/api/preanalyse/dossiers/:dealId/matrice/remplir', wrap(async (req, res) => {
-  const { lancerRemplissage } = await import('./deal/matrice.js');
-  const t = lancerRemplissage(req.params.dealId, {
-    uploadDir: UPLOAD_DIR,
-    user: currentUser(req),
-    seulementColonnes: Array.isArray(req.body?.colonnes) ? req.body.colonnes : null,
-    seulementDocuments: Array.isArray(req.body?.documents) ? req.body.documents : null,
-  });
-  ok(res, t);
-}));
-
-app.post('/api/preanalyse/dossiers/:dealId/matrice/colonnes', wrap(async (req, res) => {
-  const { ajouterColonne, lancerRemplissage } = await import('./deal/matrice.js');
-  const user = currentUser(req);
-  const r = ajouterColonne(req.params.dealId, req.body || {}, { enregistrerGabarit: !!req.body?.enregistrer_gabarit, user });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  // La nouvelle question tourne sur toutes les lignes, tout de suite.
-  lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user, seulementColonnes: [r.colonne.id] });
-  ok(res, r);
-}));
-
-app.post('/api/preanalyse/dossiers/:dealId/matrice/revue/:colonneId', wrap(async (req, res) => {
-  const { reviser } = await import('./deal/matrice.js');
-  const r = reviser(req.params.dealId, req.params.colonneId, { verdict: req.body?.verdict ?? null, commentaire: req.body?.commentaire, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-// La pré-analyse depuis les pièces : quand le dossier a sa data room mais
-// pas de teaser, la fiche se compose depuis les documents.
-app.post('/api/preanalyse/dossiers/:dealId/preanalyse-documents', wrap(async (req, res) => {
-  const { lancerPreanalyseDocuments } = await import('./deal/preanalyse-documents.js');
-  ok(res, lancerPreanalyseDocuments(req.params.dealId, { user: currentUser(req), uploadDir: UPLOAD_DIR }));
-}));
-app.get('/api/preanalyse/dossiers/:dealId/preanalyse-documents', wrap(async (req, res) => {
-  const { etatPreanalyseDocuments } = await import('./deal/preanalyse-documents.js');
-  ok(res, etatPreanalyseDocuments(req.params.dealId) || { etat: null });
-}));
-
-// L'analyse en trois étapes de lecture : l'étape 1 (bail et locataire) et le
-// passage à l'étape suivante, qui lit les pièces restantes.
-app.get('/api/preanalyse/dossiers/:dealId/etape1', wrap(async (req, res) => {
-  const { lireEtape1 } = await import('./deal/etapes-analyse.js');
-  const e = lireEtape1(req.params.dealId);
-  if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, e);
-}));
-app.get('/api/preanalyse/dossiers/:dealId/etape2', wrap(async (req, res) => {
-  const { lireEtape2 } = await import('./deal/etapes-analyse.js');
-  const e = lireEtape2(req.params.dealId);
-  if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, e);
-}));
-app.get('/api/preanalyse/dossiers/:dealId/etape3', wrap(async (req, res) => {
-  const { lireEtape3 } = await import('./deal/etapes-analyse.js');
-  const e = await lireEtape3(req.params.dealId);
-  if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, e);
-}));
-app.post('/api/preanalyse/dossiers/:dealId/risques/:id', wrap(async (req, res) => {
-  const { reviserRisque } = await import('./deal/etapes-analyse.js');
-  const r = reviserRisque(req.params.dealId, req.params.id, req.body?.verdict);
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-app.post('/api/preanalyse/dossiers/:dealId/leviers', wrap(async (req, res) => {
-  const { cocherLeviers } = await import('./deal/etapes-analyse.js');
-  const r = cocherLeviers(req.params.dealId, Array.isArray(req.body?.leviers) ? req.body.leviers : []);
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-app.get('/api/preanalyse/dossiers/:dealId/etape4', wrap(async (req, res) => {
-  const { lireEtape4 } = await import('./deal/etapes-analyse.js');
-  const e = await lireEtape4(req.params.dealId);
-  if (!e) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, e);
-}));
-app.post('/api/preanalyse/dossiers/:dealId/conclusion', wrap(async (req, res) => {
-  const { conclure } = await import('./deal/etapes-analyse.js');
-  const r = await conclure(req.params.dealId, { etat: req.body?.etat, motif: req.body?.motif, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-// Les notes de l'analyste et ce qu'il reste à faire, sur le dossier.
-app.get('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
-  const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, { notes: d.notes_analyse || '', taches: d.taches_analyse || [], maj_le: d.notes_maj_le || null, maj_par: d.notes_maj_par || null });
-}));
-app.post('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
-  const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
-  const patch = { notes_maj_le: new Date().toISOString(), notes_maj_par: currentUser(req)?.email || null };
-  if (typeof req.body?.notes === 'string') patch.notes_analyse = req.body.notes.slice(0, 20000);
-  if (Array.isArray(req.body?.taches)) patch.taches_analyse = req.body.taches.slice(0, 200).map((t) => ({ id: String(t.id || Date.now().toString(36)), texte: String(t.texte || '').slice(0, 300), fait: !!t.fait, etape: t.etape || null }));
-  Records.update('Deal', d.id, patch);
-  ok(res, { ok: true });
-}));
-
-app.get('/api/preanalyse/dossiers/:dealId/grille/:id', wrap(async (req, res) => {
-  const { lireGrilleFormatee } = await import('./deal/grilles.js');
-  const g = await lireGrilleFormatee(req.params.dealId, req.params.id, { user: currentUser(req), force: req.query.force === '1' });
-  if (!g) return res.status(404).json({ error: 'Grille ou dossier introuvable' });
-  ok(res, g);
-}));
-
-// Ce que le client voit du bail sur sa page projet : quelques lignes, et
-// l'analyse complète derrière — sans les pièces.
-// « projets » (français) ne figure pas dans le préfixe de la garde globale, qui
-// dit « entities|integrations|… » : cette route répondait sans connexion. Et son
-// contrôle comparait deux chaînes vides — un visiteur sans compte, face à un
-// projet sans adresse client, était reconnu comme le client de ce projet.
-app.get('/api/projets/:id/analyse-bail', wrap(async (req, res) => {
-  const user = currentUser(req);
-  if (!user) return res.status(401).json({ error: 'Not authenticated' });
-  const projet = Records.get('Project', req.params.id);
-  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
-  const email = String(user.email || '').trim().toLowerCase();
-  const sien = (e) => {
-    const a = String(e || '').trim().toLowerCase();
-    return !!a && !!email && a === email;
-  };
-  const autorise =
-    user.role === 'admin' || (projet.client_emails || []).some(sien) || sien(projet.client_email);
-  if (!autorise) return res.status(403).json({ error: 'Accès refusé' });
-  const deal = projet.deal_id ? Records.filter('Deal', { deal_id: projet.deal_id })[0] : null;
-  if (!deal) return ok(res, { disponible: false });
-  const { lireGrilleFormatee } = await import('./deal/grilles.js');
-  const bail = await lireGrilleFormatee(deal.deal_id, 'bail', { user });
-  const quittances = await lireGrilleFormatee(deal.deal_id, 'quittances', { user });
-  const sansPieces = (g) => g && { ...g, lignes: g.lignes.map((l) => ({ ...l, preuves: user?.role === 'admin' ? l.preuves : [] })) };
-  const clefs = ['echeance', 'loyer_signature', 'depot', 'charges', 'taxes'];
-  ok(res, {
-    disponible: true,
-    essentiel: (bail?.lignes || []).filter((l) => clefs.includes(l.id)).map((l) => ({ id: l.id, libelle: l.libelle, valeur: l.valeur })),
-    quittances_essentiel: (quittances?.lignes || []).map((l) => ({ id: l.id, libelle: l.libelle, valeur: l.valeur })),
-    bail: sansPieces(bail), quittances: sansPieces(quittances),
-  });
-}));
-app.post('/api/preanalyse/dossiers/:dealId/grille/:id/valeur/:critere', wrap(async (req, res) => {
-  const { corrigerValeur } = await import('./deal/grilles.js');
-  const r = corrigerValeur(req.params.dealId, req.params.id, req.params.critere, req.body?.valeur ?? '', currentUser(req));
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-app.post('/api/preanalyse/dossiers/:dealId/grille/:id/statut/:critere', wrap(async (req, res) => {
-  const { deciderStatut } = await import('./deal/grilles.js');
-  const r = deciderStatut(req.params.dealId, req.params.id, req.params.critere, req.body?.statut || null, currentUser(req));
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-app.post('/api/preanalyse/dossiers/:dealId/grille/:id/note/:critere', wrap(async (req, res) => {
-  const { noterCritere } = await import('./deal/grilles.js');
-  const r = noterCritere(req.params.dealId, req.params.id, req.params.critere, req.body?.texte ?? '', currentUser(req));
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-// Data-B, valeurs locatives : la fourchette de loyer au m² d'une adresse.
-// Sur un lot, le résultat est gardé avec lui ; l'adresse peut être celle du
-// dossier ou une autre, saisie à la main.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', wrap(async (req, res) => {
-  const { valeurLocative } = await import('./data-b.js');
-  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const index = Number(req.params.index) || 0;
-  const entree = dossier.lots?.[index];
-  if (!entree) return res.status(404).json({ error: 'Lot introuvable' });
-  const a = entree.lot?.adresse?.valeur;
-  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
-  const adresse = String(req.body?.adresse || adresseDossier).trim();
-  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
-  const r = await valeurLocative(adresse, { forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  const lots = [...dossier.lots];
-  lots[index] = { ...entree, valeur_locative: r.resultat };
-  Records.update('Deal', dossier.id, { lots });
-  ok(res, { resultat: r.resultat });
-}));
-
-// Alex : la recherche de marché complète, les trois services l'un après
-// l'autre. Elle dure deux minutes — la requête rend la main tout de suite et la
-// page vient demander où Alex en est.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/marche/alex', wrap(async (req, res) => {
-  const { lancerRechercheMarche } = await import('./alex.js');
-  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const index = Number(req.params.index) || 0;
-  if (!dossier.lots?.[index]) return res.status(404).json({ error: 'Lot introuvable' });
-  // `sources` restreint la lecture aux connecteurs cochés ; absent, tout est lu.
-  const sources = Array.isArray(req.body?.sources) ? req.body.sources.map(String).filter(Boolean) : null;
-  const t = lancerRechercheMarche(req.params.dealId, index, { user: currentUser(req), forcer: !!req.body?.forcer, sources });
-  // Les étapes viennent du serveur : la chaîne des sources est configurable,
-  // l'écran ne peut plus les tenir en dur.
-  ok(res, t);
-}));
-
-app.get('/api/marche/alex/etat', wrap(async (req, res) => {
-  const { etatRechercheMarche } = await import('./alex.js');
-  const t = etatRechercheMarche(String(req.query.cle || ''));
-  if (!t) return res.status(404).json({ error: 'Recherche inconnue : relancez Alex.' });
-  ok(res, t);
-}));
-
-// Poser une question au marché. Le modèle n'a que les connecteurs pour
-// répondre : chaque chiffre rendu est accompagné de ce qui a été lu.
-app.post('/api/marche/question', wrap(async (req, res) => {
-  const { repondre } = await import('./marche/question.js');
-  const question = String(req.body?.question || '').trim();
-  if (!question) return res.status(400).json({ error: 'Question manquante.' });
-
-  // Le dossier en cours donne le contexte : adresse, surface, activité.
-  let contexte = {
-    user: currentUser(req),
-    historique: req.body?.historique || [],
-    // « Rapidité » écarte Equimmox et l'étude d'implantation : l'une prend une
-    // minute, l'autre coûte un crédit.
-    profondeur: req.body?.profondeur === 'rapide' ? 'rapide' : 'reflexion',
-  };
-  const dealId = String(req.body?.deal_id || '').trim();
-  if (dealId) {
-    const deal = Records.filter('Deal', { deal_id: dealId })[0];
-    const lot = deal?.lots?.[Number(req.body?.index) || 0];
-    const a = lot?.lot?.adresse?.valeur;
-    if (a) contexte.adresse = [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-    const s = Number(lot?.lot?.surface_m2?.valeur);
-    if (s > 0) contexte.surface = s;
-    contexte.activite = lot?.lot?.locataire_activite?.valeur || null;
-  }
-  if (req.body?.adresse) contexte.adresse = String(req.body.adresse).trim();
-
-  ok(res, await repondre(question, contexte));
-}));
-
-// Le journal des lectures de marché : chaque tentative, chaque source, chaque
-// échec. C'est ce qui permet de dire d'où vient un chiffre trois jours après.
-app.get('/api/marche/journal', wrap(async (req, res) => {
-  const { journalDuLot } = await import('./marche/journal.js');
-  const dealId = String(req.query.deal_id || '').trim();
-  if (!dealId) return res.status(400).json({ error: 'deal_id manquant.' });
-  const index = Number(req.query.index) || 0;
-  const passages = journalDuLot(dealId, index, Math.min(Number(req.query.limite) || 5, 20));
-  ok(res, { passages, dernier: passages[0] || null });
-}));
-
-// Le Figaro Immobilier : les prix et loyers du résidentiel de la commune et du
-// quartier. C'est le point de comparaison du commerce — ce que coûterait un
-// appartement au même endroit, et ce qu'il rapporterait.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/figaro/prix', wrap(async (req, res) => {
-  const { prixResidentiel } = await import('./figaro.js');
-  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const index = Number(req.params.index) || 0;
-  const entree = dossier.lots?.[index];
-  if (!entree) return res.status(404).json({ error: 'Lot introuvable' });
-  const a = entree.lot?.adresse?.valeur;
-  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
-  const adresse = String(req.body?.adresse || adresseDossier).trim();
-  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
-  const r = await prixResidentiel(adresse, { forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0] || dossier;
-  const lots = [...courant.lots];
-  lots[index] = { ...lots[index], prix_residentiel: r.resultat };
-  Records.update('Deal', courant.id, { lots });
-  ok(res, { resultat: r.resultat });
-}));
-
-// Les contours des quartiers d'une commune, pour tracer la carte des prix.
-app.get('/api/figaro/carte', wrap(async (req, res) => {
-  const { contoursCommune } = await import('./figaro.js');
-  const c = contoursCommune(String(req.query.insee || ''));
-  if (!c) return res.status(404).json({ error: 'Carte inconnue : lancez d\'abord la lecture du Figaro.' });
-  ok(res, c);
-}));
-
-// La même lecture pour un projet.
-app.post('/api/projects/:id/figaro/prix', wrap(async (req, res) => {
-  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
-  const { prixResidentiel } = await import('./figaro.js');
-  const projet = Records.get('Project', req.params.id);
-  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
-  const adresse = String(req.body?.adresse || projet.adresse_complete || '').trim();
-  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
-  const r = await prixResidentiel(adresse, { forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  Records.update('Project', projet.id, { prix_residentiel: r.resultat });
-  ok(res, { resultat: r.resultat });
-}));
-
-// Data-B, transactions de fonds : ce qui s'est vendu autour du bien, à quel
-// prix, pour quelles activités. La rue est comptée à part.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/transactions', wrap(async (req, res) => {
-  const { transactionsFonds } = await import('./data-b-transactions.js');
-  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const index = Number(req.params.index) || 0;
-  const entree = dossier.lots?.[index];
-  if (!entree) return res.status(404).json({ error: 'Lot introuvable' });
-  const a = entree.lot?.adresse?.valeur;
-  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
-  const adresse = String(req.body?.adresse || adresseDossier).trim();
-  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
-  const r = await transactionsFonds(adresse, { rayon: Number(req.body?.rayon) || 500, forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0] || dossier;
-  const lots = [...courant.lots];
-  lots[index] = { ...lots[index], transactions_fonds: r.resultat };
-  Records.update('Deal', courant.id, { lots });
-  ok(res, { resultat: r.resultat });
-}));
-
-// Les mêmes cessions, pour un projet : un projet créé avant que le dossier ne
-// les relève peut les chercher depuis son éditeur.
-app.post('/api/projects/:id/data-b/transactions', wrap(async (req, res) => {
-  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
-  const { transactionsFonds } = await import('./data-b-transactions.js');
-  const projet = Records.get('Project', req.params.id);
-  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
-  const adresse = String(req.body?.adresse || projet.adresse_complete || '').trim();
-  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
-  const r = await transactionsFonds(adresse, { rayon: Number(req.body?.rayon) || 500, forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  Records.update('Project', projet.id, { transactions_fonds: r.resultat });
-  ok(res, { resultat: r.resultat });
-}));
-
-// Equimmox, analyse de loyer : les loyers observés à 500 m, pour des locaux de
-// surface comparable. Sur un lot, l'adresse et la surface du dossier servent
-// par défaut ; le résultat reste avec lui. Une recherche prend une minute.
-// La recherche dure une minute et demie : trop pour une requête HTTP, qui
-// meurt en chemin chez l'hébergeur. On répond tout de suite — le résultat gardé
-// s'il existe, sinon « en cours » — et la page revient demander où ça en est.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/equimmox/analyse-loyer', wrap(async (req, res) => {
-  const { lancerAnalyseLoyer, analyseLoyerEnCache } = await import('./equimmox.js');
-  const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const index = Number(req.params.index) || 0;
-  const entree = dossier.lots?.[index];
-  if (!entree) return res.status(404).json({ error: 'Lot introuvable' });
-  const a = entree.lot?.adresse?.valeur;
-  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '';
-  const adresse = String(req.body?.adresse || adresseDossier).trim();
-  if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
-  const surface = Number(req.body?.surface) > 0 ? Number(req.body.surface) : Number(entree.lot?.surface_m2?.valeur) > 0 ? Number(entree.lot.surface_m2.valeur) : null;
-
-  // Le résultat trouvé sur le lot : on le repose là où la page le lit.
-  const poser = (resultat) => {
-    const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-    if (!courant) return;
-    const lots = [...courant.lots];
-    lots[index] = { ...lots[index], analyse_loyer: resultat };
-    Records.update('Deal', courant.id, { lots });
-  };
-
-  if (!req.body?.forcer) {
-    const garde = analyseLoyerEnCache(adresse, surface);
-    if (garde) { poser(garde); return ok(res, { resultat: garde }); }
-  }
-
-  const t = lancerAnalyseLoyer(adresse, { surface, forcer: !!req.body?.forcer, user: currentUser(req), onFini: poser });
-  if (t.etat === 'pret' && t.resultat) { poser(t.resultat); return ok(res, { resultat: t.resultat }); }
-  if (t.etat === 'erreur') return res.status(400).json({ error: t.erreur });
-  ok(res, { en_cours: true, cle: t.cle });
-}));
-
-// Où en est la recherche lancée juste avant.
-app.get('/api/equimmox/analyse-loyer/etat', wrap(async (req, res) => {
-  const { etatAnalyseLoyer } = await import('./equimmox.js');
-  const t = etatAnalyseLoyer(String(req.query.cle || ''));
-  if (!t) return res.status(404).json({ error: 'Recherche inconnue : relancez-la.' });
-  if (t.etat === 'erreur') return res.status(400).json({ error: t.erreur });
-  ok(res, t.etat === 'pret' ? { resultat: t.resultat } : { en_cours: true, cle: t.cle });
-}));
-
-// La même analyse, sans dossier : une adresse, une surface, trois chiffres.
-app.post('/api/equimmox/analyse-loyer', wrap(async (req, res) => {
-  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
-  const { lancerAnalyseLoyer, analyseLoyerEnCache } = await import('./equimmox.js');
-  const adresse = String(req.body?.adresse || '');
-  const surface = Number(req.body?.surface) > 0 ? Number(req.body.surface) : null;
-  if (!req.body?.forcer) {
-    const garde = analyseLoyerEnCache(adresse, surface);
-    if (garde) return ok(res, { resultat: garde });
-  }
-  const t = lancerAnalyseLoyer(adresse, { surface, forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (t.etat === 'pret' && t.resultat) return ok(res, { resultat: t.resultat });
-  if (t.etat === 'erreur') return res.status(400).json({ error: t.erreur });
-  ok(res, { en_cours: true, cle: t.cle });
-}));
-
-// La même recherche, sans dossier : une adresse, une fourchette.
-app.post('/api/data-b/valeur-locative', wrap(async (req, res) => {
-  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
-  const { valeurLocative } = await import('./data-b.js');
-  const r = await valeurLocative(String(req.body?.adresse || ''), { forcer: !!req.body?.forcer, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, { resultat: r.resultat });
-}));
-
-// Ce qu'une relecture coûtera, avant de la lancer : jetons comptés par l'API,
-// prix appliqué au modèle courant. Rien n'est facturé par ce comptage.
-app.get('/api/preanalyse/dossiers/:dealId/estimation', wrap(async (req, res) => {
-  const { estimerLecture } = await import('./deal/estimation.js');
-  const r = await estimerLecture(req.params.dealId, { uploadDir: UPLOAD_DIR, grille: req.query.grille || null });
-  if (!r) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, r);
-}));
-
-// Relancer l'analyse d'une seule grille : ses questions sont relues sur toutes
-// les pièces, les autres grilles ne bougent pas.
-app.post('/api/preanalyse/dossiers/:dealId/grille/:id/relancer', wrap(async (req, res) => {
-  const { colonnesDeGrille } = await import('./deal/grilles.js');
-  const { lancerRemplissage } = await import('./deal/matrice.js');
-  const ids = colonnesDeGrille(req.params.id);
-  if (!ids.length) return res.status(404).json({ error: 'Grille inconnue' });
-  ok(res, lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementColonnes: ids, force: true }));
-}));
-app.get('/api/preanalyse/dossiers/:dealId/grille-bail', wrap(async (req, res) => {
-  const { lireGrilleBail } = await import('./deal/grille-bail.js');
-  const g = lireGrilleBail(req.params.dealId);
-  if (!g) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, g);
-}));
-app.post('/api/preanalyse/dossiers/:dealId/grille-bail/completer', wrap(async (req, res) => {
-  const { colonnesNonLues } = await import('./deal/grilles.js');
-  const { lancerRemplissage } = await import('./deal/matrice.js');
-  const ids = colonnesNonLues(req.params.dealId);
-  if (!ids.length) return ok(res, { ok: true, rien: true });
-  ok(res, { ok: true, colonnes: ids, remplissage: lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementColonnes: ids }) });
-}));
-app.post('/api/preanalyse/dossiers/:dealId/relancer-analyse', wrap(async (req, res) => {
-  const { lancerRemplissage } = await import('./deal/matrice.js');
-  const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
-  if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
-  const ids = (d.documents_espace || []).map((x) => x.id);
-  if (!ids.length) return res.status(400).json({ error: 'Aucune pièce à relire.' });
-  ok(res, lancerRemplissage(req.params.dealId, { uploadDir: UPLOAD_DIR, user: currentUser(req), seulementDocuments: ids, force: true }));
-}));
-app.post('/api/preanalyse/dossiers/:dealId/relancer-preanalyse', wrap(async (req, res) => {
-  const { relancerPreanalyse } = await import('./deal/preanalyse-documents.js');
-  ok(res, relancerPreanalyse(req.params.dealId, { user: currentUser(req), uploadDir: UPLOAD_DIR }));
-}));
-app.post('/api/preanalyse/dossiers/:dealId/etape/:n', wrap(async (req, res) => {
-  const { lancerEtape } = await import('./deal/etapes-analyse.js');
-  const r = lancerEtape(req.params.dealId, Number(req.params.n), { user: currentUser(req), uploadDir: UPLOAD_DIR, relire: !!req.body?.relire });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.get('/api/preanalyse/dossiers/:dealId/carte', wrap(async (req, res) => {
-  const { lireCarteDeal } = await import('./deal/carte-deal.js');
-  const c = lireCarteDeal(req.params.dealId);
-  if (!c) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, c);
-}));
-
-app.get('/api/preanalyse/dossiers/:dealId/matrice/fiche', wrap(async (req, res) => {
-  const { lireFiche } = await import('./deal/matrice.js');
-  const f = lireFiche(req.params.dealId);
-  if (!f) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, f);
-}));
-
-app.post('/api/preanalyse/dossiers/:dealId/matrice/forcer/:colonneId', wrap(async (req, res) => {
-  const { forcer } = await import('./deal/matrice.js');
-  const r = forcer(req.params.dealId, req.params.colonneId, { document_id: req.body?.document_id || null, valeur: req.body?.valeur || null, user: currentUser(req) });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-  ok(res, r);
-}));
-
-app.get('/api/preanalyse/dossiers/:dealId/matrice/livrables', wrap(async (req, res) => {
-  const { livrables } = await import('./deal/matrice.js');
-  const l = livrables(req.params.dealId);
-  if (!l) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, l);
-}));
-
-app.get('/api/preanalyse/gabarit-matrice', wrap(async (req, res) => {
-  const { gabarit, LIBELLE_STATUT } = await import('./deal/matrice.js');
-  ok(res, { gabarit: gabarit(), statuts: LIBELLE_STATUT });
-}));
-
-// La lecture du dossier : le bien en huit lignes, les contradictions entre
-// documents, les pièces qui manquent, les points à trancher.
-app.get('/api/preanalyse/dossiers/:dealId/lecture', wrap(async (req, res) => {
-  const { lireDossier } = await import('./deal/dossier-lecture.js');
-  const r = lireDossier(req.params.dealId);
-  if (!r) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, r);
-}));
-
-app.get('/api/preanalyse/dossiers/:dealId/clients', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { mondayConfigure } = await import('./monday.js');
-  if (!mondayConfigure() || dossier.test) return ok(res, { configure: !!mondayConfigure(), clients: [] });
-  const { investisseursPourDeal } = await import('./deal/monday-sync.js');
-  const candidats = await investisseursPourDeal(Records.filter('Deal', { deal_id: req.params.dealId })[0]);
-  ok(res, {
-    configure: true,
-    clients: candidats.map((c) => ({
-      nom: c.client.nom,
-      email: c.client.email,
-      budget: c.client.budget,
-      statut: c.client.statut,
-      raisons: c.raisons,
-    })),
-  });
-}));
-
-// Pousser un projet de la plateforme dans Monday.
-app.post('/api/monday/projets/:id', wrap(async (req, res) => {
-  const projet = Records.get('Project', req.params.id);
-  if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
-  const { pousserProjet } = await import('./deal/monday-sync.js');
-  const r = await pousserProjet(projet, { motif: req.body?.motif, par: currentUser(req) });
-  if (r?.ignore) return res.status(400).json({ error: 'Monday non configuré' });
-  ok(res, r);
-}));
-
-// Pousser un dossier dans « Propriétés Klocka » sans attendre sa clôture.
-app.post('/api/monday/dossiers/:dealId', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { pousserBien } = await import('./deal/monday-sync.js');
-  const r = await pousserBien(Records.filter('Deal', { deal_id: req.params.dealId })[0], {
-    motif: req.body?.motif,
-    par: currentUser(req),
-  });
-  if (r?.ignore) return res.status(400).json({ error: 'Monday non configuré' });
-  ok(res, r);
-}));
-
-// CRM : les agents des dossiers deviennent des fiches contact, sans saisie.
-app.post('/api/assistant/crm/synchroniser', wrap(async (req, res) => {
-  const { synchroniserAgents } = await import('./deal/crm-sync.js');
-  ok(res, synchroniserAgents());
-}));
-
-// Agenda d'équipe : création de l'agenda partagé et report des échéances.
-app.get('/api/assistant/calendrier', wrap(async (req, res) => {
-  const { lienCalendrier, calendrierConfigure } = await import('./google-calendar.js');
-  const { calendarDemande } = await import('./google-oauth.js');
-  ok(res, { actif: calendarDemande, configure: calendrierConfigure(), lien: lienCalendrier() });
-}));
-
-app.post('/api/assistant/calendrier/synchroniser', wrap(async (req, res) => {
-  const user = currentUser(req);
-  const { compte, partager } = req.body || {};
-  if (!compte) return res.status(400).json({ error: 'Compte manquant' });
-  if (!compteAutorise(req, compte)) return res.status(403).json({ error: 'Ce compte ne vous appartient pas.' });
-
-  const { synchroniserEcheances, partagerCalendrier, lienCalendrier } = await import('./google-calendar.js');
-  const r = await synchroniserEcheances(compte, APP_URL_PROD || `http://localhost:${PORT}`);
-
-  // Partage avec l'équipe : tous les admins, sauf le compte propriétaire.
-  let partage = null;
-  if (partager !== false) {
-    const admins = Records.filter('User', { role: 'admin' })
-      .map((u) => u.email)
-      .filter((e) => e && e.toLowerCase() !== String(compte).toLowerCase());
-    if (admins.length) partage = await partagerCalendrier(compte, admins);
-  }
-  ok(res, { ...r, partage, lien: lienCalendrier(), par: user?.email || null });
-}));
-
-// Ce que l'extraction sait remplir dans la fiche projet, ligne par ligne :
-// l'onglet « Données extraites » de l'étape Analyse s'appuie dessus.
-app.get('/api/preanalyse/dossiers/:dealId/donnees-projet', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { donneesProjet } = await import('./deal/donnees-projet.js');
-  ok(res, { lignes: donneesProjet(dossier) });
-}));
-
-// Vidéo de présentation client (~30 s, Remotion). Le rendu tourne en
-// arrière-plan ; le MP4 fini se télécharge depuis /uploads/videos/.
-app.post('/api/preanalyse/dossiers/:dealId/lots/:index/video', wrap(async (req, res) => {
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-  const { lancerVideoLot } = await import('./video/index.js');
-  const r = lancerVideoLot(dossier, Number(req.params.index));
-  if (r.error) return res.status(404).json(r);
-  ok(res, r);
-}));
-
-// État du rendu (en_cours / pret / erreur / aucune) + URL du fichier.
-app.get('/api/preanalyse/dossiers/:dealId/lots/:index/video', wrap(async (req, res) => {
-  const { statutVideo } = await import('./video/index.js');
-  ok(res, statutVideo(req.params.dealId, Number(req.params.index)));
-}));
-
-// Changement de statut manuel (décision sans mail, réception de documents…).
-app.post('/api/preanalyse/dossiers/:dealId/statut', wrap((req, res) => {
-  const { statut, note } = req.body || {};
-  const dossier = obtenirDossier(req.params.dealId);
-  if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-
-  const user = currentUser(req);
-  const r = changerStatut(dossier, statut, { user, note });
-  if (!r.ok) return res.status(400).json({ error: r.error });
-
-  // Un abandon capitalise l'observation dans la base marché (hors deal de test).
-  if (statut === 'abandonne' && statutDe(dossier) !== 'abandonne' && !dossier.test) {
-    for (const lot of dossier.lots || []) alimenterBaseMarche(dossier, lot, user);
-  }
-  ok(res, { deal_id: dossier.deal_id, statut: r.deal.statut, suivi: r.deal.suivi });
-}));
-
-// ---------------------------------------------------------------------------
-// Alexis — extraction documentaire
-// ---------------------------------------------------------------------------
-app.get('/api/alexis/grille', wrap((req, res) => ok(res, { types: TYPES })));
-
-app.post('/api/alexis/documents', upload.single('fichier'), wrap(async (req, res) => {
-  const user = currentUser(req);
-  if (!req.file) return res.status(400).json({ error: 'Aucun document fourni.' });
-  const r = await analyserDocument(
-    {
-      buffer: fs.readFileSync(req.file.path),
-      filename: req.file.originalname,
-      mimetype: req.file.mimetype,
-      url: `/uploads/${req.file.filename}`,
-    },
-    { dossierId: req.body?.dossier_id || null, typeForce: req.body?.type || null, user }
-  );
-  ok(res, r);
-}));
-
-app.get('/api/alexis/dossiers', wrap((req, res) => ok(res, listerDossiersDoc())));
-
-app.get('/api/alexis/dossiers/:id', wrap((req, res) => {
-  const d = obtenirDossierDoc(req.params.id);
-  if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
-  ok(res, d);
-}));
-
-app.post('/api/alexis/dossiers/:id/titre', wrap((req, res) => {
-  const r = renommerDossier(req.params.id, req.body?.titre);
-  if (r.error) return res.status(404).json(r);
-  ok(res, r);
-}));
-
-app.post('/api/alexis/dossiers/:id/documents/:docId/type', wrap(async (req, res) => {
-  const r = await reclasserDocument(req.params.id, req.params.docId, req.body?.type);
-  if (r.error) return res.status(400).json(r);
-  ok(res, r);
-}));
-
-app.delete('/api/alexis/dossiers/:id/documents/:docId', wrap((req, res) => {
-  const r = supprimerDocument(req.params.id, req.params.docId);
-  if (r.error) return res.status(404).json(r);
-  ok(res, r);
-}));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ---------------------------------------------------------------------------
 // Sauvegarde de la base
@@ -2808,6 +960,22 @@ app.get('/api/health', (req, res) => {
 // Frontend — servi par le même serveur, pour n'avoir qu'un seul port à ouvrir.
 // Présent uniquement après `npm run build` (le mode dev utilise Vite).
 // ---------------------------------------------------------------------------
+monterPreanalyse(app);
+
+monterAssistant(app);
+
+monterMarche(app);
+
+monterEntites(app);
+
+monterAlexis(app);
+
+monterCourriel(app);
+
+monterIntegrations(app);
+
+monterMonday(app);
+
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
   // Les fichiers d'`assets` portent une empreinte dans leur nom : un contenu

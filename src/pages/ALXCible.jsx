@@ -48,6 +48,7 @@ export default function ALXCible() {
 
   const devanture = useGeste("devanture", {}, "Devanture lue");
   const societe = useGeste("societe", {}, "Société lue");
+  const proprietaire = useGeste("proprietaire", {}, null);
   const evenements = useGeste("evenements", {}, "BODACC relu");
   const mutation = useGeste("mutation", {}, "DVF relu");
   const loyer = useGeste("loyer", {}, "Loyer de marché relevé");
@@ -134,11 +135,62 @@ export default function ALXCible() {
             <Carte className="flex flex-col gap-5">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Le propriétaire</div>
-                <Bouton onClick={() => societe.mutate()} disabled={societe.isPending || (!p.nom && !p.siren && !saisie.proprietaire_nom)} title="Annuaire des entreprises, gratuit, sans clé">
-                  {societe.isPending ? "Lecture…" : "Lire la société"}
-                </Bouton>
+                <div className="flex gap-2">
+                  <Bouton
+                    principal
+                    onClick={() => proprietaire.mutate({}, { onSuccess: (r) => toast.success(r.cible?.proprietaire?.nom ? `Propriétaire : ${r.cible.proprietaire.nom}` : r.foncier?.motif_choix || "Fiche lue") })}
+                    disabled={proprietaire.isPending || !outils.data_b}
+                    title={outils.data_b ? "Data Foncier, par l'adresse" : "Data-B n'est pas configuré"}
+                  >
+                    {proprietaire.isPending ? "Data-B…" : "Trouver le propriétaire"}
+                  </Bouton>
+                  <Bouton onClick={() => societe.mutate()} disabled={societe.isPending || (!p.nom && !p.siren && !saisie.proprietaire_nom)} title="Annuaire des entreprises, gratuit, sans clé">
+                    {societe.isPending ? "Lecture…" : "Lire la société"}
+                  </Bouton>
+                </div>
               </div>
-              <p className="m-0 -mt-3 text-[12.5px] text-brume">Le nom se lit sur Data-B (adresse → propriétaire), ou se saisit. L'annuaire des entreprises complète ensuite.</p>
+              <p className="m-0 -mt-3 text-[12.5px] text-brume">
+                Data-B donne les propriétaires du bâtiment, lot par lot ; ALX retient celui du rez-de-chaussée. L'annuaire des entreprises complète la société.
+              </p>
+
+              {c.foncier && (
+                <div className="flex flex-col gap-2 bg-fond/60 border border-white/[0.06] rounded-[12px] p-4">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div className="text-[12.5px] text-craie">
+                      {c.foncier.adresse_fiche || c.foncier.adresse}
+                      {c.foncier.parcelle && <span className="text-brume"> · parcelle {c.foncier.parcelle}</span>}
+                      {c.foncier.surface_batiment && <span className="text-brume"> · bâtiment {c.foncier.surface_batiment} m²</span>}
+                    </div>
+                    <div className="text-[11px] text-brume">Data-B · {quand(c.foncier.lu_le)}</div>
+                  </div>
+                  {c.foncier.adresse_non_confirmee && <p className="m-0 text-[12px]" style={{ color: "#E8B278" }}>Le numéro de la fiche ne concorde pas avec l'adresse : vérifiez sur la carte Data-B.</p>}
+                  <p className="m-0 text-[12px] text-brume">{c.foncier.motif_choix}</p>
+                  {(c.foncier.proprietaires || []).length > 0 && (
+                    <div className="flex flex-col">
+                      {c.foncier.proprietaires.map((f) => {
+                        const retenu = p.siren && f.siren === p.siren;
+                        return (
+                          <div key={f.siren || f.nom} className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center py-2 border-t border-white/[0.05]">
+                            <div className="min-w-0">
+                              <div className="text-[13.5px] text-craie truncate">{f.nom}{f.forme ? <span className="text-brume"> · {f.forme}</span> : null}</div>
+                              <div className="text-[12px] text-brume truncate">
+                                {f.lots.length ? `lots : ${f.lots.map((l) => l.etage).join(", ")}` : "lot non précisé"}
+                                {f.gerants?.length ? ` · ${f.gerants.length} gérant${f.gerants.length > 1 ? "s" : ""}` : ""}
+                              </div>
+                            </div>
+                            <span className="text-[10px] tracking-[.12em] uppercase" style={{ color: f.rez_de_chaussee ? "var(--k-menthe)" : "var(--k-brume)" }}>{f.rez_de_chaussee ? "RDC" : "étage"}</span>
+                            {retenu ? (
+                              <span className="text-[11px] text-menthe">retenu</span>
+                            ) : (
+                              <button onClick={() => proprietaire.mutate({ siren: f.siren })} disabled={proprietaire.isPending || !f.siren} className="text-[11px] text-ardoise hover:text-encre disabled:opacity-40">Retenir</button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-4">
                 <Champ label="Nom (société ou personne)" value={saisie.proprietaire_nom ?? p.nom} onChange={(x) => setSaisie((s0) => ({ ...s0, proprietaire_nom: x }))} className="flex-1 min-w-[200px]" />

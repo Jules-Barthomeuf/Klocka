@@ -98,6 +98,52 @@ export function monterAlx(app) {
 
   // La société : l'annuaire des entreprises, par SIREN ou par le nom lu sur
   // Data-B. Gratuit, sans clé. Le code postal de la ville filtre les homonymes.
+  // Le propriétaire par l'adresse : Data Foncier (Data-B), puis l'annuaire des
+  // entreprises pour la société, puis le classement. Un seul geste.
+  app.post('/api/alx/cibles/:id/proprietaire', wrap(async (req, res) => {
+    const c = Records.get('Cible', req.params.id);
+    if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
+    const { proprietairesDe } = await import('../alx/foncier.js');
+    const ville = Records.get('Ville', c.ville_id);
+    const texte = [c.adresse, ville?.code_postal, c.ville].filter(Boolean).join(' ');
+    let f;
+    try {
+      f = await proprietairesDe(texte);
+    } catch (e) {
+      return erreur(res, e);
+    }
+    if (!f) return erreur(res, `La Base Adresse Nationale ne connaît pas « ${texte} ».`, 404);
+
+    // Le choix explicite de l'équipe, parmi la liste, prime sur l'automatique.
+    const voulu = req.body?.siren ? f.proprietaires.find((p) => p.siren === String(req.body.siren)) : null;
+    const choix = voulu || f.choix;
+    const patch = { foncier: f };
+    if (choix) {
+      patch.proprietaire = {
+        ...(c.proprietaire || {}),
+        nom: choix.nom,
+        siren: choix.siren,
+        forme: choix.forme || c.proprietaire?.forme || null,
+        parcelle: f.parcelle,
+        lots: choix.lots,
+        source: 'Data-B · Foncier',
+        trouve_le: f.lu_le,
+      };
+      // L'annuaire complète (APE, forme exacte, siège) : gratuit, on ne s'en prive pas.
+      if (choix.siren) {
+        try {
+          const { societe } = await import('../alx/annuaire.js');
+          const s = await societe({ siren: choix.siren });
+          if (s) patch.societe = { ...s, gerants: s.gerants?.length ? s.gerants : choix.gerants };
+        } catch {
+          // L'annuaire indisponible n'empêche pas de garder ce que Data-B a donné.
+        }
+      }
+      if (!patch.societe) patch.societe = { ...(c.societe || {}), nom: choix.nom, siren: choix.siren, forme: choix.forme, creation: choix.creation, ape_libelle: choix.activite, gerants: choix.gerants, siege: { adresse: choix.adresse }, source: 'Data-B · Foncier', lu_le: f.lu_le };
+    }
+    ok(res, { ...mettreAJourCible(c.id, patch, currentUser(req)), foncier: f });
+  }));
+
   app.post('/api/alx/cibles/:id/societe', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });

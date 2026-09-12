@@ -11,7 +11,7 @@ Ceux qu'on a déjà, dans l'ordre où ALX s'en sert.
 | Étape | Outil | État |
 |---|---|---|
 | Se balader dans la ville, repérer les commerces, qualifier un emplacement | Google Maps et Street View | clé à créer côté serveur, la variable existe dans `.env.example` |
-| Adresse vers propriétaire (parcelle, société, nom) | Data-B | connecteur existant, à étendre au module propriétaires |
+| Adresse vers propriétaire (parcelle, société, lots, gérants) | Data-B, module Data Foncier | branché : bâtiments autour de l'adresse, fiche du bâtiment, propriétaire du rez-de-chaussée retenu |
 | Société vers gérants, date de création, code APE | Annuaire des entreprises (État, gratuit, sans clé), puis recherche web | branché |
 | Loyer de marché dans la rue | Data-B et Equimmox | connecteurs existants |
 | Mutations, ce qui s'est vendu et quand | DVF | connecteur existant |
@@ -31,7 +31,7 @@ Rien de nouveau à installer côté données publiques, et rien de payant : Data
 
 **3. Les commerces.** Dans chaque rue retenue, ALX liste les locaux avec leur enseigne et leur activité, lus sur Street View, avec la date de la photo. Il écarte tout de suite les activités exclues et ce qui ne ressemble pas à un local achetable (surface manifestement trop petite, local vide, immeuble entier). L'équipe valide la liste en un coup d'œil.
 
-**4. Le propriétaire.** Pour chaque commerce retenu, ALX ouvre Data-B, tape l'adresse, et lit le propriétaire : nom de la société (par exemple SCI Tarte à Champion), parcelle, ce qui est affiché. Si le propriétaire est un particulier et que Data-B ne le donne pas, la cible reste en « propriétaire à trouver » et l'équipe décide si elle va demander au commerçant.
+**4. Le propriétaire.** Pour chaque commerce retenu, ALX interroge Data Foncier (Data-B) avec l'adresse : les bâtiments autour, la fiche du bon numéro, ses propriétaires lot par lot avec leur société et leurs gérants. Il retient le propriétaire du rez-de-chaussée (ou le seul propriétaire de l'immeuble), puis complète la société par l'annuaire de l'État et reclasse. Quand plusieurs se partagent le bas, ou qu'aucun lot du bas n'est publié, la liste est montrée et l'équipe retient en un clic. Les gérants ne sont gardés qu'avec une tranche d'âge, jamais l'âge exact que Data-B affiche.
 
 **5. La société et les gens.** ALX cherche la société dans l'annuaire des entreprises de l'État : date de création, gérants et leurs âges, autres sociétés des mêmes personnes, comptes déposés, événements récents. Il complète par une recherche web et LinkedIn pour mettre un visage et un parcours sur les noms. Il vérifie sur le BODACC s'il s'est passé quelque chose récemment (changement de gérant, transfert de siège, procédure). Il regarde sur DVF quand la parcelle a changé de mains pour la dernière fois et à quel prix.
 
@@ -61,7 +61,7 @@ Quatre pages :
 ## Ce qu'il faut construire
 
 - Trois entités : `Ville` (avec ses rues classées), `Cible`, `Approche` (chaque tentative, chaque réponse, chaque refus daté). Réservées à l'équipe par construction.
-- Le module propriétaires de Data-B dans le connecteur existant.
+- Le module propriétaires de Data-B : fait (server/alx/foncier.js).
 - Le connecteur de l'annuaire des entreprises (fait), et la recherche web par Claude.
 - La lecture des devantures et le classement des rues, par Claude, à partir de Street View.
 - Un petit moteur de classement en trois piles, avec ses seuils dans un fichier lisible et ses tests, comme le verdict de la préanalyse.

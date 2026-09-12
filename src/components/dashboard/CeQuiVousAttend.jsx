@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Check, Phone, X } from "lucide-react";
+import { Check, Phone, X } from "lucide-react";
 import { toast } from "sonner";
 import { prevenir } from "@/lib/notifications";
 
@@ -116,29 +116,40 @@ export default function CeQuiVousAttend({ limite = 12 }) {
               <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase" style={{ color: g.teinte }}>
                 {g.mot} <span className="text-bord-vif">· {dedans.length}</span>
               </p>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col">
                 {dedans.map((l) => {
                   const n = NATURES[l.source] || NATURES.rappel;
+                  // Une ligne, pas un encadré. La ligne entière mène au dossier
+                  // quand il y en a un : un bouton « Ouvrir » à côté d'un titre
+                  // déjà cliquable dit deux fois la même chose.
+                  const Ligne = l.lien && !l.cloturable ? Link : "div";
                   return (
-                    <div
+                    <Ligne
                       key={`${l.source}-${l.id}`}
-                      className="group flex items-start gap-3 rounded-xl border border-trait bg-surface px-4 py-3 hover:border-bord-doux transition-colors"
+                      {...(l.lien && !l.cloturable ? { to: l.lien } : {})}
+                      className={`group flex items-baseline gap-3 border-t border-trait py-2.5 ${
+                        l.lien && !l.cloturable ? "cursor-pointer" : ""
+                      }`}
                     >
-                      <span className="w-[2px] self-stretch rounded-full flex-none" style={{ background: g.teinte }} />
+                      <span
+                        className="mt-[6px] h-[5px] w-[5px] rounded-full flex-none"
+                        style={{ background: g.teinte }}
+                      />
 
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-[14px] leading-[1.45] text-encre">
+                        <p className="m-0 text-[14px] leading-[1.45] text-craie group-hover:text-encre transition-colors">
                           {l.titre}
                           {l.telephone && (
                             <a
                               href={`tel:${l.telephone}`}
+                              onClick={(e) => e.stopPropagation()}
                               className="ml-2 inline-flex items-center gap-1 text-[13px] text-menthe tabular-nums hover:underline"
                             >
                               <Phone className="w-3 h-3" /> {telLisible(l.telephone)}
                             </a>
                           )}
                         </p>
-                        <p className="m-0 mt-1 text-[12px] text-brume truncate">
+                        <p className="m-0 mt-0.5 text-[12px] text-brume truncate">
                           <span style={{ color: n.teinte }}>{n.mot}</span>
                           <span className="text-bord-vif"> · </span>
                           {quand(l.dans, l.echeance)}
@@ -151,34 +162,25 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                         </p>
                       </div>
 
-                      <div className="flex-none flex items-center gap-1.5">
-                        {l.cloturable ? (
-                          <>
-                            <button
-                              onClick={() => fait.mutate(l.id)}
-                              disabled={fait.isPending}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3 py-1 text-[12px] text-craie hover:text-encre hover:border-menthe transition-colors disabled:opacity-40"
-                            >
-                              <Check className="w-3 h-3" /> Fait
-                            </button>
-                            <button
-                              onClick={() => { if (window.confirm("Supprimer ce rappel ?")) supprimer.mutate(l.id); }}
-                              title="Supprimer"
-                              className="text-[#3f4644] hover:text-alerte transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : l.lien ? (
-                          <Link
-                            to={l.lien}
-                            className="inline-flex items-center gap-1 text-[12.5px] text-ardoise hover:text-menthe transition-colors"
+                      {l.cloturable && (
+                        <div className="flex-none flex items-center gap-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => fait.mutate(l.id)}
+                            disabled={fait.isPending}
+                            className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-menthe transition-colors disabled:opacity-40"
                           >
-                            Ouvrir <ArrowUpRight className="w-3.5 h-3.5" />
-                          </Link>
-                        ) : null}
-                      </div>
-                    </div>
+                            <Check className="w-3.5 h-3.5" /> Fait
+                          </button>
+                          <button
+                            onClick={() => { if (window.confirm("Supprimer ce rappel ?")) supprimer.mutate(l.id); }}
+                            title="Supprimer"
+                            className="text-brume hover:text-alerte transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </Ligne>
                   );
                 })}
               </div>

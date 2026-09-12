@@ -17,6 +17,7 @@ export function exporterTout() {
     version: 1,
     le: new Date().toISOString(),
     records: db.prepare('SELECT id, entity, data, created_date, updated_date, created_by FROM records').all(),
+    // Le fil de l'assistant flottant vit dans cette table : il voyage avec.
     conversations: db.prepare('SELECT id, agent_name, metadata, messages, created_date, updated_date, created_by FROM conversations').all(),
     meta: db.prepare('SELECT key, value FROM meta').all(),
   };
@@ -40,6 +41,6 @@ export function restaurerTout(dump) {
   });
   tout();
   const n = { records: dump.records.length, conversations: (dump.conversations || []).length, meta: (dump.meta || []).length };
-  console.log(`[sauvegarde] restauré : ${n.records} enregistrements, ${n.conversations} conversations, ${n.meta} clés`);
+  console.log(`[sauvegarde] restauré : ${n.records} enregistrements, ${n.conversations} conversation(s), ${n.meta} clés`);
   return n;
 }

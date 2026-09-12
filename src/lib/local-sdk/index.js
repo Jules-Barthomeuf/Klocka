@@ -1,6 +1,6 @@
 // Drop-in local replacement for `@base44/sdk`'s createClient().
 // Mirrors the base44 client surface the app uses (entities, auth, integrations,
-// functions, agents, appLogs) but talks to the local Express backend at /api.
+// functions, appLogs) but talks to the local Express backend at /api.
 //
 // Wired in via Vite alias (@base44/sdk -> this file), so the application source
 // keeps importing `createClient` from '@base44/sdk' unchanged.
@@ -267,41 +267,6 @@ class ErreurHttp extends Error {
   };
 
   // --- Agents ---
-  const agents = {
-    listConversations: (params = {}) =>
-      request('GET', `/api/agents/conversations${qs({ agent_name: params.agent_name })}`),
-    getConversation: (id) => request('GET', `/api/agents/conversations/${id}`),
-    createConversation: (params) => request('POST', '/api/agents/conversations', { body: params }),
-    deleteConversation: (id) => request('DELETE', `/api/agents/conversations/${id}`),
-    addMessage: (conversation, message) => {
-      const id = typeof conversation === 'string' ? conversation : conversation?.id;
-      return request('POST', `/api/agents/conversations/${id}/messages`, { body: message });
-    },
-    // Polling-based subscription: fetches the conversation and invokes cb on updates.
-    subscribeToConversation: (id, cb) => {
-      let stopped = false;
-      let lastLen = -1;
-      const poll = async () => {
-        if (stopped) return;
-        try {
-          const conv = await request('GET', `/api/agents/conversations/${id}`);
-          const msgs = conv?.messages || [];
-          if (msgs.length !== lastLen) {
-            lastLen = msgs.length;
-            cb({ messages: msgs });
-          }
-        } catch {
-          /* keep polling */
-        }
-      };
-      poll();
-      const interval = setInterval(poll, 900);
-      return () => {
-        stopped = true;
-        clearInterval(interval);
-      };
-    },
-  };
 
   // --- App logs (no-op locally) ---
   const appLogs = {
@@ -319,7 +284,6 @@ class ErreurHttp extends Error {
     auth,
     integrations: { Core },
     functions,
-    agents,
     appLogs,
     // Accès direct pour les endpoints hors surface Base44 (préanalyse, etc.).
     request,

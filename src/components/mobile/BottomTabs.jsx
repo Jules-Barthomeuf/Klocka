@@ -1,12 +1,11 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Building2, Brain, User } from "lucide-react";
+import { LayoutDashboard, Building2, User } from "lucide-react";
 
 const tabs = [
   { label: "Accueil", icon: LayoutDashboard, page: "Dashboard" },
   { label: "Projets", icon: Building2, page: "MesProjets" },
-  { label: "KlockAI", icon: Brain, page: "KlockAI" },
   { label: "Profil", icon: User, page: "MonCompte" },
 ];
 

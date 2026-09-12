@@ -53,35 +53,20 @@
 // télécharger en entier pour voir son tableau de bord.
 import { lazy } from 'react';
 
-const AdminAnalyse = lazy(() => import('./pages/AdminAnalyse'));
 const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminProjets = lazy(() => import('./pages/AdminProjets'));
 const AdminRessources = lazy(() => import('./pages/AdminRessources'));
 const AdminSignup = lazy(() => import('./pages/AdminSignup'));
 const AdminSuggestions = lazy(() => import('./pages/AdminSuggestions'));
 const BaseDonneesMarche = lazy(() => import('./pages/BaseDonneesMarche'));
-const CRM = lazy(() => import('./pages/CRM'));
-const CRMAgents = lazy(() => import('./pages/CRMAgents'));
-const CRMProprietes = lazy(() => import('./pages/CRMProprietes'));
-const CRMProspects = lazy(() => import('./pages/CRMProspects'));
-const CRMTransactions = lazy(() => import('./pages/CRMTransactions'));
 const Comparateur = lazy(() => import('./pages/Comparateur'));
-const Contacts = lazy(() => import('./pages/Contacts'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const ExportClients = lazy(() => import('./pages/ExportClients'));
-const ExportProjects = lazy(() => import('./pages/ExportProjects'));
 const Famille = lazy(() => import('./pages/Famille'));
 const Familles = lazy(() => import('./pages/Familles'));
 const Feedback = lazy(() => import('./pages/Feedback'));
 const Home = lazy(() => import('./pages/Home'));
-const KlockAI = lazy(() => import('./pages/KlockAI'));
-const Leads = lazy(() => import('./pages/Leads'));
-const MandataireClients = lazy(() => import('./pages/MandataireClients'));
-const MandataireOutils = lazy(() => import('./pages/MandataireOutils'));
-const MandataireRessources = lazy(() => import('./pages/MandataireRessources'));
 const MesProjets = lazy(() => import('./pages/MesProjets'));
 const MonCompte = lazy(() => import('./pages/MonCompte'));
-const ProjectAssistant = lazy(() => import('./pages/ProjectAssistant'));
 const ProjetDetail = lazy(() => import('./pages/ProjetDetail'));
 const Questionnaire = lazy(() => import('./pages/Questionnaire'));
 const Ressources = lazy(() => import('./pages/Ressources'));
@@ -92,35 +77,20 @@ import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "AdminAnalyse": AdminAnalyse,
     "AdminClients": AdminClients,
     "AdminProjets": AdminProjets,
     "AdminRessources": AdminRessources,
     "AdminSignup": AdminSignup,
     "AdminSuggestions": AdminSuggestions,
     "BaseDonneesMarche": BaseDonneesMarche,
-    "CRM": CRM,
-    "CRMAgents": CRMAgents,
-    "CRMProprietes": CRMProprietes,
-    "CRMProspects": CRMProspects,
-    "CRMTransactions": CRMTransactions,
     "Comparateur": Comparateur,
-    "Contacts": Contacts,
     "Dashboard": Dashboard,
-    "ExportClients": ExportClients,
-    "ExportProjects": ExportProjects,
     "Famille": Famille,
     "Familles": Familles,
     "Feedback": Feedback,
     "Home": Home,
-    "KlockAI": KlockAI,
-    "Leads": Leads,
-    "MandataireClients": MandataireClients,
-    "MandataireOutils": MandataireOutils,
-    "MandataireRessources": MandataireRessources,
     "MesProjets": MesProjets,
     "MonCompte": MonCompte,
-    "ProjectAssistant": ProjectAssistant,
     "ProjetDetail": ProjetDetail,
     "Questionnaire": Questionnaire,
     "Ressources": Ressources,

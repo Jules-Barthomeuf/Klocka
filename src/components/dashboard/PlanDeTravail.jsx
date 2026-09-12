@@ -30,27 +30,11 @@ export default function PlanDeTravail({ chat = null }) {
   const [salut] = useState(() => { const l = SALUTS(prenom ? prenom.charAt(0).toUpperCase() + prenom.slice(1) : "Jules", new Date().getHours()); return l[Math.floor(Math.random() * l.length)]; });
 
   const queryClient = useQueryClient();
-  const fichierSauvegardeRef = useRef(null);
 
   // Une proposition traitée se déclare : c'est ce qui permet de savoir, plus
   // tard, lesquelles servent à quelque chose et lesquelles personne ne touche.
 
   const { data: sante } = useQuery({ queryKey: ["sante"], queryFn: () => base44.request("GET", "/api/health"), staleTime: 60000 });
-  const restaurerSauvegarde = async (e) => {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    try {
-      const form = new FormData();
-      form.append("fichier", f);
-      const r = await base44.request("POST", "/api/admin/sauvegarde", { body: form, isForm: true });
-      toast.success("Sauvegarde restaurée", { description: `${r.records} enregistrements ramenés` });
-      setTimeout(() => window.location.reload(), 1200);
-    } catch (err) {
-      toast.error(err?.message || "Restauration impossible");
-    }
-  };
-
 
   const maintenant = new Date().toLocaleString("fr-FR", {
     weekday: "long",
@@ -64,7 +48,6 @@ export default function PlanDeTravail({ chat = null }) {
 
   return (
     <div>
-      <input ref={fichierSauvegardeRef} type="file" accept=".json" className="hidden" onChange={restaurerSauvegarde} />
       {/* --- En-tête --------------------------------------------------------- */}
       {/* On arrive sur une question, pas sur un tableau : le chat au centre,
           un halo menthe derrière, les gestes courants juste en dessous. */}
@@ -102,29 +85,6 @@ export default function PlanDeTravail({ chat = null }) {
 
       {/* Là où on en était : les derniers dossiers et projets ouverts. */}
       <ReprisePlace />
-
-      <div className={REGLE} />
-
-      {/* --- La base s'emporte : avant de déployer, on la télécharge ; après, on la ramène. --- */}
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <p className="m-0 text-[13.5px] text-[#6a7180]">
-          Sauvegarde de la base — emportez-la avant de déployer, ramenez-la après.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href="/api/admin/sauvegarde"
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-[#22262d] text-[10.5px] tracking-[.16em] uppercase text-[#c9cdd6] hover:border-[#3a3f4a] transition-colors"
-          >
-            Télécharger
-          </a>
-          <button
-            onClick={() => fichierSauvegardeRef.current?.click()}
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-[#22262d] text-[10.5px] tracking-[.16em] uppercase text-[#c9cdd6] hover:border-[#3a3f4a] transition-colors"
-          >
-            Restaurer
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

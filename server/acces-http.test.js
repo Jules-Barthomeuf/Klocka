@@ -162,6 +162,29 @@ test('le mot de passe ne sort jamais du serveur', async () => {
   for (const u of comptes) assert.equal(u.mot_de_passe, undefined, `${u.email} expose son empreinte`);
 });
 
+test('la sauvegarde de la base existe et n’est ouverte qu’à l’équipe', async () => {
+  // Elle était cassée : le module et l'écran existaient, aucune route ne les
+  // reliait. « Télécharger » renvoyait la page d'accueil de l'application.
+  const r = await appel('/api/admin/sauvegarde', 'JETON_ADMIN');
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get('content-disposition') || '', /attachment; filename="klocka-\d{4}-\d{2}-\d{2}\.json"/);
+  const dump = await r.json();
+  assert.equal(dump.format, 'klocka-sauvegarde');
+  assert.ok(Array.isArray(dump.records) && dump.records.length > 0);
+
+  assert.equal((await appel('/api/admin/sauvegarde', 'JETON_CLIENT')).status, 403);
+  assert.equal((await appel('/api/admin/sauvegarde')).status, 401);
+});
+
+test('les surfaces supprimées ne répondent plus', async () => {
+  // Agents conversationnels (KlockAI, ProjectAssistant) et import d'un export
+  // Base44 : retirés. Ces routes ne doivent pas revenir par mégarde.
+  for (const chemin of ['/api/agents/conversations', '/api/admin/import-utilisateurs', '/api/admin/import-projets']) {
+    const r = await appel(chemin, 'JETON_ADMIN');
+    assert.notEqual(r.status, 200, `${chemin} ne devrait plus exister`);
+  }
+});
+
 test('un client ne voit que son propre compte', async () => {
   const vus = await (await appel('/api/entities/User', 'JETON_CLIENT')).json();
   assert.deepEqual(vus.map((u) => u.email), ['client@test.local']);

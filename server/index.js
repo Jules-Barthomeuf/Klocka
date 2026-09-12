@@ -5,7 +5,6 @@
 //   /api/entities/...      generic CRUD over all Base44 entities
 //   /api/integrations/...  InvokeLLM, UploadFile, SendEmail, etc.
 //   /api/functions/:name   ported Base44 backend functions
-//   /api/agents/...        conversational agents
 //   /uploads/...           locally stored uploaded files
 
 import 'dotenv/config';
@@ -45,7 +44,6 @@ import {
   renommerDossier, supprimerDocument, reclasserDocument, TYPES,
 } from './assistant/index.js';
 import { callFunction } from './functions.js';
-import { Agents } from './agents.js';
 import { lireArticle } from './lecture.js';
 import { verdictAcces, visiblePar, filtrerListe } from './acces-entites.js';
 
@@ -699,7 +697,7 @@ app.use((req, res, next) => {
   // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
   // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro|projets|projects)\b/.test(
+    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro|projets|projects)\b/.test(
       req.path
     )
   ) {
@@ -733,38 +731,7 @@ app.use((req, res, next) => {
 // Administration
 // ---------------------------------------------------------------------------
 
-// Import d'utilisateurs depuis un export Base44 (page Admin Clients).
-// Idempotent : les adresses déjà en base ne sont pas touchées.
-app.post('/api/admin/import-utilisateurs', wrap(async (req, res) => {
-  const user = currentUser(req);
-  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const { importerUtilisateurs } = await import('./utilisateurs-import.js');
-  const r = importerUtilisateurs(req.body?.utilisateurs, { par: user.email });
-  if (r.error) return res.status(400).json(r);
-  console.log(
-    `[admin] import utilisateurs par ${user.email} : ${r.crees.length} créés, ${r.existants.length} existants, ${r.invalides.length} invalides`
-  );
-  ok(res, r);
-}));
 
-// Import de projets depuis un export JSON (page Import Projets). Accepte le
-// format de la page Export Projets ({ projects: [...] }) ou un tableau brut.
-// Idempotent : les projets dont l'id existe déjà sont mis à jour.
-app.post('/api/admin/import-projets', wrap(async (req, res) => {
-  const user = currentUser(req);
-  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
-  const { importerProjets } = await import('./projets-import.js');
-  const corps = req.body || {};
-  const liste = Array.isArray(corps.projets) ? corps.projets
-    : Array.isArray(corps.projets?.projects) ? corps.projets.projects
-    : corps.projets;
-  const r = importerProjets(liste, { par: user.email });
-  if (r.error) return res.status(400).json(r);
-  console.log(
-    `[admin] import projets par ${user.email} : ${r.crees} créés, ${r.maj} mis à jour, ${r.invalides} invalides`
-  );
-  ok(res, r);
-}));
 
 // Présentation de financement d'un projet (page Présentations) : PPTX généré
 // depuis les données du projet, converti en Google Slides quand un compte
@@ -2739,6 +2706,39 @@ app.delete('/api/alexis/dossiers/:id/documents/:docId', wrap((req, res) => {
 }));
 
 // ---------------------------------------------------------------------------
+// Sauvegarde de la base
+//
+// Le module existait et l'écran appelait, mais aucune route ne les reliait :
+// « Télécharger » renvoyait la page d'accueil, « Restaurer » échouait. Chez un
+// hébergeur sans disque persistant, c'est la seule protection contre la perte
+// totale au prochain déploiement.
+// ---------------------------------------------------------------------------
+app.get('/api/admin/sauvegarde', wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { exporterTout } = await import('./sauvegarde.js');
+  const jour = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="klocka-${jour}.json"`);
+  res.send(JSON.stringify(exporterTout()));
+}));
+
+app.post('/api/admin/sauvegarde', upload.single('fichier'), wrap(async (req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu.' });
+  const { restaurerTout } = await import('./sauvegarde.js');
+  let dump;
+  try {
+    dump = JSON.parse(fs.readFileSync(req.file.path, 'utf-8'));
+  } catch {
+    return res.status(400).json({ error: "Ce fichier n'est pas lisible." });
+  } finally {
+    // Le dépôt ne sert qu'à lire : il ne reste pas sur le disque.
+    try { fs.unlinkSync(req.file.path); } catch { /* déjà parti */ }
+  }
+  ok(res, restaurerTout(dump));
+}));
+
+// ---------------------------------------------------------------------------
 // Functions
 // ---------------------------------------------------------------------------
 app.post('/api/functions/:name', wrap(async (req, res) => {
@@ -2746,28 +2746,6 @@ app.post('/api/functions/:name', wrap(async (req, res) => {
   // `base` porte l'adresse publique telle que le navigateur la voit : les mails
   // partis d'ici contiennent des liens cliquables, même sans APP_URL.
   ok(res, await callFunction(req.params.name, req.body || {}, { user, base: urlPublique(req) }));
-}));
-
-// ---------------------------------------------------------------------------
-// Agents
-// ---------------------------------------------------------------------------
-app.get('/api/agents/conversations', wrap((req, res) => {
-  ok(res, Agents.listConversations({ agent_name: req.query.agent_name }));
-}));
-app.post('/api/agents/conversations', wrap((req, res) => {
-  ok(res, Agents.createConversation(req.body || {}));
-}));
-app.get('/api/agents/conversations/:id', wrap((req, res) => {
-  const c = Agents.getConversation(req.params.id);
-  if (!c) return res.status(404).json({ error: 'Not found' });
-  ok(res, c);
-}));
-app.delete('/api/agents/conversations/:id', wrap((req, res) => {
-  ok(res, Agents.deleteConversation(req.params.id));
-}));
-app.post('/api/agents/conversations/:id/messages', wrap(async (req, res) => {
-  const user = currentUser(req);
-  ok(res, await Agents.addMessage(req.params.id, req.body || {}, user));
 }));
 
 // ---------------------------------------------------------------------------

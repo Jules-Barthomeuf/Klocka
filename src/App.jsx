@@ -28,22 +28,16 @@ const Alexis = lazy(() => import('@/pages/Alexis'));
 const PAGES_CLIENT = new Set([
   'Home', 'Dashboard', 'Questionnaire', 'MesProjets', 'ProjetDetail',
   'SimulateurRentabilite', 'TableauProjection', 'Ressources', 'Vision', 'Comparateur',
-  'KlockAI', 'MonCompte', 'Feedback', 'Famille', 'Familles',
+  'MonCompte', 'Feedback', 'Famille', 'Familles',
 ]);
 const PAGES_CLIENT_MIN = new Set([...PAGES_CLIENT].map((p) => p.toLowerCase()));
 const Portail2Fois = lazy(() => import('@/pages/Portail2Fois'));
 const SimulateurPublic = lazy(() => import('@/pages/SimulateurPublic'));
 const ProjetPublic = lazy(() => import('@/pages/ProjetPublic'));
-const Recherche = lazy(() => import('@/pages/Recherche'));
-const Investisseurs = lazy(() => import('@/pages/Investisseurs'));
-const AdminNotes = lazy(() => import('@/pages/AdminNotes'));
 const Analyse = lazy(() => import('@/pages/Analyse'));
 const Monitoring = lazy(() => import('@/pages/Monitoring'));
 const CoutsIA = lazy(() => import('@/pages/CoutsIA'));
-const AssistantExterne = lazy(() => import('@/pages/AssistantExterne'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
-const ImportProjects = lazy(() => import('@/pages/ImportProjects'));
-const ImportClients = lazy(() => import('@/pages/ImportClients'));
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -175,9 +169,6 @@ const AuthenticatedApp = () => {
       <Route path="/Portail2Fois" element={<Portail2Fois />} />
       <Route path="/SimulateurPublic" element={<SimulateurPublic />} />
       <Route path="/ProjetPublic" element={<ProjetPublic />} />
-      <Route path="/Recherche" element={<LayoutWrapper currentPageName="Recherche"><Recherche /></LayoutWrapper>} />
-      <Route path="/Investisseurs" element={<LayoutWrapper currentPageName="Investisseurs"><Investisseurs /></LayoutWrapper>} />
-      <Route path="/AdminNotes" element={<LayoutWrapper currentPageName="AdminNotes"><AdminNotes /></LayoutWrapper>} />
       <Route path="/Analyse" element={<LayoutWrapper currentPageName="Analyse"><Analyse /></LayoutWrapper>} />
       <Route path="/Monitoring" element={<LayoutWrapper currentPageName="Monitoring"><Monitoring /></LayoutWrapper>} />
       <Route path="/CoutsIA" element={<LayoutWrapper currentPageName="CoutsIA"><CoutsIA /></LayoutWrapper>} />
@@ -185,10 +176,7 @@ const AuthenticatedApp = () => {
       <Route path="/Preanalyse" element={<RedirectionAnalyse />} />
       {/* La page secrète. L'ancienne redirection vers Analyse cède la place. */}
       <Route path="/Alexis" element={<LayoutWrapper currentPageName="Alexis"><Alexis /></LayoutWrapper>} />
-      <Route path="/AssistantExterne" element={<LayoutWrapper currentPageName="AssistantExterne"><AssistantExterne /></LayoutWrapper>} />
       <Route path="/AdminPresentations" element={<LayoutWrapper currentPageName="AdminPresentations"><AdminPresentations /></LayoutWrapper>} />
-      <Route path="/ImportProjects" element={<LayoutWrapper currentPageName="ImportProjects"><ImportProjects /></LayoutWrapper>} />
-      <Route path="/ImportClients" element={<LayoutWrapper currentPageName="ImportClients"><ImportClients /></LayoutWrapper>} />
 
       <Route path="*" element={<PageNotFound />} />
     </Routes>

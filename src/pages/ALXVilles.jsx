@@ -5,11 +5,16 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "sonner";
 import { X } from "lucide-react";
-import { EnTeteAlx, Bouton, Champ } from "@/components/alx/alx-commun";
+import { EnTeteAlx, Carte, Bouton, Champ } from "@/components/alx/alx-commun";
 
-// Les villes et leurs rues. On donne une ville ; les rues se classent en
+// Les villes et leurs rues. On donne une ville ; ses rues se classent en
 // emplacement 1 (solide, 700 000 à 1 000 000) ou 2 (petit budget, 300 000 à
 // 500 000), par ALX quand Street View sera branché, à la main en attendant.
+
+const EMPLACEMENTS = [
+  { classe: 1, teinte: "var(--k-menthe)", fourchette: "700 000 – 1 000 000 €" },
+  { classe: 2, teinte: "#7896EB", fourchette: "300 000 – 500 000 €" },
+];
 
 export default function ALXVilles() {
   const user = useUser();
@@ -44,8 +49,8 @@ export default function ALXVilles() {
 
   return (
     <div className="bg-fond min-h-screen text-encre">
-      <div className="max-w-[1180px] mx-auto px-4 md:px-8 py-8 md:py-10">
-        <EnTeteAlx titre="Villes" sous="Une ville en entrée. Ses rues se classent en emplacement 1, le solide, ou 2, pour les budgets plus petits. Chaque rue porte un mot qui dit pourquoi." />
+      <div className="max-w-[1440px] mx-auto px-7 pt-7 pb-20">
+        <EnTeteAlx titre="Villes" sous="Une ville en entrée. Ses rues se classent en emplacement 1, le solide, ou 2, pour les budgets plus petits." />
 
         <form
           onSubmit={(e) => { e.preventDefault(); if (nom.trim()) creer.mutate(); }}
@@ -63,64 +68,64 @@ export default function ALXVilles() {
             <section key={v.id}>
               <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
                 <div>
-                  <h2 className="m-0 text-[20px] font-light text-encre">
-                    {v.nom} {v.code_postal && <span className="text-brume text-[14px]">· {v.code_postal}</span>}
+                  <h2 className="m-0 text-[20px] font-semibold tracking-[-.01em] text-encre">
+                    {v.nom} {v.code_postal && <span className="text-brume text-[14px] font-normal">· {v.code_postal}</span>}
                   </h2>
                   <p className="m-0 mt-1 text-[12.5px] text-ardoise">
                     {v.cibles?.total || 0} cible{(v.cibles?.total || 0) > 1 ? "s" : ""}
-                    {v.cibles?.appeler > 0 && <span className="text-alerte"> · {v.cibles.appeler} à appeler</span>}
-                    {v.cibles?.ecrire > 0 && <span className="text-ambre"> · {v.cibles.ecrire} à écrire</span>}
-                    {" · "}
-                    <Link to={`/ALX`} className="text-menthe hover:underline">voir les cibles</Link>
+                    {v.cibles?.appeler > 0 && <span style={{ color: "#E8B278" }}> · {v.cibles.appeler} à appeler</span>}
+                    {v.cibles?.ecrire > 0 && <span style={{ color: "#7896EB" }}> · {v.cibles.ecrire} à écrire</span>}
                   </p>
                 </div>
-                <button
-                  onClick={() => { if (window.confirm(`Retirer ${v.nom} et toutes ses cibles ?`)) supprimer.mutate(v.id); }}
-                  className="text-[11px] tracking-[.14em] uppercase text-brume hover:text-alerte transition-colors"
-                >
-                  Retirer
-                </button>
+                <div className="flex items-center gap-4">
+                  <Link to={`/ALX?ville=${v.id}`} className="text-[13px] text-menthe hover:text-menthe-clair">Ouvrir dans Cibles →</Link>
+                  <button
+                    onClick={() => { if (window.confirm(`Retirer ${v.nom} et toutes ses cibles ?`)) supprimer.mutate(v.id); }}
+                    className="text-[11px] tracking-[.14em] uppercase text-brume hover:text-alerte transition-colors"
+                  >
+                    Retirer
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-                {[1, 2].map((classe) => {
-                  const rues = (v.rues || []).filter((r) => r.classe === classe);
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {EMPLACEMENTS.map((e) => {
+                  const rues = (v.rues || []).filter((r) => r.classe === e.classe);
                   return (
-                    <div key={classe}>
-                      <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase text-brume">
-                        Emplacement {classe} <span className="text-bord-vif">· {classe === 1 ? "700 000 à 1 000 000" : "300 000 à 500 000"}</span>
-                      </p>
+                    <Carte key={e.classe} className="flex flex-col gap-[18px] !p-6">
+                      <div className="flex items-baseline justify-between">
+                        <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: e.teinte }}>Emplacement {e.classe}</div>
+                        <div className="text-[12px] text-brume">{e.fourchette}</div>
+                      </div>
                       <div className="flex flex-col">
                         {rues.map((r) => (
-                          <div key={r.nom} className="group flex items-baseline gap-3 py-2 border-t border-trait">
-                            <span className="text-[14px] text-craie flex-1 min-w-0 truncate">{r.nom}</span>
-                            {r.motif && <span className="text-[12px] text-brume truncate max-w-[40%]">{r.motif}</span>}
+                          <div key={r.nom} className="group grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center py-3 border-t border-white/[0.05] first:border-t-0">
+                            <div className="min-w-0">
+                              <div className="text-[14px] text-craie truncate">{r.nom}</div>
+                              {r.motif && <div className="text-[12px] text-brume truncate">{r.motif}</div>}
+                            </div>
+                            <span className="text-[12px] text-ardoise text-right">{v.cibles_par_rue?.[r.nom] || 0} cible{(v.cibles_par_rue?.[r.nom] || 0) > 1 ? "s" : ""}</span>
                             <button onClick={() => retirer.mutate({ id: v.id, nom: r.nom })} className="opacity-0 group-hover:opacity-100 text-brume hover:text-alerte transition-opacity" title="Retirer">
                               <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ))}
-                        {rues.length === 0 && <p className="m-0 py-2 text-[12.5px] text-brume border-t border-trait">Aucune rue.</p>}
+                        {rues.length === 0 && <p className="m-0 py-3 text-[12.5px] text-brume border-t border-white/[0.05]">Aucune rue.</p>}
                       </div>
-                    </div>
+                      <form
+                        onSubmit={(ev) => { ev.preventDefault(); const n = (rue[`${v.id}-${e.classe}`] || "").trim(); if (n) classer.mutate({ id: v.id, nom: n, classe: e.classe }); }}
+                        className="flex gap-2.5"
+                      >
+                        <Champ value={rue[`${v.id}-${e.classe}`] || ""} onChange={(x) => setRue((r) => ({ ...r, [`${v.id}-${e.classe}`]: x }))} placeholder="Nom de la rue" className="flex-1" />
+                        <Bouton type="submit" disabled={!(rue[`${v.id}-${e.classe}`] || "").trim()}>Classer</Bouton>
+                      </form>
+                    </Carte>
                   );
                 })}
               </div>
-
-              <form
-                onSubmit={(e) => { e.preventDefault(); const n = (rue[v.id] || "").trim(); if (n) classer.mutate({ id: v.id, nom: n, classe: Number(rue[`${v.id}-classe`] || 1) }); }}
-                className="mt-4 flex flex-wrap items-end gap-3"
-              >
-                <Champ label="Ajouter une rue" value={rue[v.id] || ""} onChange={(x) => setRue((r) => ({ ...r, [v.id]: x }))} placeholder="Avenue Marceau" className="flex-1 min-w-[220px]" />
-                <label className="block w-[150px]">
-                  <span className="block text-[10.5px] tracking-[.18em] uppercase text-brume mb-1.5">Emplacement</span>
-                  <select value={rue[`${v.id}-classe`] || 1} onChange={(e) => setRue((r) => ({ ...r, [`${v.id}-classe`]: e.target.value }))} className="w-full bg-transparent border-b border-bord py-2 text-[14px] text-encre outline-none focus:border-menthe">
-                    <option value={1}>1 · solide</option>
-                    <option value={2}>2 · petit budget</option>
-                  </select>
-                </label>
-                <Bouton type="submit" disabled={!(rue[v.id] || "").trim()}>Classer</Bouton>
-              </form>
+              {(v.rues || []).length > 0 && (
+                <p className="m-0 mt-3 text-[12px] text-brume">Classement proposé par ALX quand Street View est branché, corrigé à la main en attendant.</p>
+              )}
             </section>
           ))}
         </div>

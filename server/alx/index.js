@@ -18,11 +18,16 @@ import { categoriserActivite } from '../deal/enrich.js';
 const maintenant = () => new Date().toISOString();
 
 /** Ce qui est branché, pour que l'écran dise quoi attendre plutôt que d'échouer. */
-export function etatDesOutils() {
+export async function etatDesOutils() {
+  const { clientsConfigure, clientsActifs } = await import('./clients.js');
+  const monday = clientsConfigure();
   return {
     street_view: !!(process.env.GOOGLE_MAPS_SERVEUR || '').trim(),
     data_b: !!(process.env.DATAB_EMAIL || '').trim(),
-    monday: !!(process.env.MONDAY_TOKEN || '').trim(),
+    monday,
+    // Combien de clients actifs on cherche pour, dès l'état : c'est la
+    // première chose qu'on veut voir en ouvrant ALX.
+    clients_actifs: monday ? (await clientsActifs()).length : null,
     modele: !!((process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY || '').trim()),
   };
 }
@@ -35,7 +40,17 @@ export function listerVilles() {
   return Records.list('Ville', { sort: '-created_date' }).map((v) => ({
     ...v,
     cibles: compterParPile(v.id),
+    // Combien de cibles par rue, pour l'afficher sans un aller-retour de plus.
+    cibles_par_rue: comptesParRue(v.id),
   }));
+}
+
+function comptesParRue(villeId) {
+  const out = {};
+  for (const c of Records.filter('Cible', { ville_id: villeId })) {
+    if (c.rue) out[c.rue] = (out[c.rue] || 0) + 1;
+  }
+  return out;
 }
 
 export function obtenirVille(id) {
@@ -329,9 +344,20 @@ export function bilan() {
     }
     return Object.entries(out).map(([k, v]) => ({ cle: k, ...v })).sort((a, b) => b.total - a.total);
   };
+  const delais = approches
+    .filter((a) => a.reponse_le)
+    .map((a) => Math.round((new Date(a.reponse_le) - new Date(a.le)) / 86400000))
+    .sort((x, y) => x - y);
+  const delaiMedian = delais.length ? delais[Math.floor(delais.length / 2)] : null;
+
   return {
     cibles: { total: cibles.length, par_pile: Object.fromEntries(PILES.map((p) => [p, cibles.filter((c) => c.pile === p).length])), en_dossier: cibles.filter((c) => c.deal_id).length },
-    approches: { total: approches.length, reponses: approches.filter((a) => a.reponse_le).length, oui: approches.filter((a) => a.issue === 'oui').length },
+    approches: {
+      total: approches.length,
+      reponses: approches.filter((a) => a.reponse_le).length,
+      oui: approches.filter((a) => a.issue === 'oui').length,
+      delai_median_jours: delaiMedian,
+    },
     par_canal: groupe(approches, (a) => a.canal),
     par_rue: groupe(approches, (a) => parCible[a.cible_id]?.rue),
     par_signal: groupe(approches, (a) => parCible[a.cible_id]?.signaux?.forts?.[0]?.cle || parCible[a.cible_id]?.signaux?.patients?.[0]?.cle),

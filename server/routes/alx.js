@@ -17,7 +17,13 @@ const erreur = (res, e, statut = 400) => res.status(statut).json({ error: String
 
 /** Monte les routes « alx » sur l'application. */
 export function monterAlx(app) {
-  app.get('/api/alx/etat', wrap((req, res) => ok(res, { outils: etatDesOutils(), piles: PILES, libelles: LIBELLES_PILES, regles_version: REGLES.version, a_faire: aFaire() })));
+  app.get('/api/alx/etat', wrap(async (req, res) => ok(res, { outils: await etatDesOutils(), piles: PILES, libelles: LIBELLES_PILES, regles_version: REGLES.version, a_faire: aFaire() })));
+
+  // Les clients actifs de Monday, et ceux qu'une fourchette de prix concerne.
+  app.get('/api/alx/clients', wrap(async (req, res) => {
+    const { clientsActifs, fourchetteBudgets } = await import('../alx/clients.js');
+    ok(res, { clients: await clientsActifs(), fourchette: await fourchetteBudgets() });
+  }));
 
   // --- Villes ---------------------------------------------------------------
   app.get('/api/alx/villes', wrap((req, res) => ok(res, listerVilles())));
@@ -161,6 +167,16 @@ export function monterAlx(app) {
     const loyer = rue.basse != null && rue.haute != null ? (rue.basse + rue.haute) / 2 : null;
     const v = { ...(c.valorisation || {}), loyer_m2_marche: loyer, loyer_fourchette: [rue.basse ?? null, rue.haute ?? null], loyer_source: 'Data-B, rue', valeur_locative: r.resultat };
     ok(res, mettreAJourCible(c.id, { valorisation: v }, currentUser(req)));
+  }));
+
+  // Qui, parmi les clients actifs, cette fourchette concernerait.
+  app.get('/api/alx/cibles/:id/clients', wrap(async (req, res) => {
+    const c = Records.get('Cible', req.params.id);
+    if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
+    const f = c.valorisation?.fourchette;
+    if (!f) return ok(res, { clients: [], attente: 'Calculez la fourchette de prix d’abord.' });
+    const { clientsPourFourchette } = await import('../alx/clients.js');
+    ok(res, { clients: await clientsPourFourchette(f) });
   }));
 
   // La fourchette de prix : loyer × surface ÷ rendement, croisée avec DVF.

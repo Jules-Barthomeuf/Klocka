@@ -332,7 +332,7 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'simuler_dossier') {
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     const lot = deal.lots?.[0];
     if (!lot?.simulateur?.loyerInitialHTHC) {
@@ -351,7 +351,7 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'preparer_mail') {
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     const lot = deal.lots?.[0];
     if (!lot) return { erreur: 'Aucun lot analysé sur ce dossier' };
@@ -376,7 +376,7 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'extraire_documents') {
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     const aFaire = (deal.documents_espace || []).map((d) => d.id);
     if (!aFaire.length) return { erreur: 'Aucun document au dossier' };
@@ -415,7 +415,7 @@ export async function executerOutil({ name, input }, user) {
       if (!projet) return { erreur: 'Projet introuvable' };
       return verifierProjet(projet);
     }
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     return verifierDossier(deal);
   }
@@ -432,7 +432,7 @@ export async function executerOutil({ name, input }, user) {
     };
 
     if (input.deal_id) {
-      const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+      const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
       if (!deal) return { erreur: 'Dossier introuvable' };
       if (!deal.contact_agent_email && !agent.email) {
         return { erreur: "Ce dossier n'a pas d'adresse d'agent : donnez-la directement." };
@@ -489,7 +489,7 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'interroger_documents') {
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     const { questionnerDocuments } = await import('./deal/espace.js');
     const r = await questionnerDocuments(input.deal_id, { question: input.question, uploadDir: UPLOAD_DIR });
@@ -563,7 +563,7 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'creer_drive_dossier') {
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     if (deal.drive_folder_url) {
       return { deja_cree: true, url: deal.drive_folder_url, titre: titreDeal(deal) };
@@ -589,7 +589,7 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'etat_dossier') {
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     const { documentsManquants } = await import('./deal/propositions.js');
     const { etapeMax, ETAPES } = await import('./deal/etapes.js');
@@ -678,7 +678,7 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'pousser_dossier_monday') {
-    const deal = Records.filter('Deal', { deal_id: input.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     const { pousserBien } = await import('./deal/monday-sync.js');
     const r = await pousserBien(deal, { motif: input.motif, par: user });
@@ -747,7 +747,7 @@ export async function executerOutil({ name, input }, user) {
     let monday = null;
     try {
       const { pousserBien } = await import('./deal/monday-sync.js');
-      monday = await pousserBien(Records.filter('Deal', { deal_id: dossier.deal_id })[0], {
+      monday = await pousserBien(Records.findBy('Deal', 'deal_id', dossier.deal_id), {
         motif: `Entendu au téléphone par ${user?.full_name || user?.email || 'un admin'}`,
         par: user,
       });

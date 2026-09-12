@@ -126,7 +126,7 @@ export async function analyserFiche(entree, ctx = {}) {
 
   // Un dossier créé nommé (coquille) peut être rempli par l'analyse : on
   // conserve son identité — nom, responsables, étapes, journal, création.
-  const coquille = ctx.dealId ? Records.filter('Deal', { deal_id: ctx.dealId })[0] : null;
+  const coquille = ctx.dealId ? Records.findBy('Deal', 'deal_id', ctx.dealId) : null;
   if (coquille) {
     dossier.deal_id = coquille.deal_id;
     dossier.nom = coquille.nom || null;
@@ -164,7 +164,7 @@ async function completerContexteMarche(dossier) {
     );
     if (!contextes.some(Boolean)) return;
 
-    const actuel = Records.filter('Deal', { deal_id: dossier.deal_id })[0];
+    const actuel = Records.findBy('Deal', 'deal_id', dossier.deal_id);
     if (!actuel) return;
     const lots = (actuel.lots || []).map((l, i) =>
       l.contexte_marche ? l : { ...l, contexte_marche: contextes[i] || null }
@@ -223,7 +223,7 @@ function lireValeur(champ, brut) {
 }
 
 export async function reevaluerLot(dealId, indexLot, saisie = {}) {
-  const dossier = Records.filter('Deal', { deal_id: dealId })[0];
+  const dossier = Records.findBy('Deal', 'deal_id', dealId);
   if (!dossier) return { error: 'Dossier introuvable' };
   // Deal de test : réévaluation hors ligne (enrichissement stocké réutilisé).
   if (dossier.test) {
@@ -344,7 +344,7 @@ export function listerDossiers(limit = 50) {
 }
 
 export function obtenirDossier(dealId) {
-  const deal = Records.filter('Deal', { deal_id: dealId })[0] || null;
+  const deal = Records.findBy('Deal', 'deal_id', dealId) || null;
   // L'étape atteinte accompagne toujours le dossier : le front ne la recalcule pas.
   // Le titre est calculé ici comme dans la liste : une seule façon de nommer
   // un dossier, quelle que soit la page qui l'affiche.
@@ -417,7 +417,7 @@ export function creerCoquille({ nom, responsables = [], user = null, contact_age
  * loyer, surface) restent ceux du lot ; ici on garde les hypothèses jouées.
  */
 export async function enregistrerSimulateur(dealId, indexLot, parametres = {}, user) {
-  const dossier = Records.filter('Deal', { deal_id: dealId })[0];
+  const dossier = Records.findBy('Deal', 'deal_id', dealId);
   if (!dossier) return { error: 'Dossier introuvable' };
   const entree = dossier.lots?.[indexLot];
   if (!entree) return { error: 'Lot introuvable' };
@@ -468,7 +468,7 @@ export async function enregistrerSimulateur(dealId, indexLot, parametres = {}, u
  * le verdict, elle dit où en est la relecture humaine.
  */
 export function verifierCritere(dealId, indexLot, cle, statut, user) {
-  const dossier = Records.filter('Deal', { deal_id: dealId })[0];
+  const dossier = Records.findBy('Deal', 'deal_id', dealId);
   if (!dossier) return { error: 'Dossier introuvable' };
   const entree = dossier.lots?.[indexLot];
   if (!entree) return { error: 'Lot introuvable' };

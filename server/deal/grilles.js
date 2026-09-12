@@ -167,7 +167,7 @@ function empreinte(m, brut, id, parChamp) {
 export async function formaterGrille(dealId, id, { user, force = false } = {}) {
   const grille = GRILLES[id];
   if (!grille) return null;
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return null;
   const m = lireMatrice(dealId);
   const f = lireFiche(dealId);
@@ -282,7 +282,7 @@ function texteDe(id, cid, x) {
 export async function lireGrilleFormatee(dealId, id, { user, force = false } = {}) {
   const grille = GRILLES[id];
   if (!grille) return null;
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return null;
   const m = lireMatrice(dealId);
   const f = lireFiche(dealId);
@@ -352,7 +352,7 @@ export function colonnesNonLues(dealId) {
 
 /** Le statut décidé à la main sur un critère : ok, a_verifier, no_go, ou rien (retour au calcul). */
 export function deciderStatut(dealId, grilleId, critereId, statut, user) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   if (statut && !['ok', 'a_checker', 'a_verifier', 'no_go'].includes(statut)) return { ok: false, error: 'Statut inconnu' };
   const cle = `${grilleId}.${critereId}`;
@@ -365,7 +365,7 @@ export function deciderStatut(dealId, grilleId, critereId, statut, user) {
 
 /** La valeur corrigée à la main d'un critère ; vide pour revenir à la valeur lue. */
 export function corrigerValeur(dealId, grilleId, critereId, valeur, user) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const cle = `${grilleId}.${critereId}`;
   const valeurs = { ...(brut.grilles_valeurs || {}) };
@@ -378,7 +378,7 @@ export function corrigerValeur(dealId, grilleId, critereId, valeur, user) {
 
 /** La note libre d'un critère : un commentaire d'analyste, vide pour l'effacer. */
 export function noterCritere(dealId, grilleId, critereId, texte, user) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const cle = `${grilleId}.${critereId}`;
   const notes = { ...(brut.grilles_notes || {}) };

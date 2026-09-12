@@ -16,7 +16,7 @@ import { vueRedacteur } from './redact.js';
 import { ETAPES, etapeMax } from './etapes.js';
 import { grilleDe, typeDepuisCategorie, categorieDepuisNom, STATUTS_LIGNE, BLOCS_PV_AG } from './grille.js';
 
-const brutDe = (dealId) => Records.filter('Deal', { deal_id: dealId })[0] || null;
+const brutDe = (dealId) => Records.findBy('Deal', 'deal_id', dealId) || null;
 
 // ---------------------------------------------------------------------------
 // Documents

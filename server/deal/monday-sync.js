@@ -271,7 +271,7 @@ export async function pousserProjet(projet, { motif, par = null } = {}) {
 
   // Le dossier d'origine peut avoir déjà posé l'élément : on le réutilise
   // plutôt que d'en créer un second pour le même bien.
-  const deal = projet.deal_id ? Records.filter('Deal', { deal_id: projet.deal_id })[0] : null;
+  const deal = projet.deal_id ? Records.findBy('Deal', 'deal_id', projet.deal_id) : null;
   const itemId = projet.monday_item_id || deal?.monday_item_id || null;
 
   const r = await poserElement(TABLEAUX.proprietes, { nom, colonnes, itemId, recreerSiInactif: !!par });

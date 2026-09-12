@@ -40,7 +40,7 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
   const vide = { deposes: [], ignorees: 0, erreurs: [], echecs: [] };
   if (!mail?.deal_id || mail.pieces_ingerees) return vide;
 
-  const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
+  const deal = Records.findBy('Deal', 'deal_id', mail.deal_id);
   if (!deal) return vide;
 
   const candidates = (mail.pieces_jointes || []).filter(
@@ -86,7 +86,7 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
   if (nouveaux.length) {
     enfiler(mail.deal_id, nouveaux, { uploadDir, user });
     ajouterSuivi(
-      Records.filter('Deal', { deal_id: mail.deal_id })[0],
+      Records.findBy('Deal', 'deal_id', mail.deal_id),
       {
         type: 'documents_recus',
         detail: `${deposes.length} pièce(s) jointe(s) récupérée(s) depuis le mail de ${mail.de_email} : ${deposes.join(', ')}`,
@@ -166,7 +166,7 @@ async function ranger(mail, deposes, user) {
   let drive = null;
   let monday = null;
 
-  const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
+  const deal = Records.findBy('Deal', 'deal_id', mail.deal_id);
   if (!deal) return { drive, monday, erreurs, echecs };
 
   const titreDeal = deal.nom || deal.lots?.[0]?.synthese?.titre || deal.deal_id;
@@ -192,7 +192,7 @@ async function ranger(mail, deposes, user) {
   // --- Monday --------------------------------------------------------------
   try {
     const { pousserBien } = await import('./monday-sync.js');
-    const r = await pousserBien(Records.filter('Deal', { deal_id: mail.deal_id })[0], {
+    const r = await pousserBien(Records.findBy('Deal', 'deal_id', mail.deal_id), {
       motif: `Documents reçus de ${mail.de_email} : ${deposes.join(', ')}`,
     });
     if (!r?.ignore) monday = { id: r?.id, cree: r?.cree };
@@ -203,7 +203,7 @@ async function ranger(mail, deposes, user) {
 
   if (drive || monday) {
     ajouterSuivi(
-      Records.filter('Deal', { deal_id: mail.deal_id })[0],
+      Records.findBy('Deal', 'deal_id', mail.deal_id),
       {
         type: 'documents_recus',
         detail: [
@@ -245,7 +245,7 @@ export async function ingererEnAttente(uploadDir, user = null) {
       echecs.push(...(r.echecs || []));
 
       if (r.deposes.length) {
-        const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
+        const deal = Records.findBy('Deal', 'deal_id', mail.deal_id);
         lignes.push({
           dossier: deal?.nom || deal?.lots?.[0]?.synthese?.titre || mail.deal_id,
           deal_id: mail.deal_id,

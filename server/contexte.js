@@ -38,7 +38,7 @@ export function currentUser(req) {
   }
   const email = req ? sessionEmail(req) : null;
   if (!email) return null;
-  return Records.filter('User', { email })[0] || null;
+  return Records.findBy('User', 'email', email) || null;
 }
 
 /** L'empreinte du mot de passe ne doit jamais quitter le serveur. */

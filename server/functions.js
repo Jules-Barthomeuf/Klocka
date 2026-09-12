@@ -13,7 +13,7 @@ import { alimenterBaseMarche } from './deal/marche.js';
 // trace l'envoi dans `suivi`, applique la transition de statut correspondante
 // et capitalise dans la base marché quand le deal se clôt.
 async function avancerDealApresMail(dealId, intention, sujet, destinataire, user) {
-  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return;
 
   ajouterSuivi(
@@ -57,7 +57,7 @@ async function avancerDealApresMail(dealId, intention, sujet, destinataire, user
     if (!deal.test) {
       import('./deal/monday-sync.js')
         .then(({ pousserBien }) =>
-          pousserBien(Records.filter('Deal', { deal_id: dealId })[0], {
+          pousserBien(Records.findBy('Deal', 'deal_id', dealId), {
             motif: intention === 'refus' ? 'Refusé après préanalyse' : 'Abandonné après étude des documents',
           })
         )
@@ -214,7 +214,7 @@ ${user?.full_name?.split(' ')[0] || 'Klocka'}`,
     // Deal de test : rien ne part jamais, même avec une boîte connectée.
     // Le cycle de vie avance comme pour un envoi simulé.
     if (deal_id) {
-      const deal = Records.filter('Deal', { deal_id })[0];
+      const deal = Records.findBy('Deal', 'deal_id', deal_id);
       if (deal?.test) {
         await avancerDealApresMail(deal_id, intention, subject, to, user);
         return { success: false, simulated: true, test: true };

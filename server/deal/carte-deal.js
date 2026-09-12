@@ -44,7 +44,7 @@ export function lireCarteDeal(dealId) {
   const m = lireMatrice(dealId);
   if (!m) return null;
   const f = lireFiche(dealId);
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   const lot = brut?.lots?.[0] || null;
   const teaser = lot?.lot || {};
   const champs = new Map(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));

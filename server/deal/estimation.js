@@ -17,7 +17,7 @@ import { chargerPieces } from './espace.js';
  *   pièces de ses catégories ; sans elle, toutes les pièces du dossier.
  */
 export async function estimerLecture(dealId, { uploadDir, grille = null } = {}) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return null;
   const categories = grille && GRILLES[grille] ? GRILLES[grille].categories : null;
   const docs = (brut.documents_espace || []).filter((d) => !categories || categories.includes(d.categorie || 'Autre'));

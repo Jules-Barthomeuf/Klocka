@@ -27,7 +27,7 @@ export function monterMarche(app) {
     const autorise =
       user.role === 'admin' || (projet.client_emails || []).some(sien) || sien(projet.client_email);
     if (!autorise) return res.status(403).json({ error: 'Accès refusé' });
-    const deal = projet.deal_id ? Records.filter('Deal', { deal_id: projet.deal_id })[0] : null;
+    const deal = projet.deal_id ? Records.findBy('Deal', 'deal_id', projet.deal_id) : null;
     if (!deal) return ok(res, { disponible: false });
     const { lireGrilleFormatee } = await import('../deal/grilles.js');
     const bail = await lireGrilleFormatee(deal.deal_id, 'bail', { user });
@@ -66,7 +66,7 @@ export function monterMarche(app) {
     };
     const dealId = String(req.body?.deal_id || '').trim();
     if (dealId) {
-      const deal = Records.filter('Deal', { deal_id: dealId })[0];
+      const deal = Records.findBy('Deal', 'deal_id', dealId);
       const lot = deal?.lots?.[Number(req.body?.index) || 0];
       const a = lot?.lot?.adresse?.valeur;
       if (a) contexte.adresse = [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');

@@ -20,7 +20,7 @@ const attente = [];
 let enMarche = false;
 
 function dealDe(dealId) {
-  return Records.filter('Deal', { deal_id: dealId })[0] || null;
+  return Records.findBy('Deal', 'deal_id', dealId) || null;
 }
 
 // L'état d'avancement se pose sur la fiche du document : « en_attente »,

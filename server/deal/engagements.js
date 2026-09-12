@@ -86,7 +86,7 @@ function tenir(e, commentaire, user = null) {
  */
 export function ouvrirDepuisEnvoi(dealId, { intention, objet, destinataire, user } = {}) {
   if (!['demande_documents', 'relance'].includes(intention)) return null;
-  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return null;
 
   const echeance = deal.relance_prevue_le || new Date(Date.now() + 7 * 86400000).toISOString();
@@ -125,7 +125,7 @@ export function rattraperDepuisEmailLog() {
     (l) => l.deal_id && l.intention === 'demande_documents' && l.statut !== 'erreur'
   );
   for (const log of logs) {
-    const deal = Records.filter('Deal', { deal_id: log.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', log.deal_id);
     if (!deal || deal.archived) continue;
     // L'attente n'a de sens que si on attend encore quelque chose.
     if (!['documents_demandes'].includes(deal.statut || 'analyse')) continue;
@@ -190,7 +190,7 @@ const SCHEMA_PROMESSES = {
  */
 export async function extraireDepuisMail(mail) {
   if (!mail?.deal_id || !mail.texte || mail.engagements_extraits) return { crees: 0 };
-  const deal = Records.filter('Deal', { deal_id: mail.deal_id })[0];
+  const deal = Records.findBy('Deal', 'deal_id', mail.deal_id);
   if (!deal) return { crees: 0 };
 
   const dejaVu = Records.filter('Engagement', { deal_id: mail.deal_id }).some(
@@ -274,7 +274,7 @@ export async function extraireEnAttente() {
  */
 export function noter({ dealId = null, de = null, quoi, echeance = null, types = [], user = null }) {
   if (!quoi?.trim()) return { ok: false, error: 'Rien à noter' };
-  const deal = dealId ? Records.filter('Deal', { deal_id: dealId })[0] : null;
+  const deal = dealId ? Records.findBy('Deal', 'deal_id', dealId) : null;
   if (dealId && !deal) return { ok: false, error: 'Dossier introuvable' };
   if (echeance && isNaN(new Date(echeance))) return { ok: false, error: 'Date invalide' };
   const e = creer({
@@ -305,7 +305,7 @@ export function effacer(id) {
  * Un engagement sans type ne se clôt jamais tout seul : on coche à la main.
  */
 export function rapprocherDocuments(dealId, user = null) {
-  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return 0;
   const presents = new Set();
   for (const d of deal.documents_espace || []) {

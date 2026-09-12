@@ -137,7 +137,7 @@ function lireGrilleBailInterne(dealId) {
   const f = lireFiche(dealId);
   if (!f) return null;
   const m = lireMatrice(dealId);
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   const teaser = brut.lots?.[0]?.lot || {};
   const champs = new Map(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
   const v = (id) => champs.get(id)?.valeur || null;

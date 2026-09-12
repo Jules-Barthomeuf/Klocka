@@ -29,13 +29,13 @@ const cleDe = (dealId, index) => `${dealId}|${index}`;
 
 /** Le lot d'un dossier, tel qu'il est à cet instant. */
 function lotDe(dealId, index) {
-  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
   return { deal, lot: deal?.lots?.[index] || null };
 }
 
 /** Pose un résultat sur le lot, sans écraser ce qui a pu changer entre-temps. */
 function poser(dealId, index, champ, valeur) {
-  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return;
   const lots = [...deal.lots];
   lots[index] = { ...lots[index], [champ]: valeur };

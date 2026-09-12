@@ -90,7 +90,7 @@ export async function annuler(action) {
     await supprimerElement(id);
     // Le dossier ou le projet ne doit plus pointer vers un élément disparu.
     if (action.deal_id) {
-      const deal = Records.filter('Deal', { deal_id: action.deal_id })[0];
+      const deal = Records.findBy('Deal', 'deal_id', action.deal_id);
       if (deal?.monday_item_id === String(id)) Records.update('Deal', deal.id, { monday_item_id: null });
     }
     if (action.projet_id) {
@@ -102,7 +102,7 @@ export async function annuler(action) {
   }
 
   if (action.outil === 'creer_dossier') {
-    const deal = Records.filter('Deal', { deal_id: action.resultat?.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', action.resultat?.deal_id);
     if (!deal) return { ok: false, message: 'Le dossier est introuvable.' };
     if (deal.lots?.length) return { ok: false, message: 'Le dossier a été analysé depuis : il ne se supprime plus d\'un mot.' };
     // La fiche du bien, et l'agent si c'est cette action qui l'a inscrit.
@@ -129,7 +129,7 @@ export async function annuler(action) {
   }
 
   if (action.outil === 'creer_drive_dossier') {
-    const deal = Records.filter('Deal', { deal_id: action.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', action.deal_id);
     const dossierId = deal?.drive_folder_id;
     if (!dossierId) return { ok: false, message: 'Le dossier Drive est introuvable.' };
 

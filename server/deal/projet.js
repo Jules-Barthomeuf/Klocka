@@ -216,7 +216,7 @@ export function delierProjet(projectId, user = null) {
  * Jamais bloquant : ce qui échoue laisse simplement la case vide.
  */
 export async function completerAvantProjet(dealId, lotIndex = 0) {
-  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return;
   // Un identifiant de projet périmé — le projet a été supprimé — laissait le
   // dossier sans département ni chiffres de marché, et la fiche naissait à
@@ -262,7 +262,7 @@ export async function completerAvantProjet(dealId, lotIndex = 0) {
  * @returns {{ ok: true, project } | { ok: false, error }}
  */
 export function creerProjetDepuisDeal(dealId, lotIndex, user) {
-  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return { ok: false, error: 'Dossier introuvable' };
   // Un projet supprimé laissait son identifiant sur le dossier : la plateforme
   // refusait alors d'en créer un autre, en désignant un projet qui n'existe

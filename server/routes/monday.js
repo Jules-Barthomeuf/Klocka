@@ -69,7 +69,7 @@ export function monterMonday(app) {
     const dossier = obtenirDossier(req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const { pousserBien } = await import('../deal/monday-sync.js');
-    const r = await pousserBien(Records.filter('Deal', { deal_id: req.params.dealId })[0], {
+    const r = await pousserBien(Records.findBy('Deal', 'deal_id', req.params.dealId), {
       motif: req.body?.motif,
       par: currentUser(req),
     });

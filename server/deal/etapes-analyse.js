@@ -33,7 +33,7 @@ function inventaire(brut, m) {
 
 /** Lance la lecture des pièces de l'étape n (celles qui ne sont pas encore lues). */
 export function lancerEtape(dealId, n, { user, uploadDir, relire = false } = {}) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const m = lireMatrice(dealId);
   const etape = ETAPES.find((e) => e.n === Number(n)) || ETAPES[0];
@@ -54,7 +54,7 @@ function preneurDe(texte) {
 }
 
 export function lireEtape1(dealId) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return null;
   const m = lireMatrice(dealId);
   const f = lireFiche(dealId);
@@ -289,7 +289,7 @@ export function lireEtape2(dealId) {
   if (!e1) return null;
   const m = lireMatrice(dealId);
   const f = lireFiche(dealId);
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   const lot = brut.lots?.[0] || null;
   const champs = new Map(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
   const ch = (id) => champs.get(id);
@@ -524,7 +524,7 @@ export async function lireEtape3(dealId) {
   const e1 = lireEtape1(dealId);
   if (!e1) return null;
   const e2 = lireEtape2(dealId);
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   const revue = brut.risques_revue || {};
   const leviersCoches = new Set(brut.negociation?.leviers || []);
   const r = e1.rentabilite;
@@ -597,14 +597,14 @@ export async function lireEtape3(dealId) {
 }
 
 export function reviserRisque(dealId, id, verdict) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   if (!['confirme', 'ajuste', 'ecarte'].includes(verdict)) return { ok: false, error: 'Verdict inconnu' };
   Records.update('Deal', brut.id, { risques_revue: { ...(brut.risques_revue || {}), [id]: verdict } });
   return { ok: true };
 }
 export function cocherLeviers(dealId, ids) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   const valides = LEVIERS.map((l) => l.id);
   Records.update('Deal', brut.id, { negociation: { ...(brut.negociation || {}), leviers: (ids || []).filter((x) => valides.includes(x)) } });
@@ -624,7 +624,7 @@ export async function lireEtape4(dealId) {
   const e3 = await lireEtape3(dealId);
   if (!e3) return null;
   const e1 = lireEtape1(dealId);
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   const f = lireFiche(dealId);
   const eurs = (v) => (v == null ? '—' : `${Math.round(v).toLocaleString('fr-FR')} €`);
   const lignes = Object.fromEntries(e1.fiche.lignes.map((l) => [l.id, l.valeur]));
@@ -681,7 +681,7 @@ export async function lireEtape4(dealId) {
 
 /** En passant à l'étape 3, la fiche est photographiée : les compléments se mesurent contre elle. */
 export function photographierFiche(dealId) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut || brut.fiche_instantane) return;
   const f = lireFiche(dealId);
   if (!f) return;
@@ -689,7 +689,7 @@ export function photographierFiche(dealId) {
 }
 
 export async function conclure(dealId, { etat, motif, user }) {
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   if (!brut) return { ok: false, error: 'Dossier introuvable' };
   if (!['signe', 'perdu', 'abandonne'].includes(etat)) return { ok: false, error: 'Conclusion inconnue' };
   const conclusion = { etat, motif: motif || null, par: user?.email || null, le: new Date().toISOString() };

@@ -124,7 +124,7 @@ export function monterPreanalyse(app) {
 
   // Renommer un dossier.
   app.post('/api/preanalyse/dossiers/:dealId/renommer', wrap((req, res) => {
-    const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
     const nom = String(req.body?.nom || '').trim();
     if (!nom) return res.status(400).json({ error: 'Le nom ne peut pas être vide.' });
@@ -135,7 +135,7 @@ export function monterPreanalyse(app) {
 
   // Abandonner un dossier directement depuis la liste (sans mail).
   app.post('/api/preanalyse/dossiers/:dealId/abandonner', wrap((req, res) => {
-    const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
     const r = changerStatut(brut, 'abandonne', { user: currentUser(req), note: req.body?.note || 'Abandon depuis la liste' });
     if (!r.ok) return res.status(400).json({ error: r.error });
@@ -288,7 +288,7 @@ export function monterPreanalyse(app) {
     const dossier = obtenirDossier(req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const { ETAPES, etapeMax } = await import('../deal/etapes.js');
-    const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
     const courante = etapeMax(brut);
     // Une étape cible peut être demandée : y aller valide toutes les
     // précédentes d'un coup. Sans cible, on avance d'un cran. Jamais en arrière.
@@ -308,7 +308,7 @@ export function monterPreanalyse(app) {
   // de là (le mail se rouvre, la pré-analyse se refait). Les données déjà
   // produites — lots, documents, conversations — ne sont jamais effacées.
   app.post('/api/preanalyse/dossiers/:dealId/revenir', wrap(async (req, res) => {
-    const brut = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
     const { ETAPES } = await import('../deal/etapes.js');
     const demandee = Number(req.body?.etape);
@@ -712,13 +712,13 @@ export function monterPreanalyse(app) {
 
   // Les notes de l'analyste et ce qu'il reste à faire, sur le dossier.
   app.get('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
-    const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const d = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
     ok(res, { notes: d.notes_analyse || '', taches: d.taches_analyse || [], maj_le: d.notes_maj_le || null, maj_par: d.notes_maj_par || null });
   }));
 
   app.post('/api/preanalyse/dossiers/:dealId/notes', wrap(async (req, res) => {
-    const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const d = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
     const patch = { notes_maj_le: new Date().toISOString(), notes_maj_par: currentUser(req)?.email || null };
     if (typeof req.body?.notes === 'string') patch.notes_analyse = req.body.notes.slice(0, 20000);
@@ -760,7 +760,7 @@ export function monterPreanalyse(app) {
   // dossier ou une autre, saisie à la main.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', wrap(async (req, res) => {
     const { valeurLocative } = await import('../data-b.js');
-    const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const index = Number(req.params.index) || 0;
     const entree = dossier.lots?.[index];
@@ -782,7 +782,7 @@ export function monterPreanalyse(app) {
   // page vient demander où Alex en est.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/marche/alex', wrap(async (req, res) => {
     const { lancerRechercheMarche } = await import('../alex.js');
-    const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const index = Number(req.params.index) || 0;
     if (!dossier.lots?.[index]) return res.status(404).json({ error: 'Lot introuvable' });
@@ -799,7 +799,7 @@ export function monterPreanalyse(app) {
   // appartement au même endroit, et ce qu'il rapporterait.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/figaro/prix', wrap(async (req, res) => {
     const { prixResidentiel } = await import('../figaro.js');
-    const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const index = Number(req.params.index) || 0;
     const entree = dossier.lots?.[index];
@@ -810,7 +810,7 @@ export function monterPreanalyse(app) {
     if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
     const r = await prixResidentiel(adresse, { forcer: !!req.body?.forcer, user: currentUser(req) });
     if (!r.ok) return res.status(400).json({ error: r.error });
-    const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0] || dossier;
+    const courant = Records.findBy('Deal', 'deal_id', req.params.dealId) || dossier;
     const lots = [...courant.lots];
     lots[index] = { ...lots[index], prix_residentiel: r.resultat };
     Records.update('Deal', courant.id, { lots });
@@ -821,7 +821,7 @@ export function monterPreanalyse(app) {
   // prix, pour quelles activités. La rue est comptée à part.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/transactions', wrap(async (req, res) => {
     const { transactionsFonds } = await import('../data-b-transactions.js');
-    const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const index = Number(req.params.index) || 0;
     const entree = dossier.lots?.[index];
@@ -832,7 +832,7 @@ export function monterPreanalyse(app) {
     if (!adresse) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche ou saisissez-la.' });
     const r = await transactionsFonds(adresse, { rayon: Number(req.body?.rayon) || 500, forcer: !!req.body?.forcer, user: currentUser(req) });
     if (!r.ok) return res.status(400).json({ error: r.error });
-    const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0] || dossier;
+    const courant = Records.findBy('Deal', 'deal_id', req.params.dealId) || dossier;
     const lots = [...courant.lots];
     lots[index] = { ...lots[index], transactions_fonds: r.resultat };
     Records.update('Deal', courant.id, { lots });
@@ -847,7 +847,7 @@ export function monterPreanalyse(app) {
   // s'il existe, sinon « en cours » — et la page revient demander où ça en est.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/equimmox/analyse-loyer', wrap(async (req, res) => {
     const { lancerAnalyseLoyer, analyseLoyerEnCache } = await import('../equimmox.js');
-    const dossier = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const index = Number(req.params.index) || 0;
     const entree = dossier.lots?.[index];
@@ -860,7 +860,7 @@ export function monterPreanalyse(app) {
 
     // Le résultat trouvé sur le lot : on le repose là où la page le lit.
     const poser = (resultat) => {
-      const courant = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+      const courant = Records.findBy('Deal', 'deal_id', req.params.dealId);
       if (!courant) return;
       const lots = [...courant.lots];
       lots[index] = { ...lots[index], analyse_loyer: resultat };
@@ -914,7 +914,7 @@ export function monterPreanalyse(app) {
 
   app.post('/api/preanalyse/dossiers/:dealId/relancer-analyse', wrap(async (req, res) => {
     const { lancerRemplissage } = await import('../deal/matrice.js');
-    const d = Records.filter('Deal', { deal_id: req.params.dealId })[0];
+    const d = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!d) return res.status(404).json({ error: 'Dossier introuvable' });
     const ids = (d.documents_espace || []).map((x) => x.id);
     if (!ids.length) return res.status(400).json({ error: 'Aucune pièce à relire.' });
@@ -981,7 +981,7 @@ export function monterPreanalyse(app) {
     const { mondayConfigure } = await import('../monday.js');
     if (!mondayConfigure() || dossier.test) return ok(res, { configure: !!mondayConfigure(), clients: [] });
     const { investisseursPourDeal } = await import('../deal/monday-sync.js');
-    const candidats = await investisseursPourDeal(Records.filter('Deal', { deal_id: req.params.dealId })[0]);
+    const candidats = await investisseursPourDeal(Records.findBy('Deal', 'deal_id', req.params.dealId));
     ok(res, {
       configure: true,
       clients: candidats.map((c) => ({

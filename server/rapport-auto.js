@@ -122,7 +122,7 @@ export async function relancer(rapportId, index) {
     }
     detail = `${r.nouveaux || 0} mail(s) relevé(s)`;
   } else {
-    const deal = Records.filter('Deal', { deal_id: echec.deal_id })[0];
+    const deal = Records.findBy('Deal', 'deal_id', echec.deal_id);
     if (!deal) throw new Error('Dossier introuvable');
 
     if (echec.operation === 'drive') {

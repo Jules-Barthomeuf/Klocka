@@ -429,7 +429,7 @@ export function aTrancher(deal, { max = 5 } = {}) {
 // ---------------------------------------------------------------------------
 
 export function lireDossier(dealId) {
-  const deal = Records.filter('Deal', { deal_id: dealId })[0];
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return null;
   const pieces = piecesManquantes(deal);
   return {

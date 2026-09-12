@@ -19,7 +19,7 @@ export function ficheDepuisDocuments(dealId) {
   if (!f || !f.nb_documents) return null;
   const champs = new Map(f.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
   const v = (id) => champs.get(id)?.valeur || null;
-  const brut = Records.filter('Deal', { deal_id: dealId })[0];
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
   const lignes = [
     `Fiche établie à partir des ${f.nb_documents} pièces de la data room du dossier « ${brut?.nom || dealId} ».`,
     '',
@@ -56,7 +56,7 @@ export function lancerPreanalyseDocuments(dealId, { user, uploadDir } = {}) {
   const travail = { etat: 'en_cours', phase: 'lecture', erreur: null, demarre_le: new Date().toISOString() };
   travaux.set(dealId, travail);
   (async () => {
-    const brut = Records.filter('Deal', { deal_id: dealId })[0];
+    const brut = Records.findBy('Deal', 'deal_id', dealId);
     if (!brut) throw new Error('Dossier introuvable');
     if (brut.lots?.length) { travail.etat = 'pret'; travail.phase = 'deja'; return; }
     if (!(brut.documents_espace || []).length) throw new Error('Aucun document dans le dossier.');
@@ -97,7 +97,7 @@ export function relancerPreanalyse(dealId, { user, uploadDir } = {}) {
   const travail = { etat: 'en_cours', phase: 'preanalyse', erreur: null, demarre_le: new Date().toISOString(), relance: true };
   travaux.set(dealId, travail);
   (async () => {
-    const brut = Records.filter('Deal', { deal_id: dealId })[0];
+    const brut = Records.findBy('Deal', 'deal_id', dealId);
     if (!brut) throw new Error('Dossier introuvable');
     const { analyserFiche } = await import('./index.js');
     const { lancerEtape, ETAPES } = await import('./etapes-analyse.js');
@@ -130,7 +130,7 @@ export function relancerPreanalyse(dealId, { user, uploadDir } = {}) {
       }
     }
     // L'étape affichée revient à celle qui était atteinte.
-    const apres = Records.filter('Deal', { deal_id: dealId })[0];
+    const apres = Records.findBy('Deal', 'deal_id', dealId);
     Records.update('Deal', apres.id, { analyse_etape: max });
     travail.etat = 'pret'; travail.phase = 'fait';
   })().catch((e) => { travail.etat = 'erreur'; travail.erreur = e?.message || 'Relance impossible'; });

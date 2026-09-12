@@ -58,7 +58,7 @@ export function tokenDe(req) {
   const recuse = String(req.headers?.['x-klocka-fenetre'] || '') === '1';
   if (/^Bearer\s+\S+/i.test(auth)) {
     const token = auth.replace(/^Bearer\s+/i, '').trim();
-    if (Records.filter('Session', { token })[0]) return { token, fenetre: true };
+    if (Records.findBy('Session', 'token', token)) return { token, fenetre: true };
   }
   if (recuse) return { token: null, fenetre: true };
   return { token: parseCookies(req)[COOKIE_NAME] || null, fenetre: false };
@@ -90,7 +90,7 @@ export function createSession(res, userEmail, { sansCookie = false } = {}) {
 export function prolongerSession(req, res) {
   const { token, fenetre } = tokenDe(req);
   if (!token) return false;
-  const session = Records.filter('Session', { token })[0];
+  const session = Records.findBy('Session', 'token', token);
   if (!session) return false;
   const depuis = session.renouvelee_le || session.created_date;
   if (depuis && Date.now() - new Date(depuis).getTime() < RENOUVELLEMENT_MIN_MS) return false;
@@ -106,7 +106,7 @@ export function prolongerSession(req, res) {
 export function sessionEmail(req) {
   const { token } = tokenDe(req);
   if (!token) return null;
-  const session = Records.filter('Session', { token })[0];
+  const session = Records.findBy('Session', 'token', token);
   if (!session) return null;
   if (session.expires_at && new Date(session.expires_at).getTime() < Date.now()) {
     Records.delete('Session', session.id);

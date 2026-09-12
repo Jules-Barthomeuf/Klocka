@@ -19,6 +19,9 @@ export function exporterTout() {
     records: db.prepare('SELECT id, entity, data, created_date, updated_date, created_by FROM records').all(),
     // Le fil de l'assistant flottant vit dans cette table : il voyage avec.
     conversations: db.prepare('SELECT id, agent_name, metadata, messages, created_date, updated_date, created_by FROM conversations').all(),
+    // Le journal d'audit aussi : un historique qui s'efface au déploiement ne
+    // sert à rien, et c'est précisément le déploiement qui efface tout ici.
+    audit: db.prepare('SELECT id, le, email, role, methode, chemin, statut, ip FROM audit').all(),
     meta: db.prepare('SELECT key, value FROM meta').all(),
   };
 }
@@ -33,14 +36,23 @@ export function restaurerTout(dump) {
   const poserConv = db.prepare(
     'INSERT OR REPLACE INTO conversations (id, agent_name, metadata, messages, created_date, updated_date, created_by) VALUES (@id, @agent_name, @metadata, @messages, @created_date, @updated_date, @created_by)'
   );
+  const poserAudit = db.prepare(
+    'INSERT OR REPLACE INTO audit (id, le, email, role, methode, chemin, statut, ip) VALUES (@id, @le, @email, @role, @methode, @chemin, @statut, @ip)'
+  );
   const poserMeta = db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (@key, @value)');
   const tout = db.transaction(() => {
     for (const r of dump.records) poserRecord.run(r);
     for (const c of dump.conversations || []) poserConv.run(c);
+    for (const a of dump.audit || []) poserAudit.run(a);
     for (const m of dump.meta || []) poserMeta.run(m);
   });
   tout();
-  const n = { records: dump.records.length, conversations: (dump.conversations || []).length, meta: (dump.meta || []).length };
-  console.log(`[sauvegarde] restauré : ${n.records} enregistrements, ${n.conversations} conversation(s), ${n.meta} clés`);
+  const n = {
+    records: dump.records.length,
+    conversations: (dump.conversations || []).length,
+    audit: (dump.audit || []).length,
+    meta: (dump.meta || []).length,
+  };
+  console.log(`[sauvegarde] restauré : ${n.records} enregistrements, ${n.conversations} conversation(s), ${n.audit} entrée(s) de journal, ${n.meta} clés`);
   return n;
 }

@@ -80,6 +80,18 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_records_entity ON records(entity);
 
+  -- Les trois recherches du chemin chaud. Sans elles, retrouver une session
+  -- par son jeton désérialisait les soixante et une sessions, et retrouver un
+  -- dossier par son identifiant les trente dossiers — cinq millisecondes,
+  -- pour un seul enregistrement. SQLite sait indexer une expression : le
+  -- filtre descend dans la base au lieu de remonter en JavaScript.
+  CREATE INDEX IF NOT EXISTS idx_records_token
+    ON records(json_extract(data, '$.token')) WHERE entity = 'Session';
+  CREATE INDEX IF NOT EXISTS idx_records_email
+    ON records(json_extract(data, '$.email')) WHERE entity = 'User';
+  CREATE INDEX IF NOT EXISTS idx_records_deal_id
+    ON records(json_extract(data, '$.deal_id')) WHERE entity = 'Deal';
+
   CREATE TABLE IF NOT EXISTS conversations (
     id            TEXT PRIMARY KEY,
     agent_name    TEXT,
@@ -89,6 +101,21 @@ db.exec(`
     updated_date  TEXT NOT NULL,
     created_by    TEXT
   );
+
+  -- Qui a fait quoi. Le schéma vit ici, avec les autres tables ; les règles et
+  -- la lecture sont dans audit.js.
+  CREATE TABLE IF NOT EXISTS audit (
+    id       TEXT PRIMARY KEY,
+    le       TEXT NOT NULL,
+    email    TEXT,
+    role     TEXT,
+    methode  TEXT NOT NULL,
+    chemin   TEXT NOT NULL,
+    statut   INTEGER,
+    ip       TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_audit_le ON audit(le DESC);
+  CREATE INDEX IF NOT EXISTS idx_audit_email ON audit(email);
 
   CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
@@ -161,6 +188,24 @@ export const Records = {
 
   get(entity, id) {
     const row = db.prepare('SELECT * FROM records WHERE entity = ? AND id = ?').get(entity, id);
+    return rowToRecord(row);
+  },
+
+  /**
+   * Le premier enregistrement dont `champ` vaut `valeur`, cherché par la base.
+   *
+   * `filter()` remonte toute l'entité et la désérialise avant de comparer :
+   * acceptable pour parcourir, ruineux pour retrouver une ligne. Les champs
+   * indexés ci-dessus (jeton de session, adresse d'un compte, identifiant de
+   * dossier) sont ceux du chemin chaud, parcourus à chaque requête.
+   *
+   * @returns {object|null}
+   */
+  findBy(entity, champ, valeur) {
+    if (valeur == null) return null;
+    const row = db
+      .prepare("SELECT * FROM records WHERE entity = ? AND json_extract(data, '$.' || ?) = ? LIMIT 1")
+      .get(entity, champ, valeur);
     return rowToRecord(row);
   },
 

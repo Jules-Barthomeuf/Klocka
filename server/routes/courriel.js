@@ -70,7 +70,7 @@ export function monterCourriel(app) {
     );
 
     Records.update('MailRecu', mailRecu.id, { deal_id: dossier.deal_id });
-    Records.update('Deal', Records.filter('Deal', { deal_id: dossier.deal_id })[0].id, {
+    Records.update('Deal', Records.findBy('Deal', 'deal_id', dossier.deal_id).id, {
       source_mail: {
         mail_recu_id: mailRecu.id,
         de: mailRecu.de,

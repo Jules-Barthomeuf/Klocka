@@ -35,6 +35,7 @@ import {
 } from './passwords.js';
 import { callFunction } from './functions.js';
 import { lireArticle } from './lecture.js';
+import { journaliser, purgerAudit, lireAudit, resumeAudit } from './audit.js';
 import { RETOUR_POPUP, authResultPage, popupConnectePage } from './pages-oauth.js';
 import { monterPreanalyse } from './routes/preanalyse.js';
 import { monterAssistant } from './routes/assistant.js';
@@ -121,6 +122,12 @@ try {
 }
 ensureMailTemplates();
 purgeExpiredSessions();
+{
+  // Le journal d'audit ne garde que six mois : passé ce délai il pèserait plus
+  // que ce qu'il surveille.
+  const purgees = purgerAudit();
+  if (purgees) console.log(`[audit] ${purgees} entrée(s) au-delà de la rétention supprimée(s)`);
+}
 
 
 // AUTH_DESACTIVEE ouvre l'application en grand, avec les droits de l'admin et
@@ -159,6 +166,10 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '25mb' }));
 // Chaque requête à l'API sait ce qu'elle a coûté en modèle, et à qui.
 app.use(mesurerRequetes(currentUser));
+// Qui a fait quoi. Avant le service des fichiers déposés : un bail téléchargé
+// est précisément ce qu'on veut pouvoir retracer, et les fichiers statiques ne
+// traversent pas les middlewares montés après eux.
+app.use(journaliser(currentUser));
 // Les fichiers déposés (fiches, baux, photos) sont réservés aux personnes
 // connectées : rien de tout cela n'est public.
 app.use(
@@ -244,7 +255,7 @@ app.post('/api/auth/verifier-email', wrap(async (req, res) => {
   const email = normEmail(req.body?.email);
   if (!email) return res.status(400).json({ error: 'Adresse manquante' });
 
-  const user = Records.filter('User', { email })[0];
+  const user = Records.findBy('User', 'email', email);
   if (!user) {
     if (amorcagePossible(email)) {
       return ok(res, { connu: true, email, prenom: null, role: 'admin', mot_de_passe_defini: false });
@@ -265,7 +276,7 @@ app.post('/api/auth/verifier-email', wrap(async (req, res) => {
 app.post('/api/auth/definir-mot-de-passe', wrap(async (req, res) => {
   const email = normEmail(req.body?.email);
   const { mot_de_passe } = req.body || {};
-  let user = Records.filter('User', { email })[0];
+  let user = Records.findBy('User', 'email', email);
 
   if (!user && amorcagePossible(email)) {
     user = Records.create('User', { email, role: 'admin', etape_actuelle: 0 });
@@ -458,7 +469,7 @@ app.post('/api/auth/connexion', wrap(async (req, res) => {
     });
   }
 
-  const user = Records.filter('User', { email })[0];
+  const user = Records.findBy('User', 'email', email);
   const ok_ = user?.mot_de_passe ? await verifierMotDePasse(mot_de_passe, user.mot_de_passe) : false;
 
   if (!ok_) {
@@ -657,6 +668,18 @@ app.use((req, res, next) => {
   if (currentUser(req)?.role === 'admin') return next();
   res.status(403).json({ error: "Réservé à l'équipe Klocka." });
 });
+
+
+// Le journal d'audit, lisible par l'équipe. Il ne se journalise pas lui-même.
+app.get('/api/monitoring/audit', wrap((req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: "Réservé à l'équipe Klocka." });
+  const jours = Math.min(180, Math.max(1, Number(req.query.jours) || 30));
+  ok(res, {
+    jours,
+    par_personne: resumeAudit({ depuisJours: jours }),
+    entrees: lireAudit({ depuisJours: jours, limite: Number(req.query.limite) || 200, email: req.query.email || null }),
+  });
+}));
 
 // ---------------------------------------------------------------------------
 // Administration

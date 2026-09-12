@@ -104,7 +104,7 @@ export async function traiterBoite({ texte, historique = [], user, type: force =
       if (mondayConfigure() && !dossier?.test) {
         const { investisseursPourDeal } = await import('./deal/monday-sync.js');
         const { Records } = await import('./db.js');
-        const candidats = await investisseursPourDeal(Records.filter('Deal', { deal_id: r.deal_id })[0]);
+        const candidats = await investisseursPourDeal(Records.findBy('Deal', 'deal_id', r.deal_id));
         clients = candidats.map((c) => ({ nom: c.client.nom, email: c.client.email, raisons: c.raisons }));
       }
     } catch {

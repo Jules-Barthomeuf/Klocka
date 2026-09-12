@@ -130,7 +130,7 @@ export function ajouterColonneGabarit(colonne, user) {
 const VIDE = (r) => !r || /^(—|-|n\/a|non mentionn|non renseign|absent|aucune? mention|ne (dit|mentionne|précise) rien|sans objet)/i.test(String(r).trim());
 
 function brutDe(dealId) {
-  return Records.filter('Deal', { deal_id: dealId })[0] || null;
+  return Records.findBy('Deal', 'deal_id', dealId) || null;
 }
 
 /** Remplit (ou complète) la matrice du dossier : chaque document, toutes les colonnes. */

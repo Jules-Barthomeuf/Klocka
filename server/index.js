@@ -11,6 +11,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
@@ -25,7 +26,6 @@ import { sendEmail, sendSMS, listAccounts } from './email.js';
 import { ensureMailTemplates } from './mail.js';
 import { googleEnabled, googleStatus, buildAuthUrl, handleCallback, redirectUriPour } from './google-oauth.js';
 import { createSession, sessionEmail, destroySession, purgeExpiredSessions, prolongerSession } from './sessions.js';
-import { randomBytes } from 'crypto';
 import {
   hacherMotDePasse, verifierMotDePasse, validerMotDePasse,
   tropDeTentatives, enregistrerEchec, reinitialiserTentatives, minutesDAttente,
@@ -40,7 +40,6 @@ import { syntheseDocuments } from './deal/synthese-docs.js';
 import { ajouterDocument as ajouterDocumentEspace, renommerDocument as renommerDocumentEspace, supprimerDocument as supprimerDocumentEspace, converser, supprimerConversation, renommerConversation, extraireDocuments, supprimerExtraction, renommerExtraction, majLigneExtraction } from './deal/espace.js';
 import { creerProjetDepuisDeal, completerAvantProjet } from './deal/projet.js';
 import { ajouterAuReferentiel } from './deal/enrich.js';
-import { profilsConfigures } from './deal/rules.js';
 import {
   analyserDocument, listerDossiers as listerDossiersDoc, obtenirDossier as obtenirDossierDoc,
   renommerDossier, supprimerDocument, reclasserDocument, TYPES,
@@ -48,6 +47,7 @@ import {
 import { callFunction } from './functions.js';
 import { Agents } from './agents.js';
 import { lireArticle } from './lecture.js';
+import { verdictAcces, visiblePar, filtrerListe } from './acces-entites.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Les fichiers déposés suivent la base : sur un disque persistant quand
@@ -151,10 +151,30 @@ function retirerChampsProteges(patch) {
 const APP_URL_PROD = (process.env.APP_URL || '').replace(/\/$/, '');
 const EN_PRODUCTION = APP_URL_PROD.startsWith('https://');
 
+// AUTH_DESACTIVEE ouvre l'application en grand, avec les droits de l'admin et
+// sans mot de passe. C'est une commodité de poste de travail. Sur une adresse
+// publique en https, c'est la porte ouverte à toute la base : on refuse de
+// démarrer plutôt que de servir cela. Le commentaire du .env.example le
+// disait déjà ; rien ne l'empêchait.
+if (AUTH_DESACTIVEE && EN_PRODUCTION) {
+  console.error(
+    "\n  ✖ AUTH_DESACTIVEE=true avec une APP_URL en https : refus de démarrer.\n" +
+      "    Cette variable supprime toute authentification et donne les droits\n" +
+      "    d'administrateur à n'importe quel visiteur. Elle n'a sa place qu'en\n" +
+      `    développement local. Retirez-la de l'environnement de ${APP_URL_PROD}.\n`
+  );
+  process.exit(1);
+}
+
 const app = express();
 app.set('trust proxy', 1);
 // En production, seule l'origine de l'application est admise ; les cookies de
 // session restant SameSite, le CORS ouvert du dev ne doit pas suivre en prod.
+// Les réponses partaient telles quelles : le premier chargement du tableau de
+// bord pesait 3,2 Mo sur le réseau alors que le même contenu compressé en fait
+// moins d'un. Cela vaut aussi pour l'API — une liste de projets est du JSON,
+// c'est-à-dire du texte très répétitif.
+app.use(compression());
 app.use(EN_PRODUCTION ? cors({ origin: APP_URL_PROD, credentials: true }) : cors());
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -178,6 +198,10 @@ app.use(
   express.static(UPLOAD_DIR)
 );
 
+// Les dépôts sont bornés : sans limite, une seule requête peut remplir le disque
+// de l'hébergeur — et avec lui la base, qui vit sur le même volume.
+// 50 Mo couvre largement un bail scanné ; 20 fichiers, un dossier complet.
+const TAILLE_MAX_FICHIER = 50 * 1024 * 1024;
 const upload = multer({
   storage: multer.diskStorage({
     destination: UPLOAD_DIR,
@@ -186,6 +210,7 @@ const upload = multer({
       cb(null, `${Date.now()}-${safe}`);
     },
   }),
+  limits: { fileSize: TAILLE_MAX_FICHIER, files: 20 },
 });
 
 // Read a locally-stored uploaded file back to text (for LLM file_urls).
@@ -674,7 +699,7 @@ app.use((req, res, next) => {
   // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
   // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro)\b/.test(
+    !/^\/api\/(entities|integrations|agents|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro|projets|projects)\b/.test(
       req.path
     )
   ) {
@@ -807,56 +832,22 @@ const estUser = (entity) => entity === 'User';
 const nettoyer = (entity, data) =>
   !estUser(entity) ? data : Array.isArray(data) ? data.map(sansSecret) : sansSecret(data);
 
-// Ces entités portent des jetons (sessions, refresh tokens Google) : elles ne
-// transitent JAMAIS par le CRUD HTTP, quel que soit le rôle. Les modules
-// serveur y accèdent en direct.
-const ENTITES_INTERDITES = new Set(['Session', 'MailAccount', 'CodeInscription', 'TemplateMatrice', 'MemoireMatrice']);
-// Outils internes : pipeline de deals, boîte mail, CRM, base marché. Les pages
-// qui les consomment sont toutes réservées aux admins.
-const ENTITES_ADMIN = new Set([
-  'Deal', 'MailRecu', 'EmailLog', 'MailTemplate', 'DonneeMarche', 'RegleTriMail', 'AssistantAction',
-  'AssistantRequete', 'VisitePage', 'CoutIA', 'SuiviProposition', 'RapportAuto', 'Engagement',
-  // Un rappel porte un nom et un numéro de téléphone : il n'a rien à faire
-  // devant un compte client. Il manquait à cette liste.
-  'Rappel', 'MailEcarte', 'DataBRecherche', 'EquimmoxRecherche', 'DataBTransactions', 'FigaroPrix',
-]);
-
+// Les règles d'accès vivent dans leur propre module, avec leur test : une
+// entité qui se rouvre par erreur ne casse aucun écran et n'apparaît dans aucun
+// journal. Voir server/acces-entites.js.
+//
 // Contrôle d'accès du CRUD générique. Renvoie l'utilisateur, ou null après
-// avoir répondu 403.
-function accesEntite(req, res, entity) {
-  if (ENTITES_INTERDITES.has(entity)) {
-    res.status(403).json({ error: 'Cette entité n’est pas accessible par l’API.' });
-    return null;
-  }
-  const user = currentUser(req) || {};
-  if (ENTITES_ADMIN.has(entity) && user.role !== 'admin') {
-    res.status(403).json({ error: 'Réservé aux administrateurs.' });
+// avoir répondu 401/403.
+// @param {boolean} [ecriture] - la requête modifie-t-elle quelque chose ?
+function accesEntite(req, res, entity, { ecriture = false } = {}) {
+  const user = currentUser(req);
+  const verdict = verdictAcces(user, entity, { ecriture });
+  if (!verdict.ok) {
+    res.status(verdict.statut).json({ error: verdict.erreur });
     return null;
   }
   return user;
 }
-
-// Un non-admin ne voit que les projets où il figure, jamais les archivés.
-const projetVisiblePar = (user) => (p) =>
-  !p.archived &&
-  (p.admin_principal === user.email ||
-    p.client_email === user.email ||
-    (Array.isArray(p.client_emails) && p.client_emails.includes(user.email)) ||
-    p.created_by === user.email);
-
-const filtrerProjets = (user, data) => {
-  if (user.role === 'admin') return data;
-  if (!Array.isArray(data)) return data;
-  return data.filter(projetVisiblePar(user));
-};
-// Les remarques : l'équipe voit tout, un client ne voit que les siennes — les
-// avis sur les réponses de l'IA portent des échanges de dossiers.
-const filtrerSuggestions = (user, data) =>
-  user.role === 'admin' || !Array.isArray(data) ? data : data.filter((s) => s.client_email === user.email);
-
-// Les comptes : l'équipe et les mandataires voient la liste, un client ne voit que lui.
-const filtrerUsers = (user, data) =>
-  ['admin', 'mandataire'].includes(user.role) || !Array.isArray(data) ? data : data.filter((u) => u.id === user.id);
 
 app.get('/api/entities/:entity', wrap((req, res) => {
   const { entity } = req.params;
@@ -868,10 +859,7 @@ app.get('/api/entities/:entity', wrap((req, res) => {
     limit: limit != null ? Number(limit) : undefined,
     skip: skip != null ? Number(skip) : undefined,
   });
-  if (entity === 'Project') data = filtrerProjets(user, data);
-  if (entity === 'User') data = filtrerUsers(user, data);
-  if (entity === 'Suggestion') data = filtrerSuggestions(user, data);
-  ok(res, nettoyer(entity, data));
+  ok(res, nettoyer(entity, filtrerListe(user, entity, data)));
 }));
 
 app.post('/api/entities/:entity/filter', wrap((req, res) => {
@@ -880,10 +868,7 @@ app.post('/api/entities/:entity/filter', wrap((req, res) => {
   if (!user) return;
   const { query, sort, limit } = req.body || {};
   let data = Records.filter(entity, query, { sort, limit: limit != null ? Number(limit) : undefined });
-  if (entity === 'Project') data = filtrerProjets(user, data);
-  if (entity === 'User') data = filtrerUsers(user, data);
-  if (entity === 'Suggestion') data = filtrerSuggestions(user, data);
-  ok(res, nettoyer(entity, data));
+  ok(res, nettoyer(entity, filtrerListe(user, entity, data)));
 }));
 
 app.get('/api/entities/:entity/:id', wrap((req, res) => {
@@ -892,23 +877,14 @@ app.get('/api/entities/:entity/:id', wrap((req, res) => {
   const rec = Records.get(req.params.entity, req.params.id);
   if (!rec) return res.status(404).json({ error: 'Not found' });
   // Même réponse qu'un enregistrement inexistant : ne pas révéler l'existence
-  // d'un projet auquel on n'a pas accès.
-  if (req.params.entity === 'Project' && user.role !== 'admin' && !projetVisiblePar(user)(rec)) {
-    return res.status(404).json({ error: 'Not found' });
-  }
-  if (req.params.entity === 'User' && !['admin', 'mandataire'].includes(user.role) && rec.id !== user.id) {
-    return res.status(404).json({ error: 'Not found' });
-  }
-  // Une remarque porte un échange de dossier : elle n'appartient qu'à l'équipe
-  // et à celui qui l'a écrite.
-  if (req.params.entity === 'Suggestion' && user.role !== 'admin' && rec.client_email !== user.email) {
-    return res.status(404).json({ error: 'Not found' });
-  }
+  // d'un dossier auquel on n'a pas accès.
+  const visible = visiblePar(user, req.params.entity);
+  if (visible && !visible(rec)) return res.status(404).json({ error: 'Not found' });
   ok(res, nettoyer(req.params.entity, rec));
 }));
 
 app.post('/api/entities/:entity', wrap((req, res) => {
-  const user = accesEntite(req, res, req.params.entity);
+  const user = accesEntite(req, res, req.params.entity, { ecriture: true });
   if (!user) return;
   if (estUser(req.params.entity) && user?.role !== 'admin') {
     return res.status(403).json({ error: 'Seul un administrateur peut créer un compte.' });
@@ -921,7 +897,7 @@ app.post('/api/entities/:entity', wrap((req, res) => {
 
 app.put('/api/entities/:entity/:id', wrap((req, res) => {
   const { entity, id } = req.params;
-  const user = accesEntite(req, res, entity);
+  const user = accesEntite(req, res, entity, { ecriture: true });
   if (!user) return;
   let patch = req.body || {};
 
@@ -935,10 +911,13 @@ app.put('/api/entities/:entity/:id', wrap((req, res) => {
     if (estAdmin && (req.body?.role === 'admin' || req.body?.role === 'user')) patch.role = req.body.role;
   }
 
-  // Un non-admin ne modifie que les projets où il figure.
-  if (entity === 'Project' && user.role !== 'admin') {
+  // Un non-admin ne modifie que ce qui le concerne — un projet où il figure,
+  // sa propre stratégie. Le contrôle ne visait que les projets : la stratégie
+  // et la remarque d'un autre se modifiaient en connaissant leur identifiant.
+  const visible = visiblePar(user, entity);
+  if (visible) {
     const rec = Records.get(entity, id);
-    if (!rec || !projetVisiblePar(user)(rec)) return res.status(404).json({ error: 'Not found' });
+    if (!rec || !visible(rec)) return res.status(404).json({ error: 'Not found' });
   }
 
   const rec = Records.update(entity, id, patch);
@@ -947,7 +926,7 @@ app.put('/api/entities/:entity/:id', wrap((req, res) => {
 }));
 
 app.delete('/api/entities/:entity/:id', wrap(async (req, res) => {
-  const user = accesEntite(req, res, req.params.entity);
+  const user = accesEntite(req, res, req.params.entity, { ecriture: true });
   if (!user) return;
   // La suppression est un geste d'administrateur, quelle que soit l'entité.
   if (user.role !== 'admin') {
@@ -2212,12 +2191,22 @@ app.get('/api/preanalyse/dossiers/:dealId/grille/:id', wrap(async (req, res) => 
 
 // Ce que le client voit du bail sur sa page projet : quelques lignes, et
 // l'analyse complète derrière — sans les pièces.
+// « projets » (français) ne figure pas dans le préfixe de la garde globale, qui
+// dit « entities|integrations|… » : cette route répondait sans connexion. Et son
+// contrôle comparait deux chaînes vides — un visiteur sans compte, face à un
+// projet sans adresse client, était reconnu comme le client de ce projet.
 app.get('/api/projets/:id/analyse-bail', wrap(async (req, res) => {
   const user = currentUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
   const projet = Records.get('Project', req.params.id);
   if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
-  const email = String(user?.email || '').toLowerCase();
-  const autorise = user?.role === 'admin' || (projet.client_emails || []).map((e) => String(e).toLowerCase()).includes(email) || String(projet.client_email || '').toLowerCase() === email;
+  const email = String(user.email || '').trim().toLowerCase();
+  const sien = (e) => {
+    const a = String(e || '').trim().toLowerCase();
+    return !!a && !!email && a === email;
+  };
+  const autorise =
+    user.role === 'admin' || (projet.client_emails || []).some(sien) || sien(projet.client_email);
   if (!autorise) return res.status(403).json({ error: 'Accès refusé' });
   const deal = projet.deal_id ? Records.filter('Deal', { deal_id: projet.deal_id })[0] : null;
   if (!deal) return ok(res, { disponible: false });
@@ -2282,7 +2271,9 @@ app.post('/api/preanalyse/dossiers/:dealId/lots/:index/marche/alex', wrap(async 
   if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
   const index = Number(req.params.index) || 0;
   if (!dossier.lots?.[index]) return res.status(404).json({ error: 'Lot introuvable' });
-  const t = lancerRechercheMarche(req.params.dealId, index, { user: currentUser(req), forcer: !!req.body?.forcer });
+  // `sources` restreint la lecture aux connecteurs cochés ; absent, tout est lu.
+  const sources = Array.isArray(req.body?.sources) ? req.body.sources.map(String).filter(Boolean) : null;
+  const t = lancerRechercheMarche(req.params.dealId, index, { user: currentUser(req), forcer: !!req.body?.forcer, sources });
   // Les étapes viennent du serveur : la chaîne des sources est configurable,
   // l'écran ne peut plus les tenir en dur.
   ok(res, t);
@@ -2293,6 +2284,36 @@ app.get('/api/marche/alex/etat', wrap(async (req, res) => {
   const t = etatRechercheMarche(String(req.query.cle || ''));
   if (!t) return res.status(404).json({ error: 'Recherche inconnue : relancez Alex.' });
   ok(res, t);
+}));
+
+// Poser une question au marché. Le modèle n'a que les connecteurs pour
+// répondre : chaque chiffre rendu est accompagné de ce qui a été lu.
+app.post('/api/marche/question', wrap(async (req, res) => {
+  const { repondre } = await import('./marche/question.js');
+  const question = String(req.body?.question || '').trim();
+  if (!question) return res.status(400).json({ error: 'Question manquante.' });
+
+  // Le dossier en cours donne le contexte : adresse, surface, activité.
+  let contexte = {
+    user: currentUser(req),
+    historique: req.body?.historique || [],
+    // « Rapidité » écarte Equimmox et l'étude d'implantation : l'une prend une
+    // minute, l'autre coûte un crédit.
+    profondeur: req.body?.profondeur === 'rapide' ? 'rapide' : 'reflexion',
+  };
+  const dealId = String(req.body?.deal_id || '').trim();
+  if (dealId) {
+    const deal = Records.filter('Deal', { deal_id: dealId })[0];
+    const lot = deal?.lots?.[Number(req.body?.index) || 0];
+    const a = lot?.lot?.adresse?.valeur;
+    if (a) contexte.adresse = [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    const s = Number(lot?.lot?.surface_m2?.valeur);
+    if (s > 0) contexte.surface = s;
+    contexte.activite = lot?.lot?.locataire_activite?.valeur || null;
+  }
+  if (req.body?.adresse) contexte.adresse = String(req.body.adresse).trim();
+
+  ok(res, await repondre(question, contexte));
 }));
 
 // Le journal des lectures de marché : chaque tentative, chaque source, chaque
@@ -2811,7 +2832,22 @@ app.get('/api/health', (req, res) => {
 // ---------------------------------------------------------------------------
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
-  app.use(express.static(DIST_DIR));
+  // Les fichiers d'`assets` portent une empreinte dans leur nom : un contenu
+  // modifié change de nom. Ils peuvent donc être gardés sans limite par le
+  // navigateur — c'est ce qui fait qu'une deuxième visite ne retélécharge rien.
+  // index.html, lui, ne doit jamais être gardé : c'est lui qui désigne les
+  // empreintes du moment.
+  app.use(
+    express.static(DIST_DIR, {
+      setHeaders: (res, chemin) => {
+        if (/[/\\]assets[/\\]/.test(chemin)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (chemin.endsWith('index.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
+    })
+  );
   // SPA fallback: any non-API route is handled by React Router.
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
@@ -2831,7 +2867,7 @@ if (EN_PRODUCTION) {
 import('./deal/file-extraction.js').then(({ reprendreEnAttente }) => {
   const n = reprendreEnAttente(UPLOAD_DIR);
   if (n) console.log(`  ▸ ${n} extraction(s) repris après redémarrage`);
-});
+}).catch((e) => console.warn(`[démarrage] extractions en attente : ${e?.message || e}`));
 
 // La base retient sa date de naissance : c'est elle qu'on lit dans /api/health
 // pour savoir si l'hébergeur l'a effacée.
@@ -2851,13 +2887,13 @@ if (process.env.RENDER && !(process.env.KLOCKA_DATA_DIR || '').trim()) {
 // entrent au registre rétroactivement — EmailLog garde tout, rien n'est perdu.
 import('./deal/engagements.js').then(({ rattraperDepuisEmailLog }) => {
   rattraperDepuisEmailLog();
-});
+}).catch((e) => console.warn(`[démarrage] registre des engagements : ${e?.message || e}`));
 
 // Agents des dossiers → fiches CRM, dès le démarrage.
 import('./deal/crm-sync.js').then(({ synchroniserAgents }) => {
   const { crees, completes } = synchroniserAgents();
   if (crees || completes) console.log(`  ▸ CRM : ${crees} agent(s) créé(s), ${completes} complété(s)`);
-});
+}).catch((e) => console.warn(`[démarrage] synchronisation CRM : ${e?.message || e}`));
 
 // Veille des boîtes mail : relève périodique et rattachement des réponses aux
 // dossiers. Sans portée de lecture Gmail accordée, elle ne démarre pas.
@@ -2868,13 +2904,27 @@ import('./deal/veille-mails.js').then(({ demarrerVeille }) => {
       ? `  ▸ Veille des boîtes mail active (toutes les ${process.env.MAIL_VEILLE_MINUTES || 5} min)`
       : '  ▸ Veille des boîtes mail inactive (GOOGLE_GMAIL_READ absent)'
   );
-});
+}).catch((e) => console.warn(`[démarrage] veille des boîtes mail : ${e?.message || e}`));
 
 // Lectures de marché restées incomplètes : on avait promis d'y revenir, un
 // redémarrage n'annule pas la promesse.
 import('./marche/replanification.js').then(({ reprendreLesPromesses }) => {
   const n = reprendreLesPromesses();
   if (n) console.log(`  ▸ ${n} lecture(s) de marché à reprendre`);
+}).catch((e) => console.warn(`[démarrage] reprise des lectures de marché : ${e?.message || e}`));
+
+// Dernier filet. Une erreur asynchrone qui n'a trouvé personne pour la
+// rattraper — une page Playwright qui meurt, une réponse Google inattendue —
+// arrête le processus sous Node : l'application entière tombe pour un incident
+// qui ne concernait qu'un dossier. On la journalise et on reste debout.
+// Une exception non rattrapée, elle, laisse le processus dans un état incertain :
+// on la journalise aussi, mais on rend la main à l'hébergeur, qui redémarrera.
+process.on('unhandledRejection', (raison) => {
+  console.error('[rejet non traité]', raison instanceof Error ? raison.stack : raison);
+});
+process.on('uncaughtException', (e) => {
+  console.error('[exception non rattrapée]', e?.stack || e);
+  process.exit(1);
 });
 
 app.listen(PORT, () => {

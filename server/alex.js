@@ -58,7 +58,7 @@ function adresseDe(lot) {
  *   reprises automatiques ; `automatique` distingue une reprise d'un clic.
  * @returns {{cle, etat, etape, total, etapes}}
  */
-export function lancerRechercheMarche(dealId, index = 0, { user = null, forcer = false, essai = 1, automatique = false } = {}) {
+export function lancerRechercheMarche(dealId, index = 0, { user = null, forcer = false, essai = 1, automatique = false, sources = null } = {}) {
   const cle = cleDe(dealId, index);
   const enCours = travaux.get(cle);
   if (enCours?.etat === 'en_cours') return { cle, ...vue(enCours) };
@@ -70,6 +70,7 @@ export function lancerRechercheMarche(dealId, index = 0, { user = null, forcer =
     etapes: [],
     resultats: {},
     echecs: {},
+    tentatives: [],
     essai,
     automatique,
     depuis: new Date().toISOString(),
@@ -82,7 +83,7 @@ export function lancerRechercheMarche(dealId, index = 0, { user = null, forcer =
     }
   }
 
-  chercher(dealId, index, travail, { user, forcer }).catch((e) => {
+  chercher(dealId, index, travail, { user, forcer, sources }).catch((e) => {
     travail.etat = 'erreur';
     travail.erreur = e?.message || 'La recherche de marché a échoué.';
   });
@@ -90,29 +91,41 @@ export function lancerRechercheMarche(dealId, index = 0, { user = null, forcer =
   return { cle, ...vue(travail) };
 }
 
-async function chercher(dealId, index, travail, { user, forcer }) {
+async function chercher(dealId, index, travail, { user, forcer, sources = null }) {
   const { lot } = lotDe(dealId, index);
   if (!lot) throw new Error('Lot introuvable.');
 
   const adresse = adresseDe(lot);
   if (!adresse) throw new Error('Aucune adresse sur ce lot : renseignez-la avant de lancer Alex.');
   const surface = Number(lot.lot?.surface_m2?.valeur) > 0 ? Number(lot.lot.surface_m2.valeur) : null;
+  // L'activité du locataire guide l'étude d'implantation de Data-B ; sans
+  // elle, l'étude porte sur « Tous les commerces ».
+  const activite = String(lot.lot?.locataire_activite?.valeur || '').trim() || null;
 
   const connecteurs = await registreParDefaut();
-  const besoins = besoinsConfigures();
+  // Relancer une source seule : « Mettre à jour » laisse décocher ce qu'on ne
+  // veut pas relire. Un besoin dont aucune source n'est retenue disparaît — on
+  // ne l'annonce donc pas à l'écran, et ce qui est déjà posé sur le lot reste.
+  const retenues = Array.isArray(sources) && sources.length ? new Set(sources) : null;
+  const besoins = besoinsConfigures()
+    .map((b) => (retenues ? { ...b, chaine: b.chaine.filter((c) => retenues.has(c)) } : b))
+    .filter((b) => b.chaine.length);
+  if (!besoins.length) throw new Error('Aucune source retenue : cochez-en au moins une.');
   travail.etapes = besoins.map((b) => ecranDe(b, connecteurs));
   travail.total = besoins.length;
+  travail.sources = retenues ? [...retenues] : null;
 
   const debut = new Date().toISOString();
   const chrono = Date.now();
 
   const rapport = await collecter(
-    { adresse, surface, forcer, user },
+    { adresse, surface, activite, forcer, user },
     {
       connecteurs,
       besoins,
       surBesoin: (rang) => { travail.etape = rang; },
       surTentative: (t) => {
+        travail.tentatives.push(t);
         // Un repli est entré en scène : l'écran doit dire le vrai nom du
         // service qu'on interroge, pas celui qui vient de tomber.
         const besoin = besoins[t.rang];
@@ -201,7 +214,7 @@ function vue(t) {
     indicateurs: r?.indicateurs || {},
     indicateurs_manquants: r?.indicateurs_manquants || [],
     besoins: r?.besoins || {},
-    tentatives: r?.tentatives || [],
+    tentatives: t.tentatives?.length ? t.tentatives : r?.tentatives || [],
     sources_utilisees: r?.sources_utilisees || [],
     sources_en_echec: r?.sources_en_echec || [],
     // Les murs — compte refusé, plan insuffisant — que l'utilisateur doit voir.
@@ -209,6 +222,8 @@ function vue(t) {
     complet: r ? r.complet : null,
     nouvelle_tentative_le: t.nouvelle_tentative_le || null,
     journal_id: t.journal_id || null,
+    depuis: t.depuis || null,
+    fin: t.fin || null,
   };
 }
 

@@ -5,9 +5,19 @@
 // loue le mètre carré ici » — et une estimation datée et sourcée vaut mieux
 // qu'une case vide quand Equimmox est à terre.
 //
-// On prend la maille la plus fine que la page donne : la rue si elle y est,
-// sinon le quartier, sinon la ville. Jamais la ville en la faisant passer pour
-// la rue : l'échelle voyage avec le chiffre.
+// La page donne jusqu'à TROIS mailles : la rue, le quartier, la ville. On les
+// rend toutes les trois, dans cet ordre — la plus fine d'abord, parce que
+// c'est elle qui remplit l'indicateur (voir poser() dans normalise.js).
+//
+// Les rendre toutes n'est pas du zèle : c'est ce qui permet au recoupement de
+// comparer la bonne. Sur le 93 avenue Marceau, la rue vaut 640–960 et le
+// quartier 272–408 ; face au rayon de 500 m d'Equimmox (277), comparer la rue
+// donnait +189 % et comparer le quartier donne +23 %. Le premier écart n'a
+// jamais existé ailleurs que dans le choix de la maille.
+//
+// Ces trois lectures servent aussi à voir quand la source se contredit
+// elle-même : une rue à 2,4 fois son propre quartier n'est plus une question
+// d'échelle.
 
 import { valeurLocative } from '../../data-b.js';
 import { ErreurSource } from '../erreurs.js';
@@ -37,11 +47,18 @@ export default {
 
   normaliser(r) {
     if (!r) return [];
-    const niveau = ECHELLES.map((e) => [e, r[e]]).find(([, v]) => v && (v.basse != null || v.haute != null));
-    if (!niveau) return [];
-    const [echelle, v] = niveau;
-    return [
-      valeur({
+    const source = {
+      connecteur: 'data-b-valeur-locative',
+      service: 'Data-B',
+      libelle: r.source || 'Data-B · Valeurs locatives',
+      collecte_le: r.le || null,
+      du_cache: !!r.du_cache,
+      lien: r.lien || null,
+    };
+    return ECHELLES.map((echelle) => {
+      const v = r[echelle];
+      if (!v || (v.basse == null && v.haute == null)) return null;
+      return valeur({
         cle: 'loyer_commercial_m2_an',
         bas: v.basse,
         // Data-B ne publie pas de médiane : elle reste vide plutôt que d'être
@@ -50,15 +67,8 @@ export default {
         haut: v.haute,
         echelle,
         precision: v.nom || null,
-        source: {
-          connecteur: 'data-b-valeur-locative',
-          service: 'Data-B',
-          libelle: r.source || 'Data-B · Valeurs locatives',
-          collecte_le: r.le || null,
-          du_cache: !!r.du_cache,
-          lien: r.lien || null,
-        },
-      }),
-    ];
+        source,
+      });
+    }).filter(Boolean);
   },
 };

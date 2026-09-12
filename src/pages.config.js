@@ -47,41 +47,47 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import AdminAnalyse from './pages/AdminAnalyse';
-import AdminClients from './pages/AdminClients';
-import AdminProjets from './pages/AdminProjets';
-import AdminRessources from './pages/AdminRessources';
-import AdminSignup from './pages/AdminSignup';
-import AdminSuggestions from './pages/AdminSuggestions';
-import BaseDonneesMarche from './pages/BaseDonneesMarche';
-import CRM from './pages/CRM';
-import CRMAgents from './pages/CRMAgents';
-import CRMProprietes from './pages/CRMProprietes';
-import CRMProspects from './pages/CRMProspects';
-import CRMTransactions from './pages/CRMTransactions';
-import Comparateur from './pages/Comparateur';
-import Contacts from './pages/Contacts';
-import Dashboard from './pages/Dashboard';
-import ExportClients from './pages/ExportClients';
-import ExportProjects from './pages/ExportProjects';
-import Famille from './pages/Famille';
-import Familles from './pages/Familles';
-import Feedback from './pages/Feedback';
-import Home from './pages/Home';
-import KlockAI from './pages/KlockAI';
-import Leads from './pages/Leads';
-import MandataireClients from './pages/MandataireClients';
-import MandataireOutils from './pages/MandataireOutils';
-import MandataireRessources from './pages/MandataireRessources';
-import MesProjets from './pages/MesProjets';
-import MonCompte from './pages/MonCompte';
-import ProjectAssistant from './pages/ProjectAssistant';
-import ProjetDetail from './pages/ProjetDetail';
-import Questionnaire from './pages/Questionnaire';
-import Ressources from './pages/Ressources';
-import SimulateurRentabilite from './pages/SimulateurRentabilite';
-import TableauProjection from './pages/TableauProjection';
-import Vision from './pages/Vision';
+// Chaque page est chargée à son ouverture, pas au démarrage. Sans cela les
+// trente-cinq pages — l'administration, le CRM, les cartes, les graphiques —
+// partaient dans un seul fichier de plusieurs mégaoctets qu'un client devait
+// télécharger en entier pour voir son tableau de bord.
+import { lazy } from 'react';
+
+const AdminAnalyse = lazy(() => import('./pages/AdminAnalyse'));
+const AdminClients = lazy(() => import('./pages/AdminClients'));
+const AdminProjets = lazy(() => import('./pages/AdminProjets'));
+const AdminRessources = lazy(() => import('./pages/AdminRessources'));
+const AdminSignup = lazy(() => import('./pages/AdminSignup'));
+const AdminSuggestions = lazy(() => import('./pages/AdminSuggestions'));
+const BaseDonneesMarche = lazy(() => import('./pages/BaseDonneesMarche'));
+const CRM = lazy(() => import('./pages/CRM'));
+const CRMAgents = lazy(() => import('./pages/CRMAgents'));
+const CRMProprietes = lazy(() => import('./pages/CRMProprietes'));
+const CRMProspects = lazy(() => import('./pages/CRMProspects'));
+const CRMTransactions = lazy(() => import('./pages/CRMTransactions'));
+const Comparateur = lazy(() => import('./pages/Comparateur'));
+const Contacts = lazy(() => import('./pages/Contacts'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ExportClients = lazy(() => import('./pages/ExportClients'));
+const ExportProjects = lazy(() => import('./pages/ExportProjects'));
+const Famille = lazy(() => import('./pages/Famille'));
+const Familles = lazy(() => import('./pages/Familles'));
+const Feedback = lazy(() => import('./pages/Feedback'));
+const Home = lazy(() => import('./pages/Home'));
+const KlockAI = lazy(() => import('./pages/KlockAI'));
+const Leads = lazy(() => import('./pages/Leads'));
+const MandataireClients = lazy(() => import('./pages/MandataireClients'));
+const MandataireOutils = lazy(() => import('./pages/MandataireOutils'));
+const MandataireRessources = lazy(() => import('./pages/MandataireRessources'));
+const MesProjets = lazy(() => import('./pages/MesProjets'));
+const MonCompte = lazy(() => import('./pages/MonCompte'));
+const ProjectAssistant = lazy(() => import('./pages/ProjectAssistant'));
+const ProjetDetail = lazy(() => import('./pages/ProjetDetail'));
+const Questionnaire = lazy(() => import('./pages/Questionnaire'));
+const Ressources = lazy(() => import('./pages/Ressources'));
+const SimulateurRentabilite = lazy(() => import('./pages/SimulateurRentabilite'));
+const TableauProjection = lazy(() => import('./pages/TableauProjection'));
+const Vision = lazy(() => import('./pages/Vision'));
 import __Layout from './Layout.jsx';
 
 

@@ -206,7 +206,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
 }
 
 
-export function TableExtraction({ extraction, dealId, onSupprimer, onRefresh }) {
+export function TableExtraction({ extraction, dealId, onSupprimer = undefined, onRefresh }) {
   const [recherche, setRecherche] = useState("");
   const [edition, setEdition] = useState(null); // { index, champ }
   // Ligne dont la source est ouverte dans la visionneuse, à droite.

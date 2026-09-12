@@ -21,7 +21,10 @@ export default {
     legende: "Ce qui s'est vendu autour du bien, à quel prix, pour quelles activités.",
   },
 
-  async lire({ adresse, rayon = 500, forcer = false, user = null }) {
+  // 250 m : le plus proche des 200 m demandés par l'équipe — Data-B ne
+  // propose que 50, 100, 250, 400, 500 m… La fourchette des fonds se lit sur
+  // ce que la rue et ses abords ont vendu, pas sur le quartier entier.
+  async lire({ adresse, rayon = 250, forcer = false, user = null }) {
     const r = await transactionsFonds(adresse, { rayon, forcer, user });
     if (!r.ok) throw new ErreurSource(r.error, { service: 'Data-B', statut: r.statut ?? null, classe: r.classe ?? null });
     return r.resultat;
@@ -44,6 +47,7 @@ export default {
         precision: [
           surLaRue ? r.rue.nom : r.rayon ? `rayon ${r.rayon}` : null,
           m.avec_prix ? `${m.avec_prix} cession(s) chiffrée(s)` : null,
+          r.pertinentes?.length ? `${r.pertinentes.length} retenue(s) par proximité et date` : null,
         ].filter(Boolean).join(', ') || null,
         source: {
           connecteur: 'data-b-transactions',

@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useUser } from "@/components/providers/UserProvider";
+import { createPageUrl } from "@/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +17,16 @@ import { Switch } from "@/components/ui/switch";
 
 export default function Contacts() {
   const queryClient = useQueryClient();
+  // Le CRM porte les noms, les téléphones, le patrimoine et le budget des
+  // clients. Cette page n'avait aucune garde de rôle, alors que toutes ses
+  // voisines en ont une : elle s'ouvrait à n'importe quel compte connecté.
+  const user = useUser();
+  const navigate = useNavigate();
+  const estEquipe = user?.role === "admin";
+
+  useEffect(() => {
+    if (user && !estEquipe) navigate(createPageUrl("Dashboard"));
+  }, [user, estEquipe, navigate]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [formData, setFormData] = useState({
@@ -42,6 +55,7 @@ export default function Contacts() {
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: () => base44.entities.Contact.list("-created_date"),
+    enabled: estEquipe,
     initialData: []
   });
 
@@ -144,6 +158,10 @@ export default function Contacts() {
       maximumFractionDigits: 0 
     }).format(value);
   };
+
+  // Rien ne s'affiche tant que le rôle n'est pas établi, et rien du tout pour
+  // un compte client : la redirection ci-dessus l'emmène ailleurs.
+  if (!user || !estEquipe) return null;
 
   if (isLoading) {
     return (

@@ -1,30 +1,19 @@
-import React, { useEffect, useRef, useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useMutation } from "@tanstack/react-query";
-import { ExternalLink, RefreshCw, Search } from "lucide-react";
-import { toast } from "sonner";
-import PenseeIA from "@/components/PenseeIA";
-import ConnexionExterne from "@/components/preanalyse/ConnexionExterne";
+import React, { useEffect, useState } from "react";
+import { ExternalLink } from "lucide-react";
+import InfoBulle from "@/components/preanalyse/InfoBulle";
 
 // La valeur locative d'après Data-B : la fourchette de loyer au m² de la rue,
 // du quartier et de la ville, et le loyer du bail posé en face. C'est le
 // contrôle que l'équipe faisait à la main, module « Valeurs locatives », en
-// recopiant trois lignes. Ici on saisit l'adresse — celle du dossier est
-// proposée — et Klocka va chercher.
+// recopiant trois lignes.
+//
+// Cet écran ne cherche plus rien : il MONTRE ce que la lecture de marché a
+// rapporté. La recherche se lance depuis « Mettre à jour », qui interroge
+// toutes les sources cochées d'un coup. Avoir une barre de recherche par
+// source revenait à en relancer une en oubliant les autres, et à lire côte à
+// côte des chiffres relevés des jours différents.
 
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
-
-// Ce que Klocka fait pendant la recherche, tel qu'on le montre à l'écran.
-// L'étape 4 est celle qui attend la réponse de Data-B.
-const ETAPES = [
-  { court: "Connexion à Data-B", ligne: "Je me connecte sur Data-B", legende: "Authentification sur la plateforme, session ouverte." },
-  { court: "Ouverture de Valeurs locatives", ligne: "J'ouvre Valeurs locatives", legende: "Le module d'estimation de loyer parmi les logiciels de la suite." },
-  { court: "Saisie de l'adresse", ligne: "Je saisis l'adresse du bien", legende: "L'adresse du bail est géocodée puis envoyée à la recherche." },
-  { court: "Analyse des données", ligne: "J'analyse les données de loyer", legende: "Estimations basse et haute au m², rue par rue." },
-  { court: "Analyse des secteurs", ligne: "Je compare les secteurs", legende: "Le quartier et la ville servent de repères autour de la rue." },
-  { court: "Retour dans l'application", ligne: "Je remonte la donnée dans l'application", legende: "Rue, quartier, ville et positionnement du bail." },
-];
-const ATTEND_A = 3;
 
 // Le loyer du bail au m², contre la fourchette de la rue : en dessous, dedans,
 // au-dessus. C'est la seule phrase qui compte.
@@ -53,62 +42,22 @@ function Niveau({ titre, n, loyerM2 }) {
   );
 }
 
-export default function ValeurLocativeDataB({ dossier, lot, apercu = false, onRefresh }) {
-  const a = lot?.lot?.adresse?.valeur;
-  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ") : "";
-  const [adresse, setAdresse] = useState(adresseDossier);
-  useEffect(() => { setAdresse((v) => v || adresseDossier); }, [adresseDossier]);
-
-  // Le résultat déjà posé sur le lot, ou celui qu'on vient de chercher.
+export default function ValeurLocativeDataB({ lot }) {
+  // Ce que la dernière lecture de marché a posé sur le lot.
   const [resultat, setResultat] = useState(lot?.valeur_locative || null);
   useEffect(() => { if (lot?.valeur_locative) setResultat(lot.valeur_locative); }, [lot?.valeur_locative]);
-
-  // L'écran « Connexion à Data-B » pendant la recherche. La réponse arrive
-  // souvent avant la fin de l'animation : on la garde jusqu'au bout. Un
-  // résultat déjà connu se montre tout de suite, sans mise en scène.
-  const [ecran, setEcran] = useState(false);
-  const ecranRef = useRef(false);
-  ecranRef.current = ecran;
-  const [pret, setPret] = useState(false);
-  const enAttente = useRef(null);
-
-  const poser = (res) => {
-    setResultat(res);
-    if (res?.du_cache) toast.message("Valeur locative déjà connue", { description: "Résultat gardé de moins de trente jours. « Relire » interroge Data-B de nouveau." });
-    onRefresh?.();
-  };
-
-  const chercher = useMutation({
-    mutationFn: ({ forcer = false } = {}) =>
-      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot?.index ?? 0}/data-b/valeur-locative`, { body: { adresse, forcer } }),
-    onSuccess: (r) => {
-      if (!ecranRef.current || r.resultat?.du_cache) { setEcran(false); poser(r.resultat); return; }
-      enAttente.current = r.resultat;
-      setPret(true);
-    },
-    onError: (e) => { setEcran(false); toast.error(e?.message || "Data-B n'a pas répondu"); },
-  });
-
-  const lancer = (forcer) => {
-    enAttente.current = null;
-    setPret(false);
-    setEcran(true);
-    chercher.mutate({ forcer });
-  };
-  const finir = () => { setEcran(false); if (enAttente.current) poser(enAttente.current); enAttente.current = null; };
 
   const loyer = lot?.lot?.loyer_annuel_ht_hc?.valeur;
   const surface = lot?.lot?.surface_m2?.valeur;
   const loyerM2 = loyer > 0 && surface > 0 ? loyer / surface : null;
   const verdict = resultat ? verdictLoyer(loyerM2, resultat.rue) : null;
-  const memeAdresse = resultat && adresse.trim() && resultat.adresse && adresse.trim().toLowerCase().startsWith(resultat.adresse.split(" ")[0].toLowerCase());
 
   return (
     <section className="border border-[#1f2228] rounded-[16px] bg-[#0a0a0b] px-5 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div>
+        <div className="flex items-center gap-2">
           <h3 className="m-0 text-[15.5px] font-semibold text-[#f2f3f5]">Valeur locative</h3>
-          <p className="m-0 mt-0.5 text-[12.5px] text-[#6a7180]">Loyer au m² de la rue, du quartier et de la ville, d'après Data-B. En euros HT hors charges, par m² et par an.</p>
+          <InfoBulle texte="Loyer au m² de la rue, du quartier et de la ville, d'après Data-B. En euros HT hors charges, par m² et par an." />
         </div>
         {resultat?.lien && (
           <a href={resultat.lien} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-[#9298a6] hover:text-[#96c0b8]">
@@ -117,51 +66,13 @@ export default function ValeurLocativeDataB({ dossier, lot, apercu = false, onRe
         )}
       </div>
 
-      {/* L'adresse : celle du dossier, ou n'importe laquelle. */}
-      <form
-        className="mt-3 flex flex-wrap items-center gap-2"
-        onSubmit={(e) => { e.preventDefault(); if (adresse.trim() && !apercu) lancer(false); }}
-      >
-        <input
-          value={adresse}
-          onChange={(e) => setAdresse(e.target.value)}
-          placeholder="12 rue Exemple, 69002 Lyon"
-          disabled={apercu || chercher.isPending}
-          className="flex-1 min-w-[240px] bg-transparent border border-[#2c3139] focus:border-[#f2f3f5] rounded-full px-4 py-2 outline-none text-[13.5px] text-[#f2f3f5] placeholder:text-[#3a3f4a] disabled:opacity-60"
-        />
-        <button
-          type="submit"
-          disabled={apercu || chercher.isPending || !adresse.trim()}
-          className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-2 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40"
-        >
-          {chercher.isPending ? <PenseeIA etat="searching" taille={20} /> : <Search className="w-3.5 h-3.5" />}
-          {chercher.isPending ? "Data-B cherche…" : "Chercher sur Data-B"}
-        </button>
-        {resultat && memeAdresse && !chercher.isPending && (
-          <button
-            type="button"
-            onClick={() => lancer(true)}
-            title="Interroger Data-B de nouveau, en ignorant le résultat gardé"
-            className="inline-flex items-center gap-1.5 text-[12px] px-3 py-2 rounded-full border border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"
-          >
-            <RefreshCw className="w-3 h-3" /> Relire
-          </button>
-        )}
-      </form>
 
       <div className="mt-4">
-        <p className="m-0 mb-1 text-[11.5px] text-[#6a7180]">
-          {resultat ? (
-            <>
-              {resultat.adresse}
-              <span className="text-[#3a3f4a]"> · </span>
-              lu le {new Date(resultat.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
-              {resultat.du_cache && <span className="text-[#3a3f4a]"> · gardé</span>}
-            </>
-          ) : (
-            "Aucune lecture — lancez une recherche sur Data-B."
-          )}
-        </p>
+        {!resultat && (
+          <p className="m-0 mb-1 text-[11.5px] text-[#6a7180]">
+            Aucune lecture — relancez l’analyse de marché avec la source Data-B cochée.
+          </p>
+        )}
         <dl className="m-0">
           <Niveau titre="Rue" n={resultat?.rue} loyerM2={loyerM2} />
           <Niveau titre="Quartier" n={resultat?.quartier} loyerM2={loyerM2} />
@@ -190,16 +101,6 @@ export default function ValeurLocativeDataB({ dossier, lot, apercu = false, onRe
         </div>
       )}
 
-      {ecran && (
-        <ConnexionExterne
-          service="Data-B"
-          etapes={ETAPES}
-          attendA={ATTEND_A}
-          pret={pret}
-          dureeEtape={3000}
-          onFini={finir}
-        />
-      )}
     </section>
   );
 }

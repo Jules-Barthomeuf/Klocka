@@ -59,7 +59,37 @@ if (typeof window !== 'undefined') {
 export function createClient(config = {}) {
   const base = normalizeBase(config.serverUrl);
 
+/**
+ * Une erreur renvoyee par le serveur. Le statut et le corps sont ce que
+ * l'appelant regarde pour decider quoi afficher : ils font partie du contrat,
+ * pas d'un attribut pose au passage sur un Error nu.
+ */
+class ErreurHttp extends Error {
+  /**
+   * @param {string} message
+   * @param {number} status
+   * @param {any} [data]
+   */
+  constructor(message, status, data = null) {
+    super(message);
+    this.name = 'ErreurHttp';
+    this.status = status;
+    this.data = data;
+  }
+}
+
+  /**
+   * L'appel HTTP de l'application. Le type de retour est déclaré : sans lui,
+   * TypeScript déduisait `void` pour tout ce qui passe par ici — et signalait
+   * comme fautives des comparaisons et des tests parfaitement légitimes dans
+   * une centaine d'endroits.
+   * @param {string} method
+   * @param {string} url
+   * @param {{body?: any, isForm?: boolean, signal?: AbortSignal}} [options]
+   * @returns {Promise<any>}
+   */
   async function request(method, url, { body, isForm, signal } = {}) {
+    /** @type {Record<string, string>} */
     const headers = {};
     // Seul le jeton de fenêtre part en Authorization : le jeton hérité de
     // Base44 (config.token) ne correspond à rien côté serveur.
@@ -98,14 +128,13 @@ export function createClient(config = {}) {
           window.location.href = '/Home?session=expiree';
         }
       }
-      const err = new Error(
+      throw new ErreurHttp(
         resp.status === 401
           ? 'Votre session a expiré : reconnectez-vous.'
-          : data?.error || `Le serveur a répondu ${resp.status}${resp.status >= 500 ? ' (erreur interne — voir ses journaux)' : ''}`
+          : data?.error || `Le serveur a répondu ${resp.status}${resp.status >= 500 ? ' (erreur interne — voir ses journaux)' : ''}`,
+        resp.status,
+        data
       );
-      err.status = resp.status;
-      err.data = data;
-      throw err;
     }
     if (resp.status === 204) return null;
     const ct = resp.headers.get('content-type') || '';
@@ -119,6 +148,7 @@ export function createClient(config = {}) {
    * @returns {Promise<Blob>}
    */
   async function fichier(chemin) {
+    /** @type {Record<string, string>} */
     const headers = {};
     const jetonFenetre = fenetre.jeton();
     if (jetonFenetre) headers['Authorization'] = `Bearer ${jetonFenetre}`;
@@ -128,9 +158,10 @@ export function createClient(config = {}) {
     const sansAncre = String(chemin || '').split('#')[0];
     const resp = await fetch(`${base}${sansAncre}`, { headers, credentials: 'include' });
     if (!resp.ok) {
-      const err = new Error(resp.status === 401 ? 'Votre session a expiré : reconnectez-vous.' : `Le serveur a répondu ${resp.status}`);
-      err.status = resp.status;
-      throw err;
+      throw new ErreurHttp(
+        resp.status === 401 ? 'Votre session a expiré : reconnectez-vous.' : `Le serveur a répondu ${resp.status}`,
+        resp.status
+      );
     }
     return resp.blob();
   }

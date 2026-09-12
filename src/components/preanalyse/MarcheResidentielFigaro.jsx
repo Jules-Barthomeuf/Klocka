@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useMutation } from "@tanstack/react-query";
-import { ExternalLink, RefreshCw, Search } from "lucide-react";
-import { toast } from "sonner";
-import PenseeIA from "@/components/PenseeIA";
+import { ExternalLink } from "lucide-react";
+import InfoBulle from "@/components/preanalyse/InfoBulle";
 
 // Le marché résidentiel autour du bien, d'après Le Figaro Immobilier.
 //
@@ -71,25 +68,10 @@ function Colonne({ titre, niveau, principal = false }) {
   );
 }
 
-export default function MarcheResidentielFigaro({ dossier, lot, apercu = false, onRefresh }) {
-  const a = lot?.lot?.adresse?.valeur;
-  const adresseDossier = a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ") : "";
-  const [adresse, setAdresse] = useState(adresseDossier);
-  useEffect(() => { setAdresse((v) => v || adresseDossier); }, [adresseDossier]);
+export default function MarcheResidentielFigaro({ lot }) {
 
   const [resultat, setResultat] = useState(lot?.prix_residentiel || null);
   useEffect(() => { if (lot?.prix_residentiel) setResultat(lot.prix_residentiel); }, [lot?.prix_residentiel]);
-
-  const chercher = useMutation({
-    mutationFn: ({ forcer = false } = {}) =>
-      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot?.index ?? 0}/figaro/prix`, { body: { adresse, forcer } }),
-    onSuccess: (r) => {
-      setResultat(r.resultat);
-      if (r.resultat?.du_cache) toast.message("Marché résidentiel déjà connu", { description: "Résultat gardé de moins de trente jours. « Relire » interroge Le Figaro de nouveau." });
-      onRefresh?.();
-    },
-    onError: (e) => toast.error(e?.message || "Le Figaro n'a pas répondu"),
-  });
 
   // Ce que le commerce rapporte, pour la mise en regard.
   const loyerCommerce = lot?.lot?.loyer_annuel_ht_hc?.valeur;
@@ -101,9 +83,9 @@ export default function MarcheResidentielFigaro({ dossier, lot, apercu = false, 
   return (
     <section className="border border-[#1f2228] rounded-[16px] bg-[#0a0a0b] px-5 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div>
+        <div className="flex items-center gap-2">
           <h3 className="m-0 text-[15.5px] font-semibold text-[#f2f3f5]">Marché résidentiel</h3>
-          <p className="m-0 mt-0.5 text-[12.5px] text-[#6a7180]">Ce que coûte et ce que rapporte un appartement au même endroit, d'après Le Figaro Immobilier. Le point de comparaison du commerce.</p>
+          <InfoBulle texte={"Ce que coûte et ce que rapporte un appartement au même endroit, d'après Le Figaro Immobilier. Le point de comparaison du commerce."} />
         </div>
         {(resultat?.quartier?.lien || resultat?.lien) && (
           <a href={resultat.quartier?.lien || resultat.lien} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-[#9298a6] hover:text-[#96c0b8]">
@@ -112,46 +94,9 @@ export default function MarcheResidentielFigaro({ dossier, lot, apercu = false, 
         )}
       </div>
 
-      <form
-        className="mt-3 flex flex-wrap items-center gap-2"
-        onSubmit={(e) => { e.preventDefault(); if (adresse.trim() && !apercu) chercher.mutate({ forcer: false }); }}
-      >
-        <input
-          value={adresse}
-          onChange={(e) => setAdresse(e.target.value)}
-          placeholder="12 rue Exemple, 69002 Lyon"
-          disabled={apercu || chercher.isPending}
-          className="flex-1 min-w-[240px] bg-transparent border border-[#2c3139] focus:border-[#f2f3f5] rounded-full px-4 py-2 outline-none text-[13.5px] text-[#f2f3f5] placeholder:text-[#3a3f4a] disabled:opacity-60"
-        />
-        <button
-          type="submit"
-          disabled={apercu || chercher.isPending || !adresse.trim()}
-          className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-2 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40"
-        >
-          {chercher.isPending ? <PenseeIA etat="searching" taille={20} /> : <Search className="w-3.5 h-3.5" />}
-          {chercher.isPending ? "Le Figaro cherche…" : "Chercher sur Le Figaro"}
-        </button>
-        {resultat && !chercher.isPending && (
-          <button
-            type="button"
-            onClick={() => chercher.mutate({ forcer: true })}
-            title="Interroger Le Figaro de nouveau, en ignorant le résultat gardé"
-            className="inline-flex items-center gap-1.5 text-[12px] px-3 py-2 rounded-full border border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"
-          >
-            <RefreshCw className="w-3 h-3" /> Relire
-          </button>
-        )}
-      </form>
 
       {resultat && (
         <div className="mt-4">
-          <p className="m-0 mb-2 text-[11.5px] text-[#6a7180]">
-            {resultat.adresse}
-            <span className="text-[#3a3f4a]"> · </span>
-            lu le {new Date(resultat.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
-            {resultat.du_cache && <span className="text-[#3a3f4a]"> · gardé</span>}
-          </p>
-
           <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
             <Colonne titre="Le quartier" niveau={resultat.quartier} principal />
             <Colonne titre="La commune" niveau={resultat.commune} />

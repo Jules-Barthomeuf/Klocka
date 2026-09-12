@@ -12,6 +12,7 @@ import { mesurer } from './llm-couts.js';
 const SURFACES = {
   dossier: "le chat d'un dossier (src/components/preanalyse/ChatDossier.jsx → POST /api/preanalyse/dossiers/:dealId/espace/chat → converser() dans server/deal/espace.js → chatDocuments() dans server/llm.js ; le prompt système se construit dans consigne() de espace.js, avec les consignes SANS_MARKDOWN et PROFONDEURS)",
   dashboard: "le chat du tableau de bord (src/components/dashboard/ChatDashboard.jsx → POST /api/assistant/boite → traiterBoite() dans server/assistant-boite.js, qui classe puis appelle commander() dans server/assistant-commande.js ; le prompt système est consigne() de assistant-commande.js)",
+  marche: "le chat de marché d'un dossier, onglet Analyse → Marché (src/components/preanalyse/JournalQuestion.jsx → POST /api/marche/question → repondre() dans server/marche/question.js, qui n'autorise le modèle qu'aux connecteurs de server/marche/connecteurs/ ; le prompt système est CONSIGNES dans question.js, et la règle absolue y est qu'aucun chiffre ne peut venir de la mémoire du modèle)",
   assistant: "l'assistant flottant (src/components/AssistantFlottant.jsx → POST /api/assistant/commande → commander() dans server/assistant-commande.js)",
 };
 
@@ -70,7 +71,7 @@ ${precision ? `\n--- CE QUE L'UTILISATEUR REPROCHE ---\n${String(precision).trim
       () => invokeLLM({ prompt, response_json_schema: SCHEMA })
     );
     resultat = rr;
-  } catch (e) {
+  } catch {
     resultat = null;
   }
 

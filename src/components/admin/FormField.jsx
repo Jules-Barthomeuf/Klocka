@@ -6,7 +6,7 @@ export const fieldInput = "w-full bg-transparent border-none text-[#f2f3f5] outl
 export const fieldLabel = "text-[12px] text-[#9a9a9a] mb-2";
 
 // Champ texte / nombre
-export function FField({ label, labelColor, children, className = "" }) {
+export function FField({ label = undefined, labelColor = undefined, children, className = "" }) {
   return (
     <div className={`${fieldWrap} ${className}`}>
       {label && <div className={fieldLabel} style={labelColor ? { color: labelColor } : undefined}>{label}</div>}

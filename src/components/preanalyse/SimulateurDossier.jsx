@@ -90,7 +90,7 @@ const formatCurrency = (value) =>
 // panneau dépliable au lieu d'occuper une colonne de gauche.
 // dealId + lotIndex : les chiffres s'enregistrent sur le lot, on y revient
 // plus tard et le projet créé depuis le deal en hérite.
-export default function SimulateurDossier({ parametres, compact = false, dealId = null, lotIndex = 0, onEnregistre }) {
+export default function SimulateurDossier({ parametres, compact = false, dealId = null, lotIndex = 0, onEnregistre = undefined }) {
   const [etat, setEtat] = useState(() => etatInitial(parametres));
   // Tableaux annuels : hors CHAMPS car ils ne viennent jamais du dossier.
   const [vacancesLocatives, setVacancesLocatives] = useState(() => Array(25).fill(0));

@@ -14,7 +14,7 @@ import { ingerer, archiverSource } from './ingest.js';
 import { extraire, lotVide } from './extract.js';
 import { enrichir } from './enrich.js';
 import { evaluer, profilsConfigures, grilleCriteres } from './rules.js';
-import { calculerAEM, parametresSimulateur } from './aem.js';
+import { parametresSimulateur } from './aem.js';
 import { redigerSynthese, redigerMailAgent } from './redact.js';
 import { statutDe, aRelancer } from './lifecycle.js';
 import { etapeMax } from './etapes.js';

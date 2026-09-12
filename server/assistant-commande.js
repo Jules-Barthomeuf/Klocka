@@ -9,8 +9,6 @@
 // liste et demande. Et rien de destructif n'est exposé — l'assistant sait pousser
 // vers Monday et renseigner, pas supprimer.
 
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { Records, CHEMIN_UPLOADS } from './db.js';
 import { runAgent } from './llm.js';
 import { statutDe } from './deal/lifecycle.js';

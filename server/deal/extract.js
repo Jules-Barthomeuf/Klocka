@@ -139,7 +139,7 @@ function normaliser(str) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .replace(/[    ]/g, ' ')
+    .replace(/[\u00a0\u202f\u2009\u2007]/g, ' ')
     .replace(/[''`´]/g, "'")
     .replace(/[""«»]/g, '"')
     .replace(/\s+/g, ' ')

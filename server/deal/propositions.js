@@ -10,7 +10,6 @@
 
 import { Records } from '../db.js';
 import { statutDe } from './lifecycle.js';
-import { etapeMax } from './etapes.js';
 import { typeDepuisCategorie } from './grille.js';
 
 // Le dossier documentaire type d'un deal : ce que l'on demande à l'agent.

@@ -60,7 +60,7 @@ export function lignesDe(html) {
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<[^>]+>/g, '\n')
-    .replace(/&nbsp;| /g, ' ')
+    .replace(/&nbsp;|\u00a0/g, ' ')
     .replace(/&#39;|&apos;/g, "'")
     .replace(/&amp;/g, '&')
     .replace(/&eacute;/g, 'é')

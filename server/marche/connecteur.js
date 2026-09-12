@@ -46,7 +46,6 @@ export async function tenter(connecteur, contexte = {}, options = {}) {
   } = options;
 
   const tentatives = [];
-  let dernier = null;
 
   for (let essai = 1; ; essai++) {
     const debut = maintenant();
@@ -84,7 +83,6 @@ export async function tenter(connecteur, contexte = {}, options = {}) {
       };
       tentatives.push(tentative);
       surTentative?.(tentative);
-      dernier = verdict;
 
       const reste = attentes[essai - 1];
       // Un mur, une absence de donnée, ou plus d'essais en réserve : on rend

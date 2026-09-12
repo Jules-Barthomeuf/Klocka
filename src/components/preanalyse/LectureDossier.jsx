@@ -10,7 +10,7 @@ import { AlertTriangle, ArrowUpRight, Check, FileWarning, Loader2, Scale } from 
 // à réclamer au vendeur, et les points qui changent la décision ou le prix.
 // Les tables document par document viennent après — elles servent à vérifier.
 
-const Bloc = ({ titre, compte, teinte, enfants, vide }) => (
+const Bloc = ({ titre, compte, teinte, enfants, vide = undefined }) => (
   <section className="min-w-0">
     <div className="flex items-baseline gap-2.5 pb-2.5 mb-3 border-b border-[#1e1e22]">
       <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold" style={{ color: teinte }}>{titre}</p>

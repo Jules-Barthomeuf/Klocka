@@ -8,7 +8,6 @@
 // Le modèle lit ; il ne décide pas. Ce qu'il n'a pas trouvé reste vide, une
 // case vide vaut mieux qu'une invention, et l'admin relit avant de valider.
 
-import { Records } from './db.js';
 
 // Les listes fermées du tableau, relevées sur place. Un libellé hors liste
 // n'est pas posé : Monday le refuserait, et on ne veut pas d'à-peu-près.

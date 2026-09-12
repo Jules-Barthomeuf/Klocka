@@ -105,7 +105,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
     setOpacite(0);
     const t = setTimeout(() => onFini?.(), 700);
     return () => clearTimeout(t);
-  }, [fini]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fini]);  
 
   const e = etapes[Math.min(i, etapes.length - 1)];
   const frappes = Math.round(Math.min(1, avance / PART_FRAPPE) * e.ligne.length);

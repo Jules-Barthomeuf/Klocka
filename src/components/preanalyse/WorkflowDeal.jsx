@@ -15,7 +15,6 @@ import {
 } from "@/components/preanalyse/DealResultat";
 import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
-import BoutonMonday from "@/components/BoutonMonday";
 import DocumentsDossier from "./DocumentsDossier";
 import { GABARITS } from "./gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
@@ -26,7 +25,9 @@ import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFondsDataB from "@/components/preanalyse/TransactionsFondsDataB";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
-import AlexMarche from "@/components/preanalyse/AlexMarche";
+import JournalAnalyste from "@/components/preanalyse/JournalAnalyste";
+import JournalQuestion from "@/components/preanalyse/JournalQuestion";
+import { adresseDe } from "@/components/preanalyse/marche-reel";
 import TracabiliteMarche from "@/components/preanalyse/TracabiliteMarche";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
@@ -71,7 +72,7 @@ const ETAPES = [
 ];
 
 // En-tête numéroté d'une étape : « 01 · Titre » + description, comme la maquette.
-export function TitreEtape({ n, titre, description }) {
+export function TitreEtape({ n, titre, description = undefined }) {
   return (
     <div className="mb-6">
       <div className="flex items-baseline gap-3.5 mb-1.5">
@@ -114,7 +115,7 @@ function etapeDebloquee(dossier) {
  * @param apercu    bool — mode aperçu : les cinq étapes sont ouvertes et
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
-export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, onRefresh, apercu = false }) {
+export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false }) {
   const abandonne = dossier?.statut === "abandonne";
   // En aperçu, tout est déverrouillé pour parcourir les écrans librement.
   const debloquee = apercu ? ETAPES.length : etapeDebloquee(dossier);
@@ -136,6 +137,9 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
   const [preuveGrille, setPreuveGrille] = useState(null);
   const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "bail"; } catch { return "bail"; } });
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
+  // L'onglet Marché de l'étape Analyse : le seul endroit où le chat du haut
+  // change de nature.
+  const surMarche = etape === 3 && grilleAnalyse === "marche";
   const [deblocageEnCours, setDeblocageEnCours] = useState(false);
   // Documents cochés dans l'étape Analyse, soumis au chat.
   const [documentsCoches, setDocumentsCoches] = useState([]);
@@ -264,9 +268,6 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
           </div>
           {!apercu && (
             <div className="flex items-center gap-2.5 flex-shrink-0 max-md:flex-wrap max-md:flex-shrink max-md:justify-end">
-              {dossier && (
-                <BoutonMonday dealId={dossier.deal_id} dejaPose={!!dossier.monday_item_id} />
-              )}
               <Button
                 onClick={() => {
                   if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
@@ -311,8 +312,13 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
         })}
       </div>
 
+      {/* Sur le marché, le chat du haut devient celui du marché : une seule
+          barre dans la page, et c'est celle qui sait interroger les sources.
+          Partout ailleurs, le chat du dossier ne bouge pas. */}
+      {surMarche && <JournalQuestion dealId={dossier?.deal_id} adresse={adresseDe(dossier?.lots?.[0])} apercu={apercu} />}
+
       {/* Le chat n'a rien à faire sur Plateforme ni Présentation : là, on génère. */}
-      {etape <= 3 && (
+      {etape <= 3 && !surMarche && (
       <ChatDossier
         afficherRequetes={etape === 2 || etape === 3}
         panneauDocuments={dossier ? <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive /> : null}
@@ -373,12 +379,10 @@ export default function WorkflowDeal({ dossier, onAnalyse, onSaisie, enCours, on
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
             {grilleAnalyse === "marche" && (
               <div className="flex flex-col gap-4">
-                <AlexMarche dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
-                <TracabiliteMarche dossier={dossier} lotIndex={0} />
-                <ValeurLocativeDataB dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
-                <AnalyseLoyerEquimmox dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
-                <TransactionsFondsDataB dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
-                <MarcheResidentielFigaro dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
+                {/* Les quatre lectures de marché vivent maintenant dans les
+                    onglets de leur source, à l'intérieur du journal — elles
+                    s'empilaient ici sur toute la hauteur de la page. */}
+                <JournalAnalyste dossier={dossier} lot={dossier?.lots?.[0]} apercu={apercu} onRefresh={onRefresh} />
               </div>
             )}
             {grilleAnalyse === "simulateur" && (
@@ -834,7 +838,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
 // Bloc de décision Oui / Non — partagé par les étapes 2 et 4
 // ---------------------------------------------------------------------------
 
-function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, titreOui, descOui, titreNon, descNon, onOui, apercu, descInactif }) {
+function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, titreOui, descOui, titreNon, descNon, onOui = undefined, apercu, descInactif = undefined }) {
   const [dialogIntention, setDialogIntention] = useState(null);
   // En aperçu, les cartes sont visibles mais inertes.
   const ouvrir = (intention) => !apercu && setDialogIntention(intention);

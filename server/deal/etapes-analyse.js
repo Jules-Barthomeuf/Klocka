@@ -192,7 +192,6 @@ export function lireEtape1(dealId) {
   const finAnnee = finBail ? Number(finBail.slice(0, 4)) : null;
   const restant = finAnnee ? finAnnee - new Date().getFullYear() : null;
   if (restant != null) db.push(restant < 2 ? { ok: false, gravite: 'dur', libelle: `Durée restante : ${restant} an${restant > 1 ? 's' : ''}`, detail: `Échéance ${fr(finBail)}.`, source: src('dates_bail') } : { ok: true, libelle: `Durée ${ferme ? 'ferme ' : ''}restante : ${restant} ans` });
-  const echeances = [...new Set((ch('dates_bail')?.preuves || []).flatMap((p) => dates(p.reponse).map((d) => d.annee)).filter((a) => a >= new Date().getFullYear()))];
   const finsParDoc = new Map((ch('dates_bail')?.preuves || []).map((p) => [p.document_nom, Math.max(0, ...dates(p.reponse).map((d) => d.annee))]));
   const finsDistinctes = [...new Set([...finsParDoc.values()].filter(Boolean))];
   if (finsDistinctes.length > 1) {
@@ -311,8 +310,8 @@ export function lireEtape2(dealId) {
   const restrictionTouche = restrictions && !negation(restrictions) && interdit && motsActivite.some((w) => restrictions.toLowerCase().includes(w));
   const conformite = !restrictions ? { statut: 'inconnu', texte: 'Règlement de copropriété non lu : conformité de l\'activité à vérifier.' }
     : negation(restrictions) ? { statut: 'ok', texte: 'Le règlement ne restreint pas l\'activité du preneur.' }
-    : restrictionTouche ? { statut: 'ko', texte: `Le règlement vise l\'activité exercée : ${court(restrictions, 140)}` }
-    : { statut: 'a_verifier', texte: `Le règlement pose des restrictions, sans viser l\'activité en termes exprès : ${court(restrictions, 120)}` };
+    : restrictionTouche ? { statut: 'ko', texte: `Le règlement vise l'activité exercée : ${court(restrictions, 140)}` }
+    : { statut: 'a_verifier', texte: `Le règlement pose des restrictions, sans viser l'activité en termes exprès : ${court(restrictions, 120)}` };
   const travaux = v('travaux_votes');
   const montantTravaux = montants(travaux || '')[0]?.valeur ?? null;
   const travauxLourds = travaux && !negation(travaux) && (montantTravaux != null ? montantTravaux > Math.max(10000, (loyer || 0) * 0.2) : /ravalement|toiture|ascenseur|structure|façade/i.test(travaux));
@@ -627,7 +626,6 @@ export async function lireEtape4(dealId) {
   const e1 = lireEtape1(dealId);
   const brut = Records.filter('Deal', { deal_id: dealId })[0];
   const f = lireFiche(dealId);
-  const m = lireMatrice(dealId);
   const eurs = (v) => (v == null ? '—' : `${Math.round(v).toLocaleString('fr-FR')} €`);
   const lignes = Object.fromEntries(e1.fiche.lignes.map((l) => [l.id, l.valeur]));
 

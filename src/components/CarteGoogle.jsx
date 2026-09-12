@@ -13,7 +13,7 @@ const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
  * @param zoom     défaut 15 (17 si adresse précise)
  * @param hauteur  classe CSS de hauteur, défaut h-72
  */
-export default function CarteGoogle({ adresse, lat, lon, zoom, hauteur = "h-72" }) {
+export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, hauteur = "h-72" }) {
   const query = adresse || (lat != null && lon != null ? `${lat},${lon}` : null);
   if (!query) {
     return (

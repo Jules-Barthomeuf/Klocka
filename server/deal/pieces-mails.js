@@ -10,7 +10,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { Records, CHEMIN_UPLOADS } from '../db.js';
 import { telechargerPieceJointe } from '../gmail-inbox.js';
 import { ajouterDocument } from './espace.js';

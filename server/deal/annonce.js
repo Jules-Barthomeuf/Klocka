@@ -48,7 +48,7 @@ async function pageParleDuBien(url, { ville, prix, surface }) {
     // contient toutes les villes et tous les prix — elle passerait tout.
     if (/\b\d+\s+(annonces?|biens?|resultats?|offres?)\b/.test(titre)) return false;
     const texte = html.replace(/<[^>]+>/g, ' ');
-    const compact = texte.replace(/[\s.  ]/g, '');
+    const compact = texte.replace(/[\s.\u202f\u00a0]/g, '');
     const villeOk = ville ? texte.includes(normaliser(ville)) : true;
     const present = (n) => typeof n === 'number' && n > 0 && compact.includes(String(Math.round(n)));
     const prixOk = present(prix);

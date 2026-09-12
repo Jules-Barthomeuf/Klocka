@@ -14,6 +14,7 @@ const buttonVariants = {
     },
 };
 
+/** @type {React.ForwardRefExoticComponent<any>} */
 const NeonButton = React.forwardRef(
     ({ className, neon = true, size = "default", variant = "default", children, ...props }, ref) => {
         const variantClass = buttonVariants.variant[variant] || buttonVariants.variant.default;

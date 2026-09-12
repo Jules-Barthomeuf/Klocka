@@ -190,6 +190,16 @@ export async function lireArticle(url) {
     clearTimeout(minuteur);
   }
 
+  // La liste blanche ne vaut que pour l'adresse demandée. Une source autorisée
+  // qui redirige emmène ailleurs — éventuellement vers une adresse interne du
+  // serveur, que le pare-feu laisse passer puisque la requête part de lui.
+  // On revérifie donc l'adresse d'arrivée, pas seulement celle de départ.
+  if (reponse.url && reponse.url !== url && !domaineAutorise(reponse.url)) {
+    const e = new Error("Cette source redirige vers un domaine non autorisé.");
+    e.statut = 400;
+    throw e;
+  }
+
   if (!reponse.ok) {
     const e = new Error(`La source a répondu ${reponse.status}.`);
     e.statut = 502;

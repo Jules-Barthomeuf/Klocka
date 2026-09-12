@@ -8,7 +8,7 @@
 // a créés — jamais les agendas personnels des admins. C'est le pendant de
 // drive.file côté Calendar. Un échec calendrier n'est jamais bloquant.
 
-import { Records, Meta } from './db.js';
+import { Meta } from './db.js';
 import { storedAccount, accessTokenFor } from './google-oauth.js';
 
 const API = 'https://www.googleapis.com/calendar/v3';

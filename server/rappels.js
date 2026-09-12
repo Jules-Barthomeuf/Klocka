@@ -22,7 +22,7 @@ export function lireEcheance(texte) {
   if ((m = t.match(/dans\s+(\d{1,2})\s*mois/))) { const d = aMidi(new Date()); d.setMonth(d.getMonth() + Number(m[1])); return d; }
   if (/\bdemain\b/.test(t)) return dansNJours(1);
   if (/apres[- ]demain/.test(t)) return dansNJours(2);
-  if ((m = t.match(/\b(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\b/))) {
+  if ((m = t.match(/\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?\b/))) {
     const annee = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : new Date().getFullYear();
     const d = aMidi(new Date(annee, Number(m[2]) - 1, Number(m[1])));
     if (!m[3] && d < new Date()) d.setFullYear(d.getFullYear() + 1);
@@ -73,7 +73,7 @@ export function objetDuRappel(texte) {
   // laisse « le PV d'AG », pas « dans 3 jours le PV d'AG ».
   const nu = t
     .replace(/^\s*(rappelle[- ]moi|rappel|pense[rz]?\s+à|note)\b[\s,:]*/i, '')
-    .replace(/^\s*(dans\s+\d{1,3}\s*(?:jours?|j|semaines?|mois)|demain|apr[eè]s[- ]demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|le\s+\d{1,2}[\/.]\d{1,2}(?:[\/.]\d{2,4})?)\b[\s,:]*/i, '')
+    .replace(/^\s*(dans\s+\d{1,3}\s*(?:jours?|j|semaines?|mois)|demain|apr[eè]s[- ]demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|le\s+\d{1,2}[/.]\d{1,2}(?:[/.]\d{2,4})?)\b[\s,:]*/i, '')
     .trim();
   return nu.length >= 3 ? nu.slice(0, 120) : null;
 }

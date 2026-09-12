@@ -285,7 +285,7 @@ const EFFETS_INTENTION = {
   presentation_client: "Décision actée. L'étape Plateforme s'ouvre pour créer le projet.",
 };
 
-export function DialogMailIntention({ dossier, intention, mailInitial, onClose, onDone, onArchiverSansMail, parametres = null }) {
+export function DialogMailIntention({ dossier, intention, mailInitial = undefined, onClose, onDone, onArchiverSansMail = undefined, parametres = null }) {
   const [objet, setObjet] = useState(mailInitial?.objet || "");
   const [corps, setCorps] = useState(mailInitial?.corps || "");
   const [destinataire, setDestinataire] = useState(dossier.contact_agent_email || "");
@@ -1032,7 +1032,7 @@ function Metrique({ label, valeur, sousTitre, accent }) {
   );
 }
 
-function LigneDetail({ label, valeur, fort }) {
+function LigneDetail({ label, valeur, fort = undefined }) {
   return (
     <div className="flex justify-between gap-3 py-1.5 border-b border-[#15171b]">
       <span className="text-[#9298a6]">{label}</span>

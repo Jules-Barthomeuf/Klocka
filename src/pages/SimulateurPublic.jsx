@@ -358,7 +358,7 @@ export default function SimulateurPublic() {
 
   const handleCopyShareLink = () => {
     const url = window.location.origin + '/SimulateurPublic?data=' + encodeURIComponent(JSON.stringify(exportParams));
-    try { navigator.clipboard?.writeText(url).catch(() => {}); } catch (e) {}
+    navigator.clipboard?.writeText(url).catch(() => {});
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };

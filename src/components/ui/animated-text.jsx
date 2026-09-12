@@ -2,6 +2,7 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+/** @type {React.ForwardRefExoticComponent<any>} */
 const AnimatedText = React.forwardRef(
   (
     {

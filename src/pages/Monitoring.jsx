@@ -10,6 +10,9 @@ import { Loader2, Activity, Users, MessageSquare, Wrench, ChevronDown, Coins } f
 // exécuté au-dehors — et cette dernière colonne est la seule qui engage.
 
 const FENETRES = [
+  // Une journée : ce qu'on regarde après avoir touché un réglage, pour voir
+  // l'effet tout de suite au lieu de l'attendre noyé dans une semaine.
+  { jours: 1, libelle: "1 jour" },
   { jours: 7, libelle: "7 jours" },
   { jours: 30, libelle: "30 jours" },
   { jours: 90, libelle: "90 jours" },

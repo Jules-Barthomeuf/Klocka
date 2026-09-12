@@ -27,7 +27,7 @@ function SectionLabel({ children, tone = "muted", className = "" }) {
 }
 
 // Le chapô (`right`) passe sous le titre : titre → sous-titre → chapô → chiffres.
-function TabHeader({ title, subtitle, left, right }) {
+function TabHeader({ title, subtitle, left = undefined, right = undefined }) {
   return (
     <div className="mb-6 max-md:mb-4">
       <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] mb-2">{title}</h2>
@@ -60,7 +60,7 @@ function KpiStrip({ items, className = "" }) {
   );
 }
 
-function KVRow({ label, value, accent, champ, typeChamp }) {
+function KVRow({ label, value, accent = undefined, champ = undefined, typeChamp = undefined }) {
   const edition = useEdition();
   if (estMasque(edition, champ)) return null;
   if (value == null || value === "") return null;
@@ -76,7 +76,7 @@ function KVRow({ label, value, accent, champ, typeChamp }) {
 }
 
 // Tableau éditorial : en-têtes lettrés, filets fins, chiffres alignés à droite
-function DataTable({ label, head, rows, align }) {
+function DataTable({ label, head, rows, align = undefined }) {
   if (!rows || rows.length === 0) return null;
   const cellAlign = (i) => (align?.[i] === "left" || (!align && i === 0) ? "text-left" : "text-right");
   return (

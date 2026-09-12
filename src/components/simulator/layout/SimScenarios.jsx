@@ -70,7 +70,7 @@ function computeScenario(params, prixNegocie) {
   };
 }
 
-function StatCell({ label, value, highlight }) {
+function StatCell({ label, value, highlight = undefined }) {
   return (
     <div className="flex flex-col">
       <span className="text-[10px] text-[hsl(var(--background))]">{label}</span>

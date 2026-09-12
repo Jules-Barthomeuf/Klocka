@@ -109,7 +109,7 @@ function CTAButton({ onClick, label }) {
   );
 }
 
-function Section({ children, id, dark = true }) {
+function Section({ children, id = undefined, dark = true }) {
   return (
     <section id={id} className={dark ? "bg-[#000000] text-[#f2f3f5]" : "bg-[#0f1114] text-[#f2f3f5]"}>
       <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">{children}</div>

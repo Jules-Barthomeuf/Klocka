@@ -132,13 +132,23 @@ export function marcheDe(transactions) {
 const sansAccent = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const motsRue = (s) => sansAccent(s).replace(/[^a-z0-9]+/g, ' ').replace(/\b(rue|avenue|av|boulevard|bd|place|pl|cours|quai|impasse|allee|chemin|route|du|de|des|la|le|les|l|d)\b/g, ' ').trim();
 
+/** La distance à vol d'oiseau, en mètres — ou rien si un point manque. */
+function distanceM(a, t) {
+  if (![a?.lat, a?.lon, t?.lat, t?.lon].every((x) => Number.isFinite(x))) return null;
+  const rad = (d) => (d * Math.PI) / 180;
+  const dLat = rad(t.lat - a.lat);
+  const dLon = rad(t.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(t.lat)) * Math.sin(dLon / 2) ** 2;
+  return Math.round(2 * 6371000 * Math.asin(Math.sqrt(h)));
+}
+
 function situer(transactions, adresse) {
   const rue = motsRue(adresse.rue);
   const numero = String(adresse.numero || '').trim();
   return transactions.map((t) => {
     const dansLaRue = !!rue && motsRue(t.adresse).includes(rue);
     const surPlace = dansLaRue && !!numero && new RegExp(`^${numero}\\b`).test(String(t.adresse || '').trim());
-    return { ...t, dans_la_rue: dansLaRue, sur_place: surPlace };
+    return { ...t, dans_la_rue: dansLaRue, sur_place: surPlace, distance_m: distanceM(adresse, t) };
   });
 }
 
@@ -208,15 +218,23 @@ export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, fo
   const dansLaRue = transactions.filter((t) => t.dans_la_rue);
   const surPlace = transactions.filter((t) => t.sur_place);
 
-  // On garde ce qui touche le bien, puis les plus récentes autour. Deux cents
-  // suffisent à peupler la carte sans alourdir la fiche ; le marché résumé,
-  // lui, est calculé sur la totalité.
-  const parDate = (a, b) => String(b.date).localeCompare(String(a.date));
+  // On garde ce qui touche le bien, puis la même rue, puis le reste — et dans
+  // chaque cercle, les plus proches d'abord, les plus récentes à distance
+  // égale. C'est l'ordre dans lequel l'équipe les lisait à la main : ce qui
+  // est à côté et récent dit plus que ce qui est loin et ancien. Deux cents
+  // suffisent à peupler la carte ; le marché résumé est calculé sur la totalité.
+  const parProximite = (a, b) => {
+    const da = a.distance_m ?? Infinity, db = b.distance_m ?? Infinity;
+    if (da !== db) return da - db;
+    return String(b.date).localeCompare(String(a.date));
+  };
   const retenues = [
-    ...surPlace.sort(parDate),
-    ...dansLaRue.filter((t) => !t.sur_place).sort(parDate),
-    ...transactions.filter((t) => !t.dans_la_rue).sort(parDate),
+    ...surPlace.sort(parProximite),
+    ...dansLaRue.filter((t) => !t.sur_place).sort(parProximite),
+    ...transactions.filter((t) => !t.dans_la_rue).sort(parProximite),
   ].slice(0, garder);
+  // Les dix plus pertinentes, à part : c'est elles qu'on cite dans l'analyse.
+  const pertinentes = retenues.slice(0, 10);
 
   const resultat = {
     source: 'Data-B · Transactions de fonds de commerce',
@@ -230,6 +248,7 @@ export async function transactionsFonds(texteAdresse, { rayon = RAYON_DEFAUT, fo
     // La rue à part : c'est elle qu'on compare au dossier, pas le quartier.
     rue: dansLaRue.length ? { nom: adresse.rue, ...marcheDe(dansLaRue) } : null,
     sur_place: surPlace.length,
+    pertinentes,
     transactions: retenues,
     lien: url,
     le: new Date().toISOString(),

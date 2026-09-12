@@ -23,7 +23,7 @@ const sliderStyle = `
 `;
 
 // `alerte` : un mot d'explication, et tout passe en corail — la valeur manque.
-export default function SimSlider({ label, value, onChange, min, max, step = 1, unit = "", disabled, muted, alerte = null }) {
+export default function SimSlider({ label, value, onChange, min, max, step = 1, unit = "", disabled = undefined, muted = undefined, alerte = null }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 

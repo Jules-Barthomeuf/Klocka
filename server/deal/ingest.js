@@ -23,7 +23,7 @@ const MIN_CHARS_PAR_PAGE = 120;
 function nettoyer(texte) {
   return (texte || '')
     .replace(/\r\n?/g, '\n')
-    .replace(/[ \t ]+/g, ' ')
+    .replace(/[ \t\u00a0]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }

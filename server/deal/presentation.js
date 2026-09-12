@@ -8,7 +8,6 @@
 import PptxGenJS from 'pptxgenjs';
 import { vueRedacteur } from './redact.js';
 
-const val = (c) => (c && c.absent === false ? c.valeur : null);
 const euros = (n) =>
   n == null ? '—' : `${new Intl.NumberFormat('fr-FR').format(Math.round(n))} €`;
 const pct = (n) => (n == null ? '—' : `${String(n).replace('.', ',')} %`);

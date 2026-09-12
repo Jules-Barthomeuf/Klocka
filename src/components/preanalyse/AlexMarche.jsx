@@ -141,7 +141,7 @@ export default function AlexMarche({ dossier, lot, apercu = false, onRefresh }) 
           className="inline-flex items-center gap-2 text-[13px] px-4 py-2 rounded-full bg-[#96c0b8] text-[#04140c] font-semibold hover:bg-[#abd0c8] disabled:opacity-40 flex-shrink-0"
         >
           {enCours ? <PenseeIA etat="searching" taille={20} /> : <Sparkles className="w-3.5 h-3.5" />}
-          {enCours ? "Alex cherche…" : dejaLu ? "Relancer Alex" : "Lancer Alex"}
+          {enCours ? "Alex cherche…" : "Lancer l'analyse de marché"}
         </button>
       </div>
 

@@ -14,7 +14,6 @@ import { mesurer } from '../llm-couts.js';
 const val = (c) => (c && c.absent === false ? c.valeur : c?.valeur ?? null);
 const eur = (v) => (v == null ? null : `${Math.round(v).toLocaleString('fr-FR')} €`);
 const ouiNon = (b) => (b === true ? 'OUI' : b === false ? 'NON' : null);
-const GROS_TRAVAUX = /\b606\b|gros ?œuvre|gros ?oeuvre|toiture|charpente|ravalement|façade|facade|étanchéité|etancheite|ascenseur|structure|fondation|mur(s)? porteur|chaufferie|colonne(s)? montante/i;
 
 // --- Les grilles ------------------------------------------------------------------------
 export const GRILLES = {

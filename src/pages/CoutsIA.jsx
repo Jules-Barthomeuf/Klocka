@@ -28,6 +28,9 @@ const pourcent = (x) => `${Math.round((x || 0) * 100)} %`;
 const duree = (ms) => (!ms ? "—" : ms < 1000 ? `${Math.round(ms)} ms` : ms < 60000 ? `${(ms / 1000).toFixed(0)} s` : `${Math.floor(ms / 60000)} min`);
 
 const FENETRES = [
+  // Une journée : ce qu'on regarde après avoir touché un réglage, pour voir
+  // l'effet tout de suite au lieu de l'attendre noyé dans une semaine.
+  { jours: 1, mot: "1 jour" },
   { jours: 7, mot: "7 jours" },
   { jours: 30, mot: "30 jours" },
   { jours: 90, mot: "90 jours" },
@@ -169,7 +172,7 @@ export default function CoutsIA() {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <Chiffre label={`Dépensé sur ${jours} jours`} valeur={euros(data.total)} note={`${actions.reduce((n, a) => n + a.gestes, 0)} gestes mesurés`} />
+              <Chiffre label={`Dépensé sur ${FENETRES.find((f) => f.jours === jours)?.mot || `${jours} jours`}`} valeur={euros(data.total)} note={`${actions.reduce((n, a) => n + a.gestes, 0)} gestes mesurés`} />
               <Chiffre
                 label="Le geste le plus cher"
                 valeur={plusCher ? euros(plusCher.mediane) : "—"}

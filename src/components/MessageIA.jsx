@@ -14,7 +14,7 @@ import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 // la cause. Le pouce en bas ouvre d'abord un champ, facultatif, pour dire ce
 // qui cloche : le prompt en devient beaucoup plus juste.
 
-export function AvisReponse({ question, reponse, surface, dealId }) {
+export function AvisReponse({ question, reponse, surface, dealId = undefined }) {
   const [ouvert, setOuvert] = useState(null); // "bas" quand on précise
   const [precision, setPrecision] = useState("");
   const [resultat, setResultat] = useState(null); // { prompt, resume, pouce }

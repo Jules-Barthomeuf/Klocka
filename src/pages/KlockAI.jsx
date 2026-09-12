@@ -9,9 +9,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import ChatInputBar from "@/components/klockai/ChatInputBar";
 
 // Retire tout émoji / pictogramme du texte affiché
+// Un emoji n'est pas un caractère : « famille » ou « pouce levé, peau claire »
+// sont des suites de points de code liées par un liant (ZWJ) et des sélecteurs
+// de teinte. Les énumérer dans une classe de caractères coupait ces suites en
+// morceaux et laissait les résidus à l'écran. On retire la suite entière.
 const stripEmojis = (text = "") =>
   text
-    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{200D}]/gu, "")
+    .replace(
+      /\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}])?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}])?)*/gu,
+      ""
+    )
+    .replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, "")
     .replace(/[ \t]{2,}/g, " ");
 
 export default function KlockAI() {

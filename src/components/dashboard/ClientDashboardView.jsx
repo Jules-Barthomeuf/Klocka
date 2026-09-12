@@ -210,7 +210,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
 }
 
 export default function ClientDashboardView({
-  user, userEtape, etapes, projects, resources, userStrategy, userProfil, videoAccueilUrl
+  user, userEtape, etapes, projects, resources, userStrategy, userProfil = undefined, videoAccueilUrl
 }) {
   const navigate = useNavigate();
   const [rdvOuvert, setRdvOuvert] = useState(false);

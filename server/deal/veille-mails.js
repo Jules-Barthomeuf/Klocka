@@ -9,8 +9,6 @@
 // contact agent des dossiers ouverts. Aucun modèle n'intervient — un mail mal
 // rattaché coûterait plus cher que pas de rattachement du tout.
 
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { Records, CHEMIN_UPLOADS } from '../db.js';
 import { comptesEquipe } from '../google-oauth.js';
 import { releverBoite } from '../gmail-inbox.js';

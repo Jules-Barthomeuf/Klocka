@@ -19,7 +19,7 @@ function DecoArcs({ opacity = 0.06 }) {
 }
 
 // Slide title bar (big bold title + teal subtitle + teal underline)
-function SlideTitle({ title, subtitle }) {
+function SlideTitle({ title, subtitle = undefined }) {
   return (
     <div className="mb-6">
       <h2 className="text-[2.8vw] font-extrabold text-[#f2f3f5] leading-tight tracking-tight uppercase">{title}</h2>

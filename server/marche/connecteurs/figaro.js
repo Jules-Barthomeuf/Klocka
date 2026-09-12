@@ -14,7 +14,7 @@ export default {
   libelle: 'Le Figaro Immobilier',
   titre: 'le marché résidentiel',
   champ_lot: 'prix_residentiel',
-  fournit: ['prix_residentiel_m2', 'loyer_residentiel_m2_mois'],
+  fournit: ['prix_residentiel_m2', 'loyer_residentiel_m2_mois', 'evolution_prix_residentiel_1_an', 'evolution_prix_residentiel_5_ans'],
   ecran: {
     court: 'Le Figaro — le résidentiel',
     ligne: 'Je finis par Le Figaro Immobilier',
@@ -60,6 +60,10 @@ export default {
         precision: v.nom || null,
         source,
       }),
-    ];
+      // L'évolution, que la page donne et qu'on laissait tomber : elle dit si
+      // le quartier monte ou s'essouffle, ce qu'un prix seul ne dit pas.
+      valeur({ cle: 'evolution_prix_residentiel_1_an', median: v.prix?.sur_1_an, echelle, precision: v.nom || null, source }),
+      valeur({ cle: 'evolution_prix_residentiel_5_ans', median: v.prix?.sur_5_ans, echelle, precision: v.nom || null, source }),
+    ].filter(Boolean);
   },
 };

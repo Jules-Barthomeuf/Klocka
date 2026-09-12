@@ -1,4 +1,6 @@
 import './App.css'
+import { lazy, Suspense } from 'react'
+import BarriereErreur from '@/components/BarriereErreur'
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -10,16 +12,16 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'r
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import AdminPortail from '@/pages/AdminPortail';
+const AdminPortail = lazy(() => import('@/pages/AdminPortail'));
 
-import AdminBrouillons from '@/pages/AdminBrouillons';
-import AdminBanque from '@/pages/AdminBanque';
-import Banque from '@/pages/Banque';
+const AdminBrouillons = lazy(() => import('@/pages/AdminBrouillons'));
+const AdminBanque = lazy(() => import('@/pages/AdminBanque'));
+const Banque = lazy(() => import('@/pages/Banque'));
 
-import Portail from '@/pages/Portail';
-import Bienvenue from "./pages/Bienvenue";
-import Installer from "./pages/Installer";
-import Alexis from "./pages/Alexis";
+const Portail = lazy(() => import('@/pages/Portail'));
+const Bienvenue = lazy(() => import('@/pages/Bienvenue'));
+const Installer = lazy(() => import('@/pages/Installer'));
+const Alexis = lazy(() => import('@/pages/Alexis'));
 
 // Ce qu'un client peut ouvrir : son parcours, ses projets, ses outils. Tout le
 // reste appartient à l'équipe.
@@ -29,24 +31,32 @@ const PAGES_CLIENT = new Set([
   'KlockAI', 'MonCompte', 'Feedback', 'Famille', 'Familles',
 ]);
 const PAGES_CLIENT_MIN = new Set([...PAGES_CLIENT].map((p) => p.toLowerCase()));
-import Portail2Fois from '@/pages/Portail2Fois';
-import SimulateurPublic from '@/pages/SimulateurPublic';
-import ProjetPublic from '@/pages/ProjetPublic';
-import Recherche from '@/pages/Recherche';
-import Investisseurs from '@/pages/Investisseurs';
-import AdminNotes from '@/pages/AdminNotes';
-import Analyse from '@/pages/Analyse';
-import Monitoring from '@/pages/Monitoring';
-import CoutsIA from '@/pages/CoutsIA';
-import AssistantExterne from '@/pages/AssistantExterne';
-import AdminPresentations from '@/pages/AdminPresentations';
-import ImportProjects from '@/pages/ImportProjects';
-import ImportClients from '@/pages/ImportClients';
+const Portail2Fois = lazy(() => import('@/pages/Portail2Fois'));
+const SimulateurPublic = lazy(() => import('@/pages/SimulateurPublic'));
+const ProjetPublic = lazy(() => import('@/pages/ProjetPublic'));
+const Recherche = lazy(() => import('@/pages/Recherche'));
+const Investisseurs = lazy(() => import('@/pages/Investisseurs'));
+const AdminNotes = lazy(() => import('@/pages/AdminNotes'));
+const Analyse = lazy(() => import('@/pages/Analyse'));
+const Monitoring = lazy(() => import('@/pages/Monitoring'));
+const CoutsIA = lazy(() => import('@/pages/CoutsIA'));
+const AssistantExterne = lazy(() => import('@/pages/AssistantExterne'));
+const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
+const ImportProjects = lazy(() => import('@/pages/ImportProjects'));
+const ImportClients = lazy(() => import('@/pages/ImportClients'));
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
+
+// Le temps qu'une page arrive. Même signe que les autres attentes de
+// l'application : on ne change pas de vocabulaire selon ce qu'on attend.
+const EnChargement = () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-[#000000]">
+    <div className="w-8 h-8 border-4 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin"></div>
+  </div>
+);
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -69,6 +79,7 @@ const AuthenticatedApp = () => {
   const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic', '/Bienvenue', '/Installer'];
   if (publicPaths.includes(location.pathname)) {
     return (
+      <Suspense fallback={<EnChargement />}>
       <Routes>
         <Route path="/Bienvenue" element={<Bienvenue />} />
         <Route path="/Installer" element={<Installer />} />
@@ -77,6 +88,7 @@ const AuthenticatedApp = () => {
         <Route path="/SimulateurPublic" element={<SimulateurPublic />} />
         <Route path="/ProjetPublic" element={<ProjetPublic />} />
       </Routes>
+      </Suspense>
     );
   }
 
@@ -136,6 +148,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <Suspense fallback={<EnChargement />}>
     <Routes>
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
@@ -179,6 +192,7 @@ const AuthenticatedApp = () => {
 
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 
@@ -186,6 +200,7 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
+    <BarriereErreur>
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
@@ -197,6 +212,7 @@ function App() {
         <VisualEditAgent />
       </QueryClientProvider>
     </AuthProvider>
+    </BarriereErreur>
   )
 }
 

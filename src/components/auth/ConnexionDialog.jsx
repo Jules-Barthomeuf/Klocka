@@ -246,7 +246,7 @@ function Separateur() {
   );
 }
 
-function EnTete({ icone: Icone, titre, sousTitre, badge }) {
+function EnTete({ icone: Icone, titre, sousTitre, badge = undefined }) {
   return (
     <div className="pb-2">
       <div className="flex items-center gap-2.5">
@@ -271,7 +271,7 @@ function Erreur({ texte }) {
 
 // Un mot de passe qu'on ne voit pas se tape deux fois de travers : l'œil le
 // montre le temps de le relire.
-function ChampMotDePasse({ valeur, onChange, libelle, autoFocus, champRef }) {
+function ChampMotDePasse({ valeur, onChange, libelle, autoFocus = undefined, champRef = undefined }) {
   const [visible, setVisible] = useState(false);
   return (
     <div>

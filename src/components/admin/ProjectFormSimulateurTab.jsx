@@ -17,7 +17,7 @@ function calcHonorairesAgent(prixNetVendeur, mode, montant, tva) {
 const fmtEur = (v) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
 
 // Titre de section aligné sur le style "IMMO OS"
-function SectionTitle({ children, accent }) {
+function SectionTitle({ children, accent = undefined }) {
   return (
     <div className="flex items-center gap-3 pt-2">
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || "#96c0b8" }} />
@@ -28,7 +28,7 @@ function SectionTitle({ children, accent }) {
 }
 
 // Toggle stylé "IMMO OS"
-function ToggleRow({ checked, onCheckedChange, title, description }) {
+function ToggleRow({ checked, onCheckedChange, title, description = undefined }) {
   return (
     <div className="flex items-center gap-3 bg-[#0f1114] border border-[#1f2228] rounded-none px-[18px] py-3.5">
       <Switch checked={checked} onCheckedChange={onCheckedChange} />

@@ -20,13 +20,13 @@ import { Records } from '../db.js';
 // Lire des valeurs dans une phrase
 // ---------------------------------------------------------------------------
 
-const NBSP = /[  \s]/g;
+const NBSP = /[\u00a0\u202f\s]/g;
 
 /** Les montants en euros d'une phrase, du plus grand au plus petit. */
 export function montants(texte) {
   const t = String(texte || '');
   const trouves = [];
-  const re = /(\d[\d  \s.]*(?:,\d{1,2})?)\s*(?:€|euros?\b)/gi;
+  const re = /(\d[\d\u00a0\u202f\s.]*(?:,\d{1,2})?)\s*(?:€|euros?\b)/gi;
   let m;
   while ((m = re.exec(t))) {
     const brut = m[1].replace(NBSP, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
@@ -40,7 +40,7 @@ export function montants(texte) {
 export function surfaces(texte) {
   const t = String(texte || '');
   const trouves = [];
-  const re = /(\d[\d  \s.]*(?:,\d{1,2})?)\s*(?:m²|m2|mètres? carrés?)/gi;
+  const re = /(\d[\d\u00a0\u202f\s.]*(?:,\d{1,2})?)\s*(?:m²|m2|mètres? carrés?)/gi;
   let m;
   while ((m = re.exec(t))) {
     const v = Number(m[1].replace(NBSP, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));

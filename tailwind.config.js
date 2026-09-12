@@ -6,6 +6,9 @@ module.exports = {
   	extend: {
   		fontFamily: {
   			sans: ['Instrument Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+  			// Les pastilles de critères et les étiquettes de source du journal
+  			// d'analyse : Montserrat, toujours en capitales.
+  			pill: ['Montserrat', 'Instrument Sans', 'system-ui', 'sans-serif'],
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

@@ -30,7 +30,7 @@ const FOND = { ok: "#2f7a5a", a_checker: "#5a8db5", warning: "#a8752a", a_verifi
 const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
 const Th = ({ children, className = "" }) => <th className={`text-left text-[11.5px] font-semibold tracking-[.02em] text-[#9298a6] px-4 py-2.5 border-b border-r border-[#1f2228] last:border-r-0 ${className}`}>{children}</th>;
 
-export function TableCriteres({ g, onPreuve, sansSources = false, titre = null, dealId = null, lectureSeule = false }) {
+export function TableCriteres({ g, onPreuve = undefined, sansSources = false, titre = null, dealId = null, lectureSeule = false }) {
   const [ouverts, setOuverts] = useState(() => new Set());
   const [details, setDetails] = useState(() => new Set());
   const [choix, setChoix] = useState(null);

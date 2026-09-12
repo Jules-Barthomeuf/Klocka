@@ -191,7 +191,8 @@ export default function InteractiveFranceMap({ projets }) {
         </MapContainer>
       </div>
 
-      <style jsx global>{`
+      {/* styled-jsx n'est pas installé : une balise <style> nue est déjà globale. */}
+      <style>{`
         /* Suppression des filtres qui rendaient la carte grise ou décolorée */
         .leaflet-container {
           background-color: #aad3df !important; /* Couleur de l'eau standard */

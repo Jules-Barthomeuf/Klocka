@@ -169,7 +169,7 @@ export function useAnalyseIA(project) {
       /* cache illisible : on relance l'analyse */
     }
     fetchAnalyse();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [projectId, adresse]);
 
   return { analyse: data, villeData, secteurData, loading, error, refresh: fetchAnalyse };

@@ -12,7 +12,7 @@ import { Check, ChevronDown, Loader2, RotateCcw } from "lucide-react";
 const TEINTE = { coherent: "#7fd1a8", contradictoire: "#e8927c", manquant: "#e8b04c", hors_critere: "#c39bd3", a_verifier: "#8fb6e8" };
 const LIBELLE = { coherent: "Cohérent", contradictoire: "Contradictoire", manquant: "Manquant", hors_critere: "Hors critère", a_verifier: "À vérifier" };
 
-function Pastille({ statut, titre }) {
+function Pastille({ statut, titre = undefined }) {
   return <span title={titre || LIBELLE[statut]} className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: TEINTE[statut] || "#3a3f4a" }} />;
 }
 

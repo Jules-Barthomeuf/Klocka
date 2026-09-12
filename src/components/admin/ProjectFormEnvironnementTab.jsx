@@ -34,7 +34,7 @@ function Field({ label, info, children }) {
   );
 }
 
-function NumberInput({ value, onChange, placeholder }) {
+function NumberInput({ value, onChange, placeholder = undefined }) {
   return (
     <Input
       type="number"

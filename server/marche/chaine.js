@@ -18,6 +18,7 @@
 // un fichier dans connecteurs/ et son nom dans la liste.
 
 import { tenter } from './connecteur.js';
+import { comparables, laPlusComparable } from '../../src/lib/echelles.js';
 import { poser, manquants } from './normalise.js';
 import { DEFINITIVE, TEMPORAIRE } from './erreurs.js';
 
@@ -27,6 +28,11 @@ export const BESOINS_DEFAUT = [
     titre: 'les loyers commerciaux',
     indicateurs: ['loyer_commercial_m2_an'],
     chaine: ['equimmox', 'data-b-valeur-locative'],
+    // Les deux sources sont interrogées, pas l'une puis l'autre en secours.
+    // Equimmox constate des baux signés, Data-B estime : quand les deux
+    // s'écartent, ce n'est pas un détail — c'est le signal qu'il faut aller
+    // voir. Un repli silencieux masquait cette information.
+    recouper: true,
   },
   {
     cle: 'cessions_fonds',
@@ -37,8 +43,32 @@ export const BESOINS_DEFAUT = [
   {
     cle: 'residentiel',
     titre: 'le marché résidentiel',
-    indicateurs: ['prix_residentiel_m2', 'loyer_residentiel_m2_mois'],
+    indicateurs: ['prix_residentiel_m2', 'loyer_residentiel_m2_mois', 'evolution_prix_residentiel_1_an', 'evolution_prix_residentiel_5_ans'],
     chaine: ['figaro'],
+  },
+  // Ce qui s'est vendu pour de vrai. Séparé du loyer : ce n'est pas un repli,
+  // c'est un autre point de vue, et il ne remplace personne. Il donne au prix
+  // demandé un étalon qui ne vient pas du vendeur.
+  {
+    cle: 'ventes_commerciales',
+    titre: 'les ventes réelles',
+    indicateurs: ['prix_local_commercial_m2'],
+    chaine: ['dvf'],
+  },
+  // La rue tient-elle ? Aucun loyer ne le dit.
+  {
+    cle: 'vitalite_commerciale',
+    titre: 'la vitalité de la rue',
+    indicateurs: ['fermetures_rue', 'creations_rue'],
+    chaine: ['bodacc'],
+  },
+  // L'emplacement lui-même : le flux, le tronçon, le secteur. Une seule
+  // source le sait, et elle coûte un crédit — c'est la dernière question posée.
+  {
+    cle: 'emplacement',
+    titre: 'l’emplacement',
+    indicateurs: ['flux_pieton_note', 'flux_voiture_note', 'commercialite_troncon_note', 'revenu_moyen_annuel', 'csp_plus', 'proprietaires_zone'],
+    chaine: ['data-b-implantation'],
   },
 ];
 
@@ -64,9 +94,119 @@ export async function registreParDefaut() {
     import('./connecteurs/data-b-valeur-locative.js'),
     import('./connecteurs/data-b-transactions.js'),
     import('./connecteurs/figaro.js'),
+    import('./connecteurs/data-b-implantation.js'),
+    import('./connecteurs/dvf.js'),
+    import('./connecteurs/bodacc.js'),
   ]);
   cacheRegistre = Object.fromEntries(modules.map((m) => [m.default.cle, m.default]));
   return cacheRegistre;
+}
+
+// Au-delà de cet écart entre deux sources, on lève un drapeau : les deux
+// mesures ne décrivent plus le même marché, et il faut aller voir laquelle
+// se trompe. Quinze pour cent, c'est l'écart qu'un loyer de rue peut avoir
+// avec une estimation de quartier sans que personne ne s'en inquiète.
+export const ECART_ALERTE = Number(process.env.MARCHE_ECART_ALERTE) || 0.15;
+
+/** Le milieu d'une lecture : sa médiane, sinon le centre de sa fourchette. */
+const centre = (v) => {
+  if (v.median != null) return v.median;
+  if (v.bas != null && v.haut != null) return (v.bas + v.haut) / 2;
+  return v.bas ?? v.haut ?? null;
+};
+
+// Au-delà de ce rapport entre deux mailles d'une MÊME source, ce n'est plus
+// une question d'échelle : la source se contredit. Une rue vaut couramment le
+// double de son quartier ; au-delà du triple, c'est un échantillon de pieds
+// d'immeuble prime ou une valeur aberrante, et cela se signale à part.
+export const INCOHERENCE_INTERNE = Number(process.env.MARCHE_INCOHERENCE_INTERNE) || 3;
+
+/**
+ * Une source qui ne dit pas la même chose selon la maille interrogée.
+ *
+ * C'est une anomalie d'une autre nature qu'un désaccord entre deux services :
+ * même méthode, même unité, même définition — donc aucune des explications
+ * habituelles (pondération, périmètre de charges) ne peut la couvrir.
+ */
+function incoherences(lectures) {
+  const parService = {};
+  for (const v of lectures) {
+    const c = centre(v);
+    if (c == null || !v.service) continue;
+    (parService[v.service] ||= []).push({ ...v, centre: c });
+  }
+  return Object.entries(parService)
+    .map(([service, mailles]) => {
+      if (mailles.length < 2) return null;
+      const bas = mailles.reduce((m, v) => (v.centre < m.centre ? v : m));
+      const haut = mailles.reduce((m, v) => (v.centre > m.centre ? v : m));
+      const rapport = bas.centre > 0 ? haut.centre / bas.centre : null;
+      if (rapport == null || rapport <= INCOHERENCE_INTERNE) return null;
+      return {
+        service,
+        rapport,
+        basse: { echelle: bas.echelle, precision: bas.precision, centre: bas.centre, bas: bas.bas, haut: bas.haut },
+        haute: { echelle: haut.echelle, precision: haut.precision, centre: haut.centre, bas: haut.bas, haut: haut.haut },
+      };
+    })
+    .filter(Boolean);
+}
+
+/**
+ * Deux lectures ou plus d'un même indicateur, comparées À ÉCHELLE ÉGALE.
+ *
+ * Une source peut rendre plusieurs mailles (Data-B : rue, quartier, ville).
+ * On retient, pour chacune, celle qui se compare le mieux à la portée de la
+ * source de tête, et l'on écarte explicitement les autres — elles restent
+ * lisibles dans `ecartees`, jamais supprimées.
+ *
+ * @returns {{cle, lectures, ecartees, incoherences, portee_reference, bas, haut, ecart, ecart_relatif, alerte}}
+ */
+export function comparer(cle, lectures) {
+  const internes = incoherences(lectures);
+  // La portée de référence : celle de la source de tête de la chaîne, qui est
+  // la première lecture — l'ordre de confiance de l'équipe.
+  const reference = lectures.find((v) => v.portee_m != null)?.portee_m ?? null;
+
+  const parService = {};
+  for (const v of lectures) (parService[v.service || v.connecteur] ||= []).push(v);
+  const retenues = [];
+  const ecartees = [];
+  for (const groupe of Object.values(parService)) {
+    const gardee = laPlusComparable(groupe, reference);
+    for (const v of groupe) {
+      if (v === gardee) continue;
+      ecartees.push({ service: v.service, echelle: v.echelle, precision: v.precision, bas: v.bas, median: v.median, haut: v.haut, portee_m: v.portee_m, raison: 'autre maille de la même source' });
+    }
+    if (!gardee) continue;
+    // Une maille trop éloignée de la référence ne se compare pas : la
+    // signaler comme un désaccord serait inventer un écart.
+    if (!comparables(gardee.portee_m, reference)) {
+      ecartees.push({ service: gardee.service, echelle: gardee.echelle, precision: gardee.precision, bas: gardee.bas, median: gardee.median, haut: gardee.haut, portee_m: gardee.portee_m, raison: 'maille hors de portée comparable' });
+      continue;
+    }
+    retenues.push(gardee);
+  }
+
+  const points = retenues.map((v) => ({ ...v, centre: centre(v) })).filter((v) => v.centre != null);
+  if (points.length < 2) return { cle, lectures: retenues, ecartees, incoherences: internes, portee_reference: reference, alerte: false };
+  const valeurs = points.map((p) => p.centre);
+  const bas = Math.min(...valeurs);
+  const haut = Math.max(...valeurs);
+  // L'écart rapporté à la plus basse : « Data-B est 22 % au-dessus d'Equimmox ».
+  const relatif = bas > 0 ? (haut - bas) / bas : null;
+  return {
+    cle,
+    lectures: points.map((p) => ({ service: p.service, source: p.source, connecteur: p.connecteur, echelle: p.echelle, precision: p.precision, bas: p.bas, median: p.median, haut: p.haut, centre: p.centre, portee_m: p.portee_m, lien: p.lien })),
+    ecartees,
+    incoherences: internes,
+    portee_reference: reference,
+    bas,
+    haut,
+    ecart: haut - bas,
+    ecart_relatif: relatif,
+    alerte: relatif != null && relatif > ECART_ALERTE,
+  };
 }
 
 /** Ce que l'écran affiche pour un besoin : le libellé de sa source de tête. */
@@ -139,8 +279,10 @@ export async function collecter(contexte, options = {}) {
 
       if (issue.ok) {
         poser(indicateurs, connecteur.normaliser(issue.resultat));
-        etat.servi_par = cleSource;
-        break;
+        if (!etat.servi_par) etat.servi_par = cleSource;
+        // Un besoin à recouper continue : c'est la comparaison qui compte.
+        if (!besoin.recouper) break;
+        continue;
       }
       etat.echecs.push({ source: cleSource, service: connecteur.service, classe: issue.classe, erreur: issue.erreur });
       // Un compte refusé, un plan insuffisant : l'utilisateur doit le savoir,
@@ -148,6 +290,25 @@ export async function collecter(contexte, options = {}) {
       if (issue.classe === DEFINITIVE) {
         notifications.push({ source: cleSource, service: connecteur.service, message: issue.erreur });
       }
+    }
+  }
+
+  // Ce que les sources disent d'un même indicateur, côte à côte. C'est ici
+  // qu'un écart devient visible au lieu d'être absorbé par un repli.
+  const recoupements = {};
+  for (const besoin of besoins.filter((b) => b.recouper)) {
+    for (const cleIndicateur of besoin.indicateurs) {
+      const lectures = [];
+      for (const cleSource of besoin.chaine) {
+        const issue = vues.get(cleSource);
+        if (!issue?.ok) continue;
+        // Toutes les mailles, pas la première : c'est comparer() qui choisit
+        // laquelle se compare, et qui garde trace de celles qu'il écarte.
+        for (const v of connecteurs[cleSource].normaliser(issue.resultat)) {
+          if (v?.cle === cleIndicateur) lectures.push(v);
+        }
+      }
+      if (lectures.length >= 2) recoupements[cleIndicateur] = comparer(cleIndicateur, lectures);
     }
   }
 
@@ -173,6 +334,7 @@ export async function collecter(contexte, options = {}) {
     })),
     notifications,
     indicateurs_manquants: manquants(indicateurs, attendus),
+    recoupements,
     besoins_couverts: Object.values(parBesoin).filter((b) => b.servi_par).length,
     besoins_total: besoins.length,
     complet: manquants(indicateurs, attendus).length === 0,

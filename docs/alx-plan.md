@@ -60,7 +60,7 @@ Quatre pages :
 
 ## Ce qu'il faut construire
 
-- Trois entités : `Ville` (avec ses rues classées), `Cible`, `Contact` (chaque approche, chaque réponse, chaque refus daté). Réservées à l'équipe par construction.
+- Trois entités : `Ville` (avec ses rues classées), `Cible`, `Approche` (chaque tentative, chaque réponse, chaque refus daté). Réservées à l'équipe par construction.
 - Le module propriétaires de Data-B dans le connecteur existant.
 - Un connecteur Pappers, et la recherche web par Claude.
 - La lecture des devantures et le classement des rues, par Claude, à partir de Street View.

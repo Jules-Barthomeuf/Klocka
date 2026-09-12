@@ -136,8 +136,8 @@ export default function ALXCible() {
               {c.activite_exclue && <p className="m-0 mt-2 text-[12px] text-alerte">Activité exclue du périmètre.</p>}
             </Bloc>
 
-            <Bloc titre="Propriétaire" droite={<Bouton onClick={() => societe.mutate()} disabled={societe.isPending || !outils.pappers || (!p.nom && !p.siren && !saisie.proprietaire_nom)} title={outils.pappers ? "" : "Clé PAPPERS_API_KEY à poser"}>{societe.isPending ? "Lecture…" : "Lire sur Pappers"}</Bouton>}>
-              <p className="m-0 mb-3 text-[12.5px] text-brume">Le nom se lit sur Data-B (adresse → propriétaire), ou se saisit. Pappers complète ensuite.</p>
+            <Bloc titre="Propriétaire" droite={<Bouton onClick={() => societe.mutate()} disabled={societe.isPending || (!p.nom && !p.siren && !saisie.proprietaire_nom)} title="Annuaire des entreprises, gratuit, sans clé">{societe.isPending ? "Lecture…" : "Lire la société"}</Bouton>}>
+              <p className="m-0 mb-3 text-[12.5px] text-brume">Le nom se lit sur Data-B (adresse → propriétaire), ou se saisit. L'annuaire des entreprises complète ensuite : dirigeants, création, code APE.</p>
               <div className="flex flex-wrap gap-4 mb-3">
                 <Champ label="Nom (société ou personne)" value={saisie.proprietaire_nom ?? p.nom} onChange={(x) => setSaisie((s0) => ({ ...s0, proprietaire_nom: x }))} className="flex-1 min-w-[200px]" />
                 <Champ label="SIREN" value={saisie.proprietaire_siren ?? p.siren} onChange={(x) => setSaisie((s0) => ({ ...s0, proprietaire_siren: x }))} className="w-[150px]" />
@@ -153,7 +153,8 @@ export default function ALXCible() {
                     {(s.gerants || []).length ? (s.gerants || []).map((g) => `${g.nom || "?"}${g.tranche_age ? ` (${g.tranche_age})` : ""}`).join(" · ") : null}
                   </Ligne>
                   <Ligne mot="Comptes déposés">{s.comptes_deposes == null ? null : s.comptes_deposes ? "oui" : "non"}</Ligne>
-                  {s.ville_non_recoupee && <p className="m-0 mt-1 text-[12px] text-ambre">Homonyme possible : la ville du siège ne recoupe pas la cible.</p>}
+                  {s.ville_non_recoupee && <p className="m-0 mt-1 text-[12px] text-ambre">Homonyme possible{s.homonymes ? ` (${s.homonymes} sociétés de ce nom)` : ""} : la ville du siège ne recoupe pas la cible. Vérifiez le SIREN sur Data-B.</p>}
+                  {s.active === false && <p className="m-0 mt-1 text-[12px] text-alerte">Société fermée{s.fermee_le ? ` le ${quand(s.fermee_le)}` : ""}.</p>}
                 </>
               )}
             </Bloc>

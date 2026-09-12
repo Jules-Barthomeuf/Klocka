@@ -15,7 +15,7 @@
     {
       "cle": "marchand_fenetre",
       "libelle": "Marchand de biens dans sa fenêtre de revente",
-      "detail": "Code APE 6810Z et parcelle achetée il y a 18 à 48 mois. C'est une inférence : DVF donne la date, Pappers le code, personne ne dit qu'ils sont liés. À vérifier en première question de l'appel.",
+      "detail": "Code APE 6810Z et parcelle achetée il y a 18 à 48 mois. C'est une inférence : DVF donne la date, l'annuaire des entreprises le code, personne ne dit qu'ils sont liés. À vérifier en première question de l'appel.",
       "fenetre_mois": [18, 48]
     },
     {

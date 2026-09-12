@@ -90,22 +90,24 @@ export function monterAlx(app) {
     ok(res, mettreAJourCible(c.id, patch, currentUser(req)));
   }));
 
-  // La société : Pappers, par SIREN ou par le nom lu sur Data-B.
+  // La société : l'annuaire des entreprises, par SIREN ou par le nom lu sur
+  // Data-B. Gratuit, sans clé. Le code postal de la ville filtre les homonymes.
   app.post('/api/alx/cibles/:id/societe', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const { societe } = await import('../alx/pappers.js');
+    const { societe } = await import('../alx/annuaire.js');
     const siren = req.body?.siren || c.proprietaire?.siren || null;
     const nom = req.body?.nom || c.proprietaire?.nom || null;
     if (!siren && !nom) return erreur(res, "Il faut un SIREN ou le nom du propriétaire (lu sur Data-B, ou saisi).");
+    const ville = Records.get('Ville', c.ville_id);
     let s;
     try {
-      s = await societe({ siren, nom, ville: c.ville });
+      s = await societe({ siren, nom, ville: c.ville, code_postal: ville?.code_postal || null });
     } catch (e) {
       return erreur(res, e);
     }
-    if (!s) return erreur(res, `Pappers ne trouve pas « ${nom || siren} ».`, 404);
-    const patch = { societe: s, proprietaire: { ...(c.proprietaire || {}), nom: c.proprietaire?.nom || s.nom, siren: s.siren, forme: s.forme, source: c.proprietaire?.source || 'Pappers' } };
+    if (!s) return erreur(res, `L'annuaire des entreprises ne trouve pas « ${nom || siren} ».`, 404);
+    const patch = { societe: s, proprietaire: { ...(c.proprietaire || {}), nom: c.proprietaire?.nom || s.nom, siren: s.siren, forme: s.forme, source: c.proprietaire?.source || 'Annuaire des entreprises' } };
     ok(res, mettreAJourCible(c.id, patch, currentUser(req)));
   }));
 

@@ -35,12 +35,23 @@ const MOIS_MS = 30.44 * 24 * 3600 * 1000;
 const moisDepuis = (iso, maintenant) => (iso ? (maintenant - new Date(iso).getTime()) / MOIS_MS : null);
 const regle = (famille, cle) => (REGLES[famille] || []).find((r) => r.cle === cle) || {};
 
-/** Le nom de famille d'un gérant, pour repérer une SCI familiale. */
+/**
+ * Le nom de famille d'un gérant, pour repérer une SCI familiale.
+ *
+ * L'annuaire des entreprises le donne à part (nom_famille) : on le prend. Pour
+ * une saisie libre, « Marie DUPONT » se lit au mot en capitales ; quand tout
+ * est en capitales, comme « MARC JOSEPH PRETAZZINI », c'est le dernier mot,
+ * une fois retirée une mention entre parenthèses (nom d'usage, « (BOSCA) »).
+ * Une personne morale n'a pas de famille.
+ */
 function nomDeFamille(gerant) {
-  const nom = String(gerant?.nom || '').trim();
+  if (!gerant || gerant.personne_morale) return null;
+  if (gerant.nom_famille) return String(gerant.nom_famille).trim().toLowerCase() || null;
+  const nom = String(gerant.nom || '').replace(/\([^)]*\)/g, ' ').trim();
   if (!nom) return null;
-  // « Dupont Marie » ou « Marie DUPONT » : le mot en capitales gagne, sinon le dernier.
-  const mots = nom.split(/\s+/);
+  const mots = nom.split(/\s+/).filter(Boolean);
+  const toutEnCapitales = mots.every((m) => m === m.toUpperCase());
+  if (toutEnCapitales) return mots[mots.length - 1].toLowerCase();
   const capitale = mots.find((m) => m.length > 1 && m === m.toUpperCase());
   return (capitale || mots[mots.length - 1]).toLowerCase();
 }
@@ -68,7 +79,7 @@ export function signauxDe(cible, { maintenant = Date.now() } = {}) {
         cle: 'marchand_fenetre',
         libelle: rMarchand.libelle,
         valeur: `${Math.round(moisAchat)} mois après la mutation`,
-        source: 'Pappers (APE) et DVF (mutation), inférence',
+        source: 'Annuaire (APE) et DVF (mutation), inférence',
       });
     }
   }
@@ -94,18 +105,18 @@ export function signauxDe(cible, { maintenant = Date.now() } = {}) {
   const depuis = m.date || s.creation || null;
   const anneesDetention = depuis ? (maintenant - new Date(depuis).getTime()) / (365.25 * 24 * 3600 * 1000) : null;
   if (anneesDetention != null && anneesDetention >= anneesMin && ape !== '6810Z') {
-    patients.push({ cle: 'detention_longue', libelle: rDet.libelle, valeur: `${Math.floor(anneesDetention)} ans`, source: m.date ? 'DVF' : 'Pappers (création)' });
+    patients.push({ cle: 'detention_longue', libelle: rDet.libelle, valeur: `${Math.floor(anneesDetention)} ans`, source: m.date ? 'DVF' : 'Annuaire (création)' });
   }
 
   const rAge = regle('signaux_patients', 'gerant_age');
   const gerants = Array.isArray(s.gerants) ? s.gerants : [];
   const age = gerants.find((g) => String(g.tranche_age || '') === (rAge.tranche || '70+'));
-  if (age) patients.push({ cle: 'gerant_age', libelle: rAge.libelle, valeur: age.nom || 'un gérant', source: 'Pappers' });
+  if (age) patients.push({ cle: 'gerant_age', libelle: rAge.libelle, valeur: age.nom || 'un gérant', source: 'Annuaire des entreprises' });
 
   const rFam = regle('signaux_patients', 'famille');
   const familles = gerants.map(nomDeFamille).filter(Boolean);
   const meme = familles.find((n, i) => familles.indexOf(n) !== i);
-  if (meme) patients.push({ cle: 'famille', libelle: rFam.libelle, valeur: `${familles.filter((n) => n === meme).length} gérants ${meme.toUpperCase()}`, source: 'Pappers' });
+  if (meme) patients.push({ cle: 'famille', libelle: rFam.libelle, valeur: `${familles.filter((n) => n === meme).length} gérants ${meme.toUpperCase()}`, source: 'Annuaire des entreprises' });
 
   const rLoyer = regle('signaux_patients', 'loyer_bas');
   const v = cible.valorisation || {};
@@ -115,7 +126,7 @@ export function signauxDe(cible, { maintenant = Date.now() } = {}) {
 
   const rIsole = regle('signaux_patients', 'bien_isole');
   if (p.distance_siege_km != null && p.distance_siege_km >= (rIsole.distance_km_min || 100) && (p.nombre_biens == null || p.nombre_biens <= 1)) {
-    patients.push({ cle: 'bien_isole', libelle: rIsole.libelle, valeur: `siège à ${Math.round(p.distance_siege_km)} km`, source: 'Pappers (siège)' });
+    patients.push({ cle: 'bien_isole', libelle: rIsole.libelle, valeur: `siège à ${Math.round(p.distance_siege_km)} km`, source: 'Annuaire (siège)' });
   }
 
   return { forts, patients };

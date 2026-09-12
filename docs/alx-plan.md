@@ -12,7 +12,7 @@ Ceux qu'on a déjà, dans l'ordre où ALX s'en sert.
 |---|---|---|
 | Se balader dans la ville, repérer les commerces, qualifier un emplacement | Google Maps et Street View | clé à créer côté serveur, la variable existe dans `.env.example` |
 | Adresse vers propriétaire (parcelle, société, nom) | Data-B | connecteur existant, à étendre au module propriétaires |
-| Société vers gérants, date de création, autres biens, LinkedIn | Pappers, puis recherche web | compte Pappers à ouvrir |
+| Société vers gérants, date de création, code APE | Annuaire des entreprises (État, gratuit, sans clé), puis recherche web | branché |
 | Loyer de marché dans la rue | Data-B et Equimmox | connecteurs existants |
 | Mutations, ce qui s'est vendu et quand | DVF | connecteur existant |
 | Événements sur la société (changement de gérant, radiation, procédure) | BODACC | connecteur existant |
@@ -21,7 +21,7 @@ Ceux qu'on a déjà, dans l'ordre où ALX s'en sert.
 | Envoyer et recevoir les mails | Gmail | déjà branché |
 | Relances et rappels | le registre existant | déjà branché |
 
-Rien de nouveau à installer côté données publiques. Pas de cadastre, pas de Sirene : Data-B donne déjà la parcelle et le nom de la société.
+Rien de nouveau à installer côté données publiques, et rien de payant : Data-B donne la parcelle et le nom de la société, l'annuaire de l'État donne le reste.
 
 ## Ce que fait ALX, en sept étapes
 
@@ -33,7 +33,7 @@ Rien de nouveau à installer côté données publiques. Pas de cadastre, pas de 
 
 **4. Le propriétaire.** Pour chaque commerce retenu, ALX ouvre Data-B, tape l'adresse, et lit le propriétaire : nom de la société (par exemple SCI Tarte à Champion), parcelle, ce qui est affiché. Si le propriétaire est un particulier et que Data-B ne le donne pas, la cible reste en « propriétaire à trouver » et l'équipe décide si elle va demander au commerçant.
 
-**5. La société et les gens.** ALX cherche la société sur Pappers : date de création, gérants et leurs âges, autres sociétés des mêmes personnes, comptes déposés, événements récents. Il complète par une recherche web et LinkedIn pour mettre un visage et un parcours sur les noms. Il vérifie sur le BODACC s'il s'est passé quelque chose récemment (changement de gérant, transfert de siège, procédure). Il regarde sur DVF quand la parcelle a changé de mains pour la dernière fois et à quel prix.
+**5. La société et les gens.** ALX cherche la société dans l'annuaire des entreprises de l'État : date de création, gérants et leurs âges, autres sociétés des mêmes personnes, comptes déposés, événements récents. Il complète par une recherche web et LinkedIn pour mettre un visage et un parcours sur les noms. Il vérifie sur le BODACC s'il s'est passé quelque chose récemment (changement de gérant, transfert de siège, procédure). Il regarde sur DVF quand la parcelle a changé de mains pour la dernière fois et à quel prix.
 
 **6. Le classement.** ALX range chaque cible dans une des trois piles, avec une phrase qui dit pourquoi :
 
@@ -55,14 +55,14 @@ Quatre pages :
 
 - **Villes** : la ville en cours, ses rues classées 1 et 2 sur une carte, le nombre de cibles par pile.
 - **Cibles** : les trois piles côte à côte, chaque carte avec l'adresse, l'enseigne, le propriétaire, le signal, la prochaine action.
-- **Une cible** : la photo de la devanture, le propriétaire et ses gérants, ce que Pappers et LinkedIn en disent, les événements, la fourchette de prix, l'historique des contacts, ce qu'il reste à faire.
+- **Une cible** : la photo de la devanture, le propriétaire et ses gérants, ce que l'annuaire et LinkedIn en disent, les événements, la fourchette de prix, l'historique des contacts, ce qu'il reste à faire.
 - **Bilan** : ce qui a marché. Réponses par rue, par type de signal, par canal ; motifs de refus ; délais. C'est là qu'on ajuste les seuils.
 
 ## Ce qu'il faut construire
 
 - Trois entités : `Ville` (avec ses rues classées), `Cible`, `Approche` (chaque tentative, chaque réponse, chaque refus daté). Réservées à l'équipe par construction.
 - Le module propriétaires de Data-B dans le connecteur existant.
-- Un connecteur Pappers, et la recherche web par Claude.
+- Le connecteur de l'annuaire des entreprises (fait), et la recherche web par Claude.
 - La lecture des devantures et le classement des rues, par Claude, à partir de Street View.
 - Un petit moteur de classement en trois piles, avec ses seuils dans un fichier lisible et ses tests, comme le verdict de la préanalyse.
 - La rédaction des messages, l'envoi Gmail, le rattachement des réponses et les relances : tout existe, il s'agit de le brancher sur une cible plutôt qu'un dossier.
@@ -72,7 +72,7 @@ Quatre pages :
 ## Dans quel ordre
 
 1. **Une ville, à la main.** Les entités, le menu, les pages, et l'équipe saisit ses premières cibles connues. Une semaine.
-2. **De la ville aux cibles.** Rues classées, devantures lues, propriétaires par Data-B, sociétés par Pappers. Deux à trois semaines. C'est ce lot qui dira combien de propriétaires on trouve vraiment.
+2. **De la ville aux cibles.** Rues classées, devantures lues, propriétaires par Data-B, sociétés par l'annuaire. Deux à trois semaines. C'est ce lot qui dira combien de propriétaires on trouve vraiment.
 3. **Le classement et le prix.** Les trois piles, la fourchette. Deux semaines.
 4. **Le contact.** Messages, envoi, réponses, relances, refus datés, création du dossier. Deux semaines.
 5. **Le bilan et la veille.** Une semaine.
@@ -82,6 +82,6 @@ Huit à neuf semaines. Chaque lot s'utilise seul.
 ## À décider
 
 - La première ville.
-- Le compte Pappers et la clé Google Maps côté serveur.
+- La clé Google Maps côté serveur.
 - Un rendez-vous avec le conseil avant le premier courrier : on approche des vendeurs pour le compte d'investisseurs (loi Hoguet), et on garde des noms et des âges de gérants (données personnelles). Les mails de Klocka disent déjà « achat direct, sans mandat, sans commission » : c'est ce point qu'il faut confirmer.
 - Les seuils de départ des trois piles. Ceux ci-dessus sont un point de départ, à caler sur la première ville.

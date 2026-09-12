@@ -6,8 +6,8 @@
 //   Cible     un local commercial, de la devanture au propriétaire, avec sa pile
 //   Approche  chaque tentative de contact, chaque réponse, chaque refus daté
 //
-// Ce module ne parle à aucune source externe. Les connecteurs (Pappers, Street
-// View, BODACC, DVF) posent leurs résultats sur la cible ; classer() relit la
+// Ce module ne parle à aucune source externe. Les connecteurs (annuaire des
+// entreprises, Street View, BODACC, DVF) posent leurs résultats sur la cible ; classer() relit la
 // cible et décide de la pile. Le moteur est dans classement.js.
 
 import { randomUUID } from 'crypto';
@@ -20,7 +20,6 @@ const maintenant = () => new Date().toISOString();
 /** Ce qui est branché, pour que l'écran dise quoi attendre plutôt que d'échouer. */
 export function etatDesOutils() {
   return {
-    pappers: !!(process.env.PAPPERS_API_KEY || '').trim(),
     street_view: !!(process.env.GOOGLE_MAPS_SERVEUR || '').trim(),
     data_b: !!(process.env.DATAB_EMAIL || '').trim(),
     monday: !!(process.env.MONDAY_TOKEN || '').trim(),

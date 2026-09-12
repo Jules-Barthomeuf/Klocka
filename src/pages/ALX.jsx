@@ -97,7 +97,7 @@ export default function ALX() {
 
         {etat?.outils && (
           <p className="mt-10 mb-0 text-[11.5px] leading-[1.7] text-brume border-t border-trait pt-5">
-            Outils branchés : Data-B {etat.outils.data_b ? "oui" : "non"} · Pappers {etat.outils.pappers ? "oui" : "non, clé PAPPERS_API_KEY à poser"} ·
+            Outils branchés : Data-B {etat.outils.data_b ? "oui" : "non"} · annuaire des entreprises oui, sans clé · BODACC oui · DVF oui ·
             Street View {etat.outils.street_view ? "oui" : "non, clé GOOGLE_MAPS_SERVEUR à poser"} · Monday {etat.outils.monday ? "oui" : "non"} · modèle {etat.outils.modele ? "oui" : "non"}.
           </p>
         )}

@@ -57,6 +57,31 @@ test('une SCI familiale ancienne est à écrire, pas à appeler', () => {
   assert.equal(r.signaux.forts.length, 0);
 });
 
+test('une famille se reconnaît telle que l’annuaire l’écrit', () => {
+  // Ce que l'annuaire des entreprises a réellement rendu pour une SCI
+  // d'Antibes : prénoms devant, tout en capitales, un nom d'usage entre
+  // parenthèses. Trois PRETAZZINI, et la première version ne les voyait pas.
+  const gerants = [
+    { nom: 'MICHELLE NICOLE JOSEPHINE PRETAZZINI (BOSCA )', nom_famille: 'PRETAZZINI (BOSCA )', tranche_age: '70+', personne_morale: false },
+    { nom: 'MARC JOSEPH CLAUDE PRETAZZINI', nom_famille: 'PRETAZZINI', tranche_age: '50-70', personne_morale: false },
+    { nom: 'CLAUDE JEAN ALAIN PRETAZZINI', nom_famille: 'PRETAZZINI', tranche_age: '50-70', personne_morale: false },
+  ];
+  // Avec nom_famille tel quel, la mention d'usage fait deux familles : on la
+  // retire aussi là. Le connecteur donne le nom brut de l'annuaire.
+  const sansUsage = gerants.map((g) => ({ ...g, nom_famille: g.nom_famille.replace(/\([^)]*\)/g, '').trim() }));
+  const s = signauxDe({ societe: { creation: ilYa(12 * 31), gerants: sansUsage } }, opts);
+  assert.ok(s.patients.find((p) => p.cle === 'famille'), 'trois PRETAZZINI font une famille');
+  assert.match(s.patients.find((p) => p.cle === 'famille').valeur, /3 gérants PRETAZZINI/);
+
+  // Sans nom_famille (saisie libre en capitales), le dernier mot fait foi.
+  const libre = gerants.map(({ nom_famille: _n, ...g }) => g);
+  assert.ok(signauxDe({ societe: { gerants: libre } }, opts).patients.find((p) => p.cle === 'famille'));
+
+  // Une personne morale gérante n'entre pas dans le compte.
+  const pm = [{ nom: 'HOLDING PRETAZZINI', personne_morale: true }, { nom: 'MARC PRETAZZINI', nom_famille: 'PRETAZZINI' }];
+  assert.equal(signauxDe({ societe: { gerants: pm } }, opts).patients.find((p) => p.cle === 'famille'), undefined);
+});
+
 test('vingt ans de détention chez un marchand ne compte pas comme patrimonial', () => {
   const s = signauxDe({ societe: { ape: '6810Z', creation: ilYa(300) } }, opts);
   assert.equal(s.patients.find((p) => p.cle === 'detention_longue'), undefined);

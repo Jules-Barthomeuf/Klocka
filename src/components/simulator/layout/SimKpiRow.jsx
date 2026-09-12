@@ -1,8 +1,8 @@
 import React from "react";
 
-function Kpi({ label, value, accent = "text-[#f2f3f5]" }) {
+function Kpi({ label, value, accent = "text-encre" }) {
   return (
-    <div className="px-4 py-3 min-w-0 border-[#1f2228]">
+    <div className="px-4 py-3 min-w-0 border-trait">
       <p className="text-[9px] uppercase tracking-[0.12em] font-medium leading-snug text-[hsl(var(--primary-foreground))]">{label}</p>
       <p className={`text-lg font-medium tabular-nums mt-1 ${accent} whitespace-nowrap`}>{value}</p>
     </div>);
@@ -19,10 +19,10 @@ export default function SimKpiRow({ calculs, anneeRevente, formatCurrency }) {
   { label: `TRI brut sur ${anneeRevente} ans`, value: `${ind.triBrut}%` }];
 
   return (
-    <div className="border border-[#1f2228] rounded-md bg-[#0f1114] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#1f2228] flex items-center justify-between">
-        <p className="text-[#f2f3f5] text-sm font-medium">Indicateurs clés</p>
-        <p className="text-[11px] text-[#9298a6]">sur {anneeRevente} ans</p>
+    <div className="border border-trait rounded-md bg-surface overflow-hidden">
+      <div className="px-4 py-3 border-b border-trait flex items-center justify-between">
+        <p className="text-encre text-sm font-medium">Indicateurs clés</p>
+        <p className="text-[11px] text-ardoise">sur {anneeRevente} ans</p>
       </div>
       {/* Deux colonnes sur téléphone, trois sur tablette, cinq au bureau :
           des tuiles tronquées (« REND… 22… ») ne disent plus rien. */}

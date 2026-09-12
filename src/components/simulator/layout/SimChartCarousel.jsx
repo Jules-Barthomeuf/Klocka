@@ -14,19 +14,19 @@ export default function SimChartCarousel({ calculs, anneeRevente, formatCurrency
   const go = (dir) => setIndex((i) => (i + dir + CHARTS.length) % CHARTS.length);
 
   return (
-    <div className="relative border border-[#1f2228] rounded-md bg-[#0f1114] pb-3 pt-3">
+    <div className="relative border border-trait rounded-md bg-surface pb-3 pt-3">
       <SimHeroChart calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} metric={current.id} />
 
       <button
         onClick={() => go(-1)}
-        className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#000000]/60 border border-[#22262d] flex items-center justify-center text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.3] transition-colors"
+        className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-fond/60 border border-bord flex items-center justify-center text-craie hover:text-encre hover:border-encre/[0.3] transition-colors"
         title="Précédent"
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
       <button
         onClick={() => go(1)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#000000]/60 border border-[#22262d] flex items-center justify-center text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.3] transition-colors"
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-fond/60 border border-bord flex items-center justify-center text-craie hover:text-encre hover:border-encre/[0.3] transition-colors"
         title="Suivant"
       >
         <ChevronRight className="w-4 h-4" />
@@ -37,7 +37,7 @@ export default function SimChartCarousel({ calculs, anneeRevente, formatCurrency
           <button
             key={c.id}
             onClick={() => setIndex(i)}
-            className={`h-1.5 rounded-full transition-all ${i === index ? "w-5 bg-[#96c0b8]" : "w-1.5 bg-[#f2f3f5]/20"}`}
+            className={`h-1.5 rounded-full transition-all ${i === index ? "w-5 bg-menthe" : "w-1.5 bg-encre/20"}`}
           />
         ))}
       </div>

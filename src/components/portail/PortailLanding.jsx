@@ -101,32 +101,32 @@ function CTAButton({ onClick, label }) {
   return (
     <div className="text-center">
       <button onClick={onClick}
-        className="inline-flex items-center gap-2.5 bg-[#96c0b8] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#96c0b8]/20">
+        className="inline-flex items-center gap-2.5 bg-menthe hover:bg-[#238B7F] text-encre font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-menthe/20">
         {label} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
       </button>
-      <p className="text-[#6a7180] text-xs mt-3 italic">Places limitées par cohorte</p>
+      <p className="text-brume text-xs mt-3 italic">Places limitées par cohorte</p>
     </div>
   );
 }
 
 function Section({ children, id = undefined, dark = true }) {
   return (
-    <section id={id} className={dark ? "bg-[#000000] text-[#f2f3f5]" : "bg-[#0f1114] text-[#f2f3f5]"}>
+    <section id={id} className={dark ? "bg-fond text-encre" : "bg-surface text-encre"}>
       <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">{children}</div>
     </section>
   );
 }
 
 function Label({ children }) {
-  return <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-[#96c0b8]">{children}</p>;
+  return <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-menthe">{children}</p>;
 }
 
 function Title({ children }) {
-  return <h2 className="text-2xl md:text-4xl font-extrabold mb-4 text-center leading-tight uppercase tracking-wide text-[#f2f3f5]">{children}</h2>;
+  return <h2 className="text-2xl md:text-4xl font-extrabold mb-4 text-center leading-tight uppercase tracking-wide text-encre">{children}</h2>;
 }
 
 function Sub({ children }) {
-  return <p className="text-sm md:text-base text-center max-w-2xl mx-auto mb-10 leading-relaxed text-[#9298a6]">{children}</p>;
+  return <p className="text-sm md:text-base text-center max-w-2xl mx-auto mb-10 leading-relaxed text-ardoise">{children}</p>;
 }
 
 /* ─── Main Component ─── */
@@ -136,45 +136,45 @@ export default function PortailLanding({ onContinue }) {
     <div>
 
       {/* ═══════ SECTION 1 — HERO ═══════ */}
-      <section className="bg-[#000000] text-[#f2f3f5]">
+      <section className="bg-fond text-encre">
         <div className="max-w-6xl mx-auto px-6 py-16 md:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left — Text */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-[#96c0b8]/10 border border-[#96c0b8]/30 rounded-full px-5 py-2 mb-8">
-                <span className="w-2 h-2 rounded-full bg-[#96c0b8] animate-pulse" />
-                <span className="text-[#96c0b8] text-xs font-semibold tracking-wide">3 deals sourcés inclus dans l'accompagnement</span>
+              <div className="inline-flex items-center gap-2 bg-menthe/10 border border-menthe/30 rounded-full px-5 py-2 mb-8">
+                <span className="w-2 h-2 rounded-full bg-menthe animate-pulse" />
+                <span className="text-menthe text-xs font-semibold tracking-wide">3 deals sourcés inclus dans l'accompagnement</span>
               </div>
 
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-[#f2f3f5] leading-[1.08] mb-6 uppercase tracking-tight">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-encre leading-[1.08] mb-6 uppercase tracking-tight">
                 Votre premier investissement en immobilier commercial,{" "}
-                <span className="text-[#96c0b8]">réalisé pour vous</span>, depuis votre canapé.
+                <span className="text-menthe">réalisé pour vous</span>, depuis votre canapé.
               </h1>
 
-              <p className="text-[#9298a6] text-base md:text-lg leading-relaxed mb-8">
-                Klocka ne vous forme pas. Klocka investit avec vous : sourcing, analyse, financement, gestion. <strong className="text-[#f2f3f5]">On s'occupe de tout.</strong>
+              <p className="text-ardoise text-base md:text-lg leading-relaxed mb-8">
+                Klocka ne vous forme pas. Klocka investit avec vous : sourcing, analyse, financement, gestion. <strong className="text-encre">On s'occupe de tout.</strong>
               </p>
 
               <div className="grid grid-cols-2 gap-4 mb-10">
                 {STATS.map((s, i) => (
-                  <div key={i} className="bg-[#f2f3f5]/[0.03] border border-[#1f2228] rounded-md px-4 py-3 text-center">
-                    <p className="text-2xl md:text-3xl font-black text-[#f2f3f5]">{s.value}</p>
-                    <p className="text-[#9298a6] text-[10px] mt-0.5 uppercase tracking-wider">{s.label}</p>
-                    {s.note && <p className="text-[#6a7180] text-[9px] mt-1 italic normal-case">{s.note}</p>}
+                  <div key={i} className="bg-encre/[0.03] border border-trait rounded-md px-4 py-3 text-center">
+                    <p className="text-2xl md:text-3xl font-black text-encre">{s.value}</p>
+                    <p className="text-ardoise text-[10px] mt-0.5 uppercase tracking-wider">{s.label}</p>
+                    {s.note && <p className="text-brume text-[9px] mt-1 italic normal-case">{s.note}</p>}
                   </div>
                 ))}
               </div>
 
               <button onClick={onContinue}
-                className="inline-flex items-center gap-2.5 bg-[#96c0b8] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-8 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#96c0b8]/20">
+                className="inline-flex items-center gap-2.5 bg-menthe hover:bg-[#238B7F] text-encre font-bold px-8 py-4 rounded-md transition-all text-base group shadow-lg shadow-menthe/20">
                 Je veux investir en immobilier commercial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <p className="text-[#6a7180] text-xs mt-3 italic">Places limitées par cohorte</p>
+              <p className="text-brume text-xs mt-3 italic">Places limitées par cohorte</p>
             </div>
 
             {/* Right — Image */}
             <div className="relative">
-              <div className="rounded-md overflow-hidden border border-[#1f2228] shadow-2xl">
+              <div className="rounded-md overflow-hidden border border-trait shadow-2xl">
                 <img src={PHOTO_COUPLE} alt="Investisseurs sereins" className="w-full h-[400px] lg:h-[480px] object-cover" />
               </div>
 
@@ -184,33 +184,33 @@ export default function PortailLanding({ onContinue }) {
       </section>
 
       {/* ═══════ SECTION 2 — IDENTIFICATION DU PROBLÈME ═══════ */}
-      <section className="bg-[#000000] text-[#f2f3f5]">
+      <section className="bg-fond text-encre">
         <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
-        <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-[#96c0b8]">Le constat</p>
-        <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-center leading-tight uppercase tracking-wide text-[#f2f3f5]">
-          Vous savez que l'immobilier commercial est un des meilleurs placements. <span className="text-[#96c0b8]">Mais vous n'avez jamais franchi le cap.</span>
+        <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-menthe">Le constat</p>
+        <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-center leading-tight uppercase tracking-wide text-encre">
+          Vous savez que l'immobilier commercial est un des meilleurs placements. <span className="text-menthe">Mais vous n'avez jamais franchi le cap.</span>
         </h2>
-        <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-10 leading-relaxed text-[#9298a6]">
+        <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-10 leading-relaxed text-ardoise">
           Entre le manque de temps, la complexité du marché et la peur de faire une erreur — vous avez toujours reporté à plus tard.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-14">
           {PAINS.map((p, i) => (
-            <div key={i} className="relative bg-[#f2f3f5]/[0.04] border border-[#1f2228] rounded-md px-6 py-8 text-center hover:border-red-500/30 hover:shadow-lg transition-all group">
+            <div key={i} className="relative bg-encre/[0.04] border border-trait rounded-md px-6 py-8 text-center hover:border-red-500/30 hover:shadow-lg transition-all group">
               <div className="w-14 h-14 rounded-md bg-red-500/10 flex items-center justify-center mx-auto mb-5 group-hover:bg-red-500/20 transition-colors">
                 <X className="w-7 h-7 text-red-500" strokeWidth={2.5} />
               </div>
-              <p className="text-[#f2f3f5] text-lg font-bold leading-snug">{p}</p>
+              <p className="text-encre text-lg font-bold leading-snug">{p}</p>
             </div>
           ))}
         </div>
 
         <div className="max-w-3xl mx-auto mb-12 text-center">
-          <p className="text-[#f2f3f5] text-2xl md:text-3xl font-extrabold leading-tight mb-2">
+          <p className="text-encre text-2xl md:text-3xl font-extrabold leading-tight mb-2">
             Vous n'avez pas à tout faire seul.
           </p>
-          <p className="text-[#f2f3f5] text-xl md:text-2xl font-semibold">
-            C'est exactement pour cela que <span className="text-[#96c0b8] font-bold">Klocka existe.</span>
+          <p className="text-encre text-xl md:text-2xl font-semibold">
+            C'est exactement pour cela que <span className="text-menthe font-bold">Klocka existe.</span>
           </p>
         </div>
 
@@ -222,7 +222,7 @@ export default function PortailLanding({ onContinue }) {
       <Section dark>
         <Label>Ce qui rend Klocka radicalement différent</Label>
         <Title>
-          Klocka, ce n'est pas une formation. <span className="text-[#96c0b8]">C'est votre Deal Maker.</span>
+          Klocka, ce n'est pas une formation. <span className="text-menthe">C'est votre Deal Maker.</span>
         </Title>
         <Sub>
           Cette section lève l'objection : « j'ai déjà vu des formations immobilier ».
@@ -245,25 +245,25 @@ export default function PortailLanding({ onContinue }) {
             </div>
           </div>
           {/* Klocka - Green */}
-          <div className="bg-[#96c0b8]/10 border border-[#96c0b8]/25 p-6 md:p-8 md:rounded-r-2xl">
+          <div className="bg-menthe/10 border border-menthe/25 p-6 md:p-8 md:rounded-r-2xl">
             <div className="flex items-center gap-2 mb-6">
-              <Check className="w-5 h-5 text-[#96c0b8]" />
-              <p className="text-[#96c0b8] text-xs font-bold uppercase tracking-wider">Klocka — Clé en Main</p>
+              <Check className="w-5 h-5 text-menthe" />
+              <p className="text-menthe text-xs font-bold uppercase tracking-wider">Klocka — Clé en Main</p>
             </div>
             <div className="space-y-4">
               {COMPARE_KLOCKA.map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <Check className="w-4 h-4 text-[#96c0b8] mt-0.5 flex-shrink-0" />
-                  <p className="text-[#f2f3f5] text-sm font-medium">{item}</p>
+                  <Check className="w-4 h-4 text-menthe mt-0.5 flex-shrink-0" />
+                  <p className="text-encre text-sm font-medium">{item}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="bg-[#f2f3f5]/[0.03] border border-[#1f2228] rounded-md px-6 py-5 max-w-2xl mx-auto text-center mb-12">
-          <p className="text-[#f2f3f5] text-base">
-            « Vous apportez votre capacité d'investissement. <span className="text-[#96c0b8] font-bold">Nous apportons tout le reste.</span> »
+        <div className="bg-encre/[0.03] border border-trait rounded-md px-6 py-5 max-w-2xl mx-auto text-center mb-12">
+          <p className="text-encre text-base">
+            « Vous apportez votre capacité d'investissement. <span className="text-menthe font-bold">Nous apportons tout le reste.</span> »
           </p>
         </div>
 
@@ -271,19 +271,19 @@ export default function PortailLanding({ onContinue }) {
       </Section>
 
       {/* ═══════ SECTION 4 — CE QUE COMPREND L'ACCOMPAGNEMENT ═══════ */}
-      <section className="bg-[#000000] text-[#f2f3f5]">
+      <section className="bg-fond text-encre">
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-4 text-center text-[#96c0b8]">L'accompagnement</p>
-          <h2 className="text-3xl md:text-5xl font-black mb-4 text-center leading-tight uppercase tracking-wide text-[#f2f3f5]">
-            Un service complet, <span className="text-[#96c0b8]">de A à Z</span>.
+          <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-4 text-center text-menthe">L'accompagnement</p>
+          <h2 className="text-3xl md:text-5xl font-black mb-4 text-center leading-tight uppercase tracking-wide text-encre">
+            Un service complet, <span className="text-menthe">de A à Z</span>.
           </h2>
-          <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-14 leading-relaxed text-[#9298a6]">Chaque module montre concrètement que vous n'avez rien à faire de plus que choisir votre deal.</p>
+          <p className="text-base md:text-lg text-center max-w-2xl mx-auto mb-14 leading-relaxed text-ardoise">Chaque module montre concrètement que vous n'avez rien à faire de plus que choisir votre deal.</p>
 
           {/* ── OFFRE SOCLE (1-4) ── */}
           <div className="mb-6">
-            <div className="inline-flex items-center gap-2 bg-[#96c0b8]/10 border border-[#96c0b8]/30 rounded-full px-5 py-2 mb-6">
-              <span className="w-2 h-2 rounded-full bg-[#96c0b8]" />
-              <span className="text-[#96c0b8] text-xs font-bold uppercase tracking-wider">Offre socle — inclus dans l'accompagnement</span>
+            <div className="inline-flex items-center gap-2 bg-menthe/10 border border-menthe/30 rounded-full px-5 py-2 mb-6">
+              <span className="w-2 h-2 rounded-full bg-menthe" />
+              <span className="text-menthe text-xs font-bold uppercase tracking-wider">Offre socle — inclus dans l'accompagnement</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {SERVICES.slice(0, 4).map((s) => {
@@ -292,33 +292,33 @@ export default function PortailLanding({ onContinue }) {
                 return (
                   <div key={s.num} className={`rounded-md border transition-all hover:shadow-lg relative overflow-hidden ${
                     isHighlight
-                      ? 'bg-[#000000] border-[#96c0b8]/50 p-0 shadow-[0_0_30px_rgba(251,191,36,0.08)]'
-                      : 'bg-[#000000] border-[#0f1114] hover:border-[#22262d] p-6'
+                      ? 'bg-fond border-menthe/50 p-0 shadow-[0_0_30px_rgba(251,191,36,0.08)]'
+                      : 'bg-fond border-surface hover:border-bord p-6'
                   }`}>
                     {isHighlight ? (
                       <div className="p-6 md:p-8 relative">
                         <div className="absolute top-4 right-4">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#96c0b8] bg-[#96c0b8]/10 border border-[#96c0b8]/30 rounded-full px-3 py-1">Étape clé</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-menthe bg-menthe/10 border border-menthe/30 rounded-full px-3 py-1">Étape clé</span>
                         </div>
                         <div className="flex flex-col md:flex-row md:items-center gap-6">
                           <div className="flex-shrink-0">
-                            <div className="w-16 h-16 rounded-md bg-[#96c0b8]/10 border border-[#96c0b8]/20 flex items-center justify-center">
-                              <Icon className="w-8 h-8 text-[#96c0b8]" />
+                            <div className="w-16 h-16 rounded-md bg-menthe/10 border border-menthe/20 flex items-center justify-center">
+                              <Icon className="w-8 h-8 text-menthe" />
                             </div>
                           </div>
                           <div className="flex-1">
-                            <span className="text-[#96c0b8]/60 text-xs font-mono font-bold block mb-1">Étape {s.num}</span>
-                            <h3 className="text-[#f2f3f5] text-xl md:text-2xl font-black leading-tight mb-3">{s.title}</h3>
+                            <span className="text-menthe/60 text-xs font-mono font-bold block mb-1">Étape {s.num}</span>
+                            <h3 className="text-encre text-xl md:text-2xl font-black leading-tight mb-3">{s.title}</h3>
                             <ul className="space-y-2">
                               {s.items.map((item, j) => (
-                                <li key={j} className="flex items-start gap-2.5 text-base text-[#c9cdd6] leading-relaxed">
-                                  <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#96c0b8]" />
+                                <li key={j} className="flex items-start gap-2.5 text-base text-craie leading-relaxed">
+                                  <Check className="w-5 h-5 flex-shrink-0 mt-0.5 text-menthe" />
                                   {item}
                                 </li>
                               ))}
                             </ul>
-                            <div className="mt-5 inline-flex items-center gap-2 bg-[#96c0b8]/10 border border-[#96c0b8]/25 rounded-full px-5 py-2">
-                              <span className="text-[#96c0b8] text-sm font-bold">3 deals inclus — différenciateur clé de l'accompagnement</span>
+                            <div className="mt-5 inline-flex items-center gap-2 bg-menthe/10 border border-menthe/25 rounded-full px-5 py-2">
+                              <span className="text-menthe text-sm font-bold">3 deals inclus — différenciateur clé de l'accompagnement</span>
                             </div>
                           </div>
                         </div>
@@ -326,18 +326,18 @@ export default function PortailLanding({ onContinue }) {
                     ) : (
                       <>
                         <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-md bg-[#0f1114] flex items-center justify-center flex-shrink-0">
-                            <Icon className="w-6 h-6 text-[#f2f3f5]" />
+                          <div className="w-12 h-12 rounded-md bg-surface flex items-center justify-center flex-shrink-0">
+                            <Icon className="w-6 h-6 text-encre" />
                           </div>
                           <div>
-                            <span className="text-[#9298a6] text-xs font-mono font-bold block">Étape {s.num}</span>
-                            <h3 className="text-[#f2f3f5] text-lg font-bold leading-tight">{s.title}</h3>
+                            <span className="text-ardoise text-xs font-mono font-bold block">Étape {s.num}</span>
+                            <h3 className="text-encre text-lg font-bold leading-tight">{s.title}</h3>
                           </div>
                         </div>
                         <ul className="space-y-2.5 pl-1">
                           {s.items.map((item, j) => (
-                            <li key={j} className="flex items-start gap-2.5 text-sm text-[#9298a6] leading-relaxed">
-                              <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#9298a6]" />
+                            <li key={j} className="flex items-start gap-2.5 text-sm text-ardoise leading-relaxed">
+                              <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-ardoise" />
                               {item}
                             </li>
                           ))}
@@ -356,19 +356,19 @@ export default function PortailLanding({ onContinue }) {
               {SERVICES.slice(4).map((s) => {
                 const Icon = s.icon;
                 return (
-                  <div key={s.num} className="rounded-md p-6 border bg-[#000000] border-[#0f1114] hover:border-[#22262d] transition-all hover:shadow-lg relative overflow-hidden">
+                  <div key={s.num} className="rounded-md p-6 border bg-fond border-surface hover:border-bord transition-all hover:shadow-lg relative overflow-hidden">
                     <div className="absolute top-3 right-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#96c0b8] bg-[#96c0b8]/10 border border-[#96c0b8]/20 rounded-full px-2.5 py-1">Option</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-menthe bg-menthe/10 border border-menthe/20 rounded-full px-2.5 py-1">Option</span>
                     </div>
-                    <div className="w-12 h-12 rounded-md bg-[#0f1114] flex items-center justify-center mb-4">
-                      <Icon className="w-6 h-6 text-[#f2f3f5]" />
+                    <div className="w-12 h-12 rounded-md bg-surface flex items-center justify-center mb-4">
+                      <Icon className="w-6 h-6 text-encre" />
                     </div>
-                    <span className="text-[#9298a6] text-xs font-mono font-bold block">Étape {s.num}</span>
-                    <h3 className="text-[#f2f3f5] text-lg font-bold leading-tight mb-3 mt-1">{s.title}</h3>
+                    <span className="text-ardoise text-xs font-mono font-bold block">Étape {s.num}</span>
+                    <h3 className="text-encre text-lg font-bold leading-tight mb-3 mt-1">{s.title}</h3>
                     <ul className="space-y-2.5">
                       {s.items.map((item, j) => (
-                        <li key={j} className="flex items-start gap-2.5 text-sm text-[#9298a6] leading-relaxed">
-                          <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#9298a6]" />
+                        <li key={j} className="flex items-start gap-2.5 text-sm text-ardoise leading-relaxed">
+                          <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-ardoise" />
                           {item}
                         </li>
                       ))}
@@ -389,28 +389,28 @@ export default function PortailLanding({ onContinue }) {
       <Section dark>
         <Label>Plateforme</Label>
         <Title>
-          Investissez depuis n'importe où. <span className="text-[#96c0b8]">Tout est centralisé.</span>
+          Investissez depuis n'importe où. <span className="text-menthe">Tout est centralisé.</span>
         </Title>
         <Sub>Vous recevez des opportunités d'investissement analysées. Pas des devoirs à rendre.</Sub>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto mb-12">
           {PLATFORM.map((f, i) => (
-            <div key={i} className="flex items-center gap-4 bg-[#f2f3f5]/[0.04] border border-[#1f2228] rounded-md px-5 py-4">
-              <div className="w-10 h-10 rounded-md bg-[#96c0b8]/10 flex items-center justify-center flex-shrink-0">
-                <f.icon className="w-5 h-5 text-[#96c0b8]" />
+            <div key={i} className="flex items-center gap-4 bg-encre/[0.04] border border-trait rounded-md px-5 py-4">
+              <div className="w-10 h-10 rounded-md bg-menthe/10 flex items-center justify-center flex-shrink-0">
+                <f.icon className="w-5 h-5 text-menthe" />
               </div>
-              <p className="text-[#f2f3f5] text-sm font-medium">{f.label}</p>
+              <p className="text-encre text-sm font-medium">{f.label}</p>
             </div>
           ))}
         </div>
 
         {/* Platform screenshot */}
-        <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-[#1f2228] bg-gradient-to-br from-[#000000] to-[#000000] p-3 mb-12">
-          <div className="rounded-md bg-[#000000] border border-[#1f2228] overflow-hidden">
-            <div className="h-7 bg-[#000000] flex items-center gap-1.5 px-3 border-b border-[#1f2228]">
+        <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-trait bg-gradient-to-br from-fond to-fond p-3 mb-12">
+          <div className="rounded-md bg-fond border border-trait overflow-hidden">
+            <div className="h-7 bg-fond flex items-center gap-1.5 px-3 border-b border-trait">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#96c0b8]/60" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#96c0b8]/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-menthe/60" />
+              <div className="w-2.5 h-2.5 rounded-full bg-menthe/60" />
             </div>
             <img src="https://media.base44.com/images/public/68f0bd18555df3520e1740ca/fbcc895a0_Capturedecran2026-03-25a165004.png" alt="Plateforme Klocka" className="w-full h-[260px] md:h-[340px] object-cover" />
           </div>
@@ -423,11 +423,11 @@ export default function PortailLanding({ onContinue }) {
       <Section dark={false}>
         <Label>Témoignages</Label>
         <Title>
-          Ils ont investi avec <span className="text-[#96c0b8]">Klocka</span>.
+          Ils ont investi avec <span className="text-menthe">Klocka</span>.
         </Title>
 
         {/* Video témoignage */}
-        <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-[#1f2228] bg-[#000000] aspect-video mb-8">
+        <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-trait bg-fond aspect-video mb-8">
           <iframe
             src="https://drive.google.com/file/d/11RUUz1Ec0Two6NbIWoNTXUtq4683A-sb/preview"
             className="w-full h-full"
@@ -445,7 +445,7 @@ export default function PortailLanding({ onContinue }) {
       <Section dark>
         <Label>Les fondateurs</Label>
         <Title>
-          Deux experts au service de <span className="text-[#96c0b8]">votre investissement.</span>
+          Deux experts au service de <span className="text-menthe">votre investissement.</span>
         </Title>
         <Sub>
           10 ans d'expertise dans l'immobilier commercial professionnel — entièrement mis au service de vos investissements.
@@ -453,12 +453,12 @@ export default function PortailLanding({ onContinue }) {
 
         <div className="space-y-6 max-w-3xl mx-auto mb-12">
           {FOUNDERS.map((f, i) => (
-            <div key={i} className="bg-[#f2f3f5]/[0.03] border border-[#1f2228] rounded-md p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 hover:border-[#f2f3f5]/[0.14] transition-colors">
-              <img src={f.photo} alt={f.name} className="w-28 h-28 rounded-full object-cover flex-shrink-0 border-2 border-[#96c0b8]/20" />
+            <div key={i} className="bg-encre/[0.03] border border-trait rounded-md p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-6 hover:border-encre/[0.14] transition-colors">
+              <img src={f.photo} alt={f.name} className="w-28 h-28 rounded-full object-cover flex-shrink-0 border-2 border-menthe/20" />
               <div className="text-center md:text-left">
-                <p className="text-[#f2f3f5] font-bold text-lg mb-0.5">{f.name}</p>
-                <p className="text-[#96c0b8] text-xs font-semibold uppercase tracking-wider mb-3">{f.role}</p>
-                <p className="text-[#9298a6] text-sm leading-relaxed">{f.desc}</p>
+                <p className="text-encre font-bold text-lg mb-0.5">{f.name}</p>
+                <p className="text-menthe text-xs font-semibold uppercase tracking-wider mb-3">{f.role}</p>
+                <p className="text-ardoise text-sm leading-relaxed">{f.desc}</p>
               </div>
             </div>
           ))}
@@ -468,38 +468,38 @@ export default function PortailLanding({ onContinue }) {
       </Section>
 
       {/* ═══════ FINAL CTA ═══════ */}
-      <section className="bg-[#000000] text-[#f2f3f5]">
+      <section className="bg-fond text-encre">
         <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
-          <div className="bg-gradient-to-br from-[#96c0b8]/15 via-[#96c0b8]/5 to-transparent border border-[#96c0b8]/25 rounded-3xl p-8 md:p-14 text-center max-w-3xl mx-auto">
+          <div className="bg-gradient-to-br from-menthe/15 via-menthe/5 to-transparent border border-menthe/25 rounded-3xl p-8 md:p-14 text-center max-w-3xl mx-auto">
             <img src={LOGO_KLOCKA} alt="Klocka" className="h-10 mx-auto mb-6 object-contain" />
             <Label>Dernière étape</Label>
-            <h2 className="text-2xl md:text-4xl font-black text-[#f2f3f5] mb-4 uppercase tracking-wide">
+            <h2 className="text-2xl md:text-4xl font-black text-encre mb-4 uppercase tracking-wide">
               Prêt à investir ?
             </h2>
-            <p className="text-[#9298a6] text-sm md:text-base mb-8 max-w-lg mx-auto leading-relaxed">
+            <p className="text-ardoise text-sm md:text-base mb-8 max-w-lg mx-auto leading-relaxed">
               Pour finaliser votre inscription, consultez et acceptez nos conditions générales, puis procédez au paiement sécurisé.
             </p>
             <button onClick={onContinue}
-              className="inline-flex items-center gap-2.5 bg-[#96c0b8] hover:bg-[#238B7F] text-[#f2f3f5] font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-[#96c0b8]/25">
+              className="inline-flex items-center gap-2.5 bg-menthe hover:bg-[#238B7F] text-encre font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-menthe/25">
               Démarrer l'accompagnement <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
-            <p className="text-[#6a7180] text-xs mt-4 italic">Places limitées par cohorte</p>
+            <p className="text-brume text-xs mt-4 italic">Places limitées par cohorte</p>
           </div>
         </div>
       </section>
 
       {/* ═══════ FOOTER ═══════ */}
-      <footer className="bg-[#000000] border-t border-[#15171b] px-6 py-8">
+      <footer className="bg-fond border-t border-[#15171b] px-6 py-8">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <img src={LOGO_KLOCKA} alt="Klocka" className="h-5 w-auto opacity-60" />
-            <p className="text-[#6a7180] text-xs">© 2025 Klocka · Développeur de revenus immobiliers</p>
+            <p className="text-brume text-xs">© 2025 Klocka · Développeur de revenus immobiliers</p>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">Mentions légales</a>
-            <a href="#" className="text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">CGV</a>
-            <a href="#" className="text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">Confidentialité</a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
+            <a href="#" className="text-ardoise hover:text-encre text-xs transition-colors">Mentions légales</a>
+            <a href="#" className="text-ardoise hover:text-encre text-xs transition-colors">CGV</a>
+            <a href="#" className="text-ardoise hover:text-encre text-xs transition-colors">Confidentialité</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-ardoise hover:text-encre transition-colors">
               <Linkedin className="w-4 h-4" />
             </a>
           </div>

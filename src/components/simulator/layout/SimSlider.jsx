@@ -44,7 +44,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
   return (
     <div className="py-1.5">
       <div className="flex items-center justify-between text-[13px] leading-tight">
-        <span className={`truncate pr-2 ${alerte ? "text-[#e8746a]" : "text-[#9298a6]"}`}>{label}</span>
+        <span className={`truncate pr-2 ${alerte ? "text-alerte" : "text-ardoise"}`}>{label}</span>
         {editing ? (
           <input
             autoFocus
@@ -53,12 +53,12 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-            className="sim-num-input bg-[#0c0d10] text-[#f2f3f5] text-right text-[13px] w-24 px-1.5 py-0.5 rounded border border-[#96c0b8]/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
+            className="sim-num-input bg-[#0c0d10] text-encre text-right text-[13px] w-24 px-1.5 py-0.5 rounded border border-menthe/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
           />
         ) : (
           <button
             onClick={beginEdit}
-            className={`tabular-nums font-medium transition-all duration-300 ease-out ${alerte ? "text-[#e8746a]" : muted ? "text-[#c9cdd6]" : "text-[#f2f3f5]"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-[#96c0b8]"}`}
+            className={`tabular-nums font-medium transition-all duration-300 ease-out ${alerte ? "text-alerte" : muted ? "text-craie" : "text-encre"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-menthe"}`}
             title={alerte || "Cliquer pour modifier"}
           >
             {display}{unit}
@@ -76,7 +76,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
         className="sim-slider-input w-full mt-1.5"
         style={{ background: alerte ? `linear-gradient(to right, #e8746a ${pct}%, #3a1f1c ${pct}%)` : `linear-gradient(to right, #96c0b8 ${pct}%, #262626 ${pct}%)` }}
       />
-      {alerte && <p className="m-0 mt-1 text-[11px] text-[#e8746a]">{alerte}</p>}
+      {alerte && <p className="m-0 mt-1 text-[11px] text-alerte">{alerte}</p>}
       <style>{sliderStyle}</style>
     </div>
   );

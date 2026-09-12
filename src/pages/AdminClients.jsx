@@ -59,7 +59,7 @@ function BoutonImportUtilisateurs() {
         onClick={() => inputRef.current?.click()}
         disabled={importer.isPending}
         variant="outline"
-        className="h-10 text-sm border-[#22262d] bg-transparent text-[#9298a6] hover:border-[#3a3f4a] hover:text-[#f2f3f5]"
+        className="h-10 text-sm border-bord bg-transparent text-ardoise hover:border-bord-vif hover:text-encre"
       >
         {importer.isPending ? (
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -87,7 +87,7 @@ const profilColors = {
   equilibriste: "bg-blue-100 text-blue-800",
   risk_taker: "bg-red-100 text-red-800",
   collectionneur: "bg-purple-100 text-purple-800",
-  visionnaire: "bg-[#f2f3f5]/[0.07] text-[#9298a6]"
+  visionnaire: "bg-encre/[0.07] text-ardoise"
 };
 
 const profilLabels = {
@@ -538,19 +538,19 @@ export default function AdminClients() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-[#96c0b8] animate-spin" />
+      <div className="min-h-screen bg-fond flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-menthe animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#f2f3f5]">
+    <div className="min-h-screen bg-fond text-encre">
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] m-0">Utilisateurs</h1>
-          <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mt-2 mb-0">Gérez tous les utilisateurs de la plateforme.</p>
+          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Utilisateurs</h1>
+          <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Gérez tous les utilisateurs de la plateforme.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <InviterClient
@@ -571,30 +571,30 @@ export default function AdminClients() {
       </div>
 
       {/* Bandeau de chiffres */}
-      <div className="flex flex-wrap border-t border-[#f2f3f5]/[0.35] mb-8 max-md:mb-6">
+      <div className="flex flex-wrap border-t border-encre/[0.35] mb-8 max-md:mb-6">
         {[
           { valeur: clientsActifs.length, label: "Clients actifs" },
-          { valeur: pendingUsers.length, label: "En attente d'activation", accent: "text-[#96c0b8]" },
-          { valeur: nbParEtape(3), label: "En recherche", accent: "text-[#c3ddd6]" },
+          { valeur: pendingUsers.length, label: "En attente d'activation", accent: "text-menthe" },
+          { valeur: nbParEtape(3), label: "En recherche", accent: "text-menthe-clair" },
           { valeur: nbParEtape(4), label: "En financement" },
-          { valeur: nbParEtape(5), label: "Signés", accent: "text-[#c3ddd6]" },
+          { valeur: nbParEtape(5), label: "Signés", accent: "text-menthe-clair" },
         ].map((c, i) => (
-          <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#f2f3f5]/[0.12] md:pl-6" : ""}`}>
-            <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-[#f2f3f5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
-            <div className="text-[12px] text-[#9298a6] mt-1">{c.label}</div>
+          <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-6" : ""}`}>
+            <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
+            <div className="text-[12px] text-ardoise mt-1">{c.label}</div>
           </div>
         ))}
       </div>
 
       <div className="mb-6">
             <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
-              <div className="flex-1 flex items-center gap-3 border-b border-[#f2f3f5]/[0.18] focus-within:border-[#3a3f4a] transition-colors pb-2">
-                <Search className="w-4 h-4 text-[#6a7180] flex-shrink-0" />
+              <div className="flex-1 flex items-center gap-3 border-b border-encre/[0.18] focus-within:border-bord-vif transition-colors pb-2">
+                <Search className="w-4 h-4 text-brume flex-shrink-0" />
                 <input
                   placeholder="Rechercher un utilisateur…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-transparent border-none text-[15px] text-[#f2f3f5] placeholder:text-[#6a7180] outline-none py-1" />
+                  className="w-full bg-transparent border-none text-[15px] text-encre placeholder:text-brume outline-none py-1" />
               </div>
               {sansMotDePasse > 0 && (
                 <Button
@@ -603,7 +603,7 @@ export default function AdminClients() {
                     inviterTous.mutate();
                   }}
                   disabled={inviterTous.isPending}
-                  className="h-10 text-sm bg-[#f2f3f5] hover:bg-[#ffffff] text-[#0b0c0e] font-semibold border-0 rounded-[10px]"
+                  className="h-10 text-sm bg-encre hover:bg-[#ffffff] text-[#0b0c0e] font-semibold border-0 rounded-[10px]"
                 >
                   {inviterTous.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
                   Envoyer les liens ({sansMotDePasse})
@@ -612,7 +612,7 @@ export default function AdminClients() {
               {selectedUsersForCompare.length >= 2 &&
               <Button
                 onClick={handleCompareUsers}
-                className="h-10 text-sm bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5]">
+                className="h-10 text-sm bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre">
                   <GitCompare className="w-4 h-4 mr-2" />
                   Comparer ({selectedUsersForCompare.length})
                 </Button>
@@ -625,20 +625,20 @@ export default function AdminClients() {
                 { v: "admin", l: "Admins", n: nbAdmins },
               ].map(({ v, l, n }) => (
                 <button key={v} onClick={() => setEtapeFilter(v)}
-                  className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${etapeFilter === v ? "text-[#f2f3f5] border-[#96c0b8]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
-                  {l} <span className="text-[#6a7180]">{n}</span>
+                  className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${etapeFilter === v ? "text-encre border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
+                  {l} <span className="text-brume">{n}</span>
                 </button>
               ))}
             </div>
             {selectedUsersForCompare.length > 0 &&
             <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <span className="text-[#f2f3f5]/30 text-xs">Sélectionnés :</span>
+                <span className="text-encre/30 text-xs">Sélectionnés :</span>
                 {selectedUsersForCompare.map((userId) => {
                 const u = users.find((user) => user.id === userId);
                 return u ?
                 <Badge
                   key={userId}
-                  className="bg-[#96c0b8]/10 text-[#96c0b8] border border-[#96c0b8]/20 cursor-pointer hover:bg-[#96c0b8]/20 text-xs"
+                  className="bg-menthe/10 text-menthe border border-menthe/20 cursor-pointer hover:bg-menthe/20 text-xs"
                   onClick={() => toggleUserSelection(userId)}>
                       {u.full_name || u.email.split('@')[0]} ✕
                     </Badge> :
@@ -648,7 +648,7 @@ export default function AdminClients() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedUsersForCompare([])}
-                className="text-[#f2f3f5]/30 hover:text-[#f2f3f5] text-xs">
+                className="text-encre/30 hover:text-encre text-xs">
 
                   Tout effacer
                 </Button>
@@ -663,26 +663,26 @@ export default function AdminClients() {
             onClick={() => setPendingCollapsed(prev => !prev)}
             className="flex items-center gap-2.5 w-full text-left group"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#96c0b8] animate-pulse" />
-            <span className="text-[10px] tracking-[0.2em] uppercase text-[#96c0b8] flex-1">En attente d'activation · {pendingUsers.length}</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-[#96c0b8]/60 group-hover:text-[#96c0b8] transition-transform ${pendingCollapsed ? "-rotate-90" : ""}`} />
+            <span className="w-1.5 h-1.5 rounded-full bg-menthe animate-pulse" />
+            <span className="text-[10px] tracking-[0.2em] uppercase text-menthe flex-1">En attente d'activation · {pendingUsers.length}</span>
+            <ChevronDown className={`w-3.5 h-3.5 text-menthe/60 group-hover:text-menthe transition-transform ${pendingCollapsed ? "-rotate-90" : ""}`} />
           </button>
           {!pendingCollapsed && (
             <div className="mt-4">
               {pendingUsers.map((user) => (
-                <div key={user.id} className="flex items-center gap-4 py-3.5 border-t border-[#f2f3f5]/[0.12]">
-                  <div className="w-9 h-9 rounded-full border border-[#96c0b8]/40 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[11px] text-[#96c0b8]">{user.full_name?.charAt(0)?.toUpperCase() || "?"}</span>
+                <div key={user.id} className="flex items-center gap-4 py-3.5 border-t border-encre/[0.12]">
+                  <div className="w-9 h-9 rounded-full border border-menthe/40 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[11px] text-menthe">{user.full_name?.charAt(0)?.toUpperCase() || "?"}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[#f2f3f5] text-[15px] truncate m-0">{user.full_name || "Sans nom"}</p>
-                    <p className="text-[#9298a6] text-xs truncate m-0">{user.email}</p>
+                    <p className="text-encre text-[15px] truncate m-0">{user.full_name || "Sans nom"}</p>
+                    <p className="text-ardoise text-xs truncate m-0">{user.email}</p>
                   </div>
                   <button
                     onClick={() => inviterUn.mutate(user)}
                     disabled={inviterUn.isPending}
                     title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
-                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase font-semibold text-[#0b0c0e] bg-[#f2f3f5] hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
+                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase font-semibold text-[#0b0c0e] bg-encre hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
                   >
                     {inviterUn.isPending && inviterUn.variables?.id === user.id ? "Envoi…" : "Inviter"}
                   </button>
@@ -690,12 +690,12 @@ export default function AdminClients() {
                     onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
                     disabled={updateUserMutation.isPending}
                     title="Passer client tout de suite (étape 1), sans envoyer de lien maintenant"
-                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase border border-[#2c3139] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.06] transition-colors disabled:opacity-40 flex-shrink-0"
+                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase border border-bord-doux text-encre hover:bg-encre/[0.06] transition-colors disabled:opacity-40 flex-shrink-0"
                   >
                     Client direct
                   </button>
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)}
-                    className="h-8 w-8 text-[#6a7180] hover:text-red-400 hover:bg-transparent flex-shrink-0">
+                    className="h-8 w-8 text-brume hover:text-red-400 hover:bg-transparent flex-shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -706,7 +706,7 @@ export default function AdminClients() {
       )}
 
       {/* Liste des utilisateurs — rangées filetées, détail repliable */}
-      <div className="border-b border-[#f2f3f5]/[0.12]">
+      <div className="border-b border-encre/[0.12]">
         {filteredUsers.map((user) => {
           const isAdmin = user.role === "admin";
           const isExpanded = expandedUserId === user.id;
@@ -714,34 +714,34 @@ export default function AdminClients() {
           const etape = user.etape_actuelle ?? 0;
 
           return (
-            <div key={user.id} id={`utilisateur-${user.id}`} className={`border-t border-[#f2f3f5]/[0.12] transition-colors ${isSelected ? "bg-[#96c0b8]/[0.05]" : isExpanded ? "bg-[#f2f3f5]/[0.015]" : ""}`}>
+            <div key={user.id} id={`utilisateur-${user.id}`} className={`border-t border-encre/[0.12] transition-colors ${isSelected ? "bg-menthe/[0.05]" : isExpanded ? "bg-encre/[0.015]" : ""}`}>
               {/* Rangée principale */}
               <div className="flex items-center gap-4 max-md:gap-3 py-4 max-md:flex-wrap">
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={() => toggleUserSelection(user.id)}
-                  className="border-[#3a3f4a] rounded-none data-[state=checked]:bg-[#96c0b8] data-[state=checked]:border-[#96c0b8] flex-shrink-0"
+                  className="border-bord-vif rounded-none data-[state=checked]:bg-menthe data-[state=checked]:border-menthe flex-shrink-0"
                   title="Sélectionner pour comparer" />
 
                 <button
                   onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
-                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0 ${isAdmin ? "border-[#96c0b8]/50" : "border-[#3a3f4a]"}`}>
-                    <span className={`text-[11px] ${isAdmin ? "text-[#96c0b8]" : "text-[#9298a6]"}`}>
+                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center flex-shrink-0 ${isAdmin ? "border-menthe/50" : "border-bord-vif"}`}>
+                    <span className={`text-[11px] ${isAdmin ? "text-menthe" : "text-ardoise"}`}>
                       {user.full_name?.charAt(0)?.toUpperCase() || "U"}
                     </span>
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-[#f2f3f5] text-[15px] truncate">{user.full_name || "Sans nom"}</span>
-                      {isAdmin && <span className="text-[9px] tracking-[0.16em] uppercase text-[#96c0b8] border border-[#96c0b8]/40 rounded-full px-2 py-px">Admin</span>}
-                      {user.role === 'mandataire' && <span className="text-[9px] tracking-[0.16em] uppercase text-[#9298a6] border border-[#9298a6]/40 rounded-full px-2 py-px">Mandataire</span>}
-                      {user.est_compte_shadow && user.compte_maitre_email && <span className="text-[9px] tracking-[0.16em] uppercase text-[#9298a6] border border-[#f2f3f5]/[0.18] rounded-full px-2 py-px">Lié</span>}
-                      {user.comptes_lies && user.comptes_lies.length > 0 && <span className="text-[9px] tracking-[0.16em] uppercase text-[#9298a6] border border-[#f2f3f5]/[0.18] rounded-full px-2 py-px">{user.comptes_lies.length} lié{user.comptes_lies.length > 1 ? "s" : ""}</span>}
-                      {user.profil_investisseur && <span className="text-[9px] tracking-[0.16em] uppercase text-[#9298a6] max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
+                      <span className="text-encre text-[15px] truncate">{user.full_name || "Sans nom"}</span>
+                      {isAdmin && <span className="text-[9px] tracking-[0.16em] uppercase text-menthe border border-menthe/40 rounded-full px-2 py-px">Admin</span>}
+                      {user.role === 'mandataire' && <span className="text-[9px] tracking-[0.16em] uppercase text-ardoise border border-ardoise/40 rounded-full px-2 py-px">Mandataire</span>}
+                      {user.est_compte_shadow && user.compte_maitre_email && <span className="text-[9px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">Lié</span>}
+                      {user.comptes_lies && user.comptes_lies.length > 0 && <span className="text-[9px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">{user.comptes_lies.length} lié{user.comptes_lies.length > 1 ? "s" : ""}</span>}
+                      {user.profil_investisseur && <span className="text-[9px] tracking-[0.16em] uppercase text-ardoise max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
                     </div>
-                    <p className="text-[#9298a6] text-xs truncate m-0 mt-0.5">{user.email}</p>
+                    <p className="text-ardoise text-xs truncate m-0 mt-0.5">{user.email}</p>
                   </div>
                 </button>
 
@@ -756,10 +756,10 @@ export default function AdminClients() {
                       />
                     </div>
                     <div className="w-24 max-md:w-20 flex items-center gap-2.5">
-                      <div className="flex-1 h-px bg-[#f2f3f5]/[0.14] relative">
-                        <div className="absolute inset-y-0 left-0 bg-[#96c0b8] transition-all duration-500" style={{ width: `${etape / 5 * 100}%`, height: "2px", top: "-0.5px" }} />
+                      <div className="flex-1 h-px bg-encre/[0.14] relative">
+                        <div className="absolute inset-y-0 left-0 bg-menthe transition-all duration-500" style={{ width: `${etape / 5 * 100}%`, height: "2px", top: "-0.5px" }} />
                       </div>
-                      <span className="text-[11px] text-[#c3ddd6]" style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(etape / 5 * 100)}%</span>
+                      <span className="text-[11px] text-menthe-clair" style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(etape / 5 * 100)}%</span>
                     </div>
                   </div>
                 )}
@@ -768,19 +768,19 @@ export default function AdminClients() {
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                   {!isAdmin && !user.mot_de_passe_defini && <BoutonLienInvitation user={user} />}
                   <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(user)}
-                    className="h-8 w-8 text-[#6a7180] hover:text-[#f2f3f5] hover:bg-transparent" title="Modifier la fiche client">
+                    className="h-8 w-8 text-brume hover:text-encre hover:bg-transparent" title="Modifier la fiche client">
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleOpenStrategyDialog(user)}
-                    className="h-8 w-8 text-[#6a7180] hover:text-[#f2f3f5] hover:bg-transparent" title="Définir la stratégie">
+                    className="h-8 w-8 text-brume hover:text-encre hover:bg-transparent" title="Définir la stratégie">
                     <FileText className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)}
-                    className="h-8 w-8 text-[#6a7180] hover:text-red-400 hover:bg-transparent" title="Supprimer l'utilisateur">
+                    className="h-8 w-8 text-brume hover:text-red-400 hover:bg-transparent" title="Supprimer l'utilisateur">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                   <button onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
-                    className="w-8 h-8 flex items-center justify-center text-[#6a7180] hover:text-[#f2f3f5] transition-colors" title="Détails">
+                    className="w-8 h-8 flex items-center justify-center text-brume hover:text-encre transition-colors" title="Détails">
                     <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                   </button>
                 </div>
@@ -791,7 +791,7 @@ export default function AdminClients() {
                 <div className="pb-6 pl-[52px] max-md:pl-0 pr-2 space-y-6">
                   {/* Profil investisseur */}
                   <div>
-                    <div className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6] mb-3">Profil investisseur</div>
+                    <div className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-3">Profil investisseur</div>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { value: "equilibriste", label: "L'équilibriste" },
@@ -802,7 +802,7 @@ export default function AdminClients() {
                         const isSel = user.profil_investisseur === profil.value;
                         return (
                           <button key={profil.value} onClick={() => handleChangeProfil(user.id, profil.value)}
-                            className={`text-[12px] px-3.5 py-1 rounded-full border transition-colors ${isSel ? "bg-[#96c0b8]/[0.16] border-[#96c0b8] text-[#c3ddd6]" : "border-[#f2f3f5]/[0.18] text-[#9298a6] hover:text-[#f2f3f5]"}`}>
+                            className={`text-[12px] px-3.5 py-1 rounded-full border transition-colors ${isSel ? "bg-menthe/[0.16] border-menthe text-menthe-clair" : "border-encre/[0.18] text-ardoise hover:text-encre"}`}>
                             {profil.label}
                           </button>
                         );
@@ -813,68 +813,68 @@ export default function AdminClients() {
                   {/* Finances */}
                   {(user.revenus_annuels || user.epargne_annuelle || user.apport_disponible || user.duree_emprunt) && (
                     <div>
-                      <div className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6] mb-3">Situation financière</div>
+                      <div className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-3">Situation financière</div>
                       <div className="flex flex-wrap gap-x-10 gap-y-3" style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {user.revenus_annuels && <div><div className="text-[18px] font-light text-[#f2f3f5]">{(user.revenus_annuels / 1000).toFixed(0)} K€</div><div className="text-[11px] text-[#9298a6] mt-0.5">Revenus / an</div></div>}
-                        {user.epargne_annuelle && <div><div className="text-[18px] font-light text-[#f2f3f5]">{(user.epargne_annuelle / 1000).toFixed(0)} K€</div><div className="text-[11px] text-[#9298a6] mt-0.5">Épargne / an</div></div>}
-                        {user.apport_disponible && <div><div className="text-[18px] font-light text-[#c3ddd6]">{(user.apport_disponible / 1000).toFixed(0)} K€</div><div className="text-[11px] text-[#9298a6] mt-0.5">Apport disponible</div></div>}
-                        {user.duree_emprunt && <div><div className="text-[18px] font-light text-[#f2f3f5]">{user.duree_emprunt} ans</div><div className="text-[11px] text-[#9298a6] mt-0.5">Durée d'emprunt</div></div>}
+                        {user.revenus_annuels && <div><div className="text-[18px] font-light text-encre">{(user.revenus_annuels / 1000).toFixed(0)} K€</div><div className="text-[11px] text-ardoise mt-0.5">Revenus / an</div></div>}
+                        {user.epargne_annuelle && <div><div className="text-[18px] font-light text-encre">{(user.epargne_annuelle / 1000).toFixed(0)} K€</div><div className="text-[11px] text-ardoise mt-0.5">Épargne / an</div></div>}
+                        {user.apport_disponible && <div><div className="text-[18px] font-light text-menthe-clair">{(user.apport_disponible / 1000).toFixed(0)} K€</div><div className="text-[11px] text-ardoise mt-0.5">Apport disponible</div></div>}
+                        {user.duree_emprunt && <div><div className="text-[18px] font-light text-encre">{user.duree_emprunt} ans</div><div className="text-[11px] text-ardoise mt-0.5">Durée d'emprunt</div></div>}
                       </div>
                     </div>
                   )}
 
                   {/* Gestion du compte */}
                   <div>
-                    <div className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6] mb-3">Gestion du compte</div>
+                    <div className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-3">Gestion du compte</div>
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5">
                       {etape >= 4 && (
                         <>
-                          <label className="cursor-pointer inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
+                          <label className="cursor-pointer inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-ardoise hover:text-encre transition-colors">
                             <input type="file" className="hidden"
                               onChange={(e) => { if (e.target.files[0]) handleUploadDossierBancaire(user.id, e.target.files[0]); }} />
                             {uploadingDossier === user.id
-                              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#96c0b8]" />
-                              : <Upload className={`w-3.5 h-3.5 ${user.dossier_bancaire_url ? "text-[#c3ddd6]" : ""}`} />}
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-menthe" />
+                              : <Upload className={`w-3.5 h-3.5 ${user.dossier_bancaire_url ? "text-menthe-clair" : ""}`} />}
                             {user.dossier_bancaire_url ? "Remplacer le dossier bancaire" : "Dossier bancaire"}
                           </label>
                           {user.dossier_bancaire_url && (
                             <a href={user.dossier_bancaire_url} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
+                              className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-menthe-clair hover:text-encre transition-colors">
                               <Download className="w-3.5 h-3.5" /> Télécharger le dossier
                             </a>
                           )}
                         </>
                       )}
                       <button onClick={() => setAssignerPour(user)}
-                        className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#96c0b8] hover:text-[#f2f3f5] transition-colors">
+                        className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-menthe hover:text-encre transition-colors">
                         <Building2 className="w-3.5 h-3.5" /> Assigner un projet
                       </button>
                       {user.est_compte_shadow ? (
                         <button onClick={() => handleUnlinkAccount(user)}
-                          className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
+                          className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-ardoise hover:text-encre transition-colors">
                           <Unlink className="w-3.5 h-3.5" /> Délier du compte maître
                         </button>
                       ) : (
                         <button onClick={() => handleOpenLinkDialog(user)}
-                          className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
+                          className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-ardoise hover:text-encre transition-colors">
                           <Link className="w-3.5 h-3.5" /> Lier à un compte maître
                         </button>
                       )}
                       {!isAdmin && user.role !== 'mandataire' && (
                         <>
                           <button onClick={() => handlePromoteToAdmin(user)}
-                            className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#9298a6] hover:text-[#96c0b8] transition-colors">
+                            className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-ardoise hover:text-menthe transition-colors">
                             <Crown className="w-3.5 h-3.5" /> Promouvoir admin
                           </button>
                           <button onClick={() => handlePromoteToMandataire(user)}
-                            className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#9298a6] hover:text-[#f2f3f5] transition-colors">
+                            className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-ardoise hover:text-encre transition-colors">
                             <Users className="w-3.5 h-3.5" /> Promouvoir mandataire
                           </button>
                         </>
                       )}
                       {isAdmin && (
                         <button onClick={() => handleDemoteFromAdmin(user)}
-                          className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-[#96c0b8] hover:text-[#f2f3f5] transition-colors">
+                          className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-menthe hover:text-encre transition-colors">
                           <Crown className="w-3.5 h-3.5 fill-current" /> Rétrograder en utilisateur
                         </button>
                       )}
@@ -887,9 +887,9 @@ export default function AdminClients() {
         })}
 
         {filteredUsers.length === 0 && (
-          <div className="border-t border-[#f2f3f5]/[0.35] pt-10 pb-16 text-center">
-            <Users className="w-8 h-8 text-[#f2f3f5]/15 mx-auto mb-5" />
-            <p className="text-[#9298a6] text-sm mb-0">
+          <div className="border-t border-encre/[0.35] pt-10 pb-16 text-center">
+            <Users className="w-8 h-8 text-encre/15 mx-auto mb-5" />
+            <p className="text-ardoise text-sm mb-0">
               {searchTerm || etapeFilter !== "all" ? "Aucun utilisateur ne correspond" : "Aucun utilisateur"}
             </p>
           </div>
@@ -899,12 +899,12 @@ export default function AdminClients() {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="bg-[#000000] border-[#1f2228]">
+        <DialogContent className="bg-fond border-trait">
           <DialogHeader>
-            <DialogTitle className="text-[#f2f3f5]">Confirmer la suppression</DialogTitle>
-            <DialogDescription className="text-[#9298a6]">
+            <DialogTitle className="text-encre">Confirmer la suppression</DialogTitle>
+            <DialogDescription className="text-ardoise">
               Êtes-vous sûr de vouloir supprimer le compte de{" "}
-              <strong className="text-[#f2f3f5]">{userToDelete?.full_name || userToDelete?.email}</strong> ?
+              <strong className="text-encre">{userToDelete?.full_name || userToDelete?.email}</strong> ?
               {userToDelete?.role === "admin" &&
               <span className="block mt-2 text-amber-600 font-semibold">
                   Attention : cet utilisateur est administrateur
@@ -912,8 +912,8 @@ export default function AdminClients() {
               }
             </DialogDescription>
           </DialogHeader>
-          <div className="bg-[#96c0b8]/5 border border-[#96c0b8]/20 rounded-md p-4 my-4">
-            <p className="text-sm text-[#96c0b8]/80">
+          <div className="bg-menthe/5 border border-menthe/20 rounded-md p-4 my-4">
+            <p className="text-sm text-menthe/80">
               Cette action est irréversible. L'utilisateur devra recréer un compte pour accéder à l'application.
             </p>
           </div>
@@ -937,36 +937,36 @@ export default function AdminClients() {
 
       {/* Dialog de stratégie */}
       <Dialog open={strategyDialogOpen} onOpenChange={setStrategyDialogOpen}>
-        <DialogContent className="bg-[#000000] border-[#1f2228] max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-fond border-trait max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#f2f3f5]">
+            <DialogTitle className="text-encre">
               Stratégie de {selectedUser?.full_name || selectedUser?.email}
             </DialogTitle>
-            <DialogDescription className="text-[#9298a6]">
+            <DialogDescription className="text-ardoise">
               Définissez les critères de stratégie d'investissement pour ce client.
             </DialogDescription>
           </DialogHeader>
 
           {/* Champs obligatoires Budget et Apport */}
-          <div className="grid grid-cols-2 gap-4 my-4 p-4 bg-[#f2f3f5]/[0.05] border border-[#22262d] rounded-lg">
+          <div className="grid grid-cols-2 gap-4 my-4 p-4 bg-encre/[0.05] border border-bord rounded-lg">
             <div>
-              <Label className="text-[#9298a6] text-sm font-medium">Budget max (€)</Label>
+              <Label className="text-ardoise text-sm font-medium">Budget max (€)</Label>
               <Input
                 type="number"
                 placeholder="Ex: 500000"
                 value={strategyBudgetMax}
                 onChange={(e) => setStrategyBudgetMax(e.target.value)}
-                className="bg-[#000000] border-[#22262d] text-[#f2f3f5] mt-1" />
+                className="bg-fond border-bord text-encre mt-1" />
 
             </div>
             <div>
-              <Label className="text-[#9298a6] text-sm font-medium">Apport (€)</Label>
+              <Label className="text-ardoise text-sm font-medium">Apport (€)</Label>
               <Input
                 type="number"
                 placeholder="Ex: 100000"
                 value={strategyApport}
                 onChange={(e) => setStrategyApport(e.target.value)}
-                className="bg-[#000000] border-[#22262d] text-[#f2f3f5] mt-1" />
+                className="bg-fond border-bord text-encre mt-1" />
 
             </div>
           </div>
@@ -979,25 +979,25 @@ export default function AdminClients() {
               className={`flex items-start gap-3 p-3 rounded-lg ${
               field.is_nogo ?
               'bg-red-500/10 border border-red-500/30' :
-              'bg-[#f2f3f5]/[0.05] border border-[#22262d]'}`
+              'bg-encre/[0.05] border border-bord'}`
               }>
 
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`font-medium text-sm ${field.is_nogo ? 'text-red-400' : 'text-[#f2f3f5]'}`}>
+                    <span className={`font-medium text-sm ${field.is_nogo ? 'text-red-400' : 'text-encre'}`}>
                       {field.label}
                     </span>
                     {field.is_nogo &&
                   <Badge className="bg-red-500/20 text-red-400 text-xs">No-go</Badge>
                   }
                   </div>
-                  <p className="text-[#9298a6] text-sm">{field.value}</p>
+                  <p className="text-ardoise text-sm">{field.value}</p>
                 </div>
                 <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleRemoveField(index)}
-                className="text-[#9298a6] hover:text-red-400">
+                className="text-ardoise hover:text-red-400">
 
                   <X className="w-4 h-4" />
                 </Button>
@@ -1006,16 +1006,16 @@ export default function AdminClients() {
           </div>
 
           {/* Ajouter un nouveau champ */}
-          <div className="border border-[#22262d] rounded-lg p-4 space-y-4">
-            <h4 className="text-[#f2f3f5] font-medium text-sm">Ajouter un critère</h4>
+          <div className="border border-bord rounded-lg p-4 space-y-4">
+            <h4 className="text-encre font-medium text-sm">Ajouter un critère</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#9298a6] text-xs">Intitulé</Label>
+                <Label className="text-ardoise text-xs">Intitulé</Label>
                 <Input
                   placeholder="Ex: Budget max"
                   value={newFieldLabel}
                   onChange={(e) => setNewFieldLabel(e.target.value)}
-                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5] mt-1" />
+                  className="bg-fond border-bord text-encre mt-1" />
 
               </div>
               <div className="flex items-end gap-4">
@@ -1025,24 +1025,24 @@ export default function AdminClients() {
                     onCheckedChange={setNewFieldIsNogo}
                     className="data-[state=checked]:bg-red-500" />
 
-                  <Label className="text-[#9298a6] text-xs">No-go</Label>
+                  <Label className="text-ardoise text-xs">No-go</Label>
                 </div>
               </div>
             </div>
             <div>
-              <Label className="text-[#9298a6] text-xs">Valeur / Description</Label>
+              <Label className="text-ardoise text-xs">Valeur / Description</Label>
               <Textarea
                 placeholder="Ex: 500 000€"
                 value={newFieldValue}
                 onChange={(e) => setNewFieldValue(e.target.value)}
-                className="bg-[#000000] border-[#22262d] text-[#f2f3f5] mt-1"
+                className="bg-fond border-bord text-encre mt-1"
                 rows={2} />
 
             </div>
             <Button
               onClick={handleAddField}
               disabled={!newFieldLabel.trim() || !newFieldValue.trim()}
-              className="w-full bg-[#f2f3f5] text-[#0f1114] hover:bg-[#c9cdd6] border-0">
+              className="w-full bg-encre text-surface hover:bg-craie border-0">
 
               <Plus className="w-4 h-4 mr-2" />
               Ajouter ce critère
@@ -1053,13 +1053,13 @@ export default function AdminClients() {
             <Button
               variant="outline"
               onClick={() => setStrategyDialogOpen(false)}
-              className="border-[#22262d] text-[#9298a6]">
+              className="border-bord text-ardoise">
 
               Annuler
             </Button>
             <Button
               onClick={handleSaveStrategy}
-              className="bg-[#f2f3f5] text-[#0f1114] hover:bg-[#c9cdd6] border-0"
+              className="bg-encre text-surface hover:bg-craie border-0"
               disabled={createStrategyMutation.isPending || updateStrategyMutation.isPending}>
 
               {createStrategyMutation.isPending || updateStrategyMutation.isPending ? "Enregistrement..." : "Enregistrer"}
@@ -1077,13 +1077,13 @@ export default function AdminClients() {
       />
 
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
-        <DialogContent className="bg-[#000000] border-[#1f2228]">
+        <DialogContent className="bg-fond border-trait">
           <DialogHeader>
-            <DialogTitle className="text-[#f2f3f5] flex items-center gap-2">
+            <DialogTitle className="text-encre flex items-center gap-2">
               <Link className="w-5 h-5 text-blue-500" />
               Lier les comptes
             </DialogTitle>
-            <DialogDescription className="text-[#9298a6]">
+            <DialogDescription className="text-ardoise">
               Définissez {selectedUserForLink?.full_name || selectedUserForLink?.email} comme compte esclave d'un compte maître.
               Le compte esclave verra tous les projets et données du compte maître.
             </DialogDescription>
@@ -1091,17 +1091,17 @@ export default function AdminClients() {
 
           <div className="my-4 space-y-4">
             <div>
-              <Label className="text-[#9298a6] text-sm mb-2 block">Compte esclave</Label>
-              <div className="p-3 bg-[#0f1114] rounded-lg border border-[#22262d]">
-                <p className="text-[#f2f3f5]">{selectedUserForLink?.full_name || "Sans nom"}</p>
-                <p className="text-[#9298a6] text-sm">{selectedUserForLink?.email}</p>
+              <Label className="text-ardoise text-sm mb-2 block">Compte esclave</Label>
+              <div className="p-3 bg-surface rounded-lg border border-bord">
+                <p className="text-encre">{selectedUserForLink?.full_name || "Sans nom"}</p>
+                <p className="text-ardoise text-sm">{selectedUserForLink?.email}</p>
               </div>
             </div>
 
             <div>
-              <Label className="text-[#9298a6] text-sm mb-2 block">Compte maître (principal)</Label>
+              <Label className="text-ardoise text-sm mb-2 block">Compte maître (principal)</Label>
               <Select value={masterEmail} onValueChange={setMasterEmail}>
-                <SelectTrigger className="bg-[#000000] border-[#22262d] text-[#f2f3f5]">
+                <SelectTrigger className="bg-fond border-bord text-encre">
                   <SelectValue placeholder="Sélectionner le compte maître" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1125,13 +1125,13 @@ export default function AdminClients() {
                 setSelectedUserForLink(null);
                 setMasterEmail("");
               }}
-              className="border-[#22262d] text-[#9298a6]">
+              className="border-bord text-ardoise">
 
               Annuler
             </Button>
             <Button
               onClick={handleLinkAccounts}
-              className="bg-[#f2f3f5] text-[#0f1114] hover:bg-[#c9cdd6] border-0"
+              className="bg-encre text-surface hover:bg-craie border-0"
               disabled={!masterEmail}>
 
               Lier les comptes
@@ -1142,10 +1142,10 @@ export default function AdminClients() {
 
       {/* Dialog nom de la famille */}
       <Dialog open={familleNameDialogOpen} onOpenChange={setFamilleNameDialogOpen}>
-        <DialogContent className="bg-[#000000] border-[#1f2228]">
+        <DialogContent className="bg-fond border-trait">
           <DialogHeader>
-            <DialogTitle className="text-[#f2f3f5]">Créer une famille</DialogTitle>
-            <DialogDescription className="text-[#9298a6]">
+            <DialogTitle className="text-encre">Créer une famille</DialogTitle>
+            <DialogDescription className="text-ardoise">
               Donnez un nom à ce groupe de {selectedUsersForCompare.length} investisseurs.
             </DialogDescription>
           </DialogHeader>
@@ -1154,7 +1154,7 @@ export default function AdminClients() {
               placeholder="Ex: Famille Dupont-Martin"
               value={newFamilleName}
               onChange={(e) => setNewFamilleName(e.target.value)}
-              className="bg-[#000000] border-[#22262d] text-[#f2f3f5]"
+              className="bg-fond border-bord text-encre"
               onKeyPress={(e) => e.key === 'Enter' && handleCreateFamille()} />
 
           </div>
@@ -1162,13 +1162,13 @@ export default function AdminClients() {
             <Button
               variant="outline"
               onClick={() => setFamilleNameDialogOpen(false)}
-              className="border-[#22262d] text-[#9298a6]">
+              className="border-bord text-ardoise">
 
               Annuler
             </Button>
             <Button
               onClick={handleCreateFamille}
-              className="bg-[#f2f3f5] text-[#0f1114] hover:bg-[#c9cdd6] border-0"
+              className="bg-encre text-surface hover:bg-craie border-0"
               disabled={!newFamilleName.trim()}>
 
               Créer et comparer
@@ -1179,13 +1179,13 @@ export default function AdminClients() {
 
       {/* Dialog édition fiche client */}
       <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
-        <DialogContent className="bg-[#000000] border-[#1f2228] max-w-2xl">
+        <DialogContent className="bg-fond border-trait max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-[#f2f3f5] flex items-center gap-2">
+            <DialogTitle className="text-encre flex items-center gap-2">
               <Edit className="w-5 h-5 text-blue-500" />
               Fiche client : {editingUser?.full_name || editingUser?.email}
             </DialogTitle>
-            <DialogDescription className="text-[#9298a6]">
+            <DialogDescription className="text-ardoise">
               Complétez les informations financières et les préférences du client
             </DialogDescription>
           </DialogHeader>
@@ -1193,48 +1193,48 @@ export default function AdminClients() {
           <div className="space-y-4 my-4">
             {/* Profil investisseur - en lecture seule mais visible */}
             {editingUser?.profil_investisseur &&
-            <div className="p-3 bg-[#f2f3f5]/[0.05] border border-[#22262d] rounded-lg">
-                <Label className="text-[#9298a6] text-sm font-medium">Profil investisseur</Label>
-                <p className="text-[#f2f3f5] mt-1">{profilLabels[editingUser.profil_investisseur] || editingUser.profil_investisseur}</p>
-                <p className="text-xs text-[#9298a6] mt-1">Ce champ se remplit automatiquement lors du changement de profil</p>
+            <div className="p-3 bg-encre/[0.05] border border-bord rounded-lg">
+                <Label className="text-ardoise text-sm font-medium">Profil investisseur</Label>
+                <p className="text-encre mt-1">{profilLabels[editingUser.profil_investisseur] || editingUser.profil_investisseur}</p>
+                <p className="text-xs text-ardoise mt-1">Ce champ se remplit automatiquement lors du changement de profil</p>
               </div>
             }
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#9298a6] text-sm">Revenus annuels (€)</Label>
+                <Label className="text-ardoise text-sm">Revenus annuels (€)</Label>
                 <Input
                   type="number"
                   placeholder="Ex: 60000"
                   value={editForm.revenus_annuels}
                   onChange={(e) => setEditForm({ ...editForm, revenus_annuels: e.target.value })}
-                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5] mt-1" />
+                  className="bg-fond border-bord text-encre mt-1" />
 
               </div>
 
               <div>
-                <Label className="text-[#9298a6] text-sm">Épargne annuelle (€)</Label>
+                <Label className="text-ardoise text-sm">Épargne annuelle (€)</Label>
                 <Input
                   type="number"
                   placeholder="Ex: 15000"
                   value={editForm.epargne_annuelle}
                   onChange={(e) => setEditForm({ ...editForm, epargne_annuelle: e.target.value })}
-                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5] mt-1" />
+                  className="bg-fond border-bord text-encre mt-1" />
 
               </div>
 
               <div>
-                <Label className="text-[#9298a6] text-sm">Durée d'emprunt (années)</Label>
+                <Label className="text-ardoise text-sm">Durée d'emprunt (années)</Label>
                 <Select
                   value={editForm.duree_emprunt}
                   onValueChange={(val) => setEditForm({ ...editForm, duree_emprunt: val })}>
 
-                  <SelectTrigger className="bg-[#000000] border-[#22262d] text-[#f2f3f5] mt-1">
+                  <SelectTrigger className="bg-fond border-bord text-encre mt-1">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#000000] border-[#22262d]">
+                  <SelectContent className="bg-fond border-bord">
                     {[15, 20, 25, 30].map((years) =>
-                    <SelectItem key={years} value={String(years)} className="text-[#f2f3f5]">
+                    <SelectItem key={years} value={String(years)} className="text-encre">
                         {years} ans
                       </SelectItem>
                     )}
@@ -1243,13 +1243,13 @@ export default function AdminClients() {
               </div>
 
               <div>
-                <Label className="text-[#9298a6] text-sm">Apport disponible (€)</Label>
+                <Label className="text-ardoise text-sm">Apport disponible (€)</Label>
                 <Input
                   type="number"
                   placeholder="Ex: 100000"
                   value={editForm.apport_disponible}
                   onChange={(e) => setEditForm({ ...editForm, apport_disponible: e.target.value })}
-                  className="bg-[#000000] border-[#22262d] text-[#f2f3f5] mt-1" />
+                  className="bg-fond border-bord text-encre mt-1" />
 
               </div>
             </div>
@@ -1262,13 +1262,13 @@ export default function AdminClients() {
                 setEditUserDialogOpen(false);
                 setEditingUser(null);
               }}
-              className="border-[#22262d] text-[#9298a6]">
+              className="border-bord text-ardoise">
 
               Annuler
             </Button>
             <Button
               onClick={handleSaveEditUser}
-              className="bg-[#f2f3f5] text-[#0f1114] hover:bg-[#c9cdd6] border-0"
+              className="bg-encre text-surface hover:bg-craie border-0"
               disabled={updateUserMutation.isPending}>
 
               {updateUserMutation.isPending ? "Enregistrement..." : "Enregistrer"}
@@ -1279,21 +1279,21 @@ export default function AdminClients() {
 
       {/* Dialog sélection projet pour étape 4 */}
       <Dialog open={etapeDialogOpen} onOpenChange={setEtapeDialogOpen}>
-        <DialogContent className="bg-[#000000] border-[#1f2228]">
+        <DialogContent className="bg-fond border-trait">
           <DialogHeader>
-            <DialogTitle className="text-[#f2f3f5] flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-[#9298a6]" />
+            <DialogTitle className="text-encre flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-ardoise" />
               Sélectionner le projet à poursuivre
             </DialogTitle>
-            <DialogDescription className="text-[#9298a6]">
+            <DialogDescription className="text-ardoise">
               Le client passera en étape {pendingEtapeChange?.etape}. À partir de l'étape 4, choisissez le projet qu'il va poursuivre (il ne verra que ce projet).
             </DialogDescription>
           </DialogHeader>
 
           <div className="my-4">
-            <Label className="text-[#9298a6] text-sm mb-2 block">Projet sélectionné</Label>
+            <Label className="text-ardoise text-sm mb-2 block">Projet sélectionné</Label>
             <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-              <SelectTrigger className="bg-[#000000] border-[#22262d] text-[#f2f3f5]">
+              <SelectTrigger className="bg-fond border-bord text-encre">
                 <SelectValue placeholder="Sélectionner un projet" />
               </SelectTrigger>
               <SelectContent>
@@ -1313,13 +1313,13 @@ export default function AdminClients() {
                 setEtapeDialogOpen(false);
                 setPendingEtapeChange(null);
               }}
-              className="border-[#22262d] text-[#9298a6]">
+              className="border-bord text-ardoise">
 
               Annuler
             </Button>
             <Button
               onClick={handleConfirmEtapeChange}
-              className="bg-[#f2f3f5] text-[#0f1114] hover:bg-[#c9cdd6] border-0"
+              className="bg-encre text-surface hover:bg-craie border-0"
               disabled={!selectedProjectId}>
 
               Confirmer

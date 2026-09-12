@@ -27,9 +27,9 @@ export function ListeRelances({ compact = false }) {
     refetchInterval: 5 * 60000,
   });
   if (isLoading) {
-    return <p className="m-0 text-[12.5px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Je relis les fiches…</p>;
+    return <p className="m-0 text-[12.5px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Je relis les fiches…</p>;
   }
-  if (!data?.total) return <p className="m-0 text-[13.5px] text-[#9298a6]">Aucune relance en attente pour vous.</p>;
+  if (!data?.total) return <p className="m-0 text-[13.5px] text-ardoise">Aucune relance en attente pour vous.</p>;
   return (
     <div className="space-y-5">
       {GROUPES.map(([cle, libelle, teinte]) => {
@@ -47,23 +47,23 @@ export function ListeRelances({ compact = false }) {
                   href={r.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex gap-3 border border-[#1f2228] rounded-xl bg-[#0f1114] px-4 py-3 hover:border-[#2c3139] transition-colors"
+                  className="group flex gap-3 border border-trait rounded-xl bg-surface px-4 py-3 hover:border-bord-doux transition-colors"
                 >
                   <div className="w-[2px] flex-none self-stretch rounded" style={{ background: teinte }} />
                   <div className="min-w-0 flex-1">
-                    <p className="m-0 text-[13.5px] text-[#f2f3f5] leading-[1.5]">
+                    <p className="m-0 text-[13.5px] text-encre leading-[1.5]">
                       <span className="font-medium">{r.nom}</span>
-                      {r.entreprise ? <span className="text-[#9298a6]"> · {r.entreprise}</span> : null}
-                      <span className="text-[#9298a6]"> — {dateCourte(r.relance)}, {quand(r)}</span>
+                      {r.entreprise ? <span className="text-ardoise"> · {r.entreprise}</span> : null}
+                      <span className="text-ardoise"> — {dateCourte(r.relance)}, {quand(r)}</span>
                     </p>
                     {resume(r.remarques) && (
-                      <p className="m-0 mt-0.5 text-[12.5px] leading-[1.55] text-[#9298a6] line-clamp-2">{resume(r.remarques)}</p>
+                      <p className="m-0 mt-0.5 text-[12.5px] leading-[1.55] text-ardoise line-clamp-2">{resume(r.remarques)}</p>
                     )}
                   </div>
-                  <ArrowUpRight className="w-3.5 h-3.5 flex-none mt-1 text-[#3a3f4a] group-hover:text-[#96c0b8] transition-colors" />
+                  <ArrowUpRight className="w-3.5 h-3.5 flex-none mt-1 text-bord-vif group-hover:text-menthe transition-colors" />
                 </a>
               ))}
-              {compact && liste.length > 4 && <p className="m-0 text-[12px] text-[#6a7180]">et {liste.length - 4} de plus</p>}
+              {compact && liste.length > 4 && <p className="m-0 text-[12px] text-brume">et {liste.length - 4} de plus</p>}
             </div>
           </section>
         );
@@ -77,8 +77,8 @@ export default function RelancesEnAttente() {
     <section>
       <div className="flex items-baseline justify-between gap-4 mb-5">
         <div>
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">En attente</p>
-          <h2 className="m-0 mt-1.5 text-[20px] font-light tracking-[-.015em] text-[#f2f3f5]">Vos relances</h2>
+          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">En attente</p>
+          <h2 className="m-0 mt-1.5 text-[20px] font-light tracking-[-.015em] text-encre">Vos relances</h2>
         </div>
       </div>
       <ListeRelances compact />

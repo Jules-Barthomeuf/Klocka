@@ -132,8 +132,8 @@ export default function InteractiveFranceMap({ projets }) {
 
   if (projetsAvecCoords.length === 0) {
     return (
-      <div className="rounded-md bg-[#000000]/50 border border-[#0f1114] p-8 text-center">
-        <p className="text-[#9298a6]">Aucun projet avec localisation disponible</p>
+      <div className="rounded-md bg-fond/50 border border-surface p-8 text-center">
+        <p className="text-ardoise">Aucun projet avec localisation disponible</p>
       </div>
     );
   }
@@ -143,7 +143,7 @@ export default function InteractiveFranceMap({ projets }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="rounded-md overflow-hidden border border-[#0f1114] shadow-2xl w-full h-full"
+      className="rounded-md overflow-hidden border border-surface shadow-2xl w-full h-full"
     >
       <div className="relative w-full h-full bg-[#aad3df]">
         <MapContainer
@@ -173,14 +173,14 @@ export default function InteractiveFranceMap({ projets }) {
                     className="w-full h-32 object-cover rounded-lg mb-3"
                   />
                   <div className="font-bold text-base mb-1">{projet.ville}</div>
-                  <div className="text-[#6a7180] mb-3 capitalize text-sm">{projet.commerceType}</div>
+                  <div className="text-brume mb-3 capitalize text-sm">{projet.commerceType}</div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-xs text-[#9298a6] mb-1">Prix d'acquisition</div>
+                      <div className="text-xs text-ardoise mb-1">Prix d'acquisition</div>
                       <div className="font-bold text-sm">{formatValue(projet.prix_acquisition)}</div>
                     </div>
-                    <div className="bg-[#96c0b8]/10 rounded-lg p-2">
-                      <div className="text-xs text-[#9298a6] mb-1">Rendement annuel</div>
+                    <div className="bg-menthe/10 rounded-lg p-2">
+                      <div className="text-xs text-ardoise mb-1">Rendement annuel</div>
                       <div className="font-bold text-sm text-[#7fada4]">{projet.rendement_locatif}%</div>
                     </div>
                   </div>

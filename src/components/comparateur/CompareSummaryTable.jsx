@@ -2,8 +2,8 @@ import React from "react";
 import { formatCurrency } from "./ComparateurCalcul";
 import InfoTooltip from "./InfoTooltip";
 
-const COLORS = ["text-red-800", "text-[#c3ddd6]", "text-[#96c0b8]", "text-purple-400"];
-const DOT_COLORS = ["bg-red-800", "bg-[#c3ddd6]", "bg-[#96c0b8]", "bg-purple-400"];
+const COLORS = ["text-red-800", "text-menthe-clair", "text-menthe", "text-purple-400"];
+const DOT_COLORS = ["bg-red-800", "bg-menthe-clair", "bg-menthe", "bg-purple-400"];
 
 export default function CompareSummaryTable({ metrics }) {
   if (!metrics.length) return null;
@@ -26,12 +26,12 @@ export default function CompareSummaryTable({ metrics }) {
   ];
 
   return (
-    <div className="bg-[#000000] rounded-md border border-[#1f2228] overflow-hidden">
+    <div className="bg-fond rounded-md border border-trait overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1f2228]">
-              <th className="text-left text-[#f2f3f5]/30 text-xs uppercase tracking-wider py-3 px-4 min-w-[160px]">Indicateur</th>
+            <tr className="border-b border-trait">
+              <th className="text-left text-encre/30 text-xs uppercase tracking-wider py-3 px-4 min-w-[160px]">Indicateur</th>
               {metrics.map((m, i) => (
                 <th key={i} className="text-left py-3 px-4 min-w-[140px]">
                   <div className="flex items-center gap-2">
@@ -44,12 +44,12 @@ export default function CompareSummaryTable({ metrics }) {
           </thead>
           <tbody>
             {rows.map((row, rowIdx) => (
-              <tr key={row.key} className={rowIdx % 2 === 0 ? "bg-[#f2f3f5]/[0.01]" : ""}>
-                <td className="py-3 px-4 text-[#f2f3f5]/40 text-xs">{row.label}</td>
+              <tr key={row.key} className={rowIdx % 2 === 0 ? "bg-encre/[0.01]" : ""}>
+                <td className="py-3 px-4 text-encre/40 text-xs">{row.label}</td>
                 {metrics.map((m, i) => {
                   const val = m[row.key];
                   return (
-                    <td key={i} className="py-3 px-4 text-[#f2f3f5] text-xs font-medium">
+                    <td key={i} className="py-3 px-4 text-encre text-xs font-medium">
                       {row.fmt(val)}
                     </td>
                   );

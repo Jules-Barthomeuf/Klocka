@@ -28,7 +28,7 @@ function Bandeau({ fiche, onAller }) {
   const champs = new Map(fiche.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
   if (!items.length) return <p className="m-0 mb-5 text-[13px] text-[#7fd1a8]">Aucune alerte : les pièces concordent sur tous les champs de la fiche.</p>;
   return (
-    <div className="mb-6 rounded-xl border border-[#22262d] bg-[#0f1114] px-5 py-4">
+    <div className="mb-6 rounded-xl border border-bord bg-surface px-5 py-4">
       <div className="flex flex-wrap gap-x-6 gap-y-3">
         {items.map(([statut, ids, mot]) => (
           <div key={statut} className="min-w-0">
@@ -37,7 +37,7 @@ function Bandeau({ fiche, onAller }) {
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {ids.map((id) => (
-                <button key={id} onClick={() => onAller(id)} className="text-[12px] px-2.5 py-0.5 rounded-full border border-[#2c3139] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]">
+                <button key={id} onClick={() => onAller(id)} className="text-[12px] px-2.5 py-0.5 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif">
                   {champs.get(id)?.libelle || id}
                 </button>
               ))}
@@ -65,45 +65,45 @@ function Champ({ champ, dealId, ouvert, onOuvrir, onPreuve }) {
   });
   const n = champ.preuves.length;
   return (
-    <div id={`champ-${champ.id}`} className={`border-b border-[#1e1e22] last:border-b-0 ${ouvert ? "bg-[#f2f3f5]/[0.02]" : ""}`}>
-      <button onClick={onOuvrir} className="w-full text-left grid grid-cols-[180px_1fr_auto] max-md:grid-cols-1 gap-x-5 gap-y-1 items-start px-4 py-3 hover:bg-[#f2f3f5]/[0.02]">
-        <span className="text-[12.5px] text-[#9298a6] pt-px flex items-center gap-2.5">
+    <div id={`champ-${champ.id}`} className={`border-b border-[#1e1e22] last:border-b-0 ${ouvert ? "bg-encre/[0.02]" : ""}`}>
+      <button onClick={onOuvrir} className="w-full text-left grid grid-cols-[180px_1fr_auto] max-md:grid-cols-1 gap-x-5 gap-y-1 items-start px-4 py-3 hover:bg-encre/[0.02]">
+        <span className="text-[12.5px] text-ardoise pt-px flex items-center gap-2.5">
           <Pastille statut={champ.statut} titre={`${LIBELLE[champ.statut]} — ${champ.detail}`} />
           {champ.libelle}
         </span>
-        <span className={`text-[14px] leading-[1.55] ${champ.valeur ? "text-[#f2f3f5]" : "text-[#4d545d] italic"} ${ouvert ? "" : "line-clamp-2"}`}>
+        <span className={`text-[14px] leading-[1.55] ${champ.valeur ? "text-encre" : "text-[#4d545d] italic"} ${ouvert ? "" : "line-clamp-2"}`}>
           {champ.valeur || (champ.statut === "hors_critere" ? "Non fourni — hors critère" : "Aucune pièce ne le dit")}
         </span>
-        <span className="text-[11.5px] text-[#6a7180] whitespace-nowrap flex items-center gap-2 justify-end">
-          {champ.forcage ? <span className="text-[#d9b46a]">retenu à la main</span> : champ.source === "annonce" ? <span className="text-[#8fb6e8]">annonce seule</span> : null}
+        <span className="text-[11.5px] text-brume whitespace-nowrap flex items-center gap-2 justify-end">
+          {champ.forcage ? <span className="text-ambre">retenu à la main</span> : champ.source === "annonce" ? <span className="text-[#8fb6e8]">annonce seule</span> : null}
           {n ? `${n} source${n > 1 ? "s" : ""}` : "0 source"}
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${ouvert ? "" : "-rotate-90"}`} />
         </span>
       </button>
       {ouvert && (
         <div className="px-4 pb-4 md:pl-[220px] space-y-3">
-          <p className="m-0 text-[12px] text-[#6a7180]">{champ.question} · <span style={{ color: TEINTE[champ.statut] }}>{LIBELLE[champ.statut]}</span> — {champ.detail}</p>
+          <p className="m-0 text-[12px] text-brume">{champ.question} · <span style={{ color: TEINTE[champ.statut] }}>{LIBELLE[champ.statut]}</span> — {champ.detail}</p>
           {champ.preuves.map((p) => {
             const retenue = champ.forcage?.document_id ? champ.forcage.document_id === p.document_id : !champ.forcage?.valeur && champ.source === p.document_nom;
             return (
-              <div key={p.document_id} className={`rounded-lg border px-3.5 py-2.5 ${retenue ? "border-[#96c0b8]/50" : "border-[#22262d]"}`}>
+              <div key={p.document_id} className={`rounded-lg border px-3.5 py-2.5 ${retenue ? "border-menthe/50" : "border-bord"}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <button onClick={() => onPreuve(p)} className="text-left text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">
-                    <span className="text-[#c9cdd6]">{p.document_nom}</span> · {p.categorie}{p.page ? ` · p.${p.page}` : ""} — voir la page
+                  <button onClick={() => onPreuve(p)} className="text-left text-[12px] text-ardoise hover:text-encre">
+                    <span className="text-craie">{p.document_nom}</span> · {p.categorie}{p.page ? ` · p.${p.page}` : ""} — voir la page
                   </button>
-                  <button onClick={() => forcer.mutate(retenue && champ.forcage ? {} : { document_id: p.document_id })} className={`text-[11.5px] px-2.5 py-0.5 rounded-full border ${retenue ? "border-[#96c0b8] text-[#96c0b8]" : "border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5]"}`}>
+                  <button onClick={() => forcer.mutate(retenue && champ.forcage ? {} : { document_id: p.document_id })} className={`text-[11.5px] px-2.5 py-0.5 rounded-full border ${retenue ? "border-menthe text-menthe" : "border-bord-doux text-ardoise hover:text-encre"}`}>
                     {retenue ? "Valeur retenue" : "Retenir celle-ci"}
                   </button>
                 </div>
                 <p className="m-0 mt-1.5 text-[13.5px] leading-[1.55] text-[#e6e7ea]">{p.reponse}</p>
-                {p.citation && <p className="m-0 mt-1 text-[12px] italic text-[#6a7180]">« {p.citation} »</p>}
+                {p.citation && <p className="m-0 mt-1 text-[12px] italic text-brume">« {p.citation} »</p>}
               </div>
             );
           })}
           <div className="flex flex-wrap items-center gap-2">
-            <input value={libre} onChange={(e) => setLibre(e.target.value)} placeholder="Ou forcer une valeur à la main…" className="flex-1 min-w-[220px] bg-transparent border border-[#22262d] rounded-lg px-3 py-1.5 text-[13px] text-[#f2f3f5] outline-none focus:border-[#96c0b8]/60" />
-            <button onClick={() => forcer.mutate({ valeur: libre })} disabled={!libre.trim() || forcer.isPending} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-[#f2f3f5] text-[#0b0c0e] font-semibold disabled:opacity-40"><Check className="w-3.5 h-3.5" /> Retenir</button>
-            {champ.forcage && <button onClick={() => forcer.mutate({})} className="inline-flex items-center gap-1.5 text-[12px] text-[#9298a6] hover:text-[#f2f3f5] px-2"><RotateCcw className="w-3.5 h-3.5" /> Revenir à la règle</button>}
+            <input value={libre} onChange={(e) => setLibre(e.target.value)} placeholder="Ou forcer une valeur à la main…" className="flex-1 min-w-[220px] bg-transparent border border-bord rounded-lg px-3 py-1.5 text-[13px] text-encre outline-none focus:border-menthe/60" />
+            <button onClick={() => forcer.mutate({ valeur: libre })} disabled={!libre.trim() || forcer.isPending} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-encre text-[#0b0c0e] font-semibold disabled:opacity-40"><Check className="w-3.5 h-3.5" /> Retenir</button>
+            {champ.forcage && <button onClick={() => forcer.mutate({})} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre px-2"><RotateCcw className="w-3.5 h-3.5" /> Revenir à la règle</button>}
           </div>
         </div>
       )}
@@ -113,7 +113,7 @@ function Champ({ champ, dealId, ouvert, onOuvrir, onPreuve }) {
 
 // --- La frise ------------------------------------------------------------------------------
 export function Frise({ fiche, onPreuve }) {
-  if (!fiche.frise.length) return <p className="m-0 text-[13.5px] text-[#9298a6]">Aucune date relevée dans les pièces pour l'instant.</p>;
+  if (!fiche.frise.length) return <p className="m-0 text-[13.5px] text-ardoise">Aucune date relevée dans les pièces pour l'instant.</p>;
   const tendus = new Set(fiche.tensions.map((t) => t.champ));
   const parAnnee = [];
   for (const e of fiche.frise) {
@@ -125,19 +125,19 @@ export function Frise({ fiche, onPreuve }) {
   const auj = new Date().toISOString().slice(0, 10);
   return (
     <div className="relative pl-6">
-      <div className="absolute left-[7px] top-1 bottom-1 w-px bg-[#2c3139]" />
+      <div className="absolute left-[7px] top-1 bottom-1 w-px bg-bord-doux" />
       {parAnnee.map((g) => (
         <div key={g.an} className="mb-6">
-          <p className={`m-0 mb-2 -ml-6 text-[11px] tracking-[.16em] uppercase font-semibold flex items-center gap-3 ${g.an > auj.slice(0, 4) ? "text-[#8fb6e8]" : "text-[#9298a6]"}`}>
+          <p className={`m-0 mb-2 -ml-6 text-[11px] tracking-[.16em] uppercase font-semibold flex items-center gap-3 ${g.an > auj.slice(0, 4) ? "text-[#8fb6e8]" : "text-ardoise"}`}>
             <span className="w-[15px] h-[15px] rounded-full border-2 border-[#0f0f11] flex-none" style={{ background: g.an > auj.slice(0, 4) ? "#8fb6e8" : "#6a7180" }} /> {g.an}{g.an === auj.slice(0, 4) ? " · cette année" : ""}
           </p>
           <div className="space-y-2">
             {g.evts.map((e, i) => (
-              <button key={i} onClick={() => onPreuve(e)} className={`block w-full text-left rounded-lg border px-4 py-2.5 hover:border-[#3a3f4a] ${tendus.has(e.champ) ? "border-[#e8927c]/50" : "border-[#1e1e22]"}`}>
-                <span className="text-[12px] tabular-nums text-[#9298a6]">{e.iso.split("-").reverse().join("/")}</span>
-                <span className="text-[13.5px] text-[#f2f3f5] ml-3">{e.libelle}</span>
-                <span className="text-[12px] text-[#6a7180] ml-2">· {e.document_nom}{e.page ? ` · p.${e.page}` : ""}</span>
-                <span className="block mt-0.5 text-[12.5px] text-[#9298a6] line-clamp-1">{e.reponse}</span>
+              <button key={i} onClick={() => onPreuve(e)} className={`block w-full text-left rounded-lg border px-4 py-2.5 hover:border-bord-vif ${tendus.has(e.champ) ? "border-[#e8927c]/50" : "border-[#1e1e22]"}`}>
+                <span className="text-[12px] tabular-nums text-ardoise">{e.iso.split("-").reverse().join("/")}</span>
+                <span className="text-[13.5px] text-encre ml-3">{e.libelle}</span>
+                <span className="text-[12px] text-brume ml-2">· {e.document_nom}{e.page ? ` · p.${e.page}` : ""}</span>
+                <span className="block mt-0.5 text-[12.5px] text-ardoise line-clamp-1">{e.reponse}</span>
               </button>
             ))}
           </div>
@@ -158,8 +158,8 @@ export default function FicheDossier({ dealId, onPreuve, questionsLibres }) {
   });
   const aller = (id) => { setOuvert(id); requestAnimationFrame(() => document.getElementById(`champ-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })); };
   const nbChamps = useMemo(() => fiche?.blocs.reduce((n, b) => n + b.champs.length, 0) || 0, [fiche]);
-  if (isLoading || !fiche) return <Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" />;
-  if (!fiche.nb_documents) return <p className="m-0 text-[13.5px] text-[#9298a6]">Importez les documents puis « Remplir la grille » : la fiche se remplit à partir des pièces.</p>;
+  if (isLoading || !fiche) return <Loader2 className="w-5 h-5 animate-spin text-ardoise" />;
+  if (!fiche.nb_documents) return <p className="m-0 text-[13.5px] text-ardoise">Importez les documents puis « Remplir la grille » : la fiche se remplit à partir des pièces.</p>;
   return (
     <div>
       <Bandeau fiche={fiche} onAller={aller} />

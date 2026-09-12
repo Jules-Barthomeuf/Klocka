@@ -68,10 +68,10 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
     const cashflow = payload.find((p) => p.dataKey === "cashflow")?.value || 0;
     return (
       <div style={{ ...tooltipStyle, padding: "10px 12px", maxWidth: 260 }}>
-        <p className="text-[#f2f3f5] text-xs font-medium mb-1">Année {label}</p>
+        <p className="text-encre text-xs font-medium mb-1">Année {label}</p>
         <p className="text-[#7FE0D3] text-[11px]">Capital remboursé : {formatCurrency(capital)}</p>
         <p className="text-[#1F6E64] text-[11px] mb-2" style={{ color: "#4FD1A5" }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
-        <p className="text-[#9298a6] text-[10px] leading-snug border-t border-[#f2f3f5]/10 pt-2">
+        <p className="text-ardoise text-[10px] leading-snug border-t border-encre/10 pt-2">
           La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.
         </p>
       </div>
@@ -79,13 +79,13 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
   };
 
   return (
-    <div className="border border-[#1f2228] rounded-md bg-[#0f1114] p-4">
+    <div className="border border-trait rounded-md bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 mb-3">
         <div className="min-w-0">
-          <p className="text-[#f2f3f5] text-sm font-medium">{config.title}</p>
-          <p className="text-[#9298a6] text-xs mt-0.5">{config.subtitle}</p>
+          <p className="text-encre text-sm font-medium">{config.title}</p>
+          <p className="text-ardoise text-xs mt-0.5">{config.subtitle}</p>
         </div>
-        <p className="text-[#96c0b8] text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
+        <p className="text-menthe text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
       </div>
       <div className="h-[26rem]">
         <ResponsiveContainer width="100%" height="100%">
@@ -95,7 +95,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: "Année", position: "bottom", offset: 18, fill: "#9298a6", fontSize: 11 }} />
               <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} label={{ value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: "#9298a6", fontSize: 11, style: { textAnchor: "middle" } }} />
               <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} content={<RichesseTooltip />} />
-              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 12, color: "#e5e7eb", paddingBottom: 12 }} formatter={(v) => <span className="text-[#f2f3f5]">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
+              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 12, color: "#e5e7eb", paddingBottom: 12 }} formatter={(v) => <span className="text-encre">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
               <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
               <Bar name="cashflow" dataKey="cashflow" fill="#1F6E64" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
             </BarChart>
@@ -125,20 +125,20 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
       {config.markers && (config.markers.recupApport || config.markers.doubleApport) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
           {config.markers.recupApport && (
-            <div className="flex items-center gap-2 border border-[#1f2228] rounded-md px-3 py-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#96c0b8] flex-shrink-0" />
+            <div className="flex items-center gap-2 border border-trait rounded-md px-3 py-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-menthe flex-shrink-0" />
               <div>
-                <p className="text-[#f2f3f5] text-xs font-medium">Récupération de l'apport</p>
-                <p className="text-[#9298a6] text-[11px]">Année {config.markers.recupApport.annee} – Vous récupérez vos {formatCurrency(config.markers.recupApport.montant)}</p>
+                <p className="text-encre text-xs font-medium">Récupération de l'apport</p>
+                <p className="text-ardoise text-[11px]">Année {config.markers.recupApport.annee} – Vous récupérez vos {formatCurrency(config.markers.recupApport.montant)}</p>
               </div>
             </div>
           )}
           {config.markers.doubleApport && (
-            <div className="flex items-center gap-2 border border-[#1f2228] rounded-md px-3 py-2">
+            <div className="flex items-center gap-2 border border-trait rounded-md px-3 py-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#a8894f] flex-shrink-0" />
               <div>
-                <p className="text-[#f2f3f5] text-xs font-medium">Double de l'apport</p>
-                <p className="text-[#9298a6] text-[11px]">Année {config.markers.doubleApport.annee} – Vous atteignez {formatCurrency(config.markers.doubleApport.montant)}</p>
+                <p className="text-encre text-xs font-medium">Double de l'apport</p>
+                <p className="text-ardoise text-[11px]">Année {config.markers.doubleApport.annee} – Vous atteignez {formatCurrency(config.markers.doubleApport.montant)}</p>
               </div>
             </div>
           )}

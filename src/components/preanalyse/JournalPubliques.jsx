@@ -13,15 +13,15 @@ const fmt = (n, d = 0) => (n == null || !Number.isFinite(Number(n)) ? "—" : Nu
 const jour = (d) => (d ? new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "");
 
 function Vide({ children }) {
-  return <p className="m-0 rounded-[10px] border border-dashed border-[#2c3139] px-4 py-5 text-center text-[12.5px] text-[#6a7180]">{children}</p>;
+  return <p className="m-0 rounded-[10px] border border-dashed border-bord-doux px-4 py-5 text-center text-[12.5px] text-brume">{children}</p>;
 }
 
 function Chiffre({ libelle, valeur, note, couleur = "#f2f3f5" }) {
   return (
     <div className="rounded-[12px] bg-[#15181c] border border-[#23272d] px-4 py-3">
-      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180]">{libelle}</span>
+      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">{libelle}</span>
       <span className="block mt-1.5 text-[19px] leading-tight font-medium" style={{ color: couleur }}>{valeur}</span>
-      {note && <span className="block mt-1.5 text-[11.5px] leading-5 text-[#6a7180]">{note}</span>}
+      {note && <span className="block mt-1.5 text-[11.5px] leading-5 text-brume">{note}</span>}
     </div>
   );
 }
@@ -50,7 +50,7 @@ export function SecondPointDeVue({ comparaison, ecart }) {
         </span>
       </div>
       <p className="m-0 mt-2 text-[12.5px] leading-6 text-[#c6ccd3]">
-        Par comparaison, le bien vaudrait <strong className="font-medium text-[#f2f3f5]">{fmt(comparaison.valeur)} €</strong>{" "}
+        Par comparaison, le bien vaudrait <strong className="font-medium text-encre">{fmt(comparaison.valeur)} €</strong>{" "}
         ({fmt(comparaison.surface, 1)} m² bâtis × {fmt(comparaison.prix_m2)} €/m²)
         {ecart != null && (
           <>
@@ -63,7 +63,7 @@ export function SecondPointDeVue({ comparaison, ecart }) {
           </>
         )}
       </p>
-      <p className="m-0 mt-1.5 text-[11px] leading-5 text-[#6a7180]">
+      <p className="m-0 mt-1.5 text-[11px] leading-5 text-brume">
         Aucun chiffre du vendeur n’entre dans ce calcul : ce sont des actes notariés, pas des annonces. En face, la
         valorisation par capitalisation repose sur le taux qu’il affiche.
       </p>
@@ -93,11 +93,11 @@ export function OngletDvf({ ventes }) {
             {liste.map((v) => (
               <li key={v.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
                 <span className="flex-shrink-0 font-mono text-[10.5px] text-[#4e545e] tabular-nums w-[52px] text-right">{fmt(v.distance_m)} m</span>
-                <span className="flex-shrink-0 font-mono text-[10.5px] text-[#6a7180] tabular-nums w-[62px]">{jour(v.date)}</span>
+                <span className="flex-shrink-0 font-mono text-[10.5px] text-brume tabular-nums w-[62px]">{jour(v.date)}</span>
                 <span className="min-w-0 flex-1 text-[12.5px] text-[#c6ccd3] truncate">{v.adresse || "adresse non publiée"}</span>
-                <span className="flex-shrink-0 text-[11.5px] text-[#6a7180] w-[64px] text-right">{fmt(v.surface)} m²</span>
+                <span className="flex-shrink-0 text-[11.5px] text-brume w-[64px] text-right">{fmt(v.surface)} m²</span>
                 <span className="flex-shrink-0 text-[12.5px] text-[#dfe3e8] w-[92px] text-right">{fmt(v.prix)} €</span>
-                <span className="flex-shrink-0 text-[12.5px] font-medium text-[#96c0b8] w-[88px] text-right">{fmt(v.prix_m2)} €/m²</span>
+                <span className="flex-shrink-0 text-[12.5px] font-medium text-menthe w-[88px] text-right">{fmt(v.prix_m2)} €/m²</span>
               </li>
             ))}
           </ul>
@@ -106,14 +106,14 @@ export function OngletDvf({ ventes }) {
         <Vide>Aucune vente de local commercial dans {fmt(rayon)} m sur les millésimes disponibles.</Vide>
       )}
 
-      <p className="m-0 text-[11px] leading-5 text-[#6a7180]">
+      <p className="m-0 text-[11px] leading-5 text-brume">
         Source : demandes de valeurs foncières (DGFiP), publiées par Etalab. Ne sont retenues que les ventes dont tous
         les locaux sont commerciaux — un acte qui mélange une boutique et un appartement ne permet d’attribuer son prix
         à aucun des deux. DVF ne couvre ni l’Alsace-Moselle ni Mayotte.
         {ventes.lien && (
           <>
             {" "}
-            <a href={ventes.lien} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[#96c0b8] hover:underline">
+            <a href={ventes.lien} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-menthe hover:underline">
               Voir sur la carte DVF <ExternalLink className="w-3 h-3" />
             </a>
           </>
@@ -138,7 +138,7 @@ export function OngletBodacc({ vitalite }) {
       </div>
 
       {commune && (
-        <p className="m-0 text-[11.5px] leading-5 text-[#9298a6]">
+        <p className="m-0 text-[11.5px] leading-5 text-ardoise">
           Pour comparer, la commune entière sur la même période : {fmt(commune.creations)} créations,{" "}
           {fmt(commune.radiations)} radiations, {fmt(commune.procedures)} procédures collectives, {fmt(commune.cessions)} cessions.
         </p>
@@ -152,10 +152,10 @@ export function OngletBodacc({ vitalite }) {
           <ul className="m-0 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
             {cessions.map((c, i) => (
               <li key={`${c.date}-${i}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
-                <span className="flex-shrink-0 font-mono text-[10.5px] text-[#6a7180] tabular-nums w-[62px]">{jour(c.date)}</span>
-                <span className="flex-shrink-0 text-[12px] text-[#9298a6] w-[64px] whitespace-nowrap truncate" title={c.numero || ""}>n° {c.numero || "?"}</span>
+                <span className="flex-shrink-0 font-mono text-[10.5px] text-brume tabular-nums w-[62px]">{jour(c.date)}</span>
+                <span className="flex-shrink-0 text-[12px] text-ardoise w-[64px] whitespace-nowrap truncate" title={c.numero || ""}>n° {c.numero || "?"}</span>
                 <span className="min-w-0 flex-1 text-[12.5px] text-[#c6ccd3] truncate">{c.activite || c.commercant || "—"}</span>
-                <span className="flex-shrink-0 text-[12.5px] font-medium text-[#96c0b8]">{fmt(c.prix)} €</span>
+                <span className="flex-shrink-0 text-[12.5px] font-medium text-menthe">{fmt(c.prix)} €</span>
               </li>
             ))}
           </ul>
@@ -172,17 +172,17 @@ export function OngletBodacc({ vitalite }) {
               const c = ton(e.ferme ? "ambre" : e.famille === "creation" ? "menthe" : "gris");
               return (
                 <li key={`${e.date}-${i}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
-                  <span className="flex-shrink-0 font-mono text-[10.5px] text-[#6a7180] tabular-nums w-[62px]">{jour(e.date)}</span>
+                  <span className="flex-shrink-0 font-mono text-[10.5px] text-brume tabular-nums w-[62px]">{jour(e.date)}</span>
                   <span className="flex-shrink-0 font-pill text-[9px] font-semibold uppercase tracking-[.06em] w-[72px]" style={{ color: c.etiquette }}>
                     {e.famille === "collective" ? "procédure" : e.famille}
                   </span>
-                  <span className="flex-shrink-0 text-[12px] text-[#9298a6] w-[64px] whitespace-nowrap truncate" title={e.numero || ""}>n° {e.numero || "?"}</span>
+                  <span className="flex-shrink-0 text-[12px] text-ardoise w-[64px] whitespace-nowrap truncate" title={e.numero || ""}>n° {e.numero || "?"}</span>
                   <span className="min-w-0 flex-1 text-[12.5px] text-[#c6ccd3] truncate" title={e.activite || ""}>
                     {e.commercant || "—"}
-                    {e.nature ? <span className="text-[#6a7180]"> · {e.nature}</span> : null}
+                    {e.nature ? <span className="text-brume"> · {e.nature}</span> : null}
                   </span>
                   {e.lien && (
-                    <a href={e.lien} target="_blank" rel="noreferrer" className="flex-shrink-0 text-[#4e545e] hover:text-[#96c0b8]">
+                    <a href={e.lien} target="_blank" rel="noreferrer" className="flex-shrink-0 text-[#4e545e] hover:text-menthe">
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
@@ -193,7 +193,7 @@ export function OngletBodacc({ vitalite }) {
         </section>
       )}
 
-      <p className="m-0 text-[11px] leading-5 text-[#6a7180]">
+      <p className="m-0 text-[11px] leading-5 text-brume">
         Source : Bulletin officiel des annonces civiles et commerciales, publication légale des greffes. Un redressement
         n’est pas compté comme une fermeture : l’entreprise tente de continuer. Le BODACC dit qu’un commerce a fermé, il
         ne dit jamais si le local est resté vide — aucune source publique ne donne un taux de vacance à l’échelle d’une rue.

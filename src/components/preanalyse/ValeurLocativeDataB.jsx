@@ -29,14 +29,14 @@ function Niveau({ titre, n, loyerM2 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2.5 border-b border-[#15171b]">
       <div className="min-w-0">
-        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#6a7180]">{titre}</p>
-        <p className={`m-0 text-[14px] truncate ${n ? "text-[#f2f3f5]" : "text-[#3a3f4a]"}`}>{n?.nom || "—"}</p>
+        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-brume">{titre}</p>
+        <p className={`m-0 text-[14px] truncate ${n ? "text-encre" : "text-bord-vif"}`}>{n?.nom || "—"}</p>
       </div>
       <p
-        className={`m-0 text-[15px] tabular-nums font-light whitespace-nowrap ${!n ? "text-[#3a3d3c]" : dedans ? "text-[#d9b46a]" : "text-[#f2f3f5]"}`}
+        className={`m-0 text-[15px] tabular-nums font-light whitespace-nowrap ${!n ? "text-[#3a3d3c]" : dedans ? "text-ambre" : "text-encre"}`}
         style={{ transition: "opacity .5s ease, transform .5s ease", transform: n ? "none" : "translateY(4px)" }}
       >
-        {n ? <>{euros(n.basse)} <span className="text-[#3a3f4a]">–</span> {euros(n.haute)}</> : "— €"}
+        {n ? <>{euros(n.basse)} <span className="text-bord-vif">–</span> {euros(n.haute)}</> : "— €"}
       </p>
     </div>
   );
@@ -53,14 +53,14 @@ export default function ValeurLocativeDataB({ lot }) {
   const verdict = resultat ? verdictLoyer(loyerM2, resultat.rue) : null;
 
   return (
-    <section className="border border-[#1f2228] rounded-[16px] bg-[#0a0a0b] px-5 py-4">
+    <section className="border border-trait rounded-[16px] bg-[#0a0a0b] px-5 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className="flex items-center gap-2">
-          <h3 className="m-0 text-[15.5px] font-semibold text-[#f2f3f5]">Valeur locative</h3>
+          <h3 className="m-0 text-[15.5px] font-semibold text-encre">Valeur locative</h3>
           <InfoBulle texte="Loyer au m² de la rue, du quartier et de la ville, d'après Data-B. En euros HT hors charges, par m² et par an." />
         </div>
         {resultat?.lien && (
-          <a href={resultat.lien} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-[#9298a6] hover:text-[#96c0b8]">
+          <a href={resultat.lien} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-ardoise hover:text-menthe">
             Voir sur Data-B <ExternalLink className="w-3 h-3" />
           </a>
         )}
@@ -69,7 +69,7 @@ export default function ValeurLocativeDataB({ lot }) {
 
       <div className="mt-4">
         {!resultat && (
-          <p className="m-0 mb-1 text-[11.5px] text-[#6a7180]">
+          <p className="m-0 mb-1 text-[11.5px] text-brume">
             Aucune lecture — relancez l’analyse de marché avec la source Data-B cochée.
           </p>
         )}
@@ -86,16 +86,16 @@ export default function ValeurLocativeDataB({ lot }) {
           <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             {loyerM2 != null ? (
               <>
-                <span className="text-[13px] text-[#9298a6]">Le bail :</span>
-                <span className="text-[15px] tabular-nums font-light text-[#f2f3f5]">{euros(loyerM2)} / m² / an</span>
+                <span className="text-[13px] text-ardoise">Le bail :</span>
+                <span className="text-[15px] tabular-nums font-light text-encre">{euros(loyerM2)} / m² / an</span>
                 {verdict && (
                   <span className="text-[13px]" style={{ color: verdict.teinte }}>
-                    {verdict.mot}<span className="text-[#6a7180]"> — {verdict.detail}</span>
+                    {verdict.mot}<span className="text-brume"> — {verdict.detail}</span>
                   </span>
                 )}
               </>
             ) : (
-              <span className="text-[12.5px] text-[#6a7180]">Le loyer au m² du bail se calculera dès que le loyer annuel et la surface seront renseignés dans la fiche.</span>
+              <span className="text-[12.5px] text-brume">Le loyer au m² du bail se calculera dès que le loyer annuel et la surface seront renseignés dans la fiche.</span>
             )}
           </div>
         </div>

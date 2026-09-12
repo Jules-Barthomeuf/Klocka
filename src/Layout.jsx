@@ -81,7 +81,7 @@ function Wordmark({ collapsed = false }) {
   return (
     <span className="flex items-center gap-2.5 select-none">
       <img src="/logo-klocka.svg" alt="" className="w-6 h-6 rounded-[5px]" draggable={false} />
-      <span className="text-[13px] tracking-[0.3em] text-[#f2f3f5]">KLOCKA</span>
+      <span className="text-[13px] tracking-[0.3em] text-encre">KLOCKA</span>
     </span>
   );
 }
@@ -90,19 +90,19 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
   return (
     <Link to={to} onClick={onClick} title={collapsed ? label : undefined}>
       <div className={`relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group
-        ${isActive ? "text-[#f2f3f5]" : "text-[#9298a6] hover:text-[#f2f3f5]"}
+        ${isActive ? "text-encre" : "text-ardoise hover:text-encre"}
         ${collapsed ? "justify-center px-0 py-2" : ""}
       `}>
         <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[2px] rounded-full transition-all duration-200
-          ${isActive ? "h-5 bg-[#96c0b8]" : "h-0 bg-transparent group-hover:h-3 group-hover:bg-[#f2f3f5]/20"}`} />
+          ${isActive ? "h-5 bg-menthe" : "h-0 bg-transparent group-hover:h-3 group-hover:bg-encre/20"}`} />
         {collapsed ? (
-          <Icon className={`w-[17px] h-[17px] flex-shrink-0 transition-colors ${isActive ? "text-[#96c0b8]" : "text-[#6a7180] group-hover:text-[#c9cdd6]"}`} />
+          <Icon className={`w-[17px] h-[17px] flex-shrink-0 transition-colors ${isActive ? "text-menthe" : "text-brume group-hover:text-craie"}`} />
         ) : (
           <>
-            <Icon className={`w-[15px] h-[15px] flex-shrink-0 transition-colors ${isActive ? "text-[#96c0b8]" : "text-[#6a7180] group-hover:text-[#c9cdd6]"}`} />
+            <Icon className={`w-[15px] h-[15px] flex-shrink-0 transition-colors ${isActive ? "text-menthe" : "text-brume group-hover:text-craie"}`} />
             <span className="flex-1 truncate">{label}</span>
             {badge && (
-              <Badge className={`${badgeColor || "bg-transparent text-[#c3ddd6]"} text-[9px] tracking-[0.12em] px-1.5 py-0 border-0`}>
+              <Badge className={`${badgeColor || "bg-transparent text-menthe-clair"} text-[9px] tracking-[0.12em] px-1.5 py-0 border-0`}>
                 {badge}
               </Badge>
             )}
@@ -117,7 +117,7 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
 function AutreToggle({ open, onClick, collapsed }) {
   return (
     <button onClick={onClick} title="Autre"
-      className={`w-full relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group text-[#6a7180] hover:text-[#f2f3f5] ${collapsed ? "justify-center px-0 py-2" : ""}`}>
+      className={`w-full relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group text-brume hover:text-encre ${collapsed ? "justify-center px-0 py-2" : ""}`}>
       {collapsed ? (
         <ChevronDown className={`w-[17px] h-[17px] flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       ) : (
@@ -193,12 +193,12 @@ function LayoutContent({ children, currentPageName }) {
           <Wordmark collapsed={sidebarCollapsed && !isMobile} />
         </Link>
         {isMobile && (
-          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-[#9298a6] hover:text-[#f2f3f5]">
+          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-ardoise hover:text-encre">
             <X className="w-5 h-5" />
           </Button>
         )}
       </div>
-      <div className={`h-px bg-gradient-to-r from-transparent via-[#96c0b8]/25 to-transparent ${sidebarCollapsed && !isMobile ? "mx-2" : "mx-3.5"}`} />
+      <div className={`h-px bg-gradient-to-r from-transparent via-menthe/25 to-transparent ${sidebarCollapsed && !isMobile ? "mx-2" : "mx-3.5"}`} />
 
       {/* Toggle rester ouvert (desktop uniquement, sidebar ouverte) */}
       {!isMobile && !sidebarCollapsed && (
@@ -206,13 +206,13 @@ function LayoutContent({ children, currentPageName }) {
           <button
             onClick={() => setSidebarPinned((v) => !v)}
             className={`w-full flex items-center gap-2 py-1.5 transition-colors text-[11px] tracking-[0.08em]
-              ${sidebarPinned ? "text-[#96c0b8]" : "text-[#6a7180] hover:text-[#c9cdd6]"}`}
+              ${sidebarPinned ? "text-menthe" : "text-brume hover:text-craie"}`}
             title={sidebarPinned ? "La barre reste ouverte" : "Garder la barre ouverte"}
           >
             {sidebarPinned ? <Pin className="w-3 h-3" /> : <PinOff className="w-3 h-3" />}
             <span className="flex-1 text-left">Rester ouvert</span>
-            <span className={`w-7 h-3.5 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-[#96c0b8]" : "bg-[#f2f3f5]/10"}`}>
-              <span className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all ${sidebarPinned ? "left-4 bg-[#000000]" : "left-0.5 bg-[#f2f3f5]/70"}`} />
+            <span className={`w-7 h-3.5 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-menthe" : "bg-encre/10"}`}>
+              <span className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all ${sidebarPinned ? "left-4 bg-fond" : "left-0.5 bg-encre/70"}`} />
             </span>
           </button>
         </div>
@@ -221,8 +221,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* Admin view switcher */}
       {isAdmin && !(sidebarCollapsed && !isMobile) && (
         <div className="px-3.5 pt-3 pb-1">
-          <div className="flex items-center gap-2 border-b border-[#f2f3f5]/[0.06] pb-1">
-            <Eye className="w-3.5 h-3.5 text-[#6a7180]" />
+          <div className="flex items-center gap-2 border-b border-encre/[0.06] pb-1">
+            <Eye className="w-3.5 h-3.5 text-brume" />
             <AnimatedDropdown
               value={previewClientMode ? 'client' : 'admin'}
               onChange={(v) => setPreviewClientMode(v === 'client')}
@@ -231,7 +231,7 @@ function LayoutContent({ children, currentPageName }) {
                 { value: 'client', label: 'Vue Client' },
               ]}
               className="flex-1"
-              triggerClassName="bg-transparent border-none text-[#f2f3f5] h-7 px-0 hover:bg-transparent hover:text-[#f2f3f5]"
+              triggerClassName="bg-transparent border-none text-encre h-7 px-0 hover:bg-transparent hover:text-encre"
             />
           </div>
         </div>
@@ -241,7 +241,7 @@ function LayoutContent({ children, currentPageName }) {
       <div className="flex-1 overflow-y-auto pl-0 pr-1.5 pt-4 pb-4 space-y-1">
         {showClientView ? (
           <>
-            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-[#e8746a]/20 text-[#e8746a]" />
+            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-alerte/20 text-alerte" />
             <NavItem to={createPageUrl("MesProjets")} icon={Building2} label="Mes projets" isActive={isActivePage("MesProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("Ressources")} icon={BookOpen} label="Ressources" isActive={isActivePage("Ressources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
@@ -258,7 +258,7 @@ function LayoutContent({ children, currentPageName }) {
           </>
         ) : isAdmin && !previewClientMode ? (
           <>
-            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-[#e8746a]/20 text-[#e8746a]" />
+            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-alerte/20 text-alerte" />
             <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Analyse" icon={Search} label="Dossiers" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Monitoring" icon={Activity} label="Suivi" isActive={isActivePage("Monitoring")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
@@ -288,23 +288,23 @@ function LayoutContent({ children, currentPageName }) {
       </div>
 
       {/* User & Logout */}
-      <div className="px-3.5 py-3.5 border-t border-[#f2f3f5]/[0.06]">
+      <div className="px-3.5 py-3.5 border-t border-encre/[0.06]">
         {!(sidebarCollapsed && !isMobile) ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full border border-[#96c0b8]/40 flex items-center justify-center flex-shrink-0">
-              <span className="text-[11px] text-[#96c0b8] tracking-[0.06em]">
+            <div className="w-8 h-8 rounded-full border border-menthe/40 flex items-center justify-center flex-shrink-0">
+              <span className="text-[11px] text-menthe tracking-[0.06em]">
                 {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-[#f2f3f5] truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
-              <p className="text-[10px] text-[#6a7180] truncate">{user?.email}</p>
+              <p className="text-[13px] text-encre truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
+              <p className="text-[10px] text-brume truncate">{user?.email}</p>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => base44.auth.fenetre.ouvrir()}
-              className="text-[#6a7180] hover:text-[#f2f3f5] hover:bg-transparent h-8 w-8 flex-shrink-0"
+              className="text-brume hover:text-encre hover:bg-transparent h-8 w-8 flex-shrink-0"
               title="Ouvrir un autre compte dans cette fenêtre — celui-ci reste connecté dans les autres"
             >
               <Users className="w-4 h-4" />
@@ -313,7 +313,7 @@ function LayoutContent({ children, currentPageName }) {
               variant="ghost"
               size="icon"
               onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-              className="text-[#6a7180] hover:text-[#f2f3f5] hover:bg-transparent h-8 w-8 flex-shrink-0"
+              className="text-brume hover:text-encre hover:bg-transparent h-8 w-8 flex-shrink-0"
               title="Déconnexion"
             >
               <LogOut className="w-4 h-4" />
@@ -324,7 +324,7 @@ function LayoutContent({ children, currentPageName }) {
             variant="ghost"
             size="icon"
             onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-            className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 h-8 w-8 mx-auto block"
+            className="text-ardoise hover:text-encre hover:bg-encre/5 h-8 w-8 mx-auto block"
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />
@@ -337,7 +337,7 @@ function LayoutContent({ children, currentPageName }) {
   return (
     // `overflow-x-clip` plutôt que `hidden` : `hidden` créerait un conteneur de
     // défilement qui casserait les positions `sticky` des pages.
-    <div className="min-h-screen flex w-full bg-[#000000] relative overflow-x-clip">
+    <div className="min-h-screen flex w-full bg-fond relative overflow-x-clip">
       <style>{globalTooltipStyles}</style>
 
       {/* Desktop Sidebar */}
@@ -354,7 +354,7 @@ function LayoutContent({ children, currentPageName }) {
           <button
             onClick={() => { if (!sidebarPinned) setSidebarCollapsed(!sidebarCollapsed); }}
             disabled={sidebarPinned}
-            className={`hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-[#000000] border border-[#f2f3f5]/10 items-center justify-center text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#96c0b8]/50 transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-fond border border-encre/10 items-center justify-center text-ardoise hover:text-encre hover:border-menthe/50 transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
             title={sidebarPinned ? "Désépinglez pour fermer" : sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
           >
             <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
@@ -364,9 +364,9 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Mobile Top Bar */}
       {!hideNavbar && (
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-[#000000]/80 backdrop-blur-xl border-b border-[#1f2228] flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-fond/80 backdrop-blur-xl border-b border-trait flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
           {isChildPage ? (
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-[#f2f3f5] -ml-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-encre -ml-2">
               <ChevronLeft className="w-5 h-5" />
             </Button>
           ) : (
@@ -374,7 +374,7 @@ function LayoutContent({ children, currentPageName }) {
               <Wordmark />
             </Link>
           )}
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-[#f2f3f5]">
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-encre">
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
         </div>
@@ -383,8 +383,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && !hideNavbar && (
         <>
-          <div className="md:hidden fixed inset-0 bg-[#000000]/60 z-40" onClick={closeMobile} />
-          <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-[#000000]" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
+          <div className="md:hidden fixed inset-0 bg-fond/60 z-40" onClick={closeMobile} />
+          <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-fond" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
             {sidebarContent(true)}
           </aside>
         </>

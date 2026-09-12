@@ -14,12 +14,12 @@ export default function SimulateurAnalyse({ dossier }) {
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-        <h3 className="m-0 text-[16px] font-medium text-[#f2f3f5]">Simulateur</h3>
+        <h3 className="m-0 text-[16px] font-medium text-encre">Simulateur</h3>
         {lots.length > 1 && (
           <select
             value={index}
             onChange={(e) => setIndex(Number(e.target.value))}
-            className="bg-[#0c0d10] border border-[#1f2228] rounded-md px-2.5 py-1.5 text-[12px] text-[#9298a6] outline-none hover:border-[#3a3f4a] transition-colors max-w-[240px]"
+            className="bg-[#0c0d10] border border-trait rounded-md px-2.5 py-1.5 text-[12px] text-ardoise outline-none hover:border-bord-vif transition-colors max-w-[240px]"
           >
             {lots.map((l, i) => (
               <option key={i} value={i}>{l.synthese?.titre || l.intitule || `Lot ${i + 1}`}</option>
@@ -29,7 +29,7 @@ export default function SimulateurAnalyse({ dossier }) {
       </div>
 
       {!lot && (
-        <p className="m-0 mb-2.5 text-[11.5px] text-[#6a7180] leading-[1.5]">
+        <p className="m-0 mb-2.5 text-[11.5px] text-brume leading-[1.5]">
           Aucun lot pré-analysé : les curseurs partent des hypothèses par défaut. Posez le prix et le
           loyer à la main pour voir si le projet tient.
         </p>

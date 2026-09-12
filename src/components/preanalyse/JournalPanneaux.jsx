@@ -15,17 +15,17 @@ function Coquille({ titre, enTete, onFermer, children, large = false }) {
     <>
       <div className="fixed inset-0 z-[70] bg-black/45" onClick={onFermer} aria-hidden />
       <aside
-        className={`ja-panneau fixed z-[80] top-0 right-0 bottom-0 w-full bg-[#0f1114] border-l border-[#2c3139] overflow-y-auto ${large ? "sm:w-[460px]" : "sm:w-[400px]"}`}
+        className={`ja-panneau fixed z-[80] top-0 right-0 bottom-0 w-full bg-surface border-l border-bord-doux overflow-y-auto ${large ? "sm:w-[460px]" : "sm:w-[400px]"}`}
         role="dialog"
         aria-label={titre}
       >
-        <header className="sticky top-0 flex items-start justify-between gap-3 px-5 py-4 bg-[#0f1114] border-b border-[#1f2228]">
+        <header className="sticky top-0 flex items-start justify-between gap-3 px-5 py-4 bg-surface border-b border-trait">
           {enTete}
           <button
             type="button"
             onClick={onFermer}
             aria-label="Fermer"
-            className="flex-shrink-0 p-1.5 rounded-full text-[#6a7180] hover:text-[#f2f3f5] hover:bg-[#1f2228] transition-colors"
+            className="flex-shrink-0 p-1.5 rounded-full text-brume hover:text-encre hover:bg-trait transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -56,8 +56,8 @@ export function PanneauTracabilite({ entree, onFermer }) {
       onFermer={onFermer}
       enTete={
         <div className="min-w-0">
-          <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180]">{encart.libelle}</span>
-          <span className="block mt-1 font-mono text-[24px] leading-tight text-[#f2f3f5]">{encart.valeur}</span>
+          <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">{encart.libelle}</span>
+          <span className="block mt-1 font-mono text-[24px] leading-tight text-encre">{encart.valeur}</span>
         </div>
       }
     >
@@ -79,7 +79,7 @@ export function PanneauTracabilite({ entree, onFermer }) {
               href={encart.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-start gap-1.5 text-[#96c0b8] hover:underline break-all"
+              className="inline-flex items-start gap-1.5 text-menthe hover:underline break-all"
             >
               {encart.url}
               <ExternalLink className="w-3 h-3 mt-[3px] flex-shrink-0" />
@@ -89,13 +89,13 @@ export function PanneauTracabilite({ entree, onFermer }) {
 
         {encart.capture && (
           <Champ libelle="CAPTURE D'ÉCRAN">
-            <code className="font-mono text-[11.5px] text-[#9298a6] break-all">{encart.capture}</code>
+            <code className="font-mono text-[11.5px] text-ardoise break-all">{encart.capture}</code>
           </Champ>
         )}
 
         {encart.calcul && (
           <Champ libelle="CALCUL">
-            <code className="font-mono text-[11.5px] text-[#9298a6] break-all">{encart.calcul}</code>
+            <code className="font-mono text-[11.5px] text-ardoise break-all">{encart.calcul}</code>
           </Champ>
         )}
 
@@ -120,8 +120,8 @@ export function PanneauJournalDetaille({ entrees, onFermer }) {
       large
       enTete={
         <div className="min-w-0">
-          <span className="block text-[14px] font-semibold text-[#f2f3f5]">Journal détaillé</span>
-          <span className="block mt-0.5 text-[11.5px] text-[#6a7180]">
+          <span className="block text-[14px] font-semibold text-encre">Journal détaillé</span>
+          <span className="block mt-0.5 text-[11.5px] text-brume">
             {entrees.length} événement{entrees.length > 1 ? "s" : ""}, du plus récent au plus ancien
           </span>
         </div>
@@ -134,9 +134,9 @@ export function PanneauJournalDetaille({ entrees, onFermer }) {
             <li key={`${e.t}-${i}`} className="font-mono text-[11px] leading-5 break-words">
               <span className="text-[#4e545e] tabular-nums">{e.quand || chrono(e.t)}</span>{" "}
               <span style={{ color: c.etiquette }}>[{e.source}]</span>{" "}
-              <span className="text-[#9298a6]">{e.texte}</span>
+              <span className="text-ardoise">{e.texte}</span>
               {e.encart && (
-                <span className="block pl-[72px] text-[#6a7180]">
+                <span className="block pl-[72px] text-brume">
                   → {e.encart.libelle} = {e.encart.valeur}
                   {e.encart.url ? ` · ${e.encart.url}` : ""}
                 </span>

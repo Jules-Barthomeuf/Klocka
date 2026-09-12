@@ -17,7 +17,7 @@ const fmt = (n, d = 0) => (n == null || !Number.isFinite(Number(n)) ? "—" : Nu
 const pct = (n, d = 1) => (n == null ? "—" : `${n > 0 ? "+" : ""}${Number(n).toLocaleString("fr-FR", { maximumFractionDigits: d })} %`);
 
 function Vide({ children }) {
-  return <p className="m-0 rounded-[10px] border border-dashed border-[#2c3139] px-4 py-5 text-center text-[12.5px] text-[#6a7180]">{children}</p>;
+  return <p className="m-0 rounded-[10px] border border-dashed border-bord-doux px-4 py-5 text-center text-[12.5px] text-brume">{children}</p>;
 }
 
 /**
@@ -51,11 +51,11 @@ export function Recoupement({ recoupement }) {
       <ul className="m-0 mt-2.5 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
         {lectures.map((l, i) => (
           <li key={`${l.service}-${i}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
-            <span className="flex-shrink-0 text-[12.5px] text-[#f2f3f5] w-[80px]">{l.service}</span>
+            <span className="flex-shrink-0 text-[12.5px] text-encre w-[80px]">{l.service}</span>
             <span className="flex-shrink-0 text-[13px] font-medium text-[#dfe3e8]">
               {l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an
             </span>
-            <span className="min-w-0 flex-1 text-[11.5px] text-[#6a7180]">
+            <span className="min-w-0 flex-1 text-[11.5px] text-brume">
               {l.median != null ? `moyenne ${fmt(l.median)} · ` : ""}
               {l.echelle}
               {l.precision ? ` · ${l.precision}` : ""}
@@ -67,7 +67,7 @@ export function Recoupement({ recoupement }) {
           affiche un écart sans dire qu'il a choisi une maille parmi trois —
           et l'on ne peut plus le contredire. */}
       {ecartees.length > 0 && (
-        <p className="m-0 mt-2 text-[11px] leading-5 text-[#6a7180]">
+        <p className="m-0 mt-2 text-[11px] leading-5 text-brume">
           Non comparé :{" "}
           {ecartees.map((e, i) => (
             <span key={`${e.service}-${e.echelle}-${i}`}>
@@ -112,7 +112,7 @@ export function OngletDataB({ lot, implantation }) {
           ensuite ce qui s'y est vendu. La carte des cessions est longue, et
           l'emplacement passait sous elle sans être vu. */}
       {implantation ? (
-        <section className="border border-[#2c3139] rounded-[16px] bg-[#0f1114] px-5 py-4">
+        <section className="border border-bord-doux rounded-[16px] bg-surface px-5 py-4">
           <JournalEmplacement emplacement={implantation} />
         </section>
       ) : (

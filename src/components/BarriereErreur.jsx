@@ -32,26 +32,26 @@ export default class BarriereErreur extends React.Component {
     if (!this.state.erreur) return this.props.children;
 
     return (
-      <div className="min-h-screen bg-[#000000] flex items-center justify-center px-6">
+      <div className="min-h-screen bg-fond flex items-center justify-center px-6">
         <div className="max-w-md text-center">
-          <div className="w-10 h-0.5 bg-[#96c0b8] mx-auto mb-8" />
-          <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-[#f2f3f5]">
+          <div className="w-10 h-0.5 bg-menthe mx-auto mb-8" />
+          <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-encre">
             Cet écran n’a pas pu s’afficher
           </h1>
-          <p className="m-0 mt-4 text-[14px] leading-[1.7] text-[#9298a6]">
+          <p className="m-0 mt-4 text-[14px] leading-[1.7] text-ardoise">
             Le reste de l’application fonctionne. Revenez en arrière, ou
             rechargez cette page — si cela se reproduit, signalez-le nous.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <button
               onClick={() => this.setState({ erreur: null })}
-              className="px-5 py-2.5 border border-[#96c0b8]/50 text-[11px] tracking-[.16em] uppercase text-[#96c0b8] hover:bg-[#96c0b8]/[0.08] transition-colors"
+              className="px-5 py-2.5 border border-menthe/50 text-[11px] tracking-[.16em] uppercase text-menthe hover:bg-menthe/[0.08] transition-colors"
             >
               Réessayer
             </button>
             <button
               onClick={() => window.location.reload()}
-              className="px-5 py-2.5 border border-[#2a2d35] text-[11px] tracking-[.16em] uppercase text-[#9298a6] hover:bg-white/[0.04] transition-colors"
+              className="px-5 py-2.5 border border-[#2a2d35] text-[11px] tracking-[.16em] uppercase text-ardoise hover:bg-white/[0.04] transition-colors"
             >
               Recharger
             </button>
@@ -59,7 +59,7 @@ export default class BarriereErreur extends React.Component {
           {/* Le détail technique reste à portée de main sans encombrer l'écran :
               c'est ce qu'on demandera de copier en cas de signalement. */}
           <details className="mt-8 text-left">
-            <summary className="cursor-pointer text-[11px] tracking-[.16em] uppercase text-[#5b616e] hover:text-[#9298a6]">
+            <summary className="cursor-pointer text-[11px] tracking-[.16em] uppercase text-[#5b616e] hover:text-ardoise">
               Détail technique
             </summary>
             <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-[1.6] text-[#5b616e]">

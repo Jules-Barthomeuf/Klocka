@@ -54,11 +54,11 @@ export default function TooltipInfo({ field }) {
     <TooltipProvider delayDuration={0}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button type="button" className="ml-1.5 text-[#9298a6] hover:text-[#96c0b8] transition-colors">
+          <button type="button" className="ml-1.5 text-ardoise hover:text-menthe transition-colors">
             <Info className="w-3.5 h-3.5" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs bg-[#000000] text-[#f2f3f5] border-[#22262d] p-3 text-xs">
+        <TooltipContent side="top" className="max-w-xs bg-fond text-encre border-bord p-3 text-xs">
           <p>{text}</p>
         </TooltipContent>
       </Tooltip>

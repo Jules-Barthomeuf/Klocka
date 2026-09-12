@@ -114,18 +114,18 @@ export default function FeedbackFlottant() {
         aria-expanded={ouvert}
         className={`w-9 h-9 rounded-full flex items-center justify-center border transition-colors ${
           ouvert
-            ? "bg-[#96c0b8] border-[#96c0b8] text-[#0b0c0e]"
-            : "bg-[#0a0a0bcc] backdrop-blur-md border-[#96c0b8]/30 text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#96c0b8]/60"
+            ? "bg-menthe border-menthe text-[#0b0c0e]"
+            : "bg-[#0a0a0bcc] backdrop-blur-md border-menthe/30 text-ardoise hover:text-encre hover:border-menthe/60"
         }`}
       >
         {ouvert ? <X className="w-4 h-4" /> : <MessageSquarePlus className="w-4 h-4" />}
       </button>
 
       {ouvert && (
-        <div className="absolute right-0 top-[46px] w-[420px] max-md:w-[calc(100vw-2rem)] max-md:right-[-3rem] rounded-[18px] border border-[#22262d] bg-[#0a0a0bf5] backdrop-blur-xl shadow-[0_24px_60px_rgba(0,0,0,.6)] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 top-[46px] w-[420px] max-md:w-[calc(100vw-2rem)] max-md:right-[-3rem] rounded-[18px] border border-bord bg-[#0a0a0bf5] backdrop-blur-xl shadow-[0_24px_60px_rgba(0,0,0,.6)] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-baseline justify-between gap-4 mb-3">
-            <p className="m-0 text-[15px] font-medium text-[#f2f3f5]">Signaler quelque chose</p>
-            <Link to={createPageUrl("AdminSuggestions")} onClick={() => setOuvert(false)} className="text-[12px] text-[#6a7180] hover:text-[#c9cdd6]">
+            <p className="m-0 text-[15px] font-medium text-encre">Signaler quelque chose</p>
+            <Link to={createPageUrl("AdminSuggestions")} onClick={() => setOuvert(false)} className="text-[12px] text-brume hover:text-craie">
               Tout voir
             </Link>
           </div>
@@ -133,9 +133,9 @@ export default function FeedbackFlottant() {
           {dernieres.length > 0 && (
             <div className="mb-3 space-y-1.5 max-h-[190px] overflow-y-auto pr-1">
               {dernieres.map((r) => (
-                <div key={r.id} className="flex items-start gap-2.5 rounded-lg border border-[#1f2228] px-3 py-2">
+                <div key={r.id} className="flex items-start gap-2.5 rounded-lg border border-trait px-3 py-2">
                   <span className="mt-[3px] w-1.5 h-1.5 rounded-full flex-none" style={{ background: urgenceDe(r.urgence).teinte }} />
-                  <p className="m-0 flex-1 min-w-0 text-[12.5px] leading-[1.5] text-[#c9cdd6] line-clamp-2">{r.contenu}</p>
+                  <p className="m-0 flex-1 min-w-0 text-[12.5px] leading-[1.5] text-craie line-clamp-2">{r.contenu}</p>
                   <span className="flex-none text-[10.5px] px-2 py-0.5 rounded-full text-white/90" style={{ background: etatDe(r.statut).fond }}>
                     {etatDe(r.statut).mot}
                   </span>
@@ -164,14 +164,14 @@ export default function FeedbackFlottant() {
               <>
                 {apercu && (
                   <div className="relative inline-block mb-2.5">
-                    <img src={apercu} alt="Capture" className="max-h-[120px] rounded-lg border border-[#22262d]" />
-                    <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#0a0a0b] border border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5] flex items-center justify-center" aria-label="Retirer la capture">
+                    <img src={apercu} alt="Capture" className="max-h-[120px] rounded-lg border border-bord" />
+                    <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#0a0a0b] border border-bord-doux text-ardoise hover:text-encre flex items-center justify-center" aria-label="Retirer la capture">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
                 <div className="flex flex-wrap items-center gap-2.5 mb-2">
-                  <span className="text-[10.5px] tracking-[.14em] uppercase text-[#6a7180]">Urgence</span>
+                  <span className="text-[10.5px] tracking-[.14em] uppercase text-brume">Urgence</span>
                   <span className="inline-flex items-end gap-1" role="group" aria-label="Urgence">
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button

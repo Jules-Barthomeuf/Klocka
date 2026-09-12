@@ -100,10 +100,10 @@ export default function CeQuiVousAttend({ limite = 12 }) {
   return (
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-4">
-        <p className="m-0 text-[13.5px] text-[#6a7180]">
+        <p className="m-0 text-[13.5px] text-brume">
           Ce qui vous attend
-          {data.en_retard > 0 && <span className="text-[#e8746a]"> · {data.en_retard} en retard</span>}
-          {data.aujourdhui > 0 && <span className="text-[#d9b46a]"> · {data.aujourdhui} aujourd'hui</span>}
+          {data.en_retard > 0 && <span className="text-alerte"> · {data.en_retard} en retard</span>}
+          {data.aujourdhui > 0 && <span className="text-ambre"> · {data.aujourdhui} aujourd'hui</span>}
         </p>
       </div>
 
@@ -114,7 +114,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
           return (
             <div key={g.cle}>
               <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase" style={{ color: g.teinte }}>
-                {g.mot} <span className="text-[#3a3f4a]">· {dedans.length}</span>
+                {g.mot} <span className="text-bord-vif">· {dedans.length}</span>
               </p>
               <div className="flex flex-col gap-2">
                 {dedans.map((l) => {
@@ -122,29 +122,29 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                   return (
                     <div
                       key={`${l.source}-${l.id}`}
-                      className="group flex items-start gap-3 rounded-xl border border-[#1f2228] bg-[#0f1114] px-4 py-3 hover:border-[#2c3139] transition-colors"
+                      className="group flex items-start gap-3 rounded-xl border border-trait bg-surface px-4 py-3 hover:border-bord-doux transition-colors"
                     >
                       <span className="w-[2px] self-stretch rounded-full flex-none" style={{ background: g.teinte }} />
 
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-[14px] leading-[1.45] text-[#f2f3f5]">
+                        <p className="m-0 text-[14px] leading-[1.45] text-encre">
                           {l.titre}
                           {l.telephone && (
                             <a
                               href={`tel:${l.telephone}`}
-                              className="ml-2 inline-flex items-center gap-1 text-[13px] text-[#96c0b8] tabular-nums hover:underline"
+                              className="ml-2 inline-flex items-center gap-1 text-[13px] text-menthe tabular-nums hover:underline"
                             >
                               <Phone className="w-3 h-3" /> {telLisible(l.telephone)}
                             </a>
                           )}
                         </p>
-                        <p className="m-0 mt-1 text-[12px] text-[#6a7180] truncate">
+                        <p className="m-0 mt-1 text-[12px] text-brume truncate">
                           <span style={{ color: n.teinte }}>{n.mot}</span>
-                          <span className="text-[#3a3f4a]"> · </span>
+                          <span className="text-bord-vif"> · </span>
                           {quand(l.dans, l.echeance)}
                           {(l.dossier || l.detail) && (
                             <>
-                              <span className="text-[#3a3f4a]"> · </span>
+                              <span className="text-bord-vif"> · </span>
                               {l.dossier || l.detail}
                             </>
                           )}
@@ -157,14 +157,14 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                             <button
                               onClick={() => fait.mutate(l.id)}
                               disabled={fait.isPending}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-[#2c3139] px-3 py-1 text-[12px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#96c0b8] transition-colors disabled:opacity-40"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3 py-1 text-[12px] text-craie hover:text-encre hover:border-menthe transition-colors disabled:opacity-40"
                             >
                               <Check className="w-3 h-3" /> Fait
                             </button>
                             <button
                               onClick={() => { if (window.confirm("Supprimer ce rappel ?")) supprimer.mutate(l.id); }}
                               title="Supprimer"
-                              className="text-[#3f4644] hover:text-[#e8746a] transition-colors"
+                              className="text-[#3f4644] hover:text-alerte transition-colors"
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -172,7 +172,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                         ) : l.lien ? (
                           <Link
                             to={l.lien}
-                            className="inline-flex items-center gap-1 text-[12.5px] text-[#9298a6] hover:text-[#96c0b8] transition-colors"
+                            className="inline-flex items-center gap-1 text-[12.5px] text-ardoise hover:text-menthe transition-colors"
                           >
                             Ouvrir <ArrowUpRight className="w-3.5 h-3.5" />
                           </Link>
@@ -187,7 +187,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
         })}
       </div>
 
-      {reste > 0 && <p className="m-0 mt-3 text-[12.5px] text-[#6a7180]">et {reste} de plus, plus loin dans le temps.</p>}
+      {reste > 0 && <p className="m-0 mt-3 text-[12.5px] text-brume">et {reste} de plus, plus loin dans le temps.</p>}
     </section>
   );
 }

@@ -194,10 +194,10 @@ export default function ChatDossier({
       {/* La requête s'ouvre dans un panneau : la page ne bouge pas, on la
           referme et on la retrouve depuis « Requêtes récentes ». */}
       {!modeMail && !modePreanalyse && (conversation || envoyer.isPending) && (
-        <div className="fixed inset-y-0 right-0 z-[60] w-full sm:w-[680px] bg-[#0a0a0b] border-l border-[#22262d] shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col animate-in slide-in-from-right duration-300 ease-out">
-          <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-[#1f2228] flex-none">
-            <p className="m-0 text-[14px] text-[#f2f3f5] truncate">{conversation?.titre || "Nouvelle requête"}</p>
-            <button onClick={() => setConversationId(null)} className="text-[#6a7180] hover:text-[#f2f3f5] flex-shrink-0" aria-label="Fermer"><X className="w-4 h-4" /></button>
+        <div className="fixed inset-y-0 right-0 z-[60] w-full sm:w-[680px] bg-[#0a0a0b] border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col animate-in slide-in-from-right duration-300 ease-out">
+          <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-trait flex-none">
+            <p className="m-0 text-[14px] text-encre truncate">{conversation?.titre || "Nouvelle requête"}</p>
+            <button onClick={() => setConversationId(null)} className="text-brume hover:text-encre flex-shrink-0" aria-label="Fermer"><X className="w-4 h-4" /></button>
           </header>
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
             {(conversation?.messages || []).map((m, i) => (
@@ -214,7 +214,7 @@ export default function ChatDossier({
             )}
             <div ref={finRef} />
           </div>
-          <div className="flex-none px-6 py-4 border-t border-[#1f2228]">
+          <div className="flex-none px-6 py-4 border-t border-trait">
             <BoiteSaisie
               compact
               valeur={suite}
@@ -267,11 +267,11 @@ export default function ChatDossier({
                   {menuPlus && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setMenuPlus(false)} />
-                      <div className="absolute bottom-full left-0 mb-2 z-20 bg-[#0f1114] border border-[#2c3139] rounded-xl shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 min-w-[240px]">
-                        <button onClick={() => { setMenuPlus(false); fichierRef.current?.click(); }} className="w-full flex items-center gap-2.5 text-left text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.05] px-3 py-2 rounded-lg">
+                      <div className="absolute bottom-full left-0 mb-2 z-20 bg-surface border border-bord-doux rounded-xl shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 min-w-[240px]">
+                        <button onClick={() => { setMenuPlus(false); fichierRef.current?.click(); }} className="w-full flex items-center gap-2.5 text-left text-[13px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg">
                           <Paperclip className="w-3.5 h-3.5" /> Depuis cet ordinateur
                         </button>
-                        <button onClick={() => { setMenuPlus(false); setDriveOuvert(true); }} disabled={!dossier} className="w-full flex items-center gap-2.5 text-left text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.05] px-3 py-2 rounded-lg disabled:opacity-40">
+                        <button onClick={() => { setMenuPlus(false); setDriveOuvert(true); }} disabled={!dossier} className="w-full flex items-center gap-2.5 text-left text-[13px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg disabled:opacity-40">
                           <HardDrive className="w-3.5 h-3.5" /> Depuis le Google Drive
                         </button>
                       </div>
@@ -281,10 +281,10 @@ export default function ChatDossier({
               )}
               {!modeMail && !modePreanalyse && (
                 <>
-                  <button type="button" className={`accueil-icon ${nbCoches ? "!border-[#96c0b8]/60 !text-[#96c0b8]" : ""}`} onClick={() => onToutCocher?.()} disabled={!documents.length} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"} aria-label="Sources"><PanelRight className="w-4 h-4" /></button>
+                  <button type="button" className={`accueil-icon ${nbCoches ? "!border-menthe/60 !text-menthe" : ""}`} onClick={() => onToutCocher?.()} disabled={!documents.length} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"} aria-label="Sources"><PanelRight className="w-4 h-4" /></button>
                   <span className="inline-flex items-center rounded-[9px] border border-white/[0.08] p-0.5">
                     {[["rapide", "Rapidité", "Une réponse courte et directe"], ["reflexion", "Réflexion", "L'analyse des pièces, plus longue"]].map(([id, mot, titre]) => (
-                      <button key={id} type="button" onClick={() => setProfondeur(id)} title={titre} className={`px-3 py-1.5 rounded-[7px] text-[13px] transition-colors ${profondeur === id ? "bg-[#9CC3BC] text-[#0b1211] font-medium" : "text-[#9a9a9a] hover:text-[#f2f3f5]"}`} style={{ fontFamily: "Figtree, sans-serif" }}>{mot}</button>
+                      <button key={id} type="button" onClick={() => setProfondeur(id)} title={titre} className={`px-3 py-1.5 rounded-[7px] text-[13px] transition-colors ${profondeur === id ? "bg-[#9CC3BC] text-[#0b1211] font-medium" : "text-[#9a9a9a] hover:text-encre"}`} style={{ fontFamily: "Figtree, sans-serif" }}>{mot}</button>
                     ))}
                   </span>
                 </>
@@ -325,13 +325,13 @@ export default function ChatDossier({
         <Volet titre="Requêtes récentes" nombre={requetes.length} ouvert={requetesOuvertes} onBasculer={() => setRequetesOuvertes((o) => !o)} className={panneauDocuments ? "mt-4" : "mt-6"}>
           <div className="pb-2">
             {requetes.map((r) => (
-              <div key={r.cle} className="flex items-center gap-4 px-1 py-3.5 border-b border-[#15171b] hover:bg-[#f2f3f5]/[0.02] transition-colors group">
-                <button onClick={r.ouvrir} className="flex-1 min-w-0 text-left text-[13.5px] text-[#f2f3f5] truncate hover:text-[#c3ddd6] transition-colors">
+              <div key={r.cle} className="flex items-center gap-4 px-1 py-3.5 border-b border-[#15171b] hover:bg-encre/[0.02] transition-colors group">
+                <button onClick={r.ouvrir} className="flex-1 min-w-0 text-left text-[13.5px] text-encre truncate hover:text-menthe-clair transition-colors">
                   {r.titre}
                 </button>
-                <span className="hidden md:block w-[130px] flex-shrink-0 text-[12.5px] text-[#9298a6]">{r.type}</span>
-                <span className="hidden lg:block w-[190px] flex-shrink-0 text-[12.5px] text-[#6a7180] truncate">{r.auteur || "—"}</span>
-                <span className="w-[86px] flex-shrink-0 text-right text-[12.5px] text-[#6a7180]">{ilYA(r.date)}</span>
+                <span className="hidden md:block w-[130px] flex-shrink-0 text-[12.5px] text-ardoise">{r.type}</span>
+                <span className="hidden lg:block w-[190px] flex-shrink-0 text-[12.5px] text-brume truncate">{r.auteur || "—"}</span>
+                <span className="w-[86px] flex-shrink-0 text-right text-[12.5px] text-brume">{ilYA(r.date)}</span>
                 {r.supprimer ? (
                   <button
                     onClick={() => { if (window.confirm(`Supprimer « ${r.titre} » ?`)) r.supprimer(); }}
@@ -362,8 +362,8 @@ function Volet({ titre, nombre = 0, ouvert, onBasculer, className = "", children
   return (
     <div className={className}>
       <button type="button" onClick={onBasculer} aria-expanded={ouvert} className="w-full flex items-center justify-between py-3 border-t border-b border-[#15171b] text-left group">
-        <span className="text-[16px] font-medium text-[#f2f3f5]">{titre}{nombre ? <span className="text-[#6a7180] font-normal"> · {nombre}</span> : null}</span>
-        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[#6a7180] group-hover:text-[#f2f3f5] group-hover:bg-[#f2f3f5]/5 transition-all duration-300 ${ouvert ? "rotate-180" : ""}`}>
+        <span className="text-[16px] font-medium text-encre">{titre}{nombre ? <span className="text-brume font-normal"> · {nombre}</span> : null}</span>
+        <span className={`w-7 h-7 rounded-full flex items-center justify-center text-brume group-hover:text-encre group-hover:bg-encre/5 transition-all duration-300 ${ouvert ? "rotate-180" : ""}`}>
           <ChevronDown className="w-4 h-4" />
         </span>
       </button>

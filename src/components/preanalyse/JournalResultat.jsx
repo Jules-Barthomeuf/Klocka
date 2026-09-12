@@ -11,7 +11,7 @@ import { ton } from "@/components/preanalyse/journal-tons";
 
 export default function JournalResultat({ cartes, onOuvrir }) {
   return (
-    <div className="flex-shrink-0 border-t border-[#1f2228] bg-[#0f1114]">
+    <div className="flex-shrink-0 border-t border-trait bg-surface">
       <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 py-3 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5">
         {cartes.map((c) => {
           const couleur = ton(c.ton);
@@ -28,10 +28,10 @@ export default function JournalResultat({ cartes, onOuvrir }) {
                 borderLeftColor: couleur.pastille,
               }}
             >
-              <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180] truncate">
+              <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume truncate">
                 {c.libelle.toUpperCase()}
               </span>
-              <span className="block mt-1 font-mono text-[17px] leading-tight text-[#f2f3f5] truncate">
+              <span className="block mt-1 font-mono text-[17px] leading-tight text-encre truncate">
                 {c.valeur}
               </span>
               <span className="block mt-0.5 text-[11px] truncate" style={{ color: couleur.etiquette }}>

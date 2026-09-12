@@ -93,7 +93,7 @@ export default function ExtractionDocuments() {
     <div className="max-w-[1600px] mx-auto">
       {/* Barre dossier : sélection + nouveau, dans l'esprit des pilules du simulateur */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <p className="text-[#9298a6] text-xs flex-1">
+        <p className="text-ardoise text-xs flex-1">
           {dossier
             ? dossier.titre
             : "Déposez les documents d'un deal : ils sont classés, extraits, et chaque donnée renvoie à sa page source."}
@@ -107,15 +107,15 @@ export default function ExtractionDocuments() {
                 setSource(null);
               }}
             >
-              <SelectTrigger className="bg-transparent border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.25] rounded-full h-8 w-56 text-xs">
+              <SelectTrigger className="bg-transparent border-bord text-craie hover:text-encre hover:border-encre/[0.25] rounded-full h-8 w-56 text-xs">
                 <SelectValue placeholder="Ouvrir un dossier" />
               </SelectTrigger>
-              <SelectContent className="bg-[#000000] border-[#1f2228] text-[#f2f3f5]">
+              <SelectContent className="bg-fond border-trait text-encre">
                 {dossiers.map((d) => (
                   <SelectItem key={d.dossier_id} value={d.dossier_id}>
                     <span className="flex items-center gap-2">
                       <FolderOpen className="w-3.5 h-3.5" />
-                      {d.titre} <span className="text-[#9298a6]">({d.nb_documents})</span>
+                      {d.titre} <span className="text-ardoise">({d.nb_documents})</span>
                     </span>
                   </SelectItem>
                 ))}
@@ -128,7 +128,7 @@ export default function ExtractionDocuments() {
                 setDossierId(null);
                 setSource(null);
               }}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.25] text-xs transition-colors"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Nouveau dossier
             </button>
@@ -137,24 +137,24 @@ export default function ExtractionDocuments() {
       </div>
 
       {/* Dépôt */}
-      <div className="bg-[#000000] border border-[#1f2228] rounded-md p-5 mb-6">
-        <p className="text-[#9298a6] text-xs mb-2">
+      <div className="bg-fond border border-trait rounded-md p-5 mb-6">
+        <p className="text-ardoise text-xs mb-2">
           Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
         </p>
         <button
           onClick={() => inputFichier.current?.click()}
           disabled={deposer.isPending}
-          className="w-full h-20 border border-dashed border-[#f2f3f5]/15 rounded-md flex items-center justify-center gap-3 hover:border-[#3a3f4a] hover:bg-[#f2f3f5]/[0.02] transition-all disabled:opacity-50"
+          className="w-full h-20 border border-dashed border-encre/15 rounded-md flex items-center justify-center gap-3 hover:border-bord-vif hover:bg-encre/[0.02] transition-all disabled:opacity-50"
         >
           {deposer.isPending ? (
             <>
-              <Loader2 className="w-5 h-5 text-[#9298a6] animate-spin" />
-              <span className="text-[#9298a6] text-sm">Lecture et extraction…</span>
+              <Loader2 className="w-5 h-5 text-ardoise animate-spin" />
+              <span className="text-ardoise text-sm">Lecture et extraction…</span>
             </>
           ) : (
             <>
-              <Upload className="w-5 h-5 text-[#9298a6]" />
-              <span className="text-[#9298a6] text-sm">PDF, image ou .eml — plusieurs à la fois</span>
+              <Upload className="w-5 h-5 text-ardoise" />
+              <span className="text-ardoise text-sm">PDF, image ou .eml — plusieurs à la fois</span>
             </>
           )}
         </button>
@@ -200,8 +200,8 @@ export default function ExtractionDocuments() {
       ) : (
         !deposer.isPending && (
           <div className="text-center py-16">
-            <FolderOpen className="w-10 h-10 text-[#9298a6]/40 mx-auto mb-4" />
-            <p className="text-[#9298a6] text-sm">
+            <FolderOpen className="w-10 h-10 text-ardoise/40 mx-auto mb-4" />
+            <p className="text-ardoise text-sm">
               Déposez les documents d'un deal : ils sont classés, leurs données extraites, et chaque
               information indique d'où elle vient.
             </p>
@@ -230,22 +230,22 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
   const renseignes = lignes.filter((c) => doc.champs?.[c.id] && !doc.champs[c.id].absent).length;
 
   return (
-    <div className="bg-[#000000] border border-[#1f2228] rounded-md overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#1f2228] flex items-start gap-3">
-        <FileText className="w-4 h-4 text-[#9298a6] flex-shrink-0 mt-0.5" />
+    <div className="bg-fond border border-trait rounded-md overflow-hidden">
+      <div className="px-5 py-4 border-b border-trait flex items-start gap-3">
+        <FileText className="w-4 h-4 text-ardoise flex-shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
-          <p className="text-[#f2f3f5] text-sm font-medium truncate">{doc.nom_fichier}</p>
-          <p className="text-[#9298a6] text-xs">
+          <p className="text-encre text-sm font-medium truncate">{doc.nom_fichier}</p>
+          <p className="text-ardoise text-xs">
             {doc.nb_pages} page{doc.nb_pages > 1 ? "s" : ""} · {renseignes}/{lignes.length} champs renseignés
             {doc.transcrit ? " · transcrit" : ""}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Select value={doc.classement?.code || ""} onValueChange={onReclasser} disabled={enCours}>
-            <SelectTrigger className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5] h-8 w-44 text-xs">
+            <SelectTrigger className="bg-surface border-trait text-encre h-8 w-44 text-xs">
               <SelectValue placeholder="Type inconnu" />
             </SelectTrigger>
-            <SelectContent className="bg-[#000000] border-[#1f2228] text-[#f2f3f5]">
+            <SelectContent className="bg-fond border-trait text-encre">
               {types.map((t) => (
                 <SelectItem key={t.code} value={t.code}>
                   {t.libelle}
@@ -253,14 +253,14 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
               ))}
             </SelectContent>
           </Select>
-          <button onClick={onSupprimer} className="text-[#6a7180] hover:text-red-400 p-1.5" title="Retirer">
+          <button onClick={onSupprimer} className="text-brume hover:text-red-400 p-1.5" title="Retirer">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {doc.classement?.confiance === "basse" && (
-        <p className="px-5 py-2 text-[#96c0b8]/80 text-xs bg-[#96c0b8]/[0.07] border-b border-[#96c0b8]/20 flex items-start gap-2">
+        <p className="px-5 py-2 text-menthe/80 text-xs bg-menthe/[0.07] border-b border-menthe/20 flex items-start gap-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
           Type détecté avec une confiance faible — vérifiez et corrigez au besoin.
         </p>
@@ -269,8 +269,8 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
       {/* IA saturée au moment du dépôt : le document et ses pages sont
           conservés, un clic relance l'extraction sans re-téléverser. */}
       {doc.incidents?.some((i) => i.motif === "ia_indisponible") && (
-        <div className="px-5 py-2.5 bg-[#96c0b8]/[0.07] border-b border-[#96c0b8]/20 flex flex-wrap items-center gap-2">
-          <AlertTriangle className="w-3.5 h-3.5 text-[#96c0b8] flex-shrink-0" />
+        <div className="px-5 py-2.5 bg-menthe/[0.07] border-b border-menthe/20 flex flex-wrap items-center gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 text-menthe flex-shrink-0" />
           <p className="text-amber-200/90 text-xs flex-1 min-w-48">
             L'IA était saturée pendant le dépôt : les champs n'ont pas été extraits. Le document est
             conservé — relancez l'extraction quand vous voulez.
@@ -278,7 +278,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
           <button
             onClick={() => doc.classement?.code && onReclasser(doc.classement.code)}
             disabled={enCours || !doc.classement?.code}
-            className="px-3 py-1.5 text-xs rounded border border-[#96c0b8]/40 text-amber-200 hover:bg-[#96c0b8]/10 transition-colors disabled:opacity-50 flex-shrink-0"
+            className="px-3 py-1.5 text-xs rounded border border-menthe/40 text-amber-200 hover:bg-menthe/10 transition-colors disabled:opacity-50 flex-shrink-0"
           >
             {enCours ? "Extraction…" : "Reextraire"}
           </button>
@@ -305,7 +305,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
       )}
 
       {!type ? (
-        <p className="px-5 py-6 text-[#9298a6] text-sm">
+        <p className="px-5 py-6 text-ardoise text-sm">
           Type non reconnu. Choisissez-le ci-dessus pour lancer l'extraction.
         </p>
       ) : (
@@ -316,16 +316,16 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
             const actif =
               sourceActive?.url === doc.url && !absent && sourceActive?.page === v.page && sourceActive?.champ === c.id;
             return (
-              <div key={c.id} className={`px-5 py-3 ${actif ? "bg-[#96c0b8]/[0.07]" : ""}`}>
+              <div key={c.id} className={`px-5 py-3 ${actif ? "bg-menthe/[0.07]" : ""}`}>
                 <div className="flex items-start gap-3">
-                  <span className="text-[#9298a6] text-xs w-44 flex-shrink-0 pt-0.5">{c.libelle}</span>
+                  <span className="text-ardoise text-xs w-44 flex-shrink-0 pt-0.5">{c.libelle}</span>
                   <div className="min-w-0 flex-1">
                     {absent ? (
-                      <span className="text-[#6a7180] text-xs italic">non trouvé dans ce document</span>
+                      <span className="text-brume text-xs italic">non trouvé dans ce document</span>
                     ) : (
                       <>
-                        <p className="text-[#f2f3f5] text-sm whitespace-pre-wrap leading-relaxed">{v.valeur}</p>
-                        {c.remarque && <p className="text-[#96c0b8]/60 text-[11px] mt-1">{c.remarque}</p>}
+                        <p className="text-encre text-sm whitespace-pre-wrap leading-relaxed">{v.valeur}</p>
+                        {c.remarque && <p className="text-menthe/60 text-[11px] mt-1">{c.remarque}</p>}
                       </>
                     )}
                   </div>
@@ -343,8 +343,8 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                       }
                       className={`flex-shrink-0 text-[11px] px-2 py-1 rounded-lg border transition-colors ${
                         actif
-                          ? "border-[#96c0b8]/40 bg-[#96c0b8]/20 text-[#c3ddd6]"
-                          : "border-[#f2f3f5]/10 text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/25"
+                          ? "border-menthe/40 bg-menthe/20 text-menthe-clair"
+                          : "border-encre/10 text-ardoise hover:text-encre hover:border-encre/25"
                       }`}
                       title={v.citation}
                     >
@@ -353,7 +353,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                     </button>
                   )}
                   {!absent && v.confiance === "basse" && (
-                    <Badge className="bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/25 text-[10px] flex-shrink-0">
+                    <Badge className="bg-menthe/15 text-menthe border-menthe/25 text-[10px] flex-shrink-0">
                       à vérifier
                     </Badge>
                   )}
@@ -370,9 +370,9 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
 export function Visionneuse({ source, onFermer }) {
   if (!source) {
     return (
-      <div className="bg-[#000000] border border-[#1f2228] rounded-md h-[70vh] flex flex-col items-center justify-center text-center px-8">
-        <Quote className="w-8 h-8 text-[#9298a6]/40 mb-3" />
-        <p className="text-[#9298a6] text-sm">
+      <div className="bg-fond border border-trait rounded-md h-[70vh] flex flex-col items-center justify-center text-center px-8">
+        <Quote className="w-8 h-8 text-ardoise/40 mb-3" />
+        <p className="text-ardoise text-sm">
           Cliquez sur le repère de page à côté d'une donnée : le document s'ouvrira ici, à la bonne page.
         </p>
       </div>
@@ -382,30 +382,30 @@ export function Visionneuse({ source, onFermer }) {
   const estPdf = /\.pdf($|\?)/i.test(source.url || "");
 
   return (
-    <div className="bg-[#000000] border border-[#22262d] rounded-md overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#1f2228] flex items-start gap-3">
+    <div className="bg-fond border border-bord rounded-md overflow-hidden">
+      <div className="px-4 py-3 border-b border-trait flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[#f2f3f5] text-sm font-medium truncate">
-            {source.libelle} <span className="text-[#9298a6]">— page {source.page}</span>
+          <p className="text-encre text-sm font-medium truncate">
+            {source.libelle} <span className="text-ardoise">— page {source.page}</span>
           </p>
-          <p className="text-[#6a7180] text-xs truncate">{source.fichier}</p>
+          <p className="text-brume text-xs truncate">{source.fichier}</p>
         </div>
         <a
           href={`${source.url}#page=${source.page}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#9298a6] hover:text-[#f2f3f5] text-[11px] flex-shrink-0"
+          className="text-ardoise hover:text-encre text-[11px] flex-shrink-0"
         >
           Ouvrir
         </a>
-        <button onClick={onFermer} className="text-[#9298a6] hover:text-[#f2f3f5] flex-shrink-0">
+        <button onClick={onFermer} className="text-ardoise hover:text-encre flex-shrink-0">
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {source.citation && (
-        <div className="px-4 py-3 bg-[#f2f3f5]/[0.04] border-b border-[#22262d]">
-          <p className="text-[#9298a6] text-xs leading-relaxed">
+        <div className="px-4 py-3 bg-encre/[0.04] border-b border-bord">
+          <p className="text-ardoise text-xs leading-relaxed">
             <Quote className="w-3 h-3 inline mr-1.5" />
             {source.citation}
           </p>
@@ -418,10 +418,10 @@ export function Visionneuse({ source, onFermer }) {
           key={`${source.url}#${source.page}`}
           src={`${source.url}#page=${source.page}&view=FitH`}
           title={`${source.fichier} page ${source.page}`}
-          className="w-full h-[70vh] bg-[#000000]"
+          className="w-full h-[70vh] bg-fond"
         />
       ) : (
-        <img src={source.url} alt={source.fichier} className="w-full max-h-[70vh] object-contain bg-[#000000]" />
+        <img src={source.url} alt={source.fichier} className="w-full max-h-[70vh] object-contain bg-fond" />
       )}
     </div>
   );

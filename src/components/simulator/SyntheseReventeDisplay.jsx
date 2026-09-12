@@ -4,36 +4,36 @@ import TooltipInfo from "./TooltipInfo";
 
 export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, formatCurrency, textClass, mutedClass }) {
   return (
-    <div className="bg-[#000000] p-4 rounded-md md:p-6 border border-[#f2f3f5]/[0.1] max-w-full overflow-hidden">
+    <div className="bg-fond p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
       <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3 mb-3 md:mb-4">
-        <h3 className="font-light text-[#f2f3f5] text-xl md:text-2xl tracking-tight">Synthèse à la revente</h3>
-        <span className="text-xs text-[#f2f3f5]/50">année {anneeRevente}</span>
+        <h3 className="font-light text-encre text-xl md:text-2xl tracking-tight">Synthèse à la revente</h3>
+        <span className="text-xs text-encre/50">année {anneeRevente}</span>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 w-full mb-4 md:mb-6">
-        <div className="p-2 md:p-4 rounded-md bg-[#f2f3f5]/[0.04] border border-[#1f2228] flex flex-col items-center justify-center text-center">
+        <div className="p-2 md:p-4 rounded-md bg-encre/[0.04] border border-trait flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm ${mutedClass} mb-1 flex items-center gap-1`}>Prix vente FAI <TooltipInfo field="prixVenteFAI" /></p>
           <p className={`text-sm md:text-lg font-medium ${textClass} tabular-nums`}>{formatCurrency(calculs.revente.prixVenteFAI)}</p>
         </div>
-        <div className="p-2 md:p-4 rounded-md bg-[#f2f3f5]/[0.04] border border-[#1f2228] flex flex-col items-center justify-center text-center">
+        <div className="p-2 md:p-4 rounded-md bg-encre/[0.04] border border-trait flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm ${mutedClass} mb-1 flex items-center gap-1`}>Prix revente net <TooltipInfo field="prixReventeNet" /></p>
           <p className={`text-sm md:text-lg font-medium ${textClass} tabular-nums`}>{formatCurrency(calculs.revente.prixVenteNet)}</p>
         </div>
-        <div className="p-2 md:p-4 rounded-md bg-[#f2f3f5]/[0.04] border border-[#1f2228] flex flex-col items-center justify-center text-center">
+        <div className="p-2 md:p-4 rounded-md bg-encre/[0.04] border border-trait flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm ${mutedClass} mb-1 flex items-center gap-1`}>Capital restant <TooltipInfo field="capitalRestant" /></p>
           <p className={`text-sm md:text-lg font-medium ${textClass} tabular-nums`}>{formatCurrency(calculs.indicateurs.capitalARemboursserRevente)}</p>
         </div>
-        <div className="p-2 md:p-4 rounded-md bg-[#f2f3f5]/[0.04] border border-[#1f2228] flex flex-col items-center justify-center text-center">
+        <div className="p-2 md:p-4 rounded-md bg-encre/[0.04] border border-trait flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm ${mutedClass} mb-1`}>Apport initial</p>
           <p className={`text-sm md:text-lg font-medium ${textClass} tabular-nums`}>{formatCurrency(apport)}</p>
         </div>
-        <div className="p-2 md:p-4 rounded-md bg-[#f2f3f5]/[0.04] border border-[#1f2228] flex flex-col items-center justify-center text-center">
+        <div className="p-2 md:p-4 rounded-md bg-encre/[0.04] border border-trait flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm ${mutedClass} mb-1 flex items-center gap-1`}>Cash-flow cumulé <TooltipInfo field="cashFlowCumule" /></p>
-          <p className={`text-sm md:text-lg font-medium tabular-nums ${calculs.indicateurs.cashFlowCumule >= 0 ? 'text-[#96c0b8]' : 'text-red-500'}`}>{formatCurrency(calculs.indicateurs.cashFlowCumule)}</p>
+          <p className={`text-sm md:text-lg font-medium tabular-nums ${calculs.indicateurs.cashFlowCumule >= 0 ? 'text-menthe' : 'text-red-500'}`}>{formatCurrency(calculs.indicateurs.cashFlowCumule)}</p>
         </div>
         <div className="p-2 md:p-4 rounded-md bg-gradient-to-r from-[#D4AF37]/20 to-[#F5D76E]/20 border border-[#D4AF37]/50 flex flex-col items-center justify-center text-center">
           <p className={`text-xs md:text-sm text-[#F5D76E] mb-1 flex items-center gap-1`}>Création richesse <TooltipInfo field="creationRichesse" /></p>
           <p className={`text-base md:text-xl font-medium text-[#D4AF37] tabular-nums`}>{formatCurrency(calculs.indicateurs.creationRichesseBrute)}</p>
-          <p className="text-xs text-[#f2f3f5]/50 mt-1">x{calculs.indicateurs.multipleNetFondsPropres}</p>
+          <p className="text-xs text-encre/50 mt-1">x{calculs.indicateurs.multipleNetFondsPropres}</p>
         </div>
       </div>
       

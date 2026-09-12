@@ -60,7 +60,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
             {fiche.map((f) => (
               <div key={f.cle} className="flex items-baseline gap-4 py-2 border-b border-[#1e1e22]/70">
                 <dt className="w-[190px] max-md:w-[130px] flex-none text-[12.5px] text-[#77777e]">{f.libelle}</dt>
-                <dd className={`m-0 flex-1 min-w-0 text-[14px] leading-[1.6] ${f.affiche ? "text-[#f2f3f5]" : "text-[#4d545d] italic"}`}>
+                <dd className={`m-0 flex-1 min-w-0 text-[14px] leading-[1.6] ${f.affiche ? "text-encre" : "text-[#4d545d] italic"}`}>
                   {f.affiche || "non renseigné"}
                 </dd>
                 <div className="flex-none max-w-[34%] text-right truncate"><Source source={f.source} /></div>
@@ -81,14 +81,14 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
             <div className="space-y-4">
               {contradictions.map((c) => (
                 <div key={c.sujet} className="rounded-xl border border-[#e8927c]/30 bg-[#e8927c]/[0.04] px-5 py-4">
-                  <p className="m-0 flex items-center gap-2 text-[15px] font-semibold text-[#f2f3f5]">
+                  <p className="m-0 flex items-center gap-2 text-[15px] font-semibold text-encre">
                     <AlertTriangle className="w-4 h-4 text-[#e8927c]" /> {c.sujet}
                     <span className="text-[12.5px] font-normal text-[#e8b04c]">— {c.ecart}</span>
                   </p>
                   <div className="mt-2.5 flex flex-wrap gap-x-8 gap-y-1.5">
                     {c.valeurs.map((v, i) => (
                       <span key={i} className="text-[13.5px] text-[#b5b5bd]">
-                        <span className="text-[#f2f3f5] font-medium tabular-nums">{v.affiche}</span>
+                        <span className="text-encre font-medium tabular-nums">{v.affiche}</span>
                         <span className="text-[#6c6c74]"> — {v.document}{v.page ? ` p. ${v.page}` : ""}</span>
                       </span>
                     ))}
@@ -113,7 +113,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
                 {manquantes.map((m) => (
                   <li key={m.cle} className="flex items-start gap-2.5 py-1.5 text-[13.5px]">
                     <FileWarning className={`w-3.5 h-3.5 mt-[3px] flex-none ${m.essentiel ? "text-[#e8b04c]" : "text-[#4d545d]"}`} />
-                    <span className={m.essentiel ? "text-[#f2f3f5]" : "text-[#8f959e]"}>{m.libelle}</span>
+                    <span className={m.essentiel ? "text-encre" : "text-[#8f959e]"}>{m.libelle}</span>
                   </li>
                 ))}
               </ul>
@@ -139,7 +139,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
                 <div key={i} className="flex gap-3">
                   <Scale className="w-4 h-4 mt-1 flex-none text-[#e8927c]" />
                   <div className="min-w-0">
-                    <p className="m-0 text-[15px] font-semibold text-[#f2f3f5]">{p.element}</p>
+                    <p className="m-0 text-[15px] font-semibold text-encre">{p.element}</p>
                     <p className="m-0 mt-1 text-[13.5px] leading-[1.65] text-[#b5b5bd]">{p.constat}</p>
                     {p.commentaire && <p className="m-0 mt-1 text-[13px] leading-[1.6] text-[#e8b04c]">→ {p.commentaire}</p>}
                     <p className="m-0 mt-1"><Source source={p.source} /></p>

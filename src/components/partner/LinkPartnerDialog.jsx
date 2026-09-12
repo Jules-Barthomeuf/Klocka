@@ -62,29 +62,29 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#000000] border-[#22262d] max-w-md">
+      <DialogContent className="bg-fond border-bord max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-[#f2f3f5] flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#96c0b8]" />
+          <DialogTitle className="text-encre flex items-center gap-2">
+            <Users className="w-5 h-5 text-menthe" />
             Investir à deux
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <p className="text-[#9298a6] text-sm">
+          <p className="text-ardoise text-sm">
             Liez un partenaire pour qu'il puisse voir tous vos projets et informations d'investissement.
           </p>
 
           {/* Liste des partenaires liés */}
           {linkedPartners.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-[#f2f3f5]">Partenaires liés</Label>
+              <Label className="text-encre">Partenaires liés</Label>
               <div className="space-y-2">
                 {linkedPartners.map((email) => (
-                  <div key={email} className="flex items-center justify-between p-3 bg-[#0f1114]/50 rounded-lg border border-[#22262d]">
+                  <div key={email} className="flex items-center justify-between p-3 bg-surface/50 rounded-lg border border-bord">
                     <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-[#96c0b8]" />
-                      <span className="text-[#f2f3f5] text-sm">{email}</span>
+                      <Mail className="w-4 h-4 text-menthe" />
+                      <span className="text-encre text-sm">{email}</span>
                     </div>
                     <Button
                       variant="ghost"
@@ -102,19 +102,19 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
 
           {/* Ajouter un partenaire */}
           <div className="space-y-3">
-            <Label className="text-[#f2f3f5]">Ajouter un partenaire</Label>
+            <Label className="text-encre">Ajouter un partenaire</Label>
             <div className="flex gap-2">
               <Input
                 type="email"
                 placeholder="email@partenaire.com"
                 value={partnerEmail}
                 onChange={(e) => setPartnerEmail(e.target.value)}
-                className="flex-1 bg-[#000000] border-[#22262d] text-[#f2f3f5]"
+                className="flex-1 bg-fond border-bord text-encre"
               />
               <Button
                 onClick={handleLinkPartner}
                 disabled={isLinking || !partnerEmail.trim()}
-                className="bg-[#96c0b8] hover:bg-[#96c0b8]/90"
+                className="bg-menthe hover:bg-menthe/90"
               >
                 {isLinking ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -123,7 +123,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
                 )}
               </Button>
             </div>
-            <p className="text-xs text-[#9298a6]">
+            <p className="text-xs text-ardoise">
               Votre partenaire recevra accès à tous vos projets et données d'investissement.
             </p>
           </div>

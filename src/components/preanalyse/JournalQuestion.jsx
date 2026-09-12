@@ -113,22 +113,22 @@ function Source({ s }) {
   return (
     <li className="py-2">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <span className="flex-shrink-0 font-pill text-[9px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] rounded-[3px] border border-[rgba(150,192,184,.35)] text-[#96c0b8]">
+        <span className="flex-shrink-0 font-pill text-[9px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] rounded-[3px] border border-[rgba(150,192,184,.35)] text-menthe">
           {s.service}
         </span>
         <span className="text-[12.5px] text-[#dfe3e8]">{s.titre}</span>
-        <span className="text-[13px] font-medium text-[#f2f3f5]">
+        <span className="text-[13px] font-medium text-encre">
           {bornes.join(" / ")} {s.unite || ""}
         </span>
       </div>
-      <p className="m-0 mt-0.5 text-[11px] leading-5 text-[#6a7180]">
+      <p className="m-0 mt-0.5 text-[11px] leading-5 text-brume">
         {s.echelle ? `échelle : ${s.echelle}` : ""}
         {s.precision ? ` · ${s.precision}` : ""}
         {s.collecte_le ? ` · relevé le ${new Date(s.collecte_le).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
         {s.du_cache ? " · depuis le cache" : ""}
       </p>
       {s.lien && (
-        <a href={s.lien} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-start gap-1.5 text-[11px] text-[#96c0b8] hover:underline break-all">
+        <a href={s.lien} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-start gap-1.5 text-[11px] text-menthe hover:underline break-all">
           {s.lien.slice(0, 110)}
           <ExternalLink className="w-3 h-3 mt-[3px] flex-shrink-0" />
         </a>
@@ -149,13 +149,13 @@ function Repertoire({ onChoisir, versLeHaut }) {
   return (
     <div
       role="menu"
-      className={`absolute ${versLeHaut ? "bottom-[calc(100%+10px)]" : "top-[calc(100%+10px)]"} left-0 z-40 w-[min(420px,calc(100vw-40px))] max-h-[min(460px,60vh)] overflow-y-auto rounded-[14px] border border-[#2c3139] bg-[#0f1114] shadow-[0_18px_50px_rgba(0,0,0,.55)] py-2`}
+      className={`absolute ${versLeHaut ? "bottom-[calc(100%+10px)]" : "top-[calc(100%+10px)]"} left-0 z-40 w-[min(420px,calc(100vw-40px))] max-h-[min(460px,60vh)] overflow-y-auto rounded-[14px] border border-bord-doux bg-surface shadow-[0_18px_50px_rgba(0,0,0,.55)] py-2`}
     >
       {REPERTOIRE.map((f) => {
         return (
           <div key={f.famille} className="px-1.5 py-1">
             <div className="flex flex-wrap items-baseline gap-x-2 px-2.5 pt-1.5 pb-1">
-              <span className="font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-[#96c0b8]">{f.famille}</span>
+              <span className="font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-menthe">{f.famille}</span>
               <span className="text-[10.5px] text-[#4e545e]">{f.source}</span>
               {f.credit && <span className="text-[10px] text-[#d9a441]">1 crédit</span>}
             </div>
@@ -165,7 +165,7 @@ function Repertoire({ onChoisir, versLeHaut }) {
                 type="button"
                 role="menuitem"
                 onClick={() => onChoisir(q)}
-                className="block w-full text-left rounded-[8px] px-2.5 py-1.5 text-[12.5px] leading-5 text-[#c6ccd3] hover:text-[#f2f3f5] hover:bg-[#1a1d22] transition-colors"
+                className="block w-full text-left rounded-[8px] px-2.5 py-1.5 text-[12.5px] leading-5 text-[#c6ccd3] hover:text-encre hover:bg-[#1a1d22] transition-colors"
               >
                 {q}
               </button>
@@ -354,7 +354,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
       </div>
 
       {enCours && (
-        <p className="m-0 text-[11.5px] text-[#6a7180]">
+        <p className="m-0 text-[11.5px] text-brume">
           Les outils travaillent — Equimmox ouvre un vrai navigateur, comptez jusqu’à une minute.
         </p>
       )}

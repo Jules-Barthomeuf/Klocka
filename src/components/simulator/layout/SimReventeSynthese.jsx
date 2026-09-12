@@ -3,16 +3,16 @@ import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, Cartes
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 
-function Item({ label, value, accent = "text-[#f2f3f5]", info }) {
+function Item({ label, value, accent = "text-encre", info }) {
   return (
     <div className="px-4 py-4 min-w-0">
       <div className="flex items-center gap-1">
-        <p className="text-[9px] uppercase tracking-[0.16em] text-[#6a7180] font-medium truncate">{label}</p>
+        <p className="text-[9px] uppercase tracking-[0.16em] text-brume font-medium truncate">{label}</p>
         {info && (
           <TooltipProvider delayDuration={100}>
             <UITooltip>
               <TooltipTrigger asChild>
-                <button type="button" className="text-[#6a7180] hover:text-[#c9cdd6] transition-colors flex-shrink-0">
+                <button type="button" className="text-brume hover:text-craie transition-colors flex-shrink-0">
                   <Info className="w-3 h-3" />
                 </button>
               </TooltipTrigger>
@@ -36,7 +36,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
     { label: "Capital restant", value: formatCurrency(ind.capitalARemboursserRevente) },
     { label: "Apport initial", value: formatCurrency(ind.apportInitial) },
     { label: "Cash-flow cumulé", value: formatCurrency(ind.cashFlowCumule) },
-    { label: "Création richesse", value: formatCurrency(ind.creationRichesseBrute), accent: "text-[#96c0b8]", info: "La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial." },
+    { label: "Création richesse", value: formatCurrency(ind.creationRichesseBrute), accent: "text-menthe", info: "La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial." },
   ];
 
   const barData = [
@@ -47,17 +47,17 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
   ];
 
   return (
-    <div className="border border-[#1f2228] rounded-md bg-[#0f1114]">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1f2228]">
-        <p className="text-[#f2f3f5] text-sm font-medium">Synthèse à la revente</p>
-        <p className="text-[#96c0b8] text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
+    <div className="border border-trait rounded-md bg-surface">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-trait">
+        <p className="text-encre text-sm font-medium">Synthèse à la revente</p>
+        <p className="text-menthe text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-[#1f2228]">
+      <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-trait">
         {items.map((it, i) => (
           <Item key={i} label={it.label} value={it.value} accent={it.accent} info={it.info} />
         ))}
       </div>
-      <div className="h-72 px-2 pt-6 pb-4 border-t border-[#1f2228]">
+      <div className="h-72 px-2 pt-6 pb-4 border-t border-trait">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 8 }}>
             <CartesianGrid horizontal={false} stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />

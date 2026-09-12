@@ -104,7 +104,7 @@ export const CashflowChart = React.memo(function CashflowChart({ data }) {
     <div className="relative">
       <div className="relative overflow-hidden p-6">
         <div className="mb-4 h-[72px]">
-          <p className="text-sm font-medium text-[#9298a6]">Cashflow annuel</p>
+          <p className="text-sm font-medium text-ardoise">Cashflow annuel</p>
           {hoveredIndex !== null && data[hoveredIndex] && (
             <h2 className="mt-1 text-3xl font-semibold text-blue-400">
               {formatValue(data[hoveredIndex].cashflow)}

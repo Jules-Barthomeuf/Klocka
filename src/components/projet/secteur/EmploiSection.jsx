@@ -26,30 +26,30 @@ function CompareBar({ label, local, national, unit = "%" }) {
   const max = Math.max(local || 0, national || 0) * 1.2 || 1;
   const diff = local && national ? local - national : null;
   return (
-    <div className="p-3 bg-[#0f1114]/50 rounded-lg border border-[#22262d]">
-      <p className="text-xs text-[#9298a6] mb-2">{label}</p>
+    <div className="p-3 bg-surface/50 rounded-lg border border-bord">
+      <p className="text-xs text-ardoise mb-2">{label}</p>
       <div className="flex items-end gap-3 mb-1">
         <div className="flex-1">
           <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="text-[#96c0b8]">Ville</span>
-            <span className="text-[#f2f3f5] font-semibold">{local}{unit}</span>
+            <span className="text-menthe">Ville</span>
+            <span className="text-encre font-semibold">{local}{unit}</span>
           </div>
-          <div className="h-2 bg-[#22262d] rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-[#96c0b8]" style={{ width: `${((local || 0) / max) * 100}%` }} />
+          <div className="h-2 bg-bord rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-menthe" style={{ width: `${((local || 0) / max) * 100}%` }} />
           </div>
         </div>
       </div>
       <div className="flex-1">
         <div className="flex items-center justify-between text-xs mb-0.5">
-          <span className="text-[#9298a6]">France</span>
-          <span className="text-[#9298a6]">{national}{unit}</span>
+          <span className="text-ardoise">France</span>
+          <span className="text-ardoise">{national}{unit}</span>
         </div>
-        <div className="h-2 bg-[#22262d] rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-[#9298a6]" style={{ width: `${((national || 0) / max) * 100}%` }} />
+        <div className="h-2 bg-bord rounded-full overflow-hidden">
+          <div className="h-full rounded-full bg-ardoise" style={{ width: `${((national || 0) / max) * 100}%` }} />
         </div>
       </div>
       {diff !== null && (
-        <p className={`text-[10px] mt-1.5 font-medium ${diff > 0 ? 'text-[#c3ddd6]' : diff < 0 ? 'text-red-400' : 'text-[#9298a6]'}`}>
+        <p className={`text-[10px] mt-1.5 font-medium ${diff > 0 ? 'text-menthe-clair' : diff < 0 ? 'text-red-400' : 'text-ardoise'}`}>
           {diff > 0 ? '+' : ''}{diff.toFixed(1)}{unit} vs France
         </p>
       )}
@@ -76,7 +76,7 @@ export default function EmploiSection({ data }) {
   ].filter(Boolean);
 
   return (
-    <SectionCard icon={<Briefcase className="w-5 h-5 text-[#96c0b8]" />} title="Emploi et Activité">
+    <SectionCard icon={<Briefcase className="w-5 h-5 text-menthe" />} title="Emploi et Activité">
       {/* Comparaison avec la France */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {data.taux_activite > 0 && <CompareBar label="Taux d'activité" local={data.taux_activite} national={FR.taux_activite} />}
@@ -90,7 +90,7 @@ export default function EmploiSection({ data }) {
       {/* Diplômes */}
       {(data.pct_sans_diplome > 0 || data.pct_bac_plus_2 > 0) && (
         <div className="mb-6">
-          <p className="text-sm text-[#9298a6] mb-3">Niveau de diplôme (15 ans et plus non scolarisés)</p>
+          <p className="text-sm text-ardoise mb-3">Niveau de diplôme (15 ans et plus non scolarisés)</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {data.pct_sans_diplome > 0 && <MiniBox label="Sans diplôme" value={`${data.pct_sans_diplome}%`} />}
             {data.pct_brevet > 0 && <MiniBox label="BEPC/Brevet" value={`${data.pct_brevet}%`} />}
@@ -107,7 +107,7 @@ export default function EmploiSection({ data }) {
         {/* CSP */}
         {cspData.length > 0 && (
           <div>
-            <p className="text-sm text-[#9298a6] mb-3">Catégories socioprofessionnelles</p>
+            <p className="text-sm text-ardoise mb-3">Catégories socioprofessionnelles</p>
             <div className="flex items-center gap-4">
               <div className="w-40 h-40">
                 <ResponsiveContainer width="100%" height="100%">
@@ -123,7 +123,7 @@ export default function EmploiSection({ data }) {
                 {cspData.map((d, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.fill }} />
-                    <span className="text-xs text-[#c9cdd6]">{d.name}: {d.value}%</span>
+                    <span className="text-xs text-craie">{d.name}: {d.value}%</span>
                   </div>
                 ))}
               </div>
@@ -134,7 +134,7 @@ export default function EmploiSection({ data }) {
         {/* Emploi par secteur */}
         {emploiSecteur.length > 0 && (
           <div>
-            <p className="text-sm text-[#9298a6] mb-3">Emploi par secteur d'activité</p>
+            <p className="text-sm text-ardoise mb-3">Emploi par secteur d'activité</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={emploiSecteur} layout="vertical" margin={{ left: 5, right: 15 }}>
@@ -155,7 +155,7 @@ export default function EmploiSection({ data }) {
       {/* Transport / mobilité */}
       {(data.pct_transport_voiture > 0 || data.pct_transport_commun > 0) && (
         <div className="mt-6">
-          <p className="text-sm text-[#9298a6] mb-3">Mode de transport domicile-travail</p>
+          <p className="text-sm text-ardoise mb-3">Mode de transport domicile-travail</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {data.pct_transport_voiture > 0 && <MiniBox label="Voiture" value={`${data.pct_transport_voiture}%`} />}
             {data.pct_transport_commun > 0 && <MiniBox label="Transports en commun" value={`${data.pct_transport_commun}%`} />}
@@ -171,9 +171,9 @@ export default function EmploiSection({ data }) {
 
 function MiniBox({ label, value }) {
   return (
-    <div className="p-3 bg-[#0f1114]/50 rounded-lg border border-[#22262d] text-center">
-      <p className="text-lg text-[#f2f3f5] font-semibold">{value}</p>
-      <p className="text-xs text-[#9298a6] mt-0.5">{label}</p>
+    <div className="p-3 bg-surface/50 rounded-lg border border-bord text-center">
+      <p className="text-lg text-encre font-semibold">{value}</p>
+      <p className="text-xs text-ardoise mt-0.5">{label}</p>
     </div>
   );
 }

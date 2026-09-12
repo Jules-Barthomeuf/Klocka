@@ -41,19 +41,19 @@ function Manquantes({ passage }) {
   return (
     <div className="rounded-[12px] border border-[#4a3a22] bg-[#1a1409] px-4 py-3">
       <div className="flex items-start gap-2.5">
-        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#d9b46a]" />
+        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-ambre" />
         <div className="min-w-0">
           <p className="m-0 text-[13.5px] font-semibold text-[#e6d3a8]">Données de marché incomplètes</p>
           <ul className="mt-2 mb-0 space-y-1 list-none p-0">
             {[...enPanne, ...sansDonnee].map((s) => (
               <li key={s.source} className="text-[12.5px] text-[#a89878]">
                 <span className="text-[#c9b892]">{s.service}</span> — {s.erreur}
-                <span className="text-[#6a7180]"> · {MOTIFS[s.classe]?.mot} · {s.essais} essai{s.essais > 1 ? "s" : ""}</span>
+                <span className="text-brume"> · {MOTIFS[s.classe]?.mot} · {s.essais} essai{s.essais > 1 ? "s" : ""}</span>
               </li>
             ))}
           </ul>
           {aCorriger.length > 0 && (
-            <p className="m-0 mt-2 text-[12.5px] text-[#e8746a]">
+            <p className="m-0 mt-2 text-[12.5px] text-alerte">
               À corriger vous-même : {aCorriger.map((n) => `${n.service} — ${n.message}`).join(" · ")}
             </p>
           )}
@@ -75,7 +75,7 @@ function Provenance({ indicateurs }) {
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-[12.5px]">
         <thead>
-          <tr className="text-left text-[#6a7180]">
+          <tr className="text-left text-brume">
             <th className="font-normal py-1.5 pr-4">Indicateur</th>
             <th className="font-normal py-1.5 pr-4">Valeur</th>
             <th className="font-normal py-1.5 pr-4">Source</th>
@@ -84,18 +84,18 @@ function Provenance({ indicateurs }) {
         </thead>
         <tbody>
           {lignes.map((v) => (
-            <tr key={v.cle} className="border-t border-[#1f2228]">
+            <tr key={v.cle} className="border-t border-trait">
               <td className="py-1.5 pr-4 text-[#c6ccd3] whitespace-nowrap">{v.titre}</td>
-              <td className="py-1.5 pr-4 text-[#f2f3f5] whitespace-nowrap">
-                {fourchette(v)} <span className="text-[#6a7180]">{v.unite}</span>
-                {v.echelle && <span className="text-[#6a7180]"> · {ECHELLES[v.echelle] || v.echelle}</span>}
-                {v.precision && <span className="text-[#6a7180]"> ({v.precision})</span>}
+              <td className="py-1.5 pr-4 text-encre whitespace-nowrap">
+                {fourchette(v)} <span className="text-brume">{v.unite}</span>
+                {v.echelle && <span className="text-brume"> · {ECHELLES[v.echelle] || v.echelle}</span>}
+                {v.precision && <span className="text-brume"> ({v.precision})</span>}
               </td>
-              <td className="py-1.5 pr-4 text-[#96c0b8] whitespace-nowrap">
+              <td className="py-1.5 pr-4 text-menthe whitespace-nowrap">
                 {v.source}
-                {v.du_cache && <span className="text-[#6a7180]"> · en cache</span>}
+                {v.du_cache && <span className="text-brume"> · en cache</span>}
               </td>
-              <td className="py-1.5 text-[#6a7180] whitespace-nowrap">{heure(v.collecte_le)}</td>
+              <td className="py-1.5 text-brume whitespace-nowrap">{heure(v.collecte_le)}</td>
             </tr>
           ))}
         </tbody>
@@ -111,14 +111,14 @@ function Tentatives({ tentatives }) {
       {tentatives.map((t, i) => (
         <li key={`${t.source}-${t.essai}-${i}`} className="flex items-start gap-2 text-[12.5px]">
           {t.ok ? (
-            <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-[#96c0b8]" />
+            <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-menthe" />
           ) : (
             <XCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: MOTIFS[t.classe]?.teinte || "#6a7180" }} />
           )}
-          <span className="text-[#6a7180]">{heure(t.debut)}</span>
+          <span className="text-brume">{heure(t.debut)}</span>
           <span className="text-[#c6ccd3]">{t.service}</span>
-          {t.essai > 1 && <span className="text-[#6a7180]">essai {t.essai}</span>}
-          <span className="text-[#6a7180]">· {duree(t.ms)}</span>
+          {t.essai > 1 && <span className="text-brume">essai {t.essai}</span>}
+          <span className="text-brume">· {duree(t.ms)}</span>
           {!t.ok && (
             <span className="min-w-0" style={{ color: MOTIFS[t.classe]?.teinte || "#6a7180" }}>
               · {t.erreur}
@@ -145,10 +145,10 @@ export default function TracabiliteMarche({ dossier, lotIndex = 0 }) {
 
   const sources = passage.sources_utilisees || [];
   return (
-    <section className="border border-[#2c3139] rounded-[16px] bg-[#0f1114] px-5 py-4 flex flex-col gap-3.5">
+    <section className="border border-bord-doux rounded-[16px] bg-surface px-5 py-4 flex flex-col gap-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="m-0 text-[15.5px] font-semibold text-[#f2f3f5]">D'où viennent ces chiffres</h3>
-        <p className="m-0 text-[12.5px] text-[#6a7180]">
+        <h3 className="m-0 text-[15.5px] font-semibold text-encre">D'où viennent ces chiffres</h3>
+        <p className="m-0 text-[12.5px] text-brume">
           Lecture du {heure(passage.fin)} · {passage.besoins ? Object.values(passage.besoins).filter((b) => b.servi_par).length : 0}/
           {passage.besoins ? Object.keys(passage.besoins).length : 0} question(s) couverte(s) · {sources.length} source(s) · {duree(passage.ms)}
           {passage.automatique && " · reprise automatique"}
@@ -163,7 +163,7 @@ export default function TracabiliteMarche({ dossier, lotIndex = 0 }) {
         <button
           type="button"
           onClick={() => setOuvert((o) => !o)}
-          className="inline-flex items-center gap-1.5 text-[12.5px] text-[#6a7180] hover:text-[#c6ccd3] bg-transparent border-0 p-0 cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-[12.5px] text-brume hover:text-[#c6ccd3] bg-transparent border-0 p-0 cursor-pointer"
         >
           {ouvert ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           Le détail des tentatives ({passage.tentatives?.length || 0})

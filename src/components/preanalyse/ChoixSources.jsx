@@ -65,14 +65,14 @@ export default function ChoixSources({ onLancer, apercu = false, libelle = "Mett
       {ouvert && (
         <div
           role="menu"
-          className="absolute top-[calc(100%+8px)] right-0 z-40 w-[min(340px,calc(100vw-40px))] rounded-[14px] border border-[#2c3139] bg-[#0f1114] shadow-[0_18px_50px_rgba(0,0,0,.55)] py-2"
+          className="absolute top-[calc(100%+8px)] right-0 z-40 w-[min(340px,calc(100vw-40px))] rounded-[14px] border border-bord-doux bg-surface shadow-[0_18px_50px_rgba(0,0,0,.55)] py-2"
         >
           <div className="flex items-baseline justify-between gap-2 px-3 pt-1 pb-2">
-            <span className="font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-[#96c0b8]">Ce qu’on relit</span>
+            <span className="font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-menthe">Ce qu’on relit</span>
             <button
               type="button"
               onClick={() => setCochees(toutes ? [] : SOURCES.map((s) => s.cle))}
-              className="text-[11px] text-[#6a7180] hover:text-[#c6ccd3]"
+              className="text-[11px] text-brume hover:text-[#c6ccd3]"
             >
               {toutes ? "Tout décocher" : "Tout cocher"}
             </button>
@@ -103,7 +103,7 @@ export default function ChoixSources({ onLancer, apercu = false, libelle = "Mett
             );
           })}
 
-          <div className="mt-1.5 border-t border-[#1f2228] px-3 pt-2.5">
+          <div className="mt-1.5 border-t border-trait px-3 pt-2.5">
             <button
               type="button"
               onClick={lancer}

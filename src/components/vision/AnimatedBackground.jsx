@@ -31,7 +31,7 @@ export default function AnimatedBackground({ color = "#96c0b8", tintOpacity = 0.
       />
       
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/80 via-transparent to-[#000000]/90" />
+      <div className="absolute inset-0 bg-gradient-to-b from-fond/80 via-transparent to-fond/90" />
     </div>
   );
 }

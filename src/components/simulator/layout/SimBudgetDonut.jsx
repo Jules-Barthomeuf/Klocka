@@ -29,9 +29,9 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
   };
 
   return (
-    <div className="border border-[#1f2228] rounded-lg bg-[#000000]">
-      <div className="px-5 py-3 border-b border-[#1f2228]">
-        <p className="text-[#f2f3f5] text-sm font-medium">Budget total</p>
+    <div className="border border-trait rounded-lg bg-fond">
+      <div className="px-5 py-3 border-b border-trait">
+        <p className="text-encre text-sm font-medium">Budget total</p>
       </div>
       <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 p-5">
         {/* Donut */}
@@ -44,8 +44,8 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-[#f2f3f5] text-lg font-bold tabular-nums leading-tight">{formatCurrency(total)}</span>
-            <span className="text-[10px] text-[#9298a6] mt-0.5">Prix de revient</span>
+            <span className="text-encre text-lg font-bold tabular-nums leading-tight">{formatCurrency(total)}</span>
+            <span className="text-[10px] text-ardoise mt-0.5">Prix de revient</span>
           </div>
         </div>
 
@@ -53,8 +53,8 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
         <div className="w-full sm:w-auto sm:flex-1 min-w-0 space-y-2.5">
           {items.map((d, i) =>
           <div key={i} className="flex items-center justify-between text-sm">
-              <span className="truncate pr-3 text-[#9298a6]">{d.name}</span>
-              <span className="text-[#f2f3f5] tabular-nums font-medium whitespace-nowrap">{formatCurrency(d.value)}</span>
+              <span className="truncate pr-3 text-ardoise">{d.name}</span>
+              <span className="text-encre tabular-nums font-medium whitespace-nowrap">{formatCurrency(d.value)}</span>
             </div>
           )}
         </div>

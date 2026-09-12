@@ -100,7 +100,7 @@ const GlowingEffect = memo(
           className={cn(
             "pointer-events-none absolute -inset-px hidden rounded-[inherit] border opacity-0 transition-opacity",
             glow && "opacity-100",
-            variant === "white" && "border-[#f2f3f5]",
+            variant === "white" && "border-encre",
             disabled && "!block"
           )}
         />

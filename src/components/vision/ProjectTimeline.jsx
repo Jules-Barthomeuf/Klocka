@@ -108,8 +108,8 @@ function IndividualProjectChart({ donneesProjet }) {
   return (
     <div className="space-y-4">
       {/* Patrimoine Chart */}
-      <div className="rounded-lg border border-[#0f1114] bg-[#000000]/30 p-4">
-        <p className="text-xs text-[#9298a6] uppercase tracking-wider mb-3">Évolution du patrimoine</p>
+      <div className="rounded-lg border border-surface bg-fond/30 p-4">
+        <p className="text-xs text-ardoise uppercase tracking-wider mb-3">Évolution du patrimoine</p>
         <svg
           ref={chartRef}
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
@@ -147,7 +147,7 @@ function IndividualProjectChart({ donneesProjet }) {
                   x={getX(i)}
                   y={chartHeight - 10}
                   textAnchor="middle"
-                  className="text-[10px] fill-[#9298a6]"
+                  className="text-[10px] fill-ardoise"
                 >
                   An {d.annee}
                 </text>
@@ -173,14 +173,14 @@ function IndividualProjectChart({ donneesProjet }) {
           </>
         </svg>
         <div className="text-sm space-y-1 mt-2">
-          <p className="text-[#96c0b8]">Patrimoine: {formatValue(data[displayIndex].patrimoine)}</p>
+          <p className="text-menthe">Patrimoine: {formatValue(data[displayIndex].patrimoine)}</p>
           <p className="text-red-400">Dette: {formatValue(data[displayIndex].capital_restant)}</p>
         </div>
       </div>
 
       {/* Cashflow Chart */}
-      <div className="rounded-lg border border-[#0f1114] bg-[#000000]/30 p-4">
-        <p className="text-xs text-[#9298a6] uppercase tracking-wider mb-3">Cashflow annuel</p>
+      <div className="rounded-lg border border-surface bg-fond/30 p-4">
+        <p className="text-xs text-ardoise uppercase tracking-wider mb-3">Cashflow annuel</p>
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
           className="w-full h-32"
@@ -205,7 +205,7 @@ function IndividualProjectChart({ donneesProjet }) {
                   x={getX(i)}
                   y={chartHeight - 10}
                   textAnchor="middle"
-                  className="text-[10px] fill-[#9298a6]"
+                  className="text-[10px] fill-ardoise"
                 >
                   An {d.annee}
                 </text>
@@ -222,7 +222,7 @@ function IndividualProjectChart({ donneesProjet }) {
             fill="#96c0b8"
           />
         </svg>
-        <p className={`text-sm mt-2 ${data[displayIndex].cashflow >= 0 ? 'text-[#c3ddd6]' : 'text-red-400'}`}>
+        <p className={`text-sm mt-2 ${data[displayIndex].cashflow >= 0 ? 'text-menthe-clair' : 'text-red-400'}`}>
           An {data[displayIndex].annee}: {formatValue(data[displayIndex].cashflow)}
         </p>
       </div>
@@ -328,17 +328,17 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
 
   return (
     <div>
-      <h3 className="text-2xl text-[#f2f3f5] font-geist font-semibold mb-8">Votre parcours d'investissement</h3>
+      <h3 className="text-2xl text-encre font-geist font-semibold mb-8">Votre parcours d'investissement</h3>
       
       <div className="grid lg:grid-cols-[300px_1fr] gap-8">
         {/* Timeline verticale minimaliste */}
         <div className="relative">
           {/* Ligne verticale */}
-          <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-[#f2f3f5]/10"></div>
+          <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-encre/10"></div>
           
           {/* Progress bar */}
           <motion.div 
-            className="absolute left-6 top-0 w-[2px] bg-gradient-to-b from-[#96c0b8] to-[#c3ddd6]"
+            className="absolute left-6 top-0 w-[2px] bg-gradient-to-b from-menthe to-menthe-clair"
             initial={{ height: 0 }}
             animate={{ height: `${(selectedYear / 30) * 100}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -366,19 +366,19 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
                   {/* Point */}
                   <div className="relative flex-shrink-0">
                     {isSelected ? (
-                      <div className="w-12 h-12 rounded-full bg-[#96c0b8] border-4 border-black flex items-center justify-center">
-                        <span className="text-[#f2f3f5] text-sm font-bold">{annee}</span>
+                      <div className="w-12 h-12 rounded-full bg-menthe border-4 border-black flex items-center justify-center">
+                        <span className="text-encre text-sm font-bold">{annee}</span>
                       </div>
                     ) : milestone ? (
                       <div 
                         className="w-10 h-10 rounded-full border-4 border-black flex items-center justify-center"
                         style={{ backgroundColor: milestone.color }}
                       >
-                        <span className="text-[#f2f3f5] text-xs font-bold">{annee}</span>
+                        <span className="text-encre text-xs font-bold">{annee}</span>
                       </div>
                     ) : (
-                      <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center ${isPassed ? 'bg-[#f2f3f5]/20' : 'bg-[#f2f3f5]/5'}`}>
-                        <span className="text-[#f2f3f5]/60 text-xs">{annee}</span>
+                      <div className={`w-8 h-8 rounded-full border-2 border-black flex items-center justify-center ${isPassed ? 'bg-encre/20' : 'bg-encre/5'}`}>
+                        <span className="text-encre/60 text-xs">{annee}</span>
                       </div>
                     )}
                   </div>
@@ -386,9 +386,9 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
                   {/* Label */}
                   {milestone && (
                     <div className="flex-1">
-                      <p className="text-[#f2f3f5] text-sm font-medium">{milestone.label}</p>
+                      <p className="text-encre text-sm font-medium">{milestone.label}</p>
                       {milestone.montant && (
-                        <p className="text-[#f2f3f5]/60 text-xs">{milestone.montant}</p>
+                        <p className="text-encre/60 text-xs">{milestone.montant}</p>
                       )}
                     </div>
                   )}
@@ -412,45 +412,45 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
             >
               {/* Année sélectionnée */}
               <div className="mb-6">
-                <p className="text-[#f2f3f5]/60 text-sm mb-1">Année sélectionnée</p>
-                <h4 className="text-4xl font-bold text-[#f2f3f5]">Année {selectedData.annee}</h4>
+                <p className="text-encre/60 text-sm mb-1">Année sélectionnée</p>
+                <h4 className="text-4xl font-bold text-encre">Année {selectedData.annee}</h4>
               </div>
 
               {/* Patrimoine */}
-              <div className="p-6 bg-[#f2f3f5]/5 rounded-md border border-[#f2f3f5]/10">
+              <div className="p-6 bg-encre/5 rounded-md border border-encre/10">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#f2f3f5]/60 text-sm uppercase tracking-wider">Patrimoine net</p>
-                  <div className="w-2 h-2 rounded-full bg-[#96c0b8]"></div>
+                  <p className="text-encre/60 text-sm uppercase tracking-wider">Patrimoine net</p>
+                  <div className="w-2 h-2 rounded-full bg-menthe"></div>
                 </div>
-                <p className="text-3xl font-bold text-[#96c0b8]">{formatValue(animatedPatrimoine)}</p>
+                <p className="text-3xl font-bold text-menthe">{formatValue(animatedPatrimoine)}</p>
               </div>
 
               {/* Cashflow annuel */}
-              <div className="p-6 bg-[#f2f3f5]/5 rounded-md border border-[#f2f3f5]/10">
+              <div className="p-6 bg-encre/5 rounded-md border border-encre/10">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#f2f3f5]/60 text-sm uppercase tracking-wider">Cashflow annuel</p>
-                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#96c0b8]' : 'bg-[#e8746a]'}`}></div>
+                  <p className="text-encre/60 text-sm uppercase tracking-wider">Cashflow annuel</p>
+                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-menthe' : 'bg-alerte'}`}></div>
                 </div>
-                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#96c0b8]' : 'text-[#e8746a]'}`}>
+                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-menthe' : 'text-alerte'}`}>
                   {formatValue(animatedCashflow)}
                 </p>
               </div>
 
               {/* Cashflow mensuel */}
-              <div className="p-6 bg-[#f2f3f5]/5 rounded-md border border-[#f2f3f5]/10">
+              <div className="p-6 bg-encre/5 rounded-md border border-encre/10">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#f2f3f5]/60 text-sm uppercase tracking-wider">Cashflow mensuel</p>
-                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-[#96c0b8]' : 'bg-[#e8746a]'}`}></div>
+                  <p className="text-encre/60 text-sm uppercase tracking-wider">Cashflow mensuel</p>
+                  <div className={`w-2 h-2 rounded-full ${selectedData.cashflow >= 0 ? 'bg-menthe' : 'bg-alerte'}`}></div>
                 </div>
-                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-[#96c0b8]' : 'text-[#e8746a]'}`}>
+                <p className={`text-3xl font-bold ${selectedData.cashflow >= 0 ? 'text-menthe' : 'text-alerte'}`}>
                   {formatValue(animatedCashflowMensuel)}
                 </p>
               </div>
 
               {/* Dette restante */}
-              <div className="p-6 bg-[#f2f3f5]/5 rounded-md border border-[#f2f3f5]/10">
+              <div className="p-6 bg-encre/5 rounded-md border border-encre/10">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#f2f3f5]/60 text-sm uppercase tracking-wider">Dette restante</p>
+                  <p className="text-encre/60 text-sm uppercase tracking-wider">Dette restante</p>
                   <div className="w-2 h-2 rounded-full bg-red-400"></div>
                 </div>
                 <p className="text-3xl font-bold text-red-400">

@@ -54,26 +54,26 @@ export default function AdminBanque() {
   };
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#f2f3f5] p-4 md:p-8">
+    <div className="min-h-screen bg-fond text-encre p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[#9298a6] uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Présentations bancaires</h1>
+          <p className="text-ardoise uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
+          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Présentations bancaires</h1>
         </div>
 
         {/* Générateur de texte pour présentation */}
-        <div className="bg-[#000000] rounded-md border border-[#1f2228] p-6 mb-8">
-          <h2 className="text-[#f2f3f5] text-lg font-light mb-1 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#9298a6]" /> Générer le contenu des slides
+        <div className="bg-fond rounded-md border border-trait p-6 mb-8">
+          <h2 className="text-encre text-lg font-light mb-1 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-ardoise" /> Générer le contenu des slides
           </h2>
-          <p className="text-[#9298a6] text-xs mb-5">Sélectionnez un client et un projet — le contenu prêt-à-copier pour chaque slide est généré automatiquement.</p>
+          <p className="text-ardoise text-xs mb-5">Sélectionnez un client et un projet — le contenu prêt-à-copier pour chaque slide est généré automatiquement.</p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div>
-              <p className="text-[#9298a6] text-xs uppercase tracking-wider mb-2">Client</p>
+              <p className="text-ardoise text-xs uppercase tracking-wider mb-2">Client</p>
               <Select value={selectedClient} onValueChange={(v) => { setSelectedClient(v); setSelectedProject(""); }}>
-                <SelectTrigger className="bg-[#000000] border-[#1f2228] text-[#f2f3f5] h-11">
+                <SelectTrigger className="bg-fond border-trait text-encre h-11">
                   <SelectValue placeholder="Sélectionner un client" />
                 </SelectTrigger>
                 <SelectContent>
@@ -86,9 +86,9 @@ export default function AdminBanque() {
               </Select>
             </div>
             <div>
-              <p className="text-[#9298a6] text-xs uppercase tracking-wider mb-2">Projet</p>
+              <p className="text-ardoise text-xs uppercase tracking-wider mb-2">Projet</p>
               <Select value={selectedProject} onValueChange={setSelectedProject} disabled={!selectedClient}>
-                <SelectTrigger className="bg-[#000000] border-[#1f2228] text-[#f2f3f5] h-11">
+                <SelectTrigger className="bg-fond border-trait text-encre h-11">
                   <SelectValue placeholder={selectedClient ? "Sélectionner un projet" : "Choisir un client d'abord"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -105,7 +105,7 @@ export default function AdminBanque() {
           {selectedProjectData ? (
             <BankPitchGenerator project={selectedProjectData} client={selectedClientData} />
           ) : (
-            <div className="text-center py-10 border border-dashed border-[#1f2228] rounded-md text-[#6a7180] text-sm">
+            <div className="text-center py-10 border border-dashed border-trait rounded-md text-brume text-sm">
               Sélectionnez un client et un projet pour générer le contenu
             </div>
           )}
@@ -113,25 +113,25 @@ export default function AdminBanque() {
 
         {/* Présentations existantes */}
         <div>
-          <h2 className="text-[#f2f3f5] text-lg font-light mb-4">Présentations existantes</h2>
+          <h2 className="text-encre text-lg font-light mb-4">Présentations existantes</h2>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-[#9298a6]" />
+              <Loader2 className="w-6 h-6 animate-spin text-ardoise" />
             </div>
           ) : presentations.length === 0 ? (
-            <div className="text-center py-16 bg-[#000000] rounded-md border border-[#1f2228]">
-              <Landmark className="w-10 h-10 text-[#3a3f4a] mx-auto mb-3" />
-              <p className="text-[#9298a6] text-sm">Aucune présentation créée</p>
-              <p className="text-[#6a7180] text-xs mt-1">Générez un prompt ci-dessus pour commencer.</p>
+            <div className="text-center py-16 bg-fond rounded-md border border-trait">
+              <Landmark className="w-10 h-10 text-bord-vif mx-auto mb-3" />
+              <p className="text-ardoise text-sm">Aucune présentation créée</p>
+              <p className="text-brume text-xs mt-1">Générez un prompt ci-dessus pour commencer.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {presentations.map((pres) => (
-                <div key={pres.id} className="bg-[#000000] rounded-md border border-[#1f2228] p-4 hover:border-[#22262d] transition-all">
+                <div key={pres.id} className="bg-fond rounded-md border border-trait p-4 hover:border-bord transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[#f2f3f5] font-light truncate">{pres.project_title}</p>
-                      <p className="text-[#9298a6] text-xs mt-0.5">
+                      <p className="text-encre font-light truncate">{pres.project_title}</p>
+                      <p className="text-ardoise text-xs mt-0.5">
                         {pres.client_name || pres.client_email} — {new Date(pres.created_date).toLocaleDateString('fr-FR')}
                       </p>
                     </div>
@@ -141,7 +141,7 @@ export default function AdminBanque() {
                           href={pres.pptx_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[#9298a6] hover:text-[#f2f3f5] h-8 w-8 inline-flex items-center justify-center"
+                          className="text-ardoise hover:text-encre h-8 w-8 inline-flex items-center justify-center"
                           title="Ouvrir la présentation"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -154,7 +154,7 @@ export default function AdminBanque() {
                           setEditLinkId(pres.id);
                           setLinkValue(pres.pptx_url || "");
                         }}
-                        className={`h-8 w-8 ${pres.pptx_url ? "text-[#96c0b8]" : "text-[#9298a6] hover:text-[#96c0b8]"}`}
+                        className={`h-8 w-8 ${pres.pptx_url ? "text-menthe" : "text-ardoise hover:text-menthe"}`}
                         title={pres.pptx_url ? "Modifier le lien" : "Ajouter un lien de présentation"}
                       >
                         {pres.pptx_url ? <Pencil className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
@@ -163,7 +163,7 @@ export default function AdminBanque() {
                         variant="ghost"
                         size="icon"
                         onClick={() => { if (confirm("Supprimer cette présentation ?")) deleteMutation.mutate(pres.id); }}
-                        className="text-[#9298a6] hover:text-red-400 h-8 w-8"
+                        className="text-ardoise hover:text-red-400 h-8 w-8"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -172,8 +172,8 @@ export default function AdminBanque() {
 
                   {/* Lien de la présentation */}
                   {pres.pptx_url && editLinkId !== pres.id && (
-                    <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f2f3f5]/[0.05] border border-[#22262d]">
-                      <Link2 className="w-3.5 h-3.5 text-[#9298a6] flex-shrink-0" />
+                    <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-encre/[0.05] border border-bord">
+                      <Link2 className="w-3.5 h-3.5 text-ardoise flex-shrink-0" />
                       <a href={pres.pptx_url} target="_blank" rel="noopener noreferrer" className="text-[#c8cfcd] text-xs truncate hover:underline">
                         {pres.pptx_url}
                       </a>
@@ -187,13 +187,13 @@ export default function AdminBanque() {
                         value={linkValue}
                         onChange={(e) => setLinkValue(e.target.value)}
                         placeholder="Coller le lien Google Slides ou .pptx ici..."
-                        className="bg-[#000000] border-[#f2f3f5]/[0.1] text-[#f2f3f5] text-xs h-9 flex-1"
+                        className="bg-fond border-encre/[0.1] text-encre text-xs h-9 flex-1"
                       />
                       <Button
                         size="sm"
                         onClick={() => handleSaveLink(pres.id)}
                         disabled={!linkValue.trim()}
-                        className="bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] text-xs h-9 px-4"
+                        className="bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre text-xs h-9 px-4"
                       >
                         Enregistrer
                       </Button>
@@ -201,7 +201,7 @@ export default function AdminBanque() {
                         size="sm"
                         variant="ghost"
                         onClick={() => { setEditLinkId(null); setLinkValue(""); }}
-                        className="text-[#9298a6] text-xs h-9"
+                        className="text-ardoise text-xs h-9"
                       >
                         Annuler
                       </Button>

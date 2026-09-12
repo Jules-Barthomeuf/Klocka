@@ -29,30 +29,30 @@ function CompareBar({ label, local, national, unit = "", suffix = "", invert = f
   const diff = local != null && national != null ? local - national : null;
   const positive = invert ? diff < 0 : diff > 0;
   return (
-    <div className="p-3 bg-[#0f1114]/50 rounded-lg border border-[#22262d]">
-      <p className="text-xs text-[#9298a6] mb-2">{label}</p>
+    <div className="p-3 bg-surface/50 rounded-lg border border-bord">
+      <p className="text-xs text-ardoise mb-2">{label}</p>
       <div className="space-y-1.5">
         <div>
           <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="text-[#96c0b8]">Ville</span>
-            <span className="text-[#f2f3f5] font-semibold">{local}{suffix}{unit}</span>
+            <span className="text-menthe">Ville</span>
+            <span className="text-encre font-semibold">{local}{suffix}{unit}</span>
           </div>
-          <div className="h-1.5 bg-[#22262d] rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-[#96c0b8]" style={{ width: `${((local || 0) / max) * 100}%` }} />
+          <div className="h-1.5 bg-bord rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-menthe" style={{ width: `${((local || 0) / max) * 100}%` }} />
           </div>
         </div>
         <div>
           <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="text-[#9298a6]">France</span>
-            <span className="text-[#9298a6]">{national}{suffix}{unit}</span>
+            <span className="text-ardoise">France</span>
+            <span className="text-ardoise">{national}{suffix}{unit}</span>
           </div>
-          <div className="h-1.5 bg-[#22262d] rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-[#9298a6]" style={{ width: `${((national || 0) / max) * 100}%` }} />
+          <div className="h-1.5 bg-bord rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-ardoise" style={{ width: `${((national || 0) / max) * 100}%` }} />
           </div>
         </div>
       </div>
       {diff !== null && (
-        <p className={`text-[10px] mt-1.5 font-medium ${positive ? 'text-[#c3ddd6]' : diff === 0 ? 'text-[#9298a6]' : 'text-red-400'}`}>
+        <p className={`text-[10px] mt-1.5 font-medium ${positive ? 'text-menthe-clair' : diff === 0 ? 'text-ardoise' : 'text-red-400'}`}>
           {diff > 0 ? '+' : ''}{diff.toFixed(1)}{suffix} vs France
         </p>
       )}
@@ -73,7 +73,7 @@ export default function PopulationSection({ data }) {
   const historique = (data.pop_historique || []).filter(d => d.annee && d.population > 0);
 
   return (
-    <SectionCard icon={<Users className="w-5 h-5 text-[#96c0b8]" />} title="Population">
+    <SectionCard icon={<Users className="w-5 h-5 text-menthe" />} title="Population">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPI label="Population" value={data.population?.toLocaleString()} color="teal" />
         {data.evolution_annuelle_pct != null && (
@@ -91,7 +91,7 @@ export default function PopulationSection({ data }) {
         {/* Pyramide des âges */}
         {pyramide.length > 0 && (
           <div>
-            <p className="text-sm text-[#9298a6] mb-3">Répartition par âge</p>
+            <p className="text-sm text-ardoise mb-3">Répartition par âge</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={pyramide} layout="vertical" margin={{ left: 10, right: 20 }}>
@@ -109,7 +109,7 @@ export default function PopulationSection({ data }) {
         {/* Historique population */}
         {historique.length > 2 && (
           <div>
-            <p className="text-sm text-[#9298a6] mb-3">Évolution historique</p>
+            <p className="text-sm text-ardoise mb-3">Évolution historique</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={historique} margin={{ left: 10, right: 20 }}>
@@ -128,7 +128,7 @@ export default function PopulationSection({ data }) {
       {/* Ménages et familles */}
       {(data.pct_menages_1_personne > 0 || data.pct_couples_avec_enfants > 0) && (
         <div className="mt-6">
-          <p className="text-sm text-[#9298a6] mb-3">Composition des ménages</p>
+          <p className="text-sm text-ardoise mb-3">Composition des ménages</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {data.pct_menages_1_personne > 0 && <MiniStat label="Pers. seules" value={`${data.pct_menages_1_personne}%`} national={FR_POP.pct_menages_1_personne} />}
             {data.pct_couples_sans_enfant > 0 && <MiniStat label="Couples sans enfant" value={`${data.pct_couples_sans_enfant}%`} national={FR_POP.pct_couples_sans_enfant} />}
@@ -145,14 +145,14 @@ function MiniStat({ label, value, national }) {
   const localNum = parseFloat(value);
   const diff = national != null && !isNaN(localNum) ? localNum - national : null;
   return (
-    <div className="p-3 bg-[#0f1114]/50 rounded-lg border border-[#22262d]">
-      <p className="text-xs text-[#9298a6]">{label}</p>
-      <p className="text-lg text-[#f2f3f5] font-semibold">{value}</p>
+    <div className="p-3 bg-surface/50 rounded-lg border border-bord">
+      <p className="text-xs text-ardoise">{label}</p>
+      <p className="text-lg text-encre font-semibold">{value}</p>
       {national != null && (
-        <p className="text-[10px] text-[#9298a6] mt-0.5">
+        <p className="text-[10px] text-ardoise mt-0.5">
           FR: {national}%
           {diff !== null && (
-            <span className={`ml-1 font-medium ${diff > 0 ? 'text-[#c3ddd6]' : diff < 0 ? 'text-red-400' : 'text-[#9298a6]'}`}>
+            <span className={`ml-1 font-medium ${diff > 0 ? 'text-menthe-clair' : diff < 0 ? 'text-red-400' : 'text-ardoise'}`}>
               ({diff > 0 ? '+' : ''}{diff.toFixed(1)} pts)
             </span>
           )}

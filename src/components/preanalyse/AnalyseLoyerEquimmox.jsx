@@ -31,19 +31,19 @@ export default function AnalyseLoyerEquimmox({ lot }) {
   const dedans = (n) => loyerM2 != null && resultat?.bas != null && resultat?.haut != null && n === "moyenne" && loyerM2 >= resultat.bas && loyerM2 <= resultat.haut;
 
   return (
-    <section className="border border-[#1f2228] rounded-[16px] bg-[#0a0a0b] px-5 py-4">
+    <section className="border border-trait rounded-[16px] bg-[#0a0a0b] px-5 py-4">
       <div className="flex items-center gap-2">
-        <h3 className="m-0 text-[15.5px] font-semibold text-[#f2f3f5]">Loyers observés autour</h3>
+        <h3 className="m-0 text-[15.5px] font-semibold text-encre">Loyers observés autour</h3>
         <InfoBulle texte={"D'après Equimmox : locaux commerciaux à moins de 500 m, de surface comparable à ±30 %. En euros par m² et par an. Une recherche prend environ une minute."} />
       </div>
 
 
       <div className="mt-4">
-        <p className="m-0 mb-2 text-[11.5px] text-[#6a7180]">
+        <p className="m-0 mb-2 text-[11.5px] text-brume">
           {resultat ? (
             <>
               {resultat.rayon}
-              {resultat.surface ? <><span className="text-[#3a3f4a]"> · </span>surfaces {resultat.surface_min}–{resultat.surface_max} m²</> : null}
+              {resultat.surface ? <><span className="text-bord-vif"> · </span>surfaces {resultat.surface_min}–{resultat.surface_max} m²</> : null}
             </>
           ) : (
             "Aucune lecture — relancez l’analyse de marché avec la source Equimmox cochée."
@@ -51,10 +51,10 @@ export default function AnalyseLoyerEquimmox({ lot }) {
         </p>
         <div className="grid grid-cols-3 gap-3">
           {[["Bas", resultat?.bas, "bas"], ["Moyenne", resultat?.moyenne, "moyenne"], ["Haut", resultat?.haut, "haut"]].map(([l, n, cle]) => (
-            <div key={cle} className="border border-[#1f2228] rounded-xl px-4 py-3 bg-[#0f1114]">
-              <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#6a7180]">{l}</p>
+            <div key={cle} className="border border-trait rounded-xl px-4 py-3 bg-surface">
+              <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-brume">{l}</p>
               <p
-                className={`m-0 mt-1 text-[20px] tabular-nums font-light ${!resultat ? "text-[#3a3d3c]" : dedans(cle) ? "text-[#d9b46a]" : "text-[#f2f3f5]"}`}
+                className={`m-0 mt-1 text-[20px] tabular-nums font-light ${!resultat ? "text-[#3a3d3c]" : dedans(cle) ? "text-ambre" : "text-encre"}`}
                 style={{ transition: "opacity .5s ease, transform .5s ease", transform: resultat ? "none" : "translateY(4px)" }}
               >
                 {resultat ? euros(n) : "— €"}
@@ -69,15 +69,15 @@ export default function AnalyseLoyerEquimmox({ lot }) {
           <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             {loyerM2 != null ? (
               <>
-                <span className="text-[13px] text-[#9298a6]">Le bail :</span>
-                <span className="text-[15px] tabular-nums font-light text-[#f2f3f5]">{euros(loyerM2)} / m² / an</span>
-                {v && <span className="text-[13px]" style={{ color: v.teinte }}>{v.mot}<span className="text-[#6a7180]"> — {v.detail}</span></span>}
+                <span className="text-[13px] text-ardoise">Le bail :</span>
+                <span className="text-[15px] tabular-nums font-light text-encre">{euros(loyerM2)} / m² / an</span>
+                {v && <span className="text-[13px]" style={{ color: v.teinte }}>{v.mot}<span className="text-brume"> — {v.detail}</span></span>}
               </>
             ) : (
-              <span className="text-[12.5px] text-[#6a7180]">Le loyer au m² du bail se calculera dès que le loyer annuel et la surface seront renseignés dans la fiche.</span>
+              <span className="text-[12.5px] text-brume">Le loyer au m² du bail se calculera dès que le loyer annuel et la surface seront renseignés dans la fiche.</span>
             )}
             {resultat.delai_jours != null && (
-              <span className="text-[12px] text-[#6a7180]">Délai de commercialisation observé : {resultat.delai_jours} jours.</span>
+              <span className="text-[12px] text-brume">Délai de commercialisation observé : {resultat.delai_jours} jours.</span>
             )}
           </div>
         </div>

@@ -103,17 +103,17 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
     <div className="relative">
       <div className="relative overflow-hidden p-6">
         <div className="mb-4 h-[72px]">
-          <p className="text-sm font-medium text-[#9298a6]">Évolution du patrimoine financier et immobilier</p>
+          <p className="text-sm font-medium text-ardoise">Évolution du patrimoine financier et immobilier</p>
           {hoveredIndex !== null && data[hoveredIndex] && (
             <div className="mt-1 flex items-baseline gap-4">
               <div>
-                <span className="text-xs text-[#9298a6]">Patrimoine</span>
-                <h2 className="text-3xl font-semibold text-[#96c0b8]">
+                <span className="text-xs text-ardoise">Patrimoine</span>
+                <h2 className="text-3xl font-semibold text-menthe">
                   {formatValue(data[hoveredIndex].patrimoine)}
                 </h2>
               </div>
               <div>
-                <span className="text-xs text-[#9298a6]">Dette</span>
+                <span className="text-xs text-ardoise">Dette</span>
                 <h2 className="text-3xl font-semibold text-red-400">
                   {formatValue(data[hoveredIndex].capitalRestant)}
                 </h2>

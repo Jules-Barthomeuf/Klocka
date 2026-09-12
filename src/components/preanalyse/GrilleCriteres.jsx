@@ -28,7 +28,7 @@ const gardeeLe = (dealId, id) => lire(dealId, id)?.le ?? 0;
 // doit encore la valider en OK.
 const FOND = { ok: "#2f7a5a", a_checker: "#5a8db5", warning: "#a8752a", a_verifier: "#a8752a", no_go: "#9b3b32", vide: "#2c3139", non_lu: "#2c3139" };
 const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
-const Th = ({ children, className = "" }) => <th className={`text-left text-[11.5px] font-semibold tracking-[.02em] text-[#9298a6] px-4 py-2.5 border-b border-r border-[#1f2228] last:border-r-0 ${className}`}>{children}</th>;
+const Th = ({ children, className = "" }) => <th className={`text-left text-[11.5px] font-semibold tracking-[.02em] text-ardoise px-4 py-2.5 border-b border-r border-trait last:border-r-0 ${className}`}>{children}</th>;
 
 export function TableCriteres({ g, onPreuve = undefined, sansSources = false, titre = null, dealId = null, lectureSeule = false }) {
   const [ouverts, setOuverts] = useState(() => new Set());
@@ -57,90 +57,90 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
   });
   return (
     <div>
-      {titre && <p className="m-0 px-5 pt-4 pb-2 text-[15px] font-semibold text-[#f2f3f5]">{titre}</p>}
+      {titre && <p className="m-0 px-5 pt-4 pb-2 text-[15px] font-semibold text-encre">{titre}</p>}
       <table className="w-full border-collapse">
         <thead><tr><Th className="w-[220px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[150px]">Statut</Th><Th className="w-[200px]">Notes</Th>{!sansSources && <Th className="w-[190px]">Source</Th>}</tr></thead>
         <tbody>
           {g.lignes.map((l, iLigne) => (
             <tr key={l.id} className="align-top">
-              <td className="px-4 py-3 border-b border-r border-[#1f2228]">
-                <button onClick={() => bascule(l.id)} className="text-left text-[14px] text-[#f2f3f5] hover:text-[#ffffff]">{l.libelle}</button>
-                {ouverts.has(l.id) && <p className="m-0 mt-1 text-[11.5px] leading-[1.45] text-[#6a7180]">{l.regle}</p>}
+              <td className="px-4 py-3 border-b border-r border-trait">
+                <button onClick={() => bascule(l.id)} className="text-left text-[14px] text-encre hover:text-[#ffffff]">{l.libelle}</button>
+                {ouverts.has(l.id) && <p className="m-0 mt-1 text-[11.5px] leading-[1.45] text-brume">{l.regle}</p>}
               </td>
-              <td className={`px-4 py-3 border-b border-r border-[#1f2228] group ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && !edition && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
+              <td className={`px-4 py-3 border-b border-r border-trait group ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && !edition && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
                 {edition?.id === l.id ? (
                   <div onClick={(e) => e.stopPropagation()}>
-                    <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-[#3a3f4a] focus:border-[#f2f3f5] rounded-md px-2.5 py-1.5 outline-none text-[14px] leading-[1.55] text-[#f2f3f5] resize-y" />
+                    <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[14px] leading-[1.55] text-encre resize-y" />
                     <div className="mt-1.5 flex items-center gap-2">
-                      <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
-                      <button onClick={() => setEdition(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
-                      {l.correction && <button onClick={() => corriger.mutate({ critere: l.id, valeur: "" })} className="inline-flex items-center gap-1 text-[12px] text-[#9298a6] hover:text-[#f2f3f5] ml-auto"><RotateCcw className="w-3 h-3" /> Revenir à la valeur lue</button>}
+                      <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
+                      <button onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
+                      {l.correction && <button onClick={() => corriger.mutate({ critere: l.id, valeur: "" })} className="inline-flex items-center gap-1 text-[12px] text-ardoise hover:text-encre ml-auto"><RotateCcw className="w-3 h-3" /> Revenir à la valeur lue</button>}
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-start gap-2">
-                    {l.valeur ? <p className="m-0 flex-1 text-[14px] leading-[1.55] text-[#f2f3f5] whitespace-pre-line">{l.valeur}</p> : <span className="flex-1 text-[13px] text-[#4d545d]">—</span>}
-                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} title="Modifier la valeur" className="flex-none text-[#4d545d] hover:text-[#f2f3f5] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
+                    {l.valeur ? <p className="m-0 flex-1 text-[14px] leading-[1.55] text-encre whitespace-pre-line">{l.valeur}</p> : <span className="flex-1 text-[13px] text-[#4d545d]">—</span>}
+                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} title="Modifier la valeur" className="flex-none text-[#4d545d] hover:text-encre opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
                   </div>
                 )}
                 {/* Une valeur venue d'une pièce qui ne relève pas de cette
                     grille : on le dit, sinon elle passe pour une lecture de la
                     pièce attendue. */}
                 {l.hors_grille && l.lue_dans && edition?.id !== l.id && (
-                  <p className="m-0 mt-1 text-[11px] text-[#d9b46a]">lu dans « {l.lue_dans} », pas dans les pièces de cette partie</p>
+                  <p className="m-0 mt-1 text-[11px] text-ambre">lu dans « {l.lue_dans} », pas dans les pièces de cette partie</p>
                 )}
-                {l.correction && edition?.id !== l.id && <p className="m-0 mt-1 text-[11px] text-[#d9b46a]">corrigé à la main{l.correction.par ? ` · ${l.correction.par.split("@")[0]}` : ""}{l.valeur_lue ? <span className="text-[#6a7180]"> · lu : {String(l.valeur_lue).slice(0, 60)}{String(l.valeur_lue).length > 60 ? "…" : ""}</span> : null}</p>}
-                {l.motif && l.statut_calcule !== "ok" && <p className="m-0 mt-1 text-[12px] leading-[1.45] text-[#9298a6]">{l.motif}{l.details ? <span className="text-[#6a7180]"> · {details.has(l.id) ? "replier" : "voir les valeurs"}</span> : null}</p>}
+                {l.correction && edition?.id !== l.id && <p className="m-0 mt-1 text-[11px] text-ambre">corrigé à la main{l.correction.par ? ` · ${l.correction.par.split("@")[0]}` : ""}{l.valeur_lue ? <span className="text-brume"> · lu : {String(l.valeur_lue).slice(0, 60)}{String(l.valeur_lue).length > 60 ? "…" : ""}</span> : null}</p>}
+                {l.motif && l.statut_calcule !== "ok" && <p className="m-0 mt-1 text-[12px] leading-[1.45] text-ardoise">{l.motif}{l.details ? <span className="text-brume"> · {details.has(l.id) ? "replier" : "voir les valeurs"}</span> : null}</p>}
                 {l.details && details.has(l.id) && (
-                  <div className="mt-2 border border-[#2c3139] rounded-lg px-3 py-2 space-y-1">
-                    {l.details.map((d, i) => <p key={i} className="m-0 flex items-baseline justify-between gap-4 text-[12.5px]"><span className="text-[#9298a6]">{d.libelle}</span><span className="text-[#f2f3f5] tabular-nums font-light text-[14px]">{d.valeur}</span></p>)}
+                  <div className="mt-2 border border-bord-doux rounded-lg px-3 py-2 space-y-1">
+                    {l.details.map((d, i) => <p key={i} className="m-0 flex items-baseline justify-between gap-4 text-[12.5px]"><span className="text-ardoise">{d.libelle}</span><span className="text-encre tabular-nums font-light text-[14px]">{d.valeur}</span></p>)}
                   </div>
                 )}
               </td>
-              <td className={`px-4 py-3 border-b border-r border-[#1f2228] relative ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
+              <td className={`px-4 py-3 border-b border-r border-trait relative ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
                 <span className="text-[13px] font-medium text-[#ffffff]">{MOT[l.statut] || l.statut}</span>
                 {l.decision && <span className="block text-[10.5px] text-[#ffffff]/70">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
                 {/* Sur les deux dernières lignes, le menu s'ouvre vers le
                     haut : posé en dessous, il sortait du tableau et les statuts
                     n'étaient plus cliquables. */}
                 {choix === l.id && (
-                  <div className={`absolute left-2 z-20 bg-[#0f1114] border border-[#2c3139] rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
+                  <div className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
                     {[["ok", "OK"], ["a_checker", "À checker"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([st, mot]) => (
                       <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="text-left text-[12.5px] text-[#ffffff] px-3 py-1.5 rounded-md" style={{ background: FOND[st] }}>{mot}</button>
                     ))}
-                    {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="text-left text-[12px] text-[#9298a6] hover:text-[#f2f3f5] px-3 py-1">Revenir au calcul</button>}
+                    {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="text-left text-[12px] text-ardoise hover:text-encre px-3 py-1">Revenir au calcul</button>}
                   </div>
                 )}
               </td>
-              <td className={`px-4 py-3 border-b border-[#1f2228] group ${sansSources ? "" : "border-r"}`}>
+              <td className={`px-4 py-3 border-b border-trait group ${sansSources ? "" : "border-r"}`}>
                 {note?.id === l.id ? (
                   <div>
-                    <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-[#3a3f4a] focus:border-[#f2f3f5] rounded-md px-2.5 py-1.5 outline-none text-[13px] leading-[1.5] text-[#f2f3f5] resize-y placeholder:text-[#4d545d]" />
+                    <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[13px] leading-[1.5] text-encre resize-y placeholder:text-[#4d545d]" />
                     <div className="mt-1.5 flex items-center gap-2">
-                      <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
-                      <button onClick={() => setNote(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+                      <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
+                      <button onClick={() => setNote(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
                     </div>
                   </div>
                 ) : lectureSeule || !dealId ? (
-                  l.note ? <p className="m-0 text-[13px] leading-[1.5] text-[#c9cdd6] whitespace-pre-line">{l.note.texte}</p> : <span className="text-[13px] text-[#4d545d]">—</span>
+                  l.note ? <p className="m-0 text-[13px] leading-[1.5] text-craie whitespace-pre-line">{l.note.texte}</p> : <span className="text-[13px] text-[#4d545d]">—</span>
                 ) : (
                   <button onClick={() => setNote({ id: l.id, texte: l.note?.texte || "" })} title={l.note ? "Modifier la note" : "Écrire une note"} className="w-full text-left">
                     {l.note ? (
                       <>
-                        <span className="block text-[13px] leading-[1.5] text-[#c9cdd6] whitespace-pre-line">{l.note.texte}</span>
-                        {l.note.par && <span className="block mt-1 text-[11px] text-[#6a7180]">{l.note.par.split("@")[0]}</span>}
+                        <span className="block text-[13px] leading-[1.5] text-craie whitespace-pre-line">{l.note.texte}</span>
+                        {l.note.par && <span className="block mt-1 text-[11px] text-brume">{l.note.par.split("@")[0]}</span>}
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[13px] text-[#4d545d] group-hover:text-[#9298a6] transition-colors"><Pencil className="w-3 h-3" /> Ajouter une note</span>
+                      <span className="inline-flex items-center gap-1.5 text-[13px] text-[#4d545d] group-hover:text-ardoise transition-colors"><Pencil className="w-3 h-3" /> Ajouter une note</span>
                     )}
                   </button>
                 )}
               </td>
               {!sansSources && (
-                <td className="px-4 py-3 border-b border-[#1f2228]">
+                <td className="px-4 py-3 border-b border-trait">
                   <div className="flex flex-col gap-1">
                     {l.preuves?.length ? l.preuves.slice(0, 3).map((p, i) => (
-                      <button key={i} onClick={() => onPreuve?.(p)} title={p.citation || p.reponse} className="text-left text-[12px] text-[#9298a6] hover:text-[#f2f3f5] truncate max-w-[190px]">{(p.document_nom || "").replace(/\.pdf$/i, "")}{p.page ? ` · p. ${p.page}` : ""}</button>
+                      <button key={i} onClick={() => onPreuve?.(p)} title={p.citation || p.reponse} className="text-left text-[12px] text-ardoise hover:text-encre truncate max-w-[190px]">{(p.document_nom || "").replace(/\.pdf$/i, "")}{p.page ? ` · p. ${p.page}` : ""}</button>
                     )) : <span className="text-[12px] text-[#4d545d]">—</span>}
                   </div>
                 </td>
@@ -220,15 +220,15 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
         const resume = g ? { ok: g.resume.ok, a_checker: g.resume.a_checker || 0, warning: g.resume.warning + g.resume.a_verifier, no_go: g.resume.no_go || 0, vide: g.resume.vide + g.resume.non_lu } : null;
         const enCours = g?.remplissage?.etat === "en_cours";
         return (
-          <div key={v.id} className="bg-[#000000] border border-[#1f2228] rounded-[18px] overflow-hidden">
-            <header className="px-5 py-4 border-b border-[#1f2228] flex flex-wrap items-center justify-between gap-4">
+          <div key={v.id} className="bg-fond border border-trait rounded-[18px] overflow-hidden">
+            <header className="px-5 py-4 border-b border-trait flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">{v.titre || g?.titre || v.id}</h2>
-                {v.sousTitre && <span className="text-[13px] text-[#9298a6]">{v.sousTitre}</span>}
+                <h2 className="m-0 text-[17px] font-semibold text-encre">{v.titre || g?.titre || v.id}</h2>
+                {v.sousTitre && <span className="text-[13px] text-ardoise">{v.sousTitre}</span>}
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 {resume && (
-                  <span className="flex items-center gap-3 text-[12px] text-[#c9cdd6]">
+                  <span className="flex items-center gap-3 text-[12px] text-craie">
                     <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.ok }} />{resume.ok} OK</span>
                     {resume.a_checker > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.a_checker }} />{resume.a_checker} à checker</span>}
                     <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.warning }} />{resume.warning} à vérifier</span>
@@ -239,16 +239,16 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                 {enCours ? (
                   <PenseeIA etat="searching" taille={20} texte={g.remplissage?.total ? `Relecture des pièces ${g.remplissage.fait ?? 0}/${g.remplissage.total}` : "Relecture des pièces…"} />
                 ) : devis?.id === v.id ? (
-                  <span className="inline-flex items-center gap-2.5 rounded-full border border-[#d9b46a]/40 bg-[#d9b46a]/10 pl-3.5 pr-1.5 py-1">
-                    <span className="text-[12.5px] text-[#d9b46a] tabular-nums">
+                  <span className="inline-flex items-center gap-2.5 rounded-full border border-ambre/40 bg-ambre/10 pl-3.5 pr-1.5 py-1">
+                    <span className="text-[12.5px] text-ambre tabular-nums">
                       {devis.cout == null ? "Coût inconnu" : `≈ ${devis.cout < 0.01 ? "moins d'un centime" : `${devis.cout.toFixed(2)} $`}`}
-                      {devis.pieces ? <span className="text-[#9298a6]"> · {devis.pieces} pièce{devis.pieces > 1 ? "s" : ""}</span> : null}
+                      {devis.pieces ? <span className="text-ardoise"> · {devis.pieces} pièce{devis.pieces > 1 ? "s" : ""}</span> : null}
                     </span>
-                    <button onClick={() => relancer.mutate(v.id)} disabled={relancer.isPending} className="text-[12.5px] px-3 py-1 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">Relire</button>
-                    <button onClick={() => setDevis(null)} className="text-[12.5px] px-2.5 py-1 text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+                    <button onClick={() => relancer.mutate(v.id)} disabled={relancer.isPending} className="text-[12.5px] px-3 py-1 rounded-full bg-menthe text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">Relire</button>
+                    <button onClick={() => setDevis(null)} className="text-[12.5px] px-2.5 py-1 text-ardoise hover:text-encre">Annuler</button>
                   </span>
                 ) : (
-                  <button onClick={() => !apercu && chiffrer.mutate(v.id)} disabled={apercu || chiffrer.isPending || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} » — le prix s'affiche avant`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">
+                  <button onClick={() => !apercu && chiffrer.mutate(v.id)} disabled={apercu || chiffrer.isPending || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} » — le prix s'affiche avant`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-menthe text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">
                     {chiffrer.isPending && chiffrer.variables === v.id ? <PenseeIA etat="working" taille={20} /> : <RefreshCw className="w-3.5 h-3.5" />} Relancer l'analyse
                   </button>
                 )}

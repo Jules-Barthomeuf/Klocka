@@ -17,7 +17,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, haute
   const query = adresse || (lat != null && lon != null ? `${lat},${lon}` : null);
   if (!query) {
     return (
-      <p className="text-[#9298a6] text-sm py-6 text-center">
+      <p className="text-ardoise text-sm py-6 text-center">
         Localisation inconnue : ni adresse ni commune résolue.
       </p>
     );
@@ -29,17 +29,17 @@ export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, haute
 
   if (!MAPS_KEY) {
     return (
-      <div className={`${hauteur} rounded-md border border-[#1f2228] bg-[#000000] flex flex-col items-center justify-center gap-3 text-center px-6`}>
-        <MapPin className="w-6 h-6 text-[#96c0b8]/50" />
-        <p className="text-[#9298a6] text-xs max-w-sm">
-          Carte intégrée indisponible : renseignez <code className="text-[#c9cdd6]">VITE_GOOGLE_MAPS_API_KEY</code>{" "}
-          dans <code className="text-[#c9cdd6]">.env</code> (clé Maps Embed API).
+      <div className={`${hauteur} rounded-md border border-trait bg-fond flex flex-col items-center justify-center gap-3 text-center px-6`}>
+        <MapPin className="w-6 h-6 text-menthe/50" />
+        <p className="text-ardoise text-xs max-w-sm">
+          Carte intégrée indisponible : renseignez <code className="text-craie">VITE_GOOGLE_MAPS_API_KEY</code>{" "}
+          dans <code className="text-craie">.env</code> (clé Maps Embed API).
         </p>
         <a
           href={lienExterne}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#c3ddd6] hover:text-[#f2f3f5] text-xs flex items-center gap-1.5 transition-colors"
+          className="text-menthe-clair hover:text-encre text-xs flex items-center gap-1.5 transition-colors"
         >
           Ouvrir dans Google Maps <ExternalLink className="w-3 h-3" />
         </a>
@@ -54,7 +54,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, haute
       <iframe
         src={src}
         title={`Carte — ${query}`}
-        className={`w-full ${hauteur} rounded-md border-0 bg-[#000000]`}
+        className={`w-full ${hauteur} rounded-md border-0 bg-fond`}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
         allowFullScreen
@@ -63,7 +63,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, haute
         href={lienExterne}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[#9298a6] hover:text-[#f2f3f5] text-[11px] flex items-center gap-1 transition-colors"
+        className="text-ardoise hover:text-encre text-[11px] flex items-center gap-1 transition-colors"
       >
         Ouvrir dans Google Maps <ExternalLink className="w-3 h-3" />
       </a>

@@ -46,26 +46,26 @@ const ETATS = {
 function Levier({ etat, titre, effet, ou, children }) {
   const e = ETATS[etat];
   return (
-    <div className="border border-[#1f2228] rounded-[16px] bg-[#0a0a0b] px-5 py-4">
+    <div className="border border-trait rounded-[16px] bg-[#0a0a0b] px-5 py-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-white px-2.5 py-0.5 rounded-full" style={{ background: e.fond }}>
           <e.Icone className="w-3 h-3" /> {e.mot}
         </span>
-        <h3 className="m-0 text-[15.5px] font-semibold text-[#f2f3f5]">{titre}</h3>
-        {effet && <span className="text-[12.5px] text-[#96c0b8] tabular-nums">{effet}</span>}
+        <h3 className="m-0 text-[15.5px] font-semibold text-encre">{titre}</h3>
+        {effet && <span className="text-[12.5px] text-menthe tabular-nums">{effet}</span>}
       </div>
-      <p className="m-0 mt-2 text-[13.5px] leading-[1.65] text-[#c9cdd6] max-w-[70ch]">{children}</p>
-      {ou && <p className="m-0 mt-1.5 font-mono text-[11px] text-[#6a7180]">{ou}</p>}
+      <p className="m-0 mt-2 text-[13.5px] leading-[1.65] text-craie max-w-[70ch]">{children}</p>
+      {ou && <p className="m-0 mt-1.5 font-mono text-[11px] text-brume">{ou}</p>}
     </div>
   );
 }
 
 function Chiffre({ label, valeur, note, teinte = "#f2f3f5" }) {
   return (
-    <div className="px-5 py-4 border border-[#1f2228] rounded-[16px] bg-[#0a0a0b] min-w-0">
-      <p className="m-0 font-mono text-[10px] tracking-[.18em] uppercase text-[#6a7180]">{label}</p>
+    <div className="px-5 py-4 border border-trait rounded-[16px] bg-[#0a0a0b] min-w-0">
+      <p className="m-0 font-mono text-[10px] tracking-[.18em] uppercase text-brume">{label}</p>
       <p className="m-0 mt-1.5 text-[26px] font-light tabular-nums leading-none" style={{ color: teinte }}>{valeur}</p>
-      {note && <p className="m-0 mt-1.5 text-[12px] text-[#9298a6]">{note}</p>}
+      {note && <p className="m-0 mt-1.5 text-[12px] text-ardoise">{note}</p>}
     </div>
   );
 }
@@ -82,7 +82,7 @@ export default function CoutsIA() {
   });
 
   if (user && user.role !== "admin") {
-    return <div className="min-h-screen bg-[#000000] text-[#9298a6] px-6 py-16 text-center text-[14px]">Réservé aux administrateurs.</div>;
+    return <div className="min-h-screen bg-fond text-ardoise px-6 py-16 text-center text-[14px]">Réservé aux administrateurs.</div>;
   }
 
   const actions = data?.actions || [];
@@ -95,41 +95,41 @@ export default function CoutsIA() {
   const Tableau = ({ titre, sous, lignes }) => (
     <section className="mt-8">
       <div className="flex items-baseline gap-3 flex-wrap mb-3">
-        <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">{titre}</h2>
-        <span className="text-[13px] text-[#6a7180]">{sous}</span>
+        <h2 className="m-0 text-[17px] font-semibold text-encre">{titre}</h2>
+        <span className="text-[13px] text-brume">{sous}</span>
       </div>
       {lignes.length === 0 ? (
-        <p className="m-0 py-6 text-[13.5px] text-[#6a7180]">Aucun geste de ce type sur la période.</p>
+        <p className="m-0 py-6 text-[13.5px] text-brume">Aucun geste de ce type sur la période.</p>
       ) : (
-        <div className="overflow-x-auto border border-[#1f2228] rounded-[16px]">
+        <div className="overflow-x-auto border border-trait rounded-[16px]">
           <table className="w-full border-collapse text-[13.5px] min-w-[720px]">
             <thead>
-              <tr className="bg-[#0f1114]">
+              <tr className="bg-surface">
                 {["Geste", "Coût courant", "Moyenne", "Le plus cher", "Volume", "Durée"].map((h, i) => (
-                  <th key={h} className={`text-left font-normal font-mono text-[10px] tracking-[.16em] uppercase text-[#6a7180] px-4 py-2.5 border-b border-[#1f2228] ${i > 0 ? "text-right" : ""}`}>{h}</th>
+                  <th key={h} className={`text-left font-normal font-mono text-[10px] tracking-[.16em] uppercase text-brume px-4 py-2.5 border-b border-trait ${i > 0 ? "text-right" : ""}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {lignes.map((a) => (
-                <tr key={a.cle} className="align-top border-b border-[#1f2228] last:border-b-0">
+                <tr key={a.cle} className="align-top border-b border-trait last:border-b-0">
                   <td className="px-4 py-3">
-                    <p className="m-0 text-[#f2f3f5]">{a.libelle}</p>
-                    <p className="m-0 mt-0.5 text-[11.5px] text-[#6a7180]">{a.ou}</p>
+                    <p className="m-0 text-encre">{a.libelle}</p>
+                    <p className="m-0 mt-0.5 text-[11.5px] text-brume">{a.ou}</p>
                   </td>
                   {/* La médiane d'abord : une moyenne se fait emporter par un
                       dossier hors norme, et c'est le cas courant qu'on veut. */}
-                  <td className="px-4 py-3 text-right tabular-nums text-[#f2f3f5] whitespace-nowrap">
+                  <td className="px-4 py-3 text-right tabular-nums text-encre whitespace-nowrap">
                     {euros(a.mediane)}
-                    <span className="block text-[11px] text-[#6a7180]">{a.unite}</span>
+                    <span className="block text-[11px] text-brume">{a.unite}</span>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-[#9298a6] whitespace-nowrap">{euros(a.moyenne)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-[#9298a6] whitespace-nowrap">{euros(a.maxi)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-[#9298a6] whitespace-nowrap">
+                  <td className="px-4 py-3 text-right tabular-nums text-ardoise whitespace-nowrap">{euros(a.moyenne)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-ardoise whitespace-nowrap">{euros(a.maxi)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-ardoise whitespace-nowrap">
                     {a.unites}
-                    <span className="block text-[11px] text-[#6a7180]">{euros(a.cout)} au total</span>
+                    <span className="block text-[11px] text-brume">{euros(a.cout)} au total</span>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-[#6a7180] whitespace-nowrap">{duree(a.duree_moyenne_ms)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-brume whitespace-nowrap">{duree(a.duree_moyenne_ms)}</td>
                 </tr>
               ))}
             </tbody>
@@ -140,22 +140,22 @@ export default function CoutsIA() {
   );
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#f2f3f5] px-5 md:px-10 py-8 md:py-12">
+    <div className="min-h-screen bg-fond text-encre px-5 md:px-10 py-8 md:py-12">
       <div className="max-w-[1180px] mx-auto">
 
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
           <div>
             <h1 className="m-0 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05]">Ce que coûte chaque geste</h1>
-            <p className="m-0 mt-2 text-[14px] text-[#9298a6] max-w-[62ch]">
+            <p className="m-0 mt-2 text-[14px] text-ardoise max-w-[62ch]">
               Le prix d'une pièce lue, d'un mail rédigé, d'une question posée. Calculé sur votre journal, pas sur des ordres de grandeur.
             </p>
           </div>
-          <div className="inline-flex rounded-full border border-[#2c3139] p-0.5">
+          <div className="inline-flex rounded-full border border-bord-doux p-0.5">
             {FENETRES.map((f) => (
               <button
                 key={f.jours}
                 onClick={() => setJours(f.jours)}
-                className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${jours === f.jours ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}
+                className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${jours === f.jours ? "bg-encre text-[#0b0c0e] font-semibold" : "text-ardoise hover:text-encre"}`}
               >
                 {f.mot}
               </button>
@@ -164,11 +164,11 @@ export default function CoutsIA() {
         </div>
 
         {isLoading ? (
-          <p className="m-0 py-16 text-center text-[13.5px] text-[#9298a6] inline-flex items-center gap-2 w-full justify-center">
+          <p className="m-0 py-16 text-center text-[13.5px] text-ardoise inline-flex items-center gap-2 w-full justify-center">
             <Loader2 className="w-4 h-4 animate-spin" /> Lecture du journal…
           </p>
         ) : isError ? (
-          <p className="m-0 py-16 text-center text-[13.5px] text-[#e8746a]">{error?.message || "Journal illisible."}</p>
+          <p className="m-0 py-16 text-center text-[13.5px] text-alerte">{error?.message || "Journal illisible."}</p>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -197,16 +197,16 @@ export default function CoutsIA() {
             <Tableau titre="Ce qui tourne sans vous" sous="personne ne clique, la dépense part quand même" lignes={fonds} />
 
             {data.non_classees?.length > 0 && (
-              <p className="m-0 mt-4 text-[12.5px] text-[#6a7180]">
-                Non rangé dans un geste : {data.non_classees.map((n) => `${n.operation} (${euros(n.cout)})`).join(" · ")}. À classer dans <code className="text-[#c3ddd6]">server/llm-couts.js</code>.
+              <p className="m-0 mt-4 text-[12.5px] text-brume">
+                Non rangé dans un geste : {data.non_classees.map((n) => `${n.operation} (${euros(n.cout)})`).join(" · ")}. À classer dans <code className="text-menthe-clair">server/llm-couts.js</code>.
               </p>
             )}
 
             {/* ---- Ce qu'on peut faire, avec l'état réel de chaque levier ---- */}
             <section className="mt-12">
               <div className="flex items-baseline gap-3 flex-wrap mb-1">
-                <h2 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">Ce qu'on peut faire</h2>
-                <span className="text-[13px] text-[#6a7180]">chaque levier, son effet mesuré, et où il se règle</span>
+                <h2 className="m-0 text-[17px] font-semibold text-encre">Ce qu'on peut faire</h2>
+                <span className="text-[13px] text-brume">chaque levier, son effet mesuré, et où il se règle</span>
               </div>
               <div className="mt-4 flex flex-col gap-2.5">
 
@@ -252,7 +252,7 @@ export default function CoutsIA() {
               </div>
             </section>
 
-            <p className="m-0 mt-10 pt-5 border-t border-[#1f2228] text-[12.5px] text-[#6a7180] max-w-[76ch]">
+            <p className="m-0 mt-10 pt-5 border-t border-trait text-[12.5px] text-brume max-w-[76ch]">
               Les montants viennent du journal des coûts, converti en euros au taux de {String(EUR_PAR_USD).replace(".", ",")}.
               Le coût courant est la médiane, pas la moyenne : un dossier hors norme ne doit pas fausser ce que vous payez d'habitude.
               Le détail appel par appel reste sur la page Suivi.

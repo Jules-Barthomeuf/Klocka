@@ -33,18 +33,18 @@ const LIBELLES_FICHE = {
   locataire_activite: "Activité",
 };
 
-const Kicker = ({ children }) => <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">{children}</p>;
+const Kicker = ({ children }) => <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">{children}</p>;
 
 function ChampLu({ c }) {
   return (
     <div className="flex items-baseline justify-between gap-6 py-2 border-b border-[#15171b] last:border-b-0">
-      <dt className="text-[13px] text-[#9298a6] flex-none inline-flex items-center gap-2">
+      <dt className="text-[13px] text-ardoise flex-none inline-flex items-center gap-2">
         <span title={LIBELLE[c.statut]} className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: TEINTE[c.statut] || "#3a3f4a" }} />
         {c.libelle}
       </dt>
       <dd className="m-0 text-right min-w-0 max-w-[70%]">
-        <span className={`text-[13.5px] leading-[1.6] font-light ${c.valeur ? "text-[#f2f3f5]" : "text-[#4d545d]"}`}>{c.valeur || "—"}</span>
-        {c.preuves?.length > 0 && <span className="ml-2 text-[11px] text-[#6a7180] whitespace-nowrap">{c.preuves.length} pièce{c.preuves.length > 1 ? "s" : ""}</span>}
+        <span className={`text-[13.5px] leading-[1.6] font-light ${c.valeur ? "text-encre" : "text-[#4d545d]"}`}>{c.valeur || "—"}</span>
+        {c.preuves?.length > 0 && <span className="ml-2 text-[11px] text-brume whitespace-nowrap">{c.preuves.length} pièce{c.preuves.length > 1 ? "s" : ""}</span>}
       </dd>
     </div>
   );
@@ -67,7 +67,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
   });
 
   if (!lot) {
-    return <p className="m-0 py-8 text-[13.5px] text-[#6a7180]">Pas encore de fiche : lancez la pré-analyse pour connaître le bien.</p>;
+    return <p className="m-0 py-8 text-[13.5px] text-brume">Pas encore de fiche : lancez la pré-analyse pour connaître le bien.</p>;
   }
 
   const lus = new Map((fiche?.blocs || []).flatMap((b) => b.champs).map((c) => [c.id, c]));
@@ -76,10 +76,10 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
     <div className="space-y-6">
       <div>
         <Kicker>Le bien</Kicker>
-        <p className="m-0 mt-1.5 text-[13px] text-[#6a7180]">Ce que la fiche annonce. Un clic sur une partie ouvre ce que les pièces en disent.</p>
+        <p className="m-0 mt-1.5 text-[13px] text-brume">Ce que la fiche annonce. Un clic sur une partie ouvre ce que les pièces en disent.</p>
       </div>
 
-      <div className="border-t border-[#1f2228]">
+      <div className="border-t border-trait">
         {PARTIES.map((p) => {
           const ouverte = ouvertes.has(p.id);
           // Une question jamais lue sur ce dossier n'a rien à montrer : on
@@ -87,19 +87,19 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
           const detail = p.pieces.map((id) => lus.get(id)).filter((c) => c && (c.valeur || c.preuves?.length));
           const nbPieces = detail.reduce((n, c) => n + (c.preuves?.length || 0), 0);
           return (
-            <section key={p.id} className="border-b border-[#1f2228]">
+            <section key={p.id} className="border-b border-trait">
               <button
                 type="button"
                 onClick={() => basculer(p.id)}
                 aria-expanded={ouverte}
                 className="w-full flex items-center justify-between gap-4 py-3.5 text-left group"
               >
-                <span className="text-[15px] font-medium text-[#f2f3f5]">{p.titre}</span>
+                <span className="text-[15px] font-medium text-encre">{p.titre}</span>
                 <span className="flex items-center gap-3 flex-none">
                   {!apercu && (nbPieces > 0 || p.lieu) && (
-                    <span className="text-[12px] text-[#6a7180]">{p.lieu ? "le lieu" : `${nbPieces} pièce${nbPieces > 1 ? "s" : ""}`}</span>
+                    <span className="text-[12px] text-brume">{p.lieu ? "le lieu" : `${nbPieces} pièce${nbPieces > 1 ? "s" : ""}`}</span>
                   )}
-                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[#6a7180] group-hover:text-[#f2f3f5] group-hover:bg-[#f2f3f5]/5 transition-all duration-300 ${ouverte ? "rotate-180" : ""}`}>
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-brume group-hover:text-encre group-hover:bg-encre/5 transition-all duration-300 ${ouverte ? "rotate-180" : ""}`}>
                     <ChevronDown className="w-4 h-4" />
                   </span>
                 </span>
@@ -109,7 +109,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
               <dl className="m-0 pb-3">
                 {p.fiche.map((champ) => (
                   <div key={champ} className="flex items-baseline justify-between gap-6 py-2 border-b border-[#15171b] last:border-b-0">
-                    <dt className="text-[13px] text-[#9298a6] flex-none">{LIBELLES_FICHE[champ]}</dt>
+                    <dt className="text-[13px] text-ardoise flex-none">{LIBELLES_FICHE[champ]}</dt>
                     <dd className="m-0 text-right min-w-0"><ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
                   </div>
                 ))}
@@ -118,17 +118,17 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
               {/* Le détail, déplié : ce que les pièces reconstituent. */}
               <div className="grid transition-[grid-template-rows] duration-300 ease-out" style={{ gridTemplateRows: ouverte ? "1fr" : "0fr" }} aria-hidden={!ouverte}>
                 <div className="min-h-0 overflow-hidden">
-                  <div className="pb-5 pl-4 border-l border-[#22262d] ml-1">
+                  <div className="pb-5 pl-4 border-l border-bord ml-1">
                     {apercu ? (
-                      <p className="m-0 text-[13px] text-[#6a7180]">Indisponible en mode aperçu.</p>
+                      <p className="m-0 text-[13px] text-brume">Indisponible en mode aperçu.</p>
                     ) : isLoading ? (
-                      <p className="m-0 text-[13px] text-[#9298a6] inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Lecture des pièces…</p>
+                      <p className="m-0 text-[13px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Lecture des pièces…</p>
                     ) : (
                       <>
                         {detail.length > 0 ? (
                           <dl className="m-0">{detail.map((c) => <ChampLu key={c.id} c={c} />)}</dl>
                         ) : (
-                          <p className="m-0 text-[13px] text-[#6a7180]">Rien dans les pièces sur ce point.</p>
+                          <p className="m-0 text-[13px] text-brume">Rien dans les pièces sur ce point.</p>
                         )}
                         {p.lieu && (
                           <div className="mt-4">

@@ -26,10 +26,10 @@ export function SuggestionsMail({ dossier = null, onChoisir, disabled = false, v
   return (
     <>
       {liste.map((g) => (
-        <button key={g.label} onClick={() => onChoisir(g.prompt(dossier))} disabled={disabled} className="px-3 py-1 rounded-full text-[12.5px] border border-[#2c3139] text-[#b7bdc5] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-50 whitespace-nowrap">{g.label}</button>
+        <button key={g.label} onClick={() => onChoisir(g.prompt(dossier))} disabled={disabled} className="px-3 py-1 rounded-full text-[12.5px] border border-bord-doux text-[#b7bdc5] hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-50 whitespace-nowrap">{g.label}</button>
       ))}
       {GABARITS.length > visibles && (
-        <button onClick={() => setTout((t) => !t)} title={tout ? "Moins de suggestions" : `${GABARITS.length - visibles} autres suggestions`} className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-[#2c3139] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors">
+        <button onClick={() => setTout((t) => !t)} title={tout ? "Moins de suggestions" : `${GABARITS.length - visibles} autres suggestions`} className="w-7 h-7 inline-flex items-center justify-center rounded-full border border-bord-doux text-ardoise hover:text-encre hover:border-bord-vif transition-colors">
           {tout ? <Minus className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
         </button>
       )}

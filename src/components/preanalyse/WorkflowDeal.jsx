@@ -76,10 +76,10 @@ export function TitreEtape({ n, titre, description = undefined }) {
   return (
     <div className="mb-6">
       <div className="flex items-baseline gap-3.5 mb-1.5">
-        {n != null && <div className="text-xs text-[#9298a6] tabular-nums">{String(n).padStart(2, "0")}</div>}
-        <h2 className="m-0 text-[22px] font-medium text-[#f2f3f5]">{titre}</h2>
+        {n != null && <div className="text-xs text-ardoise tabular-nums">{String(n).padStart(2, "0")}</div>}
+        <h2 className="m-0 text-[22px] font-medium text-encre">{titre}</h2>
       </div>
-      {description && <p className="m-0 text-[13.5px] text-[#9298a6] leading-[1.65]">{description}</p>}
+      {description && <p className="m-0 text-[13.5px] text-ardoise leading-[1.65]">{description}</p>}
     </div>
   );
 }
@@ -253,10 +253,10 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
 
       {/* En-tête du dossier : nom, repères, actions */}
       {dossier && (
-        <div className="flex flex-wrap items-end justify-between gap-6 pb-6 border-b border-[#1f2228]">
+        <div className="flex flex-wrap items-end justify-between gap-6 pb-6 border-b border-trait">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="m-0 text-[34px] max-md:text-[24px] font-semibold tracking-[-.01em] text-[#f2f3f5] truncate">
+              <h1 className="m-0 text-[34px] max-md:text-[24px] font-semibold tracking-[-.01em] text-encre truncate">
                 {dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom"}
               </h1>
               {aRelancer && (
@@ -290,7 +290,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* Le chat du dossier : questions, analyses, points à vérifier */}
       {/* Étapes du dossier — libellés seuls, sans pastilles. Toujours visibles :
           on doit pouvoir changer d'étape sans refermer la table ouverte. */}
-      <div className="flex flex-wrap items-center gap-x-7 gap-y-2 border-b border-[#1f2228] mb-8">
+      <div className="flex flex-wrap items-center gap-x-7 gap-y-2 border-b border-trait mb-8">
         {ETAPES.map((e) => {
           const accessible = e.n <= debloquee;
           const active = etape === e.n;
@@ -301,8 +301,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               disabled={!accessible && !dossier}
               title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
               className={`relative text-[14px] pb-3 px-0.5 rounded-none transition-colors whitespace-nowrap
-                after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 after:ease-out
-                ${active ? "after:scale-x-100 text-[#f2f3f5] font-semibold"
+                after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 after:ease-out
+                ${active ? "after:scale-x-100 text-encre font-semibold"
                   : accessible ? "text-[#8f959e] hover:text-[#c6ccd3]"
                   : "text-[#4d545d] hover:text-[#8f959e]"}`}
             >
@@ -371,9 +371,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         {etape === 3 && (
           <div id="tables-analyse" className="space-y-5">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
-            <div className="flex gap-6 border-b border-[#1f2228]">
+            <div className="flex gap-6 border-b border-trait">
               {GRILLES_ANALYSE.map((g) => (
-                <button key={g.id} onClick={() => setGrilleAnalyse(g.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${grilleAnalyse === g.id ? "text-[#f2f3f5] font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>{g.titre}</button>
+                <button key={g.id} onClick={() => setGrilleAnalyse(g.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${grilleAnalyse === g.id ? "text-encre font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>{g.titre}</button>
               ))}
             </div>
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
@@ -388,13 +388,13 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {grilleAnalyse === "simulateur" && (
               dossier?.lots?.[0]?.simulateur
                 ? <SimulateurDossier parametres={dossier.lots[0].simulateur} dealId={dossier.deal_id} lotIndex={0} onEnregistre={onRefresh} />
-                : <p className="m-0 py-8 text-[13.5px] text-[#6a7180]">Le simulateur se remplit à la pré-analyse : lancez-la d'abord.</p>
+                : <p className="m-0 py-8 text-[13.5px] text-brume">Le simulateur se remplit à la pré-analyse : lancez-la d'abord.</p>
             )}
             {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse && g.grilles).map((g) => (
               <GrilleCriteres key={g.id} grilles={g.grilles} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
             ))}
             {preuveGrille && (
-              <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-[#000000] border-l border-[#22262d] shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
+              <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} dealId={dossier?.deal_id || null} />
               </div>
             )}
@@ -423,7 +423,7 @@ function BandeauTest({ dossier }) {
   });
 
   return (
-    <div className="rounded-md border border-[#96c0b8]/25 bg-[#96c0b8]/[0.06] px-4 py-3 flex flex-wrap items-center gap-2 text-sm text-amber-200/90">
+    <div className="rounded-md border border-menthe/25 bg-menthe/[0.06] px-4 py-3 flex flex-wrap items-center gap-2 text-sm text-amber-200/90">
       <FlaskConical className="w-3.5 h-3.5 flex-shrink-0" />
       <span className="flex-1 min-w-56">
         Mode test — chaque bouton agit réellement (statuts, journal, projet), mais aucun appel API
@@ -434,7 +434,7 @@ function BandeauTest({ dossier }) {
         variant="ghost"
         onClick={() => supprimer.mutate()}
         disabled={supprimer.isPending}
-        className="text-amber-200/80 hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 flex-shrink-0"
+        className="text-amber-200/80 hover:text-encre hover:bg-encre/5 flex-shrink-0"
       >
         {supprimer.isPending ? (
           <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -506,8 +506,8 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
   // Le chat du haut rédige : ici on ne montre plus que le brouillon obtenu.
   if (onBrouillon && !brouillon && !etapeFranchie) {
     return (
-      <div className="bg-[#000000] border border-[#1f2228] rounded-md px-5 py-8 text-center">
-        <p className="m-0 text-[13.5px] text-[#9298a6]">
+      <div className="bg-fond border border-trait rounded-md px-5 py-8 text-center">
+        <p className="m-0 text-[13.5px] text-ardoise">
           Décrivez le mail dans le chat ci-dessus, ou choisissez un gabarit, puis générez le brouillon.
         </p>
       </div>
@@ -516,13 +516,13 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 
   if (dossier && !apercu && etapeFranchie) {
     return (
-      <div className="bg-[#0f1114] border border-[#1f2228] rounded-2xl px-6 py-5">
+      <div className="bg-surface border border-trait rounded-2xl px-6 py-5">
         <div className="flex items-center gap-[18px] max-md:flex-wrap">
-          <span className="w-10 h-10 rounded-full bg-[#1a1d22] border border-[#3a3f4a] text-[#e6e8eb] flex items-center justify-center flex-shrink-0">
+          <span className="w-10 h-10 rounded-full bg-[#1a1d22] border border-bord-vif text-[#e6e8eb] flex items-center justify-center flex-shrink-0">
             {dossier.source_mail ? <Mail className="w-4 h-4" /> : <Check className="w-4 h-4" strokeWidth={2.2} />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="m-0 text-[#f2f3f5] text-[15px] font-semibold">
+            <p className="m-0 text-encre text-[15px] font-semibold">
               {dossier.source_mail ? "Fiche reçue par mail" : "Étape passée"}
             </p>
             <p className="m-0 text-[#8f959e] text-[13.5px] mt-[3px] leading-relaxed">
@@ -544,34 +544,34 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
         description="À écrire pendant l'appel, depuis le chat en haut de page. Le brouillon apparaît ici, prêt à relire et à envoyer depuis votre Gmail — ou passez si vous avez déjà la fiche."
       />
       {!brouillon ? (
-        <div className="bg-[#000000] border border-[#1f2228] rounded-xl px-6 py-10 text-center">
-          <p className="m-0 text-[13.5px] text-[#9298a6]">
+        <div className="bg-fond border border-trait rounded-xl px-6 py-10 text-center">
+          <p className="m-0 text-[13.5px] text-ardoise">
             Rédigez le mail dans le chat en haut de page — un gabarit pour partir vite, puis générez.
           </p>
           <Button
             variant="ghost"
             onClick={onSuivant}
-            className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 mt-3"
+            className="text-ardoise hover:text-encre hover:bg-encre/5 mt-3"
           >
             Passer — j'ai déjà la fiche
           </Button>
         </div>
       ) : (
-        <div className="bg-[#000000] border border-[#1f2228] rounded-xl overflow-hidden">
+        <div className="bg-fond border border-trait rounded-xl overflow-hidden">
           {/* Expéditeur : la ligne d'identité du message */}
           {comptes.length > 0 ? (
             <div className="flex items-center gap-3 px-5 py-3 border-b border-[#15171b]">
-              <span className="text-[11px] tracking-[0.14em] uppercase text-[#6a7180] w-[74px] flex-shrink-0">De</span>
+              <span className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">De</span>
               <select
                 value={expediteur || comptes[0]?.id}
                 onChange={(e) => {
                   setExpediteur(e.target.value);
                   localStorage.setItem("klocka:dernier-expediteur", e.target.value);
                 }}
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-[#f2f3f5] cursor-pointer"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre cursor-pointer"
               >
                 {comptes.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-[#0f1114]">{c.label}</option>
+                  <option key={c.id} value={c.id} className="bg-surface">{c.label}</option>
                 ))}
               </select>
             </div>
@@ -591,23 +591,23 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 
           {/* Destinataire et objet, sur filets fins */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-[#15171b]">
-            <label htmlFor="mail-to" className="text-[11px] tracking-[0.14em] uppercase text-[#6a7180] w-[74px] flex-shrink-0">À</label>
+            <label htmlFor="mail-to" className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">À</label>
             <input
               id="mail-to"
               value={brouillon.to}
               onChange={(e) => setBrouillon({ ...brouillon, to: e.target.value })}
               placeholder="agent@agence.fr"
-              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-[#f2f3f5] placeholder:text-[#3a3f4a]"
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-bord-vif"
             />
           </div>
           <div className="flex items-center gap-3 px-5 py-3 border-b border-[#15171b]">
-            <label htmlFor="mail-objet" className="text-[11px] tracking-[0.14em] uppercase text-[#6a7180] w-[74px] flex-shrink-0">Objet</label>
+            <label htmlFor="mail-objet" className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">Objet</label>
             <input
               id="mail-objet"
               value={brouillon.subject}
               onChange={(e) => setBrouillon({ ...brouillon, subject: e.target.value })}
               placeholder="Objet du message"
-              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-[#f2f3f5] placeholder:text-[#3a3f4a]"
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-bord-vif"
             />
           </div>
 
@@ -617,21 +617,21 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
             onChange={(e) => setBrouillon({ ...brouillon, body: e.target.value })}
             rows={14}
             placeholder="Corps du message"
-            className="w-full bg-transparent border-0 outline-none resize-y px-5 py-4 text-[13.5px] leading-[1.75] text-[#c9cdd6] placeholder:text-[#3a3f4a]"
+            className="w-full bg-transparent border-0 outline-none resize-y px-5 py-4 text-[13.5px] leading-[1.75] text-craie placeholder:text-bord-vif"
           />
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-[#15171b] bg-[#0f1114]">
+          <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-[#15171b] bg-surface">
             <button
               onClick={() => setBrouillon(null)}
-              className="text-[13px] text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
+              className="text-[13px] text-ardoise hover:text-encre transition-colors"
             >
               Reprendre
             </button>
             <div className="flex-1" />
             <button
               onClick={onSuivant}
-              className="text-[13px] text-[#9298a6] hover:text-[#f2f3f5] transition-colors px-2"
+              className="text-[13px] text-ardoise hover:text-encre transition-colors px-2"
             >
               Passer sans envoyer
             </button>
@@ -644,7 +644,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
                 envoyer.isPending ||
                 connexionEnCours
               }
-              className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114] font-medium h-9 text-[13px]"
+              className="bg-encre hover:bg-craie text-surface font-medium h-9 text-[13px]"
             >
               {(envoyer.isPending || connexionEnCours) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {test ? "Envoyer (simulé)" : sansCompte && googleConfigure ? "Connecter Gmail et envoyer" : "Envoyer via Gmail"}
@@ -673,8 +673,8 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
         {dossier?.documents_espace?.length > 0 ? (
           <PreanalyseDepuisDocuments dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
         ) : analyseParChat ? (
-          <div className="bg-[#000000] border border-[#1f2228] rounded-xl px-6 py-10 text-center">
-            <p className="m-0 text-[13.5px] text-[#9298a6]">
+          <div className="bg-fond border border-trait rounded-xl px-6 py-10 text-center">
+            <p className="m-0 text-[13.5px] text-ardoise">
               Importez un fichier ou collez l'email dans le chat pour lancer l'analyse.
             </p>
           </div>
@@ -760,24 +760,24 @@ function DepotFiche({ onAnalyse, dealId = null }) {
   };
 
   return (
-    <div className="bg-[#000000] border border-[#1f2228] rounded-md p-6">
-      <p className="text-[#f2f3f5] text-sm font-medium mb-1">Pré-analyser la fiche</p>
-      <p className="text-[#9298a6] text-xs mb-4">
+    <div className="bg-fond border border-trait rounded-md p-6">
+      <p className="text-encre text-sm font-medium mb-1">Pré-analyser la fiche</p>
+      <p className="text-ardoise text-xs mb-4">
         Déposez la fiche commerciale reçue de l'agent (ou collez le texte du mail) : extraction,
         vérification des citations, verdict et simulateur. Les mails reçus se préanalysent aussi en un
         clic depuis le plan de travail du dashboard.
       </p>
       <div className="grid md:grid-cols-2 gap-5">
         <div>
-          <Label className="text-[#9298a6] text-xs mb-2 block">Fiche commerciale</Label>
+          <Label className="text-ardoise text-xs mb-2 block">Fiche commerciale</Label>
           <button
             onClick={() => inputFichier.current?.click()}
             disabled={analyser.isPending}
-            className="w-full h-[104px] border border-dashed border-[#f2f3f5]/15 rounded-md flex flex-col items-center justify-center gap-2 hover:border-[#3a3f4a] hover:bg-[#f2f3f5]/[0.02] transition-all disabled:opacity-50"
+            className="w-full h-[104px] border border-dashed border-encre/15 rounded-md flex flex-col items-center justify-center gap-2 hover:border-bord-vif hover:bg-encre/[0.02] transition-all disabled:opacity-50"
           >
-            <Upload className="w-5 h-5 text-[#9298a6]" />
-            <span className="text-[#9298a6] text-sm">PDF, image, .eml</span>
-            <span className="text-[#6a7180] text-[11px]">Les PDF scannés sont transcrits automatiquement</span>
+            <Upload className="w-5 h-5 text-ardoise" />
+            <span className="text-ardoise text-sm">PDF, image, .eml</span>
+            <span className="text-brume text-[11px]">Les PDF scannés sont transcrits automatiquement</span>
           </button>
           <input
             ref={inputFichier}
@@ -788,13 +788,13 @@ function DepotFiche({ onAnalyse, dealId = null }) {
           />
         </div>
         <div>
-          <Label className="text-[#9298a6] text-xs mb-2 block">…ou collez le texte du mail</Label>
+          <Label className="text-ardoise text-xs mb-2 block">…ou collez le texte du mail</Label>
           <Textarea
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             rows={4}
             placeholder="Bonjour, je vous propose un local commercial situé…"
-            className="bg-[#000000] border-[#1f2228] text-[#f2f3f5] resize-none"
+            className="bg-fond border-trait text-encre resize-none"
           />
         </div>
       </div>
@@ -802,7 +802,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
         <Button
           onClick={() => analyser.mutate({ texte })}
           disabled={!texte.trim() || analyser.isPending}
-          className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114]"
+          className="bg-encre hover:bg-craie text-surface"
         >
           {analyser.isPending ? (
             <><PenseeIA etat="searching" taille={20} clair className="mr-2" /> Analyse…</>
@@ -814,18 +814,18 @@ function DepotFiche({ onAnalyse, dealId = null }) {
       {analyser.isPending && (
         <div className="mt-4 flex flex-col items-center gap-1.5">
           <div className="flex items-center gap-2.5">
-            <span className="text-[#f2f3f5] text-sm">Analyse Klocka</span>
+            <span className="text-encre text-sm">Analyse Klocka</span>
             <span className="flex gap-1.5" aria-hidden>
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-[#f2f3f5] animate-bounce"
+                  className="w-1.5 h-1.5 rounded-full bg-encre animate-bounce"
                   style={{ animationDelay: `${i * 0.18}s` }}
                 />
               ))}
             </span>
           </div>
-          <p className="text-[#9298a6] text-xs text-center">
+          <p className="text-ardoise text-xs text-center">
             Lecture, extraction, vérification des citations puis application des règles…
           </p>
         </div>
@@ -872,28 +872,28 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
     // jouée (navigation libre) — on l'explique plutôt que d'inventer un « oui ».
     // Étape simplement pas encore jouée : rien à dire, on n'affiche rien.
     if (!abandonne && !evenement) return descInactif ? (
-      <div className="bg-[#000000] border border-[#1f2228] rounded-md px-5 py-4 flex items-center gap-3">
-        <span className="w-8 h-8 rounded-md bg-[#f2f3f5]/5 text-[#9298a6] flex items-center justify-center flex-shrink-0">
+      <div className="bg-fond border border-trait rounded-md px-5 py-4 flex items-center gap-3">
+        <span className="w-8 h-8 rounded-md bg-encre/5 text-ardoise flex items-center justify-center flex-shrink-0">
           <Clock className="w-4 h-4" />
         </span>
-        <p className="text-[#9298a6] text-sm min-w-0">{descInactif}</p>
+        <p className="text-ardoise text-sm min-w-0">{descInactif}</p>
       </div>
     ) : null;
 
     return (
-      <div className="bg-[#000000] border border-[#1f2228] rounded-md px-5 py-4">
+      <div className="bg-fond border border-trait rounded-md px-5 py-4">
         <div className="flex items-center gap-3">
           <span
             className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-              abandonne ? "bg-red-500/15 text-red-300" : "bg-[#96c0b8]/20 text-[#c3ddd6]"
+              abandonne ? "bg-red-500/15 text-red-300" : "bg-menthe/20 text-menthe-clair"
             }`}
           >
             {abandonne ? <ThumbsDown className="w-4 h-4" /> : <ThumbsUp className="w-4 h-4" />}
           </span>
-          <p className="text-[#9298a6] text-sm min-w-0">
+          <p className="text-ardoise text-sm min-w-0">
             {abandonne ? "Décision : non." : "Décision : oui."}
             {evenement && (
-              <span className="text-[#6a7180]">
+              <span className="text-brume">
                 {" "}
                 {evenement.detail || ""} —{" "}
                 {new Date(evenement.le).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
@@ -915,14 +915,14 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
         <button
           onClick={() => ouvrir(intentionNon)}
           title={`${titreNon} — ${descNon}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#9b3b32]/60 bg-[#0a0a0bee] backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,.5)] text-[#e8746a] text-[13.5px] font-semibold hover:bg-[#9b3b32]/20 hover:border-[#9b3b32] transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#9b3b32]/60 bg-[#0a0a0bee] backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,.5)] text-alerte text-[13.5px] font-semibold hover:bg-[#9b3b32]/20 hover:border-[#9b3b32] transition-colors"
         >
           <ThumbsDown className="w-4 h-4" /> Abandonner
         </button>
         <button
           onClick={() => ouvrir(intentionOui)}
           title={`${titreOui} — ${descOui}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#96c0b8] shadow-[0_10px_30px_rgba(0,0,0,.5)] text-[#0b0c0e] text-[13.5px] font-semibold hover:bg-[#abd0c8] transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-menthe shadow-[0_10px_30px_rgba(0,0,0,.5)] text-[#0b0c0e] text-[13.5px] font-semibold hover:bg-[#abd0c8] transition-colors"
         >
           <ThumbsUp className="w-4 h-4" /> Poursuivre
         </button>
@@ -1008,7 +1008,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
             className={
               aRelancer
                 ? "bg-red-500/20 hover:bg-red-500/30 text-red-200 border-0"
-                : "bg-[#f2f3f5]/5 hover:bg-[#f2f3f5]/10 text-[#c9cdd6] border-0"
+                : "bg-encre/5 hover:bg-encre/10 text-craie border-0"
             }
           >
             <Send className="w-3.5 h-3.5 mr-1.5" /> Relancer l'agent
@@ -1017,7 +1017,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
             size="sm"
             onClick={() => changerStatut.mutate({ statut: "documents_recus", note: "Documents reçus" })}
             disabled={apercu || changerStatut.isPending}
-            className="bg-[#f2f3f5]/[0.06] hover:bg-[#f2f3f5]/[0.1] text-[#c9cdd6] border-0"
+            className="bg-encre/[0.06] hover:bg-encre/[0.1] text-craie border-0"
           >
             <FolderCheck className="w-3.5 h-3.5 mr-1.5" /> Documents reçus
           </Button>
@@ -1084,11 +1084,11 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
         description="Le dossier de présentation bancaire du bien, généré depuis les données du deal : le bien, le bail, l'opération, le plan de financement, le marché et les points forts. Modifiable ensuite dans Google Slides."
       />
 
-      <div className="bg-[#000000] border border-[#1f2228] rounded-md p-6 space-y-4">
+      <div className="bg-fond border border-trait rounded-md p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-[#f2f3f5] text-sm font-medium mb-1">Présentation bancaire</p>
-            <p className="text-[#9298a6] text-xs">
+            <p className="text-encre text-sm font-medium mb-1">Présentation bancaire</p>
+            <p className="text-ardoise text-xs">
               {pres?.genere_le
                 ? `Dernière génération le ${new Date(pres.genere_le).toLocaleDateString("fr-FR")} à ${new Date(pres.genere_le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`
                 : "Un clic : le PPTX est construit puis converti en Google Slides, prêt à retoucher."}
@@ -1097,7 +1097,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
           <Button
             onClick={() => generer.mutate()}
             disabled={generer.isPending || apercu}
-            className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114]"
+            className="bg-encre hover:bg-craie text-surface"
             title={apercu ? "Indisponible en mode aperçu" : undefined}
           >
             {generer.isPending ? (
@@ -1112,7 +1112,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
           <div className="flex flex-wrap items-center gap-4 pt-1">
             {pres.slides_url && (
               <a href={pres.slides_url} target="_blank" rel="noopener noreferrer">
-                <Button className="h-9 text-xs bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5]">
+                <Button className="h-9 text-xs bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre">
                   <ExternalLink className="w-3.5 h-3.5 mr-2" />
                   Ouvrir dans Google Slides
                 </Button>
@@ -1122,7 +1122,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
               <a
                 href={pres.pptx_url}
                 download
-                className="inline-flex items-center gap-2 text-xs text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
+                className="inline-flex items-center gap-2 text-xs text-ardoise hover:text-encre transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
                 Télécharger le PPTX
@@ -1132,7 +1132,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
         )}
 
         {!apercu && !compteDrive && (
-          <p className="text-[#9298a6] text-xs">
+          <p className="text-ardoise text-xs">
             Aucun compte Google Drive connecté : la présentation restera un PPTX à télécharger. Connectez un
             compte depuis le dashboard (accès Drive) pour obtenir directement un lien Google Slides modifiable.
           </p>
@@ -1172,13 +1172,13 @@ function BlocVideoPresentation({ dossier, apercu }) {
   const progression = Math.round((statut?.progression || 0) * 100);
 
   return (
-    <div className="bg-[#000000] border border-[#1f2228] rounded-md px-5 py-4 space-y-3">
+    <div className="bg-fond border border-trait rounded-md px-5 py-4 space-y-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Film className="w-4 h-4 text-[#9298a6]" />
+          <Film className="w-4 h-4 text-ardoise" />
           <div>
-            <p className="text-[#f2f3f5] text-sm">Teaser client</p>
-            <p className="text-[#9298a6] text-xs">
+            <p className="text-encre text-sm">Teaser client</p>
+            <p className="text-ardoise text-xs">
               Vingt secondes : la devanture du bien, les quatre chiffres qui décident, l'appel — à envoyer au client.
             </p>
           </div>
@@ -1187,7 +1187,7 @@ function BlocVideoPresentation({ dossier, apercu }) {
           onClick={() => lancer.mutate()}
           disabled={enCours || apercu}
           variant="outline"
-          className="h-9 text-xs border-[#22262d] bg-transparent text-[#9298a6] hover:border-[#3a3f4a] hover:text-[#f2f3f5] shrink-0"
+          className="h-9 text-xs border-bord bg-transparent text-ardoise hover:border-bord-vif hover:text-encre shrink-0"
           title={apercu ? "Indisponible en mode aperçu" : undefined}
         >
           {enCours ? (
@@ -1201,18 +1201,18 @@ function BlocVideoPresentation({ dossier, apercu }) {
       {enCours && (
         <div className="h-1 rounded bg-[#1a1d1c] overflow-hidden">
           <div
-            className="h-full bg-[#96c0b8] transition-all duration-500"
+            className="h-full bg-menthe transition-all duration-500"
             style={{ width: `${Math.max(progression, 3)}%` }}
           />
         </div>
       )}
 
       {etat === "erreur" && (
-        <p className="text-[#e8746a] text-xs">Le rendu a échoué : {statut?.erreur || "erreur inconnue"}</p>
+        <p className="text-alerte text-xs">Le rendu a échoué : {statut?.erreur || "erreur inconnue"}</p>
       )}
 
       {(statut?.avertissements || []).map((a) => (
-        <p key={a} className="m-0 text-[12px] leading-[1.6] text-[#d9b46a] border-l-2 border-[#d9b46a]/50 pl-3">{a}</p>
+        <p key={a} className="m-0 text-[12px] leading-[1.6] text-ambre border-l-2 border-ambre/50 pl-3">{a}</p>
       ))}
 
       {etat === "pret" && statut?.url && (
@@ -1222,12 +1222,12 @@ function BlocVideoPresentation({ dossier, apercu }) {
             controls
             preload="metadata"
             src={statut.url}
-            className="w-full rounded-md border border-[#1f2228]"
+            className="w-full rounded-md border border-trait"
           />
           <a
             href={statut.url}
             download={`presentation-${dealId}.mp4`}
-            className="inline-flex items-center gap-2 text-xs text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
+            className="inline-flex items-center gap-2 text-xs text-ardoise hover:text-encre transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             Télécharger le MP4
@@ -1262,11 +1262,11 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
   return (
     <>
       {dossier.synthese_documents?.resume && (
-        <div className="bg-[#000000] border border-[#1f2228] rounded-md px-5 py-4">
-          <p className="text-[#9298a6] text-xs mb-2">Rappel de la synthèse documentaire</p>
-          <p className="text-[#c9cdd6] text-sm leading-relaxed">{dossier.synthese_documents.resume}</p>
+        <div className="bg-fond border border-trait rounded-md px-5 py-4">
+          <p className="text-ardoise text-xs mb-2">Rappel de la synthèse documentaire</p>
+          <p className="text-craie text-sm leading-relaxed">{dossier.synthese_documents.resume}</p>
           {dossier.synthese_documents.points_a_verifier?.length > 0 && (
-            <p className="text-[#96c0b8]/80 text-xs mt-2">
+            <p className="text-menthe/80 text-xs mt-2">
               {dossier.synthese_documents.points_a_verifier.length} point(s) à vérifier — détail à l'étape
               Documents.
             </p>
@@ -1335,17 +1335,17 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
     return (
       <>
       {titre}
-      <div className="bg-[#000000] border border-[#22262d] rounded-md p-6 text-center">
-        <span className="w-10 h-10 rounded-md bg-[#f2f3f5]/[0.05] text-[#9298a6] flex items-center justify-center mx-auto mb-3">
+      <div className="bg-fond border border-bord rounded-md p-6 text-center">
+        <span className="w-10 h-10 rounded-md bg-encre/[0.05] text-ardoise flex items-center justify-center mx-auto mb-3">
           <Briefcase className="w-5 h-5" />
         </span>
-        <p className="text-[#f2f3f5] text-sm font-medium mb-1">Le deal est entré dans la plateforme</p>
-        <p className="text-[#9298a6] text-xs mb-4">
+        <p className="text-encre text-sm font-medium mb-1">Le deal est entré dans la plateforme</p>
+        <p className="text-ardoise text-xs mb-4">
           Suivez l'avancement client (message envoyé, retour oui/non) depuis la fiche projet.
         </p>
         <Button
           onClick={() => navigate(`/AdminProjets?id=${dossier.projet_id}`)}
-          className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114]"
+          className="bg-encre hover:bg-craie text-surface"
         >
           <ExternalLink className="w-4 h-4 mr-2" /> Ouvrir le projet
         </Button>
@@ -1358,15 +1358,15 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
   return (
     <>
     {titre}
-    <div className="bg-[#000000] border border-[#1f2228] rounded-md p-6 text-center">
-      <span className="w-10 h-10 rounded-md bg-[#f2f3f5]/[0.05] text-[#9298a6] flex items-center justify-center mx-auto mb-3">
+    <div className="bg-fond border border-trait rounded-md p-6 text-center">
+      <span className="w-10 h-10 rounded-md bg-encre/[0.05] text-ardoise flex items-center justify-center mx-auto mb-3">
         <Briefcase className="w-5 h-5" />
       </span>
-      <p className="text-[#f2f3f5] text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
+      <p className="text-encre text-sm font-medium mb-1">Entrer le deal dans la plateforme</p>
       <Button
         onClick={() => creerProjet.mutate()}
         disabled={apercu || creerProjet.isPending}
-        className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114]"
+        className="bg-encre hover:bg-craie text-surface"
       >
         {creerProjet.isPending ? (
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1376,12 +1376,12 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         {aAnalyser ? "Analyser les documents et créer le projet" : "Créer le projet pré-rempli"}
       </Button>
       {aAnalyser ? (
-        <p className="text-[#6a7180] text-[11px] mt-3">
+        <p className="text-brume text-[11px] mt-3">
           {documents.length} document{documents.length > 1 ? "s" : ""} pas encore extrait
           {documents.length > 1 ? "s" : ""} : ils le seront à la création, ce qui peut prendre une minute.
         </p>
       ) : analyses.length > 0 ? null : (
-        <p className="text-[#6a7180] text-[11px] mt-3">
+        <p className="text-brume text-[11px] mt-3">
           Aucun document au dossier : le projet part des seules données de la pré-analyse.
         </p>
       )}
@@ -1416,24 +1416,24 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
   const enCours = etat?.etat === "en_cours" || lancer.isPending;
 
   return (
-    <div className="bg-[#000000] border border-[#1f2228] rounded-xl px-6 py-8">
-      <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Pas de teaser, mais {nb} pièce{nb > 1 ? "s" : ""} dans le dossier</p>
+    <div className="bg-fond border border-trait rounded-xl px-6 py-8">
+      <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Pas de teaser, mais {nb} pièce{nb > 1 ? "s" : ""} dans le dossier</p>
       <p className="m-0 mt-2 text-[14.5px] leading-[1.65] text-[#d6d6db] max-w-[720px]">
         La fiche se compose depuis les documents — adresse, surface, locataire, bail, loyer, charges — puis passe dans la pré-analyse habituelle : mêmes critères, même verdict. Le prix de vente, absent des pièces, restera à renseigner.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-4">
         {enCours ? (
-          <span className="inline-flex items-center gap-2 text-[13px] text-[#9298a6]">
+          <span className="inline-flex items-center gap-2 text-[13px] text-ardoise">
             <PenseeIA etat="searching" taille={20} />
             {etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}
           </span>
         ) : (
-          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-[#f2f3f5] text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
             Pré-analyser à partir des {nb} pièce{nb > 1 ? "s" : ""}
           </button>
         )}
-        {etat?.etat === "erreur" && <span className="text-[13px] text-[#e8746a]">{etat.erreur}</span>}
-        <span className="text-[12.5px] text-[#6a7180]">Ou collez le teaser de l'agent dans le chat : il sera analysé dans ce dossier.</span>
+        {etat?.etat === "erreur" && <span className="text-[13px] text-alerte">{etat.erreur}</span>}
+        <span className="text-[12.5px] text-brume">Ou collez le teaser de l'agent dans le chat : il sera analysé dans ce dossier.</span>
       </div>
     </div>
   );
@@ -1464,11 +1464,11 @@ function RelancePreanalyse({ dossier, onRefresh, apercu }) {
   const enCours = etat?.etat === "en_cours";
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 -mt-2 mb-4">
-      <p className="m-0 text-[12.5px] text-[#e8746a]">{etat?.etat === "erreur" ? etat.erreur : ""}</p>
+      <p className="m-0 text-[12.5px] text-alerte">{etat?.etat === "erreur" ? etat.erreur : ""}</p>
       {enCours ? (
-        <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><PenseeIA etat="searching" taille={20} /> {etat.phase === "preanalyse" ? "Pré-analyse en cours…" : etat.phase?.startsWith("etape") ? `Relecture de la data room ${etat.fait ?? 0}/${etat.total ?? "…"}` : "En cours…"}</span>
+        <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><PenseeIA etat="searching" taille={20} /> {etat.phase === "preanalyse" ? "Pré-analyse en cours…" : etat.phase?.startsWith("etape") ? `Relecture de la data room ${etat.fait ?? 0}/${etat.total ?? "…"}` : "En cours…"}</span>
       ) : (
-        <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse, puis l'analyse de la data room ?") && relancer.mutate()} disabled={apercu || relancer.isPending} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#2c3139] text-[12.5px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40">
+        <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse, puis l'analyse de la data room ?") && relancer.mutate()} disabled={apercu || relancer.isPending} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-bord-doux text-[12.5px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-40">
           <RefreshCw className="w-3.5 h-3.5" /> Relancer la pré-analyse
         </button>
       )}

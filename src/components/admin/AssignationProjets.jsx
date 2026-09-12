@@ -20,20 +20,20 @@ function Ligne({ coche, onChange, titre, detail }) {
     <button
       type="button"
       onClick={onChange}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-t border-[#f2f3f5]/[0.08] transition-colors ${
-        coche ? "bg-[#96c0b8]/[0.06]" : "hover:bg-[#f2f3f5]/[0.03]"
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-t border-encre/[0.08] transition-colors ${
+        coche ? "bg-menthe/[0.06]" : "hover:bg-encre/[0.03]"
       }`}
     >
       <span
         className={`w-4 h-4 flex items-center justify-center border flex-shrink-0 ${
-          coche ? "bg-[#96c0b8] border-[#96c0b8]" : "border-[#3a3f4a]"
+          coche ? "bg-menthe border-menthe" : "border-bord-vif"
         }`}
       >
-        {coche && <Check className="w-3 h-3 text-[#000000]" />}
+        {coche && <Check className="w-3 h-3 text-fond" />}
       </span>
       <span className="min-w-0">
-        <span className="block text-[14px] text-[#f2f3f5] truncate">{titre}</span>
-        {detail && <span className="block text-[12px] text-[#9298a6] truncate">{detail}</span>}
+        <span className="block text-[14px] text-encre truncate">{titre}</span>
+        {detail && <span className="block text-[12px] text-ardoise truncate">{detail}</span>}
       </span>
     </button>
   );
@@ -43,13 +43,13 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
   return (
     <>
       <div className="relative mb-2">
-        <Search className="w-4 h-4 text-[#6a7180] absolute left-3 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-brume absolute left-3 top-1/2 -translate-y-1/2" />
         <input
           autoFocus
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           placeholder="Rechercher…"
-          className="w-full bg-[#0f1114] border border-[#1f2228] focus:border-[#96c0b8] rounded-md pl-9 pr-3 py-2 text-[14px] text-[#f2f3f5] outline-none"
+          className="w-full bg-surface border border-trait focus:border-menthe rounded-md pl-9 pr-3 py-2 text-[14px] text-encre outline-none"
         />
       </div>
       {/* Tout, d'un clic — sur ce que la recherche montre, pas au-delà. */}
@@ -57,21 +57,21 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
         const tousCoches = elements.every((el) => coches.has(el.cle));
         const nb = elements.filter((el) => coches.has(el.cle)).length;
         return (
-          <div className="flex items-center justify-between gap-3 px-1 py-2 border-b border-[#f2f3f5]/[0.08]">
-            <span className="text-[12px] text-[#6a7180]">{nb} sur {elements.length} sélectionné{nb > 1 ? "s" : ""}</span>
+          <div className="flex items-center justify-between gap-3 px-1 py-2 border-b border-encre/[0.08]">
+            <span className="text-[12px] text-brume">{nb} sur {elements.length} sélectionné{nb > 1 ? "s" : ""}</span>
             <button
               type="button"
               onClick={() => elements.forEach((el) => { if (coches.has(el.cle) === tousCoches) basculer(el.cle); })}
-              className="text-[11px] tracking-[.14em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors"
+              className="text-[11px] tracking-[.14em] uppercase text-menthe-clair hover:text-encre transition-colors"
             >
               {tousCoches ? "Tout désélectionner" : recherche ? "Sélectionner les résultats" : "Tout sélectionner"}
             </button>
           </div>
         );
       })()}
-      <div className="max-h-[50vh] overflow-y-auto border-b border-[#f2f3f5]/[0.08]">
+      <div className="max-h-[50vh] overflow-y-auto border-b border-encre/[0.08]">
         {elements.length === 0 ? (
-          <p className="m-0 py-6 text-center text-[13px] text-[#6a7180]">{vide}</p>
+          <p className="m-0 py-6 text-center text-[13px] text-brume">{vide}</p>
         ) : (
           elements.map((el) => (
             <Ligne
@@ -144,10 +144,10 @@ export function DialogueAssignerClient({ ouvert, onClose, users, formData, onVal
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-[#000000] border-[#1f2228] max-w-lg">
+      <DialogContent className="bg-fond border-trait max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-[#f2f3f5]">Assigner des clients</DialogTitle>
-          <DialogDescription className="text-[#9298a6]">
+          <DialogTitle className="text-encre">Assigner des clients</DialogTitle>
+          <DialogDescription className="text-ardoise">
             Les clients cochés verront ce projet dans leur espace. Un mail les prévient à l'enregistrement.
           </DialogDescription>
         </DialogHeader>
@@ -160,14 +160,14 @@ export function DialogueAssignerClient({ ouvert, onClose, users, formData, onVal
           vide="Aucun client ne correspond."
         />
         <div className="flex items-center justify-between gap-3 pt-2">
-          <span className="text-[12px] text-[#9298a6]">
+          <span className="text-[12px] text-ardoise">
             {coches.size} client{coches.size > 1 ? "s" : ""} assigné{coches.size > 1 ? "s" : ""}
           </span>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 border border-[#2c3139] text-[11px] tracking-[.14em] uppercase text-[#c9cdd6] hover:bg-[#f2f3f5]/[0.06]">
+            <button onClick={onClose} className="px-4 py-2 border border-bord-doux text-[11px] tracking-[.14em] uppercase text-craie hover:bg-encre/[0.06]">
               Annuler
             </button>
-            <button onClick={valider} className="px-5 py-2 bg-[#96c0b8] text-[#000000] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8]">
+            <button onClick={valider} className="px-5 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8]">
               Assigner
             </button>
           </div>
@@ -259,11 +259,11 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && !enregistrer.isPending && onClose()}>
-      <DialogContent className="bg-[#000000] border-[#1f2228] max-w-lg">
+      <DialogContent className="bg-fond border-trait max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-[#f2f3f5]">Assigner des projets</DialogTitle>
-          <DialogDescription className="text-[#9298a6]">
-            À <span className="text-[#f2f3f5]">{user.full_name || user.email}</span>. Les projets cochés apparaîtront dans son espace.
+          <DialogTitle className="text-encre">Assigner des projets</DialogTitle>
+          <DialogDescription className="text-ardoise">
+            À <span className="text-encre">{user.full_name || user.email}</span>. Les projets cochés apparaîtront dans son espace.
           </DialogDescription>
         </DialogHeader>
         <Liste
@@ -275,17 +275,17 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
           vide="Aucun projet ne correspond."
         />
         <div className="flex items-center justify-between gap-3 pt-2">
-          <span className="text-[12px] text-[#9298a6]">
+          <span className="text-[12px] text-ardoise">
             {coches.size} projet{coches.size > 1 ? "s" : ""} coché{coches.size > 1 ? "s" : ""}
           </span>
           <div className="flex gap-2">
-            <button onClick={onClose} disabled={enregistrer.isPending} className="px-4 py-2 border border-[#2c3139] text-[11px] tracking-[.14em] uppercase text-[#c9cdd6] hover:bg-[#f2f3f5]/[0.06] disabled:opacity-40">
+            <button onClick={onClose} disabled={enregistrer.isPending} className="px-4 py-2 border border-bord-doux text-[11px] tracking-[.14em] uppercase text-craie hover:bg-encre/[0.06] disabled:opacity-40">
               Annuler
             </button>
             <button
               onClick={() => enregistrer.mutate(window.confirm("Prévenir le ou les clients par e-mail qu'un projet leur est attribué ?"))}
               disabled={enregistrer.isPending}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-[#96c0b8] text-[#000000] text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8] disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8] disabled:opacity-40"
             >
               {enregistrer.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Assigner

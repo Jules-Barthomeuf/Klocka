@@ -213,9 +213,9 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
   );
 
   return (
-    <div className="border border-[#1f2228] rounded-md overflow-hidden bg-[#000000]">
+    <div className="border border-trait rounded-md overflow-hidden bg-fond">
       {manquants.length > 0 && (
-        <div className="px-4 py-2 border-b border-[#1f2228] flex items-start gap-2 text-[11px] text-[#96c0b8]/80">
+        <div className="px-4 py-2 border-b border-trait flex items-start gap-2 text-[11px] text-menthe/80">
           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
           <span>
             Absent du dossier : {manquants.join(", ")}. Les hypothèses sont à poser à la main dans les
@@ -227,12 +227,12 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
       <div className="flex">
         {/* Rail d'hypothèses : colonne à gauche sur grand écran */}
         {!compact && (
-          <aside className="hidden lg:block w-[250px] flex-shrink-0 border-r border-[#1f2228]">{rail}</aside>
+          <aside className="hidden lg:block w-[250px] flex-shrink-0 border-r border-trait">{rail}</aside>
         )}
 
         <div className="flex-1 w-0 min-w-0">
           {/* Onglets + actions */}
-          <div className="flex items-center justify-between border-b border-[#1f2228] px-3 h-10 gap-2">
+          <div className="flex items-center justify-between border-b border-trait px-3 h-10 gap-2">
             <div className="flex items-center gap-4 h-full overflow-x-auto">
               {ONGLETS.map((o) => (
                 <button
@@ -240,8 +240,8 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
                   onClick={() => { setOngletActif(o.id); if (o.id !== "scenarios") setNegoPct(0); }}
                   className={`text-xs h-full flex items-center border-b-2 whitespace-nowrap transition-colors ${
                     ongletActif === o.id
-                      ? "border-[#96c0b8] text-[#f2f3f5]"
-                      : "border-transparent text-[#9298a6] hover:text-[#c9cdd6]"
+                      ? "border-menthe text-encre"
+                      : "border-transparent text-ardoise hover:text-craie"
                   }`}
                 >
                   {o.label}
@@ -251,13 +251,13 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={() => setRailOuvert((o) => !o)}
-                className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] text-[11px]`}
+                className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-bord text-craie hover:text-encre text-[11px]`}
               >
                 <SlidersHorizontal className="w-3 h-3" /> Hypothèses
               </button>
               <button
                 onClick={reinitialiser}
-                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] text-[11px]"
+                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-bord text-craie hover:text-encre text-[11px]"
               >
                 <RefreshCw className="w-3 h-3" /> Dossier
               </button>
@@ -266,7 +266,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
                   onClick={() => enregistrer.mutate()}
                   disabled={enregistrer.isPending}
                   title={enregistreLe ? `Enregistré le ${enregistreLe.toLocaleDateString("fr-FR")} à ${enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "Garder ces chiffres sur le dossier"}
-                  className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-[#96c0b8] text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] text-[11px] disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-menthe text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] text-[11px] disabled:opacity-40"
                 >
                   {enregistrer.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : enregistreLe ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
                   {enregistreLe ? "Enregistrer à nouveau" : "Enregistrer les chiffres"}
@@ -276,11 +276,11 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
           </div>
 
           {/* Rail replié sur petit écran */}
-          {railOuvert && <div className={`${compact ? "" : "lg:hidden "}border-b border-[#1f2228]`}>{rail}</div>}
+          {railOuvert && <div className={`${compact ? "" : "lg:hidden "}border-b border-trait`}>{rail}</div>}
 
           <div className="p-3 space-y-3 max-w-full overflow-hidden">
             {negoActive && (
-              <div className="text-xs text-[#96c0b8] bg-[#96c0b8]/10 border border-[#96c0b8]/25 rounded-lg px-3 py-2">
+              <div className="text-xs text-menthe bg-menthe/10 border border-menthe/25 rounded-lg px-3 py-2">
                 Négociation -{negoPct} % appliquée : les chiffres ci-dessus et le tableau reflètent ce scénario.
               </div>
             )}
@@ -330,7 +330,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
               <SimDataTable calculs={calculs} anneeRevente={etat.anneeRevente} formatCurrency={formatCurrency} dureeCredit={etat.dureeCredit} />
             )}
 
-            <p className="text-[10px] text-[#6a7180] italic px-1">
+            <p className="text-[10px] text-brume italic px-1">
               Projection financière : hypothèses par défaut du simulateur là où le dossier est muet.
             </p>
           </div>

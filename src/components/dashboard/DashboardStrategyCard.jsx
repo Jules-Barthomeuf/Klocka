@@ -15,30 +15,30 @@ export default function DashboardStrategyCard({ userStrategy }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="bg-[#0f1114] border border-[#f2f3f5]/[0.12] p-5 h-full"
+      className="bg-surface border border-encre/[0.12] p-5 h-full"
     >
-      <p className="text-[10px] tracking-[0.2em] uppercase text-[#9298a6] mb-4">Stratégie</p>
+      <p className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-4">Stratégie</p>
 
       <div style={{ fontVariantNumeric: "tabular-nums" }}>
         {hasBudget && (
-          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#f2f3f5]/[0.12]">
-            <span className="text-[#9298a6]">Budget max</span>
-            <span className="text-[#f2f3f5]">{fmt(userStrategy.budget_max)} €</span>
+          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-encre/[0.12]">
+            <span className="text-ardoise">Budget max</span>
+            <span className="text-encre">{fmt(userStrategy.budget_max)} €</span>
           </div>
         )}
         {hasApport && (
-          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#f2f3f5]/[0.12]">
-            <span className="text-[#9298a6]">Apport</span>
-            <span className="text-[#c3ddd6]">{fmt(userStrategy.apport)} €</span>
+          <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-encre/[0.12]">
+            <span className="text-ardoise">Apport</span>
+            <span className="text-menthe-clair">{fmt(userStrategy.apport)} €</span>
           </div>
         )}
         {hasFields && userStrategy.fields.map((field, i) => (
-          <div key={i} className="flex justify-between gap-4 py-2.5 text-sm border-t border-[#f2f3f5]/[0.12]">
-            <span className={field.is_nogo ? "text-red-400" : "text-[#9298a6]"}>
+          <div key={i} className="flex justify-between gap-4 py-2.5 text-sm border-t border-encre/[0.12]">
+            <span className={field.is_nogo ? "text-red-400" : "text-ardoise"}>
               {field.label}
               {field.is_nogo && <span className="ml-2 text-[9px] tracking-[0.14em] uppercase">No-go</span>}
             </span>
-            {field.value && <span className="text-[#f2f3f5] text-right">{field.value}</span>}
+            {field.value && <span className="text-encre text-right">{field.value}</span>}
           </div>
         ))}
       </div>

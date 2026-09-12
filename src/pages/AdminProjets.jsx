@@ -1046,10 +1046,10 @@ export default function AdminProjets() {
     const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
     // Le dossier de pré-analyse dont ce projet est issu, s'il y en a un.
     const dossierLie = editingProject?.deal_id || formData.deal_id || null;
-    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-[#2c3139] px-4 py-2 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors";
-    const FLECHE = "inline-flex items-center justify-center w-9 h-9 rounded-full border border-[#2c3139] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] transition-colors disabled:opacity-30 disabled:cursor-not-allowed";
+    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-bord-doux px-4 py-2 text-[13px] text-craie hover:text-encre hover:border-bord-vif transition-colors";
+    const FLECHE = "inline-flex items-center justify-center w-9 h-9 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-30 disabled:cursor-not-allowed";
     return (
-      <div className="h-screen flex flex-col bg-[#000000] text-[#f2f3f5] overflow-hidden">
+      <div className="h-screen flex flex-col bg-fond text-encre overflow-hidden">
         {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. */}
         <div className="flex-shrink-0 px-6 max-md:px-4 pt-4 pb-3.5 border-b border-[#1c1c1c]">
           <div className="flex items-start gap-5">
@@ -1063,7 +1063,7 @@ export default function AdminProjets() {
               <button
                 onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")}
                 title="Ouvrir la page telle que le client la verra"
-                className="flex-shrink-0 w-[34px] h-[34px] rounded-full border border-[#2a2a2a] text-[#8a8a8a] hover:text-[#f2f3f5] hover:border-[#4d4d4d] transition-colors inline-flex items-center justify-center"
+                className="flex-shrink-0 w-[34px] h-[34px] rounded-full border border-[#2a2a2a] text-[#8a8a8a] hover:text-encre hover:border-[#4d4d4d] transition-colors inline-flex items-center justify-center"
               >
                 <Eye className="w-4 h-4" />
               </button>
@@ -1081,7 +1081,7 @@ export default function AdminProjets() {
             <button
               onClick={() => handleSubmit()}
               disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-semibold text-[#0b0c0e] bg-[#96c0b8] hover:bg-[#abd0c8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-semibold text-[#0b0c0e] bg-menthe hover:bg-[#abd0c8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement…</> : "Enregistrer"}
             </button>
@@ -1089,9 +1089,9 @@ export default function AdminProjets() {
             <div className="ml-auto flex items-center gap-2">
               <span className="text-[11.5px] max-lg:hidden" title="État de l'enregistrement">
                 {modifieDepuis
-                  ? <span className="text-[#96c0b8]">Modifications non enregistrées</span>
+                  ? <span className="text-menthe">Modifications non enregistrées</span>
                   : enregistreLe
-                    ? <span className="text-[#6a7180]">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                    ? <span className="text-brume">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
                     : null}
               </span>
               <button
@@ -1138,7 +1138,7 @@ export default function AdminProjets() {
                 {[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => (
                   <button key={o.value} onClick={() => { setOngletPage(o.value); const f = FORM_PAR_ONGLET[o.value]; if (f) setActiveTab(f); }}
                     className={`text-[11px] tracking-[0.16em] uppercase py-1 border-b whitespace-nowrap transition-colors
-                      ${ongletPage === o.value ? "border-[#96c0b8] text-[#f2f3f5]" : "border-transparent text-[#9298a6] hover:text-[#f2f3f5]"}`}>
+                      ${ongletPage === o.value ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"}`}>
                     {o.label}
                   </button>
                 ))}
@@ -1157,7 +1157,7 @@ export default function AdminProjets() {
             />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-[#6a7180] text-sm max-w-sm text-center px-6">
+              <p className="text-brume text-sm max-w-sm text-center px-6">
                 Renseignez le projet à droite, puis appuyez sur Entrée ou Enregistrer : la page telle que le client la verra apparaîtra ici.
               </p>
             </div>
@@ -1172,7 +1172,7 @@ export default function AdminProjets() {
           <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => setActiveTab(t.value)}
-                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-[#96c0b8] text-[#04140c] border-[#96c0b8] font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-[#3a3f4a] hover:text-[#f2f3f5]"}`}>
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-[#04140c] border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif hover:text-encre"}`}>
                 {t.label}
               </button>
             ))}
@@ -1193,21 +1193,21 @@ export default function AdminProjets() {
                   panneau suivent ceux de la page projet. Leur contenu reste, le
                   jour où on leur redonnera une porte d'entrée. */}
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
-                <div className="p-6 bg-[#0f1114] rounded-none border border-[#1f2228]">
+                <div className="p-6 bg-surface rounded-none border border-trait">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-[#f2f3f5]/[0.05] rounded-md flex items-center justify-center">
-                      <Brain className="w-6 h-6 text-[#9298a6]" />
+                    <div className="w-12 h-12 bg-encre/[0.05] rounded-md flex items-center justify-center">
+                      <Brain className="w-6 h-6 text-ardoise" />
                     </div>
                     <div>
-                      <h3 className="text-xl text-[#f2f3f5] font-light">Création assistée par IA</h3>
-                      <p className="text-[#f2f3f5]/30 text-sm">Collez du texte ou importez des documents pour remplir automatiquement</p>
+                      <h3 className="text-xl text-encre font-light">Création assistée par IA</h3>
+                      <p className="text-encre/30 text-sm">Collez du texte ou importez des documents pour remplir automatiquement</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <FField label="Importer depuis Google Drive">
                       <div className="flex gap-2">
                         <FInput value={driveSearchAddress} onChange={(e) => setDriveSearchAddress(e.target.value)} placeholder="Ex: 123 rue de la Paix, Paris" className="flex-1" />
-                        <Button onClick={handleSearchGoogleDrive} disabled={isSearchingDrive || !driveSearchAddress.trim()} className="bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] flex-shrink-0">
+                        <Button onClick={handleSearchGoogleDrive} disabled={isSearchingDrive || !driveSearchAddress.trim()} className="bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre flex-shrink-0">
                           {isSearchingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : <><FolderSearch className="w-4 h-4 mr-2" />Chercher</>}
                         </Button>
                       </div>
@@ -1220,12 +1220,12 @@ export default function AdminProjets() {
                         <FField className="flex-1">
                           <FInput value={newAiDocUrl} onChange={(e) => setNewAiDocUrl(e.target.value)} placeholder="Ou ajoutez une URL de document : https://exemple.com/document.pdf" />
                         </FField>
-                        <Button onClick={() => { if (newAiDocUrl.trim()) { setAiDocuments([...aiDocuments, convertGoogleDriveUrl(newAiDocUrl.trim())]); setNewAiDocUrl(""); } }} className="bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] h-[52px] flex-shrink-0"><Plus className="w-4 h-4" /></Button>
+                        <Button onClick={() => { if (newAiDocUrl.trim()) { setAiDocuments([...aiDocuments, convertGoogleDriveUrl(newAiDocUrl.trim())]); setNewAiDocUrl(""); } }} className="bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] h-[52px] flex-shrink-0"><Plus className="w-4 h-4" /></Button>
                       </div>
                       {aiDocuments.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {aiDocuments.map((url, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-[#f2f3f5]/[0.03] text-[#f2f3f5]/60 px-3 py-1.5 rounded-lg text-sm border border-[#1f2228]">
+                            <div key={idx} className="flex items-center gap-2 bg-encre/[0.03] text-encre/60 px-3 py-1.5 rounded-lg text-sm border border-trait">
                               <FileText className="w-4 h-4" /><span>Document {idx + 1}</span>
                               <button onClick={() => setAiDocuments(aiDocuments.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
                             </div>
@@ -1233,8 +1233,8 @@ export default function AdminProjets() {
                         </div>
                       )}
                     </div>
-                    <button onClick={handleFullAIGeneration} disabled={isGeneratingAI || (!aiFullText && aiDocuments.length === 0)} className="w-full h-12 bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] rounded-md transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                      {isGeneratingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Analyse en cours...</> : <><Sparkles className="w-4 h-4 text-[#9298a6]" />Extraire les informations avec l'IA</>}
+                    <button onClick={handleFullAIGeneration} disabled={isGeneratingAI || (!aiFullText && aiDocuments.length === 0)} className="w-full h-12 bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre rounded-md transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                      {isGeneratingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Analyse en cours...</> : <><Sparkles className="w-4 h-4 text-ardoise" />Extraire les informations avec l'IA</>}
                     </button>
                   </div>
                 </div>
@@ -1244,10 +1244,10 @@ export default function AdminProjets() {
 
               <TabsContent value="secteur" className="space-y-6 mt-0">
                 {/* Génération IA Secteur */}
-                <div className="p-5 bg-[#f2f3f5]/[0.03] rounded-md border border-[#22262d]">
+                <div className="p-5 bg-encre/[0.03] rounded-md border border-bord">
                   <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="w-5 h-5 text-[#9298a6]" />
-                    <h4 className="text-[#f2f3f5] text-sm font-medium">Générer les infos secteur avec l'IA</h4>
+                    <Sparkles className="w-5 h-5 text-ardoise" />
+                    <h4 className="text-encre text-sm font-medium">Générer les infos secteur avec l'IA</h4>
                   </div>
                   <div className="flex gap-2">
                     <FField className="flex-1">
@@ -1290,16 +1290,16 @@ export default function AdminProjets() {
                           setIsGeneratingAI(false);
                         }
                       }}
-                      className="bg-[#f2f3f5]/[0.06] border border-[#2c3139] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5] flex-shrink-0 h-[52px]"
+                      className="bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre flex-shrink-0 h-[52px]"
                     >
-                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-[#9298a6]" />Générer</>}
+                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-ardoise" />Générer</>}
                     </Button>
                   </div>
                 </div>
 
                 {/* Ville & Secteur */}
                 <div className="space-y-4">
-                  <h3 className="text-lg text-[#f2f3f5]">Ville & Secteur</h3>
+                  <h3 className="text-lg text-encre">Ville & Secteur</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <FField label="Commune"><FInput value={formData.ville_secteur_champ1} onChange={(e) => setFormData({...formData, ville_secteur_champ1: e.target.value})} placeholder="Lyon" /></FField>
                     <FField label="Département"><FInput value={formData.ville_secteur_champ2} onChange={(e) => setFormData({...formData, ville_secteur_champ2: e.target.value})} placeholder="Rhône" /></FField>
@@ -1336,10 +1336,10 @@ export default function AdminProjets() {
                   ].map(([champ, libelle, exemple]) => (
                     <div key={champ} className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label className="text-[#f2f3f5]">{libelle}</Label>
+                        <Label className="text-encre">{libelle}</Label>
                         <Button type="button" variant="outline" size="sm"
                           onClick={() => setFormData({ ...formData, [champ]: [...(formData[champ] || []), ""] })}
-                          className="border-[#1f2228] text-[#f2f3f5]/30 hover:text-[#f2f3f5] hover:border-[#3a3f4a]">
+                          className="border-trait text-encre/30 hover:text-encre hover:border-bord-vif">
                           <Plus className="w-4 h-4 mr-1" />Ajouter
                         </Button>
                       </div>
@@ -1360,13 +1360,13 @@ export default function AdminProjets() {
                   </div>
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-[#1f2228]">
+                <div className="space-y-4 pt-4 border-t border-trait">
                   <div className="flex items-center justify-between">
-                    <Label className="text-[#f2f3f5]">Notes secteur</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-[#1f2228] text-[#f2f3f5]/30 hover:text-[#f2f3f5] hover:border-[#3a3f4a]"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
+                    <Label className="text-encre">Notes secteur</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-trait text-encre/30 hover:text-encre hover:border-bord-vif"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
                   </div>
                   {(formData.notes_secteur || []).map((note, idx) => (
-                    <div key={idx} className="p-4 bg-[#f2f3f5]/[0.02] rounded-lg space-y-3">
+                    <div key={idx} className="p-4 bg-encre/[0.02] rounded-lg space-y-3">
                       <div className="flex items-center gap-3">
                         <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const u = [...formData.notes_secteur]; u[idx].titre = e.target.value; setFormData({...formData, notes_secteur: u}); }} placeholder="Titre..." /></FField>
                         <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_secteur: formData.notes_secteur.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
@@ -1376,7 +1376,7 @@ export default function AdminProjets() {
                   ))}
                 </div>
                 <div>
-                  <h3 className="text-lg mb-4 text-[#f2f3f5]">Bien</h3>
+                  <h3 className="text-lg mb-4 text-encre">Bien</h3>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <FField><FInput value={formData.bien_champ1} onChange={(e) => setFormData({...formData, bien_champ1: e.target.value})} placeholder="Champ 1 (Bien)" /></FField>
@@ -1386,13 +1386,13 @@ export default function AdminProjets() {
                     <FField label="Description bien"><FTextarea value={formData.description_bien} onChange={(e) => setFormData({...formData, description_bien: e.target.value})} rows={4} placeholder="Description du bien..." /></FField>
                   </div>
                 </div>
-                <div className="space-y-4 pt-4 border-t border-[#1f2228]">
+                <div className="space-y-4 pt-4 border-t border-trait">
                   <div className="flex items-center justify-between">
-                    <Label className="text-[#f2f3f5]">Notes bien</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-[#1f2228] text-[#f2f3f5]/30 hover:text-[#f2f3f5] hover:border-[#3a3f4a]"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
+                    <Label className="text-encre">Notes bien</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-trait text-encre/30 hover:text-encre hover:border-bord-vif"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
                   </div>
                   {(formData.notes_bien || []).map((note, idx) => (
-                    <div key={idx} className="p-4 bg-[#f2f3f5]/[0.02] rounded-lg space-y-3">
+                    <div key={idx} className="p-4 bg-encre/[0.02] rounded-lg space-y-3">
                       <div className="flex items-center gap-3">
                         <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const u = [...formData.notes_bien]; u[idx].titre = e.target.value; setFormData({...formData, notes_bien: u}); }} placeholder="Titre..." /></FField>
                         <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_bien: formData.notes_bien.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
@@ -1454,50 +1454,50 @@ export default function AdminProjets() {
 
   const CHIFFRES = [
     { valeur: actifs.length, label: "Projets actifs" },
-    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-[#c3ddd6]" },
+    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-menthe-clair" },
     { valeur: compteur("financement"), label: "En financement" },
-    { valeur: compteur("signe"), label: "Signés", accent: "text-[#96c0b8]" },
-    { valeur: nbArchives, label: "Archivés", accent: "text-[#9298a6]" },
+    { valeur: compteur("signe"), label: "Signés", accent: "text-menthe" },
+    { valeur: nbArchives, label: "Archivés", accent: "text-ardoise" },
   ];
 
   return (
-    <div className="projet-editorial min-h-screen bg-[#000000] text-[#f2f3f5] px-5 md:px-10 py-8 md:py-12">
+    <div className="projet-editorial min-h-screen bg-fond text-encre px-5 md:px-10 py-8 md:py-12">
       <div className="max-w-[1400px] mx-auto">
         {/* En-tête */}
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>
-            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5] m-0">Gestion des projets</h1>
-            <p className="text-[13.5px] leading-[1.7] text-[#9298a6] mt-2 mb-0">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
+            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Gestion des projets</h1>
+            <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13.5px] font-semibold bg-transparent border border-[#96c0b8]/50 text-[#96c0b8] hover:bg-[#96c0b8]/[0.08] transition-colors">
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13.5px] font-semibold bg-transparent border border-menthe/50 text-menthe hover:bg-menthe/[0.08] transition-colors">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
         </div>
 
         {/* Bandeau de chiffres */}
-        <div className="flex flex-wrap border-t border-[#f2f3f5]/[0.35] mb-8 max-md:mb-6">
+        <div className="flex flex-wrap border-t border-encre/[0.35] mb-8 max-md:mb-6">
           {CHIFFRES.map((c, i) => (
-            <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-[#f2f3f5]/[0.12] md:pl-6" : ""}`}>
-              <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-[#f2f3f5]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
-              <div className="text-[12px] text-[#9298a6] mt-1">{c.label}</div>
+            <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-6" : ""}`}>
+              <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
+              <div className="text-[12px] text-ardoise mt-1">{c.label}</div>
             </div>
           ))}
         </div>
 
         {/* Recherche + filtres */}
         <div className="mb-8 max-md:mb-6">
-          <div className="flex items-center gap-3 border-b border-[#f2f3f5]/[0.18] focus-within:border-[#3a3f4a] transition-colors pb-2 mb-5">
-            <FolderSearch className="w-4 h-4 text-[#6a7180] flex-shrink-0" />
+          <div className="flex items-center gap-3 border-b border-encre/[0.18] focus-within:border-bord-vif transition-colors pb-2 mb-5">
+            <FolderSearch className="w-4 h-4 text-brume flex-shrink-0" />
             <input
               placeholder="Rechercher un projet, une adresse, un client…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-none text-[#f2f3f5] outline-none placeholder:text-[#6a7180] text-[15px] py-1"
+              className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[15px] py-1"
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm("")} className="text-[#6a7180] hover:text-[#f2f3f5] transition-colors" title="Effacer">
+              <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" title="Effacer">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -1506,12 +1506,12 @@ export default function AdminProjets() {
           <div className="flex items-center gap-x-7 gap-y-2 flex-wrap">
             {FILTRES.map(({ v, l, n }) => (
               <button key={v} onClick={() => setStatusFilter(v)}
-                className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${statusFilter === v ? "text-[#f2f3f5] border-[#96c0b8]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
-                {l} <span className="text-[#6a7180]">{n}</span>
+                className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${statusFilter === v ? "text-encre border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
+                {l} <span className="text-brume">{n}</span>
               </button>
             ))}
             <button onClick={() => setShowArchived(!showArchived)}
-              className={`ml-auto inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${showArchived ? "text-[#96c0b8] border-[#96c0b8]" : "text-[#9298a6] border-transparent hover:text-[#f2f3f5]"}`}>
+              className={`ml-auto inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${showArchived ? "text-menthe border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
               <Archive className="w-3.5 h-3.5" />
               {showArchived ? "Masquer les archivés" : `Archivés ${nbArchives}`}
             </button>
@@ -1538,14 +1538,14 @@ export default function AdminProjets() {
           ))}
 
           {erreurProjets && (
-            <div className="col-span-full border-t border-[#f2f3f5]/[0.35] pt-10 pb-16 text-center">
-              <Building2 className="w-8 h-8 text-[#f2f3f5]/15 mx-auto mb-5" />
-              <h2 className="text-[22px] font-light text-[#f2f3f5] mb-2">Chargement impossible</h2>
-              <p className="text-[#9298a6] text-sm mb-6">
+            <div className="col-span-full border-t border-encre/[0.35] pt-10 pb-16 text-center">
+              <Building2 className="w-8 h-8 text-encre/15 mx-auto mb-5" />
+              <h2 className="text-[22px] font-light text-encre mb-2">Chargement impossible</h2>
+              <p className="text-ardoise text-sm mb-6">
                 Les projets n'ont pas pu être récupérés. Vérifiez votre connexion, puis réessayez.
               </p>
               <button onClick={() => rechargerProjets()}
-                className="text-[11px] tracking-[0.16em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
+                className="text-[11px] tracking-[0.16em] uppercase text-menthe-clair hover:text-encre transition-colors">
                 Réessayer
               </button>
             </div>
@@ -1553,29 +1553,29 @@ export default function AdminProjets() {
 
           {chargementProjets && !erreurProjets && (
             <div className="col-span-full pt-16 pb-16 flex justify-center">
-              <div className="w-6 h-6 border-2 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-menthe/30 border-t-menthe rounded-full animate-spin" />
             </div>
           )}
 
           {!chargementProjets && !erreurProjets && projetsVisibles.length === 0 && (
-            <div className="col-span-full border-t border-[#f2f3f5]/[0.35] pt-10 pb-16 text-center">
-              <Building2 className="w-8 h-8 text-[#f2f3f5]/15 mx-auto mb-5" />
-              <h2 className="text-[22px] font-light text-[#f2f3f5] mb-2">
+            <div className="col-span-full border-t border-encre/[0.35] pt-10 pb-16 text-center">
+              <Building2 className="w-8 h-8 text-encre/15 mx-auto mb-5" />
+              <h2 className="text-[22px] font-light text-encre mb-2">
                 {projects.length === 0 ? "Aucun projet" : "Aucun projet ne correspond"}
               </h2>
-              <p className="text-[#9298a6] text-sm mb-6">
+              <p className="text-ardoise text-sm mb-6">
                 {projects.length === 0
                   ? "Créez le premier dossier pour commencer."
                   : "Élargissez la recherche ou changez de filtre."}
               </p>
               {projects.length === 0 ? (
                 <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase border border-[#2c3139] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.08] transition-colors">
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.16em] uppercase border border-bord-doux text-encre hover:bg-encre/[0.08] transition-colors">
                   <Plus className="w-4 h-4" /> Créer un projet
                 </button>
               ) : (
                 <button onClick={() => { setSearchTerm(""); setStatusFilter("all"); setShowArchived(false); }}
-                  className="text-[11px] tracking-[0.16em] uppercase text-[#c3ddd6] hover:text-[#f2f3f5] transition-colors">
+                  className="text-[11px] tracking-[0.16em] uppercase text-menthe-clair hover:text-encre transition-colors">
                   Réinitialiser les filtres
                 </button>
               )}

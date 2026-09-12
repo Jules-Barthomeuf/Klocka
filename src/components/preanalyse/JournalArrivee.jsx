@@ -55,8 +55,8 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
   return (
     <div className="px-4 sm:px-5 py-5 flex flex-col gap-5">
       <div>
-        <h3 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">Aucune analyse de marché sur ce lot</h3>
-        <p className="m-0 mt-2 text-[13px] leading-6 text-[#9298a6] max-w-[70ch]">{intention}</p>
+        <h3 className="m-0 text-[17px] font-semibold text-encre">Aucune analyse de marché sur ce lot</h3>
+        <p className="m-0 mt-2 text-[13px] leading-6 text-ardoise max-w-[70ch]">{intention}</p>
       </div>
 
       {/* Les critères viennent du lot : l'adresse, la surface et l'activité
@@ -66,7 +66,7 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
           <span
             key={c.cle}
             title={c.libelle}
-            className="inline-flex items-center rounded-full border border-[#2c3139] bg-[#15181c] px-3 py-1 font-pill text-[11px] font-medium uppercase tracking-[.04em] text-[#c6ccd3]"
+            className="inline-flex items-center rounded-full border border-bord-doux bg-[#15181c] px-3 py-1 font-pill text-[11px] font-medium uppercase tracking-[.04em] text-[#c6ccd3]"
           >
             {c.valeur}
           </span>
@@ -79,7 +79,7 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
           return (
             <li key={s.cle} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 py-3">
               <span className="flex-shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: c.pastille }} aria-hidden />
-              <span className="flex-shrink-0 text-[13px] text-[#f2f3f5]">{s.nom}</span>
+              <span className="flex-shrink-0 text-[13px] text-encre">{s.nom}</span>
               <span className="min-w-0 flex-1 text-[12px]" style={{ color: s.ton === "ambre" ? c.etiquette : "#6a7180" }}>
                 {s.acces}
               </span>
@@ -97,7 +97,7 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
         >
           <Play className="w-3.5 h-3.5" /> Lancer la recherche
         </button>
-        <span className="text-[12px] text-[#6a7180]">En parallèle · environ {dureeEstimee}</span>
+        <span className="text-[12px] text-brume">En parallèle · environ {dureeEstimee}</span>
       </div>
     </div>
   );
@@ -143,22 +143,22 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
     <div className="px-4 sm:px-5 py-5 flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
-          <h3 className="m-0 text-[17px] font-semibold text-[#f2f3f5]">Analyse du {analyse.le}</h3>
+          <h3 className="m-0 text-[17px] font-semibold text-encre">Analyse du {analyse.le}</h3>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <ChoixSources onLancer={onLancer} apercu={apercu} />
         </div>
       </div>
 
-      <div className="flex gap-6 border-b border-[#1f2228]">
+      <div className="flex gap-6 border-b border-trait">
         {ONGLETS.map((o) => (
           <button
             key={o.cle}
             type="button"
             onClick={() => setOnglet(o.cle)}
             aria-pressed={onglet === o.cle}
-            className={`relative pb-2.5 text-[13.5px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#f2f3f5] after:origin-left after:transition-transform after:duration-300 ${
-              onglet === o.cle ? "text-[#f2f3f5] font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3] after:scale-x-0"
+            className={`relative pb-2.5 text-[13.5px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:transition-transform after:duration-300 ${
+              onglet === o.cle ? "text-encre font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3] after:scale-x-0"
             }`}
           >
             {o.titre}
@@ -180,7 +180,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   className="text-left rounded-[12px] bg-[#15181c] border px-4 py-3 hover:bg-[#191d22] transition-colors"
                   style={{ borderColor: couleur.bord }}
                 >
-                  <span className="flex items-center gap-1.5 font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180]">
+                  <span className="flex items-center gap-1.5 font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">
                     {c.libelle}
                     <InfoBulle texte={c.detail} />
                   </span>
@@ -204,7 +204,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                 return (
                   <li key={`${s.nom}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 py-2.5">
                     <span className="flex-shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: c.pastille }} aria-hidden />
-                    <span className="flex-shrink-0 text-[13px] text-[#f2f3f5]">{s.nom}</span>
+                    <span className="flex-shrink-0 text-[13px] text-encre">{s.nom}</span>
                     <span className="min-w-0 flex-1 text-[12px]" style={{ color: s.ton === "ambre" || s.ton === "rouge" ? c.etiquette : "#6a7180" }}>
                       {s.etat}
                     </span>
@@ -228,7 +228,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span className="flex-shrink-0 font-mono text-[10.5px] text-[#4e545e] tabular-nums w-[58px]">{c.quand || ""}</span>
-                    <span className="flex-shrink-0 font-mono text-[9.5px] text-[#6a7180] w-[76px] truncate">{c.src}</span>
+                    <span className="flex-shrink-0 font-mono text-[9.5px] text-brume w-[76px] truncate">{c.src}</span>
                     <span className="min-w-0 flex-1 text-[12.5px] text-[#c6ccd3]">{c.quoi}</span>
                     <span className="flex-shrink-0 text-[11.5px]" style={{ color: couleur.etiquette }}>{c.issue}</span>
                   </li>

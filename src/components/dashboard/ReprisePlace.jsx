@@ -60,7 +60,7 @@ export default function ReprisePlace({ limite = 6 }) {
 
   return (
     <section>
-      <p className="m-0 mb-4 text-[13.5px] text-[#6a7180]">Reprenez là où vous en étiez</p>
+      <p className="m-0 mb-4 text-[13.5px] text-brume">Reprenez là où vous en étiez</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {liste.map((x) => {
           const Icone = x.icone;
@@ -68,17 +68,17 @@ export default function ReprisePlace({ limite = 6 }) {
             <button
               key={x.cle}
               onClick={() => navigate(x.vers)}
-              className="group text-left rounded-xl border border-[#1f2228] bg-[#0f1114] px-4 py-3.5 hover:border-[#2c3139] transition-colors"
+              className="group text-left rounded-xl border border-trait bg-surface px-4 py-3.5 hover:border-bord-doux transition-colors"
             >
               <div className="flex items-start gap-3">
-                <Icone className="w-4 h-4 text-[#96c0b8] flex-none mt-0.5" />
+                <Icone className="w-4 h-4 text-menthe flex-none mt-0.5" />
                 <div className="min-w-0 flex-1">
-                  <p className="m-0 text-[14px] leading-[1.45] text-[#f2f3f5] truncate">{x.titre}</p>
-                  <p className="m-0 mt-1 text-[12px] text-[#6a7180] truncate">
+                  <p className="m-0 text-[14px] leading-[1.45] text-encre truncate">{x.titre}</p>
+                  <p className="m-0 mt-1 text-[12px] text-brume truncate">
                     {x.genre}{x.detail ? ` · ${x.detail}` : ""}{x.date ? ` · ${quand(x.date)}` : ""}
                   </p>
                 </div>
-                <ArrowUpRight className="w-3.5 h-3.5 text-[#3a3f4a] group-hover:text-[#96c0b8] flex-none transition-colors" />
+                <ArrowUpRight className="w-3.5 h-3.5 text-bord-vif group-hover:text-menthe flex-none transition-colors" />
               </div>
             </button>
           );

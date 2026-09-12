@@ -79,10 +79,10 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
           {m.rempli_le ? ` · rempli ${new Date(m.rempli_le).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
         </p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setTri((t) => (t ? null : "statut"))} className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${tri ? "border-[#e8927c] text-[#e8927c]" : "border-[#2c3139] text-[#97979f] hover:text-[#f2f3f5]"}`}>
+          <button onClick={() => setTri((t) => (t ? null : "statut"))} className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${tri ? "border-[#e8927c] text-[#e8927c]" : "border-bord-doux text-[#97979f] hover:text-encre"}`}>
             {tri ? "Ordre du gabarit" : "Trier par statut"}
           </button>
-          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-[#f2f3f5] text-[#0b0c0e] font-semibold hover:bg-[#ffffff]">
+          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-encre text-[#0b0c0e] font-semibold hover:bg-[#ffffff]">
             <Plus className="w-3.5 h-3.5" /> Ajouter une colonne
           </button>
         </div>
@@ -103,7 +103,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
                     className="text-left w-full group"
                   >
                     <span className="block text-[10px] tracking-[.14em] uppercase text-[#5f5f66]">{c.bloc}</span>
-                    <span className="block text-[12.5px] font-semibold text-[#f2f3f5] group-hover:text-[#ffffff] mt-0.5">{c.libelle}</span>
+                    <span className="block text-[12.5px] font-semibold text-encre group-hover:text-[#ffffff] mt-0.5">{c.libelle}</span>
                   </button>
                   {edition === c.id && (
                     <p className="m-0 mt-2 text-[11.5px] leading-[1.5] text-[#97979f] font-normal normal-case tracking-normal">
@@ -117,23 +117,23 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
           </thead>
           <tbody>
             {m.lignes.map((l) => (
-              <tr key={l.document_id} className="hover:bg-[#f2f3f5]/[0.02]">
+              <tr key={l.document_id} className="hover:bg-encre/[0.02]">
                 <td className="sticky left-0 z-10 bg-[#0f0f11] px-4 py-3 border-b border-r border-[#1e1e22] align-top">
-                  <span className="block text-[13px] text-[#f2f3f5] truncate max-w-[220px]" title={l.document_nom}>{l.document_nom}</span>
+                  <span className="block text-[13px] text-encre truncate max-w-[220px]" title={l.document_nom}>{l.document_nom}</span>
                   <span className="block text-[11px] text-[#5f5f66]">{l.categorie || "Autre"}{l.date_document ? ` · ${l.date_document.split("-").reverse().join("/")}` : ""}{l.erreur ? " · lecture en échec" : ""}{l.perime ? <span className="text-[#e8b04c]"> · bail antérieur, remplacé</span> : null}</span>
                 </td>
                 {colonnes.map((c) => {
                   const cel = l.cellules?.[c.id];
                   const ouverte = celluleOuverte?.ligne?.document_id === l.document_id && celluleOuverte?.colonne === c.id;
                   return (
-                    <td key={c.id} className={`px-3 py-3 border-b border-r border-[#1e1e22] align-top ${ouverte ? "bg-[#96c0b8]/[0.08]" : ""}`}>
+                    <td key={c.id} className={`px-3 py-3 border-b border-r border-[#1e1e22] align-top ${ouverte ? "bg-menthe/[0.08]" : ""}`}>
                       {cel?.reponse ? (
                         <button onClick={() => onCellule({ ligne: l, colonne: c.id, cellule: cel })} className="text-left text-[12.5px] leading-[1.5] text-[#d6d6db] hover:text-[#ffffff] line-clamp-3" title={cel.citation || cel.reponse}>
                           {cel.reponse}
                           {cel.page ? <span className="text-[#5f5f66]"> · p.{cel.page}</span> : null}
                         </button>
                       ) : (
-                        <span className="text-[#3a3f4a]">—</span>
+                        <span className="text-bord-vif">—</span>
                       )}
                     </td>
                   );
@@ -170,27 +170,27 @@ export function FormulaireColonne({ onAnnuler, onValider, enCours }) {
   const [criticite, setCriticite] = useState("moyenne");
   const [gabarit, setGabarit] = useState(false);
   return (
-    <div className="border border-[#22262d] rounded-xl bg-[#0f1114] px-5 py-4 space-y-3">
-      <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-[#9298a6]">Nouvelle colonne</p>
-      <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} placeholder="La question posée à chaque document — « Le bail prévoit-il une clause d'accession ? »" className="w-full bg-transparent border border-[#22262d] rounded-lg px-3 py-2 text-[14px] text-[#f2f3f5] outline-none focus:border-[#96c0b8]/60" />
+    <div className="border border-bord rounded-xl bg-surface px-5 py-4 space-y-3">
+      <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Nouvelle colonne</p>
+      <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} placeholder="La question posée à chaque document — « Le bail prévoit-il une clause d'accession ? »" className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[14px] text-encre outline-none focus:border-menthe/60" />
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <input value={libelle} onChange={(e) => setLibelle(e.target.value)} placeholder="Libellé court" className="bg-transparent border border-[#22262d] rounded-lg px-3 py-2 text-[13px] text-[#f2f3f5] outline-none" />
-        <input value={bloc} onChange={(e) => setBloc(e.target.value)} placeholder="Bloc" className="bg-transparent border border-[#22262d] rounded-lg px-3 py-2 text-[13px] text-[#f2f3f5] outline-none" />
-        <select value={regle} onChange={(e) => setRegle(e.target.value)} className="bg-[#0f1114] border border-[#22262d] rounded-lg px-3 py-2 text-[13px] text-[#f2f3f5] outline-none">
+        <input value={libelle} onChange={(e) => setLibelle(e.target.value)} placeholder="Libellé court" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none" />
+        <input value={bloc} onChange={(e) => setBloc(e.target.value)} placeholder="Bloc" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none" />
+        <select value={regle} onChange={(e) => setRegle(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none">
           {REGLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <select value={criticite} onChange={(e) => setCriticite(e.target.value)} className="bg-[#0f1114] border border-[#22262d] rounded-lg px-3 py-2 text-[13px] text-[#f2f3f5] outline-none">
+        <select value={criticite} onChange={(e) => setCriticite(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none">
           <option value="haute">Criticité haute</option><option value="moyenne">Criticité moyenne</option><option value="basse">Criticité basse</option>
         </select>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="inline-flex items-center gap-2 text-[12.5px] text-[#c9cdd6]">
-          <input type="checkbox" checked={gabarit} onChange={(e) => setGabarit(e.target.checked)} className="accent-[#96c0b8]" />
+        <label className="inline-flex items-center gap-2 text-[12.5px] text-craie">
+          <input type="checkbox" checked={gabarit} onChange={(e) => setGabarit(e.target.checked)} className="accent-menthe" />
           Enregistrer dans le gabarit « Murs de commerce » — pour tous les prochains dossiers
         </label>
         <div className="flex gap-2">
-          <button onClick={onAnnuler} className="text-[12.5px] text-[#9298a6] hover:text-[#f2f3f5] px-3">Annuler</button>
-          <button onClick={() => onValider({ question, libelle: libelle || question.slice(0, 40), bloc, regle, criticite, enregistrer_gabarit: gabarit })} disabled={!question.trim() || enCours} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#96c0b8] text-[#000000] text-[12.5px] font-semibold disabled:opacity-40">
+          <button onClick={onAnnuler} className="text-[12.5px] text-ardoise hover:text-encre px-3">Annuler</button>
+          <button onClick={() => onValider({ question, libelle: libelle || question.slice(0, 40), bloc, regle, criticite, enregistrer_gabarit: gabarit })} disabled={!question.trim() || enCours} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-menthe text-fond text-[12.5px] font-semibold disabled:opacity-40">
             {enCours ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Ajouter
           </button>
         </div>
@@ -209,7 +209,7 @@ function Anomalies({ m, dealId, onCellule }) {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const liste = [...m.anomalies].sort((a, b) => (ORDRE[a.statut] - ORDRE[b.statut]) || (({ haute: 0, moyenne: 1, basse: 2 })[a.colonne.criticite] - ({ haute: 0, moyenne: 1, basse: 2 })[b.colonne.criticite]));
-  if (!m.lignes.length) return <p className="m-0 text-[13.5px] text-[#9298a6]">La matrice n'est pas encore remplie : lancez la lecture depuis la grille.</p>;
+  if (!m.lignes.length) return <p className="m-0 text-[13.5px] text-ardoise">La matrice n'est pas encore remplie : lancez la lecture depuis la grille.</p>;
   if (!liste.length) return <p className="m-0 text-[13.5px] text-[#7fd1a8]">Aucune anomalie : les documents concordent sur toutes les questions du gabarit.</p>;
   const nb = (s) => liste.filter((a) => a.statut === s).length;
   return (
@@ -226,17 +226,17 @@ function Anomalies({ m, dealId, onCellule }) {
         const sources = m.lignes.filter((l) => l.cellules?.[a.colonne.id]?.reponse);
         const r = a.revue;
         return (
-          <div key={a.colonne.id} className={`rounded-xl border px-5 py-4 ${r?.verdict === "faux_positif" ? "border-[#1e1e22] opacity-60" : "border-[#22262d] bg-[#0f1114]"}`}>
+          <div key={a.colonne.id} className={`rounded-xl border px-5 py-4 ${r?.verdict === "faux_positif" ? "border-[#1e1e22] opacity-60" : "border-bord bg-surface"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#5f5f66]">{a.colonne.bloc} · criticité {a.colonne.criticite}</p>
-                <p className="m-0 mt-1 flex items-center gap-2.5 text-[16px] font-semibold text-[#f2f3f5]">{a.colonne.libelle} <Statut statut={a.statut} /></p>
+                <p className="m-0 mt-1 flex items-center gap-2.5 text-[16px] font-semibold text-encre">{a.colonne.libelle} <Statut statut={a.statut} /></p>
                 <p className="m-0 mt-1.5 text-[13.5px] leading-[1.65] text-[#b5b5bd]">{a.detail}</p>
               </div>
               <div className="flex items-center gap-1.5 flex-none">
-                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "confirme" ? null : "confirme", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "confirme" ? "bg-[#e8927c] border-[#e8927c] text-[#000000] font-semibold" : "border-[#2c3139] text-[#c9cdd6] hover:border-[#e8927c]"}`}>Confirmé</button>
-                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "faux_positif" ? null : "faux_positif", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "faux_positif" ? "bg-[#3a3f4a] border-[#3a3f4a] text-[#f2f3f5]" : "border-[#2c3139] text-[#c9cdd6] hover:border-[#3a3f4a]"}`}>Faux positif</button>
-                <button onClick={() => setOuvert(ouvert === a.colonne.id ? null : a.colonne.id)} className="text-[#6c6c74] hover:text-[#f2f3f5] px-1.5" title="Sources et commentaire"><ChevronDown className={`w-4 h-4 transition-transform ${ouvert === a.colonne.id ? "" : "-rotate-90"}`} /></button>
+                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "confirme" ? null : "confirme", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "confirme" ? "bg-[#e8927c] border-[#e8927c] text-fond font-semibold" : "border-bord-doux text-craie hover:border-[#e8927c]"}`}>Confirmé</button>
+                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "faux_positif" ? null : "faux_positif", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "faux_positif" ? "bg-bord-vif border-bord-vif text-encre" : "border-bord-doux text-craie hover:border-bord-vif"}`}>Faux positif</button>
+                <button onClick={() => setOuvert(ouvert === a.colonne.id ? null : a.colonne.id)} className="text-[#6c6c74] hover:text-encre px-1.5" title="Sources et commentaire"><ChevronDown className={`w-4 h-4 transition-transform ${ouvert === a.colonne.id ? "" : "-rotate-90"}`} /></button>
               </div>
             </div>
             {ouvert === a.colonne.id && (
@@ -244,13 +244,13 @@ function Anomalies({ m, dealId, onCellule }) {
                 {sources.length > 0 ? (
                   <div className="space-y-1.5">
                     {sources.map((l) => (
-                      <button key={l.document_id} onClick={() => onCellule({ ligne: l, colonne: a.colonne.id, cellule: l.cellules[a.colonne.id] })} className="block text-left text-[13px] text-[#c9cdd6] hover:text-[#ffffff]">
+                      <button key={l.document_id} onClick={() => onCellule({ ligne: l, colonne: a.colonne.id, cellule: l.cellules[a.colonne.id] })} className="block text-left text-[13px] text-craie hover:text-[#ffffff]">
                         <span className="text-[#6c6c74]">{l.document_nom}{l.cellules[a.colonne.id].page ? ` · p.${l.cellules[a.colonne.id].page}` : ""} — </span>{l.cellules[a.colonne.id].reponse}
                       </button>
                     ))}
                   </div>
                 ) : <p className="m-0 text-[12.5px] text-[#6c6c74]">Aucun document ne répond à cette question.</p>}
-                <textarea defaultValue={r?.commentaire || ""} placeholder="Un mot pour la note de synthèse — pourquoi c'est confirmé, ou pourquoi c'est un faux positif" rows={2} onBlur={(e) => e.target.value !== (r?.commentaire || "") && reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict || "confirme", commentaire: e.target.value })} className="w-full bg-transparent border border-[#22262d] rounded-lg px-3 py-2 text-[13px] text-[#f2f3f5] outline-none focus:border-[#96c0b8]/60" />
+                <textarea defaultValue={r?.commentaire || ""} placeholder="Un mot pour la note de synthèse — pourquoi c'est confirmé, ou pourquoi c'est un faux positif" rows={2} onBlur={(e) => e.target.value !== (r?.commentaire || "") && reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict || "confirme", commentaire: e.target.value })} className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none focus:border-menthe/60" />
               </div>
             )}
           </div>
@@ -264,13 +264,13 @@ function Anomalies({ m, dealId, onCellule }) {
 export function Livrables({ dealId, nb }) {
   const { data, isLoading } = useQuery({ queryKey: ["livrables", dealId, nb], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/matrice/livrables`) });
   const copier = async (t, quoi) => { try { await navigator.clipboard.writeText(t); toast.success(`${quoi} copié`); } catch { window.prompt("Copiez :", t); } };
-  if (isLoading || !data) return <Loader2 className="w-4 h-4 animate-spin text-[#9298a6]" />;
+  if (isLoading || !data) return <Loader2 className="w-4 h-4 animate-spin text-ardoise" />;
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
       <section>
         <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-[#1e1e22]">
           <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold text-[#e8b04c]">Demandes au vendeur · {data.demandes.length}</p>
-          <button onClick={() => copier(data.demandes_texte, "La liste")} className="inline-flex items-center gap-1.5 text-[12px] text-[#c9cdd6] hover:text-[#f2f3f5]"><Copy className="w-3.5 h-3.5" /> Copier pour un mail</button>
+          <button onClick={() => copier(data.demandes_texte, "La liste")} className="inline-flex items-center gap-1.5 text-[12px] text-craie hover:text-encre"><Copy className="w-3.5 h-3.5" /> Copier pour un mail</button>
         </div>
         {data.demandes.length ? (
           <ol className="m-0 pl-5 space-y-2.5">
@@ -284,7 +284,7 @@ export function Livrables({ dealId, nb }) {
       <section>
         <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-[#1e1e22]">
           <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold text-[#8fb6e8]">Note de synthèse</p>
-          <button onClick={() => copier(data.note, "La note")} className="inline-flex items-center gap-1.5 text-[12px] text-[#c9cdd6] hover:text-[#f2f3f5]"><Copy className="w-3.5 h-3.5" /> Copier</button>
+          <button onClick={() => copier(data.note, "La note")} className="inline-flex items-center gap-1.5 text-[12px] text-craie hover:text-encre"><Copy className="w-3.5 h-3.5" /> Copier</button>
         </div>
         <pre className="m-0 whitespace-pre-wrap text-[13px] leading-[1.7] text-[#b5b5bd] font-[inherit]">{data.note}</pre>
       </section>
@@ -338,21 +338,21 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
       <div className="flex flex-wrap items-center justify-between gap-3 px-7 max-md:px-4 border-b border-[#1e1e22]">
         <div className="flex gap-6 overflow-x-auto">
           {ONGLETS.map(([id, l]) => (
-            <button key={id} onClick={() => { setOnglet(id); setCelluleOuverte(null); }} className={`relative py-3.5 text-[14px] whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#e8927c] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${onglet === id ? "text-[#f2f3f5] font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>
+            <button key={id} onClick={() => { setOnglet(id); setCelluleOuverte(null); }} className={`relative py-3.5 text-[14px] whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#e8927c] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${onglet === id ? "text-encre font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>
               {l}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-3 py-2">
-          <div className="inline-flex rounded-full border border-[#2c3139] p-0.5 text-[12px]" title="Deux lectures des mêmes faits : la grille (documents × questions) ou la fiche (le bien, champ par champ)">
+          <div className="inline-flex rounded-full border border-bord-doux p-0.5 text-[12px]" title="Deux lectures des mêmes faits : la grille (documents × questions) ou la fiche (le bien, champ par champ)">
             {[["grille", "Grille"], ["fiche", "Fiche"]].map(([m, l]) => (
-              <button key={m} onClick={() => changerMode(m)} className={`px-3 py-1 rounded-full transition-colors ${mode === m ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{l}</button>
+              <button key={m} onClick={() => changerMode(m)} className={`px-3 py-1 rounded-full transition-colors ${mode === m ? "bg-encre text-[#0b0c0e] font-semibold" : "text-ardoise hover:text-encre"}`}>{l}</button>
             ))}
           </div>
           {enCours ? (
-            <span className="inline-flex items-center gap-2 text-[12.5px] text-[#9298a6]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {m.remplissage.fait}/{m.remplissage.total ?? "…"} — {m.remplissage.document || "lecture"}</span>
+            <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {m.remplissage.fait}/{m.remplissage.total ?? "…"} — {m.remplissage.document || "lecture"}</span>
           ) : (
-            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-[#f2f3f5] text-[#0b0c0e] hover:bg-[#ffffff] disabled:opacity-40">
+            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-encre text-[#0b0c0e] hover:bg-[#ffffff] disabled:opacity-40">
               <RefreshCw className="w-3.5 h-3.5" /> {m?.lignes?.length ? "Relire les documents" : "Remplir la grille"}
             </button>
           )}
@@ -362,17 +362,17 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
       <div className={`px-7 max-md:px-4 py-6 ${celluleOuverte ? "lg:flex lg:gap-6 lg:items-start" : ""}`}>
         <div className="min-w-0 flex-1">
           {isLoading || !m ? (
-            <Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" />
+            <Loader2 className="w-5 h-5 animate-spin text-ardoise" />
           ) : onglet === "fiche" ? (
             <FicheDossier
               dealId={dealId}
               onPreuve={ouvrirPreuve}
               questionsLibres={
-                <section className="border border-dashed border-[#2c3139] rounded-xl px-4 py-3">
+                <section className="border border-dashed border-bord-doux rounded-xl px-4 py-3">
                   {questionLibre ? (
                     <FormulaireColonne onAnnuler={() => setQuestionLibre(false)} onValider={(c) => ajouterLibre.mutate(c)} enCours={ajouterLibre.isPending} />
                   ) : (
-                    <button onClick={() => setQuestionLibre(true)} className="inline-flex items-center gap-2 text-[13px] text-[#9298a6] hover:text-[#f2f3f5]"><Plus className="w-3.5 h-3.5" /> Questions libres — poser une question à toutes les pièces</button>
+                    <button onClick={() => setQuestionLibre(true)} className="inline-flex items-center gap-2 text-[13px] text-ardoise hover:text-encre"><Plus className="w-3.5 h-3.5" /> Questions libres — poser une question à toutes les pièces</button>
                   )}
                 </section>
               }
@@ -382,7 +382,7 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
           ) : onglet === "anomalies" ? (
             <Anomalies m={m} dealId={dealId} onCellule={setCelluleOuverte} />
           ) : onglet === "grille" ? (
-            m.lignes.length ? <Grille m={m} dealId={dealId} onCellule={setCelluleOuverte} celluleOuverte={celluleOuverte} /> : <p className="m-0 text-[13.5px] text-[#9298a6]">Importez les documents puis « Remplir la grille » : chaque document répond à chaque question, avec sa page.</p>
+            m.lignes.length ? <Grille m={m} dealId={dealId} onCellule={setCelluleOuverte} celluleOuverte={celluleOuverte} /> : <p className="m-0 text-[13.5px] text-ardoise">Importez les documents puis « Remplir la grille » : chaque document répond à chaque question, avec sa page.</p>
           ) : onglet === "documents" ? (
             <>
               {m.a_classer > 0 && <p className="m-0 mb-4 text-[12.5px] text-[#e8b04c]">{m.a_classer} document{m.a_classer > 1 ? "s" : ""} sans catégorie : confirmez-la ci-dessous — la lecture croisée en dépend.</p>}
@@ -405,6 +405,6 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
 
 function FriseFiche({ dealId, onPreuve }) {
   const { data: fiche } = useQuery({ queryKey: ["fiche", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/matrice/fiche`) });
-  if (!fiche) return <Loader2 className="w-5 h-5 animate-spin text-[#9298a6]" />;
+  if (!fiche) return <Loader2 className="w-5 h-5 animate-spin text-ardoise" />;
   return <Frise fiche={fiche} onPreuve={onPreuve} />;
 }

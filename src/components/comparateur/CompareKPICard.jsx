@@ -3,8 +3,8 @@ import InfoTooltip from "./InfoTooltip";
 
 const colorClasses = [
   { bg: "from-red-800/20", border: "border-red-800/50", text: "text-red-800", bar: "bg-red-800" },
-  { bg: "from-[#c3ddd6]/20", border: "border-[#c3ddd6]/50", text: "text-[#c3ddd6]", bar: "bg-[#c3ddd6]" },
-  { bg: "from-[#96c0b8]/20", border: "border-[#96c0b8]/50", text: "text-[#96c0b8]", bar: "bg-[#96c0b8]" },
+  { bg: "from-menthe-clair/20", border: "border-menthe-clair/50", text: "text-menthe-clair", bar: "bg-menthe-clair" },
+  { bg: "from-menthe/20", border: "border-menthe/50", text: "text-menthe", bar: "bg-menthe" },
   { bg: "from-purple-400/20", border: "border-purple-400/50", text: "text-purple-400", bar: "bg-purple-400" },
 ];
 
@@ -30,9 +30,9 @@ export default function CompareKPICard({ label, values, projectNames, format = "
   };
 
   return (
-    <div className="bg-[#000000] rounded-md border border-[#1f2228] p-5">
+    <div className="bg-fond rounded-md border border-trait p-5">
       <div className="flex items-center mb-4">
-        <p className="text-[#f2f3f5]/40 text-xs uppercase tracking-[0.15em]">{label}</p>
+        <p className="text-encre/40 text-xs uppercase tracking-[0.15em]">{label}</p>
         {tooltip && <InfoTooltip text={tooltip} />}
       </div>
       <div className="space-y-3">
@@ -44,13 +44,13 @@ export default function CompareKPICard({ label, values, projectNames, format = "
           return (
             <div key={i}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[#f2f3f5]/50 text-xs truncate max-w-[50%]">{projectNames[i]}</span>
-                <span className={`text-sm font-medium ${isBest ? colors.text : "text-[#f2f3f5]"}`}>
+                <span className="text-encre/50 text-xs truncate max-w-[50%]">{projectNames[i]}</span>
+                <span className={`text-sm font-medium ${isBest ? colors.text : "text-encre"}`}>
                   {formatValue(v)}
                 </span>
               </div>
               {typeof v === "number" && max > 0 && (
-                <div className="h-1.5 bg-[#f2f3f5]/[0.04] rounded-full overflow-hidden">
+                <div className="h-1.5 bg-encre/[0.04] rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${colors.bar} transition-all duration-700`}
                     style={{ width: `${Math.max(barWidth, 2)}%` }}

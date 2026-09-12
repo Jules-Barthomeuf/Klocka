@@ -210,7 +210,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
       `}</style>
 
       {/* Dans le dossier : l'écran d'arrivée. Le fil ne s'y déroule jamais. */}
-      <section className="border border-[#2c3139] rounded-[16px] bg-[#0f1114] overflow-hidden">
+      <section className="border border-bord-doux rounded-[16px] bg-surface overflow-hidden">
         <JournalArrivee
           intention={INTENTION}
           criteres={criteres}
@@ -232,15 +232,15 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
       {phase !== "repos" &&
         createPortal(
           <div className="ja-plein fixed inset-0 z-[60] bg-[#08090b] flex flex-col">
-            <header className="flex-shrink-0 border-b border-[#1f2228]">
+            <header className="flex-shrink-0 border-b border-trait">
               <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 py-3.5 flex items-center gap-3">
                 <div className="min-w-0 flex-1 flex items-center gap-2.5">
-                  <span className="flex-shrink-0 px-2 h-[22px] rounded-full bg-[#1f2228] text-[#9298a6] text-[9.5px] font-semibold tracking-[.06em] inline-flex items-center">
+                  <span className="flex-shrink-0 px-2 h-[22px] rounded-full bg-trait text-ardoise text-[9.5px] font-semibold tracking-[.06em] inline-flex items-center">
                     VOUS
                   </span>
-                  <span className="truncate text-[14px] text-[#f2f3f5]">
+                  <span className="truncate text-[14px] text-encre">
                     {PROMPT}
-                    {adresseDe(lot) ? <span className="text-[#6a7180]"> · {adresseDe(lot)}</span> : null}
+                    {adresseDe(lot) ? <span className="text-brume"> · {adresseDe(lot)}</span> : null}
                   </span>
                 </div>
                 <button
@@ -248,7 +248,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
                   onClick={fermer}
                   aria-label="Fermer"
                   title={phase === "joue" ? "Fermer — la recherche continue côté serveur" : "Fermer"}
-                  className="flex-shrink-0 p-1.5 rounded-full text-[#6a7180] hover:text-[#f2f3f5] hover:bg-[#1f2228] transition-colors"
+                  className="flex-shrink-0 p-1.5 rounded-full text-brume hover:text-encre hover:bg-trait transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -285,7 +285,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
                   </ol>
                   {phase === "joue" && (
                     <div className="pl-[64px] sm:pl-[76px]">
-                      <span className="ja-points text-[#6a7180] text-[15px] leading-none tracking-[3px]">…</span>
+                      <span className="ja-points text-brume text-[15px] leading-none tracking-[3px]">…</span>
                     </div>
                   )}
                 </div>

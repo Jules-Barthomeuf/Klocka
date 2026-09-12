@@ -101,14 +101,14 @@ input[type=range] { accent-color: #96c0b8; }
 button.rounded-md, a.rounded-md, button.rounded-lg, a.rounded-lg { border-radius: 9999px; }
 /* Tout ce qui est rempli de menthe est une pilule — bouton, lien, ou élément
    qui se fait passer pour un bouton. Le sélecteur d'attribut vise le jeton
-   exact « bg-[#96c0b8] » : les fonds teintés (…/[0.06]) ne sont pas touchés. */
-[class~="bg-[#96c0b8]"] { border-radius: 9999px !important; }
+   exact « bg-menthe » : les fonds teintés (…/[0.06]) ne sont pas touchés. */
+[class~="bg-menthe"] { border-radius: 9999px !important; }
 /* Un bouton cerclé de menthe est une pilule — mais pas un onglet souligné :
    un trait sous un mot reste droit. */
-button[class*="border-[#96c0b8]"]:not([class*="border-b"]):not([role="tab"]), a[class*="border-[#96c0b8]"]:not([class*="border-b"]) { border-radius: 9999px !important; }
-button[class~="bg-[#f2f3f5]"], a[class~="bg-[#f2f3f5]"] { background-color: #96c0b8; color: #000000; border-color: #96c0b8; border-radius: 9999px !important; }
-button[class~="bg-[#f2f3f5]"]:hover, a[class~="bg-[#f2f3f5]"]:hover { border-color: #abd0c8; }
-button[class~="bg-[#f2f3f5]"]:hover, a[class~="bg-[#f2f3f5]"]:hover { background-color: #abd0c8; }
+button[class*="border-menthe"]:not([class*="border-b"]):not([role="tab"]), a[class*="border-menthe"]:not([class*="border-b"]) { border-radius: 9999px !important; }
+button[class~="bg-encre"], a[class~="bg-encre"] { background-color: #96c0b8; color: #000000; border-color: #96c0b8; border-radius: 9999px !important; }
+button[class~="bg-encre"]:hover, a[class~="bg-encre"]:hover { border-color: #abd0c8; }
+button[class~="bg-encre"]:hover, a[class~="bg-encre"]:hover { background-color: #abd0c8; }
 button[class~="bg-[#ffffff]"] { border-radius: 9999px !important; }
 
 /* Page projet — identité éditoriale (maquette "Page Projet Klocka") */
@@ -140,6 +140,26 @@ button[class~="bg-[#ffffff]"] { border-radius: 9999px !important; }
 
 @layer base {
   :root {
+    /* --- La palette Klocka, en variables -------------------------------------
+       Les mêmes quatorze couleurs que les classes Tailwind (fond, encre,
+       menthe...), pour les styles écrits en ligne : un graphique, un dégradé,
+       une couleur calculée en JavaScript. Un seul endroit pour les deux
+       chemins, sinon la palette se dédouble au premier changement. */
+    --k-fond: #000000;
+    --k-surface: #0f1114;
+    --k-encre: #f2f3f5;
+    --k-craie: #c9cdd6;
+    --k-ardoise: #9298a6;
+    --k-brume: #6a7180;
+    --k-menthe: #96c0b8;
+    --k-menthe-clair: #c3ddd6;
+    --k-trait: #1f2228;
+    --k-bord: #22262d;
+    --k-bord-doux: #2c3139;
+    --k-bord-vif: #3a3f4a;
+    --k-alerte: #e8746a;
+    --k-ambre: #d9b46a;
+
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;

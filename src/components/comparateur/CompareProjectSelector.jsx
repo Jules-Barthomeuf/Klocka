@@ -1,9 +1,9 @@
 import React from "react";
 import { Check, MapPin, Plus } from "lucide-react";
 
-const BORDER_COLORS = ["border-red-800", "border-[#c3ddd6]", "border-[#96c0b8]", "border-purple-400"];
-const RING_COLORS = ["ring-red-800/30", "ring-[#c3ddd6]/30", "ring-[#96c0b8]/30", "ring-purple-400/30"];
-const DOT_COLORS = ["bg-red-800", "bg-[#c3ddd6]", "bg-[#96c0b8]", "bg-purple-400"];
+const BORDER_COLORS = ["border-red-800", "border-menthe-clair", "border-menthe", "border-purple-400"];
+const RING_COLORS = ["ring-red-800/30", "ring-menthe-clair/30", "ring-menthe/30", "ring-purple-400/30"];
+const DOT_COLORS = ["bg-red-800", "bg-menthe-clair", "bg-menthe", "bg-purple-400"];
 
 const statutLabels = {
   prospect: "Prospect",
@@ -62,10 +62,10 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
             onClick={() => onToggle(project.id)}
             className="text-left group"
           >
-            <div className={`relative bg-[#000000] rounded-md border overflow-hidden transition-all duration-300 ${
+            <div className={`relative bg-fond rounded-md border overflow-hidden transition-all duration-300 ${
               isSelected
                 ? `${BORDER_COLORS[colorIdx]} ring-2 ${RING_COLORS[colorIdx]}`
-                : "border-[#1f2228] hover:border-[#22262d]"
+                : "border-trait hover:border-bord"
             }`}>
               {/* Image */}
               <div className="relative h-48 md:h-52 overflow-hidden">
@@ -77,14 +77,14 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-[#111] to-[#080808] flex items-center justify-center">
-                    <MapPin className="w-12 h-12 text-[#f2f3f5]/[0.05]" />
+                    <MapPin className="w-12 h-12 text-encre/[0.05]" />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#000000] via-[#000000]/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-fond via-fond/30 to-transparent" />
 
                 {/* Status badge */}
                 <div className="absolute top-4 left-4">
-                  <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-[#000000]/60 backdrop-blur-sm text-[#96c0b8] border border-[#96c0b8]/20">
+                  <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-fond/60 backdrop-blur-sm text-menthe border border-menthe/20">
                     {statutLabels[project.statut] || project.statut}
                   </span>
                 </div>
@@ -94,23 +94,23 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                     isSelected
                       ? `${DOT_COLORS[colorIdx]} shadow-lg`
-                      : "bg-[#000000]/50 backdrop-blur-sm border border-[#f2f3f5]/20"
+                      : "bg-fond/50 backdrop-blur-sm border border-encre/20"
                   }`}>
                     {isSelected ? (
                       <Check className="w-4 h-4 text-black" />
                     ) : (
-                      <Plus className="w-4 h-4 text-[#f2f3f5]/60" />
+                      <Plus className="w-4 h-4 text-encre/60" />
                     )}
                   </div>
                 </div>
 
                 {/* Title */}
                 <div className="absolute bottom-4 left-5 right-5">
-                  <h2 className="text-xl font-light text-[#f2f3f5] tracking-tight leading-tight">
+                  <h2 className="text-xl font-light text-encre tracking-tight leading-tight">
                     {project.titre}
                   </h2>
                   {project.adresse_complete && (
-                    <p className="text-[#f2f3f5]/40 text-sm mt-1">{project.adresse_complete}</p>
+                    <p className="text-encre/40 text-sm mt-1">{project.adresse_complete}</p>
                   )}
                 </div>
               </div>
@@ -119,17 +119,17 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
               <div className="p-5 flex items-center justify-between">
                 <div className="flex gap-8">
                   <div>
-                    <p className="text-[#f2f3f5]/25 text-[10px] uppercase tracking-wider mb-1">Prix de revient</p>
-                    <p className="text-[#96c0b8] text-lg font-light">{formatPrice(prixRevient)}</p>
+                    <p className="text-encre/25 text-[10px] uppercase tracking-wider mb-1">Prix de revient</p>
+                    <p className="text-menthe text-lg font-light">{formatPrice(prixRevient)}</p>
                   </div>
                   <div>
-                    <p className="text-[#f2f3f5]/25 text-[10px] uppercase tracking-wider mb-1">Rendement</p>
-                    <p className="text-[#f2f3f5] text-lg font-light">{rendement.toFixed(2)}%</p>
+                    <p className="text-encre/25 text-[10px] uppercase tracking-wider mb-1">Rendement</p>
+                    <p className="text-encre text-lg font-light">{rendement.toFixed(2)}%</p>
                   </div>
                   {surface > 0 && (
                     <div>
-                      <p className="text-[#f2f3f5]/25 text-[10px] uppercase tracking-wider mb-1">Surface</p>
-                      <p className="text-[#f2f3f5] text-lg font-light">{surface} m²</p>
+                      <p className="text-encre/25 text-[10px] uppercase tracking-wider mb-1">Surface</p>
+                      <p className="text-encre text-lg font-light">{surface} m²</p>
                     </div>
                   )}
                 </div>

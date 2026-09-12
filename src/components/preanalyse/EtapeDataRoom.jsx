@@ -13,7 +13,7 @@ import { Mono, Section, eur } from "./CadreEtapes";
 
 function Source({ s, onPreuve, texte }) {
   if (!s?.document_id) return texte ? <Mono className="normal-case tracking-[.08em] text-[#4d545d]">{texte}</Mono> : null;
-  return <button onClick={() => onPreuve(s)} className="font-mono text-[10.5px] tracking-[.06em] text-[#6a7180] hover:text-[#f2f3f5] whitespace-nowrap">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 28)}{s.page ? ` p. ${s.page}` : ""}</button>;
+  return <button onClick={() => onPreuve(s)} className="font-mono text-[10.5px] tracking-[.06em] text-brume hover:text-encre whitespace-nowrap">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 28)}{s.page ? ` p. ${s.page}` : ""}</button>;
 }
 
 
@@ -43,8 +43,8 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
       <div className="px-6 py-8">
         <p className="m-0 text-[14.5px] leading-[1.65] text-[#d6d6db] max-w-[720px]">{nbDocs ? `${nbDocs} pièce${nbDocs > 1 ? "s" : ""} importée${nbDocs > 1 ? "s" : ""}. Le bail, ses avenants, les quittances et le Kbis sont lus en premier (${e.progression.presents_etape}). Les autres attendent l'étape 2.` : "Importez les pièces de la data room en bas de page : elles sont classées automatiquement."}</p>
         <div className="mt-5 flex items-center gap-4">
-          {enCours ? <span className="inline-flex items-center gap-2 text-[13px] text-[#9298a6]"><Loader2 className="w-4 h-4 animate-spin" /> {e.remplissage.fait}/{e.remplissage.total ?? "…"} — {e.remplissage.document || "lecture"}</span>
-            : <button onClick={() => lancer.mutate(1)} disabled={apercu || !e.progression.presents_etape || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-[#f2f3f5] text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire le bail et le locataire</button>}
+          {enCours ? <span className="inline-flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="w-4 h-4 animate-spin" /> {e.remplissage.fait}/{e.remplissage.total ?? "…"} — {e.remplissage.document || "lecture"}</span>
+            : <button onClick={() => lancer.mutate(1)} disabled={apercu || !e.progression.presents_etape || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire le bail et le locataire</button>}
           {!e.progression.presents_etape && nbDocs > 0 && <span className="text-[12.5px] text-[#e8b04c]">Aucune pièce classée Bail, Avenants, Quittances ou Kbis : vérifiez les catégories.</span>}
         </div>
       </div>
@@ -65,25 +65,25 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
 
   return (
     <>
-      {enCours && <div className="px-6 py-2 border-b border-[#1f2228] text-[12px] text-[#9298a6] flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Lecture {e.remplissage.fait}/{e.remplissage.total ?? "…"} — {e.remplissage.document || ""}</div>}
+      {enCours && <div className="px-6 py-2 border-b border-trait text-[12px] text-ardoise flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Lecture {e.remplissage.fait}/{e.remplissage.total ?? "…"} — {e.remplissage.document || ""}</div>}
 
       {/* Le bandeau */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-[#1f2228] border-b border-[#1f2228]">
-        {[["Loyer HT/an", bandeau.loyer != null ? eur(bandeau.loyer) : "—", "", true], ["Revenu net", bandeau.revenu_net != null ? eur(bandeau.revenu_net) : "—", ""], ["Net AEM", bandeau.net_aem != null ? `${bandeau.net_aem.toFixed(2).replace(".", ",")} %` : "—", bandeau.net_aem != null && bandeau.net_aem >= r.seuil ? "text-[#7fd1a8]" : "text-[#e8927c]"], ["Écart teaser", bandeau.ecart_teaser_pt != null ? `${bandeau.ecart_teaser_pt >= 0 ? "+" : "−"}${Math.abs(bandeau.ecart_teaser_pt).toFixed(2).replace(".", ",")} pt` : "—", bandeau.ecart_teaser_pt != null && bandeau.ecart_teaser_pt < 0 ? "text-[#e8927c]" : "text-[#9298a6]"]].map(([l, v, c, loyer]) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-trait border-b border-trait">
+        {[["Loyer HT/an", bandeau.loyer != null ? eur(bandeau.loyer) : "—", "", true], ["Revenu net", bandeau.revenu_net != null ? eur(bandeau.revenu_net) : "—", ""], ["Net AEM", bandeau.net_aem != null ? `${bandeau.net_aem.toFixed(2).replace(".", ",")} %` : "—", bandeau.net_aem != null && bandeau.net_aem >= r.seuil ? "text-[#7fd1a8]" : "text-[#e8927c]"], ["Écart teaser", bandeau.ecart_teaser_pt != null ? `${bandeau.ecart_teaser_pt >= 0 ? "+" : "−"}${Math.abs(bandeau.ecart_teaser_pt).toFixed(2).replace(".", ",")} pt` : "—", bandeau.ecart_teaser_pt != null && bandeau.ecart_teaser_pt < 0 ? "text-[#e8927c]" : "text-ardoise"]].map(([l, v, c, loyer]) => (
           <div key={l} className="px-6 max-md:px-4 py-5">
-            <div className="flex items-center justify-between gap-2"><Mono>{l}</Mono>{loyer && !editionLoyer && <button onClick={() => { setLoyerSaisi(bandeau.loyer ? String(Math.round(bandeau.loyer)) : ""); setEditionLoyer(true); }} disabled={apercu} title="Modifier le loyer : tout se recalcule" className="text-[#6a7180] hover:text-[#f2f3f5]"><Pencil className="w-3.5 h-3.5" /></button>}</div>
+            <div className="flex items-center justify-between gap-2"><Mono>{l}</Mono>{loyer && !editionLoyer && <button onClick={() => { setLoyerSaisi(bandeau.loyer ? String(Math.round(bandeau.loyer)) : ""); setEditionLoyer(true); }} disabled={apercu} title="Modifier le loyer : tout se recalcule" className="text-brume hover:text-encre"><Pencil className="w-3.5 h-3.5" /></button>}</div>
             {loyer && editionLoyer ? (
               <div className="mt-2 flex items-center gap-2">
-                <input autoFocus value={loyerSaisi} onChange={(x) => setLoyerSaisi(x.target.value)} onKeyDown={(x) => { if (x.key === "Enter") validerLoyer(); if (x.key === "Escape") setEditionLoyer(false); }} inputMode="numeric" className="w-[130px] bg-transparent border-b border-[#3a3f4a] focus:border-[#f2f3f5] outline-none text-[20px] font-light tabular-nums text-[#f2f3f5]" />
-                <span className="text-[12px] text-[#6a7180]">€ HT/an</span>
-                <button onClick={validerLoyer} disabled={forcerLoyer.isPending} className="text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold">OK</button>
-                <button onClick={() => setEditionLoyer(false)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+                <input autoFocus value={loyerSaisi} onChange={(x) => setLoyerSaisi(x.target.value)} onKeyDown={(x) => { if (x.key === "Enter") validerLoyer(); if (x.key === "Escape") setEditionLoyer(false); }} inputMode="numeric" className="w-[130px] bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[20px] font-light tabular-nums text-encre" />
+                <span className="text-[12px] text-brume">€ HT/an</span>
+                <button onClick={validerLoyer} disabled={forcerLoyer.isPending} className="text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold">OK</button>
+                <button onClick={() => setEditionLoyer(false)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
               </div>
             ) : (
-              <p className={`m-0 mt-2 text-[22px] font-light tabular-nums ${c || "text-[#f2f3f5]"}`}>{v}</p>
+              <p className={`m-0 mt-2 text-[22px] font-light tabular-nums ${c || "text-encre"}`}>{v}</p>
             )}
             {loyer && bandeau.loyer_force && !editionLoyer && (
-              <p className="m-0 mt-1 flex items-center gap-2 text-[11.5px] text-[#d9b46a]">saisi à la main{bandeau.loyer_force.par ? ` · ${bandeau.loyer_force.par}` : ""}<button onClick={() => forcerLoyer.mutate(null)} title="Revenir au loyer du bail" className="inline-flex items-center gap-1 text-[#9298a6] hover:text-[#f2f3f5]"><RotateCcw className="w-3 h-3" /> bail</button></p>
+              <p className="m-0 mt-1 flex items-center gap-2 text-[11.5px] text-ambre">saisi à la main{bandeau.loyer_force.par ? ` · ${bandeau.loyer_force.par}` : ""}<button onClick={() => forcerLoyer.mutate(null)} title="Revenir au loyer du bail" className="inline-flex items-center gap-1 text-ardoise hover:text-encre"><RotateCcw className="w-3 h-3" /> bail</button></p>
             )}
           </div>
         ))}
@@ -96,15 +96,15 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
           <tbody>
             {postes.map(([l, t, d, src, note, u]) => (
               <tr key={l} className="border-t border-[#15171b]">
-                <td className="py-3 text-[14px] text-[#c9cdd6]">{l}</td>
-                <td className="py-3 pr-6 text-right tabular-nums font-light text-[15px] text-[#6a7180]">{fmt(t, u)}</td>
-                <td className="py-3 text-right tabular-nums font-light text-[14px] text-[#f2f3f5]">{fmt(d, u)}</td>
+                <td className="py-3 text-[14px] text-craie">{l}</td>
+                <td className="py-3 pr-6 text-right tabular-nums font-light text-[15px] text-brume">{fmt(t, u)}</td>
+                <td className="py-3 text-right tabular-nums font-light text-[14px] text-encre">{fmt(d, u)}</td>
                 <td className="py-3 pl-5"><Source s={src} onPreuve={onPreuve} texte={note} /></td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="m-0 mt-3 text-[13px] leading-[1.6] text-[#9298a6] max-w-[860px]">{r.phrase}</p>
+        <p className="m-0 mt-3 text-[13px] leading-[1.6] text-ardoise max-w-[860px]">{r.phrase}</p>
       </Section>
 
       {/* Écarts teaser → data room */}
@@ -115,33 +115,33 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
               const court = (t) => (String(t).length > 44 ? `${String(t).slice(0, 42)}…` : String(t));
               return (
                 <div key={x.libelle} className="grid grid-cols-[130px_minmax(0,1fr)_140px] max-md:grid-cols-1 gap-x-6 gap-y-1 py-4 items-baseline">
-                  <span className="text-[13px] text-[#6a7180]">{x.libelle}</span>
+                  <span className="text-[13px] text-brume">{x.libelle}</span>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-x-3 min-w-0">
-                      {x.teaser != null ? <span className="text-[15px] font-light tabular-nums text-[#6a7180] line-through whitespace-nowrap flex-none" title={String(x.teaser)}>{court(x.teaser)}</span> : <Mono className="flex-none">non annoncé</Mono>}
+                      {x.teaser != null ? <span className="text-[15px] font-light tabular-nums text-brume line-through whitespace-nowrap flex-none" title={String(x.teaser)}>{court(x.teaser)}</span> : <Mono className="flex-none">non annoncé</Mono>}
                       <span className="text-[#4d545d] flex-none">→</span>
-                      <span className="text-[20px] font-light tabular-nums text-[#f2f3f5] truncate" title={String(x.bail)}>{x.bail}</span>
+                      <span className="text-[20px] font-light tabular-nums text-encre truncate" title={String(x.bail)}>{x.bail}</span>
                     </div>
-                    <p className="m-0 mt-1 text-[13px] leading-[1.6] text-[#9298a6] max-w-[760px]">{x.commentaire}</p>
+                    <p className="m-0 mt-1 text-[13px] leading-[1.6] text-ardoise max-w-[760px]">{x.commentaire}</p>
                   </div>
-                  <span className="md:text-right">{x.etiquette && x.etiquette !== "non annoncé" ? <Mono className="text-[#9298a6]">{x.etiquette}</Mono> : null}</span>
+                  <span className="md:text-right">{x.etiquette && x.etiquette !== "non annoncé" ? <Mono className="text-ardoise">{x.etiquette}</Mono> : null}</span>
                 </div>
               );
             })}
           </div>
-        ) : <p className="m-0 text-[13px] text-[#9298a6]">Aucun écart significatif avec la pré-analyse.</p>}
+        ) : <p className="m-0 text-[13px] text-ardoise">Aucun écart significatif avec la pré-analyse.</p>}
       </Section>
 
       {/* Le bien en dix lignes */}
       <Section id="fiche" titre="Le bien" droite={fiche.adresse?.valeur ? fiche.adresse.valeur.slice(0, 90) : null}>
-        <h3 className="m-0 mb-3 text-[18px] font-medium text-[#f2f3f5]">{fiche.titre}</h3>
+        <h3 className="m-0 mb-3 text-[18px] font-medium text-encre">{fiche.titre}</h3>
         <dl className="m-0 grid grid-cols-[110px_1fr_auto] gap-x-6 gap-y-2 items-baseline">
           {fiche.lignes.map((l) => (
             <React.Fragment key={l.id}>
-              <dt className="text-[12.5px] text-[#6a7180]">{l.libelle}</dt>
+              <dt className="text-[12.5px] text-brume">{l.libelle}</dt>
               <dd className="m-0 min-w-0">
-                {l.source ? <button onClick={() => onPreuve(l.source)} className="text-left text-[14px] leading-[1.5] text-[#f2f3f5] hover:text-[#ffffff]">{l.valeur}</button> : <span className="text-[14px] text-[#f2f3f5]">{l.valeur}</span>}
-                {l.detail && <p className="m-0 text-[12.5px] text-[#9298a6]">{l.detail}</p>}
+                {l.source ? <button onClick={() => onPreuve(l.source)} className="text-left text-[14px] leading-[1.5] text-encre hover:text-[#ffffff]">{l.valeur}</button> : <span className="text-[14px] text-encre">{l.valeur}</span>}
+                {l.detail && <p className="m-0 text-[12.5px] text-ardoise">{l.detail}</p>}
               </dd>
               <dd className="m-0"><Source s={l.source} onPreuve={onPreuve} /></dd>
             </React.Fragment>
@@ -152,15 +152,15 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
       {/* Le simulateur */}
       {r.simulateur && (r.simulateur.prixBienFAI || r.simulateur.loyerInitialHTHC) ? (
         <Section id="simulateur" titre="Simulateur · chiffres du bail">
-          <p className="m-0 mb-3 text-[12.5px] text-[#9298a6]">{r.hypotheses.join(" ")}</p>
+          <p className="m-0 mb-3 text-[12.5px] text-ardoise">{r.hypotheses.join(" ")}</p>
           <SimulateurDossier key={`${r.simulateur.loyerInitialHTHC}-${r.simulateur.loyerSoumisTVA}-${r.simulateur.taxeFonciereRefacturable}`} parametres={r.simulateur} />
         </Section>
       ) : null}
 
       {/* Les pièces pour l'étape 2 */}
       <Section id="pieces" titre="Documents pour l'étape 2" droite={`${d2.importes} importé${d2.importes > 1 ? "s" : ""} · ${d2.manquants.length} manquant${d2.manquants.length > 1 ? "s" : ""}`} sansFilet>
-        {d2.presents.length > 0 && <p className="m-0 text-[13px] text-[#c9cdd6]"><span className="text-[#6a7180]">Présents : </span>{d2.presents.map((p) => `${p.categorie} (${p.n})`).join(" · ")}</p>}
-        {d2.manquants.length > 0 && <ul className="m-0 mt-2 pl-4 space-y-0.5">{d2.manquants.map((x) => <li key={x.piece} className="text-[13px] text-[#c9cdd6]">{x.piece} — <span className="text-[#6a7180]">{x.detail}</span></li>)}</ul>}
+        {d2.presents.length > 0 && <p className="m-0 text-[13px] text-craie"><span className="text-brume">Présents : </span>{d2.presents.map((p) => `${p.categorie} (${p.n})`).join(" · ")}</p>}
+        {d2.manquants.length > 0 && <ul className="m-0 mt-2 pl-4 space-y-0.5">{d2.manquants.map((x) => <li key={x.piece} className="text-[13px] text-craie">{x.piece} — <span className="text-brume">{x.detail}</span></li>)}</ul>}
       </Section>
 
       {dialog && <DialogMailIntention dossier={dossier} intention={dialog} parametres={dialog === "demande_documents" ? { raisons: e.demandes_texte } : { raisons: e.motif_passer || undefined }} onClose={() => setDialog(null)} onDone={() => { setDialog(null); onRefresh?.(); tout(); }} />}

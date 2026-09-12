@@ -16,7 +16,7 @@ import { chrono } from "@/components/preanalyse/journal-tons";
 export default function JournalControles({ phase, temps, reperes, avancement = 0, onJournal, journalOuvert, onVoirAnalyse }) {
   if (phase === "repos") {
     return (
-      <div className="border-t border-[#1f2228] bg-[#0f1114]">
+      <div className="border-t border-trait bg-surface">
         <div className="mx-auto w-full max-w-[780px] px-4 sm:px-6 py-2.5">
           <span className="text-[12px] text-[#4e545e]">Aucune recherche en cours</span>
         </div>
@@ -29,18 +29,18 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
   const courante = franchies[franchies.length - 1] || reperes[0] || null;
 
   return (
-    <div className="border-t border-[#1f2228] bg-[#0f1114]">
+    <div className="border-t border-trait bg-surface">
       <div className="mx-auto w-full max-w-[780px] px-4 sm:px-6 pt-3.5">
-        <div className="relative h-[3px] rounded-full bg-[#1f2228]">
+        <div className="relative h-[3px] rounded-full bg-trait">
           <div
-            className="absolute inset-y-0 left-0 rounded-full bg-[#96c0b8] transition-[width] duration-500"
+            className="absolute inset-y-0 left-0 rounded-full bg-menthe transition-[width] duration-500"
             style={{ width: `${Math.max(0, Math.min(1, avancement)) * 100}%` }}
           />
           {reperes.map((r) => (
             <span
               key={r.cle}
               title={r.libelle}
-              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[9px] h-[9px] rounded-full border-2 border-[#0f1114] transition-colors duration-300 ${r.encours ? "ja-pastille-fraiche" : ""}`}
+              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[9px] h-[9px] rounded-full border-2 border-surface transition-colors duration-300 ${r.encours ? "ja-pastille-fraiche" : ""}`}
               style={{
                 left: `${r.position * 100}%`,
                 background: r.echoue ? "#e0655f" : r.franchi ? "#96c0b8" : r.encours ? "#d9a441" : "#3a424d",
@@ -57,7 +57,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
             <span
               key={r.cle}
               className={`absolute top-0 text-[10px] whitespace-nowrap transition-colors duration-300 ${
-                r.franchi || r.encours ? "text-[#9298a6]" : "text-[#3a424d]"
+                r.franchi || r.encours ? "text-ardoise" : "text-[#3a424d]"
               } ${r.position === 0 ? "left-0" : r.position === 1 ? "right-0" : "-translate-x-1/2"}`}
               style={r.position === 0 || r.position === 1 ? undefined : { left: `${r.position * 100}%` }}
             >
@@ -67,7 +67,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
         </div>
 
         {courante && (
-          <p key={courante.cle} className="ja-etape m-0 mt-2.5 text-[12px] leading-5 text-[#9298a6] min-h-[40px]" role="status">
+          <p key={courante.cle} className="ja-etape m-0 mt-2.5 text-[12px] leading-5 text-ardoise min-h-[40px]" role="status">
             <span style={{ color: courante.echoue ? "#e0655f" : courante.encours ? "#d9a441" : "#96c0b8" }}>{courante.libelle}</span>
             <span className="text-[#3a424d]"> · </span>
             {courante.explication}
@@ -81,7 +81,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
           onClick={onJournal}
           title="Journal détaillé"
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] transition-colors ${
-            journalOuvert ? "bg-[#1f2228] text-[#f2f3f5]" : "text-[#6a7180] hover:text-[#c6ccd3] hover:bg-[#1a1d22]"
+            journalOuvert ? "bg-trait text-encre" : "text-brume hover:text-[#c6ccd3] hover:bg-[#1a1d22]"
           }`}
         >
           <FileText className="w-3.5 h-3.5" /> Journal détaillé

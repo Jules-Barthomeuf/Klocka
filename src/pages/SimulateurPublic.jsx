@@ -370,10 +370,10 @@ export default function SimulateurPublic() {
     { id: "avance", label: "Paramètres avancés" },
   ];
 
-  if (!loaded) return <div className="min-h-screen bg-[#000000] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin" /></div>;
+  if (!loaded) return <div className="min-h-screen bg-fond flex items-center justify-center"><div className="w-8 h-8 border-4 border-menthe/30 border-t-menthe rounded-full animate-spin" /></div>;
 
   return (
-    <div className="bg-[#000000] min-h-screen relative w-full max-w-full overflow-x-hidden">
+    <div className="bg-fond min-h-screen relative w-full max-w-full overflow-x-hidden">
       <div className="flex flex-col min-h-screen">
         <div className="flex flex-1 min-h-0">
           {/* Left control rail */}
@@ -394,19 +394,19 @@ export default function SimulateurPublic() {
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between border-b border-[#1f2228] px-4 h-11 sticky top-0 bg-[#000000] z-10">
-              <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-[#0f1114] border border-[#1f2228] min-w-0 overflow-x-auto">
+            <div className="flex items-center justify-between border-b border-trait px-4 h-11 sticky top-0 bg-fond z-10">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-surface border border-trait min-w-0 overflow-x-auto">
                 {tabs.map((t) => {
                   const active = activeTab === t.id;
                   return (
                     <button
                       key={t.id}
                       onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                      className={`relative px-3 h-7 rounded-full text-xs whitespace-nowrap transition-colors duration-200 ${active ? "text-[#f2f3f5]" : "text-[#9298a6] hover:text-[#c9cdd6]"}`}
+                      className={`relative px-3 h-7 rounded-full text-xs whitespace-nowrap transition-colors duration-200 ${active ? "text-encre" : "text-ardoise hover:text-craie"}`}
                     >
                       {/* Pastille sans layoutId : l'animation partagée de framer-motion
                           bloquait la sortie de page (écran noir en quittant le simulateur). */}
-                      <span className={`absolute inset-0 rounded-full border transition-all duration-200 ${active ? "bg-[#96c0b8]/15 border-[#96c0b8]/40 opacity-100" : "bg-transparent border-transparent opacity-0"}`} />
+                      <span className={`absolute inset-0 rounded-full border transition-all duration-200 ${active ? "bg-menthe/15 border-menthe/40 opacity-100" : "bg-transparent border-transparent opacity-0"}`} />
                       <span className="relative">{t.label}</span>
                     </button>
                   );
@@ -414,8 +414,8 @@ export default function SimulateurPublic() {
               </div>
               <div className="flex items-center gap-2">
                 <ExportExcelFullButton params={exportParams} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
-                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-[#22262d] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#f2f3f5]/[0.25] text-xs transition-colors">
-                  {linkCopied ? <Check className="w-3.5 h-3.5 text-[#c3ddd6]" /> : <Link2 className="w-3.5 h-3.5" />}
+                <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors">
+                  {linkCopied ? <Check className="w-3.5 h-3.5 text-menthe-clair" /> : <Link2 className="w-3.5 h-3.5" />}
                   {linkCopied ? 'Copié' : 'Partager'}
                 </button>
               </div>
@@ -423,7 +423,7 @@ export default function SimulateurPublic() {
 
             <div key={activeTab} className="p-4 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
               {negoActive && (
-                <div className="flex items-center gap-2 text-xs text-[#96c0b8] bg-[#96c0b8]/10 border border-[#96c0b8]/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
+                <div className="flex items-center gap-2 text-xs text-menthe bg-menthe/10 border border-menthe/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.
                 </div>
               )}
@@ -457,8 +457,8 @@ export default function SimulateurPublic() {
               {activeTab !== "avance" && (
                 <SimDataTable calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} dureeCredit={values.dureeCredit} />
               )}
-              <p className="text-[10px] text-[#6a7180] italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
-              <p className="text-center text-[#f2f3f5]/20 text-xs pt-4">Simulation générée par Klocka</p>
+              <p className="text-[10px] text-brume italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
+              <p className="text-center text-encre/20 text-xs pt-4">Simulation générée par Klocka</p>
             </div>
           </main>
         </div>

@@ -171,24 +171,24 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
 
   return (
     <div>
-      <div className="relative overflow-hidden bg-[#0f1114]" style={{ height: hauteur }}>
+      <div className="relative overflow-hidden bg-surface" style={{ height: hauteur }}>
         <div ref={conteneur} className="w-full h-full" />
         {erreur && (
           <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-            <p className="m-0 text-[13px] text-[#9298a6]">
-              Carte indisponible ({erreur}). Renseignez <code className="text-[#c9cdd6]">VITE_GOOGLE_MAPS_API_KEY</code>.
+            <p className="m-0 text-[13px] text-ardoise">
+              Carte indisponible ({erreur}). Renseignez <code className="text-craie">VITE_GOOGLE_MAPS_API_KEY</code>.
             </p>
           </div>
         )}
-        <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[#f2f3f5]/[0.13]" />
+        <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-encre/[0.13]" />
       </div>
 
       {/* Ce que la carte montre, et de quoi on parle. */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-[#9298a6]">
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-ardoise">
         <span className="inline-flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: MENTHE }} /> Le bien, et les cessions à son numéro</span>
         <span className="inline-flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: OR }} /> Dans la rue</span>
         <span className="inline-flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: GRIS }} /> Autour</span>
-        <span className="text-[#6a7180]">La taille de la pastille suit le prix.</span>
+        <span className="text-brume">La taille de la pastille suit le prix.</span>
 
         <span className="ml-auto inline-flex gap-1.5">
           {[["toutes", `Tout · ${cessions.length}`], ["rue", `La rue · ${cessions.filter((x) => x.dans_la_rue).length}`]].map(([v, l]) => (
@@ -196,7 +196,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
               key={v}
               type="button"
               onClick={() => setFiltre(v)}
-              className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${filtre === v ? "bg-[#96c0b8] text-[#04140c] border-[#96c0b8]" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-[#3a3f4a]"}`}
+              className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${filtre === v ? "bg-menthe text-[#04140c] border-menthe" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif"}`}
             >
               {l}
             </button>

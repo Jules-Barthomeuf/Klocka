@@ -34,7 +34,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
         <button
           type="button"
           onClick={onRetour}
-          className="inline-flex items-center gap-1.5 text-[12.5px] text-[#9298a6] hover:text-[#f2f3f5] transition-colors"
+          className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> {titre || "Retour"}
         </button>
@@ -56,7 +56,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
               }`}
               style={{ borderColor: active ? couleur.pastille : "#23272d" }}
             >
-              <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180] truncate">
+              <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume truncate">
                 {k.libelle}
               </span>
               <span
@@ -71,8 +71,8 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
       </div>
 
       {/* L'en-tête du verdict lu */}
-      <div className="border-t border-[#1f2228] pt-5">
-        <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180]">{detail.libelle}</span>
+      <div className="border-t border-trait pt-5">
+        <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">{detail.libelle}</span>
         <span className="block mt-1 text-[28px] leading-tight font-medium" style={{ color: c.texte }}>
           {detail.valeur}
         </span>
@@ -91,9 +91,9 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
                 <li key={`${l.libelle}-${i}`} className="py-2.5">
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-[12.5px] text-[#c6ccd3]">{l.libelle}</span>
-                    <span className="flex-shrink-0 text-[13px] font-medium text-[#f2f3f5]">{l.valeur}</span>
+                    <span className="flex-shrink-0 text-[13px] font-medium text-encre">{l.valeur}</span>
                   </div>
-                  {l.note && <p className="m-0 mt-0.5 text-[11.5px] leading-5 text-[#6a7180]">{l.note}</p>}
+                  {l.note && <p className="m-0 mt-0.5 text-[11.5px] leading-5 text-brume">{l.note}</p>}
                 </li>
               ))}
             </ol>
@@ -105,7 +105,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
             </h4>
             <ul className="m-0 p-0 list-none flex flex-col gap-2">
               {detail.reserves.map((r, i) => (
-                <li key={`${r}-${i}`} className="flex gap-2 text-[12px] leading-5 text-[#9298a6]">
+                <li key={`${r}-${i}`} className="flex gap-2 text-[12px] leading-5 text-ardoise">
                   <span className="flex-shrink-0 text-[#d9a441]">—</span>
                   {r}
                 </li>
@@ -130,15 +130,15 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
                         style={{ background: ecarte ? "#d9a441" : "#96c0b8" }}
                         aria-hidden
                       />
-                      <span className={`min-w-0 flex-1 text-[12.5px] truncate ${ecarte ? "text-[#6a7180] line-through" : "text-[#dfe3e8]"}`}>
+                      <span className={`min-w-0 flex-1 text-[12.5px] truncate ${ecarte ? "text-brume line-through" : "text-[#dfe3e8]"}`}>
                         {x.adresse}
                       </span>
-                      <span className="flex-shrink-0 text-[11.5px] text-[#6a7180]">{x.surface}</span>
-                      <span className={`flex-shrink-0 text-[12.5px] font-medium ${ecarte ? "text-[#6a7180]" : "text-[#f2f3f5]"}`}>
+                      <span className="flex-shrink-0 text-[11.5px] text-brume">{x.surface}</span>
+                      <span className={`flex-shrink-0 text-[12.5px] font-medium ${ecarte ? "text-brume" : "text-encre"}`}>
                         {x.prix}
                       </span>
                     </div>
-                    <p className="m-0 mt-0.5 pl-[14px] text-[11px] leading-5 text-[#6a7180]">
+                    <p className="m-0 mt-0.5 pl-[14px] text-[11px] leading-5 text-brume">
                       {x.src}
                       {x.motif ? ` · écarté : ${x.motif}` : ""}
                     </p>
@@ -162,7 +162,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
                     href={src.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-0.5 inline-flex items-start gap-1.5 text-[11.5px] text-[#96c0b8] hover:underline break-all"
+                    className="mt-0.5 inline-flex items-start gap-1.5 text-[11.5px] text-menthe hover:underline break-all"
                   >
                     {src.url}
                     <ExternalLink className="w-3 h-3 mt-[3px] flex-shrink-0" />

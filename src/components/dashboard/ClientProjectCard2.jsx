@@ -59,7 +59,7 @@ export default function ClientProjectCard2({ project }) {
       className="group cursor-pointer"
       onClick={() => navigate(`/ProjetDetail?id=${project.id}`)}
     >
-      <div className="relative bg-[#0f1114] border border-[#f2f3f5]/[0.12] overflow-hidden hover:border-[#96c0b8]/60 transition-colors duration-300">
+      <div className="relative bg-surface border border-encre/[0.12] overflow-hidden hover:border-menthe/60 transition-colors duration-300">
         {/* Image band */}
         <div className="relative h-48 md:h-56 overflow-hidden">
           {project.photos && project.photos.length > 0 ? (
@@ -69,15 +69,15 @@ export default function ClientProjectCard2({ project }) {
               className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
             />
           ) : (
-            <div className="w-full h-full bg-[#000000] flex items-center justify-center">
-              <MapPin className="w-10 h-10 text-[#f2f3f5]/[0.06]" />
+            <div className="w-full h-full bg-fond flex items-center justify-center">
+              <MapPin className="w-10 h-10 text-encre/[0.06]" />
             </div>
           )}
           <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,16,15,0.97) 6%, rgba(14,16,15,0.35) 55%, rgba(14,16,15,0.55) 100%)" }} />
           
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className="text-[10px] uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-[#000000]/70 backdrop-blur-sm text-[#c3ddd6] border border-[#96c0b8]/50">
+            <span className="text-[10px] uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-fond/70 backdrop-blur-sm text-menthe-clair border border-menthe/50">
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -87,17 +87,17 @@ export default function ClientProjectCard2({ project }) {
             <img
               src="https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png"
               alt="Jules Barthomeuf"
-              className="w-9 h-9 rounded-full object-cover border border-[#f2f3f5]/25"
+              className="w-9 h-9 rounded-full object-cover border border-encre/25"
             />
           </div>
 
           {/* Title overlay */}
           <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-[21px] md:text-[23px] font-light text-[#f2f3f5] tracking-[-0.02em] leading-tight truncate">
+            <h2 className="text-[21px] md:text-[23px] font-light text-encre tracking-[-0.02em] leading-tight truncate">
               {project.titre}
             </h2>
             {project.adresse_complete && (
-              <p className="text-[#c9cdd6]/70 text-[13px] mt-1 truncate">{project.adresse_complete}</p>
+              <p className="text-craie/70 text-[13px] mt-1 truncate">{project.adresse_complete}</p>
             )}
           </div>
         </div>
@@ -106,23 +106,23 @@ export default function ClientProjectCard2({ project }) {
         {/* Sur téléphone, trois chiffres côte à côte ne laissent pas de place
             aux libellés espacés : on resserre le tracking et on laisse le
             libellé se couper plutôt que d'empiéter sur le voisin. */}
-        <div className="flex items-center px-5 max-md:px-4 border-t border-[#f2f3f5]/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
+        <div className="flex items-center px-5 max-md:px-4 border-t border-encre/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
           <div className="flex-1 min-w-0 py-4 pr-3">
-            <p className="text-[19px] max-md:text-[16px] font-light text-[#f2f3f5] m-0 whitespace-nowrap">{formatPrice(prixRevient)}</p>
-            <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-[#9298a6] mt-1 m-0 md:truncate max-md:leading-[1.25]">Prix de revient</p>
+            <p className="text-[19px] max-md:text-[16px] font-light text-encre m-0 whitespace-nowrap">{formatPrice(prixRevient)}</p>
+            <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Prix de revient</p>
           </div>
-          <div className="flex-1 min-w-0 py-4 px-3 border-l border-[#f2f3f5]/[0.12]">
-            <p className="text-[19px] max-md:text-[16px] font-light text-[#c3ddd6] m-0 whitespace-nowrap">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
-            <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-[#9298a6] mt-1 m-0 md:truncate max-md:leading-[1.25]">Rendement</p>
+          <div className="flex-1 min-w-0 py-4 px-3 border-l border-encre/[0.12]">
+            <p className="text-[19px] max-md:text-[16px] font-light text-menthe-clair m-0 whitespace-nowrap">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+            <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Rendement</p>
           </div>
           {surface > 0 && (
-            <div className="flex-1 min-w-0 py-4 px-3 border-l border-[#f2f3f5]/[0.12]">
-              <p className="text-[19px] max-md:text-[16px] font-light text-[#f2f3f5] m-0 whitespace-nowrap">{Math.round(surface)} m²</p>
-              <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-[#9298a6] mt-1 m-0 md:truncate max-md:leading-[1.25]">Surface</p>
+            <div className="flex-1 min-w-0 py-4 px-3 border-l border-encre/[0.12]">
+              <p className="text-[19px] max-md:text-[16px] font-light text-encre m-0 whitespace-nowrap">{Math.round(surface)} m²</p>
+              <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Surface</p>
             </div>
           )}
-          <div className="w-9 h-9 flex-shrink-0 rounded-full border border-[#f2f3f5]/[0.14] flex items-center justify-center group-hover:border-[#96c0b8] transition-colors">
-            <ArrowUpRight className="w-4 h-4 text-[#9298a6] group-hover:text-[#c3ddd6] transition-colors" />
+          <div className="w-9 h-9 flex-shrink-0 rounded-full border border-encre/[0.14] flex items-center justify-center group-hover:border-menthe transition-colors">
+            <ArrowUpRight className="w-4 h-4 text-ardoise group-hover:text-menthe-clair transition-colors" />
           </div>
         </div>
       </div>

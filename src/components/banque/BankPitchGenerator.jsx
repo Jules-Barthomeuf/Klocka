@@ -315,15 +315,15 @@ function SlideBlock({ slide, index }) {
   };
 
   return (
-    <div className="border border-[#f2f3f5]/[0.07] rounded-md overflow-hidden bg-[#000000]">
+    <div className="border border-encre/[0.07] rounded-md overflow-hidden bg-fond">
       {/* Header */}
       <button
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f2f3f5]/[0.03] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-encre/[0.03] transition-colors"
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-3">
-          <span className="text-[#96c0b8] text-sm font-bold w-8">{slide.num}</span>
-          <span className="text-[#f2f3f5] text-sm font-light">{slide.title}</span>
+          <span className="text-menthe text-sm font-bold w-8">{slide.num}</span>
+          <span className="text-encre text-sm font-light">{slide.title}</span>
         </div>
         <div className="flex items-center gap-2">
           {open && (
@@ -332,8 +332,8 @@ function SlideBlock({ slide, index }) {
               onClick={(e) => { e.stopPropagation(); handleCopy(); }}
               className={`h-7 px-3 text-xs transition-all ${
                 copied
-                  ? "bg-[#96c0b8]/20 border border-[#96c0b8]/40 text-[#c3ddd6]"
-                  : "bg-[#96c0b8]/15 border border-[#96c0b8]/30 hover:bg-[#96c0b8]/25 text-[#f2f3f5]"
+                  ? "bg-menthe/20 border border-menthe/40 text-menthe-clair"
+                  : "bg-menthe/15 border border-menthe/30 hover:bg-menthe/25 text-encre"
               }`}
             >
               {copied ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
@@ -341,9 +341,9 @@ function SlideBlock({ slide, index }) {
             </Button>
           )}
           {open ? (
-            <ChevronUp className="w-4 h-4 text-[#9298a6]" />
+            <ChevronUp className="w-4 h-4 text-ardoise" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-[#9298a6]" />
+            <ChevronDown className="w-4 h-4 text-ardoise" />
           )}
         </div>
       </button>
@@ -351,8 +351,8 @@ function SlideBlock({ slide, index }) {
       {/* Content */}
       {open && (
         <div className="px-5 pb-5">
-          <div className="bg-[#000000]/50 border border-[#15171b] rounded-lg p-4">
-            <pre className="text-[#c9cdd6] text-xs leading-relaxed whitespace-pre-wrap font-mono">
+          <div className="bg-fond/50 border border-[#15171b] rounded-lg p-4">
+            <pre className="text-craie text-xs leading-relaxed whitespace-pre-wrap font-mono">
               {slide.text}
             </pre>
           </div>
@@ -377,7 +377,7 @@ export default function BankPitchGenerator({ project, client }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-[#9298a6] text-xs">
+        <p className="text-ardoise text-xs">
           {slides.length} slides générées · Cliquez sur chaque slide pour voir le contenu et le copier.
         </p>
         <Button
@@ -385,8 +385,8 @@ export default function BankPitchGenerator({ project, client }) {
           onClick={handleCopyAll}
           className={`h-8 px-4 text-xs transition-all ${
             copiedAll
-              ? "bg-[#96c0b8]/20 border border-[#96c0b8]/40 text-[#c3ddd6]"
-              : "bg-[#f2f3f5]/[0.06] border border-[#f2f3f5]/[0.1] hover:bg-[#f2f3f5]/[0.1] text-[#f2f3f5]"
+              ? "bg-menthe/20 border border-menthe/40 text-menthe-clair"
+              : "bg-encre/[0.06] border border-encre/[0.1] hover:bg-encre/[0.1] text-encre"
           }`}
         >
           {copiedAll ? <CheckCircle2 className="w-3 h-3 mr-1.5" /> : <Copy className="w-3 h-3 mr-1.5" />}

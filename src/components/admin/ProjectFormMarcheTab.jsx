@@ -10,11 +10,11 @@ import { FField, FInput, FTextarea } from "./FormField";
 
 function SecteurCard({ secteur, index, onChange, onRemove }) {
   return (
-    <div className="p-4 bg-[#000000] rounded-md border border-[#1f2228] space-y-3">
+    <div className="p-4 bg-fond rounded-md border border-trait space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-[#9298a6]" />
-          <span className="text-[#f2f3f5] text-sm font-medium">Secteur {index + 1}</span>
+          <MapPin className="w-4 h-4 text-ardoise" />
+          <span className="text-encre text-sm font-medium">Secteur {index + 1}</span>
         </div>
         <Button variant="ghost" size="icon" onClick={onRemove} className="text-red-500 hover:bg-red-500/10 h-7 w-7">
           <X className="w-3.5 h-3.5" />
@@ -69,28 +69,28 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
     <div className="space-y-6 mt-6">
 
       {/* ── Visibilité des sections ── */}
-      <div className="p-4 bg-[#96c0b8]/5 rounded-md border border-[#96c0b8]/20">
+      <div className="p-4 bg-menthe/5 rounded-md border border-menthe/20">
         <div className="flex items-center gap-2 mb-3">
-          <EyeOff className="w-4 h-4 text-[#96c0b8]" />
-          <h3 className="text-sm text-[#96c0b8] font-medium">Masquer des sections côté client</h3>
+          <EyeOff className="w-4 h-4 text-menthe" />
+          <h3 className="text-sm text-menthe font-medium">Masquer des sections côté client</h3>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="text-[#f2f3f5]/60 text-sm">Secteurs & Localisation</Label>
+            <Label className="text-encre/60 text-sm">Secteurs & Localisation</Label>
             <Switch
               checked={formData.marche_masquer_secteurs || false}
               onCheckedChange={(v) => setFormData({ ...formData, marche_masquer_secteurs: v })}
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label className="text-[#f2f3f5]/60 text-sm">Marché immobilier résidentiel</Label>
+            <Label className="text-encre/60 text-sm">Marché immobilier résidentiel</Label>
             <Switch
               checked={formData.marche_masquer_residentiel || false}
               onCheckedChange={(v) => setFormData({ ...formData, marche_masquer_residentiel: v })}
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label className="text-[#f2f3f5]/60 text-sm">Marché immobilier commercial</Label>
+            <Label className="text-encre/60 text-sm">Marché immobilier commercial</Label>
             <Switch
               checked={formData.marche_masquer_commercial || false}
               onCheckedChange={(v) => setFormData({ ...formData, marche_masquer_commercial: v })}
@@ -100,25 +100,25 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
       </div>
 
       {/* ── Secteurs avec estimations ── */}
-      <div className="p-6 bg-[#f2f3f5]/[0.03] rounded-md border border-[#22262d]">
+      <div className="p-6 bg-encre/[0.03] rounded-md border border-bord">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg text-[#f2f3f5] font-medium flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-[#9298a6]" />
+          <h3 className="text-lg text-encre font-medium flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-ardoise" />
             Secteurs & Estimations
           </h3>
           <Button
             type="button" variant="outline" size="sm"
             onClick={addSecteur}
-            className="border-[#2c3139] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.06] hover:border-[#3a3f4a]"
+            className="border-bord-doux text-encre hover:bg-encre/[0.06] hover:border-bord-vif"
           >
             <Plus className="w-4 h-4 mr-1" /> Ajouter un secteur
           </Button>
         </div>
         {secteurs.length === 0 ? (
           <div className="text-center py-8">
-            <MapPin className="w-8 h-8 text-[#6a7180] mx-auto mb-2" />
-            <p className="text-[#9298a6] text-sm">Aucun secteur ajouté</p>
-            <p className="text-[#6a7180] text-xs mt-1">Ajoutez des secteurs pour comparer les estimations basse et haute</p>
+            <MapPin className="w-8 h-8 text-brume mx-auto mb-2" />
+            <p className="text-ardoise text-sm">Aucun secteur ajouté</p>
+            <p className="text-brume text-xs mt-1">Ajoutez des secteurs pour comparer les estimations basse et haute</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -130,8 +130,8 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
       </div>
 
       {/* ── Marché Immobilier (quartier + prix m2) ── */}
-      <div className="p-6 bg-[#0f1114] border border-[#f2f3f5]/[0.12]">
-        <h3 className="text-xl text-[#f2f3f5] mb-6">Marché Immobilier</h3>
+      <div className="p-6 bg-surface border border-encre/[0.12]">
+        <h3 className="text-xl text-encre mb-6">Marché Immobilier</h3>
         <div className="space-y-6">
           <VerificationField fieldKey="marche_quartier_nom" formData={formData} setFormData={setFormData}>
             <FField label="Nom du quartier / secteur">
@@ -146,13 +146,13 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
               { key: "marche_prix_m2_median", label: "Prix médian", color: "amber", placeholder: "4949" },
               { key: "marche_prix_m2_haut", label: "Prix haut", color: "red", placeholder: "5645" },
             ].map(({ key, label, color, placeholder }) => (
-              <div key={key} className="p-4 bg-[#0f1114] border border-[#f2f3f5]/[0.12] text-center">
-                <Label className="text-[#9298a6] text-sm">{label}</Label>
+              <div key={key} className="p-4 bg-surface border border-encre/[0.12] text-center">
+                <Label className="text-ardoise text-sm">{label}</Label>
                 <div className="mt-2">
                   <FField className="!py-2">
                     <FInput type="number" value={formData[key] || ''} onChange={(e) => setFormData({...formData, [key]: parseFloat(e.target.value) || 0})} placeholder={placeholder} className="text-center text-lg font-bold" />
                   </FField>
-                  <p className="text-[#9298a6] text-xs mt-1">€/m²</p>
+                  <p className="text-ardoise text-xs mt-1">€/m²</p>
                 </div>
               </div>
             ))}
@@ -175,21 +175,21 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
       </div>
 
       {/* ── Offre actuelle ── */}
-      <div className="p-6 bg-[#0f1114] border border-[#f2f3f5]/[0.12]">
-        <h3 className="text-xl text-[#f2f3f5] mb-6">Offre actuelle</h3>
+      <div className="p-6 bg-surface border border-encre/[0.12]">
+        <h3 className="text-xl text-encre mb-6">Offre actuelle</h3>
         <div className="grid grid-cols-3 gap-4">
           {[
             { key: "marche_offre_bas", label: "Bas", placeholder: "150" },
             { key: "marche_offre_moyenne", label: "Moyenne", placeholder: "200" },
             { key: "marche_offre_haut", label: "Haut", placeholder: "280" },
           ].map(({ key, label, placeholder }) => (
-            <div key={key} className="p-4 bg-[#0f1114] border border-[#f2f3f5]/[0.12] text-center">
-              <Label className="text-[#9298a6] text-sm">{label}</Label>
+            <div key={key} className="p-4 bg-surface border border-encre/[0.12] text-center">
+              <Label className="text-ardoise text-sm">{label}</Label>
               <div className="mt-2">
                 <FField className="!py-2">
                   <FInput type="number" value={formData[key] || ''} onChange={(e) => setFormData({...formData, [key]: parseFloat(e.target.value) || 0})} placeholder={placeholder} className="text-center text-lg font-bold" />
                 </FField>
-                <p className="text-[#9298a6] text-xs mt-1">€/m²/an</p>
+                <p className="text-ardoise text-xs mt-1">€/m²/an</p>
               </div>
             </div>
           ))}
@@ -197,21 +197,21 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
       </div>
 
       {/* ── Baux existants ── */}
-      <div className="p-6 bg-[#0f1114] border border-[#f2f3f5]/[0.12]">
-        <h3 className="text-xl text-[#f2f3f5] mb-6">Baux existants</h3>
+      <div className="p-6 bg-surface border border-encre/[0.12]">
+        <h3 className="text-xl text-encre mb-6">Baux existants</h3>
         <div className="grid grid-cols-3 gap-4">
           {[
             { key: "marche_baux_bas", label: "Bas", placeholder: "120" },
             { key: "marche_baux_moyenne", label: "Moyenne", placeholder: "180" },
             { key: "marche_baux_haut", label: "Haut", placeholder: "250" },
           ].map(({ key, label, placeholder }) => (
-            <div key={key} className="p-4 bg-[#0f1114] border border-[#f2f3f5]/[0.12] text-center">
-              <Label className="text-[#9298a6] text-sm">{label}</Label>
+            <div key={key} className="p-4 bg-surface border border-encre/[0.12] text-center">
+              <Label className="text-ardoise text-sm">{label}</Label>
               <div className="mt-2">
                 <FField className="!py-2">
                   <FInput type="number" value={formData[key] || ''} onChange={(e) => setFormData({...formData, [key]: parseFloat(e.target.value) || 0})} placeholder={placeholder} className="text-center text-lg font-bold" />
                 </FField>
-                <p className="text-[#9298a6] text-xs mt-1">€/m²/an</p>
+                <p className="text-ardoise text-xs mt-1">€/m²/an</p>
               </div>
             </div>
           ))}
@@ -226,22 +226,22 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
       </VerificationField>
 
       {/* ── Notes marché ── */}
-      <div className="space-y-4 pt-6 border-t border-[#1f2228]">
+      <div className="space-y-4 pt-6 border-t border-trait">
         <div className="flex items-center justify-between">
-          <Label className="text-[#f2f3f5]">Notes marché</Label>
+          <Label className="text-encre">Notes marché</Label>
           <Button
             type="button" variant="outline" size="sm"
             onClick={() => setFormData({
               ...formData, 
               notes_marche: [...(formData.notes_marche || []), { titre: "", contenu: "" }]
             })}
-            className="border-[#1f2228] text-[#f2f3f5]/30 hover:text-[#f2f3f5] hover:border-[#3a3f4a]"
+            className="border-trait text-encre/30 hover:text-encre hover:border-bord-vif"
           >
             <Plus className="w-4 h-4 mr-1" /> Ajouter une note
           </Button>
         </div>
         {(formData.notes_marche || []).map((note, idx) => (
-          <div key={idx} className="p-4 bg-[#f2f3f5]/[0.02] rounded-lg space-y-3">
+          <div key={idx} className="p-4 bg-encre/[0.02] rounded-lg space-y-3">
             <div className="flex items-center gap-3">
               <FField className="flex-1">
                 <FInput value={note.titre} onChange={(e) => { const updated = [...formData.notes_marche]; updated[idx].titre = e.target.value; setFormData({...formData, notes_marche: updated}); }} placeholder="Titre de la note..." />

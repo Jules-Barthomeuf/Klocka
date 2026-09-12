@@ -99,25 +99,25 @@ export default function Comparateur() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#f2f3f5]">
+    <div className="min-h-screen bg-fond text-encre">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="mb-2">
-            <p className="text-[#96c0b8] uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
-            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-[#f2f3f5]">Comparer mes projets</h1>
+            <p className="text-menthe uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
+            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Comparer mes projets</h1>
           </div>
 
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[#f2f3f5]/30 text-sm">
+            <p className="text-encre/30 text-sm">
               Sélectionnez 2 à 4 projets pour les comparer côte à côte.
-              {selectedIds.length > 0 && <span className="text-[#f2f3f5]/50 ml-2">({selectedIds.length} sélectionné{selectedIds.length > 1 ? "s" : ""})</span>}
+              {selectedIds.length > 0 && <span className="text-encre/50 ml-2">({selectedIds.length} sélectionné{selectedIds.length > 1 ? "s" : ""})</span>}
             </p>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowSelector(!showSelector)}
-              className="text-[#f2f3f5]/40 hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/10 gap-1.5"
+              className="text-encre/40 hover:text-encre hover:bg-encre/10 gap-1.5"
             >
               {showSelector ? "Masquer" : "Afficher"} les projets
               {showSelector ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -154,7 +154,7 @@ export default function Comparateur() {
             className="mt-10"
           >
             {/* Onglets */}
-            <div className="flex gap-1 border-b border-[#1f2228] mb-8 overflow-x-auto">
+            <div className="flex gap-1 border-b border-trait mb-8 overflow-x-auto">
               {TABS.map((t) => {
                 const Icon = t.icon;
                 const isActive = activeTab === t.id;
@@ -164,8 +164,8 @@ export default function Comparateur() {
                     onClick={() => setActiveTab(t.id)}
                     className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
                       isActive
-                        ? "text-[#96c0b8] border-[#96c0b8]"
-                        : "text-[#f2f3f5]/30 border-transparent hover:text-[#f2f3f5]/60"
+                        ? "text-menthe border-menthe"
+                        : "text-encre/30 border-transparent hover:text-encre/60"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -232,8 +232,8 @@ export default function Comparateur() {
 
         {/* Message si < 2 projets sélectionnés */}
         {metrics.length < 2 && selectedIds.length > 0 && (
-          <div className="mt-10 text-center py-12 bg-[#000000] rounded-md border border-[#1f2228]">
-            <p className="text-[#f2f3f5]/30 text-sm">Sélectionnez au moins 2 projets pour voir la comparaison.</p>
+          <div className="mt-10 text-center py-12 bg-fond rounded-md border border-trait">
+            <p className="text-encre/30 text-sm">Sélectionnez au moins 2 projets pour voir la comparaison.</p>
           </div>
         )}
       </div>

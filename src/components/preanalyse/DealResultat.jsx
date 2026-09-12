@@ -32,8 +32,8 @@ import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/Conn
 // Les clés sont les valeurs du moteur de règles (invariant serveur) ; seuls
 // les libellés affichés changent — un langage de comité, pas de jargon GO/NO-GO.
 export const VERDICTS = {
-  "GO": { libelle: "Conforme", classe: "bg-[#96c0b8]/15 text-[#c3ddd6] border-[#96c0b8]/30", bord: "border-[#96c0b8]/40" },
-  "GO SOUS RÉSERVE": { libelle: "Conforme sous réserve", classe: "bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/30", bord: "border-[#96c0b8]/30" },
+  "GO": { libelle: "Conforme", classe: "bg-menthe/15 text-menthe-clair border-menthe/30", bord: "border-menthe/40" },
+  "GO SOUS RÉSERVE": { libelle: "Conforme sous réserve", classe: "bg-menthe/15 text-menthe border-menthe/30", bord: "border-menthe/30" },
   "INSUFFISANT": { libelle: "Dossier incomplet", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30", bord: "border-sky-500/30" },
   "NO-GO": { libelle: "Non conforme", classe: "bg-red-500/15 text-red-300 border-red-500/30", bord: "border-red-500/30" },
 };
@@ -41,12 +41,12 @@ export const VERDICTS = {
 export const libelleVerdict = (v) => VERDICTS[v]?.libelle || v;
 
 export const STATUTS_DEAL = {
-  analyse: { libelle: "Analysé", classe: "bg-[#f2f3f5]/10 text-[#c9cdd6] border-[#f2f3f5]/20" },
+  analyse: { libelle: "Analysé", classe: "bg-encre/10 text-craie border-encre/20" },
   documents_demandes: { libelle: "Docs demandés", classe: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
-  documents_recus: { libelle: "Docs reçus", classe: "bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/30" },
-  depouille: { libelle: "Extrait", classe: "bg-[#96c0b8]/15 text-[#c3ddd6] border-[#96c0b8]/30" },
+  documents_recus: { libelle: "Docs reçus", classe: "bg-menthe/15 text-menthe border-menthe/30" },
+  depouille: { libelle: "Extrait", classe: "bg-menthe/15 text-menthe-clair border-menthe/30" },
   abandonne: { libelle: "Abandonné", classe: "bg-red-500/15 text-red-300 border-red-500/30" },
-  projet_cree: { libelle: "Projet créé", classe: "bg-[#96c0b8]/20 text-[#c3ddd6] border-[#96c0b8]/40" },
+  projet_cree: { libelle: "Projet créé", classe: "bg-menthe/20 text-menthe-clair border-menthe/40" },
 };
 
 // La grille des critères : nos critères à gauche, le bien à droite, et le
@@ -82,25 +82,25 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
     });
 
   return (
-    <div className="border-b border-[#1f2228] px-5 py-5">
+    <div className="border-b border-trait px-5 py-5">
       {/* --- Le bilan, en une ligne ---------------------------------------- */}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
-          <p className="m-0 text-[15px] text-[#f2f3f5]">
-            <span className="text-[#96c0b8]">{passes} tenu{passes > 1 ? "s" : ""}</span>
-            <span className="text-[#6a7180]"> · </span>
-            <span className={echecs ? "text-[#e8746a]" : "text-[#6a7180]"}>{echecs} raté{echecs > 1 ? "s" : ""}</span>
+          <p className="m-0 text-[15px] text-encre">
+            <span className="text-menthe">{passes} tenu{passes > 1 ? "s" : ""}</span>
+            <span className="text-brume"> · </span>
+            <span className={echecs ? "text-alerte" : "text-brume"}>{echecs} raté{echecs > 1 ? "s" : ""}</span>
             {inconnus > 0 && (
               <>
-                <span className="text-[#6a7180]"> · </span>
-                <span className="text-[#6a7180]">{inconnus} non renseigné{inconnus > 1 ? "s" : ""}</span>
+                <span className="text-brume"> · </span>
+                <span className="text-brume">{inconnus} non renseigné{inconnus > 1 ? "s" : ""}</span>
               </>
             )}
           </p>
         </div>
-        <div className="flex h-1.5 w-[220px] max-w-full overflow-hidden rounded-full bg-[#1f2228]">
-          <div className="h-full bg-[#96c0b8]" style={{ width: `${(passes / lignes.length) * 100}%` }} />
-          <div className="h-full bg-[#e8746a]" style={{ width: `${(echecs / lignes.length) * 100}%` }} />
+        <div className="flex h-1.5 w-[220px] max-w-full overflow-hidden rounded-full bg-trait">
+          <div className="h-full bg-menthe" style={{ width: `${(passes / lignes.length) * 100}%` }} />
+          <div className="h-full bg-alerte" style={{ width: `${(echecs / lignes.length) * 100}%` }} />
         </div>
       </div>
 
@@ -111,11 +111,11 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
           const ko = g.lignes.filter((l) => l.ok === false).length;
           return (
             <section key={g.nom} className="min-w-0">
-              <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-[#22262d]">
-                <p className="m-0 text-[10px] tracking-[.16em] uppercase text-[#96c0b8]/80">{g.nom}</p>
-                <p className="m-0 text-[11px] text-[#6a7180]">
+              <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-bord">
+                <p className="m-0 text-[10px] tracking-[.16em] uppercase text-menthe/80">{g.nom}</p>
+                <p className="m-0 text-[11px] text-brume">
                   {ok}/{g.lignes.length}
-                  {ko > 0 && <span className="text-[#e8746a]"> · {ko} raté{ko > 1 ? "s" : ""}</span>}
+                  {ko > 0 && <span className="text-alerte"> · {ko} raté{ko > 1 ? "s" : ""}</span>}
                 </p>
               </div>
               <ul className="m-0 p-0 list-none">
@@ -130,7 +130,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                       key={cle}
                       title={l.motif || undefined}
                       style={verif ? { background: `${VERIF[verif].fond}22`, boxShadow: `inset 3px 0 0 ${VERIF[verif].fond}` } : undefined}
-                      className={`flex items-start gap-3 py-2.5 border-b border-[#1f2228]/60 ${verif ? "-mx-2 px-2 rounded" : l.ok === false ? "bg-[#e8746a]/[0.04] -mx-2 px-2 rounded" : ""}`}
+                      className={`flex items-start gap-3 py-2.5 border-b border-trait/60 ${verif ? "-mx-2 px-2 rounded" : l.ok === false ? "bg-alerte/[0.04] -mx-2 px-2 rounded" : ""}`}
                     >
                       <span
                         className="mt-[3px] flex h-[18px] w-[18px] flex-none items-center justify-center rounded-full"
@@ -141,7 +141,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                         {l.ok == null && <span className="text-[10px] leading-none">?</span>}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-[13px] leading-snug text-[#f2f3f5] flex items-center gap-2 flex-wrap">
+                        <p className="m-0 text-[13px] leading-snug text-encre flex items-center gap-2 flex-wrap">
                           {onVerifier ? (
                             <button
                               type="button"
@@ -154,8 +154,8 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                           ) : l.critere}
                           {verif && <span className="text-[10px] font-semibold text-white px-1.5 py-px rounded" style={{ background: VERIF[verif].fond }}>{VERIF[verif].mot}</span>}
                         </p>
-                        {l.attendu && <p className="m-0 mt-0.5 text-[11px] leading-snug text-[#6a7180]">attendu : {l.attendu}</p>}
-                        {l.ok === false && l.motif && <p className="m-0 mt-0.5 text-[11px] leading-snug text-[#e8746a]/80">{l.motif}</p>}
+                        {l.attendu && <p className="m-0 mt-0.5 text-[11px] leading-snug text-brume">attendu : {l.attendu}</p>}
+                        {l.ok === false && l.motif && <p className="m-0 mt-0.5 text-[11px] leading-snug text-alerte/80">{l.motif}</p>}
                         {/* Les valeurs lues avec une confiance basse : lesquelles, et ce que dit la fiche. */}
                         {ouvert && l.details?.length > 0 && (
                           <ul className="m-0 mt-2 p-0 list-none space-y-1.5">
@@ -163,9 +163,9 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                               const c = lot?.lot?.[champ];
                               return (
                                 <li key={champ} className="text-[11.5px] leading-snug">
-                                  <span className="text-[#c9cdd6]">{LIBELLE_CHAMP[champ] || champ}</span>
-                                  <span className="text-[#f2f3f5]"> : {c ? afficherValeur(champ, c.valeur) : "—"}</span>
-                                  {c?.citation && <span className="block text-[#6a7180] italic">« {c.citation} »</span>}
+                                  <span className="text-craie">{LIBELLE_CHAMP[champ] || champ}</span>
+                                  <span className="text-encre"> : {c ? afficherValeur(champ, c.valeur) : "—"}</span>
+                                  {c?.citation && <span className="block text-brume italic">« {c.citation} »</span>}
                                 </li>
                               );
                             })}
@@ -177,7 +177,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                         onClick={() => (l.valeur != null || l.details?.length) && basculer(cle)}
                         title={l.valeur || undefined}
                         className={`max-w-[46%] flex-none text-right text-[13px] leading-snug ${
-                          l.valeur == null ? "text-[#6a7180] italic" : "text-[#c9cdd6]"
+                          l.valeur == null ? "text-brume italic" : "text-craie"
                         } ${ouvert ? "whitespace-normal break-words" : "truncate"}`}
                         style={{ fontVariantNumeric: "tabular-nums" }}
                       >
@@ -238,8 +238,8 @@ export function afficherValeur(champ, valeur) {
 export function Bandeau({ type, items }) {
   const styles =
     type === "alerte"
-      ? "border-[#96c0b8]/25 bg-[#96c0b8]/10 text-amber-200/90"
-      : "border-[#f2f3f5]/10 bg-[#f2f3f5]/[0.03] text-[#9298a6]";
+      ? "border-menthe/25 bg-menthe/10 text-amber-200/90"
+      : "border-encre/10 bg-encre/[0.03] text-ardoise";
   return (
     <div className={`rounded-md border px-4 py-3 text-sm ${styles}`}>
       {items.map((t, i) => (
@@ -362,7 +362,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-[#000000] border-[#1f2228] text-[#f2f3f5] max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-fond border-trait text-encre max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{TITRES_INTENTION[intention] || "Mail à l'agent"}</DialogTitle>
         </DialogHeader>
@@ -370,7 +370,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
         {etape === "raisons" ? (
           <div className="space-y-3">
             <div>
-              <Label className="text-[#9298a6] text-xs mb-2 block">
+              <Label className="text-ardoise text-xs mb-2 block">
                 Raisons de l'abandon (reformulées professionnellement dans le mail)
               </Label>
               <div className="flex flex-wrap gap-[7px] mb-3">
@@ -387,8 +387,8 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                       }
                       className={`px-3 py-[6px] rounded text-[11.5px] border transition-colors ${
                         choisie
-                          ? "border-[#e8746a] text-[#e8746a] bg-[#e8746a]/10"
-                          : "border-[#22262d] text-[#9298a6] hover:border-[#e8746a]/60"
+                          ? "border-alerte text-alerte bg-alerte/10"
+                          : "border-bord text-ardoise hover:border-alerte/60"
                       }`}
                     >
                       {r}
@@ -401,16 +401,16 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                 onChange={(e) => setRaisons(e.target.value)}
                 rows={3}
                 placeholder="Précisions libres — ex : travaux de toiture votés en AG non provisionnés, loyer 30 % au-dessus du marché…"
-                className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5]"
+                className="bg-surface border-trait text-encre"
               />
             </div>
             <DialogFooter>
               {onArchiverSansMail && (
-                <Button variant="ghost" onClick={onArchiverSansMail} className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 mr-auto">
+                <Button variant="ghost" onClick={onArchiverSansMail} className="text-ardoise hover:text-encre hover:bg-encre/5 mr-auto">
                   <Archive className="w-4 h-4 mr-1.5" /> Archiver sans mail
                 </Button>
               )}
-              <Button variant="ghost" onClick={onClose} className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5">
+              <Button variant="ghost" onClick={onClose} className="text-ardoise hover:text-encre hover:bg-encre/5">
                 Annuler
               </Button>
               <Button
@@ -418,7 +418,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                   generer.mutate({ raisons: [...raisonsChoisies, raisons.trim()].filter(Boolean).join(" ; ") })
                 }
                 disabled={(!raisons.trim() && raisonsChoisies.length === 0) || generer.isPending}
-                className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114]"
+                className="bg-encre hover:bg-craie text-surface"
               >
                 {generer.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Rédiger le mail
@@ -427,15 +427,15 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
           </div>
         ) : generer.isPending ? (
           <div className="py-10 text-center">
-            <Loader2 className="w-6 h-6 text-[#9298a6] animate-spin mx-auto mb-3" />
-            <p className="text-[#9298a6] text-sm">Rédaction du mail…</p>
+            <Loader2 className="w-6 h-6 text-ardoise animate-spin mx-auto mb-3" />
+            <p className="text-ardoise text-sm">Rédaction du mail…</p>
           </div>
         ) : (
           <>
             <div className="space-y-3">
               {comptes.length > 0 && (
                 <div>
-                  <Label className="text-[#9298a6] text-xs mb-1.5 block">Envoyer depuis</Label>
+                  <Label className="text-ardoise text-xs mb-1.5 block">Envoyer depuis</Label>
                   <Select
                     value={expediteur || comptes[0]?.id}
                     onValueChange={(v) => {
@@ -443,10 +443,10 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                       localStorage.setItem("klocka:dernier-expediteur", v);
                     }}
                   >
-                    <SelectTrigger className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5]">
+                    <SelectTrigger className="bg-surface border-trait text-encre">
                       <SelectValue placeholder="Choisir un compte" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#000000] border-[#1f2228] text-[#f2f3f5]">
+                    <SelectContent className="bg-fond border-trait text-encre">
                       {comptes.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name ? `${c.name} — ${c.id}` : c.id}
@@ -466,40 +466,40 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                 />
               )}
               <div>
-                <Label className="text-[#9298a6] text-xs mb-1.5 block">Destinataire</Label>
+                <Label className="text-ardoise text-xs mb-1.5 block">Destinataire</Label>
                 <Input
                   value={destinataire}
                   onChange={(e) => setDestinataire(e.target.value)}
                   placeholder="agent@agence.fr"
-                  className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5]"
+                  className="bg-surface border-trait text-encre"
                 />
               </div>
               <div>
-                <Label className="text-[#9298a6] text-xs mb-1.5 block">Objet</Label>
-                <Input value={objet} onChange={(e) => setObjet(e.target.value)} className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5]" />
+                <Label className="text-ardoise text-xs mb-1.5 block">Objet</Label>
+                <Input value={objet} onChange={(e) => setObjet(e.target.value)} className="bg-surface border-trait text-encre" />
               </div>
               <div>
-                <Label className="text-[#9298a6] text-xs mb-1.5 block">Corps</Label>
+                <Label className="text-ardoise text-xs mb-1.5 block">Corps</Label>
                 <Textarea
                   value={corps}
                   onChange={(e) => setCorps(e.target.value)}
                   rows={12}
-                  className="bg-[#0f1114] border-[#1f2228] text-[#f2f3f5] leading-relaxed"
+                  className="bg-surface border-trait text-encre leading-relaxed"
                 />
               </div>
               {EFFETS_INTENTION[intention] && (
-                <p className="text-[11.5px] text-[#6a7180] border-t border-[#1f2228] pt-3">
+                <p className="text-[11.5px] text-brume border-t border-trait pt-3">
                   À l'envoi : {EFFETS_INTENTION[intention]}
                 </p>
               )}
             </div>
             <DialogFooter>
               {onArchiverSansMail && (
-                <Button variant="ghost" onClick={onArchiverSansMail} className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5 mr-auto">
+                <Button variant="ghost" onClick={onArchiverSansMail} className="text-ardoise hover:text-encre hover:bg-encre/5 mr-auto">
                   <Archive className="w-4 h-4 mr-1.5" /> Archiver sans mail
                 </Button>
               )}
-              <Button variant="ghost" onClick={onClose} className="text-[#9298a6] hover:text-[#f2f3f5] hover:bg-[#f2f3f5]/5">
+              <Button variant="ghost" onClick={onClose} className="text-ardoise hover:text-encre hover:bg-encre/5">
                 <X className="w-4 h-4 mr-1.5" /> Fermer
               </Button>
               <Button
@@ -507,7 +507,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                 disabled={
                   !destinataire.trim() || !objet.trim() || !corps.trim() || envoyer.isPending || connexionEnCours
                 }
-                className="bg-[#f2f3f5] hover:bg-[#c9cdd6] text-[#0f1114] font-medium"
+                className="bg-encre hover:bg-craie text-surface font-medium"
               >
                 {envoyer.isPending || connexionEnCours ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -541,18 +541,18 @@ const LIBELLES_SUIVI = {
 export function JournalSuivi({ suivi }) {
   if (!suivi?.length) return null;
   return (
-    <div className="bg-[#000000] border border-[#1f2228] rounded-md px-5 py-4">
-      <p className="text-[#9298a6] text-xs mb-3">Historique du dossier</p>
+    <div className="bg-fond border border-trait rounded-md px-5 py-4">
+      <p className="text-ardoise text-xs mb-3">Historique du dossier</p>
       <div className="space-y-2">
         {[...suivi].reverse().map((e, i) => (
           <div key={i} className="flex items-start gap-3 text-xs">
-            <span className="text-[#6a7180] w-32 flex-shrink-0">
+            <span className="text-brume w-32 flex-shrink-0">
               {new Date(e.le).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
             </span>
-            <Badge className="bg-[#f2f3f5]/5 text-[#9298a6] border-[#f2f3f5]/10 text-[10px] flex-shrink-0">
+            <Badge className="bg-encre/5 text-ardoise border-encre/10 text-[10px] flex-shrink-0">
               {LIBELLES_SUIVI[e.type] || e.type}
             </Badge>
-            <span className="text-[#9298a6] min-w-0">
+            <span className="text-ardoise min-w-0">
               {e.detail}
               {e.intention ? ` (${e.intention.replace(/_/g, " ")})` : ""}
               {e.destinataire ? ` → ${e.destinataire}` : ""}
@@ -599,23 +599,23 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
       <div className="space-y-3">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <figure className="m-0">
-            <figcaption className="mb-2 font-mono text-[10px] uppercase tracking-[.18em] text-[#6a7180]">Depuis la rue</figcaption>
-            <div className="relative h-[300px] rounded-[14px] overflow-hidden border border-[#1f2228] bg-[#000000]">
+            <figcaption className="mb-2 font-mono text-[10px] uppercase tracking-[.18em] text-brume">Depuis la rue</figcaption>
+            <div className="relative h-[300px] rounded-[14px] overflow-hidden border border-trait bg-fond">
               {!CLE_MAPS ? (
-                <p className="absolute inset-0 flex items-center justify-center m-0 px-6 text-center text-[12px] text-[#9298a6]">Street View indisponible : renseignez <code className="text-[#c9cdd6] mx-1">VITE_GOOGLE_MAPS_API_KEY</code>.</p>
+                <p className="absolute inset-0 flex items-center justify-center m-0 px-6 text-center text-[12px] text-ardoise">Street View indisponible : renseignez <code className="text-craie mx-1">VITE_GOOGLE_MAPS_API_KEY</code>.</p>
               ) : localisable ? <StreetViewRue project={lieu} /> : (
-                <p className="absolute inset-0 flex items-center justify-center m-0 text-[13px] text-[#6a7180]">Adresse inconnue pour ce lot.</p>
+                <p className="absolute inset-0 flex items-center justify-center m-0 text-[13px] text-brume">Adresse inconnue pour ce lot.</p>
               )}
             </div>
           </figure>
           <figure className="m-0">
-            <figcaption className="mb-2 font-mono text-[10px] uppercase tracking-[.18em] text-[#6a7180]">Sur le plan</figcaption>
+            <figcaption className="mb-2 font-mono text-[10px] uppercase tracking-[.18em] text-brume">Sur le plan</figcaption>
             <div className="[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]">
               <CarteGoogle adresse={adresse} lat={enr?.commune?.centre?.lat} lon={enr?.commune?.centre?.lon} hauteur="h-[300px]" />
             </div>
           </figure>
         </div>
-        {!adresse && <p className="m-0 text-[12px] text-[#6a7180]">Adresse précise absente de la fiche : les vues sont centrées sur la commune.</p>}
+        {!adresse && <p className="m-0 text-[12px] text-brume">Adresse précise absente de la fiche : les vues sont centrées sur la commune.</p>}
       </div>
     );
   }
@@ -630,7 +630,7 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
             disabled={v.id !== "carte" && !localisable}
             title={v.id !== "carte" && !localisable ? "Adresse inconnue pour ce lot" : undefined}
             className={`px-3.5 py-1.5 rounded-full text-[12.5px] border transition-colors disabled:opacity-40
-              ${vue === v.id ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#000000] font-medium" : "border-[#22262d] text-[#9298a6] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}
+              ${vue === v.id ? "bg-encre border-encre text-fond font-medium" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`}
           >
             {v.label}
           </button>
@@ -641,12 +641,12 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
         <CarteGoogle adresse={adresse} lat={enr?.commune?.centre?.lat} lon={enr?.commune?.centre?.lon} />
       )}
       {vue === "street" && (
-        <div className="relative h-[420px] rounded-md overflow-hidden border border-[#1f2228]">
+        <div className="relative h-[420px] rounded-md overflow-hidden border border-trait">
           <StreetViewRue project={lieu} />
         </div>
       )}
       {vue !== "carte" && !adresse && (
-        <p className="m-0 text-[11.5px] text-[#6a7180]">
+        <p className="m-0 text-[11.5px] text-brume">
           Adresse précise absente de la fiche : la vue est centrée sur la commune.
         </p>
       )}
@@ -676,10 +676,10 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
           onKeyDown={(e) => { if (e.key === "Enter") valider(); if (e.key === "Escape") setEdition(null); }}
           placeholder="400 000"
           inputMode="numeric"
-          className={`w-[150px] bg-transparent border-b border-[#3a3f4a] focus:border-[#f2f3f5] outline-none tabular-nums font-light text-[#f2f3f5] placeholder:text-[#3a3f4a] ${compact ? "text-[14px] py-0.5" : "text-[22px] py-1"}`}
+          className={`w-[150px] bg-transparent border-b border-bord-vif focus:border-encre outline-none tabular-nums font-light text-encre placeholder:text-bord-vif ${compact ? "text-[14px] py-0.5" : "text-[22px] py-1"}`}
         />
-        <button onClick={valider} disabled={!valide || enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
-        <button onClick={() => setEdition(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+        <button onClick={valider} disabled={!valide || enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
+        <button onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
       </div>
     );
   }
@@ -689,7 +689,7 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
       onClick={() => modifiable && setEdition(valeur != null ? String(valeur) : "")}
       disabled={!modifiable || enCours}
       title={modifiable ? "Modifier le prix affiché" : undefined}
-      className={`group inline-flex items-baseline gap-2 text-left tabular-nums font-light ${compact ? "text-[14px]" : "text-[22px]"} ${valeur == null ? "text-[#d9b46a]" : "text-[#f2f3f5]"} disabled:cursor-default`}
+      className={`group inline-flex items-baseline gap-2 text-left tabular-nums font-light ${compact ? "text-[14px]" : "text-[22px]"} ${valeur == null ? "text-ambre" : "text-encre"} disabled:cursor-default`}
     >
       {valeur == null ? "à renseigner" : euros(valeur)}
       {modifiable && <Pencil className={`${compact ? "w-3 h-3" : "w-3.5 h-3.5"} text-[#4d545d] opacity-0 group-hover:opacity-100 transition-opacity`} />}
@@ -727,10 +727,10 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
           const actif = choisi === v;
           const attend = enCours && choix === v;
           return (
-            <button key={mot} onClick={() => { if (modifiable && actuel !== v) { setChoix(v); valider(v); } }} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-all duration-200 disabled:cursor-default ${attend ? "bg-[#96c0b8] border-[#96c0b8] text-[#0b0c0e] font-semibold animate-pulse" : actif ? "bg-[#f2f3f5] border-[#f2f3f5] text-[#0b0c0e] font-semibold" : "border-[#2c3139] text-[#6a7180] hover:text-[#f2f3f5] hover:border-[#3a3f4a]"}`}>{mot}</button>
+            <button key={mot} onClick={() => { if (modifiable && actuel !== v) { setChoix(v); valider(v); } }} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-all duration-200 disabled:cursor-default ${attend ? "bg-menthe border-menthe text-[#0b0c0e] font-semibold animate-pulse" : actif ? "bg-encre border-encre text-[#0b0c0e] font-semibold" : "border-bord-doux text-brume hover:text-encre hover:border-bord-vif"}`}>{mot}</button>
           );
         })}
-        {enCours && choix !== null ? <span className="ml-1 text-[11px] text-[#96c0b8]">recalcul…</span> : !absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-[#d9b46a]">saisi à la main</span>}
+        {enCours && choix !== null ? <span className="ml-1 text-[11px] text-menthe">recalcul…</span> : !absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-ambre">saisi à la main</span>}
       </span>
     );
   }
@@ -744,10 +744,10 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
           onChange={(e) => setEdition(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") valider(edition.trim()); if (e.key === "Escape") setEdition(null); }}
           placeholder={champ === "adresse" ? "12 rue Exemple, 69002 Lyon" : ""}
-          className="min-w-[220px] bg-transparent border-b border-[#3a3f4a] focus:border-[#f2f3f5] outline-none text-[14px] font-light tabular-nums text-[#f2f3f5] py-0.5 placeholder:text-[#3a3f4a]"
+          className="min-w-[220px] bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[14px] font-light tabular-nums text-encre py-0.5 placeholder:text-bord-vif"
         />
-        <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-[#f2f3f5] text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
-        <button onClick={() => setEdition(null)} className="text-[12px] text-[#9298a6] hover:text-[#f2f3f5]">Annuler</button>
+        <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
+        <button onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
       </span>
     );
   }
@@ -757,11 +757,11 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
       onClick={() => modifiable && setEdition(texteBrut(champ, c))}
       disabled={!modifiable || enCours}
       title={modifiable ? "Modifier" : c?.citation || undefined}
-      className={`group inline-flex items-baseline gap-2 text-right text-[14px] tabular-nums font-light min-w-0 disabled:cursor-default ${absent ? "text-[#4d545d]" : "text-[#f2f3f5]"}`}
+      className={`group inline-flex items-baseline gap-2 text-right text-[14px] tabular-nums font-light min-w-0 disabled:cursor-default ${absent ? "text-[#4d545d]" : "text-encre"}`}
     >
       <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
-      {!absent && c.confiance === "basse" && <span className="text-[11px] text-[#d9b46a] font-normal">confiance basse</span>}
-      {!absent && c.saisi_a_la_main && <span className="text-[11px] text-[#d9b46a] font-normal">saisi à la main</span>}
+      {!absent && c.confiance === "basse" && <span className="text-[11px] text-ambre font-normal">confiance basse</span>}
+      {!absent && c.saisi_a_la_main && <span className="text-[11px] text-ambre font-normal">saisi à la main</span>}
       {modifiable && <Pencil className="w-3 h-3 text-[#4d545d] opacity-0 group-hover:opacity-100 transition-opacity flex-none" />}
     </button>
   );
@@ -772,9 +772,9 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
 export function BandeauRecalcul({ actif }) {
   if (!actif) return null;
   return (
-    <div className="mb-4 flex items-center gap-3 rounded-[12px] border border-[#96c0b8]/40 bg-[#96c0b8]/10 px-4 py-2.5 animate-in fade-in duration-200">
+    <div className="mb-4 flex items-center gap-3 rounded-[12px] border border-menthe/40 bg-menthe/10 px-4 py-2.5 animate-in fade-in duration-200">
       <PenseeIA etat="working" taille={20} />
-      <p className="m-0 text-[13px] text-[#c3ddd6]">Recalcul en cours — verdict, rendements et simulateur se mettent à jour.</p>
+      <p className="m-0 text-[13px] text-menthe-clair">Recalcul en cours — verdict, rendements et simulateur se mettent à jour.</p>
     </div>
   );
 }
@@ -807,18 +807,18 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
   const ratés = (lot.evaluation.grille || []).filter((l) => l.ok === false).length;
 
   return (
-    <div className="text-[#f2f3f5]">
+    <div className="text-encre">
       <div className="pt-2">
         <main className="min-w-0">
           {/* La fiche du bien : ce que la fiche commerciale dit, champ par champ */}
-          <section className="pb-8 border-b border-[#1f2228]">
+          <section className="pb-8 border-b border-trait">
             <div className="flex items-center gap-3 flex-wrap mb-4">
               <h2 className="m-0 text-[17px] font-semibold">Fiche du bien</h2>
-              <span className="text-[13px] text-[#6a7180]">ce que la fiche commerciale donne, champ par champ</span>
+              <span className="text-[13px] text-brume">ce que la fiche commerciale donne, champ par champ</span>
               <div className="ml-auto flex items-center gap-2">
                 <FicheSource dossier={dossier} />
                 {lot.mail_agent && (
-                  <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-[#2c3139] px-3.5 py-1.5 text-[13px] text-[#c9cdd6] hover:text-[#f2f3f5] hover:border-[#3a3f4a] disabled:opacity-40">
+                  <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[13px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-40">
                     <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent
                   </button>
                 )}
@@ -828,7 +828,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             <dl className="m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12">
               {CHAMPS_AFFICHES.map(([champ, libelle]) => (
                 <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-[#15171b]">
-                  <dt className="text-[13px] text-[#9298a6] flex-none">{libelle}</dt>
+                  <dt className="text-[13px] text-ardoise flex-none">{libelle}</dt>
                   <dd className="m-0 text-right min-w-0"><ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
                 </div>
               ))}
@@ -837,43 +837,43 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
 
           {/* La grille de critères : coche menthe, croix corail, sous les yeux */}
           {nbCriteres > 0 && (
-            <section className="py-8 border-b border-[#1f2228]">
+            <section className="py-8 border-b border-trait">
               <div className="flex items-baseline gap-3 flex-wrap mb-1">
                 <h2 className="m-0 text-[17px] font-semibold">Grille de critères</h2>
-                <span className="text-[13px] text-[#6a7180]">{nbCriteres} critères{ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""} — le verdict n'est que leur somme</span>
+                <span className="text-[13px] text-brume">{nbCriteres} critères{ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""} — le verdict n'est que leur somme</span>
               </div>
               <div className="-mx-5"><GrilleCriteres lignes={lot.evaluation.grille} lot={lot} onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })} /></div>
             </section>
           )}
 
           {/* Le simulateur, tel quel */}
-          <section className="py-8 border-b border-[#1f2228]">
+          <section className="py-8 border-b border-trait">
             <div className="flex items-baseline gap-3 flex-wrap mb-5">
               <h2 className="m-0 text-[17px] font-semibold">Simulateur</h2>
-              <span className="text-[13px] text-[#6a7180]">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
+              <span className="text-[13px] text-brume">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
             </div>
             <SimulateurDossier parametres={lot.simulateur} dealId={dossier?.deal_id || null} lotIndex={lot.index ?? 0} onEnregistre={onRefresh} />
           </section>
 
           {/* L'emplacement : la seule donnée humaine, elle change le verdict.
               On le juge sur pièces — la rue, puis le plan. */}
-          <section className="py-8 border-b border-[#1f2228]">
+          <section className="py-8 border-b border-trait">
             <div className="flex items-baseline gap-3 flex-wrap mb-4">
               <h2 className="m-0 text-[17px] font-semibold">Emplacement</h2>
-              <span className="text-[13px] text-[#6a7180]">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>
+              <span className="text-[13px] text-brume">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>
             </div>
             <div className="flex flex-wrap items-center gap-3 mb-5">
-              <div className="inline-flex flex-wrap rounded-full border border-[#2c3139] p-0.5">
+              <div className="inline-flex flex-wrap rounded-full border border-bord-doux p-0.5">
                 {EMPLACEMENTS.map((e) => (
-                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-[#f2f3f5] text-[#0b0c0e] font-semibold" : "text-[#9298a6] hover:text-[#f2f3f5]"}`}>{e.libelle}</button>
+                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-encre text-[#0b0c0e] font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
                 ))}
               </div>
-              <span className="border border-[#3a3f4a] rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? "#e8b04c" : "#d9b46a" }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
+              <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? "#e8b04c" : "#d9b46a" }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
             </div>
             <VuesLieu lot={lot} enr={enr} coteACote />
             <dl className="m-0 mt-5 grid grid-cols-2 sm:grid-cols-5 gap-x-6 gap-y-3">
               {[["Commune", enr?.commune ? enr.commune.nom : "non résolue"], ["Population", enr?.commune?.population?.toLocaleString("fr-FR") ?? "—"], ["Typologie", enr?.typologie_ville ? enr.typologie_ville.replace("_", " ") : "—"], ["Enseigne", enr?.signature?.niveau ?? "—"], ["Activité", enr?.activite?.libelle ?? "—"]].map(([l, v]) => (
-                <div key={l} className="min-w-0"><dt className="text-[11px] tracking-[.14em] uppercase text-[#6a7180]">{l}</dt><dd className="m-0 mt-1 text-[14px] font-light text-[#f2f3f5] truncate" title={String(v)}>{v}</dd></div>
+                <div key={l} className="min-w-0"><dt className="text-[11px] tracking-[.14em] uppercase text-brume">{l}</dt><dd className="m-0 mt-1 text-[14px] font-light text-encre truncate" title={String(v)}>{v}</dd></div>
               ))}
             </dl>
           </section>
@@ -882,14 +882,14 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
           <section className="pt-8">
             <div className="flex items-baseline gap-3 flex-wrap mb-3">
               <h2 className="m-0 text-[17px] font-semibold">Clients à qui ce bien pourrait correspondre</h2>
-              <span className="text-[13px] text-[#6a7180]">budget, apport et zone de recherche, d'après Monday</span>
+              <span className="text-[13px] text-brume">budget, apport et zone de recherche, d'après Monday</span>
             </div>
             <ClientsCorrespondants clients={correspondances?.clients} chargement={chargementCorrespondances} configure={correspondances?.configure} erreur={erreurCorrespondances} />
           </section>
 
           {/* Le détail */}
-          <div className="mt-8 border-t border-[#1f2228]">
-            <button onClick={() => setDetailOuvert((o) => !o)} className="w-full py-3 flex items-center justify-between text-[#9298a6] hover:text-[#f2f3f5] text-xs transition-colors">
+          <div className="mt-8 border-t border-trait">
+            <button onClick={() => setDetailOuvert((o) => !o)} className="w-full py-3 flex items-center justify-between text-ardoise hover:text-encre text-xs transition-colors">
               <span>Détail — données extraites avec citations, enrichissement{lot.contexte_marche ? ", marché local" : ""}</span>
               {detailOuvert ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
@@ -922,21 +922,21 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                   const absent = !c || c.absent;
                   return (
                     <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-[#15171b]">
-                      <span className="text-[#9298a6] text-xs w-40 flex-shrink-0">{libelle}</span>
-                      <span className={`text-xs flex-1 ${absent ? "text-[#6a7180] italic" : "text-[#f2f3f5]"}`}>
+                      <span className="text-ardoise text-xs w-40 flex-shrink-0">{libelle}</span>
+                      <span className={`text-xs flex-1 ${absent ? "text-brume italic" : "text-encre"}`}>
                         {absent ? "non renseigné dans la fiche" : afficherValeur(champ, c.valeur)}
                       </span>
                       {!absent && c.citation && (
                         <span
                           title={c.citation}
-                          className="text-[#6a7180] text-[11px] flex items-center gap-1 max-w-[45%] truncate cursor-help"
+                          className="text-brume text-[11px] flex items-center gap-1 max-w-[45%] truncate cursor-help"
                         >
                           <Quote className="w-3 h-3 flex-shrink-0" />
                           {c.citation}
                         </span>
                       )}
                       {!absent && c.confiance === "basse" && (
-                        <Badge className="bg-[#96c0b8]/15 text-[#96c0b8] border-[#96c0b8]/25 text-[10px]">
+                        <Badge className="bg-menthe/15 text-menthe border-menthe/25 text-[10px]">
                           confiance basse
                         </Badge>
                       )}
@@ -971,12 +971,12 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             {lot.contexte_marche && (
               <TabsContent value="marche">
                 <div className="space-y-3">
-                  <p className="text-[#c9cdd6] text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-craie text-sm leading-relaxed whitespace-pre-wrap">
                     {lot.contexte_marche.resume}
                   </p>
                   {lot.contexte_marche.sources?.length > 0 && (
                     <div>
-                      <p className="text-[#9298a6] text-xs mb-1.5">Sources consultées :</p>
+                      <p className="text-ardoise text-xs mb-1.5">Sources consultées :</p>
                       <ul className="space-y-1">
                         {lot.contexte_marche.sources.map((s, i) => (
                           <li key={i}>
@@ -984,7 +984,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                               href={s.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[#c3ddd6] hover:text-[#f2f3f5] text-xs underline underline-offset-2 transition-colors"
+                              className="text-menthe-clair hover:text-encre text-xs underline underline-offset-2 transition-colors"
                             >
                               {s.titre}
                             </a>
@@ -993,7 +993,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                       </ul>
                     </div>
                   )}
-                  <p className="text-[#6a7180] text-[11px]">
+                  <p className="text-brume text-[11px]">
                     Généré avec recherche web — à vérifier avant décision. Ce contexte n'entre pas dans le
                     verdict.
                   </p>
@@ -1025,9 +1025,9 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
 function Metrique({ label, valeur, sousTitre, accent }) {
   return (
     <div className="px-4 py-3">
-      <p className="text-[#9298a6] text-[11px] mb-1">{label}</p>
-      <p className={`text-lg font-light ${accent ? "text-[#c3ddd6]" : "text-[#f2f3f5]"}`}>{valeur}</p>
-      {sousTitre && <p className="text-[#6a7180] text-[11px]">{sousTitre}</p>}
+      <p className="text-ardoise text-[11px] mb-1">{label}</p>
+      <p className={`text-lg font-light ${accent ? "text-menthe-clair" : "text-encre"}`}>{valeur}</p>
+      {sousTitre && <p className="text-brume text-[11px]">{sousTitre}</p>}
     </div>
   );
 }
@@ -1035,8 +1035,8 @@ function Metrique({ label, valeur, sousTitre, accent }) {
 function LigneDetail({ label, valeur, fort = undefined }) {
   return (
     <div className="flex justify-between gap-3 py-1.5 border-b border-[#15171b]">
-      <span className="text-[#9298a6]">{label}</span>
-      <span className={fort ? "text-[#c3ddd6]" : "text-[#f2f3f5]"}>{valeur}</span>
+      <span className="text-ardoise">{label}</span>
+      <span className={fort ? "text-menthe-clair" : "text-encre"}>{valeur}</span>
     </div>
   );
 }
@@ -1053,10 +1053,10 @@ function ValidationEnseigne({ nom, signature, apercu }) {
     },
   });
 
-  if (fait) return <p className="text-[#c3ddd6] text-xs mt-3">Enseigne ajoutée au référentiel.</p>;
+  if (fait) return <p className="text-menthe-clair text-xs mt-3">Enseigne ajoutée au référentiel.</p>;
 
   return (
-    <div className="mt-3 rounded-lg border border-[#96c0b8]/25 bg-[#96c0b8]/10 px-3 py-2.5">
+    <div className="mt-3 rounded-lg border border-menthe/25 bg-menthe/10 px-3 py-2.5">
       <p className="text-amber-200/90 text-xs mb-1">
         « {nom} » est absente du référentiel. Qualification proposée par l'IA : <strong>{signature.niveau}</strong>.
       </p>
@@ -1065,7 +1065,7 @@ function ValidationEnseigne({ nom, signature, apercu }) {
         size="sm"
         onClick={() => enregistrer.mutate()}
         disabled={apercu || enregistrer.isPending}
-        className="bg-[#96c0b8]/20 hover:bg-[#96c0b8]/30 text-amber-200 border-0 h-7 text-xs"
+        className="bg-menthe/20 hover:bg-menthe/30 text-amber-200 border-0 h-7 text-xs"
       >
         Valider et ajouter au référentiel
       </Button>

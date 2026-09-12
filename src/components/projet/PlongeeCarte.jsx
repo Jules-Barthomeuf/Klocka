@@ -240,8 +240,8 @@ function PlongeeMapLibre({ cible }) {
 
   if (erreurCarte) {
     return (
-      <div className="absolute inset-0 bg-[#000000] flex items-center justify-center">
-        <p className="text-[#9298a6] text-sm">Affichage 3D indisponible sur cet appareil.</p>
+      <div className="absolute inset-0 bg-fond flex items-center justify-center">
+        <p className="text-ardoise text-sm">Affichage 3D indisponible sur cet appareil.</p>
       </div>
     );
   }
@@ -280,15 +280,15 @@ export default function PlongeeCarte({ project, onClose }) {
 
   if (cible === null || isError) {
     return (
-      <div className="absolute inset-0 bg-[#000000] flex items-center justify-center">
-        <p className="text-[#9298a6] text-sm">Adresse non localisable — retour à la photo.</p>
+      <div className="absolute inset-0 bg-fond flex items-center justify-center">
+        <p className="text-ardoise text-sm">Adresse non localisable — retour à la photo.</p>
       </div>
     );
   }
   if (cible === undefined || google3D === undefined) {
     return (
-      <div className="absolute inset-0 bg-[#000000] flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-[#96c0b8]/30 border-t-[#96c0b8] rounded-full animate-spin" />
+      <div className="absolute inset-0 bg-fond flex items-center justify-center">
+        <div className="w-7 h-7 border-2 border-menthe/30 border-t-menthe rounded-full animate-spin" />
       </div>
     );
   }

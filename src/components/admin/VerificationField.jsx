@@ -30,7 +30,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
   const hasNote = field.note && field.note.trim().length > 0;
 
   return (
-    <div className={`relative rounded-lg transition-all ${isChecked ? "ring-1 ring-[#96c0b8]/40" : ""}`}>
+    <div className={`relative rounded-lg transition-all ${isChecked ? "ring-1 ring-menthe/40" : ""}`}>
       {/* Contenu du champ */}
       <div className="relative">
         {children}
@@ -43,8 +43,8 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             title={isChecked ? "Marquer comme non vérifié" : "Marquer comme vérifié"}
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               isChecked
-                ? "border-[#96c0b8]/50 bg-[#96c0b8]/10 text-[#c3ddd6] hover:bg-[#96c0b8]/20"
-                : "border-[#22262d] bg-[#0f1114]/60 text-[#9298a6] hover:text-[#c9cdd6] hover:border-[#22262d]"
+                ? "border-menthe/50 bg-menthe/10 text-menthe-clair hover:bg-menthe/20"
+                : "border-bord bg-surface/60 text-ardoise hover:text-craie hover:border-bord"
             }`}
           >
             {isChecked ? (
@@ -62,7 +62,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               hasNote
                 ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
-                : "border-[#22262d] bg-[#0f1114]/60 text-[#9298a6] hover:text-[#c9cdd6] hover:border-[#22262d]"
+                : "border-bord bg-surface/60 text-ardoise hover:text-craie hover:border-bord"
             }`}
           >
             <MessageSquare className="w-3 h-3" />
@@ -78,7 +78,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
               value={field.note || ""}
               onChange={(e) => setField({ note: e.target.value })}
               placeholder="Note du vérificateur..."
-              className="bg-[#000000] text-orange-100 border-orange-500/30 text-xs placeholder:text-[#6a7180]"
+              className="bg-fond text-orange-100 border-orange-500/30 text-xs placeholder:text-brume"
               rows={2}
             />
           </div>

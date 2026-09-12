@@ -69,10 +69,10 @@ export function EncartDonnee({ encart, couleur, souligne, onClick }) {
         borderLeftColor: couleur.pastille,
       }}
     >
-      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180]">{encart.libelle}</span>
+      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">{encart.libelle}</span>
       <span className="mt-1 flex items-baseline justify-between gap-3">
-        <span className="font-mono text-[19px] leading-tight text-[#f2f3f5]">{encart.valeur}</span>
-        <span className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] text-[#6a7180] group-hover:text-[#96c0b8] transition-colors">
+        <span className="font-mono text-[19px] leading-tight text-encre">{encart.valeur}</span>
+        <span className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] text-brume group-hover:text-menthe transition-colors">
           source <ExternalLink className="w-3 h-3" />
         </span>
       </span>

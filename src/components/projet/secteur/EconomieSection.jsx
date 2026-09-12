@@ -21,7 +21,7 @@ export default function EconomieSection({ data }) {
   if (!data.nb_etablissements && secteursData.length === 0) return null;
 
   return (
-    <SectionCard icon={<Building2 className="w-5 h-5 text-[#96c0b8]" />} title="Tissu Économique">
+    <SectionCard icon={<Building2 className="w-5 h-5 text-menthe" />} title="Tissu Économique">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {data.nb_etablissements > 0 && <KPI label="Établissements actifs" value={data.nb_etablissements.toLocaleString()} color="teal" />}
         {data.nb_creations_entreprises > 0 && <KPI label="Créations d'entreprises" value={data.nb_creations_entreprises.toLocaleString()} sub="sur l'année" color="green" />}
@@ -32,7 +32,7 @@ export default function EconomieSection({ data }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {secteursData.length > 0 && (
           <div>
-            <p className="text-sm text-[#9298a6] mb-3">Répartition par secteur</p>
+            <p className="text-sm text-ardoise mb-3">Répartition par secteur</p>
             <div className="space-y-2">
               {secteursData.map((d, i) => <ProgressBar key={i} label={d.name} value={d.value} color={d.color} />)}
             </div>
@@ -41,7 +41,7 @@ export default function EconomieSection({ data }) {
 
         {tailleData.length > 0 && (
           <div>
-            <p className="text-sm text-[#9298a6] mb-3">Taille des établissements</p>
+            <p className="text-sm text-ardoise mb-3">Taille des établissements</p>
             <div className="space-y-2">
               {tailleData.map((d, i) => <ProgressBar key={i} label={d.name} value={d.value} color={d.color} />)}
             </div>

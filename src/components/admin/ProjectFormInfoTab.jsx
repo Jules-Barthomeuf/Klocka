@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Plus, X, Search, ChevronDown } from "lucide-react";
 
-const fieldWrap = "bg-transparent border border-[#1e1e1e] rounded-[12px] px-4 py-3.5 transition-colors focus-within:border-[#3a3f4a]";
-const fieldInput = "w-full bg-transparent border-none text-[#f2f3f5] outline-none placeholder:text-[#6a7180]";
-const flabel = "text-[12px] text-[#9298a6] mb-2";
+const fieldWrap = "bg-transparent border border-[#1e1e1e] rounded-[12px] px-4 py-3.5 transition-colors focus-within:border-bord-vif";
+const fieldInput = "w-full bg-transparent border-none text-encre outline-none placeholder:text-brume";
+const flabel = "text-[12px] text-ardoise mb-2";
 
 const STATUSES = [
   { value: "prospect", label: "Prospect" },
@@ -31,7 +31,7 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
     <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
       {/* Titre */}
       <div className={`${fieldWrap} col-span-2 max-md:col-span-1`}>
-        <div className={`${flabel} text-[#9298a6]`}>Titre du projet</div>
+        <div className={`${flabel} text-ardoise`}>Titre du projet</div>
         <input value={formData.titre} onChange={(e) => setFormData({ ...formData, titre: e.target.value })} placeholder="Nom du projet" className={`${fieldInput} text-[17px] font-semibold`} />
       </div>
 
@@ -46,18 +46,18 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
               className={`${fieldInput} text-[15px] appearance-none cursor-pointer pr-8`}
             >
               {STATUSES.map((s) => (
-                <option key={s.value} value={s.value} className="bg-[#0f1114]">
+                <option key={s.value} value={s.value} className="bg-surface">
                   {s.label}
                 </option>
               ))}
             </select>
-            <ChevronDown className="w-4 h-4 text-[#6a7180] absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-brume absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
         <div className={fieldWrap}>
           <div className={flabel}>Suivi client</div>
           <div className="flex items-center gap-4 mt-1 flex-wrap">
-            <label className="flex items-center gap-2 cursor-pointer text-[13px] text-[#f2f3f5]">
+            <label className="flex items-center gap-2 cursor-pointer text-[13px] text-encre">
               <input
                 type="checkbox"
                 checked={!!formData.suivi_message_envoye}
@@ -69,13 +69,13 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
                     ...(e.target.checked ? {} : { suivi_retour_client: null }),
                   })
                 }
-                className="w-4 h-4 accent-[#96c0b8]"
+                className="w-4 h-4 accent-menthe"
               />
               Message envoyé au client
             </label>
             {formData.suivi_message_envoye && (
               <div className="flex items-center gap-1.5 text-[13px]">
-                <span className="text-[#9298a6]">Retour :</span>
+                <span className="text-ardoise">Retour :</span>
                 {["oui", "non"].map((v) => (
                   <button
                     key={v}
@@ -89,9 +89,9 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
                     className={`px-2.5 py-1 rounded-lg border text-[12px] transition-colors ${
                       formData.suivi_retour_client === v
                         ? v === "oui"
-                          ? "bg-[#96c0b8]/25 border-[#96c0b8] text-[#c3ddd6]"
+                          ? "bg-menthe/25 border-menthe text-menthe-clair"
                           : "bg-red-500/20 border-red-400/60 text-red-300"
-                        : "border-[#f2f3f5]/15 text-[#9298a6] hover:border-[#f2f3f5]/30"
+                        : "border-encre/15 text-ardoise hover:border-encre/30"
                     }`}
                   >
                     {v === "oui" ? "Oui" : "Non"}
@@ -172,29 +172,29 @@ export function CarteClients({ formData, setFormData, users }) {
         <div className="flex flex-col gap-2.5 mt-1">
           <div className="flex items-center gap-2 flex-wrap">
             {nonAdminAssigned.map(({ email, principal }, i) => (
-              <div key={email} className="inline-flex items-center gap-2 bg-[#f2f3f5]/[0.05] rounded-full pl-1 pr-2.5 py-1 text-[13px] text-[#f2f3f5]">
-                <span className="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[11px] font-semibold text-[#f2f3f5]" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{initials(nameOf(email))}</span>
+              <div key={email} className="inline-flex items-center gap-2 bg-encre/[0.05] rounded-full pl-1 pr-2.5 py-1 text-[13px] text-encre">
+                <span className="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[11px] font-semibold text-encre" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{initials(nameOf(email))}</span>
                 {nameOf(email)}
-                {principal && <span className="text-[10px] bg-[#96c0b8] text-[#f2f3f5] px-1.5 py-0.5 rounded font-semibold">Principal</span>}
-                <span onClick={() => removeClient(email, principal)} className="cursor-pointer text-[#9298a6] hover:text-[#FF7C7C] flex ml-0.5"><X className="w-3.5 h-3.5" strokeWidth={2.2} /></span>
+                {principal && <span className="text-[10px] bg-menthe text-encre px-1.5 py-0.5 rounded font-semibold">Principal</span>}
+                <span onClick={() => removeClient(email, principal)} className="cursor-pointer text-ardoise hover:text-[#FF7C7C] flex ml-0.5"><X className="w-3.5 h-3.5" strokeWidth={2.2} /></span>
               </div>
             ))}
             <div className="relative">
-              <button type="button" onClick={() => setClientOpen(!clientOpen)} className="w-[34px] h-[34px] rounded-full border-[1.5px] border-dashed border-[#f2f3f5]/20 text-[#9298a6] flex items-center justify-center text-[18px] hover:border-[#3a3f4a] hover:text-[#f2f3f5] transition-colors">+</button>
+              <button type="button" onClick={() => setClientOpen(!clientOpen)} className="w-[34px] h-[34px] rounded-full border-[1.5px] border-dashed border-encre/20 text-ardoise flex items-center justify-center text-[18px] hover:border-bord-vif hover:text-encre transition-colors">+</button>
               {clientOpen && (
-                <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-[#0f1114] border border-[#f2f3f5]/[0.1] rounded-md p-1.5 z-30 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
+                <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-surface border border-encre/[0.1] rounded-md p-1.5 z-30 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
                   <div className="relative mb-1">
-                    <Search className="w-4 h-4 text-[#6a7180] absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Rechercher..." className="w-full bg-[#0f1114] border border-[#1f2228] rounded-lg pl-9 pr-3 py-2 text-[13px] text-[#f2f3f5] outline-none placeholder:text-[#6a7180]" />
+                    <Search className="w-4 h-4 text-brume absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Rechercher..." className="w-full bg-surface border border-trait rounded-lg pl-9 pr-3 py-2 text-[13px] text-encre outline-none placeholder:text-brume" />
                   </div>
                   <div className="max-h-[220px] overflow-auto">
                     {clientCandidates.map((u) => (
-                      <div key={u.id} onClick={() => addClient(u.email)} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-[13px] text-[#f2f3f5] hover:bg-[#f2f3f5]/[0.06] transition-colors">
-                        <span className="w-6 h-6 rounded-full bg-[#f2f3f5]/[0.06] text-[#B9BEB9] flex items-center justify-center text-[10px] font-semibold">{initials(u.full_name || u.email)}</span>
+                      <div key={u.id} onClick={() => addClient(u.email)} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-[13px] text-encre hover:bg-encre/[0.06] transition-colors">
+                        <span className="w-6 h-6 rounded-full bg-encre/[0.06] text-[#B9BEB9] flex items-center justify-center text-[10px] font-semibold">{initials(u.full_name || u.email)}</span>
                         {u.full_name || u.email} {u.role === "admin" && "(admin)"}
                       </div>
                     ))}
-                    {clientCandidates.length === 0 && <div className="p-3 text-[13px] text-[#6a7180] text-center">Aucun client</div>}
+                    {clientCandidates.length === 0 && <div className="p-3 text-[13px] text-brume text-center">Aucun client</div>}
                   </div>
                 </div>
               )}
@@ -220,14 +220,14 @@ export function CarteDocuments({ formData, setFormData }) {
         <div className="flex flex-col gap-2.5">
           <div className="flex gap-2.5 items-center">
             <input value={newDocUrl} onChange={(e) => setNewDocUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addDoc(); }} placeholder="https://exemple.com/document.pdf" className={`${fieldInput} text-[15px] flex-1`} />
-            <button type="button" onClick={addDoc} className="w-8 h-8 rounded-full bg-[#96c0b8] text-[#04140c] flex items-center justify-center text-[16px] cursor-pointer flex-shrink-0 hover:bg-[#abd0c8] transition-colors">+</button>
+            <button type="button" onClick={addDoc} className="w-8 h-8 rounded-full bg-menthe text-[#04140c] flex items-center justify-center text-[16px] cursor-pointer flex-shrink-0 hover:bg-[#abd0c8] transition-colors">+</button>
           </div>
           {formData.documents.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {formData.documents.map((url, idx) => (
-                <div key={idx} className="flex items-center gap-1.5 bg-[#f2f3f5]/[0.04] px-2.5 py-1.5 rounded-lg text-[13px] text-[#f2f3f5]">
+                <div key={idx} className="flex items-center gap-1.5 bg-encre/[0.04] px-2.5 py-1.5 rounded-lg text-[13px] text-encre">
                   <span>Document {idx + 1}</span>
-                  <button onClick={() => setFormData({ ...formData, documents: formData.documents.filter((_, i) => i !== idx) })} className="text-[#9298a6] hover:text-[#FF7C7C]"><X className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setFormData({ ...formData, documents: formData.documents.filter((_, i) => i !== idx) })} className="text-ardoise hover:text-[#FF7C7C]"><X className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
             </div>

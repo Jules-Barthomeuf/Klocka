@@ -53,14 +53,14 @@ function Tuile({ libelle, note, children, ton: nomTon = "menthe", onClick = null
       className={`rounded-[12px] bg-[#15181c] border px-4 py-3 min-w-0 text-left ${onClick ? "hover:bg-[#191d22] transition-colors" : ""}`}
       style={{ borderColor: actif ? c.bord : "#23272d" }}
     >
-      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180]">{libelle}</span>
+      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">{libelle}</span>
       <div className="mt-1.5 flex items-center gap-2.5">
         <span className="font-mono tabular-nums text-[19px] leading-tight" style={{ color: c.texte }}>
           {note?.sur ? `${note.note} / ${note.sur}` : "—"}
         </span>
         <Etoiles note={note} />
       </div>
-      {children && <div className="mt-2 text-[11.5px] leading-5 text-[#6a7180]">{children}</div>}
+      {children && <div className="mt-2 text-[11.5px] leading-5 text-brume">{children}</div>}
     </Balise>
   );
 }
@@ -70,11 +70,11 @@ function CarteDonnee({ libelle, valeur, detail = undefined, ton: nomTon = "menth
   const c = ton(nomTon);
   return (
     <div className="rounded-[12px] bg-[#15181c] border border-[#23272d] px-4 py-3 min-w-0">
-      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-[#6a7180]">{libelle}</span>
+      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">{libelle}</span>
       <span className="block mt-1.5 text-[18px] leading-tight font-medium truncate" style={{ color: c.texte }}>
         {valeur}
       </span>
-      {detail && <span className="block mt-1.5 text-[11px] leading-5 text-[#6a7180]">{detail}</span>}
+      {detail && <span className="block mt-1.5 text-[11px] leading-5 text-brume">{detail}</span>}
     </div>
   );
 }
@@ -159,7 +159,7 @@ export default function JournalEmplacement({ emplacement }) {
           {commerces.length > 0 && (
             <>
               <br />
-              <span className="text-[#96c0b8]">{listeVisible ? "Masquer" : "Voir"} les {commerces.length} commerces et leur activité</span>
+              <span className="text-menthe">{listeVisible ? "Masquer" : "Voir"} les {commerces.length} commerces et leur activité</span>
             </>
           )}
         </Tuile>
@@ -170,7 +170,7 @@ export default function JournalEmplacement({ emplacement }) {
         <p className="m-0 rounded-[10px] border border-[rgba(217,164,65,.35)] bg-[rgba(217,164,65,.06)] px-4 py-3 text-[12.5px] leading-6 text-[#e4dcc9]">
           <span className="font-semibold text-[#d9a441]">Flux faibles.</span> Piéton {pieton?.note?.note}/5 et voiture{" "}
           {voiture?.note?.note}/5. Ce qui joue en sens inverse, si vous choisissez de le mettre en avant : revenu moyen{" "}
-          <span className="font-medium text-[#f2f3f5]">{fmt(revenu?.revenu_moyen_annuel)} €/an</span>
+          <span className="font-medium text-encre">{fmt(revenu?.revenu_moyen_annuel)} €/an</span>
           {en_tete?.revenu_vs_france != null ? ` (${pct(en_tete.revenu_vs_france)} vs France)` : ""}, {fmt(revenu?.csp_plus)} CSP+ dans la zone.
         </p>
       )}
@@ -214,7 +214,7 @@ export default function JournalEmplacement({ emplacement }) {
               <button
                 type="button"
                 onClick={() => setRevenusVisibles((v) => !v)}
-                className="inline-flex items-center gap-1.5 text-[11px] text-[#6a7180] hover:text-[#c6ccd3] transition-colors"
+                className="inline-flex items-center gap-1.5 text-[11px] text-brume hover:text-[#c6ccd3] transition-colors"
                 aria-pressed={!revenusVisibles}
               >
                 {revenusVisibles ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
@@ -246,7 +246,7 @@ export default function JournalEmplacement({ emplacement }) {
                 />
               </div>
             ) : (
-              <p className="m-0 rounded-[12px] border border-dashed border-[#2c3139] px-4 py-5 text-center text-[11.5px] text-[#4e545e]">
+              <p className="m-0 rounded-[12px] border border-dashed border-bord-doux px-4 py-5 text-center text-[11.5px] text-[#4e545e]">
                 Masqué pour cette présentation.
               </p>
             )}
@@ -266,17 +266,17 @@ export default function JournalEmplacement({ emplacement }) {
                   <span className="block text-[12.5px] leading-5 text-[#dfe3e8] truncate" title={k.enseigne}>
                     {k.enseigne}
                   </span>
-                  <span className="block text-[11px] leading-4 text-[#6a7180] truncate" title={k.activite}>
+                  <span className="block text-[11px] leading-4 text-brume truncate" title={k.activite}>
                     {k.activite}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="m-0 text-[12px] text-[#6a7180]">Data-B n’a listé aucun commerce sur ce tronçon.</p>
+            <p className="m-0 text-[12px] text-brume">Data-B n’a listé aucun commerce sur ce tronçon.</p>
           )}
           {rue?.familles?.length > 0 && (
-            <p className="m-0 mt-3 text-[11.5px] leading-5 text-[#6a7180]">
+            <p className="m-0 mt-3 text-[11.5px] leading-5 text-brume">
               La rue, par famille : {rue.familles.map((f) => `${f.n} ${f.famille}`).join(" · ")}.
             </p>
           )}

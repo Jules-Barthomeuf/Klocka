@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -166,12 +166,71 @@ function CarteCible({ c }) {
   );
 }
 
+function AjoutCommerce({ villeId, ville, onAjoute }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [f, setF] = useState({ adresse: "", enseigne: "", activite: "", rue: "" });
+  const rues = ville?.rues || [];
+  const poser = (k) => (x) => setF((s) => ({ ...s, [k]: x }));
+  const creer = useMutation({
+    mutationFn: () => base44.request("POST", "/api/alx/cibles", { body: { ville_id: villeId, adresse: f.adresse, enseigne: f.enseigne || null, activite: f.activite || null, rue: f.rue || null } }),
+    onSuccess: (r) => {
+      toast.success(r.deja ? "Ce commerce existe déjà" : `${r.cible.enseigne || r.cible.adresse} ajouté, classé « ${PILES.find((p) => p.cle === r.cible.pile)?.mot || r.cible.pile} »`);
+      setF({ adresse: "", enseigne: "", activite: "", rue: f.rue });
+      onAjoute(r.cible);
+    },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+
+  if (!ouvert) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface border border-white/[0.08] rounded-[14px] px-5 py-4">
+        <p className="m-0 text-[13px] text-ardoise">
+          Un commerce se saisit ici, adresse et enseigne. Le parcours automatique d'une ville entière n'existe pas encore : chaque commerce entre à la main, ALX fait le reste sur sa fiche.
+        </p>
+        <Bouton principal onClick={() => setOuvert(true)}>Ajouter un commerce</Bouton>
+      </div>
+    );
+  }
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); if (f.adresse.trim() && !creer.isPending) creer.mutate(); }}
+      className="bg-surface border border-white/[0.08] rounded-[14px] p-5 flex flex-col gap-4"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-3">
+        <Champ label="Adresse" value={f.adresse} onChange={poser("adresse")} placeholder={`12 rue d'Antibes`} />
+        <Champ label="Enseigne" value={f.enseigne} onChange={poser("enseigne")} placeholder="Maison Peirano" />
+        <Champ label="Activité" value={f.activite} onChange={poser("activite")} placeholder="épicerie fine" />
+        <label className="block">
+          <span className="block text-[10px] tracking-[.16em] uppercase text-ardoise mb-1.5">Rue classée</span>
+          <select
+            value={f.rue}
+            onChange={(e) => poser("rue")(e.target.value)}
+            className="w-full bg-fond border border-bord rounded-[10px] px-4 py-3 text-[15px] text-encre outline-none focus:border-menthe"
+          >
+            <option value="">Hors classement</option>
+            {rues.map((r) => <option key={r.nom} value={r.nom}>{r.nom} · emplacement {r.classe}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Bouton type="submit" principal disabled={!f.adresse.trim() || creer.isPending}>{creer.isPending ? "…" : "Ajouter"}</Bouton>
+        <Bouton onClick={() => setOuvert(false)}>Fermer</Bouton>
+        <span className="text-[12px] text-brume">
+          {rues.length === 0 ? "Aucune rue classée pour cette ville : classez-les dans Villes pour que l'emplacement se remplisse." : "L'emplacement vient de la rue choisie. Le propriétaire se renseigne ensuite sur la fiche."}
+        </span>
+      </div>
+    </form>
+  );
+}
+
 function Kanban({ villeId, ville, onNouvelle }) {
+  const qc = useQueryClient();
   const [voirEcartees, setVoirEcartees] = useState(false);
   const { data: cibles = [] } = useQuery({ queryKey: ["alx-cibles", villeId], queryFn: () => base44.request("GET", `/api/alx/cibles?ville=${villeId}`) });
 
   const par = (p) => cibles.filter((c) => (c.pile || "surveiller") === p);
   const ecartees = par("ecartee");
+  const rafraichir = () => { qc.invalidateQueries({ queryKey: ["alx-cibles", villeId] }); qc.invalidateQueries({ queryKey: ["alx-villes"] }); qc.invalidateQueries({ queryKey: ["alx-etat"] }); };
 
   return (
     <div className="flex flex-col gap-6">
@@ -186,6 +245,8 @@ function Kanban({ villeId, ville, onNouvelle }) {
           <Bouton onClick={onNouvelle}>Nouvelle ville</Bouton>
         </div>
       </div>
+
+      <AjoutCommerce villeId={villeId} ville={ville} onAjoute={rafraichir} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         {["appeler", "ecrire", "surveiller"].map((pile) => {

@@ -17,6 +17,7 @@ const erreur = (res, e, statut = 400) => res.status(statut).json({ error: String
 
 /** Monte les routes « alx » sur l'application. */
 export function monterAlx(app) {
+  import('../alx/parcours.js').then((m) => m.reprendreAuDemarrage()).catch((e) => console.error('[alx] reprise au démarrage :', e.message));
   app.get('/api/alx/etat', wrap(async (req, res) => ok(res, { outils: await etatDesOutils(), piles: PILES, libelles: LIBELLES_PILES, regles_version: REGLES.version, a_faire: aFaire() })));
 
   // Les clients actifs de Monday, et ceux qu'une fourchette de prix concerne.
@@ -37,12 +38,32 @@ export function monterAlx(app) {
     if (!v) return res.status(404).json({ error: 'Ville introuvable.' });
     ok(res, { ...v, cibles_liste: listerCibles({ ville_id: v.id }) });
   }));
+  // Le parcours automatique d'une ville, en tâche de fond ; l'écran suit sur la Ville.
+  app.post('/api/alx/villes/:id/lancer', wrap(async (req, res) => {
+    const { lancer } = await import('../alx/parcours.js');
+    const r = lancer(req.params.id, { user: currentUser(req), rayon_km: req.body?.rayon_km ? Number(req.body.rayon_km) : undefined, limite_par_rue: req.body?.limite_par_rue ? Number(req.body.limite_par_rue) : null, rediger: req.body?.rediger !== false });
+    if (!r.ok) return erreur(res, r.error, 409);
+    ok(res, r);
+  }));
+  app.post('/api/alx/villes/:id/arreter', wrap(async (req, res) => {
+    const { arreter } = await import('../alx/parcours.js');
+    const r = arreter(req.params.id);
+    if (!r.ok) return erreur(res, r.error, 409);
+    ok(res, { ...r, ville: Records.get('Ville', req.params.id) });
+  }));
+  app.post('/api/alx/villes/:id/rues/:nom/parcourir', wrap(async (req, res) => {
+    const { parcourirRue } = await import('../alx/parcours.js');
+    const r = parcourirRue(req.params.id, decodeURIComponent(req.params.nom), { user: currentUser(req), limite_par_rue: req.body?.limite_par_rue ? Number(req.body.limite_par_rue) : null, rediger: req.body?.rediger !== false });
+    if (!r.ok) return erreur(res, r.error, 409);
+    ok(res, r);
+  }));
+
   app.post('/api/alx/villes/:id/rues', wrap((req, res) => {
     const r = classerRue(req.params.id, { ...req.body, user: currentUser(req) });
     if (!r.ok) return erreur(res, r.error);
     ok(res, r);
   }));
-  app.delete('/api/alx/villes/:id/rues/:nom', wrap((req, res) => ok(res, retirerRue(req.params.id, decodeURIComponent(req.params.nom)))));
+  app.delete('/api/alx/villes/:id/rues/:nom', wrap((req, res) => ok(res, retirerRue(req.params.id, decodeURIComponent(req.params.nom, currentUser(req))))));
   app.delete('/api/alx/villes/:id', wrap((req, res) => {
     for (const c of Records.filter('Cible', { ville_id: req.params.id })) supprimerCible(c.id);
     Records.delete('Ville', req.params.id);
@@ -79,21 +100,12 @@ export function monterAlx(app) {
   app.post('/api/alx/cibles/:id/devanture', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const { lireDevanture } = await import('../alx/streetview.js');
-    let r;
+    const enrichir = await import('../alx/enrichir.js');
     try {
-      r = await lireDevanture([c.adresse, c.ville].filter(Boolean).join(', '));
+      ok(res, await enrichir.lireDevanture(c.id, { user: currentUser(req) }));
     } catch (e) {
-      return erreur(res, e);
+      return erreur(res, e, e.statut || 400);
     }
-    if (!r.ok) return erreur(res, r.error);
-    const lecture = r.photo.lecture || {};
-    const patch = { photo: r.photo };
-    // La lecture propose ; la fiche ne prend que ce qui manque encore.
-    if (!c.enseigne && lecture.enseigne) patch.enseigne = lecture.enseigne;
-    if (!c.activite && lecture.activite) patch.activite = lecture.activite;
-    if (lecture.occupe === false) patch.occupe = false;
-    ok(res, mettreAJourCible(c.id, patch, currentUser(req)));
   }));
 
   // La société : l'annuaire des entreprises, par SIREN ou par le nom lu sur
@@ -103,116 +115,59 @@ export function monterAlx(app) {
   app.post('/api/alx/cibles/:id/proprietaire', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const { proprietairesDe } = await import('../alx/foncier.js');
-    const ville = Records.get('Ville', c.ville_id);
-    const texte = [c.adresse, ville?.code_postal, c.ville].filter(Boolean).join(' ');
-    let f;
+    const enrichir = await import('../alx/enrichir.js');
     try {
-      f = await proprietairesDe(texte);
+      ok(res, await enrichir.trouverProprietaire(c.id, { siren: req.body?.siren || null, user: currentUser(req) }));
     } catch (e) {
-      return erreur(res, e);
+      return erreur(res, e, e.statut || 400);
     }
-    if (!f) return erreur(res, `La Base Adresse Nationale ne connaît pas « ${texte} ».`, 404);
-
-    // Le choix explicite de l'équipe, parmi la liste, prime sur l'automatique.
-    const voulu = req.body?.siren ? f.proprietaires.find((p) => p.siren === String(req.body.siren)) : null;
-    const choix = voulu || f.choix;
-    const patch = { foncier: f };
-    if (choix) {
-      patch.proprietaire = {
-        ...(c.proprietaire || {}),
-        nom: choix.nom,
-        siren: choix.siren,
-        forme: choix.forme || c.proprietaire?.forme || null,
-        parcelle: f.parcelle,
-        lots: choix.lots,
-        source: 'Data-B · Foncier',
-        trouve_le: f.lu_le,
-      };
-      // L'annuaire complète (APE, forme exacte, siège) : gratuit, on ne s'en prive pas.
-      if (choix.siren) {
-        try {
-          const { societe } = await import('../alx/annuaire.js');
-          const s = await societe({ siren: choix.siren });
-          if (s) patch.societe = { ...s, gerants: s.gerants?.length ? s.gerants : choix.gerants };
-        } catch {
-          // L'annuaire indisponible n'empêche pas de garder ce que Data-B a donné.
-        }
-      }
-      if (!patch.societe) patch.societe = { ...(c.societe || {}), nom: choix.nom, siren: choix.siren, forme: choix.forme, creation: choix.creation, ape_libelle: choix.activite, gerants: choix.gerants, siege: { adresse: choix.adresse }, source: 'Data-B · Foncier', lu_le: f.lu_le };
-    }
-    ok(res, { ...mettreAJourCible(c.id, patch, currentUser(req)), foncier: f });
   }));
 
   app.post('/api/alx/cibles/:id/societe', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const { societe } = await import('../alx/annuaire.js');
-    const siren = req.body?.siren || c.proprietaire?.siren || null;
-    const nom = req.body?.nom || c.proprietaire?.nom || null;
-    if (!siren && !nom) return erreur(res, "Il faut un SIREN ou le nom du propriétaire (lu sur Data-B, ou saisi).");
-    const ville = Records.get('Ville', c.ville_id);
-    let s;
+    const enrichir = await import('../alx/enrichir.js');
     try {
-      s = await societe({ siren, nom, ville: c.ville, code_postal: ville?.code_postal || null });
+      ok(res, await enrichir.lireSociete(c.id, { siren: req.body?.siren || null, nom: req.body?.nom || null, user: currentUser(req) }));
     } catch (e) {
-      return erreur(res, e);
+      return erreur(res, e, e.statut || 400);
     }
-    if (!s) return erreur(res, `L'annuaire des entreprises ne trouve pas « ${nom || siren} ».`, 404);
-    const patch = { societe: s, proprietaire: { ...(c.proprietaire || {}), nom: c.proprietaire?.nom || s.nom, siren: s.siren, forme: s.forme, source: c.proprietaire?.source || 'Annuaire des entreprises' } };
-    ok(res, mettreAJourCible(c.id, patch, currentUser(req)));
   }));
 
   // Les événements : BODACC par SIREN.
   app.post('/api/alx/cibles/:id/evenements', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const siren = c.proprietaire?.siren || c.societe?.siren;
-    if (!siren) return erreur(res, 'Pas de SIREN : lisez la société d’abord.');
-    const { evenementsSociete } = await import('../bodacc.js');
-    let evenements;
+    const enrichir = await import('../alx/enrichir.js');
     try {
-      evenements = await evenementsSociete(siren);
+      ok(res, await enrichir.lireEvenements(c.id, { user: currentUser(req) }));
     } catch (e) {
-      return erreur(res, e);
+      return erreur(res, e, e.statut || 400);
     }
-    ok(res, mettreAJourCible(c.id, { evenements }, currentUser(req)));
   }));
 
   // La dernière mutation : DVF autour de l'adresse, la vente la plus proche.
   app.post('/api/alx/cibles/:id/mutation', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const { ventesAutour } = await import('../dvf.js');
-    let r;
+    const enrichir = await import('../alx/enrichir.js');
     try {
-      r = await ventesAutour([c.adresse, c.ville].filter(Boolean).join(', '), { rayon: 40, user: currentUser(req) });
+      ok(res, await enrichir.lireMutation(c.id, { user: currentUser(req) }));
     } catch (e) {
-      return erreur(res, e);
+      return erreur(res, e, e.statut || 400);
     }
-    if (!r.ok) return erreur(res, r.error);
-    const ventes = r.resultat?.ventes || r.resultat?.transactions || [];
-    const proche = ventes[0] || null;
-    const mutation = proche ? { date: proche.date || proche.date_mutation || null, prix: proche.prix ?? proche.valeur_fonciere ?? null, nature: proche.nature || null, distance_m: proche.distance_m ?? null, source: 'DVF' } : null;
-    ok(res, mettreAJourCible(c.id, { mutation, dvf: r.resultat }, currentUser(req)));
   }));
 
   // Le loyer de marché de la rue : les connecteurs existants.
   app.post('/api/alx/cibles/:id/loyer', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const { valeurLocative } = await import('../data-b.js');
-    let r;
+    const enrichir = await import('../alx/enrichir.js');
     try {
-      r = await valeurLocative([c.adresse, c.ville].filter(Boolean).join(', '), { user: currentUser(req) });
+      ok(res, await enrichir.lireLoyer(c.id, { user: currentUser(req) }));
     } catch (e) {
-      return erreur(res, e);
+      return erreur(res, e, e.statut || 400);
     }
-    if (!r.ok) return erreur(res, r.error);
-    const rue = r.resultat?.rue || {};
-    const loyer = rue.basse != null && rue.haute != null ? (rue.basse + rue.haute) / 2 : null;
-    const v = { ...(c.valorisation || {}), loyer_m2_marche: loyer, loyer_fourchette: [rue.basse ?? null, rue.haute ?? null], loyer_source: 'Data-B, rue', valeur_locative: r.resultat };
-    ok(res, mettreAJourCible(c.id, { valorisation: v }, currentUser(req)));
   }));
 
   // Qui, parmi les clients actifs, cette fourchette concernerait.
@@ -226,29 +181,27 @@ export function monterAlx(app) {
   }));
 
   // La fourchette de prix : loyer × surface ÷ rendement, croisée avec DVF.
-  app.post('/api/alx/cibles/:id/prix', wrap((req, res) => {
+  app.post('/api/alx/cibles/:id/prix', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const v = c.valorisation || {};
-    const surface = Number(req.body?.surface ?? v.surface);
-    const loyerM2 = Number(v.loyer_m2_marche);
-    const taux = Number(req.body?.taux ?? v.taux ?? 7);
-    if (!(surface > 0) || !(loyerM2 > 0)) return erreur(res, 'Il faut une surface et un loyer de marché.');
-    const loyerAnnuel = surface * loyerM2;
-    // Un taux cible, plus ou moins un point : jamais un chiffre.
-    const bas = Math.round(loyerAnnuel / ((taux + 1) / 100) / 1000) * 1000;
-    const haut = Math.round(loyerAnnuel / ((taux - 1) / 100) / 1000) * 1000;
-    const alerte = c.mutation?.prix && haut <= c.mutation.prix * 1.05 ? 'Le haut de fourchette est au niveau du prix payé récemment : dossier probablement mort.' : null;
-    ok(res, mettreAJourCible(c.id, { valorisation: { ...v, surface, surface_source: req.body?.surface ? 'saisie' : v.surface_source || null, taux, loyer_annuel: Math.round(loyerAnnuel), fourchette: [bas, haut], alerte, calculee_le: new Date().toISOString() } }, currentUser(req)));
+    const enrichir = await import('../alx/enrichir.js');
+    try {
+      ok(res, enrichir.calculerPrix(c.id, { surface: req.body?.surface ?? null, taux: req.body?.taux ?? null, user: currentUser(req) }));
+    } catch (e) {
+      return erreur(res, e, e.statut || 400);
+    }
   }));
 
   // Le message : rédigé par le modèle, relu par l'équipe, jamais envoyé d'ici.
   app.post('/api/alx/cibles/:id/message', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    const canal = req.body?.canal === 'courrier' ? 'courrier' : 'mail';
-    const { rediger } = await import('../alx/message.js');
-    ok(res, await rediger(c, canal, currentUser(req)));
+    const enrichir = await import('../alx/enrichir.js');
+    try {
+      ok(res, (await enrichir.redigerBrouillon(c.id, { canal: req.body?.canal === 'courrier' ? 'courrier' : 'mail', user: currentUser(req) })).brouillon);
+    } catch (e) {
+      return erreur(res, e, e.statut || 400);
+    }
   }));
 
   // --- Approches --------------------------------------------------------------

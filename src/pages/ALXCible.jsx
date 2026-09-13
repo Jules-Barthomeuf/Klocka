@@ -26,6 +26,7 @@ export default function ALXCible() {
   const id = params.get("id");
   const qc = useQueryClient();
   const [brouillon, setBrouillon] = useState(null);
+  const [brouillonVu, setBrouillonVu] = useState(null);
   const [saisie, setSaisie] = useState({});
   const [issue, setIssue] = useState({});
 
@@ -61,7 +62,7 @@ export default function ALXCible() {
   });
   const rediger = useMutation({
     mutationFn: (canal) => base44.request("POST", `/api/alx/cibles/${id}/message`, { body: { canal } }),
-    onSuccess: (r) => setBrouillon(r),
+    onSuccess: (r) => { setBrouillon({ ...r, destinataire: "" }); setBrouillonVu(id); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const approche = useMutation({
@@ -74,6 +75,13 @@ export default function ALXCible() {
     onSuccess: () => { toast.success("Réponse notée"); setIssue({}); rafraichir(); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+
+  // Le brouillon que le parcours a laissé sur la cible arrive dans l'éditeur,
+  // une fois, sans écraser ce qu'on est en train d'écrire.
+  if (c?.brouillon && brouillonVu !== c.id && !brouillon) {
+    setBrouillon({ canal: c.brouillon.canal, objet: c.brouillon.objet, texte: c.brouillon.texte, destinataire: "" });
+    setBrouillonVu(c.id);
+  }
 
   if (!user || user.role !== "admin") return null;
   if (!id) return <div className="p-10 text-brume">Aucune cible désignée.</div>;
@@ -130,6 +138,11 @@ export default function ALXCible() {
                 </div>
               )}
               {!signalPrincipal && <p className="m-0 text-[13px] text-brume">{c.motif}</p>}
+              {c.occupant?.nom && (
+                <p className="m-0 text-[12.5px] text-brume">
+                  Exploitant : {c.occupant.nom}{c.occupant.depuis ? `, depuis ${String(c.occupant.depuis).slice(0, 4)}` : ""}{c.occupant.chaine ? " · enseigne nationale" : ""} · SIRET {c.occupant.siret}
+                </p>
+              )}
             </Carte>
 
             <Carte className="flex flex-col gap-5">

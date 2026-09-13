@@ -3,9 +3,10 @@
     "Les règles du classement ALX. Comme rules.json pour le verdict : tout se lit ici, rien n'est deviné.",
     "Trois piles : appeler (un signal fort), ecrire (un signal patient), surveiller (aucun signal).",
     "Une cible est écartée avant tout classement si un knock-out la touche.",
-    "Les seuils sont ceux du point de départ : à caler sur la première ville, avec le tableau Bilan."
+    "Les seuils sont ceux du point de départ : à caler sur la première ville, avec le tableau Bilan.",
+    "Les seuils du parcours d'une ville (rues, commerces) sont dans « parcours » : densité minimale, loyers qui font l'emplacement, rayon du balayage."
   ],
-  "version": 1,
+  "version": 2,
   "perimetre": {
     "prix_min": 200000,
     "prix_max": 1000000,
@@ -16,7 +17,10 @@
       "cle": "marchand_fenetre",
       "libelle": "Marchand de biens dans sa fenêtre de revente",
       "detail": "Code APE 6810Z et parcelle achetée il y a 18 à 48 mois. C'est une inférence : DVF donne la date, l'annuaire des entreprises le code, personne ne dit qu'ils sont liés. À vérifier en première question de l'appel.",
-      "fenetre_mois": [18, 48]
+      "fenetre_mois": [
+        18,
+        48
+      ]
     },
     {
       "cle": "evenement_recent",
@@ -89,8 +93,25 @@
     }
   ],
   "knock_outs": [
-    { "cle": "activite_exclue", "libelle": "Activité exclue du périmètre" },
-    { "cle": "hors_prix", "libelle": "Fourchette de prix entièrement hors 200 000 – 1 000 000" },
-    { "cle": "local_vide", "libelle": "Local vide : nous n'achetons que de l'occupé" }
-  ]
+    {
+      "cle": "activite_exclue",
+      "libelle": "Activité exclue du périmètre"
+    },
+    {
+      "cle": "hors_prix",
+      "libelle": "Fourchette de prix entièrement hors 200 000 – 1 000 000"
+    },
+    {
+      "cle": "local_vide",
+      "libelle": "Local vide : nous n'achetons que de l'occupé"
+    }
+  ],
+  "parcours": {
+    "rayon_km": 1.5,
+    "min_commerces_par_rue": 8,
+    "max_rues": 30,
+    "loyer_emplacement_1": 800,
+    "loyer_emplacement_2": 350,
+    "_commentaire": "Une rue est proposée si elle compte au moins min_commerces_par_rue commerces de pied d'immeuble dans le rayon balayé autour du centre. Son emplacement vient du milieu de la fourchette de loyer de marché de la rue (Data-B, €/m²/an) : à partir de loyer_emplacement_1, c'est du 1 (700 000 à 1 000 000) ; à partir de loyer_emplacement_2, du 2 (300 000 à 500 000) ; en dessous, la rue est écartée avec son motif et l'équipe peut la reprendre. Calé sur Cannes : rue d'Antibes 899-1348 en 1, avenue de Grasse 347-521 en 2."
+  }
 }

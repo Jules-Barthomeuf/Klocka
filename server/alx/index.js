@@ -86,17 +86,24 @@ export function classerRue(villeId, { nom, classe, motif = null, user = null }) 
   const propre = String(nom || '').trim();
   const c = Number(classe);
   if (!propre || ![1, 2].includes(c)) return { ok: false, error: 'Une rue et une classe (1 ou 2).' };
+  const existante = (ville.rues || []).find((r) => r.nom.toLowerCase() === propre.toLowerCase());
   const rues = (ville.rues || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase());
-  rues.push({ nom: propre, classe: c, motif: motif || null, par: user?.email || 'alx', le: maintenant() });
-  rues.sort((a, b) => a.classe - b.classe || a.nom.localeCompare(b.nom));
-  return { ok: true, ville: Records.update('Ville', villeId, { rues }) };
+  // Ce qu'ALX savait de la rue (commerces, loyer) reste ; la classe et l'auteur changent.
+  rues.push({ ...(existante || {}), nom: propre, classe: c, motif: motif || existante?.motif || null, par: user?.email || 'alx', le: maintenant() });
+  rues.sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0) || a.nom.localeCompare(b.nom));
+  const rues_retirees = (ville.rues_retirees || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase());
+  const rues_ecartees = (ville.rues_ecartees || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase());
+  return { ok: true, ville: Records.update('Ville', villeId, { rues, rues_retirees, rues_ecartees }) };
 }
 
-export function retirerRue(villeId, nom) {
+export function retirerRue(villeId, nom, user = null) {
   const ville = Records.get('Ville', villeId);
   if (!ville) return { ok: false, error: 'Ville introuvable.' };
-  const rues = (ville.rues || []).filter((r) => r.nom.toLowerCase() !== String(nom || '').trim().toLowerCase());
-  return { ok: true, ville: Records.update('Ville', villeId, { rues }) };
+  const propre = String(nom || '').trim();
+  const rues = (ville.rues || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase());
+  // Le retrait est une décision : le recensement suivant ne repropose pas la rue.
+  const rues_retirees = [...(ville.rues_retirees || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase()), { nom: propre, par: user?.email || null, le: maintenant() }];
+  return { ok: true, ville: Records.update('Ville', villeId, { rues, rues_retirees }) };
 }
 
 function compterParPile(villeId) {
@@ -135,7 +142,13 @@ export function creerCible({ ville_id, rue = null, adresse, enseigne = null, act
   if (!ville) return { ok: false, error: 'La ville manque.' };
   const adr = String(adresse || '').trim();
   if (!adr) return { ok: false, error: "L'adresse manque." };
-  const doublon = Records.filter('Cible', { ville_id }).find((c) => c.adresse.toLowerCase() === adr.toLowerCase());
+  // Le même commerce ne rentre pas deux fois : par SIRET quand on l'a (le
+  // parcours), sinon par adresse et enseigne (la saisie à la main).
+  const siret = reste.siret ? String(reste.siret) : null;
+  const ens = String(enseigne || '').trim().toLowerCase();
+  const doublon = Records.filter('Cible', { ville_id }).find((c) =>
+    siret ? c.siret === siret : c.adresse.toLowerCase() === adr.toLowerCase() && String(c.enseigne || '').toLowerCase() === ens
+  );
   if (doublon) return { ok: true, cible: doublon, deja: true };
 
   const cat = categoriserActivite(activite, enseigne);

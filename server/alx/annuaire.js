@@ -125,3 +125,98 @@ export async function societe({ siren = null, nom = null, ville = null, code_pos
   if (n && liste.length > 1) n.homonymes = liste.length;
   return n;
 }
+
+// --- Les établissements, par lots -----------------------------------------------------------
+//
+// Deux lectures paginées, au rythme que l'annuaire tolère (sept appels par
+// seconde, on en fait cinq) : autour d'un point, pour recenser un centre-ville ;
+// par adresse, pour une rue. Chaque établissement passe par etablissementDe().
+
+import { etablissementDe, cleRue } from './commerces.js';
+
+const NEAR_POINT = 'https://recherche-entreprises.api.gouv.fr/near_point';
+const PAUSE_MS = 200;
+// Au-delà, l'annuaire tronque : on découpe le balayage.
+const SATURATION = 9500;
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function* pagesDe(base, params, { max_pages = 400, arreter = () => false } = {}) {
+  for (let page = 1; page <= max_pages; page++) {
+    if (arreter()) return;
+    const url = `${base}?${new URLSearchParams({ ...params, per_page: '25', page: String(page) })}`;
+    let r;
+    try {
+      r = await fetch(url, { signal: AbortSignal.timeout(20000), headers: { Accept: 'application/json' } });
+    } catch (e) {
+      throw new ErreurSource(`L'annuaire des entreprises n'a pas répondu (${e?.message || e}).`, { service: 'Annuaire des entreprises', cause: e });
+    }
+    if (r.status === 429) {
+      await pause(2000);
+      page -= 1;
+      continue;
+    }
+    if (!r.ok) throw new ErreurSource(`L'annuaire des entreprises a répondu ${r.status}.`, { service: 'Annuaire des entreprises', statut: r.status });
+    const j = await r.json();
+    const resultats = j.results || [];
+    yield { page, total_pages: j.total_pages || 1, total: j.total_results || 0, resultats };
+    if (page >= (j.total_pages || 1) || !resultats.length) return;
+    await pause(PAUSE_MS);
+  }
+}
+
+const aplatir = (resultats) => resultats.flatMap((u) => (u.matching_etablissements || []).map((e) => etablissementDe(u, e)));
+
+/**
+ * Les établissements actifs autour d'un point (rayon en km, 50 au plus),
+ * limités à des sections d'activité (G commerce, I restauration, S services,
+ * C boulangeries, K banques, L agences immobilières).
+ * @param {{lat:number, lon:number, rayon_km?:number, sections?:string[], sur_page?:Function, arreter?:Function}} o
+ */
+export async function etablissementsAutour({ lat, lon, rayon_km = 1.5, sections = ['G', 'I', 'S', 'C', 'K', 'L'], sur_page = null, arreter = () => false, vus = new Set(), profondeur = 0 } = {}) {
+  const params = { lat: String(lat), long: String(lon), radius: String(rayon_km), section_activite_principale: sections.join(','), etat_administratif: 'A' };
+  const out = [];
+  for await (const p of pagesDe(NEAR_POINT, params, { arreter })) {
+    // L'annuaire ne rend jamais plus de 10 000 résultats : au-delà, les plus
+    // lointains tombent sans prévenir. On découpe alors le disque en quatre.
+    if (p.page === 1 && p.total > SATURATION && profondeur < 3) {
+      const d = rayon_km / 2;
+      const dLat = d / 111;
+      const dLon = d / (111 * Math.cos((lat * Math.PI) / 180));
+      for (const [la, lo] of [[lat + dLat, lon + dLon], [lat + dLat, lon - dLon], [lat - dLat, lon + dLon], [lat - dLat, lon - dLon]]) {
+        if (arreter()) break;
+        out.push(...(await etablissementsAutour({ lat: la, lon: lo, rayon_km: rayon_km * 0.75, sections, sur_page, arreter, vus, profondeur: profondeur + 1 })));
+      }
+      return out;
+    }
+    for (const e of aplatir(p.resultats)) {
+      if (!e.actif || !e.siret || vus.has(e.siret)) continue;
+      vus.add(e.siret);
+      out.push(e);
+    }
+    if (sur_page) sur_page(p, vus.size);
+  }
+  return out;
+}
+
+/**
+ * Les établissements actifs d'une rue, par la recherche textuelle d'adresse,
+ * gardés seulement si leur adresse porte bien cette rue.
+ * @param {{rue:string, code_commune?:string, code_postal?:string, sections?:string[], arreter?:Function}} o
+ */
+export async function etablissementsRue({ rue, code_commune = null, code_postal = null, sections = ['G', 'I', 'S', 'C', 'K', 'L'], arreter = () => false } = {}) {
+  const params = { q: rue, section_activite_principale: sections.join(','), etat_administratif: 'A' };
+  if (code_commune) params.code_commune = String(code_commune);
+  else if (code_postal) params.code_postal = String(code_postal);
+  const cle = cleRue(rue);
+  const vus = new Set();
+  const out = [];
+  for await (const p of pagesDe(API, params, { arreter })) {
+    for (const e of aplatir(p.resultats)) {
+      if (!e.actif || !e.siret || vus.has(e.siret)) continue;
+      if (e.cle_rue !== cle) continue;
+      vus.add(e.siret);
+      out.push(e);
+    }
+  }
+  return out;
+}

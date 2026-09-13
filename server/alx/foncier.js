@@ -146,12 +146,21 @@ export function lireFiche(html) {
  * Plusieurs au rez-de-chaussée, ou aucun étage renseigné : personne n'est
  * choisi, la liste est rendue et l'équipe tranche.
  */
-export function choisirProprietaire(proprietaires) {
+export function choisirProprietaire(proprietaires, occupant = null) {
   const p = (proprietaires || []).filter((x) => x.proprietaire !== false);
   if (p.length === 1) return { choix: p[0], motif: 'seul propriétaire du bâtiment' };
+  // L'exploitant du commerce est aussi propriétaire : c'est lui, sans hésiter.
+  const memeNom = (a, b) => a && b && String(a).toLowerCase().replace(/[^a-z0-9]/g, '') === String(b).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const occ = occupant ? p.find((x) => (occupant.siren && x.siren === occupant.siren) || memeNom(x.nom, occupant.nom) || memeNom(x.nom, occupant.enseigne)) : null;
+  if (occ) return { choix: occ, motif: "l'exploitant du commerce est propriétaire de ses murs", occupant_proprietaire: true };
   const rdc = p.filter((x) => x.rez_de_chaussee);
   if (rdc.length === 1) return { choix: rdc[0], motif: 'propriétaire du rez-de-chaussée' };
-  if (rdc.length > 1) return { choix: null, motif: `${rdc.length} propriétaires au rez-de-chaussée : à départager` };
+  if (rdc.length > 1) {
+    // Plusieurs au rez-de-chaussée, mais une seule société immobilière parmi eux : les murs, c'est elle.
+    const immo = rdc.filter((x) => x.forme === 'SCI' || /location|immobili/i.test(x.activite || ''));
+    if (immo.length === 1) return { choix: immo[0], motif: `${rdc.length} propriétaires au rez-de-chaussée, une seule société immobilière` };
+    return { choix: null, motif: `${rdc.length} propriétaires au rez-de-chaussée : à départager` };
+  }
   return { choix: null, motif: p.length ? `${p.length} propriétaires, aucun lot au rez-de-chaussée identifié` : 'aucun propriétaire publié' };
 }
 
@@ -169,7 +178,7 @@ const numeroDe = (adresse) => (String(adresse || '').match(/^\s*(\d+)\s*(bis|ter
  *
  * @returns {Promise<{adresse, adresse_fiche, adresse_non_confirmee, parcelle, batiment_id, surface_parcelle, surface_batiment, proprietaires, choix, motif_choix, source, lu_le}|null>}
  */
-export async function proprietairesDe(texteAdresse, { rayon = RAYON_M, essais = 3 } = {}) {
+export async function proprietairesDe(texteAdresse, { rayon = RAYON_M, essais = 3, occupant = null } = {}) {
   if (!dataBConfigure()) throw new ErreurSource("Data-B n'est pas configuré (DATAB_EMAIL, DATAB_MOT_DE_PASSE).", { service: 'Data-B', classe: 'definitive' });
   const adresse = await resoudreAdresse(texteAdresse);
   if (!adresse) return null;
@@ -210,8 +219,9 @@ export async function proprietairesDe(texteAdresse, { rayon = RAYON_M, essais = 
   }
   if (!fiche) throw new ErreurSource("Data Foncier n'a pas rendu de fiche pour ces bâtiments.", { service: 'Data-B' });
 
-  const { choix, motif } = choisirProprietaire(fiche.proprietaires);
+  const { choix, motif, occupant_proprietaire = false } = choisirProprietaire(fiche.proprietaires, occupant);
   return {
+    occupant_proprietaire,
     adresse: adresse.label,
     adresse_fiche: fiche.adresse,
     adresse_non_confirmee: !!numero && numeroDe(fiche.adresse) !== String(numero),

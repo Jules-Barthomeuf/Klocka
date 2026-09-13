@@ -68,6 +68,17 @@ test('le choix retient le rez-de-chaussée, ou le seul propriétaire, sinon pers
   assert.equal(choisirProprietaire([]).choix, null);
 });
 
+test('l’exploitant propriétaire de ses murs, ou la seule SCI du rez-de-chaussée, tranchent', () => {
+  const sci = { nom: 'SCI DU PORT', siren: '111', forme: 'SCI', proprietaire: true, rez_de_chaussee: true };
+  const sas = { nom: 'BOUTIQUE SAS', siren: '222', forme: null, activite: 'Commerce de détail', proprietaire: true, rez_de_chaussee: true };
+  const sarl = { nom: 'AUTRE SARL', siren: '333', forme: null, activite: 'Restauration', proprietaire: true, rez_de_chaussee: true };
+  const r = choisirProprietaire([sci, sas], { siren: '222', nom: 'BOUTIQUE SAS' });
+  assert.equal(r.choix, sas, "l'exploitant prime sur la SCI");
+  assert.equal(r.occupant_proprietaire, true);
+  assert.equal(choisirProprietaire([sci, sas, sarl], { siren: '999', nom: 'X' }).choix, sci, 'une seule société immobilière parmi trois au rez-de-chaussée');
+  assert.equal(choisirProprietaire([sas, sarl], null).choix, null, 'deux commerçants, personne ne tranche');
+});
+
 test('le lot du bas se reconnaît sous ses écritures, et Parcelle vaut tout', () => {
   for (const e of ['RDC', 'Rez-de-chaussée', '00', 'Étage 00', 'Parcelle']) assert.equal(estRezDeChaussee(e), true, e);
   for (const e of ['01', '02', 'Étage 03', '', null]) assert.equal(estRezDeChaussee(e), false, String(e));

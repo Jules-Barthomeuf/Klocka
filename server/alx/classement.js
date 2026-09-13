@@ -178,6 +178,12 @@ export function classer(cible, opts = {}) {
   const bloquant = drapeaux.find((d) => d.effet === 'bloquant');
   if (bloquant) return { ...base, pile: 'ecartee', motif: `${bloquant.libelle} : ${bloquant.detail}` };
 
+  // Une enseigne nationale propriétaire de ses murs ne vend pas sur un coup de
+  // fil, et ses mouvements de siège ou de gérance ne disent rien du local.
+  if (cible.proprietaire_occupant && cible.occupant?.chaine) {
+    return { ...base, pile: 'surveiller', motif: "Enseigne nationale propriétaire de ses murs : pas de vendeur à appeler. Veille DVF." };
+  }
+
   // Un drapeau lent retient un signal fort en pile patiente : on écrit, on
   // n'appelle pas cette semaine pour un dossier qui prendra un an.
   const lent = drapeaux.find((d) => d.effet === 'lent');

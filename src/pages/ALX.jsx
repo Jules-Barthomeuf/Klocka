@@ -26,7 +26,16 @@ function classementClient(budget) {
 function Accueil({ villes, onOuvrir }) {
   const [nom, setNom] = useState("");
   const creer = useMutation({
-    mutationFn: () => base44.request("POST", "/api/alx/villes", { body: { nom } }),
+    mutationFn: async () => {
+      const r = await base44.request("POST", "/api/alx/villes", { body: { nom } });
+      // Le parcours démarre tout de suite ; s'il tourne déjà, on ouvre simplement la ville.
+      try {
+        await base44.request("POST", `/api/alx/villes/${r.ville.id}/lancer`, { body: {} });
+      } catch (e) {
+        if (!/déjà en cours/.test(e?.message || "")) throw e;
+      }
+      return r;
+    },
     onSuccess: (r) => onOuvrir(r.ville.id),
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
@@ -54,7 +63,7 @@ function Accueil({ villes, onOuvrir }) {
               {creer.isPending ? "…" : "Lancer ALX"}
             </Bouton>
           </div>
-          <span className="text-[12px] text-brume">Une ville se construit rue par rue. Vous pouvez y revenir quand vous voulez.</span>
+          <span className="text-[12px] text-brume">Une ville prend une à deux heures. Vous pouvez fermer la page.</span>
         </form>
 
         <div className="border-t border-trait pt-6 flex flex-col gap-3.5">
@@ -131,7 +140,7 @@ function CarteCible({ c }) {
       >
         <div className="min-w-0">
           <div className="text-[14px] text-craie truncate">{c.enseigne || "Sans enseigne"}</div>
-          <div className="text-[12px] text-brume truncate">{c.adresse}{c.proprietaire?.nom ? ` · ${c.proprietaire.nom}` : ""}</div>
+          <div className="text-[12px] text-brume truncate">{c.adresse}{c.proprietaire?.nom ? ` · ${c.proprietaire.nom}` : c.pile === "ecartee" && c.motif ? ` · ${c.motif}` : ""}</div>
         </div>
         <div className="text-[9px] tracking-[.12em] uppercase text-brume whitespace-nowrap">
           {c.emplacement ? `Emplacement ${c.emplacement}` : "—"}
@@ -223,14 +232,143 @@ function AjoutCommerce({ villeId, ville, onAjoute }) {
   );
 }
 
-function Kanban({ villeId, ville, onNouvelle }) {
+const ETAPES = [
+  ["La ville", (p) => (p.mode === "rue" ? "Une rue, sans recenser la ville." : "Clients actifs lus dans Monday, avec leurs budgets.")],
+  ["Les rues", (p) => (p.phase === "rues" ? "Balayage du centre par l'annuaire, loyer de chaque rue chez Data-B." : `${p.rues_total || 0} rue${(p.rues_total || 0) > 1 ? "s" : ""} à parcourir, emplacement 1 d'abord.`)],
+  ["Les commerces", (p) => `${p.commerces_trouves || 0} commerce${(p.commerces_trouves || 0) > 1 ? "s" : ""} de pied d'immeuble lus dans l'annuaire, activité et enseigne.`],
+  ["Le propriétaire", (p) => `Data-B, adresse par adresse : ${p.proprietaires_trouves || 0} retrouvé${(p.proprietaires_trouves || 0) > 1 ? "s" : ""}.`],
+  ["La société et les gens", () => "Annuaire des entreprises, BODACC, DVF."],
+  ["Le classement", (p) => `Trois piles, un motif par cible. ${p.ecartees || 0} écartée${(p.ecartees || 0) > 1 ? "s" : ""} avec motif.`],
+  ["Le contact", (p) => `${p.brouillons || 0} message${(p.brouillons || 0) > 1 ? "s" : ""} rédigé${(p.brouillons || 0) > 1 ? "s" : ""}, en attente de votre relecture.`],
+];
+
+const heure = (iso) => (iso ? new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "");
+
+function EnCours({ ville, onArreter, arretPending }) {
+  const p = ville.parcours || {};
+  const enCours = p.etat === "en_cours";
+  const etape = p.etape || 1;
+  const progression = enCours
+    ? p.phase === "rues"
+      ? 10
+      : 15 + Math.round(((p.rues_faites || 0) / Math.max(1, p.rues_total || 1)) * 85)
+    : 100;
+  const journal = (p.journal || []).slice(-6).reverse();
+  const titre = enCours
+    ? `${ville.nom} · en cours`
+    : p.etat === "fini"
+      ? `${ville.nom} · terminé`
+      : p.etat === "arrete"
+        ? `${ville.nom} · arrêté`
+        : p.etat === "interrompu"
+          ? `${ville.nom} · interrompu`
+          : `${ville.nom} · en erreur`;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
+      <div className="bg-surface border border-white/[0.08] rounded-[14px] p-[30px] flex flex-col gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {enCours && <span className="w-[9px] h-[9px] rounded-full bg-menthe shadow-[0_0_12px_rgba(150,192,184,0.9)] animate-pulse" />}
+            <div className="text-[22px] font-semibold tracking-[-.02em] text-encre">{titre}</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-[11px] text-brume font-mono">
+              {enCours ? `étape ${etape} sur 7 · ` : ""}démarré à {heure(p.demarre_le)}{p.fini_le ? ` · fini à ${heure(p.fini_le)}` : ""}
+            </div>
+            {enCours && <Bouton onClick={onArreter} disabled={arretPending}>Arrêter</Bouton>}
+          </div>
+        </div>
+        <div className="h-[3px] rounded bg-white/[0.07]"><div className="h-[3px] rounded bg-menthe transition-all" style={{ width: `${progression}%` }} /></div>
+        <div className="flex flex-col">
+          {ETAPES.map(([mot, detail], i) => {
+            const rang = i + 1;
+            const fait = !enCours || rang < etape || (p.phase === "commerces" && rang <= 2);
+            const actif = enCours && rang === etape;
+            return (
+              <div key={mot} className="grid grid-cols-[26px_minmax(0,1fr)_auto] gap-3.5 items-baseline py-3.5 border-b border-white/[0.05]">
+                <div className="text-[11px] font-mono text-brume">{rang}</div>
+                <div className="flex flex-col gap-1">
+                  <div className="text-[15px]" style={{ color: fait || actif ? "var(--k-encre)" : "#3a3f47" }}>{mot}{actif && p.rue_en_cours && rang >= 3 ? ` · ${p.rue_en_cours}` : ""}</div>
+                  <div className="text-[13px] text-brume leading-[1.55]">{detail(p)}</div>
+                </div>
+                <div className="text-[9px] tracking-[.14em] uppercase" style={{ color: fait ? "var(--k-menthe)" : actif ? "var(--k-encre)" : "#3a3f47" }}>{fait ? "fait" : actif ? "en cours" : "à venir"}</div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="m-0 text-[13px] text-brume">
+          {enCours ? "Les résultats se posent au fur et à mesure : les rues sont déjà consultables, les cibles arrivent par paquets." : "Relancer reprend où ALX s'est arrêté : une cible déjà lue n'est pas relue."}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <div className="bg-surface border border-white/[0.08] rounded-[14px] p-[22px] flex flex-col gap-3.5">
+          <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">{enCours ? "Déjà trouvé" : "Trouvé"}</div>
+          {[
+            ["Rues parcourues", `${p.rues_faites || 0}${p.rues_total ? ` / ${p.rues_total}` : ""}`],
+            ["Commerces lus", p.commerces_trouves || 0],
+            ["Propriétaires retrouvés", p.proprietaires_trouves || 0],
+            ["Messages rédigés", p.brouillons || 0],
+            ["Écartés avec motif", p.ecartees || 0],
+          ].map(([mot, n]) => (
+            <div key={mot} className="flex justify-between items-baseline">
+              <span className="text-[14px] text-craie">{mot}</span>
+              <span className="text-[20px] font-semibold tabular-nums text-encre">{n}</span>
+            </div>
+          ))}
+          {p.erreurs > 0 && <div className="text-[12px]" style={{ color: "#E8B278" }}>{p.erreurs} lecture{p.erreurs > 1 ? "s" : ""} en erreur, détail dans le journal.</div>}
+        </div>
+        <div className="bg-surface border border-[rgba(232,178,120,0.25)] rounded-[14px] p-[22px] flex flex-col gap-2.5">
+          <div className="text-[10px] tracking-[.16em] uppercase" style={{ color: "#E8B278" }}>À votre main</div>
+          <div className="text-[14px] text-craie leading-[1.6]">Le classement des rues est proposé, pas décidé. Corrigez-le dans Villes : les rues reclassées sont reprises au prochain lancement.</div>
+        </div>
+        <div className="bg-surface border border-white/[0.08] rounded-[14px] p-[22px] flex flex-col gap-3">
+          <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Journal</div>
+          <div className="font-mono text-[11px] text-brume leading-[1.9]">
+            {journal.length === 0 && <div>…</div>}
+            {journal.map((l, i) => <div key={i}>{heure(l.le)} · {l.texte}</div>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PAR_COLONNE = 30;
+
+function Kanban({ villeId, ville: villeListe, onNouvelle }) {
   const qc = useQueryClient();
   const [voirEcartees, setVoirEcartees] = useState(false);
-  const { data: cibles = [] } = useQuery({ queryKey: ["alx-cibles", villeId], queryFn: () => base44.request("GET", `/api/alx/cibles?ville=${villeId}`) });
+  const [plus, setPlus] = useState({});
+  // La ville se relit toutes les trois secondes tant qu'ALX travaille dessus.
+  const { data: ville } = useQuery({
+    queryKey: ["alx-ville", villeId],
+    queryFn: () => base44.request("GET", `/api/alx/villes/${villeId}`),
+    refetchInterval: (q) => (q.state.data?.parcours?.etat === "en_cours" ? 3000 : false),
+    placeholderData: villeListe,
+  });
+  const enCours = ville?.parcours?.etat === "en_cours";
+  const { data: cibles = [] } = useQuery({
+    queryKey: ["alx-cibles", villeId],
+    queryFn: () => base44.request("GET", `/api/alx/cibles?ville=${villeId}`),
+    refetchInterval: enCours ? 5000 : false,
+  });
+  const rafraichir = () => { qc.invalidateQueries({ queryKey: ["alx-cibles", villeId] }); qc.invalidateQueries({ queryKey: ["alx-ville", villeId] }); qc.invalidateQueries({ queryKey: ["alx-villes"] }); qc.invalidateQueries({ queryKey: ["alx-etat"] }); };
+  const lancer = useMutation({
+    mutationFn: () => base44.request("POST", `/api/alx/villes/${villeId}/lancer`, { body: {} }),
+    onSuccess: rafraichir,
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const arreter = useMutation({
+    mutationFn: () => base44.request("POST", `/api/alx/villes/${villeId}/arreter`, { body: {} }),
+    onSuccess: rafraichir,
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
 
   const par = (p) => cibles.filter((c) => (c.pile || "surveiller") === p);
   const ecartees = par("ecartee");
-  const rafraichir = () => { qc.invalidateQueries({ queryKey: ["alx-cibles", villeId] }); qc.invalidateQueries({ queryKey: ["alx-villes"] }); qc.invalidateQueries({ queryKey: ["alx-etat"] }); };
+  const p = ville?.parcours;
 
   return (
     <div className="flex flex-col gap-6">
@@ -241,12 +379,19 @@ function Kanban({ villeId, ville, onNouvelle }) {
           <Link to="/ALXBilan" className="text-[15px] pb-3 text-ardoise hover:text-encre transition-colors">Bilan</Link>
         </div>
         <div className="flex items-center gap-3.5 pb-2.5">
-          <div className="text-[11px] text-brume font-mono">{ville?.nom} · {cibles.length} cible{cibles.length > 1 ? "s" : ""}</div>
+          <div className="text-[11px] text-brume font-mono">
+            {ville?.nom}{ville?.recensement?.le ? ` · relevé du ${new Date(ville.recensement.le).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}` : ""} · {(ville?.rues || []).length} rue{(ville?.rues || []).length > 1 ? "s" : ""} · {cibles.length} cible{cibles.length > 1 ? "s" : ""}
+          </div>
+          {!enCours && (
+            <Bouton onClick={() => lancer.mutate()} disabled={lancer.isPending}>{p?.etat ? "Relancer ALX" : "Lancer ALX"}</Bouton>
+          )}
           <Bouton onClick={onNouvelle}>Nouvelle ville</Bouton>
         </div>
       </div>
 
-      <AjoutCommerce villeId={villeId} ville={ville} onAjoute={rafraichir} />
+      {p?.etat && <EnCours ville={ville} onArreter={() => arreter.mutate()} arretPending={arreter.isPending} />}
+
+      {!enCours && <AjoutCommerce villeId={villeId} ville={ville} onAjoute={rafraichir} />}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         {["appeler", "ecrire", "surveiller"].map((pile) => {
@@ -258,8 +403,13 @@ function Kanban({ villeId, ville, onNouvelle }) {
                 <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: p.teinte }}>{p.mot}</div>
                 <div className="text-[12px] text-brume">{p.detail} · {dedans.length}</div>
               </div>
-              {dedans.map((c) => <CarteCible key={c.id} c={c} />)}
+              {dedans.slice(0, plus[pile] || PAR_COLONNE).map((c) => <CarteCible key={c.id} c={c} />)}
               {dedans.length === 0 && <p className="m-0 text-[12.5px] text-brume py-2">Rien ici.</p>}
+              {dedans.length > (plus[pile] || PAR_COLONNE) && (
+                <button onClick={() => setPlus((x) => ({ ...x, [pile]: (x[pile] || PAR_COLONNE) + PAR_COLONNE }))} className="text-[12.5px] text-menthe hover:text-menthe-clair text-left py-1">
+                  Voir {Math.min(PAR_COLONNE, dedans.length - (plus[pile] || PAR_COLONNE))} de plus ({dedans.length - (plus[pile] || PAR_COLONNE)} restantes)
+                </button>
+              )}
               {pile === "surveiller" && (
                 <>
                   <p className="m-0 text-[12px] text-brume leading-[1.6] py-1">Relecture BODACC et DVF tous les mois.</p>
@@ -272,7 +422,10 @@ function Kanban({ villeId, ville, onNouvelle }) {
                       <span className="text-[13px] text-menthe">{voirEcartees ? "Masquer" : "Voir"}</span>
                     </button>
                   )}
-                  {voirEcartees && ecartees.map((c) => <CarteCible key={c.id} c={c} />)}
+                  {voirEcartees && ecartees.slice(0, plus.ecartee || PAR_COLONNE).map((c) => <CarteCible key={c.id} c={c} />)}
+                  {voirEcartees && ecartees.length > (plus.ecartee || PAR_COLONNE) && (
+                    <button onClick={() => setPlus((x) => ({ ...x, ecartee: (x.ecartee || PAR_COLONNE) + PAR_COLONNE }))} className="text-[12.5px] text-menthe hover:text-menthe-clair text-left py-1">Voir plus</button>
+                  )}
                 </>
               )}
             </div>

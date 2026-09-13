@@ -135,7 +135,34 @@ export function ventesCommerciales(lignes) {
 }
 
 /** Les millésimes disponibles, du plus récent au plus ancien. */
+// Les fichiers d'une commune, gardés en mémoire quelques heures : un parcours
+// ALX lit cinquante adresses de la même commune d'affilée, et chaque fichier
+// annuel pèse plusieurs mégaoctets.
+const MEMO_MS = 6 * 3600 * 1000;
+const memoFichiers = new Map();
+
+// Les ventes commerciales d'une commune, lues et triées une fois : l'analyse
+// des fichiers coûte plus que leur téléchargement.
+const memoVentes = new Map();
+function ventesDeCommune(dep, insee, millesimes) {
+  const cle = `${dep}/${insee}/${millesimes.map((m) => m.annee).join(',')}`;
+  const connu = memoVentes.get(cle);
+  if (connu && Date.now() - connu.le < MEMO_MS) return connu.resultat;
+  const resultat = ventesCommerciales(millesimes.flatMap((m) => lireCsv(m.texte)));
+  memoVentes.set(cle, { le: Date.now(), resultat });
+  return resultat;
+}
+
 async function fichiers(dep, insee) {
+  const cle = `${dep}/${insee}`;
+  const connu = memoFichiers.get(cle);
+  if (connu && Date.now() - connu.le < MEMO_MS) return connu.textes;
+  const textes = await telechargerFichiers(dep, insee);
+  memoFichiers.set(cle, { le: Date.now(), textes });
+  return textes;
+}
+
+async function telechargerFichiers(dep, insee) {
   const annee = new Date().getFullYear();
   // On interroge DEUX années de plus qu'il n'en faut : l'année en cours n'est
   // jamais publiée, parfois la précédente non plus, et sans cette marge on
@@ -203,8 +230,7 @@ export async function ventesAutour(texteAdresse, { rayon = RAYON_DEFAUT, forcer 
     return { ok: false, classe: SANS_DONNEE, error: `DVF n'a aucun fichier pour ${adresse.ville} (${adresse.code_insee}).` };
   }
 
-  const lignes = millesimes.flatMap((m) => lireCsv(m.texte));
-  const { ventes, ecartees } = ventesCommerciales(lignes);
+  const { ventes, ecartees } = ventesDeCommune(dep, adresse.code_insee, millesimes);
   const proches = ventes
     .map((v) => ({ ...v, distance_m: Math.round(distanceM(adresse.lat, adresse.lon, v.lat, v.lon)) }))
     .filter((v) => v.distance_m <= rayon)

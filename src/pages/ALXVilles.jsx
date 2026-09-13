@@ -23,7 +23,11 @@ export default function ALXVilles() {
   const [cp, setCp] = useState("");
   const [rue, setRue] = useState({});
 
-  const { data: villes = [] } = useQuery({ queryKey: ["alx-villes"], queryFn: () => base44.request("GET", "/api/alx/villes") });
+  const { data: villes = [] } = useQuery({
+    queryKey: ["alx-villes"],
+    queryFn: () => base44.request("GET", "/api/alx/villes"),
+    refetchInterval: (q) => ((q.state.data || []).some((v) => v.parcours?.etat === "en_cours") ? 4000 : false),
+  });
   const invalider = () => qc.invalidateQueries({ queryKey: ["alx-villes"] });
 
   const creer = useMutation({
@@ -43,6 +47,16 @@ export default function ALXVilles() {
   const supprimer = useMutation({
     mutationFn: (id) => base44.request("DELETE", `/api/alx/villes/${id}`),
     onSuccess: () => { toast.success("Ville retirée, avec ses cibles"); invalider(); qc.invalidateQueries({ queryKey: ["alx-cibles"] }); },
+  });
+  const lancer = useMutation({
+    mutationFn: (id) => base44.request("POST", `/api/alx/villes/${id}/lancer`, { body: {} }),
+    onSuccess: () => { toast.success("ALX est parti"); invalider(); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const parcourir = useMutation({
+    mutationFn: ({ id, nom }) => base44.request("POST", `/api/alx/villes/${id}/rues/${encodeURIComponent(nom)}/parcourir`, { body: {} }),
+    onSuccess: (_, v) => { toast.success(`ALX parcourt ${v.nom}`); invalider(); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
   if (!user || user.role !== "admin") return null;
@@ -78,6 +92,11 @@ export default function ALXVilles() {
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
+                  {v.parcours?.etat === "en_cours" ? (
+                    <span className="inline-flex items-center gap-2 text-[12px] text-menthe"><span className="w-[7px] h-[7px] rounded-full bg-menthe animate-pulse" />ALX en cours{v.parcours.rue_en_cours ? ` · ${v.parcours.rue_en_cours}` : ""}</span>
+                  ) : (
+                    <Bouton onClick={() => lancer.mutate(v.id)} disabled={lancer.isPending}>{v.parcours?.etat ? "Relancer ALX" : "Lancer ALX"}</Bouton>
+                  )}
                   <Link to={`/ALX?ville=${v.id}`} className="text-[13px] text-menthe hover:text-menthe-clair">Ouvrir dans Cibles →</Link>
                   <button
                     onClick={() => { if (window.confirm(`Retirer ${v.nom} et toutes ses cibles ?`)) supprimer.mutate(v.id); }}
@@ -99,12 +118,20 @@ export default function ALXVilles() {
                       </div>
                       <div className="flex flex-col">
                         {rues.map((r) => (
-                          <div key={r.nom} className="group grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center py-3 border-t border-white/[0.05] first:border-t-0">
+                          <div key={r.nom} className="group grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-3 items-center py-3 border-t border-white/[0.05] first:border-t-0">
                             <div className="min-w-0">
-                              <div className="text-[14px] text-craie truncate">{r.nom}</div>
-                              {r.motif && <div className="text-[12px] text-brume truncate">{r.motif}</div>}
+                              <div className="text-[14px] text-craie truncate">
+                                {r.nom}
+                                {r.par === "alx" && <span className="ml-2 text-[9px] tracking-[.12em] uppercase text-brume">proposée par ALX</span>}
+                              </div>
+                              {r.motif && <div className="text-[12px] text-brume truncate">{r.motif}{r.parcourue_le ? ` · parcourue le ${new Date(r.parcourue_le).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}` : ""}</div>}
                             </div>
                             <span className="text-[12px] text-ardoise text-right">{v.cibles_par_rue?.[r.nom] || 0} cible{(v.cibles_par_rue?.[r.nom] || 0) > 1 ? "s" : ""}</span>
+                            {v.parcours?.etat !== "en_cours" && (
+                              <button onClick={() => parcourir.mutate({ id: v.id, nom: r.nom })} disabled={parcourir.isPending} className="opacity-0 group-hover:opacity-100 text-[11px] text-menthe hover:text-menthe-clair transition-opacity whitespace-nowrap" title="Parcourir cette rue seule">
+                                {r.parcourue_le ? "Repasser" : "Parcourir"}
+                              </button>
+                            )}
                             <button onClick={() => retirer.mutate({ id: v.id, nom: r.nom })} className="opacity-0 group-hover:opacity-100 text-brume hover:text-alerte transition-opacity" title="Retirer">
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -123,8 +150,27 @@ export default function ALXVilles() {
                   );
                 })}
               </div>
+              {(v.rues_ecartees || []).length > 0 && (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-[12.5px] text-ardoise hover:text-encre">
+                    {v.rues_ecartees.length} rue{v.rues_ecartees.length > 1 ? "s" : ""} écartée{v.rues_ecartees.length > 1 ? "s" : ""} par ALX, avec leur motif
+                  </summary>
+                  <div className="mt-2 flex flex-col">
+                    {v.rues_ecartees.map((r) => (
+                      <div key={r.nom} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center py-2 border-t border-white/[0.05] text-[12.5px]">
+                        <div className="min-w-0 truncate"><span className="text-craie">{r.nom}</span><span className="text-brume"> · {r.motif}</span></div>
+                        <button onClick={() => classer.mutate({ id: v.id, nom: r.nom, classe: 2 })} className="text-[11px] text-menthe hover:text-menthe-clair whitespace-nowrap">Classer en 2</button>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
               {(v.rues || []).length > 0 && (
-                <p className="m-0 mt-3 text-[12px] text-brume">Classement proposé par ALX quand Street View est branché, corrigé à la main en attendant.</p>
+                <p className="m-0 mt-3 text-[12px] text-brume">
+                  {v.recensement?.le
+                    ? `Proposé par ALX le ${new Date(v.recensement.le).toLocaleDateString("fr-FR")} : ${v.recensement.commerces_total} commerces sur ${v.recensement.rayon_km || 1.5} km autour du centre. Corrigez, ALX suit.`
+                    : "Classement à la main. Lancez ALX pour qu'il propose les rues du centre avec leur loyer de marché."}
+                </p>
               )}
             </section>
           ))}

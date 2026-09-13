@@ -221,19 +221,22 @@ function Direct({ ville, p }) {
   const approx = retenues.some((nom) => !comptes[nom]?.surs);
   // Pendant la balade, la part des pas ; pendant la lecture, le rang du commerce en cours dans sa rue.
   const fraction = b?.total ? { balade: b.pas / b.total } : b?.commerces ? b.commerce / b.commerces : null;
-  const R = 54, C = 2 * Math.PI * R;
+  // Le cercle doit rester plus grand que le texte qu'il entoure : « DES
+  // COMMERCES » en capitales espacées est ce qui prend le plus de place.
+  // 76 de rayon laisse une bonne marge, même sur un petit écran.
+  const R = 76, C = 2 * Math.PI * R;
   return (
     <div className="mt-5 grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_260px]">
       <CarteRues rues={rues} coches={new Set()} onChoisir={() => {}} centre={ville?.centre} direct={{ retenues, faites, enCours: p.rue_en_cours || null, fraction, position: b?.lat != null ? { lat: b.lat, lon: b.lon } : null }} className="h-[360px]" />
       <div className="flex flex-col items-center justify-center gap-4 rounded-[16px] border border-white/[0.07] px-5 py-6 text-center">
         <div className="relative grid place-items-center">
-          <svg width="132" height="132" viewBox="0 0 132 132" className="-rotate-90">
-            <circle cx="66" cy="66" r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
-            <circle cx="66" cy="66" r={R} fill="none" stroke="#96c0b8" strokeWidth="6" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - avancement)} style={{ transition: "stroke-dashoffset .8s ease" }} />
+          <svg width="176" height="176" viewBox="0 0 176 176" className="-rotate-90">
+            <circle cx="88" cy="88" r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
+            <circle cx="88" cy="88" r={R} fill="none" stroke="#96c0b8" strokeWidth="6" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - avancement)} style={{ transition: "stroke-dashoffset .8s ease" }} />
           </svg>
           <div className="absolute flex flex-col items-center">
             <Nombre taille={30} teinte="#F3F7F5">{pct} %</Nombre>
-            <span className="text-[10.5px] uppercase tracking-[.14em] text-[#8B938F]">des commerces</span>
+            <span className="whitespace-nowrap text-[10.5px] uppercase tracking-[.1em] text-[#8B938F]">des commerces</span>
           </div>
         </div>
         <div>

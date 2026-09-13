@@ -50,8 +50,25 @@ const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
  */
 const metres = (a, b) => Math.hypot((b[0] - a[0]) * 111000, (b[1] - a[1]) * 111000 * Math.cos((a[0] * Math.PI) / 180));
 
-/** Le début d'un tracé : la fraction demandée de ses points, tronçon après tronçon. */
-function debutDuTrace(trace, fraction) {
+/**
+ * Le tracé dans le sens de la balade : ALX parcourt une rue le long de son
+ * axe principal, dans le sens des coordonnées croissantes (server/alx/places.js,
+ * pasDeMarche). On ordonne donc les tronçons de la même façon, et on retourne
+ * ceux qui vont à rebours, pour que la couleur avance du même côté que lui.
+ */
+function orienterTrace(trace) {
+  const pts = trace.flat();
+  if (pts.length < 2) return trace;
+  const lats = pts.map((p) => p[0]), lons = pts.map((p) => p[1]);
+  const axe = (Math.max(...lats) - Math.min(...lats)) * 111000 >= (Math.max(...lons) - Math.min(...lons)) * 111000 * Math.cos((lats[0] * Math.PI) / 180) ? 0 : 1;
+  return trace
+    .map((t) => (t.length > 1 && t[0][axe] > t[t.length - 1][axe] ? [...t].reverse() : t))
+    .sort((a, b) => a[0][axe] - b[0][axe]);
+}
+
+/** Le début d'un tracé : la fraction demandée de ses points, dans le sens de la balade. */
+function debutDuTrace(traceBrut, fraction) {
+  const trace = orienterTrace(traceBrut);
   const total = trace.reduce((a, t) => a + t.length, 0);
   let reste = Math.max(2, Math.round(total * Math.max(0, Math.min(1, fraction || 0))));
   const out = [];

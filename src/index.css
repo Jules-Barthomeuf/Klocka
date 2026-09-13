@@ -400,3 +400,11 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .alx-entree { animation: alx-entree .3s ease-out; }
 .alx-pouls { animation: alx-pouls 1.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .alx-vague, .alx-entree, .alx-pouls { animation: none; } }
+
+/* Une info-bulle d'ALX : le texte est dans data-bulle, elle s'ouvre au survol. */
+.alx-bulle { position: relative; }
+.alx-bulle::after { content: attr(data-bulle); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
+  width: max-content; max-width: 300px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: #101211;
+  color: #C3CBC7; font: 12.5px/1.5 Figtree, "Instrument Sans", sans-serif; text-align: left; white-space: normal; text-transform: none; letter-spacing: 0;
+  box-shadow: 0 14px 34px rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .15s; z-index: 30; }
+.alx-bulle:hover::after { opacity: 1; }

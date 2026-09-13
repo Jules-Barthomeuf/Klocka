@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -41,6 +41,73 @@ function ceQueFait(c) {
   if (contacts.length) phrases.push(`${contacts.join(" · ")}.`);
   if (c.source) phrases.push(`Vu sur ${c.source}.`);
   return phrases;
+}
+
+/** Le cap de la photo vers le commerce, en degrés, pour regarder la bonne façade. */
+function capVers(photo, c) {
+  if (!photo?.lat || !photo?.lon || c.lat == null || c.lon == null) return 0;
+  const dLon = ((c.lon - photo.lon) * Math.PI) / 180;
+  const l1 = (photo.lat * Math.PI) / 180, l2 = (c.lat * Math.PI) / 180;
+  const y = Math.sin(dLon) * Math.cos(l2);
+  const x = Math.cos(l1) * Math.sin(l2) - Math.sin(l1) * Math.cos(l2) * Math.cos(dLon);
+  return Math.round(((Math.atan2(y, x) * 180) / Math.PI + 360) % 360);
+}
+
+/**
+ * L'analyse, en clair : pourquoi ALX pense que ça se vend, ou pas. Quelques
+ * paragraphes courts, chaque signal avec ce qu'il veut dire, puis le
+ * propriétaire, le marché, et ce qui manque.
+ */
+function analyseTexte(c, explications = {}) {
+  const nom = joliNom(c.enseigne) || "ce commerce";
+  const p = c.proprietaire || {};
+  const s = c.societe || {};
+  const v = c.valorisation || {};
+  const forts = c.signaux?.forts || [];
+  const patients = c.signaux?.patients || [];
+  const blocs = [];
+
+  const verdict = c.pile === "appeler" ? `ALX pense que les murs de ${nom} peuvent se vendre à court terme : ${forts.length > 1 ? "plusieurs signaux forts" : "un signal fort"} pousse${forts.length > 1 ? "nt" : ""} le propriétaire à agir maintenant. C'est un appel, pas un courrier.`
+    : c.pile === "ecrire" ? `ALX pense que les murs de ${nom} se vendront un jour, pas cette année : ${patients.length > 1 ? "les signaux sont patients" : "le signal est patient"}. Un courrier maintenant, une relance chaque année.`
+    : c.pile === "ecartee" ? `${nom} est écarté${c.ecartee_motif ? ` : ${c.ecartee_motif}` : c.ecartee_regle?.pourquoi ? ` par une règle (${c.ecartee_regle.pourquoi})` : ""}.`
+    : `ALX ne voit pas de raison de vendre pour l'instant chez ${nom}${p.nom ? "" : " : le propriétaire n'est pas encore établi"}. Il surveille le BODACC et DVF, et reviendra si quelque chose bouge.`;
+  blocs.push({ titre: "Le verdict", lignes: [verdict] });
+
+  const signal = (x, patient) => `${x.libelle}${x.valeur ? ` (${x.valeur})` : ""}${x.source ? `, lu sur ${x.source}` : ""}. ${explications[x.cle] || (patient ? "Un signal qui joue sur la durée." : "Un signal qui compte maintenant.")}`;
+  if (forts.length) blocs.push({ titre: forts.length > 1 ? "Les signaux forts" : "Le signal fort", lignes: forts.map((x) => signal(x, false)) });
+  if (patients.length) blocs.push({ titre: patients.length > 1 ? "Les signaux patients" : "Le signal patient", lignes: patients.map((x) => signal(x, true)) });
+
+  const proprio = [];
+  if (p.nom) {
+    proprio.push(`Les murs appartiennent à ${joliNom(p.nom)}${p.forme || s.forme ? ` (${p.forme || s.forme})` : ""}${anneeUtile(s.creation) ? `, société créée en ${anneeUtile(s.creation)}` : ""}${s.siege?.ville ? `, siège à ${joliNom(s.siege.ville)}` : ""}.`);
+    if (/SCI/i.test(p.forme || s.forme || "")) proprio.push("Une SCI est une société patrimoniale : les murs y sont un placement, qui se vend seul, sans toucher au fonds de commerce.");
+    if (c.proprietaire_occupant) proprio.push("L'exploitant est aussi le propriétaire : il vendrait murs et fonds ensemble, ce qui est plus rare et plus lent.");
+    const g = (s.gerants || []).length;
+    if (g) proprio.push(`${g} gérant${g > 1 ? "s" : ""} au registre${(s.gerants || []).some((x) => /70/.test(x.tranche_age || "")) ? ", dont au moins un de plus de 70 ans" : ""}.`);
+  } else if (c.foncier) {
+    proprio.push(`Data-B connaît plusieurs propriétaires à cette adresse, sans qu'ALX ait pu retenir celui du rez-de-chaussée${c.foncier.motif_choix ? ` (${c.foncier.motif_choix})` : ""}.`);
+  } else {
+    proprio.push("Le propriétaire des murs n'est pas encore établi : sans lui, pas de message.");
+  }
+  blocs.push({ titre: "Le propriétaire", lignes: proprio });
+
+  const marche = [];
+  if (v.loyer_fourchette?.[0] != null) marche.push(`Le loyer de marché de la rue est de ${Math.round(v.loyer_fourchette[0])} à ${Math.round(v.loyer_fourchette[1])} €/m²/an${v.loyer_source ? ` (${v.loyer_source})` : ""}.`);
+  if (c.mutation?.prix) marche.push(`DVF : une vente ${c.mutation.du_local ? "de ce local" : "à côté"} en ${annee(c.mutation.date)} pour ${euros(c.mutation.prix)}${c.mutation.surface ? `, ${c.mutation.surface} m²` : ""}.`);
+  if (v.fourchette) marche.push(`Avec ${v.surface} m²${v.surface_source ? ` (${v.surface_source})` : ""}, les murs vaudraient ${euros(v.fourchette[0])} à ${euros(v.fourchette[1])}.`);
+  else if (v.fourchette_estimee) marche.push(`La vitrine fait environ ${v.vitrine_m} m : une boutique de ${v.surface_estimee[0]} à ${v.surface_estimee[1]} m², soit des murs entre ${euros(v.fourchette_estimee[0])} et ${euros(v.fourchette_estimee[1])}. Une idée, pas une estimation.`);
+  if (v.alerte) marche.push(v.alerte);
+  if (marche.length) blocs.push({ titre: "Le marché", lignes: marche });
+
+  const drapeaux = (c.drapeaux || []).map((d) => `${d.libelle}${d.valeur ? ` (${d.valeur})` : ""}. ${explications[d.cle] || d.detail || ""}`.trim());
+  if (drapeaux.length) blocs.push({ titre: "À savoir", lignes: drapeaux });
+
+  const manque = [];
+  if (!p.nom) manque.push("le propriétaire");
+  if (!v.surface && !v.surface_estimee) manque.push("la surface du local");
+  if (!c.bail_echeance) manque.push("l'échéance du bail");
+  if (manque.length) blocs.push({ titre: "Ce qui manque", lignes: [`ALX n'a pas encore ${manque.join(", ")}.`] });
+  return blocs;
 }
 
 /** Un semblable en coup d'œil, par-dessus la fiche. */
@@ -107,7 +174,9 @@ export default function ALXCible() {
   const [sur, setSur] = useState({ activite: false, proprietaire: false, enseigne: false });
   const [resultat, setResultat] = useState(null); // { semblables, regle } après un écart
   const [apercu, setApercu] = useState(null);
-  useEffect(() => { setMode("lecture"); setMotif(""); setSur({ activite: false, proprietaire: false, enseigne: false }); setResultat(null); }, [id]);
+  const [analyseOuverte, setAnalyseOuverte] = useState(false);
+  const { data: etat } = useQuery({ queryKey: ["alx-etat"], queryFn: () => base44.request("GET", "/api/alx/etat"), staleTime: 300000 });
+  useEffect(() => { setMode("lecture"); setMotif(""); setSur({ activite: false, proprietaire: false, enseigne: false }); setResultat(null); setAnalyseOuverte(false); }, [id]);
   useEffect(() => { if (window.location.hash === "#message" && c?.brouillon) setMode("message"); }, [c?.brouillon]);
 
   const rafraichir = () => { qc.invalidateQueries({ queryKey: ["alx-cible", id] }); qc.invalidateQueries({ queryKey: ["alx-cibles"] }); qc.invalidateQueries({ queryKey: ["alx-villes"] }); qc.invalidateQueries({ queryKey: ["alx-etat"] }); };
@@ -131,6 +200,20 @@ export default function ALXCible() {
     onSuccess: () => { toast.success("Reprise"); setMode("lecture"); rafraichir(); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+  const devanture = useMutation({
+    mutationFn: () => base44.request("POST", `/api/alx/cibles/${id}/devanture`, { body: {} }),
+    onSuccess: rafraichir,
+    onError: () => {},
+  });
+  // La devanture se lit une fois, à l'ouverture : la photo au bon panorama,
+  // et la largeur de vitrine qui donne une idée de surface et de prix.
+  const devantureLue = !!c?.photo;
+  const devantureTentee = useRef(null);
+  useEffect(() => {
+    if (!c || devantureLue || devantureTentee.current === c.id || c.pile === "ecartee") return;
+    devantureTentee.current = c.id;
+    devanture.mutate();
+  }, [c?.id, devantureLue]);
   const proprietaire = useMutation({
     mutationFn: () => base44.request("POST", `/api/alx/cibles/${id}/proprietaire`, { body: {} }),
     onSuccess: (r) => { toast.success(r.cible?.proprietaire?.nom ? `Propriétaire : ${joliNom(r.cible.proprietaire.nom)}` : r.foncier?.motif_choix || "Fiche lue"); rafraichir(); },
@@ -172,12 +255,8 @@ export default function ALXCible() {
 
         <div className="mt-5 flex flex-wrap items-end justify-between gap-5">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              {c.emplacement && <Etiquette teinte={e.teinte}>Emplacement {e.mot}</Etiquette>}
-              <Etiquette teinte={teinteVerdict}>{ecartee ? "Écartée" : verdict}</Etiquette>
-            </div>
-            <h1 className="alx-serif m-0 mt-2.5 text-[44px] italic leading-[1.05] tracking-[-.01em] text-[#F3F7F5] max-md:text-[32px]">{joliNom(c.enseigne) || c.adresse}</h1>
-            <div className="mt-2 text-[15px] text-[#8B938F]">{c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.activite ? ` · ${c.activite}` : ""}</div>
+            <h1 className="alx-serif m-0 text-[44px] italic leading-[1.05] tracking-[-.01em] text-[#F3F7F5] max-md:text-[32px]">{joliNom(c.enseigne) || c.adresse}</h1>
+            <div className="mt-2 text-[15px] text-[#8B938F]">{c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.activite ? ` · ${c.activite}` : ""}{c.emplacement ? ` · emplacement ${e.mot}` : ""}</div>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             {ecartee ? (
@@ -187,7 +266,7 @@ export default function ALXCible() {
               </>
             ) : (
               <>
-                <Bouton principal onClick={() => (brouillon ? setMode("message") : rediger.mutate())} disabled={rediger.isPending}>{rediger.isPending ? "…" : brouillon ? "Relire le message" : "Écrire le message"}</Bouton>
+                <Bouton principal onClick={() => (brouillon ? setMode("message") : rediger.mutate())} disabled={rediger.isPending}>{rediger.isPending ? "…" : brouillon ? "Relire le message" : "Rédiger le message"}</Bouton>
                 <Bouton onClick={() => setMode("ecart")}>Écarter</Bouton>
               </>
             )}
@@ -195,8 +274,33 @@ export default function ALXCible() {
         </div>
 
         <div className="mt-7 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-          <div className="flex flex-col gap-[26px] rounded-[20px] border border-white/[0.08] bg-[#0B0D0C] p-7">
-            <div>
+          <div className="relative flex flex-col gap-[26px] rounded-[20px] border border-white/[0.08] bg-[#0B0D0C] p-7">
+            <button
+              onClick={() => setAnalyseOuverte((x) => !x)}
+              title={analyseOuverte ? "Revenir à la fiche" : "Lire l'analyse"}
+              aria-pressed={analyseOuverte}
+              className="absolute right-5 top-5 flex h-9 items-center gap-2 rounded-full border px-3.5 text-[12.5px] transition-colors"
+              style={{ borderColor: analyseOuverte ? "#96c0b8" : "rgba(255,255,255,0.12)", color: analyseOuverte ? "#96c0b8" : "#8B938F", background: analyseOuverte ? "rgba(150,192,184,0.12)" : "transparent" }}
+            >
+              {analyseOuverte ? "La fiche" : "L'analyse"}
+              <span className="text-[10px]">{analyseOuverte ? "◀" : "▶"}</span>
+            </button>
+            {analyseOuverte ? (
+              <div className="alx-entree flex flex-col gap-6 pr-28">
+                <div>
+                  <Etiquette>L'analyse</Etiquette>
+                  <div className="mt-2 flex items-center gap-3"><Urgence c={c} /></div>
+                </div>
+                {analyseTexte(c, etat?.explications || {}).map((b) => (
+                  <div key={b.titre}>
+                    <Etiquette className="!text-[9.5px]">{b.titre}</Etiquette>
+                    <div className="mt-2 flex flex-col gap-2 text-[14.5px] leading-[1.6] text-[#C3CBC7]">{b.lignes.map((l, i) => <p key={i} className="m-0">{l}</p>)}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+            <>
+            <div className="pr-28">
               <Etiquette>Propriétaire</Etiquette>
               <div className="mt-2 text-[22px] text-[#F3F7F5]">{p.nom ? joliNom(p.nom) : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
               {proprioMeta && <div className="mt-1 text-[13.5px] text-[#8B938F]">{proprioMeta}</div>}
@@ -248,9 +352,12 @@ export default function ALXCible() {
               </div>
               <div>
                 <Etiquette>Prix estimé</Etiquette>
-                <div className="mt-1.5"><Nombre taille={19} teinte="#F3F7F5">{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : "—"}</Nombre></div>
+                <div className="mt-1.5"><Nombre taille={19} teinte="#F3F7F5">{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : v.fourchette_estimee ? `~ ${euros(v.fourchette_estimee[0])} – ${euros(v.fourchette_estimee[1])}` : devanture.isPending ? "…" : "—"}</Nombre></div>
                 <div className="mt-1 text-[12px] text-[#8B938F]">
-                  {v.surface ? `${v.surface} m²${v.surface_source ? ` · ${v.surface_source}` : ""}` : c.mutation?.prix ? `Vente autour en ${annee(c.mutation.date)} : ${euros(c.mutation.prix)}${c.mutation.surface ? ` pour ${c.mutation.surface} m²` : ""}` : "surface inconnue"}
+                  {v.surface ? `${v.surface} m²${v.surface_source ? ` · ${v.surface_source}` : ""}`
+                    : v.surface_estimee ? `${v.surface_estimee[0]}–${v.surface_estimee[1]} m² d'après la vitrine (${v.vitrine_m} m), une idée`
+                    : devanture.isPending ? "ALX regarde la vitrine…"
+                    : c.mutation?.prix ? `Vente autour en ${annee(c.mutation.date)} : ${euros(c.mutation.prix)}${c.mutation.surface ? ` pour ${c.mutation.surface} m²` : ""}` : "surface inconnue"}
                 </div>
               </div>
             </div>
@@ -322,15 +429,19 @@ export default function ALXCible() {
                 <div><Link to={retour} className="text-[13.5px] text-menthe hover:text-menthe-clair">← Retour aux commerces</Link></div>
               </div>
             )}
+            </>
+            )}
           </div>
 
           <div className="min-h-[460px] overflow-hidden rounded-[20px] border border-white/[0.08] bg-[#0A0C0B]">
             {CLE_EMBED ? (
               <iframe
                 title={`Street View ${c.adresse}`}
-                src={c.lat != null && c.lon != null
-                  ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90`
-                  : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`}
+                src={c.photo?.pano
+                  ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&pano=${c.photo.pano}&heading=${c.photo.cap ?? capVers(c.photo, c)}&pitch=0&fov=80`
+                  : c.lat != null && c.lon != null
+                    ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90`
+                    : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`}
                 className="h-full min-h-[460px] w-full border-0"
                 allowFullScreen
                 loading="lazy"

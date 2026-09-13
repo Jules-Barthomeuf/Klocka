@@ -201,17 +201,35 @@ export function calculerPrix(id, { surface = null, taux = null, user = null } = 
   );
 }
 
-/** La devanture par Street View, lue par le modèle. */
+// Une boutique de centre-ville fait entre sept et treize mètres de profondeur :
+// la largeur de vitrine lue sur la photo donne donc une surface, en tranche.
+const PROFONDEUR_M = [7, 13];
+
+/**
+ * La devanture par Street View, lue par le modèle. Le point Maps du commerce
+ * vaut mieux que l'adresse pour trouver la bonne photo. La largeur de vitrine
+ * lue donne une surface estimée et, avec le loyer de la rue, une idée du prix,
+ * gardées à part de la fourchette calculée sur une surface sûre.
+ */
 export async function lireDevanture(id, { user = null } = {}) {
   const c = cibleOu(id);
   const { lireDevanture: lire } = await import('./streetview.js');
-  const r = await lire(adresseComplete(c));
+  const r = await lire(c.lat != null && c.lon != null ? `${c.lat},${c.lon}` : adresseComplete(c));
   if (!r.ok) throw new Error(r.error);
   const lecture = r.photo.lecture || {};
   const patch = { photo: r.photo };
   if (!c.enseigne && lecture.enseigne) patch.enseigne = lecture.enseigne;
   if (!c.activite && lecture.activite) patch.activite = lecture.activite;
   if (lecture.occupe === false) patch.occupe = false;
+  const vitrine = Number(lecture.vitrine_m);
+  if (vitrine > 0) {
+    const v = c.valorisation || {};
+    const surface = [Math.round(vitrine * PROFONDEUR_M[0]), Math.round(vitrine * PROFONDEUR_M[1])];
+    const loyerM2 = Number(v.loyer_m2_marche);
+    const t = Number(v.taux ?? 7);
+    const fourchette = loyerM2 > 0 ? [Math.round((surface[0] * loyerM2) / ((t + 1) / 100) / 1000) * 1000, Math.round((surface[1] * loyerM2) / ((t - 1) / 100) / 1000) * 1000] : null;
+    patch.valorisation = { ...v, vitrine_m: vitrine, surface_estimee: surface, fourchette_estimee: fourchette, estimee_le: new Date().toISOString() };
+  }
   return mettreAJourCible(c.id, patch, user);
 }
 

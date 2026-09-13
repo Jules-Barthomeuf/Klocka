@@ -409,6 +409,15 @@ function CaseTeinte({ teinte, trait = false, title, onClick }) {
   );
 }
 
+/** Pourquoi cette rue est en 1, 1 bis ou 2 : le loyer, et le seuil qu'il passe. */
+function pourquoiEmplacement(r) {
+  const e = emplacementDe(r.classe);
+  const milieu = r.loyer ? Math.round((r.loyer[0] + r.loyer[1]) / 2) : null;
+  if (!r.loyer) return `Emplacement ${e.mot} par défaut : Data-B n'a pas rendu de loyer pour cette rue. À vérifier.`;
+  const seuil = r.classe === 1 ? "au-dessus de 800" : r.classe === 1.5 ? "entre 550 et 800" : "entre 350 et 550";
+  return `Emplacement ${e.mot} : loyer de marché ${Math.round(r.loyer[0])}–${Math.round(r.loyer[1])} €/m²/an chez Data-B, soit ${milieu} au milieu, ${seuil}. ${r.commerces || 0} vitrines sur ${r.longueur_m || "?"} m. ${e.detail.charAt(0).toUpperCase() + e.detail.slice(1)}.`;
+}
+
 const valeurTri = (r, cle) => (cle === "classe" ? r.classe || 9 : cle === "loyer" ? (r.loyer ? (r.loyer[0] + r.loyer[1]) / 2 : 0) : r.prix_m2 || 0);
 
 function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, onFlux, fluxPending }) {
@@ -505,7 +514,10 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
               <span className="truncate text-[16px] font-light text-[#F3F7F5]">{r.nom}</span>
               {r.parcourue_le && <Etiquette teinte={TEINTES.ecrire} className="!text-[9px]">prospectée</Etiquette>}
             </span>
-            <Nombre taille={14.5} teinte={e.teinte} className="text-right font-medium">{e.court}</Nombre>
+            <span className="flex items-center justify-end gap-2">
+              <Nombre taille={14.5} teinte={e.teinte} className="font-medium">{e.court}</Nombre>
+              <span className="alx-bulle grid h-4 w-4 cursor-help place-items-center rounded-full border border-white/[0.16] text-[9.5px] text-[#8B938F]" data-bulle={pourquoiEmplacement(r)} onClick={(ev) => ev.stopPropagation()}>i</span>
+            </span>
             <Nombre taille={14.5} teinte="#F3F7F5" className="text-right max-md:hidden">{r.loyer ? `${fmt(Math.round(r.loyer[0]))}–${fmt(Math.round(r.loyer[1]))} €/m²` : "—"}</Nombre>
             <Nombre taille={14.5} teinte="#C3CBC7" className="text-right max-md:hidden">{euroM2(r.prix_m2)}</Nombre>
           </div>
@@ -527,13 +539,17 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
 function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
   const [filtre, setFiltre] = useState("interessants");
   const [rue, setRue] = useState("");
+  const [recherche, setRecherche] = useState("");
   const [page, setPage] = useState(1);
   const PAR_PAGE = 40;
+  const simple = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const q = simple(recherche.trim());
   const enCours = ville?.parcours?.etat === "en_cours" && ville?.parcours?.phase === "commerces";
   const interessants = cibles.filter((c) => ["appeler", "ecrire"].includes(c.pile));
   const liste = cibles
-    .filter((c) => (filtre === "interessants" ? ["appeler", "ecrire"].includes(c.pile) : filtre === "ecartes" ? c.pile === "ecartee" : filtre === "surveiller" ? c.pile === "surveiller" : true))
+    .filter((c) => (q ? true : filtre === "interessants" ? ["appeler", "ecrire"].includes(c.pile) : filtre === "ecartes" ? c.pile === "ecartee" : filtre === "surveiller" ? c.pile === "surveiller" : true))
     .filter((c) => !rue || c.rue === rue)
+    .filter((c) => !q || simple(`${c.enseigne} ${c.adresse} ${c.proprietaire?.nom || ""} ${c.activite || ""}`).includes(q))
     .sort((a, b) => urgenceDe(b).niveau - urgenceDe(a).niveau);
   const rues = [...new Set(cibles.map((c) => c.rue).filter(Boolean))];
   const sansMessage = interessants.filter((c) => !c.brouillon);
@@ -541,7 +557,12 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
 
   return (
     <div className="alx-entree">
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-6 flex items-center gap-3 rounded-full border border-white/[0.09] bg-[#0A0C0B] py-[7px] pl-5 pr-3 focus-within:border-menthe/50">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8B938F" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher un commerce, une adresse, un propriétaire" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[14.5px] text-[#E8EFEB] outline-none" />
+        {recherche && <button onClick={() => setRecherche("")} className="px-1.5 text-[16px] leading-none text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>×</button>}
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px]">
           {filtres.map(([k, mot, n]) => (
             <button key={k} onClick={() => { setFiltre(k); setPage(1); }} className="hover:text-[#E8EFEB]" style={{ background: "transparent", color: filtre === k ? "#F3F7F5" : "#8B938F" }}>

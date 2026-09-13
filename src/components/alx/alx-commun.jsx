@@ -106,7 +106,7 @@ export function Pastille({ pile }) {
 export function Bouton({ children, onClick, disabled = false, principal = false, discret = false, title = null, type = "button", className = "" }) {
   const base = "inline-flex items-center justify-center gap-2 rounded-full transition-colors disabled:opacity-40 whitespace-nowrap";
   const registre = principal
-    ? "alx-mont alx-principal px-7 py-[13px] text-[12px] font-medium uppercase tracking-[.14em] text-[#08130D]"
+    ? "alx-mont alx-principal px-6 py-[12px] text-[13.5px] font-medium text-[#08130D]"
     : discret
       ? "px-2 py-[13px] text-[13.5px] text-[#8B938F] hover:text-[#E8EFEB]"
       : "px-[22px] py-[13px] text-[13.5px] text-[#C3CBC7] border border-white/[0.14] hover:border-white/[0.3]";

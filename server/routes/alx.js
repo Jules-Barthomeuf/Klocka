@@ -18,7 +18,10 @@ const erreur = (res, e, statut = 400) => res.status(statut).json({ error: String
 /** Monte les routes « alx » sur l'application. */
 export function monterAlx(app) {
   import('../alx/parcours.js').then((m) => m.reprendreAuDemarrage()).catch((e) => console.error('[alx] reprise au démarrage :', e.message));
-  app.get('/api/alx/etat', wrap(async (req, res) => ok(res, { outils: await etatDesOutils(), piles: PILES, libelles: LIBELLES_PILES, regles_version: REGLES.version, a_faire: aFaire() })));
+  // Les explications des signaux et des drapeaux, pour que la fiche puisse
+  // dire pourquoi un signal compte, avec les mots de signaux.json.
+  const explications = Object.fromEntries([...(REGLES.signaux_forts || []), ...(REGLES.signaux_patients || []), ...(REGLES.drapeaux || []), ...(REGLES.knock_outs || [])].map((s) => [s.cle, s.detail || null]));
+  app.get('/api/alx/etat', wrap(async (req, res) => ok(res, { outils: await etatDesOutils(), piles: PILES, libelles: LIBELLES_PILES, regles_version: REGLES.version, explications, seuils: REGLES.parcours || null, a_faire: aFaire() })));
 
   // Les clients actifs de Monday, et ceux qu'une fourchette de prix concerne.
   app.get('/api/alx/clients', wrap(async (req, res) => {

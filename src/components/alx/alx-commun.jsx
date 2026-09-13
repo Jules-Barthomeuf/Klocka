@@ -122,6 +122,24 @@ export function Etiquette({ children, teinte = "#8B938F", className = "" }) {
   return <div className={`alx-mont text-[10px] font-medium uppercase tracking-[.14em] ${className}`} style={{ color: teinte }}>{children}</div>;
 }
 
+/** Cinq étoiles, remplies jusqu'à la note (les demies aussi), en or. */
+export function Etoiles({ note, sur = 5, taille = 14, teinte = "#e0a45e", title = null }) {
+  return (
+    <span className="inline-flex items-center gap-[2px]" title={title || (note != null ? `${String(note).replace(".", ",")} sur ${sur}` : undefined)} style={{ fontSize: taille, lineHeight: 1 }}>
+      {Array.from({ length: sur }, (_, i) => {
+        const pleine = note != null && note >= i + 1;
+        const demie = !pleine && note != null && note >= i + 0.5;
+        return (
+          <span key={i} className="relative inline-block" style={{ color: "rgba(255,255,255,0.14)" }}>
+            ★
+            {(pleine || demie) && <span className="absolute inset-0 overflow-hidden" style={{ color: teinte, width: pleine ? "100%" : "50%" }}>★</span>}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 /** Un nombre en Montserrat, chiffres tabulaires. */
 export function Nombre({ children, teinte = null, taille = 16, className = "" }) {
   return <span className={`alx-mont tabular-nums ${className}`} style={{ fontSize: taille, color: teinte || undefined, fontWeight: 400 }}>{children}</span>;

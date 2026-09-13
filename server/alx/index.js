@@ -118,6 +118,30 @@ export function classerRue(villeId, { nom, classe, motif = null, user = null }) 
   return { ok: true, ville: Records.update('Ville', villeId, { rues, rues_retirees, rues_ecartees }) };
 }
 
+/**
+ * Le flux d'une rue chez Data-B : l'Étude d'implantation, à l'adresse de la
+ * rue, rend le flux piéton et le flux voiture notés sur cinq. La moyenne des
+ * deux devient la note de la rue. Une étude consomme un crédit Data-B et
+ * prend de deux à cinq minutes : on ne la lance que sur demande, rue par rue.
+ */
+export async function lireFluxRue(villeId, nom, { user = null, forcer = false } = {}) {
+  const ville = Records.get('Ville', villeId);
+  if (!ville) return { ok: false, error: 'Ville introuvable.' };
+  const rue = (ville.rues || []).find((r) => r.nom.toLowerCase() === String(nom || '').trim().toLowerCase());
+  if (!rue) return { ok: false, error: 'Rue inconnue dans cette ville.' };
+  const { etudeImplantation } = await import('../data-b-implantation.js');
+  const r = await etudeImplantation(`${rue.nom}, ${rue.code_postal || ville.code_postal || ''} ${ville.nom}`.trim(), { forcer, user });
+  if (!r.ok) return { ok: false, error: r.error };
+  const pieton = r.resultat?.flux_pieton?.note?.note ?? null;
+  const voiture = r.resultat?.flux_voiture?.note?.note ?? null;
+  if (pieton == null && voiture == null) return { ok: false, error: 'Data-B n\'a pas rendu de flux pour cette rue.' };
+  const notes = [pieton, voiture].filter((x) => x != null);
+  const flux = { pieton, voiture, note: Math.round((notes.reduce((a, b) => a + b, 0) / notes.length) * 2) / 2, source: 'Data-B, étude d\'implantation', le: maintenant(), du_cache: !!r.resultat?.du_cache };
+  const rues = (ville.rues || []).map((x) => (x.nom === rue.nom ? { ...x, flux } : x));
+  Records.update('Ville', villeId, { rues });
+  return { ok: true, flux, rue: rues.find((x) => x.nom === rue.nom) };
+}
+
 export function retirerRue(villeId, nom, user = null) {
   const ville = Records.get('Ville', villeId);
   if (!ville) return { ok: false, error: 'Ville introuvable.' };

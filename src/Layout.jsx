@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 import { useQuery } from "@tanstack/react-query";
 import { UserProvider, useUser } from "@/components/providers/UserProvider";
+import VeilleAlx from "@/components/alx/VeilleAlx";
 import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackFlottant from "@/components/FeedbackFlottant";
 
@@ -432,6 +433,7 @@ export default function Layout(props) {
   return (
     <UserProvider>
       <LayoutContent {...props} />
+      <VeilleAlx />
     </UserProvider>
   );
 }

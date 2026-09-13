@@ -19,6 +19,7 @@ import { proposerRues, libelleEmplacement } from './rues.js';
 import { pointsLeLongDe } from './osm.js';
 import { etablissementsRue } from './annuaire.js';
 import { cleRue } from './commerces.js';
+import { LIBELLES_PILES } from './classement.js';
 import { commercesDeLaRue, placesConfigure } from './places.js';
 
 // Un commerce vu sur Maps retrouve son établissement dans l'annuaire : même
@@ -359,6 +360,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         continue;
       }
       let c = r.cible;
+      ecrire(villeId, { commerce_en_cours: c.enseigne || c.adresse });
       if (r.deja) {
         compter(villeId, 'cibles_deja');
         // Déjà lue : on ne refait pas Data-B pour rien. Mais si le choix du
@@ -431,6 +433,8 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
       }
       c = Records.get('Cible', c.id);
       if (c.pile === 'ecartee') ecartees += 1;
+      // Une ligne par commerce lu : c'est ce qui défile pendant que ça tourne.
+      noter(villeId, `${c.enseigne || 'Sans enseigne'}, ${c.adresse} → ${c.proprietaire?.nom || (c.foncier ? 'plusieurs propriétaires' : 'propriétaire à établir')} · ${LIBELLES_PILES[c.pile] || c.pile}`);
       // 7. Le contact : un brouillon pour les piles qui appellent une action.
       if (rediger && ['appeler', 'ecrire'].includes(c.pile) && !c.brouillon) {
         ecrire(villeId, { etape: 7 });
@@ -452,6 +456,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     const rues1 = (v1.rues || []).map((x) => (cleRue(x.nom) === cleRue(rue.nom) ? { ...x, parcourue_le: maintenant(), cibles: creees + (x.cibles || 0), proprietaires: proprios + (x.proprietaires || 0) } : x));
     Records.update('Ville', villeId, { rues: rues1 });
     compter(villeId, 'rues_faites');
+    ecrire(villeId, { commerce_en_cours: null });
     const piles = Records.filter('Cible', { ville_id: villeId, rue: rue.nom }).reduce((a, x) => ((a[x.pile] = (a[x.pile] || 0) + 1), a), {});
     noter(villeId, `${rue.nom} : ${creees} cible${creees > 1 ? 's' : ''} créée${creees > 1 ? 's' : ''}, ${proprios} propriétaire${proprios > 1 ? 's' : ''} trouvé${proprios > 1 ? 's' : ''}, ${ecartees} écartée${ecartees > 1 ? 's' : ''} · à appeler ${piles.appeler || 0}, à écrire ${piles.ecrire || 0}, à surveiller ${piles.surveiller || 0}${erreursRue ? ` · ${erreursRue} erreur${erreursRue > 1 ? 's' : ''}` : ''}.`);
   }

@@ -126,18 +126,6 @@ export default function FicheCommerce({ id, onFermer }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-5">
-                  <div>
-                    <Etiquette>Loyer estimé</Etiquette>
-                    <div className="mt-1.5"><Nombre taille={19} teinte="#F3F7F5">{v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])}–${Math.round(v.loyer_fourchette[1])} €/m²/an` : "—"}</Nombre></div>
-                  </div>
-                  <div>
-                    <Etiquette>Prix estimé</Etiquette>
-                    <div className="mt-1.5"><Nombre taille={19} teinte="#F3F7F5">{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : "—"}</Nombre></div>
-                    {v.surface && <div className="mt-1 text-[12px] text-[#8B938F]">{v.surface} m²{v.surface_source ? ` · ${v.surface_source}` : ""}</div>}
-                  </div>
-                </div>
-
                 <Link to={`/ALXCible?id=${c.id}`} className="text-[13.5px] text-menthe hover:text-menthe-clair">Fiche complète →</Link>
               </div>
 
@@ -157,7 +145,17 @@ export default function FicheCommerce({ id, onFermer }) {
                     <div className="grid h-full place-items-center text-[13px] text-[#8B938F]">Devanture · Street View (clé VITE_GOOGLE_MAPS_API_KEY absente)</div>
                   )}
                 </div>
-                <div className="text-[13px] text-[#8B938F]">Devanture relevée à l'adresse {c.adresse}.</div>
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <Etiquette>Loyer estimé</Etiquette>
+                    <div className="mt-1.5"><Nombre taille={19} teinte="#F3F7F5">{v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])}–${Math.round(v.loyer_fourchette[1])} €/m²/an` : "—"}</Nombre></div>
+                  </div>
+                  <div>
+                    <Etiquette>Prix estimé</Etiquette>
+                    <div className="mt-1.5"><Nombre taille={19} teinte="#F3F7F5">{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : "—"}</Nombre></div>
+                    {v.surface && <div className="mt-1 text-[12px] text-[#8B938F]">{v.surface} m²{v.surface_source ? ` · ${v.surface_source}` : ""}</div>}
+                  </div>
+                </div>
 
                 {mode === "choix" && (
                   <div className="mt-auto flex flex-col gap-3">

@@ -1,8 +1,9 @@
 // Les rues d'un centre-ville et leurs vitrines, par OpenStreetMap.
 //
-// Une seule requête Overpass rend, autour du centre de la commune, toutes les
-// rues nommées avec leur tracé, et tous les commerces que les contributeurs
-// ont posés (shop=*, bars, restaurants, pharmacies, banques). C'est ce qui
+// Une seule requête Overpass rend, sur toute la commune (son contour vient de
+// geo.api.gouv.fr ; à défaut un cercle autour du centre), toutes les rues
+// nommées avec leur tracé, et tous les commerces que les contributeurs ont
+// posés (shop=*, bars, restaurants, pharmacies, banques). C'est ce qui
 // remplace le balayage de l'annuaire des entreprises : l'annuaire mettait
 // treize minutes pour Antibes et n'a jamais fini Nice ; OSM répond en une
 // seconde et donne en plus le dessin des rues, pour la carte et la balade.
@@ -30,21 +31,44 @@ const AMENITE = new RegExp(`^(${AMENITES})$`);
 
 const DISTANCE_RATTACHEMENT_M = 30;
 
-const requete = (lat, lon, rayonM) => `[out:json][timeout:60];
-way(around:${rayonM},${lat},${lon})["highway"~"^(${VOIES})$"]["name"]->.rues;
+// `zone` est un filtre Overpass : `poly:"lat lon lat lon…"` pour le contour
+// d'une commune, `around:R,lat,lon` pour un cercle.
+const requete = (zone) => `[out:json][timeout:120];
+way(${zone})["highway"~"^(${VOIES})$"]["name"]->.rues;
 .rues out geom qt;
 (
-  nwr(around:${rayonM},${lat},${lon})["shop"];
-  nwr(around:${rayonM},${lat},${lon})["amenity"~"^(${AMENITES})$"];
+  nwr(${zone})["shop"];
+  nwr(${zone})["amenity"~"^(${AMENITES})$"];
 )->.vitrines;
 .vitrines out center tags qt;`;
 
+/**
+ * Le contour d'une commune (geo.api.gouv.fr), réduit à 150 points au plus :
+ * Overpass n'a pas besoin de mieux, et la requête reste courte. Rend le filtre
+ * `poly:` prêt à l'emploi, ou null si la commune est inconnue.
+ */
+export async function contourDe(codeInsee) {
+  if (!codeInsee) return null;
+  try {
+    const r = await fetch(`https://geo.api.gouv.fr/communes/${encodeURIComponent(codeInsee)}?fields=contour&format=json`, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return null;
+    const g = (await r.json()).contour;
+    if (!g) return null;
+    // Un MultiPolygon (commune avec des îles) : on garde le plus grand anneau.
+    const anneau = g.type === 'Polygon' ? g.coordinates[0] : [...g.coordinates].sort((a, b) => b[0].length - a[0].length)[0][0];
+    const pas = Math.max(1, Math.ceil(anneau.length / 150));
+    return `poly:"${anneau.filter((_, i) => i % pas === 0).map(([lon, lat]) => `${lat.toFixed(5)} ${lon.toFixed(5)}`).join(' ')}"`;
+  } catch {
+    return null;
+  }
+}
+
 /** Interroge Overpass, un serveur après l'autre. */
-export async function interroger(lat, lon, rayonM) {
+export async function interroger(zone) {
   let derniere = null;
   for (const url of SERVEURS) {
     try {
-      const r = await fetch(url, { method: 'POST', body: `data=${encodeURIComponent(requete(lat, lon, rayonM))}`, headers: ENTETES, signal: AbortSignal.timeout(90000) });
+      const r = await fetch(url, { method: 'POST', body: `data=${encodeURIComponent(requete(zone))}`, headers: ENTETES, signal: AbortSignal.timeout(180000) });
       const texte = await r.text();
       if (!r.ok || texte.startsWith('<')) {
         derniere = new Error(`Overpass a répondu ${r.status}${texte.startsWith('<') ? ' (page d\'erreur)' : ''}.`);
@@ -84,13 +108,23 @@ export function distanceAuTrace(p, trace) {
   return min;
 }
 
-/** La longueur d'un tracé, en mètres. */
+/**
+ * La longueur d'une rue, en mètres : la plus grande distance entre deux bouts
+ * de ses tronçons. Pas la somme des tronçons : une avenue à deux chaussées et
+ * une voie de tram compterait trois fois.
+ */
 export function longueurDuTrace(trace) {
-  let l = 0;
-  for (const troncon of trace) {
-    for (let i = 1; i < troncon.length; i += 1) l += metres({ lat: troncon[i - 1][0], lon: troncon[i - 1][1] }, { lat: troncon[i][0], lon: troncon[i][1] });
+  const bouts = [];
+  for (const t of trace) {
+    if (!t.length) continue;
+    bouts.push({ lat: t[0][0], lon: t[0][1] });
+    if (t.length > 1) bouts.push({ lat: t[t.length - 1][0], lon: t[t.length - 1][1] });
   }
-  return Math.round(l);
+  let max = 0;
+  for (let i = 0; i < bouts.length; i += 1) {
+    for (let j = i + 1; j < bouts.length; j += 1) max = Math.max(max, metres(bouts[i], bouts[j]));
+  }
+  return Math.round(max);
 }
 
 /**
@@ -131,11 +165,16 @@ export function grouperVoies(elements) {
     if (e.type !== 'way' || !VOIE.test(e.tags?.highway || '') || !e.tags?.name || !Array.isArray(e.geometry)) continue;
     const cle = cleRue(e.tags.name);
     if (!cle) continue;
-    const r = rues.get(cle) || { cle, nom: joliNomDeRue(e.tags.name), trace: [], vitrines: 0, enseignes: [] };
+    const r = rues.get(cle) || { cle, nom: joliNomDeRue(e.tags.name), trace: [], vitrines: 0, enseignes: [], types: {} };
     r.trace.push(e.geometry.map((p) => [p.lat, p.lon]));
+    r.types[e.tags.highway] = (r.types[e.tags.highway] || 0) + e.geometry.length;
     rues.set(cle, r);
   }
   for (const r of rues.values()) {
+    // Le type de voie qui porte le plus de points : c'est lui qui dit si l'on
+    // est sur un boulevard ou dans une rue piétonne.
+    r.type = Object.entries(r.types).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    delete r.types;
     r.longueur_m = longueurDuTrace(r.trace);
     const pts = r.trace.flat();
     r.centre = pts.length ? { lat: pts.reduce((a, p) => a + p[0], 0) / pts.length, lon: pts.reduce((a, p) => a + p[1], 0) / pts.length } : null;
@@ -185,11 +224,31 @@ export function rattacherVitrines(elements, rues) {
 }
 
 /**
- * Les rues d'un centre-ville avec leurs vitrines, par OpenStreetMap.
- * @param {{lat:number, lon:number, rayon_km?:number}} o
- * @returns {Promise<{rues: object[], vitrines_total: number, sans_rue: number}>}
+ * Une estimation du flux d'une rue, de 1 à 5, sans rien demander à personne :
+ * la densité de vitrines par cent mètres dit le passage à pied, le type de
+ * voie dit le passage en voiture. Data-B, quand on le lui demande, remplace
+ * cette estimation par sa mesure.
  */
-export async function ruesEtVitrines({ lat, lon, rayon_km = 1.5 }) {
-  const elements = await interroger(lat, lon, Math.round(rayon_km * 1000));
-  return rattacherVitrines(elements, grouperVoies(elements));
+export function fluxEstime(rue) {
+  const densite = rue.longueur_m ? rue.vitrines / (Math.max(rue.longueur_m, 50) / 100) : 0;
+  const parDensite = densite >= 8 ? 5 : densite >= 5 ? 4 : densite >= 3 ? 3 : densite >= 1.5 ? 2 : 1;
+  // Une rue piétonne ou un grand axe commerçant attire plus de pas qu'une rue de quartier.
+  const pieton = Math.min(5, parDensite + (rue.type === 'pedestrian' ? 1 : 0));
+  const voiture = { primary: 5, primary_link: 4, secondary: 4, secondary_link: 3, tertiary: 3, tertiary_link: 2, unclassified: 2, residential: 2, living_street: 1, pedestrian: 1 }[rue.type] ?? 2;
+  return { pieton, voiture, note: Math.round(((pieton + voiture) / 2) * 2) / 2 };
+}
+
+/**
+ * Les rues d'une commune avec leurs vitrines, par OpenStreetMap : toute la
+ * commune quand son contour est connu, un cercle autour du centre sinon.
+ * @param {{code_insee?:string, lat:number, lon:number, rayon_km?:number}} o
+ * @returns {Promise<{rues: object[], vitrines_total: number, sans_rue: number, zone: 'commune'|'cercle'}>}
+ */
+export async function ruesEtVitrines({ code_insee = null, lat, lon, rayon_km = 1.5 }) {
+  const contour = await contourDe(code_insee);
+  const zone = contour || `around:${Math.round(rayon_km * 1000)},${lat},${lon}`;
+  const elements = await interroger(zone);
+  const r = rattacherVitrines(elements, grouperVoies(elements));
+  for (const x of r.rues) x.flux_estime = fluxEstime(x);
+  return { ...r, zone: contour ? 'commune' : 'cercle' };
 }

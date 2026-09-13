@@ -40,14 +40,36 @@ function Legende() {
   );
 }
 
+const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
 /**
  * @param {{rues: object[], ecartees?: object[], coches: Set<string>, choisie?: string|null,
- *   onChoisir: Function, centre?: {lat:number, lon:number}|null, className?: string}} p
+ *   onChoisir: Function, centre?: {lat:number, lon:number}|null, className?: string,
+ *   streetView?: {lat:number, lon:number, nom?:string}|null}} p
  */
-export default function CarteRues({ rues, ecartees = [], coches, choisie = null, onChoisir, centre = null, className = "" }) {
+export default function CarteRues({ rues, ecartees = [], coches, choisie = null, onChoisir, centre = null, className = "", streetView = null }) {
   const points = useMemo(() => rues.map((r) => r.centre).filter(Boolean).map((c) => [c.lat, c.lon]), [rues]);
   const centreCarte = centre ? [centre.lat, centre.lon] : points[0] || [46.6, 2.4];
   const avecTrace = rues.filter((r) => r.trace?.length).length;
+
+  // Street View à la place de la carte : on est dans la rue choisie.
+  if (streetView) {
+    return (
+      <div className={`k-carte-rues relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>
+        {CLE_EMBED ? (
+          <iframe
+            title={`Street View ${streetView.nom || ""}`}
+            src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${streetView.lat},${streetView.lon}&heading=0&pitch=0&fov=90`}
+            className="h-full w-full border-0"
+            allowFullScreen
+            loading="lazy"
+          />
+        ) : (
+          <div className="grid h-full place-items-center px-6 text-center text-[13px] text-ardoise">Street View demande la clé VITE_GOOGLE_MAPS_API_KEY dans le .env.</div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`k-carte-rues relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>

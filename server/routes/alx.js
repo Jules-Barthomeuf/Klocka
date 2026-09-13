@@ -70,6 +70,12 @@ export function monterAlx(app) {
     ok(res, r);
   }));
 
+  app.post('/api/alx/villes/:id/rues/:nom/flux', wrap(async (req, res) => {
+    const { lireFluxRue } = await import('../alx/index.js');
+    const r = await lireFluxRue(req.params.id, decodeURIComponent(req.params.nom), { user: currentUser(req), forcer: !!req.body?.forcer });
+    if (!r.ok) return erreur(res, r.error, 409);
+    ok(res, r);
+  }));
   app.post('/api/alx/villes/:id/rues', wrap((req, res) => {
     const r = classerRue(req.params.id, { ...req.body, user: currentUser(req) });
     if (!r.ok) return erreur(res, r.error);

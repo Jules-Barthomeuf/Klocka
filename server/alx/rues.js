@@ -133,11 +133,11 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
     commune = await communeDe(ville.nom);
     if (!commune) throw new Error(`La Base Adresse Nationale ne connaît pas la commune « ${ville.nom} ».`);
   }
-  journal(`Commune ${commune.nom} (INSEE ${commune.code_insee}) : rues et vitrines sur ${rayon_km} km autour du centre, par OpenStreetMap.`);
+  journal(`Commune ${commune.nom} (INSEE ${commune.code_insee}) : rues et vitrines par OpenStreetMap.`);
 
-  const osm = await (ruesDe || ruesEtVitrines)({ lat: commune.lat, lon: commune.lon, rayon_km });
+  const osm = await (ruesDe || ruesEtVitrines)({ code_insee: commune.code_insee, lat: commune.lat, lon: commune.lon, rayon_km });
   const vitrines = osm.vitrines_total;
-  journal(`${osm.rues.length} rues, ${vitrines} vitrines${osm.sans_rue ? ` (${osm.sans_rue} sans rue à moins de 30 m, ignorées)` : ''}.`);
+  journal(`${osm.rues.length} rues, ${vitrines} vitrines ${osm.zone === 'cercle' ? `à ${rayon_km} km du centre (contour de la commune inconnu)` : 'sur toute la commune'}${osm.sans_rue ? ` ; ${osm.sans_rue} sans rue à moins de 30 m, ignorées` : ''}.`);
 
   const denses = osm.rues.filter((r) => r.vitrines >= SEUILS.min_commerces_par_rue).slice(0, SEUILS.max_rues);
   journal(`${denses.length} rues avec au moins ${SEUILS.min_commerces_par_rue} vitrines : lecture du loyer de marché chez Data-B.`);
@@ -168,7 +168,7 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
     const marche = await prixDeLaRue(officielle ? `${nom}, ${cp} ${commune.nom}` : null, loyer, prixDe);
     return {
       nom, cle: r.cle, code_postal: cp, commerces: r.vitrines, enseignes: r.enseignes.slice(0, 8),
-      trace: r.trace, longueur_m: r.longueur_m,
+      trace: r.trace, longueur_m: r.longueur_m, type: r.type || null, flux_estime: r.flux_estime || null,
       loyer: loyer ? [loyer.basse, loyer.haute] : null,
       loyer_source: valeurLocative?.rue ? 'Data-B, rue' : valeurLocative?.quartier ? 'Data-B, quartier' : null,
       ...marche,

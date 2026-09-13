@@ -4,7 +4,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast, avis } from "@/components/ui/avis";
-import { PILES, EMPLACEMENTS, TEINTES, emplacementDe, Bouton, Etiquette, Nombre, Champ, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
+import { PILES, EMPLACEMENTS, TEINTES, emplacementDe, Bouton, Etiquette, Etoiles, Nombre, Champ, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
 import CarteRues from "@/components/alx/CarteRues";
 import FicheCommerce from "@/components/alx/FicheCommerce";
 
@@ -201,6 +201,26 @@ function enCeMoment(p, rues) {
   };
 }
 
+/**
+ * Ce qui défile pendant qu'ALX lit : le commerce en cours, puis les six
+ * dernières lignes du journal, la plus récente en haut. Chaque ligne entre
+ * par le haut ; on voit passer chaque commerce regardé.
+ */
+function FilDuParcours({ p }) {
+  const lignes = (p.journal || []).slice(-6).reverse();
+  return (
+    <div className="mt-3 flex flex-col gap-1 pl-[26px]">
+      {p.commerce_en_cours && <div className="text-[13.5px] text-[#C3CBC7]">→ {p.commerce_en_cours}</div>}
+      {lignes.map((l, i) => (
+        <div key={`${l.le}-${i}`} className="alx-entree flex gap-3 text-[12.5px] text-[#8B938F]" style={{ opacity: 1 - i * 0.13 }}>
+          <span className="alx-mont shrink-0 tabular-nums text-[11px]">{heure(l.le)}</span>
+          <span className="min-w-0 truncate">{l.texte}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Les sept étapes et ce qui a déjà été trouvé : le détail du parcours, replié par défaut. */
 function DetailParcours({ ville }) {
   const p = ville.parcours || {};
@@ -270,7 +290,7 @@ function Onglets({ onglet, onChange, compte }) {
     if (b) setPos({ left: b.offsetLeft + 16, width: b.offsetWidth - 32 });
   }, [i, nombres]);
   return (
-    <div ref={barre} className="relative mt-[26px] flex gap-1 border-b border-white/[0.07]">
+    <div ref={barre} className="relative flex gap-1">
       {ONGLETS.map(([k, mot]) => (
         <button key={k} onClick={() => onChange(k)} className="px-[18px] py-3 text-[15px] transition-colors" style={{ background: "transparent", color: onglet === k ? "#F3F7F5" : "#8B938F" }}>
           {mot}{compte[k] != null ? <Nombre taille={12} teinte={onglet === k ? TEINTES.ecrire : TEINTES.muet} className="ml-2">{compte[k]}</Nombre> : null}
@@ -283,7 +303,7 @@ function Onglets({ onglet, onChange, compte }) {
 
 // --- Les rues -------------------------------------------------------------------------------
 
-function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPending }) {
+function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPending, enStreetView, onStreetView, onFlux, fluxPending }) {
   if (!rue) {
     return (
       <div className="flex h-full flex-col justify-center gap-2 px-6 text-center">
@@ -294,25 +314,56 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
   }
   const e = emplacementDe(ecartee ? null : rue.classe);
   const enseignes = rue.enseignes || rue.chaines || [];
+  const flux = rue.flux || rue.flux_estime || null;
+  const fluxMesure = !!rue.flux;
   return (
     <div className="flex h-full flex-col px-[26px] py-6">
-      <Etiquette teinte={e.teinte}>{ecartee ? "Écartée par ALX" : `Emplacement ${e.mot}`}</Etiquette>
-      <div className="mt-2.5 text-[24px] font-light tracking-[-.02em] text-[#F3F7F5]">{rue.nom}</div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Etiquette teinte={e.teinte}>{ecartee ? "Écartée par ALX" : `Emplacement ${e.mot}`}</Etiquette>
+          <div className="mt-2.5 text-[24px] font-light tracking-[-.02em] text-[#F3F7F5]">{rue.nom}</div>
+        </div>
+        {rue.centre && (
+          <button
+            type="button"
+            onClick={onStreetView}
+            title={enStreetView ? "Revenir à la carte" : "Voir la rue dans Street View"}
+            aria-pressed={enStreetView}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border transition-colors"
+            style={{ borderColor: enStreetView ? "#96c0b8" : "rgba(255,255,255,0.12)", color: enStreetView ? "#96c0b8" : "#8B938F", background: enStreetView ? "rgba(150,192,184,0.12)" : "transparent" }}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z" />
+              <circle cx="12" cy="11" r="2.2" />
+            </svg>
+          </button>
+        )}
+      </div>
       <div className="mt-1.5 text-[14px] text-[#8B938F]">{rue.motif}</div>
       <div className="mt-[22px] grid grid-cols-2 gap-x-5 gap-y-[18px]">
         {[
           ["Loyer", rue.loyer ? `${Math.round(rue.loyer[0])}–${Math.round(rue.loyer[1])} €/m²/an` : "—"],
           ["Prix au m²", euroM2(rue.prix_m2)],
-          ["Rendement", rue.rendement != null ? `${String(rue.rendement).replace(".", ",")} %` : "—"],
           ["Vitrines", rue.commerces ?? "—"],
           ["Longueur", rue.longueur_m ? `${rue.longueur_m} m` : "—"],
-          ["Passage", rue.trace?.length ? `${Math.ceil((rue.longueur_m || 0) / 40)} pas de 40 m` : "—"],
         ].map(([mot, val]) => (
           <div key={mot}>
             <Etiquette className="!text-[9.5px]">{mot}</Etiquette>
             <div className="mt-1.5"><Nombre taille={16} teinte="#F3F7F5">{val}</Nombre></div>
           </div>
         ))}
+        <div className="col-span-2">
+          <Etiquette className="!text-[9.5px]">Flux{fluxMesure ? " · Data-B" : flux ? " · estimé" : ""}</Etiquette>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Etoiles note={flux?.note ?? null} taille={17} title={flux ? `piéton ${flux.pieton ?? "—"}/5 · voiture ${flux.voiture ?? "—"}/5` : "flux inconnu"} />
+            {flux && <span className="text-[12px] text-[#8B938F]">piéton {flux.pieton ?? "—"} · voiture {flux.voiture ?? "—"}</span>}
+            {!fluxMesure && (
+              <button onClick={onFlux} disabled={fluxPending} className="text-[12px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }} title="Étude d'implantation Data-B : un crédit, deux à cinq minutes">
+                {fluxPending ? "Data-B lit la rue (2 à 5 min)…" : "Mesurer chez Data-B · 1 crédit"}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
       {enseignes.length > 0 && <div className="mt-[22px] text-[14px] leading-[1.6] text-[#C3CBC7]">{enseignes.slice(0, 8).join(" · ")}</div>}
       <div className="mt-auto flex flex-col gap-4 pt-6">
@@ -344,15 +395,33 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
   );
 }
 
+/** Une case pleine d'une teinte : « toutes celles de cette couleur ». Avec un trait : « aucune ». */
+function CaseTeinte({ teinte, trait = false, title, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="grid h-4 w-4 place-items-center rounded-[4px] border transition-transform hover:scale-110"
+      style={{ borderColor: trait ? "rgba(255,255,255,0.3)" : teinte, background: trait ? "transparent" : teinte }}
+    >
+      {trait && <span className="h-[2px] w-2 rounded bg-[#C3CBC7]" />}
+    </button>
+  );
+}
+
 const valeurTri = (r, cle) => (cle === "classe" ? r.classe || 9 : cle === "loyer" ? (r.loyer ? (r.loyer[0] + r.loyer[1]) / 2 : 0) : r.prix_m2 || 0);
 
-function OngletRues({ ville, onProspecter, pending, onClasser, classerPending }) {
+function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, onFlux, fluxPending }) {
   const rues = ville?.rues || [];
   const ecartees = ville?.rues_ecartees || [];
   const enCours = ville?.parcours?.etat === "en_cours" && ville?.parcours?.phase === "rues";
   const [coches, setCoches] = useState(() => new Set(rues.filter((r) => r.retenue).map((r) => r.nom)));
-  const [choisie, setChoisie] = useState(null);
+  const [choisie, setChoisieBrute] = useState(null);
   const [tri, setTri] = useState(null);
+  const [streetView, setStreetView] = useState(false);
+  // Changer de rue ramène la carte : Street View est un coup d'œil, pas un mode.
+  const setChoisie = (nom) => { setChoisieBrute(nom); setStreetView(false); };
   const bascule = (nom, oui) => setCoches((c) => { const n = new Set(c); if (oui) n.add(nom); else n.delete(nom); return n; });
   const rueChoisie = rues.find((r) => r.nom === choisie) || null;
   const ecarteeChoisie = !rueChoisie ? ecartees.find((r) => r.nom === choisie) || null : null;
@@ -362,6 +431,7 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending })
     return [...avecRang].sort((a, b) => (tri === "classe" ? valeurTri(a, tri) - valeurTri(b, tri) : valeurTri(b, tri) - valeurTri(a, tri)));
   }, [rues, tri]);
   const nSel = coches.size;
+  const toutesCochees = rues.length > 0 && rues.every((r) => coches.has(r.nom));
 
   if (rues.length === 0 && ecartees.length === 0) {
     return <div className="mt-7 rounded-[16px] border border-white/[0.07] px-6 py-8 text-center text-[14px] text-[#8B938F]">{enCours ? "ALX relève les rues du centre : une minute." : "Aucune rue encore : lancez ALX, il lit le centre sur OpenStreetMap et propose les rues en une minute."}</div>;
@@ -371,7 +441,16 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending })
   return (
     <div className="alx-entree mt-7">
       <div className="grid grid-cols-1 items-stretch gap-3.5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <CarteRues rues={rues} ecartees={ecartees} coches={coches} choisie={choisie} onChoisir={setChoisie} centre={ville?.centre} className="h-full min-h-[440px] max-md:h-[340px] max-md:min-h-0" />
+        <CarteRues
+          rues={rues}
+          ecartees={ecartees}
+          coches={coches}
+          choisie={choisie}
+          onChoisir={setChoisie}
+          centre={ville?.centre}
+          streetView={streetView && (rueChoisie || ecarteeChoisie)?.centre ? { ...(rueChoisie || ecarteeChoisie).centre, nom: choisie } : null}
+          className="h-full min-h-[440px] max-md:h-[340px] max-md:min-h-0"
+        />
         <div className="min-h-[440px] rounded-[16px] border border-white/[0.07] max-md:min-h-[220px]">
           <PanneauRue
             rue={rueChoisie || ecarteeChoisie}
@@ -380,25 +459,30 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending })
             onCoche={(oui) => rueChoisie && bascule(rueChoisie.nom, oui)}
             onClasser={onClasser}
             classerPending={classerPending}
+            enStreetView={streetView}
+            onStreetView={() => setStreetView((x) => !x)}
+            onFlux={() => onFlux(choisie)}
+            fluxPending={fluxPending === choisie}
           />
         </div>
       </div>
 
       <div className="mt-[30px] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13.5px] text-[#8B938F]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13.5px] text-[#8B938F]">
           <span>{nSel ? `${nSel} rue${nSel > 1 ? "s" : ""} sélectionnée${nSel > 1 ? "s" : ""}` : "Cochez les rues à prospecter"}</span>
-          <span className="text-white/20">·</span>
-          {EMPLACEMENTS.map((e) => (
-            <button key={e.classe} onClick={() => setCoches(new Set(rues.filter((r) => r.classe === e.classe).map((r) => r.nom)))} className="hover:text-[#E8EFEB]" style={{ color: e.teinte, background: "transparent" }}>tout le {e.mot}</button>
-          ))}
-          <button onClick={() => setCoches(new Set(rues.map((r) => r.nom)))} className="hover:text-[#E8EFEB]" style={{ background: "transparent" }}>toutes</button>
-          <button onClick={() => setCoches(new Set())} className="hover:text-[#E8EFEB]" style={{ background: "transparent" }}>aucune</button>
+          <span className="flex items-center gap-2 pl-1">
+            {EMPLACEMENTS.map((e) => (
+              <CaseTeinte key={e.classe} teinte={e.teinte} title={`Toutes les rues en emplacement ${e.mot}`} onClick={() => setCoches(new Set(rues.filter((r) => r.classe === e.classe).map((r) => r.nom)))} />
+            ))}
+            <CaseTeinte teinte="#5A6762" title="Toutes les rues" onClick={() => setCoches(new Set(rues.map((r) => r.nom)))} />
+            <CaseTeinte trait title="Aucune" onClick={() => setCoches(new Set())} />
+          </span>
         </div>
         <Bouton principal disabled={!nSel || pending} onClick={() => onProspecter([...coches])}>{pending ? "…" : nSel ? `Prospecter ${nSel} rue${nSel > 1 ? "s" : ""}` : "Prospecter"}</Bouton>
       </div>
 
-      <div className="mt-7 grid grid-cols-[28px_minmax(0,1fr)_150px_130px_130px] items-center border-b border-white/[0.07] px-1.5 pb-3 max-md:grid-cols-[28px_minmax(0,1fr)_110px]">
-        <span />
+      <div className="mt-7 grid grid-cols-[28px_minmax(0,1fr)_120px_170px_150px] items-center gap-x-4 border-b border-white/[0.07] px-1.5 pb-3 max-md:grid-cols-[28px_minmax(0,1fr)_110px]">
+        <Case coche={toutesCochees} onChange={(oui) => setCoches(oui ? new Set(rues.map((r) => r.nom)) : new Set())} />
         <Etiquette>Rue</Etiquette>
         {colonnes.map(([k, mot], i) => (
           <button key={k} onClick={() => setTri((t) => (t === k ? null : k))} className={`alx-mont text-right text-[10px] font-medium uppercase tracking-[.14em] ${i > 0 ? "max-md:hidden" : ""}`} style={{ background: "transparent", color: tri === k ? "#96c0b8" : "#8B938F" }}>
@@ -413,7 +497,7 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending })
           <div
             key={r.nom}
             onClick={() => setChoisie(r.nom)}
-            className="grid cursor-pointer grid-cols-[28px_minmax(0,1fr)_150px_130px_130px] items-center border-b border-white/[0.05] px-1.5 py-3.5 transition-colors hover:bg-white/[0.028] max-md:grid-cols-[28px_minmax(0,1fr)_110px]"
+            className="grid cursor-pointer grid-cols-[28px_minmax(0,1fr)_120px_170px_150px] items-center gap-x-4 border-b border-white/[0.05] px-1.5 py-3.5 transition-colors hover:bg-white/[0.028] max-md:grid-cols-[28px_minmax(0,1fr)_110px]"
             style={{ background: choisie === r.nom ? "rgba(150,192,184,0.06)" : on ? "rgba(150,192,184,0.03)" : undefined }}
           >
             <Case coche={on} onChange={(oui) => bascule(r.nom, oui)} />
@@ -569,7 +653,7 @@ function OngletMessages({ cibles, onOuvrir }) {
 
 // --- La page d'une ville ----------------------------------------------------------------------
 
-function VillePage({ villeId, ville: villeListe, onNouvelle }) {
+function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletDemande = null }) {
   const qc = useQueryClient();
   const { data: ville } = useQuery({
     queryKey: ["alx-ville", villeId],
@@ -586,7 +670,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
   const p = ville?.parcours;
   const rues = ville?.rues || [];
   const brouillons = cibles.filter((c) => c.brouillon).length;
-  const [ongletChoisi, setOnglet] = useState(null);
+  const [ongletChoisi, setOnglet] = useState(ongletDemande);
   const onglet = ongletChoisi || (brouillons ? "messages" : cibles.length ? "commerces" : "rues");
   const [fiche, setFiche] = useState(null);
 
@@ -616,6 +700,11 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
     onSuccess: rafraichir,
     onError: (e) => toast.error(e?.message || "Reclassement impossible"),
   });
+  const flux = useMutation({
+    mutationFn: (nom) => base44.request("POST", `/api/alx/villes/${villeId}/rues/${encodeURIComponent(nom)}/flux`, { body: {} }),
+    onSuccess: (r, nom) => { toast.success(`${nom} : flux ${String(r.flux.note).replace(".", ",")} sur 5`, { description: `piéton ${r.flux.pieton ?? "—"}, voiture ${r.flux.voiture ?? "—"}${r.flux.du_cache ? " (étude déjà faite, aucun crédit)" : ""}` }); rafraichir(); },
+    onError: (e) => toast.error(e?.message || "Data-B n'a pas rendu le flux"),
+  });
 
   const maintenant = enCeMoment(p, rues);
   const [motStatut, teinteStatut] = statutDe(p?.etat);
@@ -624,25 +713,42 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
     <div className="relative mx-auto max-w-[1060px] pt-[22px]">
       <div aria-hidden className="pointer-events-none absolute -right-[220px] -top-[240px] z-0 h-[540px] w-[760px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.075),transparent)" }} />
       <div className="relative">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <button onClick={onNouvelle} className="text-[13.5px] text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>← Toutes les villes</button>
-          <div className="flex items-center gap-3">
-            <Etiquette teinte={teinteStatut} className="!text-[9.5px]">{motStatut}</Etiquette>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="alx-serif m-0 text-[42px] italic tracking-[-.01em] text-[#F3F7F5]">{ville?.nom}</h1>
+            <div className="mt-1 text-[13.5px] text-[#8B938F]">
+              <span style={{ color: teinteStatut }}>{motStatut}</span>
+              {ville?.recensement?.le ? ` · relevé du ${dateCourte(ville.recensement.le)} · ${fmt(ville.recensement.commerces_total)} vitrines` : ""}
+              {` · ${pluriel(rues.length, "rue", "rues")} · ${pluriel(cibles.length, "commerce analysé", "commerces analysés")} · ${pluriel(brouillons, "message", "messages")}`}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5 pt-3">
+            {[["←", "Toutes les villes", onNouvelle], ["→", "Ville suivante", onSuivante]].map(([fleche, title, faire]) => (
+              <button
+                key={fleche}
+                onClick={faire || undefined}
+                title={title}
+                disabled={!faire}
+                className="grid h-9 w-9 place-items-center rounded-full border border-white/[0.12] text-[16px] text-[#8B938F] transition-colors hover:border-white/[0.3] hover:text-[#E8EFEB] disabled:opacity-30"
+                style={{ background: "transparent" }}
+              >
+                {fleche}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-[26px] flex flex-wrap items-end justify-between gap-x-6 border-b border-white/[0.07]">
+          <Onglets onglet={onglet} onChange={setOnglet} compte={{ rues: rues.length, commerces: cibles.length, messages: brouillons }} />
+          <div className="flex items-center gap-4 pb-3 text-[12.5px]">
             {enCours ? (
-              <Bouton discret onClick={() => arreter.mutate()} disabled={arreter.isPending}>Arrêter</Bouton>
+              <button onClick={() => arreter.mutate()} disabled={arreter.isPending} className="text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>Arrêter</button>
             ) : (
-              <Bouton discret onClick={() => lancer.mutate()} disabled={lancer.isPending} title="Relit le centre et repropose les rues, en une minute">{rues.length ? "Refaire les rues" : "Lancer ALX"}</Bouton>
+              <button onClick={() => lancer.mutate()} disabled={lancer.isPending} title="Relit la commune sur OpenStreetMap et repropose les rues" className="text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>{lancer.isPending ? "…" : rues.length ? "Refaire les rues" : "Lancer ALX"}</button>
             )}
           </div>
         </div>
 
-        <h1 className="alx-serif m-0 mt-[22px] text-[42px] italic tracking-[-.01em] text-[#F3F7F5]">{ville?.nom}</h1>
-        <div className="mt-1 text-[13.5px] text-[#8B938F]">
-          {ville?.recensement?.le ? `Relevé du ${dateCourte(ville.recensement.le)} · ${fmt(ville.recensement.commerces_total)} vitrines · ` : ""}
-          {pluriel(rues.length, "rue", "rues")} · {pluriel(cibles.length, "commerce analysé", "commerces analysés")} · {pluriel(brouillons, "message", "messages")}
-        </div>
-
-        <Onglets onglet={onglet} onChange={setOnglet} compte={{ rues: rues.length, commerces: cibles.length, messages: brouillons }} />
 
         {maintenant && (
           <div className="mb-2 mt-10 flex flex-wrap items-center justify-between gap-4">
@@ -655,6 +761,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
             {maintenant.reste && <span className="shrink-0 text-[13.5px] text-[#8B938F]">Temps restant : <Nombre taille={13.5} teinte="#C3CBC7">{maintenant.reste}</Nombre></span>}
           </div>
         )}
+        {maintenant && <FilDuParcours p={p} />}
 
         {p?.etat && (
           <details className="mt-4 text-[13px] text-[#8B938F]">
@@ -666,7 +773,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
           </details>
         )}
 
-        {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe) => classer.mutate({ nom, classe })} classerPending={classer.isPending} />}
+        {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe) => classer.mutate({ nom, classe })} classerPending={classer.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} />}
         {onglet === "commerces" && <OngletCommerces ville={ville} cibles={cibles} onOuvrir={setFiche} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
         {onglet === "messages" && <OngletMessages cibles={cibles} onOuvrir={setFiche} />}
 
@@ -721,17 +828,20 @@ export default function ALX() {
   const user = useUser();
   const [params, setParams] = useSearchParams();
   const villeId = params.get("ville");
+  const ongletDemande = ["rues", "commerces", "messages"].includes(params.get("onglet")) ? params.get("onglet") : null;
   const { data: villes = [] } = useQuery({ queryKey: ["alx-villes"], queryFn: () => base44.request("GET", "/api/alx/villes"), refetchInterval: (q) => ((q.state.data || []).some((v) => v.parcours?.etat === "en_cours") ? 5000 : false) });
   const ville = villes.find((v) => v.id === villeId);
   const ouvrir = (id) => setParams({ ville: id });
   const nouvelle = () => setParams({});
+  const i = villes.findIndex((v) => v.id === villeId);
+  const suivante = villes.length > 1 && i >= 0 ? () => ouvrir(villes[(i + 1) % villes.length].id) : null;
 
   if (!user || user.role !== "admin") return null;
 
   return (
     <div className="alx min-h-screen">
       <div className="mx-auto max-w-[1440px] px-[34px] pb-[70px] pt-[26px] max-md:px-4">
-        {villeId ? <VillePage villeId={villeId} ville={ville} onNouvelle={nouvelle} /> : <Accueil villes={villes} onOuvrir={ouvrir} />}
+        {villeId ? <VillePage key={villeId} villeId={villeId} ville={ville} onNouvelle={nouvelle} onSuivante={suivante} ongletDemande={ongletDemande} /> : <Accueil villes={villes} onOuvrir={ouvrir} />}
         {!villeId && (
           <div className="mt-10 text-center text-[12.5px] text-[#8B938F]">
             <Link to="/ALXBilan" className="hover:text-[#E8EFEB]">Le bilan des approches →</Link>

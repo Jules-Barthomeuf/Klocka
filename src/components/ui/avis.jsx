@@ -109,7 +109,7 @@ export function poser(ton, titre, o = {}) {
         onFermer={() => sonner.dismiss(id)}
       />
     ),
-    { id: o.id, duration: duree, className: o.className },
+    { id: o.id, duration: duree, className: o.className, position: o.position },
   );
 }
 

@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "sonner";
-import { EnTeteAlx, PILES, Bouton, Champ, euros, Halo, Chiffre, Statut, Bascule } from "@/components/alx/alx-commun";
+import { EnTeteAlx, PILES, Bouton, Champ, euros, Halo, Statut, Bascule } from "@/components/alx/alx-commun";
 
 // La page d'accueil d'ALX. On y arrive toujours par la même porte : donnez
 // une ville, ou reprenez une recherche récente. Une fois une ville ouverte,
@@ -329,37 +329,251 @@ function EnCours({ ville, onArreter, arretPending }) {
   );
 }
 
-const PAR_COLONNE = 30;
+const PAR_PAGE = 40;
+const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) : "");
+const euroM2 = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €/m²`);
 
-function LigneATraiter({ c }) {
-  const p = PILES.find((x) => x.cle === c.pile);
+// Le verdict en clair, jamais un score : ce que la pile veut dire pour celui qui démarche.
+const VERDICTS = {
+  appeler: ["Fortes chances de vendre", "#E8B278"],
+  ecrire: ["Vendra un jour : à écrire", "#7896EB"],
+  surveiller: ["Peu de chances pour l'instant", "var(--k-ardoise)"],
+  ecartee: ["Non", "var(--k-brume)"],
+};
+const raisonsDe = (c) => {
+  const r = [];
+  for (const x of c.signaux?.forts || []) r.push(x.libelle + (x.valeur ? ` (${x.valeur})` : ""));
+  for (const x of c.signaux?.patients || []) r.push(x.libelle + (x.valeur ? ` (${x.valeur})` : ""));
+  for (const x of c.drapeaux || []) if (x.effet !== "information") r.push(x.libelle);
+  if (!r.length && c.motif) r.push(c.motif);
+  return r;
+};
+
+function Case({ coche, onChange, titre }) {
   return (
-    <Link to={`/ALXCible?id=${c.id}`} className="grid grid-cols-[10px_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto] max-md:grid-cols-[10px_minmax(0,1fr)_auto] gap-4 items-center px-5 py-4 border-t border-white/[0.06] first:border-t-0 hover:bg-white/[0.025] transition-colors">
-      <span className="w-[8px] h-[8px] rounded-full" style={{ background: p?.teinte }} />
-      <div className="min-w-0">
-        <div className="text-[14.5px] text-encre truncate">{c.enseigne || "Sans enseigne"}</div>
-        <div className="text-[12px] text-brume truncate">{c.adresse}{c.emplacement ? ` · emplacement ${c.emplacement}` : ""}</div>
+    <input
+      type="checkbox"
+      checked={!!coche}
+      onChange={(e) => onChange(e.target.checked)}
+      onClick={(e) => e.stopPropagation()}
+      title={titre}
+      className="w-4 h-4 accent-[#96c0b8] cursor-pointer"
+    />
+  );
+}
+
+function Etapes({ etape, onChange, compte }) {
+  const items = [["rues", "Les rues"], ["commerces", "Les commerces"], ["messages", "Les messages"]];
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {items.map(([cle, mot], i) => {
+        const actif = etape === cle;
+        return (
+          <button key={cle} onClick={() => onChange(cle)} className={`flex items-center gap-3 rounded-full border px-4 py-2 transition-colors ${actif ? "border-menthe/50 bg-menthe/10" : "border-white/[0.1] hover:border-white/[0.2]"}`}>
+            <span className={`w-6 h-6 rounded-full text-[12px] flex items-center justify-center ${actif ? "bg-menthe text-[#0b1211] font-semibold" : "bg-white/[0.06] text-ardoise"}`}>{i + 1}</span>
+            <span className={`text-[14px] ${actif ? "text-encre" : "text-ardoise"}`}>{mot}</span>
+            {compte[cle] != null && <span className="text-[12px] text-brume tabular-nums">{compte[cle]}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function EtapeRues({ ville, onProspecter, pending }) {
+  const rues = ville?.rues || [];
+  const [coches, setCoches] = useState(() => new Set(rues.filter((r) => r.retenue).map((r) => r.nom)));
+  const toutes = (classe) => setCoches(new Set(rues.filter((r) => !classe || r.classe === classe).map((r) => r.nom)));
+  const bascule = (nom, oui) => setCoches((c) => { const n = new Set(c); if (oui) n.add(nom); else n.delete(nom); return n; });
+  const ecartees = ville?.rues_ecartees || [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+          <button onClick={() => toutes(1)} className="text-menthe hover:text-menthe-clair">Tout l'emplacement 1</button>
+          <span className="text-brume">·</span>
+          <button onClick={() => toutes(null)} className="text-menthe hover:text-menthe-clair">Toutes</button>
+          <span className="text-brume">·</span>
+          <button onClick={() => setCoches(new Set())} className="text-ardoise hover:text-encre">Aucune</button>
+          <span className="text-brume ml-2">{rues.length} rue{rues.length > 1 ? "s" : ""} proposée{rues.length > 1 ? "s" : ""}{ville?.recensement?.commerces_total ? ` · ${ville.recensement.commerces_total} commerces recensés` : ""}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link to={`/ALXVilles?ville=${ville?.id}`} className="text-[13px] text-ardoise hover:text-encre">Corriger le classement</Link>
+          <Bouton principal disabled={!coches.size || pending} onClick={() => onProspecter([...coches])}>
+            {pending ? "…" : `Prospecter ${coches.size} rue${coches.size > 1 ? "s" : ""}`}
+          </Bouton>
+        </div>
       </div>
-      <div className="min-w-0 max-md:hidden">
-        <div className="text-[13px] text-craie truncate">{c.proprietaire?.nom || "propriétaire à établir"}</div>
-        <div className="text-[12px] text-brume truncate">{c.societe?.forme || c.proprietaire?.forme || ""}{c.societe?.gerants?.length ? ` · ${c.societe.gerants.length} gérant${c.societe.gerants.length > 1 ? "s" : ""}` : ""}</div>
+
+      <div className="bg-surface border border-white/[0.08] rounded-[20px] overflow-hidden">
+        <div className="grid grid-cols-[36px_minmax(0,1.6fr)_120px_130px_130px_100px_90px] max-md:grid-cols-[36px_minmax(0,1fr)_100px] gap-3 items-center px-5 py-3 text-[10px] tracking-[.14em] uppercase text-brume border-b border-white/[0.06]">
+          <span />
+          <span>Rue</span>
+          <span>Emplacement</span>
+          <span className="max-md:hidden">Loyer</span>
+          <span className="max-md:hidden">Prix au m²</span>
+          <span className="max-md:hidden">Rendement</span>
+          <span className="max-md:hidden text-right">Commerces</span>
+        </div>
+        {rues.length === 0 && <p className="m-0 px-5 py-6 text-[13.5px] text-brume">Aucune rue encore : lancez ALX, il recense le centre et propose les rues.</p>}
+        {rues.map((r) => (
+          <label key={r.nom} className="grid grid-cols-[36px_minmax(0,1.6fr)_120px_130px_130px_100px_90px] max-md:grid-cols-[36px_minmax(0,1fr)_100px] gap-3 items-center px-5 py-3.5 border-t border-white/[0.05] hover:bg-white/[0.025] cursor-pointer">
+            <Case coche={coches.has(r.nom)} onChange={(oui) => bascule(r.nom, oui)} />
+            <div className="min-w-0">
+              <div className="text-[14.5px] text-encre truncate">{r.nom}{r.parcourue_le ? <span className="ml-2 text-[10px] tracking-[.12em] uppercase text-menthe">prospectée</span> : null}</div>
+              <div className="text-[12px] text-brume truncate">{(r.chaines || []).slice(0, 4).join(", ") || r.motif}</div>
+            </div>
+            <span className="text-[11px] tracking-[.12em] uppercase" style={{ color: r.classe === 1 ? "var(--k-menthe)" : "#7896EB" }}>Emplacement {r.classe}</span>
+            <span className="text-[13px] text-craie tabular-nums max-md:hidden">{r.loyer ? `${Math.round(r.loyer[0])}–${Math.round(r.loyer[1])} €/m²/an` : "—"}</span>
+            <span className="text-[13px] text-craie tabular-nums max-md:hidden" title={r.prix_m2_source || ""}>{euroM2(r.prix_m2)}</span>
+            <span className="text-[13px] text-craie tabular-nums max-md:hidden">{r.rendement != null ? `${String(r.rendement).replace(".", ",")} %` : "—"}</span>
+            <span className="text-[13px] text-ardoise tabular-nums text-right max-md:hidden">{r.commerces ?? "—"}</span>
+          </label>
+        ))}
       </div>
-      <div className="text-[12.5px] text-ardoise leading-[1.45] line-clamp-2 max-md:hidden">{c.motif}</div>
-      <div className="flex items-center gap-3 whitespace-nowrap">
-        {c.brouillon && <span className="text-[10px] tracking-[.12em] uppercase text-menthe border border-menthe/30 rounded-full px-2.5 py-1">{c.brouillon.canal === "mail" ? "mail prêt" : "courrier prêt"}</span>}
-        <span className="text-[13px] text-menthe">{p?.cle === "appeler" ? "Appeler" : "Écrire"} →</span>
+      {ecartees.length > 0 && (
+        <details className="text-[12.5px] text-brume px-1">
+          <summary className="cursor-pointer hover:text-encre">{ecartees.length} rue{ecartees.length > 1 ? "s" : ""} écartée{ecartees.length > 1 ? "s" : ""} par ALX (loyer trop bas ou trop peu de commerces) : reprenables dans Corriger le classement</summary>
+          <div className="mt-2 flex flex-col gap-1">{ecartees.map((r) => <div key={r.nom}><span className="text-craie">{r.nom}</span> · {r.motif}</div>)}</div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function StreetView({ c }) {
+  if (!CLE_EMBED || c.lat == null || c.lon == null) {
+    return <div className="h-[260px] rounded-[14px] bg-[#0e0f10] flex items-center justify-center text-[11px] tracking-[.1em] uppercase text-brume">Street View indisponible pour cette adresse</div>;
+  }
+  const src = `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90`;
+  return <iframe title={`Street View ${c.adresse}`} src={src} className="w-full h-[260px] rounded-[14px] border-0" allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />;
+}
+
+function LigneCommerce({ c, coche, onCoche, ouvert, onOuvrir }) {
+  const [verdict, teinte] = VERDICTS[c.pile] || VERDICTS.surveiller;
+  const s = c.societe || {};
+  const v = c.valorisation || {};
+  const raisons = raisonsDe(c);
+  return (
+    <div className="border-t border-white/[0.05] first:border-t-0">
+      <div onClick={onOuvrir} className="grid grid-cols-[36px_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_120px_130px_80px] max-md:grid-cols-[36px_minmax(0,1fr)_auto] gap-3 items-center px-5 py-3.5 hover:bg-white/[0.025] cursor-pointer">
+        <Case coche={coche} onChange={onCoche} />
+        <div className="min-w-0">
+          <div className="text-[14.5px] text-encre truncate">{c.enseigne || "Sans enseigne"}</div>
+          <div className="text-[12px] text-brume truncate">{c.adresse}{c.activite ? ` · ${c.activite}` : ""}</div>
+        </div>
+        <div className="min-w-0 max-md:hidden">
+          <div className="text-[13px] text-craie truncate">{c.proprietaire?.nom || (c.foncier ? "à départager" : "propriétaire à établir")}</div>
+          <div className="text-[12px] text-brume truncate">{[s.forme || c.proprietaire?.forme, s.creation ? `depuis ${String(s.creation).slice(0, 4)}` : null, s.gerants?.length ? `${s.gerants.length} gérant${s.gerants.length > 1 ? "s" : ""}` : null].filter(Boolean).join(" · ")}</div>
+        </div>
+        <div className="min-w-0 max-md:hidden">
+          <div className="text-[13px] truncate" style={{ color: teinte }}>{verdict}</div>
+          <div className="text-[12px] text-brume truncate">{raisons[0] || ""}</div>
+        </div>
+        <span className="text-[13px] text-craie tabular-nums max-md:hidden">{v.loyer_m2_marche ? `${Math.round(v.loyer_m2_marche)} €/m²/an` : "—"}</span>
+        <span className="text-[13px] text-craie tabular-nums max-md:hidden">{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : <span className="text-brume">surface à saisir</span>}</span>
+        <span className="text-[13px] text-menthe text-right">{ouvert ? "Fermer" : "Voir"}</span>
       </div>
-    </Link>
+      {ouvert && (
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 px-5 pb-5">
+          <StreetView c={c} />
+          <div className="flex flex-col gap-3 text-[13px]">
+            <div>
+              <div className="text-[10px] tracking-[.16em] uppercase text-ardoise mb-1.5">L'analyse</div>
+              <div className="text-[15px]" style={{ color: teinte }}>{verdict}</div>
+              <ul className="m-0 mt-1.5 pl-4 text-craie leading-[1.6]">{raisons.map((r) => <li key={r}>{r}</li>)}</ul>
+            </div>
+            {c.proprietaire?.nom && (
+              <div>
+                <div className="text-[10px] tracking-[.16em] uppercase text-ardoise mb-1.5">Le propriétaire</div>
+                <div className="text-craie">{c.proprietaire.nom}{s.forme ? ` · ${s.forme}` : ""}{s.ape ? ` · APE ${s.ape}` : ""}{c.foncier?.motif_choix ? ` · ${c.foncier.motif_choix}` : ""}</div>
+                {(s.gerants || []).map((g, i) => <div key={i} className="text-ardoise">{g.nom}{g.tranche_age ? ` · ${g.tranche_age}` : ""}{g.qualite ? ` · ${g.qualite}` : ""}</div>)}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-ardoise">
+              <span>Loyer de la rue</span><span className="text-craie text-right">{v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])}–${Math.round(v.loyer_fourchette[1])} €/m²/an` : "—"}</span>
+              <span>Surface</span><span className="text-craie text-right">{v.surface ? `${v.surface} m²` : "à saisir sur la fiche"}</span>
+              <span>Dernière vente autour</span><span className="text-craie text-right">{c.mutation?.date ? `${euros(c.mutation.prix)} en ${String(c.mutation.date).slice(0, 4)}` : "aucune connue"}</span>
+              <span>Exploitant</span><span className="text-craie text-right truncate">{c.occupant?.nom || c.enseigne || "—"}{c.occupant?.depuis ? `, depuis ${String(c.occupant.depuis).slice(0, 4)}` : ""}</span>
+            </div>
+            <div className="flex gap-3 mt-1">
+              <Link to={`/ALXCible?id=${c.id}`} className="text-menthe hover:text-menthe-clair">Ouvrir la fiche →</Link>
+              {c.brouillon && <span className="text-[11px] tracking-[.12em] uppercase text-menthe border border-menthe/30 rounded-full px-2.5 py-1">{c.brouillon.canal === "mail" ? "mail prêt" : "courrier prêt"}</span>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EtapeCommerces({ ville, cibles, onRediger, pending }) {
+  const [filtre, setFiltre] = useState("interessants");
+  const [rue, setRue] = useState("");
+  const [coches, setCoches] = useState(new Set());
+  const [ouvert, setOuvert] = useState(null);
+  const [page, setPage] = useState(1);
+  const interessants = cibles.filter((c) => ["appeler", "ecrire"].includes(c.pile));
+  const liste = cibles
+    .filter((c) => (filtre === "interessants" ? ["appeler", "ecrire"].includes(c.pile) : filtre === "ecartes" ? c.pile === "ecartee" : filtre === "surveiller" ? c.pile === "surveiller" : true))
+    .filter((c) => !rue || c.rue === rue)
+    .sort((a, b) => ["appeler", "ecrire", "surveiller", "ecartee"].indexOf(a.pile) - ["appeler", "ecrire", "surveiller", "ecartee"].indexOf(b.pile));
+  const rues = [...new Set(cibles.map((c) => c.rue).filter(Boolean))];
+  const bascule = (id, oui) => setCoches((c) => { const n = new Set(c); if (oui) n.add(id); else n.delete(id); return n; });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Bascule valeur={filtre} onChange={(f) => { setFiltre(f); setPage(1); }} options={[["interessants", "Intéressants", interessants.length], ["surveiller", "À surveiller", cibles.filter((c) => c.pile === "surveiller").length], ["ecartes", "Écartés", cibles.filter((c) => c.pile === "ecartee").length], ["tous", "Tous", cibles.length]]} />
+          <select value={rue} onChange={(e) => { setRue(e.target.value); setPage(1); }} className="bg-fond border border-bord rounded-full px-3.5 py-2 text-[12.5px] text-encre outline-none focus:border-menthe">
+            <option value="">Toutes les rues</option>
+            {rues.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <span className="text-[12.5px] text-brume">{cibles.length} commerce{cibles.length > 1 ? "s" : ""}, {interessants.length} intéressant{interessants.length > 1 ? "s" : ""}</span>
+        </div>
+        <div className="flex items-center gap-3 text-[12.5px]">
+          <button onClick={() => setCoches(new Set(liste.map((c) => c.id)))} className="text-menthe hover:text-menthe-clair">Tout cocher</button>
+          <button onClick={() => setCoches(new Set())} className="text-ardoise hover:text-encre">Aucun</button>
+          <Bouton principal disabled={!coches.size || pending} onClick={() => onRediger([...coches])}>{pending ? "…" : `Rédiger ${coches.size} message${coches.size > 1 ? "s" : ""}`}</Bouton>
+        </div>
+      </div>
+      <div className="bg-surface border border-white/[0.08] rounded-[20px] overflow-hidden">
+        <div className="grid grid-cols-[36px_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_120px_130px_80px] max-md:grid-cols-[36px_minmax(0,1fr)_auto] gap-3 items-center px-5 py-3 text-[10px] tracking-[.14em] uppercase text-brume border-b border-white/[0.06]">
+          <span /><span>Commerce</span><span className="max-md:hidden">Propriétaire</span><span className="max-md:hidden">Verdict</span><span className="max-md:hidden">Loyer</span><span className="max-md:hidden">Prix cible</span><span />
+        </div>
+        {liste.length === 0 && <p className="m-0 px-5 py-6 text-[13.5px] text-brume">{cibles.length ? "Rien avec ce filtre." : ville?.parcours?.etat === "en_cours" ? "Les commerces arrivent rue par rue." : "Aucun commerce encore : cochez des rues à l'étape 1 et prospectez."}</p>}
+        {liste.slice(0, page * PAR_PAGE).map((c) => <LigneCommerce key={c.id} c={c} coche={coches.has(c.id)} onCoche={(oui) => bascule(c.id, oui)} ouvert={ouvert === c.id} onOuvrir={() => setOuvert(ouvert === c.id ? null : c.id)} />)}
+        {liste.length > page * PAR_PAGE && <button onClick={() => setPage(page + 1)} className="w-full text-left px-5 py-3 text-[12.5px] text-menthe hover:text-menthe-clair border-t border-white/[0.05]">Voir {Math.min(PAR_PAGE, liste.length - page * PAR_PAGE)} de plus ({liste.length - page * PAR_PAGE} restants)</button>}
+      </div>
+    </div>
+  );
+}
+
+function EtapeMessages({ cibles }) {
+  const avec = cibles.filter((c) => c.brouillon);
+  return (
+    <div className="bg-surface border border-white/[0.08] rounded-[20px] overflow-hidden">
+      {avec.length === 0 && <p className="m-0 px-5 py-6 text-[13.5px] text-brume">Aucun message encore : cochez des commerces à l'étape 2 et rédigez.</p>}
+      {avec.map((c) => (
+        <Link key={c.id} to={`/ALXCible?id=${c.id}`} className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_auto] max-md:grid-cols-[minmax(0,1fr)_auto] gap-4 items-center px-5 py-4 border-t border-white/[0.05] first:border-t-0 hover:bg-white/[0.025]">
+          <div className="min-w-0">
+            <div className="text-[14.5px] text-encre truncate">{c.enseigne || c.adresse}</div>
+            <div className="text-[12px] text-brume truncate">{c.proprietaire?.nom || "propriétaire à établir"} · {c.brouillon.canal === "mail" ? "mail" : "courrier"}{c.brouillon.objet ? ` · ${c.brouillon.objet}` : ""}</div>
+          </div>
+          <div className="text-[12.5px] text-ardoise leading-[1.5] line-clamp-2 max-md:hidden">{c.brouillon.texte}</div>
+          <span className="text-[13px] text-menthe whitespace-nowrap">Relire et envoyer →</span>
+        </Link>
+      ))}
+    </div>
   );
 }
 
 function VillePage({ villeId, ville: villeListe, onNouvelle }) {
   const qc = useQueryClient();
-  const [vue, setVue] = useState("traiter");
-  const [plus, setPlus] = useState({});
-  // La ville se relit toutes les trois secondes tant qu'ALX travaille dessus.
   const { data: ville } = useQuery({
     queryKey: ["alx-ville", villeId],
     queryFn: () => base44.request("GET", `/api/alx/villes/${villeId}`),
@@ -372,30 +586,23 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
     queryFn: () => base44.request("GET", `/api/alx/cibles?ville=${villeId}`),
     refetchInterval: enCours ? 5000 : false,
   });
-  const rafraichir = () => { qc.invalidateQueries({ queryKey: ["alx-cibles", villeId] }); qc.invalidateQueries({ queryKey: ["alx-ville", villeId] }); qc.invalidateQueries({ queryKey: ["alx-villes"] }); qc.invalidateQueries({ queryKey: ["alx-etat"] }); };
-  const lancer = useMutation({
-    mutationFn: () => base44.request("POST", `/api/alx/villes/${villeId}/lancer`, { body: {} }),
-    onSuccess: rafraichir,
-    onError: (e) => toast.error(e?.message || "Impossible"),
-  });
-  const arreter = useMutation({
-    mutationFn: () => base44.request("POST", `/api/alx/villes/${villeId}/arreter`, { body: {} }),
-    onSuccess: rafraichir,
-    onError: (e) => toast.error(e?.message || "Impossible"),
-  });
-
-  const par = (p) => cibles.filter((c) => (c.pile || "surveiller") === p);
-  const aTraiter = [...par("appeler"), ...par("ecrire")];
-  const ecartees = par("ecartee");
-  const proprietaires = cibles.filter((c) => c.proprietaire?.nom).length;
-  const brouillons = cibles.filter((c) => c.brouillon).length;
   const p = ville?.parcours;
-  const n = (k) => plus[k] || PAR_COLONNE;
-  const voirPlus = (k, total) => total > n(k) && (
-    <button onClick={() => setPlus((x) => ({ ...x, [k]: n(k) + PAR_COLONNE }))} className="text-[12.5px] text-menthe hover:text-menthe-clair text-left py-2 px-5">
-      Voir {Math.min(PAR_COLONNE, total - n(k))} de plus ({total - n(k)} restantes)
-    </button>
-  );
+  const rues = ville?.rues || [];
+  const brouillons = cibles.filter((c) => c.brouillon).length;
+  const etapeNaturelle = brouillons ? "messages" : cibles.length ? "commerces" : "rues";
+  const [etapeChoisie, setEtape] = useState(null);
+  const etape = etapeChoisie || etapeNaturelle;
+
+  const rafraichir = () => { qc.invalidateQueries({ queryKey: ["alx-cibles", villeId] }); qc.invalidateQueries({ queryKey: ["alx-ville", villeId] }); qc.invalidateQueries({ queryKey: ["alx-villes"] }); qc.invalidateQueries({ queryKey: ["alx-etat"] }); };
+  const useGeste = (chemin, apres) => useMutation({
+    mutationFn: (body) => base44.request("POST", `/api/alx/villes/${villeId}/${chemin}`, { body: body || {} }),
+    onSuccess: () => { rafraichir(); if (apres) setEtape(apres); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const lancer = useGeste("lancer", "rues");
+  const prospecter = useGeste("parcourir", "commerces");
+  const rediger = useGeste("rediger", "messages");
+  const arreter = useGeste("arreter");
 
   return (
     <div className="flex flex-col gap-6">
@@ -408,86 +615,37 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
           </div>
           <div className="text-[13px] text-ardoise">
             {ville?.recensement?.le ? `Relevé du ${dateCourte(ville.recensement.le)} · ${ville.recensement.commerces_total} commerces recensés · ` : ""}
-            {(ville?.rues || []).length} rue{(ville?.rues || []).length > 1 ? "s" : ""} classée{(ville?.rues || []).length > 1 ? "s" : ""} · {cibles.length} cible{cibles.length > 1 ? "s" : ""}
+            {rues.length} rue{rues.length > 1 ? "s" : ""} · {cibles.length} commerce{cibles.length > 1 ? "s" : ""} analysé{cibles.length > 1 ? "s" : ""} · {brouillons} message{brouillons > 1 ? "s" : ""}
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <Link to={`/ALXVilles?ville=${villeId}`} className="inline-flex items-center border border-bord-doux text-craie hover:text-encre hover:border-bord-vif rounded-full px-4 py-2.5 text-[13px] transition-colors">Les rues</Link>
           {enCours ? (
             <Bouton onClick={() => arreter.mutate()} disabled={arreter.isPending}>Arrêter</Bouton>
           ) : (
-            <Bouton principal onClick={() => lancer.mutate()} disabled={lancer.isPending}>{p?.etat ? "Relancer ALX" : "Lancer ALX"}</Bouton>
+            <Bouton onClick={() => lancer.mutate()} disabled={lancer.isPending} title="Recense à nouveau le centre et repropose les rues">{rues.length ? "Refaire les rues" : "Lancer ALX"}</Bouton>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <Chiffre label="À appeler" valeur={par("appeler").length} teinte="#E8B278" detail="signal fort" onClick={() => setVue("traiter")} actif={vue === "traiter"} />
-        <Chiffre label="À écrire" valeur={par("ecrire").length} teinte="#7896EB" detail="signal patient" onClick={() => setVue("traiter")} />
-        <Chiffre label="Propriétaires" valeur={proprietaires} detail={`sur ${cibles.length} cible${cibles.length > 1 ? "s" : ""}`} />
-        <Chiffre label="Messages prêts" valeur={brouillons} detail="à relire avant envoi" />
-        <Chiffre label="Écartées" valeur={ecartees.length} detail="avec leur motif" onClick={() => setVue("ecartees")} actif={vue === "ecartees"} />
-      </div>
+      <Etapes etape={etape} onChange={setEtape} compte={{ rues: rues.length, commerces: cibles.length, messages: brouillons }} />
 
-      {p?.etat && p.etat !== "fini" && <EnCours ville={ville} onArreter={() => arreter.mutate()} arretPending={arreter.isPending} />}
-      {p?.etat === "fini" && (
+      {enCours && <EnCours ville={ville} onArreter={() => arreter.mutate()} arretPending={arreter.isPending} />}
+      {p?.etat && !enCours && p.etat !== "rues_proposees" && (
         <details className="bg-surface border border-white/[0.08] rounded-[18px] px-6 py-4">
           <summary className="cursor-pointer text-[13.5px] text-ardoise hover:text-encre">
-            Parcours terminé à {heure(p.fini_le)} · {p.rues_faites} rue{p.rues_faites > 1 ? "s" : ""} · {p.cibles_creees} cible{p.cibles_creees > 1 ? "s" : ""} créée{p.cibles_creees > 1 ? "s" : ""} · {p.proprietaires_trouves} propriétaire{p.proprietaires_trouves > 1 ? "s" : ""} · {p.brouillons} message{p.brouillons > 1 ? "s" : ""}{p.erreurs ? ` · ${p.erreurs} erreur${p.erreurs > 1 ? "s" : ""}` : ""} · voir le journal
+            {p.etat === "fini" ? "Dernier passage terminé" : p.etat === "arrete" ? "Dernier passage arrêté" : p.etat === "interrompu" ? "Dernier passage interrompu par un redémarrage" : "Dernier passage en erreur"} à {heure(p.fini_le || p.maj_le)}
+            {p.rues_total ? ` · ${p.rues_faites}/${p.rues_total} rues` : ""} · {p.cibles_creees || 0} commerce{(p.cibles_creees || 0) > 1 ? "s" : ""} analysé{(p.cibles_creees || 0) > 1 ? "s" : ""} · {p.proprietaires_trouves || 0} propriétaire{(p.proprietaires_trouves || 0) > 1 ? "s" : ""}{p.brouillons ? ` · ${p.brouillons} message${p.brouillons > 1 ? "s" : ""}` : ""}{p.erreurs ? ` · ${p.erreurs} erreur${p.erreurs > 1 ? "s" : ""}` : ""} · voir le journal
           </summary>
           <div className="mt-4"><EnCours ville={ville} onArreter={() => arreter.mutate()} arretPending={arreter.isPending} /></div>
         </details>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Bascule
-          valeur={vue}
-          onChange={setVue}
-          options={[["traiter", "À traiter", aTraiter.length], ["piles", "Les piles", cibles.length - ecartees.length], ["ecartees", "Écartées", ecartees.length]]}
-        />
-        {!enCours && <AjoutCommerce villeId={villeId} ville={ville} onAjoute={rafraichir} />}
-      </div>
+      {etape === "rues" && <EtapeRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} />}
+      {etape === "commerces" && <EtapeCommerces ville={ville} cibles={cibles} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
+      {etape === "messages" && <EtapeMessages cibles={cibles} />}
 
-      {vue === "traiter" && (
-        <div className="bg-surface border border-white/[0.08] rounded-[20px] overflow-hidden">
-          {aTraiter.length === 0 ? (
-            <p className="m-0 px-5 py-6 text-[13.5px] text-brume">{enCours ? "Les premières cibles à appeler ou à écrire arrivent avec les rues." : "Rien à traiter : aucun signal fort ni patient pour l'instant."}</p>
-          ) : (
-            <>
-              {aTraiter.slice(0, n("traiter")).map((c) => <LigneATraiter key={c.id} c={c} />)}
-              {voirPlus("traiter", aTraiter.length)}
-            </>
-          )}
-        </div>
-      )}
-
-      {vue === "piles" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-          {["appeler", "ecrire", "surveiller"].map((pile) => {
-            const pi = PILES.find((x) => x.cle === pile);
-            const dedans = par(pile);
-            return (
-              <div key={pile} className="flex flex-col gap-3">
-                <div className="flex items-baseline justify-between pb-2.5" style={{ borderBottom: `1px solid ${pi.teinte}59` }}>
-                  <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: pi.teinte }}>{pi.mot}</div>
-                  <div className="text-[12px] text-brume">{pi.detail} · {dedans.length}</div>
-                </div>
-                {dedans.slice(0, n(pile)).map((c) => <CarteCible key={c.id} c={c} />)}
-                {dedans.length === 0 && <p className="m-0 text-[12.5px] text-brume py-2">Rien ici.</p>}
-                {voirPlus(pile, dedans.length)}
-                {pile === "surveiller" && <p className="m-0 text-[12px] text-brume leading-[1.6] py-1">Relecture BODACC et DVF tous les mois.</p>}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {vue === "ecartees" && (
-        <div className="flex flex-col gap-2">
-          {ecartees.length === 0 && <p className="m-0 text-[13.5px] text-brume">Aucune cible écartée.</p>}
-          {ecartees.slice(0, n("ecartees")).map((c) => <CarteCible key={c.id} c={c} />)}
-          {voirPlus("ecartees", ecartees.length)}
-        </div>
+      {!enCours && etape === "commerces" && (
+        <div className="flex justify-end"><AjoutCommerce villeId={villeId} ville={ville} onAjoute={rafraichir} /></div>
       )}
     </div>
   );

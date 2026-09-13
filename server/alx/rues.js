@@ -83,7 +83,38 @@ export function emplacementParLoyer(loyer, commerces, seuils = SEUILS) {
  * @param {{nom:string, code_insee?:string, centre?:{lat,lon}}} ville
  * @param {{rayon_km?:number, journal?:Function, arreter?:Function, loyerDe?:Function}} o
  */
-export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal = () => {}, arreter = () => false, loyerDe = null } = {}) {
+const RENDEMENT_DEFAUT = 7;
+
+/**
+ * Le prix au m² moyen des murs commerciaux autour d'une rue, et le rendement
+ * que le loyer de marché y donne. DVF quand il y a assez de ventes ; sinon
+ * le prix déduit du loyer au rendement par défaut, et on le dit.
+ */
+export async function prixDeLaRue(adresse, loyer, prixDe = null) {
+  const milieu = loyer?.basse != null && loyer?.haute != null ? (loyer.basse + loyer.haute) / 2 : null;
+  let dvf = null;
+  if (adresse) {
+    try {
+      const lire = prixDe || (async (a) => {
+        const { ventesAutour } = await import('../dvf.js');
+        const r = await ventesAutour(a, { rayon: 150 });
+        return r.ok ? r.resultat : null;
+      });
+      dvf = await lire(adresse);
+    } catch {
+      dvf = null;
+    }
+  }
+  const prixDvf = dvf?.prix_m2?.median ?? null;
+  const nDvf = dvf?.n ?? 0;
+  if (prixDvf && nDvf >= 5) {
+    return { prix_m2: Math.round(prixDvf), prix_m2_source: `DVF, ${nDvf} ventes autour`, rendement: milieu ? Math.round((milieu / prixDvf) * 1000) / 10 : null };
+  }
+  if (milieu) return { prix_m2: Math.round(milieu / (RENDEMENT_DEFAUT / 100)), prix_m2_source: `déduit du loyer à ${RENDEMENT_DEFAUT} %`, rendement: RENDEMENT_DEFAUT };
+  return { prix_m2: null, prix_m2_source: null, rendement: null };
+}
+
+export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal = () => {}, arreter = () => false, loyerDe = null, prixDe = null } = {}) {
   let commune = ville.code_insee && ville.centre ? { code_insee: ville.code_insee, code_postal: ville.code_postal, ...ville.centre, nom: ville.nom } : null;
   if (!commune) {
     commune = await communeDe(ville.nom);
@@ -128,7 +159,10 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
       journal(`${nom} : Data-B n'a pas rendu de loyer (${e.message}).`);
     }
     const { classe, motif } = emplacementParLoyer(loyer, r.commerces);
-    const base = { nom, cle: r.cle, code_postal: cp, commerces: r.commerces, chaines: r.chaines.slice(0, 8), loyer: loyer ? [loyer.basse, loyer.haute] : null, loyer_source: valeurLocative?.rue ? 'Data-B, rue' : valeurLocative?.quartier ? 'Data-B, quartier' : null, centre: officielle ? { lat: officielle.lat, lon: officielle.lon } : null, motif };
+    // Le prix au m² des murs vendus autour de la rue (DVF), et le rendement qui
+    // en découle avec le loyer ; à défaut, le prix que donne le loyer à 7 %.
+    const marche = await prixDeLaRue(officielle ? `${nom}, ${cp} ${commune.nom}` : null, loyer, prixDe);
+    const base = { nom, cle: r.cle, code_postal: cp, commerces: r.commerces, chaines: r.chaines.slice(0, 8), loyer: loyer ? [loyer.basse, loyer.haute] : null, loyer_source: valeurLocative?.rue ? 'Data-B, rue' : valeurLocative?.quartier ? 'Data-B, quartier' : null, ...marche, centre: officielle ? { lat: officielle.lat, lon: officielle.lon } : null, motif };
     if (classe) classees.push({ ...base, classe });
     else ecartees.push(base);
     await pause(400);

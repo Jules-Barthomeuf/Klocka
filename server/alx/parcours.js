@@ -79,13 +79,15 @@ const ETAT_INITIAL = (user, mode) => ({
  * @param {string} villeId
  * @param {{user?:object, rayon_km?:number, limite_par_rue?:number|null, rediger?:boolean}} o
  */
-export function lancer(villeId, { user = null, rayon_km = undefined, limite_par_rue = null, rediger = true } = {}) {
+export function lancer(villeId, { user = null, rayon_km = undefined, limite_par_rue = null, rediger = false, tout = false } = {}) {
   const v = Records.get('Ville', villeId);
   if (!v) return { ok: false, error: 'Ville introuvable.' };
   if (enCours.has(villeId)) return { ok: false, error: 'Un parcours est déjà en cours sur cette ville.' };
   enCours.set(villeId, { arreter: false });
-  Records.update('Ville', villeId, { parcours: ETAT_INITIAL(user, 'ville') });
-  executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues: null }).catch((e) => {
+  Records.update('Ville', villeId, { parcours: ETAT_INITIAL(user, tout ? 'ville' : 'rues') });
+  // Par défaut on s'arrête aux rues proposées : l'équipe coche celles qu'elle
+  // veut prospecter, puis parcourir() prend le relais. « tout » enchaîne.
+  executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues: null, phases: tout ? ['rues', 'commerces'] : ['rues'] }).catch((e) => {
     noter(villeId, `Le parcours s'est arrêté sur une erreur : ${e.message}`);
     ecrire(villeId, { etat: 'erreur', fini_le: maintenant() });
     enCours.delete(villeId);
@@ -105,8 +107,64 @@ export function parcourirRue(villeId, nomRue, { user = null, limite_par_rue = nu
   if (enCours.has(villeId)) return { ok: false, error: 'Un parcours est déjà en cours sur cette ville.' };
   enCours.set(villeId, { arreter: false });
   Records.update('Ville', villeId, { parcours: { ...ETAT_INITIAL(user, 'rue'), phase: 'commerces', etape: 3 } });
-  executer(villeId, { user, limite_par_rue, rediger, rues: [rue.nom] }).catch((e) => {
+  executer(villeId, { user, limite_par_rue, rediger, rues: [rue.nom], phases: ['commerces'] }).catch((e) => {
     noter(villeId, `Le parcours s'est arrêté sur une erreur : ${e.message}`);
+    ecrire(villeId, { etat: 'erreur', fini_le: maintenant() });
+    enCours.delete(villeId);
+  });
+  return { ok: true, ville: Records.get('Ville', villeId) };
+}
+
+/**
+ * Parcourt les rues cochées par l'équipe : chaque commerce devient une cible
+ * analysée (propriétaire, société, événements, mutation, loyer, classement).
+ * Pas de message à ce stade : ils s'écrivent pour la sélection, après.
+ */
+export function parcourir(villeId, noms, { user = null, limite_par_rue = null } = {}) {
+  const v = Records.get('Ville', villeId);
+  if (!v) return { ok: false, error: 'Ville introuvable.' };
+  const cles = new Set((noms || []).map(cleRue));
+  const retenues = (v.rues || []).filter((r) => cles.has(cleRue(r.nom)));
+  if (!retenues.length) return { ok: false, error: 'Cochez au moins une rue.' };
+  if (enCours.has(villeId)) return { ok: false, error: 'Un parcours est déjà en cours sur cette ville.' };
+  Records.update('Ville', villeId, { rues: (v.rues || []).map((r) => ({ ...r, retenue: cles.has(cleRue(r.nom)) ? true : r.retenue || false })) });
+  enCours.set(villeId, { arreter: false });
+  Records.update('Ville', villeId, { parcours: { ...ETAT_INITIAL(user, 'commerces'), phase: 'commerces', etape: 3 } });
+  executer(villeId, { user, limite_par_rue, rediger: false, rues: retenues.map((r) => r.nom), phases: ['commerces'] }).catch((e) => {
+    noter(villeId, `Le parcours s'est arrêté sur une erreur : ${e.message}`);
+    ecrire(villeId, { etat: 'erreur', fini_le: maintenant() });
+    enCours.delete(villeId);
+  });
+  return { ok: true, ville: Records.get('Ville', villeId) };
+}
+
+/** Rédige un message pour chaque cible cochée, en tâche de fond. */
+export function redigerPour(villeId, ids, { user = null } = {}) {
+  const v = Records.get('Ville', villeId);
+  if (!v) return { ok: false, error: 'Ville introuvable.' };
+  const cibles = (ids || []).map((id) => Records.get('Cible', id)).filter((c) => c && c.ville_id === villeId);
+  if (!cibles.length) return { ok: false, error: 'Cochez au moins un commerce.' };
+  if (enCours.has(villeId)) return { ok: false, error: 'Un parcours est déjà en cours sur cette ville.' };
+  enCours.set(villeId, { arreter: false });
+  Records.update('Ville', villeId, { parcours: { ...ETAT_INITIAL(user, 'redaction'), phase: 'redaction', etape: 7, rues_total: 0 } });
+  (async () => {
+    noter(villeId, `Rédaction de ${cibles.length} message${cibles.length > 1 ? 's' : ''}.`);
+    for (const c of cibles) {
+      if (enCours.get(villeId)?.arreter) break;
+      try {
+        await enrichir.redigerBrouillon(c.id, { user });
+        compter(villeId, 'brouillons');
+      } catch (e) {
+        compter(villeId, 'erreurs');
+        noter(villeId, `${c.enseigne || c.adresse} : message non rédigé (${e.message}).`);
+      }
+    }
+    const p = Records.get('Ville', villeId).parcours || {};
+    noter(villeId, `${p.brouillons || 0} message${(p.brouillons || 0) > 1 ? 's' : ''} rédigé${(p.brouillons || 0) > 1 ? 's' : ''}, à relire sur chaque fiche.`);
+    ecrire(villeId, { etat: 'fini', fini_le: maintenant() });
+    enCours.delete(villeId);
+  })().catch((e) => {
+    noter(villeId, `La rédaction s'est arrêtée sur une erreur : ${e.message}`);
     ecrire(villeId, { etat: 'erreur', fini_le: maintenant() });
     enCours.delete(villeId);
   });
@@ -135,7 +193,7 @@ export function reprendreAuDemarrage() {
 // L'exécution
 // ---------------------------------------------------------------------------
 
-async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues }) {
+async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues, phases = ['rues', 'commerces'] }) {
   const doitArreter = () => enCours.get(villeId)?.arreter === true;
   const finir = (etat) => {
     ecrire(villeId, { etat, fini_le: maintenant(), rue_en_cours: null });
@@ -159,7 +217,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
 
   // 2. Les rues.
   let etablissementsParRue = {};
-  if (!rues) {
+  if (phases.includes('rues')) {
     ecrire(villeId, { phase: 'rues', etape: 2 });
     const r = await proposerRues(ville, { rayon_km, arreter: doitArreter, journal: (t) => noter(villeId, t) });
     etablissementsParRue = r.etablissements_par_rue;
@@ -183,6 +241,10 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     const n2 = proposees.filter((x) => x.classe === 2).length;
     noter(villeId, `Rues proposées : ${n1} en emplacement 1, ${n2} en emplacement 2, ${r.ecartees.length} écartée${r.ecartees.length > 1 ? 's' : ''}${manuelles.length ? ` ; ${manuelles.length} classée${manuelles.length > 1 ? 's' : ''} à la main conservée${manuelles.length > 1 ? 's' : ''}` : ''}.`);
     if (doitArreter()) return finir('arrete');
+    if (!phases.includes('commerces')) {
+      noter(villeId, 'Cochez les rues à prospecter, ALX cherche ensuite leurs commerces.');
+      return finir('rues_proposees');
+    }
   }
 
   // 3 à 7. Les commerces, rue par rue.

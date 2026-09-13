@@ -41,7 +41,19 @@ export function monterAlx(app) {
   // Le parcours automatique d'une ville, en tâche de fond ; l'écran suit sur la Ville.
   app.post('/api/alx/villes/:id/lancer', wrap(async (req, res) => {
     const { lancer } = await import('../alx/parcours.js');
-    const r = lancer(req.params.id, { user: currentUser(req), rayon_km: req.body?.rayon_km ? Number(req.body.rayon_km) : undefined, limite_par_rue: req.body?.limite_par_rue ? Number(req.body.limite_par_rue) : null, rediger: req.body?.rediger !== false });
+    const r = lancer(req.params.id, { user: currentUser(req), rayon_km: req.body?.rayon_km ? Number(req.body.rayon_km) : undefined, limite_par_rue: req.body?.limite_par_rue ? Number(req.body.limite_par_rue) : null, rediger: req.body?.rediger === true, tout: req.body?.tout === true });
+    if (!r.ok) return erreur(res, r.error, 409);
+    ok(res, r);
+  }));
+  app.post('/api/alx/villes/:id/parcourir', wrap(async (req, res) => {
+    const { parcourir } = await import('../alx/parcours.js');
+    const r = parcourir(req.params.id, req.body?.rues || [], { user: currentUser(req), limite_par_rue: req.body?.limite_par_rue ? Number(req.body.limite_par_rue) : null });
+    if (!r.ok) return erreur(res, r.error, 409);
+    ok(res, r);
+  }));
+  app.post('/api/alx/villes/:id/rediger', wrap(async (req, res) => {
+    const { redigerPour } = await import('../alx/parcours.js');
+    const r = redigerPour(req.params.id, req.body?.cibles || [], { user: currentUser(req) });
     if (!r.ok) return erreur(res, r.error, 409);
     ok(res, r);
   }));

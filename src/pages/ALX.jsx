@@ -6,7 +6,6 @@ import { useUser } from "@/components/providers/UserProvider";
 import { toast, avis } from "@/components/ui/avis";
 import { PILES, EMPLACEMENTS, TEINTES, emplacementDe, Bouton, Etiquette, Etoiles, Nombre, Champ, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
 import CarteRues from "@/components/alx/CarteRues";
-import FicheCommerce from "@/components/alx/FicheCommerce";
 
 // ALX, tel que la maquette le dessine. On arrive toujours par la même porte :
 // donnez une ville. La ville ouverte devient trois onglets : les rues sur une
@@ -641,9 +640,9 @@ function OngletMessages({ cibles, onOuvrir }) {
           <div className="mt-1 text-[13.5px] text-[#8B938F]">{joliNom(c.enseigne) || ""} · {c.adresse}{c.brouillon.objet ? ` · ${c.brouillon.objet}` : ""}</div>
           <div className="mt-[22px] whitespace-pre-line border-t border-white/[0.07] pt-5 text-[15px] leading-[1.7] text-[#C3CBC7]">{c.brouillon.texte}</div>
           <div className="mt-auto flex flex-wrap items-center gap-2.5 pt-[26px]">
-            <Bouton principal onClick={() => navigate(`/ALXCible?id=${c.id}#message`)}>Valider et envoyer</Bouton>
+            <Bouton principal onClick={() => navigate(`/ALXCible?id=${c.id}#message`)}>Relire et envoyer</Bouton>
             <Bouton onClick={() => reecrire.mutate(c.id)} disabled={reecrire.isPending}>{reecrire.isPending ? "…" : "Réécrire"}</Bouton>
-            <Bouton discret onClick={() => onOuvrir(c.id)}>Voir la fiche</Bouton>
+            <Bouton discret onClick={() => onOuvrir(c.id)}>La fiche</Bouton>
           </div>
         </div>
       )}
@@ -672,7 +671,8 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
   const brouillons = cibles.filter((c) => c.brouillon).length;
   const [ongletChoisi, setOnglet] = useState(ongletDemande);
   const onglet = ongletChoisi || (brouillons ? "messages" : cibles.length ? "commerces" : "rues");
-  const [fiche, setFiche] = useState(null);
+  const navigate = useNavigate();
+  const ouvrirFiche = (id) => navigate(`/ALXCible?id=${id}`);
 
   // Quand le relevé des rues se termine pendant qu'on regarde, un avis le dit.
   const etatPrecedent = useRef(p?.etat);
@@ -774,13 +774,12 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
         )}
 
         {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe) => classer.mutate({ nom, classe })} classerPending={classer.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} />}
-        {onglet === "commerces" && <OngletCommerces ville={ville} cibles={cibles} onOuvrir={setFiche} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
-        {onglet === "messages" && <OngletMessages cibles={cibles} onOuvrir={setFiche} />}
+        {onglet === "commerces" && <OngletCommerces ville={ville} cibles={cibles} onOuvrir={ouvrirFiche} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
+        {onglet === "messages" && <OngletMessages cibles={cibles} onOuvrir={ouvrirFiche} />}
 
         {!enCours && onglet === "commerces" && <div className="mt-2 flex justify-end"><AjoutCommerce villeId={villeId} ville={ville} onAjoute={rafraichir} /></div>}
       </div>
 
-      {fiche && <FicheCommerce id={fiche} onFermer={() => setFiche(null)} />}
     </div>
   );
 }

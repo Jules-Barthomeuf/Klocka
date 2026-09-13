@@ -126,6 +126,11 @@ export function ventesCommerciales(lignes) {
       prix,
       surface,
       prix_m2: Math.round(prix / surface),
+      // La parcelle et le nombre de lots : c'est ce qui dit si la vente est
+      // celle du local qu'on regarde, ou celle d'un immeuble entier.
+      parcelle: lot[0].id_parcelle || null,
+      lots: lot.length,
+      numero: lot[0].adresse_numero ? String(lot[0].adresse_numero) + String(lot[0].adresse_suffixe || '').toLowerCase() : null,
       adresse: [lot[0].adresse_numero, lot[0].adresse_suffixe, lot[0].adresse_nom_voie].filter(Boolean).join(' ').trim(),
       lat: Number(situe.latitude),
       lon: Number(situe.longitude),

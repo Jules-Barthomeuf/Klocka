@@ -120,15 +120,37 @@ export async function lireEvenements(id, { user = null } = {}) {
 }
 
 /** La dernière vente autour de l'adresse, d'après DVF. */
-export async function lireMutation(id, { rayon = 40, user = null } = {}) {
+export async function lireMutation(id, { rayon = 40, user = null, forcer = false } = {}) {
   const c = cibleOu(id);
   const { ventesAutour } = await import('../dvf.js');
-  const r = await ventesAutour(adresseComplete(c), { rayon, user });
+  const r = await ventesAutour(adresseComplete(c), { rayon, user, forcer });
   if (!r.ok) throw new Error(r.error);
   const ventes = r.resultat?.ventes || r.resultat?.transactions || [];
-  const proche = ventes[0] || null;
-  const mutation = proche ? { date: proche.date || proche.date_mutation || null, prix: proche.prix ?? proche.valeur_fonciere ?? null, nature: proche.nature || null, distance_m: proche.distance_m ?? null, source: 'DVF' } : null;
-  return mettreAJourCible(c.id, { mutation, dvf: r.resultat }, user);
+  // La vente du local lui-même : même parcelle que le propriétaire lu sur
+  // Data-B, ou même numéro dans la rue. Sinon, la plus proche, à titre de repère.
+  const parcelle = c.proprietaire?.parcelle || c.foncier?.parcelle || null;
+  const numero = (String(c.adresse || '').match(/^(\d+)\s*(bis|ter)?/i) || []).slice(1).filter(Boolean).join('').toLowerCase() || null;
+  const duLocal = ventes.find((v) => (parcelle && v.parcelle === parcelle) || (numero && v.numero === numero)) || null;
+  const proche = duLocal || ventes[0] || null;
+  const mutation = proche ? { date: proche.date || proche.date_mutation || null, prix: proche.prix ?? proche.valeur_fonciere ?? null, nature: proche.nature || null, distance_m: proche.distance_m ?? null, surface: proche.surface ?? null, parcelle: proche.parcelle || null, du_local: !!duLocal, source: 'DVF' } : null;
+  const patch = { mutation, dvf: r.resultat };
+  // Une vente du local depuis moins de cinq ans, d'un seul lot : sa surface
+  // est celle du commerce, et le prix se calcule.
+  const recente = duLocal && duLocal.date && Date.now() - Date.parse(duLocal.date) < 5 * 365.25 * 86400000;
+  if (recente && duLocal.surface > 0 && (duLocal.lots || 1) <= 2 && !(c.valorisation?.surface_source === 'saisie')) {
+    // Plusieurs commerces au même numéro : la vente n'est celle que d'un seul.
+    const voisins = Records.filter('Cible', { ville_id: c.ville_id }).filter((x) => x.id !== c.id && x.adresse === c.adresse && x.pile !== 'ecartee').length;
+    patch.valorisation = {
+      ...(c.valorisation || {}),
+      surface: duLocal.surface,
+      surface_source: `DVF, vente du ${String(duLocal.date).slice(0, 10)}${voisins ? ` (à confirmer : ${voisins + 1} commerces à ce numéro)` : ''}`,
+      surface_a_confirmer: voisins > 0,
+    };
+  }
+  const maj = mettreAJourCible(c.id, patch, user);
+  const v = maj.cible?.valorisation || {};
+  if (v.surface > 0 && v.loyer_m2_marche > 0 && !v.fourchette) return calculerPrix(c.id, { user });
+  return maj;
 }
 
 /** Le loyer de marché de la rue, par Data-B, sur l'adresse de la cible. */
@@ -155,7 +177,9 @@ export function poserLoyer(id, valeurLocative, user = null) {
     loyer_source: valeurLocative?.rue ? 'Data-B, rue' : 'Data-B, quartier',
     valeur_locative: valeurLocative,
   };
-  return mettreAJourCible(c.id, { valorisation: v }, user);
+  const maj = mettreAJourCible(c.id, { valorisation: v }, user);
+  if (v.surface > 0 && loyer > 0) return calculerPrix(c.id, { user });
+  return maj;
 }
 
 /** La fourchette de prix : loyer × surface ÷ rendement, ± un point. */

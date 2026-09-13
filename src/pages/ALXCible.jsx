@@ -180,6 +180,8 @@ export default function ALXCible() {
                 <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Prix estimé</div>
                 <div className="mt-1 text-[20px] font-semibold tabular-nums text-encre">{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : "—"}</div>
                 {!v.fourchette && <div className="text-[12px] text-brume">{v.loyer_m2_marche ? "saisissez la surface plus bas" : "après le loyer de la rue"}</div>}
+                {v.fourchette && v.surface && <div className="text-[12px]" style={{ color: v.surface_a_confirmer ? "#E8B278" : "var(--k-brume)" }}>{v.surface} m² · {v.surface_source}</div>}
+                {c.mutation?.du_local && <div className="text-[12px] text-brume">Le local s'est vendu {euros(c.mutation.prix)} en {String(c.mutation.date).slice(0, 4)}</div>}
               </div>
             </div>
             <div className="relative flex flex-wrap items-center gap-2.5 border-t border-white/[0.08] pt-4">

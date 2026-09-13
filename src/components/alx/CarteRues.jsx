@@ -84,13 +84,16 @@ function debutDuTrace(trace, fraction) {
  */
 export default function CarteRues({ rues, ecartees = [], coches, choisie = null, onChoisir, centre = null, className = "", streetView = null, direct = null }) {
   const visibles = useMemo(() => (direct ? rues.filter((r) => direct.retenues.includes(r.nom)) : rues), [rues, direct]);
-  // Le cadrage ne suit que les rues à moins de 4 km du centre de la ville :
-  // une rue mal géolocalisée ou un chemin de périphérie ne doit pas montrer Lyon
-  // quand on regarde Antibes.
-  const points = useMemo(() => visibles
-    .map((r) => r.centre).filter(Boolean)
-    .filter((c) => !centre || metres([c.lat, c.lon], [centre.lat, centre.lon]) <= 4000)
-    .map((c) => [c.lat, c.lon]), [visibles, centre]);
+  // Le cadrage vise le centre commerçant : les vingt rues les plus garnies,
+  // à moins de 4 km du centre de la ville. Une rue mal géolocalisée ou un
+  // chemin de Sophia Antipolis ne doit pas dézoomer Antibes jusqu'à Cannes.
+  // En direct, toutes les rues retenues comptent.
+  const points = useMemo(() => {
+    const proches = visibles
+      .filter((r) => r.centre && (!centre || metres([r.centre.lat, r.centre.lon], [centre.lat, centre.lon]) <= 4000));
+    const cadre = direct ? proches : [...proches].sort((a, b) => (b.commerces || 0) - (a.commerces || 0)).slice(0, 20);
+    return cadre.map((r) => [r.centre.lat, r.centre.lon]);
+  }, [visibles, centre, direct]);
   const centreCarte = centre ? [centre.lat, centre.lon] : points[0] || [46.6, 2.4];
   const avecTrace = rues.filter((r) => r.trace?.length).length;
 

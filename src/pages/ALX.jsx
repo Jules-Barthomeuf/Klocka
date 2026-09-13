@@ -175,16 +175,6 @@ function Accueil({ villes, onOuvrir }) {
 
 // --- La ville ouverte -----------------------------------------------------------------------
 
-const ETAPES = [
-  ["La ville", () => "Clients actifs lus dans Monday, avec leurs budgets."],
-  ["Les rues", (p) => (p.phase === "rues" ? "Rues et vitrines du centre sur OpenStreetMap, loyer de chaque rue chez Data-B." : `${pluriel(p.rues_total || 0, "rue", "rues")} à parcourir, emplacement 1 d'abord.`)],
-  ["Les commerces", (p) => `${pluriel(p.commerces_trouves || 0, "vitrine lue", "vitrines lues")} sur Google Maps, recoupées avec l'annuaire.`],
-  ["Le propriétaire", (p) => `Data-B, adresse par adresse : ${pluriel(p.proprietaires_trouves || 0, "retrouvé", "retrouvés")}.`],
-  ["La société et les gens", () => "Annuaire des entreprises, BODACC, DVF."],
-  ["Le classement", (p) => `Trois piles, un motif par cible. ${pluriel(p.ecartees || 0, "écartée", "écartées")} avec motif.`],
-  ["Le contact", (p) => `${pluriel(p.brouillons || 0, "message rédigé", "messages rédigés")}, en attente de votre relecture.`],
-];
-
 /** Ce qu'ALX fait en ce moment, en une phrase, et le temps qu'il lui reste. */
 function enCeMoment(p, rues) {
   if (!p || p.etat !== "en_cours") return null;
@@ -266,62 +256,6 @@ function FilDuParcours({ p }) {
           <span className="min-w-0 truncate">{l.texte}</span>
         </div>
       ))}
-    </div>
-  );
-}
-
-/** Les sept étapes et ce qui a déjà été trouvé : le détail du parcours, replié par défaut. */
-function DetailParcours({ ville }) {
-  const p = ville.parcours || {};
-  const enCours = p.etat === "en_cours";
-  const etape = p.etape || 1;
-  const journal = (p.journal || []).slice(-6).reverse();
-  return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="flex flex-col">
-        {ETAPES.map(([mot, detail], i) => {
-          const rang = i + 1;
-          const fait = !enCours || rang < etape || (p.phase === "commerces" && rang <= 2);
-          const actif = enCours && rang === etape;
-          return (
-            <div key={mot} className="flex items-baseline gap-4 border-t border-white/[0.06] py-[15px]">
-              <Nombre taille={12} teinte={actif ? TEINTES.ecrire : TEINTES.muet} className="w-[22px] shrink-0">{String(rang).padStart(2, "0")}</Nombre>
-              <div className="min-w-0 flex-1">
-                <div className="text-[16px]" style={{ color: fait ? "#C3CBC7" : actif ? "#F3F7F5" : "#8B938F" }}>{mot}{actif && p.rue_en_cours && rang >= 3 ? ` · ${p.rue_en_cours}` : ""}</div>
-                <div className="text-[13px] text-[#8B938F]">{detail(p)}</div>
-              </div>
-              <Etiquette teinte={actif ? TEINTES.ecrire : TEINTES.muet} className="!text-[9.5px]">{fait ? "fait" : actif ? "en cours" : "à venir"}</Etiquette>
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex flex-col gap-4">
-        <div className="rounded-[16px] border border-white/[0.07] px-[26px] pb-5 pt-6">
-          <Etiquette teinte="#c3ddd6">{enCours ? "Déjà trouvé" : "Trouvé"}</Etiquette>
-          <div className="mt-[18px] flex flex-col">
-            {[
-              ["Rues parcourues", `${p.rues_faites || 0}${p.rues_total ? ` / ${p.rues_total}` : ""}`, "#F3F7F5"],
-              ["Commerces lus", fmt(p.commerces_trouves), "#F3F7F5"],
-              ["Propriétaires retrouvés", fmt(p.proprietaires_trouves), "#F3F7F5"],
-              ["Messages rédigés", fmt(p.brouillons), TEINTES.ecrire],
-              ["Écartés avec motif", fmt(p.ecartees), TEINTES.appeler],
-            ].map(([mot, val, t]) => (
-              <div key={mot} className="flex items-baseline justify-between gap-4 border-t border-white/[0.055] py-[13px]">
-                <span className="text-[14.5px] text-[#C3CBC7]">{mot}</span>
-                <Nombre taille={20} teinte={t}>{val}</Nombre>
-              </div>
-            ))}
-            {p.erreurs > 0 && <div className="pt-3 text-[12px]" style={{ color: TEINTES.appeler }}>{p.erreurs} lecture{p.erreurs > 1 ? "s" : ""} en erreur, détail dans le journal.</div>}
-          </div>
-        </div>
-        <div className="rounded-[16px] border border-white/[0.07] px-[26px] py-5">
-          <Etiquette>Journal</Etiquette>
-          <div className="mt-3 font-mono text-[11px] leading-[1.9] text-[#8B938F]">
-            {journal.length === 0 && <div>…</div>}
-            {journal.map((l, i) => <div key={i}>{heure(l.le)} · {l.texte}</div>)}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -953,16 +887,6 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
         )}
         {maintenant && p.phase === "commerces" && <Direct ville={ville} p={p} />}
         {maintenant && <FilDuParcours p={p} />}
-
-        {p?.etat && (
-          <details className="mt-4 text-[13px] text-[#8B938F]">
-            <summary className="cursor-pointer hover:text-[#E8EFEB]">
-              {enCours ? "Le détail du parcours" : `Dernier passage ${p.etat === "fini" ? "terminé" : p.etat === "arrete" ? "arrêté" : p.etat === "interrompu" ? "interrompu par un redémarrage" : p.etat === "rues_proposees" ? "terminé, rues proposées" : "en erreur"} à ${heure(p.fini_le || p.maj_le)}`}
-              {p.erreurs ? ` · ${p.erreurs} erreur${p.erreurs > 1 ? "s" : ""}` : ""} · journal
-            </summary>
-            <div className="mt-5"><DetailParcours ville={ville} /></div>
-          </details>
-        )}
 
         {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe, motif_cle, motif) => classer.mutate({ nom, classe, motif_cle, motif })} classerPending={classer.isPending || classerAussi.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} motifs={etat?.motifs_rue || []} apprentissage={apprentissage} onClasserAussi={(noms) => classerAussi.mutate(noms)} />}
         {onglet === "commerces" && <OngletCommerces ville={ville} cibles={cibles} onOuvrir={ouvrirFiche} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}

@@ -112,17 +112,18 @@ export default function FeedbackFlottant() {
         title="Signaler quelque chose"
         aria-label="Signaler quelque chose"
         aria-expanded={ouvert}
-        className={`w-9 h-9 rounded-full flex items-center justify-center border transition-colors ${
+        // Même taille que la pilule de l'assistant, en bas à droite : 48 px.
+        className={`w-12 h-12 rounded-full flex items-center justify-center border transition-colors ${
           ouvert
             ? "bg-menthe border-menthe text-[#0b0c0e]"
             : "bg-[#0a0a0bcc] backdrop-blur-md border-menthe/30 text-ardoise hover:text-encre hover:border-menthe/60"
         }`}
       >
-        {ouvert ? <X className="w-4 h-4" /> : <MessageSquarePlus className="w-4 h-4" />}
+        {ouvert ? <X className="w-[18px] h-[18px]" /> : <MessageSquarePlus className="w-[18px] h-[18px]" />}
       </button>
 
       {ouvert && (
-        <div className="absolute right-0 top-[46px] w-[420px] max-md:w-[calc(100vw-2rem)] max-md:right-[-3rem] rounded-[18px] border border-bord bg-[#0a0a0bf5] backdrop-blur-xl shadow-[0_24px_60px_rgba(0,0,0,.6)] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 top-[58px] w-[420px] max-md:w-[calc(100vw-2rem)] max-md:right-[-3rem] rounded-[18px] border border-bord bg-[#0a0a0bf5] backdrop-blur-xl shadow-[0_24px_60px_rgba(0,0,0,.6)] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-baseline justify-between gap-4 mb-3">
             <p className="m-0 text-[15px] font-medium text-encre">Signaler quelque chose</p>
             <Link to={createPageUrl("AdminSuggestions")} onClick={() => setOuvert(false)} className="text-[12px] text-brume hover:text-craie">

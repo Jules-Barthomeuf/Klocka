@@ -110,9 +110,12 @@
     "rayon_km": 1.5,
     "min_commerces_par_rue": 3,
     "max_rues": 300,
+    "part_emplacement_1": 0.10,
+    "part_emplacement_1bis": 0.35,
+    "loyer_plancher_1": 450,
     "loyer_emplacement_1": 800,
     "loyer_emplacement_1bis": 550,
     "loyer_emplacement_2": 250,
-    "_commentaire": "Une rue est proposée si elle compte au moins min_commerces_par_rue vitrines sur OpenStreetMap, sur toute la commune (OSM en connaît moins que l'annuaire, d'où un seuil plus bas) ; les max_rues plus vivantes sont classées. Son emplacement vient du milieu de la fourchette de loyer de marché de la rue (Data-B, €/m²/an) : à partir de loyer_emplacement_1, c'est du 1 (700 000 à 1 000 000) ; à partir de loyer_emplacement_1bis, du 1 bis (la rue qui tient le 1 sans en avoir le loyer) ; à partir de loyer_emplacement_2, du 2 (300 000 à 500 000 ; une petite rue dense à 300 €/m² porte encore un local à 300 000) ; en dessous, la rue est écartée avec son motif et l'équipe peut la reprendre. Calé sur Cannes : rue d'Antibes 899-1348 en 1, rue Meynadier autour de 600 en 1 bis, avenue de Grasse 347-521 en 2."
+    "_commentaire": "L'emplacement est relatif à la ville, comme dans le métier : les rues sont rangées par le milieu de leur fourchette de loyer Data-B (€/m²/an), les part_emplacement_1 premières (10 %) sont en 1, jusqu'à part_emplacement_1bis (35 %) en 1 bis, le reste en 2. Deux garde-fous absolus : une rue en 1 doit avoir au moins loyer_plancher_1 de loyer ; sous loyer_emplacement_2, la rue est écartée avec son motif et l'équipe peut la reprendre. loyer_emplacement_1 et _1bis ne servent plus qu'au classement d'une rue ajoutée seule, sans ville autour. Une rue est proposée si elle compte au moins min_commerces_par_rue vitrines sur OpenStreetMap ; les max_rues plus vivantes sont classées."
   }
 }

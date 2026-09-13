@@ -71,10 +71,41 @@ export function grouperParRue(etablissements) {
   return { rues: [...rues.values()].sort((a, b) => b.commerces - a.commerces), ignores };
 }
 
+const milieuDe = (loyer) => (loyer?.basse != null && loyer?.haute != null ? (loyer.basse + loyer.haute) / 2 : loyer?.haute ?? loyer?.basse ?? null);
+
 /**
- * L'emplacement d'une rue d'après le milieu de sa fourchette de loyer de
- * marché (€/m²/an) : 1, 1.5 (« 1 bis »), 2, ou null (écartée), avec le
- * motif. Pure.
+ * L'emplacement de chaque rue, relatif à la ville, comme dans le métier :
+ * les rues sont rangées par leur loyer de marché, les 10 % du haut sont en
+ * 1, jusqu'à 35 % en 1 bis, le reste en 2. Deux garde-fous absolus : une
+ * rue en 1 doit avoir un loyer d'au moins `loyer_plancher_1` ; sous
+ * `loyer_emplacement_2`, la rue est écartée. Une rue sans loyer est classée
+ * 2 par défaut. Pure : rend les rues avec `classe` (null = écartée) et `motif`.
+ */
+export function classerParRang(rues, seuils = SEUILS) {
+  const p1 = seuils.part_emplacement_1 ?? 0.10;
+  const p15 = seuils.part_emplacement_1bis ?? 0.35;
+  const avec = rues.filter((r) => milieuDe(r.loyer) != null).sort((a, b) => milieuDe(b.loyer) - milieuDe(a.loyer));
+  const n = avec.length;
+  const rang = new Map(avec.map((r, i) => [r, i]));
+  return rues.map((r) => {
+    const loyer = r.loyer;
+    const m = milieuDe(loyer);
+    const densite = `${r.vitrines ?? r.commerces ?? 0} vitrine${(r.vitrines ?? r.commerces ?? 0) > 1 ? 's' : ''}`;
+    if (m == null) return { ...r, classe: 2, motif: `${densite} · loyer inconnu : classée 2 par défaut, à vérifier` };
+    const fourchette = `loyer ${Math.round(loyer.basse ?? m)}–${Math.round(loyer.haute ?? m)} €/m²/an`;
+    if (m < (seuils.loyer_emplacement_2 ?? 250)) return { ...r, classe: null, motif: `${densite} · ${fourchette} : trop bas pour le mandat` };
+    const i = rang.get(r);
+    const place = `${i + 1}e sur ${n} de la ville`;
+    if (i < n * p1 && m >= (seuils.loyer_plancher_1 ?? 450)) return { ...r, classe: 1, motif: `${densite} · ${fourchette} · ${place}, dans les ${Math.round(p1 * 100)} % les plus chères` };
+    if (i < n * p15) return { ...r, classe: 1.5, motif: `${densite} · ${fourchette} · ${place}, dans les ${Math.round(p15 * 100)} % les plus chères` };
+    return { ...r, classe: 2, motif: `${densite} · ${fourchette} · ${place}` };
+  });
+}
+
+/**
+ * L'emplacement d'une rue seule, sans ville autour, d'après le milieu de sa
+ * fourchette de loyer (€/m²/an) et des seuils absolus : 1, 1.5 (« 1 bis »),
+ * 2, ou null (écartée), avec le motif. Pure.
  */
 export function emplacementParLoyer(loyer, commerces, seuils = SEUILS) {
   const basse = loyer?.basse ?? null;
@@ -162,23 +193,22 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
     } catch (e) {
       journal(`${nom} : Data-B n'a pas rendu de loyer (${e.message}).`);
     }
-    const { classe, motif } = emplacementParLoyer(loyer, r.vitrines);
     // Le prix au m² des murs vendus autour de la rue (DVF), et le rendement qui
     // en découle avec le loyer ; à défaut, le prix que donne le loyer à 7 %.
     const marche = await prixDeLaRue(officielle ? `${nom}, ${cp} ${commune.nom}` : null, loyer, prixDe);
     return {
       nom, cle: r.cle, code_postal: cp, commerces: r.vitrines, enseignes: r.enseignes.slice(0, 8),
       trace: r.trace, longueur_m: r.longueur_m, type: r.type || null, flux_estime: r.flux_estime || null,
-      loyer: loyer ? [loyer.basse, loyer.haute] : null,
-      loyer_source: valeurLocative?.rue ? 'Data-B, rue' : valeurLocative?.quartier ? 'Data-B, quartier' : null,
+      loyer, loyer_source: valeurLocative?.rue ? 'Data-B, rue' : valeurLocative?.quartier ? 'Data-B, quartier' : null,
       ...marche,
       centre: officielle ? { lat: officielle.lat, lon: officielle.lon } : r.centre,
-      motif, classe,
     };
   });
 
-  const classees = lues.filter((x) => x && x.classe);
-  const ecartees = lues.filter((x) => x && !x.classe).map(({ classe, ...x }) => x);
+  // Le classement se fait sur toute la ville à la fois : l'emplacement est un rang.
+  const classes = classerParRang(lues.filter(Boolean)).map((x) => ({ ...x, loyer: x.loyer ? [x.loyer.basse, x.loyer.haute] : null }));
+  const classees = classes.filter((x) => x.classe);
+  const ecartees = classes.filter((x) => !x.classe).map(({ classe, ...x }) => x);
   classees.sort((a, b) => a.classe - b.classe || b.commerces - a.commerces);
   return { commune, classees, ecartees, commerces_total: vitrines, etablissements_par_rue: {} };
 }

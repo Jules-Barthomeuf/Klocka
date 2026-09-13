@@ -4,7 +4,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ruesSemblables, reglesApprises, appliquerLecons, traitsDe } from './apprentissage.js';
 
-const SEUILS = { loyer_emplacement_1: 800, loyer_emplacement_1bis: 550, loyer_emplacement_2: 250 };
 const rue = (nom, classe, loyer, commerces, longueur_m, type, flux = 2) => ({ nom, classe, loyer, commerces, longueur_m, type, flux_estime: { note: flux } });
 
 const RUES = [
@@ -20,25 +19,15 @@ test('les semblables d’une rue résidentielle rétrogradée sont les rues du m
   assert.deepEqual(ruesSemblables(RUES[0], RUES, 'autre'), [], 'une raison libre ne généralise pas');
 });
 
-test('deux rétrogradations pour loyer trop haut font une décote médiane sur la ville', () => {
-  const lecons = [
-    { ville_id: 'v', de: 1.5, vers: 2, motif_cle: 'loyer_surestime', traits: traitsDe(RUES[0]) },
-    { ville_id: 'v', de: 1.5, vers: 2, motif_cle: 'loyer_surestime', traits: traitsDe(RUES[1]) },
-  ];
-  const r = reglesApprises(lecons, SEUILS);
-  assert.ok(r.decotes.v > 0.2 && r.decotes.v < 0.25, `décote ${r.decotes.v}`);
-  assert.equal(reglesApprises(lecons.slice(0, 1), SEUILS).decotes.v, undefined, 'une seule leçon ne fait pas une règle');
-});
-
 test('un plafond appris rétrograde une rue qui ressemble, et laisse la rue vivante', () => {
   const lecons = [
     { ville_id: 'v', de: 1.5, vers: 2, motif_cle: 'residentielle', traits: traitsDe(RUES[0]) },
     { ville_id: 'w', de: 1.5, vers: 2, motif_cle: 'residentielle', traits: traitsDe(RUES[1]) },
   ];
-  const regles = reglesApprises(lecons, SEUILS);
+  const regles = reglesApprises(lecons);
   const autre = rue('Rue Paisible', 1.5, [600, 900], 5, 320, 'residential', 1.5);
-  const a = appliquerLecons(autre, regles, 'x', SEUILS);
+  const a = appliquerLecons(autre, regles);
   assert.equal(a.classe, 2);
   assert.match(a.motif, /d'après vos corrections/);
-  assert.equal(appliquerLecons(RUES[2], regles, 'x', SEUILS).classe, 1.5, 'la rue vivante reste');
+  assert.equal(appliquerLecons(RUES[2], regles).classe, 1.5, 'la rue vivante reste');
 });

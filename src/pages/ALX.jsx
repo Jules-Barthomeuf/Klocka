@@ -492,13 +492,11 @@ function CaseTeinte({ teinte, trait = false, title, onClick }) {
   );
 }
 
-/** Pourquoi cette rue est en 1, 1 bis ou 2 : le loyer, et le seuil qu'il passe. */
+/** Pourquoi cette rue est en 1, 1 bis ou 2 : son rang dans la ville, écrit dans son motif. */
 function pourquoiEmplacement(r) {
   const e = emplacementDe(r.classe);
-  const milieu = r.loyer ? Math.round((r.loyer[0] + r.loyer[1]) / 2) : null;
-  if (!r.loyer) return `Emplacement ${e.mot} par défaut : Data-B n'a pas rendu de loyer pour cette rue. À vérifier.`;
-  const seuil = r.classe === 1 ? "au-dessus de 800" : r.classe === 1.5 ? "entre 550 et 800" : "entre 250 et 550";
-  return `Emplacement ${e.mot} : loyer de marché ${Math.round(r.loyer[0])}–${Math.round(r.loyer[1])} €/m²/an chez Data-B, soit ${milieu} au milieu, ${seuil}. ${r.commerces || 0} vitrines sur ${r.longueur_m || "?"} m. ${e.detail.charAt(0).toUpperCase() + e.detail.slice(1)}.`;
+  const base = r.motif || (r.loyer ? `loyer ${Math.round(r.loyer[0])}–${Math.round(r.loyer[1])} €/m²/an` : "loyer inconnu");
+  return `Emplacement ${e.mot} : ${base}. L'emplacement est un rang dans la ville : les 10 % de rues les plus chères sont en 1, jusqu'à 35 % en 1 bis, le reste en 2. ${e.detail.charAt(0).toUpperCase() + e.detail.slice(1)}.`;
 }
 
 const valeurTri = (r, cle) => (cle === "classe" ? r.classe || 9 : cle === "loyer" ? (r.loyer ? (r.loyer[0] + r.loyer[1]) / 2 : 0) : r.prix_m2 || 0);

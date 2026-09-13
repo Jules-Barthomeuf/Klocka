@@ -19,7 +19,7 @@ import { proposerRues, libelleEmplacement } from './rues.js';
 import { pointsLeLongDe } from './osm.js';
 import { etablissementsRue } from './annuaire.js';
 import { cleRue } from './commerces.js';
-import { LIBELLES_PILES, REGLES } from './classement.js';
+import { LIBELLES_PILES } from './classement.js';
 import { commercesDeLaRue, placesConfigure } from './places.js';
 
 // Un commerce vu sur Maps retrouve son établissement dans l'annuaire : même
@@ -256,10 +256,10 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     // Les leçons de l'équipe passent avant : une rue qui ressemble à celles
     // qu'on a corrigées prend la classe corrigée, avec la raison dans son motif.
     const { leconsDe, reglesApprises, appliquerLecons } = await import('./apprentissage.js');
-    const regles = reglesApprises(leconsDe(villeId), REGLES.parcours);
+    const regles = reglesApprises(leconsDe(villeId));
     let apprises = 0;
     const proposees = r.classees.filter((x) => !clesManuelles.has(x.cle) && !clesRetirees.has(x.cle)).map((x) => {
-      const y = appliquerLecons(x, regles, villeId, REGLES.parcours);
+      const y = appliquerLecons(x, regles);
       if (y.apprise) apprises += 1;
       return { ...y, par: 'alx', le: maintenant() };
     });

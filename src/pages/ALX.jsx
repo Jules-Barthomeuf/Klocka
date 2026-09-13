@@ -201,6 +201,46 @@ function enCeMoment(p, rues) {
 }
 
 /**
+ * Le direct de la prospection : à gauche la carte des rues retenues, qui se
+ * colorent au fur et à mesure des pas d'ALX ; à droite le temps estimé, en
+ * gros, dans un anneau qui se remplit.
+ */
+function Direct({ ville, p }) {
+  const rues = ville?.rues || [];
+  const retenues = p.rues_a_faire || rues.filter((r) => r.retenue).map((r) => r.nom);
+  const faites = p.rues_faites_noms || [];
+  const total = p.rues_total || retenues.length || 1;
+  const fraction = p.balade?.total ? p.balade.pas / p.balade.total : null;
+  // La rue en cours compte pour sa part de pas, les cibles qui suivent la balade pour le reste.
+  const avancement = Math.min(1, (faites.length + (p.rue_en_cours ? (fraction == null ? 0.5 : 0.35 * fraction) : 0)) / total);
+  const ecoule = p.demarre_le ? (Date.now() - Date.parse(p.demarre_le)) / 60000 : 0;
+  const reste = avancement > 0.02 ? Math.max(1, Math.round((ecoule * (1 - avancement)) / avancement)) : null;
+  const R = 54, C = 2 * Math.PI * R;
+  return (
+    <div className="mt-5 grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <CarteRues rues={rues} coches={new Set()} onChoisir={() => {}} centre={ville?.centre} direct={{ retenues, faites, enCours: p.rue_en_cours || null, fraction }} className="h-[360px]" />
+      <div className="flex flex-col items-center justify-center gap-4 rounded-[16px] border border-white/[0.07] px-5 py-6 text-center">
+        <div className="relative grid place-items-center">
+          <svg width="132" height="132" viewBox="0 0 132 132" className="-rotate-90">
+            <circle cx="66" cy="66" r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
+            <circle cx="66" cy="66" r={R} fill="none" stroke="#96c0b8" strokeWidth="6" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - avancement)} style={{ transition: "stroke-dashoffset .8s ease" }} />
+          </svg>
+          <div className="absolute flex flex-col items-center">
+            <Nombre taille={28} teinte="#F3F7F5">{reste != null ? `${reste} min` : "…"}</Nombre>
+            <span className="text-[10.5px] uppercase tracking-[.14em] text-[#8B938F]">restantes</span>
+          </div>
+        </div>
+        <div>
+          <Etiquette>Temps estimé</Etiquette>
+          <div className="mt-1.5 text-[13.5px] text-[#C3CBC7]">{faites.length} rue{faites.length > 1 ? "s" : ""} sur {total}{p.rue_en_cours ? ` · ${p.rue_en_cours}` : ""}{p.balade ? ` · pas ${p.balade.pas}/${p.balade.total}` : ""}</div>
+          <div className="mt-1 text-[12.5px] text-[#8B938F]">{p.cibles_creees || 0} commerce{(p.cibles_creees || 0) > 1 ? "s" : ""}, {p.proprietaires_trouves || 0} propriétaire{(p.proprietaires_trouves || 0) > 1 ? "s" : ""}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Ce qui défile pendant qu'ALX lit : le commerce en cours, puis les six
  * dernières lignes du journal, la plus récente en haut. Chaque ligne entre
  * par le haut ; on voit passer chaque commerce regardé.
@@ -912,9 +952,10 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
               </span>
               <span className="text-[15px] text-[#C3CBC7]">{maintenant.texte}</span>
             </div>
-            {maintenant.reste && <span className="shrink-0 text-[13.5px] text-[#8B938F]">Temps restant : <Nombre taille={13.5} teinte="#C3CBC7">{maintenant.reste}</Nombre></span>}
+            {maintenant.reste && p.phase !== "commerces" && <span className="shrink-0 text-[13.5px] text-[#8B938F]">Temps restant : <Nombre taille={13.5} teinte="#C3CBC7">{maintenant.reste}</Nombre></span>}
           </div>
         )}
+        {maintenant && p.phase === "commerces" && <Direct ville={ville} p={p} />}
         {maintenant && <FilDuParcours p={p} />}
 
         {p?.etat && (

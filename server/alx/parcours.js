@@ -292,7 +292,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
   const aParcourir = (ville.rues || [])
     .filter((x) => !rues || rues.some((n) => cleRue(n) === cleRue(x.nom)))
     .sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0));
-  ecrire(villeId, { phase: 'commerces', etape: 3, rues_total: aParcourir.length });
+  ecrire(villeId, { phase: 'commerces', etape: 3, rues_total: aParcourir.length, rues_a_faire: aParcourir.map((x) => x.nom), rues_faites_noms: [], balade: null });
   if (!aParcourir.length) {
     noter(villeId, 'Aucune rue classée : rien à parcourir.');
     return finir('fini');
@@ -322,7 +322,8 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
       // points des établissements de l'annuaire ; à défaut, les numéros par la BAN.
       const points = rue.trace?.length ? pointsLeLongDe(rue.trace) : etabs.filter((e) => e.lat && e.lon).map((e) => ({ lat: e.lat, lon: e.lon }));
       try {
-        const balade = await commercesDeLaRue({ nom: rue.nom, ville: v0.nom, points, arreter: doitArreter, journal: (t) => noter(villeId, t) });
+        // Chaque pas s'écrit sur le parcours : la carte dessine la rue au fur et à mesure.
+        const balade = await commercesDeLaRue({ nom: rue.nom, ville: v0.nom, points, arreter: doitArreter, journal: (t) => noter(villeId, t), surPas: (i, total) => ecrire(villeId, { balade: { rue: rue.nom, pas: i, total } }) });
         commerces = balade.commerces.map((c) => {
           const e = etablissementPour(c, etabs);
           return e ? { ...c, siret: e.siret, siren: e.siren, nom: e.nom, ape: e.ape, depuis: e.depuis, chaine: e.chaine, code_postal: c.code_postal || e.code_postal } : { ...c, siret: null, siren: null, nom: null, ape: null, depuis: null, chaine: false };
@@ -466,7 +467,8 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     const rues1 = (v1.rues || []).map((x) => (cleRue(x.nom) === cleRue(rue.nom) ? { ...x, parcourue_le: maintenant(), cibles: creees + (x.cibles || 0), proprietaires: proprios + (x.proprietaires || 0) } : x));
     Records.update('Ville', villeId, { rues: rues1 });
     compter(villeId, 'rues_faites');
-    ecrire(villeId, { commerce_en_cours: null });
+    const pFait = Records.get('Ville', villeId).parcours || {};
+    ecrire(villeId, { commerce_en_cours: null, balade: null, rues_faites_noms: [...(pFait.rues_faites_noms || []), rue.nom] });
     const piles = Records.filter('Cible', { ville_id: villeId, rue: rue.nom }).reduce((a, x) => ((a[x.pile] = (a[x.pile] || 0) + 1), a), {});
     noter(villeId, `${rue.nom} : ${creees} cible${creees > 1 ? 's' : ''} créée${creees > 1 ? 's' : ''}, ${proprios} propriétaire${proprios > 1 ? 's' : ''} trouvé${proprios > 1 ? 's' : ''}, ${ecartees} écartée${ecartees > 1 ? 's' : ''} · à appeler ${piles.appeler || 0}, à écrire ${piles.ecrire || 0}, à surveiller ${piles.surveiller || 0}${erreursRue ? ` · ${erreursRue} erreur${erreursRue > 1 ? 's' : ''}` : ''}.`);
   }

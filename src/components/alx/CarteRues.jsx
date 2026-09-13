@@ -47,8 +47,32 @@ const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
  *   onChoisir: Function, centre?: {lat:number, lon:number}|null, className?: string,
  *   streetView?: {lat:number, lon:number, nom?:string}|null}} p
  */
-export default function CarteRues({ rues, ecartees = [], coches, choisie = null, onChoisir, centre = null, className = "", streetView = null }) {
-  const points = useMemo(() => rues.map((r) => r.centre).filter(Boolean).map((c) => [c.lat, c.lon]), [rues]);
+/** Le début d'un tracé : la fraction demandée de ses points, tronçon après tronçon. */
+function debutDuTrace(trace, fraction) {
+  const total = trace.reduce((a, t) => a + t.length, 0);
+  let reste = Math.max(2, Math.round(total * Math.max(0, Math.min(1, fraction))));
+  const out = [];
+  for (const t of trace) {
+    if (reste <= 0) break;
+    out.push(t.slice(0, reste));
+    reste -= t.length;
+  }
+  return out;
+}
+
+/**
+ * @param {{rues: object[], ecartees?: object[], coches: Set<string>, choisie?: string|null,
+ *   onChoisir: Function, centre?: {lat:number, lon:number}|null, className?: string,
+ *   streetView?: {lat:number, lon:number, nom?:string}|null,
+ *   direct?: {retenues: string[], faites: string[], enCours?: string|null, fraction?: number}|null}} p
+ *
+ * `direct` : la carte du parcours en cours. Seules les rues retenues sont
+ * dessinées : en gris tant qu'ALX n'y est pas passé, dans leur teinte une fois
+ * faites, et celle en cours se colore au fur et à mesure des pas.
+ */
+export default function CarteRues({ rues, ecartees = [], coches, choisie = null, onChoisir, centre = null, className = "", streetView = null, direct = null }) {
+  const visibles = useMemo(() => (direct ? rues.filter((r) => direct.retenues.includes(r.nom)) : rues), [rues, direct]);
+  const points = useMemo(() => visibles.map((r) => r.centre).filter(Boolean).map((c) => [c.lat, c.lon]), [visibles]);
   const centreCarte = centre ? [centre.lat, centre.lon] : points[0] || [46.6, 2.4];
   const avecTrace = rues.filter((r) => r.trace?.length).length;
 
@@ -76,7 +100,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
       <MapContainer center={centreCarte} zoom={15} scrollWheelZoom className="h-full w-full" attributionControl={false} zoomControl={false}>
         <TileLayer url={TUILES} attribution="&copy; OpenStreetMap" maxZoom={19} />
         <Cadrage points={points} />
-        {ecartees.map((r) =>
+        {!direct && ecartees.map((r) =>
           (r.trace || []).map((troncon, i) => (
             <Polyline
               key={`e-${r.nom}-${i}`}
@@ -86,21 +110,37 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
             />
           )),
         )}
-        {rues.map((r) => {
-          const e = emplacementDe(r.classe);
-          const cochee = coches.has(r.nom);
-          const choisieIci = choisie === r.nom;
-          return (r.trace || []).map((troncon, i) => (
-            <Polyline
-              key={`${r.nom}-${i}`}
-              positions={troncon}
-              pathOptions={{ color: e.teinte, weight: choisieIci ? 9 : cochee ? 7 : 4.5, opacity: choisieIci || cochee ? 1 : 0.75, lineCap: "round" }}
-              eventHandlers={{ click: () => onChoisir(r.nom) }}
-            />
-          ));
-        })}
+        {direct
+          ? visibles.map((r) => {
+            const e = emplacementDe(r.classe);
+            const faite = direct.faites.includes(r.nom);
+            const enCours = direct.enCours === r.nom;
+            const trace = r.trace || [];
+            return [
+              // Le fond gris : la rue qu'ALX doit encore parcourir.
+              ...trace.map((troncon, i) => <Polyline key={`g-${r.nom}-${i}`} positions={troncon} pathOptions={{ color: "#3a3f47", weight: 4, opacity: 0.9, lineCap: "round" }} />),
+              // La couleur : entière quand c'est fait ; jusqu'au pas en cours pendant
+              // la balade ; entière mais voilée quand ALX lit les commerces trouvés.
+              ...(faite || enCours ? (faite || direct.fraction == null ? trace : debutDuTrace(trace, direct.fraction)).map((troncon, i) => (
+                <Polyline key={`c-${r.nom}-${i}`} positions={troncon} pathOptions={{ color: e.teinte, weight: enCours ? 8 : 6, opacity: enCours && direct.fraction == null ? 0.55 : 1, lineCap: "round" }} />
+              )) : []),
+            ];
+          })
+          : rues.map((r) => {
+            const e = emplacementDe(r.classe);
+            const cochee = coches.has(r.nom);
+            const choisieIci = choisie === r.nom;
+            return (r.trace || []).map((troncon, i) => (
+              <Polyline
+                key={`${r.nom}-${i}`}
+                positions={troncon}
+                pathOptions={{ color: e.teinte, weight: choisieIci ? 9 : cochee ? 7 : 4.5, opacity: choisieIci || cochee ? 1 : 0.75, lineCap: "round" }}
+                eventHandlers={{ click: () => onChoisir(r.nom) }}
+              />
+            ));
+          })}
       </MapContainer>
-      <Legende />
+      {!direct && <Legende />}
       {avecTrace === 0 && (
         <div className="absolute inset-0 z-[400] grid place-items-center bg-fond/70 px-6 text-center text-[13px] text-ardoise">
           Les tracés arrivent avec le prochain relevé : cliquez « Refaire les rues ».

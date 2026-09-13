@@ -127,15 +127,16 @@ export function pasDeMarche(points, pas = PAS_M) {
  * @param {{nom:string, ville:string, points?:{lat,lon}[], arreter?:Function, journal?:Function}} o
  * @returns {Promise<{commerces: object[], ignores: Record<string,number>, pas: number}>}
  */
-export async function commercesDeLaRue({ nom, ville, points = null, arreter = () => false, journal = () => {} }) {
+export async function commercesDeLaRue({ nom, ville, points = null, arreter = () => false, journal = () => {}, surPas = () => {} }) {
   if (!placesConfigure()) throw new ErreurSource("Google Places n'est pas configuré : GOOGLE_MAPS_SERVEUR manque dans le .env.", { service: 'Google Places', classe: 'definitive' });
   const base = points && points.length ? points : await numerosDeLaRue(nom, ville);
   const pas = pasDeMarche(base);
   const k = cleRue(nom);
   const vus = new Map();
   const ignores = {};
-  for (const p of pas) {
+  for (const [i, p] of pas.entries()) {
     if (arreter()) break;
+    surPas(i + 1, pas.length);
     let lieux;
     try {
       lieux = await autour(p.lat, p.lon);

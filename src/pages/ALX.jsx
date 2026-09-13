@@ -210,9 +210,12 @@ function Direct({ ville, p }) {
   const retenues = p.rues_a_faire || rues.filter((r) => r.retenue).map((r) => r.nom);
   const faites = p.rues_faites_noms || [];
   const total = p.rues_total || retenues.length || 1;
-  const fraction = p.balade?.total ? p.balade.pas / p.balade.total : null;
+  const b = p.balade;
+  // Pendant la balade, la part des pas faits ; pendant la lecture, la position du commerce en cours sur le tracé.
+  const fraction = b?.total ? b.pas / b.total : b?.lat != null ? { lat: b.lat, lon: b.lon } : null;
   // La rue en cours compte pour sa part de pas, les cibles qui suivent la balade pour le reste.
-  const avancement = Math.min(1, (faites.length + (p.rue_en_cours ? (fraction == null ? 0.5 : 0.35 * fraction) : 0)) / total);
+  const partRue = b?.total ? 0.35 * (b.pas / b.total) : b?.commerces ? 0.35 + 0.65 * (b.commerce / b.commerces) : p.rue_en_cours ? 0.5 : 0;
+  const avancement = Math.min(1, (faites.length + partRue) / total);
   const ecoule = p.demarre_le ? (Date.now() - Date.parse(p.demarre_le)) / 60000 : 0;
   const reste = avancement > 0.02 ? Math.max(1, Math.round((ecoule * (1 - avancement)) / avancement)) : null;
   const R = 54, C = 2 * Math.PI * R;
@@ -232,7 +235,7 @@ function Direct({ ville, p }) {
         </div>
         <div>
           <Etiquette>Temps estimé</Etiquette>
-          <div className="mt-1.5 text-[13.5px] text-[#C3CBC7]">{faites.length} rue{faites.length > 1 ? "s" : ""} sur {total}{p.rue_en_cours ? ` · ${p.rue_en_cours}` : ""}{p.balade ? ` · pas ${p.balade.pas}/${p.balade.total}` : ""}</div>
+          <div className="mt-1.5 text-[13.5px] text-[#C3CBC7]">{faites.length} rue{faites.length > 1 ? "s" : ""} sur {total}{p.rue_en_cours ? ` · ${p.rue_en_cours}` : ""}{b?.total ? ` · pas ${b.pas}/${b.total}` : b?.commerces ? ` · commerce ${b.commerce}/${b.commerces}` : ""}</div>
           <div className="mt-1 text-[12.5px] text-[#8B938F]">{p.cibles_creees || 0} commerce{(p.cibles_creees || 0) > 1 ? "s" : ""}, {p.proprietaires_trouves || 0} propriétaire{(p.proprietaires_trouves || 0) > 1 ? "s" : ""}</div>
         </div>
       </div>
@@ -477,19 +480,9 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
   );
 }
 
-/** Une case pleine d'une teinte : « toutes celles de cette couleur ». Avec un trait : « aucune ». */
-function CaseTeinte({ teinte, trait = false, title, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      className="grid h-4 w-4 place-items-center rounded-[4px] border transition-transform hover:scale-110"
-      style={{ borderColor: trait ? "rgba(255,255,255,0.3)" : teinte, background: trait ? "transparent" : teinte }}
-    >
-      {trait && <span className="h-[2px] w-2 rounded bg-[#C3CBC7]" />}
-    </button>
-  );
+/** Une case pleine d'une teinte : « toutes les rues de cette couleur ». */
+function CaseTeinte({ teinte, title, onClick }) {
+  return <button type="button" onClick={onClick} title={title} className="h-4 w-4 rounded-[4px] border transition-transform hover:scale-110" style={{ borderColor: teinte, background: teinte }} />;
 }
 
 /** Pourquoi cette rue est en 1, 1 bis ou 2 : son rang dans la ville, écrit dans son motif. */
@@ -566,8 +559,6 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
             {EMPLACEMENTS.map((e) => (
               <CaseTeinte key={e.classe} teinte={e.teinte} title={`Toutes les rues en emplacement ${e.mot}`} onClick={() => setCoches(new Set(rues.filter((r) => r.classe === e.classe).map((r) => r.nom)))} />
             ))}
-            <CaseTeinte teinte="#5A6762" title="Toutes les rues" onClick={() => setCoches(new Set(rues.map((r) => r.nom)))} />
-            <CaseTeinte trait title="Aucune" onClick={() => setCoches(new Set())} />
           </span>
         </div>
         <Bouton principal disabled={!nSel || pending} onClick={() => onProspecter([...coches])}>{pending ? "…" : nSel ? `Prospecter ${nSel} rue${nSel > 1 ? "s" : ""}` : "Prospecter"}</Bouton>

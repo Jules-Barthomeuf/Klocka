@@ -34,12 +34,17 @@ export async function communeDe(nom) {
 }
 
 /** Le nom officiel d'une rue et son code postal, par la BAN ; à défaut, ce qu'on avait. */
-export async function rueOfficielle(nom, ville) {
+export async function rueOfficielle(nom, ville, codeInsee = null) {
   try {
-    const r = await fetch(`https://api-adresse.data.gouv.fr/search/?limit=1&type=street&q=${encodeURIComponent(`${nom} ${ville}`)}`, { signal: AbortSignal.timeout(15000) });
+    const params = new URLSearchParams({ limit: '1', type: 'street', q: `${nom} ${ville}` });
+    // Le code commune tient la BAN dans la ville : sans lui, une rue Jean Jaurès
+    // de Cannes peut revenir de Lyon, et la carte avec.
+    if (codeInsee) params.set('citycode', String(codeInsee));
+    const r = await fetch(`https://api-adresse.data.gouv.fr/search/?${params}`, { signal: AbortSignal.timeout(15000) });
     const f = (await r.json()).features?.[0];
     if (!f || (f.properties?.score ?? 0) < 0.5) return null;
     const p = f.properties;
+    if (codeInsee && p.citycode && String(p.citycode) !== String(codeInsee)) return null;
     if (cleRue(p.name || p.street) !== cleRue(nom)) return null;
     return { nom: p.name || p.street, code_postal: p.postcode, lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
   } catch {
@@ -182,7 +187,7 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
   // Trois rues à la fois chez Data-B : la trentaine passe en une dizaine de secondes.
   const lues = await parLots(denses, 3, async (r) => {
     if (arreter()) return null;
-    const officielle = await rueOfficielle(r.nom, commune.nom);
+    const officielle = await rueOfficielle(r.nom, commune.nom, commune.code_insee);
     const nom = officielle?.nom ? joliNomDeRue(officielle.nom) : r.nom;
     const cp = officielle?.code_postal || commune.code_postal;
     let loyer = null;

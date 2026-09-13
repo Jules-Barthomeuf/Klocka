@@ -371,7 +371,8 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         continue;
       }
       let c = r.cible;
-      ecrire(villeId, { commerce_en_cours: c.enseigne || c.adresse });
+      // Le commerce en cours, et sa position : la carte colore la rue jusqu'à lui.
+      ecrire(villeId, { commerce_en_cours: c.enseigne || c.adresse, balade: { rue: rue.nom, commerce: retenus.indexOf(e) + 1, commerces: retenus.length, lat: e.lat ?? null, lon: e.lon ?? null } });
       if (r.deja) {
         compter(villeId, 'cibles_deja');
         // Déjà lue : on ne refait pas Data-B pour rien. Mais si le choix du

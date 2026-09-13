@@ -21,7 +21,8 @@ const TUILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 function Cadrage({ points }) {
   const map = useMap();
   useEffect(() => {
-    if (points.length) map.fitBounds(points, { padding: [40, 40], maxZoom: 16 });
+    if (points.length >= 3) map.fitBounds(points, { padding: [40, 40], maxZoom: 15 });
+    else if (points.length) map.setView(points[0], 15);
   }, [map, points]);
   return null;
 }
@@ -47,10 +48,21 @@ const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
  *   onChoisir: Function, centre?: {lat:number, lon:number}|null, className?: string,
  *   streetView?: {lat:number, lon:number, nom?:string}|null}} p
  */
-/** Le début d'un tracé : la fraction demandée de ses points, tronçon après tronçon. */
+const metres = (a, b) => Math.hypot((b[0] - a[0]) * 111000, (b[1] - a[1]) * 111000 * Math.cos((a[0] * Math.PI) / 180));
+
+/**
+ * Le début d'un tracé : jusqu'à une fraction de ses points, ou jusqu'au point
+ * le plus proche d'une position (le commerce qu'ALX lit), tronçon après tronçon.
+ */
 function debutDuTrace(trace, fraction) {
   const total = trace.reduce((a, t) => a + t.length, 0);
-  let reste = Math.max(2, Math.round(total * Math.max(0, Math.min(1, fraction))));
+  let part = typeof fraction === "number" ? fraction : 0;
+  if (fraction && typeof fraction === "object") {
+    let k = 0, meilleur = 0, min = Infinity;
+    for (const t of trace) for (const pt of t) { const d = metres(pt, [fraction.lat, fraction.lon]); if (d < min) { min = d; meilleur = k; } k += 1; }
+    part = total ? (meilleur + 1) / total : 0;
+  }
+  let reste = Math.max(2, Math.round(total * Math.max(0, Math.min(1, part))));
   const out = [];
   for (const t of trace) {
     if (reste <= 0) break;
@@ -72,7 +84,13 @@ function debutDuTrace(trace, fraction) {
  */
 export default function CarteRues({ rues, ecartees = [], coches, choisie = null, onChoisir, centre = null, className = "", streetView = null, direct = null }) {
   const visibles = useMemo(() => (direct ? rues.filter((r) => direct.retenues.includes(r.nom)) : rues), [rues, direct]);
-  const points = useMemo(() => visibles.map((r) => r.centre).filter(Boolean).map((c) => [c.lat, c.lon]), [visibles]);
+  // Le cadrage ne suit que les rues à moins de 4 km du centre de la ville :
+  // une rue mal géolocalisée ou un chemin de périphérie ne doit pas montrer Lyon
+  // quand on regarde Antibes.
+  const points = useMemo(() => visibles
+    .map((r) => r.centre).filter(Boolean)
+    .filter((c) => !centre || metres([c.lat, c.lon], [centre.lat, centre.lon]) <= 4000)
+    .map((c) => [c.lat, c.lon]), [visibles, centre]);
   const centreCarte = centre ? [centre.lat, centre.lon] : points[0] || [46.6, 2.4];
   const avecTrace = rues.filter((r) => r.trace?.length).length;
 
@@ -97,7 +115,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
 
   return (
     <div className={`k-carte-rues relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>
-      <MapContainer center={centreCarte} zoom={15} scrollWheelZoom className="h-full w-full" attributionControl={false} zoomControl={false}>
+      <MapContainer center={centreCarte} zoom={14} minZoom={11} scrollWheelZoom className="h-full w-full" attributionControl={false} zoomControl={false}>
         <TileLayer url={TUILES} attribution="&copy; OpenStreetMap" maxZoom={19} />
         <Cadrage points={points} />
         {!direct && ecartees.map((r) =>

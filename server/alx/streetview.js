@@ -78,7 +78,9 @@ Réponds en JSON strict, sans commentaire, avec ces clés :
 - "activite" : le type de commerce en deux ou trois mots (boulangerie, opticien, agence immobilière, restaurant, banque, pharmacie, vêtements, bar, vide), ou null
 - "etat" : "soigne", "correct" ou "degrade"
 - "terrasse" : true ou false
-- "vitrine_m" : ta meilleure estimation de la largeur de vitrine en mètres, entier, ou null
+- "vitrine_m" : ta meilleure estimation de la largeur de vitrine sur la rue principale, en mètres, entier, ou null
+- "angle" : true si le commerce fait l'angle de deux rues (la vitrine tourne le coin), sinon false
+- "retour_m" : si angle, la largeur de vitrine sur la seconde rue, en mètres, entier ; sinon 0
 - "occupe" : false si le local paraît vide (rideau baissé, vitrine vide, « à louer »), sinon true
 - "confiance" : "haute", "moyenne" ou "basse"
 Ne devine pas ce que tu ne vois pas : null vaut mieux qu'une invention.`;

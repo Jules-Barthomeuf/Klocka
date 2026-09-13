@@ -224,11 +224,14 @@ export async function lireDevanture(id, { user = null } = {}) {
   const vitrine = Number(lecture.vitrine_m);
   if (vitrine > 0) {
     const v = c.valorisation || {};
-    const surface = [Math.round(vitrine * PROFONDEUR_M[0]), Math.round(vitrine * PROFONDEUR_M[1])];
+    // Un commerce d'angle a deux façades : sa profondeur est au moins la
+    // seconde, et sa surface bien plus grande que ne le dit la première seule.
+    const retour = lecture.angle ? Number(lecture.retour_m) || 0 : 0;
+    const surface = [Math.round(vitrine * Math.max(PROFONDEUR_M[0], retour)), Math.round(vitrine * Math.max(PROFONDEUR_M[1], retour))];
     const loyerM2 = Number(v.loyer_m2_marche);
     const t = Number(v.taux ?? 7);
     const fourchette = loyerM2 > 0 ? [Math.round((surface[0] * loyerM2) / ((t + 1) / 100) / 1000) * 1000, Math.round((surface[1] * loyerM2) / ((t - 1) / 100) / 1000) * 1000] : null;
-    patch.valorisation = { ...v, vitrine_m: vitrine, surface_estimee: surface, fourchette_estimee: fourchette, estimee_le: new Date().toISOString() };
+    patch.valorisation = { ...v, vitrine_m: vitrine, angle: !!lecture.angle, retour_m: retour || null, surface_estimee: surface, fourchette_estimee: fourchette, estimee_le: new Date().toISOString() };
   }
   return mettreAJourCible(c.id, patch, user);
 }

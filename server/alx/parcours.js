@@ -292,7 +292,9 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
   const aParcourir = (ville.rues || [])
     .filter((x) => !rues || rues.some((n) => cleRue(n) === cleRue(x.nom)))
     .sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0));
-  ecrire(villeId, { phase: 'commerces', etape: 3, rues_total: aParcourir.length, rues_a_faire: aParcourir.map((x) => x.nom), rues_faites_noms: [], balade: null });
+  // Ce qu'on prévoit de lire : les vitrines OSM de chaque rue, remplacées par
+  // le vrai compte dès que la balade sur Maps l'a donné. L'avancement s'affiche en commerces, pas en minutes.
+  ecrire(villeId, { phase: 'commerces', etape: 3, rues_total: aParcourir.length, rues_a_faire: aParcourir.map((x) => x.nom), rues_faites_noms: [], balade: null, comptes: Object.fromEntries(aParcourir.map((x) => [x.nom, { prevus: x.commerces || 0, lus: 0, surs: false }])) });
   if (!aParcourir.length) {
     noter(villeId, 'Aucune rue classée : rien à parcourir.');
     return finir('fini');
@@ -339,6 +341,10 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     }
     const retenus = limite_par_rue ? commerces.slice(0, limite_par_rue) : commerces;
     compter(villeId, 'commerces_trouves', commerces.length);
+    {
+      const pc = Records.get('Ville', villeId).parcours || {};
+      ecrire(villeId, { comptes: { ...(pc.comptes || {}), [rue.nom]: { prevus: retenus.length, lus: 0, surs: true } } });
+    }
     noter(villeId, `${rue.nom} (emplacement ${libelleEmplacement(rue.classe)}) : ${commerces.length} commerce${commerces.length > 1 ? 's' : ''}${limite_par_rue && commerces.length > limite_par_rue ? `, ${limite_par_rue} retenus pour cet essai` : ''}.`);
 
     const loyerRue = rue.loyer ? { [rue.loyer_source === 'Data-B, quartier' ? 'quartier' : 'rue']: { nom: rue.nom, basse: rue.loyer[0], haute: rue.loyer[1] } } : null;
@@ -371,8 +377,12 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         continue;
       }
       let c = r.cible;
-      // Le commerce en cours, et sa position : la carte colore la rue jusqu'à lui.
-      ecrire(villeId, { commerce_en_cours: c.enseigne || c.adresse, balade: { rue: rue.nom, commerce: retenus.indexOf(e) + 1, commerces: retenus.length, lat: e.lat ?? null, lon: e.lon ?? null } });
+      // Le commerce en cours, son rang et sa position : la carte colore la rue jusqu'à lui.
+      {
+        const k = retenus.indexOf(e) + 1;
+        const pc = Records.get('Ville', villeId).parcours || {};
+        ecrire(villeId, { commerce_en_cours: c.enseigne || c.adresse, balade: { rue: rue.nom, commerce: k, commerces: retenus.length, lat: e.lat ?? null, lon: e.lon ?? null }, comptes: { ...(pc.comptes || {}), [rue.nom]: { prevus: retenus.length, lus: k - 1, surs: true } } });
+      }
       if (r.deja) {
         compter(villeId, 'cibles_deja');
         // Déjà lue : on ne refait pas Data-B pour rien. Mais si le choix du
@@ -469,7 +479,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     Records.update('Ville', villeId, { rues: rues1 });
     compter(villeId, 'rues_faites');
     const pFait = Records.get('Ville', villeId).parcours || {};
-    ecrire(villeId, { commerce_en_cours: null, balade: null, rues_faites_noms: [...(pFait.rues_faites_noms || []), rue.nom] });
+    ecrire(villeId, { commerce_en_cours: null, balade: null, rues_faites_noms: [...(pFait.rues_faites_noms || []), rue.nom], comptes: { ...(pFait.comptes || {}), [rue.nom]: { prevus: retenus.length, lus: retenus.length, surs: true } } });
     const piles = Records.filter('Cible', { ville_id: villeId, rue: rue.nom }).reduce((a, x) => ((a[x.pile] = (a[x.pile] || 0) + 1), a), {});
     noter(villeId, `${rue.nom} : ${creees} cible${creees > 1 ? 's' : ''} créée${creees > 1 ? 's' : ''}, ${proprios} propriétaire${proprios > 1 ? 's' : ''} trouvé${proprios > 1 ? 's' : ''}, ${ecartees} écartée${ecartees > 1 ? 's' : ''} · à appeler ${piles.appeler || 0}, à écrire ${piles.ecrire || 0}, à surveiller ${piles.surveiller || 0}${erreursRue ? ` · ${erreursRue} erreur${erreursRue > 1 ? 's' : ''}` : ''}.`);
   }

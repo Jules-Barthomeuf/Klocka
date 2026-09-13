@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { EMPLACEMENTS, ECARTEE, emplacementDe } from "./alx-commun";
 
@@ -50,19 +50,10 @@ const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
  */
 const metres = (a, b) => Math.hypot((b[0] - a[0]) * 111000, (b[1] - a[1]) * 111000 * Math.cos((a[0] * Math.PI) / 180));
 
-/**
- * Le début d'un tracé : jusqu'à une fraction de ses points, ou jusqu'au point
- * le plus proche d'une position (le commerce qu'ALX lit), tronçon après tronçon.
- */
+/** Le début d'un tracé : la fraction demandée de ses points, tronçon après tronçon. */
 function debutDuTrace(trace, fraction) {
   const total = trace.reduce((a, t) => a + t.length, 0);
-  let part = typeof fraction === "number" ? fraction : 0;
-  if (fraction && typeof fraction === "object") {
-    let k = 0, meilleur = 0, min = Infinity;
-    for (const t of trace) for (const pt of t) { const d = metres(pt, [fraction.lat, fraction.lon]); if (d < min) { min = d; meilleur = k; } k += 1; }
-    part = total ? (meilleur + 1) / total : 0;
-  }
-  let reste = Math.max(2, Math.round(total * Math.max(0, Math.min(1, part))));
+  let reste = Math.max(2, Math.round(total * Math.max(0, Math.min(1, fraction || 0))));
   const out = [];
   for (const t of trace) {
     if (reste <= 0) break;
@@ -131,6 +122,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
             />
           )),
         )}
+        {direct?.position && <CircleMarker center={[direct.position.lat, direct.position.lon]} radius={7} pathOptions={{ color: "#F3F7F5", weight: 2, fillColor: "#96c0b8", fillOpacity: 1 }} />}
         {direct
           ? visibles.map((r) => {
             const e = emplacementDe(r.classe);
@@ -140,11 +132,15 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
             return [
               // Le fond gris : la rue qu'ALX doit encore parcourir.
               ...trace.map((troncon, i) => <Polyline key={`g-${r.nom}-${i}`} positions={troncon} pathOptions={{ color: "#3a3f47", weight: 4, opacity: 0.9, lineCap: "round" }} />),
-              // La couleur : entière quand c'est fait ; jusqu'au pas en cours pendant
-              // la balade ; entière mais voilée quand ALX lit les commerces trouvés.
-              ...(faite || enCours ? (faite || direct.fraction == null ? trace : debutDuTrace(trace, direct.fraction)).map((troncon, i) => (
-                <Polyline key={`c-${r.nom}-${i}`} positions={troncon} pathOptions={{ color: e.teinte, weight: enCours ? 8 : 6, opacity: enCours && direct.fraction == null ? 0.55 : 1, lineCap: "round" }} />
-              )) : []),
+              // La couleur : entière quand c'est fait. En cours : pendant la balade,
+              // un pointillé fin qui suit les pas ; pendant la lecture, un trait plein
+              // qui avance d'un cran à chaque commerce lu.
+              ...(faite ? trace.map((troncon, i) => <Polyline key={`c-${r.nom}-${i}`} positions={troncon} pathOptions={{ color: e.teinte, weight: 6, opacity: 1, lineCap: "round" }} />)
+                : enCours && direct.fraction != null
+                  ? (typeof direct.fraction === "object"
+                    ? debutDuTrace(trace, direct.fraction.balade).map((troncon, i) => <Polyline key={`s-${r.nom}-${i}`} positions={troncon} pathOptions={{ color: e.teinte, weight: 4, opacity: 0.8, dashArray: "2 8", lineCap: "round" }} />)
+                    : debutDuTrace(trace, direct.fraction).map((troncon, i) => <Polyline key={`c-${r.nom}-${i}`} positions={troncon} pathOptions={{ color: e.teinte, weight: 8, opacity: 1, lineCap: "round" }} />))
+                  : []),
             ];
           })
           : rues.map((r) => {

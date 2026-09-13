@@ -209,19 +209,22 @@ function Direct({ ville, p }) {
   const rues = ville?.rues || [];
   const retenues = p.rues_a_faire || rues.filter((r) => r.retenue).map((r) => r.nom);
   const faites = p.rues_faites_noms || [];
-  const total = p.rues_total || retenues.length || 1;
   const b = p.balade;
-  // Pendant la balade, la part des pas faits ; pendant la lecture, la position du commerce en cours sur le tracé.
-  const fraction = b?.total ? b.pas / b.total : b?.lat != null ? { lat: b.lat, lon: b.lon } : null;
-  // La rue en cours compte pour sa part de pas, les cibles qui suivent la balade pour le reste.
-  const partRue = b?.total ? 0.35 * (b.pas / b.total) : b?.commerces ? 0.35 + 0.65 * (b.commerce / b.commerces) : p.rue_en_cours ? 0.5 : 0;
-  const avancement = Math.min(1, (faites.length + partRue) / total);
-  const ecoule = p.demarre_le ? (Date.now() - Date.parse(p.demarre_le)) / 60000 : 0;
-  const reste = avancement > 0.02 ? Math.max(1, Math.round((ecoule * (1 - avancement)) / avancement)) : null;
+  // L'avancement se compte en commerces : ceux qu'on prévoit (les vitrines
+  // OSM de chaque rue, puis le vrai compte dès que la balade l'a donné) et
+  // ceux qu'ALX a lus. Un pourcentage qui ne recule pas, plutôt que des minutes qui dansent.
+  const comptes = p.comptes || {};
+  const prevus = retenues.reduce((a, nom) => a + (comptes[nom]?.prevus ?? rues.find((r) => r.nom === nom)?.commerces ?? 0), 0);
+  const lus = retenues.reduce((a, nom) => a + (comptes[nom]?.lus ?? 0), 0);
+  const avancement = prevus ? Math.min(1, lus / prevus) : 0;
+  const pct = Math.round(avancement * 100);
+  const approx = retenues.some((nom) => !comptes[nom]?.surs);
+  // Pendant la balade, la part des pas ; pendant la lecture, le rang du commerce en cours dans sa rue.
+  const fraction = b?.total ? { balade: b.pas / b.total } : b?.commerces ? b.commerce / b.commerces : null;
   const R = 54, C = 2 * Math.PI * R;
   return (
     <div className="mt-5 grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_260px]">
-      <CarteRues rues={rues} coches={new Set()} onChoisir={() => {}} centre={ville?.centre} direct={{ retenues, faites, enCours: p.rue_en_cours || null, fraction }} className="h-[360px]" />
+      <CarteRues rues={rues} coches={new Set()} onChoisir={() => {}} centre={ville?.centre} direct={{ retenues, faites, enCours: p.rue_en_cours || null, fraction, position: b?.lat != null ? { lat: b.lat, lon: b.lon } : null }} className="h-[360px]" />
       <div className="flex flex-col items-center justify-center gap-4 rounded-[16px] border border-white/[0.07] px-5 py-6 text-center">
         <div className="relative grid place-items-center">
           <svg width="132" height="132" viewBox="0 0 132 132" className="-rotate-90">
@@ -229,14 +232,15 @@ function Direct({ ville, p }) {
             <circle cx="66" cy="66" r={R} fill="none" stroke="#96c0b8" strokeWidth="6" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - avancement)} style={{ transition: "stroke-dashoffset .8s ease" }} />
           </svg>
           <div className="absolute flex flex-col items-center">
-            <Nombre taille={28} teinte="#F3F7F5">{reste != null ? `${reste} min` : "…"}</Nombre>
-            <span className="text-[10.5px] uppercase tracking-[.14em] text-[#8B938F]">restantes</span>
+            <Nombre taille={30} teinte="#F3F7F5">{pct} %</Nombre>
+            <span className="text-[10.5px] uppercase tracking-[.14em] text-[#8B938F]">des commerces</span>
           </div>
         </div>
         <div>
-          <Etiquette>Temps estimé</Etiquette>
-          <div className="mt-1.5 text-[13.5px] text-[#C3CBC7]">{faites.length} rue{faites.length > 1 ? "s" : ""} sur {total}{p.rue_en_cours ? ` · ${p.rue_en_cours}` : ""}{b?.total ? ` · pas ${b.pas}/${b.total}` : b?.commerces ? ` · commerce ${b.commerce}/${b.commerces}` : ""}</div>
-          <div className="mt-1 text-[12.5px] text-[#8B938F]">{p.cibles_creees || 0} commerce{(p.cibles_creees || 0) > 1 ? "s" : ""}, {p.proprietaires_trouves || 0} propriétaire{(p.proprietaires_trouves || 0) > 1 ? "s" : ""}</div>
+          <Etiquette>Avancement</Etiquette>
+          <div className="mt-1.5 text-[13.5px] text-[#C3CBC7]">{lus} commerce{lus > 1 ? "s" : ""} sur {approx ? "~" : ""}{prevus} · {faites.length} rue{faites.length > 1 ? "s" : ""} sur {retenues.length}</div>
+          <div className="mt-1 text-[12.5px] text-[#8B938F]">{p.rue_en_cours ? `${p.rue_en_cours}${b?.total ? ` · balade, pas ${b.pas}/${b.total}` : b?.commerces ? ` · ${b.commerce}/${b.commerces}` : ""}` : "…"}</div>
+          <div className="mt-1 text-[12.5px] text-[#8B938F]">{p.proprietaires_trouves || 0} propriétaire{(p.proprietaires_trouves || 0) > 1 ? "s" : ""} trouvé{(p.proprietaires_trouves || 0) > 1 ? "s" : ""}</div>
         </div>
       </div>
     </div>

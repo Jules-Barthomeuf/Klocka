@@ -72,6 +72,24 @@ export default function ALXCible() {
     onSuccess: () => { toast.success("Approche enregistrée"); setBrouillon(null); rafraichir(); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+  const [ecart, setEcart] = useState(null); // null | { ouvert: true } | { semblables, regle, motif }
+  const [motifEcart, setMotifEcart] = useState("");
+  const [sur, setSur] = useState({ activite: false, proprietaire: false, enseigne: false });
+  const ecarter = useMutation({
+    mutationFn: () => base44.request("POST", `/api/alx/cibles/${id}/ecarter`, { body: { motif: motifEcart || null, sur } }),
+    onSuccess: (r) => { toast.success("Écartée"); setEcart({ semblables: r.semblables || [], regle: r.regle, motif: motifEcart }); rafraichir(); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const ecarterAussi = useMutation({
+    mutationFn: (ids) => base44.request("POST", `/api/alx/cibles/ecarter-plusieurs`, { body: { ids, motif: ecart?.motif || null, regle_id: ecart?.regle?.id || null } }),
+    onSuccess: (r, ids) => { toast.success(`${r.cibles.length} écartée${r.cibles.length > 1 ? "s" : ""} aussi`); setEcart((e) => ({ ...e, semblables: e.semblables.filter((x) => !ids.includes(x.id)) })); qc.invalidateQueries({ queryKey: ["alx-cibles"] }); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const reprendre = useMutation({
+    mutationFn: () => base44.request("POST", `/api/alx/cibles/${id}/reprendre`, { body: {} }),
+    onSuccess: () => { toast.success("Reprise"); setEcart(null); rafraichir(); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
   const qualifier = useMutation({
     mutationFn: ({ aid, ...body }) => base44.request("POST", `/api/alx/approches/${aid}/issue`, { body }),
     onSuccess: () => { toast.success("Réponse notée"); setIssue({}); rafraichir(); },
@@ -173,11 +191,64 @@ export default function ALXCible() {
                 </Bouton>
               )}
               {c.pile !== "ecartee" ? (
-                <Bouton onClick={() => { const m = window.prompt("Pourquoi écarter ce commerce ? (facultatif)"); if (m !== null) enregistrer.mutate({ ecartee_equipe: true, ecartee_motif: m || null }); }} disabled={enregistrer.isPending}>Non, écarter</Bouton>
-              ) : c.ecartee_equipe ? (
-                <Bouton onClick={() => enregistrer.mutate({ ecartee_equipe: false, ecartee_motif: null })} disabled={enregistrer.isPending}>Reprendre</Bouton>
+                <Bouton onClick={() => setEcart({ ouvert: true })} disabled={ecarter.isPending}>Non, écarter</Bouton>
+              ) : c.ecartee_equipe || c.ecartee_regle ? (
+                <Bouton onClick={() => reprendre.mutate()} disabled={reprendre.isPending}>Reprendre</Bouton>
               ) : null}
             </div>
+
+            {ecart?.ouvert && (
+              <div className="relative border-t border-white/[0.08] pt-4 flex flex-col gap-3">
+                <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Pourquoi non ? ALX apprend de ce retour</div>
+                <textarea
+                  value={motifEcart}
+                  onChange={(e) => setMotifEcart(e.target.value)}
+                  rows={2}
+                  placeholder="Pas une vraie vitrine, trop cher, déjà en mandat, on ne cible pas ce genre de commerce…"
+                  className="w-full bg-fond border border-bord rounded-[10px] px-4 py-3 text-[13.5px] text-encre placeholder:text-brume outline-none focus:border-menthe resize-y"
+                />
+                <div className="flex flex-col gap-1.5 text-[13px] text-craie">
+                  <span className="text-[12px] text-brume">Et à l'avenir, écarter d'office :</span>
+                  {c.activite && <label className="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" checked={sur.activite} onChange={(e) => setSur((x) => ({ ...x, activite: e.target.checked }))} className="accent-[#96c0b8]" /> toute cette activité : {c.activite}</label>}
+                  {p.nom && <label className="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" checked={sur.proprietaire} onChange={(e) => setSur((x) => ({ ...x, proprietaire: e.target.checked }))} className="accent-[#96c0b8]" /> tout ce propriétaire : {joliNom(p.nom)}</label>}
+                  {c.enseigne && <label className="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" checked={sur.enseigne} onChange={(e) => setSur((x) => ({ ...x, enseigne: e.target.checked }))} className="accent-[#96c0b8]" /> toute cette enseigne : {joliNom(c.enseigne)}</label>}
+                </div>
+                <div className="flex gap-2.5">
+                  <Bouton principal onClick={() => ecarter.mutate()} disabled={ecarter.isPending}>{ecarter.isPending ? "…" : "Écarter"}</Bouton>
+                  <Bouton onClick={() => setEcart(null)}>Annuler</Bouton>
+                </div>
+              </div>
+            )}
+
+            {ecart?.semblables && (
+              <div className="relative border-t border-white/[0.08] pt-4 flex flex-col gap-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">
+                    {ecart.semblables.length ? `${ecart.semblables.length} commerce${ecart.semblables.length > 1 ? "s" : ""} qui ressemble${ecart.semblables.length > 1 ? "nt" : ""} : les écarter aussi ?` : "Aucun autre commerce semblable dans cette ville."}
+                  </div>
+                  {ecart.regle && <span className="text-[12px] text-menthe">Règle enregistrée : les prochains du même genre seront écartés d'office.</span>}
+                </div>
+                {ecart.semblables.map((x) => (
+                  <div key={x.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center bg-fond/60 border border-white/[0.06] rounded-[12px] px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-[14px] text-encre truncate">{joliNom(x.enseigne) || x.adresse}<span className="text-brume text-[12px]"> · {x.adresse}{x.activite ? ` · ${x.activite}` : ""}</span></div>
+                      <div className="text-[12px] text-brume truncate">{x.proprietaire ? joliNom(x.proprietaire) + " · " : ""}{x.raisons.join(", ")}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => ecarterAussi.mutate([x.id])} disabled={ecarterAussi.isPending} className="text-[12px] text-menthe hover:text-menthe-clair">Écarter aussi</button>
+                      <button onClick={() => setEcart((e) => ({ ...e, semblables: e.semblables.filter((y) => y.id !== x.id) }))} className="text-[12px] text-ardoise hover:text-encre">Garder</button>
+                    </div>
+                  </div>
+                ))}
+                {ecart.semblables.length > 1 && (
+                  <div className="flex gap-2.5">
+                    <Bouton principal onClick={() => ecarterAussi.mutate(ecart.semblables.map((x) => x.id))} disabled={ecarterAussi.isPending}>Écarter les {ecart.semblables.length}</Bouton>
+                    <Bouton onClick={() => setEcart(null)}>Tout garder</Bouton>
+                  </div>
+                )}
+                {ecart.semblables.length <= 1 && <div><Bouton onClick={() => setEcart(null)}>Fermer</Bouton></div>}
+              </div>
+            )}
           </div>
 
           <div className="bg-surface border border-white/[0.08] rounded-[20px] overflow-hidden flex flex-col">

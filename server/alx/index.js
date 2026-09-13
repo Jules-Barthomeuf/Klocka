@@ -13,6 +13,20 @@
 import { randomUUID } from 'crypto';
 import { Records } from '../db.js';
 import { classer, PILES } from './classement.js';
+
+// ecarts.js importe reclasser d'ici ; on lit ses règles sans l'importer.
+function regleQuiEcarteSync(c) {
+  const simple = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const prop = c.proprietaire?.siren || (c.proprietaire?.nom ? simple(c.proprietaire.nom) : null);
+  for (const r of Records.list('RegleEcart')) {
+    if (r.active === false) continue;
+    const s = r.sur || {}; const k = r.criteres || {};
+    if (s.activite && k.activite && c.activite && simple(c.activite) === simple(k.activite)) return { regle_id: r.id, motif: r.motif, pourquoi: `même activité (${k.activite})` };
+    if (s.proprietaire && k.proprietaire && prop && prop === k.proprietaire) return { regle_id: r.id, motif: r.motif, pourquoi: `même propriétaire (${k.proprietaire_nom})` };
+    if (s.enseigne && k.enseigne && c.enseigne && simple(c.enseigne) === k.enseigne) return { regle_id: r.id, motif: r.motif, pourquoi: `même enseigne (${k.enseigne_nom})` };
+  }
+  return null;
+}
 import { categoriserActivite } from '../deal/enrich.js';
 
 const maintenant = () => new Date().toISOString();
@@ -208,8 +222,12 @@ export function mettreAJourCible(id, patch = {}, user = null) {
 export function reclasser(id) {
   const c = Records.get('Cible', id);
   if (!c) return null;
-  const r = classer(c);
+  // Une règle posée par l'équipe (« ce genre-là, non ») s'applique avant tout,
+  // sauf sur une cible qu'elle a explicitement reprise.
+  const regle = c.ecartee_equipe || c.reprise_equipe ? null : regleQuiEcarteSync(c);
+  const r = classer({ ...c, ecartee_regle: regle });
   return Records.update('Cible', id, {
+    ecartee_regle: regle,
     pile: r.pile,
     motif: r.motif,
     signaux: r.signaux,

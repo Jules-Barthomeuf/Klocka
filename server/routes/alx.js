@@ -135,6 +135,34 @@ export function monterAlx(app) {
     }
   }));
 
+  // Écarter, avec un retour qui devient une règle, et les semblables à écarter aussi.
+  app.post('/api/alx/cibles/:id/ecarter', wrap(async (req, res) => {
+    const { ecarter } = await import('../alx/ecarts.js');
+    const r = ecarter(req.params.id, { motif: req.body?.motif || null, sur: req.body?.sur || {}, user: currentUser(req) });
+    if (!r.ok) return erreur(res, r.error, 404);
+    ok(res, r);
+  }));
+  app.post('/api/alx/cibles/ecarter-plusieurs', wrap(async (req, res) => {
+    const { ecarterPlusieurs } = await import('../alx/ecarts.js');
+    ok(res, ecarterPlusieurs(req.body?.ids || [], { motif: req.body?.motif || null, regle_id: req.body?.regle_id || null, user: currentUser(req) }));
+  }));
+  app.post('/api/alx/cibles/:id/reprendre', wrap(async (req, res) => {
+    const { reprendre } = await import('../alx/ecarts.js');
+    const r = reprendre(req.params.id, { user: currentUser(req) });
+    if (!r.ok) return erreur(res, r.error, 404);
+    ok(res, r);
+  }));
+  app.get('/api/alx/regles', wrap(async (req, res) => {
+    const { reglesActives } = await import('../alx/ecarts.js');
+    ok(res, { regles: reglesActives() });
+  }));
+  app.delete('/api/alx/regles/:id', wrap(async (req, res) => {
+    const { retirerRegle } = await import('../alx/ecarts.js');
+    const r = retirerRegle(req.params.id);
+    if (!r.ok) return erreur(res, r.error, 404);
+    ok(res, r);
+  }));
+
   app.post('/api/alx/cibles/:id/societe', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });

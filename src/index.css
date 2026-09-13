@@ -110,6 +110,11 @@ button[class~="bg-encre"], a[class~="bg-encre"] { background-color: #96c0b8; col
 button[class~="bg-encre"]:hover, a[class~="bg-encre"]:hover { border-color: #abd0c8; }
 button[class~="bg-encre"]:hover, a[class~="bg-encre"]:hover { background-color: #abd0c8; }
 button[class~="bg-[#ffffff]"] { border-radius: 9999px !important; }
+/* Les cases à cocher d'ALX (server/alx) : la couleur vient d'un style inline
+   (seul moyen de battre la règle `button { background-color }` ci-dessus,
+   qui n'est dans aucune @layer et prime donc sur toute classe Tailwind) ;
+   seul le survol de la case décochée reste à poser ici, au même niveau. */
+button.k-case:not([aria-checked="true"]):hover { border-color: #3a3f4a; }
 
 /* Page projet — identité éditoriale (maquette "Page Projet Klocka") */
 .projet-editorial ::selection { background: rgba(150, 192, 184, .3); }

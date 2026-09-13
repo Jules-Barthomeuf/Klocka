@@ -353,14 +353,24 @@ const raisonsDe = (c) => {
 
 function Case({ coche, onChange, titre }) {
   return (
-    <input
-      type="checkbox"
-      checked={!!coche}
-      onChange={(e) => onChange(e.target.checked)}
-      onClick={(e) => e.stopPropagation()}
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={!!coche}
       title={titre}
-      className="w-4 h-4 accent-[#96c0b8] cursor-pointer"
-    />
+      onClick={(e) => { e.stopPropagation(); onChange(!coche); }}
+      // La feuille de style globale a une règle `button { background-color }`
+      // hors de tout @layer : elle prime sur toute classe Tailwind (bg-menthe,
+      // border-bord-doux…) quelle que soit sa spécificité. Un style inline la bat.
+      style={{ background: coche ? "#96c0b8" : "#000000", borderColor: coche ? "#96c0b8" : "#2c3139" }}
+      className="k-case w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center transition-colors"
+    >
+      {coche && (
+        <svg viewBox="0 0 12 12" className="w-[10px] h-[10px]" fill="none">
+          <path d="M2 6l2.5 2.5L10 3" stroke="#0b1211" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </button>
   );
 }
 

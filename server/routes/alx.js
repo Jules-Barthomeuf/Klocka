@@ -21,7 +21,10 @@ export function monterAlx(app) {
   // Les explications des signaux et des drapeaux, pour que la fiche puisse
   // dire pourquoi un signal compte, avec les mots de signaux.json.
   const explications = Object.fromEntries([...(REGLES.signaux_forts || []), ...(REGLES.signaux_patients || []), ...(REGLES.drapeaux || []), ...(REGLES.knock_outs || [])].map((s) => [s.cle, s.detail || null]));
-  app.get('/api/alx/etat', wrap(async (req, res) => ok(res, { outils: await etatDesOutils(), piles: PILES, libelles: LIBELLES_PILES, regles_version: REGLES.version, explications, seuils: REGLES.parcours || null, a_faire: aFaire() })));
+  app.get('/api/alx/etat', wrap(async (req, res) => {
+    const { MOTIFS } = await import('../alx/apprentissage.js');
+    ok(res, { outils: await etatDesOutils(), piles: PILES, libelles: LIBELLES_PILES, regles_version: REGLES.version, explications, seuils: REGLES.parcours || null, motifs_rue: MOTIFS, a_faire: aFaire() });
+  }));
 
   // Les clients actifs de Monday, et ceux qu'une fourchette de prix concerne.
   app.get('/api/alx/clients', wrap(async (req, res) => {
@@ -79,8 +82,8 @@ export function monterAlx(app) {
     if (!r.ok) return erreur(res, r.error, 409);
     ok(res, r);
   }));
-  app.post('/api/alx/villes/:id/rues', wrap((req, res) => {
-    const r = classerRue(req.params.id, { ...req.body, user: currentUser(req) });
+  app.post('/api/alx/villes/:id/rues', wrap(async (req, res) => {
+    const r = await classerRue(req.params.id, { ...req.body, user: currentUser(req) });
     if (!r.ok) return erreur(res, r.error);
     ok(res, r);
   }));

@@ -19,7 +19,7 @@ import { proposerRues, libelleEmplacement } from './rues.js';
 import { pointsLeLongDe } from './osm.js';
 import { etablissementsRue } from './annuaire.js';
 import { cleRue } from './commerces.js';
-import { LIBELLES_PILES } from './classement.js';
+import { LIBELLES_PILES, REGLES } from './classement.js';
 import { commercesDeLaRue, placesConfigure } from './places.js';
 
 // Un commerce vu sur Maps retrouve son établissement dans l'annuaire : même
@@ -253,7 +253,17 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     });
     const clesManuelles = new Set(manuelles.map((x) => cleRue(x.nom)));
     const clesRetirees = new Set((ville.rues_retirees || []).map((x) => cleRue(x.nom)));
-    const proposees = r.classees.filter((x) => !clesManuelles.has(x.cle) && !clesRetirees.has(x.cle)).map((x) => ({ ...x, par: 'alx', le: maintenant() }));
+    // Les leçons de l'équipe passent avant : une rue qui ressemble à celles
+    // qu'on a corrigées prend la classe corrigée, avec la raison dans son motif.
+    const { leconsDe, reglesApprises, appliquerLecons } = await import('./apprentissage.js');
+    const regles = reglesApprises(leconsDe(villeId), REGLES.parcours);
+    let apprises = 0;
+    const proposees = r.classees.filter((x) => !clesManuelles.has(x.cle) && !clesRetirees.has(x.cle)).map((x) => {
+      const y = appliquerLecons(x, regles, villeId, REGLES.parcours);
+      if (y.apprise) apprises += 1;
+      return { ...y, par: 'alx', le: maintenant() };
+    });
+    if (apprises) noter(villeId, `${apprises} rue${apprises > 1 ? 's' : ''} reclassée${apprises > 1 ? 's' : ''} d'après vos corrections passées.`);
     if (clesRetirees.size) noter(villeId, `${clesRetirees.size} rue${clesRetirees.size > 1 ? 's' : ''} retirée${clesRetirees.size > 1 ? 's' : ''} par l'équipe, non reproposée${clesRetirees.size > 1 ? 's' : ''}.`);
     const toutes = [...manuelles, ...proposees].sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0));
     Records.update('Ville', villeId, {

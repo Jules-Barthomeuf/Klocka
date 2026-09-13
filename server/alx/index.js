@@ -102,21 +102,38 @@ export const classeDe = (classe) => {
   return [1, 1.5, 2].includes(n) ? n : null;
 };
 
-/** Pose ou corrige le classement d'une rue. classe = 1 (solide), 1.5 (1 bis) ou 2 (petit budget). */
-export function classerRue(villeId, { nom, classe, motif = null, user = null }) {
+/**
+ * Pose ou corrige le classement d'une rue. classe = 1 (solide), 1.5 (1 bis)
+ * ou 2 (petit budget). Quand l'équipe change la classe qu'ALX avait donnée
+ * et dit pourquoi (motif_cle), la correction devient une leçon, et les rues
+ * semblables de la ville sont rendues pour être corrigées d'un coup.
+ */
+export async function classerRue(villeId, { nom, classe, motif = null, motif_cle = null, user = null }) {
   const ville = Records.get('Ville', villeId);
   if (!ville) return { ok: false, error: 'Ville introuvable.' };
   const propre = String(nom || '').trim();
   const c = classeDe(classe);
   if (!propre || !c) return { ok: false, error: 'Une rue et une classe (1, 1 bis ou 2).' };
-  const existante = (ville.rues || []).find((r) => r.nom.toLowerCase() === propre.toLowerCase());
+  const existante = (ville.rues || []).find((r) => r.nom.toLowerCase() === propre.toLowerCase())
+    || (ville.rues_ecartees || []).find((r) => r.nom.toLowerCase() === propre.toLowerCase());
   const rues = (ville.rues || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase());
+  let semblables = [];
+  let lecon = null;
+  // Une correction : la classe change, et on sait d'où ALX partait.
+  const correction = existante && existante.classe !== c
+    ? { de: existante.classe ?? null, vers: c, motif_cle: motif_cle || 'autre', motif: motif || null, par: user?.email || null, le: maintenant() }
+    : existante?.correction || null;
+  if (existante && existante.classe !== c && motif_cle) {
+    const { enregistrerLecon, ruesSemblables } = await import('./apprentissage.js');
+    lecon = enregistrerLecon({ ville, rue: existante, de: existante.classe ?? null, vers: c, motif_cle, motif, user });
+    semblables = ruesSemblables(existante, ville.rues || [], motif_cle);
+  }
   // Ce qu'ALX savait de la rue (commerces, loyer) reste ; la classe et l'auteur changent.
-  rues.push({ ...(existante || {}), nom: propre, classe: c, motif: motif || existante?.motif || null, par: user?.email || 'alx', le: maintenant() });
+  rues.push({ ...(existante || {}), nom: propre, classe: c, motif: existante?.motif || motif || null, correction, par: user?.email || 'alx', le: maintenant() });
   rues.sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0) || a.nom.localeCompare(b.nom));
   const rues_retirees = (ville.rues_retirees || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase());
   const rues_ecartees = (ville.rues_ecartees || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase());
-  return { ok: true, ville: Records.update('Ville', villeId, { rues, rues_retirees, rues_ecartees }) };
+  return { ok: true, ville: Records.update('Ville', villeId, { rues, rues_retirees, rues_ecartees }), semblables, lecon: lecon ? { motif_cle: lecon.motif_cle, de: lecon.de, vers: lecon.vers } : null };
 }
 
 /**

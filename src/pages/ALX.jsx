@@ -302,7 +302,14 @@ function Onglets({ onglet, onChange, compte }) {
 
 // --- Les rues -------------------------------------------------------------------------------
 
-function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPending, enStreetView, onStreetView, onFlux, fluxPending }) {
+function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPending, enStreetView, onStreetView, onFlux, fluxPending, motifs = [], apprentissage = null, onClasserAussi }) {
+  const [enAttente, setEnAttente] = useState(null); // la classe choisie, en attendant la raison
+  const [motifCle, setMotifCle] = useState(null);
+  const [motifTexte, setMotifTexte] = useState("");
+  const rueNom = rue?.nom;
+  const derniereRue = useRef(rueNom);
+  if (derniereRue.current !== rueNom) { derniereRue.current = rueNom; if (enAttente) setEnAttente(null); }
+  const valider = (sans = false) => { onClasser(rue.nom, enAttente, sans ? null : motifCle || "autre", sans ? null : motifTexte || null); setEnAttente(null); setMotifCle(null); setMotifTexte(""); };
   if (!rue) {
     return (
       <div className="flex h-full flex-col justify-center gap-2 px-6 text-center">
@@ -372,6 +379,42 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
             <span className="text-[15px] text-[#E8EFEB]">{coche ? "Rue à prospecter" : "Prospecter cette rue"}</span>
           </div>
         )}
+        {rue.correction && !enAttente && (
+          <div className="text-[12.5px] text-[#8B938F]">Corrigée par vous{rue.correction.de ? ` : ${emplacementDe(rue.correction.de).mot} → ${emplacementDe(rue.correction.vers).mot}` : ""}{rue.correction.motif_cle ? ` · ${(motifs.find((m) => m.cle === rue.correction.motif_cle) || {}).mot || rue.correction.motif_cle}` : ""}{rue.correction.motif ? ` · ${rue.correction.motif}` : ""}</div>
+        )}
+        {rue.apprise && !rue.correction && <div className="text-[12.5px]" style={{ color: TEINTES.ecrire }}>Classée d'après vos corrections passées.</div>}
+        {enAttente && (
+          <div className="alx-entree flex flex-col gap-2.5 rounded-[12px] border border-white/[0.08] p-3.5">
+            <div className="text-[13.5px] text-[#E8EFEB]">Pourquoi {emplacementDe(enAttente).mot} plutôt que {emplacementDe(rue.classe).mot} ?</div>
+            <div className="flex flex-wrap gap-1.5">
+              {motifs.map((m) => (
+                <button key={m.cle} onClick={() => setMotifCle(m.cle)} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12px] transition-colors" style={{ borderColor: motifCle === m.cle ? "#96c0b8" : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? "#96c0b8" : "#C3CBC7", background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
+              ))}
+            </div>
+            <input value={motifTexte} onChange={(e) => setMotifTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="rounded-[10px] border border-white/[0.09] bg-[#0A0C0B] px-3 py-2 text-[13px] text-[#E8EFEB] outline-none focus:border-menthe/50" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Bouton principal onClick={() => valider(false)} disabled={classerPending || !motifCle}>{classerPending ? "…" : "ALX retient"}</Bouton>
+              <Bouton discret onClick={() => valider(true)} disabled={classerPending}>Sans raison</Bouton>
+              <Bouton discret onClick={() => setEnAttente(null)}>Annuler</Bouton>
+            </div>
+          </div>
+        )}
+        {apprentissage && apprentissage.rue === rue.nom && !enAttente && (
+          <div className="alx-entree flex flex-col gap-2 rounded-[12px] border border-menthe/25 p-3.5">
+            <div className="text-[13px] text-[#C3CBC7]">
+              {apprentissage.semblables.length
+                ? `ALX retient. ${apprentissage.semblables.length} rue${apprentissage.semblables.length > 1 ? "s" : ""} de la ville ressemble${apprentissage.semblables.length > 1 ? "nt" : ""} : les passer en ${emplacementDe(apprentissage.vers).mot} aussi ?`
+                : "ALX retient. Aucune autre rue de la ville ne ressemble à celle-ci."}
+            </div>
+            {apprentissage.semblables.map((x) => (
+              <div key={x.nom} className="flex items-center justify-between gap-3 border-t border-white/[0.06] pt-2 text-[12.5px]">
+                <span className="min-w-0 truncate text-[#E8EFEB]">{x.nom} <span className="text-[#8B938F]">· {x.commerces} vitrines{x.longueur_m ? ` sur ${x.longueur_m} m` : ""}{x.loyer ? ` · ${Math.round(x.loyer[0])}–${Math.round(x.loyer[1])} €` : ""}</span></span>
+                <button onClick={() => onClasserAussi([x.nom])} className="shrink-0 text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>Aussi</button>
+              </div>
+            ))}
+            {apprentissage.semblables.length > 1 && <div><Bouton onClick={() => onClasserAussi(apprentissage.semblables.map((x) => x.nom))} disabled={classerPending}>Toutes les {apprentissage.semblables.length}</Bouton></div>}
+          </div>
+        )}
         <div className="flex items-center gap-2.5">
           <span className="text-[13.5px] text-[#8B938F]">{ecartee ? "Reprendre en" : "Reclasser en"}</span>
           {EMPLACEMENTS.map((x) => {
@@ -380,7 +423,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
               <button
                 key={x.classe}
                 disabled={classerPending || on}
-                onClick={() => onClasser(rue.nom, x.classe)}
+                onClick={() => (ecartee ? onClasser(rue.nom, x.classe) : setEnAttente(x.classe))}
                 className="alx-mont h-[30px] min-w-[34px] rounded-[9px] border px-2.5 text-[12px] font-medium tabular-nums"
                 style={{ borderColor: on ? "#96c0b8" : "rgba(255,255,255,0.12)", background: on ? "rgba(150,192,184,0.12)" : "transparent", color: on ? "#96c0b8" : x.teinte }}
               >
@@ -420,7 +463,7 @@ function pourquoiEmplacement(r) {
 
 const valeurTri = (r, cle) => (cle === "classe" ? r.classe || 9 : cle === "loyer" ? (r.loyer ? (r.loyer[0] + r.loyer[1]) / 2 : 0) : r.prix_m2 || 0);
 
-function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, onFlux, fluxPending }) {
+function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, onFlux, fluxPending, motifs = [], apprentissage = null, onClasserAussi }) {
   const rues = ville?.rues || [];
   const ecartees = ville?.rues_ecartees || [];
   const enCours = ville?.parcours?.etat === "en_cours" && ville?.parcours?.phase === "rues";
@@ -471,6 +514,9 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
             onStreetView={() => setStreetView((x) => !x)}
             onFlux={() => onFlux(choisie)}
             fluxPending={fluxPending === choisie}
+            motifs={motifs}
+            apprentissage={apprentissage}
+            onClasserAussi={onClasserAussi}
           />
         </div>
       </div>
@@ -796,10 +842,17 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
   const prospecter = useGeste("parcourir", "commerces");
   const rediger = useGeste("rediger", "messages");
   const arreter = useGeste("arreter");
+  const { data: etat } = useQuery({ queryKey: ["alx-etat"], queryFn: () => base44.request("GET", "/api/alx/etat"), staleTime: 300000 });
+  const [apprentissage, setApprentissage] = useState(null); // { rue, vers, semblables } après une correction
   const classer = useMutation({
-    mutationFn: ({ nom, classe }) => base44.request("POST", `/api/alx/villes/${villeId}/rues`, { body: { nom, classe } }),
-    onSuccess: rafraichir,
+    mutationFn: ({ nom, classe, motif_cle = null, motif = null }) => base44.request("POST", `/api/alx/villes/${villeId}/rues`, { body: { nom, classe, motif_cle, motif } }),
+    onSuccess: (r, { nom, classe, motif_cle }) => { rafraichir(); setApprentissage(motif_cle ? { rue: nom, vers: classe, motif_cle, semblables: r.semblables || [] } : null); },
     onError: (e) => toast.error(e?.message || "Reclassement impossible"),
+  });
+  const classerAussi = useMutation({
+    mutationFn: async (noms) => { for (const nom of noms) await base44.request("POST", `/api/alx/villes/${villeId}/rues`, { body: { nom, classe: apprentissage.vers, motif_cle: apprentissage.motif_cle, motif: `comme ${apprentissage.rue}` } }); return noms; },
+    onSuccess: (noms) => { toast.success(`${noms.length} rue${noms.length > 1 ? "s" : ""} reclassée${noms.length > 1 ? "s" : ""} aussi`); rafraichir(); setApprentissage((a) => (a ? { ...a, semblables: a.semblables.filter((x) => !noms.includes(x.nom)) } : a)); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const flux = useMutation({
     mutationFn: (nom) => base44.request("POST", `/api/alx/villes/${villeId}/rues/${encodeURIComponent(nom)}/flux`, { body: {} }),
@@ -874,7 +927,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
           </details>
         )}
 
-        {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe) => classer.mutate({ nom, classe })} classerPending={classer.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} />}
+        {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe, motif_cle, motif) => classer.mutate({ nom, classe, motif_cle, motif })} classerPending={classer.isPending || classerAussi.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} motifs={etat?.motifs_rue || []} apprentissage={apprentissage} onClasserAussi={(noms) => classerAussi.mutate(noms)} />}
         {onglet === "commerces" && <OngletCommerces ville={ville} cibles={cibles} onOuvrir={ouvrirFiche} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
         {onglet === "messages" && <OngletMessages cibles={cibles} onOuvrir={ouvrirFiche} cibleDemandee={cibleDemandee} />}
 

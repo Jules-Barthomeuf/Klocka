@@ -16,8 +16,8 @@ export const TEINTES = {
   barreSurveiller: "#5A6762",
   ecartee: "#5f6160",
   urgence5: "#c2695c",
-  emplacement1: "#e6c35c",
-  emplacement1bis: "#6f8fe8",
+  emplacement1: "#6f8fe8",
+  emplacement1bis: "#b8863e",
   emplacement2: "#c2695c",
   texte: "#E8EFEB",
   clair: "#F3F7F5",
@@ -36,7 +36,7 @@ export const pileDe = (cle) => PILES.find((p) => p.cle === cle) || PILES[2];
 
 // Les emplacements d'une rue. Le 1 bis se note 1.5 côté serveur pour que les
 // tris restent numériques ; ici on lui donne son mot et sa teinte. Vert pour
-// Or pour le 1, bleu pour le 1 bis, rouge pour le 2 : c'est ce qu'on voit sur la carte.
+// Bleu pour le 1, ambre foncé pour le 1 bis, rouge pour le 2 : c'est ce qu'on voit sur la carte.
 export const EMPLACEMENTS = [
   { classe: 1, mot: "1", court: "N°1", teinte: TEINTES.emplacement1, fourchette: "700 000 – 1 000 000 €", detail: "la rue qui ne se discute pas" },
   { classe: 1.5, mot: "1 bis", court: "N°1B", teinte: TEINTES.emplacement1bis, fourchette: "500 000 – 800 000 €", detail: "tient le 1 sans en avoir le loyer" },

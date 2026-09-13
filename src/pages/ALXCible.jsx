@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
@@ -180,9 +180,13 @@ export default function ALXCible() {
   useEffect(() => { if (window.location.hash === "#message" && c?.brouillon) setMode("message"); }, [c?.brouillon]);
 
   const rafraichir = () => { qc.invalidateQueries({ queryKey: ["alx-cible", id] }); qc.invalidateQueries({ queryKey: ["alx-cibles"] }); qc.invalidateQueries({ queryKey: ["alx-villes"] }); qc.invalidateQueries({ queryKey: ["alx-etat"] }); };
+  // « Rédiger le message » : ALX écrit, puis on part dans l'onglet Messages de
+  // la ville, où le message s'ouvre et se corrige. La fiche ne bouge pas.
+  const navigate = useNavigate();
+  const versMessages = () => navigate(`/ALX?ville=${c.ville_id}&onglet=messages&cible=${c.id}`);
   const rediger = useMutation({
     mutationFn: () => base44.request("POST", `/api/alx/cibles/${id}/message`, { body: { canal: /SCI|SARL|SAS|SA\b/.test(c?.proprietaire?.forme || c?.societe?.forme || "") ? "courrier" : "mail" } }),
-    onSuccess: () => { setMode("message"); rafraichir(); },
+    onSuccess: () => { rafraichir(); setTimeout(versMessages, 350); },
     onError: (e) => toast.error(e?.message || "Rédaction impossible"),
   });
   const ecarter = useMutation({
@@ -266,7 +270,14 @@ export default function ALXCible() {
               </>
             ) : (
               <>
-                <Bouton principal onClick={() => (brouillon ? setMode("message") : rediger.mutate())} disabled={rediger.isPending}>{rediger.isPending ? "…" : brouillon ? "Relire le message" : "Rédiger le message"}</Bouton>
+                <Bouton principal className={rediger.isPending ? "alx-redige" : ""} onClick={() => (brouillon ? versMessages() : rediger.mutate())} disabled={rediger.isPending}>
+                  {rediger.isPending ? (
+                    <span className="flex items-center gap-2.5">
+                      <span className="flex h-3 items-end gap-[4px]">{[0, 0.18, 0.36].map((d) => <span key={d} className="alx-vague h-[5px] w-[5px] rounded-full bg-[#08130D]" style={{ animationDelay: `${d}s` }} />)}</span>
+                      ALX rédige
+                    </span>
+                  ) : brouillon ? "Relire le message" : "Rédiger le message"}
+                </Bouton>
                 <Bouton onClick={() => setMode("ecart")}>Écarter</Bouton>
               </>
             )}

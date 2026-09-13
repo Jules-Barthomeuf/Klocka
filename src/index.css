@@ -408,3 +408,8 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
   color: #C3CBC7; font: 12.5px/1.5 Figtree, "Instrument Sans", sans-serif; text-align: left; white-space: normal; text-transform: none; letter-spacing: 0;
   box-shadow: 0 14px 34px rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .15s; z-index: 30; }
 .alx-bulle:hover::after { opacity: 1; }
+
+/* Le bouton qui rédige : un reflet qui glisse pendant qu'ALX écrit. */
+@keyframes alx-reflet { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.alx button.alx-principal.alx-redige { background-image: linear-gradient(110deg, #96c0b8 0%, #96c0b8 35%, #d7ece7 50%, #96c0b8 65%, #96c0b8 100%) !important; background-size: 200% 100%; animation: alx-reflet 1.6s linear infinite; opacity: 1 !important; }
+@media (prefers-reduced-motion: reduce) { .alx button.alx-principal.alx-redige { animation: none; } }

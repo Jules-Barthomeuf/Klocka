@@ -51,7 +51,8 @@ export async function etatDesOutils() {
 // ---------------------------------------------------------------------------
 
 export function listerVilles() {
-  return Records.list('Ville', { sort: '-created_date' }).map((v) => ({
+  // Une ville « cachée » sert aux études (les projets Klocka relus par ALX) : elle ne s'affiche pas.
+  return Records.list('Ville', { sort: '-created_date' }).filter((v) => !v.cachee).map((v) => ({
     ...v,
     cibles: compterParPile(v.id),
     // Combien de cibles par rue, pour l'afficher sans un aller-retour de plus.

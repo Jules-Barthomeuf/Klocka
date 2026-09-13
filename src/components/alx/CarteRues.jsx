@@ -4,8 +4,8 @@ import "leaflet/dist/leaflet.css";
 import { EMPLACEMENTS, ECARTEE, emplacementDe } from "./alx-commun";
 
 // La carte des rues d'une ville. Chaque rue est dessinée sur son tracé
-// OpenStreetMap, dans la teinte de son emplacement : or pour le 1, bleu pour
-// le 1 bis, rouge pour le 2, gris fin pour les écartées. On clique une
+// OpenStreetMap, dans la teinte de son emplacement : bleu pour le 1, ambre
+// foncé pour le 1 bis, rouge pour le 2, gris fin pour les écartées. On clique une
 // rue pour la voir dans le panneau à côté et la cocher ; une rue cochée se
 // dessine plus épaisse.
 

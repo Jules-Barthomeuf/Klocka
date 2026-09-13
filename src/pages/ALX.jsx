@@ -307,7 +307,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
     return (
       <div className="flex h-full flex-col justify-center gap-2 px-6 text-center">
         <div className="text-[15px] text-[#C3CBC7]">Cliquez une rue sur la carte.</div>
-        <div className="text-[13px] text-[#8B938F]">Or, emplacement 1 ; bleu, 1 bis ; rouge, 2. Une rue cochée se dessine plus épaisse.</div>
+        <div className="text-[13px] text-[#8B938F]">Bleu, emplacement 1 ; ambre, 1 bis ; rouge, 2. Une rue cochée se dessine plus épaisse.</div>
       </div>
     );
   }
@@ -615,19 +615,30 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
 
 // --- Les messages ---------------------------------------------------------------------------
 
-function OngletMessages({ cibles, onOuvrir }) {
-  const navigate = useNavigate();
+function OngletMessages({ cibles, onOuvrir, cibleDemandee = null }) {
   const qc = useQueryClient();
   const avec = cibles.filter((c) => c.brouillon).sort((a, b) => urgenceDe(b).niveau - urgenceDe(a).niveau);
-  const [choisi, setChoisi] = useState(null);
+  const [choisi, setChoisi] = useState(cibleDemandee);
   const c = avec.find((x) => x.id === choisi) || avec[0] || null;
+  // Le message se corrige sur place : l'objet et le texte, puis Enregistrer.
+  const [texte, setTexte] = useState(null); // null tant qu'on n'a pas touché
+  const [objet, setObjet] = useState(null);
+  const cleTexte = c ? `${c.id}:${c.brouillon?.redige_le || ""}` : null;
+  const derniereCle = useRef(cleTexte);
+  if (cleTexte !== derniereCle.current) { derniereCle.current = cleTexte; if (texte !== null) setTexte(null); if (objet !== null) setObjet(null); }
+  const modifie = c && ((texte !== null && texte !== c.brouillon.texte) || (objet !== null && objet !== (c.brouillon.objet || "")));
   const reecrire = useMutation({
-    mutationFn: (id) => base44.request("POST", `/api/alx/cibles/${id}/message`, { body: { canal: "mail" } }),
-    onSuccess: () => { toast.success("Réécrit"); qc.invalidateQueries({ queryKey: ["alx-cibles"] }); },
+    mutationFn: (id) => base44.request("POST", `/api/alx/cibles/${id}/message`, { body: { canal: c?.brouillon?.canal || "mail" } }),
+    onSuccess: () => { toast.success("Réécrit"); setTexte(null); setObjet(null); qc.invalidateQueries({ queryKey: ["alx-cibles"] }); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const enregistrer = useMutation({
+    mutationFn: () => base44.request("PUT", `/api/alx/cibles/${c.id}`, { body: { brouillon: { ...c.brouillon, texte: texte ?? c.brouillon.texte, objet: objet ?? c.brouillon.objet, corrige_le: new Date().toISOString() } } }),
+    onSuccess: () => { toast.success("Message enregistré"); setTexte(null); setObjet(null); qc.invalidateQueries({ queryKey: ["alx-cibles"] }); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
-  if (!avec.length) return <div className="mt-7 rounded-[16px] border border-white/[0.07] px-6 py-8 text-center text-[14px] text-[#8B938F]">Aucun message encore : ouvrez un commerce et répondez « Oui ».</div>;
+  if (!avec.length) return <div className="mt-7 rounded-[16px] border border-white/[0.07] px-6 py-8 text-center text-[14px] text-[#8B938F]">Aucun message encore : ouvrez un commerce et cliquez « Rédiger le message ».</div>;
 
   return (
     <div className="alx-entree mt-7 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
@@ -655,14 +666,25 @@ function OngletMessages({ cibles, onOuvrir }) {
       </div>
 
       {c && (
-        <div className="flex min-h-[420px] flex-col rounded-[16px] border border-white/[0.07] px-7 py-[26px]">
-          <Etiquette teinte="#c3ddd6">{c.brouillon.canal === "courrier" ? "Courrier" : "E-mail"}</Etiquette>
+        <div key={c.id} className="alx-entree flex min-h-[420px] flex-col rounded-[16px] border border-white/[0.07] px-7 py-[26px]">
+          <Etiquette teinte="#c3ddd6">{c.brouillon.canal === "courrier" ? "Courrier" : "E-mail"}{c.brouillon.corrige_le ? " · corrigé" : ""}</Etiquette>
           <div className="mt-3 text-[22px] font-light tracking-[-.02em] text-[#F3F7F5]">{c.proprietaire?.nom ? joliNom(c.proprietaire.nom) : "Propriétaire à établir"}</div>
-          <div className="mt-1 text-[13.5px] text-[#8B938F]">{joliNom(c.enseigne) || ""} · {c.adresse}{c.brouillon.objet ? ` · ${c.brouillon.objet}` : ""}</div>
-          <div className="mt-[22px] whitespace-pre-line border-t border-white/[0.07] pt-5 text-[15px] leading-[1.7] text-[#C3CBC7]">{c.brouillon.texte}</div>
-          <div className="mt-auto flex flex-wrap items-center gap-2.5 pt-[26px]">
-            <Bouton principal onClick={() => navigate(`/ALXCible?id=${c.id}#message`)}>Relire et envoyer</Bouton>
-            <Bouton onClick={() => reecrire.mutate(c.id)} disabled={reecrire.isPending}>{reecrire.isPending ? "…" : "Réécrire"}</Bouton>
+          <div className="mt-1 text-[13.5px] text-[#8B938F]">{joliNom(c.enseigne) || ""} · {c.adresse}</div>
+          <input
+            value={objet ?? c.brouillon.objet ?? ""}
+            onChange={(e) => setObjet(e.target.value)}
+            placeholder="Objet"
+            className="mt-[18px] border-0 border-b border-white/[0.07] bg-transparent py-2 text-[15px] text-[#E8EFEB] outline-none focus:border-menthe/50"
+          />
+          <textarea
+            value={texte ?? c.brouillon.texte ?? ""}
+            onChange={(e) => setTexte(e.target.value)}
+            rows={Math.max(10, ((texte ?? c.brouillon.texte ?? "").match(/\n/g) || []).length + 3)}
+            className="mt-3 w-full resize-y border-0 bg-transparent text-[15px] leading-[1.7] text-[#C3CBC7] outline-none"
+          />
+          <div className="mt-auto flex flex-wrap items-center gap-2.5 pt-[22px]">
+            <Bouton principal onClick={() => enregistrer.mutate()} disabled={!modifie || enregistrer.isPending}>{enregistrer.isPending ? "…" : modifie ? "Enregistrer" : "Enregistré"}</Bouton>
+            <Bouton onClick={() => reecrire.mutate(c.id)} disabled={reecrire.isPending}>{reecrire.isPending ? "ALX réécrit…" : "Réécrire"}</Bouton>
             <Bouton discret onClick={() => onOuvrir(c.id)}>La fiche</Bouton>
           </div>
         </div>
@@ -673,7 +695,7 @@ function OngletMessages({ cibles, onOuvrir }) {
 
 // --- La page d'une ville ----------------------------------------------------------------------
 
-function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletDemande = null }) {
+function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletDemande = null, cibleDemandee = null }) {
   const qc = useQueryClient();
   const { data: ville } = useQuery({
     queryKey: ["alx-ville", villeId],
@@ -796,7 +818,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
 
         {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe) => classer.mutate({ nom, classe })} classerPending={classer.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} />}
         {onglet === "commerces" && <OngletCommerces ville={ville} cibles={cibles} onOuvrir={ouvrirFiche} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
-        {onglet === "messages" && <OngletMessages cibles={cibles} onOuvrir={ouvrirFiche} />}
+        {onglet === "messages" && <OngletMessages cibles={cibles} onOuvrir={ouvrirFiche} cibleDemandee={cibleDemandee} />}
 
         {!enCours && onglet === "commerces" && <div className="mt-2 flex justify-end"><AjoutCommerce villeId={villeId} ville={ville} onAjoute={rafraichir} /></div>}
       </div>
@@ -849,6 +871,7 @@ export default function ALX() {
   const [params, setParams] = useSearchParams();
   const villeId = params.get("ville");
   const ongletDemande = ["rues", "commerces", "messages"].includes(params.get("onglet")) ? params.get("onglet") : null;
+  const cibleDemandee = params.get("cible") || null;
   const { data: villes = [] } = useQuery({ queryKey: ["alx-villes"], queryFn: () => base44.request("GET", "/api/alx/villes"), refetchInterval: (q) => ((q.state.data || []).some((v) => v.parcours?.etat === "en_cours") ? 5000 : false) });
   const ville = villes.find((v) => v.id === villeId);
   const ouvrir = (id) => setParams({ ville: id });
@@ -861,7 +884,7 @@ export default function ALX() {
   return (
     <div className="alx min-h-screen">
       <div className="mx-auto max-w-[1440px] px-[34px] pb-[70px] pt-[26px] max-md:px-4">
-        {villeId ? <VillePage key={villeId} villeId={villeId} ville={ville} onNouvelle={nouvelle} onSuivante={suivante} ongletDemande={ongletDemande} /> : <Accueil villes={villes} onOuvrir={ouvrir} />}
+        {villeId ? <VillePage key={villeId} villeId={villeId} ville={ville} onNouvelle={nouvelle} onSuivante={suivante} ongletDemande={ongletDemande} cibleDemandee={cibleDemandee} /> : <Accueil villes={villes} onOuvrir={ouvrir} />}
         {!villeId && (
           <div className="mt-10 text-center text-[12.5px] text-[#8B938F]">
             <Link to="/ALXBilan" className="hover:text-[#E8EFEB]">Le bilan des approches →</Link>

@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "sonner";
 import { ExternalLink, Loader2 } from "lucide-react";
-import { EnTeteAlx, Carte, Bouton, Champ, PILES, euros, quand } from "@/components/alx/alx-commun";
+import { Carte, Bouton, Champ, PILES, euros, quand, Halo } from "@/components/alx/alx-commun";
 import EchelleFourchettes from "@/components/preanalyse/EchelleFourchettes";
 
 // La fiche d'une cible : le signal en tête, le propriétaire et ses gens, la
@@ -103,47 +103,62 @@ export default function ALXCible() {
           ← Toutes les cibles
         </Link>
 
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+          <div className="flex flex-col gap-2">
+            <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: pileInfo.teinte }}>{pileInfo.mot}</div>
+            <h1 className="m-0 text-[36px] max-md:text-[26px] font-semibold tracking-[-.025em] leading-[1.05] text-encre">{c.enseigne || c.adresse}</h1>
+            <div className="text-[15px] text-ardoise">
+              {c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.emplacement ? ` · Emplacement ${c.emplacement}` : ""}{c.activite ? ` · ${c.activite}` : ""}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 border border-bord-doux text-craie hover:text-encre hover:border-bord-vif rounded-full px-4 py-2.5 text-[13px] transition-colors">
+              Maps <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            {c.deal_id ? (
+              <Link to={`/Analyse?deal_id=${c.deal_id}`} className="inline-flex items-center bg-menthe text-[#0b1211] rounded-full px-4 py-2.5 text-[13px] font-medium hover:bg-menthe-clair transition-colors">Ouvrir le dossier</Link>
+            ) : (
+              <Bouton onClick={() => { if (window.confirm("Créer le dossier à l'étape 1 ? À faire quand le bail et les quittances sont arrivés.")) dossier.mutate(); }} disabled={dossier.isPending} principal>Créer le dossier</Bouton>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-4 mb-5">
+          <div className="relative overflow-hidden bg-surface border border-white/[0.08] rounded-[20px] p-7 flex flex-col gap-4 min-h-[190px]">
+            <Halo teinte={pileInfo.cle === "appeler" ? "232,178,120" : pileInfo.cle === "ecrire" ? "120,150,235" : "150,192,184"} />
+            <div className="relative text-[10px] tracking-[.16em] uppercase text-ardoise">Le propriétaire</div>
+            <div className="relative text-[28px] font-semibold tracking-[-.02em] text-encre leading-tight">{p.nom || "À établir"}</div>
+            <div className="relative text-[13px] text-ardoise leading-[1.6] max-w-[46ch]">
+              {p.nom
+                ? [s.forme || p.forme, s.creation ? `créée en ${String(s.creation).slice(0, 4)}` : null, (s.gerants || []).length ? `${s.gerants.length} gérant${s.gerants.length > 1 ? "s" : ""}${s.gerants.some((g) => g.tranche_age === "70+") ? ", dont un de plus de 70 ans" : ""}` : null, c.foncier?.motif_choix].filter(Boolean).join(" · ")
+                : c.foncier?.motif_choix || "Data-B n'a pas encore été interrogé : le bouton est plus bas."}
+            </div>
+            {signalPrincipal && (
+              <div className="relative mt-auto pt-3 border-t border-white/[0.08] text-[14px] text-encre leading-[1.5]">
+                <span style={{ color: pileInfo.teinte }}>Signal · </span>{c.motif}
+              </div>
+            )}
+          </div>
+          <div className="bg-surface border border-white/[0.08] rounded-[20px] p-7 flex flex-col gap-1">
+            <div className="text-[10px] tracking-[.16em] uppercase text-ardoise mb-3">Les chiffres</div>
+            {[
+              ["Loyer de la rue", v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])} – ${Math.round(v.loyer_fourchette[1])} €/m²/an` : "à lire"],
+              ["Fourchette de prix", v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : v.loyer_m2_marche ? "surface à saisir" : "après le loyer"],
+              ["Surface", v.surface ? `${v.surface} m²` : "à saisir"],
+              ["Détenu depuis", s.creation ? `${new Date().getFullYear() - Number(String(s.creation).slice(0, 4))} ans` : "—"],
+              ["Dernière vente autour", c.mutation?.date ? `${euros(c.mutation.prix)} en ${String(c.mutation.date).slice(0, 4)}` : "aucune connue"],
+              ["Exploitant", c.occupant?.nom ? `${c.occupant.nom}${c.occupant.depuis ? `, depuis ${String(c.occupant.depuis).slice(0, 4)}` : ""}` : c.enseigne || "—"],
+            ].map(([k, val]) => (
+              <div key={k} className="flex items-baseline justify-between gap-4 py-2.5 border-t border-white/[0.06] first:border-t-0">
+                <span className="text-[13.5px] text-ardoise">{k}</span>
+                <span className="text-[14px] text-encre text-right tabular-nums">{val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-5 items-start">
           <div className="flex flex-col gap-4">
-            <Carte className="flex flex-col gap-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: pileInfo.teinte }}>{pileInfo.mot}</div>
-                  <div className="text-[26px] font-semibold tracking-[-.02em] text-encre">{c.enseigne || c.adresse}</div>
-                  <div className="text-[15px] text-ardoise">
-                    {c.adresse}{c.emplacement ? ` · Emplacement ${c.emplacement}` : ""}{c.activite ? ` · ${c.activite}` : ""}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 border border-bord-doux text-craie hover:text-encre hover:border-bord-vif rounded-full px-4 py-2.5 text-[13px] transition-colors">
-                    Maps <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                  {c.deal_id ? (
-                    <Link to={`/Analyse?deal_id=${c.deal_id}`} className="inline-flex items-center bg-menthe text-[#0b1211] rounded-full px-4 py-2.5 text-[13px] font-medium hover:bg-menthe-clair transition-colors">
-                      Ouvrir le dossier
-                    </Link>
-                  ) : (
-                    <Bouton onClick={() => { if (window.confirm("Créer le dossier à l'étape 1 ? À faire quand le bail et les quittances sont arrivés.")) dossier.mutate(); }} disabled={dossier.isPending} principal>
-                      Créer le dossier
-                    </Bouton>
-                  )}
-                </div>
-              </div>
-
-              {signalPrincipal && (
-                <div className="rounded-[12px] p-[18px] flex flex-col gap-1.5" style={{ background: `${pileInfo.teinte}12`, border: `1px solid ${pileInfo.teinte}40` }}>
-                  <div className="text-[9px] tracking-[.14em] uppercase font-semibold" style={{ color: pileInfo.teinte }}>Le signal</div>
-                  <div className="text-[16px] leading-[1.55] text-encre">{c.motif}</div>
-                  <div className="text-[12px] text-brume">{signalPrincipal.source}</div>
-                </div>
-              )}
-              {!signalPrincipal && <p className="m-0 text-[13px] text-brume">{c.motif}</p>}
-              {c.occupant?.nom && (
-                <p className="m-0 text-[12.5px] text-brume">
-                  Exploitant : {c.occupant.nom}{c.occupant.depuis ? `, depuis ${String(c.occupant.depuis).slice(0, 4)}` : ""}{c.occupant.chaine ? " · enseigne nationale" : ""} · SIRET {c.occupant.siret}
-                </p>
-              )}
-            </Carte>
 
             <Carte className="flex flex-col gap-5">
               <div className="flex flex-wrap items-baseline justify-between gap-3">

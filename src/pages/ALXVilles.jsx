@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "sonner";
@@ -19,6 +19,9 @@ const EMPLACEMENTS = [
 export default function ALXVilles() {
   const user = useUser();
   const qc = useQueryClient();
+  // Ouverte depuis une ville, la page ne montre que ses rues.
+  const [params] = useSearchParams();
+  const seulement = params.get("ville");
   const [nom, setNom] = useState("");
   const [cp, setCp] = useState("");
   const [rue, setRue] = useState({});
@@ -64,25 +67,29 @@ export default function ALXVilles() {
   return (
     <div className="bg-fond min-h-screen text-encre">
       <div className="max-w-[1440px] mx-auto px-7 pt-7 pb-20">
-        <EnTeteAlx titre="Villes" sous="Une ville en entrée. Ses rues se classent en emplacement 1, le solide, ou 2, pour les budgets plus petits." />
+        {seulement ? (
+          <Link to={`/ALX?ville=${seulement}`} className="inline-block mb-5 text-[13px] text-menthe hover:text-menthe-clair">← Retour à la ville</Link>
+        ) : (
+          <EnTeteAlx titre="Rues" sous="Les rues de chaque ville, en emplacement 1, le solide, ou 2, pour les budgets plus petits. ALX propose, l'équipe corrige." />
+        )}
 
-        <form
+        {!seulement && <form
           onSubmit={(e) => { e.preventDefault(); if (nom.trim()) creer.mutate(); }}
           className="flex flex-wrap items-end gap-4 mb-10 pb-8 border-b border-trait"
         >
           <Champ label="Ville" value={nom} onChange={setNom} placeholder="Antibes" className="flex-1 min-w-[200px]" />
           <Champ label="Code postal" value={cp} onChange={setCp} placeholder="06600" className="w-[140px]" />
           <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending}>Ajouter</Bouton>
-        </form>
+        </form>}
 
         {villes.length === 0 && <p className="m-0 text-[13.5px] text-brume">Aucune ville. Ajoutez-en une ci-dessus.</p>}
 
         <div className="flex flex-col gap-10">
-          {villes.map((v) => (
+          {villes.filter((v) => !seulement || v.id === seulement).map((v) => (
             <section key={v.id}>
               <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
                 <div>
-                  <h2 className="m-0 text-[20px] font-semibold tracking-[-.01em] text-encre">
+                  <h2 className="m-0 text-[28px] font-semibold tracking-[-.02em] text-encre">
                     {v.nom} {v.code_postal && <span className="text-brume text-[14px] font-normal">· {v.code_postal}</span>}
                   </h2>
                   <p className="m-0 mt-1 text-[12.5px] text-ardoise">
@@ -111,7 +118,7 @@ export default function ALXVilles() {
                 {EMPLACEMENTS.map((e) => {
                   const rues = (v.rues || []).filter((r) => r.classe === e.classe);
                   return (
-                    <Carte key={e.classe} className="flex flex-col gap-[18px] !p-6">
+                    <Carte key={e.classe} className="flex flex-col gap-[18px] !p-6 !rounded-[18px]">
                       <div className="flex items-baseline justify-between">
                         <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: e.teinte }}>Emplacement {e.classe}</div>
                         <div className="text-[12px] text-brume">{e.fourchette}</div>

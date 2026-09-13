@@ -23,8 +23,10 @@ export async function trouverProprietaire(id, { siren = null, user = null } = {}
   const { proprietairesDe } = await import('./foncier.js');
   const ville = Records.get('Ville', c.ville_id);
   if (!/^\d/.test(String(c.adresse || '').trim())) throw new Error("L'adresse n'a pas de numéro : impossible de désigner le bâtiment.");
-  const texte = [c.adresse, ville?.code_postal, c.ville].filter(Boolean).join(' ');
+  const texte = [c.adresse, c.code_postal || ville?.code_postal, c.ville].filter(Boolean).join(' ');
   const f = await proprietairesDe(texte, { occupant: c.occupant || null });
+  // Un bâtiment dont le numéro ne concorde pas n'est pas le bon : on montre la liste, on ne retient personne.
+  if (f && f.adresse_non_confirmee) { f.choix = null; f.motif_choix = `bâtiment non confirmé (fiche ${f.adresse_fiche || 'sans adresse'}) : à vérifier sur Data-B`; }
   if (!f) throw new Error(`La Base Adresse Nationale ne connaît pas « ${texte} ».`);
 
   // Le choix explicite de l'équipe, parmi la liste, prime sur l'automatique.

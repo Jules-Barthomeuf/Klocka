@@ -233,6 +233,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         enseigne: e.enseigne,
         activite: e.activite,
         siret: e.siret,
+        code_postal: e.code_postal || null,
         occupant: { siret: e.siret, siren: e.siren, nom: e.nom, ape: e.ape, depuis: e.depuis, chaine: e.chaine },
         lat: e.lat,
         lon: e.lon,

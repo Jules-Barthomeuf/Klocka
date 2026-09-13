@@ -18,8 +18,7 @@ export const euros = (n) => (n == null || !isFinite(n) ? "—" : `${Math.round(n
 export const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—");
 
 const ONGLETS = [
-  { to: "/ALXVilles", mot: "Villes" },
-  { to: "/ALX", mot: "Cibles" },
+  { to: "/ALX", mot: "Villes" },
   { to: "/ALXBilan", mot: "Bilan" },
 ];
 
@@ -39,7 +38,7 @@ export function EnTeteAlx({ titre = "ALX", sous, droite = null }) {
       {sous && <p className="mt-3 mb-0 max-w-[62ch] text-[13.5px] leading-[1.65] text-ardoise">{sous}</p>}
       <nav className="mt-6 flex gap-1 border-b border-trait">
         {ONGLETS.map((o) => {
-          const actif = pathname.toLowerCase() === o.to.toLowerCase() || (o.to === "/ALX" && pathname.toLowerCase().startsWith("/alxcible"));
+          const actif = pathname.toLowerCase() === o.to.toLowerCase() || (o.to === "/ALX" && /^\/alx(cible|villes)/i.test(pathname));
           return (
             <Link
               key={o.to}
@@ -125,6 +124,71 @@ export function GrilleStats({ children }) {
       style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}
     >
       {children}
+    </div>
+  );
+}
+
+// --- Le registre de la maquette : halos, grands chiffres, pastilles, bascules ---------------
+
+/** Un halo doux derrière un bloc, comme un fond de page qui respire. */
+export function Halo({ className = "", teinte = "150,192,184" }) {
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute inset-0 ${className}`}
+      style={{ background: `radial-gradient(60% 55% at 20% 0%, rgba(${teinte},0.14) 0%, rgba(${teinte},0.04) 40%, transparent 70%)` }}
+    />
+  );
+}
+
+/** Un grand chiffre dans une carte, à la manière d'un solde. */
+export function Chiffre({ label, valeur, detail = null, teinte = null, onClick = null, actif = false }) {
+  const Tag = onClick ? "button" : "div";
+  return (
+    <Tag
+      onClick={onClick || undefined}
+      className={`relative overflow-hidden text-left bg-surface border rounded-[18px] px-6 py-5 flex flex-col gap-1.5 transition-colors ${
+        actif ? "border-menthe/50" : "border-white/[0.08]"
+      } ${onClick ? "hover:border-white/[0.18]" : ""}`}
+    >
+      {actif && <Halo />}
+      <div className="relative text-[10px] tracking-[.16em] uppercase text-ardoise">{label}</div>
+      <div className="relative text-[34px] leading-none font-semibold tabular-nums tracking-[-.02em]" style={teinte ? { color: teinte } : undefined}>{valeur}</div>
+      {detail && <div className="relative text-[12.5px] text-brume mt-1">{detail}</div>}
+    </Tag>
+  );
+}
+
+/** Une pastille d'état : en cours, terminé, à lancer. */
+export function Statut({ etat }) {
+  const m = {
+    en_cours: ["En cours", "var(--k-menthe)", true],
+    fini: ["Terminé", "var(--k-craie)", false],
+    arrete: ["Arrêté", "#E8B278", false],
+    interrompu: ["Interrompu", "#E8B278", false],
+    erreur: ["En erreur", "var(--k-alerte)", false],
+  }[etat] || ["À lancer", "var(--k-brume)", false];
+  return (
+    <span className="inline-flex items-center gap-2 text-[11px] tracking-[.12em] uppercase rounded-full border border-white/[0.1] px-3 py-1.5" style={{ color: m[1] }}>
+      <span className={`w-[6px] h-[6px] rounded-full ${m[2] ? "animate-pulse" : ""}`} style={{ background: m[1] }} />
+      {m[0]}
+    </span>
+  );
+}
+
+/** Une bascule à pilules, comme « Brut / Net / Financier ». */
+export function Bascule({ options, valeur, onChange }) {
+  return (
+    <div className="inline-flex gap-1 border border-white/[0.1] rounded-full p-1">
+      {options.map(([cle, mot, n]) => (
+        <button
+          key={cle}
+          onClick={() => onChange(cle)}
+          className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${valeur === cle ? "bg-menthe text-[#0b1211] font-medium" : "text-ardoise hover:text-encre"}`}
+        >
+          {mot}{n != null ? <span className={`ml-1.5 tabular-nums ${valeur === cle ? "opacity-70" : "text-brume"}`}>{n}</span> : null}
+        </button>
+      ))}
     </div>
   );
 }

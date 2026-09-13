@@ -1,17 +1,28 @@
 // Les rues d'une ville, proposées par ALX.
 //
-// On balaie le centre : tous les établissements actifs autour du point de la
-// commune (annuaire de l'État), on ne garde que les commerces de pied
-// d'immeuble, on les compte par rue. Les rues assez denses passent chez
-// Data-B pour leur loyer de marché : c'est lui qui fait l'emplacement, 1 ou 2,
-// ou qui écarte la rue. Tout est écrit avec son motif ; l'équipe corrige.
+// OpenStreetMap donne en une seconde les rues du centre, leur tracé et les
+// vitrines que les contributeurs y ont posées ; on compte les vitrines par
+// rue. Les rues assez vivantes passent chez Data-B pour leur loyer de marché :
+// c'est lui qui fait l'emplacement, 1, 1 bis ou 2, ou qui écarte la rue. Tout
+// est écrit avec son motif ; l'équipe corrige.
 
 import { REGLES } from './classement.js';
-import { etablissementsAutour } from './annuaire.js';
+import { ruesEtVitrines } from './osm.js';
 import { cleRue, joliNomDeRue } from './commerces.js';
 
-const SEUILS = REGLES.parcours || { rayon_km: 1.5, min_commerces_par_rue: 8, max_rues: 30, loyer_emplacement_1: 650, loyer_emplacement_2: 280 };
-const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+const SEUILS = REGLES.parcours || { rayon_km: 1.5, min_commerces_par_rue: 5, max_rues: 30, loyer_emplacement_1: 800, loyer_emplacement_1bis: 550, loyer_emplacement_2: 350 };
+
+/** « 1 », « 1 bis », « 2 » : le 1 bis se note 1.5 pour que les tris restent des tris. */
+export const libelleEmplacement = (classe) => (classe === 1.5 ? '1 bis' : classe == null ? null : String(classe));
+
+/** Lance `fn` sur chaque élément, au plus `n` à la fois, dans l'ordre de départ. */
+async function parLots(items, n, fn) {
+  const out = new Array(items.length);
+  let i = 0;
+  const un = async () => { for (;;) { const k = i++; if (k >= items.length) return; out[k] = await fn(items[k], k); } };
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, un));
+  return out;
+}
 
 /** La commune par la Base Adresse Nationale : INSEE, centre. */
 export async function communeDe(nom) {
@@ -62,16 +73,18 @@ export function grouperParRue(etablissements) {
 
 /**
  * L'emplacement d'une rue d'après le milieu de sa fourchette de loyer de
- * marché (€/m²/an) : 1, 2, ou null (écartée) avec le motif. Pure.
+ * marché (€/m²/an) : 1, 1.5 (« 1 bis »), 2, ou null (écartée), avec le
+ * motif. Pure.
  */
 export function emplacementParLoyer(loyer, commerces, seuils = SEUILS) {
   const basse = loyer?.basse ?? null;
   const haute = loyer?.haute ?? null;
   const milieu = basse != null && haute != null ? (basse + haute) / 2 : haute ?? basse;
   const fourchette = milieu != null ? `loyer ${Math.round(basse ?? milieu)}–${Math.round(haute ?? milieu)} €/m²/an` : 'loyer inconnu';
-  const densite = `${commerces} commerce${commerces > 1 ? 's' : ''}`;
+  const densite = `${commerces} vitrine${commerces > 1 ? 's' : ''}`;
   if (milieu == null) return { classe: 2, motif: `${densite} · ${fourchette} : classée 2 par défaut, à vérifier` };
   if (milieu >= seuils.loyer_emplacement_1) return { classe: 1, motif: `${densite} · ${fourchette}` };
+  if (seuils.loyer_emplacement_1bis != null && milieu >= seuils.loyer_emplacement_1bis) return { classe: 1.5, motif: `${densite} · ${fourchette}` };
   if (milieu >= seuils.loyer_emplacement_2) return { classe: 2, motif: `${densite} · ${fourchette}` };
   return { classe: null, motif: `${densite} · ${fourchette} : trop bas pour le mandat` };
 }
@@ -114,28 +127,20 @@ export async function prixDeLaRue(adresse, loyer, prixDe = null) {
   return { prix_m2: null, prix_m2_source: null, rendement: null };
 }
 
-export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal = () => {}, arreter = () => false, loyerDe = null, prixDe = null } = {}) {
+export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal = () => {}, arreter = () => false, loyerDe = null, prixDe = null, ruesDe = null } = {}) {
   let commune = ville.code_insee && ville.centre ? { code_insee: ville.code_insee, code_postal: ville.code_postal, ...ville.centre, nom: ville.nom } : null;
   if (!commune) {
     commune = await communeDe(ville.nom);
     if (!commune) throw new Error(`La Base Adresse Nationale ne connaît pas la commune « ${ville.nom} ».`);
   }
-  journal(`Commune ${commune.nom} (INSEE ${commune.code_insee}), balayage sur ${rayon_km} km autour du centre.`);
+  journal(`Commune ${commune.nom} (INSEE ${commune.code_insee}) : rues et vitrines sur ${rayon_km} km autour du centre, par OpenStreetMap.`);
 
-  const etablissements = await etablissementsAutour({
-    lat: commune.lat,
-    lon: commune.lon,
-    rayon_km,
-    arreter,
-    sur_page: (p, n) => { if (p.page % 40 === 0) journal(`Annuaire : page ${p.page} sur ${p.total_pages}, ${n} établissements actifs lus.`); },
-  });
-  const { rues, ignores } = grouperParRue(etablissements);
-  const commerces = rues.reduce((a, r) => a + r.commerces, 0);
-  const motifs = Object.entries(ignores).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([m, n]) => `${n} ${m}`).join(', ');
-  journal(`${etablissements.length} établissements, ${commerces} commerces de pied d'immeuble sur ${rues.length} rues. Ignorés : ${motifs || 'aucun'}.`);
+  const osm = await (ruesDe || ruesEtVitrines)({ lat: commune.lat, lon: commune.lon, rayon_km });
+  const vitrines = osm.vitrines_total;
+  journal(`${osm.rues.length} rues, ${vitrines} vitrines${osm.sans_rue ? ` (${osm.sans_rue} sans rue à moins de 30 m, ignorées)` : ''}.`);
 
-  const denses = rues.filter((r) => r.commerces >= SEUILS.min_commerces_par_rue).slice(0, SEUILS.max_rues);
-  journal(`${denses.length} rues avec au moins ${SEUILS.min_commerces_par_rue} commerces : lecture du loyer de marché chez Data-B.`);
+  const denses = osm.rues.filter((r) => r.vitrines >= SEUILS.min_commerces_par_rue).slice(0, SEUILS.max_rues);
+  journal(`${denses.length} rues avec au moins ${SEUILS.min_commerces_par_rue} vitrines : lecture du loyer de marché chez Data-B.`);
 
   const lireLoyer = loyerDe || (async (adresse) => {
     const { valeurLocative } = await import('../data-b.js');
@@ -143,13 +148,12 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
     return r.ok ? r.resultat : null;
   });
 
-  const classees = [];
-  const ecartees = [];
-  for (const r of denses) {
-    if (arreter()) break;
+  // Trois rues à la fois chez Data-B : la trentaine passe en une dizaine de secondes.
+  const lues = await parLots(denses, 3, async (r) => {
+    if (arreter()) return null;
     const officielle = await rueOfficielle(r.nom, commune.nom);
     const nom = officielle?.nom ? joliNomDeRue(officielle.nom) : r.nom;
-    const cp = officielle?.code_postal || r.code_postal || commune.code_postal;
+    const cp = officielle?.code_postal || commune.code_postal;
     let loyer = null;
     let valeurLocative = null;
     try {
@@ -158,15 +162,23 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
     } catch (e) {
       journal(`${nom} : Data-B n'a pas rendu de loyer (${e.message}).`);
     }
-    const { classe, motif } = emplacementParLoyer(loyer, r.commerces);
+    const { classe, motif } = emplacementParLoyer(loyer, r.vitrines);
     // Le prix au m² des murs vendus autour de la rue (DVF), et le rendement qui
     // en découle avec le loyer ; à défaut, le prix que donne le loyer à 7 %.
     const marche = await prixDeLaRue(officielle ? `${nom}, ${cp} ${commune.nom}` : null, loyer, prixDe);
-    const base = { nom, cle: r.cle, code_postal: cp, commerces: r.commerces, chaines: r.chaines.slice(0, 8), loyer: loyer ? [loyer.basse, loyer.haute] : null, loyer_source: valeurLocative?.rue ? 'Data-B, rue' : valeurLocative?.quartier ? 'Data-B, quartier' : null, ...marche, centre: officielle ? { lat: officielle.lat, lon: officielle.lon } : null, motif };
-    if (classe) classees.push({ ...base, classe });
-    else ecartees.push(base);
-    await pause(400);
-  }
+    return {
+      nom, cle: r.cle, code_postal: cp, commerces: r.vitrines, enseignes: r.enseignes.slice(0, 8),
+      trace: r.trace, longueur_m: r.longueur_m,
+      loyer: loyer ? [loyer.basse, loyer.haute] : null,
+      loyer_source: valeurLocative?.rue ? 'Data-B, rue' : valeurLocative?.quartier ? 'Data-B, quartier' : null,
+      ...marche,
+      centre: officielle ? { lat: officielle.lat, lon: officielle.lon } : r.centre,
+      motif, classe,
+    };
+  });
+
+  const classees = lues.filter((x) => x && x.classe);
+  const ecartees = lues.filter((x) => x && !x.classe).map(({ classe, ...x }) => x);
   classees.sort((a, b) => a.classe - b.classe || b.commerces - a.commerces);
-  return { commune, classees, ecartees, commerces_total: commerces, etablissements_par_rue: Object.fromEntries(rues.map((r) => [r.cle, r.etablissements])) };
+  return { commune, classees, ecartees, commerces_total: vitrines, etablissements_par_rue: {} };
 }

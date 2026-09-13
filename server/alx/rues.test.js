@@ -1,0 +1,54 @@
+// Le classement d'une rue par son loyer : 1, 1 bis, 2, ou écartée. Pur.
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { emplacementParLoyer, libelleEmplacement, proposerRues } from './rues.js';
+
+const SEUILS = { loyer_emplacement_1: 800, loyer_emplacement_1bis: 550, loyer_emplacement_2: 350 };
+
+test('le milieu de la fourchette fait l’emplacement : 1, 1 bis, 2, ou écartée', () => {
+  assert.equal(emplacementParLoyer({ basse: 899, haute: 1348 }, 40, SEUILS).classe, 1, "rue d'Antibes");
+  assert.equal(emplacementParLoyer({ basse: 500, haute: 700 }, 30, SEUILS).classe, 1.5, 'rue Meynadier : 1 bis');
+  assert.equal(emplacementParLoyer({ basse: 347, haute: 521 }, 14, SEUILS).classe, 2, 'avenue de Grasse');
+  const basse = emplacementParLoyer({ basse: 150, haute: 250 }, 9, SEUILS);
+  assert.equal(basse.classe, null);
+  assert.match(basse.motif, /trop bas/);
+});
+
+test('sans loyer, la rue est classée 2 par défaut et le motif le dit', () => {
+  const r = emplacementParLoyer(null, 12, SEUILS);
+  assert.equal(r.classe, 2);
+  assert.match(r.motif, /à vérifier/);
+});
+
+test('le 1 bis s’écrit 1.5 et se lit « 1 bis »', () => {
+  assert.equal(libelleEmplacement(1.5), '1 bis');
+  assert.equal(libelleEmplacement(1), '1');
+  assert.equal(libelleEmplacement(null), null);
+});
+
+test('proposerRues garde le tracé, classe les rues vivantes et écarte les autres, sans réseau', async () => {
+  const trace = [[[43.55, 7.02], [43.55, 7.03]]];
+  const ruesDe = async () => ({
+    rues: [
+      { cle: 'antibes', nom: "Rue d'Antibes", vitrines: 40, enseignes: ['LCL'], trace, longueur_m: 800, centre: { lat: 43.55, lon: 7.025 } },
+      { cle: 'meynadier', nom: 'Rue Meynadier', vitrines: 20, enseignes: [], trace, longueur_m: 400, centre: { lat: 43.55, lon: 7.025 } },
+      { cle: 'basse', nom: 'Rue Basse', vitrines: 6, enseignes: [], trace, longueur_m: 100, centre: { lat: 43.55, lon: 7.025 } },
+      { cle: 'vide', nom: 'Allée Vide', vitrines: 1, enseignes: [], trace, longueur_m: 50, centre: null },
+    ],
+    vitrines_total: 67,
+    sans_rue: 0,
+  });
+  const loyers = { "Rue d'Antibes": { rue: { basse: 899, haute: 1348 } }, 'Rue Meynadier': { rue: { basse: 500, haute: 700 } }, 'Rue Basse': { rue: { basse: 100, haute: 200 } } };
+  const journal = [];
+  const r = await proposerRues(
+    { nom: 'Cannes', code_insee: '06029', code_postal: '06400', centre: { lat: 43.55, lon: 7.01 } },
+    { ruesDe, loyerDe: async (a) => loyers[a.split(',')[0]] || null, prixDe: async () => null, journal: (t) => journal.push(t) },
+  );
+  assert.deepEqual(r.classees.map((x) => [x.nom, x.classe]), [["Rue d'Antibes", 1], ['Rue Meynadier', 1.5]]);
+  assert.deepEqual(r.ecartees.map((x) => x.nom), ['Rue Basse'], 'trop bas ; l’allée à une vitrine n’est même pas lue');
+  assert.equal(r.classees[0].trace, trace, 'le tracé suit la rue, pour la carte et la balade');
+  assert.equal(r.classees[0].commerces, 40);
+  assert.equal(r.commerces_total, 67);
+  assert.ok(journal.some((t) => /OpenStreetMap/.test(t)));
+});

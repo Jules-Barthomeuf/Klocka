@@ -2,7 +2,7 @@
 //
 // Trois entités, toutes réservées à l'équipe par construction (elles ne sont
 // pas dans la liste blanche des clients, donc fermées) :
-//   Ville     une ville en cours, avec ses rues classées en emplacement 1 ou 2
+//   Ville     une ville en cours, avec ses rues classées en emplacement 1, 1 bis ou 2
 //   Cible     un local commercial, de la devanture au propriétaire, avec sa pile
 //   Approche  chaque tentative de contact, chaque réponse, chaque refus daté
 //
@@ -83,7 +83,7 @@ export function creerVille({ nom, code_postal = null, user = null }) {
       nom: propre,
       code_postal: code_postal ? String(code_postal).trim() : null,
       etat: 'active',
-      // Les rues, classées par ALX ou à la main : { nom, classe: 1|2, motif, par, le }
+      // Les rues, classées par ALX ou à la main : { nom, classe: 1|1.5|2, motif, par, le, trace }
       rues: [],
       cree_le: maintenant(),
       cree_par: user?.email || null,
@@ -93,13 +93,21 @@ export function creerVille({ nom, code_postal = null, user = null }) {
   return { ok: true, ville };
 }
 
-/** Pose ou corrige le classement d'une rue. classe = 1 (solide) ou 2 (petit budget). */
+/** « 1 », « 1 bis » ou « 1.5 », « 2 » → 1, 1.5, 2 ; sinon null. */
+export const classeDe = (classe) => {
+  const t = String(classe ?? '').trim().toLowerCase().replace(',', '.');
+  if (t === '1bis' || t === '1 bis') return 1.5;
+  const n = Number(t);
+  return [1, 1.5, 2].includes(n) ? n : null;
+};
+
+/** Pose ou corrige le classement d'une rue. classe = 1 (solide), 1.5 (1 bis) ou 2 (petit budget). */
 export function classerRue(villeId, { nom, classe, motif = null, user = null }) {
   const ville = Records.get('Ville', villeId);
   if (!ville) return { ok: false, error: 'Ville introuvable.' };
   const propre = String(nom || '').trim();
-  const c = Number(classe);
-  if (!propre || ![1, 2].includes(c)) return { ok: false, error: 'Une rue et une classe (1 ou 2).' };
+  const c = classeDe(classe);
+  if (!propre || !c) return { ok: false, error: 'Une rue et une classe (1, 1 bis ou 2).' };
   const existante = (ville.rues || []).find((r) => r.nom.toLowerCase() === propre.toLowerCase());
   const rues = (ville.rues || []).filter((r) => r.nom.toLowerCase() !== propre.toLowerCase());
   // Ce qu'ALX savait de la rue (commerces, loyer) reste ; la classe et l'auteur changent.

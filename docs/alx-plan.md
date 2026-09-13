@@ -10,7 +10,7 @@ Ceux qu'on a déjà, dans l'ordre où ALX s'en sert.
 
 | Étape | Outil | État |
 |---|---|---|
-| Les rues d'une ville et leur densité de commerces | Annuaire des entreprises (État, gratuit, sans clé), tous les établissements autour du centre | branché : 8 000 établissements lus en trois minutes sur Cannes |
+| Les rues d'une ville, leur tracé et leurs vitrines | OpenStreetMap (Overpass, gratuit, sans clé) : rues nommées et commerces à 1,5 km du centre | branché : 340 rues et 900 vitrines en une seconde sur Cannes ; l'annuaire de l'État mettait treize minutes pour Antibes |
 | Qualifier un emplacement (1 ou 2) | Data-B, valeur locative à l'échelle de la rue | branché : le milieu de la fourchette de loyer fait la classe, seuils dans `signaux.json` |
 | Les commerces d'une rue, enseigne et activité | Annuaire des entreprises, code APE traduit en mots | branché ; Street View viendra lire la devanture quand la clé sera posée |
 | Adresse vers propriétaire (parcelle, société, lots, gérants) | Data-B, module Data Foncier | branché : bâtiments autour de l'adresse, fiche du bâtiment, propriétaire du rez-de-chaussée retenu |
@@ -23,13 +23,13 @@ Ceux qu'on a déjà, dans l'ordre où ALX s'en sert.
 | Envoyer et recevoir les mails | Gmail | déjà branché |
 | Relances et rappels | le registre existant | déjà branché |
 
-Rien de nouveau à installer côté données publiques, et rien de payant : l'annuaire de l'État donne les rues, les commerces et les sociétés ; Data-B donne le loyer des rues et le propriétaire des adresses.
+Rien de nouveau à installer côté données publiques, et rien de payant : OpenStreetMap donne les rues et leurs vitrines, l'annuaire de l'État donne les commerces et les sociétés ; Data-B donne le loyer des rues et le propriétaire des adresses.
 
 ## Ce que fait ALX, en sept étapes
 
 **1. La ville.** L'équipe donne une ville, rien d'autre. ALX lit aussi les clients actifs de Monday, leur budget et leurs critères, pour savoir ce qu'il cherche pour qui.
 
-**2. Les rues.** ALX balaie le centre par l'annuaire de l'État : tous les établissements actifs à 1,5 km du centre, dont il ne garde que les commerces de pied d'immeuble (boutiques, restaurants, coiffeurs ; pas les cabinets, les SCI, les grossistes). Il les compte par rue, garde les rues d'au moins huit commerces, et lit chez Data-B le loyer de marché de chacune. Il en sort deux listes : les emplacements numéro 1, les rues les plus solides, où les biens valent 700 000 à 1 000 000 ; et les emplacements numéro 2, un cran en dessous, autour de 300 000 à 500 000, pour les clients à budget plus petit. À Antibes, il y a beaucoup de numéros 1 mais ils sont chers ; les numéros 2 sont ceux qu'on cherche pour un client à 300 000. Chaque rue porte son classement et un mot d'explication. L'équipe peut le corriger.
+**2. Les rues.** ALX lit le centre sur OpenStreetMap : toutes les rues nommées à 1,5 km du centre, avec leur tracé, et toutes les vitrines que les contributeurs y ont posées (boutiques, restaurants, pharmacies, banques). Il les compte par rue, garde les trente rues les plus vivantes, et lit chez Data-B le loyer de marché de chacune : une quinzaine de secondes en tout. Il en sort trois classes, dessinées sur une carte : les emplacements numéro 1 en vert, les rues les plus solides, où les biens valent 700 000 à 1 000 000 ; les 1 bis en ambre, qui tiennent le 1 sans en avoir le loyer ; et les emplacements numéro 2 en bleu, un cran en dessous, autour de 300 000 à 500 000, pour les clients à budget plus petit. On clique une rue sur la carte pour la voir et la cocher ; les rues cochées partent en prospection. À Antibes, il y a beaucoup de numéros 1 mais ils sont chers ; les numéros 2 sont ceux qu'on cherche pour un client à 300 000. Chaque rue porte son classement et un mot d'explication. L'équipe peut le corriger.
 
 **3. Les commerces.** Dans chaque rue retenue, ALX prend les commerces lus dans l'annuaire, avec leur enseigne, leur activité (le code APE traduit en mots) et leur exploitant. Il écarte tout de suite les activités exclues, avec le motif. Quand la clé Street View sera posée, il lira aussi la devanture : la photo, sa date, l'état du local, une surface estimée.
 
@@ -65,7 +65,7 @@ Quatre pages :
 - Trois entités : `Ville` (avec ses rues classées), `Cible`, `Approche` (chaque tentative, chaque réponse, chaque refus daté). Réservées à l'équipe par construction.
 - Le module propriétaires de Data-B : fait (server/alx/foncier.js).
 - Le connecteur de l'annuaire des entreprises : fait (sociétés, et commerces d'une ville par le mode géographique).
-- Le parcours automatique d'une ville : fait (server/alx/parcours.js). Rues recensées et classées par le loyer Data-B, commerces créés, propriétaire, société, BODACC, DVF, classement, brouillon ; journal et arrêt ; relancer reprend où il en était.
+- Le parcours automatique d'une ville : fait (server/alx/parcours.js). Rues lues sur OpenStreetMap et classées par le loyer Data-B, commerces créés, propriétaire, société, BODACC, DVF, classement, brouillon ; journal et arrêt ; relancer reprend où il en était.
 - La lecture des devantures par Claude à partir de Street View (photo, état, surface estimée) : le connecteur existe, il attend la clé. C'est elle qui donnera la surface, donc la fourchette de prix, sans saisie.
 - Un petit moteur de classement en trois piles, avec ses seuils dans un fichier lisible et ses tests : fait.
 - La rédaction des messages, l'envoi Gmail, le rattachement des réponses et les relances : tout existe, il s'agit de le brancher sur une cible plutôt qu'un dossier.
@@ -75,7 +75,7 @@ Quatre pages :
 ## Dans quel ordre
 
 1. **Une ville, à la main.** Fait.
-2. **De la ville aux cibles.** Fait, sans Street View : rues par l'annuaire et le loyer Data-B, commerces par l'annuaire, propriétaires par Data Foncier, sociétés par l'annuaire. La première ville dira combien de propriétaires on trouve vraiment.
+2. **De la ville aux cibles.** Fait, sans Street View : rues par OpenStreetMap et le loyer Data-B, commerces par Google Maps et l'annuaire, propriétaires par Data Foncier, sociétés par l'annuaire. La première ville dira combien de propriétaires on trouve vraiment.
 3. **Le classement et le prix.** Les trois piles : fait. La fourchette attend une surface : saisie sur la fiche aujourd'hui, lue sur la devanture quand la clé Street View sera là.
 4. **Le contact.** Brouillons rédigés par le parcours et enregistrement des approches : fait. Reste l'envoi par Gmail depuis la fiche et le rattachement automatique des réponses.
 5. **Le bilan et la veille.** Le bilan est là. La veille mensuelle BODACC et DVF sur la pile à surveiller reste à écrire.

@@ -14,6 +14,17 @@ export const PILES = [
 ];
 export const pileDe = (cle) => PILES.find((p) => p.cle === cle) || PILES[2];
 
+// Les emplacements d'une rue. Le 1 bis se note 1.5 côté serveur pour que les
+// tris restent numériques ; ici on lui donne son mot et sa teinte. Vert pour
+// le 1, ambre pour le 1 bis, bleu pour le 2 : c'est ce qu'on voit sur la carte.
+export const EMPLACEMENTS = [
+  { classe: 1, mot: "1", teinte: "#96c0b8", fourchette: "700 000 – 1 000 000 €", detail: "la rue qui ne se discute pas" },
+  { classe: 1.5, mot: "1 bis", teinte: "#E8B278", fourchette: "500 000 – 800 000 €", detail: "tient le 1 sans en avoir le loyer" },
+  { classe: 2, mot: "2", teinte: "#7896EB", fourchette: "300 000 – 500 000 €", detail: "petit budget, bonne rue" },
+];
+export const ECARTEE = { classe: null, mot: "écartée", teinte: "#4a505b", fourchette: null, detail: "loyer trop bas ou trop peu de vitrines" };
+export const emplacementDe = (classe) => EMPLACEMENTS.find((e) => e.classe === classe) || ECARTEE;
+
 export const euros = (n) => (n == null || !isFinite(n) ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 export const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—");
 
@@ -163,6 +174,7 @@ export function Chiffre({ label, valeur, detail = null, teinte = null, onClick =
 export function Statut({ etat }) {
   const m = {
     en_cours: ["En cours", "var(--k-menthe)", true],
+    rues_proposees: ["Rues proposées", "var(--k-menthe)", false],
     fini: ["Terminé", "var(--k-craie)", false],
     arrete: ["Arrêté", "#E8B278", false],
     interrompu: ["Interrompu", "#E8B278", false],

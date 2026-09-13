@@ -368,3 +368,10 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 @keyframes k-avis-va-et-vient { 0% { transform: translateX(-35%) scaleX(.35); } 50% { transform: translateX(100%) scaleX(.35); } 100% { transform: translateX(-35%) scaleX(.35); } }
 .k-avis-va-et-vient { animation: k-avis-va-et-vient 2.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .k-avis-va-et-vient { animation: none; transform: scaleX(.35); } }
+
+/* La carte des rues d'ALX (src/components/alx/CarteRues.jsx) : le fond de
+   Leaflet prend le noir de l'application pendant que les tuiles chargent, et
+   le tracé change de curseur pour dire qu'il se clique. */
+.k-carte-rues .leaflet-container { background: #000000; font-family: inherit; }
+.k-carte-rues .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.62) contrast(1.05) saturate(.25); }
+.k-carte-rues .leaflet-interactive { cursor: pointer; }

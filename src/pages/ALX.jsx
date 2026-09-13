@@ -4,7 +4,8 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
-import { EnTeteAlx, PILES, Bouton, Champ, euros, Halo, Statut, Bascule, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
+import { EnTeteAlx, PILES, EMPLACEMENTS, emplacementDe, Bouton, Champ, euros, Halo, Statut, Bascule, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
+import CarteRues from "@/components/alx/CarteRues";
 
 // La page d'accueil d'ALX. On y arrive toujours par la même porte : donnez
 // une ville, ou reprenez une recherche récente. Une fois une ville ouverte,
@@ -39,7 +40,7 @@ function CarteVille({ v, onOuvrir }) {
           <div className="text-[22px] font-semibold tracking-[-.02em] text-encre">{v.nom}</div>
           <div className="text-[12.5px] text-brume mt-0.5">
             {(v.rues || []).length} rue{(v.rues || []).length > 1 ? "s" : ""} classée{(v.rues || []).length > 1 ? "s" : ""}
-            {v.recensement?.commerces_total ? ` · ${v.recensement.commerces_total} commerces recensés` : ""}
+            {v.recensement?.commerces_total ? ` · ${v.recensement.commerces_total} vitrines` : ""}
           </div>
         </div>
         <Statut etat={p.etat} />
@@ -57,7 +58,7 @@ function CarteVille({ v, onOuvrir }) {
       {enCours && (
         <div className="relative flex flex-col gap-1.5">
           <div className="h-[3px] rounded bg-white/[0.07]"><div className="h-[3px] rounded bg-menthe transition-all" style={{ width: `${progression}%` }} /></div>
-          <div className="text-[11px] text-brume font-mono truncate">{p.rue_en_cours || (p.phase === "rues" ? "recensement des rues" : "démarrage")}</div>
+          <div className="text-[11px] text-brume font-mono truncate">{p.rue_en_cours || (p.phase === "rues" ? "lecture des rues" : "démarrage")}</div>
         </div>
       )}
     </button>
@@ -94,14 +95,14 @@ function Accueil({ villes, onOuvrir }) {
                 Donnez une ville.<br /><span className="text-menthe-clair">ALX s'occupe du reste.</span>
               </h2>
               <p className="m-0 mt-4 text-[15px] text-ardoise leading-[1.65] max-w-[560px]">
-                Il recense le centre, classe les rues par leur loyer, lit chaque commerce, retrouve le propriétaire, et vous rend trois piles avec les messages déjà écrits. Rien ne part sans votre relecture.
+                Il dessine les rues du centre, les classe par leur loyer, lit chaque vitrine des rues que vous cochez, retrouve le propriétaire, et vous rend trois piles avec les messages déjà écrits. Rien ne part sans votre relecture.
               </p>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); if (nom.trim() && !creer.isPending) creer.mutate(); }} className="flex gap-2.5 flex-wrap max-w-[520px]">
               <Champ value={nom} onChange={setNom} placeholder="Antibes" className="flex-1 min-w-[240px]" />
               <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending}>{creer.isPending ? "…" : "Lancer ALX"}</Bouton>
             </form>
-            <span className="text-[12px] text-brume -mt-3">Une ville prend une à deux heures. Vous pouvez fermer la page.</span>
+            <span className="text-[12px] text-brume -mt-3">Les rues arrivent en une minute, sur une carte. Vous cochez, ALX prospecte.</span>
           </div>
           <div className="flex flex-col gap-3">
             <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Le mandat, toujours le même</div>
@@ -211,7 +212,7 @@ function AjoutCommerce({ villeId, ville, onAjoute }) {
             className="w-full bg-fond border border-bord rounded-[10px] px-4 py-3 text-[15px] text-encre outline-none focus:border-menthe"
           >
             <option value="">Hors classement</option>
-            {rues.map((r) => <option key={r.nom} value={r.nom}>{r.nom} · emplacement {r.classe}</option>)}
+            {rues.map((r) => <option key={r.nom} value={r.nom}>{r.nom} · emplacement {emplacementDe(r.classe).mot}</option>)}
           </select>
         </label>
       </div>
@@ -228,7 +229,7 @@ function AjoutCommerce({ villeId, ville, onAjoute }) {
 
 const ETAPES = [
   ["La ville", (p) => (p.mode === "rue" ? "Une rue, sans recenser la ville." : "Clients actifs lus dans Monday, avec leurs budgets.")],
-  ["Les rues", (p) => (p.phase === "rues" ? "Balayage du centre par l'annuaire, loyer de chaque rue chez Data-B." : `${p.rues_total || 0} rue${(p.rues_total || 0) > 1 ? "s" : ""} à parcourir, emplacement 1 d'abord.`)],
+  ["Les rues", (p) => (p.phase === "rues" ? "Rues et vitrines du centre sur OpenStreetMap, loyer de chaque rue chez Data-B." : `${p.rues_total || 0} rue${(p.rues_total || 0) > 1 ? "s" : ""} à parcourir, emplacement 1 d'abord.`)],
   ["Les commerces", (p) => `${p.commerces_trouves || 0} commerce${(p.commerces_trouves || 0) > 1 ? "s" : ""} de pied d'immeuble lus dans l'annuaire, activité et enseigne.`],
   ["Le propriétaire", (p) => `Data-B, adresse par adresse : ${p.proprietaires_trouves || 0} retrouvé${(p.proprietaires_trouves || 0) > 1 ? "s" : ""}.`],
   ["La société et les gens", () => "Annuaire des entreprises, BODACC, DVF."],
@@ -392,23 +393,90 @@ function Etapes({ etape, onChange, compte }) {
   );
 }
 
-function EtapeRues({ ville, onProspecter, pending }) {
+/** Le panneau de la rue cliquée sur la carte : ce qu'on en sait, et la case pour la prospecter. */
+function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPending }) {
+  if (!rue) {
+    return (
+      <div className="flex h-full flex-col justify-center gap-2 px-6 text-center">
+        <div className="text-[14px] text-craie">Cliquez une rue sur la carte.</div>
+        <div className="text-[12.5px] text-brume">Vert, emplacement 1 ; ambre, 1 bis ; bleu, 2. Une rue cochée se dessine plus épaisse.</div>
+      </div>
+    );
+  }
+  const e = emplacementDe(ecartee ? null : rue.classe);
+  return (
+    <div className="flex h-full flex-col gap-4 p-5">
+      <div>
+        <div className="text-[10px] tracking-[.16em] uppercase" style={{ color: e.teinte }}>{ecartee ? "Écartée par ALX" : `Emplacement ${e.mot}`}</div>
+        <div className="mt-1 text-[20px] font-semibold tracking-[-.02em] leading-tight text-encre">{rue.nom}</div>
+        <div className="mt-1 text-[12.5px] text-brume">{rue.motif}</div>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        {[
+          ["Loyer", rue.loyer ? `${Math.round(rue.loyer[0])}–${Math.round(rue.loyer[1])} €/m²/an` : "—"],
+          ["Prix au m²", euroM2(rue.prix_m2)],
+          ["Rendement", rue.rendement != null ? `${String(rue.rendement).replace(".", ",")} %` : "—"],
+          ["Vitrines", rue.commerces ?? "—"],
+          ["Longueur", rue.longueur_m ? `${rue.longueur_m} m` : "—"],
+          ["Passage", rue.trace?.length ? `${Math.ceil((rue.longueur_m || 0) / 40)} pas de 40 m` : "—"],
+        ].map(([mot, val]) => (
+          <div key={mot}>
+            <div className="text-[9px] tracking-[.14em] uppercase text-brume">{mot}</div>
+            <div className="text-[14px] tabular-nums text-craie">{val}</div>
+          </div>
+        ))}
+      </div>
+      {(rue.enseignes || rue.chaines || []).length > 0 && (
+        <div className="text-[12.5px] leading-[1.6] text-ardoise">{(rue.enseignes || rue.chaines).slice(0, 8).join(" · ")}</div>
+      )}
+      <div className="mt-auto flex flex-col gap-3 border-t border-white/[0.06] pt-4">
+        {!ecartee && (
+          <label className="flex cursor-pointer items-center gap-3 text-[14px] text-encre">
+            <Case coche={coche} onChange={onCoche} />
+            {coche ? "Rue à prospecter" : "Prospecter cette rue"}
+          </label>
+        )}
+        <div className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
+          <span className="text-brume mr-1">{ecartee ? "Reprendre en" : "Reclasser en"}</span>
+          {EMPLACEMENTS.filter((x) => ecartee || x.classe !== rue.classe).map((x) => (
+            <button
+              key={x.classe}
+              disabled={classerPending}
+              onClick={() => onClasser(rue.nom, x.classe)}
+              className="rounded-full border border-white/[0.1] px-2.5 py-1 hover:border-white/[0.25]"
+              style={{ color: x.teinte, background: "transparent" }}
+            >
+              {x.mot}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EtapeRues({ ville, onProspecter, pending, onClasser, classerPending }) {
   const rues = ville?.rues || [];
+  const ecartees = ville?.rues_ecartees || [];
   const [coches, setCoches] = useState(() => new Set(rues.filter((r) => r.retenue).map((r) => r.nom)));
+  const [choisie, setChoisie] = useState(null);
   const toutes = (classe) => setCoches(new Set(rues.filter((r) => !classe || r.classe === classe).map((r) => r.nom)));
   const bascule = (nom, oui) => setCoches((c) => { const n = new Set(c); if (oui) n.add(nom); else n.delete(nom); return n; });
-  const ecartees = ville?.rues_ecartees || [];
+  const rueChoisie = rues.find((r) => r.nom === choisie) || null;
+  const ecarteeChoisie = !rueChoisie ? ecartees.find((r) => r.nom === choisie) || null : null;
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
-          <button onClick={() => toutes(1)} className="text-menthe hover:text-menthe-clair">Tout l'emplacement 1</button>
+          {EMPLACEMENTS.map((e) => (
+            <button key={e.classe} onClick={() => toutes(e.classe)} className="hover:text-encre" style={{ color: e.teinte, background: "transparent" }}>Tout le {e.mot}</button>
+          ))}
           <span className="text-brume">·</span>
-          <button onClick={() => toutes(null)} className="text-menthe hover:text-menthe-clair">Toutes</button>
+          <button onClick={() => toutes(null)} className="text-craie hover:text-encre" style={{ background: "transparent" }}>Toutes</button>
           <span className="text-brume">·</span>
-          <button onClick={() => setCoches(new Set())} className="text-ardoise hover:text-encre">Aucune</button>
-          <span className="text-brume ml-2">{rues.length} rue{rues.length > 1 ? "s" : ""} proposée{rues.length > 1 ? "s" : ""}{ville?.recensement?.commerces_total ? ` · ${ville.recensement.commerces_total} commerces recensés` : ""}</span>
+          <button onClick={() => setCoches(new Set())} className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>Aucune</button>
+          <span className="text-brume ml-2">{rues.length} rue{rues.length > 1 ? "s" : ""} proposée{rues.length > 1 ? "s" : ""}{ville?.recensement?.commerces_total ? ` · ${ville.recensement.commerces_total} vitrines sur la carte` : ""}</span>
         </div>
         <div className="flex items-center gap-3">
           <Link to={`/ALXVilles?ville=${ville?.id}`} className="text-[13px] text-ardoise hover:text-encre">Corriger le classement</Link>
@@ -418,36 +486,62 @@ function EtapeRues({ ville, onProspecter, pending }) {
         </div>
       </div>
 
-      <div className="bg-surface border border-white/[0.08] rounded-[20px] overflow-hidden">
-        <div className="grid grid-cols-[36px_minmax(0,1.6fr)_120px_130px_130px_100px_90px] max-md:grid-cols-[36px_minmax(0,1fr)_100px] gap-3 items-center px-5 py-3 text-[10px] tracking-[.14em] uppercase text-brume border-b border-white/[0.06]">
-          <span />
-          <span>Rue</span>
-          <span>Emplacement</span>
-          <span className="max-md:hidden">Loyer</span>
-          <span className="max-md:hidden">Prix au m²</span>
-          <span className="max-md:hidden">Rendement</span>
-          <span className="max-md:hidden text-right">Commerces</span>
+      {rues.length === 0 && ecartees.length === 0 ? (
+        <div className="bg-surface border border-white/[0.08] rounded-[20px] px-5 py-6 text-[13.5px] text-brume">Aucune rue encore : lancez ALX, il lit le centre sur OpenStreetMap et propose les rues en une minute.</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4">
+          <CarteRues rues={rues} ecartees={ecartees} coches={coches} choisie={choisie} onChoisir={setChoisie} centre={ville?.centre} className="h-[480px] max-md:h-[360px]" />
+          <div className="bg-surface border border-white/[0.08] rounded-[18px] overflow-hidden h-[480px] max-md:h-auto max-md:min-h-[200px]">
+            <PanneauRue
+              rue={rueChoisie || ecarteeChoisie}
+              ecartee={!!ecarteeChoisie}
+              coche={!!rueChoisie && coches.has(rueChoisie.nom)}
+              onCoche={(oui) => rueChoisie && bascule(rueChoisie.nom, oui)}
+              onClasser={onClasser}
+              classerPending={classerPending}
+            />
+          </div>
         </div>
-        {rues.length === 0 && <p className="m-0 px-5 py-6 text-[13.5px] text-brume">Aucune rue encore : lancez ALX, il recense le centre et propose les rues.</p>}
-        {rues.map((r) => (
-          <label key={r.nom} className="grid grid-cols-[36px_minmax(0,1.6fr)_120px_130px_130px_100px_90px] max-md:grid-cols-[36px_minmax(0,1fr)_100px] gap-3 items-center px-5 py-3.5 border-t border-white/[0.05] hover:bg-white/[0.025] cursor-pointer">
-            <Case coche={coches.has(r.nom)} onChange={(oui) => bascule(r.nom, oui)} />
-            <div className="min-w-0">
-              <div className="text-[14.5px] text-encre truncate">{r.nom}{r.parcourue_le ? <span className="ml-2 text-[10px] tracking-[.12em] uppercase text-menthe">prospectée</span> : null}</div>
-              <div className="text-[12px] text-brume truncate">{(r.chaines || []).slice(0, 4).join(", ") || r.motif}</div>
-            </div>
-            <span className="text-[11px] tracking-[.12em] uppercase" style={{ color: r.classe === 1 ? "var(--k-menthe)" : "#7896EB" }}>Emplacement {r.classe}</span>
-            <span className="text-[13px] text-craie tabular-nums max-md:hidden">{r.loyer ? `${Math.round(r.loyer[0])}–${Math.round(r.loyer[1])} €/m²/an` : "—"}</span>
-            <span className="text-[13px] text-craie tabular-nums max-md:hidden" title={r.prix_m2_source || ""}>{euroM2(r.prix_m2)}</span>
-            <span className="text-[13px] text-craie tabular-nums max-md:hidden">{r.rendement != null ? `${String(r.rendement).replace(".", ",")} %` : "—"}</span>
-            <span className="text-[13px] text-ardoise tabular-nums text-right max-md:hidden">{r.commerces ?? "—"}</span>
-          </label>
-        ))}
-      </div>
+      )}
+
+      {rues.length > 0 && (
+        <div className="bg-surface border border-white/[0.08] rounded-[20px] overflow-hidden">
+          <div className="grid grid-cols-[36px_minmax(0,1.6fr)_120px_130px_130px_100px_90px] max-md:grid-cols-[36px_minmax(0,1fr)_100px] gap-3 items-center px-5 py-3 text-[10px] tracking-[.14em] uppercase text-brume border-b border-white/[0.06]">
+            <span />
+            <span>Rue</span>
+            <span>Emplacement</span>
+            <span className="max-md:hidden">Loyer</span>
+            <span className="max-md:hidden">Prix au m²</span>
+            <span className="max-md:hidden">Rendement</span>
+            <span className="max-md:hidden text-right">Vitrines</span>
+          </div>
+          {rues.map((r) => {
+            const e = emplacementDe(r.classe);
+            return (
+              <div
+                key={r.nom}
+                onClick={() => setChoisie(r.nom)}
+                className={`grid grid-cols-[36px_minmax(0,1.6fr)_120px_130px_130px_100px_90px] max-md:grid-cols-[36px_minmax(0,1fr)_100px] gap-3 items-center px-5 py-3.5 border-t border-white/[0.05] cursor-pointer ${choisie === r.nom ? "bg-white/[0.04]" : "hover:bg-white/[0.025]"}`}
+              >
+                <Case coche={coches.has(r.nom)} onChange={(oui) => bascule(r.nom, oui)} />
+                <div className="min-w-0">
+                  <div className="text-[14.5px] text-encre truncate">{r.nom}{r.parcourue_le ? <span className="ml-2 text-[10px] tracking-[.12em] uppercase text-menthe">prospectée</span> : null}</div>
+                  <div className="text-[12px] text-brume truncate">{(r.enseignes || r.chaines || []).slice(0, 4).join(", ") || r.motif}</div>
+                </div>
+                <span className="text-[11px] tracking-[.12em] uppercase" style={{ color: e.teinte }}>Emplacement {e.mot}</span>
+                <span className="text-[13px] text-craie tabular-nums max-md:hidden">{r.loyer ? `${Math.round(r.loyer[0])}–${Math.round(r.loyer[1])} €/m²/an` : "—"}</span>
+                <span className="text-[13px] text-craie tabular-nums max-md:hidden" title={r.prix_m2_source || ""}>{euroM2(r.prix_m2)}</span>
+                <span className="text-[13px] text-craie tabular-nums max-md:hidden">{r.rendement != null ? `${String(r.rendement).replace(".", ",")} %` : "—"}</span>
+                <span className="text-[13px] text-ardoise tabular-nums text-right max-md:hidden">{r.commerces ?? "—"}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {ecartees.length > 0 && (
         <details className="text-[12.5px] text-brume px-1">
-          <summary className="cursor-pointer hover:text-encre">{ecartees.length} rue{ecartees.length > 1 ? "s" : ""} écartée{ecartees.length > 1 ? "s" : ""} par ALX (loyer trop bas ou trop peu de commerces) : reprenables dans Corriger le classement</summary>
-          <div className="mt-2 flex flex-col gap-1">{ecartees.map((r) => <div key={r.nom}><span className="text-craie">{r.nom}</span> · {r.motif}</div>)}</div>
+          <summary className="cursor-pointer hover:text-encre">{ecartees.length} rue{ecartees.length > 1 ? "s" : ""} écartée{ecartees.length > 1 ? "s" : ""} par ALX (loyer trop bas) : en gris sur la carte, reprenables d'un clic</summary>
+          <div className="mt-2 flex flex-col gap-1">{ecartees.map((r) => <button key={r.nom} onClick={() => setChoisie(r.nom)} className="text-left hover:text-encre" style={{ background: "transparent" }}><span className="text-craie">{r.nom}</span> · {r.motif}</button>)}</div>
         </details>
       )}
     </div>
@@ -569,6 +663,11 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
   const prospecter = useGeste("parcourir", "commerces");
   const rediger = useGeste("rediger", "messages");
   const arreter = useGeste("arreter");
+  const classer = useMutation({
+    mutationFn: ({ nom, classe }) => base44.request("POST", `/api/alx/villes/${villeId}/rues`, { body: { nom, classe } }),
+    onSuccess: rafraichir,
+    onError: (e) => toast.error(e?.message || "Reclassement impossible"),
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -580,7 +679,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
             <Statut etat={p?.etat} />
           </div>
           <div className="text-[13px] text-ardoise">
-            {ville?.recensement?.le ? `Relevé du ${dateCourte(ville.recensement.le)} · ${ville.recensement.commerces_total} commerces recensés · ` : ""}
+            {ville?.recensement?.le ? `Relevé du ${dateCourte(ville.recensement.le)} · ${ville.recensement.commerces_total} vitrines · ` : ""}
             {rues.length} rue{rues.length > 1 ? "s" : ""} · {cibles.length} commerce{cibles.length > 1 ? "s" : ""} analysé{cibles.length > 1 ? "s" : ""} · {brouillons} message{brouillons > 1 ? "s" : ""}
           </div>
         </div>
@@ -606,7 +705,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle }) {
         </details>
       )}
 
-      {etape === "rues" && <EtapeRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} />}
+      {etape === "rues" && <EtapeRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe) => classer.mutate({ nom, classe })} classerPending={classer.isPending} />}
       {etape === "commerces" && <EtapeCommerces ville={ville} cibles={cibles} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
       {etape === "messages" && <EtapeMessages cibles={cibles} />}
 

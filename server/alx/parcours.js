@@ -15,7 +15,8 @@
 
 import { Records } from '../db.js';
 import { creerCible } from './index.js';
-import { proposerRues } from './rues.js';
+import { proposerRues, libelleEmplacement } from './rues.js';
+import { pointsLeLongDe } from './osm.js';
 import { etablissementsRue } from './annuaire.js';
 import { cleRue } from './commerces.js';
 import { commercesDeLaRue, placesConfigure } from './places.js';
@@ -241,8 +242,14 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     const r = await proposerRues(ville, { rayon_km, arreter: doitArreter, journal: (t) => noter(villeId, t) });
     etablissementsParRue = r.etablissements_par_rue;
     ville = Records.get('Ville', villeId);
-    // Ce que l'équipe a classé à la main reste ; ce qu'ALX avait proposé est remplacé.
-    const manuelles = (ville.rues || []).filter((x) => x.par && x.par !== 'alx');
+    // Ce que l'équipe a classé à la main reste ; ce qu'ALX avait proposé est
+    // remplacé. Une rue classée à la main prend quand même ce qu'ALX sait
+    // d'elle (tracé, vitrines, loyer, prix) : la classe et l'auteur restent.
+    const connues = new Map([...r.classees, ...r.ecartees].map((x) => [x.cle, x]));
+    const manuelles = (ville.rues || []).filter((x) => x.par && x.par !== 'alx').map((x) => {
+      const { classe: _c, motif: _m, ...savoir } = connues.get(cleRue(x.nom)) || {};
+      return { ...savoir, ...x };
+    });
     const clesManuelles = new Set(manuelles.map((x) => cleRue(x.nom)));
     const clesRetirees = new Set((ville.rues_retirees || []).map((x) => cleRue(x.nom)));
     const proposees = r.classees.filter((x) => !clesManuelles.has(x.cle) && !clesRetirees.has(x.cle)).map((x) => ({ ...x, par: 'alx', le: maintenant() }));
@@ -257,11 +264,12 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
       recensement: { le: maintenant(), rayon_km: rayon_km ?? null, commerces_total: r.commerces_total, rues_denses: r.classees.length + r.ecartees.length },
     });
     const n1 = proposees.filter((x) => x.classe === 1).length;
+    const n1bis = proposees.filter((x) => x.classe === 1.5).length;
     const n2 = proposees.filter((x) => x.classe === 2).length;
-    noter(villeId, `Rues proposées : ${n1} en emplacement 1, ${n2} en emplacement 2, ${r.ecartees.length} écartée${r.ecartees.length > 1 ? 's' : ''}${manuelles.length ? ` ; ${manuelles.length} classée${manuelles.length > 1 ? 's' : ''} à la main conservée${manuelles.length > 1 ? 's' : ''}` : ''}.`);
+    noter(villeId, `Rues proposées : ${n1} en emplacement 1, ${n1bis} en 1 bis, ${n2} en 2, ${r.ecartees.length} écartée${r.ecartees.length > 1 ? 's' : ''}${manuelles.length ? ` ; ${manuelles.length} classée${manuelles.length > 1 ? 's' : ''} à la main conservée${manuelles.length > 1 ? 's' : ''}` : ''}.`);
     if (doitArreter()) return finir('arrete');
     if (!phases.includes('commerces')) {
-      noter(villeId, 'Cochez les rues à prospecter, ALX cherche ensuite leurs commerces.');
+      noter(villeId, 'Cochez les rues à prospecter, sur la carte ou dans la liste : ALX cherche ensuite leurs commerces.');
       return finir('rues_proposees');
     }
   }
@@ -299,7 +307,9 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     let commerces;
     if (placesConfigure()) {
       const v0 = Records.get('Ville', villeId);
-      const points = etabs.filter((e) => e.lat && e.lon).map((e) => ({ lat: e.lat, lon: e.lon }));
+      // La balade suit le tracé de la rue (OpenStreetMap) ; à défaut, les
+      // points des établissements de l'annuaire ; à défaut, les numéros par la BAN.
+      const points = rue.trace?.length ? pointsLeLongDe(rue.trace) : etabs.filter((e) => e.lat && e.lon).map((e) => ({ lat: e.lat, lon: e.lon }));
       try {
         const balade = await commercesDeLaRue({ nom: rue.nom, ville: v0.nom, points, arreter: doitArreter, journal: (t) => noter(villeId, t) });
         commerces = balade.commerces.map((c) => {
@@ -317,7 +327,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     }
     const retenus = limite_par_rue ? commerces.slice(0, limite_par_rue) : commerces;
     compter(villeId, 'commerces_trouves', commerces.length);
-    noter(villeId, `${rue.nom} (emplacement ${rue.classe}) : ${commerces.length} commerce${commerces.length > 1 ? 's' : ''}${limite_par_rue && commerces.length > limite_par_rue ? `, ${limite_par_rue} retenus pour cet essai` : ''}.`);
+    noter(villeId, `${rue.nom} (emplacement ${libelleEmplacement(rue.classe)}) : ${commerces.length} commerce${commerces.length > 1 ? 's' : ''}${limite_par_rue && commerces.length > limite_par_rue ? `, ${limite_par_rue} retenus pour cet essai` : ''}.`);
 
     const loyerRue = rue.loyer ? { [rue.loyer_source === 'Data-B, quartier' ? 'quartier' : 'rue']: { nom: rue.nom, basse: rue.loyer[0], haute: rue.loyer[1] } } : null;
     let erreursRue = 0;

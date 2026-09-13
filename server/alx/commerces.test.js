@@ -89,5 +89,5 @@ test('le loyer de la rue fait l’emplacement, et l’absence de loyer ne bloque
   assert.match(emplacementParLoyer({ basse: 120, haute: 200 }, 12, seuils).motif, /trop bas/);
   assert.equal(emplacementParLoyer(null, 12, seuils).classe, 2);
   assert.match(emplacementParLoyer(null, 12, seuils).motif, /à vérifier/);
-  assert.match(emplacementParLoyer({ basse: 899, haute: 1348 }, 40, seuils).motif, /40 commerces · loyer 899–1348/);
+  assert.match(emplacementParLoyer({ basse: 899, haute: 1348 }, 40, seuils).motif, /40 vitrines · loyer 899–1348/);
 });

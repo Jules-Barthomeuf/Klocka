@@ -5,16 +5,12 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { X } from "lucide-react";
-import { EnTeteAlx, Carte, Bouton, Champ } from "@/components/alx/alx-commun";
+import { EnTeteAlx, Carte, Bouton, Champ, EMPLACEMENTS } from "@/components/alx/alx-commun";
 
 // Les villes et leurs rues. On donne une ville ; ses rues se classent en
-// emplacement 1 (solide, 700 000 à 1 000 000) ou 2 (petit budget, 300 000 à
-// 500 000), par ALX quand Street View sera branché, à la main en attendant.
-
-const EMPLACEMENTS = [
-  { classe: 1, teinte: "var(--k-menthe)", fourchette: "700 000 – 1 000 000 €" },
-  { classe: 2, teinte: "#7896EB", fourchette: "300 000 – 500 000 €" },
-];
+// emplacement 1 (solide, 700 000 à 1 000 000), 1 bis (la rue qui tient le 1
+// sans en avoir le loyer) ou 2 (petit budget, 300 000 à 500 000), par ALX
+// d'après le loyer de marché, à la main quand l'équipe sait mieux.
 
 export default function ALXVilles() {
   const user = useUser();
@@ -114,13 +110,13 @@ export default function ALXVilles() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {EMPLACEMENTS.map((e) => {
                   const rues = (v.rues || []).filter((r) => r.classe === e.classe);
                   return (
                     <Carte key={e.classe} className="flex flex-col gap-[18px] !p-6 !rounded-[18px]">
                       <div className="flex items-baseline justify-between">
-                        <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: e.teinte }}>Emplacement {e.classe}</div>
+                        <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: e.teinte }}>Emplacement {e.mot}</div>
                         <div className="text-[12px] text-brume">{e.fourchette}</div>
                       </div>
                       <div className="flex flex-col">
@@ -175,7 +171,7 @@ export default function ALXVilles() {
               {(v.rues || []).length > 0 && (
                 <p className="m-0 mt-3 text-[12px] text-brume">
                   {v.recensement?.le
-                    ? `Proposé par ALX le ${new Date(v.recensement.le).toLocaleDateString("fr-FR")} : ${v.recensement.commerces_total} commerces sur ${v.recensement.rayon_km || 1.5} km autour du centre. Corrigez, ALX suit.`
+                    ? `Proposé par ALX le ${new Date(v.recensement.le).toLocaleDateString("fr-FR")} : ${v.recensement.commerces_total} vitrines sur ${v.recensement.rayon_km || 1.5} km autour du centre. Corrigez, ALX suit.`
                     : "Classement à la main. Lancez ALX pour qu'il propose les rues du centre avec leur loyer de marché."}
                 </p>
               )}

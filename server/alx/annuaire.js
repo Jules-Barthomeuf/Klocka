@@ -31,6 +31,24 @@ const NATURES = {
   9220: 'Association',
 };
 
+/** La forme juridique en un mot ; inconnue, on ne dit rien plutôt qu'un code. */
+export function formeDe(code) {
+  const c = String(code || '');
+  if (!c) return null;
+  if (NATURES[c]) return NATURES[c];
+  if (c.startsWith('54')) return 'SARL';
+  if (c.startsWith('55') || c.startsWith('56')) return 'SA';
+  if (c.startsWith('57')) return 'SAS';
+  if (c === '5202') return 'SNC';
+  if (c === '6521') return 'SCP';
+  if (['6537', '6538', '6540', '6541', '6544'].includes(c)) return 'SCI';
+  if (c.startsWith('65')) return 'Société civile';
+  if (c.startsWith('61') || c === '6595' || c === '6596') return 'Banque coopérative';
+  if (c.startsWith('92')) return 'Association';
+  if (c.startsWith('1')) return 'Entrepreneur individuel';
+  return null;
+}
+
 async function appeler(params) {
   const url = `${API}?${new URLSearchParams({ per_page: '5', ...params })}`;
   let r;
@@ -61,7 +79,7 @@ export function normaliser(e) {
   return {
     siren: e.siren || null,
     nom: e.nom_complet || e.nom_raison_sociale || null,
-    forme: NATURES[String(e.nature_juridique)] || (e.nature_juridique ? `nature ${e.nature_juridique}` : null),
+    forme: formeDe(e.nature_juridique),
     ape: e.activite_principale ? String(e.activite_principale).replace('.', '') : null,
     creation: e.date_creation || null,
     fermee_le: e.date_fermeture || null,

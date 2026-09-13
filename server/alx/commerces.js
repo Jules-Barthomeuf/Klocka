@@ -59,7 +59,6 @@ const APE = [
   ['9601', 'Pressing, laverie'],
   ['9602', 'Coiffure, salon de beauté'],
   ['9604', 'Institut, spa, bien-être'],
-  ['9609', 'Services personnels divers'],
   ['9521', 'Réparation électronique'],
   ['9523', 'Cordonnerie'],
   ['9525', 'Réparation horlogerie, bijouterie'],
@@ -71,6 +70,7 @@ const APE = [
   ['8553', 'Auto-école'],
   ['9313', 'Salle de sport, fitness'],
   ['7420', 'Photographe'],
+  ['8690B', 'Laboratoire de biologie médicale'],
   ['4776', 'Fleuriste'],
 ];
 
@@ -88,6 +88,7 @@ const HORS_PIED_D_IMMEUBLE = [
   ['71', 'profession libérale (architecte, ingénierie)'],
   ['75', 'profession libérale (vétérinaire)'],
   ['86', 'profession libérale (cabinet médical)'],
+  ['96', 'service à domicile, sans vitrine'],
 ];
 
 const codePropre = (code) => String(code || '').replace(/\./g, '').toUpperCase();

@@ -18,6 +18,25 @@ import { creerCible } from './index.js';
 import { proposerRues } from './rues.js';
 import { etablissementsRue } from './annuaire.js';
 import { cleRue } from './commerces.js';
+import { commercesDeLaRue, placesConfigure } from './places.js';
+
+// Un commerce vu sur Maps retrouve son établissement dans l'annuaire : même
+// numéro, et un nom qui se ressemble (enseigne ou raison sociale).
+const simple = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+function etablissementPour(commerce, etabs) {
+  const nom = simple(commerce.enseigne);
+  if (!nom) return null;
+  const mots = nom.split(' ').filter((m) => m.length > 2);
+  const candidats = etabs.filter((e) => !commerce.numero || !e.numero || e.numero === commerce.numero);
+  const score = (e) => {
+    const cible = simple(`${e.enseigne || ''} ${e.nom || ''}`);
+    if (!cible) return 0;
+    if (cible.includes(nom) || nom.includes(simple(e.enseigne))) return 3;
+    return mots.filter((m) => cible.includes(m)).length;
+  };
+  const meilleur = candidats.map((e) => [score(e), e]).sort((x, y) => y[0] - x[0])[0];
+  return meilleur && meilleur[0] >= 1 ? meilleur[1] : null;
+}
 import * as enrichir from './enrichir.js';
 
 const JOURNAL_MAX = 300;
@@ -275,7 +294,27 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         continue;
       }
     }
-    const commerces = etabs.filter((e) => e.pied_d_immeuble?.oui);
+    // La balade sur Maps donne les vitrines ; l'annuaire donne à chacune son
+    // SIRET et son exploitant. Sans clé Google, l'annuaire seul, catalogue resserré.
+    let commerces;
+    if (placesConfigure()) {
+      const v0 = Records.get('Ville', villeId);
+      const points = etabs.filter((e) => e.lat && e.lon).map((e) => ({ lat: e.lat, lon: e.lon }));
+      try {
+        const balade = await commercesDeLaRue({ nom: rue.nom, ville: v0.nom, points, arreter: doitArreter, journal: (t) => noter(villeId, t) });
+        commerces = balade.commerces.map((c) => {
+          const e = etablissementPour(c, etabs);
+          return e ? { ...c, siret: e.siret, siren: e.siren, nom: e.nom, ape: e.ape, depuis: e.depuis, chaine: e.chaine, code_postal: c.code_postal || e.code_postal } : { ...c, siret: null, siren: null, nom: null, ape: null, depuis: null, chaine: false };
+        });
+        const ign = Object.entries(balade.ignores).sort((x, y) => y[1] - x[1]).slice(0, 3).map(([m, n]) => `${n} ${m}`).join(', ');
+        noter(villeId, `${rue.nom} : balade sur Maps en ${balade.pas} pas, ${commerces.length} vitrine${commerces.length > 1 ? 's' : ''}${ign ? ` (écartés : ${ign})` : ''}, ${commerces.filter((c) => c.siret).length} retrouvée${commerces.filter((c) => c.siret).length > 1 ? 's' : ''} dans l'annuaire.`);
+      } catch (e) {
+        noter(villeId, `${rue.nom} : Maps n'a pas répondu (${e.message}), on lit l'annuaire.`);
+        commerces = etabs.filter((e) => e.pied_d_immeuble?.oui);
+      }
+    } else {
+      commerces = etabs.filter((e) => e.pied_d_immeuble?.oui);
+    }
     const retenus = limite_par_rue ? commerces.slice(0, limite_par_rue) : commerces;
     compter(villeId, 'commerces_trouves', commerces.length);
     noter(villeId, `${rue.nom} (emplacement ${rue.classe}) : ${commerces.length} commerce${commerces.length > 1 ? 's' : ''}${limite_par_rue && commerces.length > limite_par_rue ? `, ${limite_par_rue} retenus pour cet essai` : ''}.`);
@@ -295,11 +334,14 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         enseigne: e.enseigne,
         activite: e.activite,
         siret: e.siret,
+        place_id: e.place_id || null,
         code_postal: e.code_postal || null,
-        occupant: { siret: e.siret, siren: e.siren, nom: e.nom, ape: e.ape, depuis: e.depuis, chaine: e.chaine },
+        occupant: e.siret || e.nom ? { siret: e.siret, siren: e.siren, nom: e.nom, ape: e.ape, depuis: e.depuis, chaine: e.chaine } : null,
+        telephone: e.telephone || null,
+        site: e.site || null,
         lat: e.lat,
         lon: e.lon,
-        source: 'Annuaire des entreprises',
+        source: e.source || 'Annuaire des entreprises',
         user,
       });
       if (!r.ok) {

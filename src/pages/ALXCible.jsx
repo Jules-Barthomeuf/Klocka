@@ -5,13 +5,15 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "sonner";
 import { ExternalLink, Loader2 } from "lucide-react";
-import { Carte, Bouton, Champ, PILES, euros, quand, Halo } from "@/components/alx/alx-commun";
+import { Carte, Bouton, Champ, PILES, euros, quand, Halo, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
 import EchelleFourchettes from "@/components/preanalyse/EchelleFourchettes";
 
 // La fiche d'une cible : le signal en tête, le propriétaire et ses gens, la
 // fourchette de prix, la devanture, le message à relire, l'historique des
 // contacts. Chaque geste est un bouton ; chaque bouton dit ce qu'il attend
 // quand la source n'est pas branchée.
+
+const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const Ligne = ({ mot, children }) => (
   <div className="flex items-baseline gap-4 py-1.5">
@@ -106,7 +108,7 @@ export default function ALXCible() {
         <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
           <div className="flex flex-col gap-2">
             <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: pileInfo.teinte }}>{pileInfo.mot}</div>
-            <h1 className="m-0 text-[36px] max-md:text-[26px] font-semibold tracking-[-.025em] leading-[1.05] text-encre">{c.enseigne || c.adresse}</h1>
+            <h1 className="m-0 text-[36px] max-md:text-[26px] font-semibold tracking-[-.025em] leading-[1.05] text-encre">{joliNom(c.enseigne) || c.adresse}</h1>
             <div className="text-[15px] text-ardoise">
               {c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.emplacement ? ` · Emplacement ${c.emplacement}` : ""}{c.activite ? ` · ${c.activite}` : ""}
             </div>
@@ -123,37 +125,80 @@ export default function ALXCible() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-4 mb-5">
-          <div className="relative overflow-hidden bg-surface border border-white/[0.08] rounded-[20px] p-7 flex flex-col gap-4 min-h-[190px]">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4 mb-5">
+          <div className="relative overflow-hidden bg-surface border border-white/[0.08] rounded-[20px] p-7 flex flex-col gap-5">
             <Halo teinte={pileInfo.cle === "appeler" ? "232,178,120" : pileInfo.cle === "ecrire" ? "120,150,235" : "150,192,184"} />
-            <div className="relative text-[10px] tracking-[.16em] uppercase text-ardoise">Le propriétaire</div>
-            <div className="relative text-[28px] font-semibold tracking-[-.02em] text-encre leading-tight">{p.nom || "À établir"}</div>
-            <div className="relative text-[13px] text-ardoise leading-[1.6] max-w-[46ch]">
-              {p.nom
-                ? [s.forme || p.forme, s.creation ? `créée en ${String(s.creation).slice(0, 4)}` : null, (s.gerants || []).length ? `${s.gerants.length} gérant${s.gerants.length > 1 ? "s" : ""}${s.gerants.some((g) => g.tranche_age === "70+") ? ", dont un de plus de 70 ans" : ""}` : null, c.foncier?.motif_choix].filter(Boolean).join(" · ")
-                : c.foncier?.motif_choix || "Data-B n'a pas encore été interrogé : le bouton est plus bas."}
+            <div className="relative">
+              <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Le propriétaire</div>
+              <div className="mt-2 text-[28px] font-semibold tracking-[-.02em] text-encre leading-tight">{p.nom ? joliNom(p.nom) : c.foncier ? "Plusieurs propriétaires, à départager" : "À établir"}</div>
+              <div className="mt-1 text-[13px] text-ardoise">
+                {[s.forme || p.forme, s.creation ? `créée en ${String(s.creation).slice(0, 4)}` : null, p.parcelle ? `parcelle ${p.parcelle}` : null].filter(Boolean).join(" · ")}
+              </div>
+              {(s.gerants || []).length > 0 && (
+                <div className="mt-3 flex flex-col gap-1">
+                  {s.gerants.map((g, i) => (
+                    <div key={i} className="text-[13px] text-craie">{joliNom(g.nom)}<span className="text-brume">{g.tranche_age ? ` · ${g.tranche_age} ans` : ""}{g.qualite ? ` · ${g.qualite}` : ""}</span></div>
+                  ))}
+                </div>
+              )}
             </div>
-            {signalPrincipal && (
-              <div className="relative mt-auto pt-3 border-t border-white/[0.08] text-[14px] text-encre leading-[1.5]">
-                <span style={{ color: pileInfo.teinte }}>Signal · </span>{c.motif}
+            <div className="relative border-t border-white/[0.08] pt-4">
+              <div className="text-[10px] tracking-[.16em] uppercase text-ardoise mb-2">Mon analyse</div>
+              <Urgence c={c} />
+              <ul className="m-0 mt-2 pl-4 text-[13.5px] text-craie leading-[1.6]">
+                {[...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => <li key={x.cle}>{x.libelle}{x.valeur ? ` (${x.valeur})` : ""}</li>)}
+                {(c.drapeaux || []).filter((d) => d.effet !== "information").map((d) => <li key={d.cle}>{d.libelle}</li>)}
+                {!(c.signaux?.forts?.length || c.signaux?.patients?.length) && <li>{c.motif}</li>}
+                {c.foncier?.motif_choix && <li className="text-brume">{c.foncier.motif_choix}</li>}
+              </ul>
+            </div>
+            <div className="relative grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-4">
+              <div>
+                <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Loyer estimé</div>
+                <div className="mt-1 text-[20px] font-semibold tabular-nums text-encre">{v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])} – ${Math.round(v.loyer_fourchette[1])}` : "—"}<span className="text-[12px] text-brume font-normal"> €/m²/an</span></div>
+                {v.surface && v.loyer_m2_marche ? <div className="text-[12px] text-brume">{Math.round(v.surface * v.loyer_m2_marche).toLocaleString("fr-FR")} € par an pour {v.surface} m²</div> : null}
               </div>
-            )}
+              <div>
+                <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Prix estimé</div>
+                <div className="mt-1 text-[20px] font-semibold tabular-nums text-encre">{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : "—"}</div>
+                {!v.fourchette && <div className="text-[12px] text-brume">{v.loyer_m2_marche ? "saisissez la surface plus bas" : "après le loyer de la rue"}</div>}
+              </div>
+            </div>
+            <div className="relative flex flex-wrap items-center gap-2.5 border-t border-white/[0.08] pt-4">
+              {c.brouillon ? (
+                <a href="#message" className="inline-flex items-center bg-menthe text-[#0b1211] rounded-full px-4 py-2.5 text-[13px] font-medium hover:bg-menthe-clair transition-colors">Relire le message</a>
+              ) : (
+                <Bouton principal onClick={() => rediger.mutate(c.pile === "appeler" ? "mail" : "courrier")} disabled={rediger.isPending || !outils.modele || c.pile === "ecartee"}>
+                  {rediger.isPending ? "Rédaction…" : "Oui, écrire le message"}
+                </Bouton>
+              )}
+              {c.pile !== "ecartee" ? (
+                <Bouton onClick={() => { const m = window.prompt("Pourquoi écarter ce commerce ? (facultatif)"); if (m !== null) enregistrer.mutate({ ecartee_equipe: true, ecartee_motif: m || null }); }} disabled={enregistrer.isPending}>Non, écarter</Bouton>
+              ) : c.ecartee_equipe ? (
+                <Bouton onClick={() => enregistrer.mutate({ ecartee_equipe: false, ecartee_motif: null })} disabled={enregistrer.isPending}>Reprendre</Bouton>
+              ) : null}
+            </div>
           </div>
-          <div className="bg-surface border border-white/[0.08] rounded-[20px] p-7 flex flex-col gap-1">
-            <div className="text-[10px] tracking-[.16em] uppercase text-ardoise mb-3">Les chiffres</div>
-            {[
-              ["Loyer de la rue", v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])} – ${Math.round(v.loyer_fourchette[1])} €/m²/an` : "à lire"],
-              ["Fourchette de prix", v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : v.loyer_m2_marche ? "surface à saisir" : "après le loyer"],
-              ["Surface", v.surface ? `${v.surface} m²` : "à saisir"],
-              ["Détenu depuis", s.creation ? `${new Date().getFullYear() - Number(String(s.creation).slice(0, 4))} ans` : "—"],
-              ["Dernière vente autour", c.mutation?.date ? `${euros(c.mutation.prix)} en ${String(c.mutation.date).slice(0, 4)}` : "aucune connue"],
-              ["Exploitant", c.occupant?.nom ? `${c.occupant.nom}${c.occupant.depuis ? `, depuis ${String(c.occupant.depuis).slice(0, 4)}` : ""}` : c.enseigne || "—"],
-            ].map(([k, val]) => (
-              <div key={k} className="flex items-baseline justify-between gap-4 py-2.5 border-t border-white/[0.06] first:border-t-0">
-                <span className="text-[13.5px] text-ardoise">{k}</span>
-                <span className="text-[14px] text-encre text-right tabular-nums">{val}</span>
-              </div>
-            ))}
+
+          <div className="bg-surface border border-white/[0.08] rounded-[20px] overflow-hidden flex flex-col">
+            {CLE_EMBED ? (
+              <iframe
+                title={`Street View ${c.adresse}`}
+                src={c.lat != null && c.lon != null
+                  ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90`
+                  : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`}
+                className="w-full flex-1 min-h-[420px] border-0"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            ) : (
+              <div className="flex-1 min-h-[420px] flex items-center justify-center text-[11px] tracking-[.1em] uppercase text-brume">Street View : clé VITE_GOOGLE_MAPS_API_KEY absente</div>
+            )}
+            <div className="px-5 py-3 flex items-center justify-between text-[12px] text-brume border-t border-white/[0.06]">
+              <span>{c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.occupant?.nom ? ` · ${joliNom(c.occupant.nom)}` : ""}</span>
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-menthe hover:text-menthe-clair">Ouvrir dans Maps</a>
+            </div>
           </div>
         </div>
 
@@ -356,7 +401,7 @@ export default function ALXCible() {
               )}
             </Carte>
 
-            <Carte className="flex flex-col gap-4">
+            <Carte className="flex flex-col gap-4" id="message">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Le message, à relire</div>
                 {!c.deal_id && !brouillon && (

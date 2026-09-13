@@ -145,9 +145,10 @@ export function creerCible({ ville_id, rue = null, adresse, enseigne = null, act
   // Le même commerce ne rentre pas deux fois : par SIRET quand on l'a (le
   // parcours), sinon par adresse et enseigne (la saisie à la main).
   const siret = reste.siret ? String(reste.siret) : null;
+  const placeId = reste.place_id ? String(reste.place_id) : null;
   const ens = String(enseigne || '').trim().toLowerCase();
   const doublon = Records.filter('Cible', { ville_id }).find((c) =>
-    siret ? c.siret === siret : c.adresse.toLowerCase() === adr.toLowerCase() && String(c.enseigne || '').toLowerCase() === ens
+    (placeId && c.place_id === placeId) || (siret && c.siret === siret) || (!placeId && !siret && c.adresse.toLowerCase() === adr.toLowerCase() && String(c.enseigne || '').toLowerCase() === ens)
   );
   if (doublon) return { ok: true, cible: doublon, deja: true };
 

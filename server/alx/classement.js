@@ -173,6 +173,7 @@ export function classer(cible, opts = {}) {
   const signaux = signauxDe(cible, opts);
   const base = { signaux, drapeaux, knock_outs };
 
+  if (cible.ecartee_equipe) return { ...base, pile: 'ecartee', motif: `Écartée par l'équipe${cible.ecartee_motif ? ` : ${cible.ecartee_motif}` : ''}.` };
   if (knock_outs.length) return { ...base, pile: 'ecartee', motif: knock_outs[0].libelle + (knock_outs[0].valeur ? ` (${knock_outs[0].valeur})` : '') };
 
   const bloquant = drapeaux.find((d) => d.effet === 'bloquant');

@@ -101,8 +101,8 @@ export function Champ({ label, value, onChange, placeholder = "", type = "text",
 }
 
 /** Une carte sombre, le conteneur de base de toutes les sections ALX. */
-export function Carte({ children, className = "" }) {
-  return <section className={`bg-surface border border-white/[0.08] rounded-[14px] p-[26px] ${className}`}>{children}</section>;
+export function Carte({ children, className = "", id = undefined }) {
+  return <section id={id} className={`bg-surface border border-white/[0.08] rounded-[18px] p-[26px] ${className}`}>{children}</section>;
 }
 
 /** Un chiffre-clé, dans une grille de statistiques. */
@@ -189,6 +189,63 @@ export function Bascule({ options, valeur, onChange }) {
           {mot}{n != null ? <span className={`ml-1.5 tabular-nums ${valeur === cle ? "opacity-70" : "text-brume"}`}>{n}</span> : null}
         </button>
       ))}
+    </div>
+  );
+}
+
+// --- Les noms, l'urgence ------------------------------------------------------------------
+
+const PETITS_MOTS = new Set(["de", "du", "des", "la", "le", "les", "et", "en", "au", "aux", "d", "l", "sur", "sous", "à", "a"]);
+/** « CHRISTIAN DIOR COUTURE » → « Christian Dior Couture » ; les sigles courts (SCI, SG, CCF) restent en capitales. */
+export function joliNom(nom) {
+  const brut = String(nom || "").trim().replace(/\s+/g, " ");
+  if (!brut) return "";
+  // Un nom déjà en casse mixte est laissé tel quel.
+  if (/[a-z]/.test(brut) && /[A-Z]/.test(brut)) return brut;
+  return brut
+    .toLowerCase()
+    .split(" ")
+    .map((m, i) => {
+      if (i > 0 && PETITS_MOTS.has(m)) return m;
+      if (m.length <= 3 && /^[a-z]+$/.test(m) && i === 0) return m.toUpperCase();
+      return m
+        .split(/(['’(-])/)
+        .map((part) => (part === "'" || part === "’" || part === "-" || part === "(" ? part : part.charAt(0).toUpperCase() + part.slice(1)))
+        .join("");
+    })
+    .join(" ");
+}
+
+/**
+ * L'urgence d'une cible, de 1 à 5, et sa teinte. Ce n'est pas un score :
+ * c'est l'ordre dans lequel démarcher. 5, on appelle aujourd'hui ; 3, on
+ * écrit ; 1, on surveille.
+ */
+export function urgenceDe(c) {
+  const forts = c.signaux?.forts?.length || 0;
+  const patients = c.signaux?.patients?.length || 0;
+  if (c.pile === "ecartee") return { niveau: 0, mot: "Écartée", teinte: "#3a3f47" };
+  if (c.pile === "appeler") return forts >= 2 || c.signaux?.forts?.some((s) => /marchand|bail/.test(s.cle || ""))
+    ? { niveau: 5, mot: "À appeler aujourd'hui", teinte: "#e07a5f" }
+    : { niveau: 4, mot: "À appeler", teinte: "#E8B278" };
+  if (c.pile === "ecrire") return patients >= 2
+    ? { niveau: 3, mot: "À écrire, bonne opportunité", teinte: "#96c0b8" }
+    : { niveau: 3, mot: "À écrire", teinte: "#96c0b8" };
+  if (c.proprietaire?.nom) return { niveau: 2, mot: "À surveiller", teinte: "#6a7180" };
+  return { niveau: 1, mot: "Propriétaire à établir", teinte: "#4a505b" };
+}
+
+/** Cinq barres, remplies jusqu'au niveau, de la teinte de l'urgence. */
+export function Urgence({ c, compact = false }) {
+  const u = urgenceDe(c);
+  return (
+    <div className="flex items-center gap-2.5" title={u.mot}>
+      <div className="flex items-end gap-[3px]">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <span key={n} className="w-[6px] rounded-[2px]" style={{ height: `${6 + n * 2.5}px`, background: n <= u.niveau ? u.teinte : "rgba(255,255,255,0.08)" }} />
+        ))}
+      </div>
+      {!compact && <span className="text-[12px]" style={{ color: u.niveau ? u.teinte : "var(--k-brume)" }}>{u.mot}</span>}
     </div>
   );
 }

@@ -178,9 +178,13 @@ const numeroDe = (adresse) => (String(adresse || '').match(/^\s*(\d+)\s*(bis|ter
  *
  * @returns {Promise<{adresse, adresse_fiche, adresse_non_confirmee, parcelle, batiment_id, surface_parcelle, surface_batiment, proprietaires, choix, motif_choix, source, lu_le}|null>}
  */
-export async function proprietairesDe(texteAdresse, { rayon = RAYON_M, essais = 3, occupant = null } = {}) {
+export async function proprietairesDe(texteAdresse, { rayon = RAYON_M, essais = 3, occupant = null, point = null } = {}) {
   if (!dataBConfigure()) throw new ErreurSource("Data-B n'est pas configuré (DATAB_EMAIL, DATAB_MOT_DE_PASSE).", { service: 'Data-B', classe: 'definitive' });
-  const adresse = await resoudreAdresse(texteAdresse);
+  // Un point précis (la vitrine vue sur Maps) vaut mieux qu'une adresse
+  // résolue : on part de lui, et le numéro ne sert qu'à confirmer.
+  const adresse = point?.lat != null && point?.lon != null
+    ? { label: texteAdresse, lat: Number(point.lat), lon: Number(point.lon), numero: numeroDe(texteAdresse) }
+    : await resoudreAdresse(texteAdresse);
   if (!adresse) return null;
 
   const brut = await postDataB(BATIMENTS, { lat: adresse.lat, lng: adresse.lon, area: rayon, has_owner: '1', has_occupant: '1' });
@@ -220,11 +224,15 @@ export async function proprietairesDe(texteAdresse, { rayon = RAYON_M, essais = 
   if (!fiche) throw new ErreurSource("Data Foncier n'a pas rendu de fiche pour ces bâtiments.", { service: 'Data-B' });
 
   const { choix, motif, occupant_proprietaire = false } = choisirProprietaire(fiche.proprietaires, occupant);
+  // Sans numéro mais avec un point précis, le bâtiment le plus proche à
+  // moins de quinze mètres est le bon : une vitrine touche son immeuble.
+  const nonConfirmee = numero ? numeroDe(fiche.adresse) !== String(numero) : !(point && retenu.distance_m <= 15);
   return {
     occupant_proprietaire,
     adresse: adresse.label,
     adresse_fiche: fiche.adresse,
-    adresse_non_confirmee: !!numero && numeroDe(fiche.adresse) !== String(numero),
+    adresse_non_confirmee: nonConfirmee,
+    confirmee_par: !nonConfirmee ? (numero ? 'numéro' : 'position') : null,
     parcelle: retenu.parcelle_id,
     batiment_id: retenu.id,
     distance_m: retenu.distance_m,

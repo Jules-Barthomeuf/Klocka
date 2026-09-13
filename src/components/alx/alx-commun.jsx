@@ -6,11 +6,31 @@ import { Link, useLocation } from "react-router-dom";
 // la maquette — un amber et un bleu propres à ALX, distincts de la palette
 // du reste de l'application : ALX est un métier à part, ça se voit.
 
+// Les teintes d'ALX, celles de la maquette : ambre pour ce qu'on appelle,
+// menthe pour ce qu'on écrit, gris pour ce qu'on surveille. Le 1 bis des rues
+// est un ambre plus vif, le 2 un bleu ; l'urgence 5 est un rouge brique.
+export const TEINTES = {
+  appeler: "#c9a889",
+  ecrire: "#96c0b8",
+  surveiller: "#8B938F",
+  barreSurveiller: "#5A6762",
+  ecartee: "#5f6160",
+  urgence5: "#c2695c",
+  emplacement1: "#96c0b8",
+  emplacement1bis: "#e0a45e",
+  emplacement2: "#6f8fe8",
+  texte: "#E8EFEB",
+  clair: "#F3F7F5",
+  doux: "#C3CBC7",
+  muet: "#8B938F",
+  encreSurMenthe: "#08130D",
+};
+
 export const PILES = [
-  { cle: "appeler", mot: "À appeler", teinte: "#E8B278", detail: "signal fort" },
-  { cle: "ecrire", mot: "À écrire", teinte: "#7896EB", detail: "signal patient" },
-  { cle: "surveiller", mot: "À surveiller", teinte: "#9298a6", detail: "aucun signal" },
-  { cle: "ecartee", mot: "Écartées", teinte: "#5f6160", detail: "avec leur motif" },
+  { cle: "appeler", mot: "À appeler", teinte: TEINTES.appeler, detail: "signal fort" },
+  { cle: "ecrire", mot: "À écrire", teinte: TEINTES.ecrire, detail: "signal patient" },
+  { cle: "surveiller", mot: "À surveiller", teinte: TEINTES.surveiller, detail: "aucun signal" },
+  { cle: "ecartee", mot: "Écartées", teinte: TEINTES.ecartee, detail: "avec leur motif" },
 ];
 export const pileDe = (cle) => PILES.find((p) => p.cle === cle) || PILES[2];
 
@@ -18,11 +38,11 @@ export const pileDe = (cle) => PILES.find((p) => p.cle === cle) || PILES[2];
 // tris restent numériques ; ici on lui donne son mot et sa teinte. Vert pour
 // le 1, ambre pour le 1 bis, bleu pour le 2 : c'est ce qu'on voit sur la carte.
 export const EMPLACEMENTS = [
-  { classe: 1, mot: "1", teinte: "#96c0b8", fourchette: "700 000 – 1 000 000 €", detail: "la rue qui ne se discute pas" },
-  { classe: 1.5, mot: "1 bis", teinte: "#E8B278", fourchette: "500 000 – 800 000 €", detail: "tient le 1 sans en avoir le loyer" },
-  { classe: 2, mot: "2", teinte: "#7896EB", fourchette: "300 000 – 500 000 €", detail: "petit budget, bonne rue" },
+  { classe: 1, mot: "1", court: "N°1", teinte: TEINTES.emplacement1, fourchette: "700 000 – 1 000 000 €", detail: "la rue qui ne se discute pas" },
+  { classe: 1.5, mot: "1 bis", court: "N°1B", teinte: TEINTES.emplacement1bis, fourchette: "500 000 – 800 000 €", detail: "tient le 1 sans en avoir le loyer" },
+  { classe: 2, mot: "2", court: "N°2", teinte: TEINTES.emplacement2, fourchette: "300 000 – 500 000 €", detail: "petit budget, bonne rue" },
 ];
-export const ECARTEE = { classe: null, mot: "écartée", teinte: "#4a505b", fourchette: null, detail: "loyer trop bas ou trop peu de vitrines" };
+export const ECARTEE = { classe: null, mot: "écartée", court: "Écartée", teinte: TEINTES.muet, fourchette: null, detail: "loyer trop bas ou trop peu de vitrines" };
 export const emplacementDe = (classe) => EMPLACEMENTS.find((e) => e.classe === classe) || ECARTEE;
 
 export const euros = (n) => (n == null || !isFinite(n) ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
@@ -78,21 +98,33 @@ export function Pastille({ pile }) {
   );
 }
 
-/** Un bouton, dans le registre de la maquette : plein menthe ou contour. */
-export function Bouton({ children, onClick, disabled = false, principal = false, title = null, type = "button" }) {
+/**
+ * Un bouton, dans le registre de la maquette : plein menthe en capitales
+ * Montserrat pour l'action principale, contour discret sinon, et une forme
+ * sans contour (`discret`) pour ce qui ne doit pas peser.
+ */
+export function Bouton({ children, onClick, disabled = false, principal = false, discret = false, title = null, type = "button", className = "" }) {
+  const base = "inline-flex items-center justify-center gap-2 rounded-full transition-colors disabled:opacity-40 whitespace-nowrap";
+  const registre = principal
+    ? "alx-mont alx-principal px-7 py-[13px] text-[12px] font-medium uppercase tracking-[.14em] text-[#08130D]"
+    : discret
+      ? "px-2 py-[13px] text-[13.5px] text-[#8B938F] hover:text-[#E8EFEB]"
+      : "px-[22px] py-[13px] text-[13.5px] text-[#C3CBC7] border border-white/[0.14] hover:border-white/[0.3]";
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      title={title || undefined}
-      className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] font-medium transition-colors disabled:opacity-40 whitespace-nowrap ${
-        principal ? "bg-menthe text-[#0b1211] hover:bg-menthe-clair" : "border border-bord-doux text-craie hover:border-bord-vif hover:text-encre"
-      }`}
-    >
+    <button type={type} onClick={onClick} disabled={disabled} title={title || undefined} className={`${base} ${registre} ${className}`} style={{ background: principal ? "#96c0b8" : "transparent" }}>
       {children}
     </button>
   );
+}
+
+/** Une étiquette en capitales Montserrat, le surtitre de la maquette. */
+export function Etiquette({ children, teinte = "#8B938F", className = "" }) {
+  return <div className={`alx-mont text-[10px] font-medium uppercase tracking-[.14em] ${className}`} style={{ color: teinte }}>{children}</div>;
+}
+
+/** Un nombre en Montserrat, chiffres tabulaires. */
+export function Nombre({ children, teinte = null, taille = 16, className = "" }) {
+  return <span className={`alx-mont tabular-nums ${className}`} style={{ fontSize: taille, color: teinte || undefined, fontWeight: 400 }}>{children}</span>;
 }
 
 /** Un champ de saisie, même registre. */
@@ -238,13 +270,13 @@ export function urgenceDe(c) {
   const patients = c.signaux?.patients?.length || 0;
   if (c.pile === "ecartee") return { niveau: 0, mot: "Écartée", teinte: "#3a3f47" };
   if (c.pile === "appeler") return forts >= 2 || c.signaux?.forts?.some((s) => /marchand|bail/.test(s.cle || ""))
-    ? { niveau: 5, mot: "À appeler aujourd'hui", teinte: "#e07a5f" }
-    : { niveau: 4, mot: "À appeler", teinte: "#E8B278" };
+    ? { niveau: 5, mot: "À appeler aujourd'hui", teinte: TEINTES.urgence5 }
+    : { niveau: 4, mot: "À appeler", teinte: TEINTES.appeler };
   if (c.pile === "ecrire") return patients >= 2
-    ? { niveau: 3, mot: "À écrire, bonne opportunité", teinte: "#96c0b8" }
-    : { niveau: 3, mot: "À écrire", teinte: "#96c0b8" };
-  if (c.proprietaire?.nom) return { niveau: 2, mot: "À surveiller", teinte: "#6a7180" };
-  return { niveau: 1, mot: "Propriétaire à établir", teinte: "#4a505b" };
+    ? { niveau: 3, mot: "À écrire, bonne opportunité", teinte: TEINTES.ecrire }
+    : { niveau: 3, mot: "À écrire", teinte: TEINTES.ecrire };
+  if (c.proprietaire?.nom) return { niveau: 2, mot: "À surveiller", teinte: TEINTES.barreSurveiller };
+  return { niveau: 1, mot: "Propriétaire à établir", teinte: TEINTES.barreSurveiller };
 }
 
 /** Cinq barres, remplies jusqu'au niveau, de la teinte de l'urgence. */
@@ -252,9 +284,9 @@ export function Urgence({ c, compact = false }) {
   const u = urgenceDe(c);
   return (
     <div className="flex items-center gap-2.5" title={u.mot}>
-      <div className="flex items-end gap-[3px]">
+      <div className="flex items-end gap-[3px] h-4">
         {[1, 2, 3, 4, 5].map((n) => (
-          <span key={n} className="w-[6px] rounded-[2px]" style={{ height: `${6 + n * 2.5}px`, background: n <= u.niveau ? u.teinte : "rgba(255,255,255,0.08)" }} />
+          <span key={n} className="w-[5px] rounded-[2px]" style={{ height: `${6 + n * 2}px`, background: n <= u.niveau ? u.teinte : "rgba(255,255,255,0.08)" }} />
         ))}
       </div>
       {!compact && <span className="text-[12px]" style={{ color: u.niveau ? u.teinte : "var(--k-brume)" }}>{u.mot}</span>}

@@ -375,3 +375,28 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .k-carte-rues .leaflet-container { background: #000000; font-family: inherit; }
 .k-carte-rues .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.62) contrast(1.05) saturate(.25); }
 .k-carte-rues .leaflet-interactive { cursor: pointer; }
+
+/* ALX, le registre de la maquette : Figtree pour le texte, Montserrat en
+   capitales pour les étiquettes et les nombres, Instrument Serif pour les
+   titres. Le fond porte trois halos menthe très doux. */
+.alx { font-family: Figtree, "Instrument Sans", system-ui, sans-serif; color: #E8EFEB; background: #08090A; position: relative; }
+.alx::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(900px 620px at 82% -8%, rgba(150,192,184,0.10), transparent 70%),
+    radial-gradient(760px 520px at 8% 4%, rgba(150,192,184,0.055), transparent 70%),
+    radial-gradient(1100px 700px at 50% 118%, rgba(150,192,184,0.045), transparent 70%); }
+.alx > * { position: relative; z-index: 1; }
+.alx-mont { font-family: Montserrat, "Instrument Sans", system-ui, sans-serif; }
+.alx-serif { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; }
+.alx input::placeholder { color: #4E5553; }
+.alx ::selection { background: #1E3A2C; color: #E8EFEB; }
+/* Les boutons d'ALX gardent leur fond transparent malgré la règle globale `button`. */
+.alx button { background-color: transparent; }
+.alx button.alx-principal:hover:not(:disabled) { background-color: #c3ddd6 !important; }
+@keyframes alx-vague { 0%, 100% { transform: translateY(0); opacity: .45; } 50% { transform: translateY(-5px); opacity: 1; } }
+@keyframes alx-entree { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes alx-pouls { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+.alx-vague { animation: alx-vague 1.1s ease-in-out infinite; }
+.alx-entree { animation: alx-entree .3s ease-out; }
+.alx-pouls { animation: alx-pouls 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .alx-vague, .alx-entree, .alx-pouls { animation: none; } }

@@ -22,6 +22,84 @@ const Ligne = ({ mot, children }) => (
   </div>
 );
 
+/** Un commerce en coup d'œil, par-dessus la fiche : pour juger vite s'il faut l'écarter aussi. */
+function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
+  const { data: c } = useQuery({ queryKey: ["alx-cible", id], queryFn: () => base44.request("GET", `/api/alx/cibles/${id}`), enabled: !!id });
+  React.useEffect(() => {
+    const echap = (e) => { if (e.key === "Escape") onFermer(); };
+    window.addEventListener("keydown", echap);
+    return () => window.removeEventListener("keydown", echap);
+  }, [onFermer]);
+  if (!id) return null;
+  const p = c?.proprietaire || {};
+  const s = c?.societe || {};
+  const v = c?.valorisation || {};
+  const raisons = c ? [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : "")) : [];
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-[2px]" onClick={onFermer}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[1100px] max-h-[90vh] overflow-auto bg-surface border border-white/[0.12] rounded-[20px] shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
+        {!c ? (
+          <div className="p-10 text-brume flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Lecture…</div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-start justify-between gap-4 px-7 pt-6 pb-4 border-b border-white/[0.06]">
+              <div>
+                <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">{c.pile === "ecartee" ? "Écartée" : "Coup d'œil"}</div>
+                <div className="text-[26px] font-semibold tracking-[-.02em] text-encre leading-tight">{joliNom(c.enseigne) || c.adresse}</div>
+                <div className="text-[13.5px] text-ardoise">{c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.activite ? ` · ${c.activite}` : ""}</div>
+              </div>
+              <button onClick={onFermer} className="text-[13px] text-ardoise hover:text-encre">Fermer ✕</button>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-0">
+              <div className="p-7 flex flex-col gap-4">
+                <div>
+                  <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Le propriétaire</div>
+                  <div className="mt-1 text-[20px] font-semibold text-encre">{p.nom ? joliNom(p.nom) : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
+                  <div className="text-[12.5px] text-ardoise">{[s.forme || p.forme, s.creation ? `créée en ${String(s.creation).slice(0, 4)}` : null, (s.gerants || []).length ? `${s.gerants.length} gérant${s.gerants.length > 1 ? "s" : ""}` : null].filter(Boolean).join(" · ")}</div>
+                  {(s.gerants || []).slice(0, 5).map((g, i) => <div key={i} className="text-[12.5px] text-craie">{joliNom(g.nom)}<span className="text-brume">{g.tranche_age ? ` · ${g.tranche_age} ans` : ""}{g.qualite ? ` · ${g.qualite}` : ""}</span></div>)}
+                </div>
+                <div className="border-t border-white/[0.08] pt-3">
+                  <div className="text-[10px] tracking-[.16em] uppercase text-ardoise mb-2">L'analyse</div>
+                  <Urgence c={c} />
+                  <ul className="m-0 mt-2 pl-4 text-[13px] text-craie leading-[1.6]">
+                    {raisons.map((r) => <li key={r}>{r}</li>)}
+                    {!raisons.length && <li>{c.motif}</li>}
+                  </ul>
+                </div>
+                <div className="grid grid-cols-2 gap-3 border-t border-white/[0.08] pt-3 text-[13px]">
+                  <div><div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Loyer</div><div className="text-encre mt-1">{v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])} – ${Math.round(v.loyer_fourchette[1])} €/m²/an` : "—"}</div></div>
+                  <div><div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Prix estimé</div><div className="text-encre mt-1">{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : "—"}</div></div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5 border-t border-white/[0.08] pt-4 mt-auto">
+                  {c.pile !== "ecartee" && <Bouton principal onClick={() => onEcarter(c.id)} disabled={pending}>Écarter aussi</Bouton>}
+                  <Bouton onClick={() => onGarder(c.id)}>Garder</Bouton>
+                  <Link to={`/ALXCible?id=${c.id}`} className="text-[13px] text-menthe hover:text-menthe-clair ml-1">Ouvrir la fiche complète →</Link>
+                </div>
+              </div>
+              <div className="min-h-[360px] bg-fond lg:rounded-br-[20px] overflow-hidden">
+                {CLE_EMBED ? (
+                  <iframe
+                    title={`Street View ${c.adresse}`}
+                    src={c.lat != null && c.lon != null
+                      ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90`
+                      : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`}
+                    className="w-full h-full min-h-[360px] border-0"
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-[11px] tracking-[.1em] uppercase text-brume">Street View indisponible</div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ALXCible() {
   const user = useUser();
   const [params] = useSearchParams();
@@ -73,6 +151,7 @@ export default function ALXCible() {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const [ecart, setEcart] = useState(null); // null | { ouvert: true } | { semblables, regle, motif }
+  const [apercu, setApercu] = useState(null); // l'id du semblable qu'on regarde
   const [motifEcart, setMotifEcart] = useState("");
   const [sur, setSur] = useState({ activite: false, proprietaire: false, enseigne: false });
   const ecarter = useMutation({
@@ -118,6 +197,15 @@ export default function ALXCible() {
 
   return (
     <div className="bg-fond min-h-screen text-encre">
+      {apercu && (
+        <ApercuCible
+          id={apercu}
+          onFermer={() => setApercu(null)}
+          pending={ecarterAussi.isPending}
+          onEcarter={(cid) => { ecarterAussi.mutate([cid]); setApercu(null); }}
+          onGarder={(cid) => { setEcart((e) => (e?.semblables ? { ...e, semblables: e.semblables.filter((y) => y.id !== cid) } : e)); setApercu(null); }}
+        />
+      )}
       <div className="max-w-[1440px] mx-auto px-7 pt-7 pb-20">
         <Link to={c.ville_id ? `/ALX?ville=${c.ville_id}` : "/ALX"} className="inline-block mb-5 text-[13px] text-menthe hover:text-menthe-clair">
           ← Toutes les cibles
@@ -231,14 +319,14 @@ export default function ALXCible() {
                   {ecart.regle && <span className="text-[12px] text-menthe">Règle enregistrée : les prochains du même genre seront écartés d'office.</span>}
                 </div>
                 {ecart.semblables.map((x) => (
-                  <div key={x.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center bg-fond/60 border border-white/[0.06] rounded-[12px] px-4 py-3">
+                  <div key={x.id} onClick={() => setApercu(x.id)} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center bg-fond/60 border border-white/[0.06] hover:border-white/[0.18] rounded-[12px] px-4 py-3 cursor-pointer" title="Voir ce commerce en coup d'œil">
                     <div className="min-w-0">
                       <div className="text-[14px] text-encre truncate">{joliNom(x.enseigne) || x.adresse}<span className="text-brume text-[12px]"> · {x.adresse}{x.activite ? ` · ${x.activite}` : ""}</span></div>
                       <div className="text-[12px] text-brume truncate">{x.proprietaire ? joliNom(x.proprietaire) + " · " : ""}{x.raisons.join(", ")}</div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => ecarterAussi.mutate([x.id])} disabled={ecarterAussi.isPending} className="text-[12px] text-menthe hover:text-menthe-clair">Écarter aussi</button>
-                      <button onClick={() => setEcart((e) => ({ ...e, semblables: e.semblables.filter((y) => y.id !== x.id) }))} className="text-[12px] text-ardoise hover:text-encre">Garder</button>
+                      <button onClick={(e) => { e.stopPropagation(); ecarterAussi.mutate([x.id]); }} disabled={ecarterAussi.isPending} className="text-[12px] text-menthe hover:text-menthe-clair">Écarter aussi</button>
+                      <button onClick={(e) => { e.stopPropagation(); setEcart((e0) => ({ ...e0, semblables: e0.semblables.filter((y) => y.id !== x.id) })); }} className="text-[12px] text-ardoise hover:text-encre">Garder</button>
                     </div>
                   </div>
                 ))}

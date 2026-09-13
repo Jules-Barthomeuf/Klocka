@@ -4,8 +4,8 @@ import "leaflet/dist/leaflet.css";
 import { EMPLACEMENTS, ECARTEE, emplacementDe } from "./alx-commun";
 
 // La carte des rues d'une ville. Chaque rue est dessinée sur son tracé
-// OpenStreetMap, dans la teinte de son emplacement : vert pour le 1, ambre
-// pour le 1 bis, bleu pour le 2, gris fin pour les écartées. On clique une
+// OpenStreetMap, dans la teinte de son emplacement : or pour le 1, bleu pour
+// le 1 bis, rouge pour le 2, gris fin pour les écartées. On clique une
 // rue pour la voir dans le panneau à côté et la cocher ; une rue cochée se
 // dessine plus épaisse.
 
@@ -55,12 +55,12 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
   // Street View à la place de la carte : on est dans la rue choisie.
   if (streetView) {
     return (
-      <div className={`k-carte-rues relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>
+      <div className={`k-carte-rues relative isolate overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>
         {CLE_EMBED ? (
           <iframe
             title={`Street View ${streetView.nom || ""}`}
             src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${streetView.lat},${streetView.lon}&heading=0&pitch=0&fov=90`}
-            className="h-full w-full border-0"
+            className="h-full w-full rounded-[18px] border-0"
             allowFullScreen
             loading="lazy"
           />

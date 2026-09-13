@@ -307,7 +307,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
     return (
       <div className="flex h-full flex-col justify-center gap-2 px-6 text-center">
         <div className="text-[15px] text-[#C3CBC7]">Cliquez une rue sur la carte.</div>
-        <div className="text-[13px] text-[#8B938F]">Vert, emplacement 1 ; ambre, 1 bis ; bleu, 2. Une rue cochée se dessine plus épaisse.</div>
+        <div className="text-[13px] text-[#8B938F]">Or, emplacement 1 ; bleu, 1 bis ; rouge, 2. Une rue cochée se dessine plus épaisse.</div>
       </div>
     );
   }

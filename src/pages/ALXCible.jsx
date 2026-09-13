@@ -152,8 +152,8 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
                 <Link to={`/ALXCible?id=${c.id}`} className="ml-1 text-[13px] text-menthe hover:text-menthe-clair">Ouvrir la fiche →</Link>
               </div>
             </div>
-            <div className="min-h-[360px] bg-[#0A0C0B]">
-              {CLE_EMBED && <iframe title={`Street View ${c.adresse}`} src={c.lat != null && c.lon != null ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90` : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`} className="h-full min-h-[360px] w-full border-0" allowFullScreen loading="lazy" />}
+            <div className="isolate min-h-[360px] overflow-hidden bg-[#0A0C0B] lg:rounded-r-[20px]">
+              {CLE_EMBED && <iframe title={`Street View ${c.adresse}`} src={c.lat != null && c.lon != null ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90` : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`} className="h-full min-h-[360px] w-full border-0 lg:rounded-r-[20px]" allowFullScreen loading="lazy" />}
             </div>
           </div>
         )}
@@ -433,7 +433,7 @@ export default function ALXCible() {
             )}
           </div>
 
-          <div className="min-h-[460px] overflow-hidden rounded-[20px] border border-white/[0.08] bg-[#0A0C0B]">
+          <div className="isolate min-h-[460px] overflow-hidden rounded-[20px] border border-white/[0.08] bg-[#0A0C0B]">
             {CLE_EMBED ? (
               <iframe
                 title={`Street View ${c.adresse}`}
@@ -442,7 +442,7 @@ export default function ALXCible() {
                   : c.lat != null && c.lon != null
                     ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90`
                     : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`}
-                className="h-full min-h-[460px] w-full border-0"
+                className="h-full min-h-[460px] w-full rounded-[20px] border-0"
                 allowFullScreen
                 loading="lazy"
               />

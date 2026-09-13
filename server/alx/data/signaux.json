@@ -108,8 +108,8 @@
   ],
   "parcours": {
     "rayon_km": 1.5,
-    "min_commerces_par_rue": 5,
-    "max_rues": 60,
+    "min_commerces_par_rue": 4,
+    "max_rues": 100,
     "loyer_emplacement_1": 800,
     "loyer_emplacement_1bis": 550,
     "loyer_emplacement_2": 350,

@@ -536,11 +536,30 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
 
 // --- Les commerces --------------------------------------------------------------------------
 
+/** Le prix d'un commerce, tel qu'on peut le connaître : la fourchette calculée, sinon l'idée d'après la vitrine. */
+const prixDe = (c) => {
+  const v = c.valorisation || {};
+  const f = v.fourchette || v.fourchette_estimee;
+  return f ? { milieu: (f[0] + f[1]) / 2, bas: f[0], haut: f[1], estime: !v.fourchette } : null;
+};
+const kEuros = (n) => (n >= 1000000 ? `${(n / 1000000).toFixed(n % 1000000 ? 1 : 0).replace(".", ",")} M€` : `${Math.round(n / 1000)} k€`);
+const TRANCHES = [["200 – 350 k€", 200000, 350000], ["350 – 500 k€", 350000, 500000], ["500 k€ – 1 M€", 500000, 1000000], ["1 M€ et plus", 1000000, null]];
+
 function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
   const [filtre, setFiltre] = useState("interessants");
   const [rue, setRue] = useState("");
   const [recherche, setRecherche] = useState("");
+  const [tri, setTri] = useState("urgence"); // urgence | prix_desc | prix_asc
+  const [tranche, setTranche] = useState({ min: "", max: "" }); // en euros, saisis en k€
   const [page, setPage] = useState(1);
+  const min = Number(tranche.min) * 1000 || null;
+  const max = Number(tranche.max) * 1000 || null;
+  const dansLaTranche = (c) => {
+    if (!min && !max) return true;
+    const p = prixDe(c);
+    if (!p) return false;
+    return (!min || p.haut >= min) && (!max || p.bas <= max);
+  };
   const PAR_PAGE = 40;
   const simple = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const q = simple(recherche.trim());
@@ -550,7 +569,16 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
     .filter((c) => (q ? true : filtre === "interessants" ? ["appeler", "ecrire"].includes(c.pile) : filtre === "ecartes" ? c.pile === "ecartee" : filtre === "surveiller" ? c.pile === "surveiller" : true))
     .filter((c) => !rue || c.rue === rue)
     .filter((c) => !q || simple(`${c.enseigne} ${c.adresse} ${c.proprietaire?.nom || ""} ${c.activite || ""}`).includes(q))
-    .sort((a, b) => urgenceDe(b).niveau - urgenceDe(a).niveau);
+    .filter(dansLaTranche)
+    .sort((a, b) => {
+      if (tri === "urgence") return urgenceDe(b).niveau - urgenceDe(a).niveau;
+      const pa = prixDe(a)?.milieu, pb = prixDe(b)?.milieu;
+      if (pa == null && pb == null) return urgenceDe(b).niveau - urgenceDe(a).niveau;
+      if (pa == null) return 1;
+      if (pb == null) return -1;
+      return tri === "prix_desc" ? pb - pa : pa - pb;
+    });
+  const avecPrix = cibles.filter((c) => prixDe(c)).length;
   const rues = [...new Set(cibles.map((c) => c.rue).filter(Boolean))];
   const sansMessage = interessants.filter((c) => !c.brouillon);
   const filtres = [["interessants", "Intéressants", interessants.length], ["surveiller", "À surveiller", cibles.filter((c) => c.pile === "surveiller").length], ["ecartes", "Écartés", cibles.filter((c) => c.pile === "ecartee").length], ["tous", "Tous", cibles.length]];
@@ -581,10 +609,37 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
         )}
       </div>
 
-      <div className="mt-6 grid grid-cols-[minmax(0,1fr)_240px_220px_120px] items-center border-b border-white/[0.07] px-1.5 pb-3 max-md:grid-cols-[minmax(0,1fr)_90px]">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-[12.5px] text-[#8B938F]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span>Prix</span>
+          {TRANCHES.map(([mot, a, b]) => {
+            const on = min === a && (max === b || (!b && !max));
+            return (
+              <button key={mot} onClick={() => setTranche(on ? { min: "", max: "" } : { min: String(a / 1000), max: b ? String(b / 1000) : "" })} className="rounded-full border px-2.5 py-1 transition-colors" style={{ borderColor: on ? "#96c0b8" : "rgba(255,255,255,0.1)", color: on ? "#96c0b8" : "#8B938F", background: on ? "rgba(150,192,184,0.1)" : "transparent" }}>{mot}</button>
+            );
+          })}
+          <span className="flex items-center gap-1.5">
+            <input value={tranche.min} onChange={(e) => { setTranche((t) => ({ ...t, min: e.target.value.replace(/[^\d]/g, "") })); setPage(1); }} placeholder="min" className="w-[58px] rounded-full border border-white/[0.1] bg-transparent px-2.5 py-1 text-right text-[12.5px] text-[#E8EFEB] outline-none focus:border-menthe/50" />
+            <span>–</span>
+            <input value={tranche.max} onChange={(e) => { setTranche((t) => ({ ...t, max: e.target.value.replace(/[^\d]/g, "") })); setPage(1); }} placeholder="max" className="w-[58px] rounded-full border border-white/[0.1] bg-transparent px-2.5 py-1 text-right text-[12.5px] text-[#E8EFEB] outline-none focus:border-menthe/50" />
+            <span>k€</span>
+            {(tranche.min || tranche.max) && <button onClick={() => setTranche({ min: "", max: "" })} className="text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>×</button>}
+          </span>
+          <span className="text-[#5A6762]">{avecPrix} commerce{avecPrix > 1 ? "s" : ""} avec un prix</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span>Trier</span>
+          {[["urgence", "urgence"], ["prix_desc", "prix ↓"], ["prix_asc", "prix ↑"]].map(([k, mot]) => (
+            <button key={k} onClick={() => setTri(k)} className="hover:text-[#E8EFEB]" style={{ background: "transparent", color: tri === k ? "#F3F7F5" : "#8B938F" }}>{mot}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)_220px_200px_150px_110px] items-center gap-x-4 border-b border-white/[0.07] px-1.5 pb-3 max-md:grid-cols-[minmax(0,1fr)_90px]">
         <Etiquette>Commerce</Etiquette>
         <Etiquette className="max-md:hidden">Rue</Etiquette>
         <Etiquette className="max-md:hidden">Propriétaire</Etiquette>
+        <Etiquette className="text-right max-md:hidden">Prix</Etiquette>
         <Etiquette className="text-right">Urgence</Etiquette>
       </div>
       {liste.length === 0 && (
@@ -594,7 +649,7 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
         <div
           key={c.id}
           onClick={() => onOuvrir(c.id)}
-          className="alx-entree grid cursor-pointer grid-cols-[minmax(0,1fr)_240px_220px_120px] items-center border-b border-white/[0.05] px-1.5 py-[15px] transition-colors hover:bg-white/[0.028] max-md:grid-cols-[minmax(0,1fr)_90px]"
+          className="alx-entree grid cursor-pointer grid-cols-[minmax(0,1fr)_220px_200px_150px_110px] items-center gap-x-4 border-b border-white/[0.05] px-1.5 py-[15px] transition-colors hover:bg-white/[0.028] max-md:grid-cols-[minmax(0,1fr)_90px]"
         >
           <span className="min-w-0">
             <span className="block truncate text-[16px] font-light text-[#F3F7F5]">{joliNom(c.enseigne) || "Sans enseigne"}</span>
@@ -602,6 +657,9 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
           </span>
           <span className="min-w-0 truncate text-[14px] text-[#C3CBC7] max-md:hidden">{c.adresse}</span>
           <span className="min-w-0 truncate text-[14px] text-[#C3CBC7] max-md:hidden">{c.proprietaire?.nom ? joliNom(c.proprietaire.nom) : c.foncier ? "Plusieurs, à départager" : <span className="text-[#8B938F]">à établir</span>}</span>
+          <span className="text-right max-md:hidden">
+            {(() => { const p = prixDe(c); return p ? <Nombre taille={14} teinte={p.estime ? "#8B938F" : "#F3F7F5"} title={p.estime ? "d'après la vitrine, une idée" : "d'après la surface"}>{p.estime ? "~ " : ""}{kEuros(p.bas)} – {kEuros(p.haut)}</Nombre> : <span className="text-[13px] text-[#5A6762]">—</span>; })()}
+          </span>
           <span className="flex justify-end"><Urgence c={c} compact /></span>
         </div>
       ))}

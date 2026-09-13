@@ -1,0 +1,143 @@
+{
+  "le": "2026-09-13T16:34:59.346Z",
+  "vendeurs": 42,
+  "temoins": 242,
+  "lignes": [
+    {
+      "trait": "pile_appeler",
+      "vendeurs": 14,
+      "vendeurs_pct": 33,
+      "temoins": 32,
+      "temoins_pct": 13,
+      "lift": 2.5
+    },
+    {
+      "trait": "evenement_recent",
+      "vendeurs": 10,
+      "vendeurs_pct": 24,
+      "temoins": 37,
+      "temoins_pct": 15,
+      "lift": 1.6
+    },
+    {
+      "trait": "siege_ailleurs",
+      "vendeurs": 26,
+      "vendeurs_pct": 62,
+      "temoins": 96,
+      "temoins_pct": 40,
+      "lift": 1.6
+    },
+    {
+      "trait": "plusieurs_etablissements",
+      "vendeurs": 8,
+      "vendeurs_pct": 19,
+      "temoins": 36,
+      "temoins_pct": 15,
+      "lift": 1.3
+    },
+    {
+      "trait": "detention_longue",
+      "vendeurs": 6,
+      "vendeurs_pct": 14,
+      "temoins": 40,
+      "temoins_pct": 17,
+      "lift": 0.9
+    },
+    {
+      "trait": "famille",
+      "vendeurs": 16,
+      "vendeurs_pct": 38,
+      "temoins": 121,
+      "temoins_pct": 50,
+      "lift": 0.8
+    },
+    {
+      "trait": "sci",
+      "vendeurs": 26,
+      "vendeurs_pct": 62,
+      "temoins": 179,
+      "temoins_pct": 74,
+      "lift": 0.8
+    },
+    {
+      "trait": "societe_20_ans",
+      "vendeurs": 15,
+      "vendeurs_pct": 36,
+      "temoins": 133,
+      "temoins_pct": 55,
+      "lift": 0.6
+    },
+    {
+      "trait": "pile_ecrire",
+      "vendeurs": 16,
+      "vendeurs_pct": 38,
+      "temoins": 160,
+      "temoins_pct": 66,
+      "lift": 0.6
+    },
+    {
+      "trait": "gerant_age",
+      "vendeurs": 6,
+      "vendeurs_pct": 14,
+      "temoins": 120,
+      "temoins_pct": 50,
+      "lift": 0.3
+    },
+    {
+      "trait": "marchand_fenetre",
+      "vendeurs": 3,
+      "vendeurs_pct": 7,
+      "temoins": 0,
+      "temoins_pct": 0,
+      "lift": null
+    },
+    {
+      "trait": "echeance_proche",
+      "vendeurs": 4,
+      "vendeurs_pct": 10,
+      "temoins": 0,
+      "temoins_pct": 0,
+      "lift": null
+    },
+    {
+      "trait": "loyer_bas",
+      "vendeurs": 0,
+      "vendeurs_pct": 0,
+      "temoins": 0,
+      "temoins_pct": 0,
+      "lift": null
+    },
+    {
+      "trait": "bien_isole",
+      "vendeurs": 0,
+      "vendeurs_pct": 0,
+      "temoins": 0,
+      "temoins_pct": 0,
+      "lift": null
+    },
+    {
+      "trait": "exploitant_proprietaire",
+      "vendeurs": 0,
+      "vendeurs_pct": 0,
+      "temoins": 2,
+      "temoins_pct": 1,
+      "lift": 0
+    },
+    {
+      "trait": "personne_physique",
+      "vendeurs": 0,
+      "vendeurs_pct": 0,
+      "temoins": 7,
+      "temoins_pct": 3,
+      "lift": 0
+    },
+    {
+      "trait": "enseigne_nationale",
+      "vendeurs": 0,
+      "vendeurs_pct": 0,
+      "temoins": 21,
+      "temoins_pct": 9,
+      "lift": 0
+    }
+  ]
+}

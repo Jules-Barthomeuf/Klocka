@@ -141,8 +141,8 @@ export function Etoiles({ note, sur = 5, taille = 14, teinte = "#e0a45e", title 
 }
 
 /** Un nombre en Montserrat, chiffres tabulaires. */
-export function Nombre({ children, teinte = null, taille = 16, className = "" }) {
-  return <span className={`alx-mont tabular-nums ${className}`} style={{ fontSize: taille, color: teinte || undefined, fontWeight: 400 }}>{children}</span>;
+export function Nombre({ children, teinte = null, taille = 16, className = "", title = null }) {
+  return <span className={`alx-mont tabular-nums ${className}`} title={title || undefined} style={{ fontSize: taille, color: teinte || undefined, fontWeight: 400 }}>{children}</span>;
 }
 
 /** Un champ de saisie, même registre. */

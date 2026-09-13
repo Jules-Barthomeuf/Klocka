@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 

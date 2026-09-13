@@ -6,7 +6,7 @@
 // Rien n'est demandé au premier chargement : l'autorisation se demande au
 // moment où une analyse part, c'est-à-dire quand elle a un sens.
 
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 
 const SUPPORTE = typeof window !== "undefined" && "Notification" in window;
 

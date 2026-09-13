@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { EnTeteAlx, PILES, Bouton, Champ, euros, Halo, Statut, Bascule, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
 
 // La page d'accueil d'ALX. On y arrive toujours par la même porte : donnez

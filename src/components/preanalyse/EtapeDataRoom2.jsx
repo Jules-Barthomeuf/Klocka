@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { Loader2 } from "lucide-react";
 import { DialogMailIntention } from "./DealResultat";
 import { Mono, Section } from "./CadreEtapes";

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { Check, Copy, Link2, Loader2, Send, UserPlus, X } from "lucide-react";
 
 // Inviter un client : l'équipe crée le compte, la personne reçoit un lien et

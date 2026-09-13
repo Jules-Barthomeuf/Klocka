@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, MessageCircleQuestion } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import PenseeIA from "@/components/PenseeIA";

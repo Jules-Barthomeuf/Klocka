@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
 import { Image as ImageIcon, MessageSquarePlus, Mic, Square, X } from "lucide-react";
 import { useDictee } from "@/lib/dictee";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 
 // Le signalement, sans quitter la page : une icône en haut à droite, un

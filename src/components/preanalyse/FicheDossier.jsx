@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { Check, ChevronDown, Loader2, RotateCcw } from "lucide-react";
 
 // Architecture B — la fiche. Un seul objet, le bien : une fiche par blocs,

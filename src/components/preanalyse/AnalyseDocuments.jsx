@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { ChevronDown, Loader2, X } from "lucide-react";
 import DocumentsDossier from "./DocumentsDossier";
 import SimulateurAnalyse from "./SimulateurAnalyse";

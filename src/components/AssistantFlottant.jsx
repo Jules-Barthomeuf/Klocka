@@ -3,7 +3,7 @@ import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { useDictee } from "@/lib/dictee";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 import { AvisReponse } from "@/components/MessageIA";

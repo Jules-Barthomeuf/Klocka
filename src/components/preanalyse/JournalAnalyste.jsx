@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
 import { adresseDe, analyseDe, avancementDe, criteresDe, filDe, reperesDe } from "@/components/preanalyse/marche-reel";
 import JournalArrivee from "@/components/preanalyse/JournalArrivee";

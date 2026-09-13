@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Copy, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 
 const fmt = (v) => {
   if (!v) return null;

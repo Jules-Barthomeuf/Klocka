@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Plus, Trash2, Sparkles, Loader2, ArrowRight, Pencil, ClipboardCheck, CheckCircle2, X } from
 "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { useNavigate } from "react-router-dom";
 import DoubleCheckTable from "@/components/admin/DoubleCheckTable";
 

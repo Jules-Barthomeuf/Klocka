@@ -4,7 +4,7 @@ import CeQuiVousAttend from "@/components/dashboard/CeQuiVousAttend";
 import TuileAlx from "@/components/dashboard/TuileAlx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { useUser } from "@/components/providers/UserProvider";
 
 // Le plan de travail : ce que l'assistant propose de faire, maintenant.

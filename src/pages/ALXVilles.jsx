@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { X } from "lucide-react";
 import { EnTeteAlx, Carte, Bouton, Champ } from "@/components/alx/alx-commun";
 

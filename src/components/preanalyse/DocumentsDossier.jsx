@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus } from "lucide-react";
 
 // Les documents du dossier, en tableau : case à cocher pour les soumettre au

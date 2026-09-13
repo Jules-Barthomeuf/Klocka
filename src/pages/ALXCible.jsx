@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { Carte, Bouton, Champ, PILES, euros, quand, Halo, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
 import EchelleFourchettes from "@/components/preanalyse/EchelleFourchettes";

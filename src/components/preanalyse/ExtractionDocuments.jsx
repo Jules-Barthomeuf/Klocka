@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   AlertTriangle, FileText, FolderOpen, Loader2, Plus, Quote, Trash2, Upload, X,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 
 // Extraction documentaire (onglet « Documents » de la Préanalyse).
 // Le principe : à gauche les données relevées, à droite le document ouvert à la

@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { User, Mail, Phone, Save, Loader2, Users, Trash2 } from "lucide-react";
 import LinkPartnerDialog from "../components/partner/LinkPartnerDialog";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 
 export default function MonCompte() {
   const user = useUser();

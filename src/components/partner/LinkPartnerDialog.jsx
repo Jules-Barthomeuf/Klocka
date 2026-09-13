@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Users, Plus, X, Mail, Loader2, CheckCircle2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 
 export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess }) {
   const [partnerEmail, setPartnerEmail] = useState("");

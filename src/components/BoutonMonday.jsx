@@ -1,7 +1,7 @@
 import React from "react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { Loader2, Upload } from "lucide-react";
 
 // Envoyer un dossier ou un projet dans le tableau Monday « Propriétés ».

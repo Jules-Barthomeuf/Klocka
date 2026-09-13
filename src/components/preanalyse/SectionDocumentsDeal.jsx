@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertTriangle, CheckCircle2, ExternalLink, FolderUp, Info, Loader2, OctagonAlert, Upload,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { CarteDocument, Visionneuse } from "@/components/preanalyse/ExtractionDocuments";
 import { documentsDemo } from "@/components/preanalyse/dossierDemo";
 

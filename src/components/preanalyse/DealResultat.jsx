@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Loader2, MapPin, Pencil, Quote, Send, X,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
 import CarteGoogle from "@/components/CarteGoogle";

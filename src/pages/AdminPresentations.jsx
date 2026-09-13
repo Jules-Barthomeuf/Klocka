@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FolderSearch, Loader2, Building2, ChevronLeft, ChevronRight, Download, ExternalLink, Briefcase, Upload, ImageOff } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { motion } from "framer-motion";
 
 // Page Présentations : on choisit un projet, six photos (suggérées depuis le

@@ -296,33 +296,7 @@ input[type="number"] {
   z-index: 9999 !important;
 }
 
-/* Sonner toast close button visibility */
-[data-sonner-toast] [data-close-button] {
-  position: absolute !important;
-  top: 6px !important;
-  right: 6px !important;
-  left: auto !important;
-  background: rgba(255,255,255,0.1) !important;
-  border: 1px solid rgba(255,255,255,0.2) !important;
-  color: #fff !important;
-  border-radius: 50% !important;
-  width: 20px !important;
-  height: 20px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  opacity: 1 !important;
-  z-index: 10 !important;
-}
-[data-sonner-toast] [data-close-button]:hover {
-  background: rgba(255,255,255,0.25) !important;
-}
-[data-sonner-toast] [data-close-button] svg {
-  width: 12px !important;
-  height: 12px !important;
-  color: #fff !important;
-}
+/* Les avis dessinent leur propre croix de fermeture : voir plus bas. */
 /* L'éditeur de projet occupe tout l'écran : l'assistant gênerait la lecture de
    la page et les panneaux latéraux. */
 body[data-editeur-projet] .assistant-flottant {
@@ -378,3 +352,19 @@ body[data-editeur-projet] .assistant-flottant {
 .accueil-chips button { padding: 11px 20px; border-radius: 9px; border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.02); color: #c8c8c8; font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
 .accueil-chips button:hover, .accueil-chips button[aria-pressed="true"] { border-color: rgba(156,195,188,.45); color: #fff; }
 .accueil-chips button[aria-pressed="true"] { background: rgba(156,195,188,.12); }
+
+/* Les avis (src/components/ui/avis.jsx) : le filet du bas s'écoule pendant la
+   durée d'affichage, et se fige quand la souris passe sur la pile, comme le
+   minuteur de sonner qui se met en pause au même moment. La croix de fermeture
+   ne se montre qu'au survol de la carte. */
+@keyframes k-avis-ecoule { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.k-avis-barre { animation-name: k-avis-ecoule; animation-timing-function: linear; animation-fill-mode: forwards; }
+ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
+[data-sonner-toast]:hover .k-avis-fermer { opacity: 1; }
+.k-avis-action, .k-avis-fermer { background-color: transparent; }
+@media (prefers-reduced-motion: reduce) { .k-avis-barre { animation: none; } }
+/* Un avis « en cours » sans avancement connu : le filet va et vient, il dit
+   que ça travaille sans prétendre savoir où ça en est. */
+@keyframes k-avis-va-et-vient { 0% { transform: translateX(-35%) scaleX(.35); } 50% { transform: translateX(100%) scaleX(.35); } 100% { transform: translateX(-35%) scaleX(.35); } }
+.k-avis-va-et-vient { animation: k-avis-va-et-vient 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .k-avis-va-et-vient { animation: none; transform: scaleX(.35); } }

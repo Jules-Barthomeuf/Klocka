@@ -1,8 +1,7 @@
 import './App.css'
 import { lazy, Suspense } from 'react'
 import BarriereErreur from '@/components/BarriereErreur'
-import { Toaster } from "@/components/ui/toaster"
-import { Toaster as SonnerToaster } from "sonner"
+import { Toaster as AvisToaster } from "@/components/ui/avis"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
@@ -195,8 +194,7 @@ function App() {
           <NavigationTracker />
           <AuthenticatedApp />
         </Router>
-        <Toaster />
-        <SonnerToaster position="top-center" richColors closeButton />
+        <AvisToaster />
         <VisualEditAgent />
       </QueryClientProvider>
     </AuthProvider>

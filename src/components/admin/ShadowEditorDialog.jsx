@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X, CheckCircle2, Loader2, Eye, Layers, Save, ClipboardPaste } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import ProjectFormLocataireTab from "./ProjectFormLocataireTab";
 import ProjectFormInfoTab from "./ProjectFormInfoTab";
 import ProjectFormDocumentsTab from "./ProjectFormDocumentsTab";

@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Check, Phone, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { prevenir } from "@/lib/notifications";
 
 // Ce qui vous attend : les rappels que vous vous posez, les promesses des

@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Pencil, Copy, Trash2, Eye, Archive, ArchiveRestore, FileSearch, Calculator, Share2, Check } from "lucide-react";
 import { createPageUrl } from "@/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import ShadowReportDialog from "./ShadowReport";
 
 const statutColors = {

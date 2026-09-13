@@ -5,7 +5,7 @@ import { Landmark, Trash2, Loader2, Link2, ExternalLink, Pencil, FileText } from
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import BankPitchGenerator from "@/components/banque/BankPitchGenerator";
 
 export default function AdminBanque() {

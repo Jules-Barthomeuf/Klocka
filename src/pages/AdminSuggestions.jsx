@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
 import { Check, ChevronDown, Copy, Image as ImageIcon, Loader2, Mic, Pencil, Square, Trash2, X } from "lucide-react";
 import { useDictee } from "@/lib/dictee";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 
 // Le feedback : un chat, une capture d'écran si on veut, rien d'autre. Chaque

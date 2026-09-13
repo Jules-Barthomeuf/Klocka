@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { MessageSquare, Send, Loader2, CheckCircle2, Clock, XCircle, CircleDot } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");

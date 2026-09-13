@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { Check, ExternalLink, Loader2, Search, X } from "lucide-react";
 
 // Choisir des fichiers dans le Drive de l'équipe et les rapatrier dans le

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw, SlidersHorizontal, AlertTriangle, Save, Loader2, Check } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { calculerTableauAnnuel } from "@/components/simulator/CalculFinancier";
 import SimControlRail from "@/components/simulator/layout/SimControlRail";
 import SimKpiRow from "@/components/simulator/layout/SimKpiRow";

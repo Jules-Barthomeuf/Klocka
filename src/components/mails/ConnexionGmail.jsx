@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 
 // Connexion d'une boîte Gmail sans quitter la page en cours : le parcours
 // Google se déroule dans une fenêtre surgissante, qui prévient la page

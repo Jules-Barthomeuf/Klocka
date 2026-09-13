@@ -3,7 +3,7 @@ import { useDictee } from "@/lib/dictee";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { nomOnglet } from "./AnalyseDocuments";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/avis";
 import { Mic, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip, ChevronDown } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import PenseeIA from "@/components/PenseeIA";

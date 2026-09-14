@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, Activity, Users, MessageSquare, Wrench, ChevronDown, Coins } from "lucide-react";
 import SauvegardeBase from "@/components/monitoring/SauvegardeBase";
 import JournalAudit from "@/components/monitoring/JournalAudit";
+import Incidents from "@/components/monitoring/Incidents";
 
 // Centre de suivi : qui utilise quoi, et tout ce qu'on a demandé à l'assistant.
 //
@@ -480,6 +481,8 @@ export default function Monitoring() {
         </p>
 
         <JournalAudit />
+
+        <Incidents />
 
         <SauvegardeBase />
       </div>

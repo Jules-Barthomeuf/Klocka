@@ -15,8 +15,38 @@
  */
 
 import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 const RACINE = new URL('..', import.meta.url).pathname;
+
+// Tout ce qui passe ici s'écrit aussi dans un fichier. Sans lui, les journaux
+// vivent dans le terminal qui a lancé `npm run dev` : refermé, lancé en tâche
+// de fond ou par un autre outil, ils n'existent plus — et une erreur dans
+// l'interface reste sans explication. Le fichier est toujours au même endroit :
+//     tail -f server/data/dev.log
+const FICHIER = path.join(RACINE, 'server', 'data', 'dev.log');
+// Au-delà, on repart d'un fichier neuf : quelques heures de journaux suffisent,
+// et un fichier de cent mégaoctets ne se lit pas.
+const TAILLE_MAX = 8 * 1024 * 1024;
+// Les codes de couleur du terminal n'ont rien à faire dans un fichier.
+// eslint-disable-next-line no-control-regex -- c'est précisément un caractère de contrôle qu'on retire
+const SANS_COULEUR = /\x1b\[[0-9;]*m/g;
+
+let sortie = null;
+function ecrire(texte) {
+  try {
+    fs.mkdirSync(path.dirname(FICHIER), { recursive: true });
+    if (!sortie) {
+      if (fs.existsSync(FICHIER) && fs.statSync(FICHIER).size > TAILLE_MAX) fs.renameSync(FICHIER, `${FICHIER}.1`);
+      sortie = fs.createWriteStream(FICHIER, { flags: 'a' });
+      sortie.write(`\n--- ${new Date().toISOString()} · npm run dev ---\n`);
+    }
+    sortie.write(texte.replace(SANS_COULEUR, ''));
+  } catch {
+    /* un journal qu'on ne peut pas écrire ne doit pas arrêter le serveur */
+  }
+}
 const ATTENTE_MIN = 1000;
 const ATTENTE_MAX = 15000;
 // Au-delà de ce délai, un processus est considéré comme « parti sainement » :
@@ -34,8 +64,10 @@ let onArrete = false;
 
 function journal(service, texte, canal = 'log') {
   const lignes = String(texte).split('\n').filter((l) => l.trim());
+  const heure = new Date().toTimeString().slice(0, 8);
   for (const ligne of lignes) {
     console[canal === 'err' ? 'error' : 'log'](`${service.couleur}${service.nom}${RESET} ${GRIS}│${RESET} ${ligne}`);
+    ecrire(`${heure} ${service.nom.trim().padEnd(5)} │ ${ligne}\n`);
   }
 }
 
@@ -85,6 +117,7 @@ process.on('SIGINT', arreter);
 process.on('SIGTERM', arreter);
 
 console.log(`${GRIS}Backend et front sous surveillance — ils redémarrent seuls s'ils tombent.${RESET}`);
-console.log(`${GRIS}  API   http://localhost:3001${RESET}`);
-console.log(`${GRIS}  App   http://localhost:5173${RESET}\n`);
+console.log(`${GRIS}  API      http://localhost:3001${RESET}`);
+console.log(`${GRIS}  App      http://localhost:5173${RESET}`);
+console.log(`${GRIS}  Journaux tail -f server/data/dev.log${RESET}\n`);
 SERVICES.forEach(demarrer);

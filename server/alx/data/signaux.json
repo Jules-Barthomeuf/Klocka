@@ -111,6 +111,26 @@
       "pourquoi": "Lift 1,4 (63 % des vendeurs, 46 % des témoins). C'était un trait de l'étude, il devient un signal."
     },
     {
+      "cle": "proprietaire_a_vendu_ailleurs",
+      "libelle": "Le propriétaire vient de vendre un autre de ses biens",
+      "detail": "Une autre parcelle du même propriétaire, dans le même département, vendue dans les vingt-quatre derniers mois. Un patrimoine qui se défait se défait rarement d'un seul lot.",
+      "fenetre_mois": 24,
+      "poids": 0.3,
+      "teste": true,
+      "pourquoi": "Mesuré le 14/09/2026 sur DVF croisé au fichier des personnes morales (Nice, Antibes, Cannes, 3 810 locaux-années à propriétaire connu) : ×1,13 sur 70 ventes. Au-dessus du seuil de lisibilité, et positif — mais modeste, loin du « signal le plus fort » qu'on pouvait en attendre. Poids ≈ 2 × ln(1,13). Demande le fichier extrait pour le département ; sans lui, le signal ne se déclenche pas.",
+      "source": "personnes-morales"
+    },
+    {
+      "cle": "portefeuille_important",
+      "libelle": "Un patrimoine de six lots ou plus",
+      "detail": "Le propriétaire détient au moins six parcelles dans le département. Un patrimoine large tourne plus qu'un lot unique.",
+      "parcelles_min": 6,
+      "poids": 0.3,
+      "teste": true,
+      "pourquoi": "Mesuré le 14/09/2026 : ×1,14 sur 32 ventes (632 locaux-années), contre ×0,98 pour un propriétaire d'une seule parcelle. Tout juste au-dessus du seuil de lisibilité. Demande le fichier des personnes morales.",
+      "source": "personnes-morales"
+    },
+    {
       "cle": "voisin_mute",
       "libelle": "Un autre lot de l'immeuble vient de se vendre",
       "detail": "Une mutation sur la même parcelle dans les vingt-quatre derniers mois, un autre lot que le local : une découpe est en cours, ou l'immeuble se vide de ses copropriétaires d'origine. Le lot commercial suit souvent.",

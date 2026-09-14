@@ -254,9 +254,21 @@ function MesureDvf({ m, enCours, onLancer, lancable }) {
             {m.par_fenetre.map((f) => <Ligne key={f.cle} libelle={`Dernière mutation il y a ${f.cle} mois`} cellules={[f.n, f.ventes, pct(f.taux, f.fiable), lift(f.lift, f.fiable)]} sourdine={f.n > 0 && !f.fiable} />)}
             <Ligne libelle="Un autre lot de l'immeuble vendu avant" cellules={[m.voisin.avec.n, m.voisin.avec.ventes, pct(m.voisin.avec.taux, m.voisin.avec.fiable), lift(m.voisin.avec.lift, m.voisin.avec.fiable)]} />
             <Ligne libelle="Acheté en bloc" cellules={[m.bloc.avec.n, m.bloc.avec.ventes, pct(m.bloc.avec.taux, m.bloc.avec.fiable), lift(m.bloc.avec.lift, m.bloc.avec.fiable)]} />
+            {/* Ce que le fichier des personnes morales ajoute : le
+                propriétaire à la date, son portefeuille, ce qu'il a vendu. */}
+            {m.proprietaires && [
+              <Ligne key="rot" libelle="Le propriétaire a vendu ailleurs avant" cellules={[m.proprietaires.rotation.avec.n, m.proprietaires.rotation.avec.ventes, pct(m.proprietaires.rotation.avec.taux, m.proprietaires.rotation.avec.fiable), lift(m.proprietaires.rotation.avec.lift, m.proprietaires.rotation.avec.fiable)]} />,
+              ...m.proprietaires.portefeuille.map((p) => (
+                <Ligne key={p.cle} libelle={`Portefeuille de ${p.cle}`} cellules={[p.n, p.ventes, pct(p.taux, p.fiable), lift(p.lift, p.fiable)]} />
+              )),
+            ]}
           </div>
           <p className="m-0 text-[12.5px] text-brume leading-[1.6] border-t border-trait pt-3.5">
-            Mesure du {quand(m.le)} sur {m.communes.map((c) => `${c.nom} (${c.locaux} locaux, ${c.ventes} ventes)`).join(", ")}. Chaque local est lu tel qu'il était à chaque 1er janvier, avec les seules ventes antérieures ; ce qui s'est vendu dans les {m.horizon_mois} mois suivants est le résultat. Un lift se reporte dans signaux.json à la main : la mesure ne touche pas aux poids.
+            Mesure du {quand(m.le)} sur {m.communes.map((c) => `${c.nom} (${c.locaux} locaux, ${c.ventes} ventes)`).join(", ")}. Chaque local est lu tel qu'il était à chaque 1er janvier, avec les seules ventes antérieures ; ce qui s'est vendu dans les {m.horizon_mois} mois suivants est le résultat.
+            {m.proprietaires
+              ? ` Le propriétaire vient du fichier des personnes morales de la DGFiP, à la même date : ${m.proprietaires.personne_morale.connue.n} locaux sur ${m.proprietaires.personne_morale.connue.n + m.proprietaires.personne_morale.inconnue.n} en ont un (le fichier ne couvre pas les particuliers).`
+              : " Le propriétaire à la date n'est pas lu : extrayez le fichier des personnes morales (node server/alx/personnes-morales.js 2022 2023) pour mesurer la rotation de portefeuille."}
+            {" "}Un lift se reporte dans signaux.json à la main : la mesure ne touche pas aux poids.
           </p>
         </>
       ) : (

@@ -1,5 +1,5 @@
 {
-  "le": "2026-09-14T19:14:20.612Z",
+  "le": "2026-09-14T19:18:40.954Z",
   "horizon_mois": 24,
   "references": [
     "2022-01-01",
@@ -138,6 +138,66 @@
       "taux": 4.6,
       "lift": 1.03,
       "fiable": true
+    }
+  },
+  "proprietaires": {
+    "rotation": {
+      "avec": {
+        "n": 1401,
+        "ventes": 70,
+        "taux": 5,
+        "lift": 1.13,
+        "fiable": true
+      },
+      "sans": {
+        "n": 2409,
+        "ventes": 103,
+        "taux": 4.3,
+        "lift": 0.97,
+        "fiable": true
+      }
+    },
+    "portefeuille": [
+      {
+        "cle": "1 parcelle",
+        "n": 2048,
+        "ventes": 89,
+        "taux": 4.3,
+        "lift": 0.98,
+        "fiable": true
+      },
+      {
+        "cle": "2 à 5",
+        "n": 1130,
+        "ventes": 52,
+        "taux": 4.6,
+        "lift": 1.04,
+        "fiable": true
+      },
+      {
+        "cle": "6 et plus",
+        "n": 632,
+        "ventes": 32,
+        "taux": 5.1,
+        "lift": 1.14,
+        "fiable": true
+      }
+    ],
+    "personne_morale": {
+      "connue": {
+        "n": 3810,
+        "ventes": 173,
+        "taux": 4.5,
+        "lift": 1.03,
+        "fiable": true
+      },
+      "inconnue": {
+        "n": 254,
+        "ventes": 7,
+        "taux": 2.8,
+        "lift": 0.62,
+        "fiable": false
+      }
     }
   },
   "prix": [

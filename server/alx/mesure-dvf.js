@@ -213,7 +213,37 @@ export function referencesPour(annees, horizonMois, derniereDate = null) {
  * @param {{insee: string, nom?: string, annees: number[], lignes: object[]}[]} communes
  * @param {{horizon_mois?: number, references?: string[]}} [opts]
  */
-export function mesurer(communes, { horizon_mois = 24, references = null } = {}) {
+/** Les tailles de portefeuille comparées : un lot isolé, une poignée, un patrimoine. */
+export const PORTEFEUILLES = [
+  { cle: '1 parcelle', max: 1 },
+  { cle: '2 à 5', max: 5 },
+  { cle: '6 et plus', max: Infinity },
+];
+const portefeuilleDe = (n) => PORTEFEUILLES.find((p) => n <= p.max)?.cle || '6 et plus';
+
+/**
+ * Ce que le fichier des personnes morales ajoute à un local, à la date T :
+ * son propriétaire, la taille de son portefeuille dans le département, et
+ * s'il a vendu une autre de ses parcelles dans les mois qui précèdent.
+ *
+ * `proprietaires` : millésime → index par parcelle (server/alx/personnes-morales.js).
+ * `ventesParParcelle` : parcelle → dates de vente, tous types de locaux.
+ */
+function proprietaireA(proprietaires, ventesParParcelle, { annee, parcelle, T, debut }) {
+  const index = proprietaires?.get(annee);
+  if (!index) return null;
+  // Le propriétaire du local : celui qui détient le plus de locaux sur la
+  // parcelle, faute de savoir lequel tient le rez-de-chaussée.
+  const sur = (index.get(parcelle) || []).filter((g) => !g.droit || g.droit === 'P');
+  if (!sur.length) return null;
+  const choisi = [...sur].sort((a, b) => (b.rez_de_chaussee ? 1 : 0) - (a.rez_de_chaussee ? 1 : 0) || b.locaux - a.locaux)[0];
+  const portefeuille = proprietaires.get(`siren:${annee}`)?.get(choisi.siren) || [];
+  // A-t-il vendu ailleurs, avant T ? Une vente sur une AUTRE de ses parcelles.
+  const aVenduAilleurs = portefeuille.some((p) => p.parcelle !== parcelle && (ventesParParcelle.get(p.parcelle) || []).some((d) => d >= debut && d < T));
+  return { siren: choisi.siren, nom: choisi.nom, parcelles: portefeuille.length || 1, a_vendu_ailleurs: aVenduAilleurs };
+}
+
+export function mesurer(communes, { horizon_mois = 24, references = null, proprietaires = null } = {}) {
   const annees = [...new Set(communes.flatMap((c) => c.annees))];
   let derniereDate = null;
   for (const c of communes) for (const l of c.lignes) if (l.date_mutation && (!derniereDate || l.date_mutation > derniereDate)) derniereDate = String(l.date_mutation).slice(0, 10);
@@ -225,9 +255,17 @@ export function mesurer(communes, { horizon_mois = 24, references = null } = {})
   const prix = Object.fromEntries([...BANDES_PRIX.map((b) => b.cle), 'inconnu'].map((k) => [k, cellule()]));
   const parReference = Object.fromEntries(refs.map((r) => [r, cellule()]));
   const parCommune = [];
+  // Ce que le fichier des personnes morales permet, quand il est fourni.
+  const rotation = { avec: cellule(), sans: cellule() };
+  const portefeuille = Object.fromEntries(PORTEFEUILLES.map((p) => [p.cle, cellule()]));
+  const personneMorale = { connue: cellule(), inconnue: cellule() };
 
   for (const commune of communes) {
     const { locaux, parcelles } = inventorier(commune.lignes);
+    // Les dates de vente par parcelle : c'est par elles qu'on sait si un
+    // propriétaire a vendu ailleurs avant la date de référence.
+    const ventesParParcelle = new Map();
+    for (const [parcelle, liste] of parcelles) ventesParParcelle.set(parcelle, liste.filter((m) => m.vente).map((m) => m.date));
     const cc = { insee: commune.insee, nom: commune.nom || commune.insee, annees: commune.annees, locaux: locaux.size, ventes: 0, ...cellule() };
     for (const loc of locaux.values()) cc.ventes += loc.mutations.filter((m) => m.vente && m.commercial_pur).length;
     for (const T of refs) {
@@ -253,6 +291,15 @@ export function mesurer(communes, { horizon_mois = 24, references = null } = {})
         compter(voisinMute ? voisin.avec : voisin.sans, vendu);
         compter(derniere.en_bloc ? bloc.avec : bloc.sans, vendu);
         compter(prix[bandeDe(derniere.prix)], vendu);
+
+        if (proprietaires) {
+          const p = proprietaireA(proprietaires, ventesParParcelle, { annee: Number(T.slice(0, 4)), parcelle: loc.parcelle, T, debut: debutVoisin });
+          compter(p ? personneMorale.connue : personneMorale.inconnue, vendu);
+          if (p) {
+            compter(p.a_vendu_ailleurs ? rotation.avec : rotation.sans, vendu);
+            compter(portefeuille[portefeuilleDe(p.parcelles)], vendu);
+          }
+        }
       }
     }
     parCommune.push(cc);
@@ -277,6 +324,14 @@ export function mesurer(communes, { horizon_mois = 24, references = null } = {})
     par_fenetre: FENETRES.map((f) => ({ cle: f.cle, ...finir(parFenetre[f.cle]) })),
     voisin: { avec: finir(voisin.avec), sans: finir(voisin.sans) },
     bloc: { avec: finir(bloc.avec), sans: finir(bloc.sans) },
+    // Ce que le fichier des personnes morales ajoute. Vide sans lui.
+    proprietaires: proprietaires
+      ? {
+        rotation: { avec: finir(rotation.avec), sans: finir(rotation.sans) },
+        portefeuille: PORTEFEUILLES.map((p) => ({ cle: p.cle, ...finir(portefeuille[p.cle]) })),
+        personne_morale: { connue: finir(personneMorale.connue), inconnue: finir(personneMorale.inconnue) },
+      }
+      : null,
     prix: [...BANDES_PRIX.map((b) => b.cle), 'inconnu'].map((k) => ({ cle: k, ...finir(prix[k]) })),
     par_reference: refs.map((r) => ({ cle: r, ...finir(parReference[r]) })),
     limites: [
@@ -295,6 +350,38 @@ export function mesurer(communes, { horizon_mois = 24, references = null } = {})
 let enCours = null;
 
 /** La mesure sur plusieurs communes, écrite dans data/mesure-dvf.json. */
+/**
+ * Les propriétaires connus, pour les millésimes utiles : millésime → index
+ * par parcelle, et `siren:millésime` → index par société. Rend null si rien
+ * n'a été extrait — la mesure tourne alors sans eux, comme avant.
+ */
+async function proprietairesConnus(insees, journal) {
+  const { dejaLa, lire, parParcelle, parSiren } = await import('./personnes-morales.js');
+  const depts = [...new Set(insees.map((i) => String(i).slice(0, 2)))];
+  const index = new Map();
+  for (let a = new Date().getFullYear(); a >= 2019; a -= 1) {
+    for (const dept of depts) {
+      if (!dejaLa(a, dept)) continue;
+      const groupes = lire(a, dept) || [];
+      if (!groupes.length) continue;
+      // Plusieurs départements au même millésime se cumulent dans le même index.
+      const parcelles = index.get(a) || new Map();
+      for (const [k, v] of parParcelle(groupes)) parcelles.set(k, [...(parcelles.get(k) || []), ...v]);
+      index.set(a, parcelles);
+      const sirens = index.get(`siren:${a}`) || new Map();
+      for (const [k, v] of parSiren(groupes)) sirens.set(k, [...(sirens.get(k) || []), ...v]);
+      index.set(`siren:${a}`, sirens);
+    }
+  }
+  const annees = [...index.keys()].filter((k) => typeof k === 'number').sort();
+  if (!annees.length) {
+    journal("Fichier des personnes morales absent : la mesure se limite à ce que DVF sait seul. Pour l'ajouter : node server/alx/personnes-morales.js 2022 2023");
+    return null;
+  }
+  journal(`Propriétaires : millésimes ${annees.join(', ')} (${annees.map((a) => `${a} : ${index.get(a).size} parcelles`).join(', ')}).`);
+  return index;
+}
+
 export async function lancerMesure({ insees, noms = {}, horizon_mois = 24, journal = console.log } = {}) {
   if (enCours) throw new Error('Une mesure est déjà en cours.');
   enCours = { depuis: new Date().toISOString(), insees };
@@ -305,7 +392,8 @@ export async function lancerMesure({ insees, noms = {}, horizon_mois = 24, journ
       communes.push({ ...c, nom: noms[insee] || insee });
       journal(`${noms[insee] || insee} : ${c.lignes.length} lignes DVF sur ${c.annees.length} millésimes (${c.annees[0]}–${c.annees[c.annees.length - 1]}).`);
     }
-    const resultat = mesurer(communes, { horizon_mois });
+    const proprietaires = await proprietairesConnus(insees, journal).catch((e) => { journal(`Propriétaires non lus : ${e.message}`); return null; });
+    const resultat = mesurer(communes, { horizon_mois, proprietaires });
     fs.writeFileSync(RAPPORT, JSON.stringify(resultat, null, 2));
     journal(enTable(resultat));
     journal(`Rapport écrit : ${RAPPORT}`);
@@ -338,6 +426,15 @@ export function enTable(r) {
   l.push(ligne('acheté en bloc', r.bloc.avec));
   l.push(ligne('acheté seul', r.bloc.sans));
   for (const p of r.prix) l.push(ligne(`prix ${p.cle}`, p));
+  if (r.proprietaires) {
+    l.push('');
+    l.push('— avec le fichier des personnes morales —');
+    l.push(ligne('propriétaire connu', r.proprietaires.personne_morale.connue));
+    l.push(ligne('propriétaire inconnu', r.proprietaires.personne_morale.inconnue));
+    l.push(ligne('a vendu ailleurs', r.proprietaires.rotation.avec));
+    l.push(ligne("n'a pas vendu ailleurs", r.proprietaires.rotation.sans));
+    for (const p of r.proprietaires.portefeuille) l.push(ligne(`portefeuille ${p.cle}`, p));
+  }
   return l.join('\n');
 }
 

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import CarteCessions from "@/components/projet/CarteCessions";
-import { Section, Chiffres, Lignes, Phrase, Note, Vide, LienSource, euros, TEINTE } from "@/components/ui/kit";
+import { Section, Chiffres, Phrase, Vide, LienSource, euros, TEINTE } from "@/components/ui/kit";
 
 // Les cessions de fonds de commerce autour du bien, d'après Data-B.
 //
@@ -9,16 +9,13 @@ import { Section, Chiffres, Lignes, Phrase, Note, Vide, LienSource, euros, TEINT
 // sans cession depuis des années l'est moins. Et quand une cession tombe au
 // numéro même du bien, on tient le prix du commerce dont on achète les murs.
 
-const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const annee = (iso) => (iso ? new Date(iso).getFullYear() : "—");
 
 export default function TransactionsFondsDataB({ lot, premiere = false }) {
   const resultat = lot?.transactions_fonds || null;
-  const [tout, setTout] = useState(false);
-  // La liste sert à lire quelques cessions, pas à les parcourir toutes : la
-  // carte s'en charge. On en montre huit, quarante au plus.
-  const lignes = (resultat?.transactions || []).slice(0, 40);
-  const visibles = tout ? lignes : lignes.slice(0, 8);
+  // La liste des cessions a disparu : la carte les montre toutes, et les
+  // chiffres au-dessus disent ce qu'il faut en retenir. Une énumération de
+  // quarante lignes n'apprenait rien de plus.
   const activite = lot?.lot?.locataire_activite?.valeur || null;
   const m = resultat?.marche;
   const r = resultat?.rue;
@@ -45,30 +42,6 @@ export default function TransactionsFondsDataB({ lot, premiere = false }) {
           <div className="mt-6 overflow-hidden rounded-[16px] border border-trait">
             <CarteCessions resultat={resultat} titre={lot?.lot?.locataire_nom?.valeur || "Le bien"} adresse={resultat.adresse} hauteur={360} />
           </div>
-          <Lignes
-            className="mt-5"
-            items={visibles}
-            cle={(t, i) => `${t.date}-${t.enseigne}-${i}`}
-            rendu={(t) => (
-              <>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13.5px] text-encre">
-                    {t.enseigne}
-                    {t.sur_place && <span className="ml-2 text-[11px]" style={{ color: TEINTE.menthe }}>au numéro du bien</span>}
-                    {!t.sur_place && t.dans_la_rue && <span className="ml-2 text-[11px]" style={{ color: TEINTE.ambre }}>dans la rue</span>}
-                  </span>
-                  <span className="block truncate text-[12.5px] text-ardoise">{[t.activite, jour(t.date), t.adresse].filter(Boolean).join(" · ")}</span>
-                </span>
-                <span className="whitespace-nowrap text-[13.5px] font-medium tabular-nums text-encre">{euros(t.prix)}</span>
-              </>
-            )}
-          />
-          {lignes.length > 8 && (
-            <button type="button" onClick={() => setTout((v) => !v)} className="mt-3 text-[12.5px] text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>
-              {tout ? "Voir moins" : `Voir les ${lignes.length} cessions retenues`}
-            </button>
-          )}
-          <Note className="mt-4">Les fonds de commerce vendus à moins de 500 m, d'après Data-B. Le loyer dit ce que vaut le mur, le fonds dit ce que vaut le commerce.</Note>
         </>
       )}
     </Section>

@@ -26,6 +26,18 @@ const TARIFS = {
 const PART_CACHE_LECTURE = 0.1;
 const PART_CACHE_ECRITURE = 1.25;
 
+// Le journal compte en dollars, les écrans affichent des euros. Un seul taux,
+// ici, pour que la page des coûts et l'état de la plateforme disent le même
+// prix.
+export const EUR_PAR_USD = 0.92;
+export const euros = (n, precis = false) => {
+  if (n == null) return '—';
+  const e = n * EUR_PAR_USD;
+  if (e === 0) return '0 €';
+  if (e < 0.01 || precis) return `${e.toFixed(e < 0.01 ? 4 : 3).replace('.', ',')} €`;
+  return `${e.toFixed(2).replace('.', ',')} €`;
+};
+
 /** Coût en dollars d'un appel, ou null si le modèle n'a pas de tarif connu. */
 export function coutDe(modele, u) {
   const t = TARIFS[modele];
@@ -115,7 +127,16 @@ export function mesurerRequetes(lireUser) {
 }
 
 const LIBELLES_ROUTE = [
-  [/\/functions\/(\w+)/, (m) => `fonction ${m[1]}`],
+  // Le chemin d'une route Express garde ses paramètres (`/functions/:name`) :
+  // sans les deux-points, la fonction générique restait « POST /api/... » et
+  // tombait dans les opérations non rangées.
+  [/\/functions\/:?(\w+)/, (m) => `fonction ${m[1]}`],
+  [/\/marche\/question/, () => 'question de marché'],
+  [/\/marche/, () => 'marché'],
+  [/\/alx\/villes\/[^/]+\/commande/, () => 'commande ALX'],
+  [/\/alx\/cibles\/[^/]+\/devanture/, () => 'devanture'],
+  [/\/alx\/cibles\/[^/]+\/message/, () => 'message ALX'],
+  [/\/alx/, () => 'ALX'],
   [/\/integrations\/invoke-llm/, () => 'modèle (direct)'],
   [/\/preanalyse\/dossiers\/[^/]+\/matrice/, () => 'matrice'],
   [/\/preanalyse\/dossiers\/[^/]+\/(extraction|extraire)/, () => 'extraction'],
@@ -269,23 +290,142 @@ const ACTIONS = [
   { cle: 'boite', libelle: 'Trier ce qu’on colle dans la boîte', unite: 'par dépôt', parAppel: false, operations: ['boîte', 'boîte : tri'], ou: 'Chat du tableau de bord' },
   { cle: 'note_appel', libelle: 'Transformer une note d’appel en fiche', unite: 'par note', parAppel: false, operations: ["note d'appel"], ou: 'Chat du tableau de bord, dictée' },
   { cle: 'client', libelle: 'Créer un client depuis un appel', unite: 'par compte rendu', parAppel: false, operations: ['découverte client'], ou: 'Chat du tableau de bord' },
-  { cle: 'veille', libelle: 'Juger un mail entrant', unite: 'par mail douteux', parAppel: true, operations: ['veille des boîtes', 'veille de la boîte'], ou: 'Veille automatique des boîtes', fond: true },
+  { cle: 'veille', libelle: 'Juger un mail entrant', unite: 'par mail douteux', parAppel: true, operations: ['veille des boîtes', 'veille de la boîte', 'releve'], ou: 'Veille automatique des boîtes', fond: true },
   { cle: 'engagement', libelle: 'Relever une promesse dans un mail', unite: 'par mail', parAppel: false, operations: ['engagements'], ou: 'Veille automatique', fond: true },
   { cle: 'annonce', libelle: 'Retrouver l’annonce en ligne', unite: 'par bien', parAppel: false, operations: ['annonce'], ou: 'À l’analyse, en arrière-plan', fond: true },
   { cle: 'marche', libelle: 'Faire le point de marché', unite: 'par ville', parAppel: false, operations: ['contexte marché', 'marché'], ou: 'À l’analyse, en arrière-plan', fond: true },
+  { cle: 'question_marche', libelle: 'Poser une question sur le marché', unite: 'par question', parAppel: false, operations: ['question de marché'], ou: 'Chat de l’onglet Marché' },
+  { cle: 'alx', libelle: 'Prospecter avec ALX', unite: 'par commande', parAppel: false, operations: ['commande ALX', 'ALX'], ou: 'Chat d’une ville, onglets Rues et Commerces' },
+  { cle: 'devanture', libelle: 'Lire une devanture', unite: 'par commerce', parAppel: false, operations: ['devanture'], ou: 'Fiche d’un commerce, photo Street View' },
+  { cle: 'message_alx', libelle: 'Écrire au propriétaire', unite: 'par message', parAppel: false, operations: ['message ALX'], ou: 'Fiche d’un commerce, onglet Messages' },
+  { cle: 'rappel', libelle: 'Préparer un rappel', unite: 'par rappel', parAppel: false, operations: ['rappel'], ou: 'Relances automatiques', fond: true },
+  { cle: 'fonction', libelle: 'Exécuter une fonction', unite: 'par appel', parAppel: false, prefixe: 'fonction ', ou: 'Écrans qui appellent une fonction serveur' },
   { cle: 'presentation', libelle: 'Générer une présentation', unite: 'par dossier', parAppel: false, operations: ['présentation', 'vidéo'], ou: 'Étape Présentation' },
   { cle: 'avis', libelle: 'Écrire un prompt de correction', unite: 'par pouce', parAppel: false, operations: ['avis sur une réponse'], ou: 'Sous une réponse de l’IA' },
   { cle: 'direct', libelle: 'Appel direct au modèle', unite: 'par appel', parAppel: false, operations: ['modèle (direct)'], ou: 'Écrans qui appellent le modèle sans passer par un geste nommé' },
   { cle: 'non_attribue', libelle: 'Non attribué', unite: 'par appel', parAppel: false, operations: ['hors contexte', 'inconnue'], ou: 'Travail de fond sans contexte de mesure', fond: true },
 ];
 
+/**
+ * Les leviers sur la dépense, et où chacun en est.
+ *
+ * Ils vivaient écrits en dur dans la page ; l'état de la plateforme
+ * (server/etat-plateforme.js) en a besoin aussi, et deux listes qui divergent
+ * valent moins qu'une. `effet` peut porter deux jalons résolus sur les
+ * chiffres de la période : {{mediane:cle}} et {{part_cache}}.
+ *
+ * `etat` : 'pose' (c'est fait), 'regler' (un réglage attend), 'decider' (une
+ * décision attend, elle coûte autre chose que de l'argent).
+ */
+export const LEVIERS = [
+  {
+    cle: 'cache',
+    etat: 'pose',
+    titre: 'Le cache des pièces',
+    effet: 'une relecture à un dixième du prix',
+    ou: 'Posé le 9 septembre · une heure de rétention',
+    texte: 'Une pièce déjà envoyée au modèle revient dix fois moins cher pendant une heure. Vous en êtes à {{part_cache}} de jetons servis par le cache sur cette période.',
+    // Tant que le cache est jeune, les lectures d'avant pèsent dans la moyenne.
+    sous_le_seuil: "Vous en êtes à {{part_cache}} de jetons servis par le cache sur cette période : les lectures d'avant la mise en place pèsent encore dans la moyenne, le chiffre montera de lui-même.",
+  },
+  {
+    cle: 'pdf_texte',
+    etat: 'pose',
+    titre: 'Le texte du PDF plutôt que ses images',
+    effet: '279 574 → 91 061 jetons',
+    ou: "Repli automatique sur les images pour un scan · KLOCKA_PDF_NATIF=1 rétablit l'ancien",
+    texte: 'Un PDF envoyé tel quel fait rendre chacune de ses pages en image. Sur un bail de 119 pages, sa seule couche texte pèse trois fois moins, pour des valeurs extraites identiques et des citations qui gardent leur page.',
+  },
+  {
+    cle: 'pas_de_relecture',
+    etat: 'pose',
+    titre: 'Ne pas relire une pièce inchangée',
+    effet: '{{mediane:lecture_piece}} économisés par relecture évitée',
+    effet_defaut: 'une lecture entière économisée',
+    ou: 'Empreinte : la pièce, les questions posées, la version du gabarit',
+    texte: 'Revenir sur un dossier ne relance plus rien. Seuls les deux boutons « Relancer l\'analyse » forcent une relecture.',
+  },
+  {
+    cle: 'devis',
+    etat: 'pose',
+    titre: 'Le prix annoncé avant de relire',
+    effet: "le devis s'affiche, puis attend",
+    ou: 'Bouton « Relancer l\'analyse », en tête de chaque grille',
+    texte: "Les jetons sont comptés par l'API avant l'envoi, ce comptage ne coûte rien. Vous voyez le prix, vous confirmez ou vous annulez.",
+  },
+  {
+    cle: 'mail_ecarte',
+    etat: 'pose',
+    titre: "Un mail écarté n'est plus rejugé",
+    effet: '536 appels sur 516 passages, avant',
+    ou: 'Décision gardée avec sa raison',
+    texte: 'Le tri des boîtes ne mémorisait que les mails retenus. Un mail refusé repassait donc devant le modèle toutes les cinq minutes, indéfiniment.',
+  },
+  {
+    cle: 'espacement_veille',
+    etat: 'regler',
+    titre: "L'espacement de la veille",
+    effet: '{{mediane:veille}} par mail douteux',
+    effet_defaut: 'quelques centimes par passage',
+    ou: 'Variable MAIL_VEILLE_MINUTES · 5 minutes aujourd\'hui',
+    texte: "Depuis que les mails écartés sont mémorisés, un passage sans nouveau mail ne coûte rien. Quinze minutes suffiraient probablement, et rien ne serait perdu : un mail reçu à 9 h 02 entrerait à 9 h 15.",
+  },
+  {
+    cle: 'differe',
+    etat: 'decider',
+    titre: 'Le traitement différé',
+    effet: 'moitié prix sur tout',
+    ou: 'Concerne la lecture des pièces et la veille, jamais le chat',
+    texte: "L'API propose un mode différé à moitié prix, cache compris. La contrepartie est un délai qui peut aller jusqu'à vingt-quatre heures au lieu d'une minute. La lecture des pièces tourne déjà en tâche de fond et vous prévient quand elle est finie : c'est le profil qui s'y prête. Le choix vous revient, il change un délai.",
+  },
+  {
+    cle: 'modele_moins_cher',
+    etat: 'decider',
+    titre: 'Un modèle moins cher sur les gestes mécaniques',
+    effet: 'à mesurer sur vos dossiers',
+    ou: `Variable ANTHROPIC_MODEL · ${process.env.ANTHROPIC_MODEL || 'claude-opus-5'} aujourd'hui`,
+    texte: "Mettre en forme une valeur déjà lue, trier un mail, ranger un texte dicté : ces gestes partent déjà à effort minimal. Descendre d'un modèle est le levier suivant, mais un modèle moins cher au jeton n'est pas toujours moins cher par dossier abouti. Cela demande un jeu de dossiers de référence, pas une intuition.",
+  },
+];
+
+/** Les jalons d'un levier, remplis avec les chiffres de la période. */
+export function resoudreLevier(levier, { actions = [], part_cache = 0 } = {}) {
+  const medianeDe = (cle) => actions.find((a) => a.cle === cle)?.mediane ?? null;
+  const jalons = (texte) =>
+    String(texte || '')
+      .replace(/\{\{part_cache\}\}/g, `${Math.round((part_cache || 0) * 100)} %`)
+      .replace(/\{\{mediane:([a-z_]+)\}\}/g, (_, cle) => {
+        const m = medianeDe(cle);
+        return m == null ? '—' : `${(m * EUR_PAR_USD).toFixed(2).replace('.', ',')} €`;
+      });
+  const manquant = /\{\{mediane:([a-z_]+)\}\}/.test(levier.effet || '') && medianeDe((levier.effet.match(/\{\{mediane:([a-z_]+)\}\}/) || [])[1]) == null;
+  const texte = levier.sous_le_seuil && (part_cache || 0) < 0.05 ? levier.sous_le_seuil : levier.texte;
+  return {
+    cle: levier.cle,
+    etat: levier.etat,
+    titre: levier.titre,
+    effet: manquant && levier.effet_defaut ? levier.effet_defaut : jalons(levier.effet),
+    ou: levier.ou,
+    texte: jalons(texte),
+  };
+}
+
 const actionDe = (operation) => {
   const op = String(operation || 'inconnue');
-  for (const a of ACTIONS) {
-    if (a.prefixe && op.startsWith(a.prefixe)) return a;
-    if ((a.operations || []).includes(op)) return a;
-  }
-  return null;
+  const cherche = (nom) => {
+    for (const a of ACTIONS) {
+      if (a.prefixe && nom.startsWith(a.prefixe)) return a;
+      if ((a.operations || []).includes(nom)) return a;
+    }
+    return null;
+  };
+  const trouve = cherche(op);
+  if (trouve) return trouve;
+  // Les lignes écrites avant qu'une route ait un nom sont restées « POST
+  // /api/... ». On leur applique les libellés d'aujourd'hui : le passé se
+  // range tout seul au lieu de peupler « non classé » pour toujours.
+  const brute = op.match(/^([A-Z]+)\s(\/\S+)$/);
+  return brute ? cherche(libelleRoute(brute[1], brute[2])) : null;
 };
 
 /** La médiane : une moyenne se fait emporter par un dossier hors norme. */
@@ -360,5 +500,9 @@ export function coutsParAction(jours = 30) {
     actions,
     // Une opération qu'aucun geste ne réclame : à ranger, plutôt qu'à cacher.
     non_classees: [...inconnues.entries()].map(([operation, cout]) => ({ operation, cout })).sort((a, b) => b.cout - a.cout),
+    leviers: LEVIERS.map((l) => resoudreLevier(l, {
+      actions,
+      part_cache: entree + cacheLu > 0 ? cacheLu / (entree + cacheLu) : 0,
+    })),
   };
 }

@@ -125,7 +125,7 @@ export function promptDe(remarque, { branche, capture = null, base = null } = {}
   const urgences = ['', 'quand vous pouvez', 'peu pressé', 'normal', 'pressé', 'urgent'];
   const urgence = urgences[Math.min(5, Math.max(1, Number(remarque?.urgence) || 3))];
 
-  return `Tu travailles sur Klocka, la plateforme d'investissement en murs commerciaux : React 18 + Vite côté client, Express + better-sqlite3 côté serveur, tout est en français. Lis CLAUDE.md à la racine avant d'écrire : le style de la maison y est écrit, et il compte.
+  return `Tu travailles sur Klocka, la plateforme d'investissement en murs commerciaux : React 18 + Vite côté client, Express + better-sqlite3 côté serveur, tout est en français. Lis CLAUDE.md à la racine avant d'écrire : le style de la maison y est écrit, et il compte. Lis aussi docs/etat-plateforme.md : il dit quels écrans servent tous les jours et ce que chaque geste coûte, ce qui te dira si ce que tu touches est sur le chemin de tout le monde.
 
 Tu es dans un worktree git isolé, sur la branche ${branche}${base ? `, partie de ${base}` : ''}. Le dossier de travail de l'équipe est ailleurs et ne doit pas bouger. Ne lance ni le serveur ni le front : ils tournent déjà à côté.
 

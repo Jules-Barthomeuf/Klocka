@@ -1004,6 +1004,12 @@ monterAlx(app);
 // L'atelier : une remarque du Feedback devient une branche et une pull request.
 monterAtelier(app);
 
+// L'état de la plateforme, écrit dans docs/etat-plateforme.md : une session de
+// travail le lit et connaît l'usage réel au lieu de repartir de zéro.
+import('./etat-plateforme.js')
+  .then((m) => m.tenirAJour())
+  .catch((e) => console.error('[état] module absent :', e.message));
+
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
   // Les fichiers d'`assets` portent une empreinte dans leur nom : un contenu

@@ -49,8 +49,8 @@ const ETATS = {
   decider: { mot: "À décider", fond: "#5a8db5", Icone: Sparkles },
 };
 
-function Levier({ etat, titre, effet, ou, children }) {
-  const e = ETATS[etat];
+function Levier({ etat, titre, effet, ou, texte }) {
+  const e = ETATS[etat] || ETATS.pose;
   return (
     <div className="border border-trait rounded-[16px] bg-fond px-5 py-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -60,7 +60,7 @@ function Levier({ etat, titre, effet, ou, children }) {
         <h3 className="m-0 text-[15px] font-semibold text-encre">{titre}</h3>
         {effet && <span className="text-[12.5px] text-menthe tabular-nums">{effet}</span>}
       </div>
-      <p className="m-0 mt-2 text-[13.5px] leading-[1.65] text-craie max-w-[70ch]">{children}</p>
+      <p className="m-0 mt-2 text-[13.5px] leading-[1.65] text-craie max-w-[70ch]">{texte}</p>
       {ou && <p className="m-0 mt-1.5 font-mono text-[11px] text-brume">{ou}</p>}
     </div>
   );
@@ -95,8 +95,6 @@ export default function CoutsIA() {
   const gestes = actions.filter((a) => !a.fond);
   const fonds = actions.filter((a) => a.fond);
   const plusCher = gestes[0] || null;
-  const lecture = actions.find((a) => a.cle === "lecture_piece");
-  const veille = actions.find((a) => a.cle === "veille");
 
   const Tableau = ({ titre, sous, lignes }) => (
     <section className="mt-8">
@@ -215,47 +213,11 @@ export default function CoutsIA() {
                 <h2 className="m-0 text-[18px] font-semibold text-encre">Ce qu'on peut faire</h2>
                 <span className="text-[12.5px] text-brume">chaque levier, son effet mesuré, et où il se règle</span>
               </div>
+              {/* Les leviers viennent du serveur (server/llm-couts.js) :
+                  l'état de la plateforme les lit aussi, et deux listes qui
+                  divergent valent moins qu'une. */}
               <div className="mt-4 flex flex-col gap-2.5">
-
-                <Levier etat="pose" titre="Le cache des pièces" effet="une relecture à un dixième du prix" ou="Posé le 9 septembre · une heure de rétention">
-                  Une pièce déjà envoyée au modèle revient dix fois moins cher pendant une heure. Vous en êtes à {pourcent(data.part_cache)} de jetons servis par le cache sur cette période
-                  {data.part_cache < 0.05 ? " : les lectures d'avant la mise en place pèsent encore dans la moyenne, le chiffre montera de lui-même." : "."}
-                </Levier>
-
-                <Levier etat="pose" titre="Le texte du PDF plutôt que ses images" effet="279 574 → 91 061 jetons" ou="Repli automatique sur les images pour un scan · KLOCKA_PDF_NATIF=1 rétablit l'ancien">
-                  Un PDF envoyé tel quel fait rendre chacune de ses pages en image. Sur un bail de 119 pages, sa seule couche texte pèse trois fois moins,
-                  pour des valeurs extraites identiques et des citations qui gardent leur page.
-                </Levier>
-
-                <Levier etat="pose" titre="Ne pas relire une pièce inchangée" effet={lecture ? `${euros(lecture.mediane)} économisés par relecture évitée` : "une lecture entière économisée"} ou="Empreinte : la pièce, les questions posées, la version du gabarit">
-                  Revenir sur un dossier ne relance plus rien. Seuls les deux boutons « Relancer l'analyse » forcent une relecture.
-                </Levier>
-
-                <Levier etat="pose" titre="Le prix annoncé avant de relire" effet="le devis s'affiche, puis attend" ou="Bouton « Relancer l'analyse », en tête de chaque grille">
-                  Les jetons sont comptés par l'API avant l'envoi, ce comptage ne coûte rien. Vous voyez le prix, vous confirmez ou vous annulez.
-                </Levier>
-
-                <Levier etat="pose" titre="Un mail écarté n'est plus rejugé" effet="536 appels sur 516 passages, avant" ou="Décision gardée avec sa raison">
-                  Le tri des boîtes ne mémorisait que les mails retenus. Un mail refusé repassait donc devant le modèle toutes les cinq minutes, indéfiniment.
-                </Levier>
-
-                <Levier etat="regler" titre="L'espacement de la veille" effet={veille ? `${euros(veille.mediane)} par mail douteux` : "quelques centimes par passage"} ou="Variable MAIL_VEILLE_MINUTES · 5 minutes aujourd'hui">
-                  Depuis que les mails écartés sont mémorisés, un passage sans nouveau mail ne coûte rien. Quinze minutes suffiraient probablement,
-                  et rien ne serait perdu : un mail reçu à 9 h 02 entrerait à 9 h 15.
-                </Levier>
-
-                <Levier etat="decider" titre="Le traitement différé" effet="moitié prix sur tout" ou="Concerne la lecture des pièces et la veille, jamais le chat">
-                  L'API propose un mode différé à moitié prix, cache compris. La contrepartie est un délai qui peut aller jusqu'à vingt-quatre heures
-                  au lieu d'une minute. La lecture des pièces tourne déjà en tâche de fond et vous prévient quand elle est finie : c'est le profil qui s'y prête.
-                  Le choix vous revient, il change un délai.
-                </Levier>
-
-                <Levier etat="decider" titre="Un modèle moins cher sur les gestes mécaniques" effet="à mesurer sur vos dossiers" ou="Variable ANTHROPIC_MODEL · claude-opus-5 aujourd'hui">
-                  Mettre en forme une valeur déjà lue, trier un mail, ranger un texte dicté : ces gestes partent déjà à effort minimal.
-                  Descendre d'un modèle est le levier suivant, mais un modèle moins cher au jeton n'est pas toujours moins cher par dossier abouti.
-                  Cela demande un jeu de dossiers de référence, pas une intuition.
-                </Levier>
-
+                {(data.leviers || []).map((l) => <Levier key={l.cle} {...l} />)}
               </div>
             </section>
 

@@ -7,8 +7,7 @@ import { toast } from "@/components/ui/avis";
 import { Mic, Microscope, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip, ChevronDown, Zap } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import PenseeIA from "@/components/PenseeIA";
-import BarreChat, { MenuChat } from "@/components/BarreChat";
-import { alpha } from "@/design/jetons";
+import BarreChat, { MenuChat, ZoneChat } from "@/components/BarreChat";
 import Message from "@/components/MessageIA";
 import { SuggestionsMail } from "./gabaritsMail";
 import ImportDrive from "./ImportDrive";
@@ -242,20 +241,10 @@ export default function ChatDossier({
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; if (modePreanalyse) onAnalyserFichier?.(f); else deposer.mutate(f); }}
       />
-      {/* La barre respire : de l'air au-dessus et en dessous, et un halo
-          menthe bord à bord derrière elle, comme sur le dashboard mais plus
-          retenu, pour ne pas manger la page. */}
-      <div className="relative flex justify-center" style={{ padding: "96px 0 88px" }}>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-6 -right-6 top-1/2 h-[190px] -translate-y-1/2"
-          style={{
-            background: `linear-gradient(90deg, ${alpha("menthe-clair", 0)} 0%, ${alpha("menthe-clair", 0.09)} 28%, ${alpha("menthe-clair", 0.14)} 50%, ${alpha("menthe-clair", 0.09)} 72%, ${alpha("menthe-clair", 0)} 100%)`,
-            filter: "blur(34px)",
-          }}
-        />
+      {/* L'air autour de la barre et son halo viennent de ZoneChat : le même
+          souffle qu'au marché, sur ALX et partout ailleurs. */}
+      <ZoneChat largeur={760}>
       <BarreChat
-        className="relative w-full max-w-[760px]"
         valeur={texte}
         onChange={setTexte}
         onEnvoyer={lancer}
@@ -298,9 +287,9 @@ export default function ChatDossier({
         ]}
         voix={{ ecoute, onBasculer: () => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." })) }}
       />
-      </div>
+      </ZoneChat>
       {modeMail && (
-        <div className="mx-auto -mt-16 flex max-w-[760px] flex-wrap items-center gap-2">
+        <div className="mx-auto -mt-8 flex max-w-[760px] flex-wrap items-center gap-2">
           <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
         </div>
       )}

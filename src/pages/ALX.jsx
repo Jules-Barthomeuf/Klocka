@@ -7,6 +7,7 @@ import { useUser } from "@/components/providers/UserProvider";
 import { toast, avis } from "@/components/ui/avis";
 import { PILES, EMPLACEMENTS, TEINTES, emplacementDe, Bouton, Etiquette, Etoiles, Nombre, Champ, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
 import CarteRues from "@/components/alx/CarteRues";
+import BarreChat, { ZoneChat } from "@/components/BarreChat";
 import { J } from "@/design/jetons";
 
 // ALX, tel que la maquette le dessine. On arrive toujours par la même porte :
@@ -280,50 +281,32 @@ function ChatAlx({ villeId, onglet, onFait }) {
   const peutEnvoyer = !!texte.trim() && !envoyer.isPending;
   const placeholder = onglet === "commerces" ? "Regarde si Maison Peirano vaut le coup, prospecte le 12 rue d'Antibes…" : "Prospecte la rue Meynadier, ouvre le boulevard Carnot…";
   return (
-    <div className="mx-auto mt-6 w-full max-w-[880px]">
-      {/* Le composer du dossier, à l'identique : même boîte, même dictée, même bouton. */}
-      <div className={`accueil-wrap sobre ${ecoute ? "voix" : ""}`}>
-        <div aria-hidden="true" className="accueil-ring-sage" />
-        <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
-        <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>
-        <div className="accueil-composer">
-          <textarea
-            rows={Math.min(4, Math.max(2, texte.split("\n").length))}
-            value={texte}
-            onChange={(e) => setTexte(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer) { e.preventDefault(); envoyer.mutate(texte.trim()); } }}
-            placeholder={placeholder}
-            disabled={envoyer.isPending}
-          />
-          <div className="accueil-bar">
-            <div className="accueil-tools">
-              <button
-                type="button"
-                id="accueil-voix"
-                aria-pressed={ecoute}
-                onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-                aria-label={ecoute ? "Arrêter la voix" : "Dicter"} title={ecoute ? "Arrêter la voix" : "Dicter"}
-              >
-                <span className="dot" />
-                <span>Voix</span>
-              </button>
-            </div>
-            <button type="button" className="accueil-send" onClick={() => peutEnvoyer && envoyer.mutate(texte.trim())} disabled={!peutEnvoyer}>
-              {envoyer.isPending ? (
-                <span className="flex h-3 items-end gap-[4px]">{[0, 0.18, 0.36].map((d) => <span key={d} className="alx-vague h-[5px] w-[5px] rounded-full bg-sur-menthe" style={{ animationDelay: `${d}s` }} />)}</span>
-              ) : null}
-              {envoyer.isPending ? "ALX s'en occupe…" : "Envoyer"}
-            </button>
-          </div>
+    // La barre de chat de l'application, et son halo : la même qu'au dossier,
+    // au marché et au tableau de bord. Ce qui change ici, c'est ce qu'elle
+    // commande — une rue à prospecter, un commerce à regarder.
+    <ZoneChat>
+      <BarreChat
+        valeur={texte}
+        onChange={setTexte}
+        onEnvoyer={() => peutEnvoyer && envoyer.mutate(texte.trim())}
+        peutEnvoyer={peutEnvoyer}
+        enCours={envoyer.isPending}
+        placeholder={placeholder}
+        voix={{ ecoute, onBasculer: () => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." })) }}
+      />
+      {envoyer.isPending && (
+        <div className="alx-entree mt-3 flex items-center gap-2.5 px-4 text-[13.5px] text-ardoise">
+          <span className="flex h-3 items-end gap-[4px]">{[0, 0.18, 0.36].map((d) => <span key={d} className="alx-vague h-[5px] w-[5px] rounded-full bg-menthe" style={{ animationDelay: `${d}s` }} />)}</span>
+          ALX s'en occupe…
         </div>
-      </div>
-      {reponse?.reponse && (
+      )}
+      {reponse?.reponse && !envoyer.isPending && (
         <div className="alx-entree mt-3 flex items-baseline gap-2.5 px-4 text-[13.5px]" style={{ color: reponse.erreur ? TEINTES.urgence5 : J["craie"] }}>
           <span className="alx-mont text-[11px] uppercase tracking-[.14em] text-ardoise">ALX</span>
           <span>{reponse.reponse}</span>
         </div>
       )}
-    </div>
+    </ZoneChat>
   );
 }
 

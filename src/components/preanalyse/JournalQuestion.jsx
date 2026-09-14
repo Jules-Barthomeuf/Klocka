@@ -4,7 +4,7 @@ import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import PenseeIA from "@/components/PenseeIA";
-import BarreChat, { MenuChat } from "@/components/BarreChat";
+import BarreChat, { MenuChat, ZoneChat } from "@/components/BarreChat";
 import MessageIA from "@/components/MessageIA";
 
 // Demander au marché — le composer du dossier, branché sur les sources.
@@ -215,7 +215,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
   // Le souffle autour du chat est posé en PADDING, pas en marge : le parent est
   // en space-y-5, qui remet à zéro la marge basse de ses enfants.
   return (
-    <section className="flex flex-col gap-4 max-w-[880px] mx-auto pt-8 pb-10">
+    <section className="mx-auto flex max-w-[880px] flex-col gap-4 pt-8">
       {echanges.map((e, i) => (
         <div key={i} className="flex flex-col gap-5">
           <MessageIA m={{ role: "user", contenu: e.question }} />
@@ -251,9 +251,10 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
         </div>
       ))}
 
-      {/* La barre de chat de l'application. Ce qui change ici : la vignette
-          ouvre le répertoire des questions, et ce qui part derrière interroge
-          les connecteurs, pas les documents. */}
+      {/* La barre de chat de l'application, avec son halo. Ce qui change ici :
+          la vignette ouvre le répertoire des questions, et ce qui part
+          derrière interroge les connecteurs, pas les documents. */}
+      <ZoneChat>
       <BarreChat
         valeur={texte}
         onChange={setTexte}
@@ -297,6 +298,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
         }}
         voix={{ ecoute, onBasculer: () => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." })) }}
       />
+      </ZoneChat>
 
       {enCours && (
         <p className="m-0 text-[11px] text-brume">

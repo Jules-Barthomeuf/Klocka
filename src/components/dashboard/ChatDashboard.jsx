@@ -634,7 +634,9 @@ export default function ChatDashboard() {
       >
         <div
           className={`flex items-center gap-3 py-3 pl-5 pr-3 transition-colors ${multiligne ? "items-end rounded-[30px]" : "rounded-full"}`}
-          style={{ background: J["barre"], boxShadow: glisse ? `0 0 0 1px ${J["menthe"]}` : ecoute ? `0 0 0 1px ${alpha("menthe", 0.5)}` : "none" }}
+          // Le même filet que les autres chats : assez pour dire où la pilule
+          // commence sur un fond noir, pas assez pour qu'on le remarque.
+          style={{ background: J["barre"], border: `1px solid ${alpha("craie", 0.11)}`, boxShadow: glisse ? `0 0 0 1px ${J["menthe"]}` : ecoute ? `0 0 0 1px ${alpha("menthe", 0.5)}` : "none" }}
         >
           {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
           <div className="relative flex-none">

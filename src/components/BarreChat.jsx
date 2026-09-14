@@ -15,10 +15,14 @@ import { J, alpha } from "@/design/jetons";
 // pour le même geste, c'était trois occasions de se tromper.
 
 // Le gris de la barre et celui des ronds posés dessus : deux jetons, les
-// mêmes que la barre du dashboard, pour que les trois chats soient un seul
-// objet. Opaques : le menu qui descend de la vignette ne laisse rien passer.
+// mêmes que la barre du dashboard, pour que les chats soient un seul objet.
+// Opaques : le menu qui descend de la vignette ne laisse rien passer.
 const OPAQUE = { backgroundColor: J["barre"] };
 const ROND = J["barre-relief"];
+// Un filet, pas un cadre : sur un fond noir et derrière un halo, la pilule se
+// confondait avec la page. Assez pour dire où elle commence, pas assez pour
+// qu'on le remarque.
+const FILET = `1px solid ${alpha("craie", 0.11)}`;
 
 /** Un rond de la barre : une icône, un titre, un état actif. */
 export function RondChat({ icone: Icone, onClick, titre, actif = false, disabled = false, teinte = null }) {
@@ -64,7 +68,7 @@ export default function BarreChat({
     <div className={`relative ${className}`} {...reste}>
       <div
         className={`flex items-center gap-3 py-3 pl-5 pr-3 transition-colors ${multiligne ? "items-end rounded-[30px]" : "rounded-full"}`}
-        style={{ ...OPAQUE, boxShadow: voix?.ecoute ? `0 0 0 1px ${alpha("menthe", 0.5)}` : "none" }}
+        style={{ ...OPAQUE, border: FILET, boxShadow: voix?.ecoute ? `0 0 0 1px ${alpha("menthe", 0.5)}` : "none" }}
       >
         {menu && (
           <div className="relative flex-none">
@@ -119,6 +123,34 @@ export default function BarreChat({
           {enCours && onArreter ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Ce qu'il y a autour de la barre : de l'air, et un halo menthe bord à bord.
+ *
+ * Le chat est le geste principal de chaque écran ; il lui faut de la place
+ * pour se voir, et une couleur derrière pour ne pas flotter sur du noir. Mais
+ * le dossier en avait pris deux fois trop — un écran de creux avant les
+ * onglets — pendant que le marché n'en avait presque pas. Un seul espacement,
+ * celui du marché, partout : quarante pixels au-dessus, quarante-quatre en
+ * dessous.
+ *
+ * Le dashboard garde le sien, bien plus large : là-bas le chat EST la page.
+ */
+export function ZoneChat({ children, largeur = 880, className = "", espacement = "40px 0 44px" }) {
+  return (
+    <div className={`relative flex justify-center ${className}`} style={{ padding: espacement }}>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-6 -right-6 top-1/2 h-[150px] -translate-y-1/2"
+        style={{
+          background: `linear-gradient(90deg, ${alpha("menthe-clair", 0)} 0%, ${alpha("menthe-clair", 0.08)} 28%, ${alpha("menthe-clair", 0.13)} 50%, ${alpha("menthe-clair", 0.08)} 72%, ${alpha("menthe-clair", 0)} 100%)`,
+          filter: "blur(34px)",
+        }}
+      />
+      <div className="relative w-full" style={{ maxWidth: largeur }}>{children}</div>
     </div>
   );
 }

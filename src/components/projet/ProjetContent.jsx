@@ -24,14 +24,14 @@ import { J } from "@/design/jetons";
 // Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
 function SectionLabel({ children, tone = "muted", className = "" }) {
   const color = tone === "teal" ? "text-menthe-clair" : tone === "gold" ? "text-menthe" : tone === "red" ? "text-red-400" : "text-ardoise";
-  return <div className={`text-[10px] tracking-[0.2em] uppercase ${color} mb-3 ${className}`}>{children}</div>;
+  return <div className={`text-[11px] tracking-[0.2em] uppercase ${color} mb-3 ${className}`}>{children}</div>;
 }
 
 // Le chapô (`right`) passe sous le titre : titre → sous-titre → chapô → chiffres.
 function TabHeader({ title, subtitle, left = undefined, right = undefined }) {
   return (
     <div className="mb-6 max-md:mb-4">
-      <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">{title}</h2>
+      <h2 className="font-display text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">{title}</h2>
       {subtitle && <p className="text-[13.5px] leading-[1.7] text-ardoise mb-0 max-w-[560px]">{subtitle}</p>}
       {left}
       {right && <div className="mt-5 max-md:mt-4 max-w-[880px] order-last">{right}</div>}
@@ -40,7 +40,7 @@ function TabHeader({ title, subtitle, left = undefined, right = undefined }) {
 }
 
 function LeadText({ children }) {
-  return <p className="text-[14px] max-md:text-[13px] leading-[1.75] text-craie mb-0">{children}</p>;
+  return <p className="text-[13.5px] max-md:text-[12.5px] leading-[1.75] text-craie mb-0">{children}</p>;
 }
 
 function KpiStrip({ items, className = "" }) {
@@ -52,7 +52,7 @@ function KpiStrip({ items, className = "" }) {
       {list.map((it, i) => (
         <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-6 max-md:py-4 pr-5 ${i > 0 ? "md:border-l md:border-trait md:pl-6" : ""}`}>
           <div className="text-[11px] tracking-[0.16em] uppercase text-ardoise mb-1.5 flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></div>
-          <div className={`font-cormorant text-[30px] max-md:text-[23px] font-light leading-none ${it.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className={`font-display text-[34px] max-md:text-[24px] font-light leading-none ${it.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
             <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
           </div>
         </div>
@@ -88,7 +88,7 @@ function DataTable({ label, head, rows, align = undefined }) {
           <thead>
             <tr>
               {head.map((h, i) => (
-                <th key={i} className={`text-[10px] tracking-[0.16em] uppercase text-ardoise font-normal pb-3 whitespace-nowrap ${cellAlign(i)}`}>{h}</th>
+                <th key={i} className={`text-[11px] tracking-[0.16em] uppercase text-ardoise font-normal pb-3 whitespace-nowrap ${cellAlign(i)}`}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -141,9 +141,9 @@ function GradeScale({ active, valueLabel }) {
         const isActive = active === g;
         return (
           <div key={g} className="flex items-center gap-3">
-            <span className={`w-5 text-center flex-shrink-0 ${isActive ? "font-cormorant text-[17px] text-encre" : "text-[12px] text-bord-vif"}`}>{g}</span>
+            <span className={`w-5 text-center flex-shrink-0 ${isActive ? "font-display text-[18px] text-encre" : "text-[12.5px] text-bord-vif"}`}>{g}</span>
             <div className="h-[9px] flex-shrink-0" style={{ width: `${26 + idx * 10}%`, backgroundColor: isActive ? J["menthe"] : J["trait"] }} />
-            {isActive && valueLabel && <span className="text-[12px] text-menthe-clair whitespace-nowrap">{valueLabel}</span>}
+            {isActive && valueLabel && <span className="text-[12.5px] text-menthe-clair whitespace-nowrap">{valueLabel}</span>}
           </div>
         );
       })}
@@ -164,7 +164,7 @@ function RangeScale({ bas, median, haut, unit = "€", champBas, champMedian, ch
       <div className="relative h-[3px] bg-trait">
         {m > 0 && <div className="absolute w-[9px] h-[9px] rounded-full bg-menthe-clair" style={{ left: `${pos}%`, top: "50%", transform: "translate(-50%, -50%)" }} />}
       </div>
-      <div className="flex justify-between mt-2.5 text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <div className="flex justify-between mt-2.5 text-[12.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
         <span className="text-ardoise"><ValeurEditable champ={champBas}>{`${fmtN(b)} ${unit}`}</ValeurEditable></span>
         <span className="text-encre"><ValeurEditable champ={champMedian}>{`${fmtN(m)} ${unit}`}</ValeurEditable></span>
         <span className="text-ardoise"><ValeurEditable champ={champHaut}>{`${fmtN(h)} ${unit}`}</ValeurEditable></span>
@@ -568,7 +568,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 par le bouton play au centre de l'image). */}
             {plongee && !streetView && (
               <button onClick={() => setPlongee(false)}
-                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors">
+                className="font-display text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors">
                 Arrêter la vidéo
               </button>
             )}
@@ -576,7 +576,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             {mapsKey && (project.adresse_complete || (project.latitude && project.longitude)) && (
               <button
                 onClick={() => { setStreetView((v) => !v); setPlongee(false); }}
-                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors"
+                className="font-display text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors"
               >
                 {streetView ? "Fermer Street View" : "Street View"}
               </button>
@@ -597,7 +597,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             )}
             {project.documents && project.documents.length > 0 && (
               <button onClick={() => window.open(project.documents[0], '_blank')}
-                className="font-cormorant text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors max-md:hidden">
+                className="font-display text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors max-md:hidden">
                 Documents ({project.documents.length})
               </button>
             )}
@@ -607,17 +607,17 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         {/* Habillage masqué en Street View pour laisser le panorama réactif. */}
         <div className={`absolute bottom-9 md:bottom-11 left-5 right-5 md:left-14 md:right-14 grid md:grid-cols-[minmax(0,1fr)_300px] gap-6 md:gap-12 items-end ${streetView ? "hidden" : ""}`}>
           <div>
-            <h1 className="font-cormorant text-[34px] md:text-[48px] font-light tracking-[-0.03em] leading-[1.02] text-encre mb-0">{project.titre}</h1>
+            <h1 className="font-display text-[34px] md:text-[48px] font-light tracking-[-0.03em] leading-[1.02] text-encre mb-0">{project.titre}</h1>
             <div className="md:hidden mt-5">
               <div className="flex gap-8" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 <div>
-                  <div className="text-[22px] font-light text-encre leading-tight">{formatCurrency(prixRevientCalcule)}</div>
-                  <div className="text-[10px] tracking-[0.16em] uppercase text-ardoise mt-1">Prix de revient</div>
+                  <div className="text-[24px] font-light text-encre leading-tight">{formatCurrency(prixRevientCalcule)}</div>
+                  <div className="text-[11px] tracking-[0.16em] uppercase text-ardoise mt-1">Prix de revient</div>
                 </div>
                 {rendementLocatifNetCalcule > 0 && (
                   <div>
-                    <div className="text-[22px] font-light text-menthe-clair leading-tight">{rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %</div>
-                    <div className="text-[10px] tracking-[0.16em] uppercase text-ardoise mt-1">Rendement net</div>
+                    <div className="text-[24px] font-light text-menthe-clair leading-tight">{rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %</div>
+                    <div className="text-[11px] tracking-[0.16em] uppercase text-ardoise mt-1">Rendement net</div>
                   </div>
                 )}
               </div>
@@ -630,16 +630,16 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <div className="max-md:hidden text-right">
             <div className="flex justify-end gap-10" style={{ fontVariantNumeric: 'tabular-nums' }}>
               <div>
-                <div className="text-[30px] font-light text-encre leading-tight">{formatCurrency(prixRevientCalcule)}</div>
-                <div className="text-[10px] tracking-[0.18em] uppercase text-ardoise mt-1.5">Prix de revient</div>
+                <div className="text-[34px] font-light text-encre leading-tight">{formatCurrency(prixRevientCalcule)}</div>
+                <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-1.5">Prix de revient</div>
               </div>
               <div>
-                <div className="text-[30px] font-light text-menthe-clair leading-tight">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : '—'}</div>
-                <div className="text-[10px] tracking-[0.18em] uppercase text-ardoise mt-1.5">Rendement net</div>
+                <div className="text-[34px] font-light text-menthe-clair leading-tight">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : '—'}</div>
+                <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-1.5">Rendement net</div>
               </div>
             </div>
             <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-              className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[13px] font-semibold hover:bg-menthe-survol transition-colors">
+              className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors">
               Simulateur complet <span aria-hidden="true">→</span>
             </button>
           </div>
@@ -679,7 +679,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               // affiche, leur contenu est rendu par le parent.
               ...ongletsSupplementaires.map((o) => ({ v: o.value, l: o.label })),
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent text-ardoise hover:text-encre data-[state=active]:text-encre transition-colors duration-200">
+              <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent text-ardoise hover:text-encre data-[state=active]:text-encre transition-colors duration-200">
                 {l}
               </TabsTrigger>
             ))}
@@ -689,7 +689,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <TabsContent value="secteur" className="space-y-6 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <div className="mb-8 max-md:mb-5">
-                <h2 className="font-cormorant text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">Secteur</h2>
+                <h2 className="font-display text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">Secteur</h2>
                 <p className="text-[13.5px] leading-[1.7] text-ardoise mb-0 max-w-[560px]">Du macro au micro : la ville, le quartier, puis l'emplacement.</p>
                 <div className="mt-6 max-md:mt-5">
                   <VilleSecteurIA
@@ -723,16 +723,16 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     <div className="max-md:hidden absolute left-6 bottom-6 max-w-[340px] bg-fond/[0.86] backdrop-blur-sm px-5 py-4">
                       {project.adresse_complete && (
                         <>
-                          <div className="text-[10px] tracking-[0.18em] uppercase text-ardoise">Adresse</div>
-                          <div className="text-[14px] leading-[1.6] text-encre mt-1">{project.adresse_complete}</div>
+                          <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise">Adresse</div>
+                          <div className="text-[13.5px] leading-[1.6] text-encre mt-1">{project.adresse_complete}</div>
                         </>
                       )}
                       {project.surface_m2 > 0 && (
-                        <div className="text-[13px] text-craie mt-2.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{project.surface_m2} m² exploités</div>
+                        <div className="text-[12.5px] text-craie mt-2.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{project.surface_m2} m² exploités</div>
                       )}
                       {googleMapsLink && (
                         <a href={googleMapsLink} target="_blank" rel="noopener noreferrer"
-                          className="pointer-events-auto inline-flex items-center gap-2 mt-4 text-[10px] tracking-[0.18em] uppercase text-menthe-clair hover:text-encre transition-colors">
+                          className="pointer-events-auto inline-flex items-center gap-2 mt-4 text-[11px] tracking-[0.18em] uppercase text-menthe-clair hover:text-encre transition-colors">
                           Ouvrir dans Google Maps <span aria-hidden="true">→</span>
                         </a>
                       )}
@@ -834,9 +834,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 subtitle="Le physique : surfaces, configuration et éléments marquants du lot."
                 left={(project.bien_champ1 || project.bien_champ2 || project.bien_champ3) && (
                   <div className="flex gap-2 mt-5 flex-wrap">
-                    {project.bien_champ1 && <span className="text-[12px] px-3.5 py-1 rounded-full bg-menthe/[0.16] border border-menthe text-menthe-clair"><ValeurEditable champ="bien_champ1" type="text">{project.bien_champ1}</ValeurEditable></span>}
-                    {project.bien_champ2 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-menthe-clair/40 text-menthe-clair"><ValeurEditable champ="bien_champ2" type="text">{project.bien_champ2}</ValeurEditable></span>}
-                    {project.bien_champ3 && <span className="text-[12px] px-3.5 py-1 rounded-full border border-encre/[0.18] text-craie"><ValeurEditable champ="bien_champ3" type="text">{project.bien_champ3}</ValeurEditable></span>}
+                    {project.bien_champ1 && <span className="text-[12.5px] px-3.5 py-1 rounded-full bg-menthe/[0.16] border border-menthe text-menthe-clair"><ValeurEditable champ="bien_champ1" type="text">{project.bien_champ1}</ValeurEditable></span>}
+                    {project.bien_champ2 && <span className="text-[12.5px] px-3.5 py-1 rounded-full border border-menthe-clair/40 text-menthe-clair"><ValeurEditable champ="bien_champ2" type="text">{project.bien_champ2}</ValeurEditable></span>}
+                    {project.bien_champ3 && <span className="text-[12.5px] px-3.5 py-1 rounded-full border border-encre/[0.18] text-craie"><ValeurEditable champ="bien_champ3" type="text">{project.bien_champ3}</ValeurEditable></span>}
                   </div>
                 )}
                 right={<LeadText>{bienLead}</LeadText>}
@@ -870,7 +870,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {project.description_bien && (
                 <div className="mt-10 max-md:mt-6">
                   <SectionLabel>Description</SectionLabel>
-                  <TexteEditable champ="description_bien"><p className="md:columns-2 md:gap-10 text-[14.5px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{project.description_bien}</p></TexteEditable>
+                  <TexteEditable champ="description_bien"><p className="md:columns-2 md:gap-10 text-[15px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{project.description_bien}</p></TexteEditable>
                 </div>
               )}
 
@@ -925,7 +925,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   rows={[...project.bilans_locataire].sort((a, b) => (b.annee || '').localeCompare(a.annee || '')).map((bilan) => [
                     bilan.annee || '—',
                     { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-craie hover:text-menthe-clair transition-colors">{bilan.nom}</a> },
-                    { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-menthe-clair text-[13px] hover:text-encre transition-colors">Télécharger</a> },
+                    { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-menthe-clair text-[12.5px] hover:text-encre transition-colors">Télécharger</a> },
                   ])}
                 />
               )}
@@ -953,14 +953,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-menthe" />
                     <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border border-menthe bg-fond" />
                   </div>
-                  <div className="flex justify-between mt-3 text-[13px]">
+                  <div className="flex justify-between mt-3 text-[12.5px]">
                     <div>
                       <div className="text-menthe-clair">{project.bail_date_debut ? moment(project.bail_date_debut).format('MM/YYYY') : '—'}</div>
-                      <div className="text-[12px] text-ardoise">Prise d'effet</div>
+                      <div className="text-[12.5px] text-ardoise">Prise d'effet</div>
                     </div>
                     <div className="text-right">
                       <div className="text-menthe-clair">{(project.bail_date_echeance || project.echeance_bail) ? moment(project.bail_date_echeance || project.echeance_bail).format('MM/YYYY') : '—'}</div>
-                      <div className="text-[12px] text-ardoise">Échéance</div>
+                      <div className="text-[12.5px] text-ardoise">Échéance</div>
                     </div>
                   </div>
                 </div>
@@ -995,7 +995,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       <TexteEditable champ="activites_autorisees">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
                         {project.activites_autorisees.split(',').map((a, idx) => (
-                          <li key={idx} className="text-[14.5px] text-craie">{a.trim()}</li>
+                          <li key={idx} className="text-[15px] text-craie">{a.trim()}</li>
                         ))}
                       </ul>
                       </TexteEditable>
@@ -1007,7 +1007,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       <TexteEditable champ="activites_interdites">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
                         {project.activites_interdites.split(',').map((a, idx) => (
-                          <li key={idx} className="text-[14.5px] text-craie">{a.trim()}</li>
+                          <li key={idx} className="text-[15px] text-craie">{a.trim()}</li>
                         ))}
                       </ul>
                       </TexteEditable>
@@ -1019,7 +1019,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {project.synthese_assemblee_generale && project.synthese_assemblee_generale.trim() && (
                 <div className="mb-10 max-md:mb-6">
                   <SectionLabel>Synthèse de l'assemblée générale</SectionLabel>
-                  <TexteEditable champ="synthese_assemblee_generale"><p className="text-[14.5px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p></TexteEditable>
+                  <TexteEditable champ="synthese_assemblee_generale"><p className="text-[15px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p></TexteEditable>
                 </div>
               )}
 
@@ -1028,13 +1028,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   {project.resolutions_votees && (
                     <div className="border-l border-menthe pl-5">
                       <SectionLabel tone="teal">Résolutions votées</SectionLabel>
-                      <TexteEditable champ="resolutions_votees"><p className="text-[14.5px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.resolutions_votees}</p></TexteEditable>
+                      <TexteEditable champ="resolutions_votees"><p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.resolutions_votees}</p></TexteEditable>
                     </div>
                   )}
                   {project.resolutions_refusees && (
                     <div className="border-l border-menthe pl-5">
                       <SectionLabel tone="gold">Résolutions non acceptées</SectionLabel>
-                      <TexteEditable champ="resolutions_refusees"><p className="text-[14.5px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p></TexteEditable>
+                      <TexteEditable champ="resolutions_refusees"><p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p></TexteEditable>
                     </div>
                   )}
                 </div>
@@ -1113,9 +1113,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       className="flex items-center justify-between gap-4 py-4 border-b border-encre/[0.12] group">
                       <div className="flex items-center gap-4 min-w-0">
                         <FileText className="w-4 h-4 text-menthe flex-shrink-0" />
-                        <span className="text-[14.5px] text-encre truncate group-hover:text-menthe-clair transition-colors">{fichier.nom}</span>
+                        <span className="text-[15px] text-encre truncate group-hover:text-menthe-clair transition-colors">{fichier.nom}</span>
                       </div>
-                      <span className="flex items-center gap-2 text-[12px] text-ardoise group-hover:text-menthe-clair transition-colors flex-shrink-0">
+                      <span className="flex items-center gap-2 text-[12.5px] text-ardoise group-hover:text-menthe-clair transition-colors flex-shrink-0">
                         Télécharger <Download className="w-3.5 h-3.5" />
                       </span>
                     </a>
@@ -1201,9 +1201,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <div className="flex items-start justify-between gap-6 mb-6 max-md:mb-4">
               <div>
                 <SectionLabel tone="teal" className="mb-1.5">Création de richesse annuelle</SectionLabel>
-                <p className="text-[13px] text-ardoise mb-0">Cash-flow + capital remboursé sur {Math.min(anneeRevente, 20)} ans</p>
+                <p className="text-[12.5px] text-ardoise mb-0">Cash-flow + capital remboursé sur {Math.min(anneeRevente, 20)} ans</p>
               </div>
-              <p className="text-[26px] max-md:text-[20px] font-light text-menthe mb-0 whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(richesseBrute)}</p>
+              <p className="text-[24px] max-md:text-[18px] font-light text-menthe mb-0 whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(richesseBrute)}</p>
             </div>
             <div className="h-[26rem] max-md:h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -1231,7 +1231,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   }} />
                   <Legend verticalAlign="top" align="right" iconType="circle"
                     wrapperStyle={{ fontSize: 12, paddingBottom: 12 }}
-                    formatter={(v) => <span className="text-craie text-[12px]">{v === 'capital' ? 'Capital remboursé' : 'Cash-flow annuel'}</span>} />
+                    formatter={(v) => <span className="text-craie text-[12.5px]">{v === 'capital' ? 'Capital remboursé' : 'Cash-flow annuel'}</span>} />
                   <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
                   <Bar name="cashflow" dataKey="cashflow" fill={J["menthe"]} radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
                 </BarChart>

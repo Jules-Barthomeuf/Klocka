@@ -66,11 +66,11 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
           <>
             <div className="flex items-center gap-3 px-5 py-3 border-b border-trait">
               <Search className="w-4 h-4 text-brume flex-shrink-0" />
-              <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Chercher par nom…" className="w-full bg-transparent border-0 outline-none text-[14px] text-encre placeholder:text-brume" />
+              <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Chercher par nom…" className="w-full bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-brume" />
             </div>
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
-                <p className="m-0 px-5 py-8 text-[13px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Lecture du Drive…</p>
+                <p className="m-0 px-5 py-8 text-[12.5px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Lecture du Drive…</p>
               ) : error ? (
                 <p className="m-0 px-5 py-8 text-[13.5px] text-alerte">{error?.message || "Drive injoignable"}</p>
               ) : fichiers.length === 0 ? (
@@ -84,8 +84,8 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
                         {pris && <Check className="w-3 h-3 text-fond" strokeWidth={3} />}
                       </span>
                       <span className="flex-1 min-w-0 text-[13.5px] text-encre truncate">{f.nom}</span>
-                      <span className="flex-none text-[12px] text-brume tabular-nums">{f.taille ? poids(f.taille) : ""}</span>
-                      <span className="flex-none w-[70px] text-right text-[12px] text-brume">{quand(f.modifie_le)}</span>
+                      <span className="flex-none text-[12.5px] text-brume tabular-nums">{f.taille ? poids(f.taille) : ""}</span>
+                      <span className="flex-none w-[70px] text-right text-[12.5px] text-brume">{quand(f.modifie_le)}</span>
                     </button>
                   );
                 })
@@ -93,7 +93,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
             </div>
             <footer className="flex items-center justify-between gap-4 px-5 py-4 border-t border-trait">
               <span className="text-[12.5px] text-brume">{choisis.size ? `${choisis.size} fichier${choisis.size > 1 ? "s" : ""} choisi${choisis.size > 1 ? "s" : ""}` : "Cochez ce qu'il faut rapatrier."}</span>
-              <button onClick={() => importer.mutate()} disabled={!choisis.size || importer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+              <button onClick={() => importer.mutate()} disabled={!choisis.size || importer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
                 {importer.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Importer
               </button>
             </footer>

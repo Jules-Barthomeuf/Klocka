@@ -61,8 +61,8 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
   return (
     <div className="px-4 sm:px-5 py-5 flex flex-col gap-5">
       <div>
-        <h3 className="m-0 text-[17px] font-semibold text-encre">Aucune analyse de marché sur ce lot</h3>
-        <p className="m-0 mt-2 text-[13px] leading-6 text-ardoise max-w-[70ch]">{intention}</p>
+        <h3 className="m-0 text-[18px] font-semibold text-encre">Aucune analyse de marché sur ce lot</h3>
+        <p className="m-0 mt-2 text-[12.5px] leading-6 text-ardoise max-w-[70ch]">{intention}</p>
       </div>
 
       {/* Les critères viennent du lot : l'adresse, la surface et l'activité
@@ -85,8 +85,8 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
           return (
             <li key={s.cle} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 py-3">
               <span className="flex-shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: c.pastille }} aria-hidden />
-              <span className="flex-shrink-0 text-[13px] text-encre">{s.nom}</span>
-              <span className="min-w-0 flex-1 text-[12px]" style={{ color: s.ton === "ambre" ? c.etiquette : J["brume"] }}>
+              <span className="flex-shrink-0 text-[12.5px] text-encre">{s.nom}</span>
+              <span className="min-w-0 flex-1 text-[12.5px]" style={{ color: s.ton === "ambre" ? c.etiquette : J["brume"] }}>
                 {s.acces}
               </span>
             </li>
@@ -99,11 +99,11 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
           type="button"
           onClick={() => onLancer(null)}
           disabled={apercu}
-          className="inline-flex items-center gap-2 rounded-full bg-menthe-clair text-sur-menthe text-[13px] font-semibold px-5 py-2.5 hover:bg-menthe-clair disabled:opacity-30 transition-colors"
+          className="inline-flex items-center gap-2 rounded-full bg-menthe-clair text-sur-menthe text-[12.5px] font-semibold px-5 py-2.5 hover:bg-menthe-clair disabled:opacity-30 transition-colors"
         >
           <Play className="w-3.5 h-3.5" /> Lancer la recherche
         </button>
-        <span className="text-[12px] text-brume">En parallèle · environ {dureeEstimee}</span>
+        <span className="text-[12.5px] text-brume">En parallèle · environ {dureeEstimee}</span>
       </div>
     </div>
   );
@@ -158,7 +158,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
   return (
     <div className="pb-9 pt-[6px]">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <span className="text-[28px] font-normal tracking-[-.02em] text-encre">Analyse du {analyse.le}</span>
+        <span className="text-[24px] font-normal tracking-[-.02em] text-encre">Analyse du {analyse.le}</span>
         <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe hover:bg-menthe-clair disabled:opacity-30 transition-colors" />
       </div>
 
@@ -181,12 +181,12 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-bord"}`}
                   style={{ background: "transparent" }}
                 >
-                  <span className="alx-mont flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[.14em] text-ardoise">
+                  <span className="alx-mont flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">
                     {c.libelle}
                     <InfoBulle texte={c.detail} />
                   </span>
                   <span className="mt-2 block whitespace-nowrap text-[18px] font-medium tabular-nums" style={{ color: teinteDe(c) }}>{chiffre}</span>
-                  {mot && <span className="mt-1 block text-[11.5px] text-ardoise">{mot}</span>}
+                  {mot && <span className="mt-1 block text-[11px] text-ardoise">{mot}</span>}
                 </button>
               );
             })}
@@ -217,9 +217,9 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   return (
                     <li key={`${s.nom}-${i}`} className={`flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-3 ${i < analyse.sources.length - 1 ? "border-b border-trait" : ""}`}>
                       <span className="h-[5px] w-[5px] flex-shrink-0 rounded-full" style={{ background: c.pastille }} aria-hidden />
-                      <span className="flex-shrink-0 text-[14px] text-encre">{s.nom}</span>
+                      <span className="flex-shrink-0 text-[13.5px] text-encre">{s.nom}</span>
                       <span className="min-w-0 flex-1 text-[12.5px]" style={{ color: s.ton === "ambre" || s.ton === "rouge" ? c.etiquette : J["ardoise"] }}>{s.etat}</span>
-                      <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] tabular-nums text-ardoise">{s.quand}</span>
+                      <span className="flex-shrink-0 whitespace-nowrap text-[11px] tabular-nums text-ardoise">{s.quand}</span>
                     </li>
                   );
                 })}
@@ -231,9 +231,9 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
               <ol className="m-0 mt-3.5 flex list-none flex-col p-0">
                 {analyse.consultations.map((c, i) => (
                   <li key={`${c.quoi}-${i}`} title={c.url || undefined} className={`flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 py-3 ${i < analyse.consultations.length - 1 ? "border-b border-trait" : ""}`}>
-                    <span className="flex-shrink-0 text-[11.5px] tabular-nums text-ardoise">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="flex-shrink-0 text-[11px] tabular-nums text-ardoise">{String(i + 1).padStart(2, "0")}</span>
                     <span className="min-w-0 flex-1 text-[13.5px] text-craie">{c.quoi}</span>
-                    <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] tabular-nums" style={{ color: ton(c.ton).etiquette }}>{c.issue}</span>
+                    <span className="flex-shrink-0 whitespace-nowrap text-[11px] tabular-nums" style={{ color: ton(c.ton).etiquette }}>{c.issue}</span>
                   </li>
                 ))}
               </ol>

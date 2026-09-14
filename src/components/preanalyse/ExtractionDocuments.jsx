@@ -353,7 +353,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                     </button>
                   )}
                   {!absent && v.confiance === "basse" && (
-                    <Badge className="bg-menthe/15 text-menthe border-menthe/25 text-[10px] flex-shrink-0">
+                    <Badge className="bg-menthe/15 text-menthe border-menthe/25 text-[11px] flex-shrink-0">
                       à vérifier
                     </Badge>
                   )}

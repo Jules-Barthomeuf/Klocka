@@ -38,7 +38,7 @@ export default class BarriereErreur extends React.Component {
           <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-encre">
             Cet écran n’a pas pu s’afficher
           </h1>
-          <p className="m-0 mt-4 text-[14px] leading-[1.7] text-ardoise">
+          <p className="m-0 mt-4 text-[13.5px] leading-[1.7] text-ardoise">
             Le reste de l’application fonctionne. Revenez en arrière, ou
             rechargez cette page — si cela se reproduit, signalez-le nous.
           </p>

@@ -113,11 +113,11 @@ function Source({ s }) {
   return (
     <li className="py-2">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <span className="flex-shrink-0 font-pill text-[9px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] rounded-[3px] border border-[rgba(150,192,184,.35)] text-menthe">
+        <span className="flex-shrink-0 font-pill text-[11px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] rounded-[3px] border border-[rgba(150,192,184,.35)] text-menthe">
           {s.service}
         </span>
         <span className="text-[12.5px] text-craie">{s.titre}</span>
-        <span className="text-[13px] font-medium text-encre">
+        <span className="text-[12.5px] font-medium text-encre">
           {bornes.join(" / ")} {s.unite || ""}
         </span>
       </div>
@@ -155,9 +155,9 @@ function Repertoire({ onChoisir, versLeHaut }) {
         return (
           <div key={f.famille} className="px-1.5 py-1">
             <div className="flex flex-wrap items-baseline gap-x-2 px-2.5 pt-1.5 pb-1">
-              <span className="font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-menthe">{f.famille}</span>
-              <span className="text-[10.5px] text-brume">{f.source}</span>
-              {f.credit && <span className="text-[10px] text-ambre">1 crédit</span>}
+              <span className="font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-menthe">{f.famille}</span>
+              <span className="text-[11px] text-brume">{f.source}</span>
+              {f.credit && <span className="text-[11px] text-ambre">1 crédit</span>}
             </div>
             {f.questions.map((q) => (
               <button
@@ -266,7 +266,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
               )}
               {e.sources?.length > 0 ? (
                 <div>
-                  <span className="block font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-brume mb-1">Ce qui a été lu</span>
+                  <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume mb-1">Ce qui a été lu</span>
                   <ul className="m-0 p-0 list-none flex flex-col divide-y divide-relief border-y border-relief">
                     {e.sources.map((s, k) => (
                       <Source key={`${s.indicateur}-${k}`} s={s} />
@@ -274,7 +274,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
                   </ul>
                 </div>
               ) : (
-                <p className="m-0 text-[11.5px] text-ambre">
+                <p className="m-0 text-[11px] text-ambre">
                   Aucune source n’a répondu : ce qui précède ne s’appuie sur rien de vérifiable.
                 </p>
               )}
@@ -354,7 +354,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
       </div>
 
       {enCours && (
-        <p className="m-0 text-[11.5px] text-brume">
+        <p className="m-0 text-[11px] text-brume">
           Les outils travaillent — Equimmox ouvre un vrai navigateur, comptez jusqu’à une minute.
         </p>
       )}

@@ -176,7 +176,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
         <div ref={conteneur} className="w-full h-full" />
         {erreur && (
           <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-            <p className="m-0 text-[13px] text-ardoise">
+            <p className="m-0 text-[12.5px] text-ardoise">
               Carte indisponible ({erreur}). Renseignez <code className="text-craie">VITE_GOOGLE_MAPS_API_KEY</code>.
             </p>
           </div>
@@ -185,7 +185,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
       </div>
 
       {/* Ce que la carte montre, et de quoi on parle. */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-ardoise">
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-ardoise">
         <span className="inline-flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: MENTHE }} /> Le bien, et les cessions à son numéro</span>
         <span className="inline-flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: OR }} /> Dans la rue</span>
         <span className="inline-flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: GRIS }} /> Autour</span>
@@ -197,7 +197,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
               key={v}
               type="button"
               onClick={() => setFiltre(v)}
-              className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${filtre === v ? "bg-menthe text-sur-menthe border-menthe" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif"}`}
+              className={`px-3 py-1 rounded-full text-[12.5px] border transition-colors ${filtre === v ? "bg-menthe text-sur-menthe border-menthe" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif"}`}
             >
               {l}
             </button>

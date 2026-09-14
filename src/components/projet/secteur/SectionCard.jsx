@@ -6,7 +6,7 @@ export default function SectionCard({ title, children }) {
   return (
     <section className="border-t border-encre/[0.35] pt-7 max-md:pt-5">
       {title && (
-        <div className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-5 max-md:mb-4">{title}</div>
+        <div className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-5 max-md:mb-4">{title}</div>
       )}
       {children}
     </section>
@@ -26,7 +26,7 @@ export function KPI({ label, value, sub, color = "gray", inline }) {
   if (inline) {
     return (
       <div className="inline-flex items-baseline gap-3">
-        <p className="text-[12px] text-ardoise mb-0">{label}</p>
+        <p className="text-[12.5px] text-ardoise mb-0">{label}</p>
         <p className={`text-[24px] font-light mb-0 ${accent}`} style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
       </div>
     );
@@ -34,8 +34,8 @@ export function KPI({ label, value, sub, color = "gray", inline }) {
 
   return (
     <div>
-      <p className={`text-[24px] max-md:text-[20px] font-light mb-0 ${accent}`} style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
-      <p className="text-[12px] text-ardoise mt-1 mb-0">{label}</p>
+      <p className={`text-[24px] max-md:text-[18px] font-light mb-0 ${accent}`} style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
+      <p className="text-[12.5px] text-ardoise mt-1 mb-0">{label}</p>
       {sub && <p className="text-[11px] text-brume mt-0.5 mb-0">{sub}</p>}
     </div>
   );

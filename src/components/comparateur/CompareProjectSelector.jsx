@@ -84,7 +84,7 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
 
                 {/* Status badge */}
                 <div className="absolute top-4 left-4">
-                  <span className="text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-fond/60 backdrop-blur-sm text-menthe border border-menthe/20">
+                  <span className="text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-fond/60 backdrop-blur-sm text-menthe border border-menthe/20">
                     {statutLabels[project.statut] || project.statut}
                   </span>
                 </div>
@@ -119,16 +119,16 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
               <div className="p-5 flex items-center justify-between">
                 <div className="flex gap-8">
                   <div>
-                    <p className="text-encre/25 text-[10px] uppercase tracking-wider mb-1">Prix de revient</p>
+                    <p className="text-encre/25 text-[11px] uppercase tracking-wider mb-1">Prix de revient</p>
                     <p className="text-menthe text-lg font-light">{formatPrice(prixRevient)}</p>
                   </div>
                   <div>
-                    <p className="text-encre/25 text-[10px] uppercase tracking-wider mb-1">Rendement</p>
+                    <p className="text-encre/25 text-[11px] uppercase tracking-wider mb-1">Rendement</p>
                     <p className="text-encre text-lg font-light">{rendement.toFixed(2)}%</p>
                   </div>
                   {surface > 0 && (
                     <div>
-                      <p className="text-encre/25 text-[10px] uppercase tracking-wider mb-1">Surface</p>
+                      <p className="text-encre/25 text-[11px] uppercase tracking-wider mb-1">Surface</p>
                       <p className="text-encre text-lg font-light">{surface} m²</p>
                     </div>
                   )}

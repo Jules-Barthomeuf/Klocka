@@ -201,10 +201,10 @@ export default function AdminRessources() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <p className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-2">
+            <p className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-2">
               Administration
             </p>
-            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Ressources</h1>
+            <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Ressources</h1>
           </div>
           <Button
             onClick={() => handleOpenDialog()}
@@ -340,16 +340,16 @@ export default function AdminRessources() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-encre font-medium">{resource.titre}</h3>
-                          <span className="text-[10px] text-encre/30 bg-encre/[0.04] px-2 py-0.5 rounded-full">
+                          <span className="text-[11px] text-encre/30 bg-encre/[0.04] px-2 py-0.5 rounded-full">
                             {typeLabels[resource.type]}
                           </span>
                           {resource.categorie && (
-                            <span className="text-[10px] text-ardoise bg-encre/[0.05] px-2 py-0.5 rounded-full">
+                            <span className="text-[11px] text-ardoise bg-encre/[0.05] px-2 py-0.5 rounded-full">
                               {categorieLabels[resource.categorie]}
                             </span>
                           )}
                           {!resource.visible && (
-                            <span className="text-[10px] text-menthe bg-menthe/[0.07] px-2 py-0.5 rounded-full">
+                            <span className="text-[11px] text-menthe bg-menthe/[0.07] px-2 py-0.5 rounded-full">
                               Masqué
                             </span>
                           )}
@@ -527,7 +527,7 @@ export default function AdminRessources() {
                     ) : (
                       <div className="flex flex-col items-center gap-1">
                         <ImagePlus className="w-6 h-6 text-ardoise" />
-                        <span className="text-ardoise text-[10px]">Importer</span>
+                        <span className="text-ardoise text-[11px]">Importer</span>
                       </div>
                     )}
                   </label>

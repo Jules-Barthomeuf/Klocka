@@ -159,8 +159,8 @@ export default function PortailLanding({ onContinue }) {
                 {STATS.map((s, i) => (
                   <div key={i} className="bg-encre/[0.03] border border-trait rounded-md px-4 py-3 text-center">
                     <p className="text-2xl md:text-3xl font-black text-encre">{s.value}</p>
-                    <p className="text-ardoise text-[10px] mt-0.5 uppercase tracking-wider">{s.label}</p>
-                    {s.note && <p className="text-brume text-[9px] mt-1 italic normal-case">{s.note}</p>}
+                    <p className="text-ardoise text-[11px] mt-0.5 uppercase tracking-wider">{s.label}</p>
+                    {s.note && <p className="text-brume text-[11px] mt-1 italic normal-case">{s.note}</p>}
                   </div>
                 ))}
               </div>
@@ -298,7 +298,7 @@ export default function PortailLanding({ onContinue }) {
                     {isHighlight ? (
                       <div className="p-6 md:p-8 relative">
                         <div className="absolute top-4 right-4">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-menthe bg-menthe/10 border border-menthe/30 rounded-full px-3 py-1">Étape clé</span>
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-menthe bg-menthe/10 border border-menthe/30 rounded-full px-3 py-1">Étape clé</span>
                         </div>
                         <div className="flex flex-col md:flex-row md:items-center gap-6">
                           <div className="flex-shrink-0">
@@ -358,7 +358,7 @@ export default function PortailLanding({ onContinue }) {
                 return (
                   <div key={s.num} className="rounded-md p-6 border bg-fond border-surface hover:border-bord transition-all hover:shadow-lg relative overflow-hidden">
                     <div className="absolute top-3 right-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-menthe bg-menthe/10 border border-menthe/20 rounded-full px-2.5 py-1">Option</span>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-menthe bg-menthe/10 border border-menthe/20 rounded-full px-2.5 py-1">Option</span>
                     </div>
                     <div className="w-12 h-12 rounded-md bg-surface flex items-center justify-center mb-4">
                       <Icon className="w-6 h-6 text-encre" />

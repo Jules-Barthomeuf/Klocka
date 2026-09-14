@@ -62,8 +62,8 @@ export function EnTeteAlx({ titre = "ALX", sous, droite = null }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2.5">
           <div className="w-10 h-0.5 bg-menthe" />
-          <div className="text-[10px] tracking-[.18em] uppercase text-ardoise">Prospection off-market</div>
-          <h1 className="m-0 text-[34px] max-md:text-[26px] font-semibold tracking-[-.025em] leading-[1.05] text-encre">{titre}</h1>
+          <div className="text-[11px] tracking-[.18em] uppercase text-ardoise">Prospection off-market</div>
+          <h1 className="m-0 text-[34px] max-md:text-[24px] font-semibold tracking-[-.025em] leading-[1.05] text-encre">{titre}</h1>
         </div>
         {droite}
       </div>
@@ -75,7 +75,7 @@ export function EnTeteAlx({ titre = "ALX", sous, droite = null }) {
             <Link
               key={o.to}
               to={o.to}
-              className={`px-3.5 py-2.5 -mb-px text-[13px] border-b transition-colors ${
+              className={`px-3.5 py-2.5 -mb-px text-[12.5px] border-b transition-colors ${
                 actif ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"
               }`}
             >
@@ -120,7 +120,7 @@ export function Bouton({ children, onClick, disabled = false, principal = false,
 
 /** Une étiquette en capitales Montserrat, le surtitre de la maquette. */
 export function Etiquette({ children, teinte = J["ardoise"], className = "" }) {
-  return <div className={`alx-mont text-[10px] font-medium uppercase tracking-[.14em] ${className}`} style={{ color: teinte }}>{children}</div>;
+  return <div className={`alx-mont text-[11px] font-medium uppercase tracking-[.14em] ${className}`} style={{ color: teinte }}>{children}</div>;
 }
 
 /** Cinq étoiles, remplies jusqu'à la note (les demies aussi), en or. */
@@ -150,7 +150,7 @@ export function Nombre({ children, teinte = null, taille = 16, className = "", t
 export function Champ({ label, value, onChange, placeholder = "", type = "text", className = "" }) {
   return (
     <label className={`block ${className}`}>
-      {label && <span className="block text-[10px] tracking-[.16em] uppercase text-ardoise mb-1.5">{label}</span>}
+      {label && <span className="block text-[11px] tracking-[.16em] uppercase text-ardoise mb-1.5">{label}</span>}
       <input
         type={type}
         value={value ?? ""}
@@ -171,9 +171,9 @@ export function Carte({ children, className = "", id = undefined }) {
 export function Stat({ label, valeur, detail = null, teinte = null }) {
   return (
     <div className="bg-surface px-[22px] py-[22px] flex flex-col gap-1.5">
-      <div className="text-[9px] tracking-[.14em] uppercase text-brume">{label}</div>
-      <div className="text-[28px] font-semibold tabular-nums" style={teinte ? { color: teinte } : undefined}>{valeur}</div>
-      {detail && <div className="text-[12px] text-brume">{detail}</div>}
+      <div className="text-[11px] tracking-[.14em] uppercase text-brume">{label}</div>
+      <div className="text-[24px] font-semibold tabular-nums" style={teinte ? { color: teinte } : undefined}>{valeur}</div>
+      {detail && <div className="text-[12.5px] text-brume">{detail}</div>}
     </div>
   );
 }
@@ -214,7 +214,7 @@ export function Chiffre({ label, valeur, detail = null, teinte = null, onClick =
       } ${onClick ? "hover:border-bord" : ""}`}
     >
       {actif && <Halo />}
-      <div className="relative text-[10px] tracking-[.16em] uppercase text-ardoise">{label}</div>
+      <div className="relative text-[11px] tracking-[.16em] uppercase text-ardoise">{label}</div>
       <div className="relative text-[34px] leading-none font-semibold tabular-nums tracking-[-.02em]" style={teinte ? { color: teinte } : undefined}>{valeur}</div>
       {detail && <div className="relative text-[12.5px] text-brume mt-1">{detail}</div>}
     </Tag>
@@ -308,7 +308,7 @@ export function Urgence({ c, compact = false }) {
           <span key={n} className="w-[5px] rounded-[2px]" style={{ height: `${6 + n * 2}px`, background: n <= u.niveau ? u.teinte : "rgba(255,255,255,0.08)" }} />
         ))}
       </div>
-      {!compact && <span className="text-[12px]" style={{ color: u.niveau ? u.teinte : "var(--k-brume)" }}>{u.mot}</span>}
+      {!compact && <span className="text-[12.5px]" style={{ color: u.niveau ? u.teinte : "var(--k-brume)" }}>{u.mot}</span>}
     </div>
   );
 }

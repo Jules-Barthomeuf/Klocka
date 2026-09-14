@@ -13,11 +13,11 @@ function BarreSignal({ cle, total, reponses, max }) {
   const tauxReponse = total ? Math.round((reponses / total) * 100) : 0;
   return (
     <div className="grid grid-cols-[150px_minmax(0,1fr)_54px] gap-3 items-center">
-      <div className="text-[13px] text-craie truncate">{cle}</div>
+      <div className="text-[12.5px] text-craie truncate">{cle}</div>
       <div className="h-2 rounded bg-white/[0.06]">
         <div className="h-2 rounded bg-menthe" style={{ width: `${Math.max(4, pct)}%` }} />
       </div>
-      <div className="text-[13px] text-right tabular-nums">{tauxReponse} %</div>
+      <div className="text-[12.5px] text-right tabular-nums">{tauxReponse} %</div>
     </div>
   );
 }
@@ -27,7 +27,7 @@ function TableauRue({ lignes, vide }) {
   return (
     <div className="flex flex-col">
       {lignes.map((l) => (
-        <div key={l.cle} className="grid grid-cols-[minmax(0,1fr)_70px_70px] gap-3 py-[11px] border-t border-trait first:border-t-0 text-[13px]">
+        <div key={l.cle} className="grid grid-cols-[minmax(0,1fr)_70px_70px] gap-3 py-[11px] border-t border-trait first:border-t-0 text-[12.5px]">
           <span className="text-craie truncate">{l.cle}</span>
           <span className="text-ardoise text-right">{l.total} envoi{l.total > 1 ? "s" : ""}</span>
           <span className="text-right text-encre">{l.reponses}</span>
@@ -42,7 +42,7 @@ function TableauRefus({ lignes }) {
   return (
     <div className="flex flex-col">
       {lignes.map((l) => (
-        <div key={l.cle} className="grid grid-cols-[minmax(0,1fr)_120px] gap-3 py-[11px] border-t border-trait first:border-t-0 text-[13px]">
+        <div key={l.cle} className="grid grid-cols-[minmax(0,1fr)_120px] gap-3 py-[11px] border-t border-trait first:border-t-0 text-[12.5px]">
           <span className="text-craie truncate">{l.cle}</span>
           <span className="text-ardoise text-right">{l.total} fois</span>
         </div>
@@ -84,7 +84,7 @@ export default function ALXBilan() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <Carte className="flex flex-col gap-[18px]">
-              <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Réponses par type de signal</div>
+              <div className="text-[11px] tracking-[.16em] uppercase text-ardoise">Réponses par type de signal</div>
               {parSignal.length ? (
                 <div className="flex flex-col gap-3.5">
                   {parSignal.map((s) => <BarreSignal key={s.cle} cle={s.cle} total={s.total} reponses={s.reponses} max={maxSignal} />)}
@@ -95,14 +95,14 @@ export default function ALXBilan() {
             </Carte>
 
             <Carte className="flex flex-col gap-[18px]">
-              <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Réponses par rue</div>
+              <div className="text-[11px] tracking-[.16em] uppercase text-ardoise">Réponses par rue</div>
               <TableauRue lignes={data?.par_rue} vide="Aucune approche encore." />
             </Carte>
 
             <Carte className="flex flex-col gap-[18px]">
-              <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Motifs de refus</div>
+              <div className="text-[11px] tracking-[.16em] uppercase text-ardoise">Motifs de refus</div>
               <TableauRefus lignes={data?.motifs_refus} />
-              <p className="m-0 text-[12px] text-brume leading-[1.6] border-t border-trait pt-3.5">
+              <p className="m-0 text-[12.5px] text-brume leading-[1.6] border-t border-trait pt-3.5">
                 C'est ici qu'on cale les seuils des trois piles.
               </p>
             </Carte>

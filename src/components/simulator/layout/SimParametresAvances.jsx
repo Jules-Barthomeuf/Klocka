@@ -19,7 +19,7 @@ function Card({ title, children }) {
 function Kpi({ label, value, accent = "text-encre" }) {
   return (
     <div className="flex-1 px-4 py-3 min-w-0">
-      <p className="text-[9px] uppercase tracking-[0.16em] text-ardoise font-medium truncate">{label}</p>
+      <p className="text-[11px] uppercase tracking-[0.16em] text-ardoise font-medium truncate">{label}</p>
       <p className={`text-lg font-medium tabular-nums mt-1 truncate ${accent}`}>{value}</p>
     </div>
   );
@@ -28,7 +28,7 @@ function Kpi({ label, value, accent = "text-encre" }) {
 function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-[13px] text-craie">{label}</span>
+      <span className="text-[12.5px] text-craie">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-menthe h-4 w-7" />
     </div>
   );

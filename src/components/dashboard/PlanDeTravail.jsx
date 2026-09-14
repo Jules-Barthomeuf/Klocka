@@ -57,7 +57,7 @@ export default function PlanDeTravail({ chat = null }) {
       <header className="accueil relative text-center pt-[10vh] max-md:pt-6">
         <div aria-hidden="true" className="accueil-halo-a" />
         <div aria-hidden="true" className="accueil-halo-b" />
-        <h1 className="relative m-0 text-[40px] max-md:text-[30px] font-normal italic tracking-[-.01em] leading-[1.1] text-white" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+        <h1 className="relative m-0 text-[40px] max-md:text-[34px] font-normal italic tracking-[-.01em] leading-[1.1] text-white" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
           {salut}
         </h1>
       </header>
@@ -65,9 +65,9 @@ export default function PlanDeTravail({ chat = null }) {
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
       {sante?.hebergeur === "render" && !sante?.base?.persistante && (
         <div className="mt-8 border rounded-xl px-5 py-4" style={{ borderColor: "#e8746a66", background: J["surface"] }}>
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-alerte">La base sera effacée au prochain déploiement</p>
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-alerte">La base sera effacée au prochain déploiement</p>
           <p className="m-0 mt-1.5 text-[13.5px] leading-[1.6] text-craie">{sante.base?.diagnostic}</p>
-          <p className="m-0 mt-1.5 text-[12px] text-brume">
+          <p className="m-0 mt-1.5 text-[12.5px] text-brume">
             Chemin : {sante.base?.emplacement} · déclaré : {sante.base?.declaree ? "oui" : "non"} · disque monté : {sante.base?.disque_monte ? "oui" : "non"}
           </p>
         </div>

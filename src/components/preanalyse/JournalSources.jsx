@@ -30,11 +30,11 @@ export function Recoupement({ recoupement }) {
   return (
     <div className="rounded-[14px] border px-[22px] py-5" style={{ borderColor: alerte ? "rgba(224,164,94,0.35)" : "rgba(255,255,255,0.08)", background: alerte ? "rgba(224,164,94,0.04)" : "transparent" }}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="alx-mont text-[9.5px] font-medium uppercase tracking-[.14em]" style={{ color: teinte }}>
+        <span className="alx-mont text-[11px] font-medium uppercase tracking-[.14em]" style={{ color: teinte }}>
           {alerte ? "Écart entre les sources" : "Les sources concordent"}
         </span>
         {ecart != null && (
-          <span className="text-[14px] font-medium tabular-nums text-encre">
+          <span className="text-[13.5px] font-medium tabular-nums text-encre">
             {fmt(ecart)} €/m²/an{relatif != null ? ` · ${pct(relatif * 100, 0)}` : ""}
           </span>
         )}
@@ -43,7 +43,7 @@ export function Recoupement({ recoupement }) {
         {lectures.map((l, i) => (
           <div key={`${l.service}-${i}`} className="flex items-baseline justify-between gap-3 border-t border-trait py-[9px]">
             <span className="text-[13.5px] text-craie">{l.service}{l.service === "Data-B" && l.echelle ? `, ${l.echelle}${l.precision ? ` ${l.precision}` : ""}` : ""}</span>
-            <span className="whitespace-nowrap text-[14px] tabular-nums text-encre">{l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an</span>
+            <span className="whitespace-nowrap text-[13.5px] tabular-nums text-encre">{l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an</span>
           </div>
         ))}
       </div>

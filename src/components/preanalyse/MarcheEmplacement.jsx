@@ -41,7 +41,7 @@ export default function MarcheEmplacement({ adresse }) {
         <Titre sous={`, ${e.ville}`}>{e.rue}</Titre>
         {e.classe != null && (
           <div className="flex shrink-0 flex-wrap items-center gap-x-3.5 gap-y-1">
-            <span className="rounded-full border px-3.5 py-1.5 text-[13px]" style={{ borderColor: `${emp.teinte}59`, color: emp.teinte }}>Emplacement {emp.mot}</span>
+            <span className="rounded-full border px-3.5 py-1.5 text-[12.5px]" style={{ borderColor: `${emp.teinte}59`, color: emp.teinte }}>Emplacement {emp.mot}</span>
             {flux && (
               <span className="flex items-center gap-2.5">
                 <Etoiles note={flux.note} taille={15} title={`flux ${e.flux_mesure ? "mesuré chez Data-B" : "estimé"}`} />

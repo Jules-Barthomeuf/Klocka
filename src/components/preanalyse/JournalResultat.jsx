@@ -29,10 +29,10 @@ export default function JournalResultat({ cartes, onOuvrir }) {
                 borderLeftColor: couleur.pastille,
               }}
             >
-              <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume truncate">
+              <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.08em] text-brume truncate">
                 {c.libelle.toUpperCase()}
               </span>
-              <span className="block mt-1 font-mono text-[17px] leading-tight text-encre truncate">
+              <span className="block mt-1 font-mono text-[18px] leading-tight text-encre truncate">
                 {c.valeur}
               </span>
               <span className="block mt-0.5 text-[11px] truncate" style={{ color: couleur.etiquette }}>

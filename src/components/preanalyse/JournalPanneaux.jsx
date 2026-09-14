@@ -39,8 +39,8 @@ function Coquille({ titre, enTete, onFermer, children, large = false }) {
 function Champ({ libelle, children }) {
   return (
     <div>
-      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-brume mb-1">{libelle}</span>
-      <div className="text-[13px] leading-6 text-craie">{children}</div>
+      <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume mb-1">{libelle}</span>
+      <div className="text-[12.5px] leading-6 text-craie">{children}</div>
     </div>
   );
 }
@@ -56,7 +56,7 @@ export function PanneauTracabilite({ entree, onFermer }) {
       onFermer={onFermer}
       enTete={
         <div className="min-w-0">
-          <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">{encart.libelle}</span>
+          <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.08em] text-brume">{encart.libelle}</span>
           <span className="block mt-1 font-mono text-[24px] leading-tight text-encre">{encart.valeur}</span>
         </div>
       }
@@ -89,13 +89,13 @@ export function PanneauTracabilite({ entree, onFermer }) {
 
         {encart.capture && (
           <Champ libelle="CAPTURE D'ÉCRAN">
-            <code className="font-mono text-[11.5px] text-ardoise break-all">{encart.capture}</code>
+            <code className="font-mono text-[11px] text-ardoise break-all">{encart.capture}</code>
           </Champ>
         )}
 
         {encart.calcul && (
           <Champ libelle="CALCUL">
-            <code className="font-mono text-[11.5px] text-ardoise break-all">{encart.calcul}</code>
+            <code className="font-mono text-[11px] text-ardoise break-all">{encart.calcul}</code>
           </Champ>
         )}
 
@@ -120,8 +120,8 @@ export function PanneauJournalDetaille({ entrees, onFermer }) {
       large
       enTete={
         <div className="min-w-0">
-          <span className="block text-[14px] font-semibold text-encre">Journal détaillé</span>
-          <span className="block mt-0.5 text-[11.5px] text-brume">
+          <span className="block text-[13.5px] font-semibold text-encre">Journal détaillé</span>
+          <span className="block mt-0.5 text-[11px] text-brume">
             {entrees.length} événement{entrees.length > 1 ? "s" : ""}, du plus récent au plus ancien
           </span>
         </div>
@@ -144,7 +144,7 @@ export function PanneauJournalDetaille({ entrees, onFermer }) {
             </li>
           );
         })}
-        {!alEnvers.length && <li className="text-[12px] text-brume">Rien encore.</li>}
+        {!alEnvers.length && <li className="text-[12.5px] text-brume">Rien encore.</li>}
       </ol>
     </Coquille>
   );

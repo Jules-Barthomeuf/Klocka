@@ -124,7 +124,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
 
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className={`alx-mont rounded-full border bg-fond/70 px-3 py-1 text-[9.5px] font-medium uppercase tracking-[.14em] backdrop-blur-sm ${statutColors[project.statut] || 'text-ardoise border-encre/[0.18]'}`}>
+            <span className={`alx-mont rounded-full border bg-fond/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[.14em] backdrop-blur-sm ${statutColors[project.statut] || 'text-ardoise border-encre/[0.18]'}`}>
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -138,9 +138,9 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
 
           {/* Title overlay */}
           <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-[21px] md:text-[23px] font-light text-encre tracking-[-0.02em] leading-tight truncate">{project.titre}</h2>
-            {project.adresse_complete && <p className="text-craie/70 text-[13px] mt-1 truncate">{project.adresse_complete}</p>}
-            {project.client_email && <p className="alx-mont mt-1.5 text-[9.5px] font-medium uppercase tracking-[.14em] text-ardoise">{project.client_email.split('@')[0]}</p>}
+            <h2 className="text-[18px] md:text-[24px] font-light text-encre tracking-[-0.02em] leading-tight truncate">{project.titre}</h2>
+            {project.adresse_complete && <p className="text-craie/70 text-[12.5px] mt-1 truncate">{project.adresse_complete}</p>}
+            {project.client_email && <p className="alx-mont mt-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">{project.client_email.split('@')[0]}</p>}
           </div>
 
           {/* Actions — apparaissent au survol */}
@@ -172,17 +172,17 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
         {/* Chiffres clés — filets fins, chiffres alignés */}
         <div className="flex px-5 border-t border-encre/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
           <div className="flex-1 min-w-0 py-4 pr-4">
-            <p className="m-0 text-[19px] font-medium tabular-nums text-encre">{formatPrice(prixRevient)}</p>
-            <p className="alx-mont m-0 mt-1 text-[9.5px] font-medium uppercase tracking-[.14em] text-ardoise whitespace-nowrap">Prix de revient</p>
+            <p className="m-0 text-[18px] font-medium tabular-nums text-encre">{formatPrice(prixRevient)}</p>
+            <p className="alx-mont m-0 mt-1 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise whitespace-nowrap">Prix de revient</p>
           </div>
           <div className="flex-1 min-w-0 py-4 px-4 border-l border-encre/[0.12]">
-            <p className="m-0 text-[19px] font-medium tabular-nums text-menthe-clair">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
-            <p className="alx-mont m-0 mt-1 text-[9.5px] font-medium uppercase tracking-[.14em] text-ardoise">Rendement</p>
+            <p className="m-0 text-[18px] font-medium tabular-nums text-menthe-clair">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+            <p className="alx-mont m-0 mt-1 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Rendement</p>
           </div>
           {surface > 0 && (
             <div className="flex-1 min-w-0 py-4 pl-4 border-l border-encre/[0.12]">
-              <p className="m-0 text-[19px] font-medium tabular-nums text-encre">{surface} m²</p>
-              <p className="alx-mont m-0 mt-1 text-[9.5px] font-medium uppercase tracking-[.14em] text-ardoise">Surface</p>
+              <p className="m-0 text-[18px] font-medium tabular-nums text-encre">{surface} m²</p>
+              <p className="alx-mont m-0 mt-1 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Surface</p>
             </div>
           )}
         </div>
@@ -192,7 +192,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
       {hasShadow && (
         <button
           onClick={() => setReportOpen(true)}
-          className="alx-mont mt-2 flex w-full items-center justify-center gap-2 rounded-full border border-menthe/30 px-4 py-2.5 text-[10px] font-medium uppercase tracking-[.14em] text-menthe transition-colors hover:border-menthe"
+          className="alx-mont mt-2 flex w-full items-center justify-center gap-2 rounded-full border border-menthe/30 px-4 py-2.5 text-[11px] font-medium uppercase tracking-[.14em] text-menthe transition-colors hover:border-menthe"
         >
           <FileSearch className="w-3.5 h-3.5" />
           Voir le rapport

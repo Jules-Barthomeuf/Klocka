@@ -95,8 +95,8 @@ export default function Ressources() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8 md:mb-10">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-2">Formation</p>
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Ressources</h1>
+          <p className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-2">Formation</p>
+          <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Ressources</h1>
         </div>
 
         {/* Barre de progression */}
@@ -155,7 +155,7 @@ export default function Ressources() {
                     {resource.duree_minutes && (
                       <div className="absolute bottom-2 right-2 bg-fond/70 backdrop-blur-sm px-2 py-0.5 rounded-md flex items-center gap-1">
                         <Clock className="w-2.5 h-2.5 text-encre/70" />
-                        <span className="text-[10px] text-encre/70">{resource.duree_minutes} min</span>
+                        <span className="text-[11px] text-encre/70">{resource.duree_minutes} min</span>
                       </div>
                     )}
                   </div>
@@ -164,7 +164,7 @@ export default function Ressources() {
                   <div className="p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Icon className="w-3.5 h-3.5 text-menthe flex-shrink-0" />
-                      <span className="text-[10px] text-menthe uppercase tracking-wider">{typeLabels[resource.type]}</span>
+                      <span className="text-[11px] text-menthe uppercase tracking-wider">{typeLabels[resource.type]}</span>
                     </div>
                     <h3 className="text-encre font-medium text-xs md:text-sm line-clamp-2 group-hover:text-menthe transition-colors leading-snug">
                       {resource.titre}

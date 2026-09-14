@@ -201,7 +201,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             <Icon className="w-6 h-6" style={{ color: config.color }} />
           </div>
           <div>
-            <p className="text-encre/40 text-[10px] uppercase tracking-[0.2em]">Votre profil investisseur</p>
+            <p className="text-encre/40 text-[11px] uppercase tracking-[0.2em]">Votre profil investisseur</p>
             <h3 className="text-xl text-encre font-light">{config.label}</h3>
           </div>
           {budgetMax > 0 && (
@@ -271,7 +271,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
                 <p className="text-2xl font-light text-encre">{scores[bestIdx]?.total || 0}<span className="text-sm text-encre/40">/100</span></p>
-                <p className="text-[10px] text-encre/30 uppercase tracking-wider">Meilleur score</p>
+                <p className="text-[11px] text-encre/30 uppercase tracking-wider">Meilleur score</p>
               </div>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
                     <h4 className="text-encre font-light">{sc.titre}</h4>
                     {isBest && (
-                      <Badge className="bg-menthe/20 text-menthe text-[10px] border-0">
+                      <Badge className="bg-menthe/20 text-menthe text-[11px] border-0">
                         <CheckCircle2 className="w-3 h-3 mr-1" />
                         Meilleur choix
                       </Badge>

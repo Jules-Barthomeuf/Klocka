@@ -51,15 +51,15 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
     return (
       <div className="mt-3 rounded-xl border border-bord bg-surface px-4 py-3">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: resultat.pouce === "bas" ? J["alerte"] : J["menthe"] }}>
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase" style={{ color: resultat.pouce === "bas" ? J["alerte"] : J["menthe"] }}>
             {resultat.pouce === "bas" ? "À corriger" : "À préserver"} — prompt pour Claude
           </p>
-          <button onClick={copier} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif">
+          <button onClick={copier} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif">
             {copie ? <Check className="w-3 h-3 text-menthe" /> : <Copy className="w-3 h-3" />}
             {copie ? "Copié" : "Copier"}
           </button>
         </div>
-        <p className="m-0 mt-2 text-[13px] leading-[1.6] text-craie whitespace-pre-wrap max-h-[220px] overflow-y-auto">{resultat.prompt}</p>
+        <p className="m-0 mt-2 text-[12.5px] leading-[1.6] text-craie whitespace-pre-wrap max-h-[220px] overflow-y-auto">{resultat.prompt}</p>
       </div>
     );
   }
@@ -85,7 +85,7 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
         >
           <ThumbsDown className="w-3.5 h-3.5" />
         </button>
-        {envoyer.isPending && <span className="text-[12px] text-brume">Rédaction du prompt…</span>}
+        {envoyer.isPending && <span className="text-[12.5px] text-brume">Rédaction du prompt…</span>}
       </div>
 
       {ouvert === "bas" && (
@@ -97,11 +97,11 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer.mutate("bas"); } if (e.key === "Escape") setOuvert(null); }}
             rows={2}
             placeholder="Qu'est-ce qui ne va pas ? (facultatif — trop long, hors sujet, chiffre inventé…)"
-            className="w-full bg-transparent border border-bord-vif focus:border-alerte rounded-lg px-3 py-2 outline-none text-[13px] leading-[1.55] text-encre placeholder:text-brume resize-y"
+            className="w-full bg-transparent border border-bord-vif focus:border-alerte rounded-lg px-3 py-2 outline-none text-[12.5px] leading-[1.55] text-encre placeholder:text-brume resize-y"
           />
           <div className="mt-1.5 flex items-center gap-2">
-            <button onClick={() => envoyer.mutate("bas")} disabled={envoyer.isPending} className="text-[12px] px-3 py-1 rounded-md bg-alerte text-fond font-semibold disabled:opacity-40">Envoyer</button>
-            <button onClick={() => setOuvert(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
+            <button onClick={() => envoyer.mutate("bas")} disabled={envoyer.isPending} className="text-[12.5px] px-3 py-1 rounded-md bg-alerte text-fond font-semibold disabled:opacity-40">Envoyer</button>
+            <button onClick={() => setOuvert(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
           </div>
         </div>
       )}

@@ -91,11 +91,11 @@ export default function DashboardSuggestedResources({ user }) {
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-menthe" />
-          <p className="text-[10px] tracking-[0.2em] uppercase text-menthe m-0">Ressource suggérée</p>
+          <p className="text-[11px] tracking-[0.2em] uppercase text-menthe m-0">Ressource suggérée</p>
         </div>
         <button
           onClick={() => navigate(createPageUrl("Ressources"))}
-          className="inline-flex items-center gap-1.5 text-[10px] tracking-[0.16em] uppercase text-menthe-clair hover:text-encre transition-colors"
+          className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.16em] uppercase text-menthe-clair hover:text-encre transition-colors"
         >
           Toutes les ressources
           <ArrowRight className="w-3 h-3" />
@@ -133,7 +133,7 @@ export default function DashboardSuggestedResources({ user }) {
           {resource.duree_minutes && (
             <div className="absolute bottom-2 left-2 bg-fond/70 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-1">
               <Clock className="w-2.5 h-2.5 text-encre/70" />
-              <span className="text-[9px] text-encre/70">{resource.duree_minutes} min</span>
+              <span className="text-[11px] text-encre/70">{resource.duree_minutes} min</span>
             </div>
           )}
         </div>
@@ -147,7 +147,7 @@ export default function DashboardSuggestedResources({ user }) {
             {reason}
           </p>
           {allViewed && (
-            <p className="text-ardoise text-[10px] mt-2 mb-0">Déjà vue — un rappel ne fait jamais de mal.</p>
+            <p className="text-ardoise text-[11px] mt-2 mb-0">Déjà vue — un rappel ne fait jamais de mal.</p>
           )}
         </div>
       </div>

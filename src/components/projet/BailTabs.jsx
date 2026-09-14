@@ -29,7 +29,7 @@ function InfoCard({ label, value, accent, badge, note, onDelete, showDelete, cha
           <ValeurEditable champ={champ} type="text">{value}</ValeurEditable>
         </span>
         {badge && (
-          <span className={`ml-2 text-[10px] tracking-[0.12em] uppercase ${badge === "preneur" ? "text-menthe-clair" : "text-ardoise"}`}>
+          <span className={`ml-2 text-[11px] tracking-[0.12em] uppercase ${badge === "preneur" ? "text-menthe-clair" : "text-ardoise"}`}>
             {badge === "preneur" ? "Preneur" : "Bailleur"}
           </span>
         )}
@@ -402,12 +402,12 @@ export default function BailTabs({ project }) {
       {tab === "analyse" && (
         hasAnalyse ? (
           <TexteEditable champ="analyse_bail">
-          <div className="text-[14.5px] text-craie leading-[1.8] space-y-5">
+          <div className="text-[15px] text-craie leading-[1.8] space-y-5">
             {project.analyse_bail.split(/(\b\d{1,2}\.\s+[A-ZÀ-Ü][^\n]+)/).filter(Boolean).map((section, idx) => {
               const isSectionTitle = /^\d{1,2}\.\s+[A-ZÀ-Ü]/.test(section.trim());
               if (isSectionTitle) {
                 return (
-                  <div key={idx} className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair border-t border-encre/[0.12] pt-5 mt-6 first:mt-0 first:border-0 first:pt-0">
+                  <div key={idx} className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair border-t border-encre/[0.12] pt-5 mt-6 first:mt-0 first:border-0 first:pt-0">
                     {section.trim()}
                   </div>
                 );
@@ -439,23 +439,23 @@ function AnalyseBailLue({ projectId }) {
   if (!data?.disponible) return null;
   const Ligne = ({ l }) => (
     <div className="py-3 border-b border-trait grid grid-cols-[minmax(160px,1fr)_2fr] gap-x-6">
-      <span className="text-[13px] text-ardoise">{l.libelle}</span>
-      <span className="text-[14px] text-encre">{l.valeur || <span className="text-brume">—</span>}</span>
+      <span className="text-[12.5px] text-ardoise">{l.libelle}</span>
+      <span className="text-[13.5px] text-encre">{l.valeur || <span className="text-brume">—</span>}</span>
     </div>
   );
   return (
     <div className="mb-8">
       <div className="grid md:grid-cols-2 gap-x-12">
         <div>
-          <p className="m-0 mb-1 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Le bail</p>
+          <p className="m-0 mb-1 text-[11px] tracking-[.18em] uppercase text-ardoise">Le bail</p>
           {data.essentiel.map((l) => <Ligne key={l.id} l={l} />)}
         </div>
         <div>
-          <p className="m-0 mb-1 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Situation actuelle · quittances</p>
-          {data.quittances_essentiel.length ? data.quittances_essentiel.map((l) => <Ligne key={l.id} l={l} />) : <p className="m-0 py-3 text-[13px] text-brume">Aucune quittance dans le dossier.</p>}
+          <p className="m-0 mb-1 text-[11px] tracking-[.18em] uppercase text-ardoise">Situation actuelle · quittances</p>
+          {data.quittances_essentiel.length ? data.quittances_essentiel.map((l) => <Ligne key={l.id} l={l} />) : <p className="m-0 py-3 text-[12.5px] text-brume">Aucune quittance dans le dossier.</p>}
         </div>
       </div>
-      <button onClick={() => setComplet((o) => !o)} className="mt-5 px-4 py-2 rounded-full border border-bord-doux text-[13px] text-craie hover:text-encre hover:border-bord-vif">{complet ? "Replier l'analyse du bail" : "Analyse du bail complète"}</button>
+      <button onClick={() => setComplet((o) => !o)} className="mt-5 px-4 py-2 rounded-full border border-bord-doux text-[12.5px] text-craie hover:text-encre hover:border-bord-vif">{complet ? "Replier l'analyse du bail" : "Analyse du bail complète"}</button>
       {complet && (
         <div className="mt-4 bg-fond border border-trait rounded-[18px] overflow-hidden">
           {data.bail && <TableCriteres g={data.bail} sansSources lectureSeule />}

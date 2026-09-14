@@ -59,7 +59,7 @@ export default function AdminBanque() {
         {/* Header */}
         <div className="mb-8">
           <p className="text-ardoise uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Présentations bancaires</h1>
+          <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Présentations bancaires</h1>
         </div>
 
         {/* Générateur de texte pour présentation */}

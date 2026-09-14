@@ -123,9 +123,9 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-trait">
-              <th className="sticky left-0 z-10 bg-surface px-3 py-2 text-left text-[9px] uppercase tracking-[0.14em] text-brume font-medium whitespace-nowrap">Ligne</th>
+              <th className="sticky left-0 z-10 bg-surface px-3 py-2 text-left text-[11px] uppercase tracking-[0.14em] text-brume font-medium whitespace-nowrap">Ligne</th>
               {years.map((y) => (
-                <th key={y} className="px-2 py-2 text-right text-[9px] uppercase tracking-[0.14em] text-brume font-medium whitespace-nowrap">An {y}</th>
+                <th key={y} className="px-2 py-2 text-right text-[11px] uppercase tracking-[0.14em] text-brume font-medium whitespace-nowrap">An {y}</th>
               ))}
             </tr>
           </thead>
@@ -140,7 +140,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                   onClick={() => toggle(sec.title)}
                 >
                   <td
-                    className="sticky left-0 z-10 px-3 py-2 text-[10px] uppercase tracking-[0.18em] font-semibold border-b border-trait whitespace-nowrap"
+                    className="sticky left-0 z-10 px-3 py-2 text-[11px] uppercase tracking-[0.18em] font-semibold border-b border-trait whitespace-nowrap"
                     style={{ backgroundColor: sec.headerBg, color: sec.color }}
                   >
                     <span className="inline-flex items-center gap-1.5">

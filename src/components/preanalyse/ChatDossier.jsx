@@ -196,7 +196,7 @@ export default function ChatDossier({
       {!modeMail && !modePreanalyse && (conversation || envoyer.isPending) && (
         <div className="fixed inset-y-0 right-0 z-[60] w-full sm:w-[680px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col animate-in slide-in-from-right duration-300 ease-out">
           <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-trait flex-none">
-            <p className="m-0 text-[14px] text-encre truncate">{conversation?.titre || "Nouvelle requête"}</p>
+            <p className="m-0 text-[13.5px] text-encre truncate">{conversation?.titre || "Nouvelle requête"}</p>
             <button onClick={() => setConversationId(null)} className="text-brume hover:text-encre flex-shrink-0" aria-label="Fermer"><X className="w-4 h-4" /></button>
           </header>
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
@@ -268,10 +268,10 @@ export default function ChatDossier({
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setMenuPlus(false)} />
                       <div className="absolute bottom-full left-0 mb-2 z-20 bg-surface border border-bord-doux rounded-xl shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 min-w-[240px]">
-                        <button onClick={() => { setMenuPlus(false); fichierRef.current?.click(); }} className="w-full flex items-center gap-2.5 text-left text-[13px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg">
+                        <button onClick={() => { setMenuPlus(false); fichierRef.current?.click(); }} className="w-full flex items-center gap-2.5 text-left text-[12.5px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg">
                           <Paperclip className="w-3.5 h-3.5" /> Depuis cet ordinateur
                         </button>
-                        <button onClick={() => { setMenuPlus(false); setDriveOuvert(true); }} disabled={!dossier} className="w-full flex items-center gap-2.5 text-left text-[13px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg disabled:opacity-40">
+                        <button onClick={() => { setMenuPlus(false); setDriveOuvert(true); }} disabled={!dossier} className="w-full flex items-center gap-2.5 text-left text-[12.5px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg disabled:opacity-40">
                           <HardDrive className="w-3.5 h-3.5" /> Depuis le Google Drive
                         </button>
                       </div>
@@ -284,7 +284,7 @@ export default function ChatDossier({
                   <button type="button" className={`accueil-icon ${nbCoches ? "!border-menthe/60 !text-menthe" : ""}`} onClick={() => onToutCocher?.()} disabled={!documents.length} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"} aria-label="Sources"><PanelRight className="w-4 h-4" /></button>
                   <span className="inline-flex items-center rounded-[9px] border border-trait p-0.5">
                     {[["rapide", "Rapidité", "Une réponse courte et directe"], ["reflexion", "Réflexion", "L'analyse des pièces, plus longue"]].map(([id, mot, titre]) => (
-                      <button key={id} type="button" onClick={() => setProfondeur(id)} title={titre} className={`px-3 py-1.5 rounded-[7px] text-[13px] transition-colors ${profondeur === id ? "bg-[#9CC3BC] text-sur-menthe font-medium" : "text-[#9a9a9a] hover:text-encre"}`} style={{ fontFamily: "Figtree, sans-serif" }}>{mot}</button>
+                      <button key={id} type="button" onClick={() => setProfondeur(id)} title={titre} className={`px-3 py-1.5 rounded-[7px] text-[12.5px] transition-colors ${profondeur === id ? "bg-[#9CC3BC] text-sur-menthe font-medium" : "text-[#9a9a9a] hover:text-encre"}`} style={{ fontFamily: "Figtree, sans-serif" }}>{mot}</button>
                     ))}
                   </span>
                 </>
@@ -362,7 +362,7 @@ function Volet({ titre, nombre = 0, ouvert, onBasculer, className = "", children
   return (
     <div className={className}>
       <button type="button" onClick={onBasculer} aria-expanded={ouvert} className="w-full flex items-center justify-between py-3 border-t border-b border-relief text-left group">
-        <span className="text-[16px] font-medium text-encre">{titre}{nombre ? <span className="text-brume font-normal"> · {nombre}</span> : null}</span>
+        <span className="text-[15px] font-medium text-encre">{titre}{nombre ? <span className="text-brume font-normal"> · {nombre}</span> : null}</span>
         <span className={`w-7 h-7 rounded-full flex items-center justify-center text-brume group-hover:text-encre group-hover:bg-encre/5 transition-all duration-300 ${ouvert ? "rotate-180" : ""}`}>
           <ChevronDown className="w-4 h-4" />
         </span>

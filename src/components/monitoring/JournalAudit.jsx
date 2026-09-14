@@ -51,8 +51,8 @@ export default function JournalAudit() {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
         <div>
           <div className="text-[11px] tracking-[.16em] uppercase text-ardoise mb-2">Traçabilité</div>
-          <h2 className="m-0 text-[17px] font-normal text-encre">Qui a fait quoi</h2>
-          <p className="mt-2 mb-0 max-w-[62ch] text-[13px] leading-[1.65] text-ardoise">
+          <h2 className="m-0 text-[18px] font-normal text-encre">Qui a fait quoi</h2>
+          <p className="mt-2 mb-0 max-w-[62ch] text-[12.5px] leading-[1.65] text-ardoise">
             Les écritures, les documents ouverts, les sauvegardes emportées, et tous les refus.
             Les consultations ordinaires ne figurent pas ici : elles sont comptées plus haut.
           </p>
@@ -75,7 +75,7 @@ export default function JournalAudit() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-[13px] text-ardoise py-6">
+        <div className="flex items-center gap-2 text-[12.5px] text-ardoise py-6">
           <Loader2 className="w-4 h-4 animate-spin" />
           Lecture du journal…
         </div>
@@ -86,7 +86,7 @@ export default function JournalAudit() {
             {personne && (
               <button
                 onClick={() => setPersonne(null)}
-                className="px-3 py-2 border border-menthe text-[12px] text-menthe rounded-md"
+                className="px-3 py-2 border border-menthe text-[12.5px] text-menthe rounded-md"
               >
                 {personne} · tout voir
               </button>
@@ -113,7 +113,7 @@ export default function JournalAudit() {
           </div>
 
           {entrees.length === 0 ? (
-            <p className="m-0 text-[13px] text-brume">Rien sur cette période.</p>
+            <p className="m-0 text-[12.5px] text-brume">Rien sur cette période.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[12.5px] border-collapse">

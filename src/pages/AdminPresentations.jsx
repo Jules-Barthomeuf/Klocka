@@ -61,7 +61,7 @@ function CasePhoto({ label, url, suggestions, onChange }) {
         )}
       </div>
       <div className="flex items-center justify-between px-2.5 py-2">
-        <span className="text-[10.5px] tracking-[0.06em] uppercase text-ardoise truncate">{label}</span>
+        <span className="text-[11px] tracking-[0.06em] uppercase text-ardoise truncate">{label}</span>
         <div className="flex items-center gap-1 flex-shrink-0">
           {suggestions.length > 1 && (
             <>
@@ -181,7 +181,7 @@ function PanneauGeneration({ project }) {
           <button
             onClick={() => generer.mutate()}
             disabled={generer.isPending}
-            className="inline-flex items-center justify-center gap-2 text-surface px-6 py-3 text-[14px] font-bold hover:brightness-95 transition-all disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 text-surface px-6 py-3 text-[13.5px] font-bold hover:brightness-95 transition-all disabled:opacity-60"
             style={{ background: J["encre"] }}
           >
             {generer.isPending ? (
@@ -274,11 +274,11 @@ function LigneProjet({ p, onClick }) {
         <Building2 className="w-4 h-4 text-ardoise" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-encre text-[14px] font-medium truncate">{p.titre || "Sans titre"}</p>
-        {p.adresse_complete && <p className="text-brume text-[12px] truncate">{p.adresse_complete}</p>}
+        <p className="text-encre text-[13.5px] font-medium truncate">{p.titre || "Sans titre"}</p>
+        {p.adresse_complete && <p className="text-brume text-[12.5px] truncate">{p.adresse_complete}</p>}
       </div>
       {p.presentation_google_slides && (
-        <span className="text-[10px] tracking-[0.12em] uppercase text-menthe-clair flex-shrink-0">Générée</span>
+        <span className="text-[11px] tracking-[0.12em] uppercase text-menthe-clair flex-shrink-0">Générée</span>
       )}
     </button>
   );
@@ -335,8 +335,8 @@ export default function AdminPresentations() {
     <div className="min-h-screen text-encre p-4 md:p-10" style={{ background: "linear-gradient(160deg,#000000 0%,#000000 90%)" }}>
       <div className="max-w-5xl mx-auto">
         <div className="mb-9 text-center">
-          <h1 className="text-[28px] md:text-[32px] font-light leading-[1.08] -tracking-[0.02em] m-0">Présentations</h1>
-          <p className="text-ardoise text-[14px] leading-[1.5] mt-2 max-w-[460px] mx-auto">
+          <h1 className="text-[24px] md:text-[34px] font-light leading-[1.08] -tracking-[0.02em] m-0">Présentations</h1>
+          <p className="text-ardoise text-[13.5px] leading-[1.5] mt-2 max-w-[460px] mx-auto">
             Une ville, un dossier : générez la présentation de financement.
           </p>
         </div>
@@ -385,14 +385,14 @@ export default function AdminPresentations() {
               <div>
                 <button
                   onClick={() => setVille("")}
-                  className="inline-flex items-center gap-1.5 text-ardoise hover:text-encre text-[14px] mb-4 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-ardoise hover:text-encre text-[13.5px] mb-4 transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Toutes les villes
                 </button>
-                <h2 className="text-[19px] font-light text-encre mb-4">
+                <h2 className="text-[18px] font-light text-encre mb-4">
                   {ville}
-                  <span className="text-brume text-[13px] ml-2">
+                  <span className="text-brume text-[12.5px] ml-2">
                     {projetsDeLaVille.length} dossier{projetsDeLaVille.length > 1 ? "s" : ""}
                   </span>
                 </h2>
@@ -412,7 +412,7 @@ export default function AdminPresentations() {
                     className="text-left bg-surface border border-trait px-4 py-4 hover:border-menthe/60 hover:bg-encre/[0.03] transition-all"
                   >
                     <p className="text-encre text-[15px] font-medium truncate">{nom}</p>
-                    <p className="text-brume text-[12px] mt-1">
+                    <p className="text-brume text-[12.5px] mt-1">
                       {n} dossier{n > 1 ? "s" : ""}
                     </p>
                   </button>
@@ -426,13 +426,13 @@ export default function AdminPresentations() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <button
               onClick={() => setSelectedId("")}
-              className="inline-flex items-center gap-1.5 text-ardoise hover:text-encre text-[14px] mb-5 transition-colors"
+              className="inline-flex items-center gap-1.5 text-ardoise hover:text-encre text-[13.5px] mb-5 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
               {ville || "Retour"}
             </button>
-            <h2 className="text-[20px] font-light text-encre mb-1">{selectedProject.titre || "Sans titre"}</h2>
-            {selectedProject.adresse_complete && <p className="text-brume text-[13px] mb-6">{selectedProject.adresse_complete}</p>}
+            <h2 className="text-[18px] font-light text-encre mb-1">{selectedProject.titre || "Sans titre"}</h2>
+            {selectedProject.adresse_complete && <p className="text-brume text-[12.5px] mb-6">{selectedProject.adresse_complete}</p>}
 
             <PanneauGeneration project={selectedProject} />
           </motion.div>

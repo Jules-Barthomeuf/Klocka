@@ -67,7 +67,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
   return (
     <div className="border border-menthe/40 rounded-xl bg-surface px-5 py-4">
       <div className="flex items-baseline justify-between gap-4 mb-3">
-        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-menthe">Brouillon — {INTENTIONS_LIBELLES[b.intention] || b.intention}</p>
+        <p className="m-0 text-[11px] tracking-[.18em] uppercase text-menthe">Brouillon — {INTENTIONS_LIBELLES[b.intention] || b.intention}</p>
         <button onClick={onFermer} className="text-brume hover:text-encre" aria-label="Fermer"><X className="w-4 h-4" /></button>
       </div>
       {[["destinataire", "À"], ["objet", "Objet"]].map(([cle, libelle]) => (
@@ -76,7 +76,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
           <input
             value={b[cle]}
             onChange={(e) => onChange({ ...b, [cle]: e.target.value })}
-            className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13px] text-encre"
+            className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[12.5px] text-encre"
           />
         </label>
       ))}
@@ -87,7 +87,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
         className="w-full mt-3 bg-transparent border-0 outline-none resize-y text-[13.5px] leading-[1.65] text-encre"
       />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[11.5px] text-brume">Relisez : rien ne part sans vous.</span>
+        <span className="text-[11px] text-brume">Relisez : rien ne part sans vous.</span>
         <button
           onClick={onEnvoyer}
           disabled={enCours || !b.destinataire.trim()}
@@ -108,8 +108,8 @@ function FicheClient({ champs, onChange, onValider, enCours }) {
   return (
     <div className="border border-menthe/40 rounded-xl bg-surface px-5 py-4">
       <div className="flex items-baseline justify-between gap-4 mb-3">
-        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-menthe">Ce que j'ai lu</p>
-        <p className="m-0 text-[11.5px] text-brume">Cliquez une valeur pour la corriger</p>
+        <p className="m-0 text-[11px] tracking-[.18em] uppercase text-menthe">Ce que j'ai lu</p>
+        <p className="m-0 text-[11px] text-brume">Cliquez une valeur pour la corriger</p>
       </div>
       <dl className="m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
         {CHAMPS.map(([cle, libelle, unite]) => {
@@ -124,12 +124,12 @@ function FicheClient({ champs, onChange, onValider, enCours }) {
                   defaultValue={v ?? ""}
                   onBlur={(e) => { onChange(cle, e.target.value, unite); setEdition(null); }}
                   onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEdition(null); }}
-                  className="flex-1 min-w-0 bg-transparent border-b border-menthe text-[13px] text-encre outline-none"
+                  className="flex-1 min-w-0 bg-transparent border-b border-menthe text-[12.5px] text-encre outline-none"
                 />
               ) : (
                 <dd
                   onClick={() => setEdition(cle)}
-                  className={`m-0 flex-1 min-w-0 text-[13px] truncate cursor-text ${affiche ? "text-encre" : cle === "email" ? "text-alerte" : "text-bord-vif italic"}`}
+                  className={`m-0 flex-1 min-w-0 text-[12.5px] truncate cursor-text ${affiche ? "text-encre" : cle === "email" ? "text-alerte" : "text-bord-vif italic"}`}
                   title={affiche || "non dit — cliquez pour saisir"}
                 >
                   {affiche || (cle === "email" ? "manquant — sans lui, pas de compte Klocka" : "non dit")}
@@ -144,7 +144,7 @@ function FicheClient({ champs, onChange, onValider, enCours }) {
         <p className="m-0 mt-3 text-[12.5px] leading-[1.65] text-ardoise border-l-2 border-bord pl-3 whitespace-pre-wrap">{champs.remarque}</p>
       )}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[11.5px] text-brume">
+        <span className="text-[11px] text-brume">
           {manqueEmail ? "La fiche Monday sera créée ; le compte et le lien attendent l'adresse." : "Fiche Monday, compte Klocka pré-rempli, lien d'invitation."}
         </span>
         <button
@@ -179,19 +179,19 @@ function ResultatClient({ r }) {
         </p>
       ))}
       {r.rates.map((f) => (
-        <p key={f} className="m-0 text-[13px] text-alerte">{f}</p>
+        <p key={f} className="m-0 text-[12.5px] text-alerte">{f}</p>
       ))}
       {r.invitation?.lien && (
         <div className="pt-2">
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise mb-2">Lien d'invitation — à envoyer à {r.invitation.email}</p>
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise mb-2">Lien d'invitation — à envoyer à {r.invitation.email}</p>
           <div className="flex flex-wrap items-center gap-3">
-            <code className="text-[12px] text-craie break-all bg-fond px-3 py-2 border border-trait flex-1 min-w-[240px]">{r.invitation.lien}</code>
-            <button onClick={copier} className="inline-flex items-center gap-2 px-4 py-2 border border-bord-doux text-encre text-[10px] tracking-[.16em] uppercase hover:bg-encre/[0.06]">
+            <code className="text-[12.5px] text-craie break-all bg-fond px-3 py-2 border border-trait flex-1 min-w-[240px]">{r.invitation.lien}</code>
+            <button onClick={copier} className="inline-flex items-center gap-2 px-4 py-2 border border-bord-doux text-encre text-[11px] tracking-[.16em] uppercase hover:bg-encre/[0.06]">
               {copie ? <Check className="w-3.5 h-3.5 text-menthe" /> : <Copy className="w-3.5 h-3.5" />}
               {copie ? "Copié" : "Copier"}
             </button>
           </div>
-          <p className="m-0 mt-2 text-[11.5px] text-brume">Valable quatorze jours. La personne ouvre le lien, choisit son mot de passe, retrouve un profil déjà rempli.</p>
+          <p className="m-0 mt-2 text-[11px] text-brume">Valable quatorze jours. La personne ouvre le lien, choisit son mot de passe, retrouve un profil déjà rempli.</p>
         </div>
       )}
       {r.monday?.id && (
@@ -199,7 +199,7 @@ function ResultatClient({ r }) {
           href={`https://klocka-company.monday.com/boards/2110621760/pulses/${r.monday.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-[12px] text-menthe hover:text-encre"
+          className="inline-flex items-center gap-1.5 text-[12.5px] text-menthe hover:text-encre"
         >
           Ouvrir la fiche Monday <ArrowRight className="w-3 h-3" />
         </a>
@@ -233,12 +233,12 @@ function ResultatFiche({ r, clients }) {
     <div className="border border-trait rounded-xl bg-surface px-5 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div className="min-w-0">
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Dossier créé</p>
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Dossier créé</p>
           <h3 className="m-0 mt-1 text-[18px] font-semibold tracking-[-.01em] text-encre truncate">{r.titre || s.titre || "Sans titre"}</h3>
         </div>
-        {verdict && <span className={`px-3 py-1 border text-[10.5px] tracking-[.16em] uppercase ${teinte}`}>{verdict}</span>}
+        {verdict && <span className={`px-3 py-1 border text-[11px] tracking-[.16em] uppercase ${teinte}`}>{verdict}</span>}
       </div>
-      {faits.length > 0 && <p className="m-0 mt-2 text-[13px] text-craie">{faits.join(" · ")}</p>}
+      {faits.length > 0 && <p className="m-0 mt-2 text-[12.5px] text-craie">{faits.join(" · ")}</p>}
       {ratees.length > 0 && (
         <ul className="m-0 mt-3 pl-0 list-none space-y-1">
           {ratees.slice(0, 4).map((g, i) => (
@@ -267,14 +267,14 @@ function Carte({ titre, sous, teinte = J["bord"], actions }) {
       <div className="w-[2px] flex-none self-stretch" style={{ background: teinte }} />
       <div className="min-w-0 flex-1">
         <p className="m-0 text-[13.5px] leading-[1.55] text-encre">{titre}</p>
-        {sous && <p className="m-0 mt-0.5 text-[12px] text-brume">{sous}</p>}
+        {sous && <p className="m-0 mt-0.5 text-[12.5px] text-brume">{sous}</p>}
         <div className="mt-2.5 flex flex-wrap gap-2">
           {actions.map((a) => (
             <button
               key={a.libelle}
               onClick={a.onClick}
               disabled={a.enCours}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10.5px] tracking-[.14em] uppercase transition-colors disabled:opacity-40 ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] tracking-[.14em] uppercase transition-colors disabled:opacity-40 ${
                 a.principal ? "bg-menthe text-fond hover:bg-menthe-survol font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"
               }`}
             >
@@ -325,7 +325,7 @@ function Echeances({ onBrouillon }) {
       <ListeRelances />
       {sans_reponse.length > 0 && (
         <section>
-          <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Sans réponse</p>
+          <p className="m-0 mb-2 text-[11px] tracking-[.18em] uppercase text-ardoise">Sans réponse</p>
           <div className="space-y-2">
             {sans_reponse.map((s) => (
               <Carte
@@ -344,7 +344,7 @@ function Echeances({ onBrouillon }) {
       )}
       {silencieux.length > 0 && (
         <section>
-          <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Rien n'est parti</p>
+          <p className="m-0 mb-2 text-[11px] tracking-[.18em] uppercase text-ardoise">Rien n'est parti</p>
           <div className="space-y-2">
             {silencieux.map((d) => (
               <Carte
@@ -605,7 +605,7 @@ export default function ChatDashboard() {
                 <button
                   key={s.libelle}
                   onClick={() => (s.externe ? window.open(s.externe, "_blank", "noopener") : s.href ? navigate(s.href) : lancer(s.texte))}
-                  className={`px-3 py-1.5 text-[10.5px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-menthe text-fond hover:bg-menthe-survol font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"}`}
+                  className={`px-3 py-1.5 text-[11px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-menthe text-fond hover:bg-menthe-survol font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"}`}
                 >
                   {s.libelle}
                 </button>
@@ -645,7 +645,7 @@ export default function ChatDashboard() {
                   <button onClick={() => setFichier(null)} className="text-brume hover:text-alerte" aria-label="Retirer"><X className="w-3.5 h-3.5" /></button>
                 </span>
               )}
-              {erreur && <span className="text-[12px] text-alerte">{erreur}</span>}
+              {erreur && <span className="text-[12.5px] text-alerte">{erreur}</span>}
               {mode === "mail" && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
             </div>
           )}
@@ -660,7 +660,7 @@ export default function ChatDashboard() {
                     <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
                     <div className="absolute bottom-full left-0 mb-2 z-20 min-w-[300px] bg-surface border border-bord-doux rounded-xl shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5">
                       {COMMANDES.map((c) => (
-                        <button key={c.texte} onClick={() => { setTexte(c.texte); setMode(c.mode || null); setCommandes(false); }} className="w-full text-left text-[13px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg">
+                        <button key={c.texte} onClick={() => { setTexte(c.texte); setMode(c.mode || null); setCommandes(false); }} className="w-full text-left text-[12.5px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg">
                           {c.texte}
                         </button>
                       ))}

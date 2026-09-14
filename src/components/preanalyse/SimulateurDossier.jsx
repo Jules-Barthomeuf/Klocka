@@ -330,7 +330,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
               <SimDataTable calculs={calculs} anneeRevente={etat.anneeRevente} formatCurrency={formatCurrency} dureeCredit={etat.dureeCredit} />
             )}
 
-            <p className="text-[10px] text-brume italic px-1">
+            <p className="text-[11px] text-brume italic px-1">
               Projection financière : hypothèses par défaut du simulateur là où le dossier est muet.
             </p>
           </div>

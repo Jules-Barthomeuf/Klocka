@@ -73,7 +73,7 @@ function computeScenario(params, prixNegocie) {
 function StatCell({ label, value, highlight = undefined }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[10px] text-[hsl(var(--background))]">{label}</span>
+      <span className="text-[11px] text-[hsl(var(--background))]">{label}</span>
       <span className={`text-sm tabular-nums ${highlight ? "text-menthe" : "text-encre"}`}>{value}</span>
     </div>);
 
@@ -121,11 +121,11 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
             }>
             
               <span className="text-base tabular-nums text-[hsl(var(--background))]">-{s.niveau}%</span>
-              <span className="text-[10px] tabular-nums text-[hsl(var(--border))]">{formatCurrency(s.data.prixNegocie)}</span>
+              <span className="text-[11px] tabular-nums text-[hsl(var(--border))]">{formatCurrency(s.data.prixNegocie)}</span>
             </button>
           )}
           <div className={`flex flex-col justify-center px-4 py-2 rounded-md border transition-all duration-300 min-w-[140px] ${customActive ? "bg-menthe/15 border-menthe/50" : "bg-[#141414] border-trait"}`}>
-            <span className="text-[10px] text-ardoise mb-1">Prix personnalisé</span>
+            <span className="text-[11px] text-ardoise mb-1">Prix personnalisé</span>
             <input
               type="number"
               value={customPrix}
@@ -139,7 +139,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
 
       {/* Détail du scénario sélectionné */}
       <div key={selected.niveau} className="rounded-md border border-trait bg-[#0f0f0f] p-4 animate-in fade-in duration-300">
-        <p className="text-[10px] uppercase tracking-[0.18em] mb-3 text-[hsl(var(--background))]">
+        <p className="text-[11px] uppercase tracking-[0.18em] mb-3 text-[hsl(var(--background))]">
           Scénario sélectionné · {selected.niveau === "custom" ? "Prix personnalisé" : `Négociation -${selected.niveau}%`}
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

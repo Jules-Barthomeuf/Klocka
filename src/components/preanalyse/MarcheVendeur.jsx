@@ -81,7 +81,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
       <section className={premiere ? "" : "mt-[34px] border-t border-trait pt-7"}>
         <Etiquette>Le vendeur · ALX</Etiquette>
         <div className="mt-2 text-[13.5px] text-ardoise">{error?.message || "ALX n'a pas pu lire le vendeur."}</div>
-        <button onClick={() => refetch()} className="mt-2 text-[13px] text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>Réessayer</button>
+        <button onClick={() => refetch()} className="mt-2 text-[12.5px] text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>Réessayer</button>
       </section>
     );
   }
@@ -105,7 +105,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
     <section className={premiere ? "" : "mt-[34px] border-t border-trait pt-7"}>
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <Etiquette>Le vendeur · ALX</Etiquette>
-        <button onClick={() => relire.mutate()} disabled={relire.isPending || isFetching} className="text-[12px] text-ardoise hover:text-encre disabled:opacity-50" style={{ background: "transparent" }} title="Relit Data Foncier, l'annuaire, le BODACC et DVF">
+        <button onClick={() => relire.mutate()} disabled={relire.isPending || isFetching} className="text-[12.5px] text-ardoise hover:text-encre disabled:opacity-50" style={{ background: "transparent" }} title="Relit Data Foncier, l'annuaire, le BODACC et DVF">
           {relire.isPending ? "ALX relit…" : `Relire${o.du_cache ? ` · lu le ${new Date(o.le).toLocaleDateString("fr-FR")}` : ""}`}
         </button>
       </div>
@@ -114,16 +114,16 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
         {/* Le propriétaire des murs */}
         <div className="flex flex-col gap-5">
           <div>
-            <Etiquette className="!text-[9px]">Propriétaire des murs</Etiquette>
-            <div className="mt-1.5 text-[20px] font-light tracking-[-.02em] text-encre">{p?.nom ? joliNom(p.nom) : o.foncier?.autres?.length ? "Plusieurs, à départager" : "Introuvable"}</div>
-            {meta && <div className="mt-1 text-[13px] text-ardoise">{meta}</div>}
-            {o.foncier?.motif_choix && <div className="mt-1 text-[12px] text-brume">{o.foncier.motif_choix}{o.foncier.adresse_fiche ? ` · fiche ${o.foncier.adresse_fiche}` : ""}</div>}
+            <Etiquette className="!text-[11px]">Propriétaire des murs</Etiquette>
+            <div className="mt-1.5 text-[18px] font-light tracking-[-.02em] text-encre">{p?.nom ? joliNom(p.nom) : o.foncier?.autres?.length ? "Plusieurs, à départager" : "Introuvable"}</div>
+            {meta && <div className="mt-1 text-[12.5px] text-ardoise">{meta}</div>}
+            {o.foncier?.motif_choix && <div className="mt-1 text-[12.5px] text-brume">{o.foncier.motif_choix}{o.foncier.adresse_fiche ? ` · fiche ${o.foncier.adresse_fiche}` : ""}</div>}
             {c.proprietaire_occupant && <div className="mt-1 text-[12.5px]" style={{ color: TEINTES.appeler }}>L'exploitant vend ses propres murs.</div>}
           </div>
 
           {gerants.length > 0 && (
             <div>
-              <Etiquette className="!text-[9px]">Gérants</Etiquette>
+              <Etiquette className="!text-[11px]">Gérants</Etiquette>
               <div className="mt-1.5 flex flex-col">
                 {gerants.map((g, i) => (
                   <div key={i} className="flex items-baseline justify-between gap-3 border-t border-trait py-2">
@@ -143,18 +143,18 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
               [seul ? "Dernière vente du local" : "Dernière vente sur la parcelle", c.mutation?.du_local ? `${annee(c.mutation.date)}${c.mutation.prix ? ` · ${nombre(c.mutation.prix)} €` : ""}${c.mutation.surface ? ` · ${nombre(c.mutation.surface)} m²` : ""}` : c.dvf?.n ? `aucune ; ${c.dvf.n} vente${c.dvf.n > 1 ? "s" : ""} à 40 m` : "—"],
             ].map(([mot, v]) => (
               <div key={mot}>
-                <Etiquette className="!text-[9px]">{mot}</Etiquette>
-                <div className="mt-1 text-[14px] font-medium tabular-nums text-encre">{v}</div>
+                <Etiquette className="!text-[11px]">{mot}</Etiquette>
+                <div className="mt-1 text-[13.5px] font-medium tabular-nums text-encre">{v}</div>
               </div>
             ))}
           </div>
 
           {(c.evenements || []).length > 0 && (
             <div>
-              <Etiquette className="!text-[9px]">Au BODACC, trois ans</Etiquette>
+              <Etiquette className="!text-[11px]">Au BODACC, trois ans</Etiquette>
               <div className="mt-1.5 flex flex-col gap-1">
                 {c.evenements.slice(0, 4).map((e, i) => (
-                  <div key={i} className="flex gap-3 text-[12.5px] text-craie"><span className="shrink-0 tabular-nums text-[11.5px] text-ardoise">{String(e.date).slice(0, 10)}</span><span className="min-w-0 truncate">{e.type}{e.detail ? ` · ${e.detail}` : ""}</span></div>
+                  <div key={i} className="flex gap-3 text-[12.5px] text-craie"><span className="shrink-0 tabular-nums text-[11px] text-ardoise">{String(e.date).slice(0, 10)}</span><span className="min-w-0 truncate">{e.type}{e.detail ? ` · ${e.detail}` : ""}</span></div>
                 ))}
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
             <Etiquette>Pourquoi il vend</Etiquette>
             <Etiquette teinte={teinte}>{MOT_PILE[o.pile] || o.pile}</Etiquette>
           </div>
-          <p className="m-0 text-[14px] leading-[1.6] text-encre">{o.phrase}</p>
+          <p className="m-0 text-[13.5px] leading-[1.6] text-encre">{o.phrase}</p>
 
           {(raisons.signaux.length > 0 || raisons.drapeaux.length > 0) && (
             <div className="flex flex-col gap-2.5">
@@ -175,7 +175,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
                 <div key={r.cle} className="flex items-start gap-3">
                   <span style={{ color: teinte }}>—</span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 text-[14px] text-encre">{r.libelle}{r.valeur ? <span className="text-ardoise">· {r.valeur}</span> : null}<Lift r={r} /></div>
+                    <div className="flex flex-wrap items-center gap-2 text-[13.5px] text-encre">{r.libelle}{r.valeur ? <span className="text-ardoise">· {r.valeur}</span> : null}<Lift r={r} /></div>
                     {r.detail && <div className="mt-0.5 text-[12.5px] leading-[1.55] text-ardoise">{r.detail}</div>}
                   </div>
                 </div>
@@ -184,7 +184,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
                 <div key={d.cle} className="flex items-start gap-3">
                   <span className="text-ardoise">—</span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] text-craie">{d.libelle}{d.valeur ? <span className="text-ardoise"> · {d.valeur}</span> : null}</div>
+                    <div className="text-[13.5px] text-craie">{d.libelle}{d.valeur ? <span className="text-ardoise"> · {d.valeur}</span> : null}</div>
                     {d.detail && <div className="mt-0.5 text-[12.5px] leading-[1.55] text-ardoise">{d.detail}</div>}
                   </div>
                 </div>
@@ -194,7 +194,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
 
           {raisons.traits.length > 0 && (
             <div>
-              <Etiquette className="!text-[9px]">Ce que l'étude des vendeurs ajoute</Etiquette>
+              <Etiquette className="!text-[11px]">Ce que l'étude des vendeurs ajoute</Etiquette>
               <div className="mt-1.5 flex flex-col gap-1.5">
                 {raisons.traits.map((t) => (
                   <div key={t.cle} className="flex flex-wrap items-center gap-2 text-[13.5px] text-craie">{t.libelle}<Lift r={t} /></div>
@@ -207,22 +207,22 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
           )}
 
           <div className="mt-auto border-t border-trait pt-3">
-            <Etiquette className="!text-[9px]">La vraie raison, si l'agent l'a dite</Etiquette>
+            <Etiquette className="!text-[11px]">La vraie raison, si l'agent l'a dite</Etiquette>
             {o.raison_reelle && raisonCle == null ? (
               <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13.5px] text-encre">
                 {o.raison_reelle.mot}{o.raison_reelle.detail ? <span className="text-ardoise">· {o.raison_reelle.detail}</span> : null}
-                <button onClick={() => setRaisonCle(o.raison_reelle.cle)} className="text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Changer</button>
+                <button onClick={() => setRaisonCle(o.raison_reelle.cle)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Changer</button>
               </div>
             ) : (
               <div className="mt-1.5 flex flex-col gap-2">
                 <div className="flex flex-wrap gap-1.5">
                   {(liste?.raisons || []).map((r) => (
-                    <button key={r.cle} onClick={() => setRaisonCle(r.cle)} className="rounded-full border px-2.5 py-1 text-[12px] transition-colors" style={{ borderColor: raisonCle === r.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: raisonCle === r.cle ? J["menthe"] : J["craie"], background: raisonCle === r.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{r.mot}</button>
+                    <button key={r.cle} onClick={() => setRaisonCle(r.cle)} className="rounded-full border px-2.5 py-1 text-[12.5px] transition-colors" style={{ borderColor: raisonCle === r.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: raisonCle === r.cle ? J["menthe"] : J["craie"], background: raisonCle === r.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{r.mot}</button>
                   ))}
                 </div>
                 {raisonCle && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <input value={raisonTexte} onChange={(e) => setRaisonTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="min-w-0 flex-1 rounded-[10px] border border-trait bg-fond px-3 py-1.5 text-[13px] text-encre outline-none focus:border-menthe/50" />
+                    <input value={raisonTexte} onChange={(e) => setRaisonTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="min-w-0 flex-1 rounded-[10px] border border-trait bg-fond px-3 py-1.5 text-[12.5px] text-encre outline-none focus:border-menthe/50" />
                     <Bouton principal onClick={() => poser.mutate()} disabled={poser.isPending}>{poser.isPending ? "…" : "ALX retient"}</Bouton>
                     <Bouton discret onClick={() => { setRaisonCle(null); setRaisonTexte(""); }}>Annuler</Bouton>
                   </div>
@@ -233,7 +233,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
         </div>
       </div>
 
-      <p className="m-0 mt-4 text-[11.5px] text-brume">
+      <p className="m-0 mt-4 text-[11px] text-brume">
         Data Foncier (Data-B) · annuaire des entreprises · BODACC · DVF · loyer de la rue Data-B · sans crédit, gardé trente jours.
         {etude.vendeurs != null ? ` L'étude compare ${etude.vendeurs} vendeurs (${etude.projets} projets Klocka, ${etude.dossiers} dossier${etude.dossiers > 1 ? "s" : ""}) à ${etude.temoins} commerces qui ne vendent pas ; ce dossier en fait partie.` : ""}
       </p>

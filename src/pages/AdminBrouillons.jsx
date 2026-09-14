@@ -185,7 +185,7 @@ Réponds UNIQUEMENT avec le JSON.`;
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <p className="text-ardoise uppercase tracking-[0.3em] text-[11px] font-medium mb-2">Administration</p>
-            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Double Check</h1>
+            <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Double Check</h1>
           </div>
           <button onClick={openCreate}
           className="group flex items-center gap-3 bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] hover:border-bord-vif text-encre px-6 py-3 rounded-md transition-all duration-300">
@@ -241,7 +241,7 @@ Réponds UNIQUEMENT avec le JSON.`;
                         <div className="h-1.5 flex-1 max-w-[200px] bg-encre/[0.04] rounded-full overflow-hidden">
                           <div className="h-full bg-menthe rounded-full transition-all" style={{ width: `${filledCount / totalCount * 100}%` }} />
                         </div>
-                        <span className="text-brume text-[10px]">{filledCount}/{totalCount}</span>
+                        <span className="text-brume text-[11px]">{filledCount}/{totalCount}</span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <button onClick={() => openEdit(item)}

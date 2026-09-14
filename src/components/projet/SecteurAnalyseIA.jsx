@@ -207,7 +207,7 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
       <SkeletonLine w="72%" />
     </div>
   ) : (
-    <p className={`${vertical ? "text-[13.5px]" : "text-[14.5px] max-md:text-[13.5px]"} leading-[1.75] text-craie mb-0`}>{texte}</p>
+    <p className={`${vertical ? "text-[13.5px]" : "text-[15px] max-md:text-[13.5px]"} leading-[1.75] text-craie mb-0`}>{texte}</p>
   );
 
   if (vertical) {
@@ -215,9 +215,9 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
       <div className="border-l-2 border-menthe pl-5 py-1">
         <div className="flex items-center gap-2 mb-1.5">
           <Sparkles className="w-3.5 h-3.5 text-menthe-clair" />
-          <span className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair">Le secteur</span>
+          <span className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair">Le secteur</span>
         </div>
-        {sousTitre && <div className="text-[10px] tracking-[0.18em] uppercase text-ardoise mb-3">{sousTitre}</div>}
+        {sousTitre && <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mb-3">{sousTitre}</div>}
         <div className={vertical ? "transition-opacity duration-300" : ""} key={section || "general"}>{corps}</div>
       </div>
     );
@@ -227,8 +227,8 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
     <div className="border border-menthe/40 bg-menthe/[0.05] px-6 py-5 max-md:px-4 max-md:py-4 mb-8 max-md:mb-6">
       <div className="flex items-center gap-2 mb-2.5">
         <Sparkles className="w-3.5 h-3.5 text-menthe-clair" />
-        <span className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair">Le secteur</span>
-        {sousTitre && <span className="text-[10px] tracking-[0.18em] uppercase text-ardoise">· {sousTitre}</span>}
+        <span className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair">Le secteur</span>
+        {sousTitre && <span className="text-[11px] tracking-[0.18em] uppercase text-ardoise">· {sousTitre}</span>}
       </div>
       {corps}
     </div>
@@ -249,13 +249,13 @@ function InfoDot({ texte }) {
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onBlur={() => setOpen(false)}
-        className={`w-[15px] h-[15px] rounded-full border text-[9px] leading-none flex items-center justify-center transition-colors
+        className={`w-[15px] h-[15px] rounded-full border text-[11px] leading-none flex items-center justify-center transition-colors
           ${open ? "border-menthe-clair text-menthe-clair" : "border-encre/25 text-ardoise hover:border-menthe-clair hover:text-menthe-clair"}`}
       >
         i
       </button>
       {open && (
-        <span className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-30 w-64 max-md:w-52 bg-surface border border-bord px-3.5 py-3 text-[12px] leading-[1.6] text-craie text-left normal-case tracking-normal shadow-xl">
+        <span className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-30 w-64 max-md:w-52 bg-surface border border-bord px-3.5 py-3 text-[12.5px] leading-[1.6] text-craie text-left normal-case tracking-normal shadow-xl">
           {texte}
         </span>
       )}
@@ -270,7 +270,7 @@ function ChiffresStrip({ chiffres }) {
     <div className="flex flex-wrap border-t border-encre/[0.35] mb-5">
       {list.map((c, i) => (
         <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-4 max-md:py-3 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-5" : ""}`}>
-          <div className="text-[22px] max-md:text-[18px] font-light text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
+          <div className="text-[24px] max-md:text-[18px] font-light text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
           <div className="flex items-center gap-1.5 mt-1">
             <span className="text-[11px] text-ardoise">{c.label}</span>
             <InfoDot texte={c.info} />
@@ -287,7 +287,7 @@ function PointsList({ points }) {
   return (
     <ul className="md:columns-2 md:gap-10 space-y-2.5 list-none pl-0 mb-0">
       {list.map((p, i) => (
-        <li key={i} className="flex gap-2.5 text-[14px] leading-[1.7] text-craie break-inside-avoid">
+        <li key={i} className="flex gap-2.5 text-[13.5px] leading-[1.7] text-craie break-inside-avoid">
           <span className="text-menthe flex-shrink-0 mt-[7px] w-1 h-1 rounded-full bg-menthe" />
           <span>{p}</span>
         </li>
@@ -301,7 +301,7 @@ function Bloc({ label, nom, chiffres, points, loading, fallback }) {
   if (!loading && !hasIA && !fallback) return null;
   return (
     <div className="mb-8 max-md:mb-6 last:mb-0">
-      <div className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-3">
+      <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-3">
         {label}{nom ? ` — ${nom}` : ""}
       </div>
       {loading && !hasIA ? (
@@ -316,7 +316,7 @@ function Bloc({ label, nom, chiffres, points, loading, fallback }) {
           <PointsList points={points} />
         </>
       ) : (
-        <p className="text-[14px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{fallback}</p>
+        <p className="text-[13.5px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{fallback}</p>
       )}
     </div>
   );
@@ -373,11 +373,11 @@ export default function VilleSecteurIA({ analyse, villeData, secteurData, loadin
         loading={attenteIA}
         fallback={project.description_secteur}
       />
-      <p className="text-[10.5px] text-brume mb-0">Ordres de grandeur — INSEE (recensement 2022), observatoires notariaux et données publiques des collectivités.</p>
+      <p className="text-[11px] text-brume mb-0">Ordres de grandeur — INSEE (recensement 2022), observatoires notariaux et données publiques des collectivités.</p>
       {!isPublic && (
         <div className="flex items-center gap-3 mt-3">
           <button onClick={refresh} disabled={loading}
-            className="inline-flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-ardoise hover:text-encre transition-colors disabled:opacity-40">
+            className="inline-flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-ardoise hover:text-encre transition-colors disabled:opacity-40">
             <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
             Actualiser l'analyse
           </button>

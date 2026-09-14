@@ -34,8 +34,8 @@ function ToggleRow({ checked, onCheckedChange, title, description = undefined })
     <div className="flex items-center gap-3 bg-surface border border-trait rounded-none px-[18px] py-3.5">
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
       <div>
-        <Label className="text-encre text-[14px] font-medium cursor-pointer">{title}</Label>
-        {description && <p className="text-ardoise text-[12px] mt-0.5 leading-snug">{description}</p>}
+        <Label className="text-encre text-[13.5px] font-medium cursor-pointer">{title}</Label>
+        {description && <p className="text-ardoise text-[12.5px] mt-0.5 leading-snug">{description}</p>}
       </div>
     </div>
   );
@@ -45,7 +45,7 @@ function ToggleRow({ checked, onCheckedChange, title, description = undefined })
 function FSelect({ label, value, onValueChange, children }) {
   return (
     <div className="bg-surface border border-trait rounded-none px-[18px] py-3 transition-all focus-within:border-bord-vif">
-      {label && <div className="text-[12px] text-ardoise font-semibold mb-1.5">{label}</div>}
+      {label && <div className="text-[12.5px] text-ardoise font-semibold mb-1.5">{label}</div>}
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger className="bg-transparent border-none h-auto p-0 text-[15px] text-encre focus:ring-0"><SelectValue /></SelectTrigger>
         <SelectContent className="bg-surface text-encre border-trait">{children}</SelectContent>
@@ -121,7 +121,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
 
           {/* Honoraires agent */}
           <div className="pt-2">
-            <p className="text-[12px] text-ardoise mb-3 uppercase tracking-[0.14em] font-semibold">Honoraires agent immobilier</p>
+            <p className="text-[12.5px] text-ardoise mb-3 uppercase tracking-[0.14em] font-semibold">Honoraires agent immobilier</p>
             <div className="grid md:grid-cols-3 gap-3">
               <FSelect label="Mode de calcul" value={formData.sim_honoraires_agent_mode || "pct_ttc"} onValueChange={(v) => handleNetVendeurChange("sim_honoraires_agent_mode", v)}>
                 <SelectItem value="pct_ttc">% du prix net vendeur — TTC</SelectItem>
@@ -133,7 +133,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
                 <FInput type="number" step="0.1" value={formData.sim_honoraires_agent_montant || ''} onChange={(e) => handleNetVendeurChange("sim_honoraires_agent_montant", parseFloat(e.target.value) || 0)} />
               </FField>
               <div className="bg-surface border border-trait rounded-none px-[18px] py-3">
-                <div className="text-[12px] text-ardoise font-semibold mb-1.5">Honoraires TTC calculés</div>
+                <div className="text-[12.5px] text-ardoise font-semibold mb-1.5">Honoraires TTC calculés</div>
                 <span className="text-encre font-semibold text-[15px]">
                   {honorairesAgent > 0 ? fmtEur(honorairesAgent) : "—"}
                 </span>
@@ -143,8 +143,8 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
 
           {/* Récap Prix FAI calculé */}
           <div className="pt-3 border-t border-trait flex items-center justify-between">
-            <span className="text-ardoise text-[13px]">Prix FAI calculé (net vendeur + honoraires) :</span>
-            <span className="text-encre font-semibold text-[16px]">
+            <span className="text-ardoise text-[12.5px]">Prix FAI calculé (net vendeur + honoraires) :</span>
+            <span className="text-encre font-semibold text-[15px]">
               {prixFAI > 0 ? fmtEur(prixFAI) : "—"}
             </span>
           </div>
@@ -228,7 +228,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
         description="Remboursement des intérêts uniquement chaque mois — le capital est remboursé en totalité la dernière année"
       />
 
-      <p className="text-[13px] text-ardoise mt-2">Paramètres avancés (renégociation)</p>
+      <p className="text-[12.5px] text-ardoise mt-2">Paramètres avancés (renégociation)</p>
       <div className="grid md:grid-cols-2 gap-4">
         <FField label="Année de renégociation du crédit">
           <FInput type="number" value={formData.sim_annee_renegociation || ''} onChange={(e) => setFormData({...formData, sim_annee_renegociation: e.target.value})} placeholder="Laisser vide si pas de renégociation" />
@@ -267,7 +267,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
       </div>
 
       <SectionTitle>6. Travaux à la charge du bailleur</SectionTitle>
-      <p className="text-[12px] text-ardoise -mt-2">Saisissez le montant des travaux pour chaque année (laisser vide si aucun travaux)</p>
+      <p className="text-[12.5px] text-ardoise -mt-2">Saisissez le montant des travaux pour chaque année (laisser vide si aucun travaux)</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {Array.from({ length: 20 }, (_, i) => i + 1).map((annee) => {
           const entry = travauxList.find(t => parseInt(t.annee) === annee);

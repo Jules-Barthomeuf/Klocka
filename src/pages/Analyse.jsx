@@ -185,8 +185,8 @@ export default function Analyse() {
             {/* Bandeau : titre, tri, relances, nouveau dossier. */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5 border-b border-trait">
               <div>
-                <div className="alx-mont mb-2.5 text-[10px] font-medium uppercase tracking-[.14em] text-ardoise">Pipeline</div>
-                <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Dossiers</h1>
+                <div className="alx-mont mb-2.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Pipeline</div>
+                <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Dossiers</h1>
                 <p className="mb-0 mt-2.5 max-w-[52ch] text-[13.5px] leading-[1.65] text-ardoise">
                   Du premier mail à l'agent jusqu'au dossier de présentation banque, en six étapes.
                 </p>
@@ -198,7 +198,7 @@ export default function Analyse() {
                 <select
                   value={tri}
                   onChange={(e) => setTri(e.target.value)}
-                  className="rounded-[10px] border border-trait bg-fond px-3 py-[8px] text-[13px] text-craie outline-none transition-colors hover:border-bord"
+                  className="rounded-[10px] border border-trait bg-fond px-3 py-[8px] text-[12.5px] text-craie outline-none transition-colors hover:border-bord"
                 >
                   {TRIS.map((t) => (
                     <option key={t.id} value={t.id}>Trier : {t.label}</option>
@@ -238,11 +238,11 @@ export default function Analyse() {
                           <span title="À relancer" className="flex-shrink-0 mt-0.5 text-red-400"><Clock className="w-3.5 h-3.5" /></span>
                         )}
                       </div>
-                      <p className="alx-mont m-0 mt-2.5 text-[9.5px] font-medium uppercase tracking-[.14em]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
+                      <p className="alx-mont m-0 mt-2.5 text-[11px] font-medium uppercase tracking-[.14em]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
                         Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
                         {d.statut === "abandonne" ? " · Abandonné" : ""}
                       </p>
-                      <p className="m-0 mt-2 truncate text-[12px] text-ardoise">
+                      <p className="m-0 mt-2 truncate text-[12.5px] text-ardoise">
                         {(d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0])}
                         {d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}
                       </p>
@@ -264,7 +264,7 @@ export default function Analyse() {
                             const nom = window.prompt("Nouveau nom du dossier :", d.titre || "");
                             if (nom?.trim()) renommer.mutate({ id: d.deal_id, nom: nom.trim() });
                           }}
-                          className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] text-craie hover:bg-encre/[0.06] transition-colors"
+                          className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
                         >
                           <Pencil className="w-3.5 h-3.5" /> Renommer
                         </button>
@@ -274,7 +274,7 @@ export default function Analyse() {
                               setMenuCarte(null);
                               if (window.confirm(`Ramener « ${d.titre} » à l'étape 1 ? Les documents et analyses sont conservés.`)) revenirEtape1.mutate(d.deal_id);
                             }}
-                            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] text-craie hover:bg-encre/[0.06] transition-colors"
+                            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
                           >
                             <RotateCcw className="w-3.5 h-3.5" /> Revenir à l'étape 1
                           </button>
@@ -285,7 +285,7 @@ export default function Analyse() {
                               setMenuCarte(null);
                               if (window.confirm(`Abandonner « ${d.titre} » ? Le dossier restera consultable.`)) abandonner.mutate(d.deal_id);
                             }}
-                            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] text-red-300 hover:bg-red-500/[0.08] transition-colors"
+                            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-red-300 hover:bg-red-500/[0.08] transition-colors"
                           >
                             <Archive className="w-3.5 h-3.5" /> Abandonner
                           </button>
@@ -304,7 +304,7 @@ export default function Analyse() {
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setCreationOuverte(false)}>
             <div className="w-full max-w-md bg-surface border border-trait rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="m-0 text-[17px] font-medium">Nouveau dossier</h3>
+                <h3 className="m-0 text-[18px] font-medium">Nouveau dossier</h3>
                 <button onClick={() => setCreationOuverte(false)} className="text-ardoise hover:text-encre transition-colors"><X className="w-5 h-5" /></button>
               </div>
 
@@ -315,7 +315,7 @@ export default function Analyse() {
                 onChange={(e) => setNomDossier(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && nomDossier.trim()) creerDossier.mutate(); }}
                 placeholder="Ex. : Boulangerie — Marseille République"
-                className="w-full bg-fond border border-trait focus:border-menthe rounded-md px-3.5 py-2.5 text-[14px] text-encre outline-none placeholder:text-bord-vif transition-colors mb-4"
+                className="w-full bg-fond border border-trait focus:border-menthe rounded-md px-3.5 py-2.5 text-[13.5px] text-encre outline-none placeholder:text-bord-vif transition-colors mb-4"
               />
 
               <label className="block text-[11px] tracking-[0.14em] uppercase text-ardoise mb-1.5">Admins responsables</label>
@@ -326,7 +326,7 @@ export default function Analyse() {
                     <button
                       key={a}
                       onClick={() => setAdminsChoisis((l) => (actif ? l.filter((x) => x !== a) : [...l, a]))}
-                      className={`px-3.5 py-1.5 rounded-full text-[13px] border transition-colors
+                      className={`px-3.5 py-1.5 rounded-full text-[12.5px] border transition-colors
                         ${actif ? "bg-menthe/[0.15] border-menthe text-menthe-clair" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`}
                     >
                       {a}

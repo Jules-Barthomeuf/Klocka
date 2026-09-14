@@ -137,13 +137,13 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
     <div className="pt-2">
       {datalist}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h3 className="m-0 text-[19px] font-semibold text-encre">Documents du dossier</h3>
+        <h3 className="m-0 text-[18px] font-semibold text-encre">Documents du dossier</h3>
         <div className="flex items-center gap-2.5">
           <input
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher"
-            className="bg-surface border border-bord focus:border-bord-vif rounded-[10px] px-3.5 py-2 text-[14px] text-encre outline-none placeholder:text-brume transition-colors w-[190px]"
+            className="bg-surface border border-bord focus:border-bord-vif rounded-[10px] px-3.5 py-2 text-[13.5px] text-encre outline-none placeholder:text-brume transition-colors w-[190px]"
           />
           {proposerDrive && dossier?.drive_folder_url && (
             <a
@@ -158,7 +158,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
           <button
             onClick={() => inputRef.current?.click()}
             disabled={apercu || importer.isPending || !dossier}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[14px] border border-bord-doux text-encre hover:border-bord-vif disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13.5px] border border-bord-doux text-encre hover:border-bord-vif disabled:opacity-50 transition-colors"
           >
             {importer.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Ajouter des fichiers
@@ -177,7 +177,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
       {documents.length === 0 ? (
         <div className="mt-1 border-[1.5px] border-dashed border-bord-doux rounded-2xl px-6 py-11 flex flex-col items-center gap-2.5 text-center">
           <Upload className="w-6 h-6 text-brume" strokeWidth={1.5} />
-          <p className="m-0 text-[14.5px] font-medium text-[#b7bdc5]">Aucun document pour l'instant</p>
+          <p className="m-0 text-[15px] font-medium text-[#b7bdc5]">Aucun document pour l'instant</p>
           <p className="m-0 text-[13.5px] text-brume max-w-[480px]">
             Bail, PV d'assemblée, diagnostics, comptes du locataire : importez ce que vous avez.
           </p>
@@ -198,7 +198,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                   </button>
                 </th>
                 {["Nom", "Catégorie", "Analyse", "Type", "Importé le", "Taille"].map((h, i) => (
-                  <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-brume font-normal ${i >= 2 ? "text-right" : "text-left"}`}>
+                  <th key={h} className={`py-2.5 text-[11px] tracking-[0.16em] uppercase text-brume font-normal ${i >= 2 ? "text-right" : "text-left"}`}>
                     {h}
                   </th>
                 ))}
@@ -247,14 +247,14 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                         disabled={apercu}
                         title={d.categorie_auto ? "Classée automatiquement — corrigez si besoin" : undefined}
-                        className={`w-[200px] bg-fond rounded-full px-3 py-1 text-[12px] outline-none focus:border-menthe/60 focus:text-encre transition-colors border
+                        className={`w-[200px] bg-fond rounded-full px-3 py-1 text-[12.5px] outline-none focus:border-menthe/60 focus:text-encre transition-colors border
                           ${d.categorie_auto ? "border-menthe/40 text-menthe" : "border-bord text-ardoise"}`}
                       />
                     </td>
                     <td className="py-3 pr-4 text-right whitespace-nowrap">
                       {d.extraction?.statut ? (
                         <span
-                          className={`text-[12px] ${ETATS[d.extraction.statut]?.classe || "text-ardoise"}`}
+                          className={`text-[12.5px] ${ETATS[d.extraction.statut]?.classe || "text-ardoise"}`}
                           title={d.extraction.erreur || (d.extraction.statut === "fait" ? `${d.extraction.lignes ?? 0} donnée(s) relevée(s)` : undefined)}
                         >
                           {d.extraction.statut === "en_cours" && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
@@ -262,27 +262,27 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                           {d.extraction.statut === "fait" && d.extraction.lignes != null ? ` · ${d.extraction.lignes}` : ""}
                         </span>
                       ) : (
-                        <span className="text-[12px] text-brume">—</span>
+                        <span className="text-[12.5px] text-brume">—</span>
                       )}
                     </td>
-                    <td className="py-3 text-right text-[13px] text-ardoise">{typeLisible(d.mime)}</td>
-                    <td className="py-3 text-right text-[13px] text-ardoise">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>
-                    <td className="py-3 text-right text-[13px] text-encre">{tailleLisible(d.taille)}</td>
+                    <td className="py-3 text-right text-[12.5px] text-ardoise">{typeLisible(d.mime)}</td>
+                    <td className="py-3 text-right text-[12.5px] text-ardoise">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>
+                    <td className="py-3 text-right text-[12.5px] text-encre">{tailleLisible(d.taille)}</td>
                     <td className="py-3 text-right relative">
                       <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-brume hover:text-encre transition-colors" title="Actions">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                       {menu === d.id && (
                         <div className="absolute right-0 top-9 z-20 bg-surface border border-bord rounded-md py-1 min-w-[160px] shadow-xl text-left">
-                          <button onClick={() => { setMenu(null); setRenommage({ id: d.id, nom: d.nom }); }} className="block w-full px-3.5 py-2 text-[13px] text-craie hover:bg-encre/[0.06]">
+                          <button onClick={() => { setMenu(null); setRenommage({ id: d.id, nom: d.nom }); }} className="block w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06]">
                             Renommer
                           </button>
                           {d.url && (
-                            <a href={d.url} target="_blank" rel="noopener noreferrer" onClick={() => setMenu(null)} className="block w-full px-3.5 py-2 text-[13px] text-craie hover:bg-encre/[0.06]">
+                            <a href={d.url} target="_blank" rel="noopener noreferrer" onClick={() => setMenu(null)} className="block w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06]">
                               Ouvrir
                             </a>
                           )}
-                          <button onClick={() => { setMenu(null); if (window.confirm(`Supprimer « ${d.nom} » ?`)) supprimer.mutate(d.id); }} className="block w-full px-3.5 py-2 text-[13px] text-red-300 hover:bg-red-500/[0.08]">
+                          <button onClick={() => { setMenu(null); if (window.confirm(`Supprimer « ${d.nom} » ?`)) supprimer.mutate(d.id); }} className="block w-full px-3.5 py-2 text-[12.5px] text-red-300 hover:bg-red-500/[0.08]">
                             Supprimer
                           </button>
                         </div>
@@ -302,7 +302,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
           <div className="w-full max-w-md bg-surface border border-trait rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3 mb-3">
               <FolderPlus className="w-5 h-5 text-menthe-clair flex-shrink-0 mt-0.5" />
-              <h3 className="m-0 text-[17px] font-medium text-encre">Créer un dossier Google Drive ?</h3>
+              <h3 className="m-0 text-[18px] font-medium text-encre">Créer un dossier Google Drive ?</h3>
             </div>
             <p className="m-0 mb-1.5 text-[13.5px] text-ardoise leading-[1.6]">
               Les documents du dossier seront classés dans votre Drive, sous :

@@ -53,7 +53,7 @@ function CarteVeille({ v, etat, onVoir, onFermer }) {
       >
         <span className={`h-2 w-2 rounded-full ${enCours ? "alx-pouls" : ""}`} style={{ background: teinte }} />
         {v.nom}
-        <span className="text-[10px] opacity-70">▲</span>
+        <span className="text-[11px] opacity-70">▲</span>
       </button>
     );
   }
@@ -62,18 +62,18 @@ function CarteVeille({ v, etat, onVoir, onFermer }) {
       {enCours ? (
         <span className="alx-pouls h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: J["ardoise"] }} />
       ) : (
-        <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[12px] font-bold text-sur-menthe" style={{ background: teinte }}>{m.erreur ? "!" : "✓"}</span>
+        <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[12.5px] font-bold text-sur-menthe" style={{ background: teinte }}>{m.erreur ? "!" : "✓"}</span>
       )}
       <div className="min-w-0 flex-1">
-        <div className="text-[14.5px] text-encre">{m.titre}</div>
+        <div className="text-[15px] text-encre">{m.titre}</div>
         <div className="mt-1 text-[12.5px] leading-[1.45] text-ardoise">{m.detail}</div>
       </div>
-      <button onClick={() => onVoir(m.onglet || ongletDe(v.parcours || {}))} className="alx-mont shrink-0 rounded-full border px-3.5 py-2 text-[10px] uppercase tracking-[.12em] transition-colors hover:bg-menthe/10" style={{ borderColor: "rgba(150,192,184,0.45)", color: J["menthe"], background: "transparent" }}>
+      <button onClick={() => onVoir(m.onglet || ongletDe(v.parcours || {}))} className="alx-mont shrink-0 rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-[.12em] transition-colors hover:bg-menthe/10" style={{ borderColor: "rgba(150,192,184,0.45)", color: J["menthe"], background: "transparent" }}>
         Voir
       </button>
       <div className="flex shrink-0 flex-col gap-1">
         <button onClick={() => setRepliee(true)} title="Replier" className="px-1 text-[11px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>▼</button>
-        {!enCours && <button onClick={onFermer} title="Fermer" className="px-1 text-[14px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
+        {!enCours && <button onClick={onFermer} title="Fermer" className="px-1 text-[13.5px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
       </div>
     </div>
   );

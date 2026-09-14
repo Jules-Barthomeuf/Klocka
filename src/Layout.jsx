@@ -79,7 +79,7 @@ function Wordmark({ collapsed = false }) {
   return (
     <span className="flex items-center gap-2.5 select-none">
       <img src="/logo-klocka.svg" alt="" className="w-6 h-6 rounded-[5px]" draggable={false} />
-      <span className="text-[13px] tracking-[0.3em] text-encre">KLOCKA</span>
+      <span className="text-[12.5px] tracking-[0.3em] text-encre">KLOCKA</span>
     </span>
   );
 }
@@ -87,7 +87,7 @@ function Wordmark({ collapsed = false }) {
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
   return (
     <Link to={to} onClick={onClick} title={collapsed ? label : undefined}>
-      <div className={`relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group
+      <div className={`relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group
         ${isActive ? "text-encre" : "text-ardoise hover:text-encre"}
         ${collapsed ? "justify-center px-0 py-2" : ""}
       `}>
@@ -100,7 +100,7 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
             <Icon className={`w-[15px] h-[15px] flex-shrink-0 transition-colors ${isActive ? "text-menthe" : "text-brume group-hover:text-craie"}`} />
             <span className="flex-1 truncate">{label}</span>
             {badge && (
-              <Badge className={`${badgeColor || "bg-transparent text-menthe-clair"} text-[9px] tracking-[0.12em] px-1.5 py-0 border-0`}>
+              <Badge className={`${badgeColor || "bg-transparent text-menthe-clair"} text-[11px] tracking-[0.12em] px-1.5 py-0 border-0`}>
                 {badge}
               </Badge>
             )}
@@ -115,7 +115,7 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
 function AutreToggle({ open, onClick, collapsed }) {
   return (
     <button onClick={onClick} title="Autre"
-      className={`w-full relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[10.5px] uppercase tracking-[0.14em] transition-colors duration-200 group text-brume hover:text-encre ${collapsed ? "justify-center px-0 py-2" : ""}`}>
+      className={`w-full relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group text-brume hover:text-encre ${collapsed ? "justify-center px-0 py-2" : ""}`}>
       {collapsed ? (
         <ChevronDown className={`w-[17px] h-[17px] flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       ) : (
@@ -294,8 +294,8 @@ function LayoutContent({ children, currentPageName }) {
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-encre truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
-              <p className="text-[10px] text-brume truncate">{user?.email}</p>
+              <p className="text-[12.5px] text-encre truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
+              <p className="text-[11px] text-brume truncate">{user?.email}</p>
             </div>
             <Button
               variant="ghost"

@@ -112,7 +112,7 @@ export default function EchelleFourchettes({
           return (
             <div key={l.cle} className="flex items-center py-3" style={{ gap: "var(--ecart)" }}>
               <p
-                className="alx-mont m-0 flex-none text-[9px] font-medium uppercase tracking-[.14em] text-ardoise"
+                className="alx-mont m-0 flex-none text-[11px] font-medium uppercase tracking-[.14em] text-ardoise"
                 style={{ width: "var(--lib)" }}
               >
                 {l.libelle}
@@ -144,7 +144,7 @@ export default function EchelleFourchettes({
 
               {/* L'unité une fois, à la fin : « 640 – 960 € » et non deux euros. */}
               <p
-                className={`m-0 flex-none text-right text-[14px] tabular-nums whitespace-nowrap ${
+                className={`m-0 flex-none text-right text-[13.5px] tabular-nums whitespace-nowrap ${
                   absente ? "text-brume" : ton.texte
                 }`}
                 style={{ width: "var(--val)" }}
@@ -167,13 +167,13 @@ export default function EchelleFourchettes({
       <div className="relative mt-1 min-h-[34px]">
         {legende && (
           <p
-            className="absolute left-0 top-0 m-0 text-[11.5px] leading-[1.45] text-ardoise"
+            className="absolute left-0 top-0 m-0 text-[11px] leading-[1.45] text-ardoise"
             style={{ width: "var(--lib)" }}
           >
             {legende}
           </p>
         )}
-        <div className="absolute top-0 border-t text-[11.5px] tabular-nums text-craie" style={{ ...PISTE, borderColor: "rgba(255,255,255,0.32)", paddingTop: 8 }}>
+        <div className="absolute top-0 border-t text-[11px] tabular-nums text-craie" style={{ ...PISTE, borderColor: "rgba(255,255,255,0.32)", paddingTop: 8 }}>
           {/* Une borne trop près du repère s'efface : deux chiffres l'un sur l'autre ne se lisent pas. */}
           {!(posRepere != null && posRepere < 7) && <span className="absolute left-0" style={{ top: 8 }}>{format(bas)}</span>}
           {posRepere != null && (

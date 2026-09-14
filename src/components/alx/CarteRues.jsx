@@ -168,7 +168,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
             loading="lazy"
           />
         ) : (
-          <div className="grid h-full place-items-center px-6 text-center text-[13px] text-ardoise">Street View demande la clé VITE_GOOGLE_MAPS_API_KEY dans le .env.</div>
+          <div className="grid h-full place-items-center px-6 text-center text-[12.5px] text-ardoise">Street View demande la clé VITE_GOOGLE_MAPS_API_KEY dans le .env.</div>
         )}
       </div>
     );
@@ -227,7 +227,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
       <BoutonTheme sombre={sombre} onClick={basculerTheme} />
       {!direct && <Legende />}
       {avecTrace === 0 && (
-        <div className="absolute inset-0 z-[400] grid place-items-center bg-fond/70 px-6 text-center text-[13px] text-ardoise">
+        <div className="absolute inset-0 z-[400] grid place-items-center bg-fond/70 px-6 text-center text-[12.5px] text-ardoise">
           Les tracés arrivent avec le prochain relevé : cliquez « Refaire les rues ».
         </div>
       )}

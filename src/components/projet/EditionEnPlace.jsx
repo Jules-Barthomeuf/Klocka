@@ -33,7 +33,7 @@ export function BoutonMasquer({ champ, titre = "Supprimer de la page" }) {
         e.stopPropagation();
         edition.onChamp("champs_masques", [...(edition.masques || []), champ], true);
       }}
-      className="text-bord-vif hover:text-red-400 transition-colors text-[13px] leading-none px-1 flex-shrink-0"
+      className="text-bord-vif hover:text-red-400 transition-colors text-[12.5px] leading-none px-1 flex-shrink-0"
     >
       ×
     </button>
@@ -120,7 +120,7 @@ export function TexteEditable({ champ, children, className = "" }) {
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setOuvert(false); edition.onChamp(champ, brouillon, true); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className={`w-full bg-[#0f1413] border border-menthe text-encre rounded px-3 py-2 outline-none text-[14px] leading-[1.7] ${className}`}
+        className={`w-full bg-[#0f1413] border border-menthe text-encre rounded px-3 py-2 outline-none text-[13.5px] leading-[1.7] ${className}`}
       />
     );
   }
@@ -189,7 +189,7 @@ export function ChampsPersonnalises({ zone, project }) {
 
   return (
     <div className="mt-8 max-md:mt-5">
-      <div className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-3">Informations complémentaires</div>
+      <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-3">Informations complémentaires</div>
 
       {chiffres.length > 0 && (
         <div className="flex flex-wrap border-t border-encre/[0.35] mb-6">
@@ -203,15 +203,15 @@ export function ChampsPersonnalises({ zone, project }) {
                   ${survole === i ? "border-menthe bg-menthe/[0.06]" : "border-encre/[0.12]"}
                   ${edition?.onChamp ? "cursor-grab active:cursor-grabbing" : ""}`}
               >
-                <div className="font-cormorant text-[26px] max-md:text-[20px] font-light text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <div className="font-display text-[24px] max-md:text-[18px] font-light text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>
                   <ValeurEditable champ={`champs_personnalises.${i}.valeur`} type="text">{champ.valeur || "—"}</ValeurEditable>
                 </div>
-                <div className="text-[12px] text-ardoise mt-1 flex items-center gap-1.5">
+                <div className="text-[12.5px] text-ardoise mt-1 flex items-center gap-1.5">
                   <Poignee i={i} />
                   <ValeurEditable champ={`champs_personnalises.${i}.label`} type="text">{champ.label || "Sans libellé"}</ValeurEditable>
                   {edition?.onChamp && (
                     <button type="button" onClick={() => supprimer(i)} title="Supprimer ce champ"
-                      className="text-bord-vif hover:text-red-400 transition-colors text-[13px] leading-none">×</button>
+                      className="text-bord-vif hover:text-red-400 transition-colors text-[12.5px] leading-none">×</button>
                   )}
                 </div>
               </div>
@@ -243,7 +243,7 @@ export function ChampsPersonnalises({ zone, project }) {
                 <ValeurEditable champ={`champs_personnalises.${i}.valeur`} type="text">{champ.valeur || "—"}</ValeurEditable>
                 {edition?.onChamp && (
                   <button type="button" onClick={() => supprimer(i)} title="Supprimer ce champ"
-                    className="text-brume hover:text-red-400 transition-colors text-[13px] leading-none">×</button>
+                    className="text-brume hover:text-red-400 transition-colors text-[12.5px] leading-none">×</button>
                 )}
               </span>
             </div>

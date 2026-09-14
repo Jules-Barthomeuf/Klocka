@@ -77,7 +77,7 @@ export default function ClientProjectCard2({ project }) {
           
           {/* Status badge */}
           <div className="absolute top-4 left-4">
-            <span className="text-[10px] uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-fond/70 backdrop-blur-sm text-menthe-clair border border-menthe/50">
+            <span className="text-[11px] uppercase tracking-[0.18em] px-3 py-1 rounded-full bg-fond/70 backdrop-blur-sm text-menthe-clair border border-menthe/50">
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -93,11 +93,11 @@ export default function ClientProjectCard2({ project }) {
 
           {/* Title overlay */}
           <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-[21px] md:text-[23px] font-light text-encre tracking-[-0.02em] leading-tight truncate">
+            <h2 className="text-[18px] md:text-[24px] font-light text-encre tracking-[-0.02em] leading-tight truncate">
               {project.titre}
             </h2>
             {project.adresse_complete && (
-              <p className="text-craie/70 text-[13px] mt-1 truncate">{project.adresse_complete}</p>
+              <p className="text-craie/70 text-[12.5px] mt-1 truncate">{project.adresse_complete}</p>
             )}
           </div>
         </div>
@@ -108,17 +108,17 @@ export default function ClientProjectCard2({ project }) {
             libellé se couper plutôt que d'empiéter sur le voisin. */}
         <div className="flex items-center px-5 max-md:px-4 border-t border-encre/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
           <div className="flex-1 min-w-0 py-4 pr-3">
-            <p className="text-[19px] max-md:text-[16px] font-light text-encre m-0 whitespace-nowrap">{formatPrice(prixRevient)}</p>
-            <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Prix de revient</p>
+            <p className="text-[18px] max-md:text-[15px] font-light text-encre m-0 whitespace-nowrap">{formatPrice(prixRevient)}</p>
+            <p className="text-[11px] max-md:text-[11px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Prix de revient</p>
           </div>
           <div className="flex-1 min-w-0 py-4 px-3 border-l border-encre/[0.12]">
-            <p className="text-[19px] max-md:text-[16px] font-light text-menthe-clair m-0 whitespace-nowrap">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
-            <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Rendement</p>
+            <p className="text-[18px] max-md:text-[15px] font-light text-menthe-clair m-0 whitespace-nowrap">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+            <p className="text-[11px] max-md:text-[11px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Rendement</p>
           </div>
           {surface > 0 && (
             <div className="flex-1 min-w-0 py-4 px-3 border-l border-encre/[0.12]">
-              <p className="text-[19px] max-md:text-[16px] font-light text-encre m-0 whitespace-nowrap">{Math.round(surface)} m²</p>
-              <p className="text-[10px] max-md:text-[8.5px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Surface</p>
+              <p className="text-[18px] max-md:text-[15px] font-light text-encre m-0 whitespace-nowrap">{Math.round(surface)} m²</p>
+              <p className="text-[11px] max-md:text-[11px] uppercase tracking-[0.16em] max-md:tracking-[0.08em] text-ardoise mt-1 m-0 md:truncate max-md:leading-[1.25]">Surface</p>
             </div>
           )}
           <div className="w-9 h-9 flex-shrink-0 rounded-full border border-encre/[0.14] flex items-center justify-center group-hover:border-menthe transition-colors">

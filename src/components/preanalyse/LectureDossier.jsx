@@ -17,7 +17,7 @@ const Bloc = ({ titre, compte, teinte, enfants, vide = undefined }) => (
       <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold" style={{ color: teinte }}>{titre}</p>
       {compte != null && <span className="text-[11px] tabular-nums" style={{ color: teinte }}>{compte}</span>}
     </div>
-    {enfants || <p className="m-0 text-[13px] text-brume">{vide}</p>}
+    {enfants || <p className="m-0 text-[12.5px] text-brume">{vide}</p>}
   </section>
 );
 
@@ -25,7 +25,7 @@ const Bloc = ({ titre, compte, teinte, enfants, vide = undefined }) => (
 function Source({ source }) {
   if (!source?.document) return null;
   return (
-    <span className="text-[11.5px] text-brume" title={source.citation || source.element || undefined}>
+    <span className="text-[11px] text-brume" title={source.citation || source.element || undefined}>
       {source.document}
       {source.page ? ` · p. ${source.page}` : ""}
     </span>
@@ -41,7 +41,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
 
   if (isLoading) {
     return (
-      <p className="m-0 py-8 text-[13px] text-ardoise inline-flex items-center gap-2">
+      <p className="m-0 py-8 text-[12.5px] text-ardoise inline-flex items-center gap-2">
         <Loader2 className="w-3.5 h-3.5 animate-spin" /> Je croise les documents…
       </p>
     );
@@ -61,7 +61,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
             {fiche.map((f) => (
               <div key={f.cle} className="flex items-baseline gap-4 py-2 border-b border-relief/70">
                 <dt className="w-[190px] max-md:w-[130px] flex-none text-[12.5px] text-brume">{f.libelle}</dt>
-                <dd className={`m-0 flex-1 min-w-0 text-[14px] leading-[1.6] ${f.affiche ? "text-encre" : "text-brume italic"}`}>
+                <dd className={`m-0 flex-1 min-w-0 text-[13.5px] leading-[1.6] ${f.affiche ? "text-encre" : "text-brume italic"}`}>
                   {f.affiche || "non renseigné"}
                 </dd>
                 <div className="flex-none max-w-[34%] text-right truncate"><Source source={f.source} /></div>
@@ -118,7 +118,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
                   </li>
                 ))}
               </ul>
-              <p className="m-0 mt-3 text-[12px] text-brume">
+              <p className="m-0 mt-3 text-[12.5px] text-brume">
                 {essentiellesManquantes.length} pièce{essentiellesManquantes.length > 1 ? "s" : ""} essentielle
                 {essentiellesManquantes.length > 1 ? "s" : ""} sur {manquantes.length} manquante{manquantes.length > 1 ? "s" : ""} — à demander au vendeur.
               </p>
@@ -142,7 +142,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
                   <div className="min-w-0">
                     <p className="m-0 text-[15px] font-semibold text-encre">{p.element}</p>
                     <p className="m-0 mt-1 text-[13.5px] leading-[1.65] text-craie">{p.constat}</p>
-                    {p.commentaire && <p className="m-0 mt-1 text-[13px] leading-[1.6] text-ambre">→ {p.commentaire}</p>}
+                    {p.commentaire && <p className="m-0 mt-1 text-[12.5px] leading-[1.6] text-ambre">→ {p.commentaire}</p>}
                     <p className="m-0 mt-1"><Source source={p.source} /></p>
                   </div>
                 </div>
@@ -161,7 +161,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
       )}
 
       {data.analyses === 0 && (
-        <p className="m-0 flex items-center gap-2 text-[13px] text-ardoise">
+        <p className="m-0 flex items-center gap-2 text-[12.5px] text-ardoise">
           <Check className="w-3.5 h-3.5" /> Aucun document analysé pour l'instant : la lecture se remplira au fur et à mesure.
         </p>
       )}

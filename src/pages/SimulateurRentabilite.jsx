@@ -558,7 +558,7 @@ export default function SimulateurRentabilite() {
               {activeTab !== "avance" && (
                 <SimDataTable calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} dureeCredit={values.dureeCredit} />
               )}
-              <p className="text-[10px] text-brume italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
+              <p className="text-[11px] text-brume italic px-1">Cet outil est utilisé dans une démarche de projection financière, il ne pourra être reproché à Klocka du non respect de ces projections en cas d'acquisition et d'exploitation.</p>
             </div>
           </main>
         </div>

@@ -55,7 +55,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
   return (
     <div className="mt-10 max-md:mt-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-0">
+        <h3 className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-0">
           Synthèse des assemblées générales
         </h3>
         {isAdmin && (
@@ -154,7 +154,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                 >
                   <div className="flex items-center gap-3">
                     <CalendarDays className="w-4 h-4 text-menthe" />
-                    <span className="text-[14.5px] text-encre group-hover:text-menthe-clair transition-colors">AG {ag.annee}</span>
+                    <span className="text-[15px] text-encre group-hover:text-menthe-clair transition-colors">AG {ag.annee}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {isAdmin && (
@@ -179,21 +179,21 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                   <div className="pb-5 space-y-5">
                     {ag.synthese && (
                       <div>
-                        <p className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-2">Synthèse</p>
-                        <p className="text-[14.5px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.synthese}</p>
+                        <p className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-2">Synthèse</p>
+                        <p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.synthese}</p>
                       </div>
                     )}
                     <div className="grid md:grid-cols-2 gap-x-12 gap-y-5">
                       {ag.resolutions_votees && (
                         <div className="border-l border-menthe pl-5">
-                          <p className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-2">Résolutions votées</p>
-                          <p className="text-[14.5px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.resolutions_votees}</p>
+                          <p className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-2">Résolutions votées</p>
+                          <p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.resolutions_votees}</p>
                         </div>
                       )}
                       {ag.resolutions_refusees && (
                         <div className="border-l border-menthe pl-5">
-                          <p className="text-[10px] tracking-[0.2em] uppercase text-menthe mb-2">Résolutions non votées</p>
-                          <p className="text-[14.5px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.resolutions_refusees}</p>
+                          <p className="text-[11px] tracking-[0.2em] uppercase text-menthe mb-2">Résolutions non votées</p>
+                          <p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.resolutions_refusees}</p>
                         </div>
                       )}
                     </div>

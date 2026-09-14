@@ -88,7 +88,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
         onClick={() => setOuvert((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={ouvert}
-        className="flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-[14px] text-encre transition-colors hover:border-trait"
+        className="flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-[13.5px] text-encre transition-colors hover:border-trait"
         style={{ background: "transparent" }}
       >
         <span className="text-[11px] tabular-nums text-ardoise">{String(courante.n).padStart(2, "0")}</span>
@@ -126,7 +126,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
                   onClick={() => { fermer(); onAbandonner(); }}
                   disabled={abandonne || dossier.statut === "projet_cree"}
                   title="Classer le dossier sans suite : il reste consultable, il n'avance plus"
-                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] text-red-300 transition-colors hover:bg-red-500/[0.08] disabled:opacity-40"
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12.5px] text-red-300 transition-colors hover:bg-red-500/[0.08] disabled:opacity-40"
                   style={{ background: "transparent" }}
                 >
                   <Archive className="h-3.5 w-3.5" /> Abandonner
@@ -146,7 +146,7 @@ export function TitreEtape({ n, titre, description = undefined }) {
     <div className="mb-6">
       <div className="flex items-baseline gap-3.5 mb-1.5">
         {n != null && <div className="text-xs text-ardoise tabular-nums">{String(n).padStart(2, "0")}</div>}
-        <h2 className="m-0 text-[22px] font-medium text-encre">{titre}</h2>
+        <h2 className="m-0 text-[24px] font-medium text-encre">{titre}</h2>
       </div>
       {description && <p className="m-0 text-[13.5px] text-ardoise leading-[1.65]">{description}</p>}
     </div>
@@ -671,14 +671,14 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
           <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-relief bg-surface">
             <button
               onClick={() => setBrouillon(null)}
-              className="text-[13px] text-ardoise hover:text-encre transition-colors"
+              className="text-[12.5px] text-ardoise hover:text-encre transition-colors"
             >
               Reprendre
             </button>
             <div className="flex-1" />
             <button
               onClick={onSuivant}
-              className="text-[13px] text-ardoise hover:text-encre transition-colors px-2"
+              className="text-[12.5px] text-ardoise hover:text-encre transition-colors px-2"
             >
               Passer sans envoyer
             </button>
@@ -691,7 +691,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
                 envoyer.isPending ||
                 connexionEnCours
               }
-              className="bg-encre hover:bg-craie text-surface font-medium h-9 text-[13px]"
+              className="bg-encre hover:bg-craie text-surface font-medium h-9 text-[12.5px]"
             >
               {(envoyer.isPending || connexionEnCours) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {test ? "Envoyer (simulé)" : sansCompte && googleConfigure ? "Connecter Gmail et envoyer" : "Envoyer via Gmail"}
@@ -1212,7 +1212,7 @@ function BlocVideoPresentation({ dossier, apercu }) {
       )}
 
       {(statut?.avertissements || []).map((a) => (
-        <p key={a} className="m-0 text-[12px] leading-[1.6] text-ambre border-l-2 border-ambre/50 pl-3">{a}</p>
+        <p key={a} className="m-0 text-[12.5px] leading-[1.6] text-ambre border-l-2 border-ambre/50 pl-3">{a}</p>
       ))}
 
       {etat === "pret" && statut?.url && (
@@ -1417,22 +1417,22 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
 
   return (
     <div className="bg-fond border border-trait rounded-xl px-6 py-8">
-      <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Pas de teaser, mais {nb} pièce{nb > 1 ? "s" : ""} dans le dossier</p>
-      <p className="m-0 mt-2 text-[14.5px] leading-[1.65] text-craie max-w-[720px]">
+      <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Pas de teaser, mais {nb} pièce{nb > 1 ? "s" : ""} dans le dossier</p>
+      <p className="m-0 mt-2 text-[15px] leading-[1.65] text-craie max-w-[720px]">
         La fiche se compose depuis les documents — adresse, surface, locataire, bail, loyer, charges — puis passe dans la pré-analyse habituelle : mêmes critères, même verdict. Le prix de vente, absent des pièces, restera à renseigner.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-4">
         {enCours ? (
-          <span className="inline-flex items-center gap-2 text-[13px] text-ardoise">
+          <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise">
             <PenseeIA etat="searching" taille={20} />
             {etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}
           </span>
         ) : (
-          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
             Pré-analyser à partir des {nb} pièce{nb > 1 ? "s" : ""}
           </button>
         )}
-        {etat?.etat === "erreur" && <span className="text-[13px] text-alerte">{etat.erreur}</span>}
+        {etat?.etat === "erreur" && <span className="text-[12.5px] text-alerte">{etat.erreur}</span>}
         <span className="text-[12.5px] text-brume">Ou collez le teaser de l'agent dans le chat : il sera analysé dans ce dossier.</span>
       </div>
     </div>

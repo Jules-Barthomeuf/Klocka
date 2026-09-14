@@ -31,7 +31,7 @@ const REGLES = [
 function Statut({ statut, petit = false }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border ${petit ? "px-2 py-px text-[10.5px]" : "px-2.5 py-0.5 text-[11.5px]"} font-medium`}
+      className={`inline-flex items-center gap-1.5 rounded-full border ${petit ? "px-2 py-px text-[11px]" : "px-2.5 py-0.5 text-[11px]"} font-medium`}
       style={{ color: TEINTE[statut], borderColor: `${TEINTE[statut]}55`, background: `${TEINTE[statut]}12` }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: TEINTE[statut] }} />
@@ -80,10 +80,10 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
           {m.rempli_le ? ` · rempli ${new Date(m.rempli_le).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
         </p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setTri((t) => (t ? null : "statut"))} className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${tri ? "border-alerte text-alerte" : "border-bord-doux text-ardoise hover:text-encre"}`}>
+          <button onClick={() => setTri((t) => (t ? null : "statut"))} className={`text-[12.5px] px-3 py-1.5 rounded-full border transition-colors ${tri ? "border-alerte text-alerte" : "border-bord-doux text-ardoise hover:text-encre"}`}>
             {tri ? "Ordre du gabarit" : "Trier par statut"}
           </button>
-          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-encre text-fond font-semibold hover:bg-[#ffffff]">
+          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-full bg-encre text-fond font-semibold hover:bg-[#ffffff]">
             <Plus className="w-3.5 h-3.5" /> Ajouter une colonne
           </button>
         </div>
@@ -95,7 +95,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
         <table className="border-collapse text-[12.5px] min-w-full">
           <thead>
             <tr className="bg-fond">
-              <th className="sticky left-0 z-10 bg-fond text-left px-4 py-3 text-[10.5px] tracking-[.16em] uppercase text-brume font-normal border-b border-r border-relief min-w-[220px]">Document</th>
+              <th className="sticky left-0 z-10 bg-fond text-left px-4 py-3 text-[11px] tracking-[.16em] uppercase text-brume font-normal border-b border-r border-relief min-w-[220px]">Document</th>
               {colonnes.map((c) => (
                 <th key={c.id} className="text-left px-3 py-3 border-b border-r border-relief min-w-[190px] align-top font-normal">
                   <button
@@ -103,11 +103,11 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
                     title={c.question}
                     className="text-left w-full group"
                   >
-                    <span className="block text-[10px] tracking-[.14em] uppercase text-brume">{c.bloc}</span>
+                    <span className="block text-[11px] tracking-[.14em] uppercase text-brume">{c.bloc}</span>
                     <span className="block text-[12.5px] font-semibold text-encre group-hover:text-[#ffffff] mt-0.5">{c.libelle}</span>
                   </button>
                   {edition === c.id && (
-                    <p className="m-0 mt-2 text-[11.5px] leading-[1.5] text-ardoise font-normal normal-case tracking-normal">
+                    <p className="m-0 mt-2 text-[11px] leading-[1.5] text-ardoise font-normal normal-case tracking-normal">
                       {c.question}
                       <span className="block mt-1 text-brume">règle : {REGLES.find(([r]) => r === c.regle)?.[1] || c.regle} · criticité {c.criticite}</span>
                     </p>
@@ -120,7 +120,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
             {m.lignes.map((l) => (
               <tr key={l.document_id} className="hover:bg-encre/[0.02]">
                 <td className="sticky left-0 z-10 bg-fond px-4 py-3 border-b border-r border-relief align-top">
-                  <span className="block text-[13px] text-encre truncate max-w-[220px]" title={l.document_nom}>{l.document_nom}</span>
+                  <span className="block text-[12.5px] text-encre truncate max-w-[220px]" title={l.document_nom}>{l.document_nom}</span>
                   <span className="block text-[11px] text-brume">{l.categorie || "Autre"}{l.date_document ? ` · ${l.date_document.split("-").reverse().join("/")}` : ""}{l.erreur ? " · lecture en échec" : ""}{l.perime ? <span className="text-ambre"> · bail antérieur, remplacé</span> : null}</span>
                 </td>
                 {colonnes.map((c) => {
@@ -143,7 +143,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
             ))}
             {/* La ligne de synthèse : calculée par le code. */}
             <tr className="bg-fond">
-              <td className="sticky left-0 z-10 bg-fond px-4 py-3 border-r border-relief text-[10.5px] tracking-[.16em] uppercase text-brume">Synthèse</td>
+              <td className="sticky left-0 z-10 bg-fond px-4 py-3 border-r border-relief text-[11px] tracking-[.16em] uppercase text-brume">Synthèse</td>
               {colonnes.map((c) => {
                 const sy = m.synthese[c.id];
                 return (
@@ -156,7 +156,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
           </tbody>
         </table>
       </div>
-      <p className="m-0 text-[11.5px] text-brume">
+      <p className="m-0 text-[11px] text-brume">
         {blocs.length} blocs · clic sur une cellule : le document à la page · clic sur un en-tête : la question et sa règle.
       </p>
     </div>
@@ -172,15 +172,15 @@ export function FormulaireColonne({ onAnnuler, onValider, enCours }) {
   const [gabarit, setGabarit] = useState(false);
   return (
     <div className="border border-bord rounded-xl bg-surface px-5 py-4 space-y-3">
-      <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Nouvelle colonne</p>
-      <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} placeholder="La question posée à chaque document — « Le bail prévoit-il une clause d'accession ? »" className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[14px] text-encre outline-none focus:border-menthe/60" />
+      <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Nouvelle colonne</p>
+      <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} placeholder="La question posée à chaque document — « Le bail prévoit-il une clause d'accession ? »" className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe/60" />
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <input value={libelle} onChange={(e) => setLibelle(e.target.value)} placeholder="Libellé court" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none" />
-        <input value={bloc} onChange={(e) => setBloc(e.target.value)} placeholder="Bloc" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none" />
-        <select value={regle} onChange={(e) => setRegle(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none">
+        <input value={libelle} onChange={(e) => setLibelle(e.target.value)} placeholder="Libellé court" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none" />
+        <input value={bloc} onChange={(e) => setBloc(e.target.value)} placeholder="Bloc" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none" />
+        <select value={regle} onChange={(e) => setRegle(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none">
           {REGLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <select value={criticite} onChange={(e) => setCriticite(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none">
+        <select value={criticite} onChange={(e) => setCriticite(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none">
           <option value="haute">Criticité haute</option><option value="moyenne">Criticité moyenne</option><option value="basse">Criticité basse</option>
         </select>
       </div>
@@ -230,13 +230,13 @@ function Anomalies({ m, dealId, onCellule }) {
           <div key={a.colonne.id} className={`rounded-xl border px-5 py-4 ${r?.verdict === "faux_positif" ? "border-relief opacity-60" : "border-bord bg-surface"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="m-0 text-[10.5px] tracking-[.16em] uppercase text-brume">{a.colonne.bloc} · criticité {a.colonne.criticite}</p>
-                <p className="m-0 mt-1 flex items-center gap-2.5 text-[16px] font-semibold text-encre">{a.colonne.libelle} <Statut statut={a.statut} /></p>
+                <p className="m-0 text-[11px] tracking-[.16em] uppercase text-brume">{a.colonne.bloc} · criticité {a.colonne.criticite}</p>
+                <p className="m-0 mt-1 flex items-center gap-2.5 text-[15px] font-semibold text-encre">{a.colonne.libelle} <Statut statut={a.statut} /></p>
                 <p className="m-0 mt-1.5 text-[13.5px] leading-[1.65] text-craie">{a.detail}</p>
               </div>
               <div className="flex items-center gap-1.5 flex-none">
-                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "confirme" ? null : "confirme", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "confirme" ? "bg-alerte border-alerte text-fond font-semibold" : "border-bord-doux text-craie hover:border-alerte"}`}>Confirmé</button>
-                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "faux_positif" ? null : "faux_positif", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "faux_positif" ? "bg-bord-vif border-bord-vif text-encre" : "border-bord-doux text-craie hover:border-bord-vif"}`}>Faux positif</button>
+                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "confirme" ? null : "confirme", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11px] border transition-colors ${r?.verdict === "confirme" ? "bg-alerte border-alerte text-fond font-semibold" : "border-bord-doux text-craie hover:border-alerte"}`}>Confirmé</button>
+                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "faux_positif" ? null : "faux_positif", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11px] border transition-colors ${r?.verdict === "faux_positif" ? "bg-bord-vif border-bord-vif text-encre" : "border-bord-doux text-craie hover:border-bord-vif"}`}>Faux positif</button>
                 <button onClick={() => setOuvert(ouvert === a.colonne.id ? null : a.colonne.id)} className="text-brume hover:text-encre px-1.5" title="Sources et commentaire"><ChevronDown className={`w-4 h-4 transition-transform ${ouvert === a.colonne.id ? "" : "-rotate-90"}`} /></button>
               </div>
             </div>
@@ -245,13 +245,13 @@ function Anomalies({ m, dealId, onCellule }) {
                 {sources.length > 0 ? (
                   <div className="space-y-1.5">
                     {sources.map((l) => (
-                      <button key={l.document_id} onClick={() => onCellule({ ligne: l, colonne: a.colonne.id, cellule: l.cellules[a.colonne.id] })} className="block text-left text-[13px] text-craie hover:text-[#ffffff]">
+                      <button key={l.document_id} onClick={() => onCellule({ ligne: l, colonne: a.colonne.id, cellule: l.cellules[a.colonne.id] })} className="block text-left text-[12.5px] text-craie hover:text-[#ffffff]">
                         <span className="text-brume">{l.document_nom}{l.cellules[a.colonne.id].page ? ` · p.${l.cellules[a.colonne.id].page}` : ""} — </span>{l.cellules[a.colonne.id].reponse}
                       </button>
                     ))}
                   </div>
                 ) : <p className="m-0 text-[12.5px] text-brume">Aucun document ne répond à cette question.</p>}
-                <textarea defaultValue={r?.commentaire || ""} placeholder="Un mot pour la note de synthèse — pourquoi c'est confirmé, ou pourquoi c'est un faux positif" rows={2} onBlur={(e) => e.target.value !== (r?.commentaire || "") && reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict || "confirme", commentaire: e.target.value })} className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none focus:border-menthe/60" />
+                <textarea defaultValue={r?.commentaire || ""} placeholder="Un mot pour la note de synthèse — pourquoi c'est confirmé, ou pourquoi c'est un faux positif" rows={2} onBlur={(e) => e.target.value !== (r?.commentaire || "") && reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict || "confirme", commentaire: e.target.value })} className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/60" />
               </div>
             )}
           </div>
@@ -271,7 +271,7 @@ export function Livrables({ dealId, nb }) {
       <section>
         <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-relief">
           <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold text-ambre">Demandes au vendeur · {data.demandes.length}</p>
-          <button onClick={() => copier(data.demandes_texte, "La liste")} className="inline-flex items-center gap-1.5 text-[12px] text-craie hover:text-encre"><Copy className="w-3.5 h-3.5" /> Copier pour un mail</button>
+          <button onClick={() => copier(data.demandes_texte, "La liste")} className="inline-flex items-center gap-1.5 text-[12.5px] text-craie hover:text-encre"><Copy className="w-3.5 h-3.5" /> Copier pour un mail</button>
         </div>
         {data.demandes.length ? (
           <ol className="m-0 pl-5 space-y-2.5">
@@ -279,15 +279,15 @@ export function Livrables({ dealId, nb }) {
               <li key={i} className="text-[13.5px] leading-[1.65] text-craie">{d.texte}{d.confirme ? <span className="text-vert"> ✓</span> : <span className="text-brume"> · non revu</span>}</li>
             ))}
           </ol>
-        ) : <p className="m-0 text-[13px] text-brume">Rien à demander.</p>}
-        {data.en_attente > 0 && <p className="m-0 mt-3 text-[12px] text-brume">{data.en_attente} anomalie{data.en_attente > 1 ? "s" : ""} pas encore revue{data.en_attente > 1 ? "s" : ""} : elle{data.en_attente > 1 ? "s" : ""} figure{data.en_attente > 1 ? "nt" : ""} ici tant qu'elle{data.en_attente > 1 ? "s ne sont" : " n'est"} pas écartée{data.en_attente > 1 ? "s" : ""}.</p>}
+        ) : <p className="m-0 text-[12.5px] text-brume">Rien à demander.</p>}
+        {data.en_attente > 0 && <p className="m-0 mt-3 text-[12.5px] text-brume">{data.en_attente} anomalie{data.en_attente > 1 ? "s" : ""} pas encore revue{data.en_attente > 1 ? "s" : ""} : elle{data.en_attente > 1 ? "s" : ""} figure{data.en_attente > 1 ? "nt" : ""} ici tant qu'elle{data.en_attente > 1 ? "s ne sont" : " n'est"} pas écartée{data.en_attente > 1 ? "s" : ""}.</p>}
       </section>
       <section>
         <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-relief">
           <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold text-bleu">Note de synthèse</p>
-          <button onClick={() => copier(data.note, "La note")} className="inline-flex items-center gap-1.5 text-[12px] text-craie hover:text-encre"><Copy className="w-3.5 h-3.5" /> Copier</button>
+          <button onClick={() => copier(data.note, "La note")} className="inline-flex items-center gap-1.5 text-[12.5px] text-craie hover:text-encre"><Copy className="w-3.5 h-3.5" /> Copier</button>
         </div>
-        <pre className="m-0 whitespace-pre-wrap text-[13px] leading-[1.7] text-craie font-[inherit]">{data.note}</pre>
+        <pre className="m-0 whitespace-pre-wrap text-[12.5px] leading-[1.7] text-craie font-[inherit]">{data.note}</pre>
       </section>
     </div>
   );
@@ -339,13 +339,13 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
       <div className="flex flex-wrap items-center justify-between gap-3 px-7 max-md:px-4 border-b border-relief">
         <div className="flex gap-6 overflow-x-auto">
           {ONGLETS.map(([id, l]) => (
-            <button key={id} onClick={() => { setOnglet(id); setCelluleOuverte(null); }} className={`relative py-3.5 text-[14px] whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-alerte after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${onglet === id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>
+            <button key={id} onClick={() => { setOnglet(id); setCelluleOuverte(null); }} className={`relative py-3.5 text-[13.5px] whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-alerte after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${onglet === id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>
               {l}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-3 py-2">
-          <div className="inline-flex rounded-full border border-bord-doux p-0.5 text-[12px]" title="Deux lectures des mêmes faits : la grille (documents × questions) ou la fiche (le bien, champ par champ)">
+          <div className="inline-flex rounded-full border border-bord-doux p-0.5 text-[12.5px]" title="Deux lectures des mêmes faits : la grille (documents × questions) ou la fiche (le bien, champ par champ)">
             {[["grille", "Grille"], ["fiche", "Fiche"]].map(([m, l]) => (
               <button key={m} onClick={() => changerMode(m)} className={`px-3 py-1 rounded-full transition-colors ${mode === m ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{l}</button>
             ))}
@@ -373,7 +373,7 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
                   {questionLibre ? (
                     <FormulaireColonne onAnnuler={() => setQuestionLibre(false)} onValider={(c) => ajouterLibre.mutate(c)} enCours={ajouterLibre.isPending} />
                   ) : (
-                    <button onClick={() => setQuestionLibre(true)} className="inline-flex items-center gap-2 text-[13px] text-ardoise hover:text-encre"><Plus className="w-3.5 h-3.5" /> Questions libres — poser une question à toutes les pièces</button>
+                    <button onClick={() => setQuestionLibre(true)} className="inline-flex items-center gap-2 text-[12.5px] text-ardoise hover:text-encre"><Plus className="w-3.5 h-3.5" /> Questions libres — poser une question à toutes les pièces</button>
                   )}
                 </section>
               }

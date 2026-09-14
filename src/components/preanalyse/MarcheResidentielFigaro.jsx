@@ -25,7 +25,7 @@ function Niveau({ titre, niveau, principal = false }) {
     <div className="mt-6">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Etiquette>{titre}</Etiquette>
-        <span className="text-[14px] text-encre">{niveau.nom || "—"}</span>
+        <span className="text-[13.5px] text-encre">{niveau.nom || "—"}</span>
       </div>
       <Chiffres
         className="mt-3"

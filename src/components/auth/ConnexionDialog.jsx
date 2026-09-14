@@ -133,7 +133,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
           <form onSubmit={verifierEmail} className="space-y-4">
             <EnTete icone={Mail} titre="Connexion" sousTitre={enFenetre ? "Cette fenêtre est indépendante : votre autre compte reste connecté dans les autres." : "Saisissez l'adresse de votre invitation."} />
             <div>
-              <Label className="text-[10px] tracking-[0.16em] uppercase text-ardoise mb-1.5 block">Adresse email</Label>
+              <Label className="text-[11px] tracking-[0.16em] uppercase text-ardoise mb-1.5 block">Adresse email</Label>
               <Input type="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.fr" className={CHAMP} />
             </div>
             {erreur && <Erreur texte={erreur} />}
@@ -147,7 +147,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
                 <BoutonGoogle libelle="Continuer avec Google" />
               </>
             )}
-            <p className="text-[12px] text-brume text-center pt-1 mb-0">Les accès se créent sur invitation.</p>
+            <p className="text-[12.5px] text-brume text-center pt-1 mb-0">Les accès se créent sur invitation.</p>
           </form>
         )}
 
@@ -250,9 +250,9 @@ function EnTete({ icone: Icone, titre, sousTitre, badge = undefined }) {
   return (
     <div className="pb-2">
       <div className="flex items-center gap-2.5">
-        <h2 className="text-encre text-[22px] font-light tracking-[-0.02em] m-0">{titre}</h2>
+        <h2 className="text-encre text-[24px] font-light tracking-[-0.02em] m-0">{titre}</h2>
         {badge && (
-          <span className="text-[9px] tracking-[0.14em] uppercase text-menthe border border-menthe/40 rounded-full px-2 py-px">{badge}</span>
+          <span className="text-[11px] tracking-[0.14em] uppercase text-menthe border border-menthe/40 rounded-full px-2 py-px">{badge}</span>
         )}
       </div>
       {sousTitre && <p className="text-ardoise text-[12.5px] mt-1.5 mb-0 break-words">{sousTitre}</p>}
@@ -275,7 +275,7 @@ function ChampMotDePasse({ valeur, onChange, libelle, autoFocus = undefined, cha
   const [visible, setVisible] = useState(false);
   return (
     <div>
-      <Label className="text-[10px] tracking-[0.16em] uppercase text-ardoise mb-1.5 block">{libelle}</Label>
+      <Label className="text-[11px] tracking-[0.16em] uppercase text-ardoise mb-1.5 block">{libelle}</Label>
       <div className="relative">
         <Input
           ref={champRef}

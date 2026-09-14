@@ -44,8 +44,8 @@ export default function SauvegardeBase() {
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <div>
           <div className="text-[11px] tracking-[.16em] uppercase text-ardoise mb-2">Maintenance</div>
-          <h2 className="m-0 text-[17px] font-normal text-encre">Sauvegarde de la base</h2>
-          <p className="mt-2 mb-0 max-w-[62ch] text-[13px] leading-[1.65] text-ardoise">
+          <h2 className="m-0 text-[18px] font-normal text-encre">Sauvegarde de la base</h2>
+          <p className="mt-2 mb-0 max-w-[62ch] text-[12.5px] leading-[1.65] text-ardoise">
             Emportez-la avant de déployer, ramenez-la après. La restauration fusionne par
             identifiant : elle n’efface rien. Les fichiers déposés (documents, photos) ne
             voyagent pas ici, seul un disque persistant les garde.
@@ -54,7 +54,7 @@ export default function SauvegardeBase() {
         <div className="flex flex-wrap gap-2">
           <a
             href="/api/admin/sauvegarde"
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-bord text-[10.5px] tracking-[.16em] uppercase text-craie hover:border-bord-vif transition-colors"
+            className="inline-flex items-center gap-2 px-3.5 py-2 border border-bord text-[11px] tracking-[.16em] uppercase text-craie hover:border-bord-vif transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             Télécharger
@@ -62,7 +62,7 @@ export default function SauvegardeBase() {
           <button
             onClick={() => fichier.current?.click()}
             disabled={enCours}
-            className="inline-flex items-center gap-2 px-3.5 py-2 border border-bord text-[10.5px] tracking-[.16em] uppercase text-craie hover:border-bord-vif transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3.5 py-2 border border-bord text-[11px] tracking-[.16em] uppercase text-craie hover:border-bord-vif transition-colors disabled:opacity-50"
           >
             <Upload className="w-3.5 h-3.5" />
             {enCours ? "Restauration…" : "Restaurer"}

@@ -29,7 +29,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
   const sousNotes = pieton?.note ? Object.entries(pieton.sous_notes || {}).map(([k, n]) => `${k} ${n?.note ?? "—"}/${n?.sur ?? 5}`).join(" · ") : null;
 
   return (
-    <Section premiere={premiere} titre="Étude d'implantation · Data-B" aside={<span className="text-[12px] text-ardoise">{[emplacement.source, emplacement.quand].filter(Boolean).join(" · ")}</span>}>
+    <Section premiere={premiere} titre="Étude d'implantation · Data-B" aside={<span className="text-[12.5px] text-ardoise">{[emplacement.source, emplacement.quand].filter(Boolean).join(" · ")}</span>}>
       <Chiffres
         className="mt-4"
         items={[
@@ -75,7 +75,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
               {commerces.map((k, i) => (
                 <div key={`${k.enseigne}-${i}`} className="min-w-0 border-b border-trait py-2">
                   <span className="block truncate text-[13.5px] text-encre" title={k.enseigne}>{k.enseigne}</span>
-                  <span className="block truncate text-[11.5px] text-ardoise" title={k.activite}>{k.activite}</span>
+                  <span className="block truncate text-[11px] text-ardoise" title={k.activite}>{k.activite}</span>
                 </div>
               ))}
             </div>
@@ -102,7 +102,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
       <div className="mt-7">
         <div className="flex items-baseline justify-between gap-3">
           <Etiquette>Revenu et CSP+</Etiquette>
-          <button type="button" onClick={() => setRevenusVisibles((v) => !v)} aria-pressed={!revenusVisibles} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+          <button type="button" onClick={() => setRevenusVisibles((v) => !v)} aria-pressed={!revenusVisibles} className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
             {revenusVisibles ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
             {revenusVisibles ? "Masquer" : "Afficher"}
           </button>

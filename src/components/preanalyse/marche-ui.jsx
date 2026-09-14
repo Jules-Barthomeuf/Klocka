@@ -39,7 +39,7 @@ export function Onglets({ items, valeur, onChange, taille = "section", className
             type="button"
             onClick={() => onChange(o.cle)}
             aria-pressed={actif}
-            className={`whitespace-nowrap transition-colors ${page ? "pb-3 text-[14px]" : "alx-mont pb-3 text-[11px] font-medium uppercase tracking-[.14em]"}`}
+            className={`whitespace-nowrap transition-colors ${page ? "pb-3 text-[13.5px]" : "alx-mont pb-3 text-[11px] font-medium uppercase tracking-[.14em]"}`}
             style={{
               background: "transparent",
               color: actif ? J["encre"] : J["ardoise"],
@@ -74,7 +74,7 @@ export function Section({ titre, aside = null, premiere = false, children, class
 /** Un grand titre de section, comme « Avenue Marceau, Courbevoie ». */
 export function Titre({ children, sous = null, className = "" }) {
   return (
-    <div className={`text-[32px] font-normal tracking-[-.025em] text-encre max-md:text-[24px] ${className}`}>
+    <div className={`text-[34px] font-normal tracking-[-.025em] text-encre max-md:text-[24px] ${className}`}>
       {children}
       {sous ? <span className="text-ardoise">{sous}</span> : null}
     </div>
@@ -100,12 +100,12 @@ export function Chiffres({ items, className = "" }) {
             className={`min-w-0 px-[18px] pt-[18px] pb-1.5 text-left ${c.onClick ? "transition-colors hover:bg-white/[0.02]" : ""} ${i === 0 ? "pl-0" : ""} ${i === n - 1 ? "pr-0 md:border-r-0" : "border-r border-bord"}`}
             style={c.onClick ? { background: "transparent" } : undefined}
           >
-            <span className="alx-mont flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[.14em] text-ardoise">{c.libelle}</span>
+            <span className="alx-mont flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">{c.libelle}</span>
             <span className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
               <span className="whitespace-nowrap text-[18px] font-medium tabular-nums" style={{ color: c.teinte || TEINTE.clair }}>{c.valeur}</span>
               {c.extra}
             </span>
-            {c.note && <span className="mt-1 block text-[11.5px] leading-[1.5] text-ardoise">{c.note}</span>}
+            {c.note && <span className="mt-1 block text-[11px] leading-[1.5] text-ardoise">{c.note}</span>}
           </Balise>
         );
       })}
@@ -133,7 +133,7 @@ export function Note({ children, className = "" }) {
 
 /** Une phrase qui compte, en clair. */
 export function Phrase({ children, className = "" }) {
-  return <p className={`m-0 max-w-[92ch] text-[14.5px] leading-[1.65] text-craie ${className}`} style={{ textWrap: "pretty" }}>{children}</p>;
+  return <p className={`m-0 max-w-[92ch] text-[15px] leading-[1.65] text-craie ${className}`} style={{ textWrap: "pretty" }}>{children}</p>;
 }
 
 /** Un encart : bord fin, teinte menthe ou ambre. */

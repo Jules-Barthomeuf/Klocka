@@ -549,7 +549,7 @@ export default function AdminClients() {
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Utilisateurs</h1>
+          <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Utilisateurs</h1>
           <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Gérez tous les utilisateurs de la plateforme.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -580,8 +580,8 @@ export default function AdminClients() {
           { valeur: nbParEtape(5), label: "Signés", accent: "text-menthe-clair" },
         ].map((c, i) => (
           <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-6" : ""}`}>
-            <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
-            <div className="text-[12px] text-ardoise mt-1">{c.label}</div>
+            <div className={`text-[24px] max-md:text-[18px] font-light ${c.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
+            <div className="text-[12.5px] text-ardoise mt-1">{c.label}</div>
           </div>
         ))}
       </div>
@@ -664,7 +664,7 @@ export default function AdminClients() {
             className="flex items-center gap-2.5 w-full text-left group"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-menthe animate-pulse" />
-            <span className="text-[10px] tracking-[0.2em] uppercase text-menthe flex-1">En attente d'activation · {pendingUsers.length}</span>
+            <span className="text-[11px] tracking-[0.2em] uppercase text-menthe flex-1">En attente d'activation · {pendingUsers.length}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-menthe/60 group-hover:text-menthe transition-transform ${pendingCollapsed ? "-rotate-90" : ""}`} />
           </button>
           {!pendingCollapsed && (
@@ -682,7 +682,7 @@ export default function AdminClients() {
                     onClick={() => inviterUn.mutate(user)}
                     disabled={inviterUn.isPending}
                     title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
-                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase font-semibold text-fond bg-encre hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
+                    className="px-4 py-1.5 text-[11px] tracking-[0.16em] uppercase font-semibold text-fond bg-encre hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
                   >
                     {inviterUn.isPending && inviterUn.variables?.id === user.id ? "Envoi…" : "Inviter"}
                   </button>
@@ -690,7 +690,7 @@ export default function AdminClients() {
                     onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
                     disabled={updateUserMutation.isPending}
                     title="Passer client tout de suite (étape 1), sans envoyer de lien maintenant"
-                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase border border-bord-doux text-encre hover:bg-encre/[0.06] transition-colors disabled:opacity-40 flex-shrink-0"
+                    className="px-4 py-1.5 text-[11px] tracking-[0.16em] uppercase border border-bord-doux text-encre hover:bg-encre/[0.06] transition-colors disabled:opacity-40 flex-shrink-0"
                   >
                     Client direct
                   </button>
@@ -735,11 +735,11 @@ export default function AdminClients() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-encre text-[15px] truncate">{user.full_name || "Sans nom"}</span>
-                      {isAdmin && <span className="text-[9px] tracking-[0.16em] uppercase text-menthe border border-menthe/40 rounded-full px-2 py-px">Admin</span>}
-                      {user.role === 'mandataire' && <span className="text-[9px] tracking-[0.16em] uppercase text-ardoise border border-ardoise/40 rounded-full px-2 py-px">Mandataire</span>}
-                      {user.est_compte_shadow && user.compte_maitre_email && <span className="text-[9px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">Lié</span>}
-                      {user.comptes_lies && user.comptes_lies.length > 0 && <span className="text-[9px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">{user.comptes_lies.length} lié{user.comptes_lies.length > 1 ? "s" : ""}</span>}
-                      {user.profil_investisseur && <span className="text-[9px] tracking-[0.16em] uppercase text-ardoise max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
+                      {isAdmin && <span className="text-[11px] tracking-[0.16em] uppercase text-menthe border border-menthe/40 rounded-full px-2 py-px">Admin</span>}
+                      {user.role === 'mandataire' && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise border border-ardoise/40 rounded-full px-2 py-px">Mandataire</span>}
+                      {user.est_compte_shadow && user.compte_maitre_email && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">Lié</span>}
+                      {user.comptes_lies && user.comptes_lies.length > 0 && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">{user.comptes_lies.length} lié{user.comptes_lies.length > 1 ? "s" : ""}</span>}
+                      {user.profil_investisseur && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
                     </div>
                     <p className="text-ardoise text-xs truncate m-0 mt-0.5">{user.email}</p>
                   </div>
@@ -791,7 +791,7 @@ export default function AdminClients() {
                 <div className="pb-6 pl-[52px] max-md:pl-0 pr-2 space-y-6">
                   {/* Profil investisseur */}
                   <div>
-                    <div className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-3">Profil investisseur</div>
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-3">Profil investisseur</div>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { value: "equilibriste", label: "L'équilibriste" },
@@ -802,7 +802,7 @@ export default function AdminClients() {
                         const isSel = user.profil_investisseur === profil.value;
                         return (
                           <button key={profil.value} onClick={() => handleChangeProfil(user.id, profil.value)}
-                            className={`text-[12px] px-3.5 py-1 rounded-full border transition-colors ${isSel ? "bg-menthe/[0.16] border-menthe text-menthe-clair" : "border-encre/[0.18] text-ardoise hover:text-encre"}`}>
+                            className={`text-[12.5px] px-3.5 py-1 rounded-full border transition-colors ${isSel ? "bg-menthe/[0.16] border-menthe text-menthe-clair" : "border-encre/[0.18] text-ardoise hover:text-encre"}`}>
                             {profil.label}
                           </button>
                         );
@@ -813,7 +813,7 @@ export default function AdminClients() {
                   {/* Finances */}
                   {(user.revenus_annuels || user.epargne_annuelle || user.apport_disponible || user.duree_emprunt) && (
                     <div>
-                      <div className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-3">Situation financière</div>
+                      <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-3">Situation financière</div>
                       <div className="flex flex-wrap gap-x-10 gap-y-3" style={{ fontVariantNumeric: "tabular-nums" }}>
                         {user.revenus_annuels && <div><div className="text-[18px] font-light text-encre">{(user.revenus_annuels / 1000).toFixed(0)} K€</div><div className="text-[11px] text-ardoise mt-0.5">Revenus / an</div></div>}
                         {user.epargne_annuelle && <div><div className="text-[18px] font-light text-encre">{(user.epargne_annuelle / 1000).toFixed(0)} K€</div><div className="text-[11px] text-ardoise mt-0.5">Épargne / an</div></div>}
@@ -825,7 +825,7 @@ export default function AdminClients() {
 
                   {/* Gestion du compte */}
                   <div>
-                    <div className="text-[10px] tracking-[0.2em] uppercase text-ardoise mb-3">Gestion du compte</div>
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-3">Gestion du compte</div>
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5">
                       {etape >= 4 && (
                         <>

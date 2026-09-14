@@ -52,14 +52,14 @@ export default function TransactionsFondsDataB({ lot, premiere = false }) {
             rendu={(t) => (
               <>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] text-encre">
+                  <span className="block truncate text-[13.5px] text-encre">
                     {t.enseigne}
-                    {t.sur_place && <span className="ml-2 text-[11.5px]" style={{ color: TEINTE.menthe }}>au numéro du bien</span>}
-                    {!t.sur_place && t.dans_la_rue && <span className="ml-2 text-[11.5px]" style={{ color: TEINTE.ambre }}>dans la rue</span>}
+                    {t.sur_place && <span className="ml-2 text-[11px]" style={{ color: TEINTE.menthe }}>au numéro du bien</span>}
+                    {!t.sur_place && t.dans_la_rue && <span className="ml-2 text-[11px]" style={{ color: TEINTE.ambre }}>dans la rue</span>}
                   </span>
-                  <span className="block truncate text-[12px] text-ardoise">{[t.activite, jour(t.date), t.adresse].filter(Boolean).join(" · ")}</span>
+                  <span className="block truncate text-[12.5px] text-ardoise">{[t.activite, jour(t.date), t.adresse].filter(Boolean).join(" · ")}</span>
                 </span>
-                <span className="whitespace-nowrap text-[14px] font-medium tabular-nums text-encre">{euros(t.prix)}</span>
+                <span className="whitespace-nowrap text-[13.5px] font-medium tabular-nums text-encre">{euros(t.prix)}</span>
               </>
             )}
           />

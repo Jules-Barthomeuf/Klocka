@@ -1046,7 +1046,7 @@ export default function AdminProjets() {
     const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
     // Le dossier de pré-analyse dont ce projet est issu, s'il y en a un.
     const dossierLie = editingProject?.deal_id || formData.deal_id || null;
-    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-bord-doux px-4 py-2 text-[13px] text-craie hover:text-encre hover:border-bord-vif transition-colors";
+    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-bord-doux px-4 py-2 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif transition-colors";
     const FLECHE = "inline-flex items-center justify-center w-9 h-9 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-30 disabled:cursor-not-allowed";
     return (
       <div className="h-screen flex flex-col bg-fond text-encre overflow-hidden">
@@ -1081,13 +1081,13 @@ export default function AdminProjets() {
             <button
               onClick={() => handleSubmit()}
               disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-semibold text-fond bg-menthe hover:bg-menthe-survol transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[12.5px] font-semibold text-fond bg-menthe hover:bg-menthe-survol transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement…</> : "Enregistrer"}
             </button>
 
             <div className="ml-auto flex items-center gap-2">
-              <span className="text-[11.5px] max-lg:hidden" title="État de l'enregistrement">
+              <span className="text-[11px] max-lg:hidden" title="État de l'enregistrement">
                 {modifieDepuis
                   ? <span className="text-menthe">Modifications non enregistrées</span>
                   : enregistreLe
@@ -1172,7 +1172,7 @@ export default function AdminProjets() {
           <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => setActiveTab(t.value)}
-                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-sur-menthe border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif hover:text-encre"}`}>
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-sur-menthe border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif hover:text-encre"}`}>
                 {t.label}
               </button>
             ))}
@@ -1418,7 +1418,7 @@ export default function AdminProjets() {
             <CarteDocuments formData={formData} setFormData={setFormData} />
           </div>
           <div className="px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center">
-            <span className="text-[12px] text-[#6a6a6a]">Entrée met la page de gauche à jour sans enregistrer.</span>
+            <span className="text-[12.5px] text-[#6a6a6a]">Entrée met la page de gauche à jour sans enregistrer.</span>
           </div>
         </aside>
         </div>
@@ -1466,7 +1466,7 @@ export default function AdminProjets() {
         {/* En-tête */}
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>
-            <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Gestion des projets</h1>
+            <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Gestion des projets</h1>
             <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
@@ -1480,8 +1480,8 @@ export default function AdminProjets() {
         <div className="mb-8 flex flex-wrap border-t border-bord max-md:mb-6">
           {CHIFFRES.map((c, i) => (
             <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-6" : ""}`}>
-              <div className={`text-[26px] font-medium tabular-nums max-md:text-[20px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
-              <div className="alx-mont mt-1.5 text-[9.5px] font-medium uppercase tracking-[.14em] text-ardoise">{c.label}</div>
+              <div className={`text-[24px] font-medium tabular-nums max-md:text-[18px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
+              <div className="alx-mont mt-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">{c.label}</div>
             </div>
           ))}
         </div>
@@ -1540,7 +1540,7 @@ export default function AdminProjets() {
           {erreurProjets && (
             <div className="col-span-full border-t border-encre/[0.35] pt-10 pb-16 text-center">
               <Building2 className="w-8 h-8 text-encre/15 mx-auto mb-5" />
-              <h2 className="text-[22px] font-light text-encre mb-2">Chargement impossible</h2>
+              <h2 className="text-[24px] font-light text-encre mb-2">Chargement impossible</h2>
               <p className="text-ardoise text-sm mb-6">
                 Les projets n'ont pas pu être récupérés. Vérifiez votre connexion, puis réessayez.
               </p>
@@ -1560,7 +1560,7 @@ export default function AdminProjets() {
           {!chargementProjets && !erreurProjets && projetsVisibles.length === 0 && (
             <div className="col-span-full border-t border-encre/[0.35] pt-10 pb-16 text-center">
               <Building2 className="w-8 h-8 text-encre/15 mx-auto mb-5" />
-              <h2 className="text-[22px] font-light text-encre mb-2">
+              <h2 className="text-[24px] font-light text-encre mb-2">
                 {projects.length === 0 ? "Aucun projet" : "Aucun projet ne correspond"}
               </h2>
               <p className="text-ardoise text-sm mb-6">

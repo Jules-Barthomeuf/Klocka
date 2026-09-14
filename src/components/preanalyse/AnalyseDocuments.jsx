@@ -87,7 +87,7 @@ function TextePage({ dealId, documentId, page, citation }) {
   if (isLoading) return <p className="m-0 px-4 py-3 text-[12.5px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Lecture de la page…</p>;
   if (isError || !texte) return <p className="m-0 px-4 py-3 text-[12.5px] text-brume">Pas de couche texte sur cette page : le passage se lit dans le PDF, à la page {page || 1}.</p>;
   return (
-    <div className="px-4 py-3 text-[13px] leading-[1.7] text-craie whitespace-pre-wrap">
+    <div className="px-4 py-3 text-[12.5px] leading-[1.7] text-craie whitespace-pre-wrap">
       {passage ? (
         <>
           {texte.slice(0, passage[0])}
@@ -96,7 +96,7 @@ function TextePage({ dealId, documentId, page, citation }) {
         </>
       ) : (
         <>
-          <p className="m-0 mb-3 text-[12px] text-ambre">Le passage exact n'a pas été retrouvé mot pour mot dans cette page : voici son texte entier.</p>
+          <p className="m-0 mb-3 text-[12.5px] text-ambre">Le passage exact n'a pas été retrouvé mot pour mot dans cette page : voici son texte entier.</p>
           {texte}
         </>
       )}
@@ -144,7 +144,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
         {peutSurligner && (
           <span className="inline-flex items-center rounded-full border border-bord-doux p-0.5 flex-shrink-0">
             {[["passage", "Passage"], ["document", "Document"]].map(([id, mot]) => (
-              <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11.5px] transition-colors ${vue === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+              <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11px] transition-colors ${vue === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
             ))}
           </span>
         )}
@@ -153,7 +153,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11.5px] text-menthe-clair hover:text-encre transition-colors flex-shrink-0"
+            className="text-[11px] text-menthe-clair hover:text-encre transition-colors flex-shrink-0"
           >
             Plein écran
           </a>
@@ -166,7 +166,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
       {/* La citation, en évidence : c'est elle qu'on est venu voir. */}
       {ligne?.citation && (
         <div className="px-4 py-3 border-b border-bord flex-shrink-0 bg-ambre/[0.07]">
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ambre">Passage cité{page ? ` · page ${page}` : ""}</p>
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ambre">Passage cité{page ? ` · page ${page}` : ""}</p>
           <p className="m-0 mt-1 text-[13.5px] leading-[1.6] text-encre border-l-2 border-ambre pl-3">{ligne.citation}</p>
         </div>
       )}
@@ -181,7 +181,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
         </div>
       ) : erreurFichier ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-          <p className="m-0 text-[13px] text-alerte">Le document n'a pas pu être ouvert.</p>
+          <p className="m-0 text-[12.5px] text-alerte">Le document n'a pas pu être ouvert.</p>
           <p className="m-0 text-[12.5px] text-brume">Il a peut-être été supprimé du dossier, ou votre session a expiré.</p>
         </div>
       ) : affichable ? (
@@ -193,10 +193,10 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
         />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-          <p className="m-0 text-[13px] text-ardoise">
+          <p className="m-0 text-[12.5px] text-ardoise">
             Ce format ne s'affiche pas dans le navigateur.
           </p>
-          <a href={url} download={extraction.document_nom || true} className="text-[13px] text-menthe-clair hover:text-encre transition-colors">
+          <a href={url} download={extraction.document_nom || true} className="text-[12.5px] text-menthe-clair hover:text-encre transition-colors">
             Télécharger le document
           </a>
         </div>
@@ -284,8 +284,8 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
       {/* --- L'analyse en tête : ce qu'elle est, ce qu'elle a trouvé --------- */}
       <div className="flex flex-wrap items-baseline justify-between gap-4 pb-5 border-b border-relief">
         <div className="min-w-0">
-          <h3 className="m-0 text-[26px] max-md:text-[21px] font-bold tracking-[-.015em] text-encre">{nomOnglet(extraction)}</h3>
-          <p className="m-0 mt-1 text-[13px] text-brume">
+          <h3 className="m-0 text-[24px] max-md:text-[18px] font-bold tracking-[-.015em] text-encre">{nomOnglet(extraction)}</h3>
+          <p className="m-0 mt-1 text-[12.5px] text-brume">
             {[
               couverture,
               extraction.extrait_par,
@@ -298,7 +298,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
             </p>
           )}
         </div>
-        <div className="flex items-center gap-5 text-[13px] flex-shrink-0">
+        <div className="flex items-center gap-5 text-[12.5px] flex-shrink-0">
           {vigilances.length > 0 && <span className="font-semibold text-alerte">{vigilances.length} vigilance{vigilances.length > 1 ? "s" : ""}</span>}
           {aVerifier.length > 0 && <span className="font-semibold text-bleu">{aVerifier.length} à vérifier</span>}
           {!vigilances.length && !aVerifier.length && <span className="text-vert font-semibold">Rien à signaler</span>}
@@ -306,7 +306,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
       </div>
 
       {extraction.synthese && (
-        <p className="m-0 mt-5 text-[14px] leading-[1.75] text-craie border-l-2 border-relief pl-4">{extraction.synthese}</p>
+        <p className="m-0 mt-5 text-[13.5px] leading-[1.75] text-craie border-l-2 border-relief pl-4">{extraction.synthese}</p>
       )}
 
       {/* --- Ce qui décide, en deux colonnes -------------------------------- */}
@@ -321,7 +321,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pt-1">
         <button
           onClick={() => setTableOuverte((v) => !v)}
-          className="inline-flex items-center gap-2 text-[13px] text-ardoise hover:text-encre transition-colors"
+          className="inline-flex items-center gap-2 text-[12.5px] text-ardoise hover:text-encre transition-colors"
         >
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${tableOuverte ? "" : "-rotate-90"}`} />
           Données extraites ({(extraction.lignes || []).length})
@@ -353,7 +353,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                 ? [["Élément", "w-[24%]"], ["Constat / valeur relevée", "w-[40%]"], ["Source", "w-[12%]"], ["Commentaire", "w-[24%]"]]
                 : [["Élément", "w-[22%]"], ["Constat / valeur relevée", "w-[38%]"], ["Source", "w-[12%]"], ["Commentaire", "w-[28%]"]]
               ).map(([h, cls]) => (
-                <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-encre font-normal text-left ${cls}`}>
+                <th key={h} className={`py-2.5 text-[11px] tracking-[0.16em] uppercase text-encre font-normal text-left ${cls}`}>
                   {h}
                 </th>
               ))}
@@ -369,13 +369,13 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                 <React.Fragment key={l.index}>
                 {nouveauBloc && (
                   <tr className="border-b border-bord bg-surface">
-                    <td colSpan={4} className="py-2 text-[10.5px] tracking-[.16em] uppercase text-menthe-clair">{l.bloc}</td>
+                    <td colSpan={4} className="py-2 text-[11px] tracking-[.16em] uppercase text-menthe-clair">{l.bloc}</td>
                   </tr>
                 )}
                 <tr
                   className={`border-b border-bord transition-colors align-top ${ouverte ? "bg-menthe/[0.07]" : "hover:bg-encre/[0.02]"}`}
                 >
-                  <td className="py-3 pr-4 text-[13px] text-encre">
+                  <td className="py-3 pr-4 text-[12.5px] text-encre">
                     <span className="inline-block w-2 h-2 rounded-full mr-2 align-middle" style={{ background: teinte }} title={l.statut || "Non renseigné"} />
                     {l.element}
                   </td>
@@ -388,7 +388,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                         defaultValue={l.constat}
                         onBlur={(e) => majLigne.mutate({ index: l.index, constat: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
-                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[13px] text-encre outline-none resize-y"
+                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[12.5px] text-encre outline-none resize-y"
                       />
                     ) : (
                       <button
@@ -400,10 +400,10 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                           {l.constat || <span className="text-bord-vif">—</span>}
                         </span>
                         {l.citation && deplies.has(l.index) && (
-                          <span className="block mt-1 text-[11.5px] text-brume italic leading-[1.5]">« {l.citation} »</span>
+                          <span className="block mt-1 text-[11px] text-brume italic leading-[1.5]">« {l.citation} »</span>
                         )}
                         {!deplies.has(l.index) && String(l.constat || "").length > 150 && (
-                          <span className="block mt-0.5 text-[11.5px] text-brume">tout lire</span>
+                          <span className="block mt-0.5 text-[11px] text-brume">tout lire</span>
                         )}
                       </button>
                     )}
@@ -432,7 +432,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                         defaultValue={l.commentaire}
                         onBlur={(e) => majLigne.mutate({ index: l.index, commentaire: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
-                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[13px] text-encre outline-none resize-y"
+                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[12.5px] text-encre outline-none resize-y"
                       />
                     ) : (
                       <button
@@ -480,7 +480,7 @@ function Colonne({ titre, teinte, lignes, onOuvrir }) {
   const reste = lignes.length - montres.length;
   return (
     <section className="min-w-0 flex flex-col gap-6">
-      <p className="m-0 text-[12px] tracking-[.16em] uppercase font-semibold" style={{ color: teinte }}>{titre}</p>
+      <p className="m-0 text-[12.5px] tracking-[.16em] uppercase font-semibold" style={{ color: teinte }}>{titre}</p>
       {montres.map((l) => (
         <button
           key={l.index}
@@ -488,15 +488,15 @@ function Colonne({ titre, teinte, lignes, onOuvrir }) {
           title={l.page ? `Ouvrir le document page ${l.page}` : undefined}
           className="text-left flex flex-col gap-2 group"
         >
-          <span className="text-[16px] font-semibold text-encre group-hover:text-[#ffffff] transition-colors">{l.element}</span>
-          {l.constat && <span className="text-[14px] leading-[1.65] text-craie">{l.constat}</span>}
+          <span className="text-[15px] font-semibold text-encre group-hover:text-[#ffffff] transition-colors">{l.element}</span>
+          {l.constat && <span className="text-[13.5px] leading-[1.65] text-craie">{l.constat}</span>}
           {l.commentaire && !memeTexte(l.commentaire, l.constat) && (
             <span className="text-[13.5px] leading-[1.6]" style={{ color: teinte === J["alerte"] ? J["ambre"] : teinte }}>→ {l.commentaire}</span>
           )}
         </button>
       ))}
       {reste > 0 && (
-        <button onClick={() => setTout(true)} className="text-left text-[13px] text-brume hover:text-craie transition-colors">
+        <button onClick={() => setTout(true)} className="text-left text-[12.5px] text-brume hover:text-craie transition-colors">
           + {reste} autre{reste > 1 ? "s" : ""} point{reste > 1 ? "s" : ""}
         </button>
       )}
@@ -553,7 +553,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
         <nav className="w-[264px] max-lg:w-full flex-none border-r max-lg:border-r-0 max-lg:border-b border-relief py-5 flex flex-col">
           <button
             onClick={() => setOnglet("dossier")}
-            className={`w-full text-left px-6 py-2.5 mb-3 border-l-2 text-[14px] transition-colors ${
+            className={`w-full text-left px-6 py-2.5 mb-3 border-l-2 text-[13.5px] transition-colors ${
               onglet === "dossier" ? "border-alerte bg-alerte/[0.05] text-encre font-semibold" : "border-transparent text-ardoise hover:text-encre"
             }`}
           >
@@ -573,7 +573,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
                     defaultValue={renommage.titre}
                     onBlur={(ev) => renommer.mutate({ id: e.id, titre: ev.target.value })}
                     onKeyDown={(ev) => { if (ev.key === "Enter") ev.currentTarget.blur(); if (ev.key === "Escape") setRenommage(null); }}
-                    className="mx-6 my-1 bg-fond border border-menthe rounded px-2 py-1 text-[14px] text-encre outline-none"
+                    className="mx-6 my-1 bg-fond border border-menthe rounded px-2 py-1 text-[13.5px] text-encre outline-none"
                   />
                 ) : (
                   <button
@@ -585,7 +585,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
                       choisi ? "border-alerte bg-alerte/[0.05] text-encre" : "border-transparent text-ardoise hover:text-encre"
                     }`}
                   >
-                    <span className={`text-[14px] truncate ${choisi ? "font-semibold" : ""}`}>{nomOnglet(e)}</span>
+                    <span className={`text-[13.5px] truncate ${choisi ? "font-semibold" : ""}`}>{nomOnglet(e)}</span>
                     <span
                       className="text-[11px] flex-none"
                       title={e.erreur ? "L'analyse a échoué" : vigilances ? `${vigilances} point(s) de vigilance` : total === 0 ? "Rien relevé dans ce document" : "Rien à signaler"}
@@ -607,7 +607,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
             <button
               key={id}
               onClick={() => setOnglet(id)}
-              className={`w-full text-left px-6 py-2.5 border-l-2 text-[14px] transition-colors ${
+              className={`w-full text-left px-6 py-2.5 border-l-2 text-[13.5px] transition-colors ${
                 onglet === id ? "border-alerte bg-alerte/[0.05] text-encre font-semibold" : "border-transparent text-ardoise hover:text-encre"
               }`}
             >

@@ -64,7 +64,7 @@ export default function ALXVilles() {
     <div className="bg-fond min-h-screen text-encre">
       <div className="max-w-[1440px] mx-auto px-7 pt-7 pb-20">
         {seulement ? (
-          <Link to={`/ALX?ville=${seulement}`} className="inline-block mb-5 text-[13px] text-menthe hover:text-menthe-clair">← Retour à la ville</Link>
+          <Link to={`/ALX?ville=${seulement}`} className="inline-block mb-5 text-[12.5px] text-menthe hover:text-menthe-clair">← Retour à la ville</Link>
         ) : (
           <EnTeteAlx titre="Rues" sous="Les rues de chaque ville, en emplacement 1, le solide, ou 2, pour les budgets plus petits. ALX propose, l'équipe corrige." />
         )}
@@ -85,8 +85,8 @@ export default function ALXVilles() {
             <section key={v.id}>
               <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
                 <div>
-                  <h2 className="m-0 text-[28px] font-semibold tracking-[-.02em] text-encre">
-                    {v.nom} {v.code_postal && <span className="text-brume text-[14px] font-normal">· {v.code_postal}</span>}
+                  <h2 className="m-0 text-[24px] font-semibold tracking-[-.02em] text-encre">
+                    {v.nom} {v.code_postal && <span className="text-brume text-[13.5px] font-normal">· {v.code_postal}</span>}
                   </h2>
                   <p className="m-0 mt-1 text-[12.5px] text-ardoise">
                     {v.cibles?.total || 0} cible{(v.cibles?.total || 0) > 1 ? "s" : ""}
@@ -96,11 +96,11 @@ export default function ALXVilles() {
                 </div>
                 <div className="flex items-center gap-4">
                   {v.parcours?.etat === "en_cours" ? (
-                    <span className="inline-flex items-center gap-2 text-[12px] text-menthe"><span className="w-[7px] h-[7px] rounded-full bg-menthe animate-pulse" />ALX en cours{v.parcours.rue_en_cours ? ` · ${v.parcours.rue_en_cours}` : ""}</span>
+                    <span className="inline-flex items-center gap-2 text-[12.5px] text-menthe"><span className="w-[7px] h-[7px] rounded-full bg-menthe animate-pulse" />ALX en cours{v.parcours.rue_en_cours ? ` · ${v.parcours.rue_en_cours}` : ""}</span>
                   ) : (
                     <Bouton onClick={() => lancer.mutate(v.id)} disabled={lancer.isPending}>{v.parcours?.etat ? "Relancer ALX" : "Lancer ALX"}</Bouton>
                   )}
-                  <Link to={`/ALX?ville=${v.id}`} className="text-[13px] text-menthe hover:text-menthe-clair">Ouvrir dans Cibles →</Link>
+                  <Link to={`/ALX?ville=${v.id}`} className="text-[12.5px] text-menthe hover:text-menthe-clair">Ouvrir dans Cibles →</Link>
                   <button
                     onClick={() => { if (window.confirm(`Retirer ${v.nom} et toutes ses cibles ?`)) supprimer.mutate(v.id); }}
                     className="text-[11px] tracking-[.14em] uppercase text-brume hover:text-alerte transition-colors"
@@ -116,20 +116,20 @@ export default function ALXVilles() {
                   return (
                     <Carte key={e.classe} className="flex flex-col gap-[18px] !p-6 !rounded-[18px]">
                       <div className="flex items-baseline justify-between">
-                        <div className="text-[10px] tracking-[.16em] uppercase font-semibold" style={{ color: e.teinte }}>Emplacement {e.mot}</div>
-                        <div className="text-[12px] text-brume">{e.fourchette}</div>
+                        <div className="text-[11px] tracking-[.16em] uppercase font-semibold" style={{ color: e.teinte }}>Emplacement {e.mot}</div>
+                        <div className="text-[12.5px] text-brume">{e.fourchette}</div>
                       </div>
                       <div className="flex flex-col">
                         {rues.map((r) => (
                           <div key={r.nom} className="group grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-3 items-center py-3 border-t border-trait first:border-t-0">
                             <div className="min-w-0">
-                              <div className="text-[14px] text-craie truncate">
+                              <div className="text-[13.5px] text-craie truncate">
                                 {r.nom}
-                                {r.par === "alx" && <span className="ml-2 text-[9px] tracking-[.12em] uppercase text-brume">proposée par ALX</span>}
+                                {r.par === "alx" && <span className="ml-2 text-[11px] tracking-[.12em] uppercase text-brume">proposée par ALX</span>}
                               </div>
-                              {r.motif && <div className="text-[12px] text-brume truncate">{r.motif}{r.parcourue_le ? ` · parcourue le ${new Date(r.parcourue_le).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}` : ""}</div>}
+                              {r.motif && <div className="text-[12.5px] text-brume truncate">{r.motif}{r.parcourue_le ? ` · parcourue le ${new Date(r.parcourue_le).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}` : ""}</div>}
                             </div>
-                            <span className="text-[12px] text-ardoise text-right">{v.cibles_par_rue?.[r.nom] || 0} cible{(v.cibles_par_rue?.[r.nom] || 0) > 1 ? "s" : ""}</span>
+                            <span className="text-[12.5px] text-ardoise text-right">{v.cibles_par_rue?.[r.nom] || 0} cible{(v.cibles_par_rue?.[r.nom] || 0) > 1 ? "s" : ""}</span>
                             {v.parcours?.etat !== "en_cours" && (
                               <button onClick={() => parcourir.mutate({ id: v.id, nom: r.nom })} disabled={parcourir.isPending} className="opacity-0 group-hover:opacity-100 text-[11px] text-menthe hover:text-menthe-clair transition-opacity whitespace-nowrap" title="Parcourir cette rue seule">
                                 {r.parcourue_le ? "Repasser" : "Parcourir"}
@@ -169,7 +169,7 @@ export default function ALXVilles() {
                 </details>
               )}
               {(v.rues || []).length > 0 && (
-                <p className="m-0 mt-3 text-[12px] text-brume">
+                <p className="m-0 mt-3 text-[12.5px] text-brume">
                   {v.recensement?.le
                     ? `Proposé par ALX le ${new Date(v.recensement.le).toLocaleDateString("fr-FR")} : ${v.recensement.commerces_total} vitrines sur ${v.recensement.rayon_km || 1.5} km autour du centre. Corrigez, ALX suit.`
                     : "Classement à la main. Lancez ALX pour qu'il propose les rues du centre avec leur loyer de marché."}

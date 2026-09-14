@@ -98,7 +98,7 @@ export default function Portail({ paiement2Fois = false }) {
             <div className="max-w-5xl mx-auto px-6 py-8 md:py-12">
               <div className="flex items-center gap-2 mb-3">
                 <Shield className="w-4 h-4 text-menthe" />
-                <p className="text-menthe uppercase tracking-[0.3em] text-[10px] font-medium">Conditions Générales de Vente</p>
+                <p className="text-menthe uppercase tracking-[0.3em] text-[11px] font-medium">Conditions Générales de Vente</p>
               </div>
               <h1 className="text-2xl md:text-3xl text-encre tracking-tight mb-2">
                 Nos conditions
@@ -178,8 +178,8 @@ export default function Portail({ paiement2Fois = false }) {
           {etape === 3 && (
             <motion.div key="paiement" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
             <div className="max-w-5xl mx-auto px-6 py-8 md:py-12">
-              <p className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-2">Dernière étape</p>
-              <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">
+              <p className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-2">Dernière étape</p>
+              <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">
                 Finalisez le paiement
               </h1>
 

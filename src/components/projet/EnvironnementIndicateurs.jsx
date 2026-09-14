@@ -54,7 +54,7 @@ export default function EnvironnementIndicateurs({ project }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-cormorant text-encre">{env.ville || adresse}</h2>
+        <h2 className="text-2xl font-display text-encre">{env.ville || adresse}</h2>
         <div className="flex items-center gap-3 mt-1">
           {env.departement && <Badge className="bg-menthe/20 text-menthe border-0">{env.departement}</Badge>}
           {env.region && <span className="text-sm text-ardoise">{env.region}</span>}

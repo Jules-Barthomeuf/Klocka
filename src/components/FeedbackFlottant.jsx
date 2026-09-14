@@ -127,7 +127,7 @@ export default function FeedbackFlottant() {
         <div className="absolute right-0 top-[58px] w-[420px] max-md:w-[calc(100vw-2rem)] max-md:right-[-3rem] rounded-[18px] border border-bord bg-[#0a0a0bf5] backdrop-blur-xl shadow-[0_24px_60px_rgba(0,0,0,.6)] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-baseline justify-between gap-4 mb-3">
             <p className="m-0 text-[15px] font-medium text-encre">Signaler quelque chose</p>
-            <Link to={createPageUrl("AdminSuggestions")} onClick={() => setOuvert(false)} className="text-[12px] text-brume hover:text-craie">
+            <Link to={createPageUrl("AdminSuggestions")} onClick={() => setOuvert(false)} className="text-[12.5px] text-brume hover:text-craie">
               Tout voir
             </Link>
           </div>
@@ -138,7 +138,7 @@ export default function FeedbackFlottant() {
                 <div key={r.id} className="flex items-start gap-2.5 rounded-lg border border-trait px-3 py-2">
                   <span className="mt-[3px] w-1.5 h-1.5 rounded-full flex-none" style={{ background: urgenceDe(r.urgence).teinte }} />
                   <p className="m-0 flex-1 min-w-0 text-[12.5px] leading-[1.5] text-craie line-clamp-2">{r.contenu}</p>
-                  <span className="flex-none text-[10.5px] px-2 py-0.5 rounded-full text-white/90" style={{ background: etatDe(r.statut).fond }}>
+                  <span className="flex-none text-[11px] px-2 py-0.5 rounded-full text-white/90" style={{ background: etatDe(r.statut).fond }}>
                     {etatDe(r.statut).mot}
                   </span>
                 </div>
@@ -173,7 +173,7 @@ export default function FeedbackFlottant() {
                   </div>
                 )}
                 <div className="flex flex-wrap items-center gap-2.5 mb-2">
-                  <span className="text-[10.5px] tracking-[.14em] uppercase text-brume">Urgence</span>
+                  <span className="text-[11px] tracking-[.14em] uppercase text-brume">Urgence</span>
                   <span className="inline-flex items-end gap-1" role="group" aria-label="Urgence">
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button
@@ -187,7 +187,7 @@ export default function FeedbackFlottant() {
                       />
                     ))}
                   </span>
-                  <span className="text-[12px] font-medium" style={{ color: urgenceDe(urgence).teinte }}>{urgenceDe(urgence).mot}</span>
+                  <span className="text-[12.5px] font-medium" style={{ color: urgenceDe(urgence).teinte }}>{urgenceDe(urgence).mot}</span>
                 </div>
               </>
             }

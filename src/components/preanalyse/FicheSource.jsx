@@ -22,7 +22,7 @@ export default function FicheSource({ dossier, className = "" }) {
       <button
         type="button"
         onClick={() => setOuvert(true)}
-        className={`inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[13px] text-craie hover:text-encre hover:border-bord-vif transition-colors ${className}`}
+        className={`inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif transition-colors ${className}`}
         title="Consulter la fiche commerciale importée"
       >
         <FileText className="w-3.5 h-3.5" /> Fiche commerciale importée
@@ -31,14 +31,14 @@ export default function FicheSource({ dossier, className = "" }) {
         <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col">
           <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-trait">
             <div className="min-w-0">
-              <p className="m-0 text-[10px] tracking-[.18em] uppercase text-brume">Fiche commerciale importée</p>
+              <p className="m-0 text-[11px] tracking-[.18em] uppercase text-brume">Fiche commerciale importée</p>
               <p className="m-0 mt-1 text-[15px] text-encre truncate">{nom}{src.pages ? <span className="text-brume"> · {src.pages} page{src.pages > 1 ? "s" : ""}</span> : null}</p>
             </div>
             <div className="flex items-center gap-2 flex-none">
               {pdf && texteDe(src) && (
                 <div className="inline-flex rounded-full border border-bord-doux p-0.5">
                   {[["document", "Document"], ["texte", "Texte"]].map(([id, mot]) => (
-                    <button key={id} onClick={() => setVue(id)} className={`px-3 py-1 rounded-full text-[12px] transition-colors ${vue === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+                    <button key={id} onClick={() => setVue(id)} className={`px-3 py-1 rounded-full text-[12.5px] transition-colors ${vue === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
                   ))}
                 </div>
               )}

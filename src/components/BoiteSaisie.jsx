@@ -56,7 +56,7 @@ export default function BoiteSaisie({
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer && !enCours) { e.preventDefault(); onEnvoyer(); } }}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full bg-transparent border-0 outline-none resize-none ${compact ? "text-[14.5px]" : "text-[17px] max-md:text-[15px]"} leading-[1.55] text-encre placeholder:text-brume disabled:opacity-50`}
+          className={`w-full bg-transparent border-0 outline-none resize-none ${compact ? "text-[15px]" : "text-[18px] max-md:text-[15px]"} leading-[1.55] text-encre placeholder:text-brume disabled:opacity-50`}
         />
         {sous}
       </div>

@@ -23,7 +23,7 @@ export default function Home() {
               Votre liberté<br />
               <span className="text-menthe-clair">commence ici.</span>
             </h1>
-            <p className="text-ardoise text-[15px] md:text-[16px] leading-[1.8] mt-6 mb-0 max-w-[480px]">
+            <p className="text-ardoise text-[15px] md:text-[15px] leading-[1.8] mt-6 mb-0 max-w-[480px]">
               L'immobilier commercial, du sourcing à la signature : analyse des dossiers,
               simulation financière, financement et suivi — tout est centralisé,
               accompagné par votre conseiller Klocka.
@@ -32,16 +32,16 @@ export default function Home() {
             {/* Repères chiffrés */}
             <div className="flex flex-wrap border-t border-encre/[0.35] mt-10 max-w-[520px]" style={{ fontVariantNumeric: "tabular-nums" }}>
               <div className="flex-1 min-w-[120px] py-5 pr-5">
-                <div className="text-[26px] font-light text-menthe-clair">7–9 %</div>
-                <div className="text-[12px] text-ardoise mt-1">Rendement moyen visé</div>
+                <div className="text-[24px] font-light text-menthe-clair">7–9 %</div>
+                <div className="text-[12.5px] text-ardoise mt-1">Rendement moyen visé</div>
               </div>
               <div className="flex-1 min-w-[120px] py-5 px-5 md:border-l md:border-encre/[0.12]">
-                <div className="text-[26px] font-light text-encre">3/6/9</div>
-                <div className="text-[12px] text-ardoise mt-1">Baux commerciaux sécurisés</div>
+                <div className="text-[24px] font-light text-encre">3/6/9</div>
+                <div className="text-[12.5px] text-ardoise mt-1">Baux commerciaux sécurisés</div>
               </div>
               <div className="flex-1 min-w-[120px] py-5 pl-5 md:border-l md:border-encre/[0.12]">
-                <div className="text-[26px] font-light text-encre">1</div>
-                <div className="text-[12px] text-ardoise mt-1">Conseiller dédié</div>
+                <div className="text-[24px] font-light text-encre">1</div>
+                <div className="text-[12.5px] text-ardoise mt-1">Conseiller dédié</div>
               </div>
             </div>
           </div>

@@ -198,7 +198,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
       <div className="px-5 py-4 border-b border-trait flex flex-wrap items-center gap-3">
         <p className="text-encre text-sm font-medium">Documents du deal</p>
         {documents.length > 0 && (
-          <Badge className="bg-encre/5 text-ardoise border-encre/10 text-[10px]">
+          <Badge className="bg-encre/5 text-ardoise border-encre/10 text-[11px]">
             {documents.length} document{documents.length > 1 ? "s" : ""}
           </Badge>
         )}

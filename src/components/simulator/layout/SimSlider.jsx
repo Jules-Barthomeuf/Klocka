@@ -43,7 +43,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
 
   return (
     <div className="py-1.5">
-      <div className="flex items-center justify-between text-[13px] leading-tight">
+      <div className="flex items-center justify-between text-[12.5px] leading-tight">
         <span className={`truncate pr-2 ${alerte ? "text-alerte" : "text-ardoise"}`}>{label}</span>
         {editing ? (
           <input
@@ -53,7 +53,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-            className="sim-num-input bg-fond text-encre text-right text-[13px] w-24 px-1.5 py-0.5 rounded border border-menthe/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
+            className="sim-num-input bg-fond text-encre text-right text-[12.5px] w-24 px-1.5 py-0.5 rounded border border-menthe/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
           />
         ) : (
           <button

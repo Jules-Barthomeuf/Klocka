@@ -19,7 +19,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
     return (
       <div className="border-t border-trait bg-surface">
         <div className="mx-auto w-full max-w-[780px] px-4 sm:px-6 py-2.5">
-          <span className="text-[12px] text-brume">Aucune recherche en cours</span>
+          <span className="text-[12.5px] text-brume">Aucune recherche en cours</span>
         </div>
       </div>
     );
@@ -57,7 +57,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
           {reperes.map((r) => (
             <span
               key={r.cle}
-              className={`absolute top-0 text-[10px] whitespace-nowrap transition-colors duration-300 ${
+              className={`absolute top-0 text-[11px] whitespace-nowrap transition-colors duration-300 ${
                 r.franchi || r.encours ? "text-ardoise" : "text-brume"
               } ${r.position === 0 ? "left-0" : r.position === 1 ? "right-0" : "-translate-x-1/2"}`}
               style={r.position === 0 || r.position === 1 ? undefined : { left: `${r.position * 100}%` }}
@@ -68,7 +68,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
         </div>
 
         {courante && (
-          <p key={courante.cle} className="ja-etape m-0 mt-2.5 text-[12px] leading-5 text-ardoise min-h-[40px]" role="status">
+          <p key={courante.cle} className="ja-etape m-0 mt-2.5 text-[12.5px] leading-5 text-ardoise min-h-[40px]" role="status">
             <span style={{ color: courante.echoue ? J["alerte"] : courante.encours ? J["ambre"] : J["menthe"] }}>{courante.libelle}</span>
             <span className="text-brume"> · </span>
             {courante.explication}
@@ -81,7 +81,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
           type="button"
           onClick={onJournal}
           title="Journal détaillé"
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] transition-colors ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] transition-colors ${
             journalOuvert ? "bg-trait text-encre" : "text-brume hover:text-craie hover:bg-relief"
           }`}
         >
@@ -92,7 +92,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
           <button
             type="button"
             onClick={onVoirAnalyse}
-            className="inline-flex items-center gap-1.5 rounded-full bg-menthe-clair text-sur-menthe text-[12px] font-semibold px-4 py-1.5 hover:bg-menthe-clair transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full bg-menthe-clair text-sur-menthe text-[12.5px] font-semibold px-4 py-1.5 hover:bg-menthe-clair transition-colors"
           >
             Voir l’analyse <ArrowRight className="w-3.5 h-3.5" />
           </button>

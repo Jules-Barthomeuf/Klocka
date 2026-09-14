@@ -148,7 +148,7 @@ function IndividualProjectChart({ donneesProjet }) {
                   x={getX(i)}
                   y={chartHeight - 10}
                   textAnchor="middle"
-                  className="text-[10px] fill-ardoise"
+                  className="text-[11px] fill-ardoise"
                 >
                   An {d.annee}
                 </text>
@@ -206,7 +206,7 @@ function IndividualProjectChart({ donneesProjet }) {
                   x={getX(i)}
                   y={chartHeight - 10}
                   textAnchor="middle"
-                  className="text-[10px] fill-ardoise"
+                  className="text-[11px] fill-ardoise"
                 >
                   An {d.annee}
                 </text>

@@ -48,7 +48,7 @@ function Chiffre({ icone: Icone, valeur, libelle }) {
       <div className="flex items-center gap-2 text-ardoise text-[11px] tracking-[.14em] uppercase">
         <Icone className="w-3.5 h-3.5" /> {libelle}
       </div>
-      <p className="m-0 mt-2 text-[26px] font-light tabular-nums text-encre">{valeur}</p>
+      <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{valeur}</p>
     </div>
   );
 }
@@ -104,7 +104,7 @@ export default function Monitoring() {
         <div className="flex flex-wrap items-end justify-between gap-4 mb-7">
           <div>
             <OngletsSuivi className="mb-3.5" />
-            <h1 className="m-0 text-[30px] max-md:text-[24px] font-light tracking-[-.02em]">Usage de la plateforme</h1>
+            <h1 className="m-0 text-[34px] max-md:text-[24px] font-light tracking-[-.02em]">Usage de la plateforme</h1>
             <p className="mt-2.5 mb-0 max-w-[62ch] text-[13.5px] leading-[1.65] text-ardoise">
               Les pages consultées, les demandes faites à l'assistant, et ce qui a réellement été
               exécuté au-dehors.
@@ -143,7 +143,7 @@ export default function Monitoring() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
               {/* Par personne */}
               <div className="border border-trait rounded-md p-4">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-menthe font-normal">
+                <h2 className="m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal">
                   Par personne
                 </h2>
                 {data.personnes.length === 0 ? (
@@ -155,7 +155,7 @@ export default function Monitoring() {
                         {["Personne", "Pages", "IA", "Actions", "Vu le"].map((h, i) => (
                           <th
                             key={h}
-                            className={`py-2 text-[10px] tracking-[.14em] uppercase text-brume font-normal ${i ? "text-right" : "text-left"}`}
+                            className={`py-2 text-[11px] tracking-[.14em] uppercase text-brume font-normal ${i ? "text-right" : "text-left"}`}
                           >
                             {h}
                           </th>
@@ -167,12 +167,12 @@ export default function Monitoring() {
                         <tr key={p.email} className="border-b border-relief">
                           <td className="py-2.5 text-[12.5px] text-encre truncate max-w-[190px]">
                             {p.email}
-                            {p.role === "admin" && <span className="text-menthe text-[10px] ml-1.5">admin</span>}
+                            {p.role === "admin" && <span className="text-menthe text-[11px] ml-1.5">admin</span>}
                           </td>
                           <td className="py-2.5 text-right text-[12.5px] tabular-nums text-craie">{p.visites}</td>
                           <td className="py-2.5 text-right text-[12.5px] tabular-nums text-craie">{p.requetes}</td>
                           <td className="py-2.5 text-right text-[12.5px] tabular-nums text-craie">{p.actions}</td>
-                          <td className="py-2.5 text-right text-[11.5px] text-brume whitespace-nowrap">
+                          <td className="py-2.5 text-right text-[11px] text-brume whitespace-nowrap">
                             {quand(p.derniere)}
                           </td>
                         </tr>
@@ -184,7 +184,7 @@ export default function Monitoring() {
 
               {/* Par page */}
               <div className="border border-trait rounded-md p-4">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-menthe font-normal">
+                <h2 className="m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal">
                   Pages les plus consultées
                 </h2>
                 {data.pages.length === 0 ? (
@@ -208,7 +208,7 @@ export default function Monitoring() {
             {/* Outils de l'assistant */}
             {data.outils.length > 0 && (
               <div className="border border-trait rounded-md p-4 mb-8">
-                <h2 className="m-0 mb-3 text-[10.5px] tracking-[.16em] uppercase text-menthe font-normal">
+                <h2 className="m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal">
                   Outils de l'assistant les plus appelés
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
@@ -231,7 +231,7 @@ export default function Monitoring() {
         {couts && (
           <div className="border border-trait rounded-md p-4 mb-8">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-menthe font-normal flex items-center gap-2">
+              <h2 className="m-0 text-[11px] tracking-[.16em] uppercase text-menthe font-normal flex items-center gap-2">
                 <Coins className="w-3.5 h-3.5" /> Ce que coûte l'IA
               </h2>
               <span className="text-[12.5px] text-encre tabular-nums">
@@ -245,11 +245,11 @@ export default function Monitoring() {
             ) : (
               <>
                 {/* Par utilisateur : clic pour ne voir que ses requêtes */}
-                <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-brume">Coût par utilisateur</p>
+                <p className="m-0 mb-2 text-[11px] tracking-[.14em] uppercase text-brume">Coût par utilisateur</p>
                 <div className="overflow-x-auto mb-6">
                   <table className="w-full text-[12.5px] border-collapse">
                     <thead>
-                      <tr className="text-[10px] tracking-[.12em] uppercase text-brume">
+                      <tr className="text-[11px] tracking-[.12em] uppercase text-brume">
                         <th className="text-left font-normal py-1.5 pr-3">Utilisateur</th>
                         <th className="text-right font-normal py-1.5 px-3">Requêtes</th>
                         <th className="text-right font-normal py-1.5 px-3">Appels</th>
@@ -282,7 +282,7 @@ export default function Monitoring() {
                   </table>
                 </div>
 
-                <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-brume">Par opération</p>
+                <p className="m-0 mb-2 text-[11px] tracking-[.14em] uppercase text-brume">Par opération</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 mb-6">
                   {couts.operations.slice(0, 10).map((o) => (
                     <div key={o.cle} className="flex justify-between text-[12.5px] py-1 border-b border-relief">
@@ -296,10 +296,10 @@ export default function Monitoring() {
 
                 {/* Le journal : une ligne par requête, la plus récente en haut */}
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-                  <p className="m-0 text-[10px] tracking-[.14em] uppercase text-brume">
+                  <p className="m-0 text-[11px] tracking-[.14em] uppercase text-brume">
                     Journal{parFiltre ? ` · ${parFiltre}` : ""}
                   </p>
-                  <span className="text-[11.5px] text-brume flex items-center gap-3">
+                  <span className="text-[11px] text-brume flex items-center gap-3">
                     {couts.journal.length} sur {couts.journal_total}
                     {parFiltre && (
                       <button onClick={() => setParFiltre(null)} className="text-menthe hover:text-menthe-survol">Tout le monde</button>
@@ -309,7 +309,7 @@ export default function Monitoring() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-[12.5px] border-collapse">
                     <thead>
-                      <tr className="text-[10px] tracking-[.12em] uppercase text-brume">
+                      <tr className="text-[11px] tracking-[.12em] uppercase text-brume">
                         <th className="text-left font-normal py-1.5 pr-3 whitespace-nowrap">Date · heure</th>
                         <th className="text-left font-normal py-1.5 px-3">Opération</th>
                         <th className="text-left font-normal py-1.5 px-3">Utilisateur</th>
@@ -347,12 +347,12 @@ export default function Monitoring() {
                             </tr>
                             {ouvert && g.lignes.map((l) => (
                               <tr key={l.id} className="bg-encre/[0.015]">
-                                <td className="py-1.5 pr-3 pl-6 whitespace-nowrap tabular-nums text-[11.5px] text-brume">{horodatage(l.le).split(" · ")[1] || horodatage(l.le)}</td>
-                                <td className="py-1.5 px-3 text-[11.5px] text-craie truncate max-w-[360px]" colSpan={2}>{l.libelle || l.sur || "—"}</td>
-                                <td className="py-1.5 px-3 text-right tabular-nums text-[11.5px] text-brume">{l.duree_ms != null ? duree(l.duree_ms) : "—"}</td>
-                                <td className="py-1.5 px-3 text-right tabular-nums text-[11.5px] text-brume">{l.appels}</td>
-                                <td className="py-1.5 px-3 text-right tabular-nums text-[11.5px] text-brume">{((l.entree + l.sortie) / 1000).toFixed(1)} k</td>
-                                <td className="py-1.5 pl-3 text-right tabular-nums text-[11.5px] text-ardoise">{euros(l.cout)}</td>
+                                <td className="py-1.5 pr-3 pl-6 whitespace-nowrap tabular-nums text-[11px] text-brume">{horodatage(l.le).split(" · ")[1] || horodatage(l.le)}</td>
+                                <td className="py-1.5 px-3 text-[11px] text-craie truncate max-w-[360px]" colSpan={2}>{l.libelle || l.sur || "—"}</td>
+                                <td className="py-1.5 px-3 text-right tabular-nums text-[11px] text-brume">{l.duree_ms != null ? duree(l.duree_ms) : "—"}</td>
+                                <td className="py-1.5 px-3 text-right tabular-nums text-[11px] text-brume">{l.appels}</td>
+                                <td className="py-1.5 px-3 text-right tabular-nums text-[11px] text-brume">{((l.entree + l.sortie) / 1000).toFixed(1)} k</td>
+                                <td className="py-1.5 pl-3 text-right tabular-nums text-[11px] text-ardoise">{euros(l.cout)}</td>
                               </tr>
                             ))}
                           </React.Fragment>
@@ -362,13 +362,13 @@ export default function Monitoring() {
                   </table>
                 </div>
                 {couts.journal_total > couts.journal.length && (
-                  <button onClick={() => setLimiteCouts((n) => n + 200)} className="mt-3 text-[12px] text-menthe hover:text-menthe-survol">
+                  <button onClick={() => setLimiteCouts((n) => n + 200)} className="mt-3 text-[12.5px] text-menthe hover:text-menthe-survol">
                     Voir 200 de plus
                   </button>
                 )}
               </>
             )}
-            <p className="m-0 mt-4 text-[11.5px] leading-[1.6] text-brume">
+            <p className="m-0 mt-4 text-[11px] leading-[1.6] text-brume">
               Tarifs publics du modèle, lectures de cache comprises, convertis au taux de 1 $ = 0,92 €.
               Une analyse lancée d'un clic fait une ligne : sa durée va du premier au dernier appel, et
               elle s'ouvre pour voir chaque document. Chaque ligne porte la personne qui l'a demandée ; « tâche de fond » ne reste que pour ce qui tourne sans personne
@@ -380,10 +380,10 @@ export default function Monitoring() {
         {/* Historique complet des demandes à l'assistant */}
         <div className="border border-trait rounded-md p-4">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <h2 className="m-0 text-[10.5px] tracking-[.16em] uppercase text-menthe font-normal">
+            <h2 className="m-0 text-[11px] tracking-[.16em] uppercase text-menthe font-normal">
               Toutes les demandes à l'assistant
             </h2>
-            <span className="text-[11.5px] text-brume">
+            <span className="text-[11px] text-brume">
               {historique?.requetes?.length || 0} affichée(s) sur {historique?.total ?? "—"}
             </span>
           </div>
@@ -406,8 +406,8 @@ export default function Monitoring() {
                         className={`w-3.5 h-3.5 text-brume mt-1 flex-shrink-0 transition-transform ${estOuverte ? "" : "-rotate-90"}`}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-[13px] text-encre truncate">{r.question}</p>
-                        <p className="m-0 mt-1 text-[11.5px] text-brume">
+                        <p className="m-0 text-[12.5px] text-encre truncate">{r.question}</p>
+                        <p className="m-0 mt-1 text-[11px] text-brume">
                           {[
                             r.par,
                             quand(r.le),
@@ -425,14 +425,14 @@ export default function Monitoring() {
                     {estOuverte && (
                       <div className="pb-4 pl-7 pr-1 space-y-3">
                         <div>
-                          <p className="m-0 mb-1 text-[10px] tracking-[.14em] uppercase text-brume">Réponse</p>
+                          <p className="m-0 mb-1 text-[11px] tracking-[.14em] uppercase text-brume">Réponse</p>
                           <p className="m-0 text-[12.5px] leading-[1.65] text-craie whitespace-pre-wrap">
                             {r.reponse}
                           </p>
                         </div>
                         {r.outils?.length > 0 && (
                           <div>
-                            <p className="m-0 mb-1.5 text-[10px] tracking-[.14em] uppercase text-brume">
+                            <p className="m-0 mb-1.5 text-[11px] tracking-[.14em] uppercase text-brume">
                               Outils appelés
                             </p>
                             <div className="flex flex-wrap gap-1.5">
@@ -453,7 +453,7 @@ export default function Monitoring() {
                           </div>
                         )}
                         {r.sur && (
-                          <p className="m-0 text-[11.5px] text-brume">Sur : {r.sur}</p>
+                          <p className="m-0 text-[11px] text-brume">Sur : {r.sur}</p>
                         )}
                       </div>
                     )}
@@ -473,7 +473,7 @@ export default function Monitoring() {
           )}
         </div>
 
-        <p className="mt-8 mb-0 text-[11.5px] leading-[1.7] text-brume border-t border-trait pt-5">
+        <p className="mt-8 mb-0 text-[11px] leading-[1.7] text-brume border-t border-trait pt-5">
           Les demandes à l'assistant sont conservées avec leur réponse : c'est ce qui permet de
           comprendre après coup pourquoi une action a été prise. Une pastille verte signale un outil
           qui a <em>modifié</em> quelque chose ; les autres n'ont fait que lire.

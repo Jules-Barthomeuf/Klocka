@@ -32,8 +32,8 @@ function Ligne({ coche, onChange, titre, detail }) {
         {coche && <Check className="w-3 h-3 text-fond" />}
       </span>
       <span className="min-w-0">
-        <span className="block text-[14px] text-encre truncate">{titre}</span>
-        {detail && <span className="block text-[12px] text-ardoise truncate">{detail}</span>}
+        <span className="block text-[13.5px] text-encre truncate">{titre}</span>
+        {detail && <span className="block text-[12.5px] text-ardoise truncate">{detail}</span>}
       </span>
     </button>
   );
@@ -49,7 +49,7 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           placeholder="Rechercher…"
-          className="w-full bg-surface border border-trait focus:border-menthe rounded-md pl-9 pr-3 py-2 text-[14px] text-encre outline-none"
+          className="w-full bg-surface border border-trait focus:border-menthe rounded-md pl-9 pr-3 py-2 text-[13.5px] text-encre outline-none"
         />
       </div>
       {/* Tout, d'un clic — sur ce que la recherche montre, pas au-delà. */}
@@ -58,7 +58,7 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
         const nb = elements.filter((el) => coches.has(el.cle)).length;
         return (
           <div className="flex items-center justify-between gap-3 px-1 py-2 border-b border-encre/[0.08]">
-            <span className="text-[12px] text-brume">{nb} sur {elements.length} sélectionné{nb > 1 ? "s" : ""}</span>
+            <span className="text-[12.5px] text-brume">{nb} sur {elements.length} sélectionné{nb > 1 ? "s" : ""}</span>
             <button
               type="button"
               onClick={() => elements.forEach((el) => { if (coches.has(el.cle) === tousCoches) basculer(el.cle); })}
@@ -71,7 +71,7 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
       })()}
       <div className="max-h-[50vh] overflow-y-auto border-b border-encre/[0.08]">
         {elements.length === 0 ? (
-          <p className="m-0 py-6 text-center text-[13px] text-brume">{vide}</p>
+          <p className="m-0 py-6 text-center text-[12.5px] text-brume">{vide}</p>
         ) : (
           elements.map((el) => (
             <Ligne
@@ -160,7 +160,7 @@ export function DialogueAssignerClient({ ouvert, onClose, users, formData, onVal
           vide="Aucun client ne correspond."
         />
         <div className="flex items-center justify-between gap-3 pt-2">
-          <span className="text-[12px] text-ardoise">
+          <span className="text-[12.5px] text-ardoise">
             {coches.size} client{coches.size > 1 ? "s" : ""} assigné{coches.size > 1 ? "s" : ""}
           </span>
           <div className="flex gap-2">
@@ -275,7 +275,7 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
           vide="Aucun projet ne correspond."
         />
         <div className="flex items-center justify-between gap-3 pt-2">
-          <span className="text-[12px] text-ardoise">
+          <span className="text-[12.5px] text-ardoise">
             {coches.size} projet{coches.size > 1 ? "s" : ""} coché{coches.size > 1 ? "s" : ""}
           </span>
           <div className="flex gap-2">

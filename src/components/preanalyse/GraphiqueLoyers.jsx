@@ -50,7 +50,7 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
           <>
             <div className="absolute bottom-0 top-[22px] w-[2px]" style={{ left: x(enPlace), background: J["ambre"], boxShadow: "0 0 22px rgba(224,164,94,0.55)" }} />
             <div className="absolute -top-[30px] flex -translate-x-1/2 items-center gap-[9px] whitespace-nowrap rounded-full px-[15px] py-[7px]" style={{ left: x(enPlace), background: "rgba(224,164,94,0.1)", border: "1px solid rgba(224,164,94,0.45)" }}>
-              <span className="text-[9.5px] font-medium uppercase tracking-[.14em] text-ambre" style={MONT}>En place</span>
+              <span className="text-[11px] font-medium uppercase tracking-[.14em] text-ambre" style={MONT}>En place</span>
               <span className="text-[15px] font-medium text-encre" style={NUM}>{fmt(enPlace)}</span>
             </div>
           </>
@@ -64,8 +64,8 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
         return (
           <React.Fragment key={`${l.service}-${i}`}>
             <div className="py-4 text-right">
-              <div className="text-[14.5px]" style={{ color: principale ? J["encre"] : J["craie"] }}>{l.service}</div>
-              {l.sous && <div className="mt-[3px] text-[12px] text-ardoise">{l.sous}</div>}
+              <div className="text-[15px]" style={{ color: principale ? J["encre"] : J["craie"] }}>{l.service}</div>
+              {l.sous && <div className="mt-[3px] text-[12.5px] text-ardoise">{l.sous}</div>}
             </div>
             <div className="relative h-[30px]" style={{ ...grille, backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)" }}>
               <div className="absolute top-[11px] h-[8px] rounded-full" style={{ left: x(l.bas), width: largeur(l.bas, l.haut), background: principale ? J["menthe"] : "rgba(90,103,98,0.85)" }} />
@@ -78,7 +78,7 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
       })}
 
       <div />
-      <div className="relative h-[30px] border-t text-[11.5px] text-craie" style={{ ...NUM, borderColor: "rgba(255,255,255,0.32)" }}>
+      <div className="relative h-[30px] border-t text-[11px] text-craie" style={{ ...NUM, borderColor: "rgba(255,255,255,0.32)" }}>
         {echelle.graduations.map((g, i) => {
           const premier = i === 0;
           const dernier = i === echelle.graduations.length - 1;

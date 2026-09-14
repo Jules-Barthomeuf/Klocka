@@ -147,24 +147,24 @@ Réponds UNIQUEMENT en JSON.`;
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-400 uppercase tracking-[0.2em] text-[10px] font-medium mb-1">Rapport de comparaison</p>
+              <p className="text-purple-400 uppercase tracking-[0.2em] text-[11px] font-medium mb-1">Rapport de comparaison</p>
               <DialogTitle className="text-xl font-light text-encre tracking-tight">
                 {project?.titre}
               </DialogTitle>
             </div>
             <div className="flex items-center gap-2">
               {totalNumericDiffs > 0 && (
-                <span className="text-[10px] bg-menthe/20 text-menthe px-2 py-0.5 rounded-full">
+                <span className="text-[11px] bg-menthe/20 text-menthe px-2 py-0.5 rounded-full">
                   {totalNumericDiffs} diff. valeurs
                 </span>
               )}
               {totalTextDiffsFound !== null && totalTextDiffsFound > 0 && (
-                <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">
+                <span className="text-[11px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">
                   {totalTextDiffsFound} diff. textes
                 </span>
               )}
               {totalNumericDiffs === 0 && totalTextDiffsFound === 0 && (
-                <span className="text-[10px] bg-menthe/20 text-menthe-clair px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-[11px] bg-menthe/20 text-menthe-clair px-2 py-0.5 rounded-full flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> RAS
                 </span>
               )}
@@ -172,12 +172,12 @@ Réponds UNIQUEMENT en JSON.`;
           </div>
         </DialogHeader>
 
-        <p className="text-[10px] text-brume mb-2">Cliquez sur une différence pour ouvrir le champ correspondant dans l'éditeur.</p>
+        <p className="text-[11px] text-brume mb-2">Cliquez sur une différence pour ouvrir le champ correspondant dans l'éditeur.</p>
 
         <div className="space-y-6 mt-2">
           {/* Numeric diffs */}
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-ardoise mb-3">Différences de valeurs</p>
+            <p className="text-[11px] uppercase tracking-wider text-ardoise mb-3">Différences de valeurs</p>
             {numericDiffs.length > 0 ? (
               <div className="space-y-1.5">
                 {numericDiffs.map((diff) => (
@@ -192,14 +192,14 @@ Réponds UNIQUEMENT en JSON.`;
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                       <button
                         onClick={() => handleClickDiff(diff.tab, "current")}
-                        className="text-[10px] text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
+                        className="text-[11px] text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
                         title="Modifier dans le projet actuel"
                       >
                         <ExternalLink className="w-3 h-3" /> Actuel
                       </button>
                       <button
                         onClick={() => handleClickDiff(diff.tab, "shadow")}
-                        className="text-[10px] text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
+                        className="text-[11px] text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
                         title="Modifier dans le shadow"
                       >
                         <ExternalLink className="w-3 h-3" /> Shadow
@@ -219,7 +219,7 @@ Réponds UNIQUEMENT en JSON.`;
           {/* Text analysis */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] uppercase tracking-wider text-ardoise">Analyse sémantique des textes</p>
+              <p className="text-[11px] uppercase tracking-wider text-ardoise">Analyse sémantique des textes</p>
               <Button
                 size="sm"
                 onClick={analyzeTexts}
@@ -253,13 +253,13 @@ Réponds UNIQUEMENT en JSON.`;
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                         <button
                           onClick={() => handleClickDiff(diff.tab, "current")}
-                          className="text-[10px] text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
+                          className="text-[11px] text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
                         >
                           <ExternalLink className="w-3 h-3" /> Actuel
                         </button>
                         <button
                           onClick={() => handleClickDiff(diff.tab, "shadow")}
-                          className="text-[10px] text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
+                          className="text-[11px] text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
                         >
                           <ExternalLink className="w-3 h-3" /> Shadow
                         </button>
@@ -271,7 +271,7 @@ Réponds UNIQUEMENT en JSON.`;
             )}
 
             {textDiffs && textDiffs.filter(d => !d.has_diff).length > 0 && textDiffs.filter(d => d.has_diff).length > 0 && (
-              <p className="text-[10px] text-brume mt-2">
+              <p className="text-[11px] text-brume mt-2">
                 {textDiffs.filter(d => !d.has_diff).length} autre(s) champ(s) texte sans différence de sens.
               </p>
             )}

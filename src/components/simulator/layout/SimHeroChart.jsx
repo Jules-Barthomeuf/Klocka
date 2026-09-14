@@ -72,7 +72,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         <p className="text-encre text-xs font-medium mb-1">Année {label}</p>
         <p className="text-[#7FE0D3] text-[11px]">Capital remboursé : {formatCurrency(capital)}</p>
         <p className="text-[#1F6E64] text-[11px] mb-2" style={{ color: "#4FD1A5" }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
-        <p className="text-ardoise text-[10px] leading-snug border-t border-encre/10 pt-2">
+        <p className="text-ardoise text-[11px] leading-snug border-t border-encre/10 pt-2">
           La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.
         </p>
       </div>

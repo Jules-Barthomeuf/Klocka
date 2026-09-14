@@ -116,7 +116,7 @@ export default function MesProjets() {
           transition={{ duration: 0.6 }}
           className="mb-8 max-md:mb-6"
         >
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">
+          <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">
             Mes projets
           </h1>
           <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">
@@ -186,27 +186,27 @@ export default function MesProjets() {
             </div>
             {searchQuery ? (
               <>
-                <p className="m-0 text-[22px] font-medium text-encre">Aucun projet ne correspond.</p>
+                <p className="m-0 text-[24px] font-medium text-encre">Aucun projet ne correspond.</p>
                 <p className="m-0 mt-2.5 text-[15px] text-ardoise">Essayez un autre terme.</p>
               </>
             ) : (etape >= 3) ? (
               <>
-                <p className="m-0 text-[26px] max-md:text-[22px] font-medium tracking-[-.01em] text-encre">Oups…</p>
-                <p className="m-0 mt-4 text-[16px] max-md:text-[15px] leading-[1.75] text-ardoise">
+                <p className="m-0 text-[24px] max-md:text-[24px] font-medium tracking-[-.01em] text-encre">Oups…</p>
+                <p className="m-0 mt-4 text-[15px] max-md:text-[15px] leading-[1.75] text-ardoise">
                   Aucun projet ne vous a encore été attribué. Nos équipes mettent tout en œuvre pour vous proposer
                   le projet idéal, répondant au mieux à votre cahier des charges.
                 </p>
               </>
             ) : (
               <>
-                <p className="m-0 text-[26px] max-md:text-[22px] font-medium tracking-[-.01em] text-encre">Pas encore de projet pour vous.</p>
-                <p className="m-0 mt-4 text-[16px] max-md:text-[15px] leading-[1.75] text-ardoise">
+                <p className="m-0 text-[24px] max-md:text-[24px] font-medium tracking-[-.01em] text-encre">Pas encore de projet pour vous.</p>
+                <p className="m-0 mt-4 text-[15px] max-md:text-[15px] leading-[1.75] text-ardoise">
                   Et c'est normal : définissons d'abord ensemble votre stratégie d'investissement, puis la
                   recherche commence.
                 </p>
                 <button
                   onClick={() => setRdvOuvert(true)}
-                  className="mt-9 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-menthe text-fond text-[14px] font-semibold hover:bg-menthe-survol transition-colors"
+                  className="mt-9 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-menthe text-fond text-[13.5px] font-semibold hover:bg-menthe-survol transition-colors"
                 >
                   Prendre rendez-vous <ArrowRight className="w-4 h-4" />
                 </button>

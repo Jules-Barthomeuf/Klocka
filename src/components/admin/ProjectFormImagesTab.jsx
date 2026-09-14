@@ -127,7 +127,7 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
-                    <div className="absolute bottom-2 left-2 bg-fond/60 text-encre px-1.5 py-0.5 rounded text-[10px]">#{idx + 1}</div>
+                    <div className="absolute bottom-2 left-2 bg-fond/60 text-encre px-1.5 py-0.5 rounded text-[11px]">#{idx + 1}</div>
                   </div>
                 </div>
               ))}

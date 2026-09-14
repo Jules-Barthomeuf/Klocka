@@ -57,11 +57,11 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
               }`}
               style={{ borderColor: active ? couleur.pastille : J["bord"] }}
             >
-              <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume truncate">
+              <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.08em] text-brume truncate">
                 {k.libelle}
               </span>
               <span
-                className="block mt-1.5 text-[17px] leading-tight font-medium truncate"
+                className="block mt-1.5 text-[18px] leading-tight font-medium truncate"
                 style={{ color: active ? couleur.texte : J["craie"] }}
               >
                 {k.valeur}
@@ -73,8 +73,8 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
 
       {/* L'en-tête du verdict lu */}
       <div className="border-t border-trait pt-5">
-        <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">{detail.libelle}</span>
-        <span className="block mt-1 text-[28px] leading-tight font-medium" style={{ color: c.texte }}>
+        <span className="block font-pill text-[11px] font-semibold uppercase tracking-[.08em] text-brume">{detail.libelle}</span>
+        <span className="block mt-1 text-[24px] leading-tight font-medium" style={{ color: c.texte }}>
           {detail.valeur}
         </span>
         <p className="m-0 mt-3 max-w-[72ch] text-[13.5px] leading-6 text-craie">{detail.resume}</p>
@@ -84,7 +84,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
       <div className="grid lg:grid-cols-2 gap-x-8 gap-y-6">
         <div className="flex flex-col gap-6 min-w-0">
           <section>
-            <h4 className="m-0 mb-2 font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-brume">
+            <h4 className="m-0 mb-2 font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
               Le calcul, pas à pas
             </h4>
             <ol className="m-0 p-0 list-none flex flex-col divide-y divide-relief border-y border-relief">
@@ -92,21 +92,21 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
                 <li key={`${l.libelle}-${i}`} className="py-2.5">
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-[12.5px] text-craie">{l.libelle}</span>
-                    <span className="flex-shrink-0 text-[13px] font-medium text-encre">{l.valeur}</span>
+                    <span className="flex-shrink-0 text-[12.5px] font-medium text-encre">{l.valeur}</span>
                   </div>
-                  {l.note && <p className="m-0 mt-0.5 text-[11.5px] leading-5 text-brume">{l.note}</p>}
+                  {l.note && <p className="m-0 mt-0.5 text-[11px] leading-5 text-brume">{l.note}</p>}
                 </li>
               ))}
             </ol>
           </section>
 
           <section>
-            <h4 className="m-0 mb-2 font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-brume">
+            <h4 className="m-0 mb-2 font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
               Ce qui affaiblit la conclusion
             </h4>
             <ul className="m-0 p-0 list-none flex flex-col gap-2">
               {detail.reserves.map((r, i) => (
-                <li key={`${r}-${i}`} className="flex gap-2 text-[12px] leading-5 text-ardoise">
+                <li key={`${r}-${i}`} className="flex gap-2 text-[12.5px] leading-5 text-ardoise">
                   <span className="flex-shrink-0 text-ambre">—</span>
                   {r}
                 </li>
@@ -117,7 +117,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
 
         <div className="flex flex-col gap-6 min-w-0">
           <section>
-            <h4 className="m-0 mb-2 font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-brume">
+            <h4 className="m-0 mb-2 font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
               Les {detail.comparables.length} comparables
             </h4>
             <ul className="m-0 p-0 list-none flex flex-col divide-y divide-relief border-y border-relief">
@@ -134,7 +134,7 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
                       <span className={`min-w-0 flex-1 text-[12.5px] truncate ${ecarte ? "text-brume line-through" : "text-craie"}`}>
                         {x.adresse}
                       </span>
-                      <span className="flex-shrink-0 text-[11.5px] text-brume">{x.surface}</span>
+                      <span className="flex-shrink-0 text-[11px] text-brume">{x.surface}</span>
                       <span className={`flex-shrink-0 text-[12.5px] font-medium ${ecarte ? "text-brume" : "text-encre"}`}>
                         {x.prix}
                       </span>
@@ -150,26 +150,26 @@ export default function JournalDetail({ cartes, details, cle, onChoisir, onRetou
           </section>
 
           <section>
-            <h4 className="m-0 mb-2 font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-brume">
+            <h4 className="m-0 mb-2 font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-brume">
               Les pages lues
             </h4>
             <ul className="m-0 p-0 list-none flex flex-col gap-3">
               {detail.sources.map((src, i) => (
                 <li key={`${src.nom}-${i}`}>
                   <span className="block text-[12.5px] text-craie">
-                    {src.nom} <span className="text-[11.5px] text-brume">· {src.quand || chrono(src.t)}</span>
+                    {src.nom} <span className="text-[11px] text-brume">· {src.quand || chrono(src.t)}</span>
                   </span>
                   <a
                     href={src.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-0.5 inline-flex items-start gap-1.5 text-[11.5px] text-menthe hover:underline break-all"
+                    className="mt-0.5 inline-flex items-start gap-1.5 text-[11px] text-menthe hover:underline break-all"
                   >
                     {src.url}
                     <ExternalLink className="w-3 h-3 mt-[3px] flex-shrink-0" />
                   </a>
                   {src.capture && (
-                    <code className="block mt-0.5 font-mono text-[10.5px] text-brume break-all">{src.capture}</code>
+                    <code className="block mt-0.5 font-mono text-[11px] text-brume break-all">{src.capture}</code>
                   )}
                 </li>
               ))}

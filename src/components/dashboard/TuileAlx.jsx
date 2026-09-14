@@ -22,13 +22,13 @@ export default function TuileAlx() {
         <p className="m-0 text-[13.5px] text-brume">
           ALX · off-market <span className="text-bord-vif">· {a.villes} ville{a.villes > 1 ? "s" : ""}</span>
         </p>
-        <Link to="/ALX" className="text-[12px] text-ardoise hover:text-menthe">Ouvrir</Link>
+        <Link to="/ALX" className="text-[12.5px] text-ardoise hover:text-menthe">Ouvrir</Link>
       </div>
       <div className="flex flex-wrap gap-x-10 gap-y-3">
         {items.map(([mot, n, teinte]) => (
           <div key={mot}>
             <div className="text-[24px] font-light tabular-nums" style={{ color: n ? teinte : "var(--k-bord-vif)" }}>{n}</div>
-            <div className="text-[12px] text-ardoise mt-0.5">{mot}</div>
+            <div className="text-[12.5px] text-ardoise mt-0.5">{mot}</div>
           </div>
         ))}
       </div>

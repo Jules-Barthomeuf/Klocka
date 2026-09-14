@@ -122,7 +122,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
     >
       {/* Gauche : ce que Klocka fait */}
       <div className="flex flex-col justify-between items-start py-14 pr-6 pl-[120px] max-md:pl-6 max-md:py-10">
-        <div className="flex items-center gap-2.5 text-[12px] tracking-[.16em] text-ardoise">
+        <div className="flex items-center gap-2.5 text-[12.5px] tracking-[.16em] text-ardoise">
           <span className="w-[7px] h-[7px] rounded-full" style={{ background: MENTHE, animation: "kl-point 1.4s ease-in-out infinite" }} />
           CONNEXION À {service.toUpperCase()}
         </div>

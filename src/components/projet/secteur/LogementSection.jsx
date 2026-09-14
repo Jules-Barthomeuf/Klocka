@@ -19,7 +19,7 @@ function FrCompare({ local, national, unit = "%", invert = false }) {
   const diff = local - national;
   const positive = invert ? diff < 0 : diff > 0;
   return (
-    <p className={`text-[10px] mt-1 font-medium ${positive ? 'text-menthe-clair' : diff === 0 ? 'text-ardoise' : 'text-red-400'}`}>
+    <p className={`text-[11px] mt-1 font-medium ${positive ? 'text-menthe-clair' : diff === 0 ? 'text-ardoise' : 'text-red-400'}`}>
       FR: {national}{unit} ({diff > 0 ? '+' : ''}{diff.toFixed(1)} pts)
     </p>
   );

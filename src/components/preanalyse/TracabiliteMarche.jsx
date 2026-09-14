@@ -148,7 +148,7 @@ export default function TracabiliteMarche({ dossier, lotIndex = 0 }) {
   return (
     <section className="border border-bord-doux rounded-[16px] bg-surface px-5 py-4 flex flex-col gap-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="m-0 text-[15.5px] font-semibold text-encre">D'où viennent ces chiffres</h3>
+        <h3 className="m-0 text-[15px] font-semibold text-encre">D'où viennent ces chiffres</h3>
         <p className="m-0 text-[12.5px] text-brume">
           Lecture du {heure(passage.fin)} · {passage.besoins ? Object.values(passage.besoins).filter((b) => b.servi_par).length : 0}/
           {passage.besoins ? Object.keys(passage.besoins).length : 0} question(s) couverte(s) · {sources.length} source(s) · {duree(passage.ms)}

@@ -26,7 +26,7 @@ export default function Banque() {
     <div className="min-h-screen bg-fond text-encre p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 max-md:mb-6">
-          <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Banque</h1>
+          <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Banque</h1>
           <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Les présentations bancaires préparées pour vos projets.</p>
         </div>
 
@@ -37,7 +37,7 @@ export default function Banque() {
         ) : presentations.length === 0 ? (
           <div className="border-t border-encre/[0.35] pt-10 pb-16 text-center">
             <Landmark className="w-8 h-8 text-encre/15 mx-auto mb-5" />
-            <h2 className="text-[22px] font-light text-encre mb-2">Aucune présentation disponible</h2>
+            <h2 className="text-[24px] font-light text-encre mb-2">Aucune présentation disponible</h2>
             <p className="text-ardoise text-sm mb-0">Votre conseiller vous préparera une présentation bancaire pour vos projets.</p>
           </div>
         ) : (

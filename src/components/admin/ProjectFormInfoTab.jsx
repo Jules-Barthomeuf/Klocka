@@ -4,7 +4,7 @@ import { J } from "@/design/jetons";
 
 const fieldWrap = "bg-transparent border border-[#1e1e1e] rounded-[12px] px-4 py-3.5 transition-colors focus-within:border-bord-vif";
 const fieldInput = "w-full bg-transparent border-none text-encre outline-none placeholder:text-brume";
-const flabel = "text-[12px] text-ardoise mb-2";
+const flabel = "text-[12.5px] text-ardoise mb-2";
 
 const STATUSES = [
   { value: "prospect", label: "Prospect" },
@@ -33,7 +33,7 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
       {/* Titre */}
       <div className={`${fieldWrap} col-span-2 max-md:col-span-1`}>
         <div className={`${flabel} text-ardoise`}>Titre du projet</div>
-        <input value={formData.titre} onChange={(e) => setFormData({ ...formData, titre: e.target.value })} placeholder="Nom du projet" className={`${fieldInput} text-[17px] font-semibold`} />
+        <input value={formData.titre} onChange={(e) => setFormData({ ...formData, titre: e.target.value })} placeholder="Nom du projet" className={`${fieldInput} text-[18px] font-semibold`} />
       </div>
 
       {/* Statut + Suivi client */}
@@ -58,7 +58,7 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
         <div className={fieldWrap}>
           <div className={flabel}>Suivi client</div>
           <div className="flex items-center gap-4 mt-1 flex-wrap">
-            <label className="flex items-center gap-2 cursor-pointer text-[13px] text-encre">
+            <label className="flex items-center gap-2 cursor-pointer text-[12.5px] text-encre">
               <input
                 type="checkbox"
                 checked={!!formData.suivi_message_envoye}
@@ -75,7 +75,7 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
               Message envoyé au client
             </label>
             {formData.suivi_message_envoye && (
-              <div className="flex items-center gap-1.5 text-[13px]">
+              <div className="flex items-center gap-1.5 text-[12.5px]">
                 <span className="text-ardoise">Retour :</span>
                 {["oui", "non"].map((v) => (
                   <button
@@ -87,7 +87,7 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
                         suivi_retour_client: formData.suivi_retour_client === v ? null : v,
                       })
                     }
-                    className={`px-2.5 py-1 rounded-lg border text-[12px] transition-colors ${
+                    className={`px-2.5 py-1 rounded-lg border text-[12.5px] transition-colors ${
                       formData.suivi_retour_client === v
                         ? v === "oui"
                           ? "bg-menthe/25 border-menthe text-menthe-clair"
@@ -108,11 +108,11 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
       <>
         <div className={fieldWrap}>
           <div className={flabel}>Adresse</div>
-          <input value={formData.adresse_complete} onChange={(e) => setFormData({ ...formData, adresse_complete: e.target.value })} placeholder="Adresse complète" className={`${fieldInput} text-[16px]`} />
+          <input value={formData.adresse_complete} onChange={(e) => setFormData({ ...formData, adresse_complete: e.target.value })} placeholder="Adresse complète" className={`${fieldInput} text-[15px]`} />
         </div>
         <div className={fieldWrap}>
           <div className={flabel}>Surface m²</div>
-          <input type="number" value={formData.surface_m2 || ""} onChange={(e) => setFormData({ ...formData, surface_m2: parseFloat(e.target.value) || 0 })} placeholder="—" className={`${fieldInput} text-[16px]`} />
+          <input type="number" value={formData.surface_m2 || ""} onChange={(e) => setFormData({ ...formData, surface_m2: parseFloat(e.target.value) || 0 })} placeholder="—" className={`${fieldInput} text-[15px]`} />
         </div>
       </>
 
@@ -173,10 +173,10 @@ export function CarteClients({ formData, setFormData, users }) {
         <div className="flex flex-col gap-2.5 mt-1">
           <div className="flex items-center gap-2 flex-wrap">
             {nonAdminAssigned.map(({ email, principal }, i) => (
-              <div key={email} className="inline-flex items-center gap-2 bg-encre/[0.05] rounded-full pl-1 pr-2.5 py-1 text-[13px] text-encre">
+              <div key={email} className="inline-flex items-center gap-2 bg-encre/[0.05] rounded-full pl-1 pr-2.5 py-1 text-[12.5px] text-encre">
                 <span className="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[11px] font-semibold text-encre" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{initials(nameOf(email))}</span>
                 {nameOf(email)}
-                {principal && <span className="text-[10px] bg-menthe text-encre px-1.5 py-0.5 rounded font-semibold">Principal</span>}
+                {principal && <span className="text-[11px] bg-menthe text-encre px-1.5 py-0.5 rounded font-semibold">Principal</span>}
                 <span onClick={() => removeClient(email, principal)} className="cursor-pointer text-ardoise hover:text-[#FF7C7C] flex ml-0.5"><X className="w-3.5 h-3.5" strokeWidth={2.2} /></span>
               </div>
             ))}
@@ -186,16 +186,16 @@ export function CarteClients({ formData, setFormData, users }) {
                 <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-surface border border-encre/[0.1] rounded-md p-1.5 z-30 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
                   <div className="relative mb-1">
                     <Search className="w-4 h-4 text-brume absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Rechercher..." className="w-full bg-surface border border-trait rounded-lg pl-9 pr-3 py-2 text-[13px] text-encre outline-none placeholder:text-brume" />
+                    <input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Rechercher..." className="w-full bg-surface border border-trait rounded-lg pl-9 pr-3 py-2 text-[12.5px] text-encre outline-none placeholder:text-brume" />
                   </div>
                   <div className="max-h-[220px] overflow-auto">
                     {clientCandidates.map((u) => (
-                      <div key={u.id} onClick={() => addClient(u.email)} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-[13px] text-encre hover:bg-encre/[0.06] transition-colors">
-                        <span className="w-6 h-6 rounded-full bg-encre/[0.06] text-[#B9BEB9] flex items-center justify-center text-[10px] font-semibold">{initials(u.full_name || u.email)}</span>
+                      <div key={u.id} onClick={() => addClient(u.email)} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-[12.5px] text-encre hover:bg-encre/[0.06] transition-colors">
+                        <span className="w-6 h-6 rounded-full bg-encre/[0.06] text-[#B9BEB9] flex items-center justify-center text-[11px] font-semibold">{initials(u.full_name || u.email)}</span>
                         {u.full_name || u.email} {u.role === "admin" && "(admin)"}
                       </div>
                     ))}
-                    {clientCandidates.length === 0 && <div className="p-3 text-[13px] text-brume text-center">Aucun client</div>}
+                    {clientCandidates.length === 0 && <div className="p-3 text-[12.5px] text-brume text-center">Aucun client</div>}
                   </div>
                 </div>
               )}
@@ -221,12 +221,12 @@ export function CarteDocuments({ formData, setFormData }) {
         <div className="flex flex-col gap-2.5">
           <div className="flex gap-2.5 items-center">
             <input value={newDocUrl} onChange={(e) => setNewDocUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addDoc(); }} placeholder="https://exemple.com/document.pdf" className={`${fieldInput} text-[15px] flex-1`} />
-            <button type="button" onClick={addDoc} className="w-8 h-8 rounded-full bg-menthe text-sur-menthe flex items-center justify-center text-[16px] cursor-pointer flex-shrink-0 hover:bg-menthe-survol transition-colors">+</button>
+            <button type="button" onClick={addDoc} className="w-8 h-8 rounded-full bg-menthe text-sur-menthe flex items-center justify-center text-[15px] cursor-pointer flex-shrink-0 hover:bg-menthe-survol transition-colors">+</button>
           </div>
           {formData.documents.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {formData.documents.map((url, idx) => (
-                <div key={idx} className="flex items-center gap-1.5 bg-encre/[0.04] px-2.5 py-1.5 rounded-lg text-[13px] text-encre">
+                <div key={idx} className="flex items-center gap-1.5 bg-encre/[0.04] px-2.5 py-1.5 rounded-lg text-[12.5px] text-encre">
                   <span>Document {idx + 1}</span>
                   <button onClick={() => setFormData({ ...formData, documents: formData.documents.filter((_, i) => i !== idx) })} className="text-ardoise hover:text-[#FF7C7C]"><X className="w-3.5 h-3.5" /></button>
                 </div>

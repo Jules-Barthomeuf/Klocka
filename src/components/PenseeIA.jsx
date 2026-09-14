@@ -14,7 +14,7 @@ export default function PenseeIA({ etat = "working", taille = 20, texte = null, 
       <span className={taille === 64 ? "[&_canvas]:!size-9 inline-flex" : "inline-flex [&_canvas]:!size-5"}>
         <ThinkingOrb state={etat} size={taille} theme={clair ? "light" : "dark"} />
       </span>
-      {texte && <span className="text-ardoise text-[13px]">{texte}</span>}
+      {texte && <span className="text-ardoise text-[12.5px]">{texte}</span>}
     </span>
   );
 }

@@ -27,7 +27,7 @@ export default function InfoBulle({ texte, className = "" }) {
       <Info className="w-[13px] h-[13px] text-brume group-hover/info:text-menthe group-focus/info:text-menthe transition-colors" />
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-[calc(100%+7px)] left-1/2 -translate-x-1/2 z-30 w-max max-w-[280px] rounded-[8px] border border-bord-doux bg-surface px-2.5 py-1.5 text-[11.5px] leading-[1.45] font-normal normal-case tracking-normal text-craie text-left shadow-[0_10px_30px_rgba(0,0,0,.55)] opacity-0 group-hover/info:opacity-100 group-focus/info:opacity-100 transition-opacity"
+        className="pointer-events-none absolute bottom-[calc(100%+7px)] left-1/2 -translate-x-1/2 z-30 w-max max-w-[280px] rounded-[8px] border border-bord-doux bg-surface px-2.5 py-1.5 text-[11px] leading-[1.45] font-normal normal-case tracking-normal text-craie text-left shadow-[0_10px_30px_rgba(0,0,0,.55)] opacity-0 group-hover/info:opacity-100 group-focus/info:opacity-100 transition-opacity"
       >
         {texte}
       </span>

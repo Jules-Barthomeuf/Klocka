@@ -58,7 +58,7 @@ export default function InviterClient({ onCree } = {}) {
     return (
       <button
         onClick={() => setOuvert(true)}
-        className="inline-flex items-center gap-2 px-4 py-2 text-[10px] tracking-[0.16em] uppercase border border-menthe/50 text-menthe hover:bg-menthe/[0.08] transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 text-[11px] tracking-[0.16em] uppercase border border-menthe/50 text-menthe hover:bg-menthe/[0.08] transition-colors"
       >
         <UserPlus className="w-3.5 h-3.5" /> Inviter un client
       </button>
@@ -69,7 +69,7 @@ export default function InviterClient({ onCree } = {}) {
     <div className="w-full border border-menthe/30 bg-menthe/[0.03] p-5">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <p className="m-0 text-[10px] tracking-[.18em] uppercase text-menthe">Inviter un client</p>
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-menthe">Inviter un client</p>
           <p className="m-0 mt-1 text-[12.5px] text-ardoise">
             Le compte est créé tout de suite. La personne ouvre le lien, choisit son mot de passe, entre.
           </p>
@@ -88,7 +88,7 @@ export default function InviterClient({ onCree } = {}) {
           className="flex flex-wrap items-end gap-4"
         >
           <label className="flex-1 min-w-[180px]">
-            <span className="block text-[10px] tracking-[.16em] uppercase text-ardoise mb-1.5">Nom</span>
+            <span className="block text-[11px] tracking-[.16em] uppercase text-ardoise mb-1.5">Nom</span>
             <input
               value={nom}
               onChange={(e) => setNom(e.target.value)}
@@ -97,7 +97,7 @@ export default function InviterClient({ onCree } = {}) {
             />
           </label>
           <label className="flex-1 min-w-[220px]">
-            <span className="block text-[10px] tracking-[.16em] uppercase text-ardoise mb-1.5">Adresse email</span>
+            <span className="block text-[11px] tracking-[.16em] uppercase text-ardoise mb-1.5">Adresse email</span>
             <input
               type="email"
               required
@@ -111,7 +111,7 @@ export default function InviterClient({ onCree } = {}) {
             <button
               type="submit"
               disabled={!email.trim() || mutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[10px] tracking-[.16em] uppercase font-medium disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.16em] uppercase font-medium disabled:opacity-40"
             >
               {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               Envoyer le lien
@@ -120,7 +120,7 @@ export default function InviterClient({ onCree } = {}) {
               type="button"
               disabled={!email.trim() || mutation.isPending}
               onClick={() => mutation.mutate(false)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-bord-doux text-encre text-[10px] tracking-[.16em] uppercase hover:bg-encre/[0.06] disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-bord-doux text-encre text-[11px] tracking-[.16em] uppercase hover:bg-encre/[0.06] disabled:opacity-40"
             >
               <Link2 className="w-3.5 h-3.5" /> Juste le lien
             </button>
@@ -141,18 +141,18 @@ export default function InviterClient({ onCree } = {}) {
             )}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <code className="text-[12px] text-ardoise break-all bg-fond px-3 py-2 border border-relief flex-1 min-w-[260px]">
+            <code className="text-[12.5px] text-ardoise break-all bg-fond px-3 py-2 border border-relief flex-1 min-w-[260px]">
               {resultat.lien}
             </code>
             <button
               onClick={() => copier(resultat.lien)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-bord-doux text-encre text-[10px] tracking-[.16em] uppercase hover:bg-encre/[0.06]"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-bord-doux text-encre text-[11px] tracking-[.16em] uppercase hover:bg-encre/[0.06]"
             >
               <Copy className="w-3.5 h-3.5" /> Copier
             </button>
           </div>
-          <p className="m-0 mt-3 text-[11.5px] text-brume">Valable quatorze jours. Un nouveau lien remplace l'ancien.</p>
-          <button onClick={fermer} className="mt-4 text-[12px] text-ardoise hover:text-encre">
+          <p className="m-0 mt-3 text-[11px] text-brume">Valable quatorze jours. Un nouveau lien remplace l'ancien.</p>
+          <button onClick={fermer} className="mt-4 text-[12.5px] text-ardoise hover:text-encre">
             Inviter quelqu'un d'autre
           </button>
         </div>
@@ -174,7 +174,7 @@ export function BoutonLienInvitation({ user }) {
       onClick={() => mutation.mutate()}
       disabled={mutation.isPending}
       title="Copier un lien d'invitation"
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] tracking-[0.16em] uppercase border border-bord-doux text-ardoise hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-40 flex-shrink-0"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] tracking-[0.16em] uppercase border border-bord-doux text-ardoise hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-40 flex-shrink-0"
     >
       {mutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
       Lien

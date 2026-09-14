@@ -43,7 +43,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
 
   if (!lignes.length) {
     return (
-      <p className="border-t border-bord py-10 text-center text-[13px] text-brume m-0">
+      <p className="border-t border-bord py-10 text-center text-[12.5px] text-brume m-0">
         Rien d'extrait pour l'instant — extraitz des documents depuis l'onglet Documents.
       </p>
     );
@@ -59,7 +59,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
 
       {groupes.map(([section, lignesSection]) => (
         <div key={section} className="mb-6">
-          <h4 className="m-0 mb-2 text-[10.5px] tracking-[0.16em] uppercase text-menthe-clair font-normal">
+          <h4 className="m-0 mb-2 text-[11px] tracking-[0.16em] uppercase text-menthe-clair font-normal">
             {section === "Sans destination" ? "Relevé, sans case dédiée" : `Projet › ${section}`}
           </h4>
           <div className="overflow-x-auto">
@@ -72,7 +72,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
               <thead>
                 <tr className="border-y border-bord-doux">
                   {[["Élément relevé", "w-[24%]"], ["Valeur", "w-[40%]"], ["Champ du projet", "w-[24%]"], ["Source", "w-[12%]"]].map(([h, cls]) => (
-                    <th key={h} className={`py-2.5 text-[10.5px] tracking-[0.16em] uppercase text-encre font-normal text-left ${cls}`}>
+                    <th key={h} className={`py-2.5 text-[11px] tracking-[0.16em] uppercase text-encre font-normal text-left ${cls}`}>
                       {h}
                     </th>
                   ))}
@@ -83,11 +83,11 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
                   const lien = lienSource(l.document_url, l.page);
                   return (
                     <tr key={`${l.extraction_id}-${i}`} className="border-b border-bord align-top hover:bg-encre/[0.02] transition-colors">
-                      <td className="py-3 pr-4 text-[13px] text-encre">{l.element}</td>
-                      <td className="py-3 pr-4 text-[13px] text-craie">
+                      <td className="py-3 pr-4 text-[12.5px] text-encre">{l.element}</td>
+                      <td className="py-3 pr-4 text-[12.5px] text-craie">
                         {l.constat}
                         {l.commentaire && (
-                          <span className="block mt-1 text-[11.5px] text-brume italic">{l.commentaire}</span>
+                          <span className="block mt-1 text-[11px] text-brume italic">{l.commentaire}</span>
                         )}
                       </td>
                       <td className="py-3 pr-4 text-[12.5px]">

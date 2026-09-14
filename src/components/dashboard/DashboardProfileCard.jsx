@@ -50,7 +50,7 @@ export default function DashboardProfileCard({ user }) {
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-ardoise m-0">Profil investisseur</p>
+          <p className="text-[11px] tracking-[0.2em] uppercase text-ardoise m-0">Profil investisseur</p>
           <ChevronDown className={`w-3.5 h-3.5 text-brume transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
         </div>
         
@@ -58,8 +58,8 @@ export default function DashboardProfileCard({ user }) {
           <div className="w-20 h-20 rounded-full overflow-hidden border border-menthe/50 mb-4 flex-shrink-0">
             <img src={image} alt="" className="w-full h-full object-cover" />
           </div>
-          <p className="text-encre text-[20px] font-light mb-0.5">{profil.label}</p>
-          <p className="text-ardoise text-[12px] m-0">{profil.subtitle}</p>
+          <p className="text-encre text-[18px] font-light mb-0.5">{profil.label}</p>
+          <p className="text-ardoise text-[12.5px] m-0">{profil.subtitle}</p>
         </div>
 
         <AnimatePresence>
@@ -72,7 +72,7 @@ export default function DashboardProfileCard({ user }) {
               className="overflow-hidden"
             >
               <div className="pt-3 border-t border-encre/[0.12]">
-                <p className="text-craie text-[13px] leading-[1.7] mb-0">{profil.description}</p>
+                <p className="text-craie text-[12.5px] leading-[1.7] mb-0">{profil.description}</p>
               </div>
             </motion.div>
           )}

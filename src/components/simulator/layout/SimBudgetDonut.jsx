@@ -46,7 +46,7 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className="text-encre text-lg font-bold tabular-nums leading-tight">{formatCurrency(total)}</span>
-            <span className="text-[10px] text-ardoise mt-0.5">Prix de revient</span>
+            <span className="text-[11px] text-ardoise mt-0.5">Prix de revient</span>
           </div>
         </div>
 

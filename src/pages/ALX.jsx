@@ -96,8 +96,8 @@ function CarteVille({ v, onOuvrir }) {
         <div style={{ width: part(c.surveiller), background: TEINTES.barreSurveiller }} />
       </div>
       <div className="flex items-baseline justify-between gap-3 px-6 pb-2 pt-6">
-        <span className="alx-mont text-[22px] font-medium tracking-[-.01em] text-encre">{v.nom}</span>
-        <Etiquette teinte={teinte} className="!text-[9.5px]">{mot}</Etiquette>
+        <span className="alx-mont text-[24px] font-medium tracking-[-.01em] text-encre">{v.nom}</span>
+        <Etiquette teinte={teinte} className="!text-[11px]">{mot}</Etiquette>
       </div>
       <div className="px-6 pb-5 text-[12.5px] text-ardoise">
         {pluriel(nRues, "rue classée", "rues classées")}{v.recensement?.commerces_total ? ` · ${fmt(v.recensement.commerces_total)} vitrines` : ""}
@@ -105,7 +105,7 @@ function CarteVille({ v, onOuvrir }) {
       <div className="flex w-full flex-col px-6 pb-2">
         {[["À appeler", c.appeler, TEINTES.appeler], ["À écrire", c.ecrire, TEINTES.ecrire], ["À surveiller", c.surveiller, TEINTES.muet]].map(([m, n, t]) => (
           <div key={m} className="flex items-baseline justify-between gap-3 border-t border-trait py-[11px]">
-            <span className="text-[14px] text-craie">{m}</span>
+            <span className="text-[13.5px] text-craie">{m}</span>
             <Nombre taille={16} teinte={t}>{fmt(n)}</Nombre>
           </div>
         ))}
@@ -145,7 +145,7 @@ function Accueil({ villes, onOuvrir }) {
             <span className="block text-encre">Donnez une ville.</span>
             <span className="block text-menthe">ALX <span className="alx-serif italic tracking-[-.01em]">s'occupe du reste.</span></span>
           </h1>
-          <p className="mx-auto mb-0 mt-[22px] max-w-[56ch] text-[16px] leading-[1.6] text-[#8E9793]">
+          <p className="mx-auto mb-0 mt-[22px] max-w-[56ch] text-[15px] leading-[1.6] text-[#8E9793]">
             Il dessine les rues du centre, les classe par leur loyer, lit chaque vitrine des rues que vous cochez, retrouve le propriétaire, et vous rend trois piles avec les messages déjà écrits. Rien ne part sans votre relecture.
           </p>
           <form
@@ -156,11 +156,11 @@ function Accueil({ villes, onOuvrir }) {
               value={nom}
               onChange={(e) => setNom(e.target.value)}
               placeholder={placeholder}
-              className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[17px] text-encre outline-none"
+              className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[18px] text-encre outline-none"
             />
             <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending}>{creer.isPending ? "…" : "Lancer ALX"}</Bouton>
           </form>
-          <p className="mb-0 mt-3.5 text-[13px] text-ardoise">Les rues arrivent en une minute, sur une carte. Vous cochez, ALX prospecte.</p>
+          <p className="mb-0 mt-3.5 text-[12.5px] text-ardoise">Les rues arrivent en une minute, sur une carte. Vous cochez, ALX prospecte.</p>
         </div>
       </section>
 
@@ -228,7 +228,7 @@ function Direct({ ville, p }) {
           </svg>
           <div className="absolute flex flex-col items-center">
             <Nombre taille={30} teinte={J["encre"]}>{pct} %</Nombre>
-            <span className="whitespace-nowrap text-[10.5px] uppercase tracking-[.1em] text-ardoise">des commerces</span>
+            <span className="whitespace-nowrap text-[11px] uppercase tracking-[.1em] text-ardoise">des commerces</span>
           </div>
         </div>
         <div>
@@ -319,7 +319,7 @@ function ChatAlx({ villeId, onglet, onFait }) {
       </div>
       {reponse?.reponse && (
         <div className="alx-entree mt-3 flex items-baseline gap-2.5 px-4 text-[13.5px]" style={{ color: reponse.erreur ? TEINTES.urgence5 : J["craie"] }}>
-          <span className="alx-mont text-[10px] uppercase tracking-[.14em] text-ardoise">ALX</span>
+          <span className="alx-mont text-[11px] uppercase tracking-[.14em] text-ardoise">ALX</span>
           <span>{reponse.reponse}</span>
         </div>
       )}
@@ -365,7 +365,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
     return (
       <div className="flex min-h-[inherit] flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
         <div className="text-[15px] text-craie">Cliquez une rue sur la carte.</div>
-        <div className="text-[13px] text-ardoise">Bleu, emplacement 1 ; ambre, 1 bis ; rouge, 2. Une rue cochée se dessine plus épaisse.</div>
+        <div className="text-[12.5px] text-ardoise">Bleu, emplacement 1 ; ambre, 1 bis ; rouge, 2. Une rue cochée se dessine plus épaisse.</div>
       </div>
     );
   }
@@ -396,7 +396,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
           </button>
         )}
       </div>
-      <div className="mt-1.5 text-[14px] text-ardoise">{rue.motif}</div>
+      <div className="mt-1.5 text-[13.5px] text-ardoise">{rue.motif}</div>
       <div className="mt-[22px] grid grid-cols-2 gap-x-5 gap-y-[18px]">
         {[
           ["Loyer", rue.loyer ? `${Math.round(rue.loyer[0])}–${Math.round(rue.loyer[1])} €/m²/an` : "—"],
@@ -405,24 +405,24 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
           ["Longueur", rue.longueur_m ? `${rue.longueur_m} m` : "—"],
         ].map(([mot, val]) => (
           <div key={mot}>
-            <Etiquette className="!text-[9.5px]">{mot}</Etiquette>
+            <Etiquette className="!text-[11px]">{mot}</Etiquette>
             <div className="mt-1.5"><Nombre taille={16} teinte={J["encre"]}>{val}</Nombre></div>
           </div>
         ))}
         <div className="col-span-2">
-          <Etiquette className="!text-[9.5px]">Flux{fluxMesure ? " · Data-B" : flux ? " · estimé" : ""}</Etiquette>
+          <Etiquette className="!text-[11px]">Flux{fluxMesure ? " · Data-B" : flux ? " · estimé" : ""}</Etiquette>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
             <Etoiles note={flux?.note ?? null} taille={17} title={flux ? `piéton ${flux.pieton ?? "—"}/5 · voiture ${flux.voiture ?? "—"}/5` : "flux inconnu"} />
-            {flux && <span className="text-[12px] text-ardoise">piéton {flux.pieton ?? "—"} · voiture {flux.voiture ?? "—"}</span>}
+            {flux && <span className="text-[12.5px] text-ardoise">piéton {flux.pieton ?? "—"} · voiture {flux.voiture ?? "—"}</span>}
             {!fluxMesure && (
-              <button onClick={onFlux} disabled={fluxPending} className="text-[12px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }} title="Étude d'implantation Data-B : un crédit, deux à cinq minutes">
+              <button onClick={onFlux} disabled={fluxPending} className="text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }} title="Étude d'implantation Data-B : un crédit, deux à cinq minutes">
                 {fluxPending ? "Data-B lit la rue (2 à 5 min)…" : "Mesurer chez Data-B · 1 crédit"}
               </button>
             )}
           </div>
         </div>
       </div>
-      {enseignes.length > 0 && <div className="mt-[22px] text-[14px] leading-[1.6] text-craie">{enseignes.slice(0, 8).join(" · ")}</div>}
+      {enseignes.length > 0 && <div className="mt-[22px] text-[13.5px] leading-[1.6] text-craie">{enseignes.slice(0, 8).join(" · ")}</div>}
       <div className="mt-auto flex flex-col gap-4 pt-6">
         {!ecartee && (
           <div role="presentation" onClick={() => onCoche(!coche)} className="flex cursor-pointer items-center gap-3">
@@ -439,10 +439,10 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
             <div className="text-[13.5px] text-encre">Pourquoi {emplacementDe(enAttente).mot} plutôt que {emplacementDe(rue.classe).mot} ?</div>
             <div className="flex flex-wrap gap-1.5">
               {motifs.filter((m) => !m.sens || m.sens === "les_deux" || m.sens === (enAttente < rue.classe ? "hausse" : "baisse")).map((m) => (
-                <button key={m.cle} onClick={() => setMotifCle(m.cle)} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12px] transition-colors" style={{ borderColor: motifCle === m.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? J["menthe"] : J["craie"], background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
+                <button key={m.cle} onClick={() => setMotifCle(m.cle)} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12.5px] transition-colors" style={{ borderColor: motifCle === m.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? J["menthe"] : J["craie"], background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
               ))}
             </div>
-            <input value={motifTexte} onChange={(e) => setMotifTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="rounded-[10px] border border-trait bg-fond px-3 py-2 text-[13px] text-encre outline-none focus:border-menthe/50" />
+            <input value={motifTexte} onChange={(e) => setMotifTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="rounded-[10px] border border-trait bg-fond px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/50" />
             <div className="flex flex-wrap items-center gap-2">
               <Bouton principal onClick={() => valider(false)} disabled={classerPending || !motifCle}>{classerPending ? "…" : "ALX retient"}</Bouton>
               <Bouton discret onClick={() => valider(true)} disabled={classerPending}>Sans raison</Bouton>
@@ -452,7 +452,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
         )}
         {apprentissage && apprentissage.rue === rue.nom && !enAttente && (
           <div className="alx-entree flex flex-col gap-2 rounded-[12px] border border-menthe/25 p-3.5">
-            <div className="text-[13px] text-craie">
+            <div className="text-[12.5px] text-craie">
               {apprentissage.semblables.length
                 ? `ALX retient. ${apprentissage.semblables.length} rue${apprentissage.semblables.length > 1 ? "s" : ""} de la ville ressemble${apprentissage.semblables.length > 1 ? "nt" : ""} : les passer en ${emplacementDe(apprentissage.vers).mot} aussi ?`
                 : "ALX retient. Aucune autre rue de la ville ne ressemble à celle-ci."}
@@ -475,7 +475,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
                 key={x.classe}
                 disabled={classerPending || on}
                 onClick={() => (ecartee ? onClasser(rue.nom, x.classe) : setEnAttente(x.classe))}
-                className="alx-mont h-[30px] min-w-[34px] rounded-[9px] border px-2.5 text-[12px] font-medium tabular-nums"
+                className="alx-mont h-[30px] min-w-[34px] rounded-[9px] border px-2.5 text-[12.5px] font-medium tabular-nums"
                 style={{ borderColor: on ? J["menthe"] : "rgba(255,255,255,0.12)", background: on ? "rgba(150,192,184,0.12)" : "transparent", color: on ? J["menthe"] : x.teinte }}
               >
                 {x.court.replace("N°", "")}
@@ -526,7 +526,7 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
   const toutesCochees = rues.length > 0 && rues.every((r) => coches.has(r.nom));
 
   if (rues.length === 0 && ecartees.length === 0) {
-    return <div className="mt-7 rounded-[16px] border border-trait px-6 py-8 text-center text-[14px] text-ardoise">{enCours ? "ALX relève les rues du centre : une minute." : "Aucune rue encore : lancez ALX, il lit le centre sur OpenStreetMap et propose les rues en une minute."}</div>;
+    return <div className="mt-7 rounded-[16px] border border-trait px-6 py-8 text-center text-[13.5px] text-ardoise">{enCours ? "ALX relève les rues du centre : une minute." : "Aucune rue encore : lancez ALX, il lit le centre sur OpenStreetMap et propose les rues en une minute."}</div>;
   }
 
   const colonnes = [["classe", "Emplacement"], ["loyer", "Loyer au m²"], ["prix", "Prix au m²"]];
@@ -580,7 +580,7 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
         <Case coche={toutesCochees} onChange={(oui) => setCoches(oui ? new Set(rues.map((r) => r.nom)) : new Set())} />
         <Etiquette>Rue</Etiquette>
         {colonnes.map(([k, mot], i) => (
-          <button key={k} onClick={() => setTri((t) => (t === k ? null : k))} className={`alx-mont text-right text-[10px] font-medium uppercase tracking-[.14em] ${i > 0 ? "max-md:hidden" : ""}`} style={{ background: "transparent", color: tri === k ? J["menthe"] : J["ardoise"] }}>
+          <button key={k} onClick={() => setTri((t) => (t === k ? null : k))} className={`alx-mont text-right text-[11px] font-medium uppercase tracking-[.14em] ${i > 0 ? "max-md:hidden" : ""}`} style={{ background: "transparent", color: tri === k ? J["menthe"] : J["ardoise"] }}>
             {tri === k ? "↓ " : ""}{mot}
           </button>
         ))}
@@ -598,12 +598,12 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
             <Case coche={on} onChange={(oui) => bascule(r.nom, oui)} />
             <span className="flex min-w-0 items-baseline gap-2.5">
               <Nombre taille={12} teinte={TEINTES.muet} className="w-6 shrink-0">{String(r.rang).padStart(2, "0")}</Nombre>
-              <span className="truncate text-[16px] font-light text-encre">{r.nom}</span>
-              {r.parcourue_le && <Etiquette teinte={TEINTES.ecrire} className="!text-[9px]">prospectée</Etiquette>}
+              <span className="truncate text-[15px] font-light text-encre">{r.nom}</span>
+              {r.parcourue_le && <Etiquette teinte={TEINTES.ecrire} className="!text-[11px]">prospectée</Etiquette>}
             </span>
             <span className="flex items-center justify-end gap-2">
               <Nombre taille={14.5} teinte={e.teinte} className="font-medium">{e.court}</Nombre>
-              <span className="alx-bulle grid h-4 w-4 cursor-help place-items-center rounded-full border border-bord text-[9.5px] text-ardoise" data-bulle={pourquoiEmplacement(r)} onClick={(ev) => ev.stopPropagation()}>i</span>
+              <span className="alx-bulle grid h-4 w-4 cursor-help place-items-center rounded-full border border-bord text-[11px] text-ardoise" data-bulle={pourquoiEmplacement(r)} onClick={(ev) => ev.stopPropagation()}>i</span>
             </span>
             <Nombre taille={14.5} teinte={J["encre"]} className="text-right max-md:hidden">{r.loyer ? `${fmt(Math.round(r.loyer[0]))}–${fmt(Math.round(r.loyer[1]))} €/m²` : "—"}</Nombre>
             <Nombre taille={14.5} teinte={J["craie"]} className="text-right max-md:hidden">{euroM2(r.prix_m2)}</Nombre>
@@ -616,7 +616,7 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
           <div className="mt-2 flex flex-col gap-1">{ecartees.map((r) => <button key={r.nom} onClick={() => setChoisie(r.nom)} className="text-left hover:text-encre" style={{ background: "transparent" }}><span className="text-craie">{r.nom}</span> · {r.motif}</button>)}</div>
         </details>
       )}
-      <div className="mt-6 text-right"><Link to={`/ALXVilles?ville=${ville?.id}`} className="text-[13px] text-ardoise hover:text-encre">Corriger le classement à la main →</Link></div>
+      <div className="mt-6 text-right"><Link to={`/ALXVilles?ville=${ville?.id}`} className="text-[12.5px] text-ardoise hover:text-encre">Corriger le classement à la main →</Link></div>
     </div>
   );
 }
@@ -674,8 +674,8 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
     <div className="alx-entree">
       <div className="mt-6 flex items-center gap-3 rounded-full border border-trait bg-fond py-[7px] pl-5 pr-3 focus-within:border-menthe/50">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={J["ardoise"]} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-        <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher un commerce, une adresse, un propriétaire" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[14.5px] text-encre outline-none" />
-        {recherche && <button onClick={() => setRecherche("")} className="px-1.5 text-[16px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
+        <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher un commerce, une adresse, un propriétaire" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[15px] text-encre outline-none" />
+        {recherche && <button onClick={() => setRecherche("")} className="px-1.5 text-[15px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px]">
@@ -739,13 +739,13 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
           className="alx-entree grid cursor-pointer grid-cols-[minmax(0,1fr)_220px_200px_150px_110px] items-center gap-x-4 border-b border-trait px-1.5 py-[15px] transition-colors hover:bg-white/[0.028] max-md:grid-cols-[minmax(0,1fr)_90px]"
         >
           <span className="min-w-0">
-            <span className="block truncate text-[16px] font-light text-encre">{joliNom(c.enseigne) || "Sans enseigne"}</span>
+            <span className="block truncate text-[15px] font-light text-encre">{joliNom(c.enseigne) || "Sans enseigne"}</span>
             <span className="block truncate text-[12.5px] text-ardoise md:hidden">{c.adresse}</span>
           </span>
-          <span className="min-w-0 truncate text-[14px] text-craie max-md:hidden">{c.adresse}</span>
-          <span className="min-w-0 truncate text-[14px] text-craie max-md:hidden">{c.proprietaire?.nom ? joliNom(c.proprietaire.nom) : c.foncier ? "Plusieurs, à départager" : <span className="text-ardoise">à établir</span>}</span>
+          <span className="min-w-0 truncate text-[13.5px] text-craie max-md:hidden">{c.adresse}</span>
+          <span className="min-w-0 truncate text-[13.5px] text-craie max-md:hidden">{c.proprietaire?.nom ? joliNom(c.proprietaire.nom) : c.foncier ? "Plusieurs, à départager" : <span className="text-ardoise">à établir</span>}</span>
           <span className="text-right max-md:hidden">
-            {(() => { const p = prixDe(c); return p ? <Nombre taille={14} teinte={p.estime ? J["ardoise"] : J["encre"]} title={p.estime ? "d'après la vitrine, une idée" : "d'après la surface"}>{p.estime ? "~ " : ""}{kEuros(p.bas)} – {kEuros(p.haut)}</Nombre> : <span className="text-[13px] text-brume">—</span>; })()}
+            {(() => { const p = prixDe(c); return p ? <Nombre taille={14} teinte={p.estime ? J["ardoise"] : J["encre"]} title={p.estime ? "d'après la vitrine, une idée" : "d'après la surface"}>{p.estime ? "~ " : ""}{kEuros(p.bas)} – {kEuros(p.haut)}</Nombre> : <span className="text-[12.5px] text-brume">—</span>; })()}
           </span>
           <span className="flex justify-end"><Urgence c={c} compact /></span>
         </div>
@@ -783,7 +783,7 @@ function OngletMessages({ cibles, onOuvrir, cibleDemandee = null }) {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
-  if (!avec.length) return <div className="mt-7 rounded-[16px] border border-trait px-6 py-8 text-center text-[14px] text-ardoise">Aucun message encore : ouvrez un commerce et cliquez « Rédiger le message ».</div>;
+  if (!avec.length) return <div className="mt-7 rounded-[16px] border border-trait px-6 py-8 text-center text-[13.5px] text-ardoise">Aucun message encore : ouvrez un commerce et cliquez « Rédiger le message ».</div>;
 
   return (
     <div className="alx-entree mt-7 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
@@ -801,10 +801,10 @@ function OngletMessages({ cibles, onOuvrir, cibleDemandee = null }) {
               style={{ background: c?.id === x.id ? "rgba(150,192,184,0.05)" : "transparent", borderLeft: `2px solid ${c?.id === x.id ? J["menthe"] : "transparent"}` }}
             >
               <div className="flex items-baseline justify-between gap-3">
-                <span className="min-w-0 truncate text-[15.5px] font-light text-encre">{joliNom(x.enseigne) || x.adresse}</span>
-                <Etiquette teinte={TEINTES.ecrire} className="shrink-0 whitespace-nowrap !text-[9px]">à relire</Etiquette>
+                <span className="min-w-0 truncate text-[15px] font-light text-encre">{joliNom(x.enseigne) || x.adresse}</span>
+                <Etiquette teinte={TEINTES.ecrire} className="shrink-0 whitespace-nowrap !text-[11px]">à relire</Etiquette>
               </div>
-              <div className="mt-1 truncate text-[13px] text-ardoise">{x.proprietaire?.nom ? joliNom(x.proprietaire.nom) : "propriétaire à établir"} · {x.rue || x.adresse}</div>
+              <div className="mt-1 truncate text-[12.5px] text-ardoise">{x.proprietaire?.nom ? joliNom(x.proprietaire.nom) : "propriétaire à établir"} · {x.rue || x.adresse}</div>
             </button>
           ))}
         </div>
@@ -813,7 +813,7 @@ function OngletMessages({ cibles, onOuvrir, cibleDemandee = null }) {
       {c && (
         <div key={c.id} className="alx-entree flex min-h-[420px] flex-col rounded-[16px] border border-trait px-7 py-[26px]">
           <Etiquette teinte={J["menthe-clair"]}>{c.brouillon.canal === "courrier" ? "Courrier" : "E-mail"}{c.brouillon.corrige_le ? " · corrigé" : ""}</Etiquette>
-          <div className="mt-3 text-[22px] font-light tracking-[-.02em] text-encre">{c.proprietaire?.nom ? joliNom(c.proprietaire.nom) : "Propriétaire à établir"}</div>
+          <div className="mt-3 text-[24px] font-light tracking-[-.02em] text-encre">{c.proprietaire?.nom ? joliNom(c.proprietaire.nom) : "Propriétaire à établir"}</div>
           <div className="mt-1 text-[13.5px] text-ardoise">{joliNom(c.enseigne) || ""} · {c.adresse}</div>
           <input
             value={objet ?? c.brouillon.objet ?? ""}
@@ -913,14 +913,14 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
         <div>
           <button
             onClick={onNouvelle}
-            className="mb-4 inline-flex items-center gap-2 text-[13px] text-ardoise transition-colors hover:text-encre"
+            className="mb-4 inline-flex items-center gap-2 text-[12.5px] text-ardoise transition-colors hover:text-encre"
             style={{ background: "transparent" }}
           >
             <span className="text-[15px]">←</span> Toutes les villes
           </button>
           <div className="min-w-0">
             <div className="flex items-center gap-4">
-              <h1 className="alx-mont m-0 text-[34px] font-medium tracking-[-.02em] text-encre max-md:text-[26px]">{ville?.nom}</h1>
+              <h1 className="alx-mont m-0 text-[34px] font-medium tracking-[-.02em] text-encre max-md:text-[24px]">{ville?.nom}</h1>
             </div>
             <div className="mt-1 text-[13.5px] text-ardoise">
               <span style={{ color: teinteStatut }}>{motStatut}</span>
@@ -1012,7 +1012,7 @@ function AjoutCommerce({ villeId, ville, onAjoute }) {
       <div className="flex flex-wrap items-center gap-2.5">
         <Bouton type="submit" principal disabled={!f.adresse.trim() || creer.isPending}>{creer.isPending ? "…" : "Ajouter"}</Bouton>
         <Bouton discret onClick={() => setOuvert(false)}>Fermer</Bouton>
-        <span className="text-[12px] text-ardoise">Pour un commerce qu'ALX n'a pas vu. L'emplacement vient de la rue choisie ; le propriétaire se trouve ensuite sur la fiche.</span>
+        <span className="text-[12.5px] text-ardoise">Pour un commerce qu'ALX n'a pas vu. L'emplacement vient de la rue choisie ; le propriétaire se trouve ensuite sur la fiche.</span>
       </div>
     </form>
   );

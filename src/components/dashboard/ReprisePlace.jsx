@@ -73,8 +73,8 @@ export default function ReprisePlace({ limite = 6 }) {
               <div className="flex items-start gap-3">
                 <Icone className="w-4 h-4 text-menthe flex-none mt-0.5" />
                 <div className="min-w-0 flex-1">
-                  <p className="m-0 text-[14px] leading-[1.45] text-encre truncate">{x.titre}</p>
-                  <p className="m-0 mt-1 text-[12px] text-brume truncate">
+                  <p className="m-0 text-[13.5px] leading-[1.45] text-encre truncate">{x.titre}</p>
+                  <p className="m-0 mt-1 text-[12.5px] text-brume truncate">
                     {x.genre}{x.detail ? ` · ${x.detail}` : ""}{x.date ? ` · ${quand(x.date)}` : ""}
                   </p>
                 </div>

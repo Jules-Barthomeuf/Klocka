@@ -38,7 +38,7 @@ export function ListeRelances({ compact = false }) {
         if (!liste.length) return null;
         return (
           <section key={cle}>
-            <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase" style={{ color: teinte === J["bord-vif"] ? J["ardoise"] : teinte }}>
+            <p className="m-0 mb-2 text-[11px] tracking-[.18em] uppercase" style={{ color: teinte === J["bord-vif"] ? J["ardoise"] : teinte }}>
               {libelle} · {liste.length}
             </p>
             <div className="space-y-2">
@@ -64,7 +64,7 @@ export function ListeRelances({ compact = false }) {
                   <ArrowUpRight className="w-3.5 h-3.5 flex-none mt-1 text-bord-vif group-hover:text-menthe transition-colors" />
                 </a>
               ))}
-              {compact && liste.length > 4 && <p className="m-0 text-[12px] text-brume">et {liste.length - 4} de plus</p>}
+              {compact && liste.length > 4 && <p className="m-0 text-[12.5px] text-brume">et {liste.length - 4} de plus</p>}
             </div>
           </section>
         );
@@ -78,8 +78,8 @@ export default function RelancesEnAttente() {
     <section>
       <div className="flex items-baseline justify-between gap-4 mb-5">
         <div>
-          <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">En attente</p>
-          <h2 className="m-0 mt-1.5 text-[20px] font-light tracking-[-.015em] text-encre">Vos relances</h2>
+          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">En attente</p>
+          <h2 className="m-0 mt-1.5 text-[18px] font-light tracking-[-.015em] text-encre">Vos relances</h2>
         </div>
       </div>
       <ListeRelances compact />

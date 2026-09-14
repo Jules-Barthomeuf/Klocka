@@ -50,17 +50,17 @@ function PromptCorrection({ r }) {
   return (
     <div className="mt-3 rounded-xl border border-bord bg-fond px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: bas ? J["alerte"] : J["menthe"] }}>
+        <p className="m-0 text-[11px] tracking-[.18em] uppercase" style={{ color: bas ? J["alerte"] : J["menthe"] }}>
           {bas ? "À corriger" : "À préserver"} — prompt pour Claude
         </p>
-        <button onClick={copier} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif">
+        <button onClick={copier} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif">
           {copie ? <Check className="w-3 h-3 text-menthe" /> : <Copy className="w-3 h-3" />}{copie ? "Copié" : "Copier"}
         </button>
       </div>
-      <p className="m-0 mt-2 text-[13px] leading-[1.6] text-craie whitespace-pre-wrap max-h-[240px] overflow-y-auto">{r.prompt_correction}</p>
+      <p className="m-0 mt-2 text-[12.5px] leading-[1.6] text-craie whitespace-pre-wrap max-h-[240px] overflow-y-auto">{r.prompt_correction}</p>
       {r.echange?.reponse && (
         <>
-          <button onClick={() => setEchange((o) => !o)} className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-brume hover:text-craie">
+          <button onClick={() => setEchange((o) => !o)} className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] text-brume hover:text-craie">
             <ChevronDown className={`w-3 h-3 transition-transform ${echange ? "rotate-180" : ""}`} /> {echange ? "Replier l'échange" : "Voir l'échange"}
           </button>
           {echange && (
@@ -160,7 +160,7 @@ export default function AdminSuggestions() {
   return (
     <div className="min-h-screen bg-fond text-encre px-5 md:px-10 py-8 md:py-12">
       <div className="max-w-[1100px] mx-auto">
-        <h1 className="m-0 mb-8 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05]">Feedback</h1>
+        <h1 className="m-0 mb-8 text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05]">Feedback</h1>
 
         <BoiteSaisie
           conteneur={{
@@ -210,7 +210,7 @@ export default function AdminSuggestions() {
               <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={(e) => { choisirCapture(e.target.files?.[0]); e.target.value = ""; }} />
               <BoutonBarre onClick={() => fichierRef.current?.click()} actif={!!capture} title="Joindre une capture d'écran"><ImageIcon className="w-4 h-4" /></BoutonBarre>
               <BoutonBarre onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter votre remarque"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
-              <span className="text-[11.5px] text-brume ml-1 max-md:hidden">{ecoute ? "Je vous écoute…" : "Ctrl+V colle une capture"}</span>
+              <span className="text-[11px] text-brume ml-1 max-md:hidden">{ecoute ? "Je vous écoute…" : "Ctrl+V colle une capture"}</span>
             </>
           }
         />
@@ -219,20 +219,20 @@ export default function AdminSuggestions() {
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 mt-10 mb-4 border-b border-trait">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {[{ id: "tous", label: "Tout" }, ...STATUTS].map((s) => (
-              <button key={s.id} onClick={() => setFiltre(s.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${filtre === s.id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>
+              <button key={s.id} onClick={() => setFiltre(s.id)} className={`relative pb-3 text-[13.5px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${filtre === s.id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>
                 {s.label}<span className="ml-1.5 text-brume font-normal tabular-nums">{s.id === "tous" ? remarques.length : compte(s.id)}</span>
               </button>
             ))}
           </div>
           <div className="inline-flex items-center rounded-full border border-bord-doux p-0.5 mb-2">
             {[["date", "Plus récentes"], ["urgence", "Plus urgentes"]].map(([id, mot]) => (
-              <button key={id} onClick={() => setTri(id)} className={`px-3 py-1 rounded-full text-[12px] transition-colors ${tri === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+              <button key={id} onClick={() => setTri(id)} className={`px-3 py-1 rounded-full text-[12.5px] transition-colors ${tri === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
             ))}
           </div>
         </div>
 
         {isLoading ? (
-          <p className="m-0 py-8 text-[13px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</p>
+          <p className="m-0 py-8 text-[12.5px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</p>
         ) : visibles.length === 0 ? (
           <p className="m-0 py-8 text-[13.5px] text-brume">Rien ici pour l'instant.</p>
         ) : (
@@ -249,17 +249,17 @@ export default function AdminSuggestions() {
                   <div className="min-w-0 flex-1">
                     {edition?.id === r.id ? (
                       <div>
-                        <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: r.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); modifier.mutate({ id: r.id, contenu: edition.texte.trim() }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-3 py-2 outline-none text-[14.5px] leading-[1.6] text-encre resize-y" />
+                        <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: r.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); modifier.mutate({ id: r.id, contenu: edition.texte.trim() }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-3 py-2 outline-none text-[15px] leading-[1.6] text-encre resize-y" />
                         <div className="mt-1.5 flex items-center gap-2">
-                          <button onClick={() => modifier.mutate({ id: r.id, contenu: edition.texte.trim() })} disabled={modifier.isPending || !edition.texte.trim()} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> Enregistrer</button>
-                          <button onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
+                          <button onClick={() => modifier.mutate({ id: r.id, contenu: edition.texte.trim() })} disabled={modifier.isPending || !edition.texte.trim()} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> Enregistrer</button>
+                          <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
                         </div>
                       </div>
                     ) : (
-                      <p className="m-0 text-[14.5px] leading-[1.65] text-encre whitespace-pre-wrap">{r.contenu}</p>
+                      <p className="m-0 text-[15px] leading-[1.65] text-encre whitespace-pre-wrap">{r.contenu}</p>
                     )}
                     {r.prompt_correction && <PromptCorrection r={r} />}
-                    <p className="m-0 mt-1.5 text-[12px] text-brume flex flex-wrap items-center gap-x-2">
+                    <p className="m-0 mt-1.5 text-[12.5px] text-brume flex flex-wrap items-center gap-x-2">
                       <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n} sur 5 — cliquez une barre pour la changer`}>
                         <span className="inline-flex items-end gap-px">
                           {[1, 2, 3, 4, 5].map((n) => (
@@ -285,7 +285,7 @@ export default function AdminSuggestions() {
                       <button
                         key={s.id}
                         onClick={() => statut !== s.id && changerStatut.mutate({ id: r.id, statut: s.id })}
-                        className={`px-2.5 py-1 rounded-full text-[11.5px] font-medium transition-colors ${statut === s.id ? "text-white" : "text-brume hover:text-craie border border-bord"}`}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${statut === s.id ? "text-white" : "text-brume hover:text-craie border border-bord"}`}
                         style={statut === s.id ? { background: s.fond } : undefined}
                       >
                         {s.label}

@@ -9,7 +9,7 @@ function SectionHeader({ title, open, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-ardoise font-medium pt-3 pb-1 hover:text-craie transition-colors"
+      className="w-full flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ardoise font-medium pt-3 pb-1 hover:text-craie transition-colors"
     >
       <span>{title}</span>
       <ChevronDown className={`w-3 h-3 transition-transform ${open ? "" : "-rotate-90"}`} />
@@ -20,7 +20,7 @@ function SectionHeader({ title, open, onToggle }) {
 function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-[12px] text-ardoise">{label}</span>
+      <span className="text-[12.5px] text-ardoise">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-menthe h-4 w-7" />
     </div>
   );
@@ -116,7 +116,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
       {/* Scenario select */}
       {afficherScenario ? (
       <div className="px-3 pt-3 pb-2 border-b border-trait">
-        <p className="text-[9px] uppercase tracking-[0.18em] text-brume font-medium mb-1.5">Scénario</p>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-brume font-medium mb-1.5">Scénario</p>
         <Select value={selectedProjectId || "default"} onValueChange={onSelectProject}>
           <SelectTrigger className="bg-fond text-encre border-trait h-8 text-xs rounded-md">
             <SelectValue placeholder="Mode par défaut" />
@@ -129,13 +129,13 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
           </SelectContent>
         </Select>
         {calculs && (
-          <p className="text-[10px] text-brume mt-1.5">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
+          <p className="text-[11px] text-brume mt-1.5">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
         )}
       </div>
       ) : (
         calculs && (
           <div className="px-3 pt-3 pb-2 border-b border-trait">
-            <p className="text-[9px] uppercase tracking-[0.18em] text-brume font-medium mb-1.5">Prix de revient</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-brume font-medium mb-1.5">Prix de revient</p>
             <p className="text-encre text-sm">{formatCurrency(calculs.prixRevient)}</p>
           </div>
         )
@@ -145,7 +145,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         {/* Champs principaux - non repliable */}
         <div className="mt-3 rounded-lg border border-menthe/40 bg-menthe/[0.06] p-2.5">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-menthe font-semibold pb-1">Champs principaux</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-menthe font-semibold pb-1">Champs principaux</p>
           {acquisitionMainItems.map((it) => (
             <SimSlider
               key={it.key}
@@ -173,7 +173,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
               className="overflow-hidden"
             >
               <div className="mt-3 rounded-lg border border-menthe/40 bg-menthe/[0.06] p-2.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-menthe font-semibold pb-1">Champs revente</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-menthe font-semibold pb-1">Champs revente</p>
                 {reventeMainItems.map((it) => (
                   <SimSlider
                     key={it.key}
@@ -237,7 +237,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
               </div>
             )}
             {isOpen(g.title) && g.title === "LOCATION" && values.loyerInitialHTHC > 0 && values.surface > 0 && (
-              <p className="text-[10px] text-brume -mt-0.5">{Math.round(values.loyerInitialHTHC / values.surface)} €/m²/an</p>
+              <p className="text-[11px] text-brume -mt-0.5">{Math.round(values.loyerInitialHTHC / values.surface)} €/m²/an</p>
             )}
           </div>
         ))}

@@ -104,8 +104,8 @@ export default function Comparateur() {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="mb-2">
-            <p className="text-menthe uppercase tracking-[0.3em] text-[10px] font-medium">Comparateur</p>
-            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Comparer mes projets</h1>
+            <p className="text-menthe uppercase tracking-[0.3em] text-[11px] font-medium">Comparateur</p>
+            <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre">Comparer mes projets</h1>
           </div>
 
           <div className="flex items-center justify-between mb-4">

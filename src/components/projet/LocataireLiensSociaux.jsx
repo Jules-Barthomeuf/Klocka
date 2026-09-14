@@ -125,7 +125,7 @@ export default function LocataireLiensSociaux({ liens }) {
 
   return (
     <div className="mt-6 max-md:mt-4 pt-6 max-md:pt-4 border-t border-bord">
-      <h3 className="font-cormorant text-encre mb-4 max-md:mb-2 max-md:text-lg">
+      <h3 className="font-display text-encre mb-4 max-md:mb-2 max-md:text-lg">
         Présence en ligne
       </h3>
 

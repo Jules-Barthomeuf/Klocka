@@ -34,12 +34,12 @@ const LIBELLES_FICHE = {
   locataire_activite: "Activité",
 };
 
-const Kicker = ({ children }) => <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">{children}</p>;
+const Kicker = ({ children }) => <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">{children}</p>;
 
 function ChampLu({ c }) {
   return (
     <div className="flex items-baseline justify-between gap-6 py-2 border-b border-relief last:border-b-0">
-      <dt className="text-[13px] text-ardoise flex-none inline-flex items-center gap-2">
+      <dt className="text-[12.5px] text-ardoise flex-none inline-flex items-center gap-2">
         <span title={LIBELLE[c.statut]} className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: TEINTE[c.statut] || J["bord-vif"] }} />
         {c.libelle}
       </dt>
@@ -77,7 +77,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
     <div className="space-y-6">
       <div>
         <Kicker>Le bien</Kicker>
-        <p className="m-0 mt-1.5 text-[13px] text-brume">Ce que la fiche annonce. Un clic sur une partie ouvre ce que les pièces en disent.</p>
+        <p className="m-0 mt-1.5 text-[12.5px] text-brume">Ce que la fiche annonce. Un clic sur une partie ouvre ce que les pièces en disent.</p>
       </div>
 
       <div className="border-t border-trait">
@@ -98,7 +98,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
                 <span className="text-[15px] font-medium text-encre">{p.titre}</span>
                 <span className="flex items-center gap-3 flex-none">
                   {!apercu && (nbPieces > 0 || p.lieu) && (
-                    <span className="text-[12px] text-brume">{p.lieu ? "le lieu" : `${nbPieces} pièce${nbPieces > 1 ? "s" : ""}`}</span>
+                    <span className="text-[12.5px] text-brume">{p.lieu ? "le lieu" : `${nbPieces} pièce${nbPieces > 1 ? "s" : ""}`}</span>
                   )}
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-brume group-hover:text-encre group-hover:bg-encre/5 transition-all duration-300 ${ouverte ? "rotate-180" : ""}`}>
                     <ChevronDown className="w-4 h-4" />
@@ -110,7 +110,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
               <dl className="m-0 pb-3">
                 {p.fiche.map((champ) => (
                   <div key={champ} className="flex items-baseline justify-between gap-6 py-2 border-b border-relief last:border-b-0">
-                    <dt className="text-[13px] text-ardoise flex-none">{LIBELLES_FICHE[champ]}</dt>
+                    <dt className="text-[12.5px] text-ardoise flex-none">{LIBELLES_FICHE[champ]}</dt>
                     <dd className="m-0 text-right min-w-0"><ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
                   </div>
                 ))}
@@ -121,15 +121,15 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
                 <div className="min-h-0 overflow-hidden">
                   <div className="pb-5 pl-4 border-l border-bord ml-1">
                     {apercu ? (
-                      <p className="m-0 text-[13px] text-brume">Indisponible en mode aperçu.</p>
+                      <p className="m-0 text-[12.5px] text-brume">Indisponible en mode aperçu.</p>
                     ) : isLoading ? (
-                      <p className="m-0 text-[13px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Lecture des pièces…</p>
+                      <p className="m-0 text-[12.5px] text-ardoise inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Lecture des pièces…</p>
                     ) : (
                       <>
                         {detail.length > 0 ? (
                           <dl className="m-0">{detail.map((c) => <ChampLu key={c.id} c={c} />)}</dl>
                         ) : (
-                          <p className="m-0 text-[13px] text-brume">Rien dans les pièces sur ce point.</p>
+                          <p className="m-0 text-[12.5px] text-brume">Rien dans les pièces sur ce point.</p>
                         )}
                         {p.lieu && (
                           <div className="mt-4">

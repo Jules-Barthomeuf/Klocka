@@ -50,8 +50,8 @@ export function Avis({ ton = "information", titre, description = null, action = 
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="text-[14.5px] font-semibold leading-tight text-encre">{titre}</div>
-          {description && <div className="mt-1 text-[13px] leading-[1.5] text-ardoise">{description}</div>}
+          <div className="text-[15px] font-semibold leading-tight text-encre">{titre}</div>
+          {description && <div className="mt-1 text-[12.5px] leading-[1.5] text-ardoise">{description}</div>}
         </div>
 
         {action && (

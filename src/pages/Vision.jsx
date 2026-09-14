@@ -206,12 +206,12 @@ function AnimatedStatCard({ icon: Icon, title, value, suffix, description, delay
 
       <div className="flex items-center gap-2 mb-4">
         <Icon className="w-4 h-4 text-menthe" />
-        <span className="text-[10px] tracking-[0.2em] uppercase text-ardoise">{title}</span>
+        <span className="text-[11px] tracking-[0.2em] uppercase text-ardoise">{title}</span>
       </div>
-      <div className="text-[36px] max-md:text-[28px] font-light text-encre leading-none mb-2" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <div className="text-[36px] max-md:text-[24px] font-light text-encre leading-none mb-2" style={{ fontVariantNumeric: "tabular-nums" }}>
         {formatValue(animatedValue)} {suffix}
       </div>
-      <p className="text-[13px] text-ardoise leading-[1.6] mb-0">{description}</p>
+      <p className="text-[12.5px] text-ardoise leading-[1.6] mb-0">{description}</p>
     </motion.div>);
 
 }
@@ -470,7 +470,7 @@ export default function Vision() {
               <div className="flex flex-col items-center gap-5">
                 <span className="text-[15px] tracking-[0.36em] text-encre select-none">KLOCKA</span>
                 <div className="w-6 h-6 border-2 border-menthe/30 border-t-menthe rounded-full animate-spin" />
-                <span className="text-[10px] tracking-[0.2em] uppercase text-ardoise">Calcul de votre projection</span>
+                <span className="text-[11px] tracking-[0.2em] uppercase text-ardoise">Calcul de votre projection</span>
               </div>
           </motion.div>
         }
@@ -486,37 +486,37 @@ export default function Vision() {
             <TabsList className="w-full flex justify-center gap-4 max-md:gap-2 bg-transparent border-b border-surface mb-6 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto max-md:overflow-x-scroll scrollbar-hide">
               <TabsTrigger
               value="tab-0"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Vue d'ensemble
               </TabsTrigger>
               <TabsTrigger
               value="tab-1"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Timeline
               </TabsTrigger>
               <TabsTrigger
               value="tab-2"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Evolution
               </TabsTrigger>
               <TabsTrigger
               value="tab-3"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Projets
               </TabsTrigger>
               <TabsTrigger
               value="tab-4"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Comparatif
               </TabsTrigger>
               <TabsTrigger
               value="tab-5"
-              className="relative text-[11px] max-md:text-[10.5px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
 
                 Chiffres détaillés
               </TabsTrigger>
@@ -541,31 +541,31 @@ export default function Vision() {
                   {/* Titre de la page */}
                   <div>
                     {currentSlide === 1 &&
-                  <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
+                  <h2 className="text-[34px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-encre">Visualisez l'échelonnement</span><br />
                         <span className="text-menthe-clair font-light">de vos acquisitions</span>
                       </h2>
                   }
                     {currentSlide === 2 &&
-                  <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
+                  <h2 className="text-[34px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-encre">Voyons maintenant comment</span><br />
                         <span className="text-menthe-clair font-light">votre patrimoine évolue</span>
                       </h2>
                   }
                     {currentSlide === 3 &&
-                  <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
+                  <h2 className="text-[34px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-encre">Découvrez où se situent</span><br />
                         <span className="text-menthe-clair font-light">vos futurs investissements</span>
                       </h2>
                   }
                     {currentSlide === 4 &&
-                  <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
+                  <h2 className="text-[34px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-encre">Observez la transformation</span><br />
                         <span className="text-menthe font-light">de votre investissement</span>
                       </h2>
                   }
                     {currentSlide === 5 &&
-                  <h2 className="text-[30px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
+                  <h2 className="text-[34px] md:text-[38px] font-light tracking-[-0.02em] leading-[1.12]">
                         <span className="text-encre">Pour finir, explorez</span><br />
                         <span className="text-menthe-clair font-light">le détail année par année</span>
                       </h2>
@@ -1035,7 +1035,7 @@ export default function Vision() {
                                     <td className="py-4 px-6 text-encre font-medium"> 
                                       <div className="flex items-center gap-3"> 
                                         {row.detailsProjets.length > 0 &&
-                                    <span className="text-[#00FFD1] text-[10px] transition-transform duration-300"> 
+                                    <span className="text-[#00FFD1] text-[11px] transition-transform duration-300"> 
                                             {expandedYears.includes(row.annee) ? '▼' : '▶'} 
                                           </span>
                                     } 
@@ -1114,7 +1114,7 @@ export default function Vision() {
                   transition={{ duration: 0.6 }}
                   className="py-2 pl-6 border-l-2 border-menthe">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-3">Étape clé • An 20</div>
+                  <div className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-3">Étape clé • An 20</div>
                   <p className="text-encre font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine20 >= 1000000 ? `${(resultat.patrimoine20 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine20 / 1000)}K€`;
@@ -1196,7 +1196,7 @@ export default function Vision() {
                   transition={{ duration: 0.6, delay: 0.1 }}
                   className="py-2 pl-6 border-l-2 border-menthe-clair">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-3">Accélération • An 25</div>
+                  <div className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-3">Accélération • An 25</div>
                   <p className="text-encre font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine25 >= 1000000 ? `${(resultat.patrimoine25 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine25 / 1000)}K€`;
@@ -1217,7 +1217,7 @@ export default function Vision() {
                   transition={{ duration: 0.6, delay: 0.2 }}
                   className="py-5 pl-6 pr-6 border-l-2 border-menthe bg-menthe/[0.05]">
 
-                  <div className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-3">Objectif atteint • An 30</div>
+                  <div className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-3">Objectif atteint • An 30</div>
                   <p className="text-encre font-normal text-sm md:text-base leading-[1.8] max-w-3xl">
                     {(() => {
                       const patrimoine = resultat.patrimoine30 >= 1000000 ? `${(resultat.patrimoine30 / 1000000).toFixed(1)}M€` : `${Math.round(resultat.patrimoine30 / 1000)}K€`;
@@ -1948,7 +1948,7 @@ export default function Vision() {
                               className="p-3 rounded-md border border-trait bg-fond/30 flex items-center gap-2">
 
                           <div className="flex-1 min-w-0">
-                            <div className="text-[10px] text-menthe font-bold uppercase mb-1">
+                            <div className="text-[11px] text-menthe font-bold uppercase mb-1">
                               An {index * frequence + 1}
                             </div>
                             <Select

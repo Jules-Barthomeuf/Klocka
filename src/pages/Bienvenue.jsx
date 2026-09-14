@@ -36,7 +36,7 @@ export default function Bienvenue() {
   return (
     <div className="min-h-screen bg-fond text-encre flex flex-col">
       <nav className="px-8 md:px-16 py-6">
-        <span className="text-[13px] tracking-[.22em] uppercase text-encre">Klocka</span>
+        <span className="text-[12.5px] tracking-[.22em] uppercase text-encre">Klocka</span>
       </nav>
 
       <div className="flex-1 flex items-center justify-center px-6 pb-16">
@@ -48,7 +48,7 @@ export default function Bienvenue() {
           ) : etat.valide ? (
             <>
               <div className="w-10 h-0.5 bg-menthe mb-8" />
-              <h1 className="m-0 text-[26px] font-light tracking-[-.02em] text-encre">Créez votre espace</h1>
+              <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-encre">Créez votre espace</h1>
               <p className="m-0 mt-3 mb-8 text-[15px] leading-[1.7] text-ardoise">
                 {etat.commun
                   ? "Saisissez l'adresse à laquelle Klocka vous a écrit, puis choisissez votre mot de passe."
@@ -63,8 +63,8 @@ export default function Bienvenue() {
           ) : (
             <>
               <div className="w-10 h-0.5 bg-menthe mb-8" />
-              <h1 className="m-0 text-[26px] font-light tracking-[-.02em] text-encre">Lien inutilisable</h1>
-              <p className="m-0 mt-4 text-[14.5px] leading-[1.7] text-ardoise">{MESSAGES[etat.raison] || MESSAGES.inconnu}</p>
+              <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-encre">Lien inutilisable</h1>
+              <p className="m-0 mt-4 text-[15px] leading-[1.7] text-ardoise">{MESSAGES[etat.raison] || MESSAGES.inconnu}</p>
               <a
                 href="/"
                 className="inline-block mt-8 px-5 py-2.5 border border-bord-doux text-[11px] tracking-[.16em] uppercase text-encre hover:bg-encre/[0.06] transition-colors"

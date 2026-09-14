@@ -131,12 +131,12 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
             <div className="flex flex-col gap-5 p-7">
               <div>
                 <Etiquette>Coup d'œil</Etiquette>
-                <div className="alx-serif mt-2 text-[30px] italic leading-tight text-encre">{joliNom(c.enseigne) || c.adresse}</div>
+                <div className="alx-serif mt-2 text-[34px] italic leading-tight text-encre">{joliNom(c.enseigne) || c.adresse}</div>
                 <div className="mt-1 text-[13.5px] text-ardoise">{c.adresse}{c.activite ? ` · ${c.activite}` : ""}</div>
               </div>
               <div>
                 <Etiquette>Propriétaire</Etiquette>
-                <div className="mt-1.5 text-[17px] text-encre">{p.nom ? joliNom(p.nom) : "À établir"}</div>
+                <div className="mt-1.5 text-[18px] text-encre">{p.nom ? joliNom(p.nom) : "À établir"}</div>
               </div>
               <div>
                 <Etiquette>Analyse</Etiquette>
@@ -150,7 +150,7 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
               <div className="mt-auto flex flex-wrap items-center gap-2.5 pt-2">
                 {c.pile !== "ecartee" && <Bouton principal onClick={() => onEcarter(c.id)} disabled={pending}>Écarter aussi</Bouton>}
                 <Bouton onClick={() => onGarder(c.id)}>Garder</Bouton>
-                <Link to={`/ALXCible?id=${c.id}`} className="ml-1 text-[13px] text-menthe hover:text-menthe-clair">Ouvrir la fiche →</Link>
+                <Link to={`/ALXCible?id=${c.id}`} className="ml-1 text-[12.5px] text-menthe hover:text-menthe-clair">Ouvrir la fiche →</Link>
               </div>
             </div>
             <div className="isolate min-h-[360px] overflow-hidden bg-fond lg:rounded-r-[20px]">
@@ -260,13 +260,13 @@ export default function ALXCible() {
 
         <div className="mt-5 flex flex-wrap items-end justify-between gap-5">
           <div className="min-w-0">
-            <h1 className="alx-serif m-0 text-[44px] italic leading-[1.05] tracking-[-.01em] text-encre max-md:text-[32px]">{joliNom(c.enseigne) || c.adresse}</h1>
+            <h1 className="alx-serif m-0 text-[44px] italic leading-[1.05] tracking-[-.01em] text-encre max-md:text-[34px]">{joliNom(c.enseigne) || c.adresse}</h1>
             <div className="mt-2 text-[15px] text-ardoise">{c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.activite ? ` · ${c.activite}` : ""}{c.emplacement ? ` · emplacement ${e.mot}` : ""}</div>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             {ecartee ? (
               <>
-                <span className="text-[13px] text-ardoise">{c.ecartee_motif ? `Écartée : ${c.ecartee_motif}` : c.ecartee_regle?.pourquoi ? `Écartée par une règle : ${c.ecartee_regle.pourquoi}` : "Écartée"}</span>
+                <span className="text-[12.5px] text-ardoise">{c.ecartee_motif ? `Écartée : ${c.ecartee_motif}` : c.ecartee_regle?.pourquoi ? `Écartée par une règle : ${c.ecartee_regle.pourquoi}` : "Écartée"}</span>
                 <Bouton onClick={() => reprendre.mutate()} disabled={reprendre.isPending}>Reprendre</Bouton>
               </>
             ) : (
@@ -295,7 +295,7 @@ export default function ALXCible() {
               style={{ borderColor: analyseOuverte ? J["menthe"] : "rgba(255,255,255,0.12)", color: analyseOuverte ? J["menthe"] : J["ardoise"], background: analyseOuverte ? "rgba(150,192,184,0.12)" : "transparent" }}
             >
               {analyseOuverte ? "La fiche" : "L'analyse"}
-              <span className="text-[10px]">{analyseOuverte ? "◀" : "▶"}</span>
+              <span className="text-[11px]">{analyseOuverte ? "◀" : "▶"}</span>
             </button>
             {analyseOuverte ? (
               <div className="alx-entree flex flex-col gap-6 pr-28">
@@ -305,8 +305,8 @@ export default function ALXCible() {
                 </div>
                 {analyseTexte(c, etat?.explications || {}).map((b) => (
                   <div key={b.titre}>
-                    <Etiquette className="!text-[9.5px]">{b.titre}</Etiquette>
-                    <div className="mt-2 flex flex-col gap-2 text-[14.5px] leading-[1.6] text-craie">{b.lignes.map((l, i) => <p key={i} className="m-0">{l}</p>)}</div>
+                    <Etiquette className="!text-[11px]">{b.titre}</Etiquette>
+                    <div className="mt-2 flex flex-col gap-2 text-[15px] leading-[1.6] text-craie">{b.lignes.map((l, i) => <p key={i} className="m-0">{l}</p>)}</div>
                   </div>
                 ))}
               </div>
@@ -314,10 +314,10 @@ export default function ALXCible() {
             <>
             <div className="pr-28">
               <Etiquette>Propriétaire</Etiquette>
-              <div className="mt-2 text-[22px] text-encre">{p.nom ? joliNom(p.nom) : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
+              <div className="mt-2 text-[24px] text-encre">{p.nom ? joliNom(p.nom) : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
               {proprioMeta && <div className="mt-1 text-[13.5px] text-ardoise">{proprioMeta}</div>}
               {!p.nom && (
-                <button onClick={() => proprietaire.mutate()} disabled={proprietaire.isPending} className="mt-2 text-[13px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }}>
+                <button onClick={() => proprietaire.mutate()} disabled={proprietaire.isPending} className="mt-2 text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }}>
                   {proprietaire.isPending ? "Data-B lit l'adresse…" : c.foncier ? "Relire chez Data-B" : "Chercher le propriétaire chez Data-B"}
                 </button>
               )}
@@ -340,7 +340,7 @@ export default function ALXCible() {
 
             <div>
               <Etiquette>Le commerce</Etiquette>
-              <div className="mt-2 text-[14.5px] leading-[1.6] text-craie">{ceQueFait(c).join(" ")}</div>
+              <div className="mt-2 text-[15px] leading-[1.6] text-craie">{ceQueFait(c).join(" ")}</div>
             </div>
 
             <div className="rounded-[14px] border px-[22px] py-5" style={{ borderColor: `${teinteVerdict}47` }}>
@@ -352,7 +352,7 @@ export default function ALXCible() {
                 </div>
               </div>
               <div className="mt-3.5 flex flex-col gap-[9px]">
-                {raisons.map((r) => <span key={r} className="flex items-baseline gap-3 text-[14.5px] leading-[1.5] text-craie"><span style={{ color: teinteVerdict }}>—</span>{r}</span>)}
+                {raisons.map((r) => <span key={r} className="flex items-baseline gap-3 text-[15px] leading-[1.5] text-craie"><span style={{ color: teinteVerdict }}>—</span>{r}</span>)}
               </div>
             </div>
 
@@ -360,12 +360,12 @@ export default function ALXCible() {
               <div>
                 <Etiquette>Loyer estimé</Etiquette>
                 <div className="mt-1.5"><Nombre taille={19} teinte={J["encre"]}>{v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])}–${Math.round(v.loyer_fourchette[1])} €/m²/an` : "—"}</Nombre></div>
-                {v.loyer_source && <div className="mt-1 text-[12px] text-ardoise">{v.loyer_source}</div>}
+                {v.loyer_source && <div className="mt-1 text-[12.5px] text-ardoise">{v.loyer_source}</div>}
               </div>
               <div>
                 <Etiquette>Prix estimé</Etiquette>
                 <div className="mt-1.5"><Nombre taille={19} teinte={J["encre"]}>{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : v.fourchette_estimee ? `~ ${euros(v.fourchette_estimee[0])} – ${euros(v.fourchette_estimee[1])}` : devanture.isPending ? "…" : "—"}</Nombre></div>
-                <div className="mt-1 text-[12px] text-ardoise">
+                <div className="mt-1 text-[12.5px] text-ardoise">
                   {v.surface ? `${v.surface} m²${v.surface_source ? ` · ${v.surface_source}` : ""}`
                     : v.surface_estimee ? `${v.surface_estimee[0]}–${v.surface_estimee[1]} m² d'après la vitrine (${v.vitrine_m} m${v.angle ? ` + ${v.retour_m || "?"} m en retour, commerce d'angle` : ""}), une idée`
                     : devanture.isPending ? "ALX regarde la vitrine…"
@@ -378,7 +378,7 @@ export default function ALXCible() {
               <div id="message" className="alx-entree flex flex-col gap-3.5 border-t border-trait pt-6">
                 <Etiquette teinte={J["menthe-clair"]}>Message rédigé · {brouillon.canal === "courrier" ? "courrier" : "e-mail"}</Etiquette>
                 {brouillon.objet && <div className="text-[15px] text-encre">{brouillon.objet}</div>}
-                <div className="whitespace-pre-line rounded-[14px] border border-trait px-5 py-[18px] text-[14.5px] leading-[1.65] text-craie">{brouillon.texte}</div>
+                <div className="whitespace-pre-line rounded-[14px] border border-trait px-5 py-[18px] text-[15px] leading-[1.65] text-craie">{brouillon.texte}</div>
                 <div className="flex flex-wrap gap-2.5">
                   <Bouton principal onClick={() => { toast.success("En brouillon", { description: "À retrouver dans l'onglet Messages." }); setMode("lecture"); }}>Garder en brouillon</Bouton>
                   <Bouton onClick={() => rediger.mutate()} disabled={rediger.isPending}>{rediger.isPending ? "…" : "Réécrire"}</Bouton>
@@ -390,13 +390,13 @@ export default function ALXCible() {
             {mode === "ecart" && (
               <div className="alx-entree flex flex-col gap-3.5 border-t border-trait pt-6">
                 <Etiquette>Pourquoi écarter</Etiquette>
-                <input value={motif} onChange={(ev) => setMotif(ev.target.value)} placeholder="Le gérant vient de renouveler son bail" className="rounded-[12px] border border-trait bg-fond px-4 py-[13px] text-[14.5px] text-encre outline-none focus:border-menthe/50" />
+                <input value={motif} onChange={(ev) => setMotif(ev.target.value)} placeholder="Le gérant vient de renouveler son bail" className="rounded-[12px] border border-trait bg-fond px-4 py-[13px] text-[15px] text-encre outline-none focus:border-menthe/50" />
                 <Etiquette className="mt-1">Ce non généralise</Etiquette>
                 <div className="flex flex-col gap-0.5">
                   {[["activite", `Cette activité${c.activite ? ` (${c.activite})` : ""}`], ["proprietaire", `Ce propriétaire${p.nom ? ` (${joliNom(p.nom)})` : ""}`], ["enseigne", `Cette enseigne${c.enseigne ? ` (${joliNom(c.enseigne)})` : ""}`]].map(([k, mot]) => (
                     <button key={k} type="button" onClick={() => setSur((x) => ({ ...x, [k]: !x[k] }))} className="flex items-center gap-3 py-[9px] text-left" style={{ background: "transparent" }}>
                       <Case coche={sur[k]} />
-                      <span className="text-[14.5px] text-encre">{mot}</span>
+                      <span className="text-[15px] text-encre">{mot}</span>
                     </button>
                   ))}
                 </div>
@@ -410,8 +410,8 @@ export default function ALXCible() {
             {mode === "fait" && (
               <div className="alx-entree flex flex-col gap-3.5 border-t border-trait pt-6">
                 <div className="flex items-center gap-3 rounded-[14px] border border-menthe/30 px-5 py-[18px]">
-                  <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full bg-menthe text-[12px] font-bold text-sur-menthe">✓</span>
-                  <span className="text-[14.5px] text-craie">
+                  <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full bg-menthe text-[12.5px] font-bold text-sur-menthe">✓</span>
+                  <span className="text-[15px] text-craie">
                     {resultat?.regle ? "Règle créée et rejouée sur la ville." : "Écartée, avec son motif."}
                     {resultat?.semblables?.length ? ` ${resultat.semblables.length} commerce${resultat.semblables.length > 1 ? "s" : ""} qui ressemble${resultat.semblables.length > 1 ? "nt" : ""} :` : " Aucun autre commerce semblable."}
                   </span>
@@ -421,8 +421,8 @@ export default function ALXCible() {
                     {resultat.semblables.map((x) => (
                       <div key={x.id} onClick={() => setApercu(x.id)} className="flex cursor-pointer items-center justify-between gap-3 border-t border-trait py-2.5 hover:bg-white/[0.025]">
                         <div className="min-w-0">
-                          <div className="truncate text-[14px] text-encre">{joliNom(x.enseigne) || x.adresse}</div>
-                          <div className="truncate text-[12px] text-ardoise">{x.adresse} · {x.raisons.join(" · ")}</div>
+                          <div className="truncate text-[13.5px] text-encre">{joliNom(x.enseigne) || x.adresse}</div>
+                          <div className="truncate text-[12.5px] text-ardoise">{x.adresse} · {x.raisons.join(" · ")}</div>
                         </div>
                         <div className="flex shrink-0 gap-3 text-[12.5px]">
                           <button onClick={(ev) => { ev.stopPropagation(); ecarterAussi.mutate([x.id]); }} disabled={ecarterAussi.isPending} className="text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>Écarter aussi</button>
@@ -459,7 +459,7 @@ export default function ALXCible() {
                 loading="lazy"
               />
             ) : (
-              <div className="grid h-full place-items-center px-6 text-center text-[13px] text-ardoise">Street View demande la clé VITE_GOOGLE_MAPS_API_KEY dans le .env.</div>
+              <div className="grid h-full place-items-center px-6 text-center text-[12.5px] text-ardoise">Street View demande la clé VITE_GOOGLE_MAPS_API_KEY dans le .env.</div>
             )}
           </div>
         </div>

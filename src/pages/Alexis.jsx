@@ -23,7 +23,7 @@ function Photo({ src, legende, detail }) {
       <div className="border border-menthe/30 bg-surface overflow-hidden">
         {absente ? (
           <div className="aspect-[4/5] flex items-center justify-center p-8 text-center">
-            <p className="m-0 text-[13px] leading-[1.7] text-brume">
+            <p className="m-0 text-[12.5px] leading-[1.7] text-brume">
               Photo à déposer dans <code className="text-menthe">public{src}</code>
             </p>
           </div>
@@ -37,8 +37,8 @@ function Photo({ src, legende, detail }) {
         )}
       </div>
       <figcaption className="mt-4">
-        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-menthe">{legende}</p>
-        <p className="m-0 mt-1.5 text-[14px] leading-[1.6] text-ardoise">{detail}</p>
+        <p className="m-0 text-[11px] tracking-[.18em] uppercase text-menthe">{legende}</p>
+        <p className="m-0 mt-1.5 text-[13.5px] leading-[1.6] text-ardoise">{detail}</p>
       </figcaption>
     </figure>
   );
@@ -75,13 +75,13 @@ function Theme() {
     <>
       <audio ref={audio} src={THEME} preload="auto" onError={() => setEtat("absent")} />
       {etat === "absent" ? (
-        <p className="m-0 text-[12px] text-brume">
+        <p className="m-0 text-[12.5px] text-brume">
           Thème à déposer dans <code className="text-menthe">public{THEME}</code>
         </p>
       ) : (
         <button
           onClick={basculer}
-          className={`inline-flex items-center gap-2 px-4 py-2 border text-[10.5px] tracking-[.16em] uppercase transition-colors ${
+          className={`inline-flex items-center gap-2 px-4 py-2 border text-[11px] tracking-[.16em] uppercase transition-colors ${
             etat === "joue"
               ? "border-menthe text-menthe"
               : "border-menthe/50 text-menthe hover:bg-menthe/[0.08]"
@@ -103,7 +103,7 @@ export default function Alexis() {
           <div>
             <div className="w-10 h-0.5 bg-menthe mb-8" />
             <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Page secrète — vous n'êtes jamais venu ici</p>
-            <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[28px] font-semibold tracking-[-.025em] leading-[1.05] text-[#ffffff]">
+            <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[24px] font-semibold tracking-[-.025em] leading-[1.05] text-[#ffffff]">
               Alexis
             </h1>
           </div>
@@ -118,7 +118,7 @@ export default function Alexis() {
           ))}
         </div>
 
-        <p className="mt-16 text-[12px] text-brume">
+        <p className="mt-16 text-[12.5px] text-brume">
           Cette page n'apparaît nulle part. Si vous la lisez, gardez le secret.
         </p>
       </div>

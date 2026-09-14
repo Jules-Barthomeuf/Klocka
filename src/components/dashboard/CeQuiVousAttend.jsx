@@ -114,7 +114,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
           if (!dedans.length) return null;
           return (
             <div key={g.cle}>
-              <p className="m-0 mb-2 text-[10.5px] tracking-[.18em] uppercase" style={{ color: g.teinte }}>
+              <p className="m-0 mb-2 text-[11px] tracking-[.18em] uppercase" style={{ color: g.teinte }}>
                 {g.mot} <span className="text-bord-vif">· {dedans.length}</span>
               </p>
               <div className="flex flex-col">
@@ -138,19 +138,19 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                       />
 
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-[14px] leading-[1.45] text-craie group-hover:text-encre transition-colors">
+                        <p className="m-0 text-[13.5px] leading-[1.45] text-craie group-hover:text-encre transition-colors">
                           {l.titre}
                           {l.telephone && (
                             <a
                               href={`tel:${l.telephone}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="ml-2 inline-flex items-center gap-1 text-[13px] text-menthe tabular-nums hover:underline"
+                              className="ml-2 inline-flex items-center gap-1 text-[12.5px] text-menthe tabular-nums hover:underline"
                             >
                               <Phone className="w-3 h-3" /> {telLisible(l.telephone)}
                             </a>
                           )}
                         </p>
-                        <p className="m-0 mt-0.5 text-[12px] text-brume truncate">
+                        <p className="m-0 mt-0.5 text-[12.5px] text-brume truncate">
                           <span style={{ color: n.teinte }}>{n.mot}</span>
                           <span className="text-bord-vif"> · </span>
                           {quand(l.dans, l.echeance)}
@@ -168,7 +168,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                           <button
                             onClick={() => fait.mutate(l.id)}
                             disabled={fait.isPending}
-                            className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-menthe transition-colors disabled:opacity-40"
+                            className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-menthe transition-colors disabled:opacity-40"
                           >
                             <Check className="w-3.5 h-3.5" /> Fait
                           </button>

@@ -50,10 +50,10 @@ function Levier({ etat, titre, effet, ou, children }) {
   return (
     <div className="border border-trait rounded-[16px] bg-fond px-5 py-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-white px-2.5 py-0.5 rounded-full" style={{ background: e.fond }}>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white px-2.5 py-0.5 rounded-full" style={{ background: e.fond }}>
           <e.Icone className="w-3 h-3" /> {e.mot}
         </span>
-        <h3 className="m-0 text-[15.5px] font-semibold text-encre">{titre}</h3>
+        <h3 className="m-0 text-[15px] font-semibold text-encre">{titre}</h3>
         {effet && <span className="text-[12.5px] text-menthe tabular-nums">{effet}</span>}
       </div>
       <p className="m-0 mt-2 text-[13.5px] leading-[1.65] text-craie max-w-[70ch]">{children}</p>
@@ -65,9 +65,9 @@ function Levier({ etat, titre, effet, ou, children }) {
 function Chiffre({ label, valeur, note, teinte = J["encre"] }) {
   return (
     <div className="px-5 py-4 border border-trait rounded-[16px] bg-fond min-w-0">
-      <p className="m-0 font-mono text-[10px] tracking-[.18em] uppercase text-brume">{label}</p>
-      <p className="m-0 mt-1.5 text-[26px] font-light tabular-nums leading-none" style={{ color: teinte }}>{valeur}</p>
-      {note && <p className="m-0 mt-1.5 text-[12px] text-ardoise">{note}</p>}
+      <p className="m-0 font-mono text-[11px] tracking-[.18em] uppercase text-brume">{label}</p>
+      <p className="m-0 mt-1.5 text-[24px] font-light tabular-nums leading-none" style={{ color: teinte }}>{valeur}</p>
+      {note && <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">{note}</p>}
     </div>
   );
 }
@@ -84,7 +84,7 @@ export default function CoutsIA() {
   });
 
   if (user && user.role !== "admin") {
-    return <div className="min-h-screen bg-fond text-ardoise px-6 py-16 text-center text-[14px]">Réservé aux administrateurs.</div>;
+    return <div className="min-h-screen bg-fond text-ardoise px-6 py-16 text-center text-[13.5px]">Réservé aux administrateurs.</div>;
   }
 
   const actions = data?.actions || [];
@@ -97,8 +97,8 @@ export default function CoutsIA() {
   const Tableau = ({ titre, sous, lignes }) => (
     <section className="mt-8">
       <div className="flex items-baseline gap-3 flex-wrap mb-3">
-        <h2 className="m-0 text-[17px] font-semibold text-encre">{titre}</h2>
-        <span className="text-[13px] text-brume">{sous}</span>
+        <h2 className="m-0 text-[18px] font-semibold text-encre">{titre}</h2>
+        <span className="text-[12.5px] text-brume">{sous}</span>
       </div>
       {lignes.length === 0 ? (
         <p className="m-0 py-6 text-[13.5px] text-brume">Aucun geste de ce type sur la période.</p>
@@ -108,7 +108,7 @@ export default function CoutsIA() {
             <thead>
               <tr className="bg-surface">
                 {["Geste", "Coût courant", "Moyenne", "Le plus cher", "Volume", "Durée"].map((h, i) => (
-                  <th key={h} className={`text-left font-normal font-mono text-[10px] tracking-[.16em] uppercase text-brume px-4 py-2.5 border-b border-trait ${i > 0 ? "text-right" : ""}`}>{h}</th>
+                  <th key={h} className={`text-left font-normal font-mono text-[11px] tracking-[.16em] uppercase text-brume px-4 py-2.5 border-b border-trait ${i > 0 ? "text-right" : ""}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -117,7 +117,7 @@ export default function CoutsIA() {
                 <tr key={a.cle} className="align-top border-b border-trait last:border-b-0">
                   <td className="px-4 py-3">
                     <p className="m-0 text-encre">{a.libelle}</p>
-                    <p className="m-0 mt-0.5 text-[11.5px] text-brume">{a.ou}</p>
+                    <p className="m-0 mt-0.5 text-[11px] text-brume">{a.ou}</p>
                   </td>
                   {/* La médiane d'abord : une moyenne se fait emporter par un
                       dossier hors norme, et c'est le cas courant qu'on veut. */}
@@ -148,8 +148,8 @@ export default function CoutsIA() {
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
           <div>
             <OngletsSuivi className="mb-3.5" />
-            <h1 className="m-0 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05]">Ce que coûte chaque geste</h1>
-            <p className="m-0 mt-2 text-[14px] text-ardoise max-w-[62ch]">
+            <h1 className="m-0 text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05]">Ce que coûte chaque geste</h1>
+            <p className="m-0 mt-2 text-[13.5px] text-ardoise max-w-[62ch]">
               Le prix d'une pièce lue, d'un mail rédigé, d'une question posée. Calculé sur votre journal, pas sur des ordres de grandeur.
             </p>
           </div>
@@ -208,8 +208,8 @@ export default function CoutsIA() {
             {/* ---- Ce qu'on peut faire, avec l'état réel de chaque levier ---- */}
             <section className="mt-12">
               <div className="flex items-baseline gap-3 flex-wrap mb-1">
-                <h2 className="m-0 text-[17px] font-semibold text-encre">Ce qu'on peut faire</h2>
-                <span className="text-[13px] text-brume">chaque levier, son effet mesuré, et où il se règle</span>
+                <h2 className="m-0 text-[18px] font-semibold text-encre">Ce qu'on peut faire</h2>
+                <span className="text-[12.5px] text-brume">chaque levier, son effet mesuré, et où il se règle</span>
               </div>
               <div className="mt-4 flex flex-col gap-2.5">
 

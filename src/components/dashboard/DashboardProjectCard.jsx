@@ -78,7 +78,7 @@ function ProjectCard({ project }) {
           
           {/* Status */}
           <div className="absolute top-3.5 left-4">
-            <span className="text-[9px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full bg-fond/70 backdrop-blur-sm text-menthe-clair border border-menthe/50">
+            <span className="text-[11px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full bg-fond/70 backdrop-blur-sm text-menthe-clair border border-menthe/50">
               {statutLabels[project.statut] || project.statut}
             </span>
           </div>
@@ -92,7 +92,7 @@ function ProjectCard({ project }) {
 
           {/* Title */}
           <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-[19px] md:text-[21px] font-light text-encre tracking-[-0.02em] leading-tight">
+            <h2 className="text-[18px] md:text-[18px] font-light text-encre tracking-[-0.02em] leading-tight">
               {project.titre}
             </h2>
             {project.adresse_complete && (
@@ -108,20 +108,20 @@ function ProjectCard({ project }) {
         <div className="flex px-5 border-t border-encre/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
           {prixRevient > 0 && (
             <div className="flex-1 min-w-0 py-3.5 pr-4">
-              <p className="text-[17px] font-light text-encre m-0">{formatPrice(prixRevient)}</p>
-              <p className="text-[9px] uppercase tracking-[0.16em] text-ardoise mt-1 m-0 whitespace-nowrap">Prix de revient</p>
+              <p className="text-[18px] font-light text-encre m-0">{formatPrice(prixRevient)}</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-ardoise mt-1 m-0 whitespace-nowrap">Prix de revient</p>
             </div>
           )}
           {rendementLocatifMoyen > 0 && (
             <div className="flex-1 min-w-0 py-3.5 px-4 border-l border-encre/[0.12]">
-              <p className="text-[17px] font-light text-menthe-clair m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
-              <p className="text-[9px] uppercase tracking-[0.16em] text-ardoise mt-1 m-0">Rendement</p>
+              <p className="text-[18px] font-light text-menthe-clair m-0">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-ardoise mt-1 m-0">Rendement</p>
             </div>
           )}
           {surface > 0 && (
             <div className="flex-1 min-w-0 py-3.5 pl-4 border-l border-encre/[0.12]">
-              <p className="text-[17px] font-light text-encre m-0">{surface} m²</p>
-              <p className="text-[9px] uppercase tracking-[0.16em] text-ardoise mt-1 m-0">Surface</p>
+              <p className="text-[18px] font-light text-encre m-0">{surface} m²</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-ardoise mt-1 m-0">Surface</p>
             </div>
           )}
         </div>
@@ -167,7 +167,7 @@ export default function DashboardProjectCard({ projects }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair">
+        <p className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair">
           {projects.length === 1 ? 'Mon projet' : 'Mes projets'}
         </p>
         {projects.length > 1 && (
@@ -178,7 +178,7 @@ export default function DashboardProjectCard({ projects }) {
             >
               <ChevronLeft className="w-3 h-3" />
             </button>
-            <span className="text-encre text-[10px] tabular-nums min-w-[24px] text-center">
+            <span className="text-encre text-[11px] tabular-nums min-w-[24px] text-center">
               {current + 1}/{projects.length}
             </span>
             <button

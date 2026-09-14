@@ -8,7 +8,7 @@ function Item({ label, value, accent = "text-encre", info }) {
   return (
     <div className="px-4 py-4 min-w-0">
       <div className="flex items-center gap-1">
-        <p className="text-[9px] uppercase tracking-[0.16em] text-brume font-medium truncate">{label}</p>
+        <p className="text-[11px] uppercase tracking-[0.16em] text-brume font-medium truncate">{label}</p>
         {info && (
           <TooltipProvider delayDuration={100}>
             <UITooltip>

@@ -36,7 +36,7 @@ function StepProgressBar({ etapes, userEtape }) {
 
   return (
     <div>
-      <div className="text-[10px] tracking-[0.2em] uppercase text-menthe-clair mb-6">Votre parcours</div>
+      <div className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-6">Votre parcours</div>
       <div className="relative">
         {/* Filet de fond + progression */}
         <div className="absolute top-[5px] h-px bg-encre/[0.14]" style={{ left: `${debut}%`, right: `${debut}%` }} />
@@ -66,11 +66,11 @@ function StepProgressBar({ etapes, userEtape }) {
                         : "border-encre/[0.2] bg-fond"
                   }`}
                 />
-                <span className={`mt-3 text-[10px] tracking-[0.14em] uppercase ${isCurrent ? "text-menthe-clair" : isCompleted ? "text-craie" : "text-brume"} max-md:hidden`}>
+                <span className={`mt-3 text-[11px] tracking-[0.14em] uppercase ${isCurrent ? "text-menthe-clair" : isCompleted ? "text-craie" : "text-brume"} max-md:hidden`}>
                   {step.titre}
                 </span>
                 {isCurrent && (
-                  <span className="mt-1 text-[12px] text-ardoise max-md:hidden">{etapeDescriptions[userEtape]}</span>
+                  <span className="mt-1 text-[12.5px] text-ardoise max-md:hidden">{etapeDescriptions[userEtape]}</span>
                 )}
               </div>
             );
@@ -78,8 +78,8 @@ function StepProgressBar({ etapes, userEtape }) {
         </div>
         {/* Mobile : étape courante seule */}
         <div className="md:hidden mt-4">
-          <span className="text-[10px] tracking-[0.14em] uppercase text-menthe-clair">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
-          <p className="text-[12px] text-ardoise mt-0.5 mb-0">{etapeDescriptions[userEtape]}</p>
+          <span className="text-[11px] tracking-[0.14em] uppercase text-menthe-clair">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
+          <p className="text-[12.5px] text-ardoise mt-0.5 mb-0">{etapeDescriptions[userEtape]}</p>
         </div>
       </div>
     </div>
@@ -106,13 +106,13 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
           }`}>{numero}</span>
         )}
         <Icon className="w-4 h-4 text-menthe" />
-        <h3 className="text-encre text-[17px] font-medium m-0">{title}</h3>
+        <h3 className="text-encre text-[18px] font-medium m-0">{title}</h3>
       </div>
       <p className="text-ardoise text-[13.5px] leading-[1.7] mb-5 flex-1">{description}</p>
       <span
         className={`inline-flex items-center gap-2 self-start rounded-full transition-colors ${
           principal
-            ? "px-6 py-3 bg-menthe text-fond text-[13px] font-semibold group-hover:bg-menthe-survol"
+            ? "px-6 py-3 bg-menthe text-fond text-[12.5px] font-semibold group-hover:bg-menthe-survol"
             : "px-4 py-2 border border-bord-doux text-craie text-[12.5px] group-hover:border-menthe group-hover:text-menthe"
         }`}
       >
@@ -170,7 +170,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
     >
       <div className="flex items-center gap-2.5 mb-3">
         <Search className="w-4 h-4 text-menthe" />
-        <h3 className="m-0 text-[17px] font-medium text-encre">
+        <h3 className="m-0 text-[18px] font-medium text-encre">
           {userEtape >= 3 ? "Oups…" : "Pas encore de projet"}
         </h3>
       </div>
@@ -184,7 +184,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
             <dl className="m-0 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
               {criteres.map(([cle, valeur]) => (
                 <div key={cle} className="flex items-baseline justify-between gap-4 py-1.5 border-b border-trait">
-                  <dt className="text-[12px] text-brume">{cle}</dt>
+                  <dt className="text-[12.5px] text-brume">{cle}</dt>
                   <dd className="m-0 text-[13.5px] text-encre text-right">{valeur}</dd>
                 </div>
               ))}
@@ -199,7 +199,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
           </p>
           <button
             onClick={onRendezVous}
-            className="mt-6 self-start inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[13px] font-semibold hover:bg-menthe-survol transition-colors"
+            className="mt-6 self-start inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors"
           >
             Prendre rendez-vous <ArrowRight className="w-4 h-4" />
           </button>
@@ -230,7 +230,7 @@ export default function ClientDashboardView({
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">
+              <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">
                 Bonjour, {firstName}
               </h1>
               <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Votre parcours d'investissement, étape par étape.</p>

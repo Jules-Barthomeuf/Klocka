@@ -4,7 +4,7 @@ const statutLabels = { prospect: "Prospect", analyse: "Analyse", negociation: "N
 
 function Row({ label, value, empty = "—" }) {
   return (
-    <div className="flex justify-between text-[13px] text-ardoise py-1.5 border-t border-trait">
+    <div className="flex justify-between text-[12.5px] text-ardoise py-1.5 border-t border-trait">
       <span className="flex-shrink-0">{label}</span>
       <span className="text-encre truncate max-w-[190px] text-right ml-2">{value || empty}</span>
     </div>
@@ -22,8 +22,8 @@ function Shell({ children, formData }) {
       />
       <div className="px-[18px] pt-[18px] pb-5">
         <div className="flex justify-between items-center mb-3">
-          <span className="font-bold text-[17px] truncate">{formData.titre || "Sans titre"}</span>
-          <span className="text-[12px] font-semibold text-menthe bg-menthe/[0.15] px-2.5 py-1 rounded-full flex-shrink-0 ml-2">
+          <span className="font-bold text-[18px] truncate">{formData.titre || "Sans titre"}</span>
+          <span className="text-[12.5px] font-semibold text-menthe bg-menthe/[0.15] px-2.5 py-1 rounded-full flex-shrink-0 ml-2">
             {statutLabels[formData.statut] || "Prospect"}
           </span>
         </div>

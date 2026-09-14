@@ -234,10 +234,10 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
             <header className="flex-shrink-0 border-b border-trait">
               <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 py-3.5 flex items-center gap-3">
                 <div className="min-w-0 flex-1 flex items-center gap-2.5">
-                  <span className="flex-shrink-0 px-2 h-[22px] rounded-full bg-trait text-ardoise text-[9.5px] font-semibold tracking-[.06em] inline-flex items-center">
+                  <span className="flex-shrink-0 px-2 h-[22px] rounded-full bg-trait text-ardoise text-[11px] font-semibold tracking-[.06em] inline-flex items-center">
                     VOUS
                   </span>
-                  <span className="truncate text-[14px] text-encre">
+                  <span className="truncate text-[13.5px] text-encre">
                     {PROMPT}
                     {adresseDe(lot) ? <span className="text-brume"> · {adresseDe(lot)}</span> : null}
                   </span>

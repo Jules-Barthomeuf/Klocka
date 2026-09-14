@@ -177,7 +177,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-400 uppercase tracking-[0.2em] text-[10px] font-medium mb-1">Shadow Mode</p>
+              <p className="text-purple-400 uppercase tracking-[0.2em] text-[11px] font-medium mb-1">Shadow Mode</p>
               <DialogTitle className="text-2xl font-light text-encre tracking-tight">
                 {project?.titre}
               </DialogTitle>
@@ -200,7 +200,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
           >
             <Eye className="w-4 h-4" />
             Projet actuel
-            {viewMode === "current" && <span className="text-[10px] bg-blue-500/20 px-2 py-0.5 rounded-full">Édition</span>}
+            {viewMode === "current" && <span className="text-[11px] bg-blue-500/20 px-2 py-0.5 rounded-full">Édition</span>}
           </button>
           <button
             onClick={() => setViewMode("shadow")}
@@ -212,7 +212,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
           >
             <Layers className="w-4 h-4" />
             Shadow
-            {viewMode === "shadow" && <span className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded-full">Édition</span>}
+            {viewMode === "shadow" && <span className="text-[11px] bg-purple-500/20 px-2 py-0.5 rounded-full">Édition</span>}
           </button>
         </div>
 

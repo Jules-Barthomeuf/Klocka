@@ -53,7 +53,7 @@ export default function ClientsCorrespondants({ clients, chargement, configure, 
     <div className="mt-2 border border-menthe/25 rounded-md bg-menthe/[0.03] px-3 py-2.5">
       <button onClick={() => setOuvert((o) => !o)} className="w-full flex items-center gap-2 text-left">
         <Users className="w-3 h-3 text-menthe flex-shrink-0" />
-        <span className="text-[10px] tracking-[.14em] uppercase text-menthe flex-1">
+        <span className="text-[11px] tracking-[.14em] uppercase text-menthe flex-1">
           {clients.length} client{clients.length > 1 ? "s" : ""} possible{clients.length > 1 ? "s" : ""}
         </span>
         {clients.length > 2 && (
@@ -66,7 +66,7 @@ export default function ClientsCorrespondants({ clients, chargement, configure, 
           <div key={c.nom}>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-[12.5px] text-encre truncate">{c.nom}</span>
-              <span className="text-[10.5px] text-brume flex-shrink-0 whitespace-nowrap">
+              <span className="text-[11px] text-brume flex-shrink-0 whitespace-nowrap">
                 {[somme(c.budget), c.statut].filter(Boolean).join(" · ")}
               </span>
             </div>
@@ -78,7 +78,7 @@ export default function ClientsCorrespondants({ clients, chargement, configure, 
       {!ouvert && clients.length > 2 && (
         <button
           onClick={() => setOuvert(true)}
-          className="mt-2 text-[10.5px] text-brume hover:text-menthe transition-colors"
+          className="mt-2 text-[11px] text-brume hover:text-menthe transition-colors"
         >
           et {clients.length - 2} autre{clients.length - 2 > 1 ? "s" : ""}
         </button>

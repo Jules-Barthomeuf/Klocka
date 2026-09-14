@@ -1205,7 +1205,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <div className="flex items-start justify-between gap-6 mb-6 max-md:mb-4">
               <div>
                 <SectionLabel tone="teal" className="mb-1.5">Création de richesse annuelle</SectionLabel>
-                <p className="text-[12.5px] text-ardoise mb-0">Cash-flow + capital remboursé sur {Math.min(anneeRevente, 20)} ans</p>
+                <p className="mb-0 max-w-[62ch] text-[12.5px] leading-[1.55] text-ardoise">Barres : cash-flow et capital remboursé, année par année. Le total ajoute la revente en l'an {Math.min(anneeRevente, 20)}, apport déduit.</p>
               </div>
               <p className="text-[24px] max-md:text-[18px] font-light text-menthe mb-0 whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(richesseBrute)}</p>
             </div>

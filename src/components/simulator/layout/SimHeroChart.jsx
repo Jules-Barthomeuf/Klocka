@@ -53,7 +53,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
     return {
       kind: "grouped",
       title: "Création de richesse annuelle",
-      subtitle: `Cash-flow + capital remboursé sur ${anneeRevente} ans`,
+      subtitle: `Barres : cash-flow et capital remboursé, année par année. Le total ajoute la revente en l'an ${anneeRevente}, apport déduit.`,
       bigValue: formatCurrency(calculs.indicateurs.creationRichesseBrute),
       data: rows.map((r) => ({
         annee: `${r.annee}`,

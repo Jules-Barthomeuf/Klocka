@@ -158,7 +158,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
   return (
     <div className="pb-9 pt-[6px]">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <span className="text-[24px] font-normal tracking-[-.02em] text-encre">Analyse du {analyse.le}</span>
+        <span className="text-[18px] font-medium tracking-[-.01em] text-encre">Analyse du {analyse.le}</span>
         <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe hover:bg-menthe-clair disabled:opacity-30 transition-colors" />
       </div>
 

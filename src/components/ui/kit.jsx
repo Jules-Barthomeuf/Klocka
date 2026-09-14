@@ -77,7 +77,7 @@ export function Section({ titre, aside = null, premiere = false, children, class
 /** Un grand titre de section, comme « Avenue Marceau, Courbevoie ». */
 export function Titre({ children, sous = null, className = "" }) {
   return (
-    <div className={`text-[34px] font-normal tracking-[-.025em] text-encre max-md:text-[24px] ${className}`}>
+    <div className={`text-[24px] font-normal tracking-[-.02em] text-encre max-md:text-[18px] ${className}`}>
       {children}
       {sous ? <span className="text-ardoise">{sous}</span> : null}
     </div>

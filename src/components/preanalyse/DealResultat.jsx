@@ -234,8 +234,9 @@ export function afficherValeur(champ, valeur) {
     return [valeur.rue, [valeur.code_postal, valeur.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   }
   if (typeof valeur === "boolean") return valeur ? "Oui" : "Non";
-  if (champ === "surface_m2") return `${valeur} m²`;
-  if (champ === "rendement_annonce") return `${valeur} %`;
+  // La virgule, pas le point : on écrit en français.
+  if (champ === "surface_m2") return `${String(valeur).replace(".", ",")} m²`;
+  if (champ === "rendement_annonce") return `${String(valeur).replace(".", ",")} %`;
   if (["prix_fai", "loyer_annuel_ht_hc", "montant_honoraires"].includes(champ)) return euros(valeur);
   return String(valeur);
 }
@@ -423,7 +424,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                   generer.mutate({ raisons: [...raisonsChoisies, raisons.trim()].filter(Boolean).join(" ; ") })
                 }
                 disabled={(!raisons.trim() && raisonsChoisies.length === 0) || generer.isPending}
-                className="bg-encre hover:bg-craie text-surface"
+                className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
               >
                 {generer.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Rédiger le mail
@@ -512,7 +513,7 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                 disabled={
                   !destinataire.trim() || !objet.trim() || !corps.trim() || envoyer.isPending || connexionEnCours
                 }
-                className="bg-encre hover:bg-craie text-surface font-medium"
+                className="bg-menthe hover:bg-menthe-survol text-sur-menthe font-medium rounded-full"
               >
                 {envoyer.isPending || connexionEnCours ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -712,7 +713,7 @@ const texteBrut = (champ, c) => {
   if (champ === "adresse" && v && typeof v === "object") return [v.rue, [v.code_postal, v.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return v == null ? "" : String(v);
 };
-export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
+export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sansNote = false, aGauche = false, teinte = null }) {
   const c = lot?.lot?.[champ];
   const absent = !c || c.absent;
   const [edition, setEdition] = useState(null);
@@ -735,7 +736,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
             <button key={mot} onClick={() => { if (modifiable && actuel !== v) { setChoix(v); valider(v); } }} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-all duration-200 disabled:cursor-default ${attend ? "bg-menthe border-menthe text-sur-menthe font-semibold animate-pulse" : actif ? "bg-menthe rounded-full border-menthe text-sur-menthe font-semibold" : "border-bord-doux text-brume hover:text-encre hover:border-bord-vif"}`}>{mot}</button>
           );
         })}
-        {enCours && choix !== null ? <span className="ml-1 text-[11px] text-menthe">recalcul…</span> : !absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-ambre">saisi à la main</span>}
+        {enCours && choix !== null ? <span className="ml-1 text-[11px] text-menthe">recalcul…</span> : !sansNote && !absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-ambre">saisi à la main</span>}
       </span>
     );
   }
@@ -762,11 +763,11 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
       onClick={() => modifiable && setEdition(texteBrut(champ, c))}
       disabled={!modifiable || enCours}
       aria-label={modifiable ? "Modifier" : c?.citation || undefined} title={modifiable ? "Modifier" : c?.citation || undefined}
-      className={`group inline-flex items-baseline gap-2 text-right text-[13.5px] tabular-nums font-light min-w-0 disabled:cursor-default ${absent ? "text-brume" : "text-encre"}`}
+      className={`group inline-flex min-w-0 items-baseline gap-2 tabular-nums disabled:cursor-default ${aGauche ? "text-left text-[15px] font-normal" : "text-right text-[13.5px] font-light"} ${absent ? "text-brume" : teinte || "text-encre"}`}
     >
       <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
-      {!absent && c.confiance === "basse" && <span className="text-[11px] text-ambre font-normal">confiance basse</span>}
-      {!absent && c.saisi_a_la_main && <span className="text-[11px] text-ambre font-normal">saisi à la main</span>}
+      {!sansNote && !absent && c.confiance === "basse" && <span className="text-[11px] text-ambre font-normal">confiance basse</span>}
+      {!sansNote && !absent && c.saisi_a_la_main && <span className="text-[11px] text-ambre font-normal">saisi à la main</span>}
       {modifiable && <Pencil className="w-3 h-3 text-brume opacity-0 group-hover:opacity-100 transition-opacity flex-none" />}
     </button>
   );

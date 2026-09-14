@@ -691,7 +691,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
                 envoyer.isPending ||
                 connexionEnCours
               }
-              className="bg-encre hover:bg-craie text-surface font-medium h-9 text-[12.5px]"
+              className="bg-menthe hover:bg-menthe-survol text-sur-menthe font-medium h-9 text-[12.5px] rounded-full"
             >
               {(envoyer.isPending || connexionEnCours) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {test ? "Envoyer (simulé)" : sansCompte && googleConfigure ? "Connecter Gmail et envoyer" : "Envoyer via Gmail"}
@@ -848,7 +848,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
         <Button
           onClick={() => analyser.mutate({ texte })}
           disabled={!texte.trim() || analyser.isPending}
-          className="bg-encre hover:bg-craie text-surface"
+          className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
         >
           {analyser.isPending ? (
             <><PenseeIA etat="searching" taille={20} clair className="mr-2" /> Analyse…</>
@@ -1097,7 +1097,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
           <Button
             onClick={() => generer.mutate()}
             disabled={generer.isPending || apercu}
-            className="bg-encre hover:bg-craie text-surface"
+            className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
             title={apercu ? "Indisponible en mode aperçu" : undefined}
           >
             {generer.isPending ? (
@@ -1345,7 +1345,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
         </p>
         <Button
           onClick={() => navigate(`/AdminProjets?id=${dossier.projet_id}`)}
-          className="bg-encre hover:bg-craie text-surface"
+          className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
         >
           <ExternalLink className="w-4 h-4 mr-2" /> Ouvrir le projet
         </Button>
@@ -1366,7 +1366,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       <Button
         onClick={() => creerProjet.mutate()}
         disabled={apercu || creerProjet.isPending}
-        className="bg-encre hover:bg-craie text-surface"
+        className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
       >
         {creerProjet.isPending ? (
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />

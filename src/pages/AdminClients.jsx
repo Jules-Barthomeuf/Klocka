@@ -1042,7 +1042,7 @@ export default function AdminClients() {
             <Button
               onClick={handleAddField}
               disabled={!newFieldLabel.trim() || !newFieldValue.trim()}
-              className="w-full bg-encre text-surface hover:bg-craie border-0">
+              className="w-full bg-menthe text-sur-menthe hover:bg-menthe-survol border-0 rounded-full">
 
               <Plus className="w-4 h-4 mr-2" />
               Ajouter ce critère
@@ -1059,7 +1059,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleSaveStrategy}
-              className="bg-encre text-surface hover:bg-craie border-0"
+              className="bg-menthe text-sur-menthe hover:bg-menthe-survol border-0 rounded-full"
               disabled={createStrategyMutation.isPending || updateStrategyMutation.isPending}>
 
               {createStrategyMutation.isPending || updateStrategyMutation.isPending ? "Enregistrement..." : "Enregistrer"}
@@ -1131,7 +1131,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleLinkAccounts}
-              className="bg-encre text-surface hover:bg-craie border-0"
+              className="bg-menthe text-sur-menthe hover:bg-menthe-survol border-0 rounded-full"
               disabled={!masterEmail}>
 
               Lier les comptes
@@ -1168,7 +1168,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleCreateFamille}
-              className="bg-encre text-surface hover:bg-craie border-0"
+              className="bg-menthe text-sur-menthe hover:bg-menthe-survol border-0 rounded-full"
               disabled={!newFamilleName.trim()}>
 
               Créer et comparer
@@ -1268,7 +1268,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleSaveEditUser}
-              className="bg-encre text-surface hover:bg-craie border-0"
+              className="bg-menthe text-sur-menthe hover:bg-menthe-survol border-0 rounded-full"
               disabled={updateUserMutation.isPending}>
 
               {updateUserMutation.isPending ? "Enregistrement..." : "Enregistrer"}
@@ -1319,7 +1319,7 @@ export default function AdminClients() {
             </Button>
             <Button
               onClick={handleConfirmEtapeChange}
-              className="bg-encre text-surface hover:bg-craie border-0"
+              className="bg-menthe text-sur-menthe hover:bg-menthe-survol border-0 rounded-full"
               disabled={!selectedProjectId}>
 
               Confirmer

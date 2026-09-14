@@ -49,6 +49,7 @@ const GRILLES_ANALYSE = [
   { id: "marche", titre: "Marché", grilles: null },
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
+import { Onglets } from "@/components/preanalyse/marche-ui";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // Workflow d'un deal en cinq étapes, sur une seule page :
@@ -421,11 +422,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         {etape === 3 && (
           <div id="tables-analyse" className="space-y-5">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
-            <div className="flex gap-6 border-b border-trait">
-              {GRILLES_ANALYSE.map((g) => (
-                <button key={g.id} onClick={() => setGrilleAnalyse(g.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${grilleAnalyse === g.id ? "text-encre font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>{g.titre}</button>
-              ))}
-            </div>
+            <Onglets items={GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: g.titre }))} valeur={grilleAnalyse} onChange={setGrilleAnalyse} taille="page" />
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
             {grilleAnalyse === "marche" && (
               <div className="flex flex-col gap-4">

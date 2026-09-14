@@ -95,7 +95,7 @@ function CarteVille({ v, onOuvrir }) {
         <div style={{ width: part(c.surveiller), background: TEINTES.barreSurveiller }} />
       </div>
       <div className="flex items-baseline justify-between gap-3 px-6 pb-2 pt-6">
-        <span className="alx-serif text-[29px] tracking-[-.01em] text-[#F3F7F5]">{v.nom}</span>
+        <span className="alx-mont text-[22px] font-medium tracking-[-.01em] text-[#F3F7F5]">{v.nom}</span>
         <Etiquette teinte={teinte} className="!text-[9.5px]">{mot}</Etiquette>
       </div>
       <div className="px-6 pb-5 text-[12.5px] text-[#8B938F]">
@@ -910,17 +910,16 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
       <div aria-hidden className="pointer-events-none absolute -right-[220px] -top-[240px] z-0 h-[540px] w-[760px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.075),transparent)" }} />
       <div className="relative">
         <div>
+          <button
+            onClick={onNouvelle}
+            className="mb-4 inline-flex items-center gap-2 text-[13px] text-[#8B938F] transition-colors hover:text-[#E8EFEB]"
+            style={{ background: "transparent" }}
+          >
+            <span className="text-[15px]">←</span> Toutes les villes
+          </button>
           <div className="min-w-0">
             <div className="flex items-center gap-4">
-              <h1 className="alx-serif m-0 text-[42px] italic tracking-[-.01em] text-[#F3F7F5]">{ville?.nom}</h1>
-              <button
-                onClick={onNouvelle}
-                title="Toutes les villes"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/[0.12] text-[16px] text-[#8B938F] transition-colors hover:border-white/[0.3] hover:text-[#E8EFEB]"
-                style={{ background: "transparent" }}
-              >
-                ←
-              </button>
+              <h1 className="alx-mont m-0 text-[34px] font-medium tracking-[-.02em] text-[#F3F7F5] max-md:text-[26px]">{ville?.nom}</h1>
             </div>
             <div className="mt-1 text-[13.5px] text-[#8B938F]">
               <span style={{ color: teinteStatut }}>{motStatut}</span>

@@ -19,6 +19,42 @@ export const jour = (d) => (d ? new Date(d).toLocaleDateString("fr-FR", { day: "
 
 export const TEINTE = { clair: "#F3F7F5", texte: "#E8EFEB", doux: "#C3CBC7", muet: "#8B938F", menthe: "#96c0b8", ambre: "#e0a45e", rouge: "#e0655f" };
 
+/**
+ * La barre d'onglets du marché, reprise partout dans le dossier.
+ *
+ * Deux tailles : « page » pour les onglets d'un écran (Bien, Simulateur,
+ * Bail…), « section » pour ceux d'un bloc (Bilan, Data-B, Equimmox…). Dans
+ * les deux cas, le même trait menthe sous l'onglet ouvert.
+ */
+export function Onglets({ items, valeur, onChange, taille = "section", className = "" }) {
+  const page = taille === "page";
+  return (
+    <div className={`flex overflow-x-auto border-b border-white/[0.08] ${page ? "gap-7" : "gap-7"} ${className}`}>
+      {items.map((o) => {
+        const actif = valeur === o.cle;
+        return (
+          <button
+            key={o.cle}
+            type="button"
+            onClick={() => onChange(o.cle)}
+            aria-pressed={actif}
+            className={`whitespace-nowrap transition-colors ${page ? "pb-3 text-[14px]" : "alx-mont pb-3 text-[11px] font-medium uppercase tracking-[.14em]"}`}
+            style={{
+              background: "transparent",
+              color: actif ? "#F3F7F5" : "#8B938F",
+              fontWeight: page && actif ? 600 : undefined,
+              borderBottom: actif ? "1.5px solid #96c0b8" : "1.5px solid transparent",
+              marginBottom: -1,
+            }}
+          >
+            {o.titre}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Une section du marché : un filet au-dessus, une étiquette, et à droite ce qu'on veut (un lien, une heure). */
 export function Section({ titre, aside = null, premiere = false, children, className = "" }) {
   return (

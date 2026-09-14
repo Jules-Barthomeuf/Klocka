@@ -1466,29 +1466,29 @@ export default function AdminProjets() {
         {/* En-tête */}
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>
-            <h1 className="text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Gestion des projets</h1>
+            <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-[#F3F7F5] max-md:text-[26px]">Gestion des projets</h1>
             <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[13.5px] font-semibold bg-transparent border border-menthe/50 text-menthe hover:bg-menthe/[0.08] transition-colors">
+            className="alx-mont inline-flex items-center gap-2 rounded-full bg-[#96c0b8] px-[18px] py-2.5 text-[11px] font-semibold uppercase tracking-[.12em] text-[#08130D] transition-colors hover:bg-[#c3ddd6]">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
         </div>
 
         {/* Bandeau de chiffres */}
-        <div className="flex flex-wrap border-t border-encre/[0.35] mb-8 max-md:mb-6">
+        <div className="mb-8 flex flex-wrap border-t border-white/[0.16] max-md:mb-6">
           {CHIFFRES.map((c, i) => (
             <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-6" : ""}`}>
-              <div className={`text-[26px] max-md:text-[20px] font-light ${c.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
-              <div className="text-[12px] text-ardoise mt-1">{c.label}</div>
+              <div className={`text-[26px] font-medium tabular-nums max-md:text-[20px] ${c.accent || "text-[#F3F7F5]"}`}>{c.valeur}</div>
+              <div className="alx-mont mt-1.5 text-[9.5px] font-medium uppercase tracking-[.14em] text-[#8B938F]">{c.label}</div>
             </div>
           ))}
         </div>
 
         {/* Recherche + filtres */}
         <div className="mb-8 max-md:mb-6">
-          <div className="flex items-center gap-3 border-b border-encre/[0.18] focus-within:border-bord-vif transition-colors pb-2 mb-5">
+          <div className="mb-5 flex items-center gap-3 border-b border-white/[0.12] pb-2 transition-colors focus-within:border-menthe/50">
             <FolderSearch className="w-4 h-4 text-brume flex-shrink-0" />
             <input
               placeholder="Rechercher un projet, une adresse, un client…"
@@ -1506,12 +1506,12 @@ export default function AdminProjets() {
           <div className="flex items-center gap-x-7 gap-y-2 flex-wrap">
             {FILTRES.map(({ v, l, n }) => (
               <button key={v} onClick={() => setStatusFilter(v)}
-                className={`text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${statusFilter === v ? "text-encre border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
+                className={`alx-mont border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${statusFilter === v ? "text-[#F3F7F5] border-menthe" : "text-[#8B938F] border-transparent hover:text-[#E8EFEB]"}`}>
                 {l} <span className="text-brume">{n}</span>
               </button>
             ))}
             <button onClick={() => setShowArchived(!showArchived)}
-              className={`ml-auto inline-flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase pb-1 border-b transition-colors ${showArchived ? "text-menthe border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
+              className={`alx-mont ml-auto inline-flex items-center gap-2 border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${showArchived ? "text-menthe border-menthe" : "text-[#8B938F] border-transparent hover:text-[#E8EFEB]"}`}>
               <Archive className="w-3.5 h-3.5" />
               {showArchived ? "Masquer les archivés" : `Archivés ${nbArchives}`}
             </button>

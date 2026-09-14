@@ -9,6 +9,7 @@ import { OngletBodacc, OngletDvf, SecondPointDeVue } from "@/components/preanaly
 import MarcheEmplacement from "@/components/preanalyse/MarcheEmplacement";
 import MarcheVendeur from "@/components/preanalyse/MarcheVendeur";
 import GraphiqueLoyers from "@/components/preanalyse/GraphiqueLoyers";
+import { Onglets } from "@/components/preanalyse/marche-ui";
 import { Etiquette } from "@/components/alx/alx-commun";
 
 // L'onglet Marché, à l'arrivée. Deux états, et ils ne se ressemblent pas.
@@ -160,20 +161,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
         <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-[#96c0b8] px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-[#08130D] hover:bg-[#c3ddd6] disabled:opacity-30 transition-colors" />
       </div>
 
-      <div className="mt-6 flex gap-7 overflow-x-auto border-b border-white/[0.08]">
-        {ONGLETS.map((o) => (
-          <button
-            key={o.cle}
-            type="button"
-            onClick={() => setOnglet(o.cle)}
-            aria-pressed={onglet === o.cle}
-            className="alx-mont whitespace-nowrap pb-3 text-[11px] font-medium uppercase tracking-[.14em] transition-colors"
-            style={{ background: "transparent", color: onglet === o.cle ? "#F3F7F5" : "#8B938F", borderBottom: onglet === o.cle ? "1.5px solid #96c0b8" : "1.5px solid transparent", marginBottom: -1 }}
-          >
-            {o.titre}
-          </button>
-        ))}
-      </div>
+      <Onglets items={ONGLETS} valeur={onglet} onChange={setOnglet} className="mt-6" />
 
       {onglet === "bilan" && (
         <>

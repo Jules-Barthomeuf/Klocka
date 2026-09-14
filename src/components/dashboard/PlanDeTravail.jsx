@@ -53,22 +53,19 @@ export default function PlanDeTravail({ chat = null }) {
           son propre fond, délimité par un filet : ce qui est au-dessus se fait,
           ce qui est en dessous se reprend. */}
       <header className="accueil relative flex min-h-[74vh] flex-col items-center justify-center overflow-hidden text-center max-md:min-h-[58vh] max-md:py-14">
-        {/* Le fond : une bande menthe horizontale, bord à bord, floutée.
-            Elle passe derrière le composeur et s'éteint sur les côtés. */}
+        {/* Le fond : une lueur menthe posée derrière la barre, qui s'éteint
+            avant les bords. Rien d'autre ne brille sur cette page. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-[36%] h-[190px]"
-          style={{
-            background: `linear-gradient(90deg, ${alpha("menthe", 0)} 0%, ${alpha("menthe", 0.14)} 28%, ${alpha("menthe", 0.22)} 50%, ${alpha("menthe", 0.14)} 72%, ${alpha("menthe", 0)} 100%)`,
-            filter: "blur(34px)",
-          }}
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[1100px] max-w-[130vw] -translate-x-1/2 -translate-y-[38%]"
+          style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.1)}, transparent)` }}
         />
-        <h1 className="relative m-0 font-display font-normal italic leading-[1.05] tracking-[.01em] text-encre" style={{ fontSize: "clamp(34px, 4.6vw, 58px)" }}>
+        <h1 className="relative m-0 font-display font-normal italic leading-[1.05] tracking-[.01em] text-encre" style={{ fontSize: "clamp(32px, 3.9vw, 52px)" }}>
           {salut}
         </h1>
 
         {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
-        {chat && <div className="relative mt-11 w-full max-w-[760px] px-5 max-md:mt-8">{chat}</div>}
+        {chat && <div className="relative mt-14 w-full max-w-[960px] px-5 max-md:mt-9">{chat}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}

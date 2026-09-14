@@ -633,8 +633,8 @@ export default function ChatDashboard() {
         onDrop={deposer}
       >
         <div
-          className={`flex items-center gap-3.5 border py-3 pl-6 pr-3 transition-colors ${multiligne ? "rounded-[28px] items-end" : "rounded-full"}`}
-          style={{ background: J["fond"], borderColor: glisse ? J["menthe"] : ecoute ? alpha("menthe", 0.5) : J["trait"] }}
+          className={`flex items-center gap-3 py-3 pl-5 pr-3 transition-colors ${multiligne ? "items-end rounded-[30px]" : "rounded-full"}`}
+          style={{ background: "#121413", boxShadow: glisse ? `0 0 0 1px ${J["menthe"]}` : ecoute ? `0 0 0 1px ${alpha("menthe", 0.5)}` : "none" }}
         >
           {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
           <div className="relative flex-none">
@@ -645,8 +645,8 @@ export default function ChatDashboard() {
               aria-haspopup="menu"
               aria-label={modeCourant ? `Mode ${modeCourant.label}` : "Choisir un mode"}
               title={modeCourant ? modeCourant.label : "Choisir ce que vous apportez : une note, une fiche, un mail, un rappel"}
-              className="flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 transition-colors hover:border-bord-vif"
-              style={{ background: "transparent", borderColor: modeCourant ? alpha("menthe", 0.45) : J["bord"] }}
+              className="flex items-center gap-1.5 rounded-full px-3 py-2 transition-colors"
+              style={{ background: modeCourant ? alpha("menthe", 0.16) : "#1b1e1d" }}
             >
               <IconeMode className="h-4 w-4" style={{ color: modeCourant ? J["menthe"] : J["ardoise"] }} />
               <ChevronDown className={`h-2.5 w-2.5 text-ardoise transition-transform ${commandes ? "rotate-180" : ""}`} />
@@ -706,8 +706,8 @@ export default function ChatDashboard() {
             onClick={() => fichierRef.current?.click()}
             aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
             title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
-            className="grid h-8 w-8 flex-none place-items-center rounded-full border border-bord text-ardoise transition-colors hover:border-bord-vif hover:text-encre"
-            style={{ background: "transparent" }}
+            className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise transition-colors hover:text-encre"
+            style={{ background: "#1b1e1d" }}
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -719,8 +719,8 @@ export default function ChatDashboard() {
             onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
             aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
             title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
-            className="grid h-8 w-8 flex-none place-items-center rounded-full border transition-colors disabled:opacity-40"
-            style={{ background: ecoute ? alpha("menthe", 0.16) : "transparent", borderColor: ecoute ? J["menthe"] : J["bord"], color: ecoute ? J["menthe"] : J["ardoise"] }}
+            className="grid h-9 w-9 flex-none place-items-center rounded-full transition-colors disabled:opacity-40"
+            style={{ background: ecoute ? alpha("menthe", 0.2) : "#1b1e1d", color: ecoute ? J["menthe"] : J["ardoise"] }}
           >
             <Mic className="h-4 w-4" />
           </button>
@@ -731,7 +731,7 @@ export default function ChatDashboard() {
             disabled={!enCours && !texte.trim() && !fichier}
             aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
             title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
-            className="grid h-10 w-10 flex-none place-items-center rounded-full transition-opacity disabled:opacity-45"
+            className="grid h-11 w-11 flex-none place-items-center rounded-full transition-opacity disabled:opacity-90"
             style={{ background: J["menthe"], color: J["sur-menthe"] }}
           >
             {enCours ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}

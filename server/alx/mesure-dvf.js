@@ -46,6 +46,17 @@ const CACHE = path.join(DATA_DIR, 'dvf');
 
 /** DVF en accès libre commence en 2014 : aucune détention plus longue n'est observable. */
 export const PREMIERE_ANNEE = 2014;
+/**
+ * Sous ce nombre de VENTES observées, une case ne se lit pas.
+ *
+ * Ce n'est pas le nombre de locaux qui fait la précision, c'est le nombre
+ * d'événements : une fenêtre à six cents locaux et dix-huit ventes a la même
+ * fragilité qu'un sondage sur dix-huit personnes. Un cas de plus ou de moins
+ * y déplace le rapport de moitié. La case est calculée, comptée, et marquée
+ * comme non fiable ; l'écran l'affiche en « pas encore mesurable » plutôt que
+ * de laisser lire un chiffre auquel personne ne devrait croire.
+ */
+export const EVENEMENTS_MINIMUM = 30;
 const TYPE_COMMERCIAL = 'Local industriel. commercial ou assimilé';
 // En dessous, ce n'est pas un prix de marché : euro symbolique, apport, cession intragroupe.
 const PRIX_PLANCHER = 1000;
@@ -248,7 +259,13 @@ export function mesurer(communes, { horizon_mois = 24, references = null } = {})
   }
 
   const tauxBase = base.n ? base.ventes / base.n : 0;
-  const finir = (c) => ({ ...c, taux: c.n ? Math.round((c.ventes / c.n) * 1000) / 10 : null, lift: c.n && tauxBase ? Math.round((c.ventes / c.n / tauxBase) * 100) / 100 : null });
+  const finir = (c) => ({
+    ...c,
+    taux: c.n ? Math.round((c.ventes / c.n) * 1000) / 10 : null,
+    lift: c.n && tauxBase ? Math.round((c.ventes / c.n / tauxBase) * 100) / 100 : null,
+    // Assez de ventes pour que le rapport veuille dire quelque chose ?
+    fiable: c.ventes >= EVENEMENTS_MINIMUM,
+  });
   return {
     le: new Date().toISOString(),
     horizon_mois,
@@ -307,13 +324,13 @@ export function lireRapport() {
 
 const pct = (x) => (x == null ? '—' : `${String(x).replace('.', ',')} %`);
 const lift = (x) => (x == null ? '—' : `×${String(x).replace('.', ',')}`);
-const ligne = (nom, c) => `${nom.padEnd(22)}${String(c.n).padStart(8)}${String(c.ventes).padStart(8)}${pct(c.taux).padStart(9)}${lift(c.lift).padStart(8)}`;
+const ligne = (nom, c) => `${nom.padEnd(22)}${String(c.n).padStart(8)}${String(c.ventes).padStart(8)}${pct(c.taux).padStart(9)}${(c.fiable ? lift(c.lift) : `(${lift(c.lift)})`).padStart(9)}`;
 
 /** La table, lisible dans un terminal. */
 export function enTable(r) {
   const l = [];
   l.push(`Horizon ${r.horizon_mois} mois · références ${r.references[0]} → ${r.references[r.references.length - 1]} · millésimes ${Math.min(...r.annees)}–${Math.max(...r.annees)}, dernier acte le ${r.derniere_date} · ${r.communes.map((c) => `${c.nom} (${c.locaux} locaux, ${c.ventes} ventes)`).join(', ')}`);
-  l.push(`${'signal'.padEnd(22)}${'n'.padStart(8)}${'ventes'.padStart(8)}${'taux'.padStart(9)}${'lift'.padStart(8)}`);
+  l.push(`${'signal'.padEnd(22)}${'n'.padStart(8)}${'ventes'.padStart(8)}${'taux'.padStart(9)}${'lift'.padStart(9)}   (un lift entre parenthèses tient sur moins de ${EVENEMENTS_MINIMUM} ventes : à ne pas lire)`);
   l.push(ligne('taux de base', r.base) + `   (≈ ${pct(r.base.taux_annuel_approx)} par an)`);
   for (const f of r.par_fenetre) l.push(ligne(`fenêtre ${f.cle} mois`, f));
   l.push(ligne('voisin muté', r.voisin.avec));

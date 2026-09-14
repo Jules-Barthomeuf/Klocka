@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -17,8 +17,12 @@ import { J } from "@/design/jetons";
 // mesure DVF, sur dix ans de ventes : ce que la fenêtre depuis la dernière
 // mutation et un voisin qui mute valent vraiment, à date gelée.
 
-const pct = (x) => (x == null ? "—" : `${String(x).replace(".", ",")} %`);
-const lift = (x) => (x == null ? "—" : `×${String(x).replace(".", ",")}`);
+// Sous trente événements, un taux ne se lit pas : un cas de plus ou de moins
+// le déplace de moitié. On affiche un tiret plutôt qu'un chiffre auquel
+// personne ne devrait croire, et la note en bas de chaque bloc le dit.
+const SOUS_LE_SEUIL = "—";
+const pct = (x, fiable = true) => (x == null ? "—" : !fiable ? SOUS_LE_SEUIL : `${String(x).replace(".", ",")} %`);
+const lift = (x, fiable = true) => (x == null ? "—" : !fiable ? SOUS_LE_SEUIL : `×${String(x).replace(".", ",")}`);
 const virgule = (x) => (x == null ? "—" : String(x).replace(".", ","));
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "—");
 
@@ -91,11 +95,11 @@ function ReponsesParPile({ lignes, temoins, sansInstantane, villes, onTirer, enC
   const rangees = ordre.map((k) => lignes.find((l) => l.cle === k)).filter(Boolean);
   const appeler = rangees.find((l) => l.cle === "appeler");
   const temoin = rangees.find((l) => l.cle === "temoin");
-  const verdict = appeler?.total >= 20 && temoin?.total >= 20
+  const verdict = appeler?.fiable && temoin?.fiable
     ? appeler.taux_reponse > (temoin.taux_reponse || 0) * 1.5
       ? `La pile « à appeler » répond ${virgule(appeler.taux_reponse)} % contre ${virgule(temoin.taux_reponse)} % au hasard : le classement fait son travail.`
       : `La pile « à appeler » répond ${virgule(appeler.taux_reponse)} %, les témoins ${virgule(temoin.taux_reponse)} % : le classement ne vaut pas mieux que le hasard, revoyez les poids.`
-    : `Il faut une vingtaine d'envois dans la pile « à appeler » et autant de témoins pour conclure. ${temoins.ecrits} témoin${temoins.ecrits > 1 ? "s" : ""} écrit${temoins.ecrits > 1 ? "s" : ""} sur ${temoins.tires} tiré${temoins.tires > 1 ? "s" : ""}.`;
+    : `Il faut trente envois dans la pile « à appeler » et autant de témoins pour que le rapport veuille dire quelque chose. ${temoins.ecrits} témoin${temoins.ecrits > 1 ? "s" : ""} écrit${temoins.ecrits > 1 ? "s" : ""} sur ${temoins.tires} tiré${temoins.tires > 1 ? "s" : ""}.`;
   return (
     <Carte className="flex flex-col gap-[18px]">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -109,7 +113,7 @@ function ReponsesParPile({ lignes, temoins, sansInstantane, villes, onTirer, enC
       {rangees.length ? (
         <div>
           <Entetes colonnes={["envois", "réponses", "oui", "taux"]} />
-          {rangees.map((l) => <Ligne key={l.cle} libelle={PILES_MOTS[l.cle] || l.cle} cellules={[l.total, l.reponses, l.oui, pct(l.taux_reponse)]} sourdine={l.cle === "temoin"} />)}
+          {rangees.map((l) => <Ligne key={l.cle} libelle={PILES_MOTS[l.cle] || l.cle} cellules={[l.total, l.reponses, l.oui, pct(l.taux_reponse, l.fiable)]} sourdine={l.cle === "temoin"} />)}
         </div>
       ) : (
         <p className="m-0 text-[12.5px] text-brume">Aucune approche encore.</p>
@@ -140,11 +144,52 @@ function Predictions({ p, onVerifier, enCours }) {
       {parPile.length > 0 && (
         <div>
           <Entetes colonnes={["figées", "vérifiées", "vendues", "taux"]} />
-          {parPile.map((l) => <Ligne key={l.cle} libelle={PILES_MOTS[l.cle] || l.cle} cellules={[l.figees, l.verifiees, l.realisees, pct(l.taux_realisation)]} />)}
+          {parPile.map((l) => <Ligne key={l.cle} libelle={PILES_MOTS[l.cle] || l.cle} cellules={[l.figees, l.verifiees, l.realisees, pct(l.taux_realisation, l.realisees >= 30)]} />)}
         </div>
       )}
       <p className="m-0 text-[12.5px] text-brume leading-[1.6] border-t border-trait pt-3.5">
         Le taux à battre est celui du marché : 3 à 5 % des locaux changent de mains par an. Une pile « à appeler » qui se réalise à 12 % vaut trois fois le hasard, et c'est déjà excellent.
+      </p>
+    </Carte>
+  );
+}
+
+/**
+ * Le seuil d'appel : un curseur de charge de travail, pas une vérité.
+ *
+ * Combien de cibles passent en « à appeler » dépend d'un nombre choisi, et ce
+ * nombre devrait se choisir sur ce que l'équipe peut absorber — trente appels
+ * par mois, cent — pas sur une statistique calée sur quarante-trois cas. Le
+ * curseur montre en direct ce que chaque seuil donnerait. Il ne l'applique
+ * pas : la valeur se pose dans server/alx/data/signaux.json, et on reclasse.
+ */
+function Seuil({ scores, seuils }) {
+  const [valeur, setValeur] = useState(seuils?.appeler ?? 3);
+  const tries = useMemo(() => [...(scores || [])].sort((a, b) => b - a), [scores]);
+  const combien = (s) => tries.filter((x) => x >= s).length;
+  const actuel = seuils?.appeler ?? 3;
+  return (
+    <Carte className="flex flex-col gap-[18px]">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div className="text-[11px] uppercase tracking-[.16em] text-ardoise">Le seuil d'appel, en cibles</div>
+        <span className="text-[12.5px] text-brume">{tries.length} cibles classées, hors écartées et dossiers</span>
+      </div>
+      <div className="flex flex-wrap items-baseline gap-4">
+        <Stat label="Seuil essayé" valeur={virgule(valeur)} detail={valeur === actuel ? "celui du fichier de règles" : `posé aujourd'hui : ${virgule(actuel)}`} />
+        <Stat label="À appeler" valeur={combien(valeur)} teinte={J["menthe"]} detail={`contre ${combien(actuel)} avec le seuil actuel`} />
+      </div>
+      <input
+        type="range" min="0.4" max="5" step="0.1" value={valeur}
+        onChange={(e) => setValeur(Number(e.target.value))}
+        aria-label="Seuil du score pour la pile à appeler"
+        className="w-full accent-menthe"
+      />
+      <div>
+        <Entetes colonnes={["cibles"]} />
+        {[1, 1.5, 2, 2.5, 3, 3.5, 4].map((s) => <Ligne key={s} libelle={`Seuil ${virgule(s)}`} cellules={[combien(s)]} sourdine={s !== valeur} />)}
+      </div>
+      <p className="m-0 border-t border-trait pt-3.5 text-[12.5px] leading-[1.6] text-brume">
+        Combien d'appels votre équipe passe-t-elle par mois ? C'est la seule question qui décide de ce seuil. Pour l'appliquer, changez seuils_score.appeler dans server/alx/data/signaux.json, puis reclassez les cibles.
       </p>
     </Carte>
   );
@@ -173,7 +218,7 @@ function Poids({ poids, nonObservables }) {
               <span className="text-right tabular-nums text-ardoise">{s.etude ? pct(s.etude.temoins_pct) : "—"}</span>
               <span className="text-right tabular-nums text-encre">{s.etude ? lift(s.etude.lift) : "—"}</span>
             </div>
-            {s.pourquoi && <p className="m-0 mt-1 text-[12px] leading-[1.5] text-brume">{s.pourquoi}</p>}
+            {s.pourquoi && <p className={`m-0 mt-1 text-[12px] leading-[1.5] ${/^NON TESTÉ/.test(s.pourquoi) ? "text-ambre" : "text-brume"}`}>{s.pourquoi}</p>}
           </div>
         ))}
       </div>
@@ -196,16 +241,19 @@ function MesureDvf({ m, enCours, onLancer, lancable }) {
       {m ? (
         <>
           <div className="grid grid-cols-3 gap-3">
-            <Stat label="Taux de base" valeur={pct(m.base.taux)} detail={`sur ${m.horizon_mois} mois · ≈ ${pct(m.base.taux_annuel_approx)} par an`} />
-            <Stat label="Fenêtre 18-48 mois" valeur={lift(m.par_fenetre.find((f) => f.cle === "18-48")?.lift)} teinte={J["menthe"]} detail="le squelette du marchand de biens" />
-            <Stat label="Un lot voisin vendu" valeur={lift(m.voisin.avec.lift)} teinte={J["menthe"]} detail={`${m.voisin.avec.n} cas, ${m.voisin.avec.ventes} vendus`} />
+            <Stat label="Taux de base" valeur={pct(m.base.taux, m.base.fiable)} detail={`${m.base.ventes} ventes sur ${m.horizon_mois} mois · ≈ ${pct(m.base.taux_annuel_approx, m.base.fiable)} par an`} />
+            {(() => {
+              const f = m.par_fenetre.find((x) => x.cle === "18-48") || {};
+              return <Stat label="Fenêtre 18-48 mois" valeur={lift(f.lift, f.fiable)} teinte={f.fiable ? J["menthe"] : null} detail={f.fiable ? "toutes populations confondues" : `${f.ventes || 0} ventes : pas encore mesurable`} />;
+            })()}
+            <Stat label="Un lot voisin vendu" valeur={lift(m.voisin.avec.lift, m.voisin.avec.fiable)} teinte={m.voisin.avec.fiable ? J["menthe"] : null} detail={`${m.voisin.avec.ventes} ventes sur ${m.voisin.avec.n} cas`} />
           </div>
           <div>
             <Entetes colonnes={["locaux", "vendus", "taux", "lift"]} />
-            <Ligne libelle="Taux de base" cellules={[m.base.n, m.base.ventes, pct(m.base.taux), "×1"]} />
-            {m.par_fenetre.map((f) => <Ligne key={f.cle} libelle={`Dernière mutation il y a ${f.cle} mois`} cellules={[f.n, f.ventes, pct(f.taux), lift(f.lift)]} />)}
-            <Ligne libelle="Un autre lot de l'immeuble vendu avant" cellules={[m.voisin.avec.n, m.voisin.avec.ventes, pct(m.voisin.avec.taux), lift(m.voisin.avec.lift)]} />
-            <Ligne libelle="Acheté en bloc" cellules={[m.bloc.avec.n, m.bloc.avec.ventes, pct(m.bloc.avec.taux), lift(m.bloc.avec.lift)]} />
+            <Ligne libelle="Taux de base" cellules={[m.base.n, m.base.ventes, pct(m.base.taux, m.base.fiable), "×1"]} />
+            {m.par_fenetre.map((f) => <Ligne key={f.cle} libelle={`Dernière mutation il y a ${f.cle} mois`} cellules={[f.n, f.ventes, pct(f.taux, f.fiable), lift(f.lift, f.fiable)]} sourdine={f.n > 0 && !f.fiable} />)}
+            <Ligne libelle="Un autre lot de l'immeuble vendu avant" cellules={[m.voisin.avec.n, m.voisin.avec.ventes, pct(m.voisin.avec.taux, m.voisin.avec.fiable), lift(m.voisin.avec.lift, m.voisin.avec.fiable)]} />
+            <Ligne libelle="Acheté en bloc" cellules={[m.bloc.avec.n, m.bloc.avec.ventes, pct(m.bloc.avec.taux, m.bloc.avec.fiable), lift(m.bloc.avec.lift, m.bloc.avec.fiable)]} />
           </div>
           <p className="m-0 text-[12.5px] text-brume leading-[1.6] border-t border-trait pt-3.5">
             Mesure du {quand(m.le)} sur {m.communes.map((c) => `${c.nom} (${c.locaux} locaux, ${c.ventes} ventes)`).join(", ")}. Chaque local est lu tel qu'il était à chaque 1er janvier, avec les seules ventes antérieures ; ce qui s'est vendu dans les {m.horizon_mois} mois suivants est le résultat. Un lift se reporte dans signaux.json à la main : la mesure ne touche pas aux poids.
@@ -282,9 +330,11 @@ export default function ALXBilan() {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <Poids poids={data?.poids} nonObservables={data?.non_observables} />
+            <Seuil scores={data?.scores} seuils={data?.poids?.seuils} />
             <MesureDvf m={mesure?.rapport || data?.mesure_dvf || null} enCours={!!mesure?.en_cours || lancerMesure.isPending} onLancer={() => lancerMesure.mutate()} lancable={villes.some((v) => v.code_insee)} />
           </div>
+
+          <Poids poids={data?.poids} nonObservables={data?.non_observables} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <Carte className="flex flex-col gap-[18px]">

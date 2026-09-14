@@ -16,6 +16,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { classer, observableEnProspection, PILES, REGLES, SEUILS } from './classement.js';
+import { EVENEMENTS_MINIMUM } from './mesure-dvf.js';
 import { bilanPredictions, dernierePrediction, figerPrediction } from './predictions.js';
 
 const ici = path.dirname(fileURLToPath(import.meta.url));
@@ -547,7 +548,12 @@ export function bilan() {
       if (x.issue === 'oui') out[k].oui += 1;
       if (x.issue === 'non') out[k].non += 1;
     }
-    return Object.entries(out).map(([k, v]) => ({ cle: k, ...v, taux_reponse: v.total ? Math.round((v.reponses / v.total) * 1000) / 10 : null })).sort((a, b) => b.total - a.total);
+    // `fiable` : assez d'envois pour qu'un taux veuille dire quelque chose.
+    // En dessous, l'écran affiche « pas encore mesurable » plutôt qu'un
+    // pourcentage que le premier « sur combien de cas ? » ferait tomber.
+    return Object.entries(out)
+      .map(([k, v]) => ({ cle: k, ...v, taux_reponse: v.total ? Math.round((v.reponses / v.total) * 1000) / 10 : null, fiable: v.total >= EVENEMENTS_MINIMUM }))
+      .sort((a, b) => b.total - a.total);
   };
   // La pile au moment de l'envoi ; à défaut (envois d'avant le journal),
   // la pile d'aujourd'hui, en le disant.
@@ -578,6 +584,12 @@ export function bilan() {
     temoins: { tires: cibles.filter((c) => c.temoin).length, ecrits: approches.filter((a) => a.temoin).length },
     predictions: bilanPredictions(),
     poids: poidsDesSignaux(),
+    // Le seuil d'appel n'est pas une vérité statistique, c'est une charge de
+    // travail : combien d'appels l'équipe peut passer. On rend les scores
+    // pour que l'écran montre, en direct, combien de cibles chaque seuil
+    // donnerait. Les écartées et celles déjà en dossier n'en sont pas.
+    scores: cibles.filter((c) => c.pile !== 'ecartee' && !c.deal_id).map((c) => c.score?.total ?? 0),
+    evenements_minimum: EVENEMENTS_MINIMUM,
     mesure_dvf: mesureDvf ? { le: mesureDvf.le, communes: mesureDvf.communes, base: mesureDvf.base, horizon_mois: mesureDvf.horizon_mois, par_fenetre: mesureDvf.par_fenetre, voisin: mesureDvf.voisin, bloc: mesureDvf.bloc, limites: mesureDvf.limites } : null,
     non_observables: [...(REGLES.signaux_forts || []), ...(REGLES.signaux_patients || [])].filter((r) => !observableEnProspection(r.cle)).map((r) => r.cle),
   };

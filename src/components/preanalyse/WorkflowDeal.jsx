@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowRight, Briefcase, Check, Clock, Download, ExternalLink, Eye, Film, FlaskConical, FolderCheck,
-  ChevronLeft, ChevronRight, Loader2, Lock, Mail, Microscope, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload, RefreshCw } from "lucide-react";
+  Archive, ChevronDown, ChevronLeft, ChevronRight, Loader2, Lock, Mail, Microscope, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import {
   Bandeau, CarteLot, DialogMailIntention, JournalSuivi, sansVerdict,
@@ -70,6 +70,74 @@ const ETAPES = [
   { n: 4, id: "plateforme", label: "Plateforme", sub: "création du projet, puis vidéo" },
   { n: 5, id: "presentation", label: "Présentation", sub: "dossier banque" },
 ];
+
+/**
+ * L'étape en cours, en haut à droite, qui s'ouvre au survol sur les autres :
+ * on change d'étape depuis là, sans barre d'onglets au-dessus de la page.
+ * « Abandonner » ferme la liste, à part.
+ */
+function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPasser, onAbandonner, abandonne, apercu }) {
+  const [ouvert, setOuvert] = useState(false);
+  const courante = ETAPES.find((e) => e.n === etape) || ETAPES[0];
+  const fermer = () => setOuvert(false);
+  return (
+    <div className="relative flex-shrink-0" onMouseEnter={() => setOuvert(true)} onMouseLeave={fermer}>
+      <button
+        type="button"
+        onClick={() => setOuvert((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={ouvert}
+        className="flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-[14px] text-encre transition-colors hover:border-trait"
+        style={{ background: "transparent" }}
+      >
+        <span className="text-[11px] tabular-nums text-ardoise">{String(courante.n).padStart(2, "0")}</span>
+        <span className="font-semibold">{courante.label}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
+      </button>
+      {ouvert && (
+        <div role="menu" className="absolute right-0 top-full z-30 min-w-[300px] pt-1.5">
+          <div className="flex flex-col rounded-lg border border-trait bg-surface py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+            {ETAPES.map((e) => {
+              const accessible = e.n <= debloquee;
+              const active = etape === e.n;
+              return (
+                <button
+                  key={e.id}
+                  role="menuitem"
+                  onClick={() => { fermer(); if (accessible) onEtape(e.n); else if (dossier && !deblocageEnCours) onPasser(e.n); }}
+                  disabled={!accessible && !dossier}
+                  title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
+                  className={`flex w-full items-baseline gap-3 px-3.5 py-2 text-left text-[13.5px] transition-colors hover:bg-encre/[0.06]
+                    ${active ? "text-encre font-semibold" : accessible ? "text-craie" : "text-[#4d545d]"}`}
+                  style={{ background: "transparent" }}
+                >
+                  <span className="w-5 text-[11px] tabular-nums text-ardoise">{String(e.n).padStart(2, "0")}</span>
+                  <span className="flex-1">{e.label}</span>
+                  <span className="whitespace-nowrap text-[11px] text-ardoise">{e.sub}</span>
+                </button>
+              );
+            })}
+            {dossier && !apercu && (
+              <>
+                <div className="my-1.5 border-t border-trait" />
+                <button
+                  role="menuitem"
+                  onClick={() => { fermer(); onAbandonner(); }}
+                  disabled={abandonne || dossier.statut === "projet_cree"}
+                  title="Classer le dossier sans suite : il reste consultable, il n'avance plus"
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] text-red-300 transition-colors hover:bg-red-500/[0.08] disabled:opacity-40"
+                  style={{ background: "transparent" }}
+                >
+                  <Archive className="h-3.5 w-3.5" /> Abandonner
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // En-tête numéroté d'une étape : « 01 · Titre » + description, comme la maquette.
 export function TitreEtape({ n, titre, description = undefined }) {
@@ -266,51 +334,33 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               )}
             </div>
           </div>
-          {!apercu && (
-            <div className="flex items-center gap-2.5 flex-shrink-0 max-md:flex-wrap max-md:flex-shrink max-md:justify-end">
-              <Button
-                onClick={() => {
-                  if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
-                  base44
-                    .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/abandonner`)
-                    .then(() => { toast.success("Dossier abandonné"); onRefresh?.(); })
-                    .catch((e) => toast.error(e?.message || "Abandon impossible"));
-                }}
-                disabled={abandonne || dossier.statut === "projet_cree"}
-                title="Classer le dossier sans suite : il reste consultable, il n'avance plus"
-                className="bg-transparent border-0 text-[#9aa0a8] hover:text-[#e6e8eb] hover:bg-transparent h-10 px-3 text-[14px]"
-              >
-                Abandonner
-              </Button>
-            </div>
-          )}
+          <MenuEtapes
+            etape={etape}
+            debloquee={debloquee}
+            dossier={dossier}
+            deblocageEnCours={deblocageEnCours}
+            onEtape={setEtape}
+            onPasser={passerVersEtape}
+            abandonne={abandonne}
+            apercu={apercu}
+            onAbandonner={() => {
+              if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
+              base44
+                .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/abandonner`)
+                .then(() => { toast.success("Dossier abandonné"); onRefresh?.(); })
+                .catch((e) => toast.error(e?.message || "Abandon impossible"));
+            }}
+          />
         </div>
       )}
 
-      {/* Le chat du dossier : questions, analyses, points à vérifier */}
-      {/* Étapes du dossier — libellés seuls, sans pastilles. Toujours visibles :
-          on doit pouvoir changer d'étape sans refermer la table ouverte. */}
-      <div className="flex flex-wrap items-center gap-x-7 gap-y-2 border-b border-trait mb-8">
-        {ETAPES.map((e) => {
-          const accessible = e.n <= debloquee;
-          const active = etape === e.n;
-          return (
-            <button
-              key={e.id}
-              onClick={() => (accessible ? setEtape(e.n) : dossier && !deblocageEnCours && passerVersEtape(e.n))}
-              disabled={!accessible && !dossier}
-              title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
-              className={`relative text-[14px] pb-3 px-0.5 rounded-none transition-colors whitespace-nowrap
-                after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 after:ease-out
-                ${active ? "after:scale-x-100 text-encre font-semibold"
-                  : accessible ? "text-[#8f959e] hover:text-[#c6ccd3]"
-                  : "text-[#4d545d] hover:text-[#8f959e]"}`}
-            >
-              {e.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Sans dossier encore, l'étape se choisit au même endroit, en haut à droite. */}
+      {!dossier && (
+        <div className="mb-6 flex justify-end">
+          <MenuEtapes etape={etape} debloquee={debloquee} dossier={null} deblocageEnCours={deblocageEnCours} onEtape={setEtape} onPasser={passerVersEtape} abandonne={false} apercu={apercu} onAbandonner={() => {}} />
+        </div>
+      )}
+      {dossier && <div className="mb-8" />}
 
       {/* Sur le marché, le chat du haut devient celui du marché : une seule
           barre dans la page, et c'est celle qui sait interroger les sources.

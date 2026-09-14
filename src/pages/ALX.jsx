@@ -296,7 +296,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
   const valider = (sans = false) => { onClasser(rue.nom, enAttente, sans ? null : motifCle || "autre", sans ? null : motifTexte || null); setEnAttente(null); setMotifCle(null); setMotifTexte(""); };
   if (!rue) {
     return (
-      <div className="flex h-full flex-col justify-center gap-2 px-6 text-center">
+      <div className="flex min-h-[inherit] flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
         <div className="text-[15px] text-[#C3CBC7]">Cliquez une rue sur la carte.</div>
         <div className="text-[13px] text-[#8B938F]">Bleu, emplacement 1 ; ambre, 1 bis ; rouge, 2. Une rue cochée se dessine plus épaisse.</div>
       </div>
@@ -476,7 +476,7 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
           streetView={streetView && (rueChoisie || ecarteeChoisie)?.centre ? { ...(rueChoisie || ecarteeChoisie).centre, nom: choisie } : null}
           className="h-[440px] max-md:h-[320px]"
         />
-        <div className="min-h-[440px] rounded-[16px] border border-white/[0.07] max-md:min-h-[220px]">
+        <div className="flex min-h-[440px] flex-col rounded-[16px] border border-white/[0.07] max-md:min-h-[220px]">
           <PanneauRue
             rue={rueChoisie || ecarteeChoisie}
             ecartee={!!ecarteeChoisie}

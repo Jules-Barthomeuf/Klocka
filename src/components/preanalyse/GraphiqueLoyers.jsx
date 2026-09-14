@@ -28,13 +28,13 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
   const x = (v) => `${Math.min(100, Math.max(0, ((v - echelle.min) / (echelle.max - echelle.min)) * 100))}%`;
   const largeur = (a, b) => `${Math.max(0.6, ((b - a) / (echelle.max - echelle.min)) * 100)}%`;
   const tete = utiles.find((l) => l.principale) || utiles[0] || null;
-  const grille = { backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px)", backgroundSize: `${100 / (echelle.graduations.length - 1)}% 100%` };
+  const grille = { backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.14) 1px,transparent 1px)", backgroundSize: `${100 / (echelle.graduations.length - 1)}% 100%`, backgroundPosition: "0 0", borderRight: "1px solid rgba(255,255,255,0.14)" };
 
   return (
     <div className="mt-[62px] grid items-center gap-x-[22px]" style={{ gridTemplateColumns: "196px minmax(0,1fr)" }}>
       <div />
       <div className="relative h-[92px]" style={grille}>
-        <div className="absolute inset-x-0 bottom-0 h-px" style={{ background: "rgba(255,255,255,0.14)" }} />
+        <div className="absolute inset-x-0 bottom-0 h-px" style={{ background: "rgba(255,255,255,0.32)" }} />
         {tete && (
           <>
             <div className="absolute bottom-0 top-[38px]" style={{ left: x(tete.bas), width: largeur(tete.bas, tete.haut), background: "linear-gradient(180deg,rgba(150,192,184,0.03),rgba(150,192,184,0.28))", borderLeft: "1px solid rgba(150,192,184,0.5)", borderRight: "1px solid rgba(150,192,184,0.5)", boxShadow: "0 0 44px rgba(150,192,184,0.18)" }} />
@@ -65,7 +65,7 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
               <div className="text-[14.5px]" style={{ color: principale ? "#F3F7F5" : "#C3CBC7" }}>{l.service}</div>
               {l.sous && <div className="mt-[3px] text-[12px] text-[#8B938F]">{l.sous}</div>}
             </div>
-            <div className="relative h-[30px]" style={{ ...grille, backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)" }}>
+            <div className="relative h-[30px]" style={{ ...grille, backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)" }}>
               <div className="absolute top-[11px] h-[8px] rounded-full" style={{ left: x(l.bas), width: largeur(l.bas, l.haut), background: principale ? "#96c0b8" : "rgba(90,103,98,0.85)" }} />
               <span className="absolute top-[6px] whitespace-nowrap text-[12.5px]" style={{ ...MONT, color: principale ? "#C3CBC7" : "#8B938F", ...(texteADroite ? { left: `calc(${x(l.haut)} + 12px)` } : { right: `calc(100% - ${x(l.bas)} + 12px)` }) }}>
                 {fmt(l.bas)} – {fmt(l.haut)}
@@ -76,14 +76,17 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
       })}
 
       <div />
-      <div className="relative mt-1 h-[26px] text-[10.5px] text-[#8B938F]" style={MONT}>
+      <div className="relative h-[30px] border-t text-[11px] text-[#C3CBC7]" style={{ ...MONT, borderColor: "rgba(255,255,255,0.32)" }}>
         {echelle.graduations.map((g, i) => {
           const premier = i === 0;
           const dernier = i === echelle.graduations.length - 1;
           return (
-            <span key={g} className="absolute top-[6px]" style={premier ? { left: 0 } : dernier ? { right: 0 } : { left: x(g), transform: "translateX(-50%)" }}>
-              {fmt(g)}
-            </span>
+            <React.Fragment key={g}>
+              <span className="absolute top-0 h-[6px] w-px" style={{ left: dernier ? "auto" : x(g), right: dernier ? 0 : "auto", background: "rgba(255,255,255,0.45)" }} />
+              <span className="absolute top-[10px]" style={premier ? { left: 0 } : dernier ? { right: 0 } : { left: x(g), transform: "translateX(-50%)" }}>
+                {fmt(g)}
+              </span>
+            </React.Fragment>
           );
         })}
       </div>

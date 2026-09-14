@@ -177,7 +177,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
           <GraphiqueLoyers lectures={analyse.loyers_lectures || []} enPlace={analyse.en_place_m2} />
 
           {/* Les cinq chiffres : chacun ouvre sa démonstration en pleine largeur. */}
-          <div className="mt-8 grid grid-cols-2 border-t border-white/[0.07] md:grid-cols-5">
+          <div className="mt-8 grid grid-cols-2 border-t border-white/[0.16] md:grid-cols-5">
             {analyse.cartes.map((c, i) => {
               const { mot, chiffre } = valeurDe(c);
               return (
@@ -186,7 +186,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   type="button"
                   onClick={() => onCarte(c)}
                   title={c.detail}
-                  className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-white/[0.05]"}`}
+                  className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-white/[0.16]"}`}
                   style={{ background: "transparent" }}
                 >
                   <span className="alx-mont flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[.14em] text-[#8B938F]">

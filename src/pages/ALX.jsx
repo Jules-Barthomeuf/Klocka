@@ -219,7 +219,7 @@ function Direct({ ville, p }) {
   const R = 76, C = 2 * Math.PI * R;
   return (
     <div className="mt-5 grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_260px]">
-      <CarteRues rues={rues} coches={new Set()} onChoisir={() => {}} centre={ville?.centre} direct={{ retenues, faites, enCours: p.rue_en_cours || null, fraction, position: b?.lat != null ? { lat: b.lat, lon: b.lon } : null }} className="h-[360px]" />
+      <CarteRues rues={rues} coches={new Set()} onChoisir={() => {}} centre={ville?.centre} direct={{ retenues, faites, enCours: p.rue_en_cours || null, fraction }} className="h-[360px]" />
       <div className="flex flex-col items-center justify-center gap-4 rounded-[16px] border border-trait px-5 py-6 text-center">
         <div className="relative grid place-items-center">
           <svg width="176" height="176" viewBox="0 0 176 176" className="-rotate-90">

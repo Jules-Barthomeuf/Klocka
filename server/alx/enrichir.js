@@ -8,6 +8,7 @@
 
 import { Records } from '../db.js';
 import { mettreAJourCible } from './index.js';
+import { surfaceCommerciale } from './batiment.js';
 
 const cibleOu = (id) => {
   const c = Records.get('Cible', id);
@@ -232,8 +233,79 @@ export function calculerPrix(id, { surface = null, taux = null, user = null } = 
 }
 
 // Une boutique de centre-ville fait entre sept et treize mètres de profondeur :
-// la largeur de vitrine lue sur la photo donne donc une surface, en tranche.
+// faute de mieux, la largeur de vitrine lue sur la photo donne une surface, en
+// tranche. C'est le dernier recours — voir estimerSurface ci-dessous.
 const PROFONDEUR_M = [7, 13];
+
+/**
+ * La surface estimée d'un local, et d'où elle sort. Trois lectures, de la
+ * meilleure à la moins bonne :
+ *
+ *   1. le bâtiment (OpenStreetMap) : l'emprise au sol est mesurée, pas
+ *      supposée, et elle voit les deux façades d'un commerce d'angle ;
+ *   2. le bâtiment croisé avec la vitrine lue : quand la vitrine est plus
+ *      étroite que la façade, le local n'occupe qu'une part du bâtiment, et
+ *      on prend cette part ;
+ *   3. la vitrine seule, multipliée par une profondeur supposée.
+ *
+ * La troisième s'est trompée d'un ordre de grandeur sur les commerces
+ * d'angle : une photo ne voit qu'une rue.
+ */
+export function estimerSurface(v = {}) {
+  const b = v.batiment || null;
+  const vitrine = Number(v.vitrine_m) > 0 ? Number(v.vitrine_m) : null;
+
+  if (b?.emprise_m2 > 0) {
+    const r = surfaceCommerciale({ emprise_m2: b.emprise_m2, facades: b.facades || [], commerces: b.commerces_dans_le_batiment || 1, vitrine_m: vitrine });
+    if (r) {
+      const facades = (b.facades || []).map((f) => `${f.longueur_m} m sur ${f.rue}`).join(' et ');
+      const partage = vitrine
+        ? `vitrine de ${vitrine} m sur ${b.facade_totale_m} m de façade`
+        : b.commerces_dans_le_batiment > 1 ? `partagée entre ${b.commerces_dans_le_batiment} vitrines` : 'un seul commerce dans le bâtiment';
+      return {
+        surface_estimee: r.surface,
+        estimee_source: vitrine ? 'batiment_et_vitrine' : 'batiment',
+        estimee_detail: `${facades ? `Façade de ${facades}` : `Bâtiment de ${b.emprise_m2} m² au sol`} : une bande commerciale de ${r.bande_m2[0]} à ${r.bande_m2[1]} m², ${partage}.`,
+      };
+    }
+  }
+
+  if (vitrine) {
+    // Un commerce d'angle a deux façades : sa profondeur est au moins la
+    // seconde, et sa surface bien plus grande que ne le dit la première seule.
+    const retour = v.angle ? Number(v.retour_m) || 0 : 0;
+    return {
+      surface_estimee: [Math.round(vitrine * Math.max(PROFONDEUR_M[0], retour)), Math.round(vitrine * Math.max(PROFONDEUR_M[1], retour))],
+      estimee_source: 'vitrine',
+      estimee_detail: `Vitrine de ${vitrine} m lue sur la photo${retour ? `, ${retour} m en retour` : ''}, profondeur supposée de ${PROFONDEUR_M[0]} à ${PROFONDEUR_M[1]} m. À confirmer : une photo ne voit qu'une rue.`,
+    };
+  }
+  return null;
+}
+
+/** La fourchette de prix d'une surface estimée : loyer × surface ÷ rendement. */
+function fourchetteEstimee(surface, v) {
+  const loyerM2 = Number(v.loyer_m2_marche);
+  const t = Number(v.taux ?? 7);
+  if (!(loyerM2 > 0) || !surface) return null;
+  return [Math.round((surface[0] * loyerM2) / ((t + 1) / 100) / 1000) * 1000, Math.round((surface[1] * loyerM2) / ((t - 1) / 100) / 1000) * 1000];
+}
+
+/**
+ * Mesure le bâtiment du commerce sur OpenStreetMap et en déduit la surface.
+ * `elements` évite l'appel réseau quand le parcours a déjà lu toute la rue.
+ */
+export async function mesurerLeBatiment(id, { elements = null, user = null } = {}) {
+  const c = cibleOu(id);
+  if (!(Number(c.lat) && Number(c.lon))) throw new Error("Ce commerce n'a pas de position : le bâtiment ne peut pas être mesuré.");
+  const { mesurerBatiment } = await import('./batiment.js');
+  const batiment = await mesurerBatiment({ lat: Number(c.lat), lon: Number(c.lon) }, { elements });
+  if (!batiment) throw new Error('Aucun bâtiment dessiné autour de ce point sur OpenStreetMap.');
+  const v = { ...(c.valorisation || {}), batiment };
+  const e = estimerSurface(v);
+  const patch = { valorisation: { ...v, ...(e || {}), fourchette_estimee: e ? fourchetteEstimee(e.surface_estimee, v) : v.fourchette_estimee || null, estimee_le: new Date().toISOString() } };
+  return mettreAJourCible(c.id, patch, user);
+}
 
 /**
  * La devanture par Street View, lue par le modèle. Le point Maps du commerce
@@ -253,15 +325,11 @@ export async function lireDevanture(id, { user = null } = {}) {
   if (lecture.occupe === false) patch.occupe = false;
   const vitrine = Number(lecture.vitrine_m);
   if (vitrine > 0) {
-    const v = c.valorisation || {};
-    // Un commerce d'angle a deux façades : sa profondeur est au moins la
-    // seconde, et sa surface bien plus grande que ne le dit la première seule.
-    const retour = lecture.angle ? Number(lecture.retour_m) || 0 : 0;
-    const surface = [Math.round(vitrine * Math.max(PROFONDEUR_M[0], retour)), Math.round(vitrine * Math.max(PROFONDEUR_M[1], retour))];
-    const loyerM2 = Number(v.loyer_m2_marche);
-    const t = Number(v.taux ?? 7);
-    const fourchette = loyerM2 > 0 ? [Math.round((surface[0] * loyerM2) / ((t + 1) / 100) / 1000) * 1000, Math.round((surface[1] * loyerM2) / ((t - 1) / 100) / 1000) * 1000] : null;
-    patch.valorisation = { ...v, vitrine_m: vitrine, angle: !!lecture.angle, retour_m: retour || null, surface_estimee: surface, fourchette_estimee: fourchette, estimee_le: new Date().toISOString() };
+    const v = { ...(c.valorisation || {}), vitrine_m: vitrine, angle: !!lecture.angle, retour_m: (lecture.angle ? Number(lecture.retour_m) || 0 : 0) || null };
+    // Le bâtiment, s'il a été mesuré, garde la main : la photo ne voit qu'une
+    // rue, le polygone les voit toutes. La vitrine lue affine sa part.
+    const e = estimerSurface(v);
+    patch.valorisation = { ...v, ...(e || {}), fourchette_estimee: e ? fourchetteEstimee(e.surface_estimee, v) : null, estimee_le: new Date().toISOString() };
   }
   return mettreAJourCible(c.id, patch, user);
 }

@@ -14,6 +14,14 @@ import { J } from "@/design/jetons";
 
 const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
+// D'où sort une surface estimée. Le mot compte : « mesuré » et « deviné » ne
+// se valent pas, et l'écran ne doit pas les confondre.
+const LECTURES_SURFACE = {
+  batiment: "mesuré sur le bâtiment",
+  batiment_et_vitrine: "bâtiment mesuré, part de la vitrine",
+  vitrine: "d'après la vitrine, une idée",
+};
+
 const VERDICTS = {
   appeler: ["Va vendre", TEINTES.ecrire],
   ecrire: ["Vendra un jour", TEINTES.ecrire],
@@ -96,7 +104,8 @@ function analyseTexte(c, explications = {}) {
   if (v.loyer_fourchette?.[0] != null) marche.push(`Le loyer de marché de la rue est de ${Math.round(v.loyer_fourchette[0])} à ${Math.round(v.loyer_fourchette[1])} €/m²/an${v.loyer_source ? ` (${v.loyer_source})` : ""}.`);
   if (c.mutation?.prix) marche.push(`DVF : une vente ${c.mutation.du_local ? "de ce local" : "à côté"} en ${annee(c.mutation.date)} pour ${euros(c.mutation.prix)}${c.mutation.surface ? `, ${c.mutation.surface} m²` : ""}.`);
   if (v.fourchette) marche.push(`Avec ${v.surface} m²${v.surface_source ? ` (${v.surface_source})` : ""}, les murs vaudraient ${euros(v.fourchette[0])} à ${euros(v.fourchette[1])}.`);
-  else if (v.fourchette_estimee) marche.push(`La vitrine fait environ ${v.vitrine_m} m${v.angle ? `, et le commerce fait l'angle avec ${v.retour_m || "quelques"} m de retour` : ""} : une boutique de ${v.surface_estimee[0]} à ${v.surface_estimee[1]} m², soit des murs entre ${euros(v.fourchette_estimee[0])} et ${euros(v.fourchette_estimee[1])}. Une idée, pas une estimation.`);
+  else if (v.fourchette_estimee) marche.push(`${v.estimee_detail || `La vitrine fait environ ${v.vitrine_m} m.`} Soit ${v.surface_estimee[0]} à ${v.surface_estimee[1]} m², et des murs entre ${euros(v.fourchette_estimee[0])} et ${euros(v.fourchette_estimee[1])}. ${v.estimee_source === "vitrine" ? "Une idée, pas une estimation." : "Mesuré sur le bâtiment, pas deviné."}`);
+  if (v.batiment?.facades?.length > 1) marche.push(`Commerce d'angle : ${v.batiment.facades.map((f) => `${f.longueur_m} m sur ${f.rue}`).join(", ")}. Une seule photo n'en voit qu'une.`);
   if (v.alerte) marche.push(v.alerte);
   if (marche.length) blocs.push({ titre: "Le marché", lignes: marche });
 
@@ -219,6 +228,21 @@ export default function ALXCible() {
     devantureTentee.current = c.id;
     devanture.mutate();
   }, [c?.id, devantureLue]);
+  // Le bâtiment se mesure de la même façon, et c'est lui qui commande : le
+  // polygone voit les deux rues d'un commerce d'angle, la photo n'en voit
+  // qu'une. Gratuit, une requête OpenStreetMap.
+  const batiment = useMutation({
+    mutationFn: () => base44.request("POST", `/api/alx/cibles/${id}/batiment`, { body: {} }),
+    onSuccess: rafraichir,
+    onError: () => {},
+  });
+  const batimentLu = !!c?.valorisation?.batiment;
+  const batimentTente = useRef(null);
+  useEffect(() => {
+    if (!c || batimentLu || batimentTente.current === c.id || c.pile === "ecartee" || !(c.lat && c.lon)) return;
+    batimentTente.current = c.id;
+    batiment.mutate();
+  }, [c?.id, batimentLu]);
   const proprietaire = useMutation({
     mutationFn: () => base44.request("POST", `/api/alx/cibles/${id}/proprietaire`, { body: {} }),
     onSuccess: (r) => { toast.success(r.cible?.proprietaire?.nom ? `Propriétaire : ${joliNom(r.cible.proprietaire.nom)}` : r.foncier?.motif_choix || "Fiche lue"); rafraichir(); },
@@ -375,7 +399,8 @@ export default function ALXCible() {
                 <div className="mt-1.5"><Nombre taille={19} teinte={J["encre"]}>{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : v.fourchette_estimee ? `~ ${euros(v.fourchette_estimee[0])} – ${euros(v.fourchette_estimee[1])}` : devanture.isPending ? "…" : "—"}</Nombre></div>
                 <div className="mt-1 text-[12.5px] text-ardoise">
                   {v.surface ? `${v.surface} m²${v.surface_source ? ` · ${v.surface_source}` : ""}`
-                    : v.surface_estimee ? `${v.surface_estimee[0]}–${v.surface_estimee[1]} m² d'après la vitrine (${v.vitrine_m} m${v.angle ? ` + ${v.retour_m || "?"} m en retour, commerce d'angle` : ""}), une idée`
+                    : v.surface_estimee ? `${v.surface_estimee[0]}–${v.surface_estimee[1]} m² · ${LECTURES_SURFACE[v.estimee_source] || "d'après la vitrine"}`
+                    : batiment.isPending ? "ALX mesure le bâtiment…"
                     : devanture.isPending ? "ALX regarde la vitrine…"
                     : c.mutation?.prix ? `Vente autour en ${annee(c.mutation.date)} : ${euros(c.mutation.prix)}${c.mutation.surface ? ` pour ${c.mutation.surface} m²` : ""}` : "surface inconnue"}
                 </div>

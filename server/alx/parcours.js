@@ -348,6 +348,17 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     noter(villeId, `${rue.nom} (emplacement ${libelleEmplacement(rue.classe)}) : ${commerces.length} commerce${commerces.length > 1 ? 's' : ''}${limite_par_rue && commerces.length > limite_par_rue ? `, ${limite_par_rue} retenus pour cet essai` : ''}.`);
 
     const loyerRue = rue.loyer ? { [rue.loyer_source === 'Data-B, quartier' ? 'quartier' : 'rue']: { nom: rue.nom, basse: rue.loyer[0], haute: rue.loyer[1] } } : null;
+    // Les bâtiments de la rue, en une seule requête : chaque commerce y
+    // trouvera son emprise au sol et ses façades sans rappeler OpenStreetMap.
+    // C'est ce qui donne une surface mesurée plutôt que devinée sur une photo,
+    // et qui voit les deux côtés d'un commerce d'angle.
+    let batiments = null;
+    try {
+      const { elementsDeLaRue } = await import('./batiment.js');
+      batiments = await elementsDeLaRue(rue.trace || []);
+    } catch (e) {
+      noter(villeId, `${rue.nom} : bâtiments non relevés (${e.message}). Les surfaces resteront estimées sur la vitrine.`);
+    }
     let erreursRue = 0;
     let creees = 0;
     let proprios = 0;
@@ -415,6 +426,16 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         ecartees += 1;
         compter(villeId, 'ecartees');
         continue;
+      }
+
+      // 3 bis. Le bâtiment : l'emprise au sol et les façades, mesurées sur le
+      // relevé de la rue. Sans position, sans bâtiment dessiné, on passe.
+      if (batiments?.length && c.lat && c.lon) {
+        try {
+          c = (await enrichir.mesurerLeBatiment(c.id, { elements: batiments, user })).cible;
+        } catch {
+          // Pas de bâtiment sous ce point : la vitrine restera la seule lecture.
+        }
       }
 
       // 4. Le propriétaire, puis la société.

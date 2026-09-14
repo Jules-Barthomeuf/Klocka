@@ -158,6 +158,18 @@ export function monterAlx(app) {
   // Data-B. Gratuit, sans clé. Le code postal de la ville filtre les homonymes.
   // Le propriétaire par l'adresse : Data Foncier (Data-B), puis l'annuaire des
   // entreprises pour la société, puis le classement. Un seul geste.
+  // Le bâtiment sur OpenStreetMap : l'emprise au sol, les façades rue par rue,
+  // et la surface qu'on en déduit. Gratuit, et il voit les deux côtés d'un
+  // commerce d'angle, ce qu'une photo ne fait pas.
+  app.post('/api/alx/cibles/:id/batiment', wrap(async (req, res) => {
+    const enrichir = await import('../alx/enrichir.js');
+    try {
+      ok(res, await enrichir.mesurerLeBatiment(req.params.id, { user: currentUser(req) }));
+    } catch (e) {
+      return erreur(res, e, e.statut || 400);
+    }
+  }));
+
   app.post('/api/alx/cibles/:id/proprietaire', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });

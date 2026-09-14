@@ -4,7 +4,7 @@
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Moon, Sun } from "lucide-react";
-import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { EMPLACEMENTS, ECARTEE, emplacementDe } from "./alx-commun";
 import { J } from "@/design/jetons";
@@ -193,7 +193,9 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
             />
           )),
         )}
-        {direct?.position && <CircleMarker center={[direct.position.lat, direct.position.lon]} radius={7} pathOptions={{ color: J["encre"], weight: 2, fillColor: J["menthe"], fillOpacity: 1 }} />}
+        {/* Pas de point qui avance : c'est la rue qui se colore, et elle suffit.
+            Le point donnait une position à la précision d'un pas de Places,
+            que la couleur dit déjà mieux. */}
         {direct
           ? visibles.map((r) => {
             const e = emplacementDe(r.classe);

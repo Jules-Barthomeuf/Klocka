@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-syntax -- palette de données.
+   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
+   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
+   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from "react-leaflet";

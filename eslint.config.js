@@ -32,7 +32,20 @@ export default [
       "react/react-in-jsx-scope": "off",
       "react/no-unknown-property": ["error", { ignore: ["cmdk-input-wrapper", "toast-close"] }],
       "react-hooks/rules-of-hooks": "error",
+      // La couleur ne s'écrit plus à la main : elle a un nom dans
+      // src/design/jetons.json, que Tailwind et le JavaScript lisent tous
+      // les deux. Deux cent cinquante et une nuances distinctes s'étaient
+      // accumulées pour quatorze rôles ; la règle ferme la porte.
+      "no-restricted-syntax": ["error", {
+        selector: "Literal[value=/^#(?:[0-9a-fA-F]{3}){1,2}$/]",
+        message: "Pas d'hexadécimal : prenez le jeton dans src/design/jetons.json (import { J } from \"@/design/jetons\"), ou la classe Tailwind du même nom.",
+      }],
     },
+  },
+  {
+    // Le socle lui-même a le droit de nommer les couleurs.
+    files: ["src/design/**"],
+    rules: { "no-restricted-syntax": "off" },
   },
   {
     // Les modules pilotant un navigateur sans écran : le code passé à

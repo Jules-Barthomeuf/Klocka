@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-syntax -- palette de données.
+   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
+   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
+   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React from "react";
 import { J } from "@/design/jetons";
 import { Link, useLocation } from "react-router-dom";
@@ -224,13 +228,13 @@ export function Chiffre({ label, valeur, detail = null, teinte = null, onClick =
 /** Une pastille d'état : en cours, terminé, à lancer. */
 export function Statut({ etat }) {
   const m = {
-    en_cours: ["En cours", "var(--k-menthe)", true],
-    rues_proposees: ["Rues proposées", "var(--k-menthe)", false],
-    fini: ["Terminé", "var(--k-craie)", false],
+    en_cours: ["En cours", J["menthe"], true],
+    rues_proposees: ["Rues proposées", J["menthe"], false],
+    fini: ["Terminé", J["craie"], false],
     arrete: ["Arrêté", "#E8B278", false],
     interrompu: ["Interrompu", "#E8B278", false],
-    erreur: ["En erreur", "var(--k-alerte)", false],
-  }[etat] || ["À lancer", "var(--k-brume)", false];
+    erreur: ["En erreur", J["alerte"], false],
+  }[etat] || ["À lancer", J["brume"], false];
   return (
     <span className="inline-flex items-center gap-2 text-[11px] tracking-[.12em] uppercase rounded-full border border-bord px-3 py-1.5" style={{ color: m[1] }}>
       <span className={`w-[6px] h-[6px] rounded-full ${m[2] ? "animate-pulse" : ""}`} style={{ background: m[1] }} />
@@ -308,7 +312,7 @@ export function Urgence({ c, compact = false }) {
           <span key={n} className="w-[5px] rounded-[2px]" style={{ height: `${6 + n * 2}px`, background: n <= u.niveau ? u.teinte : "rgba(255,255,255,0.08)" }} />
         ))}
       </div>
-      {!compact && <span className="text-[12.5px]" style={{ color: u.niveau ? u.teinte : "var(--k-brume)" }}>{u.mot}</span>}
+      {!compact && <span className="text-[12.5px]" style={{ color: u.niveau ? u.teinte : J["brume"] }}>{u.mot}</span>}
     </div>
   );
 }

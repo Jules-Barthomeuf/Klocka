@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-syntax -- palette de données.
+   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
+   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
+   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React from "react";
 import { MapPin, Building2, Users, Globe, Star, Briefcase, Bus, Euro, Wrench, Landmark as LandmarkIcon, TrendingUp, Calendar, Percent, HandCoins, Info, CheckCircle2, ArrowDown, Home, Key, FileText, Mail } from "lucide-react";
 import { J } from "@/design/jetons";

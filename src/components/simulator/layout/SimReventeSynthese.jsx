@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-syntax -- palette de données.
+   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
+   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
+   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";

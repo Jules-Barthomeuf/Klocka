@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-syntax -- palette de données.
+   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
+   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
+   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useInView, useMotionValue, useSpring } from "framer-motion";
 import { GlowingEffect } from "@/components/ui/glowing-effect";

@@ -149,20 +149,9 @@ button.k-case:not([aria-checked="true"]):hover { border-color: #3a3f4a; }
        menthe...), pour les styles écrits en ligne : un graphique, un dégradé,
        une couleur calculée en JavaScript. Un seul endroit pour les deux
        chemins, sinon la palette se dédouble au premier changement. */
-    --k-fond: #000000;
-    --k-surface: #0f1114;
-    --k-encre: #f2f3f5;
-    --k-craie: #c9cdd6;
-    --k-ardoise: #9298a6;
-    --k-brume: #6a7180;
-    --k-menthe: #96c0b8;
-    --k-menthe-clair: #c3ddd6;
-    --k-trait: #1f2228;
-    --k-bord: #22262d;
-    --k-bord-doux: #2c3139;
-    --k-bord-vif: #3a3f4a;
-    --k-alerte: #e8746a;
-    --k-ambre: #d9b46a;
+    /* La palette ne vit plus ici : src/design/jetons.json est le seul endroit,
+       lu par Tailwind et par le JavaScript. Ce bloc dupliquait les quatorze
+       jetons pour vingt-six usages ; ces usages sont passés aux jetons. */
 
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { EnTeteAlx, Carte, GrilleStats, Stat } from "@/components/alx/alx-commun";
+import { J } from "@/design/jetons";
 
 // Ce qui a marché. C'est ici qu'on ajuste les seuils du fichier de règles :
 // un signal qui ne convertit jamais n'en est pas un, une rue qui ne répond
@@ -75,7 +76,7 @@ export default function ALXBilan() {
             <Stat
               label="Réponses"
               valeur={a.reponses || 0}
-              teinte="var(--k-menthe)"
+              teinte={J["menthe"]}
               detail={a.total ? `${Math.round(((a.reponses || 0) / a.total) * 100)} % · délai médian ${a.delai_median_jours ?? "—"} jours` : "—"}
             />
             <Stat label="Rendez-vous obtenus" valeur={a.oui || 0} detail={`dont ${c.en_dossier || 0} avec bail communiqué`} />

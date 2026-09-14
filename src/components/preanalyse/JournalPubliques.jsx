@@ -39,7 +39,7 @@ export function SecondPointDeVue({ comparaison, ecart }) {
     <div className="rounded-[14px] border border-white/[0.08] px-[22px] py-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="alx-mont text-[9.5px] font-medium uppercase tracking-[.14em] text-[#96c0b8]">Ce qui s'est vendu autour · DVF</span>
-        <span className="alx-mont text-[14px] tabular-nums text-[#F3F7F5]">
+        <span className="text-[14px] font-medium tabular-nums text-[#F3F7F5]">
           {fmt(comparaison.prix_m2)} €/m² · {comparaison.n} vente{comparaison.n > 1 ? "s" : ""} dans {fmt(comparaison.rayon)} m
           {comparaison.periode ? ` · ${String(comparaison.periode.du).slice(0, 4)}–${String(comparaison.periode.au).slice(0, 4)}` : ""}
         </span>

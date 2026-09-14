@@ -8,7 +8,8 @@ import React from "react";
 // dessous, et si les sources se recouvrent.
 
 const fmt = (n) => (n == null ? "—" : Math.round(n).toLocaleString("fr-FR"));
-const MONT = { fontFamily: "Montserrat, 'Instrument Sans', system-ui, sans-serif", fontVariantNumeric: "tabular-nums" };
+const MONT = { fontFamily: "Montserrat, 'Instrument Sans', system-ui, sans-serif" };
+const NUM = { fontVariantNumeric: "tabular-nums" };
 
 /** L'échelle : de quarante en quarante, avec de l'air aux deux bouts. Pure. */
 export function echelleDe(valeurs, pas = 40) {
@@ -49,7 +50,7 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
             <div className="absolute bottom-0 top-[22px] w-[2px]" style={{ left: x(enPlace), background: "#e0a45e", boxShadow: "0 0 22px rgba(224,164,94,0.55)" }} />
             <div className="absolute -top-[30px] flex -translate-x-1/2 items-center gap-[9px] whitespace-nowrap rounded-full px-[15px] py-[7px]" style={{ left: x(enPlace), background: "rgba(224,164,94,0.1)", border: "1px solid rgba(224,164,94,0.45)" }}>
               <span className="text-[9.5px] font-medium uppercase tracking-[.14em] text-[#e0a45e]" style={MONT}>En place</span>
-              <span className="text-[15px] text-[#F3F7F5]" style={MONT}>{fmt(enPlace)}</span>
+              <span className="text-[15px] font-medium text-[#F3F7F5]" style={NUM}>{fmt(enPlace)}</span>
             </div>
           </>
         )}
@@ -67,7 +68,7 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
             </div>
             <div className="relative h-[30px]" style={{ ...grille, backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)" }}>
               <div className="absolute top-[11px] h-[8px] rounded-full" style={{ left: x(l.bas), width: largeur(l.bas, l.haut), background: principale ? "#96c0b8" : "rgba(90,103,98,0.85)" }} />
-              <span className="absolute top-[6px] whitespace-nowrap text-[12.5px]" style={{ ...MONT, color: principale ? "#C3CBC7" : "#8B938F", ...(texteADroite ? { left: `calc(${x(l.haut)} + 12px)` } : { right: `calc(100% - ${x(l.bas)} + 12px)` }) }}>
+              <span className="absolute top-[6px] whitespace-nowrap text-[12.5px]" style={{ ...NUM, color: principale ? "#C3CBC7" : "#8B938F", ...(texteADroite ? { left: `calc(${x(l.haut)} + 12px)` } : { right: `calc(100% - ${x(l.bas)} + 12px)` }) }}>
                 {fmt(l.bas)} – {fmt(l.haut)}
               </span>
             </div>
@@ -76,7 +77,7 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
       })}
 
       <div />
-      <div className="relative h-[30px] border-t text-[11px] text-[#C3CBC7]" style={{ ...MONT, borderColor: "rgba(255,255,255,0.32)" }}>
+      <div className="relative h-[30px] border-t text-[11.5px] text-[#C3CBC7]" style={{ ...NUM, borderColor: "rgba(255,255,255,0.32)" }}>
         {echelle.graduations.map((g, i) => {
           const premier = i === 0;
           const dernier = i === echelle.graduations.length - 1;

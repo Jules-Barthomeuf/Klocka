@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Etiquette, Etoiles, Nombre, emplacementDe } from "@/components/alx/alx-commun";
+import { Etiquette, Etoiles, emplacementDe } from "@/components/alx/alx-commun";
 
 // L'emplacement du dossier, vu par ALX.
 //
@@ -74,7 +74,7 @@ export default function MarcheEmplacement({ adresse }) {
         {chiffres.map(([mot, val]) => (
           <div key={mot}>
             <Etiquette className="!text-[9px]">{mot}</Etiquette>
-            <div className="mt-[7px]"><Nombre taille={18} teinte="#E8EFEB">{val}</Nombre></div>
+            <div className="mt-[7px] text-[18px] font-medium tabular-nums text-[#E8EFEB]">{val}</div>
           </div>
         ))}
       </div>

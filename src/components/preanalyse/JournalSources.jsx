@@ -38,7 +38,7 @@ export function Recoupement({ recoupement }) {
           {alerte ? "Écart entre les sources" : "Les sources concordent"}
         </span>
         {ecart != null && (
-          <span className="alx-mont text-[14px] tabular-nums text-[#F3F7F5]">
+          <span className="text-[14px] font-medium tabular-nums text-[#F3F7F5]">
             {fmt(ecart)} €/m²/an{relatif != null ? ` · ${pct(relatif * 100, 0)}` : ""}
           </span>
         )}
@@ -47,7 +47,7 @@ export function Recoupement({ recoupement }) {
         {lectures.map((l, i) => (
           <div key={`${l.service}-${i}`} className="flex items-baseline justify-between gap-3 border-t border-white/[0.06] py-[9px]">
             <span className="text-[13.5px] text-[#C3CBC7]">{l.service}{l.service === "Data-B" && l.echelle ? `, ${l.echelle}${l.precision ? ` ${l.precision}` : ""}` : ""}</span>
-            <span className="alx-mont whitespace-nowrap text-[14px] text-[#E8EFEB]">{l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an</span>
+            <span className="whitespace-nowrap text-[14px] tabular-nums text-[#E8EFEB]">{l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an</span>
           </div>
         ))}
       </div>

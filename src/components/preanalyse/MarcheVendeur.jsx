@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Bouton, Etiquette, Nombre, TEINTES, joliNom } from "@/components/alx/alx-commun";
+import { Bouton, Etiquette, TEINTES, joliNom } from "@/components/alx/alx-commun";
 
 // Le vendeur du dossier, vu par ALX.
 //
@@ -28,7 +28,7 @@ function Lift({ r }) {
   if (r.lift == null) return null;
   const teinte = r.lift >= 1.2 ? TEINTES.ecrire : r.lift <= 0.8 ? TEINTES.urgence5 : TEINTES.muet;
   return (
-    <span className="alx-mont shrink-0 rounded-full border px-2 py-[2px] text-[10.5px] tabular-nums" style={{ borderColor: `${teinte}55`, color: teinte }} title={`${r.vendeurs_pct} % des vendeurs, ${r.temoins_pct} % des commerces qui ne vendent pas`}>
+    <span className="shrink-0 rounded-full border px-2 py-[2px] text-[11px] font-medium tabular-nums" style={{ borderColor: `${teinte}55`, color: teinte }} title={`${r.vendeurs_pct} % des vendeurs, ${r.temoins_pct} % des commerces qui ne vendent pas`}>
       ×{String(r.lift).replace(".", ",")}
     </span>
   );
@@ -127,7 +127,7 @@ export default function MarcheVendeur({ lot, dossier, adresse }) {
                 {gerants.map((g, i) => (
                   <div key={i} className="flex items-baseline justify-between gap-3 border-t border-white/[0.055] py-2">
                     <span className="text-[13.5px] text-[#E8EFEB]">{joliNom(g.nom)}{g.qualite ? <span className="text-[#8B938F]"> · {g.qualite}</span> : null}</span>
-                    <Nombre taille={12.5} teinte="#C3CBC7">{g.tranche_age ? `${g.tranche_age} ans` : "—"}</Nombre>
+                    <span className="text-[12.5px] tabular-nums text-[#C3CBC7]">{g.tranche_age ? `${g.tranche_age} ans` : "—"}</span>
                   </div>
                 ))}
               </div>
@@ -143,7 +143,7 @@ export default function MarcheVendeur({ lot, dossier, adresse }) {
             ].map(([mot, v]) => (
               <div key={mot}>
                 <Etiquette className="!text-[9px]">{mot}</Etiquette>
-                <div className="mt-1"><Nombre taille={13.5} teinte="#F3F7F5">{v}</Nombre></div>
+                <div className="mt-1 text-[14px] font-medium tabular-nums text-[#F3F7F5]">{v}</div>
               </div>
             ))}
           </div>
@@ -153,7 +153,7 @@ export default function MarcheVendeur({ lot, dossier, adresse }) {
               <Etiquette className="!text-[9px]">Au BODACC, trois ans</Etiquette>
               <div className="mt-1.5 flex flex-col gap-1">
                 {c.evenements.slice(0, 4).map((e, i) => (
-                  <div key={i} className="flex gap-3 text-[12.5px] text-[#C3CBC7]"><span className="alx-mont shrink-0 tabular-nums text-[11px] text-[#8B938F]">{String(e.date).slice(0, 10)}</span><span className="min-w-0 truncate">{e.type}{e.detail ? ` · ${e.detail}` : ""}</span></div>
+                  <div key={i} className="flex gap-3 text-[12.5px] text-[#C3CBC7]"><span className="shrink-0 tabular-nums text-[11.5px] text-[#8B938F]">{String(e.date).slice(0, 10)}</span><span className="min-w-0 truncate">{e.type}{e.detail ? ` · ${e.detail}` : ""}</span></div>
                 ))}
               </div>
             </div>

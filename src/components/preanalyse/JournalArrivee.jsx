@@ -153,7 +153,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
   return (
     <div className="pb-9 pt-[6px]">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <span className="text-[28px] font-light tracking-[-.025em] text-[#F3F7F5]" style={{ fontFamily: "Figtree, 'Instrument Sans', system-ui, sans-serif" }}>Analyse du {analyse.le}</span>
+        <span className="text-[28px] font-normal tracking-[-.02em] text-[#F3F7F5]">Analyse du {analyse.le}</span>
         <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-[#96c0b8] px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-[#08130D] hover:bg-[#c3ddd6] disabled:opacity-30 transition-colors" />
       </div>
 
@@ -193,7 +193,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                     {c.libelle}
                     <InfoBulle texte={c.detail} />
                   </span>
-                  <span className="alx-mont mt-2 block whitespace-nowrap text-[17px] tabular-nums" style={{ color: teinteDe(c) }}>{chiffre}</span>
+                  <span className="mt-2 block whitespace-nowrap text-[18px] font-medium tabular-nums" style={{ color: teinteDe(c) }}>{chiffre}</span>
                   {mot && <span className="mt-1 block text-[11.5px] text-[#8B938F]">{mot}</span>}
                 </button>
               );
@@ -221,7 +221,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                       <span className="h-[5px] w-[5px] flex-shrink-0 rounded-full" style={{ background: c.pastille }} aria-hidden />
                       <span className="flex-shrink-0 text-[14px] text-[#F3F7F5]">{s.nom}</span>
                       <span className="min-w-0 flex-1 text-[12.5px]" style={{ color: s.ton === "ambre" || s.ton === "rouge" ? c.etiquette : "#8B938F" }}>{s.etat}</span>
-                      <span className="alx-mont flex-shrink-0 whitespace-nowrap text-[11px] text-[#8B938F]">{s.quand}</span>
+                      <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] tabular-nums text-[#8B938F]">{s.quand}</span>
                     </li>
                   );
                 })}
@@ -233,9 +233,9 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
               <ol className="m-0 mt-3.5 flex list-none flex-col p-0">
                 {analyse.consultations.map((c, i) => (
                   <li key={`${c.quoi}-${i}`} title={c.url || undefined} className={`flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 py-3 ${i < analyse.consultations.length - 1 ? "border-b border-white/[0.05]" : ""}`}>
-                    <span className="alx-mont flex-shrink-0 text-[11px] tabular-nums text-[#8B938F]">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="flex-shrink-0 text-[11.5px] tabular-nums text-[#8B938F]">{String(i + 1).padStart(2, "0")}</span>
                     <span className="min-w-0 flex-1 text-[13.5px] text-[#C3CBC7]">{c.src ? `${c.quoi}` : c.quoi}</span>
-                    <span className="alx-mont flex-shrink-0 whitespace-nowrap text-[11px]" style={{ color: ton(c.ton).etiquette }}>{c.issue}</span>
+                    <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] tabular-nums" style={{ color: ton(c.ton).etiquette }}>{c.issue}</span>
                   </li>
                 ))}
               </ol>

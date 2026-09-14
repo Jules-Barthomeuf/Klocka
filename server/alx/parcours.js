@@ -364,7 +364,9 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         siret: e.siret,
         place_id: e.place_id || null,
         code_postal: e.code_postal || null,
-        occupant: e.siret || e.nom ? { siret: e.siret, siren: e.siren, nom: e.nom, ape: e.ape, depuis: e.depuis, chaine: e.chaine } : null,
+        // « ferme » vient de Maps : un commerce donné comme définitivement
+        // fermé est un drapeau à vérifier, pas un signal.
+        occupant: e.siret || e.nom ? { siret: e.siret, siren: e.siren, nom: e.nom, ape: e.ape, depuis: e.depuis, chaine: e.chaine, ferme: e.ferme === true } : e.ferme === true ? { ferme: true } : null,
         telephone: e.telephone || null,
         site: e.site || null,
         lat: e.lat,
@@ -425,9 +427,10 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
         erreursRue += 1;
         if (erreursRue <= ERREURS_PAR_RUE_AU_JOURNAL) noter(villeId, `${c.adresse} : propriétaire non lu (${err.message}).`);
       }
-      // 5. La société et les gens : BODACC sur le SIREN, DVF sur l'adresse.
+      // 5. La société et les gens : BODACC sur le SIREN du propriétaire et
+      // sur celui du locataire, DVF sur l'adresse.
       ecrire(villeId, { etape: 5 });
-      if (c.proprietaire?.siren) {
+      if (c.proprietaire?.siren || c.occupant?.siren || c.siret) {
         try {
           c = (await enrichir.lireEvenements(c.id, { user })).cible;
         } catch (err) {

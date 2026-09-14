@@ -11,8 +11,14 @@
 // cible et décide de la pile. Le moteur est dans classement.js.
 
 import { randomUUID } from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
-import { classer, PILES } from './classement.js';
+import { classer, observableEnProspection, PILES, REGLES, SEUILS } from './classement.js';
+import { bilanPredictions, dernierePrediction, figerPrediction } from './predictions.js';
+
+const ici = path.dirname(fileURLToPath(import.meta.url));
 
 // ecarts.js importe reclasser d'ici ; on lit ses règles sans l'importer.
 function regleQuiEcarteSync(c) {
@@ -307,15 +313,40 @@ export function reclasser(id) {
   // sauf sur une cible qu'elle a explicitement reprise.
   const regle = c.ecartee_equipe || c.reprise_equipe ? null : regleQuiEcarteSync(c);
   const r = classer({ ...c, ecartee_regle: regle });
-  return Records.update('Cible', id, {
+  const maj = Records.update('Cible', id, {
     ecartee_regle: regle,
     pile: r.pile,
     motif: r.motif,
+    score: r.score || null,
     signaux: r.signaux,
     drapeaux: r.drapeaux,
     knock_outs: r.knock_outs,
     classee_le: maintenant(),
   });
+  // La lecture est figée avec sa date : c'est ce qui permettra, dans un an,
+  // de savoir si elle avait raison. Un journal qui échoue n'empêche pas de classer.
+  try { figerPrediction(maj); } catch (e) { console.error('[alx] prédiction non figée :', e.message); }
+  return maj;
+}
+
+/**
+ * Reclasse toutes les cibles avec les règles du jour. À lancer quand
+ * signaux.json change : les piles se recalculent, et chaque nouvelle lecture
+ * est figée dans le journal des prédictions. Rend ce qui a bougé.
+ */
+export function reclasserToutesLesCibles({ journal = () => {} } = {}) {
+  const avant = {};
+  const apres = {};
+  let bougees = 0;
+  const cibles = Records.list('Cible');
+  for (const c of cibles) {
+    avant[c.pile || 'surveiller'] = (avant[c.pile || 'surveiller'] || 0) + 1;
+    const maj = reclasser(c.id);
+    apres[maj.pile] = (apres[maj.pile] || 0) + 1;
+    if (maj.pile !== c.pile) bougees += 1;
+  }
+  journal(`${cibles.length} cibles reclassées (règles v${REGLES.version}), ${bougees} ont changé de pile.`);
+  return { total: cibles.length, bougees, avant, apres, version: REGLES.version };
 }
 
 export function supprimerCible(id) {
@@ -339,6 +370,9 @@ export function enregistrerApproche({ cible_id, canal, message = null, destinata
   const c = Records.get('Cible', cible_id);
   if (!c) return { ok: false, error: 'Cible introuvable.' };
   if (!CANAUX.includes(canal)) return { ok: false, error: `Canal inconnu : ${canal}.` };
+  // L'état de la cible au moment de l'envoi, figé : la pile peut changer
+  // ensuite, ce qu'on juge au Bilan est ce qu'on croyait en écrivant.
+  const derniere = dernierePrediction(c);
   const approche = Records.create(
     'Approche',
     {
@@ -349,6 +383,15 @@ export function enregistrerApproche({ cible_id, canal, message = null, destinata
       par: user?.email || null,
       message,
       destinataire,
+      pile_envoi: c.pile || null,
+      score_envoi: c.score?.total ?? null,
+      signaux_envoi: [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((s) => s.cle),
+      regles_version: REGLES.version,
+      // Un témoin : une cible « à surveiller » tirée au sort, écrite comme
+      // les autres. Sans lui, on ne distingue jamais un bon classement d'un
+      // bon courrier.
+      temoin: c.temoin === true,
+      prediction_id: derniere?.id || null,
       issue: 'sans_reponse',
       reponse: null,
       reponse_le: null,
@@ -440,6 +483,55 @@ export function aFaire() {
   };
 }
 
+/**
+ * Tire au sort des témoins dans une ville : des cibles « à surveiller », avec
+ * un propriétaire, jamais approchées. On leur écrit comme aux autres. Si les
+ * témoins répondent autant que la pile « à appeler », le classement ne sert
+ * à rien, et on le saura avant d'avoir posté mille courriers.
+ */
+export function tirerTemoins(villeId, { n = 5, user = null } = {}) {
+  const ville = Records.get('Ville', villeId);
+  if (!ville) return { ok: false, error: 'Ville introuvable.' };
+  const candidats = Records.filter('Cible', { ville_id: villeId })
+    .filter((c) => c.pile === 'surveiller' && !c.temoin && !c.derniere_approche_le && !c.deal_id && c.proprietaire?.nom);
+  if (!candidats.length) return { ok: false, error: 'Aucune cible à surveiller avec un propriétaire connu et jamais approchée.' };
+  const tires = [];
+  const reste = [...candidats];
+  while (tires.length < Math.min(n, candidats.length)) {
+    const i = Math.floor(Math.random() * reste.length);
+    tires.push(reste.splice(i, 1)[0]);
+  }
+  const temoins = tires.map((c) => Records.update('Cible', c.id, { temoin: true, temoin_tire_le: maintenant(), temoin_tire_par: user?.email || null }));
+  return { ok: true, temoins, candidats: candidats.length };
+}
+
+/** Un fichier de mesure, s'il existe : la mesure DVF, l'étude des vendeurs. */
+const lireMesure = (nom) => {
+  try { return JSON.parse(fs.readFileSync(path.join(ici, 'data', nom), 'utf-8')); } catch { return null; }
+};
+
+/** Les poids des signaux tels que le fichier de règles les pose, avec leur justification. */
+export function poidsDesSignaux() {
+  const etude = lireMesure('etude-vendeurs.json');
+  const lift = Object.fromEntries((etude?.lignes || []).map((l) => [l.trait, l]));
+  const ligne = (r, famille) => ({
+    cle: r.cle,
+    libelle: r.libelle,
+    famille,
+    poids: typeof r.poids === 'number' ? r.poids : famille === 'fort' ? 3 : 0.8,
+    poids_par_type: r.poids_par_type || null,
+    pourquoi: r.pourquoi || null,
+    observable: r.observable_en_prospection !== false,
+    etude: lift[r.cle] ? { lift: lift[r.cle].lift, vendeurs_pct: lift[r.cle].vendeurs_pct, temoins_pct: lift[r.cle].temoins_pct } : null,
+  });
+  return {
+    seuils: SEUILS,
+    version: REGLES.version,
+    signaux: [...(REGLES.signaux_forts || []).map((r) => ligne(r, 'fort')), ...(REGLES.signaux_patients || []).map((r) => ligne(r, 'patient'))],
+    etude: etude ? { le: etude.le, vendeurs: etude.vendeurs, temoins: etude.temoins } : null,
+  };
+}
+
 /** Ce qui a marché : par pile, par rue, par canal, par signal. */
 export function bilan() {
   const cibles = Records.list('Cible');
@@ -455,8 +547,12 @@ export function bilan() {
       if (x.issue === 'oui') out[k].oui += 1;
       if (x.issue === 'non') out[k].non += 1;
     }
-    return Object.entries(out).map(([k, v]) => ({ cle: k, ...v })).sort((a, b) => b.total - a.total);
+    return Object.entries(out).map(([k, v]) => ({ cle: k, ...v, taux_reponse: v.total ? Math.round((v.reponses / v.total) * 1000) / 10 : null })).sort((a, b) => b.total - a.total);
   };
+  // La pile au moment de l'envoi ; à défaut (envois d'avant le journal),
+  // la pile d'aujourd'hui, en le disant.
+  const pileEnvoi = (a) => (a.temoin ? 'temoin' : a.pile_envoi || parCible[a.cible_id]?.pile || null);
+  const mesureDvf = lireMesure('mesure-dvf.json');
   const delais = approches
     .filter((a) => a.reponse_le)
     .map((a) => Math.round((new Date(a.reponse_le) - new Date(a.le)) / 86400000))
@@ -473,8 +569,17 @@ export function bilan() {
     },
     par_canal: groupe(approches, (a) => a.canal),
     par_rue: groupe(approches, (a) => parCible[a.cible_id]?.rue),
-    par_signal: groupe(approches, (a) => parCible[a.cible_id]?.signaux?.forts?.[0]?.cle || parCible[a.cible_id]?.signaux?.patients?.[0]?.cle),
+    par_signal: groupe(approches, (a) => (a.signaux_envoi || [])[0] || parCible[a.cible_id]?.signaux?.forts?.[0]?.cle || parCible[a.cible_id]?.signaux?.patients?.[0]?.cle),
     motifs_refus: groupe(approches.filter((a) => a.issue === 'non'), (a) => a.motif_refus),
+    // La pile au moment de l'envoi, témoins à part : c'est la ligne qui dit
+    // si le classement vaut mieux que le hasard.
+    par_pile_envoi: groupe(approches, pileEnvoi),
+    envois_sans_instantane: approches.filter((a) => !a.pile_envoi && !a.temoin).length,
+    temoins: { tires: cibles.filter((c) => c.temoin).length, ecrits: approches.filter((a) => a.temoin).length },
+    predictions: bilanPredictions(),
+    poids: poidsDesSignaux(),
+    mesure_dvf: mesureDvf ? { le: mesureDvf.le, communes: mesureDvf.communes, base: mesureDvf.base, horizon_mois: mesureDvf.horizon_mois, par_fenetre: mesureDvf.par_fenetre, voisin: mesureDvf.voisin, bloc: mesureDvf.bloc, limites: mesureDvf.limites } : null,
+    non_observables: [...(REGLES.signaux_forts || []), ...(REGLES.signaux_patients || [])].filter((r) => !observableEnProspection(r.cle)).map((r) => r.cle),
   };
 }
 

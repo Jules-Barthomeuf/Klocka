@@ -651,9 +651,12 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
   const simple = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const q = simple(recherche.trim());
   const enCours = ville?.parcours?.etat === "en_cours" && ville?.parcours?.phase === "commerces";
-  const interessants = cibles.filter((c) => ["appeler", "ecrire"].includes(c.pile));
+  // Les témoins : des « à surveiller » tirés au sort, qu'on écrit comme les
+  // autres pour savoir ce que vaut le classement. Ils vivent parmi les intéressants.
+  const interessant = (c) => ["appeler", "ecrire"].includes(c.pile) || c.temoin === true;
+  const interessants = cibles.filter(interessant);
   const liste = cibles
-    .filter((c) => (q ? true : filtre === "interessants" ? ["appeler", "ecrire"].includes(c.pile) : filtre === "ecartes" ? c.pile === "ecartee" : filtre === "surveiller" ? c.pile === "surveiller" : true))
+    .filter((c) => (q ? true : filtre === "interessants" ? interessant(c) : filtre === "ecartes" ? c.pile === "ecartee" : filtre === "surveiller" ? c.pile === "surveiller" && !c.temoin : true))
     .filter((c) => !rue || c.rue === rue)
     .filter((c) => !q || simple(`${c.enseigne} ${c.adresse} ${c.proprietaire?.nom || ""} ${c.activite || ""}`).includes(q))
     .filter(dansLaTranche)
@@ -739,7 +742,10 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
           className="alx-entree grid cursor-pointer grid-cols-[minmax(0,1fr)_220px_200px_150px_110px] items-center gap-x-4 border-b border-trait px-1.5 py-[15px] transition-colors hover:bg-white/[0.028] max-md:grid-cols-[minmax(0,1fr)_90px]"
         >
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-light text-encre">{joliNom(c.enseigne) || "Sans enseigne"}</span>
+            <span className="flex items-center gap-2 truncate text-[15px] font-light text-encre">
+              <span className="truncate">{joliNom(c.enseigne) || "Sans enseigne"}</span>
+              {c.temoin && <Etiquette teinte={TEINTES.muet} className="shrink-0 !text-[10px]">témoin</Etiquette>}
+            </span>
             <span className="block truncate text-[12.5px] text-ardoise md:hidden">{c.adresse}</span>
           </span>
           <span className="min-w-0 truncate text-[13.5px] text-craie max-md:hidden">{c.adresse}</span>

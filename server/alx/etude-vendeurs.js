@@ -18,6 +18,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { creerCible, creerVille, reclasser } from './index.js';
+import { observableEnProspection } from './classement.js';
 import * as enrichir from './enrichir.js';
 
 const ici = path.dirname(fileURLToPath(import.meta.url));
@@ -141,9 +142,26 @@ export function rapport({ journal = console.log } = {}) {
   const lignes = Object.entries(TRAITS).map(([cle, f]) => {
     const v = vendeurs.filter(f).length, t = temoins.filter(f).length;
     const pv = v / Math.max(1, vendeurs.length), pt = t / Math.max(1, temoins.length);
-    return { trait: cle, vendeurs: v, vendeurs_pct: Math.round(pv * 100), temoins: t, temoins_pct: Math.round(pt * 100), lift: pt > 0 ? Math.round((pv / pt) * 10) / 10 : null };
+    // Un signal qui ne se lit que sur un dossier (l'échéance du bail, le loyer
+    // du bail) n'existe pas chez les témoins : il paraîtrait parfait. On le
+    // garde dans la table, marqué, et sans lift.
+    const observable = observableEnProspection(cle);
+    return { trait: cle, vendeurs: v, vendeurs_pct: Math.round(pv * 100), temoins: t, temoins_pct: Math.round(pt * 100), lift: observable && pt > 0 ? Math.round((pv / pt) * 10) / 10 : null, observable };
   }).sort((x, y) => (y.lift ?? 0) - (x.lift ?? 0));
-  const sortie = { le: new Date().toISOString(), vendeurs: vendeurs.length, projets: connus.projets, dossiers: connus.dossiers, temoins: temoins.length, lignes };
+  const sortie = {
+    le: new Date().toISOString(),
+    vendeurs: vendeurs.length,
+    projets: connus.projets,
+    dossiers: connus.dossiers,
+    temoins: temoins.length,
+    lignes,
+    limites: [
+      "Les vendeurs sont des dossiers arrivés par des agents : l'étude mesure qui vend par ce canal, pas qui vend. La mesure DVF (mesure-dvf.js) n'a pas ce biais.",
+      "Les témoins sont des « pas encore vendus », pas des jamais-vendeurs : les lifts sont plutôt sous-estimés que l'inverse.",
+      "Les signaux marqués non observables ne se lisent que sur un dossier entré : leur lift n'a pas de sens, il n'est pas calculé.",
+      'Les piles des vendeurs sont recalculées avec les règles du jour : ce sont des prédictions faites après coup, pas avant. Le journal des prédictions (predictions.js) fait la vraie épreuve, sur les cibles prospectées.',
+    ],
+  };
   fs.writeFileSync(RAPPORT, JSON.stringify(sortie, null, 2));
   journal(`Vendeurs (${connus.projets} projets Klocka, ${connus.dossiers} dossiers lus, propriétaire trouvé) : ${vendeurs.length} · témoins (rues prospectées, non vendus) : ${temoins.length}`);
   journal('trait'.padEnd(26) + 'vendeurs'.padStart(10) + 'témoins'.padStart(10) + 'lift'.padStart(7));

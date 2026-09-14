@@ -1,38 +1,62 @@
 {
   "_lisez_moi": [
     "Les règles du classement ALX. Comme rules.json pour le verdict : tout se lit ici, rien n'est deviné.",
-    "Trois piles : appeler (un signal fort), ecrire (un signal patient), surveiller (aucun signal).",
-    "Une cible est écartée avant tout classement si un knock-out la touche.",
-    "Les seuils sont ceux du point de départ : à caler sur la première ville, avec le tableau Bilan.",
+    "Deux natures de règles, et elles ne se mélangent pas. Les knock-outs et les drapeaux sont des FAITS : ils constatent (usufruit, indivision, local vide, activité exclue), ils ne prédisent rien, et ils passent avant tout le reste, dans l'ordre. Les signaux sont des PARIS : chacun porte un poids, les poids s'additionnent, et le score fait la pile : appeler au-dessus de seuils_score.appeler, ecrire au-dessus de seuils_score.ecrire, surveiller en dessous.",
+    "Un poids vient d'une mesure quand on en a une, et le dit dans « pourquoi ». Version 3 : les poids sont posés d'après l'étude des vendeurs du 14 septembre 2026 (43 vendeurs réels relus, 493 commerces prospectés en témoins) — un signal plus fréquent chez les vendeurs pèse, un signal aussi fréquent chez les témoins ne pèse plus. La règle : poids ≈ 2 × ln(lift), plafonné, jamais négatif tant que l'échantillon est petit. Sans mesure : 3 pour un signal fort, 0,8 pour un patient.",
+    "Deux signaux ne s'observent qu'après coup (observable_en_prospection: false) : l'échéance de bail et le loyer du bail, qu'on ne lit que sur un dossier déjà entré. Ils comptent sur un dossier, jamais dans une rue prospectée, et l'étude des vendeurs les écarte de ses comparaisons — sinon ils paraissent parfaits, parce qu'ils ne se déclenchent que chez ceux qui ont déjà vendu.",
+    "La mesure DVF (server/alx/mesure-dvf.js, data/mesure-dvf.json) teste à date gelée ce que DVF seul permet de tester : la fenêtre depuis la dernière mutation, un lot voisin qui mute, l'achat en bloc, la bande de prix. C'est la seule mesure sans biais de canal. Elle a tourné le 14/09/2026 sur Nice, Antibes et Cannes : les fichiers publiés ne couvrent que 2021-2025, donc deux dates de référence (2022, 2023), un taux de base de 4,4 % à 24 mois (≈ 2,2 % par an) sur des locaux qui viennent d'être achetés, et rien au-delà de quatre ans. Ses lifts sont reportés ici à la main, avec leur raison.",
     "Les seuils du parcours d'une ville (rues, commerces) sont dans « parcours » : densité minimale, loyers qui font l'emplacement, rayon du balayage."
   ],
-  "version": 2,
+  "version": 3,
   "perimetre": {
     "prix_min": 200000,
     "prix_max": 1000000,
     "_commentaire": "Toujours des murs entre 200 000 et 1 000 000. Une cible dont la fourchette estimée est entièrement hors de ces bornes est écartée."
+  },
+  "seuils_score": {
+    "appeler": 3.0,
+    "ecrire": 0.7,
+    "_commentaire": "Un marchand de biens dans sa fenêtre (3) ou un locataire en procédure (3) suffit à appeler. Un changement de gérance seul (1) fait écrire. Trois indices faibles (SCI familiale, gérant âgé, détention longue : 0,4 + 0,4 + 0,5) font écrire ; un seul ne fait rien. Se cale sur le Bilan : le taux de réponse par pile est le juge."
   },
   "signaux_forts": [
     {
       "cle": "marchand_fenetre",
       "libelle": "Marchand de biens dans sa fenêtre de revente",
       "detail": "Code APE 6810Z et parcelle achetée il y a 18 à 48 mois. C'est une inférence : DVF donne la date, l'annuaire des entreprises le code, personne ne dit qu'ils sont liés. À vérifier en première question de l'appel.",
-      "fenetre_mois": [
-        18,
-        48
-      ]
+      "fenetre_mois": [18, 48],
+      "poids": 3.0,
+      "pourquoi": "Présent chez 3 des 43 vendeurs, chez aucun des 493 témoins (étude du 14/09/2026). Trop rare pour un lift, assez net pour garder le poids plein. La fenêtre seule, sans le code APE, est mesurée sur DVF (Nice, Antibes, Cannes, actes 2021-2025, 4 064 locaux-années) : un local acheté il y a 18 à 48 mois se revend MOINS que les autres (×0,67, 18 ventes sur 607). Le signal ne tient donc que par le code APE : c'est le marchand qui revend, pas l'acheteur récent. À confronter au taux de réponse par pile."
     },
     {
       "cle": "evenement_recent",
       "libelle": "Un événement récent sur la société",
-      "detail": "Changement de gérant, transfert de siège, procédure, dans les six derniers mois. Ne jamais le mentionner dans le courrier : on écrit, le calendrier fait le reste.",
-      "fenetre_mois": 6
+      "detail": "Changement de gérant, transfert de siège, procédure, dissolution, dans les six derniers mois. Ne jamais le mentionner dans le courrier : on écrit, le calendrier fait le reste.",
+      "fenetre_mois": 6,
+      "poids": 1.0,
+      "poids_par_type": {
+        "procédure collective": 3.0,
+        "radiation ou dissolution": 2.5,
+        "changement de gérance": 1.0,
+        "transfert de siège": 0.7
+      },
+      "pourquoi": "Lift 1,4 tous types confondus (23 % des vendeurs, 17 % des témoins). Un changement de gérance seul n'est donc plus un appel, c'est un courrier. Une procédure collective ou une dissolution du propriétaire garde un poids fort : pas mesurées à part, trop rares dans l'étude."
     },
     {
       "cle": "echeance_proche",
       "libelle": "Échéance de bail dans les deux ans",
       "detail": "Une triennale ou une fin de bail proche inquiète un bailleur qui n'est pas sûr que son locataire reste.",
-      "fenetre_mois": 24
+      "fenetre_mois": 24,
+      "poids": 3.0,
+      "observable_en_prospection": false,
+      "pourquoi": "Ne se lit que sur un dossier (le bail est dans les pièces). En prospection, personne n'a le bail : le signal ne se déclenche jamais, et l'étude des vendeurs ne le compare pas."
+    },
+    {
+      "cle": "locataire_en_difficulte",
+      "libelle": "Le locataire est en procédure ou radié",
+      "detail": "Procédure collective, radiation ou dissolution de l'exploitant, lues au BODACC sur SON SIREN, dans les douze derniers mois. Un bailleur dont le locataire tombe devient vendeur dans l'année : le loyer s'arrête, la vacance commence, et il n'a pas envie de relouer.",
+      "fenetre_mois": 12,
+      "poids": 3.0,
+      "pourquoi": "Pas encore mesuré : le BODACC n'était lu que sur le propriétaire. Poids plein d'un signal fort, à confronter au taux de réponse par pile."
     }
   ],
   "signaux_patients": [
@@ -40,30 +64,56 @@
       "cle": "detention_longue",
       "libelle": "Détenu depuis plus de vingt ans",
       "detail": "Aucune mutation DVF depuis vingt ans, ou société créée il y a plus de vingt ans sans mutation depuis. Une succession se prépare.",
-      "annees_min": 20
+      "annees_min": 20,
+      "poids": 0.5,
+      "pourquoi": "Lift 1,1 (14 % des vendeurs, 13 % des témoins). Faible seul ; compte avec d'autres indices. DVF ne remonte qu'à 2014 : la mesure DVF ne peut pas tester vingt ans, seulement la fenêtre courte."
     },
     {
       "cle": "gerant_age",
       "libelle": "Gérant de plus de 70 ans",
       "detail": "Ils ne vendent pas cette année, mais ils vendront. Relance annuelle.",
-      "tranche": "70+"
+      "tranche": "70+",
+      "poids": 0.4,
+      "pourquoi": "Lift 0,4 (16 % des vendeurs, 45 % des témoins) : les propriétaires âgés sont partout dans les rues prospectées, pas plus souvent chez ceux qui vendent. Ramené à un demi-poids ; ne fait écrire qu'avec d'autres indices. À revoir quand l'étude dépassera cent vendeurs."
     },
     {
       "cle": "famille",
       "libelle": "Plusieurs gérants du même nom",
-      "detail": "Une SCI familiale : plusieurs héritiers à mettre d'accord un jour."
+      "detail": "Une SCI familiale : plusieurs héritiers à mettre d'accord un jour.",
+      "poids": 0.4,
+      "pourquoi": "Lift 0,8 (40 % des vendeurs, 47 % des témoins). Même lecture que le gérant âgé : très répandu, pas discriminant seul."
     },
     {
       "cle": "loyer_bas",
       "libelle": "Loyer nettement sous le marché",
       "detail": "Un bailleur passif qui ne suit pas son actif accepte souvent un prix raisonnable parce qu'il ne connaît pas sa valeur.",
-      "ratio_max": 0.7
+      "ratio_max": 0.7,
+      "poids": 0.8,
+      "observable_en_prospection": false,
+      "pourquoi": "Lit le loyer du bail, qu'on n'a que sur un dossier. Jamais déclenché en prospection. Et il prédit sans doute une bonne affaire, pas une vente."
     },
     {
       "cle": "bien_isole",
       "libelle": "Un seul bien, loin du siège",
       "detail": "Un propriétaire d'un lot isolé à plus de cent kilomètres de chez lui est structurellement plus vendeur.",
-      "distance_km_min": 100
+      "distance_km_min": 100,
+      "poids": 0.8,
+      "pourquoi": "Jamais observé ni chez les vendeurs ni chez les témoins : la distance au siège n'est pas encore calculée. Poids par défaut, en attendant."
+    },
+    {
+      "cle": "siege_ailleurs",
+      "libelle": "Siège de la société dans une autre commune",
+      "detail": "Le propriétaire ne vit pas là où sont ses murs : il ne passe pas devant, il ne connaît pas le commerçant, le lot est une ligne dans un patrimoine.",
+      "poids": 0.7,
+      "pourquoi": "Lift 1,4 (63 % des vendeurs, 46 % des témoins). C'était un trait de l'étude, il devient un signal."
+    },
+    {
+      "cle": "voisin_mute",
+      "libelle": "Un autre lot de l'immeuble vient de se vendre",
+      "detail": "Une mutation sur la même parcelle dans les vingt-quatre derniers mois, un autre lot que le local : une découpe est en cours, ou l'immeuble se vide de ses copropriétaires d'origine. Le lot commercial suit souvent.",
+      "fenetre_mois": 24,
+      "poids": 0.0,
+      "pourquoi": "Mesuré sur DVF le 14/09/2026 (Nice, Antibes, Cannes, actes 2021-2025) : ×0,9 sur 2 935 cas, contre ×1,26 sans voisin. À l'échelle de la parcelle, un autre lot qui se vend ne dit rien du local commercial. Gardé dans la trace, à poids nul ; à remesurer à l'échelle du lot commercial voisin quand on saura l'isoler."
     }
   ],
   "drapeaux": [
@@ -77,7 +127,8 @@
       "cle": "indivision",
       "libelle": "Indivision",
       "detail": "Plusieurs accords à obtenir. Sauf indivision successorale, qui est un vivier : elle passe en pile patiente.",
-      "effet": "lent"
+      "effet": "lent",
+      "poids_si_patient": 0.8
     },
     {
       "cle": "vente_en_bloc",
@@ -89,6 +140,12 @@
       "cle": "droit_preference",
       "libelle": "Droit de préférence du locataire",
       "detail": "Sur tout local commercial loué vendu isolément. Change la structure de l'offre, pas seulement le calendrier.",
+      "effet": "information"
+    },
+    {
+      "cle": "fermeture_maps",
+      "libelle": "Donné comme fermé définitivement sur Google Maps",
+      "detail": "À vérifier sur place avant d'écrire : si le local est vide, c'est un knock-out ; si un autre commerce s'est installé, le bailleur vient de relouer et ne vend pas ; entre les deux, il cherche.",
       "effet": "information"
     }
   ],

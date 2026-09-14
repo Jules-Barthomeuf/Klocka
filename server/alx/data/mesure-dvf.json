@@ -1,0 +1,185 @@
+{
+  "le": "2026-09-14T15:46:12.549Z",
+  "horizon_mois": 24,
+  "references": [
+    "2022-01-01",
+    "2023-01-01"
+  ],
+  "annees": [
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "derniere_date": "2025-12-31",
+  "communes": [
+    {
+      "insee": "06004",
+      "nom": "06004",
+      "annees": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "locaux": 929,
+      "ventes": 751,
+      "n": 582,
+      "taux": 129,
+      "lift": 29.13
+    },
+    {
+      "insee": "06029",
+      "nom": "06029",
+      "annees": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "locaux": 1142,
+      "ventes": 865,
+      "n": 738,
+      "taux": 117.2,
+      "lift": 26.46
+    },
+    {
+      "insee": "06088",
+      "nom": "06088",
+      "annees": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "locaux": 4501,
+      "ventes": 4028,
+      "n": 2744,
+      "taux": 146.8,
+      "lift": 33.14
+    }
+  ],
+  "base": {
+    "n": 4064,
+    "ventes": 180,
+    "taux": 4.4,
+    "lift": 1,
+    "taux_annuel_approx": 2.2
+  },
+  "par_fenetre": [
+    {
+      "cle": "0-18",
+      "n": 3457,
+      "ventes": 162,
+      "taux": 4.7,
+      "lift": 1.06
+    },
+    {
+      "cle": "18-48",
+      "n": 607,
+      "ventes": 18,
+      "taux": 3,
+      "lift": 0.67
+    },
+    {
+      "cle": "48-84",
+      "n": 0,
+      "ventes": 0,
+      "taux": null,
+      "lift": null
+    },
+    {
+      "cle": "84+",
+      "n": 0,
+      "ventes": 0,
+      "taux": null,
+      "lift": null
+    }
+  ],
+  "voisin": {
+    "avec": {
+      "n": 2935,
+      "ventes": 117,
+      "taux": 4,
+      "lift": 0.9
+    },
+    "sans": {
+      "n": 1129,
+      "ventes": 63,
+      "taux": 5.6,
+      "lift": 1.26
+    }
+  },
+  "bloc": {
+    "avec": {
+      "n": 2820,
+      "ventes": 123,
+      "taux": 4.4,
+      "lift": 0.98
+    },
+    "sans": {
+      "n": 1244,
+      "ventes": 57,
+      "taux": 4.6,
+      "lift": 1.03
+    }
+  },
+  "prix": [
+    {
+      "cle": "< 200 k€",
+      "n": 1450,
+      "ventes": 59,
+      "taux": 4.1,
+      "lift": 0.92
+    },
+    {
+      "cle": "200 k€ – 1 M€",
+      "n": 1638,
+      "ventes": 86,
+      "taux": 5.3,
+      "lift": 1.19
+    },
+    {
+      "cle": "> 1 M€",
+      "n": 926,
+      "ventes": 32,
+      "taux": 3.5,
+      "lift": 0.78
+    },
+    {
+      "cle": "inconnu",
+      "n": 50,
+      "ventes": 3,
+      "taux": 6,
+      "lift": 1.35
+    }
+  ],
+  "par_reference": [
+    {
+      "cle": "2022-01-01",
+      "n": 1314,
+      "ventes": 74,
+      "taux": 5.6,
+      "lift": 1.27
+    },
+    {
+      "cle": "2023-01-01",
+      "n": 2750,
+      "ventes": 106,
+      "taux": 3.9,
+      "lift": 0.87
+    }
+  ],
+  "limites": [
+    "Les fichiers publiés (« latest ») ne couvrent que 5 millésimes (2021–2025) : les fenêtres au-delà de 4 ans ne peuvent pas s'observer, et les années antérieures demanderaient les archives DVF.",
+    "Un local n'entre dans la mesure qu'après sa première vente vue par DVF : la population, ce sont les locaux qui ont déjà changé de mains une fois dans la fenêtre publiée. Un commerce détenu depuis 1990 n'y est pas, et ceux qui viennent d'être achetés y sont surreprésentés.",
+    "Un local est compté à chaque date de référence où il est connu : la même adresse pèse plusieurs fois, comme dans toute mesure à origine glissante.",
+    "Les « non vendus » sont des « pas encore vendus » : les lifts sont plutôt sous-estimés que l'inverse.",
+    "DVF ne connaît ni le propriétaire, ni son âge, ni sa société : les signaux qui les lisent se jugent par le journal des prédictions, pas ici.",
+    "L'identité d'un local est reconstituée (parcelle et lot, sinon numéro et surface) : quelques ventes du même commerce peuvent se lire comme deux locaux."
+  ]
+}

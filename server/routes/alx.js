@@ -320,4 +320,55 @@ export function monterAlx(app) {
 
   // --- Le bilan --------------------------------------------------------------
   app.get('/api/alx/bilan', wrap((req, res) => ok(res, bilan())));
+
+  // --- Les prédictions figées, et leur épreuve ---------------------------------
+  app.get('/api/alx/predictions', wrap(async (req, res) => {
+    const { bilanPredictions } = await import('../alx/predictions.js');
+    const query = req.query.cible_id ? { cible_id: String(req.query.cible_id) } : undefined;
+    const lignes = Records.filter('Prediction', query, { sort: '-le', limit: Math.min(500, Number(req.query.limite) || 100) });
+    ok(res, { bilan: bilanPredictions(), predictions: lignes });
+  }));
+  // Confronter les prédictions assez vieilles à DVF : on relit la mutation de
+  // chaque cible (gratuit), puis on marque ce qui s'est réalisé.
+  app.post('/api/alx/predictions/verifier', wrap(async (req, res) => {
+    const { verifierToutes } = await import('../alx/predictions.js');
+    const enrichir = await import('../alx/enrichir.js');
+    const user = currentUser(req);
+    const relire = req.body?.relire_dvf === false ? null : (id) => enrichir.lireMutation(id, { user, forcer: true });
+    ok(res, await verifierToutes({ relire }));
+  }));
+
+  // Les règles ont changé : toutes les piles se recalculent, et chaque
+  // nouvelle lecture est figée.
+  app.post('/api/alx/cibles/reclasser', wrap(async (req, res) => {
+    const { reclasserToutesLesCibles } = await import('../alx/index.js');
+    ok(res, reclasserToutesLesCibles({ journal: (t) => console.log('[alx]', t) }));
+  }));
+
+  // --- Les témoins : le hasard, pour savoir ce que vaut le classement --------------
+  app.post('/api/alx/villes/:id/temoins', wrap(async (req, res) => {
+    const { tirerTemoins } = await import('../alx/index.js');
+    const r = tirerTemoins(req.params.id, { n: Math.min(20, Number(req.body?.n) || 5), user: currentUser(req) });
+    if (!r.ok) return erreur(res, r.error, 409);
+    ok(res, r);
+  }));
+
+  // --- La mesure DVF -----------------------------------------------------------
+  app.get('/api/alx/mesure', wrap(async (req, res) => {
+    const { lireRapport, mesureEnCours } = await import('../alx/mesure-dvf.js');
+    ok(res, { rapport: lireRapport(), en_cours: mesureEnCours() });
+  }));
+  // Lance la mesure sur les villes qui ont un code INSEE, en tâche de fond :
+  // les fichiers pèsent des dizaines de mégaoctets, le premier passage prend
+  // quelques minutes.
+  app.post('/api/alx/mesure', wrap(async (req, res) => {
+    const { lancerMesure, mesureEnCours } = await import('../alx/mesure-dvf.js');
+    if (mesureEnCours()) return erreur(res, 'Une mesure est déjà en cours.', 409);
+    const villes = listerVilles().filter((v) => v.code_insee && !v.cachee);
+    if (!villes.length) return erreur(res, 'Aucune ville avec un code INSEE : lancez d’abord un relevé de rues.', 409);
+    const noms = Object.fromEntries(villes.map((v) => [v.code_insee, v.nom]));
+    lancerMesure({ insees: villes.map((v) => v.code_insee), noms, journal: (t) => console.log('[mesure-dvf]', t) })
+      .catch((e) => console.error('[mesure-dvf]', e.message));
+    ok(res, { ok: true, villes: villes.map((v) => v.nom) });
+  }));
 }

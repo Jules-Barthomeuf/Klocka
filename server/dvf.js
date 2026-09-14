@@ -192,6 +192,54 @@ async function telechargerFichiers(dep, insee) {
   return textes.filter(Boolean).sort((a, b) => b.annee - a.annee).slice(0, ANNEES);
 }
 
+// Les lignes d'une commune, lues une fois : cinq fichiers à découper à chaque
+// cible ferait le même travail cinquante fois par rue.
+const memoLignes = new Map();
+function lignesDeCommune(dep, insee, millesimes) {
+  const cle = `${dep}/${insee}/${millesimes.map((m) => m.annee).join(',')}`;
+  const connu = memoLignes.get(cle);
+  if (connu && Date.now() - connu.le < MEMO_MS) return connu.lignes;
+  const lignes = millesimes.flatMap((m) => lireCsv(m.texte));
+  memoLignes.set(cle, { le: Date.now(), lignes });
+  return lignes;
+}
+
+/**
+ * Toutes les mutations d'une parcelle sur les derniers millésimes, tous types
+ * de locaux confondus : c'est ce qui dit si un autre lot de l'immeuble vient
+ * de se vendre (une découpe en cours, un immeuble qui change de mains). Une
+ * ligne par acte, avec les types de locaux qu'il porte.
+ *
+ * @param {string} codeInsee
+ * @param {string} parcelle - l'identifiant DVF de la parcelle (« 06004000DR0134 »)
+ * @returns {Promise<{id: string, date: string, types: string[], lots: number, prix: number|null, commercial_pur: boolean}[]>}
+ */
+export async function mutationsDeLaParcelle(codeInsee, parcelle) {
+  const dep = departementDe(codeInsee);
+  if (!dep || SANS_DVF[dep] || !parcelle) return [];
+  const millesimes = await fichiers(dep, codeInsee);
+  const parMutation = new Map();
+  for (const l of lignesDeCommune(dep, codeInsee, millesimes)) {
+    if (l.id_parcelle !== parcelle || !l.id_mutation) continue;
+    if (!parMutation.has(l.id_mutation)) parMutation.set(l.id_mutation, []);
+    parMutation.get(l.id_mutation).push(l);
+  }
+  return [...parMutation.entries()]
+    .map(([id, lot]) => {
+      const types = [...new Set(lot.map((l) => l.type_local).filter(Boolean))];
+      return {
+        id,
+        date: lot[0].date_mutation,
+        nature: lot[0].nature_mutation,
+        types,
+        lots: lot.length,
+        prix: nombre(lot[0].valeur_fonciere),
+        commercial_pur: types.length === 1 && types[0] === TYPE_COMMERCIAL,
+      };
+    })
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
 /**
  * Les ventes de locaux commerciaux autour d'une adresse, d'après DVF.
  *

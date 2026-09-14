@@ -234,9 +234,16 @@ export default function ALXCible() {
   const v = c.valorisation || {};
   const e = emplacementDe(c.emplacement || null);
   const [verdict, teinteVerdict] = VERDICTS[c.pile] || VERDICTS.surveiller;
-  const raisons = [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : ""));
-  for (const d of c.drapeaux || []) if (d.effet !== "information") raisons.push(d.libelle);
+  // Chaque raison avec son poids : c'est le score qui fait la pile, et on le
+  // montre plutôt que de dire « un signal fort ».
+  const poids = (x) => (typeof x.poids === "number" ? ` · ${x.poids >= 0 ? "+" : ""}${String(x.poids).replace(".", ",")}` : "");
+  const contributions = c.score?.contributions || [];
+  const raisons = contributions.length
+    ? contributions.map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : "") + poids(x))
+    : [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : "") + poids(x));
+  for (const d of c.drapeaux || []) if (d.effet !== "information" && d.effet !== "patient") raisons.push(d.libelle);
   if (!raisons.length && c.motif) raisons.push(c.motif);
+  const score = typeof c.score?.total === "number" ? String(c.score.total).replace(".", ",") : null;
   const gerants = (s.gerants || []).slice(0, 5);
   const depuis = c.mutation?.du_local && c.mutation.date ? `propriétaire des murs depuis ${annee(c.mutation.date)}` : anneeUtile(s.creation) ? `société créée en ${anneeUtile(s.creation)}` : null;
   const proprioMeta = [p.forme || s.forme || (p.nom ? "Personne physique" : null), depuis, s.siege?.ville ? `siège à ${joliNom(s.siege.ville)}` : null].filter(Boolean).join(" · ");
@@ -348,6 +355,7 @@ export default function ALXCible() {
                 <Etiquette>Va vendre ou pas</Etiquette>
                 <div className="flex items-center gap-3">
                   <Urgence c={c} compact />
+                  {score != null && !ecartee && <Etiquette title="La somme des poids des signaux : appeler à partir de 3, écrire à partir de 0,7">score {score}</Etiquette>}
                   <Etiquette teinte={teinteVerdict}>{verdict}</Etiquette>
                 </div>
               </div>

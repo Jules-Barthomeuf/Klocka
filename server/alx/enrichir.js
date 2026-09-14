@@ -109,17 +109,43 @@ export async function lireSociete(id, { siren = null, nom = null, user = null } 
   return mettreAJourCible(c.id, patch, user);
 }
 
-/** Les événements BODACC de la société propriétaire (trois ans). */
+/**
+ * Les événements BODACC de la société propriétaire (trois ans), et ceux du
+ * locataire (dix-huit mois) : un exploitant en procédure ou radié fait un
+ * bailleur qui vend dans l'année. Le SIREN du locataire vient de l'annuaire
+ * (occupant) ou de son SIRET. Jamais deux fois la même société.
+ */
 export async function lireEvenements(id, { user = null } = {}) {
   const c = cibleOu(id);
-  const siren = c.proprietaire?.siren || c.societe?.siren;
-  if (!siren) throw new Error("Il faut le SIREN du propriétaire pour lire le BODACC.");
+  const siren = c.proprietaire?.siren || c.societe?.siren || null;
+  const sirenLocataire = c.occupant?.siren || (c.siret ? String(c.siret).replace(/\s/g, '').slice(0, 9) : null);
+  if (!siren && !sirenLocataire) throw new Error('Il faut le SIREN du propriétaire ou du locataire pour lire le BODACC.');
   const { evenementsSociete } = await import('../bodacc.js');
-  const evenements = await evenementsSociete(siren);
-  return mettreAJourCible(c.id, { evenements }, user);
+  const patch = {};
+  if (siren) patch.evenements = await evenementsSociete(siren);
+  if (sirenLocataire && sirenLocataire !== siren) {
+    patch.evenements_locataire = (await evenementsSociete(sirenLocataire, { mois: 18 })).map((e) => ({ ...e, source: 'BODACC (locataire)' }));
+  }
+  return mettreAJourCible(c.id, patch, user);
 }
 
 /** La dernière vente autour de l'adresse, d'après DVF. */
+/**
+ * La mutation la plus récente d'un AUTRE lot de la parcelle : un appartement
+ * du dessus, une cave, un autre commerce. La vente du local lui-même ne
+ * compte pas ; un acte qui porte le local et d'autres lots non plus.
+ */
+async function mutationVoisine(c, parcelle, duLocal) {
+  const ville = c.ville_id ? Records.get('Ville', c.ville_id) : null;
+  const codeInsee = ville?.code_insee || null;
+  if (!parcelle || !codeInsee) return null;
+  const { mutationsDeLaParcelle } = await import('../dvf.js');
+  const toutes = await mutationsDeLaParcelle(codeInsee, parcelle);
+  const autre = toutes.find((m) => !(duLocal && m.id === duLocal.id) && !(duLocal && String(m.date) === String(duLocal.date)));
+  if (!autre) return null;
+  return { date: autre.date, type_local: autre.types[0] || null, types: autre.types, lots: autre.lots, prix: autre.prix, source: 'DVF (même parcelle)' };
+}
+
 export async function lireMutation(id, { rayon = 40, user = null, forcer = false } = {}) {
   const c = cibleOu(id);
   const { ventesAutour } = await import('../dvf.js');
@@ -134,6 +160,10 @@ export async function lireMutation(id, { rayon = 40, user = null, forcer = false
   const proche = duLocal || ventes[0] || null;
   const mutation = proche ? { date: proche.date || proche.date_mutation || null, prix: proche.prix ?? proche.valeur_fonciere ?? null, nature: proche.nature || null, distance_m: proche.distance_m ?? null, surface: proche.surface ?? null, parcelle: proche.parcelle || null, du_local: !!duLocal, source: 'DVF' } : null;
   const patch = { mutation, dvf: r.resultat };
+  // Un autre lot de la même parcelle vendu récemment : DVF entier, pas
+  // seulement les ventes commerciales. Sans parcelle ni code INSEE, on ne
+  // devine pas.
+  patch.mutation_voisine = await mutationVoisine(c, parcelle, duLocal).catch(() => null);
   // Une vente du local depuis moins de cinq ans, d'un seul lot : sa surface
   // est celle du commerce, et le prix se calcule.
   const recente = duLocal && duLocal.date && Date.now() - Date.parse(duLocal.date) < 5 * 365.25 * 86400000;

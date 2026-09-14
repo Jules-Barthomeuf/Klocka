@@ -5,7 +5,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classer, signauxDe, drapeauxDe, knockOutsDe, PILES } from './classement.js';
+import { classer, signauxDe, drapeauxDe, knockOutsDe, observableEnProspection, PILES } from './classement.js';
 
 // Une horloge fixe : le 1er septembre 2026. Les tests ne vieillissent pas.
 const MAINTENANT = new Date('2026-09-01T00:00:00Z').getTime();
@@ -34,9 +34,16 @@ test('le même marchand hors fenêtre n’est plus un signal', () => {
   assert.equal(signauxDe({ societe: { ape: '6810Z' }, mutation: { date: ilYa(60) } }, opts).forts.length, 0, 'en difficulté, autre sujet');
 });
 
-test('un changement de gérant récent est un signal fort', () => {
+test('un changement de gérant récent fait écrire, une procédure collective fait appeler', () => {
+  // L'étude des vendeurs a mesuré l'événement récent à un lift de 1,4 : un
+  // changement de gérance seul pèse 1, c'est un courrier. Une procédure
+  // collective du propriétaire pèse 3 : un appel.
   const r = classer({ ...CIBLE_NUE, proprietaire: { nom: 'SCI Tarte' }, evenements: [{ date: ilYa(2), type: 'changement de gérance', source: 'BODACC' }] }, opts);
-  assert.equal(r.pile, 'appeler');
+  assert.equal(r.pile, 'ecrire');
+  assert.equal(r.signaux.forts[0].poids, 1);
+  const collective = classer({ ...CIBLE_NUE, proprietaire: { nom: 'SCI Tarte' }, evenements: [{ date: ilYa(2), type: 'procédure collective', source: 'BODACC' }] }, opts);
+  assert.equal(collective.pile, 'appeler');
+  assert.equal(collective.signaux.forts[0].poids, 3);
   const vieux = classer({ ...CIBLE_NUE, proprietaire: { nom: 'SCI Tarte' }, evenements: [{ date: ilYa(9), type: 'changement de gérance' }] }, opts);
   assert.notEqual(vieux.pile, 'appeler');
 });
@@ -100,9 +107,79 @@ test('un usufruitier seul est écarté, même avec un signal fort', () => {
 });
 
 test('un drapeau lent retient un signal fort en pile patiente', () => {
-  const r = classer({ ...CIBLE_NUE, proprietaire: { nom: 'x', droit: 'Indivision' }, evenements: [{ date: ilYa(1), type: 'changement de gérance' }] }, opts);
+  const r = classer({ ...CIBLE_NUE, proprietaire: { nom: 'SAS Rivage', droit: 'Indivision' }, societe: { ape: '6810Z' }, mutation: { date: ilYa(30) } }, opts);
   assert.equal(r.pile, 'ecrire');
   assert.match(r.motif, /dossier lent/);
+  assert.ok(r.score.total >= 3, 'le score dit appeler, le drapeau retient');
+});
+
+test('le score additionne : deux indices moyens font un appel, un seul ne fait rien', () => {
+  // Un locataire en procédure (3) suffit. Un siège ailleurs (0,7) seul ne
+  // fait qu'écrire ; un gérant âgé seul (0,4) ne fait rien du tout.
+  const loc = classer({ ...CIBLE_NUE, proprietaire: { nom: 'x' }, evenements_locataire: [{ date: ilYa(3), type: 'procédure collective', source: 'BODACC' }] }, opts);
+  assert.equal(loc.pile, 'appeler');
+  assert.equal(loc.signaux.forts[0].cle, 'locataire_en_difficulte');
+  assert.match(loc.motif, /^Score 3 : le locataire est en procédure/);
+
+  const siege = classer({ ...CIBLE_NUE, ville: 'Antibes', proprietaire: { nom: 'x' }, societe: { siege: { ville: 'Paris' } } }, opts);
+  assert.equal(siege.pile, 'ecrire');
+  assert.equal(siege.signaux.patients[0].cle, 'siege_ailleurs');
+
+  const memeVille = classer({ ...CIBLE_NUE, ville: 'Antibes', proprietaire: { nom: 'x' }, societe: { siege: { ville: 'ANTIBES' } } }, opts);
+  assert.equal(memeVille.signaux.patients.length, 0, 'même ville, écrite autrement : pas de signal');
+
+  const age = classer({ ...CIBLE_NUE, proprietaire: { nom: 'x' }, societe: { gerants: [{ nom: 'Jean MARTIN', tranche_age: '70+' }] } }, opts);
+  assert.equal(age.pile, 'surveiller');
+  assert.match(age.motif, /Indices faibles, sous le seuil/);
+
+  // Gérance récente (1) + siège ailleurs (0,7) + gérant âgé (0,4) + famille (0,4) = 2,5 : toujours un courrier ;
+  // avec vingt-huit ans de détention (0,5), 3 : un appel. Cinq indices faibles font ce qu'un seul ne fait pas.
+  const cumul = { ...CIBLE_NUE, ville: 'Antibes', proprietaire: { nom: 'x' }, societe: { siege: { ville: 'Paris' }, gerants: [{ nom: 'Jean MARTIN', tranche_age: '70+' }, { nom: 'Luc MARTIN' }] }, evenements: [{ date: ilYa(2), type: 'changement de gérance' }] };
+  assert.equal(classer(cumul, opts).pile, 'ecrire');
+  assert.equal(classer(cumul, opts).score.total, 2.5);
+  const ancienne = classer({ ...cumul, societe: { ...cumul.societe, creation: ilYa(12 * 28) } }, opts);
+  assert.equal(ancienne.pile, 'appeler');
+  assert.equal(ancienne.score.total, 3);
+  // Un lot voisin vendu est dans la trace, à poids nul : DVF l'a mesuré sans effet.
+  const voisin = classer({ ...cumul, mutation_voisine: { date: ilYa(6), type_local: 'Appartement' } }, opts);
+  assert.equal(voisin.score.total, 2.5);
+  assert.ok(voisin.score.contributions.find((x) => x.cle === 'voisin_mute' && x.poids === 0));
+});
+
+test('chaque contribution se lit dans le score, avec son poids', () => {
+  const r = classer({ ...CIBLE_NUE, proprietaire: { nom: 'SAS Rivage' }, societe: { ape: '68.10Z', siege: { ville: 'Lyon' } }, ville: 'Antibes', mutation: { date: ilYa(30) } }, opts);
+  assert.deepEqual(r.score.contributions.map((c) => [c.cle, c.poids]), [['marchand_fenetre', 3], ['siege_ailleurs', 0.7]]);
+  assert.equal(r.score.total, 3.7);
+  assert.match(r.motif, /marchand de biens dans sa fenêtre de revente \(30 mois après la mutation\) \+3, siège de la société dans une autre commune \(siège à Lyon\) \+0,7/);
+});
+
+test('les faits passent avant le score', () => {
+  // Un locataire en procédure (3) sur un local vide : le knock-out l'emporte.
+  const r = classer({ ...CIBLE_NUE, occupe: false, evenements_locataire: [{ date: ilYa(1), type: 'procédure collective' }] }, opts);
+  assert.equal(r.pile, 'ecartee');
+  // Usufruit : bloquant, quel que soit le score.
+  const u = classer({ ...CIBLE_NUE, proprietaire: { nom: 'x', droit: 'Usufruit' }, societe: { ape: '6810Z' }, mutation: { date: ilYa(30) } }, opts);
+  assert.equal(u.pile, 'ecartee');
+});
+
+test('deux signaux ne s’observent que sur un dossier, et le disent', () => {
+  assert.equal(observableEnProspection('echeance_proche'), false);
+  assert.equal(observableEnProspection('loyer_bas'), false);
+  assert.equal(observableEnProspection('marchand_fenetre'), true);
+  assert.equal(observableEnProspection('signal_inconnu'), true, 'un signal absent du fichier n’est pas déclaré inobservable');
+});
+
+test('un lot voisin vendu récemment est un signal patient, pas au-delà de deux ans', () => {
+  const s = signauxDe({ mutation_voisine: { date: ilYa(10), type_local: 'Appartement' } }, opts);
+  assert.equal(s.patients[0]?.cle, 'voisin_mute');
+  assert.match(s.patients[0].valeur, /Appartement vendu le/);
+  assert.equal(signauxDe({ mutation_voisine: { date: ilYa(30), type_local: 'Appartement' } }, opts).patients.length, 0);
+});
+
+test('fermé sur Maps est un drapeau d’information, ni signal ni knock-out', () => {
+  const r = classer({ ...CIBLE_NUE, proprietaire: { nom: 'x' }, occupant: { nom: 'Chez Lulu', ferme: true } }, opts);
+  assert.equal(r.pile, 'surveiller');
+  assert.ok(r.drapeaux.find((d) => d.cle === 'fermeture_maps' && d.effet === 'information'));
 });
 
 test('une indivision successorale est un vivier, pas un obstacle', () => {

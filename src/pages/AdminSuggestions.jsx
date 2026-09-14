@@ -190,8 +190,10 @@ export default function AdminSuggestions() {
                   <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-fond border border-bord-doux text-ardoise hover:text-encre flex items-center justify-center" aria-label="Retirer la capture"><X className="w-3.5 h-3.5" /></button>
                 </div>
               )}
-              {/* L'urgence : cinq barres, on clique celle qu'on veut. */}
-              <div className="flex flex-wrap items-center gap-3 mb-2">
+              {/* L'urgence : cinq barres, on clique celle qu'on veut. La boîte
+                  de saisie n'a pas de marge sous son contenu : c'est cette
+                  ligne qui écarte l'urgence du filet de la barre du bas. */}
+              <div className="flex flex-wrap items-center gap-3 mb-5">
                 <span className="text-[11px] tracking-[.14em] uppercase text-brume">Urgence</span>
                 <span className="inline-flex items-end gap-1" role="group" aria-label="Urgence">
                   {[1, 2, 3, 4, 5].map((n) => (

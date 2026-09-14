@@ -34,9 +34,9 @@ export function bornesNettes(min, max) {
 }
 
 const TONS = {
-  primaire: { barre: "var(--k-encre)", texte: "text-encre" },
-  dedans: { barre: "var(--k-ambre)", texte: "text-ambre" },
-  ordinaire: { barre: "var(--k-bord-vif)", texte: "text-craie" },
+  primaire: { barre: "#96c0b8", texte: "text-[#F3F7F5]" },
+  dedans: { barre: "#e0a45e", texte: "text-[#e0a45e]" },
+  ordinaire: { barre: "rgba(90,103,98,0.85)", texte: "text-[#C3CBC7]" },
 };
 
 const COLONNES = {
@@ -89,8 +89,8 @@ export default function EchelleFourchettes({
           style={PISTE}
         >
           <div
-            className="absolute top-0 bottom-0 border-l border-dashed border-[#5a5346]"
-            style={{ left: `${posRepere}%` }}
+            className="absolute top-0 bottom-0 w-[2px]"
+            style={{ left: `${posRepere}%`, background: "#e0a45e", boxShadow: "0 0 18px rgba(224,164,94,0.45)" }}
           />
         </div>
       )}
@@ -111,14 +111,14 @@ export default function EchelleFourchettes({
           return (
             <div key={l.cle} className="flex items-center py-3" style={{ gap: "var(--ecart)" }}>
               <p
-                className="m-0 flex-none text-[10.5px] tracking-[.18em] uppercase text-brume"
+                className="alx-mont m-0 flex-none text-[9px] font-medium uppercase tracking-[.14em] text-[#8B938F]"
                 style={{ width: "var(--lib)" }}
               >
                 {l.libelle}
               </p>
 
               <div className="relative flex-1 min-w-0 h-[10px]">
-                <div className="absolute inset-0 rounded-full bg-trait" />
+                <div className="absolute inset-0 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }} />
                 {!absente && (
                   <div
                     className="absolute top-0 bottom-0 rounded-full"
@@ -134,7 +134,7 @@ export default function EchelleFourchettes({
                     la barre, pas une quatrième ligne. */}
                 {!absente && l.pointe != null && (
                   <div
-                    className="absolute top-[-3px] bottom-[-3px] w-px bg-fond"
+                    className="absolute top-[-3px] bottom-[-3px] w-px bg-[#0A0C0B]"
                     style={{ left: `${pct(l.pointe)}%` }}
                     title="moyenne"
                   />
@@ -143,8 +143,8 @@ export default function EchelleFourchettes({
 
               {/* L'unité une fois, à la fin : « 640 – 960 € » et non deux euros. */}
               <p
-                className={`m-0 flex-none text-right text-[15px] tabular-nums font-light whitespace-nowrap ${
-                  absente ? "text-bord-vif" : ton.texte
+                className={`m-0 flex-none text-right text-[14px] tabular-nums whitespace-nowrap ${
+                  absente ? "text-[#5A6762]" : ton.texte
                 }`}
                 style={{ width: "var(--val)" }}
               >
@@ -166,20 +166,21 @@ export default function EchelleFourchettes({
       <div className="relative mt-1 min-h-[34px]">
         {legende && (
           <p
-            className="absolute left-0 top-0 m-0 text-[11.5px] leading-[1.45] text-brume"
+            className="absolute left-0 top-0 m-0 text-[11.5px] leading-[1.45] text-[#8B938F]"
             style={{ width: "var(--lib)" }}
           >
             {legende}
           </p>
         )}
-        <div className="absolute top-0 text-[11px] tabular-nums text-[#474c54]" style={PISTE}>
-          <span className="absolute left-0">{format(bas)}</span>
+        <div className="absolute top-0 border-t text-[11.5px] tabular-nums text-[#C3CBC7]" style={{ ...PISTE, borderColor: "rgba(255,255,255,0.32)", paddingTop: 8 }}>
+          {/* Une borne trop près du repère s'efface : deux chiffres l'un sur l'autre ne se lisent pas. */}
+          {!(posRepere != null && posRepere < 7) && <span className="absolute left-0" style={{ top: 8 }}>{format(bas)}</span>}
           {posRepere != null && (
-            <span className="absolute -translate-x-1/2 text-ambre" style={{ left: `${posRepere}%` }}>
+            <span className="absolute -translate-x-1/2 text-[#e0a45e]" style={{ left: `${posRepere}%`, top: 8 }}>
               {format(repere.valeur)}
             </span>
           )}
-          <span className="absolute right-0">{format(haut)}</span>
+          {!(posRepere != null && posRepere > 93) && <span className="absolute right-0" style={{ top: 8 }}>{format(haut)}</span>}
         </div>
       </div>
     </div>

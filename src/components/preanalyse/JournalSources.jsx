@@ -1,6 +1,5 @@
 import React from "react";
-import { AlertTriangle } from "lucide-react";
-import { ton } from "@/components/preanalyse/journal-tons";
+import { Section, Vide } from "@/components/preanalyse/marche-ui";
 import JournalEmplacement from "@/components/preanalyse/JournalEmplacement";
 import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
@@ -15,10 +14,6 @@ import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFi
 
 const fmt = (n, d = 0) => (n == null || !Number.isFinite(Number(n)) ? "—" : Number(n).toLocaleString("fr-FR", { maximumFractionDigits: d }));
 const pct = (n, d = 1) => (n == null ? "—" : `${n > 0 ? "+" : ""}${Number(n).toLocaleString("fr-FR", { maximumFractionDigits: d })} %`);
-
-function Vide({ children }) {
-  return <p className="m-0 rounded-[10px] border border-dashed border-bord-doux px-4 py-5 text-center text-[12.5px] text-brume">{children}</p>;
-}
 
 /**
  * Le drapeau rouge : deux sources qui ne disent pas la même chose.
@@ -78,29 +73,22 @@ export function Recoupement({ recoupement }) {
  */
 export function OngletDataB({ lot, implantation }) {
   return (
-    <div className="flex flex-col gap-4">
-      <ValeurLocativeDataB lot={lot} />
+    <div>
+      <ValeurLocativeDataB lot={lot} premiere />
       {/* L'emplacement avant les cessions : on regarde d'abord où est le bien,
-          ensuite ce qui s'y est vendu. La carte des cessions est longue, et
-          l'emplacement passait sous elle sans être vu. */}
-      {implantation ? (
-        <section className="border border-bord-doux rounded-[16px] bg-surface px-5 py-4">
-          <JournalEmplacement emplacement={implantation} />
-        </section>
-      ) : (
-        <Vide>L’étude d’implantation n’a pas encore été lue sur ce lot. Lancez « Mettre à jour ».</Vide>
-      )}
+          ensuite ce qui s'y est vendu. */}
+      {implantation ? <JournalEmplacement emplacement={implantation} /> : <Section titre="Étude d'implantation · Data-B"><Vide>L'étude d'implantation n'a pas encore été lue sur ce lot. Lancez « Mettre à jour ».</Vide></Section>}
       <TransactionsFondsDataB lot={lot} />
     </div>
   );
 }
 
-/** Equimmox : les baux comparables, par le composant de l'équipe. */
+/** Equimmox : les baux comparables. */
 export function OngletEquimmox({ lot }) {
-  return <AnalyseLoyerEquimmox lot={lot} />;
+  return <AnalyseLoyerEquimmox lot={lot} premiere />;
 }
 
-/** Le Figaro : le résidentiel, par le composant de l'équipe. */
+/** Le Figaro : le résidentiel. */
 export function OngletFigaro({ lot }) {
-  return <MarcheResidentielFigaro lot={lot} />;
+  return <MarcheResidentielFigaro lot={lot} premiere />;
 }

@@ -117,6 +117,9 @@ const ONGLETS = [
   // fermé, quand les autres parlent de demandes.
   { cle: "dvf", titre: "DVF" },
   { cle: "bodacc", titre: "BODACC" },
+  // Le vendeur et le détail des sources : hors du bilan, qui reste un bilan.
+  { cle: "vendeur", titre: "Vendeur" },
+  { cle: "sources", titre: "Sources" },
 ];
 
 /**
@@ -201,16 +204,22 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
           </div>
 
           <MarcheEmplacement adresse={analyse.adresse} />
-          <MarcheVendeur adresse={analyse.adresse} lot={lot} dossier={dossier} />
+        </>
+      )}
 
+      {onglet === "vendeur" && (
+        <div className="mt-6"><MarcheVendeur adresse={analyse.adresse} lot={lot} dossier={dossier} premiere /></div>
+      )}
+
+      {onglet === "sources" && (
+        <div className="mt-6">
           {(analyse.recoupement || analyse.parComparaison) && (
-            <div className="mt-[30px] grid grid-cols-1 gap-[18px] lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
               <Recoupement recoupement={analyse.recoupement} />
               <SecondPointDeVue comparaison={analyse.parComparaison} ecart={analyse.ecartComparaison} />
             </div>
           )}
-
-          <div className="mt-[34px] grid grid-cols-1 gap-x-[34px] gap-y-8 border-t border-white/[0.07] pt-[26px] lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+          <div className={`grid grid-cols-1 gap-x-[34px] gap-y-8 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] ${analyse.recoupement || analyse.parComparaison ? "mt-[34px] border-t border-white/[0.07] pt-[26px]" : ""}`}>
             <section>
               <Etiquette>Sources</Etiquette>
               <ul className="m-0 mt-3.5 flex list-none flex-col p-0">
@@ -234,17 +243,17 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                 {analyse.consultations.map((c, i) => (
                   <li key={`${c.quoi}-${i}`} title={c.url || undefined} className={`flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 py-3 ${i < analyse.consultations.length - 1 ? "border-b border-white/[0.05]" : ""}`}>
                     <span className="flex-shrink-0 text-[11.5px] tabular-nums text-[#8B938F]">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="min-w-0 flex-1 text-[13.5px] text-[#C3CBC7]">{c.src ? `${c.quoi}` : c.quoi}</span>
+                    <span className="min-w-0 flex-1 text-[13.5px] text-[#C3CBC7]">{c.quoi}</span>
                     <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] tabular-nums" style={{ color: ton(c.ton).etiquette }}>{c.issue}</span>
                   </li>
                 ))}
               </ol>
             </section>
           </div>
-        </>
+        </div>
       )}
 
-      {onglet !== "bilan" && (
+      {!["bilan", "vendeur", "sources"].includes(onglet) && (
         <div className="mt-6">
           {onglet === "data-b" && <OngletDataB lot={lot} implantation={analyse.emplacement} />}
           {onglet === "equimmox" && <OngletEquimmox lot={lot} />}

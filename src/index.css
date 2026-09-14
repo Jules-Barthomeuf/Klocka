@@ -311,6 +311,9 @@ body[data-editeur-projet] .assistant-flottant {
   background: radial-gradient(closest-side, rgba(156,195,188,.13), rgba(0,0,0,0)); }
 
 .accueil-wrap { position: relative; width: 100%; }
+/* Le chat sobre, dans le dossier et sur ALX : un bord, pas de halo, pas de reflet, pas d'ombre. */
+.accueil-wrap.sobre .accueil-ring-sage, .accueil-wrap.sobre .accueil-ring, .accueil-wrap.sobre .accueil-ring-halo { display: none; }
+.accueil-wrap.sobre .accueil-composer { box-shadow: none; background: #0F1211; border-color: rgba(255,255,255,.09); }
 .accueil-ring-sage, .accueil-ring, .accueil-ring-halo { position: absolute; pointer-events: none; }
 .accueil-ring-sage { inset: 0; border-radius: 16px; transition: opacity .6s ease, box-shadow .3s ease;
   box-shadow: 0 0 0 1px rgba(156,195,188,.14), 0 0 34px rgba(156,195,188,.18), 0 0 90px rgba(156,195,188,.12); }

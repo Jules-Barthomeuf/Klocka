@@ -284,7 +284,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
       ))}
 
       {/* Le composer du dossier, à l'identique. Seul ce qu'il y a derrière change. */}
-      <div className={`accueil-wrap ${ecoute ? "voix" : ""}`}>
+      <div className={`accueil-wrap sobre ${ecoute ? "voix" : ""}`}>
         <div aria-hidden="true" className="accueil-ring-sage" />
         <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
         <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>

@@ -281,7 +281,7 @@ function ChatAlx({ villeId, onglet, onFait }) {
   return (
     <div className="mx-auto mt-6 w-full max-w-[880px]">
       {/* Le composer du dossier, à l'identique : même boîte, même dictée, même bouton. */}
-      <div className={`accueil-wrap ${ecoute ? "voix" : ""}`}>
+      <div className={`accueil-wrap sobre ${ecoute ? "voix" : ""}`}>
         <div aria-hidden="true" className="accueil-ring-sage" />
         <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
         <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>

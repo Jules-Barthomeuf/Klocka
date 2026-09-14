@@ -233,7 +233,7 @@ export default function ChatDossier({
 
       {/* Zone de saisie : le composeur de l'accueil, avec ce que le dossier a
           en plus — les sources, la profondeur, les mails types. */}
-      <div className={`accueil-wrap max-w-[880px] mx-auto ${ecoute ? "voix" : ""}`}>
+      <div className={`accueil-wrap sobre max-w-[880px] mx-auto ${ecoute ? "voix" : ""}`}>
         <div aria-hidden="true" className="accueil-ring-sage" />
         <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
         <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>

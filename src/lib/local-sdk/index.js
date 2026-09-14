@@ -88,6 +88,22 @@ class ErreurHttp extends Error {
    * @param {{body?: any, isForm?: boolean, signal?: AbortSignal}} [options]
    * @returns {Promise<any>}
    */
+  /**
+   * Ce qu'on dit quand la réponse n'a pas de message à elle.
+   *
+   * 502, 503 et 504 ne viennent pas de l'application : ils viennent de ce qui
+   * est devant elle, quand le serveur ne répond pas — un redémarrage, un
+   * déploiement, une coupure. Dire « erreur interne, voir ses journaux »
+   * envoyait chercher dans des journaux où il n'y a rien. Seul un vrai 500
+   * est de nous.
+   */
+  const messageDe = (statut) => {
+    if (statut === 502 || statut === 503 || statut === 504) {
+      return `Le serveur n'a pas répondu (${statut}) : il redémarre peut-être. Réessayez dans quelques secondes.`;
+    }
+    return `Le serveur a répondu ${statut}${statut >= 500 ? ' (erreur interne — voir ses journaux)' : ''}`;
+  };
+
   async function request(method, url, { body, isForm, signal } = {}) {
     /** @type {Record<string, string>} */
     const headers = {};
@@ -129,9 +145,7 @@ class ErreurHttp extends Error {
         }
       }
       throw new ErreurHttp(
-        resp.status === 401
-          ? 'Votre session a expiré : reconnectez-vous.'
-          : data?.error || `Le serveur a répondu ${resp.status}${resp.status >= 500 ? ' (erreur interne — voir ses journaux)' : ''}`,
+        resp.status === 401 ? 'Votre session a expiré : reconnectez-vous.' : data?.error || messageDe(resp.status),
         resp.status,
         data
       );

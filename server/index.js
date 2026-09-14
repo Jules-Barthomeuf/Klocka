@@ -16,6 +16,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { Records, Meta, infoStockage } from './db.js';
+import { derniersIncidents, noterIncident } from './incidents.js';
+
+// L'heure de ce processus-ci : « depuis quand tourne le serveur » répond à la
+// moitié des questions qui commencent par « ça a planté vers ».
+const demarreLe = new Date().toISOString();
 import { mesurerRequetes } from './llm-couts.js';
 import { runSeedIfEmpty, ADMIN_EMAIL } from './seed.js';
 import { restaurerSeedSiNecessaire } from './seed-donnees.js';
@@ -671,6 +676,13 @@ app.use((req, res, next) => {
 });
 
 
+// Les chutes du serveur et ses redémarrages : de quoi expliquer, après coup,
+// une erreur 502 dans l'interface.
+app.get('/api/monitoring/incidents', wrap((req, res) => {
+  if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: "Réservé à l'équipe Klocka." });
+  ok(res, { incidents: derniersIncidents({ limite: Math.min(200, Number(req.query.limite) || 50) }), depuis: demarreLe });
+}));
+
 // Le journal d'audit, lisible par l'équipe. Il ne se journalise pas lui-même.
 app.get('/api/monitoring/audit', wrap((req, res) => {
   if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: "Réservé à l'équipe Klocka." });
@@ -1096,15 +1108,23 @@ import('./marche/replanification.js').then(({ reprendreLesPromesses }) => {
 // qui ne concernait qu'un dossier. On la journalise et on reste debout.
 // Une exception non rattrapée, elle, laisse le processus dans un état incertain :
 // on la journalise aussi, mais on rend la main à l'hébergeur, qui redémarrera.
+// Les deux sont écrits dans server/data/incidents.log : un 502 dans
+// l'interface pendant que le serveur redémarre n'est explicable que si la
+// chute a laissé une trace ailleurs que dans un terminal refermé.
 process.on('unhandledRejection', (raison) => {
   console.error('[rejet non traité]', raison instanceof Error ? raison.stack : raison);
+  noterIncident('rejet', raison);
 });
 process.on('uncaughtException', (e) => {
   console.error('[exception non rattrapée]', e?.stack || e);
+  noterIncident('exception', e);
   process.exit(1);
 });
 
 app.listen(PORT, () => {
+  // Un démarrage est un incident comme un autre : c'est lui qui date les
+  // redémarrages, et donc les 502 qu'ils ont provoqués.
+  noterIncident('demarrage', `Klocka démarre sur le port ${PORT}`);
   const url = process.env.APP_URL || `http://localhost:${PORT}`;
   const accounts = listAccounts();
   console.log(`\n  ▸ Klocka : ${url}\n`);

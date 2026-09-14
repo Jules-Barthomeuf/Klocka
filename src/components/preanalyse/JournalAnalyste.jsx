@@ -39,6 +39,9 @@ const SOURCES = [
 
 const PROMPT = "Lance l’analyse de marché";
 const INTERVALLE_MS = 2500;
+// Huit sondages ratés d'affilée, soit vingt secondes : au-delà, ce n'est plus
+// un hoquet. Un redémarrage du serveur prend une dizaine de secondes.
+const RATÉS_TOLÉRÉS = 8;
 
 export default function JournalAnalyste({ dossier, lot, apercu = false, onRefresh }) {
   const dealId = dossier?.deal_id;
@@ -113,15 +116,25 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
   const suivre = useCallback(
     (cle) => {
       arreterSuivi();
+      // La recherche vit sur le serveur, pas ici. Un sondage qui échoue — le
+      // serveur qui redémarre, un déploiement, le wifi d'un train — ne veut
+      // pas dire qu'elle s'est arrêtée. On réessaie plusieurs fois avant
+      // d'abandonner le suivi, et on dit alors que le travail continue.
+      let ratés = 0;
       minuteur.current = setInterval(async () => {
         try {
           const t = await base44.request("GET", `/api/marche/alex/etat?cle=${encodeURIComponent(cle)}`);
+          ratés = 0;
           if (t.etat === "en_cours") setEtat(t);
           else finir(t);
         } catch (e) {
+          ratés += 1;
+          if (ratés < RATÉS_TOLÉRÉS) return;
           arreterSuivi();
           setPhase("fini");
-          toast.error(e?.message || "Impossible de suivre la recherche.");
+          toast.error("Je ne peux plus suivre la recherche.", {
+            description: `${e?.message || "Le serveur ne répond pas."} Elle continue de son côté : rouvrez l'onglet Marché dans une minute pour voir le résultat.`,
+          });
         }
       }, INTERVALLE_MS);
     },

@@ -374,6 +374,10 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    le tracé change de curseur pour dire qu'il se clique. */
 .k-carte-rues .leaflet-container { background: #000000; font-family: inherit; }
 .k-carte-rues .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.62) contrast(1.05) saturate(.25); }
+/* Le fond clair : les tuiles telles quelles, à peine adoucies pour que les
+   tracés colorés restent lisibles. */
+.k-carte-rues.k-carte-claire .leaflet-container { background: #e9e9e6; }
+.k-carte-rues.k-carte-claire .leaflet-tile-pane { filter: saturate(.55) contrast(.95) brightness(1.02); }
 .k-carte-rues .leaflet-interactive { cursor: pointer; }
 
 /* ALX, le registre de la maquette : Figtree pour le texte, Montserrat en

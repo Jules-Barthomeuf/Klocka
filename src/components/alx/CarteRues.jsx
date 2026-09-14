@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { EMPLACEMENTS, ECARTEE, emplacementDe } from "./alx-commun";
@@ -32,6 +33,46 @@ function Cadrage({ points }) {
     else if (points.length) map.setView(points[0], 15);
   }, [map, signature]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
+}
+
+const CLE_THEME = "alx-carte-sombre";
+const lireTheme = () => {
+  try {
+    return localStorage.getItem(CLE_THEME) !== "0";
+  } catch {
+    return true;
+  }
+};
+
+/** Sombre ou clair : le fond de carte, au choix, retenu d'une fois sur l'autre. */
+function useThemeCarte() {
+  const [sombre, setSombre] = useState(lireTheme);
+  const basculer = () => {
+    setSombre((x) => {
+      try {
+        localStorage.setItem(CLE_THEME, x ? "0" : "1");
+      } catch {
+        // Un navigateur qui bloque le stockage garde le choix pour la page seulement.
+      }
+      return !x;
+    });
+  };
+  return [sombre, basculer];
+}
+
+function BoutonTheme({ sombre, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={sombre ? "Fond de carte clair" : "Fond de carte sombre"}
+      className="absolute right-3 top-3 z-[400] grid h-9 w-9 place-items-center rounded-full border border-white/[0.12] backdrop-blur transition-colors hover:text-[#F3F7F5]"
+      // Le style est posé ici : la règle globale « .alx button » rend les boutons transparents.
+      style={{ background: "rgba(15,17,20,0.9)", color: "#E8EFEB" }}
+    >
+      {sombre ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
+  );
 }
 
 function Legende() {
@@ -98,6 +139,7 @@ function debutDuTrace(traceBrut, fraction) {
  * faites, et celle en cours se colore au fur et à mesure des pas.
  */
 export default function CarteRues({ rues, ecartees = [], coches, choisie = null, onChoisir, centre = null, className = "", streetView = null, direct = null }) {
+  const [sombre, basculerTheme] = useThemeCarte();
   const visibles = useMemo(() => (direct ? rues.filter((r) => direct.retenues.includes(r.nom)) : rues), [rues, direct]);
   // Le cadrage vise le centre commerçant : les vingt rues les plus garnies,
   // à moins de 4 km du centre de la ville. Une rue mal géolocalisée ou un
@@ -132,7 +174,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
   }
 
   return (
-    <div className={`k-carte-rues relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>
+    <div className={`k-carte-rues ${sombre ? "" : "k-carte-claire"} relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>
       <MapContainer center={centreCarte} zoom={14} minZoom={11} scrollWheelZoom className="h-full w-full" attributionControl={false} zoomControl={false}>
         <TileLayer url={TUILES} attribution="&copy; OpenStreetMap" maxZoom={19} />
         <Cadrage points={points} />
@@ -181,6 +223,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
             ));
           })}
       </MapContainer>
+      <BoutonTheme sombre={sombre} onClick={basculerTheme} />
       {!direct && <Legende />}
       {avecTrace === 0 && (
         <div className="absolute inset-0 z-[400] grid place-items-center bg-fond/70 px-6 text-center text-[13px] text-ardoise">

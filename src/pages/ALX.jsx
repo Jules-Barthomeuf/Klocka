@@ -463,7 +463,9 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
   const colonnes = [["classe", "Emplacement"], ["loyer", "Loyer au m²"], ["prix", "Prix au m²"]];
   return (
     <div className="alx-entree mt-7">
-      <div className="grid grid-cols-1 items-stretch gap-3.5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+      {/* La carte a une hauteur fixe : la fiche de la rue, à droite, pousse
+          vers le bas sans l'étirer. */}
+      <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <CarteRues
           rues={rues}
           ecartees={ecartees}
@@ -472,9 +474,9 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
           onChoisir={setChoisie}
           centre={ville?.centre}
           streetView={streetView && (rueChoisie || ecarteeChoisie)?.centre ? { ...(rueChoisie || ecarteeChoisie).centre, nom: choisie } : null}
-          className="h-full min-h-[440px] max-md:h-[340px] max-md:min-h-0"
+          className="h-[600px] max-md:h-[340px]"
         />
-        <div className="min-h-[440px] rounded-[16px] border border-white/[0.07] max-md:min-h-[220px]">
+        <div className="min-h-[600px] rounded-[16px] border border-white/[0.07] max-md:min-h-[220px]">
           <PanneauRue
             rue={rueChoisie || ecarteeChoisie}
             ecartee={!!ecarteeChoisie}
@@ -956,7 +958,7 @@ export default function ALX() {
 
   return (
     <div className="alx min-h-screen">
-      <div className="mx-auto max-w-[1440px] px-[34px] pb-[70px] pt-[26px] max-md:px-4">
+      <div className="mx-auto max-w-[1800px] px-[34px] pb-[70px] pt-[26px] max-md:px-4">
         {villeId ? <VillePage key={villeId} villeId={villeId} ville={ville} onNouvelle={nouvelle} onSuivante={suivante} ongletDemande={ongletDemande} cibleDemandee={cibleDemandee} /> : <Accueil villes={villes} onOuvrir={ouvrir} />}
         {!villeId && (
           <div className="mt-10 text-center text-[12.5px] text-[#8B938F]">

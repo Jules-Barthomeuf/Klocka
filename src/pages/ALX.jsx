@@ -474,9 +474,9 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
           onChoisir={setChoisie}
           centre={ville?.centre}
           streetView={streetView && (rueChoisie || ecarteeChoisie)?.centre ? { ...(rueChoisie || ecarteeChoisie).centre, nom: choisie } : null}
-          className="h-[600px] max-md:h-[340px]"
+          className="h-[440px] max-md:h-[320px]"
         />
-        <div className="min-h-[600px] rounded-[16px] border border-white/[0.07] max-md:min-h-[220px]">
+        <div className="min-h-[440px] rounded-[16px] border border-white/[0.07] max-md:min-h-[220px]">
           <PanneauRue
             rue={rueChoisie || ecarteeChoisie}
             ecartee={!!ecarteeChoisie}

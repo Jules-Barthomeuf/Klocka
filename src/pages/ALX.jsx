@@ -839,7 +839,7 @@ function OngletMessages({ cibles, onOuvrir, cibleDemandee = null }) {
 
 // --- La page d'une ville ----------------------------------------------------------------------
 
-function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletDemande = null, cibleDemandee = null }) {
+function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = null, cibleDemandee = null }) {
   const qc = useQueryClient();
   const { data: ville } = useQuery({
     queryKey: ["alx-ville", villeId],
@@ -909,28 +909,24 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
     <div className="relative mx-auto max-w-[1400px] pt-[22px]">
       <div aria-hidden className="pointer-events-none absolute -right-[220px] -top-[240px] z-0 h-[540px] w-[760px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.075),transparent)" }} />
       <div className="relative">
-        <div className="flex items-start justify-between gap-4">
+        <div>
           <div className="min-w-0">
-            <h1 className="alx-serif m-0 text-[42px] italic tracking-[-.01em] text-[#F3F7F5]">{ville?.nom}</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="alx-serif m-0 text-[42px] italic tracking-[-.01em] text-[#F3F7F5]">{ville?.nom}</h1>
+              <button
+                onClick={onNouvelle}
+                title="Toutes les villes"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/[0.12] text-[16px] text-[#8B938F] transition-colors hover:border-white/[0.3] hover:text-[#E8EFEB]"
+                style={{ background: "transparent" }}
+              >
+                ←
+              </button>
+            </div>
             <div className="mt-1 text-[13.5px] text-[#8B938F]">
               <span style={{ color: teinteStatut }}>{motStatut}</span>
               {ville?.recensement?.le ? ` · relevé du ${dateCourte(ville.recensement.le)} · ${fmt(ville.recensement.commerces_total)} vitrines` : ""}
               {` · ${pluriel(rues.length, "rue", "rues")} · ${pluriel(cibles.length, "commerce analysé", "commerces analysés")} · ${pluriel(brouillons, "message", "messages")}`}
             </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5 pt-3">
-            {[["←", "Toutes les villes", onNouvelle], ["→", "Ville suivante", onSuivante]].map(([fleche, title, faire]) => (
-              <button
-                key={fleche}
-                onClick={faire || undefined}
-                title={title}
-                disabled={!faire}
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/[0.12] text-[16px] text-[#8B938F] transition-colors hover:border-white/[0.3] hover:text-[#E8EFEB] disabled:opacity-30"
-                style={{ background: "transparent" }}
-              >
-                {fleche}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -1032,15 +1028,13 @@ export default function ALX() {
   const ville = villes.find((v) => v.id === villeId);
   const ouvrir = (id) => setParams({ ville: id });
   const nouvelle = () => setParams({});
-  const i = villes.findIndex((v) => v.id === villeId);
-  const suivante = villes.length > 1 && i >= 0 ? () => ouvrir(villes[(i + 1) % villes.length].id) : null;
 
   if (!user || user.role !== "admin") return null;
 
   return (
     <div className="alx min-h-screen">
       <div className="mx-auto max-w-[1800px] px-[34px] pb-[70px] pt-[26px] max-md:px-4">
-        {villeId ? <VillePage key={villeId} villeId={villeId} ville={ville} onNouvelle={nouvelle} onSuivante={suivante} ongletDemande={ongletDemande} cibleDemandee={cibleDemandee} /> : <Accueil villes={villes} onOuvrir={ouvrir} />}
+        {villeId ? <VillePage key={villeId} villeId={villeId} ville={ville} onNouvelle={nouvelle} ongletDemande={ongletDemande} cibleDemandee={cibleDemandee} /> : <Accueil villes={villes} onOuvrir={ouvrir} />}
         {!villeId && (
           <div className="mt-10 text-center text-[12.5px] text-[#8B938F]">
             <Link to="/ALXBilan" className="hover:text-[#E8EFEB]">Le bilan des approches →</Link>

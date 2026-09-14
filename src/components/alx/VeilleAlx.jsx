@@ -3,6 +3,7 @@
    échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import { useEffect, useRef, useState } from "react";
+import { ChevronLeft } from "lucide-react";
 
 const AUCUNE = [];
 import { useLocation, useNavigate } from "react-router-dom";
@@ -40,44 +41,90 @@ function fini(v) {
   return null;
 }
 
-/** Une carte de veille : dépliée, ou repliée en pastille. */
+// Le mouvement de la carte : long et amorti, comme un tiroir qui se referme.
+// Un ressort rapide donnerait l'impression que la carte claque.
+const DUREE = "760ms";
+const COURBE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const glisse = (props) => props.map((p) => `${p} ${DUREE} ${COURBE}`).join(", ");
+
+/**
+ * Une carte de veille : dépliée, ou repliée en pastille.
+ *
+ * Une seule boîte pour les deux états. La pastille vit à gauche, là où la
+ * carte est ancrée : replier, c'est donc rentrer vers la gauche, et la
+ * flèche regarde par là. Le corps se ferme en largeur (des pixels, pas un
+ * `auto` que le navigateur ne sait pas animer), le nom de la ville glisse à
+ * côté de la flèche, les coins s'arrondissent. La boîte, en largeur
+ * naturelle, suit sans saut.
+ */
+const CORPS = 262;
+
 function CarteVeille({ v, etat, onVoir, onFermer }) {
   const [repliee, setRepliee] = useState(false);
   const enCours = etat === "en_cours";
   const m = enCours ? pendant(v) : fini(v);
   if (!m) return null;
   const teinte = enCours ? J["ardoise"] : m.erreur ? J["emplacement-2"] : J["menthe"];
-  if (repliee) {
-    return (
-      <button
-        onClick={() => setRepliee(false)}
-        aria-label={m.titre} title={m.titre}
-        className="flex items-center gap-2.5 rounded-full border px-3.5 py-2 text-[12.5px] transition-colors"
-        style={{ background: "#101211", borderColor: `${teinte}55`, color: teinte }}
-      >
-        <span className={`h-2 w-2 rounded-full ${enCours ? "alx-pouls" : ""}`} style={{ background: teinte }} />
-        {v.nom}
-        <span className="text-[11px] opacity-70">▲</span>
-      </button>
-    );
-  }
+  const basculer = () => setRepliee((r) => !r);
   return (
-    <div className="alx-entree flex w-[380px] max-w-[calc(100vw-48px)] items-center gap-3.5 rounded-[15px] border border-trait px-5 py-[15px] shadow-[0_18px_40px_rgba(0,0,0,0.55)]" style={{ background: "#101211" }}>
+    <div
+      className="alx-entree flex w-max max-w-[calc(100vw-48px)] items-center overflow-hidden border shadow-[0_18px_40px_rgba(0,0,0,0.55)]"
+      style={{
+        background: "#101211",
+        columnGap: repliee ? 10 : 14,
+        padding: repliee ? "8px 10px 8px 14px" : "15px 16px 15px 20px",
+        borderRadius: repliee ? 999 : 15,
+        borderColor: repliee ? `${teinte}55` : J["trait"],
+        transition: glisse(["column-gap", "padding", "border-radius", "border-color"]),
+      }}
+    >
       {enCours ? (
-        <span className="alx-pouls h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: J["ardoise"] }} />
+        <span className="alx-pouls shrink-0 rounded-full" style={{ background: J["ardoise"], width: repliee ? 8 : 9, height: repliee ? 8 : 9, transition: glisse(["width", "height"]) }} />
       ) : (
-        <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[12.5px] font-bold text-sur-menthe" style={{ background: teinte }}>{m.erreur ? "!" : "✓"}</span>
+        <span className="grid shrink-0 place-items-center rounded-full font-bold text-sur-menthe" style={{ background: teinte, width: repliee ? 14 : 22, height: repliee ? 14 : 22, fontSize: repliee ? 9 : 12.5, transition: glisse(["width", "height", "font-size"]) }}>{m.erreur ? "!" : "✓"}</span>
       )}
-      <div className="min-w-0 flex-1">
-        <div className="text-[15px] text-encre">{m.titre}</div>
-        <div className="mt-1 text-[12.5px] leading-[1.45] text-ardoise">{m.detail}</div>
+
+      {/* Le corps : titre, détail, Voir. Il se ferme en largeur et s'efface ;
+          son contenu garde sa largeur pour ne pas se remettre en page pendant
+          le mouvement. */}
+      <div className="grid shrink-0 overflow-hidden" style={{ width: repliee ? 0 : CORPS, gridTemplateRows: repliee ? "0fr" : "1fr", opacity: repliee ? 0 : 1, transition: glisse(["width", "grid-template-rows", "opacity"]) }} aria-hidden={repliee}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex items-center gap-3.5" style={{ width: CORPS }}>
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] text-encre">{m.titre}</div>
+              <div className="mt-1 text-[12.5px] leading-[1.45] text-ardoise">{m.detail}</div>
+            </div>
+            <button tabIndex={repliee ? -1 : 0} onClick={() => onVoir(m.onglet || ongletDe(v.parcours || {}))} className="alx-mont shrink-0 rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-[.12em] transition-colors hover:bg-menthe/10" style={{ borderColor: "rgba(150,192,184,0.45)", color: J["menthe"], background: "transparent" }}>
+              Voir
+            </button>
+          </div>
+        </div>
       </div>
-      <button onClick={() => onVoir(m.onglet || ongletDe(v.parcours || {}))} className="alx-mont shrink-0 rounded-full border px-3.5 py-2 text-[11px] uppercase tracking-[.12em] transition-colors hover:bg-menthe/10" style={{ borderColor: "rgba(150,192,184,0.45)", color: J["menthe"], background: "transparent" }}>
-        Voir
-      </button>
-      <div className="flex shrink-0 flex-col gap-1">
-        <button onClick={() => setRepliee(true)} aria-label="Replier" title="Replier" className="px-1 text-[11px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>▼</button>
-        {!enCours && <button onClick={onFermer} aria-label="Fermer" title="Fermer" className="px-1 text-[13.5px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
+
+      <div className="flex shrink-0 items-center gap-1">
+        {/* Le nom de la ville, seulement sur la pastille : il glisse depuis la flèche. */}
+        <span className="overflow-hidden whitespace-nowrap text-[12.5px]" style={{ color: teinte, maxWidth: repliee ? 160 : 0, opacity: repliee ? 1 : 0, transition: glisse(["max-width", "opacity"]) }} aria-hidden={!repliee}>
+          {v.nom}
+        </span>
+        <button
+          onClick={basculer}
+          aria-label={repliee ? "Déplier" : "Replier"} title={repliee ? m.titre : "Replier"}
+          aria-expanded={!repliee}
+          className="grid h-6 w-6 place-items-center rounded-full text-ardoise hover:text-encre"
+          style={{ background: "transparent" }}
+        >
+          <ChevronLeft className="h-3.5 w-3.5" style={{ transform: repliee ? "rotate(180deg)" : "none", transition: glisse(["transform"]) }} />
+        </button>
+        {!enCours && (
+          <button
+            onClick={onFermer} aria-label="Fermer" title="Fermer" tabIndex={repliee ? -1 : 0}
+            className="grid h-6 place-items-center overflow-hidden rounded-full text-[13.5px] leading-none text-ardoise hover:text-encre"
+            style={{ background: "transparent", width: repliee ? 0 : 24, opacity: repliee ? 0 : 1, transition: glisse(["width", "opacity"]) }}
+            aria-hidden={repliee}
+          >
+            ×
+          </button>
+        )}
       </div>
     </div>
   );

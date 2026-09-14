@@ -226,7 +226,6 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
           onRetourDetail={() => setDetailCle(null)}
           apercu={apercu}
         />
-        <JournalControles phase="repos" temps={0} duree={0} reperes={[]} />
       </section>
 
       {phase !== "repos" &&

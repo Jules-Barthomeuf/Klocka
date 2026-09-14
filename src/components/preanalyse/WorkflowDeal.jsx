@@ -777,7 +777,6 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
         descOui="Un mail de demande de documents (bail, PV d'AG, diagnostics…) est pré-rédigé pour l'agent. Le deal passe en attente de documents, avec relance automatique proposée."
         titreNon="Non — on s'arrête là"
         descNon="Un mail de refus courtois est pré-rédigé (« nous restons en recherche d'opportunités »). Le deal alimente la base de données marché puis part aux archives."
-        descInactif="Étape dépassée — le deal a avancé sans refus ni demande de documents formelle."
       />
     </>
   );
@@ -888,7 +887,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
 // Bloc de décision Oui / Non — partagé par les étapes 2 et 4
 // ---------------------------------------------------------------------------
 
-function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, titreOui, descOui, titreNon, descNon, onOui = undefined, apercu, descInactif = undefined }) {
+function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, titreOui, descOui, titreNon, descNon, onOui = undefined, apercu }) {
   const [dialogIntention, setDialogIntention] = useState(null);
   // En aperçu, les cartes sont visibles mais inertes.
   const ouvrir = (intention) => !apercu && setDialogIntention(intention);
@@ -905,55 +904,9 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
     onError: (e) => toast.error(e?.message || "Changement de statut impossible"),
   });
 
-  if (!actif) {
-    // Décision déjà prise (ou étape hors contexte) : résumé depuis le journal.
-    const abandonne = dossier.statut === "abandonne";
-    const evenement = [...(dossier.suivi || [])]
-      .reverse()
-      .find(
-        (e) =>
-          e.intention === intentionOui ||
-          e.intention === intentionNon ||
-          e.vers === "abandonne" ||
-          e.vers === "documents_demandes" ||
-          e.vers === "projet_cree"
-      );
-    // Ni abandon, ni trace de décision : l'étape n'a simplement pas encore été
-    // jouée (navigation libre) — on l'explique plutôt que d'inventer un « oui ».
-    // Étape simplement pas encore jouée : rien à dire, on n'affiche rien.
-    if (!abandonne && !evenement) return descInactif ? (
-      <div className="bg-fond border border-trait rounded-md px-5 py-4 flex items-center gap-3">
-        <span className="w-8 h-8 rounded-md bg-encre/5 text-ardoise flex items-center justify-center flex-shrink-0">
-          <Clock className="w-4 h-4" />
-        </span>
-        <p className="text-ardoise text-sm min-w-0">{descInactif}</p>
-      </div>
-    ) : null;
-
-    return (
-      <div className="bg-fond border border-trait rounded-md px-5 py-4">
-        <div className="flex items-center gap-3">
-          <span
-            className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-              abandonne ? "bg-red-500/15 text-red-300" : "bg-menthe/20 text-menthe-clair"
-            }`}
-          >
-            {abandonne ? <ThumbsDown className="w-4 h-4" /> : <ThumbsUp className="w-4 h-4" />}
-          </span>
-          <p className="text-ardoise text-sm min-w-0">
-            {abandonne ? "Décision : non." : "Décision : oui."}
-            {evenement && (
-              <span className="text-brume">
-                {" "}
-                {evenement.detail || ""} —{" "}
-                {new Date(evenement.le).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Décision déjà prise, ou étape hors contexte : rien. Le dossier a avancé,
+  // et rappeler « Décision : oui » en bas de chaque étape n'apprend rien.
+  if (!actif) return null;
 
   // La décision reste sous la main : deux boutons posés en bas à droite de
   // l'écran, au-dessus de la bulle d'assistant. Un clic écrit le mail.

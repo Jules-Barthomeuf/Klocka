@@ -7,9 +7,9 @@
 // déjà dit.
 //
 // Ce module écrit ces mêmes chiffres dans docs/etat-plateforme.md, un fichier
-// court que CLAUDE.md désigne. Une session — la vôtre, ou le chantier de
-// server/atelier.js — le lit en entrant et connaît l'usage réel : quelles
-// pages comptent, qui travaille, ce qui coûte, ce qui attend une décision.
+// court que CLAUDE.md désigne. Une session de travail le lit en entrant et
+// connaît l'usage réel : quelles pages comptent, qui travaille, ce qui coûte,
+// ce qui attend une décision.
 //
 // Régénéré au démarrage du serveur puis une fois par jour, et à la main :
 //     npm run etat            (30 jours)

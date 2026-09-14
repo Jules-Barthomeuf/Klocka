@@ -76,16 +76,7 @@ export function monterEntites(app) {
     const corps = estUser(req.params.entity)
       ? { ...retirerChampsProteges(req.body), email: normEmail(req.body?.email), role: req.body?.role === 'admin' ? 'admin' : 'user' }
       : req.body || {};
-    const rec = Records.create(req.params.entity, corps, user?.email);
-    // Une remarque déposée par l'équipe ouvre un chantier : l'atelier va
-    // chercher la cause et proposer une correction en pull request. Il ne
-    // répond de rien si la machine n'a pas Claude Code — voir server/atelier.js.
-    if (req.params.entity === 'Suggestion') {
-      import('../atelier.js')
-        .then((m) => m.surNouvelleRemarque(rec, user))
-        .catch((e) => console.error('[atelier] remarque non prise :', e.message));
-    }
-    ok(res, nettoyer(req.params.entity, rec));
+    ok(res, nettoyer(req.params.entity, Records.create(req.params.entity, corps, user?.email)));
   }));
 
   app.put('/api/entities/:entity/:id', wrap((req, res) => {

@@ -14,7 +14,7 @@ export default function AdminDashboardView() {
     <div className="min-h-screen bg-fond">
       {/* Une colonne large et beaucoup d'air : le plan de travail se parcourt
           d'un regard, il ne se déchiffre pas. */}
-      <div className="max-w-[1400px] mx-auto px-5 md:px-12 py-10 md:py-16">
+      <div className="mx-auto max-w-[1400px] px-5 pb-10 pt-6 md:px-12 md:pb-16 md:pt-8">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <PlanDeTravail chat={<ChatDashboard />} />
         </motion.div>

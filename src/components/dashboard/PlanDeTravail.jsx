@@ -52,7 +52,7 @@ export default function PlanDeTravail({ chat = null }) {
           centre, les gestes courants juste en dessous. L'ensemble est posé sur
           son propre fond, délimité par un filet : ce qui est au-dessus se fait,
           ce qui est en dessous se reprend. */}
-      <header className="accueil relative flex min-h-[74vh] flex-col items-center justify-center overflow-hidden text-center max-md:min-h-[58vh] max-md:py-14">
+      <header className="accueil relative flex min-h-[42vh] flex-col items-center justify-center overflow-hidden pt-4 text-center max-md:min-h-0 max-md:py-10">
         {/* Le fond : une lueur menthe posée derrière la barre, qui s'éteint
             avant les bords. Rien d'autre ne brille sur cette page. */}
         <div
@@ -82,7 +82,7 @@ export default function PlanDeTravail({ chat = null }) {
       {/* Ce qui est dû passe avant ce qu'on avait laissé en plan. Les deux
           blocs se cachent quand ils sont vides : une barre au-dessus du néant
           ne sépare rien. */}
-      <div className="mt-12 flex flex-col gap-12 max-md:mt-9 max-md:gap-9">
+      <div className="mt-14 flex flex-col gap-12 max-md:mt-9 max-md:gap-9">
         <CeQuiVousAttend />
         <ReprisePlace />
       </div>

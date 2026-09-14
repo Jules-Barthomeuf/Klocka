@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import OngletsSuivi from "@/components/OngletsSuivi";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
@@ -145,6 +146,7 @@ export default function CoutsIA() {
 
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
           <div>
+            <OngletsSuivi className="mb-3.5" />
             <h1 className="m-0 text-[34px] max-md:text-[26px] font-light tracking-[-0.02em] leading-[1.05]">Ce que coûte chaque geste</h1>
             <p className="m-0 mt-2 text-[14px] text-ardoise max-w-[62ch]">
               Le prix d'une pièce lue, d'un mail rédigé, d'une question posée. Calculé sur votre journal, pas sur des ordres de grandeur.

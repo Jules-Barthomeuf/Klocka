@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import OngletsSuivi from "@/components/OngletsSuivi";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Loader2, Activity, Users, MessageSquare, Wrench, ChevronDown, Coins } from "lucide-react";
@@ -102,7 +103,7 @@ export default function Monitoring() {
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 md:py-10">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-7">
           <div>
-            <div className="text-[11px] tracking-[.16em] uppercase text-ardoise mb-2.5">Suivi</div>
+            <OngletsSuivi className="mb-3.5" />
             <h1 className="m-0 text-[30px] max-md:text-[24px] font-light tracking-[-.02em]">Usage de la plateforme</h1>
             <p className="mt-2.5 mb-0 max-w-[62ch] text-[13.5px] leading-[1.65] text-ardoise">
               Les pages consultées, les demandes faites à l'assistant, et ce qui a réellement été

@@ -87,7 +87,7 @@ function CarteVille({ v, onOuvrir }) {
     <button
       onClick={() => onOuvrir(v.id)}
       className="relative flex flex-col overflow-hidden rounded-[18px] border border-white/[0.055] text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
-      style={{ background: "#0D0F0E" }}
+      style={{ background: "#08090A" }}
     >
       <div className="flex h-[3px]">
         <div style={{ width: part(c.appeler), background: TEINTES.appeler }} />

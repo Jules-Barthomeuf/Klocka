@@ -420,8 +420,10 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    Les boutons de shadcn portent leur propre anneau ; les quatre cent
    cinquante-cinq boutons écrits à la main n'en avaient aucun, et la
    navigation au clavier était invisible. Une règle, en menthe, partout. */
+/* Les champs de texte en sont exclus : le curseur qui clignote dit déjà où
+   l'on écrit, et un anneau autour d'une barre de saisie est laid. */
 :where(button, a, [role="button"], [role="tab"], summary):focus-visible,
-:where(input, textarea, select, [tabindex]):focus-visible {
+:where(select, [tabindex]):focus-visible {
   outline: 2px solid #96c0b8;
   outline-offset: 2px;
   border-radius: inherit;

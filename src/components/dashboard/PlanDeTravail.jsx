@@ -52,13 +52,25 @@ export default function PlanDeTravail({ chat = null }) {
           centre, les gestes courants juste en dessous. L'ensemble est posé sur
           son propre fond, délimité par un filet : ce qui est au-dessus se fait,
           ce qui est en dessous se reprend. */}
-      <header className="accueil relative flex min-h-[42vh] flex-col items-center justify-center overflow-hidden pt-4 text-center max-md:min-h-0 max-md:py-10">
-        {/* Le fond : une lueur menthe posée derrière la barre, qui s'éteint
-            avant les bords. Rien d'autre ne brille sur cette page. */}
+      <header className="accueil relative flex min-h-[42vh] flex-col items-center justify-center pt-4 text-center max-md:min-h-0 max-md:py-10">
+        {/* Le fond : de la couleur derrière la barre. Une nappe menthe au
+            centre, une pointe d'ambre et un vert plus sombre sur les côtés.
+            Rien ne les écrête : un halo coupé net dessine une ligne en
+            travers de la page, et c'est précisément ce qu'on ne veut pas. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[1100px] max-w-[130vw] -translate-x-1/2 -translate-y-[38%]"
-          style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.1)}, transparent)` }}
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[1200px] max-w-full -translate-x-1/2 -translate-y-[34%]"
+          style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.3)}, ${alpha("menthe", 0.1)} 55%, transparent)` }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[26%] top-1/2 h-[420px] w-[720px] max-w-full -translate-x-1/2 -translate-y-[12%]"
+          style={{ background: `radial-gradient(closest-side, ${alpha("ambre", 0.11)}, transparent)` }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[76%] top-1/2 h-[460px] w-[760px] max-w-full -translate-x-1/2 -translate-y-[46%]"
+          style={{ background: `radial-gradient(closest-side, ${alpha("menthe-fonce", 0.2)}, transparent)` }}
         />
         <h1 className="relative m-0 font-display font-normal italic leading-[1.05] tracking-[.01em] text-encre" style={{ fontSize: "clamp(32px, 3.9vw, 52px)" }}>
           {salut}

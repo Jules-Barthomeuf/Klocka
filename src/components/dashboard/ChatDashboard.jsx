@@ -654,37 +654,49 @@ export default function ChatDashboard() {
             {commandes && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
-                <div role="menu" className="absolute bottom-full left-0 z-20 mb-2 min-w-[320px] rounded-bloc border border-bord-doux bg-surface p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
-                  {MODES.map((m) => {
-                    const Icone = m.icone;
-                    const actif = mode === m.id;
-                    return (
+                <div
+                  role="menu"
+                  className="absolute left-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc border border-trait bg-surface text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]"
+                >
+                  <div className="border-b border-trait px-4 pb-2.5 pt-3.5">
+                    <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Ce que vous apportez</span>
+                  </div>
+                  <div className="p-1.5">
+                    {MODES.map((m) => {
+                      const Icone = m.icone;
+                      const actif = mode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          role="menuitem"
+                          onClick={() => { const suivant = actif ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); setCommandes(false); }}
+                          className="flex w-full items-center gap-3 rounded-champ px-3 py-2.5 text-left transition-colors hover:bg-encre/[0.05]"
+                          style={{ background: actif ? alpha("menthe", 0.1) : "transparent" }}
+                          title={m.placeholder}
+                        >
+                          <Icone className="h-4 w-4 flex-none" style={{ color: actif ? J["menthe"] : J["ardoise"] }} />
+                          <span className="text-[13.5px]" style={{ color: actif ? J["menthe"] : J["craie"] }}>{m.label}</span>
+                          {actif && <Check className="ml-auto h-3.5 w-3.5 flex-none" style={{ color: J["menthe"] }} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="border-t border-trait px-4 pb-2.5 pt-3.5">
+                    <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Commandes types</span>
+                  </div>
+                  <div className="p-1.5 pb-2">
+                    {COMMANDES.map((c) => (
                       <button
-                        key={m.id}
+                        key={c.texte}
                         role="menuitem"
-                        onClick={() => { const suivant = actif ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); setCommandes(false); }}
-                        className="flex w-full items-center gap-2.5 rounded-champ px-3 py-2 text-left text-[13.5px] transition-colors hover:bg-encre/[0.05]"
-                        style={{ background: "transparent", color: actif ? J["menthe"] : J["craie"] }}
-                        title={m.placeholder}
+                        onClick={() => { setTexte(c.texte); setMode(c.mode || null); setCommandes(false); }}
+                        className="w-full rounded-champ px-3 py-2 text-left text-[12.5px] leading-[1.5] text-brume transition-colors hover:bg-encre/[0.05] hover:text-craie"
+                        style={{ background: "transparent" }}
                       >
-                        <Icone className="h-4 w-4 flex-none" />
-                        {m.label}
-                        {actif && <Check className="ml-auto h-3.5 w-3.5 flex-none" />}
+                        {c.texte}
                       </button>
-                    );
-                  })}
-                  <div className="my-1.5 border-t border-trait" />
-                  {COMMANDES.map((c) => (
-                    <button
-                      key={c.texte}
-                      role="menuitem"
-                      onClick={() => { setTexte(c.texte); setMode(c.mode || null); setCommandes(false); }}
-                      className="w-full rounded-champ px-3 py-2 text-left text-[12.5px] text-brume transition-colors hover:bg-encre/[0.05] hover:text-craie"
-                      style={{ background: "transparent" }}
-                    >
-                      {c.texte}
-                    </button>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </>
             )}

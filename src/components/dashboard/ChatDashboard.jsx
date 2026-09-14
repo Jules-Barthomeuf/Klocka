@@ -656,9 +656,10 @@ export default function ChatDashboard() {
                 <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
                 <div
                   role="menu"
-                  className="absolute left-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc border border-trait bg-surface text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]"
+                  className="absolute left-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]"
+                  style={{ background: "#121413" }}
                 >
-                  <div className="border-b border-trait px-4 pb-2.5 pt-3.5">
+                  <div className="border-b border-bord px-4 pb-2.5 pt-3.5">
                     <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Ce que vous apportez</span>
                   </div>
                   <div className="p-1.5">
@@ -681,7 +682,7 @@ export default function ChatDashboard() {
                       );
                     })}
                   </div>
-                  <div className="border-t border-trait px-4 pb-2.5 pt-3.5">
+                  <div className="border-t border-bord px-4 pb-2.5 pt-3.5">
                     <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Commandes types</span>
                   </div>
                   <div className="p-1.5 pb-2">

@@ -11,12 +11,12 @@ import { Mono, Section, eur, fourchette } from "./CadreEtapes";
 // colonnes (décotes et bonifications ; conditions de négociation), le match
 // investisseur, la décision.
 
-const NIVEAU = { fort: "text-[#e8927c]", moyen: "text-[#e8b04c]", faible: "text-brume" };
+const NIVEAU = { fort: "text-alerte", moyen: "text-ambre", faible: "text-brume" };
 const neg = (f) => (!f || (f[0] === 0 && f[1] === 0) ? null : f[0] === f[1] ? `−${Math.round(f[0]).toLocaleString("fr-FR")} €` : `−${Math.round(f[0]).toLocaleString("fr-FR")} à −${Math.round(f[1]).toLocaleString("fr-FR")} €`);
 const plus = (f) => (!f || (f[0] === 0 && f[1] === 0) ? "—" : `+${Math.round(f[0] / 1000)} à +${Math.round(f[1] / 1000)} k€`);
 
 function Sources({ liste, onPreuve }) {
-  if (!liste?.length) return <Mono className="normal-case tracking-[.06em] text-[#4d545d]">calcul</Mono>;
+  if (!liste?.length) return <Mono className="normal-case tracking-[.06em] text-brume">calcul</Mono>;
   return <span className="flex flex-wrap gap-x-3">{liste.map((s, i) => <button key={i} onClick={() => onPreuve(s)} className="font-mono text-[10.5px] tracking-[.06em] text-brume hover:text-encre">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 26)}{s.page ? ` p. ${s.page}` : ""}</button>)}</span>;
 }
 
@@ -40,7 +40,7 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
 
       {/* 1 · Les risques */}
       <Section id="risques" titre="1 · Les risques" droite={`${prix.nb_ecartes} écarté(s) · ${prix.nb_ajustes} ajusté(s) · décote retenue ${prix.courant ? fourchette(prix.courant.decote) : "—"}`}>
-        <div className="divide-y divide-[#15171b]">
+        <div className="divide-y divide-relief">
           {e.risques.map((r) => {
             const ouvert = ouverts.has(r.id);
             return (
@@ -48,13 +48,13 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
                 <button onClick={() => bascule(r.id)} className="w-full text-left flex flex-wrap items-baseline gap-x-4 gap-y-1">
                   <span className="flex-1 min-w-[240px] text-[15px] text-encre"><span className="font-semibold">{r.titre}</span> <span className="text-ardoise">— {r.une_ligne}</span></span>
                   <Mono className={`${NIVEAU[r.niveau]} w-[70px] text-right`}>{r.niveau_libelle}</Mono>
-                  <span className={`w-[190px] text-right tabular-nums font-light text-[15px] ${r.verdict === "ecarte" ? "line-through text-[#4d545d]" : "text-encre"}`}>{r.integre_au_prix ? <span className="text-ardoise">intégré au prix</span> : neg(r.fourchette) || "—"}</span>
+                  <span className={`w-[190px] text-right tabular-nums font-light text-[15px] ${r.verdict === "ecarte" ? "line-through text-brume" : "text-encre"}`}>{r.integre_au_prix ? <span className="text-ardoise">intégré au prix</span> : neg(r.fourchette) || "—"}</span>
                   <span className="w-4 text-brume text-[11px]">{ouvert ? "▲" : "▼"}</span>
                 </button>
                 {ouvert && (
                   <div className="mt-3 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
                     <div className="min-w-0">
-                      <p className="m-0 text-[14px] leading-[1.7] text-[#d6d6db]">{r.raisonnement}</p>
+                      <p className="m-0 text-[14px] leading-[1.7] text-craie">{r.raisonnement}</p>
                       <div className="mt-2"><Sources liste={r.sources} onPreuve={onPreuve} /></div>
                     </div>
                     <div className="border border-trait px-4 py-3">
@@ -66,7 +66,7 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
                           <button key={v} onClick={() => !apercu && reviser.mutate({ id: r.id, verdict: v })} disabled={apercu} className={`px-3 py-1.5 text-[12.5px] border transition-colors ${r.verdict === v ? "border-encre text-encre" : "border-bord-doux text-ardoise hover:text-encre"}`}>{l}</button>
                         ))}
                       </div>
-                      {r.condition?.coche && <p className="m-0 mt-2 text-[12px] text-[#7fd1a8]">Condition obtenue : {r.condition.titre}.</p>}
+                      {r.condition?.coche && <p className="m-0 mt-2 text-[12px] text-vert">Condition obtenue : {r.condition.titre}.</p>}
                     </div>
                   </div>
                 )}
@@ -86,12 +86,12 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
             </div>
             <div className="pt-4"><Mono>Décotes</Mono></div>
             {e.risques.filter((r) => !r.integre_au_prix && r.verdict !== "ecarte" && !(r.condition?.coche)).map((r) => (
-              <div key={r.id} className="flex items-baseline justify-between gap-4 py-2 border-b border-[#15171b] text-[14px]"><span className="text-craie">{r.titre}</span><span className="tabular-nums font-light text-[15px] text-encre">{neg(r.decote_retenue) || "—"}</span></div>
+              <div key={r.id} className="flex items-baseline justify-between gap-4 py-2 border-b border-relief text-[14px]"><span className="text-craie">{r.titre}</span><span className="tabular-nums font-light text-[15px] text-encre">{neg(r.decote_retenue) || "—"}</span></div>
             ))}
             {e.bonifications.length > 0 && (
               <>
                 <div className="pt-4"><Mono>Bonifications</Mono></div>
-                {e.bonifications.map((b) => <div key={b.titre} className="flex items-baseline justify-between gap-4 py-2 border-b border-[#15171b] text-[14px]"><span className="text-craie">{b.titre}</span><span className="tabular-nums font-light text-[15px] text-encre">{plus(b.fourchette).replace(/k€/g, "000 €").replace("+", "+").replace(" à ", " à ")}</span></div>)}
+                {e.bonifications.map((b) => <div key={b.titre} className="flex items-baseline justify-between gap-4 py-2 border-b border-relief text-[14px]"><span className="text-craie">{b.titre}</span><span className="tabular-nums font-light text-[15px] text-encre">{plus(b.fourchette).replace(/k€/g, "000 €").replace("+", "+").replace(" à ", " à ")}</span></div>)}
               </>
             )}
             <div className="flex items-baseline justify-between gap-4 pt-5">
@@ -123,10 +123,10 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
       <Section id="match" titre="3 · Match investisseur" droite={e.match.configure ? `au prix courant ${prix.courant ? fourchette(prix.courant.fourchette) : ""}` : "Monday non connecté"}>
         {!e.match.configure ? <p className="m-0 text-[13px] text-ardoise">Le rapprochement avec les investisseurs se fait depuis Monday.</p> : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[["Prêts au prix courant", e.match.prets, "text-[#7fd1a8]"], ["Possibles au prix du seuil", e.match.possibles, "text-[#e8b04c]"], ["Hors budget", e.match.hors, "text-brume"]].map(([l, liste, c]) => (
+            {[["Prêts au prix courant", e.match.prets, "text-vert"], ["Possibles au prix du seuil", e.match.possibles, "text-ambre"], ["Hors budget", e.match.hors, "text-brume"]].map(([l, liste, c]) => (
               <div key={l}>
                 <Mono className={c}>{l} · {liste.length}</Mono>
-                <div className="mt-2 space-y-1">{liste.length ? liste.map((x, i) => <p key={i} className="m-0 text-[13.5px] text-encre">{x.nom} <span className="text-brume text-[11.5px]">{x.raisons?.join(" · ")}</span></p>) : <p className="m-0 text-[12.5px] text-[#4d545d]">Personne.</p>}</div>
+                <div className="mt-2 space-y-1">{liste.length ? liste.map((x, i) => <p key={i} className="m-0 text-[13.5px] text-encre">{x.nom} <span className="text-brume text-[11.5px]">{x.raisons?.join(" · ")}</span></p>) : <p className="m-0 text-[12.5px] text-brume">Personne.</p>}</div>
               </div>
             ))}
           </div>
@@ -144,7 +144,7 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
           <div className="border border-trait px-5 py-4">
             <p className="m-0 text-[14px] font-semibold text-encre">Demander des compléments</p>
             <p className="m-0 mt-1 text-[12px] leading-[1.55] text-ardoise">Le mail au vendeur cumule les demandes des trois étapes et les conditions cochées.</p>
-            <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => !apercu && setDialog("demande_documents")} disabled={apercu} className="text-[12px] px-3.5 py-1.5 bg-encre text-[#0b0c0e] font-semibold disabled:opacity-40">Rédiger le mail</button></div>
+            <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => !apercu && setDialog("demande_documents")} disabled={apercu} className="text-[12px] px-3.5 py-1.5 bg-encre text-fond font-semibold disabled:opacity-40">Rédiger le mail</button></div>
           </div>
           <div className="border border-trait px-5 py-4">
             <p className="m-0 text-[14px] font-semibold text-encre">Passer</p>

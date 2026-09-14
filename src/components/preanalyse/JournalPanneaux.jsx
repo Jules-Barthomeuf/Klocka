@@ -39,8 +39,8 @@ function Coquille({ titre, enTete, onFermer, children, large = false }) {
 function Champ({ libelle, children }) {
   return (
     <div>
-      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-[#4e545e] mb-1">{libelle}</span>
-      <div className="text-[13px] leading-6 text-[#c6ccd3]">{children}</div>
+      <span className="block font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-brume mb-1">{libelle}</span>
+      <div className="text-[13px] leading-6 text-craie">{children}</div>
     </div>
   );
 }
@@ -132,7 +132,7 @@ export function PanneauJournalDetaille({ entrees, onFermer }) {
           const c = ton(e.ton);
           return (
             <li key={`${e.t}-${i}`} className="font-mono text-[11px] leading-5 break-words">
-              <span className="text-[#4e545e] tabular-nums">{e.quand || chrono(e.t)}</span>{" "}
+              <span className="text-brume tabular-nums">{e.quand || chrono(e.t)}</span>{" "}
               <span style={{ color: c.etiquette }}>[{e.source}]</span>{" "}
               <span className="text-ardoise">{e.texte}</span>
               {e.encart && (
@@ -144,7 +144,7 @@ export function PanneauJournalDetaille({ entrees, onFermer }) {
             </li>
           );
         })}
-        {!alEnvers.length && <li className="text-[12px] text-[#4e545e]">Rien encore.</li>}
+        {!alEnvers.length && <li className="text-[12px] text-brume">Rien encore.</li>}
       </ol>
     </Coquille>
   );

@@ -32,7 +32,7 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             onChange={(e) => update("texte_general", e.target.value)}
             rows={12}
             placeholder="Saisissez ici toute l'analyse SWOT..."
-            className="bg-[#0c0d10] text-encre border-trait"
+            className="bg-fond text-encre border-trait"
           />
         </VerificationField>
       </div>
@@ -49,19 +49,19 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             <VerificationField fieldKey="swot_maire" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Maire</Label>
-                <Input value={swot.maire || ""} onChange={(e) => update("maire", e.target.value)} placeholder="Ex: Martine Aubry" className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Input value={swot.maire || ""} onChange={(e) => update("maire", e.target.value)} placeholder="Ex: Martine Aubry" className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_parti_politique" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Parti politique</Label>
-                <Input value={swot.parti_politique || ""} onChange={(e) => update("parti_politique", e.target.value)} placeholder="Ex: PS" className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Input value={swot.parti_politique || ""} onChange={(e) => update("parti_politique", e.target.value)} placeholder="Ex: PS" className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_politiques_cles" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Politiques clés</Label>
-                <Textarea value={swot.politiques_cles || ""} onChange={(e) => update("politiques_cles", e.target.value)} rows={2} placeholder="Ex: Redynamisation centre-ville, ZFE..." className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Textarea value={swot.politiques_cles || ""} onChange={(e) => update("politiques_cles", e.target.value)} rows={2} placeholder="Ex: Redynamisation centre-ville, ZFE..." className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
           </div>
@@ -72,13 +72,13 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             <VerificationField fieldKey="swot_projets_ville" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Projets de la ville</Label>
-                <Textarea value={swot.projets_ville || ""} onChange={(e) => update("projets_ville", e.target.value)} rows={3} placeholder="Ex: Nouveau tramway, rénovation quartier gare..." className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Textarea value={swot.projets_ville || ""} onChange={(e) => update("projets_ville", e.target.value)} rows={3} placeholder="Ex: Nouveau tramway, rénovation quartier gare..." className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_programmes_nationaux" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Programmes nationaux</Label>
-                <Textarea value={swot.programmes_nationaux || ""} onChange={(e) => update("programmes_nationaux", e.target.value)} rows={2} placeholder="Ex: Action Cœur de Ville, Petites Villes de Demain..." className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Textarea value={swot.programmes_nationaux || ""} onChange={(e) => update("programmes_nationaux", e.target.value)} rows={2} placeholder="Ex: Action Cœur de Ville, Petites Villes de Demain..." className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
           </div>
@@ -89,19 +89,19 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             <VerificationField fieldKey="swot_taux_pauvrete" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Taux de pauvreté (%)</Label>
-                <Input type="number" value={swot.taux_pauvrete ?? ""} onChange={(e) => update("taux_pauvrete", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 18.5" className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Input type="number" value={swot.taux_pauvrete ?? ""} onChange={(e) => update("taux_pauvrete", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 18.5" className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_taux_etudiants" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Taux d'étudiants (%)</Label>
-                <Input type="number" value={swot.taux_etudiants ?? ""} onChange={(e) => update("taux_etudiants", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 12.3" className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Input type="number" value={swot.taux_etudiants ?? ""} onChange={(e) => update("taux_etudiants", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 12.3" className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
             <VerificationField fieldKey="swot_risques_environnement" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Risques environnementaux</Label>
-                <Textarea value={swot.risques_environnement || ""} onChange={(e) => update("risques_environnement", e.target.value)} rows={2} placeholder="Ex: Zone inondable, pollution sols..." className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Textarea value={swot.risques_environnement || ""} onChange={(e) => update("risques_environnement", e.target.value)} rows={2} placeholder="Ex: Zone inondable, pollution sols..." className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
           </div>
@@ -112,7 +112,7 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
             <VerificationField fieldKey="swot_score_global" formData={formData} setFormData={setFormData}>
               <div>
                 <Label className="text-ardoise text-xs">Score global (/100)</Label>
-                <Input type="number" value={swot.score_global ?? ""} onChange={(e) => update("score_global", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 72" className="bg-[#0c0d10] text-encre border-trait mt-1" />
+                <Input type="number" value={swot.score_global ?? ""} onChange={(e) => update("score_global", e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 72" className="bg-fond text-encre border-trait mt-1" />
               </div>
             </VerificationField>
           </div>
@@ -124,8 +124,8 @@ export default function ProjectFormSwotTab({ formData, setFormData }) {
         <Label className="text-encre text-lg">Liens sources</Label>
         {liens.map((l, i) => (
           <div key={i} className="flex gap-2">
-            <Input value={l.label || ""} onChange={(e) => { const n = [...liens]; n[i] = { ...n[i], label: e.target.value }; updateLiens(n); }} placeholder="Label" className="bg-[#0c0d10] text-encre border-trait w-1/3" />
-            <Input value={l.url || ""} onChange={(e) => { const n = [...liens]; n[i] = { ...n[i], url: e.target.value }; updateLiens(n); }} placeholder="URL" className="bg-[#0c0d10] text-encre border-trait flex-1" />
+            <Input value={l.label || ""} onChange={(e) => { const n = [...liens]; n[i] = { ...n[i], label: e.target.value }; updateLiens(n); }} placeholder="Label" className="bg-fond text-encre border-trait w-1/3" />
+            <Input value={l.url || ""} onChange={(e) => { const n = [...liens]; n[i] = { ...n[i], url: e.target.value }; updateLiens(n); }} placeholder="URL" className="bg-fond text-encre border-trait flex-1" />
             <Button variant="ghost" size="icon" onClick={() => updateLiens(liens.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-300"><Trash2 className="w-4 h-4" /></Button>
           </div>
         ))}

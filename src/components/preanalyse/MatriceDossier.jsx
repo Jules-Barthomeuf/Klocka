@@ -6,6 +6,7 @@ import { Check, ChevronDown, Copy, Loader2, Plus, RefreshCw, X } from "lucide-re
 import DocumentsDossier from "./DocumentsDossier";
 import { Visionneuse, TableExtraction } from "./AnalyseDocuments";
 import FicheDossier, { Frise } from "./FicheDossier";
+import { J } from "@/design/jetons";
 
 // L'étape Analyse, brique par brique : les documents, la matrice (une ligne
 // par document, une colonne par question), le gabarit, la revue des anomalies
@@ -13,7 +14,7 @@ import FicheDossier, { Frise } from "./FicheDossier";
 // validée. On entre par les anomalies : c'est ce qui décide.
 
 const TEINTE = {
-  coherent: "#7fd1a8", contradictoire: "#e8927c", manquant: "#e8b04c", hors_critere: "#c39bd3", a_verifier: "#8fb6e8",
+  coherent: J["vert"], contradictoire: J["alerte"], manquant: J["ambre"], hors_critere: "#c39bd3", a_verifier: J["bleu"],
 };
 const LIBELLE = { coherent: "Cohérent", contradictoire: "Contradictoire", manquant: "Manquant", hors_critere: "Hors critère", a_verifier: "À vérifier" };
 const ORDRE = { contradictoire: 0, manquant: 1, hors_critere: 2, a_verifier: 3, coherent: 4 };
@@ -74,15 +75,15 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="m-0 text-[12.5px] text-[#77777e]">
+        <p className="m-0 text-[12.5px] text-brume">
           {m.lignes.length} document{m.lignes.length > 1 ? "s" : ""} × {m.colonnes.length} questions · gabarit « {m.gabarit.nom} » v{m.gabarit.version}
           {m.rempli_le ? ` · rempli ${new Date(m.rempli_le).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
         </p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setTri((t) => (t ? null : "statut"))} className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${tri ? "border-[#e8927c] text-[#e8927c]" : "border-bord-doux text-[#97979f] hover:text-encre"}`}>
+          <button onClick={() => setTri((t) => (t ? null : "statut"))} className={`text-[12px] px-3 py-1.5 rounded-full border transition-colors ${tri ? "border-alerte text-alerte" : "border-bord-doux text-ardoise hover:text-encre"}`}>
             {tri ? "Ordre du gabarit" : "Trier par statut"}
           </button>
-          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-encre text-[#0b0c0e] font-semibold hover:bg-[#ffffff]">
+          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-encre text-fond font-semibold hover:bg-[#ffffff]">
             <Plus className="w-3.5 h-3.5" /> Ajouter une colonne
           </button>
         </div>
@@ -90,25 +91,25 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
 
       {ajout && <FormulaireColonne onAnnuler={() => setAjout(false)} onValider={(c) => ajouter.mutate(c)} enCours={ajouter.isPending} />}
 
-      <div className="overflow-x-auto border border-[#1e1e22] rounded-xl">
+      <div className="overflow-x-auto border border-relief rounded-xl">
         <table className="border-collapse text-[12.5px] min-w-full">
           <thead>
-            <tr className="bg-[#0f0f11]">
-              <th className="sticky left-0 z-10 bg-[#0f0f11] text-left px-4 py-3 text-[10.5px] tracking-[.16em] uppercase text-[#77777e] font-normal border-b border-r border-[#1e1e22] min-w-[220px]">Document</th>
+            <tr className="bg-fond">
+              <th className="sticky left-0 z-10 bg-fond text-left px-4 py-3 text-[10.5px] tracking-[.16em] uppercase text-brume font-normal border-b border-r border-relief min-w-[220px]">Document</th>
               {colonnes.map((c) => (
-                <th key={c.id} className="text-left px-3 py-3 border-b border-r border-[#1e1e22] min-w-[190px] align-top font-normal">
+                <th key={c.id} className="text-left px-3 py-3 border-b border-r border-relief min-w-[190px] align-top font-normal">
                   <button
                     onClick={() => setEdition(edition === c.id ? null : c.id)}
                     title={c.question}
                     className="text-left w-full group"
                   >
-                    <span className="block text-[10px] tracking-[.14em] uppercase text-[#5f5f66]">{c.bloc}</span>
+                    <span className="block text-[10px] tracking-[.14em] uppercase text-brume">{c.bloc}</span>
                     <span className="block text-[12.5px] font-semibold text-encre group-hover:text-[#ffffff] mt-0.5">{c.libelle}</span>
                   </button>
                   {edition === c.id && (
-                    <p className="m-0 mt-2 text-[11.5px] leading-[1.5] text-[#97979f] font-normal normal-case tracking-normal">
+                    <p className="m-0 mt-2 text-[11.5px] leading-[1.5] text-ardoise font-normal normal-case tracking-normal">
                       {c.question}
-                      <span className="block mt-1 text-[#5f5f66]">règle : {REGLES.find(([r]) => r === c.regle)?.[1] || c.regle} · criticité {c.criticite}</span>
+                      <span className="block mt-1 text-brume">règle : {REGLES.find(([r]) => r === c.regle)?.[1] || c.regle} · criticité {c.criticite}</span>
                     </p>
                   )}
                 </th>
@@ -118,19 +119,19 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
           <tbody>
             {m.lignes.map((l) => (
               <tr key={l.document_id} className="hover:bg-encre/[0.02]">
-                <td className="sticky left-0 z-10 bg-[#0f0f11] px-4 py-3 border-b border-r border-[#1e1e22] align-top">
+                <td className="sticky left-0 z-10 bg-fond px-4 py-3 border-b border-r border-relief align-top">
                   <span className="block text-[13px] text-encre truncate max-w-[220px]" title={l.document_nom}>{l.document_nom}</span>
-                  <span className="block text-[11px] text-[#5f5f66]">{l.categorie || "Autre"}{l.date_document ? ` · ${l.date_document.split("-").reverse().join("/")}` : ""}{l.erreur ? " · lecture en échec" : ""}{l.perime ? <span className="text-[#e8b04c]"> · bail antérieur, remplacé</span> : null}</span>
+                  <span className="block text-[11px] text-brume">{l.categorie || "Autre"}{l.date_document ? ` · ${l.date_document.split("-").reverse().join("/")}` : ""}{l.erreur ? " · lecture en échec" : ""}{l.perime ? <span className="text-ambre"> · bail antérieur, remplacé</span> : null}</span>
                 </td>
                 {colonnes.map((c) => {
                   const cel = l.cellules?.[c.id];
                   const ouverte = celluleOuverte?.ligne?.document_id === l.document_id && celluleOuverte?.colonne === c.id;
                   return (
-                    <td key={c.id} className={`px-3 py-3 border-b border-r border-[#1e1e22] align-top ${ouverte ? "bg-menthe/[0.08]" : ""}`}>
+                    <td key={c.id} className={`px-3 py-3 border-b border-r border-relief align-top ${ouverte ? "bg-menthe/[0.08]" : ""}`}>
                       {cel?.reponse ? (
-                        <button onClick={() => onCellule({ ligne: l, colonne: c.id, cellule: cel })} className="text-left text-[12.5px] leading-[1.5] text-[#d6d6db] hover:text-[#ffffff] line-clamp-3" title={cel.citation || cel.reponse}>
+                        <button onClick={() => onCellule({ ligne: l, colonne: c.id, cellule: cel })} className="text-left text-[12.5px] leading-[1.5] text-craie hover:text-[#ffffff] line-clamp-3" title={cel.citation || cel.reponse}>
                           {cel.reponse}
-                          {cel.page ? <span className="text-[#5f5f66]"> · p.{cel.page}</span> : null}
+                          {cel.page ? <span className="text-brume"> · p.{cel.page}</span> : null}
                         </button>
                       ) : (
                         <span className="text-bord-vif">—</span>
@@ -141,12 +142,12 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
               </tr>
             ))}
             {/* La ligne de synthèse : calculée par le code. */}
-            <tr className="bg-[#0f0f11]">
-              <td className="sticky left-0 z-10 bg-[#0f0f11] px-4 py-3 border-r border-[#1e1e22] text-[10.5px] tracking-[.16em] uppercase text-[#77777e]">Synthèse</td>
+            <tr className="bg-fond">
+              <td className="sticky left-0 z-10 bg-fond px-4 py-3 border-r border-relief text-[10.5px] tracking-[.16em] uppercase text-brume">Synthèse</td>
               {colonnes.map((c) => {
                 const sy = m.synthese[c.id];
                 return (
-                  <td key={c.id} className="px-3 py-3 border-r border-[#1e1e22] align-top" title={sy?.detail}>
+                  <td key={c.id} className="px-3 py-3 border-r border-relief align-top" title={sy?.detail}>
                     <Statut statut={sy?.statut || "manquant"} petit />
                   </td>
                 );
@@ -155,7 +156,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
           </tbody>
         </table>
       </div>
-      <p className="m-0 text-[11.5px] text-[#5f5f66]">
+      <p className="m-0 text-[11.5px] text-brume">
         {blocs.length} blocs · clic sur une cellule : le document à la page · clic sur un en-tête : la question et sa règle.
       </p>
     </div>
@@ -210,7 +211,7 @@ function Anomalies({ m, dealId, onCellule }) {
   });
   const liste = [...m.anomalies].sort((a, b) => (ORDRE[a.statut] - ORDRE[b.statut]) || (({ haute: 0, moyenne: 1, basse: 2 })[a.colonne.criticite] - ({ haute: 0, moyenne: 1, basse: 2 })[b.colonne.criticite]));
   if (!m.lignes.length) return <p className="m-0 text-[13.5px] text-ardoise">La matrice n'est pas encore remplie : lancez la lecture depuis la grille.</p>;
-  if (!liste.length) return <p className="m-0 text-[13.5px] text-[#7fd1a8]">Aucune anomalie : les documents concordent sur toutes les questions du gabarit.</p>;
+  if (!liste.length) return <p className="m-0 text-[13.5px] text-vert">Aucune anomalie : les documents concordent sur toutes les questions du gabarit.</p>;
   const nb = (s) => liste.filter((a) => a.statut === s).length;
   return (
     <div className="space-y-5">
@@ -220,36 +221,36 @@ function Anomalies({ m, dealId, onCellule }) {
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: TEINTE[s] }} />{nb(s)} {LIBELLE[s].toLowerCase()}{nb(s) > 1 ? "s" : ""}
           </span>
         ))}
-        <span className="text-[12.5px] text-[#5f5f66]">· {liste.filter((a) => a.revue).length}/{liste.length} revues</span>
+        <span className="text-[12.5px] text-brume">· {liste.filter((a) => a.revue).length}/{liste.length} revues</span>
       </div>
       {liste.map((a) => {
         const sources = m.lignes.filter((l) => l.cellules?.[a.colonne.id]?.reponse);
         const r = a.revue;
         return (
-          <div key={a.colonne.id} className={`rounded-xl border px-5 py-4 ${r?.verdict === "faux_positif" ? "border-[#1e1e22] opacity-60" : "border-bord bg-surface"}`}>
+          <div key={a.colonne.id} className={`rounded-xl border px-5 py-4 ${r?.verdict === "faux_positif" ? "border-relief opacity-60" : "border-bord bg-surface"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="m-0 text-[10.5px] tracking-[.16em] uppercase text-[#5f5f66]">{a.colonne.bloc} · criticité {a.colonne.criticite}</p>
+                <p className="m-0 text-[10.5px] tracking-[.16em] uppercase text-brume">{a.colonne.bloc} · criticité {a.colonne.criticite}</p>
                 <p className="m-0 mt-1 flex items-center gap-2.5 text-[16px] font-semibold text-encre">{a.colonne.libelle} <Statut statut={a.statut} /></p>
-                <p className="m-0 mt-1.5 text-[13.5px] leading-[1.65] text-[#b5b5bd]">{a.detail}</p>
+                <p className="m-0 mt-1.5 text-[13.5px] leading-[1.65] text-craie">{a.detail}</p>
               </div>
               <div className="flex items-center gap-1.5 flex-none">
-                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "confirme" ? null : "confirme", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "confirme" ? "bg-[#e8927c] border-[#e8927c] text-fond font-semibold" : "border-bord-doux text-craie hover:border-[#e8927c]"}`}>Confirmé</button>
+                <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "confirme" ? null : "confirme", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "confirme" ? "bg-alerte border-alerte text-fond font-semibold" : "border-bord-doux text-craie hover:border-alerte"}`}>Confirmé</button>
                 <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "faux_positif" ? null : "faux_positif", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11.5px] border transition-colors ${r?.verdict === "faux_positif" ? "bg-bord-vif border-bord-vif text-encre" : "border-bord-doux text-craie hover:border-bord-vif"}`}>Faux positif</button>
-                <button onClick={() => setOuvert(ouvert === a.colonne.id ? null : a.colonne.id)} className="text-[#6c6c74] hover:text-encre px-1.5" title="Sources et commentaire"><ChevronDown className={`w-4 h-4 transition-transform ${ouvert === a.colonne.id ? "" : "-rotate-90"}`} /></button>
+                <button onClick={() => setOuvert(ouvert === a.colonne.id ? null : a.colonne.id)} className="text-brume hover:text-encre px-1.5" title="Sources et commentaire"><ChevronDown className={`w-4 h-4 transition-transform ${ouvert === a.colonne.id ? "" : "-rotate-90"}`} /></button>
               </div>
             </div>
             {ouvert === a.colonne.id && (
-              <div className="mt-4 pt-4 border-t border-[#1e1e22] space-y-3">
+              <div className="mt-4 pt-4 border-t border-relief space-y-3">
                 {sources.length > 0 ? (
                   <div className="space-y-1.5">
                     {sources.map((l) => (
                       <button key={l.document_id} onClick={() => onCellule({ ligne: l, colonne: a.colonne.id, cellule: l.cellules[a.colonne.id] })} className="block text-left text-[13px] text-craie hover:text-[#ffffff]">
-                        <span className="text-[#6c6c74]">{l.document_nom}{l.cellules[a.colonne.id].page ? ` · p.${l.cellules[a.colonne.id].page}` : ""} — </span>{l.cellules[a.colonne.id].reponse}
+                        <span className="text-brume">{l.document_nom}{l.cellules[a.colonne.id].page ? ` · p.${l.cellules[a.colonne.id].page}` : ""} — </span>{l.cellules[a.colonne.id].reponse}
                       </button>
                     ))}
                   </div>
-                ) : <p className="m-0 text-[12.5px] text-[#6c6c74]">Aucun document ne répond à cette question.</p>}
+                ) : <p className="m-0 text-[12.5px] text-brume">Aucun document ne répond à cette question.</p>}
                 <textarea defaultValue={r?.commentaire || ""} placeholder="Un mot pour la note de synthèse — pourquoi c'est confirmé, ou pourquoi c'est un faux positif" rows={2} onBlur={(e) => e.target.value !== (r?.commentaire || "") && reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict || "confirme", commentaire: e.target.value })} className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[13px] text-encre outline-none focus:border-menthe/60" />
               </div>
             )}
@@ -268,25 +269,25 @@ export function Livrables({ dealId, nb }) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
       <section>
-        <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-[#1e1e22]">
-          <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold text-[#e8b04c]">Demandes au vendeur · {data.demandes.length}</p>
+        <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-relief">
+          <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold text-ambre">Demandes au vendeur · {data.demandes.length}</p>
           <button onClick={() => copier(data.demandes_texte, "La liste")} className="inline-flex items-center gap-1.5 text-[12px] text-craie hover:text-encre"><Copy className="w-3.5 h-3.5" /> Copier pour un mail</button>
         </div>
         {data.demandes.length ? (
           <ol className="m-0 pl-5 space-y-2.5">
             {data.demandes.map((d, i) => (
-              <li key={i} className="text-[13.5px] leading-[1.65] text-[#d6d6db]">{d.texte}{d.confirme ? <span className="text-[#7fd1a8]"> ✓</span> : <span className="text-[#5f5f66]"> · non revu</span>}</li>
+              <li key={i} className="text-[13.5px] leading-[1.65] text-craie">{d.texte}{d.confirme ? <span className="text-vert"> ✓</span> : <span className="text-brume"> · non revu</span>}</li>
             ))}
           </ol>
-        ) : <p className="m-0 text-[13px] text-[#6c6c74]">Rien à demander.</p>}
-        {data.en_attente > 0 && <p className="m-0 mt-3 text-[12px] text-[#6c6c74]">{data.en_attente} anomalie{data.en_attente > 1 ? "s" : ""} pas encore revue{data.en_attente > 1 ? "s" : ""} : elle{data.en_attente > 1 ? "s" : ""} figure{data.en_attente > 1 ? "nt" : ""} ici tant qu'elle{data.en_attente > 1 ? "s ne sont" : " n'est"} pas écartée{data.en_attente > 1 ? "s" : ""}.</p>}
+        ) : <p className="m-0 text-[13px] text-brume">Rien à demander.</p>}
+        {data.en_attente > 0 && <p className="m-0 mt-3 text-[12px] text-brume">{data.en_attente} anomalie{data.en_attente > 1 ? "s" : ""} pas encore revue{data.en_attente > 1 ? "s" : ""} : elle{data.en_attente > 1 ? "s" : ""} figure{data.en_attente > 1 ? "nt" : ""} ici tant qu'elle{data.en_attente > 1 ? "s ne sont" : " n'est"} pas écartée{data.en_attente > 1 ? "s" : ""}.</p>}
       </section>
       <section>
-        <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-[#1e1e22]">
-          <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold text-[#8fb6e8]">Note de synthèse</p>
+        <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-relief">
+          <p className="m-0 text-[11px] tracking-[.16em] uppercase font-semibold text-bleu">Note de synthèse</p>
           <button onClick={() => copier(data.note, "La note")} className="inline-flex items-center gap-1.5 text-[12px] text-craie hover:text-encre"><Copy className="w-3.5 h-3.5" /> Copier</button>
         </div>
-        <pre className="m-0 whitespace-pre-wrap text-[13px] leading-[1.7] text-[#b5b5bd] font-[inherit]">{data.note}</pre>
+        <pre className="m-0 whitespace-pre-wrap text-[13px] leading-[1.7] text-craie font-[inherit]">{data.note}</pre>
       </section>
     </div>
   );
@@ -333,12 +334,12 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
   const ouvrirPreuve = (p) => setCelluleOuverte({ ligne: { document_id: p.document_id, document_nom: p.document_nom, document_url: p.document_url }, colonne: p.champ || null, cellule: { page: p.page, citation: p.citation } });
 
   return (
-    <div className="border border-[#1e1e22] rounded-[18px] bg-[#0f0f11] overflow-hidden">
+    <div className="border border-relief rounded-[18px] bg-fond overflow-hidden">
       {/* L'en-tête : les onglets et la lecture */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-7 max-md:px-4 border-b border-[#1e1e22]">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-7 max-md:px-4 border-b border-relief">
         <div className="flex gap-6 overflow-x-auto">
           {ONGLETS.map(([id, l]) => (
-            <button key={id} onClick={() => { setOnglet(id); setCelluleOuverte(null); }} className={`relative py-3.5 text-[14px] whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-[#e8927c] after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${onglet === id ? "text-encre font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>
+            <button key={id} onClick={() => { setOnglet(id); setCelluleOuverte(null); }} className={`relative py-3.5 text-[14px] whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-alerte after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${onglet === id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>
               {l}
             </button>
           ))}
@@ -346,13 +347,13 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
         <div className="flex items-center gap-3 py-2">
           <div className="inline-flex rounded-full border border-bord-doux p-0.5 text-[12px]" title="Deux lectures des mêmes faits : la grille (documents × questions) ou la fiche (le bien, champ par champ)">
             {[["grille", "Grille"], ["fiche", "Fiche"]].map(([m, l]) => (
-              <button key={m} onClick={() => changerMode(m)} className={`px-3 py-1 rounded-full transition-colors ${mode === m ? "bg-encre text-[#0b0c0e] font-semibold" : "text-ardoise hover:text-encre"}`}>{l}</button>
+              <button key={m} onClick={() => changerMode(m)} className={`px-3 py-1 rounded-full transition-colors ${mode === m ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{l}</button>
             ))}
           </div>
           {enCours ? (
             <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {m.remplissage.fait}/{m.remplissage.total ?? "…"} — {m.remplissage.document || "lecture"}</span>
           ) : (
-            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-encre text-[#0b0c0e] hover:bg-[#ffffff] disabled:opacity-40">
+            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-encre text-fond hover:bg-[#ffffff] disabled:opacity-40">
               <RefreshCw className="w-3.5 h-3.5" /> {m?.lignes?.length ? "Relire les documents" : "Remplir la grille"}
             </button>
           )}
@@ -385,7 +386,7 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
             m.lignes.length ? <Grille m={m} dealId={dealId} onCellule={setCelluleOuverte} celluleOuverte={celluleOuverte} /> : <p className="m-0 text-[13.5px] text-ardoise">Importez les documents puis « Remplir la grille » : chaque document répond à chaque question, avec sa page.</p>
           ) : onglet === "documents" ? (
             <>
-              {m.a_classer > 0 && <p className="m-0 mb-4 text-[12.5px] text-[#e8b04c]">{m.a_classer} document{m.a_classer > 1 ? "s" : ""} sans catégorie : confirmez-la ci-dessous — la lecture croisée en dépend.</p>}
+              {m.a_classer > 0 && <p className="m-0 mb-4 text-[12.5px] text-ambre">{m.a_classer} document{m.a_classer > 1 ? "s" : ""} sans catégorie : confirmez-la ci-dessous — la lecture croisée en dépend.</p>}
               <DocumentsDossier dossier={dossier} coches={coches} onCocher={onCocher} onRefresh={() => { onRefresh?.(); queryClient.invalidateQueries({ queryKey: ["matrice", dealId] }); }} apercu={apercu} proposerDrive />
               {documentOuvert && <div className="mt-6"><TableExtraction extraction={documentOuvert} dealId={dealId} onRefresh={onRefresh} /></div>}
             </>

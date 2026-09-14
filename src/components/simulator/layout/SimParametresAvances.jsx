@@ -56,8 +56,8 @@ export default function SimParametresAvances({ values, advanced, calculs, format
           <Kpi label="Cash-flow cumulé" value={formatCurrency(ind.cashFlowCumule)} />
           <Kpi label="Création de richesse" value={formatCurrency(ind.creationRichesseBrute)} accent="text-menthe" />
           <Kpi label="Rendement net" value={`${ind.rendementLocatifGlobalNet}%`} />
-          <Kpi label="Mois de vacance" value={`${nbVacance} mois`} accent={nbVacance > 0 ? "text-[#E8836B]" : "text-encre"} />
-          <Kpi label="Total travaux" value={formatCurrency(totalTravaux)} accent={totalTravaux > 0 ? "text-[#E8836B]" : "text-encre"} />
+          <Kpi label="Mois de vacance" value={`${nbVacance} mois`} accent={nbVacance > 0 ? "text-alerte" : "text-encre"} />
+          <Kpi label="Total travaux" value={formatCurrency(totalTravaux)} accent={totalTravaux > 0 ? "text-alerte" : "text-encre"} />
         </div>
       </div>
 
@@ -91,12 +91,12 @@ export default function SimParametresAvances({ values, advanced, calculs, format
       <Card title="Vacance locative">
         <div className="flex items-center gap-2">
           <Select value={String(vacYear)} onValueChange={(v) => setVacYear(Number(v))}>
-            <SelectTrigger className="bg-[#0c0d10] text-encre border-trait h-8 text-xs w-20 rounded-md"><SelectValue /></SelectTrigger>
-            <SelectContent className="bg-[#0c0d10] text-encre border-encre/[0.1]">
+            <SelectTrigger className="bg-fond text-encre border-trait h-8 text-xs w-20 rounded-md"><SelectValue /></SelectTrigger>
+            <SelectContent className="bg-fond text-encre border-encre/[0.1]">
               {Array.from({ length: 25 }, (_, i) => i + 1).map((y) => <SelectItem key={y} value={String(y)}>An {y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input type="number" min="0" max="12" placeholder="mois" value={vacMois} onChange={(e) => setVacMois(e.target.value)} className="bg-[#0c0d10] text-encre border-trait h-8 text-xs w-24 rounded-md" />
+          <Input type="number" min="0" max="12" placeholder="mois" value={vacMois} onChange={(e) => setVacMois(e.target.value)} className="bg-fond text-encre border-trait h-8 text-xs w-24 rounded-md" />
           <button
             onClick={() => { if (vacMois) { const n = [...advanced.vacancesLocatives]; n[vacYear - 1] = Number(vacMois); advanced.setVacancesLocatives(n); setVacMois(""); } }}
             className="w-8 h-8 rounded-md bg-menthe text-black flex items-center justify-center"
@@ -114,12 +114,12 @@ export default function SimParametresAvances({ values, advanced, calculs, format
       <Card title="Travaux bailleur">
         <div className="flex items-center gap-2">
           <Select value={String(travauxYear)} onValueChange={(v) => setTravauxYear(Number(v))}>
-            <SelectTrigger className="bg-[#0c0d10] text-encre border-trait h-8 text-xs w-20 rounded-md"><SelectValue /></SelectTrigger>
-            <SelectContent className="bg-[#0c0d10] text-encre border-encre/[0.1]">
+            <SelectTrigger className="bg-fond text-encre border-trait h-8 text-xs w-20 rounded-md"><SelectValue /></SelectTrigger>
+            <SelectContent className="bg-fond text-encre border-encre/[0.1]">
               {Array.from({ length: 25 }, (_, i) => i + 1).map((y) => <SelectItem key={y} value={String(y)}>An {y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input type="number" placeholder="€" value={travauxMontant} onChange={(e) => setTravauxMontant(e.target.value)} className="bg-[#0c0d10] text-encre border-trait h-8 text-xs w-28 rounded-md" />
+          <Input type="number" placeholder="€" value={travauxMontant} onChange={(e) => setTravauxMontant(e.target.value)} className="bg-fond text-encre border-trait h-8 text-xs w-28 rounded-md" />
           <button
             onClick={() => { if (travauxMontant) { const n = [...advanced.travauxBailleur]; n[travauxYear - 1] = Number(travauxMontant); advanced.setTravauxBailleur(n); setTravauxMontant(""); } }}
             className="w-8 h-8 rounded-md bg-menthe text-black flex items-center justify-center"

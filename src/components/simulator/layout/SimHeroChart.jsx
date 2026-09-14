@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ResponsiveContainer, ReferenceDot } from "recharts";
+import { J } from "@/design/jetons";
 
 const fmtK = (v) => `${Math.round(v / 1000)}`;
 
@@ -13,7 +14,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Cash-flow annuel",
         subtitle: `Projection sur ${anneeRevente} ans`,
         bigValue: formatCurrency(calculs.indicateurs.cashFlowMoyenAn),
-        color: "#96c0b8",
+        color: J["menthe"],
         data: rows.map((r) => ({ annee: `${r.annee}`, value: Math.round(r.cashFlowAnnuel) })),
       };
     }
@@ -38,7 +39,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         title: "Patrimoine net",
         subtitle: `Valeur à la revente année ${anneeRevente}`,
         bigValue: formatCurrency(calculs.revente.prixVenteNet),
-        color: "#96c0b8",
+        color: J["menthe"],
         data,
         markers: { recupApport, doubleApport },
       };
@@ -58,9 +59,9 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
     };
   }, [calculs, anneeRevente, metric, formatCurrency]);
 
-  const axisTick = { fill: "#9298a6", fontSize: 10 };
+  const axisTick = { fill: J["ardoise"], fontSize: 10 };
   const axisLine = { stroke: "#ffffff", strokeOpacity: 0.15 };
-  const tooltipStyle = { background: "#0c0d10", border: "1px solid #333", borderRadius: 6, fontSize: 11 };
+  const tooltipStyle = { background: J["fond"], border: "1px solid #333", borderRadius: 6, fontSize: 11 };
 
   const RichesseTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) return null;
@@ -92,8 +93,8 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
           {config.kind === "grouped" ? (
             <BarChart key={`bars-${config.data.length}`} data={config.data} margin={{ top: 12, right: 20, left: 20, bottom: 40 }} barGap={4} barCategoryGap="20%">
               <CartesianGrid stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
-              <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: "Année", position: "bottom", offset: 18, fill: "#9298a6", fontSize: 11 }} />
-              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} label={{ value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: "#9298a6", fontSize: 11, style: { textAnchor: "middle" } }} />
+              <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: "Année", position: "bottom", offset: 18, fill: J["ardoise"], fontSize: 11 }} />
+              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} label={{ value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
               <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} content={<RichesseTooltip />} />
               <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 12, color: "#e5e7eb", paddingBottom: 12 }} formatter={(v) => <span className="text-encre">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
               <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
@@ -108,15 +109,15 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
-              <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: "Année", position: "bottom", offset: 18, fill: "#9298a6", fontSize: 11 }} />
-              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} label={{ value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: "#9298a6", fontSize: 11, style: { textAnchor: "middle" } }} />
+              <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: "Année", position: "bottom", offset: 18, fill: J["ardoise"], fontSize: 11 }} />
+              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} label={{ value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "#fff" }} formatter={(v) => [formatCurrency(v), ""]} />
               <Area type="monotone" dataKey="value" stroke={config.color} strokeWidth={2} fill="url(#simHeroFill)" />
               {config.markers?.recupApport && (
-                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill="#96c0b8" stroke="#0f1114" strokeWidth={2} isFront />
+                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill={J["menthe"]} stroke={J["surface"]} strokeWidth={2} isFront />
               )}
               {config.markers?.doubleApport && (
-                <ReferenceDot x={config.markers.doubleApport.annee} y={config.markers.doubleApport.value} r={6} fill="#a8894f" stroke="#0f1114" strokeWidth={2} isFront />
+                <ReferenceDot x={config.markers.doubleApport.annee} y={config.markers.doubleApport.value} r={6} fill="#a8894f" stroke={J["surface"]} strokeWidth={2} isFront />
               )}
             </AreaChart>
           )}

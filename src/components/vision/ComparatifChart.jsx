@@ -1,5 +1,6 @@
 import React from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
+import { J } from "@/design/jetons";
 
 export const ComparatifChart = React.memo(function ComparatifChart({ chartData, projets, frequence, apportData, apportTotal }) {
   
@@ -14,7 +15,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
           refY="4"
           orient="auto-start-reverse"
         >
-          <polygon points="0 0, 8 4, 0 8" fill="#c3ddd6" />
+          <polygon points="0 0, 8 4, 0 8" fill={J["menthe-clair"]} />
         </marker>
       </defs>
       
@@ -24,7 +25,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         y1={y + 40}
         x2={x}
         y2={y - 40}
-        stroke="#c3ddd6"
+        stroke={J["menthe-clair"]}
         strokeWidth="2"
         markerEnd={`url(#arrowhead-${year})`}
       />
@@ -36,7 +37,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         width="60"
         height="30"
         rx="15"
-        fill="#96c0b8"
+        fill={J["menthe"]}
       />
       <text
         x={x}
@@ -56,28 +57,28 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
       <LineChart data={chartData}>
         <defs>
           <linearGradient id="patrimoineGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#96c0b8" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#96c0b8" stopOpacity={0} />
+            <stop offset="5%" stopColor={J["menthe"]} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={J["menthe"]} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2c3139" />
+        <CartesianGrid strokeDasharray="3 3" stroke={J["bord-doux"]} />
         <XAxis
           dataKey="annee"
-          stroke="#9298a6"
-          tick={{ fontSize: 12, fill: '#9298a6' }}
-          label={{ value: 'Année', position: 'insideBottom', offset: -5, fill: '#9298a6' }}
+          stroke={J["ardoise"]}
+          tick={{ fontSize: 12, fill: J["ardoise"] }}
+          label={{ value: 'Année', position: 'insideBottom', offset: -5, fill: J["ardoise"] }}
         />
         <YAxis
-          stroke="#9298a6"
-          tick={{ fontSize: 12, fill: '#9298a6' }}
+          stroke={J["ardoise"]}
+          tick={{ fontSize: 12, fill: J["ardoise"] }}
           tickFormatter={(value) => {
             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
             return `${(value / 1000).toFixed(0)}K`;
           }}
-          label={{ value: 'Euros', angle: -90, position: 'insideLeft', fill: '#9298a6' }}
+          label={{ value: 'Euros', angle: -90, position: 'insideLeft', fill: J["ardoise"] }}
         />
         <Tooltip
-          contentStyle={{ backgroundColor: '#0c0d10', border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
+          contentStyle={{ backgroundColor: J["fond"], border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
           labelStyle={{ color: '#fff' }}
           formatter={(value) => {
             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M €`;
@@ -101,7 +102,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
             });
             return Math.round(currentValue);
           }}
-          stroke="#96c0b8"
+          stroke={J["menthe"]}
           strokeWidth={3}
           strokeDasharray="8 4"
           name="Livret A (3%)"
@@ -111,7 +112,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         <Area
           type="monotone"
           dataKey="patrimoine"
-          stroke="#96c0b8"
+          stroke={J["menthe"]}
           strokeWidth={3}
           fill="url(#patrimoineGradient)"
           name="Patrimoine net"
@@ -120,7 +121,7 @@ export const ComparatifChart = React.memo(function ComparatifChart({ chartData, 
         <Line
           type="monotone"
           dataKey="patrimoine"
-          stroke="#96c0b8"
+          stroke={J["menthe"]}
           strokeWidth={4}
           name=""
           dot={false}

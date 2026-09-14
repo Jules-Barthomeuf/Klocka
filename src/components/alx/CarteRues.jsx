@@ -3,6 +3,7 @@ import { Moon, Sun } from "lucide-react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { EMPLACEMENTS, ECARTEE, emplacementDe } from "./alx-commun";
+import { J } from "@/design/jetons";
 
 // La carte des rues d'une ville. Chaque rue est dessinée sur son tracé
 // OpenStreetMap, dans la teinte de son emplacement : bleu pour le 1, ambre
@@ -66,9 +67,9 @@ function BoutonTheme({ sombre, onClick }) {
       type="button"
       onClick={onClick}
       title={sombre ? "Fond de carte clair" : "Fond de carte sombre"}
-      className="absolute right-3 top-3 z-[400] grid h-9 w-9 place-items-center rounded-full border border-white/[0.12] backdrop-blur transition-colors hover:text-[#F3F7F5]"
+      className="absolute right-3 top-3 z-[400] grid h-9 w-9 place-items-center rounded-full border border-bord backdrop-blur transition-colors hover:text-encre"
       // Le style est posé ici : la règle globale « .alx button » rend les boutons transparents.
-      style={{ background: "rgba(15,17,20,0.9)", color: "#E8EFEB" }}
+      style={{ background: "rgba(15,17,20,0.9)", color: J["encre"] }}
     >
       {sombre ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>
@@ -77,7 +78,7 @@ function BoutonTheme({ sombre, onClick }) {
 
 function Legende() {
   return (
-    <div className="absolute bottom-3 left-3 z-[400] flex flex-wrap gap-x-3.5 gap-y-1 rounded-[10px] border border-white/[0.1] bg-[#0f1114]/90 px-3 py-2 text-[11px] text-craie backdrop-blur">
+    <div className="absolute bottom-3 left-3 z-[400] flex flex-wrap gap-x-3.5 gap-y-1 rounded-[10px] border border-bord bg-surface/90 px-3 py-2 text-[11px] text-craie backdrop-blur">
       {[...EMPLACEMENTS, ECARTEE].map((e) => (
         <span key={String(e.classe)} className="inline-flex items-center gap-1.5">
           <span className="h-[3px] w-4 rounded" style={{ background: e.teinte }} />
@@ -157,7 +158,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
   // Street View à la place de la carte : on est dans la rue choisie.
   if (streetView) {
     return (
-      <div className={`k-carte-rues relative isolate overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>
+      <div className={`k-carte-rues relative isolate overflow-hidden rounded-[18px] border border-trait bg-fond ${className}`}>
         {CLE_EMBED ? (
           <iframe
             title={`Street View ${streetView.nom || ""}`}
@@ -174,7 +175,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
   }
 
   return (
-    <div className={`k-carte-rues ${sombre ? "" : "k-carte-claire"} relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-fond ${className}`}>
+    <div className={`k-carte-rues ${sombre ? "" : "k-carte-claire"} relative overflow-hidden rounded-[18px] border border-trait bg-fond ${className}`}>
       <MapContainer center={centreCarte} zoom={14} minZoom={11} scrollWheelZoom className="h-full w-full" attributionControl={false} zoomControl={false}>
         <TileLayer url={TUILES} attribution="&copy; OpenStreetMap" maxZoom={19} />
         <Cadrage points={points} />
@@ -188,7 +189,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
             />
           )),
         )}
-        {direct?.position && <CircleMarker center={[direct.position.lat, direct.position.lon]} radius={7} pathOptions={{ color: "#F3F7F5", weight: 2, fillColor: "#96c0b8", fillOpacity: 1 }} />}
+        {direct?.position && <CircleMarker center={[direct.position.lat, direct.position.lon]} radius={7} pathOptions={{ color: J["encre"], weight: 2, fillColor: J["menthe"], fillOpacity: 1 }} />}
         {direct
           ? visibles.map((r) => {
             const e = emplacementDe(r.classe);

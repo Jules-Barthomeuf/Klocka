@@ -1,5 +1,6 @@
 import React from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { J } from "@/design/jetons";
 
 export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency, textClass, mutedClass, commissionAgentActive, commissionAgentInclusFAI = true }) {
   return (
@@ -11,12 +12,12 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
             <PieChart>
               <Pie
                 data={[
-                  { name: 'Prix négocié', value: prixBienNegocie, fill: '#96c0b8' },
+                  { name: 'Prix négocié', value: prixBienNegocie, fill: J["menthe"] },
                   ...(commissionAgentActive && !commissionAgentInclusFAI && calculs.honorairesChargeAcquereur > 0 ? [{ name: 'Honoraires acquéreur TTC', value: calculs.honorairesChargeAcquereur, fill: '#a8894f' }] : []),
-                  { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: '#c3ddd6' },
-                  { name: 'Honoraires Klocka TTC', value: calculs.feesKlocka, fill: '#96c0b8' },
-                  { name: 'Incentive Klocka', value: calculs.incentiveKlocka, fill: '#d9b46a' },
-                  { name: 'Frais divers', value: calculs.fraisDivers, fill: '#e8746a' }
+                  { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: J["menthe-clair"] },
+                  { name: 'Honoraires Klocka TTC', value: calculs.feesKlocka, fill: J["menthe"] },
+                  { name: 'Incentive Klocka', value: calculs.incentiveKlocka, fill: J["ambre"] },
+                  { name: 'Frais divers', value: calculs.fraisDivers, fill: J["alerte"] }
                 ].filter(d => d.value > 0)}
                 cx="50%"
                 cy="50%"
@@ -28,17 +29,17 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
                 label={(entry) => `${(entry.value / calculs.prixRevient * 100).toFixed(0)}%`}
               >
                 {[
-                  { name: 'Prix négocié', value: prixBienNegocie, fill: '#96c0b8' },
+                  { name: 'Prix négocié', value: prixBienNegocie, fill: J["menthe"] },
                   ...(commissionAgentActive && !commissionAgentInclusFAI && calculs.honorairesChargeAcquereur > 0 ? [{ name: 'Honoraires acquéreur TTC', value: calculs.honorairesChargeAcquereur, fill: '#a8894f' }] : []),
-                  { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: '#c3ddd6' },
-                  { name: 'Honoraires Klocka TTC', value: calculs.feesKlocka, fill: '#96c0b8' },
-                  { name: 'Incentive Klocka', value: calculs.incentiveKlocka, fill: '#d9b46a' },
-                  { name: 'Frais divers', value: calculs.fraisDivers, fill: '#e8746a' }
+                  { name: 'Droits enreg.', value: calculs.droitsEnregistrement, fill: J["menthe-clair"] },
+                  { name: 'Honoraires Klocka TTC', value: calculs.feesKlocka, fill: J["menthe"] },
+                  { name: 'Incentive Klocka', value: calculs.incentiveKlocka, fill: J["ambre"] },
+                  { name: 'Frais divers', value: calculs.fraisDivers, fill: J["alerte"] }
                 ].filter(d => d.value > 0).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />)}
               </Pie>
               <Tooltip
                 formatter={(value) => formatCurrency(value)}
-                contentStyle={{ backgroundColor: '#0c0d10', border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
+                contentStyle={{ backgroundColor: J["fond"], border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
                 labelStyle={{ color: '#fff' }}
               />
             </PieChart>

@@ -28,7 +28,7 @@ export default function CadreEtapes({ etapes, etape, etapeMax = etape, compteurs
       {/* Les étapes, en haut */}
       <div className="flex items-stretch border-b border-trait overflow-x-auto">
         {etapes.map((x) => (
-          <button key={x.n} onClick={() => x.n <= etapeMax && onEtape?.(x.n)} disabled={apercu || x.n > etapeMax} className={`flex-1 min-w-[180px] text-left px-5 py-3.5 flex items-baseline justify-between gap-3 border-b-2 -mb-px transition-colors ${x.n === etape ? "border-encre text-encre" : x.n <= etapeMax ? "border-transparent text-craie hover:text-encre" : "border-transparent text-[#4d545d]"}`}>
+          <button key={x.n} onClick={() => x.n <= etapeMax && onEtape?.(x.n)} disabled={apercu || x.n > etapeMax} className={`flex-1 min-w-[180px] text-left px-5 py-3.5 flex items-baseline justify-between gap-3 border-b-2 -mb-px transition-colors ${x.n === etape ? "border-encre text-encre" : x.n <= etapeMax ? "border-transparent text-craie hover:text-encre" : "border-transparent text-brume"}`}>
             <span className="text-[14px] font-light"><span className="font-mono text-[11px] mr-2 text-brume">{x.n}</span>{x.titre}</span>
             <Mono className={x.n === etape ? "text-ardoise" : ""}>{compteurs[x.n] ?? ""}</Mono>
           </button>

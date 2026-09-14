@@ -45,7 +45,7 @@ export default function BoiteSaisie({
         />
       )}
     <div
-      className={`relative bg-[#0a0a0b] transition-colors ${lumiere ? "rounded-[19px]" : "border border-trait rounded-[20px] focus-within:border-bord-vif [.glisse_&]:border-menthe"} ${className}`}
+      className={`relative bg-fond transition-colors ${lumiere ? "rounded-[19px]" : "border border-trait rounded-[20px] focus-within:border-bord-vif [.glisse_&]:border-menthe"} ${className}`}
     >
       <div className={compact ? "px-5 pt-3" : "px-7 max-md:px-5 pt-6"}>
         <textarea
@@ -56,7 +56,7 @@ export default function BoiteSaisie({
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer && !enCours) { e.preventDefault(); onEnvoyer(); } }}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full bg-transparent border-0 outline-none resize-none ${compact ? "text-[14.5px]" : "text-[17px] max-md:text-[15px]"} leading-[1.55] text-encre placeholder:text-[#6c737c] disabled:opacity-50`}
+          className={`w-full bg-transparent border-0 outline-none resize-none ${compact ? "text-[14.5px]" : "text-[17px] max-md:text-[15px]"} leading-[1.55] text-encre placeholder:text-brume disabled:opacity-50`}
         />
         {sous}
       </div>
@@ -69,7 +69,7 @@ export default function BoiteSaisie({
           disabled={!peutEnvoyer || enCours || disabled}
           title={libelle}
           aria-label={libelle}
-          className={`inline-flex items-center justify-center rounded-full bg-encre text-[#0b0c0e] hover:bg-[#ffffff] disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8" : "w-10 h-10"}`}
+          className={`inline-flex items-center justify-center rounded-full bg-encre text-fond hover:bg-[#ffffff] disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8" : "w-10 h-10"}`}
         >
           {enCours ? <PenseeIA etat="working" taille={20} clair /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
         </button>
@@ -85,7 +85,7 @@ export function BoutonBarre({ actif = false, alerte = false, children, ...props 
     <button
       {...props}
       className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 ${
-        alerte ? "bg-alerte text-fond animate-pulse" : actif ? "text-encre bg-encre/10" : "text-[#8f959e] hover:text-encre hover:bg-encre/[0.06]"
+        alerte ? "bg-alerte text-fond animate-pulse" : actif ? "text-encre bg-encre/10" : "text-ardoise hover:text-encre hover:bg-encre/[0.06]"
       } ${props.className || ""}`}
     >
       {children}

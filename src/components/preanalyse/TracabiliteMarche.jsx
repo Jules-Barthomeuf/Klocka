@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Clock, XCircle } from "lucide-react";
+import { J } from "@/design/jetons";
 
 // D'où vient chaque chiffre du marché.
 //
@@ -14,9 +15,9 @@ import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Clock, XCircle 
 // chiffre, et le détail des tentatives pour qui veut vérifier.
 
 const MOTIFS = {
-  temporaire: { mot: "panne passagère", teinte: "#d9b46a" },
-  definitive: { mot: "à corriger", teinte: "#e8746a" },
-  sans_donnee: { mot: "rien sur cette adresse", teinte: "#6a7180" },
+  temporaire: { mot: "panne passagère", teinte: J["ambre"] },
+  definitive: { mot: "à corriger", teinte: J["alerte"] },
+  sans_donnee: { mot: "rien sur cette adresse", teinte: J["brume"] },
 };
 
 const ECHELLES = { rue: "à la rue", quartier: "au quartier", ville: "à la ville", commune: "à la commune", rayon: "sur le rayon" };
@@ -58,7 +59,7 @@ function Manquantes({ passage }) {
             </p>
           )}
           {passage.nouvelle_tentative_le && !passage.reprise_faite && (
-            <p className="m-0 mt-2 text-[12.5px] text-[#8d918f] inline-flex items-center gap-1.5">
+            <p className="m-0 mt-2 text-[12.5px] text-ardoise inline-flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> Nouvelle tentative automatique le {heure(passage.nouvelle_tentative_le)}
             </p>
           )}
@@ -85,7 +86,7 @@ function Provenance({ indicateurs }) {
         <tbody>
           {lignes.map((v) => (
             <tr key={v.cle} className="border-t border-trait">
-              <td className="py-1.5 pr-4 text-[#c6ccd3] whitespace-nowrap">{v.titre}</td>
+              <td className="py-1.5 pr-4 text-craie whitespace-nowrap">{v.titre}</td>
               <td className="py-1.5 pr-4 text-encre whitespace-nowrap">
                 {fourchette(v)} <span className="text-brume">{v.unite}</span>
                 {v.echelle && <span className="text-brume"> · {ECHELLES[v.echelle] || v.echelle}</span>}
@@ -113,14 +114,14 @@ function Tentatives({ tentatives }) {
           {t.ok ? (
             <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-menthe" />
           ) : (
-            <XCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: MOTIFS[t.classe]?.teinte || "#6a7180" }} />
+            <XCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: MOTIFS[t.classe]?.teinte || J["brume"] }} />
           )}
           <span className="text-brume">{heure(t.debut)}</span>
-          <span className="text-[#c6ccd3]">{t.service}</span>
+          <span className="text-craie">{t.service}</span>
           {t.essai > 1 && <span className="text-brume">essai {t.essai}</span>}
           <span className="text-brume">· {duree(t.ms)}</span>
           {!t.ok && (
-            <span className="min-w-0" style={{ color: MOTIFS[t.classe]?.teinte || "#6a7180" }}>
+            <span className="min-w-0" style={{ color: MOTIFS[t.classe]?.teinte || J["brume"] }}>
               · {t.erreur}
               {t.attente_ms ? ` — nouvel essai dans ${Math.round(t.attente_ms / 1000)} s` : ""}
             </span>
@@ -163,7 +164,7 @@ export default function TracabiliteMarche({ dossier, lotIndex = 0 }) {
         <button
           type="button"
           onClick={() => setOuvert((o) => !o)}
-          className="inline-flex items-center gap-1.5 text-[12.5px] text-brume hover:text-[#c6ccd3] bg-transparent border-0 p-0 cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-[12.5px] text-brume hover:text-craie bg-transparent border-0 p-0 cursor-pointer"
         >
           {ouvert ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           Le détail des tentatives ({passage.tentatives?.length || 0})

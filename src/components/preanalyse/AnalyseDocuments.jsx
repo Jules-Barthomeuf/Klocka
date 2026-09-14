@@ -8,6 +8,7 @@ import SimulateurAnalyse from "./SimulateurAnalyse";
 import DonneesExtraites from "./DonneesExtraites";
 import LectureDossier from "./LectureDossier";
 import PenseeIA from "@/components/PenseeIA";
+import { J } from "@/design/jetons";
 
 // L'étape Analyse : un onglet Documents (la liste cochable) puis un onglet par
 // document extrait, chacun présentant ses données extraites. Chaque ligne
@@ -90,7 +91,7 @@ function TextePage({ dealId, documentId, page, citation }) {
       {passage ? (
         <>
           {texte.slice(0, passage[0])}
-          <mark ref={ref} className="bg-ambre text-[#0b0c0e] rounded-[3px] px-0.5 font-medium">{texte.slice(passage[0], passage[1])}</mark>
+          <mark ref={ref} className="bg-ambre text-fond rounded-[3px] px-0.5 font-medium">{texte.slice(passage[0], passage[1])}</mark>
           {texte.slice(passage[1])}
         </>
       ) : (
@@ -143,7 +144,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
         {peutSurligner && (
           <span className="inline-flex items-center rounded-full border border-bord-doux p-0.5 flex-shrink-0">
             {[["passage", "Passage"], ["document", "Document"]].map(([id, mot]) => (
-              <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11.5px] transition-colors ${vue === id ? "bg-encre text-[#0b0c0e] font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+              <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11.5px] transition-colors ${vue === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
             ))}
           </span>
         )}
@@ -188,7 +189,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
           key={url}
           src={url}
           title={extraction.document_nom}
-          className="flex-1 w-full bg-[#0c0d10] border-0"
+          className="flex-1 w-full bg-fond border-0"
         />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
@@ -257,7 +258,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
         <button
           onClick={() => reessayer.mutate()}
           disabled={reessayer.isPending}
-          className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-encre text-[#0b0c0e] text-[11px] tracking-[.14em] uppercase font-semibold rounded-[10px] hover:bg-[#ffffff] disabled:opacity-50"
+          className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-encre text-fond text-[11px] tracking-[.14em] uppercase font-semibold rounded-[10px] hover:bg-[#ffffff] disabled:opacity-50"
         >
           {reessayer.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
           Relancer l'analyse
@@ -281,10 +282,10 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
   return (
     <div>
       {/* --- L'analyse en tête : ce qu'elle est, ce qu'elle a trouvé --------- */}
-      <div className="flex flex-wrap items-baseline justify-between gap-4 pb-5 border-b border-[#1e1e22]">
+      <div className="flex flex-wrap items-baseline justify-between gap-4 pb-5 border-b border-relief">
         <div className="min-w-0">
           <h3 className="m-0 text-[26px] max-md:text-[21px] font-bold tracking-[-.015em] text-encre">{nomOnglet(extraction)}</h3>
-          <p className="m-0 mt-1 text-[13px] text-[#77777e]">
+          <p className="m-0 mt-1 text-[13px] text-brume">
             {[
               couverture,
               extraction.extrait_par,
@@ -292,35 +293,35 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
             ].filter(Boolean).join(" · ")}
           </p>
           {absents.length > 0 && (
-            <p className="m-0 mt-1.5 text-[12.5px] text-[#e8b04c]">
+            <p className="m-0 mt-1.5 text-[12.5px] text-ambre">
               Ce document ne traite pas : {absents.join(", ")} — à obtenir séparément.
             </p>
           )}
         </div>
         <div className="flex items-center gap-5 text-[13px] flex-shrink-0">
-          {vigilances.length > 0 && <span className="font-semibold text-[#e8927c]">{vigilances.length} vigilance{vigilances.length > 1 ? "s" : ""}</span>}
-          {aVerifier.length > 0 && <span className="font-semibold text-[#8fb6e8]">{aVerifier.length} à vérifier</span>}
-          {!vigilances.length && !aVerifier.length && <span className="text-[#7fd1a8] font-semibold">Rien à signaler</span>}
+          {vigilances.length > 0 && <span className="font-semibold text-alerte">{vigilances.length} vigilance{vigilances.length > 1 ? "s" : ""}</span>}
+          {aVerifier.length > 0 && <span className="font-semibold text-bleu">{aVerifier.length} à vérifier</span>}
+          {!vigilances.length && !aVerifier.length && <span className="text-vert font-semibold">Rien à signaler</span>}
         </div>
       </div>
 
       {extraction.synthese && (
-        <p className="m-0 mt-5 text-[14px] leading-[1.75] text-[#b5b5bd] border-l-2 border-[#1e1e22] pl-4">{extraction.synthese}</p>
+        <p className="m-0 mt-5 text-[14px] leading-[1.75] text-craie border-l-2 border-relief pl-4">{extraction.synthese}</p>
       )}
 
       {/* --- Ce qui décide, en deux colonnes -------------------------------- */}
       {(vigilances.length > 0 || aVerifier.length > 0) && (
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] gap-x-8 gap-y-8 py-7">
-          <Colonne titre="Points de vigilance" teinte="#e8927c" lignes={vigilances} onOuvrir={setLigneOuverte} />
-          <div className="hidden xl:block w-px h-full bg-[#1e1e22]" />
-          <Colonne titre="À vérifier" teinte="#8fb6e8" lignes={aVerifier} onOuvrir={setLigneOuverte} />
+          <Colonne titre="Points de vigilance" teinte={J["alerte"]} lignes={vigilances} onOuvrir={setLigneOuverte} />
+          <div className="hidden xl:block w-px h-full bg-relief" />
+          <Colonne titre="À vérifier" teinte={J["bleu"]} lignes={aVerifier} onOuvrir={setLigneOuverte} />
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pt-1">
         <button
           onClick={() => setTableOuverte((v) => !v)}
-          className="inline-flex items-center gap-2 text-[13px] text-[#8f959e] hover:text-encre transition-colors"
+          className="inline-flex items-center gap-2 text-[13px] text-ardoise hover:text-encre transition-colors"
         >
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${tableOuverte ? "" : "-rotate-90"}`} />
           Données extraites ({(extraction.lignes || []).length})
@@ -330,7 +331,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher"
-            className="bg-[#0c0d10] border border-trait focus:border-menthe/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-encre outline-none placeholder:text-[#5a615f] transition-colors w-[170px]"
+            className="bg-fond border border-trait focus:border-menthe/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-encre outline-none placeholder:text-brume transition-colors w-[170px]"
           />
           <button onClick={() => onSupprimer?.(extraction.id)} className="text-[12.5px] text-brume hover:text-red-400 transition-colors" title="Retirer cette extraction">
             Retirer
@@ -363,7 +364,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
               const lien = lienSource(extraction.document_url, l.page);
               const ouverte = ligneOuverte?.index === l.index;
               const nouveauBloc = l.bloc && (i === 0 || lignes[i - 1].bloc !== l.bloc);
-              const teinte = l.statut === "Point de vigilance" ? "#e8746a" : l.statut === "À vérifier" ? "#d9b46a" : l.statut === "Conforme" ? "#96c0b8" : "#3a3f4a";
+              const teinte = l.statut === "Point de vigilance" ? J["alerte"] : l.statut === "À vérifier" ? J["ambre"] : l.statut === "Conforme" ? J["menthe"] : J["bord-vif"];
               return (
                 <React.Fragment key={l.index}>
                 {nouveauBloc && (
@@ -387,7 +388,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                         defaultValue={l.constat}
                         onBlur={(e) => majLigne.mutate({ index: l.index, constat: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
-                        className="w-full bg-[#0c0d10] border border-menthe rounded px-2 py-1 text-[13px] text-encre outline-none resize-y"
+                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[13px] text-encre outline-none resize-y"
                       />
                     ) : (
                       <button
@@ -399,10 +400,10 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                           {l.constat || <span className="text-bord-vif">—</span>}
                         </span>
                         {l.citation && deplies.has(l.index) && (
-                          <span className="block mt-1 text-[11.5px] text-[#5a615f] italic leading-[1.5]">« {l.citation} »</span>
+                          <span className="block mt-1 text-[11.5px] text-brume italic leading-[1.5]">« {l.citation} »</span>
                         )}
                         {!deplies.has(l.index) && String(l.constat || "").length > 150 && (
-                          <span className="block mt-0.5 text-[11.5px] text-[#6c6c74]">tout lire</span>
+                          <span className="block mt-0.5 text-[11.5px] text-brume">tout lire</span>
                         )}
                       </button>
                     )}
@@ -419,7 +420,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                         {l.page ? `page ${l.page}` : "voir"}
                       </button>
                     ) : (
-                      <span className="text-[12.5px] text-[#3f4644]">—</span>
+                      <span className="text-[12.5px] text-brume">—</span>
                     )}
                   </td>
 
@@ -431,7 +432,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                         defaultValue={l.commentaire}
                         onBlur={(e) => majLigne.mutate({ index: l.index, commentaire: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
-                        className="w-full bg-[#0c0d10] border border-menthe rounded px-2 py-1 text-[13px] text-encre outline-none resize-y"
+                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[13px] text-encre outline-none resize-y"
                       />
                     ) : (
                       <button
@@ -439,7 +440,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                         className="block w-full text-left text-[12.5px] text-ardoise hover:text-encre transition-colors"
                         title="Cliquer pour commenter"
                       >
-                        {l.commentaire || <span className="text-[#3f4644]">+ commenter</span>}
+                        {l.commentaire || <span className="text-brume">+ commenter</span>}
                       </button>
                     )}
                   </td>
@@ -488,14 +489,14 @@ function Colonne({ titre, teinte, lignes, onOuvrir }) {
           className="text-left flex flex-col gap-2 group"
         >
           <span className="text-[16px] font-semibold text-encre group-hover:text-[#ffffff] transition-colors">{l.element}</span>
-          {l.constat && <span className="text-[14px] leading-[1.65] text-[#b5b5bd]">{l.constat}</span>}
+          {l.constat && <span className="text-[14px] leading-[1.65] text-craie">{l.constat}</span>}
           {l.commentaire && !memeTexte(l.commentaire, l.constat) && (
-            <span className="text-[13.5px] leading-[1.6]" style={{ color: teinte === "#e8927c" ? "#e8b04c" : teinte }}>→ {l.commentaire}</span>
+            <span className="text-[13.5px] leading-[1.6]" style={{ color: teinte === J["alerte"] ? J["ambre"] : teinte }}>→ {l.commentaire}</span>
           )}
         </button>
       ))}
       {reste > 0 && (
-        <button onClick={() => setTout(true)} className="text-left text-[13px] text-[#6c6c74] hover:text-[#b5b5bd] transition-colors">
+        <button onClick={() => setTout(true)} className="text-left text-[13px] text-brume hover:text-craie transition-colors">
           + {reste} autre{reste > 1 ? "s" : ""} point{reste > 1 ? "s" : ""}
         </button>
       )}
@@ -548,19 +549,19 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
   return (
     <div>
       {/* --- À gauche les analyses, à droite celle qu'on lit ------------- */}
-      <div className="flex max-lg:flex-col gap-0 border border-[#1e1e22] rounded-[18px] overflow-hidden bg-[#0f0f11]">
-        <nav className="w-[264px] max-lg:w-full flex-none border-r max-lg:border-r-0 max-lg:border-b border-[#1e1e22] py-5 flex flex-col">
+      <div className="flex max-lg:flex-col gap-0 border border-relief rounded-[18px] overflow-hidden bg-fond">
+        <nav className="w-[264px] max-lg:w-full flex-none border-r max-lg:border-r-0 max-lg:border-b border-relief py-5 flex flex-col">
           <button
             onClick={() => setOnglet("dossier")}
             className={`w-full text-left px-6 py-2.5 mb-3 border-l-2 text-[14px] transition-colors ${
-              onglet === "dossier" ? "border-[#e8927c] bg-[#e8927c]/[0.05] text-encre font-semibold" : "border-transparent text-[#97979f] hover:text-encre"
+              onglet === "dossier" ? "border-alerte bg-alerte/[0.05] text-encre font-semibold" : "border-transparent text-ardoise hover:text-encre"
             }`}
           >
             Le dossier
           </button>
           {extractions.length > 0 && (
             <>
-              <p className="m-0 px-6 pb-3 text-[11px] tracking-[.16em] uppercase text-[#5f5f66]">Par document</p>
+              <p className="m-0 px-6 pb-3 text-[11px] tracking-[.16em] uppercase text-brume">Par document</p>
               {extractions.map((e) => {
                 const choisi = onglet === e.id;
                 const total = (e.lignes || []).filter((l) => l.constat).length;
@@ -572,7 +573,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
                     defaultValue={renommage.titre}
                     onBlur={(ev) => renommer.mutate({ id: e.id, titre: ev.target.value })}
                     onKeyDown={(ev) => { if (ev.key === "Enter") ev.currentTarget.blur(); if (ev.key === "Escape") setRenommage(null); }}
-                    className="mx-6 my-1 bg-[#0c0d10] border border-menthe rounded px-2 py-1 text-[14px] text-encre outline-none"
+                    className="mx-6 my-1 bg-fond border border-menthe rounded px-2 py-1 text-[14px] text-encre outline-none"
                   />
                 ) : (
                   <button
@@ -581,21 +582,21 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
                     onDoubleClick={() => setRenommage({ id: e.id, titre: nomOnglet(e) })}
                     title={choisi ? "Cliquer pour renommer" : e.document_nom}
                     className={`w-full text-left px-6 py-2.5 border-l-2 flex items-baseline justify-between gap-3 transition-colors ${
-                      choisi ? "border-[#e8927c] bg-[#e8927c]/[0.05] text-encre" : "border-transparent text-[#97979f] hover:text-encre"
+                      choisi ? "border-alerte bg-alerte/[0.05] text-encre" : "border-transparent text-ardoise hover:text-encre"
                     }`}
                   >
                     <span className={`text-[14px] truncate ${choisi ? "font-semibold" : ""}`}>{nomOnglet(e)}</span>
                     <span
                       className="text-[11px] flex-none"
                       title={e.erreur ? "L'analyse a échoué" : vigilances ? `${vigilances} point(s) de vigilance` : total === 0 ? "Rien relevé dans ce document" : "Rien à signaler"}
-                      style={{ color: e.erreur ? "#e8746a" : vigilances ? "#e8927c" : total === 0 ? "#6c6c74" : "#7fd1a8" }}
+                      style={{ color: e.erreur ? J["alerte"] : vigilances ? J["alerte"] : total === 0 ? J["brume"] : J["vert"] }}
                     >
                       {e.erreur ? "échec" : vigilances ? `${vigilances} ⚑` : total === 0 ? "vide" : "ok"}
                     </span>
                   </button>
                 );
               })}
-              <div className="h-px bg-[#1e1e22] mx-6 my-3.5" />
+              <div className="h-px bg-relief mx-6 my-3.5" />
             </>
           )}
           {[
@@ -607,7 +608,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
               key={id}
               onClick={() => setOnglet(id)}
               className={`w-full text-left px-6 py-2.5 border-l-2 text-[14px] transition-colors ${
-                onglet === id ? "border-[#e8927c] bg-[#e8927c]/[0.05] text-encre font-semibold" : "border-transparent text-[#97979f] hover:text-encre"
+                onglet === id ? "border-alerte bg-alerte/[0.05] text-encre font-semibold" : "border-transparent text-ardoise hover:text-encre"
               }`}
             >
               {libelle}

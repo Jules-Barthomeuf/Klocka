@@ -206,7 +206,7 @@ export default function MesProjets() {
                 </p>
                 <button
                   onClick={() => setRdvOuvert(true)}
-                  className="mt-9 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-menthe text-fond text-[14px] font-semibold hover:bg-[#abd0c8] transition-colors"
+                  className="mt-9 inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-menthe text-fond text-[14px] font-semibold hover:bg-menthe-survol transition-colors"
                 >
                   Prendre rendez-vous <ArrowRight className="w-4 h-4" />
                 </button>

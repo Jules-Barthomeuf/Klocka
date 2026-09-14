@@ -1,4 +1,5 @@
 import React from "react";
+import { J } from "@/design/jetons";
 
 // Les loyers sur une même règle, en €/m²/an.
 //
@@ -40,17 +41,17 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
           <>
             <div className="absolute bottom-0 top-[38px]" style={{ left: x(tete.bas), width: largeur(tete.bas, tete.haut), background: "linear-gradient(180deg,rgba(150,192,184,0.03),rgba(150,192,184,0.28))", borderLeft: "1px solid rgba(150,192,184,0.5)", borderRight: "1px solid rgba(150,192,184,0.5)", boxShadow: "0 0 44px rgba(150,192,184,0.18)" }} />
             <div className="absolute top-[14px] text-center" style={{ left: x(tete.bas), width: largeur(tete.bas, tete.haut) }}>
-              <span className="text-[11px] uppercase tracking-[.12em] text-[#96c0b8]" style={MONT}>Marché</span>
+              <span className="text-[11px] uppercase tracking-[.12em] text-menthe" style={MONT}>Marché</span>
             </div>
             {tete.median != null && <div className="absolute bottom-0 top-[38px] w-px" style={{ left: x(tete.median), background: "rgba(150,192,184,0.6)" }} />}
           </>
         )}
         {enPlace != null && (
           <>
-            <div className="absolute bottom-0 top-[22px] w-[2px]" style={{ left: x(enPlace), background: "#e0a45e", boxShadow: "0 0 22px rgba(224,164,94,0.55)" }} />
+            <div className="absolute bottom-0 top-[22px] w-[2px]" style={{ left: x(enPlace), background: J["ambre"], boxShadow: "0 0 22px rgba(224,164,94,0.55)" }} />
             <div className="absolute -top-[30px] flex -translate-x-1/2 items-center gap-[9px] whitespace-nowrap rounded-full px-[15px] py-[7px]" style={{ left: x(enPlace), background: "rgba(224,164,94,0.1)", border: "1px solid rgba(224,164,94,0.45)" }}>
-              <span className="text-[9.5px] font-medium uppercase tracking-[.14em] text-[#e0a45e]" style={MONT}>En place</span>
-              <span className="text-[15px] font-medium text-[#F3F7F5]" style={NUM}>{fmt(enPlace)}</span>
+              <span className="text-[9.5px] font-medium uppercase tracking-[.14em] text-ambre" style={MONT}>En place</span>
+              <span className="text-[15px] font-medium text-encre" style={NUM}>{fmt(enPlace)}</span>
             </div>
           </>
         )}
@@ -63,12 +64,12 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
         return (
           <React.Fragment key={`${l.service}-${i}`}>
             <div className="py-4 text-right">
-              <div className="text-[14.5px]" style={{ color: principale ? "#F3F7F5" : "#C3CBC7" }}>{l.service}</div>
-              {l.sous && <div className="mt-[3px] text-[12px] text-[#8B938F]">{l.sous}</div>}
+              <div className="text-[14.5px]" style={{ color: principale ? J["encre"] : J["craie"] }}>{l.service}</div>
+              {l.sous && <div className="mt-[3px] text-[12px] text-ardoise">{l.sous}</div>}
             </div>
             <div className="relative h-[30px]" style={{ ...grille, backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)" }}>
-              <div className="absolute top-[11px] h-[8px] rounded-full" style={{ left: x(l.bas), width: largeur(l.bas, l.haut), background: principale ? "#96c0b8" : "rgba(90,103,98,0.85)" }} />
-              <span className="absolute top-[6px] whitespace-nowrap text-[12.5px]" style={{ ...NUM, color: principale ? "#C3CBC7" : "#8B938F", ...(texteADroite ? { left: `calc(${x(l.haut)} + 12px)` } : { right: `calc(100% - ${x(l.bas)} + 12px)` }) }}>
+              <div className="absolute top-[11px] h-[8px] rounded-full" style={{ left: x(l.bas), width: largeur(l.bas, l.haut), background: principale ? J["menthe"] : "rgba(90,103,98,0.85)" }} />
+              <span className="absolute top-[6px] whitespace-nowrap text-[12.5px]" style={{ ...NUM, color: principale ? J["craie"] : J["ardoise"], ...(texteADroite ? { left: `calc(${x(l.haut)} + 12px)` } : { right: `calc(100% - ${x(l.bas)} + 12px)` }) }}>
                 {fmt(l.bas)} – {fmt(l.haut)}
               </span>
             </div>
@@ -77,7 +78,7 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
       })}
 
       <div />
-      <div className="relative h-[30px] border-t text-[11.5px] text-[#C3CBC7]" style={{ ...NUM, borderColor: "rgba(255,255,255,0.32)" }}>
+      <div className="relative h-[30px] border-t text-[11.5px] text-craie" style={{ ...NUM, borderColor: "rgba(255,255,255,0.32)" }}>
         {echelle.graduations.map((g, i) => {
           const premier = i === 0;
           const dernier = i === echelle.graduations.length - 1;

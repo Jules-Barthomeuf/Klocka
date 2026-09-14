@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FField, FInput } from "./FormField";
+import { J } from "@/design/jetons";
 
 // Calcule les honoraires agent depuis le prix net vendeur
 function calcHonorairesAgent(prixNetVendeur, mode, montant, tva) {
@@ -20,7 +21,7 @@ const fmtEur = (v) => new Intl.NumberFormat("fr-FR", { style: "currency", curren
 function SectionTitle({ children, accent = undefined }) {
   return (
     <div className="flex items-center gap-3 pt-2">
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || "#96c0b8" }} />
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent || J["menthe"] }} />
       <h3 className="text-[15px] font-semibold text-encre tracking-tight">{children}</h3>
       <div className="flex-1 h-px bg-encre/[0.06]" />
     </div>
@@ -304,7 +305,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
         </FField>
       </div>
 
-      <SectionTitle accent="#96c0b8">8. Paramètres Administrateur</SectionTitle>
+      <SectionTitle accent={J["menthe"]}>8. Paramètres Administrateur</SectionTitle>
       <div className="space-y-4 p-4 bg-menthe/10 rounded-none border border-menthe/30">
         <ToggleRow checked={formData.sim_commission_agent_active ?? false} onCheckedChange={(checked) => setFormData({...formData, sim_commission_agent_active: checked})} title="Honoraires à la charge de l'acquéreur TTC" />
         {formData.sim_commission_agent_active && (

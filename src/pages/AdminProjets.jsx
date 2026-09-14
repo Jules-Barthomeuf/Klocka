@@ -1051,7 +1051,7 @@ export default function AdminProjets() {
     return (
       <div className="h-screen flex flex-col bg-fond text-encre overflow-hidden">
         {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. */}
-        <div className="flex-shrink-0 px-6 max-md:px-4 pt-4 pb-3.5 border-b border-[#1c1c1c]">
+        <div className="flex-shrink-0 px-6 max-md:px-4 pt-4 pb-3.5 border-b border-trait">
           <div className="flex items-start gap-5">
             <h1
               className="flex-1 min-w-0 m-0 text-[clamp(22px,2.4vw,36px)] font-normal italic tracking-[-.01em] leading-[1.05] text-white"
@@ -1081,7 +1081,7 @@ export default function AdminProjets() {
             <button
               onClick={() => handleSubmit()}
               disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-semibold text-[#0b0c0e] bg-menthe hover:bg-[#abd0c8] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-semibold text-fond bg-menthe hover:bg-menthe-survol transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement…</> : "Enregistrer"}
             </button>
@@ -1130,7 +1130,7 @@ export default function AdminProjets() {
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
         <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-lg:grid-cols-1 max-lg:overflow-y-auto">
-        <div className="min-h-0 overflow-y-auto border-r border-[#1c1c1c] max-lg:border-r-0 max-lg:overflow-visible">
+        <div className="min-h-0 overflow-y-auto border-r border-trait max-lg:border-r-0 max-lg:overflow-visible">
           {ongletPage === "simulateur" ? (
             <div className="max-w-[1100px] mx-auto px-4 md:px-6 pb-8">
               {/* La barre d'onglets de la page reste accessible au-dessus des chiffres. */}
@@ -1172,7 +1172,7 @@ export default function AdminProjets() {
           <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => setActiveTab(t.value)}
-                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-[#04140c] border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif hover:text-encre"}`}>
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-sur-menthe border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif hover:text-encre"}`}>
                 {t.label}
               </button>
             ))}
@@ -1417,7 +1417,7 @@ export default function AdminProjets() {
           <div className="flex-shrink-0 px-[18px] pb-3">
             <CarteDocuments formData={formData} setFormData={setFormData} />
           </div>
-          <div className="px-[18px] py-2.5 border-t border-[#1c1c1c] flex-shrink-0 text-center">
+          <div className="px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center">
             <span className="text-[12px] text-[#6a6a6a]">Entrée met la page de gauche à jour sans enregistrer.</span>
           </div>
         </aside>
@@ -1466,29 +1466,29 @@ export default function AdminProjets() {
         {/* En-tête */}
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>
-            <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-[#F3F7F5] max-md:text-[26px]">Gestion des projets</h1>
+            <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Gestion des projets</h1>
             <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="alx-mont inline-flex items-center gap-2 rounded-full bg-[#96c0b8] px-[18px] py-2.5 text-[11px] font-semibold uppercase tracking-[.12em] text-[#08130D] transition-colors hover:bg-[#c3ddd6]">
+            className="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[18px] py-2.5 text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe transition-colors hover:bg-menthe-clair">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
         </div>
 
         {/* Bandeau de chiffres */}
-        <div className="mb-8 flex flex-wrap border-t border-white/[0.16] max-md:mb-6">
+        <div className="mb-8 flex flex-wrap border-t border-bord max-md:mb-6">
           {CHIFFRES.map((c, i) => (
             <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-6" : ""}`}>
-              <div className={`text-[26px] font-medium tabular-nums max-md:text-[20px] ${c.accent || "text-[#F3F7F5]"}`}>{c.valeur}</div>
-              <div className="alx-mont mt-1.5 text-[9.5px] font-medium uppercase tracking-[.14em] text-[#8B938F]">{c.label}</div>
+              <div className={`text-[26px] font-medium tabular-nums max-md:text-[20px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
+              <div className="alx-mont mt-1.5 text-[9.5px] font-medium uppercase tracking-[.14em] text-ardoise">{c.label}</div>
             </div>
           ))}
         </div>
 
         {/* Recherche + filtres */}
         <div className="mb-8 max-md:mb-6">
-          <div className="mb-5 flex items-center gap-3 border-b border-white/[0.12] pb-2 transition-colors focus-within:border-menthe/50">
+          <div className="mb-5 flex items-center gap-3 border-b border-bord pb-2 transition-colors focus-within:border-menthe/50">
             <FolderSearch className="w-4 h-4 text-brume flex-shrink-0" />
             <input
               placeholder="Rechercher un projet, une adresse, un client…"
@@ -1506,12 +1506,12 @@ export default function AdminProjets() {
           <div className="flex items-center gap-x-7 gap-y-2 flex-wrap">
             {FILTRES.map(({ v, l, n }) => (
               <button key={v} onClick={() => setStatusFilter(v)}
-                className={`alx-mont border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${statusFilter === v ? "text-[#F3F7F5] border-menthe" : "text-[#8B938F] border-transparent hover:text-[#E8EFEB]"}`}>
+                className={`alx-mont border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${statusFilter === v ? "text-encre border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
                 {l} <span className="text-brume">{n}</span>
               </button>
             ))}
             <button onClick={() => setShowArchived(!showArchived)}
-              className={`alx-mont ml-auto inline-flex items-center gap-2 border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${showArchived ? "text-menthe border-menthe" : "text-[#8B938F] border-transparent hover:text-[#E8EFEB]"}`}>
+              className={`alx-mont ml-auto inline-flex items-center gap-2 border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${showArchived ? "text-menthe border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
               <Archive className="w-3.5 h-3.5" />
               {showArchived ? "Masquer les archivés" : `Archivés ${nbArchives}`}
             </button>

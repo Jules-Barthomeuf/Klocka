@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ThinkingOrb } from "@/components/ui/thinking-orbs";
+import { J } from "@/design/jetons";
 
 // L'écran qu'on voit pendant que Klocka va chercher sur un service extérieur,
 // Data-B ou Equimmox. Plein écran, noir. À gauche, ce que Klocka fait, étape
@@ -24,7 +25,7 @@ import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 // poursuit de toute façon. L'abréger ne ferait qu'afficher un écran vide en
 // attendant la réponse.
 
-const MENTHE = "#96c0b8";
+const MENTHE = J["menthe"];
 const PART_FRAPPE = 0.4; // la ligne se tape sur les 40 % premiers de l'étape
 
 export default function ConnexionExterne({ service, etapes, attendA, pret, dureeEtape = 3000, onFini, etapeServeur = null }) {
@@ -121,7 +122,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
     >
       {/* Gauche : ce que Klocka fait */}
       <div className="flex flex-col justify-between items-start py-14 pr-6 pl-[120px] max-md:pl-6 max-md:py-10">
-        <div className="flex items-center gap-2.5 text-[12px] tracking-[.16em] text-[#8d918f]">
+        <div className="flex items-center gap-2.5 text-[12px] tracking-[.16em] text-ardoise">
           <span className="w-[7px] h-[7px] rounded-full" style={{ background: MENTHE, animation: "kl-point 1.4s ease-in-out infinite" }} />
           CONNEXION À {service.toUpperCase()}
         </div>
@@ -136,7 +137,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
             <span style={{ color: MENTHE, animation: "kl-curseur 1s step-end infinite" }}>|</span>
           </div>
           <div
-            className="mt-[18px] text-[15px] leading-[1.5] text-[#8d918f] max-w-[36ch]"
+            className="mt-[18px] text-[15px] leading-[1.5] text-ardoise max-w-[36ch]"
             style={{ transition: "opacity .5s ease", opacity: avance > 0.45 ? 1 : 0 }}
           >
             {e.legende}
@@ -148,7 +149,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
             <div
               key={s.court}
               className="flex items-center gap-[11px] text-[13.5px]"
-              style={{ transition: "color .4s ease, opacity .4s ease", color: k < i ? "#8d918f" : k === i ? MENTHE : "#4a4d4c", opacity: k > i ? 0.8 : 1 }}
+              style={{ transition: "color .4s ease, opacity .4s ease", color: k < i ? J["ardoise"] : k === i ? MENTHE : "#4a4d4c", opacity: k > i ? 0.8 : 1 }}
             >
               <span className="w-4 text-center text-[11px]">{k < i ? "✓" : k === i ? "▸" : "·"}</span>
               <span>{s.court}</span>

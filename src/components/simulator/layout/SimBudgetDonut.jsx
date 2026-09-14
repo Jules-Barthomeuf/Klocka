@@ -1,14 +1,15 @@
 import React, { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { J } from "@/design/jetons";
 
 const RADIAN = Math.PI / 180;
 
 export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrency }) {
   const items = useMemo(() => [
-  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: "#96c0b8" },
+  { name: "Prix du bien négocié FAI", value: Math.round(prixBienNegocie || 0), color: J["menthe"] },
   { name: "Droits d'enregistrement estimés", value: Math.round(calculs.droitsEnregistrement || 0), color: "#C6A45C" },
   { name: "Honoraires Klocka TTC", value: Math.round(calculs.feesKlocka || 0), color: "#A594C9" },
-  { name: "Incentive Klocka", value: Math.round(calculs.incentiveKlocka || 0), color: "#d9b46a" },
+  { name: "Incentive Klocka", value: Math.round(calculs.incentiveKlocka || 0), color: J["ambre"] },
   { name: "Frais divers à l'acquisition", value: Math.round(calculs.fraisDivers || 0), color: "#E76F51" }].
   filter((d) => d.value > 0), [calculs, prixBienNegocie]);
 

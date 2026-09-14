@@ -15,7 +15,7 @@ export default function InfoTooltip({ text }) {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute z-50 top-7 left-1/2 -translate-x-1/2 w-72 bg-[#0c0d10] border border-bord rounded-md p-3 shadow-xl">
+          <div className="absolute z-50 top-7 left-1/2 -translate-x-1/2 w-72 bg-fond border border-bord rounded-md p-3 shadow-xl">
             <div className="flex items-start justify-between gap-2">
               <p className="text-encre/70 text-xs leading-relaxed">{text}</p>
               <button onClick={() => setOpen(false)} className="flex-shrink-0 text-encre/30 hover:text-encre/60">

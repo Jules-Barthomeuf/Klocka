@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Copy } from "lucide-react";
 import { Mono, Section } from "./CadreEtapes";
+import { J } from "@/design/jetons";
 
 // Étape 4 — Présentation et closing. La présentation adaptée au profil ciblé
 // en trois formats, la timeline de la négociation, les compléments reçus avec
@@ -15,7 +16,7 @@ const Titre = ({ children, droite }) => (
     {droite ? <span className="text-[12px] text-ardoise">{droite}</span> : null}
   </div>
 );
-const ACTEUR = { automatique: ["#8fb6e8", "automatique"], analyste: ["#96c0b8", "analyste"], systeme: ["#6a7180", "système"] };
+const ACTEUR = { automatique: [J["bleu"], "automatique"], analyste: [J["menthe"], "analyste"], systeme: [J["brume"], "système"] };
 const quand = (iso) => new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 
 export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu = false, dialog, setDialog }) {
@@ -41,13 +42,13 @@ export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu
       <p className="m-0 px-6 max-md:px-4 py-4 text-[14px] leading-[1.65] text-craie border-b border-trait max-w-[900px]">Entre la décision de proposer et la signature, le deal évolue : questions de l'investisseur, contre-offres, compléments reçus. Cette étape trace tout et recalcule le prix à chaque nouveau fait.</p>
       <Section id="presentation" titre="1 · Présentation investisseur" droite="Même fiche de deal, présentée selon le profil ciblé">
         <div className="flex gap-6 border-b border-trait mb-5">
-          {e.presentations.map((x) => <button key={x.id} onClick={() => setProfil(x.id)} className={`relative pb-2.5 text-[14px] after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform ${profil === x.id ? "text-encre font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>{x.titre}</button>)}
+          {e.presentations.map((x) => <button key={x.id} onClick={() => setProfil(x.id)} className={`relative pb-2.5 text-[14px] after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform ${profil === x.id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>{x.titre}</button>)}
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <div>
             <Mono>Mis en avant pour <span className="normal-case tracking-normal text-craie">{p.titre}</span></Mono>
             <ul className="m-0 mt-2 p-0 list-none">
-              {p.pitch.slice(1).map((l, i) => <li key={i} className="py-3 border-b border-[#15171b] text-[14.5px] text-encre flex items-start gap-3"><span className="text-brume text-[10px] mt-[7px]">▸</span>{l}</li>)}
+              {p.pitch.slice(1).map((l, i) => <li key={i} className="py-3 border-b border-relief text-[14.5px] text-encre flex items-start gap-3"><span className="text-brume text-[10px] mt-[7px]">▸</span>{l}</li>)}
             </ul>
             <p className="m-0 mt-4 text-[13px] text-ardoise">Ce qui compte : {p.accent} Les risques sont présentés avec leur chiffrage, sans les minorer.</p>
           </div>
@@ -62,7 +63,7 @@ export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu
               ))}
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button onClick={() => setEdition((o) => !o)} className="px-4 py-2.5 bg-menthe text-fond text-[13.5px] font-semibold hover:bg-[#abd0c8]">{edition ? "Fermer l'édition" : "Générer et ouvrir en édition"}</button>
+              <button onClick={() => setEdition((o) => !o)} className="px-4 py-2.5 bg-menthe text-fond text-[13.5px] font-semibold hover:bg-menthe-survol">{edition ? "Fermer l'édition" : "Générer et ouvrir en édition"}</button>
               <span className="text-[13px] text-ardoise">Le système pré-rédige, l'analyste ajuste et envoie.</span>
             </div>
           </div>
@@ -102,7 +103,7 @@ export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu
             <table className="w-full border-collapse text-[13px]">
               <thead><tr className="text-[10px] tracking-[.14em] uppercase text-brume"><th className="text-left font-normal py-1.5 pr-3">Champ</th><th className="text-left font-normal py-1.5 px-3">Ancienne valeur</th><th className="text-left font-normal py-1.5 px-3">Nouvelle valeur</th><th className="text-left font-normal py-1.5 pl-3">Source</th></tr></thead>
               <tbody>{e.complements.lignes.map((l) => (
-                <tr key={l.champ} className="border-t border-[#15171b]">
+                <tr key={l.champ} className="border-t border-relief">
                   <td className="py-2 pr-3 text-craie">{l.libelle}</td>
                   <td className="py-2 px-3 text-brume line-through">{l.avant || "—"}</td>
                   <td className="py-2 px-3 text-encre">{l.apres || "—"}</td>
@@ -122,7 +123,7 @@ export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu
           <>
             <input value={motif} onChange={(x) => setMotif(x.target.value)} placeholder="Le motif, en une phrase — il alimente la base marché" className="w-full max-w-[720px] bg-transparent border border-bord rounded-lg px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe/60 mb-3" />
             <div className="grid sm:grid-cols-3 gap-4 max-w-[860px]">
-              {[["signe", "Signé", "Le dossier part dans les dossiers signés ; le projet vit sur la plateforme.", "border-menthe/50"], ["perdu", "Perdu", "Archives ; le prix et le loyer alimentent la base marché.", "border-[#e8b04c]/50"], ["abandonne", "Abandonné", "Archives ; le motif alimente la base marché.", "border-alerte/50"]].map(([etat, l, d, b]) => (
+              {[["signe", "Signé", "Le dossier part dans les dossiers signés ; le projet vit sur la plateforme.", "border-menthe/50"], ["perdu", "Perdu", "Archives ; le prix et le loyer alimentent la base marché.", "border-ambre/50"], ["abandonne", "Abandonné", "Archives ; le motif alimente la base marché.", "border-alerte/50"]].map(([etat, l, d, b]) => (
                 <button key={etat} onClick={() => !apercu && conclure.mutate(etat)} disabled={apercu || conclure.isPending} className={`text-left rounded-md p-4 border ${b} hover:bg-encre/[0.03] disabled:opacity-50`}>
                   <p className="m-0 text-[14px] font-semibold text-encre">{l}</p>
                   <p className="m-0 mt-1 text-[12px] leading-[1.5] text-ardoise">{d}</p>

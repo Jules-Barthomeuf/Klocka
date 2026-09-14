@@ -181,7 +181,7 @@ export default function InteractiveFranceMap({ projets }) {
                     </div>
                     <div className="bg-menthe/10 rounded-lg p-2">
                       <div className="text-xs text-ardoise mb-1">Rendement annuel</div>
-                      <div className="font-bold text-sm text-[#7fada4]">{projet.rendement_locatif}%</div>
+                      <div className="font-bold text-sm text-menthe-fonce">{projet.rendement_locatif}%</div>
                     </div>
                   </div>
                 </div>

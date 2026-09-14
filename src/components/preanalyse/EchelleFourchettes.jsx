@@ -1,4 +1,5 @@
 import React from "react";
+import { J } from "@/design/jetons";
 
 /**
  * Des fourchettes posées sur une même échelle, et un repère en travers.
@@ -34,9 +35,9 @@ export function bornesNettes(min, max) {
 }
 
 const TONS = {
-  primaire: { barre: "#96c0b8", texte: "text-[#F3F7F5]" },
-  dedans: { barre: "#e0a45e", texte: "text-[#e0a45e]" },
-  ordinaire: { barre: "rgba(90,103,98,0.85)", texte: "text-[#C3CBC7]" },
+  primaire: { barre: J["menthe"], texte: "text-encre" },
+  dedans: { barre: J["ambre"], texte: "text-ambre" },
+  ordinaire: { barre: "rgba(90,103,98,0.85)", texte: "text-craie" },
 };
 
 const COLONNES = {
@@ -90,7 +91,7 @@ export default function EchelleFourchettes({
         >
           <div
             className="absolute top-0 bottom-0 w-[2px]"
-            style={{ left: `${posRepere}%`, background: "#e0a45e", boxShadow: "0 0 18px rgba(224,164,94,0.45)" }}
+            style={{ left: `${posRepere}%`, background: J["ambre"], boxShadow: "0 0 18px rgba(224,164,94,0.45)" }}
           />
         </div>
       )}
@@ -111,7 +112,7 @@ export default function EchelleFourchettes({
           return (
             <div key={l.cle} className="flex items-center py-3" style={{ gap: "var(--ecart)" }}>
               <p
-                className="alx-mont m-0 flex-none text-[9px] font-medium uppercase tracking-[.14em] text-[#8B938F]"
+                className="alx-mont m-0 flex-none text-[9px] font-medium uppercase tracking-[.14em] text-ardoise"
                 style={{ width: "var(--lib)" }}
               >
                 {l.libelle}
@@ -134,7 +135,7 @@ export default function EchelleFourchettes({
                     la barre, pas une quatrième ligne. */}
                 {!absente && l.pointe != null && (
                   <div
-                    className="absolute top-[-3px] bottom-[-3px] w-px bg-[#0A0C0B]"
+                    className="absolute top-[-3px] bottom-[-3px] w-px bg-fond"
                     style={{ left: `${pct(l.pointe)}%` }}
                     title="moyenne"
                   />
@@ -144,7 +145,7 @@ export default function EchelleFourchettes({
               {/* L'unité une fois, à la fin : « 640 – 960 € » et non deux euros. */}
               <p
                 className={`m-0 flex-none text-right text-[14px] tabular-nums whitespace-nowrap ${
-                  absente ? "text-[#5A6762]" : ton.texte
+                  absente ? "text-brume" : ton.texte
                 }`}
                 style={{ width: "var(--val)" }}
               >
@@ -166,17 +167,17 @@ export default function EchelleFourchettes({
       <div className="relative mt-1 min-h-[34px]">
         {legende && (
           <p
-            className="absolute left-0 top-0 m-0 text-[11.5px] leading-[1.45] text-[#8B938F]"
+            className="absolute left-0 top-0 m-0 text-[11.5px] leading-[1.45] text-ardoise"
             style={{ width: "var(--lib)" }}
           >
             {legende}
           </p>
         )}
-        <div className="absolute top-0 border-t text-[11.5px] tabular-nums text-[#C3CBC7]" style={{ ...PISTE, borderColor: "rgba(255,255,255,0.32)", paddingTop: 8 }}>
+        <div className="absolute top-0 border-t text-[11.5px] tabular-nums text-craie" style={{ ...PISTE, borderColor: "rgba(255,255,255,0.32)", paddingTop: 8 }}>
           {/* Une borne trop près du repère s'efface : deux chiffres l'un sur l'autre ne se lisent pas. */}
           {!(posRepere != null && posRepere < 7) && <span className="absolute left-0" style={{ top: 8 }}>{format(bas)}</span>}
           {posRepere != null && (
-            <span className="absolute -translate-x-1/2 text-[#e0a45e]" style={{ left: `${posRepere}%`, top: 8 }}>
+            <span className="absolute -translate-x-1/2 text-ambre" style={{ left: `${posRepere}%`, top: 8 }}>
               {format(repere.valeur)}
             </span>
           )}

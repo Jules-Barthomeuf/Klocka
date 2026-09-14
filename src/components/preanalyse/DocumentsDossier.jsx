@@ -143,7 +143,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher"
-            className="bg-surface border border-bord focus:border-bord-vif rounded-[10px] px-3.5 py-2 text-[14px] text-encre outline-none placeholder:text-[#6c737c] transition-colors w-[190px]"
+            className="bg-surface border border-bord focus:border-bord-vif rounded-[10px] px-3.5 py-2 text-[14px] text-encre outline-none placeholder:text-brume transition-colors w-[190px]"
           />
           {proposerDrive && dossier?.drive_folder_url && (
             <a
@@ -176,9 +176,9 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
 
       {documents.length === 0 ? (
         <div className="mt-1 border-[1.5px] border-dashed border-bord-doux rounded-2xl px-6 py-11 flex flex-col items-center gap-2.5 text-center">
-          <Upload className="w-6 h-6 text-[#6c737c]" strokeWidth={1.5} />
+          <Upload className="w-6 h-6 text-brume" strokeWidth={1.5} />
           <p className="m-0 text-[14.5px] font-medium text-[#b7bdc5]">Aucun document pour l'instant</p>
-          <p className="m-0 text-[13.5px] text-[#6c737c] max-w-[480px]">
+          <p className="m-0 text-[13.5px] text-brume max-w-[480px]">
             Bail, PV d'assemblée, diagnostics, comptes du locataire : importez ce que vous avez.
           </p>
         </div>
@@ -186,7 +186,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
         <div className="overflow-x-auto">
           <table className="w-full border-collapse min-w-[720px]">
             <thead>
-              <tr className="border-y border-[#15171b]">
+              <tr className="border-y border-relief">
                 <th className="w-9 py-2.5">
                   <button
                     onClick={() => onCocher?.(tousCoches ? [] : documents.map((d) => d.id))}
@@ -209,7 +209,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
               {visibles.map((d) => {
                 const coche = coches.includes(d.id);
                 return (
-                  <tr key={d.id} className="border-b border-[#15171b] hover:bg-encre/[0.02] transition-colors">
+                  <tr key={d.id} className="border-b border-relief hover:bg-encre/[0.02] transition-colors">
                     <td className="py-3">
                       <button
                         onClick={() => basculer(d.id)}
@@ -228,7 +228,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                           onChange={(e) => setRenommage({ id: d.id, nom: e.target.value })}
                           onBlur={() => (renommage.nom.trim() && renommage.nom !== d.nom ? majDocument.mutate({ id: d.id, nom: renommage.nom.trim() }) : setRenommage(null))}
                           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setRenommage(null); }}
-                          className="w-full bg-[#0c0d10] border border-menthe rounded px-2 py-1 text-[13.5px] text-encre outline-none"
+                          className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[13.5px] text-encre outline-none"
                         />
                       ) : (
                         <button onClick={() => !apercu && setRenommage({ id: d.id, nom: d.nom })} className="block w-full text-left text-[13.5px] text-encre truncate hover:text-menthe-clair transition-colors" title="Cliquer pour renommer">
@@ -247,7 +247,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                         disabled={apercu}
                         title={d.categorie_auto ? "Classée automatiquement — corrigez si besoin" : undefined}
-                        className={`w-[200px] bg-[#0c0d10] rounded-full px-3 py-1 text-[12px] outline-none focus:border-menthe/60 focus:text-encre transition-colors border
+                        className={`w-[200px] bg-fond rounded-full px-3 py-1 text-[12px] outline-none focus:border-menthe/60 focus:text-encre transition-colors border
                           ${d.categorie_auto ? "border-menthe/40 text-menthe" : "border-bord text-ardoise"}`}
                       />
                     </td>
@@ -262,14 +262,14 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                           {d.extraction.statut === "fait" && d.extraction.lignes != null ? ` · ${d.extraction.lignes}` : ""}
                         </span>
                       ) : (
-                        <span className="text-[12px] text-[#3f4644]">—</span>
+                        <span className="text-[12px] text-brume">—</span>
                       )}
                     </td>
                     <td className="py-3 text-right text-[13px] text-ardoise">{typeLisible(d.mime)}</td>
                     <td className="py-3 text-right text-[13px] text-ardoise">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>
                     <td className="py-3 text-right text-[13px] text-encre">{tailleLisible(d.taille)}</td>
                     <td className="py-3 text-right relative">
-                      <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-[#5a615f] hover:text-encre transition-colors" title="Actions">
+                      <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-brume hover:text-encre transition-colors" title="Actions">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                       {menu === d.id && (

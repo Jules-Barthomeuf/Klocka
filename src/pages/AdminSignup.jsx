@@ -158,7 +158,7 @@ export default function AdminSignup() {
           </Button>
 
           <div className="bg-menthe/10 border border-menthe/40 rounded-lg p-4">
-            <p className="text-sm text-[#7fada4]">
+            <p className="text-sm text-menthe-fonce">
               Lien d'invitation valide. Votre compte sera automatiquement configuré en tant qu'administrateur.
             </p>
           </div>

@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Check, Phone, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { prevenir } from "@/lib/notifications";
+import { J } from "@/design/jetons";
 
 // Ce qui vous attend : les rappels que vous vous posez, les promesses des
 // agents et les relances de dossiers, dans une seule liste datée.
@@ -17,16 +18,16 @@ import { prevenir } from "@/lib/notifications";
 // C'est la limite assumée de la notification navigateur : l'onglet doit vivre.
 
 const GROUPES = [
-  { cle: "retard", mot: "En retard", teinte: "#e8746a", garde: (l) => l.dans != null && l.dans < 0 },
-  { cle: "aujourdhui", mot: "Aujourd'hui", teinte: "#d9b46a", garde: (l) => l.dans === 0 },
-  { cle: "semaine", mot: "Cette semaine", teinte: "#96c0b8", garde: (l) => l.dans > 0 && l.dans <= 7 },
-  { cle: "apres", mot: "Plus tard", teinte: "#3a3f4a", garde: (l) => l.dans > 7 },
+  { cle: "retard", mot: "En retard", teinte: J["alerte"], garde: (l) => l.dans != null && l.dans < 0 },
+  { cle: "aujourdhui", mot: "Aujourd'hui", teinte: J["ambre"], garde: (l) => l.dans === 0 },
+  { cle: "semaine", mot: "Cette semaine", teinte: J["menthe"], garde: (l) => l.dans > 0 && l.dans <= 7 },
+  { cle: "apres", mot: "Plus tard", teinte: J["bord-vif"], garde: (l) => l.dans > 7 },
 ];
 
 // La nature d'une ligne, pour savoir d'un coup d'œil d'où elle vient.
 const NATURES = {
-  rappel: { mot: "rappel", teinte: "#96c0b8" },
-  promesse: { mot: "promesse", teinte: "#d9b46a" },
+  rappel: { mot: "rappel", teinte: J["menthe"] },
+  promesse: { mot: "promesse", teinte: J["ambre"] },
   dossier: { mot: "relance", teinte: "#5a8db5" },
 };
 

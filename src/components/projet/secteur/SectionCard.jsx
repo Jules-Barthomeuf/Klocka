@@ -1,4 +1,5 @@
 import React from "react";
+import { J } from "@/design/jetons";
 
 // Section éditoriale : filet supérieur, titre lettré, aucun cadre (maquette "Page Projet Klocka")
 export default function SectionCard({ title, children }) {
@@ -40,7 +41,7 @@ export function KPI({ label, value, sub, color = "gray", inline }) {
   );
 }
 
-export function ProgressBar({ label, value, color = "#96c0b8", maxValue = 100 }) {
+export function ProgressBar({ label, value, color = J["menthe"], maxValue = 100 }) {
   return (
     <div>
       <div className="flex justify-between text-xs text-ardoise mb-1">

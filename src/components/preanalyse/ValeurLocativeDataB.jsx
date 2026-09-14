@@ -53,7 +53,7 @@ export default function ValeurLocativeDataB({ lot, premiere = false }) {
           />
           {verdict && (
             <Phrase className="mt-4">
-              Le bail, à <span className="tabular-nums text-[#F3F7F5]">{euros(loyerM2)} par m² et par an</span>, est <span style={{ color: verdict.teinte }}>{verdict.mot}</span> : {verdict.detail}.
+              Le bail, à <span className="tabular-nums text-encre">{euros(loyerM2)} par m² et par an</span>, est <span style={{ color: verdict.teinte }}>{verdict.mot}</span> : {verdict.detail}.
             </Phrase>
           )}
           <Note className="mt-3">Loyer au m² de la rue, du quartier et de la ville, d'après Data-B. En euros HT hors charges, par m² et par an.</Note>

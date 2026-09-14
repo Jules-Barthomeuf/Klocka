@@ -1,4 +1,5 @@
 import React from "react";
+import { J } from "@/design/jetons";
 import { Link, useLocation } from "react-router-dom";
 
 // Ce que les pages d'ALX partagent : l'en-tête avec ses onglets, les teintes
@@ -10,20 +11,20 @@ import { Link, useLocation } from "react-router-dom";
 // menthe pour ce qu'on écrit, gris pour ce qu'on surveille. Le 1 bis des rues
 // est un ambre plus vif, le 2 un bleu ; l'urgence 5 est un rouge brique.
 export const TEINTES = {
-  appeler: "#c9a889",
-  ecrire: "#96c0b8",
-  surveiller: "#8B938F",
-  barreSurveiller: "#5A6762",
-  ecartee: "#5f6160",
-  urgence5: "#c2695c",
-  emplacement1: "#6f8fe8",
-  emplacement1bis: "#b8863e",
-  emplacement2: "#c2695c",
-  texte: "#E8EFEB",
-  clair: "#F3F7F5",
-  doux: "#C3CBC7",
-  muet: "#8B938F",
-  encreSurMenthe: "#08130D",
+  appeler: J.appel,
+  ecrire: J.menthe,
+  surveiller: J.ardoise,
+  barreSurveiller: J.brume,
+  ecartee: J.brume,
+  urgence5: J["emplacement-2"],
+  emplacement1: J["emplacement-1"],
+  emplacement1bis: J["emplacement-1bis"],
+  emplacement2: J["emplacement-2"],
+  texte: J.encre,
+  clair: J.encre,
+  doux: J.craie,
+  muet: J.ardoise,
+  encreSurMenthe: J["sur-menthe"],
 };
 
 export const PILES = [
@@ -106,24 +107,24 @@ export function Pastille({ pile }) {
 export function Bouton({ children, onClick, disabled = false, principal = false, discret = false, title = null, type = "button", className = "" }) {
   const base = "inline-flex items-center justify-center gap-2 rounded-full transition-colors disabled:opacity-40 whitespace-nowrap";
   const registre = principal
-    ? "alx-mont alx-principal px-6 py-[12px] text-[13.5px] font-medium text-[#08130D]"
+    ? "alx-mont alx-principal px-6 py-[12px] text-[13.5px] font-medium text-sur-menthe"
     : discret
-      ? "px-2 py-[13px] text-[13.5px] text-[#8B938F] hover:text-[#E8EFEB]"
-      : "px-[22px] py-[13px] text-[13.5px] text-[#C3CBC7] border border-white/[0.14] hover:border-white/[0.3]";
+      ? "px-2 py-[13px] text-[13.5px] text-ardoise hover:text-encre"
+      : "px-[22px] py-[13px] text-[13.5px] text-craie border border-bord hover:border-bord-vif";
   return (
-    <button type={type} onClick={onClick} disabled={disabled} title={title || undefined} className={`${base} ${registre} ${className}`} style={{ background: principal ? "#96c0b8" : "transparent" }}>
+    <button type={type} onClick={onClick} disabled={disabled} title={title || undefined} className={`${base} ${registre} ${className}`} style={{ background: principal ? J["menthe"] : "transparent" }}>
       {children}
     </button>
   );
 }
 
 /** Une étiquette en capitales Montserrat, le surtitre de la maquette. */
-export function Etiquette({ children, teinte = "#8B938F", className = "" }) {
+export function Etiquette({ children, teinte = J["ardoise"], className = "" }) {
   return <div className={`alx-mont text-[10px] font-medium uppercase tracking-[.14em] ${className}`} style={{ color: teinte }}>{children}</div>;
 }
 
 /** Cinq étoiles, remplies jusqu'à la note (les demies aussi), en or. */
-export function Etoiles({ note, sur = 5, taille = 14, teinte = "#e0a45e", title = null }) {
+export function Etoiles({ note, sur = 5, taille = 14, teinte = J["ambre"], title = null }) {
   return (
     <span className="inline-flex items-center gap-[2px]" title={title || (note != null ? `${String(note).replace(".", ",")} sur ${sur}` : undefined)} style={{ fontSize: taille, lineHeight: 1 }}>
       {Array.from({ length: sur }, (_, i) => {
@@ -163,7 +164,7 @@ export function Champ({ label, value, onChange, placeholder = "", type = "text",
 
 /** Une carte sombre, le conteneur de base de toutes les sections ALX. */
 export function Carte({ children, className = "", id = undefined }) {
-  return <section id={id} className={`bg-surface border border-white/[0.08] rounded-[18px] p-[26px] ${className}`}>{children}</section>;
+  return <section id={id} className={`bg-surface border border-trait rounded-[18px] p-[26px] ${className}`}>{children}</section>;
 }
 
 /** Un chiffre-clé, dans une grille de statistiques. */
@@ -181,7 +182,7 @@ export function Stat({ label, valeur, detail = null, teinte = null }) {
 export function GrilleStats({ children }) {
   return (
     <div
-      className="grid gap-px bg-white/[0.07] border border-white/[0.07] rounded-[14px] overflow-hidden"
+      className="grid gap-px bg-white/[0.07] border border-trait rounded-[14px] overflow-hidden"
       style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}
     >
       {children}
@@ -209,8 +210,8 @@ export function Chiffre({ label, valeur, detail = null, teinte = null, onClick =
     <Tag
       onClick={onClick || undefined}
       className={`relative overflow-hidden text-left bg-surface border rounded-[18px] px-6 py-5 flex flex-col gap-1.5 transition-colors ${
-        actif ? "border-menthe/50" : "border-white/[0.08]"
-      } ${onClick ? "hover:border-white/[0.18]" : ""}`}
+        actif ? "border-menthe/50" : "border-trait"
+      } ${onClick ? "hover:border-bord" : ""}`}
     >
       {actif && <Halo />}
       <div className="relative text-[10px] tracking-[.16em] uppercase text-ardoise">{label}</div>
@@ -231,7 +232,7 @@ export function Statut({ etat }) {
     erreur: ["En erreur", "var(--k-alerte)", false],
   }[etat] || ["À lancer", "var(--k-brume)", false];
   return (
-    <span className="inline-flex items-center gap-2 text-[11px] tracking-[.12em] uppercase rounded-full border border-white/[0.1] px-3 py-1.5" style={{ color: m[1] }}>
+    <span className="inline-flex items-center gap-2 text-[11px] tracking-[.12em] uppercase rounded-full border border-bord px-3 py-1.5" style={{ color: m[1] }}>
       <span className={`w-[6px] h-[6px] rounded-full ${m[2] ? "animate-pulse" : ""}`} style={{ background: m[1] }} />
       {m[0]}
     </span>
@@ -241,12 +242,12 @@ export function Statut({ etat }) {
 /** Une bascule à pilules, comme « Brut / Net / Financier ». */
 export function Bascule({ options, valeur, onChange }) {
   return (
-    <div className="inline-flex gap-1 border border-white/[0.1] rounded-full p-1">
+    <div className="inline-flex gap-1 border border-bord rounded-full p-1">
       {options.map(([cle, mot, n]) => (
         <button
           key={cle}
           onClick={() => onChange(cle)}
-          className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${valeur === cle ? "bg-menthe text-[#0b1211] font-medium" : "text-ardoise hover:text-encre"}`}
+          className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${valeur === cle ? "bg-menthe text-sur-menthe font-medium" : "text-ardoise hover:text-encre"}`}
         >
           {mot}{n != null ? <span className={`ml-1.5 tabular-nums ${valeur === cle ? "opacity-70" : "text-brume"}`}>{n}</span> : null}
         </button>

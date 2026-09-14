@@ -191,7 +191,7 @@ export default function Ressources() {
 
             <button
               onClick={() => navigate(createPageUrl("Dashboard"))}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-encre/[0.02] hover:bg-encre/[0.05] border border-[#15171b] rounded-full text-encre text-sm transition-all"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-encre/[0.02] hover:bg-encre/[0.05] border border-relief rounded-full text-encre text-sm transition-all"
             >
               Retour au tableau de bord
               <ArrowRight className="w-3.5 h-3.5" />

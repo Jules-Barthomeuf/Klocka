@@ -2,6 +2,7 @@ import React from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { J } from "@/design/jetons";
 
 function Item({ label, value, accent = "text-encre", info }) {
   return (
@@ -43,7 +44,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
     { label: "Création richesse", value: Math.round(ind.creationRichesseBrute), fill: "#D4A93C" },
     { label: "Prix revente net", value: Math.round(rev.prixVenteNet), fill: "#7FC7BC" },
     { label: "Cash-flow cumulé", value: Math.round(ind.cashFlowCumule), fill: "#3AAE5F" },
-    { label: "Apport (sortie)", value: -Math.round(ind.apportInitial), fill: "#E8836B" },
+    { label: "Apport (sortie)", value: -Math.round(ind.apportInitial), fill: J["alerte"] },
   ];
 
   return (
@@ -63,7 +64,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
             <CartesianGrid horizontal={false} stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
             <XAxis
               type="number"
-              tick={{ fill: "#9298a6", fontSize: 10 }}
+              tick={{ fill: J["ardoise"], fontSize: 10 }}
               axisLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
               tickLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
               tickFormatter={(v) => `${Math.round(v / 1000)}k`}
@@ -77,7 +78,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
               axisLine={{ stroke: "#ffffff", strokeOpacity: 0.15 }}
               tickLine={false}
             />
-            <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} contentStyle={{ background: "#0c0d10", border: "1px solid #333", borderRadius: 6, fontSize: 11 }} formatter={(v) => [formatCurrency(Math.abs(v)), ""]} />
+            <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} contentStyle={{ background: J["fond"], border: "1px solid #333", borderRadius: 6, fontSize: 11 }} formatter={(v) => [formatCurrency(Math.abs(v)), ""]} />
             <Bar dataKey="value" radius={[0, 3, 3, 0]} barSize={22}>
               {barData.map((d, i) => <Cell key={i} fill={d.fill} />)}
             </Bar>

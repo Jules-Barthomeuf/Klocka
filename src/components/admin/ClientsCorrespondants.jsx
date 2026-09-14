@@ -20,7 +20,7 @@ const somme = (n) => {
 
 function Mention({ children }) {
   return (
-    <p className="m-0 mt-2 px-3 py-2 text-[11px] text-brume border border-[#15171b] rounded-md">
+    <p className="m-0 mt-2 px-3 py-2 text-[11px] text-brume border border-relief rounded-md">
       {children}
     </p>
   );

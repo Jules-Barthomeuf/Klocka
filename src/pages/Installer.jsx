@@ -78,7 +78,7 @@ export default function Installer() {
               </p>
               <a
                 href="/"
-                className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-menthe text-fond text-[12px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8]"
+                className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-menthe text-fond text-[12px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol"
               >
                 Ouvrir Klocka
               </a>
@@ -91,7 +91,7 @@ export default function Installer() {
               </p>
               <button
                 onClick={installer}
-                className="inline-flex items-center gap-2 mt-8 px-7 py-3.5 bg-menthe text-fond text-[13px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8] transition-colors"
+                className="inline-flex items-center gap-2 mt-8 px-7 py-3.5 bg-menthe text-fond text-[13px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol transition-colors"
               >
                 <Download className="w-4 h-4" /> Télécharger l'application
               </button>

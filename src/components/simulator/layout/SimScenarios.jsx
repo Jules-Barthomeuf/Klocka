@@ -179,7 +179,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
                 <tr
                   key={s.niveau}
                   onClick={() => setNiveau(s.niveau)}
-                  className={`cursor-pointer border-b border-[#15171b] transition-colors duration-200 ${niveau === s.niveau ? "bg-menthe/10" : "hover:bg-encre/[0.03]"}`}>
+                  className={`cursor-pointer border-b border-relief transition-colors duration-200 ${niveau === s.niveau ? "bg-menthe/10" : "hover:bg-encre/[0.03]"}`}>
                   
                   <td className="px-3 py-2 text-encre">-{s.niveau}%</td>
                   <td className="px-3 py-2 text-right text-craie tabular-nums">{formatCurrency(s.data.prixNegocie)}</td>

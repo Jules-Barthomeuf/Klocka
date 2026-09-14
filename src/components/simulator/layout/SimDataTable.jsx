@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { J } from "@/design/jetons";
 
 export default function SimDataTable({ calculs, anneeRevente, formatCurrency, dureeCredit }) {
   const rows = calculs.tableauAnnuel.slice(1, 26); // An 1..25
@@ -152,7 +153,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                     const val = sum != null ? fmtCur(sum) : "";
                     const isNeg = typeof val === "string" && val.trim().startsWith("-");
                     return (
-                      <td key={r.annee} className="px-2 py-2 text-right tabular-nums text-xs font-semibold whitespace-nowrap border-b border-trait" style={{ color: isNeg ? "#E8836B" : sec.color }}>{val}</td>
+                      <td key={r.annee} className="px-2 py-2 text-right tabular-nums text-xs font-semibold whitespace-nowrap border-b border-trait" style={{ color: isNeg ? J["alerte"] : sec.color }}>{val}</td>
                     );
                   })}
                 </tr>
@@ -163,7 +164,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                       const val = row.get(r);
                       const isNeg = typeof val === "string" && val.trim().startsWith("-");
                       return (
-                        <td key={r.annee} className={`px-2 py-1.5 text-right tabular-nums text-xs whitespace-nowrap ${isNeg ? "text-[#E8836B]" : "text-encre"}`}>{val}</td>
+                        <td key={r.annee} className={`px-2 py-1.5 text-right tabular-nums text-xs whitespace-nowrap ${isNeg ? "text-alerte" : "text-encre"}`}>{val}</td>
                       );
                     })}
                   </tr>

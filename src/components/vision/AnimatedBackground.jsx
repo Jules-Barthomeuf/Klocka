@@ -1,6 +1,7 @@
 import { useEffect } from "react";
+import { J } from "@/design/jetons";
 
-export default function AnimatedBackground({ color = "#96c0b8", tintOpacity = 0.6 }) {
+export default function AnimatedBackground({ color = J["menthe"], tintOpacity = 0.6 }) {
   useEffect(() => {
     // Load Unicorn Studio script
     if (!window.UnicornStudio) {

@@ -1,4 +1,5 @@
 // Le vocabulaire visuel du journal d'analyste, partagé par tous ses morceaux.
+import { J } from "@/design/jetons";
 //
 // Le code couleur porte l'essentiel du sens : on doit pouvoir lire l'état d'une
 // recherche de loin, sans lire les phrases. Il vit ici pour qu'une couleur
@@ -6,13 +7,13 @@
 
 export const TONS = {
   // réussite, étape terminée, conclusion positive
-  menthe: { pastille: "#96c0b8", texte: "#dfe3e8", etiquette: "#96c0b8", bord: "rgba(150,192,184,.35)" },
+  menthe: { pastille: J["menthe"], texte: J["craie"], etiquette: J["menthe"], bord: "rgba(150,192,184,.35)" },
   // action en cours
-  gris: { pastille: "#6a7180", texte: "#9298a6", etiquette: "#9298a6", bord: "rgba(146,152,166,.30)" },
+  gris: { pastille: J["brume"], texte: J["ardoise"], etiquette: J["ardoise"], bord: "rgba(146,152,166,.30)" },
   // lenteur, trop peu de résultats, écart entre sources
-  ambre: { pastille: "#d9a441", texte: "#e4dcc9", etiquette: "#d9a441", bord: "rgba(217,164,65,.35)" },
+  ambre: { pastille: J["ambre"], texte: "#e4dcc9", etiquette: J["ambre"], bord: "rgba(217,164,65,.35)" },
   // échec de connexion, identifiants expirés
-  rouge: { pastille: "#e0655f", texte: "#f0d6d4", etiquette: "#e0655f", bord: "rgba(224,101,95,.38)" },
+  rouge: { pastille: J["alerte"], texte: "#f0d6d4", etiquette: J["alerte"], bord: "rgba(224,101,95,.38)" },
   // synthèse finale
   bleu: { pastille: "#8fb3d9", texte: "#dce7f2", etiquette: "#8fb3d9", bord: "rgba(143,179,217,.35)" },
 };

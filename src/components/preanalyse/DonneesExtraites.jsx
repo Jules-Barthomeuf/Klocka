@@ -96,7 +96,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
                             <ArrowRight className="w-3 h-3 flex-shrink-0" /> {l.champ}
                           </span>
                         ) : (
-                          <span className="text-[#5a615f]">à saisir à la main</span>
+                          <span className="text-brume">à saisir à la main</span>
                         )}
                       </td>
                       <td className="py-3 pr-4 text-[12.5px] whitespace-nowrap">
@@ -105,7 +105,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
                             {l.page ? `page ${l.page}` : "voir"}
                           </a>
                         ) : (
-                          <span className="text-[#3f4644]">—</span>
+                          <span className="text-brume">—</span>
                         )}
                       </td>
                     </tr>

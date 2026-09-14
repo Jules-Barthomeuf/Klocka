@@ -121,7 +121,7 @@ export default function ALXVilles() {
                       </div>
                       <div className="flex flex-col">
                         {rues.map((r) => (
-                          <div key={r.nom} className="group grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-3 items-center py-3 border-t border-white/[0.05] first:border-t-0">
+                          <div key={r.nom} className="group grid grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-3 items-center py-3 border-t border-trait first:border-t-0">
                             <div className="min-w-0">
                               <div className="text-[14px] text-craie truncate">
                                 {r.nom}
@@ -140,7 +140,7 @@ export default function ALXVilles() {
                             </button>
                           </div>
                         ))}
-                        {rues.length === 0 && <p className="m-0 py-3 text-[12.5px] text-brume border-t border-white/[0.05]">Aucune rue.</p>}
+                        {rues.length === 0 && <p className="m-0 py-3 text-[12.5px] text-brume border-t border-trait">Aucune rue.</p>}
                       </div>
                       <form
                         onSubmit={(ev) => { ev.preventDefault(); const n = (rue[`${v.id}-${e.classe}`] || "").trim(); if (n) classer.mutate({ id: v.id, nom: n, classe: e.classe }); }}
@@ -160,7 +160,7 @@ export default function ALXVilles() {
                   </summary>
                   <div className="mt-2 flex flex-col">
                     {v.rues_ecartees.map((r) => (
-                      <div key={r.nom} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center py-2 border-t border-white/[0.05] text-[12.5px]">
+                      <div key={r.nom} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center py-2 border-t border-trait text-[12.5px]">
                         <div className="min-w-0 truncate"><span className="text-craie">{r.nom}</span><span className="text-brume"> · {r.motif}</span></div>
                         <button onClick={() => classer.mutate({ id: v.id, nom: r.nom, classe: 2 })} className="text-[11px] text-menthe hover:text-menthe-clair whitespace-nowrap">Classer en 2</button>
                       </div>

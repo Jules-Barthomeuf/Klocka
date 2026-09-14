@@ -12,7 +12,7 @@ import { Mono, Section, eur } from "./CadreEtapes";
 // dix lignes, le simulateur, les pièces pour l'étape 2.
 
 function Source({ s, onPreuve, texte }) {
-  if (!s?.document_id) return texte ? <Mono className="normal-case tracking-[.08em] text-[#4d545d]">{texte}</Mono> : null;
+  if (!s?.document_id) return texte ? <Mono className="normal-case tracking-[.08em] text-brume">{texte}</Mono> : null;
   return <button onClick={() => onPreuve(s)} className="font-mono text-[10.5px] tracking-[.06em] text-brume hover:text-encre whitespace-nowrap">{(s.document_nom || "").replace(/\.pdf$/i, "").slice(0, 28)}{s.page ? ` p. ${s.page}` : ""}</button>;
 }
 
@@ -41,11 +41,11 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
   if (!e.lue) {
     return (
       <div className="px-6 py-8">
-        <p className="m-0 text-[14.5px] leading-[1.65] text-[#d6d6db] max-w-[720px]">{nbDocs ? `${nbDocs} pièce${nbDocs > 1 ? "s" : ""} importée${nbDocs > 1 ? "s" : ""}. Le bail, ses avenants, les quittances et le Kbis sont lus en premier (${e.progression.presents_etape}). Les autres attendent l'étape 2.` : "Importez les pièces de la data room en bas de page : elles sont classées automatiquement."}</p>
+        <p className="m-0 text-[14.5px] leading-[1.65] text-craie max-w-[720px]">{nbDocs ? `${nbDocs} pièce${nbDocs > 1 ? "s" : ""} importée${nbDocs > 1 ? "s" : ""}. Le bail, ses avenants, les quittances et le Kbis sont lus en premier (${e.progression.presents_etape}). Les autres attendent l'étape 2.` : "Importez les pièces de la data room en bas de page : elles sont classées automatiquement."}</p>
         <div className="mt-5 flex items-center gap-4">
           {enCours ? <span className="inline-flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="w-4 h-4 animate-spin" /> {e.remplissage.fait}/{e.remplissage.total ?? "…"} — {e.remplissage.document || "lecture"}</span>
-            : <button onClick={() => lancer.mutate(1)} disabled={apercu || !e.progression.presents_etape || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire le bail et le locataire</button>}
-          {!e.progression.presents_etape && nbDocs > 0 && <span className="text-[12.5px] text-[#e8b04c]">Aucune pièce classée Bail, Avenants, Quittances ou Kbis : vérifiez les catégories.</span>}
+            : <button onClick={() => lancer.mutate(1)} disabled={apercu || !e.progression.presents_etape || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire le bail et le locataire</button>}
+          {!e.progression.presents_etape && nbDocs > 0 && <span className="text-[12.5px] text-ambre">Aucune pièce classée Bail, Avenants, Quittances ou Kbis : vérifiez les catégories.</span>}
         </div>
       </div>
     );
@@ -69,14 +69,14 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
 
       {/* Le bandeau */}
       <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-trait border-b border-trait">
-        {[["Loyer HT/an", bandeau.loyer != null ? eur(bandeau.loyer) : "—", "", true], ["Revenu net", bandeau.revenu_net != null ? eur(bandeau.revenu_net) : "—", ""], ["Net AEM", bandeau.net_aem != null ? `${bandeau.net_aem.toFixed(2).replace(".", ",")} %` : "—", bandeau.net_aem != null && bandeau.net_aem >= r.seuil ? "text-[#7fd1a8]" : "text-[#e8927c]"], ["Écart teaser", bandeau.ecart_teaser_pt != null ? `${bandeau.ecart_teaser_pt >= 0 ? "+" : "−"}${Math.abs(bandeau.ecart_teaser_pt).toFixed(2).replace(".", ",")} pt` : "—", bandeau.ecart_teaser_pt != null && bandeau.ecart_teaser_pt < 0 ? "text-[#e8927c]" : "text-ardoise"]].map(([l, v, c, loyer]) => (
+        {[["Loyer HT/an", bandeau.loyer != null ? eur(bandeau.loyer) : "—", "", true], ["Revenu net", bandeau.revenu_net != null ? eur(bandeau.revenu_net) : "—", ""], ["Net AEM", bandeau.net_aem != null ? `${bandeau.net_aem.toFixed(2).replace(".", ",")} %` : "—", bandeau.net_aem != null && bandeau.net_aem >= r.seuil ? "text-vert" : "text-alerte"], ["Écart teaser", bandeau.ecart_teaser_pt != null ? `${bandeau.ecart_teaser_pt >= 0 ? "+" : "−"}${Math.abs(bandeau.ecart_teaser_pt).toFixed(2).replace(".", ",")} pt` : "—", bandeau.ecart_teaser_pt != null && bandeau.ecart_teaser_pt < 0 ? "text-alerte" : "text-ardoise"]].map(([l, v, c, loyer]) => (
           <div key={l} className="px-6 max-md:px-4 py-5">
             <div className="flex items-center justify-between gap-2"><Mono>{l}</Mono>{loyer && !editionLoyer && <button onClick={() => { setLoyerSaisi(bandeau.loyer ? String(Math.round(bandeau.loyer)) : ""); setEditionLoyer(true); }} disabled={apercu} title="Modifier le loyer : tout se recalcule" className="text-brume hover:text-encre"><Pencil className="w-3.5 h-3.5" /></button>}</div>
             {loyer && editionLoyer ? (
               <div className="mt-2 flex items-center gap-2">
                 <input autoFocus value={loyerSaisi} onChange={(x) => setLoyerSaisi(x.target.value)} onKeyDown={(x) => { if (x.key === "Enter") validerLoyer(); if (x.key === "Escape") setEditionLoyer(false); }} inputMode="numeric" className="w-[130px] bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[20px] font-light tabular-nums text-encre" />
                 <span className="text-[12px] text-brume">€ HT/an</span>
-                <button onClick={validerLoyer} disabled={forcerLoyer.isPending} className="text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold">OK</button>
+                <button onClick={validerLoyer} disabled={forcerLoyer.isPending} className="text-[12px] px-2.5 py-1 bg-encre text-fond font-semibold">OK</button>
                 <button onClick={() => setEditionLoyer(false)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
               </div>
             ) : (
@@ -95,7 +95,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
           <thead><tr><th className="text-left font-normal py-2"><Mono>Poste</Mono></th><th className="text-right font-normal py-2 pr-6"><Mono>Teaser</Mono></th><th className="text-right font-normal py-2"><Mono>Data room</Mono></th><th className="text-left font-normal py-2 pl-5 w-[260px]"><Mono>Source</Mono></th></tr></thead>
           <tbody>
             {postes.map(([l, t, d, src, note, u]) => (
-              <tr key={l} className="border-t border-[#15171b]">
+              <tr key={l} className="border-t border-relief">
                 <td className="py-3 text-[14px] text-craie">{l}</td>
                 <td className="py-3 pr-6 text-right tabular-nums font-light text-[15px] text-brume">{fmt(t, u)}</td>
                 <td className="py-3 text-right tabular-nums font-light text-[14px] text-encre">{fmt(d, u)}</td>
@@ -110,7 +110,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
       {/* Écarts teaser → data room */}
       <Section id="ecarts" titre="Écarts avec la pré-analyse" droite={e.ecarts.length ? `${e.ecarts.length} champ${e.ecarts.length > 1 ? "s" : ""} qui bouge${e.ecarts.length > 1 ? "nt" : ""}` : null}>
         {e.ecarts.length ? (
-          <div className="divide-y divide-[#15171b]">
+          <div className="divide-y divide-relief">
             {e.ecarts.map((x) => {
               const court = (t) => (String(t).length > 44 ? `${String(t).slice(0, 42)}…` : String(t));
               return (
@@ -119,7 +119,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-x-3 min-w-0">
                       {x.teaser != null ? <span className="text-[15px] font-light tabular-nums text-brume line-through whitespace-nowrap flex-none" title={String(x.teaser)}>{court(x.teaser)}</span> : <Mono className="flex-none">non annoncé</Mono>}
-                      <span className="text-[#4d545d] flex-none">→</span>
+                      <span className="text-brume flex-none">→</span>
                       <span className="text-[20px] font-light tabular-nums text-encre truncate" title={String(x.bail)}>{x.bail}</span>
                     </div>
                     <p className="m-0 mt-1 text-[13px] leading-[1.6] text-ardoise max-w-[760px]">{x.commentaire}</p>

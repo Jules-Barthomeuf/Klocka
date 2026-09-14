@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/avis";
 import { useDictee } from "@/lib/dictee";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 import { AvisReponse } from "@/components/MessageIA";
+import { J } from "@/design/jetons";
 
 // L'assistant : une pilule au repos, un cadre qui s'étire une fois ouvert.
 //
@@ -17,11 +18,11 @@ import { AvisReponse } from "@/components/MessageIA";
 // Le cadre est unique : la barre de saisie du bas est la même que la pilule du
 // repos, simplement étirée. Rien ne se superpose, rien ne se déplace.
 
-const OR = "#96c0b8";
+const OR = J["menthe"];
 const FOND = "#000000";
 const TEXTE = "#dcdedb";
 const META = "#8b908c";
-const FILET = "#2c3139";
+const FILET = J["bord-doux"];
 const SEPARATEUR = "#1f2321";
 
 // La police du reste de l'application, pas une seconde : l'assistant est une
@@ -243,7 +244,7 @@ export default function AssistantFlottant() {
               padding: "11px 14px 11px 16px",
             }}
           >
-            <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: "#9298a6" }}>
+            <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: J["ardoise"] }}>
               ASSISTANT
             </span>
             <button
@@ -317,7 +318,7 @@ export default function AssistantFlottant() {
                       fontSize: 12,
                       color: s.principal ? "#cfcabb" : META,
                       background: "none",
-                      border: `1px solid ${s.principal ? "#4a4633" : "#22262d"}`,
+                      border: `1px solid ${s.principal ? "#4a4633" : J["bord"]}`,
                       borderRadius: 6,
                       padding: "5px 10px",
                       cursor: "pointer",
@@ -332,7 +333,7 @@ export default function AssistantFlottant() {
 
             {brouillon && (
               <div style={{ border: `1px solid ${SEPARATEUR}`, borderRadius: 10, padding: 11 }}>
-                <p style={{ margin: "0 0 8px", fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: "#9298a6" }}>
+                <p style={{ margin: "0 0 8px", fontFamily: MONO, fontSize: 9.5, letterSpacing: ".16em", color: J["ardoise"] }}>
                   BROUILLON — À RELIRE
                 </p>
                 {[["destinataire", "Destinataire"], ["objet", "Objet"]].map(([cle, libelle]) => (

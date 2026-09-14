@@ -2,12 +2,13 @@ import React, { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Target, TrendingUp, Sparkles, User, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { J } from "@/design/jetons";
 
 const profilConfig = {
   equilibriste: {
     label: "L'Équilibriste",
     icon: Target,
-    color: "#96c0b8",
+    color: J["menthe"],
     description: "Recherche un équilibre entre rendement et sécurité, privilégie les projets modérés avec un bon cashflow.",
     weights: {
       rendement: 0.25,
@@ -24,7 +25,7 @@ const profilConfig = {
   risk_taker: {
     label: "Risk Taker",
     icon: TrendingUp,
-    color: "#e8746a",
+    color: J["alerte"],
     description: "Privilégie le rendement maximal et la création de richesse, accepte plus de risque.",
     weights: {
       rendement: 0.40,
@@ -74,7 +75,7 @@ const profilConfig = {
   },
 };
 
-const PIE_COLORS = ["#e8746a", "#22C55E", "#96c0b8", "#A855F7"];
+const PIE_COLORS = [J["alerte"], "#22C55E", J["menthe"], "#A855F7"];
 
 function computeScore(metric, profil, budgetMax) {
   const config = profilConfig[profil];
@@ -255,7 +256,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                       const d = payload[0];
                       const pct = totalAllScores > 0 ? ((d.value / totalAllScores) * 100).toFixed(1) : 0;
                       return (
-                        <div className="bg-[#0c0d10] border border-bord rounded-lg p-3 text-encre text-sm">
+                        <div className="bg-fond border border-bord rounded-lg p-3 text-encre text-sm">
                           <p className="font-medium">{d.name}</p>
                           <p className="text-encre/60">Score : {d.value}/100</p>
                           <p className="text-encre/60">Part : {pct}%</p>
@@ -335,7 +336,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                           className="h-full rounded-full transition-all duration-700"
                           style={{
                             width: `${sc.details[key]}%`,
-                            backgroundColor: sc.details[key] >= 70 ? "#22C55E" : sc.details[key] >= 40 ? "#96c0b8" : "#e8746a",
+                            backgroundColor: sc.details[key] >= 70 ? "#22C55E" : sc.details[key] >= 40 ? J["menthe"] : J["alerte"],
                           }}
                         />
                       </div>

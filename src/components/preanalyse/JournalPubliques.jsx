@@ -16,25 +16,25 @@ import { Section, Chiffres, Lignes, Note, Vide, LienSource, Etiquette, fmt, jour
 export function SecondPointDeVue({ comparaison, ecart }) {
   if (!comparaison) return null;
   return (
-    <div className="rounded-[14px] border border-white/[0.08] px-[22px] py-5">
+    <div className="rounded-[14px] border border-trait px-[22px] py-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="alx-mont text-[9.5px] font-medium uppercase tracking-[.14em] text-[#96c0b8]">Ce qui s'est vendu autour · DVF</span>
-        <span className="text-[14px] font-medium tabular-nums text-[#F3F7F5]">
+        <span className="alx-mont text-[9.5px] font-medium uppercase tracking-[.14em] text-menthe">Ce qui s'est vendu autour · DVF</span>
+        <span className="text-[14px] font-medium tabular-nums text-encre">
           {fmt(comparaison.prix_m2)} €/m² · {comparaison.n} vente{comparaison.n > 1 ? "s" : ""} dans {fmt(comparaison.rayon)} m
           {comparaison.periode ? ` · ${String(comparaison.periode.du).slice(0, 4)}–${String(comparaison.periode.au).slice(0, 4)}` : ""}
         </span>
       </div>
-      <p className="m-0 mt-3.5 text-[14px] leading-[1.65] text-[#C3CBC7]" style={{ textWrap: "pretty" }}>
-        Par comparaison, le bien vaudrait <span className="text-[#F3F7F5]">{fmt(comparaison.valeur)} €</span> ({fmt(comparaison.surface, 1)} m² bâtis × {fmt(comparaison.prix_m2)} €/m²)
+      <p className="m-0 mt-3.5 text-[14px] leading-[1.65] text-craie" style={{ textWrap: "pretty" }}>
+        Par comparaison, le bien vaudrait <span className="text-encre">{fmt(comparaison.valeur)} €</span> ({fmt(comparaison.surface, 1)} m² bâtis × {fmt(comparaison.prix_m2)} €/m²)
         {ecart != null && (
           <>
-            , le prix demandé est donc <span className="text-[#F3F7F5]">{fmt(Math.abs(ecart))} € {ecart > 0 ? "au-dessus" : "en dessous"}</span> de cette valeur
+            , le prix demandé est donc <span className="text-encre">{fmt(Math.abs(ecart))} € {ecart > 0 ? "au-dessus" : "en dessous"}</span> de cette valeur
             {comparaison.demande_m2 ? `, et revient à ${fmt(comparaison.demande_m2)} €/m² bâtis` : ""}
           </>
         )}
         .
       </p>
-      <p className="m-0 mt-2.5 text-[12.5px] leading-[1.6] text-[#8B938F]">Aucun chiffre du vendeur n'entre dans ce calcul : ce sont des actes notariés, pas des annonces.</p>
+      <p className="m-0 mt-2.5 text-[12.5px] leading-[1.6] text-ardoise">Aucun chiffre du vendeur n'entre dans ce calcul : ce sont des actes notariés, pas des annonces.</p>
     </div>
   );
 }
@@ -63,11 +63,11 @@ export function OngletDvf({ ventes }) {
             cle={(v) => v.id}
             rendu={(v) => (
               <>
-                <span className="w-[56px] flex-shrink-0 text-right text-[12px] tabular-nums text-[#8B938F]">{fmt(v.distance_m)} m</span>
-                <span className="w-[66px] flex-shrink-0 text-[12px] tabular-nums text-[#8B938F]">{jour(v.date)}</span>
-                <span className="min-w-0 flex-1 truncate text-[13.5px] text-[#C3CBC7]">{v.adresse || "adresse non publiée"}</span>
-                <span className="w-[64px] flex-shrink-0 text-right text-[12px] tabular-nums text-[#8B938F]">{fmt(v.surface)} m²</span>
-                <span className="w-[96px] flex-shrink-0 text-right text-[13.5px] tabular-nums text-[#E8EFEB]">{fmt(v.prix)} €</span>
+                <span className="w-[56px] flex-shrink-0 text-right text-[12px] tabular-nums text-ardoise">{fmt(v.distance_m)} m</span>
+                <span className="w-[66px] flex-shrink-0 text-[12px] tabular-nums text-ardoise">{jour(v.date)}</span>
+                <span className="min-w-0 flex-1 truncate text-[13.5px] text-craie">{v.adresse || "adresse non publiée"}</span>
+                <span className="w-[64px] flex-shrink-0 text-right text-[12px] tabular-nums text-ardoise">{fmt(v.surface)} m²</span>
+                <span className="w-[96px] flex-shrink-0 text-right text-[13.5px] tabular-nums text-encre">{fmt(v.prix)} €</span>
                 <span className="w-[92px] flex-shrink-0 text-right text-[13.5px] font-medium tabular-nums" style={{ color: TEINTE.menthe }}>{fmt(v.prix_m2)} €/m²</span>
               </>
             )}
@@ -89,7 +89,7 @@ export function OngletBodacc({ vitalite }) {
   const { rue, mois, sur_la_rue: sur = {}, commune_entiere: commune, cessions_avec_prix: cessions = [] } = vitalite;
   const solde = (sur.creations || 0) - (sur.fermetures || 0);
   return (
-    <Section premiere titre="Vie de la rue · BODACC" aside={<span className="text-[12px] text-[#8B938F]">{rue || "la rue"} · {mois} mois</span>}>
+    <Section premiere titre="Vie de la rue · BODACC" aside={<span className="text-[12px] text-ardoise">{rue || "la rue"} · {mois} mois</span>}>
       <Chiffres
         className="mt-4"
         items={[
@@ -113,9 +113,9 @@ export function OngletBodacc({ vitalite }) {
             cle={(c, i) => `${c.date}-${i}`}
             rendu={(c) => (
               <>
-                <span className="w-[66px] flex-shrink-0 text-[12px] tabular-nums text-[#8B938F]">{jour(c.date)}</span>
-                <span className="w-[64px] flex-shrink-0 truncate whitespace-nowrap text-[12px] text-[#8B938F]" title={c.numero || ""}>n° {c.numero || "?"}</span>
-                <span className="min-w-0 flex-1 truncate text-[13.5px] text-[#C3CBC7]">{c.activite || c.commercant || "—"}</span>
+                <span className="w-[66px] flex-shrink-0 text-[12px] tabular-nums text-ardoise">{jour(c.date)}</span>
+                <span className="w-[64px] flex-shrink-0 truncate whitespace-nowrap text-[12px] text-ardoise" title={c.numero || ""}>n° {c.numero || "?"}</span>
+                <span className="min-w-0 flex-1 truncate text-[13.5px] text-craie">{c.activite || c.commercant || "—"}</span>
                 <span className="flex-shrink-0 text-[13.5px] font-medium tabular-nums" style={{ color: TEINTE.menthe }}>{fmt(c.prix)} €</span>
               </>
             )}
@@ -133,14 +133,14 @@ export function OngletBodacc({ vitalite }) {
               const teinte = e.ferme ? TEINTE.ambre : e.famille === "creation" ? TEINTE.menthe : TEINTE.muet;
               return (
                 <>
-                  <span className="w-[66px] flex-shrink-0 text-[12px] tabular-nums text-[#8B938F]">{jour(e.date)}</span>
+                  <span className="w-[66px] flex-shrink-0 text-[12px] tabular-nums text-ardoise">{jour(e.date)}</span>
                   <span className="alx-mont w-[80px] flex-shrink-0 text-[9px] font-medium uppercase tracking-[.1em]" style={{ color: teinte }}>{e.famille === "collective" ? "procédure" : e.famille}</span>
-                  <span className="w-[64px] flex-shrink-0 truncate whitespace-nowrap text-[12px] text-[#8B938F]" title={e.numero || ""}>n° {e.numero || "?"}</span>
-                  <span className="min-w-0 flex-1 truncate text-[13.5px] text-[#C3CBC7]" title={e.activite || ""}>
+                  <span className="w-[64px] flex-shrink-0 truncate whitespace-nowrap text-[12px] text-ardoise" title={e.numero || ""}>n° {e.numero || "?"}</span>
+                  <span className="min-w-0 flex-1 truncate text-[13.5px] text-craie" title={e.activite || ""}>
                     {e.commercant || "—"}
-                    {e.nature ? <span className="text-[#8B938F]"> · {e.nature}</span> : null}
+                    {e.nature ? <span className="text-ardoise"> · {e.nature}</span> : null}
                   </span>
-                  {e.lien && <a href={e.lien} target="_blank" rel="noreferrer" className="flex-shrink-0 text-[#8B938F] hover:text-[#96c0b8]"><ExternalLink className="h-3 w-3" /></a>}
+                  {e.lien && <a href={e.lien} target="_blank" rel="noreferrer" className="flex-shrink-0 text-ardoise hover:text-menthe"><ExternalLink className="h-3 w-3" /></a>}
                 </>
               );
             }}

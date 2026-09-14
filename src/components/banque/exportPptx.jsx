@@ -1,5 +1,6 @@
 import PptxGenJS from "pptxgenjs";
 import html2canvas from "html2canvas";
+import { J } from "@/design/jetons";
 
 /**
  * Export slides as a PPTX file where each slide is a full-bleed screenshot.
@@ -23,7 +24,7 @@ export default async function exportPptx(slides, title, slideRef, setCurrent) {
     // Capture at 2x for quality
     const canvas = await html2canvas(slideRef.current, {
       scale: 2,
-      backgroundColor: "#22262d",
+      backgroundColor: J["bord"],
       useCORS: true,
       allowTaint: true,
     });

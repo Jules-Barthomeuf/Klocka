@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Bouton, Etiquette, TEINTES, joliNom } from "@/components/alx/alx-commun";
+import { J } from "@/design/jetons";
 
 // Le vendeur du dossier, vu par ALX.
 //
@@ -69,17 +70,17 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
   if (!adresse || !numerotee) return null;
   if (isLoading) {
     return (
-      <section className={premiere ? "" : "mt-[34px] border-t border-white/[0.07] pt-7"}>
+      <section className={premiere ? "" : "mt-[34px] border-t border-trait pt-7"}>
         <Etiquette>Le vendeur · ALX</Etiquette>
-        <div className="mt-2 text-[13.5px] text-[#8B938F]">ALX cherche le propriétaire des murs chez Data Foncier, puis sa société, le BODACC et DVF…</div>
+        <div className="mt-2 text-[13.5px] text-ardoise">ALX cherche le propriétaire des murs chez Data Foncier, puis sa société, le BODACC et DVF…</div>
       </section>
     );
   }
   if (error || !o) {
     return (
-      <section className={premiere ? "" : "mt-[34px] border-t border-white/[0.07] pt-7"}>
+      <section className={premiere ? "" : "mt-[34px] border-t border-trait pt-7"}>
         <Etiquette>Le vendeur · ALX</Etiquette>
-        <div className="mt-2 text-[13.5px] text-[#8B938F]">{error?.message || "ALX n'a pas pu lire le vendeur."}</div>
+        <div className="mt-2 text-[13.5px] text-ardoise">{error?.message || "ALX n'a pas pu lire le vendeur."}</div>
         <button onClick={() => refetch()} className="mt-2 text-[13px] text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>Réessayer</button>
       </section>
     );
@@ -101,10 +102,10 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
   const etude = o.etude || {};
 
   return (
-    <section className={premiere ? "" : "mt-[34px] border-t border-white/[0.07] pt-7"}>
+    <section className={premiere ? "" : "mt-[34px] border-t border-trait pt-7"}>
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <Etiquette>Le vendeur · ALX</Etiquette>
-        <button onClick={() => relire.mutate()} disabled={relire.isPending || isFetching} className="text-[12px] text-[#8B938F] hover:text-[#E8EFEB] disabled:opacity-50" style={{ background: "transparent" }} title="Relit Data Foncier, l'annuaire, le BODACC et DVF">
+        <button onClick={() => relire.mutate()} disabled={relire.isPending || isFetching} className="text-[12px] text-ardoise hover:text-encre disabled:opacity-50" style={{ background: "transparent" }} title="Relit Data Foncier, l'annuaire, le BODACC et DVF">
           {relire.isPending ? "ALX relit…" : `Relire${o.du_cache ? ` · lu le ${new Date(o.le).toLocaleDateString("fr-FR")}` : ""}`}
         </button>
       </div>
@@ -114,9 +115,9 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
         <div className="flex flex-col gap-5">
           <div>
             <Etiquette className="!text-[9px]">Propriétaire des murs</Etiquette>
-            <div className="mt-1.5 text-[20px] font-light tracking-[-.02em] text-[#F3F7F5]">{p?.nom ? joliNom(p.nom) : o.foncier?.autres?.length ? "Plusieurs, à départager" : "Introuvable"}</div>
-            {meta && <div className="mt-1 text-[13px] text-[#8B938F]">{meta}</div>}
-            {o.foncier?.motif_choix && <div className="mt-1 text-[12px] text-[#5A6762]">{o.foncier.motif_choix}{o.foncier.adresse_fiche ? ` · fiche ${o.foncier.adresse_fiche}` : ""}</div>}
+            <div className="mt-1.5 text-[20px] font-light tracking-[-.02em] text-encre">{p?.nom ? joliNom(p.nom) : o.foncier?.autres?.length ? "Plusieurs, à départager" : "Introuvable"}</div>
+            {meta && <div className="mt-1 text-[13px] text-ardoise">{meta}</div>}
+            {o.foncier?.motif_choix && <div className="mt-1 text-[12px] text-brume">{o.foncier.motif_choix}{o.foncier.adresse_fiche ? ` · fiche ${o.foncier.adresse_fiche}` : ""}</div>}
             {c.proprietaire_occupant && <div className="mt-1 text-[12.5px]" style={{ color: TEINTES.appeler }}>L'exploitant vend ses propres murs.</div>}
           </div>
 
@@ -125,9 +126,9 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
               <Etiquette className="!text-[9px]">Gérants</Etiquette>
               <div className="mt-1.5 flex flex-col">
                 {gerants.map((g, i) => (
-                  <div key={i} className="flex items-baseline justify-between gap-3 border-t border-white/[0.055] py-2">
-                    <span className="text-[13.5px] text-[#E8EFEB]">{joliNom(g.nom)}{g.qualite ? <span className="text-[#8B938F]"> · {g.qualite}</span> : null}</span>
-                    <span className="text-[12.5px] tabular-nums text-[#C3CBC7]">{g.tranche_age ? `${g.tranche_age} ans` : "—"}</span>
+                  <div key={i} className="flex items-baseline justify-between gap-3 border-t border-trait py-2">
+                    <span className="text-[13.5px] text-encre">{joliNom(g.nom)}{g.qualite ? <span className="text-ardoise"> · {g.qualite}</span> : null}</span>
+                    <span className="text-[12.5px] tabular-nums text-craie">{g.tranche_age ? `${g.tranche_age} ans` : "—"}</span>
                   </div>
                 ))}
               </div>
@@ -143,7 +144,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
             ].map(([mot, v]) => (
               <div key={mot}>
                 <Etiquette className="!text-[9px]">{mot}</Etiquette>
-                <div className="mt-1 text-[14px] font-medium tabular-nums text-[#F3F7F5]">{v}</div>
+                <div className="mt-1 text-[14px] font-medium tabular-nums text-encre">{v}</div>
               </div>
             ))}
           </div>
@@ -153,7 +154,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
               <Etiquette className="!text-[9px]">Au BODACC, trois ans</Etiquette>
               <div className="mt-1.5 flex flex-col gap-1">
                 {c.evenements.slice(0, 4).map((e, i) => (
-                  <div key={i} className="flex gap-3 text-[12.5px] text-[#C3CBC7]"><span className="shrink-0 tabular-nums text-[11.5px] text-[#8B938F]">{String(e.date).slice(0, 10)}</span><span className="min-w-0 truncate">{e.type}{e.detail ? ` · ${e.detail}` : ""}</span></div>
+                  <div key={i} className="flex gap-3 text-[12.5px] text-craie"><span className="shrink-0 tabular-nums text-[11.5px] text-ardoise">{String(e.date).slice(0, 10)}</span><span className="min-w-0 truncate">{e.type}{e.detail ? ` · ${e.detail}` : ""}</span></div>
                 ))}
               </div>
             </div>
@@ -166,7 +167,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
             <Etiquette>Pourquoi il vend</Etiquette>
             <Etiquette teinte={teinte}>{MOT_PILE[o.pile] || o.pile}</Etiquette>
           </div>
-          <p className="m-0 text-[14px] leading-[1.6] text-[#E8EFEB]">{o.phrase}</p>
+          <p className="m-0 text-[14px] leading-[1.6] text-encre">{o.phrase}</p>
 
           {(raisons.signaux.length > 0 || raisons.drapeaux.length > 0) && (
             <div className="flex flex-col gap-2.5">
@@ -174,17 +175,17 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
                 <div key={r.cle} className="flex items-start gap-3">
                   <span style={{ color: teinte }}>—</span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 text-[14px] text-[#E8EFEB]">{r.libelle}{r.valeur ? <span className="text-[#8B938F]">· {r.valeur}</span> : null}<Lift r={r} /></div>
-                    {r.detail && <div className="mt-0.5 text-[12.5px] leading-[1.55] text-[#8B938F]">{r.detail}</div>}
+                    <div className="flex flex-wrap items-center gap-2 text-[14px] text-encre">{r.libelle}{r.valeur ? <span className="text-ardoise">· {r.valeur}</span> : null}<Lift r={r} /></div>
+                    {r.detail && <div className="mt-0.5 text-[12.5px] leading-[1.55] text-ardoise">{r.detail}</div>}
                   </div>
                 </div>
               ))}
               {raisons.drapeaux.map((d) => (
                 <div key={d.cle} className="flex items-start gap-3">
-                  <span className="text-[#8B938F]">—</span>
+                  <span className="text-ardoise">—</span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] text-[#C3CBC7]">{d.libelle}{d.valeur ? <span className="text-[#8B938F]"> · {d.valeur}</span> : null}</div>
-                    {d.detail && <div className="mt-0.5 text-[12.5px] leading-[1.55] text-[#8B938F]">{d.detail}</div>}
+                    <div className="text-[14px] text-craie">{d.libelle}{d.valeur ? <span className="text-ardoise"> · {d.valeur}</span> : null}</div>
+                    {d.detail && <div className="mt-0.5 text-[12.5px] leading-[1.55] text-ardoise">{d.detail}</div>}
                   </div>
                 </div>
               ))}
@@ -196,32 +197,32 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
               <Etiquette className="!text-[9px]">Ce que l'étude des vendeurs ajoute</Etiquette>
               <div className="mt-1.5 flex flex-col gap-1.5">
                 {raisons.traits.map((t) => (
-                  <div key={t.cle} className="flex flex-wrap items-center gap-2 text-[13.5px] text-[#C3CBC7]">{t.libelle}<Lift r={t} /></div>
+                  <div key={t.cle} className="flex flex-wrap items-center gap-2 text-[13.5px] text-craie">{t.libelle}<Lift r={t} /></div>
                 ))}
               </div>
             </div>
           )}
           {raisons.contre.length > 0 && (
-            <div className="text-[12.5px] leading-[1.55] text-[#8B938F]">Joue contre : {raisons.contre.map((t) => `${t.libelle.toLowerCase()} (×${String(t.lift).replace(".", ",")})`).join(", ")}.</div>
+            <div className="text-[12.5px] leading-[1.55] text-ardoise">Joue contre : {raisons.contre.map((t) => `${t.libelle.toLowerCase()} (×${String(t.lift).replace(".", ",")})`).join(", ")}.</div>
           )}
 
-          <div className="mt-auto border-t border-white/[0.06] pt-3">
+          <div className="mt-auto border-t border-trait pt-3">
             <Etiquette className="!text-[9px]">La vraie raison, si l'agent l'a dite</Etiquette>
             {o.raison_reelle && raisonCle == null ? (
-              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13.5px] text-[#E8EFEB]">
-                {o.raison_reelle.mot}{o.raison_reelle.detail ? <span className="text-[#8B938F]">· {o.raison_reelle.detail}</span> : null}
-                <button onClick={() => setRaisonCle(o.raison_reelle.cle)} className="text-[12px] text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>Changer</button>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13.5px] text-encre">
+                {o.raison_reelle.mot}{o.raison_reelle.detail ? <span className="text-ardoise">· {o.raison_reelle.detail}</span> : null}
+                <button onClick={() => setRaisonCle(o.raison_reelle.cle)} className="text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Changer</button>
               </div>
             ) : (
               <div className="mt-1.5 flex flex-col gap-2">
                 <div className="flex flex-wrap gap-1.5">
                   {(liste?.raisons || []).map((r) => (
-                    <button key={r.cle} onClick={() => setRaisonCle(r.cle)} className="rounded-full border px-2.5 py-1 text-[12px] transition-colors" style={{ borderColor: raisonCle === r.cle ? "#96c0b8" : "rgba(255,255,255,0.1)", color: raisonCle === r.cle ? "#96c0b8" : "#C3CBC7", background: raisonCle === r.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{r.mot}</button>
+                    <button key={r.cle} onClick={() => setRaisonCle(r.cle)} className="rounded-full border px-2.5 py-1 text-[12px] transition-colors" style={{ borderColor: raisonCle === r.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: raisonCle === r.cle ? J["menthe"] : J["craie"], background: raisonCle === r.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{r.mot}</button>
                   ))}
                 </div>
                 {raisonCle && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <input value={raisonTexte} onChange={(e) => setRaisonTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="min-w-0 flex-1 rounded-[10px] border border-white/[0.09] bg-[#0A0C0B] px-3 py-1.5 text-[13px] text-[#E8EFEB] outline-none focus:border-menthe/50" />
+                    <input value={raisonTexte} onChange={(e) => setRaisonTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="min-w-0 flex-1 rounded-[10px] border border-trait bg-fond px-3 py-1.5 text-[13px] text-encre outline-none focus:border-menthe/50" />
                     <Bouton principal onClick={() => poser.mutate()} disabled={poser.isPending}>{poser.isPending ? "…" : "ALX retient"}</Bouton>
                     <Bouton discret onClick={() => { setRaisonCle(null); setRaisonTexte(""); }}>Annuler</Bouton>
                   </div>
@@ -232,7 +233,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
         </div>
       </div>
 
-      <p className="m-0 mt-4 text-[11.5px] text-[#5A6762]">
+      <p className="m-0 mt-4 text-[11.5px] text-brume">
         Data Foncier (Data-B) · annuaire des entreprises · BODACC · DVF · loyer de la rue Data-B · sans crédit, gardé trente jours.
         {etude.vendeurs != null ? ` L'étude compare ${etude.vendeurs} vendeurs (${etude.projets} projets Klocka, ${etude.dossiers} dossier${etude.dossiers > 1 ? "s" : ""}) à ${etude.temoins} commerces qui ne vendent pas ; ce dossier en fait partie.` : ""}
       </p>

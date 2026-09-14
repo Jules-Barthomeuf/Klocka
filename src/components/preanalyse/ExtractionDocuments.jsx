@@ -309,7 +309,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
           Type non reconnu. Choisissez-le ci-dessus pour lancer l'extraction.
         </p>
       ) : (
-        <div className="divide-y divide-[#15171b]">
+        <div className="divide-y divide-relief">
           {lignes.map((c) => {
             const v = doc.champs?.[c.id];
             const absent = !v || v.absent;

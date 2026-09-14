@@ -440,7 +440,7 @@ function AnalyseBailLue({ projectId }) {
   const Ligne = ({ l }) => (
     <div className="py-3 border-b border-trait grid grid-cols-[minmax(160px,1fr)_2fr] gap-x-6">
       <span className="text-[13px] text-ardoise">{l.libelle}</span>
-      <span className="text-[14px] text-encre">{l.valeur || <span className="text-[#4d545d]">—</span>}</span>
+      <span className="text-[14px] text-encre">{l.valeur || <span className="text-brume">—</span>}</span>
     </div>
   );
   return (

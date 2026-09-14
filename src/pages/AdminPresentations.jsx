@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FolderSearch, Loader2, Building2, ChevronLeft, ChevronRight, Download, ExternalLink, Briefcase, Upload, ImageOff } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { motion } from "framer-motion";
+import { J } from "@/design/jetons";
 
 // Page Présentations : on choisit un projet, six photos (suggérées depuis le
 // projet, remplaçables), puis Générer construit le dossier « Projet de
@@ -181,7 +182,7 @@ function PanneauGeneration({ project }) {
             onClick={() => generer.mutate()}
             disabled={generer.isPending}
             className="inline-flex items-center justify-center gap-2 text-surface px-6 py-3 text-[14px] font-bold hover:brightness-95 transition-all disabled:opacity-60"
-            style={{ background: "#f2f3f5" }}
+            style={{ background: J["encre"] }}
           >
             {generer.isPending ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Génération…</>

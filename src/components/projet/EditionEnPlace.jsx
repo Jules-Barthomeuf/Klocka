@@ -176,7 +176,7 @@ export function ChampsPersonnalises({ zone, project }) {
   const lignes = indices.filter((i) => tous[i]?.style !== "chiffre");
 
   const Poignee = ({ i }) => (
-    edition?.onChamp ? <span className="text-[#3f4644] select-none" title="Glisser pour déplacer">⠿</span> : null
+    edition?.onChamp ? <span className="text-brume select-none" title="Glisser pour déplacer">⠿</span> : null
   );
 
   const proprietesGlisser = (i) => (!edition?.onChamp ? {} : {
@@ -236,7 +236,7 @@ export function ChampsPersonnalises({ zone, project }) {
                 ${edition?.onChamp ? "cursor-grab active:cursor-grabbing" : ""}`}
             >
               <span className="text-ardoise flex-shrink-0 flex items-center gap-2">
-                {edition?.onChamp && <span className="text-[#3f4644] select-none" title="Glisser pour déplacer">⠿</span>}
+                {edition?.onChamp && <span className="text-brume select-none" title="Glisser pour déplacer">⠿</span>}
                 <ValeurEditable champ={`champs_personnalises.${i}.label`} type="text">{champ.label || "Sans libellé"}</ValeurEditable>
               </span>
               <span className="text-right text-encre flex items-center gap-2">

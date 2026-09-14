@@ -68,8 +68,8 @@ export default function ProjectFormCoproTab({ formData, setFormData }) {
                 <div className="space-y-1 w-32">
                   <Label className="text-ardoise text-xs">Année</Label>
                   <Select value={String(ag.annee || new Date().getFullYear())} onValueChange={(value) => { const updated = [...formData.assemblees_generales]; updated[idx].annee = parseInt(value); setFormData({...formData, assemblees_generales: updated}); }}>
-                    <SelectTrigger className="bg-[#0c0d10] text-encre border-trait"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-[#0c0d10] text-encre border-trait max-h-60">
+                    <SelectTrigger className="bg-fond text-encre border-trait"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-fond text-encre border-trait max-h-60">
                       {Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - i).map((y) => (<SelectItem key={y} value={String(y)}>{y}</SelectItem>))}
                     </SelectContent>
                   </Select>

@@ -109,7 +109,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
                   disabled={!accessible && !dossier}
                   title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
                   className={`flex w-full items-baseline gap-3 px-3.5 py-2 text-left text-[13.5px] transition-colors hover:bg-encre/[0.06]
-                    ${active ? "text-encre font-semibold" : accessible ? "text-craie" : "text-[#4d545d]"}`}
+                    ${active ? "text-encre font-semibold" : accessible ? "text-craie" : "text-brume"}`}
                   style={{ background: "transparent" }}
                 >
                   <span className="w-5 text-[11px] tabular-nums text-ardoise">{String(e.n).padStart(2, "0")}</span>
@@ -565,14 +565,14 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
     return (
       <div className="bg-surface border border-trait rounded-2xl px-6 py-5">
         <div className="flex items-center gap-[18px] max-md:flex-wrap">
-          <span className="w-10 h-10 rounded-full bg-[#1a1d22] border border-bord-vif text-[#e6e8eb] flex items-center justify-center flex-shrink-0">
+          <span className="w-10 h-10 rounded-full bg-relief border border-bord-vif text-encre flex items-center justify-center flex-shrink-0">
             {dossier.source_mail ? <Mail className="w-4 h-4" /> : <Check className="w-4 h-4" strokeWidth={2.2} />}
           </span>
           <div className="min-w-0 flex-1">
             <p className="m-0 text-encre text-[15px] font-semibold">
               {dossier.source_mail ? "Fiche reçue par mail" : "Étape passée"}
             </p>
-            <p className="m-0 text-[#8f959e] text-[13.5px] mt-[3px] leading-relaxed">
+            <p className="m-0 text-ardoise text-[13.5px] mt-[3px] leading-relaxed">
               {dossier.source_mail
                 ? `${dossier.source_mail.de || ""} — « ${dossier.source_mail.objet || ""} » le ${dossier.source_mail.date ? new Date(dossier.source_mail.date).toLocaleString("fr-FR") : "?"}`
                 : `La fiche « ${dossier.source?.nom_fichier || "texte collé"} » a été déposée directement, sans échange de mail préalable dans la plateforme.`}
@@ -607,7 +607,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
         <div className="bg-fond border border-trait rounded-xl overflow-hidden">
           {/* Expéditeur : la ligne d'identité du message */}
           {comptes.length > 0 ? (
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-[#15171b]">
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-relief">
               <span className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">De</span>
               <select
                 value={expediteur || comptes[0]?.id}
@@ -624,7 +624,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
             </div>
           ) : (
             !apercu && (
-              <div className="px-5 py-4 border-b border-[#15171b]">
+              <div className="px-5 py-4 border-b border-relief">
                 <EncartConnexionGmail
                   googleConfigure={googleConfigure}
                   onConnecte={(email) => {
@@ -637,7 +637,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
           )}
 
           {/* Destinataire et objet, sur filets fins */}
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-[#15171b]">
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-relief">
             <label htmlFor="mail-to" className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">À</label>
             <input
               id="mail-to"
@@ -647,7 +647,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
               className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-bord-vif"
             />
           </div>
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-[#15171b]">
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-relief">
             <label htmlFor="mail-objet" className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">Objet</label>
             <input
               id="mail-objet"
@@ -668,7 +668,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
           />
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-[#15171b] bg-surface">
+          <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-relief bg-surface">
             <button
               onClick={() => setBrouillon(null)}
               className="text-[13px] text-ardoise hover:text-encre transition-colors"
@@ -922,7 +922,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
         <button
           onClick={() => ouvrir(intentionOui)}
           title={`${titreOui} — ${descOui}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-menthe shadow-[0_10px_30px_rgba(0,0,0,.5)] text-[#0b0c0e] text-[13.5px] font-semibold hover:bg-[#abd0c8] transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-menthe shadow-[0_10px_30px_rgba(0,0,0,.5)] text-fond text-[13.5px] font-semibold hover:bg-menthe-survol transition-colors"
         >
           <ThumbsUp className="w-4 h-4" /> Poursuivre
         </button>
@@ -1418,7 +1418,7 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
   return (
     <div className="bg-fond border border-trait rounded-xl px-6 py-8">
       <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-ardoise">Pas de teaser, mais {nb} pièce{nb > 1 ? "s" : ""} dans le dossier</p>
-      <p className="m-0 mt-2 text-[14.5px] leading-[1.65] text-[#d6d6db] max-w-[720px]">
+      <p className="m-0 mt-2 text-[14.5px] leading-[1.65] text-craie max-w-[720px]">
         La fiche se compose depuis les documents — adresse, surface, locataire, bail, loyer, charges — puis passe dans la pré-analyse habituelle : mêmes critères, même verdict. Le prix de vente, absent des pièces, restera à renseigner.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-4">
@@ -1428,7 +1428,7 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
             {etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}
           </span>
         ) : (
-          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
             Pré-analyser à partir des {nb} pièce{nb > 1 ? "s" : ""}
           </button>
         )}

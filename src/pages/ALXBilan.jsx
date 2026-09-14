@@ -27,7 +27,7 @@ function TableauRue({ lignes, vide }) {
   return (
     <div className="flex flex-col">
       {lignes.map((l) => (
-        <div key={l.cle} className="grid grid-cols-[minmax(0,1fr)_70px_70px] gap-3 py-[11px] border-t border-white/[0.05] first:border-t-0 text-[13px]">
+        <div key={l.cle} className="grid grid-cols-[minmax(0,1fr)_70px_70px] gap-3 py-[11px] border-t border-trait first:border-t-0 text-[13px]">
           <span className="text-craie truncate">{l.cle}</span>
           <span className="text-ardoise text-right">{l.total} envoi{l.total > 1 ? "s" : ""}</span>
           <span className="text-right text-encre">{l.reponses}</span>
@@ -42,7 +42,7 @@ function TableauRefus({ lignes }) {
   return (
     <div className="flex flex-col">
       {lignes.map((l) => (
-        <div key={l.cle} className="grid grid-cols-[minmax(0,1fr)_120px] gap-3 py-[11px] border-t border-white/[0.05] first:border-t-0 text-[13px]">
+        <div key={l.cle} className="grid grid-cols-[minmax(0,1fr)_120px] gap-3 py-[11px] border-t border-trait first:border-t-0 text-[13px]">
           <span className="text-craie truncate">{l.cle}</span>
           <span className="text-ardoise text-right">{l.total} fois</span>
         </div>
@@ -102,7 +102,7 @@ export default function ALXBilan() {
             <Carte className="flex flex-col gap-[18px]">
               <div className="text-[10px] tracking-[.16em] uppercase text-ardoise">Motifs de refus</div>
               <TableauRefus lignes={data?.motifs_refus} />
-              <p className="m-0 text-[12px] text-brume leading-[1.6] border-t border-white/[0.06] pt-3.5">
+              <p className="m-0 text-[12px] text-brume leading-[1.6] border-t border-trait pt-3.5">
                 C'est ici qu'on cale les seuils des trois piles.
               </p>
             </Carte>

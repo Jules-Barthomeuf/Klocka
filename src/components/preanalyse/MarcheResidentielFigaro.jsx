@@ -25,7 +25,7 @@ function Niveau({ titre, niveau, principal = false }) {
     <div className="mt-6">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <Etiquette>{titre}</Etiquette>
-        <span className="text-[14px] text-[#E8EFEB]">{niveau.nom || "—"}</span>
+        <span className="text-[14px] text-encre">{niveau.nom || "—"}</span>
       </div>
       <Chiffres
         className="mt-3"
@@ -67,7 +67,7 @@ export default function MarcheResidentielFigaro({ lot, premiere = true }) {
           <Niveau titre="La commune" niveau={resultat.commune} />
           {rendementCommerce != null && rendementAppart != null && (
             <Phrase className="mt-6">
-              Le commerce présenté rend <span className="tabular-nums text-[#F3F7F5]">{String(rendementCommerce).replace(".", ",")} %</span> brut, contre{" "}
+              Le commerce présenté rend <span className="tabular-nums text-encre">{String(rendementCommerce).replace(".", ",")} %</span> brut, contre{" "}
               <span className="tabular-nums" style={{ color: TEINTE.ambre }}>{String(rendementAppart).replace(".", ",")} %</span> pour un appartement
               {resultat.quartier ? ` dans le quartier ${resultat.quartier.nom}` : ` à ${resultat.commune?.nom}`}
               {rendementCommerce > rendementAppart ? `, soit ${String(Math.round((rendementCommerce / rendementAppart) * 10) / 10).replace(".", ",")} fois mieux.` : "."}

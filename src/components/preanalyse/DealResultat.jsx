@@ -24,6 +24,7 @@ import PenseeIA from "@/components/PenseeIA";
 // laisser deux cadres noirs.
 const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
+import { J } from "@/design/jetons";
 
 // Bibliothèque partagée du workflow d'analyse : verdicts, statuts, carte d'un
 // lot, dialogue de mail d'intention, journal de suivi. Consommée par
@@ -122,7 +123,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                 {g.lignes.map((l, i) => {
                   const cle = `${g.nom}-${l.champ}-${i}`;
                   const ouvert = deplies.has(cle);
-                  const teinte = l.ok === true ? "#96c0b8" : l.ok === false ? "#e8746a" : "#3a3f4a";
+                  const teinte = l.ok === true ? J["menthe"] : l.ok === false ? J["alerte"] : J["bord-vif"];
                   const verif = lot?.verifications?.[cleLigne(l)]?.statut || null;
                   const suivant = verif === null ? "verifie" : verif === "verifie" ? "incertain" : null;
                   return (
@@ -678,7 +679,7 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
           inputMode="numeric"
           className={`w-[150px] bg-transparent border-b border-bord-vif focus:border-encre outline-none tabular-nums font-light text-encre placeholder:text-bord-vif ${compact ? "text-[14px] py-0.5" : "text-[22px] py-1"}`}
         />
-        <button onClick={valider} disabled={!valide || enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
+        <button onClick={valider} disabled={!valide || enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
         <button onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
       </div>
     );
@@ -692,7 +693,7 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
       className={`group inline-flex items-baseline gap-2 text-left tabular-nums font-light ${compact ? "text-[14px]" : "text-[22px]"} ${valeur == null ? "text-ambre" : "text-encre"} disabled:cursor-default`}
     >
       {valeur == null ? "à renseigner" : euros(valeur)}
-      {modifiable && <Pencil className={`${compact ? "w-3 h-3" : "w-3.5 h-3.5"} text-[#4d545d] opacity-0 group-hover:opacity-100 transition-opacity`} />}
+      {modifiable && <Pencil className={`${compact ? "w-3 h-3" : "w-3.5 h-3.5"} text-brume opacity-0 group-hover:opacity-100 transition-opacity`} />}
     </button>
   );
 }
@@ -727,7 +728,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
           const actif = choisi === v;
           const attend = enCours && choix === v;
           return (
-            <button key={mot} onClick={() => { if (modifiable && actuel !== v) { setChoix(v); valider(v); } }} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-all duration-200 disabled:cursor-default ${attend ? "bg-menthe border-menthe text-[#0b0c0e] font-semibold animate-pulse" : actif ? "bg-encre border-encre text-[#0b0c0e] font-semibold" : "border-bord-doux text-brume hover:text-encre hover:border-bord-vif"}`}>{mot}</button>
+            <button key={mot} onClick={() => { if (modifiable && actuel !== v) { setChoix(v); valider(v); } }} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-all duration-200 disabled:cursor-default ${attend ? "bg-menthe border-menthe text-fond font-semibold animate-pulse" : actif ? "bg-encre border-encre text-fond font-semibold" : "border-bord-doux text-brume hover:text-encre hover:border-bord-vif"}`}>{mot}</button>
           );
         })}
         {enCours && choix !== null ? <span className="ml-1 text-[11px] text-menthe">recalcul…</span> : !absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-ambre">saisi à la main</span>}
@@ -746,7 +747,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
           placeholder={champ === "adresse" ? "12 rue Exemple, 69002 Lyon" : ""}
           className="min-w-[220px] bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[14px] font-light tabular-nums text-encre py-0.5 placeholder:text-bord-vif"
         />
-        <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
+        <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
         <button onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
       </span>
     );
@@ -757,12 +758,12 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
       onClick={() => modifiable && setEdition(texteBrut(champ, c))}
       disabled={!modifiable || enCours}
       title={modifiable ? "Modifier" : c?.citation || undefined}
-      className={`group inline-flex items-baseline gap-2 text-right text-[14px] tabular-nums font-light min-w-0 disabled:cursor-default ${absent ? "text-[#4d545d]" : "text-encre"}`}
+      className={`group inline-flex items-baseline gap-2 text-right text-[14px] tabular-nums font-light min-w-0 disabled:cursor-default ${absent ? "text-brume" : "text-encre"}`}
     >
       <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
       {!absent && c.confiance === "basse" && <span className="text-[11px] text-ambre font-normal">confiance basse</span>}
       {!absent && c.saisi_a_la_main && <span className="text-[11px] text-ambre font-normal">saisi à la main</span>}
-      {modifiable && <Pencil className="w-3 h-3 text-[#4d545d] opacity-0 group-hover:opacity-100 transition-opacity flex-none" />}
+      {modifiable && <Pencil className="w-3 h-3 text-brume opacity-0 group-hover:opacity-100 transition-opacity flex-none" />}
     </button>
   );
 }
@@ -827,7 +828,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             <BandeauRecalcul actif={enCours} />
             <dl className="m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12">
               {CHAMPS_AFFICHES.map(([champ, libelle]) => (
-                <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-[#15171b]">
+                <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-relief">
                   <dt className="text-[13px] text-ardoise flex-none">{libelle}</dt>
                   <dd className="m-0 text-right min-w-0"><ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
                 </div>
@@ -865,10 +866,10 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             <div className="flex flex-wrap items-center gap-3 mb-5">
               <div className="inline-flex flex-wrap rounded-full border border-bord-doux p-0.5">
                 {EMPLACEMENTS.map((e) => (
-                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-encre text-[#0b0c0e] font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
+                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
                 ))}
               </div>
-              <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? "#e8b04c" : "#d9b46a" }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
+              <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? J["ambre"] : J["ambre"] }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
             </div>
             <VuesLieu lot={lot} enr={enr} coteACote />
             <dl className="m-0 mt-5 grid grid-cols-2 sm:grid-cols-5 gap-x-6 gap-y-3">
@@ -921,7 +922,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                   const c = lot.lot[champ];
                   const absent = !c || c.absent;
                   return (
-                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-[#15171b]">
+                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-relief">
                       <span className="text-ardoise text-xs w-40 flex-shrink-0">{libelle}</span>
                       <span className={`text-xs flex-1 ${absent ? "text-brume italic" : "text-encre"}`}>
                         {absent ? "non renseigné dans la fiche" : afficherValeur(champ, c.valeur)}
@@ -1034,7 +1035,7 @@ function Metrique({ label, valeur, sousTitre, accent }) {
 
 function LigneDetail({ label, valeur, fort = undefined }) {
   return (
-    <div className="flex justify-between gap-3 py-1.5 border-b border-[#15171b]">
+    <div className="flex justify-between gap-3 py-1.5 border-b border-relief">
       <span className="text-ardoise">{label}</span>
       <span className={fort ? "text-menthe-clair" : "text-encre"}>{valeur}</span>
     </div>

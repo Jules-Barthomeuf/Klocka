@@ -44,7 +44,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
 
   return (
     <div onClick={onFermer} className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-6">
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[720px] max-h-[80vh] flex flex-col bg-[#0a0a0b] border border-bord rounded-[18px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,.6)]">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[720px] max-h-[80vh] flex flex-col bg-fond border border-bord rounded-[18px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,.6)]">
         <header className="flex items-center justify-between gap-4 px-5 py-4 border-b border-trait">
           <div className="min-w-0">
             <p className="m-0 text-[15px] font-semibold text-encre">Importer depuis le Drive</p>
@@ -66,7 +66,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
           <>
             <div className="flex items-center gap-3 px-5 py-3 border-b border-trait">
               <Search className="w-4 h-4 text-brume flex-shrink-0" />
-              <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Chercher par nom…" className="w-full bg-transparent border-0 outline-none text-[14px] text-encre placeholder:text-[#4d545d]" />
+              <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Chercher par nom…" className="w-full bg-transparent border-0 outline-none text-[14px] text-encre placeholder:text-brume" />
             </div>
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
@@ -79,7 +79,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
                 fichiers.map((f) => {
                   const pris = choisis.has(f.id);
                   return (
-                    <button key={f.id} onClick={() => basculer(f.id)} className="w-full flex items-center gap-4 px-5 py-3 border-b border-[#15171b] text-left hover:bg-encre/[0.02] transition-colors">
+                    <button key={f.id} onClick={() => basculer(f.id)} className="w-full flex items-center gap-4 px-5 py-3 border-b border-relief text-left hover:bg-encre/[0.02] transition-colors">
                       <span className={`w-4 h-4 rounded-[5px] border flex items-center justify-center flex-none ${pris ? "bg-menthe border-menthe" : "border-bord-vif"}`}>
                         {pris && <Check className="w-3 h-3 text-fond" strokeWidth={3} />}
                       </span>
@@ -93,7 +93,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
             </div>
             <footer className="flex items-center justify-between gap-4 px-5 py-4 border-t border-trait">
               <span className="text-[12.5px] text-brume">{choisis.size ? `${choisis.size} fichier${choisis.size > 1 ? "s" : ""} choisi${choisis.size > 1 ? "s" : ""}` : "Cochez ce qu'il faut rapatrier."}</span>
-              <button onClick={() => importer.mutate()} disabled={!choisis.size || importer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-[#0b0c0e] text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+              <button onClick={() => importer.mutate()} disabled={!choisis.size || importer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[13px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
                 {importer.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Importer
               </button>
             </footer>

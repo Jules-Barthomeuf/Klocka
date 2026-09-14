@@ -1,5 +1,6 @@
 import React from "react";
 import { MapPin, Building2, Users, Globe, Star, Briefcase, Bus, Euro, Wrench, Landmark as LandmarkIcon, TrendingUp, Calendar, Percent, HandCoins, Info, CheckCircle2, ArrowDown, Home, Key, FileText, Mail } from "lucide-react";
+import { J } from "@/design/jetons";
 
 const fmt = (v) => typeof v === "number" ? new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(v)) : v;
 const fmtEur = (v) => typeof v === "number" ? fmt(v) + " €" : v;
@@ -30,7 +31,7 @@ function SlideTitle({ title, subtitle = undefined }) {
 }
 
 // Icon circle (colored bg with icon)
-function IconCircle({ icon: Icon, color = "#96c0b8", size = "w-10 h-10" }) {
+function IconCircle({ icon: Icon, color = J["menthe"], size = "w-10 h-10" }) {
   return (
     <div className={`${size} rounded-full flex items-center justify-center`} style={{ backgroundColor: color + '25' }}>
       <Icon className="w-[55%] h-[55%]" style={{ color }} />
@@ -39,9 +40,9 @@ function IconCircle({ icon: Icon, color = "#96c0b8", size = "w-10 h-10" }) {
 }
 
 // Card with colored top border
-function InfoCard({ color = "#96c0b8", children, className = "" }) {
+function InfoCard({ color = J["menthe"], children, className = "" }) {
   return (
-    <div className={`relative rounded-md bg-[#0c0d10]/80 border border-trait overflow-hidden ${className}`}>
+    <div className={`relative rounded-md bg-fond/80 border border-trait overflow-hidden ${className}`}>
       <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl" style={{ backgroundColor: color }} />
       <div className="p-5 pt-6">{children}</div>
     </div>
@@ -64,8 +65,8 @@ function CoverSlide({ slide }) {
       const opacity = 0.15 + Math.random() * 0.5;
       candles.push(
         <g key={`${row}-${col}`}>
-          <line x1={x + 3} y1={y} x2={x + 3} y2={y + h + 4} stroke={isRed ? "#e8746a" : "#9298a6"} strokeWidth="1" opacity={opacity * 0.5} />
-          <rect x={x} y={y + 2} width="6" height={h} rx="1" fill={isRed ? "#e8746a" : "#9298a6"} opacity={opacity} />
+          <line x1={x + 3} y1={y} x2={x + 3} y2={y + h + 4} stroke={isRed ? J["alerte"] : J["ardoise"]} strokeWidth="1" opacity={opacity * 0.5} />
+          <rect x={x} y={y + 2} width="6" height={h} rx="1" fill={isRed ? J["alerte"] : J["ardoise"]} opacity={opacity} />
         </g>
       );
     }
@@ -110,7 +111,7 @@ function SommaireSlide({ slide }) {
       <SlideTitle title="Sommaire" />
       <div className="flex-1 grid grid-cols-3 gap-3 mt-2">
         {slide.content.sections.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-4 rounded-md bg-[#0c0d10]/60 border border-trait hover:bg-[#0c0d10] transition-colors">
+          <div key={i} className="flex items-center gap-3 p-4 rounded-md bg-fond/60 border border-trait hover:bg-fond transition-colors">
             <span className="text-menthe text-[1.4vw] font-bold w-8">{s.num}</span>
             <span className="text-craie text-[1vw]">{s.label}</span>
           </div>
@@ -124,7 +125,7 @@ function SommaireSlide({ slide }) {
 function VilleSlide({ slide }) {
   const c = slide.content;
   const BULLET_ICONS = [Globe, Briefcase, Users, Star];
-  const BULLET_COLORS = ["#96c0b8", "#96c0b8", "#96c0b8", "#96c0b8"];
+  const BULLET_COLORS = [J["menthe"], J["menthe"], J["menthe"], J["menthe"]];
 
   // Split description into bullet points
   const bullets = c.description ? c.description.split(/[.!]\s+/).filter(s => s.trim().length > 15).slice(0, 4) : [];
@@ -141,7 +142,7 @@ function VilleSlide({ slide }) {
         <p className="text-menthe text-[1.1vw] uppercase tracking-wider mt-2">
           {c.badges?.[0] ? `SUR ${c.badges[0].toUpperCase()}` : "SUR LE QUARTIER"}
         </p>
-        <div className="mt-8 p-5 rounded-md bg-[#0c0d10]/80 border border-trait border-t-2 border-t-menthe">
+        <div className="mt-8 p-5 rounded-md bg-fond/80 border border-trait border-t-2 border-t-menthe">
           <p className="text-ardoise text-[0.8vw] uppercase tracking-wider mb-1">ADRESSE STRATÉGIQUE</p>
           <p className="text-encre text-[1.2vw] font-semibold">{slide.content.badges?.[0] || "Le quartier"}</p>
           <p className="text-ardoise text-[0.9vw] mt-1 flex items-center gap-1"><MapPin className="w-3 h-3 text-menthe" /> Cœur du secteur</p>
@@ -149,7 +150,7 @@ function VilleSlide({ slide }) {
       </div>
       {/* Right panel - bullet cards */}
       <div className="w-[55%] p-[4%] flex flex-col justify-center">
-        <div className="bg-[#0c0d10]/60 rounded-md border border-trait p-6 relative">
+        <div className="bg-fond/60 rounded-md border border-trait p-6 relative">
           <p className="text-ardoise text-[3vw] leading-none mb-4">"</p>
           <div className="space-y-5">
             {bullets.map((text, i) => (
@@ -217,7 +218,7 @@ function QuartierSlide({ slide }) {
 
   const cols = [
     { title: "POPULATION & AMBIANCE", icon: Users, color: "#8B5CF6", items: popItems },
-    { title: "LOCALISATION", icon: MapPin, color: "#96c0b8", items: locItems },
+    { title: "LOCALISATION", icon: MapPin, color: J["menthe"], items: locItems },
     { title: "ACCESSIBILITÉ", icon: Bus, color: "#8B5CF6", items: accItems },
   ];
 
@@ -274,7 +275,7 @@ function TensionSlide({ slide }) {
               c.bassin_emploi > 0 ? [`Bassin d'emploi: ${fmt(c.bassin_emploi)} emplois`] : [],
               c.pct_commerces > 0 ? [`${c.pct_commerces}% commerces`] : [],
             ).map((item, i) => (
-              <div key={i} className="bg-[#0c0d10]/80 rounded-md border border-trait p-5">
+              <div key={i} className="bg-fond/80 rounded-md border border-trait p-5">
                 <p className="text-craie text-[0.95vw]">{item}</p>
               </div>
             ))}
@@ -291,10 +292,10 @@ function LocalSlide({ slide }) {
   const loyer = c.loyer_mensuel || (c.loyer_annuel_ht ? fmtEur(Math.round(c.loyer_annuel_ht / 12)) + " /mois" : null);
 
   const cards = [
-    { icon: MapPin, color: "#96c0b8", label: "ADRESSE", value: c.adresse?.split(',')[0] || "—", detail: c.adresse?.split(',').slice(1).join(',').trim() },
-    { icon: Home, color: "#96c0b8", label: "SURFACE TOTALE", value: c.surface || "—", detail: c.type_construction },
-    { icon: Building2, color: "#96c0b8", label: "ACCÈS & VISIBILITÉ", value: "Accès Rue", detail: c.badges?.join(', ') },
-    { icon: Key, color: "#e8746a", label: "LOCATAIRE EN PLACE", value: c.locataire || "—", detail: c.activite || "Activité pérenne" },
+    { icon: MapPin, color: J["menthe"], label: "ADRESSE", value: c.adresse?.split(',')[0] || "—", detail: c.adresse?.split(',').slice(1).join(',').trim() },
+    { icon: Home, color: J["menthe"], label: "SURFACE TOTALE", value: c.surface || "—", detail: c.type_construction },
+    { icon: Building2, color: J["menthe"], label: "ACCÈS & VISIBILITÉ", value: "Accès Rue", detail: c.badges?.join(', ') },
+    { icon: Key, color: J["alerte"], label: "LOCATAIRE EN PLACE", value: c.locataire || "—", detail: c.activite || "Activité pérenne" },
     { icon: Euro, color: "#10B981", label: "LOYER ACTUEL", value: loyer || "—", detail: null },
     { icon: Info, color: "#6B7280", label: null, value: null, detail: c.bail_type || "Bail commercial", isInfo: true },
   ];
@@ -307,17 +308,17 @@ function LocalSlide({ slide }) {
         {cards.map((card, i) => {
           if (card.isInfo) {
             return (
-              <div key={i} className="rounded-md border border-dashed border-encre/[0.1] bg-[#0c0d10]/40 flex flex-col items-center justify-center p-4 text-center">
+              <div key={i} className="rounded-md border border-dashed border-encre/[0.1] bg-fond/40 flex flex-col items-center justify-center p-4 text-center">
                 <IconCircle icon={Info} color="#6B7280" size="w-10 h-10" />
                 <p className="text-ardoise text-[0.85vw] mt-2">{card.detail}</p>
               </div>
             );
           }
           return (
-            <div key={i} className="rounded-md bg-[#0c0d10]/80 border border-trait p-5">
+            <div key={i} className="rounded-md bg-fond/80 border border-trait p-5">
               <IconCircle icon={card.icon} color={card.color} size="w-10 h-10" />
               <p className="text-ardoise text-[0.7vw] uppercase tracking-wider mt-3">{card.label}</p>
-              <p className="text-encre text-[1.2vw] font-semibold mt-1" style={{ color: card.color === "#96c0b8" ? "#96c0b8" : undefined }}>{card.value}</p>
+              <p className="text-encre text-[1.2vw] font-semibold mt-1" style={{ color: card.color === J["menthe"] ? J["menthe"] : undefined }}>{card.value}</p>
               {card.detail && <p className="text-ardoise text-[0.8vw] mt-1">{card.detail}</p>}
             </div>
           );
@@ -366,9 +367,9 @@ function MarcheSlide({ slide }) {
       <DecoArcs />
       <SlideTitle title="MARCHÉ IMMOBILIER - INDICATEURS CLÉS" subtitle="Analyse comparative des valeurs sectorielles" />
       <div className="flex-1 grid grid-cols-2 gap-5 mt-2">
-        <InfoCard color="#96c0b8" className="flex flex-col items-center justify-center text-center">
+        <InfoCard color={J["menthe"]} className="flex flex-col items-center justify-center text-center">
           <span className="text-ardoise text-[0.7vw] uppercase bg-bord px-3 py-1 rounded-full border border-trait mb-4">SOURCE : EQUIMMOX / DVF</span>
-          <IconCircle icon={Home} color="#96c0b8" size="w-14 h-14" />
+          <IconCircle icon={Home} color={J["menthe"]} size="w-14 h-14" />
           <p className="text-ardoise text-[0.85vw] uppercase tracking-wider mt-4">VALEUR MOYENNE DES MURS</p>
           <p className="mt-2">
             <span className="text-encre text-[3.5vw] font-bold">{c.prix_m2_median > 0 ? fmt(c.prix_m2_median) : "—"}</span>
@@ -377,9 +378,9 @@ function MarcheSlide({ slide }) {
           <p className="text-ardoise text-[0.75vw] italic mt-3 max-w-xs">Basé sur les transactions pour des emplacements et surfaces équivalentes.</p>
         </InfoCard>
 
-        <InfoCard color="#96c0b8" className="flex flex-col items-center justify-center text-center">
+        <InfoCard color={J["menthe"]} className="flex flex-col items-center justify-center text-center">
           <span className="text-ardoise text-[0.7vw] uppercase bg-bord px-3 py-1 rounded-full border border-trait mb-4">SOURCE : EQUIMMOX</span>
-          <IconCircle icon={Key} color="#96c0b8" size="w-14 h-14" />
+          <IconCircle icon={Key} color={J["menthe"]} size="w-14 h-14" />
           <p className="text-ardoise text-[0.85vw] uppercase tracking-wider mt-4">VALEUR LOCATIVE MOYENNE</p>
           <p className="mt-2">
             <span className="text-encre text-[3.5vw] font-bold">{c.offre_moyenne > 0 ? fmt(c.offre_moyenne) : c.baux_moyenne > 0 ? fmt(c.baux_moyenne) : "—"}</span>
@@ -388,7 +389,7 @@ function MarcheSlide({ slide }) {
           <p className="text-ardoise text-[0.75vw] italic mt-3 max-w-xs">Basé sur les baux commerciaux en cours pour des actifs similaires dans le secteur.</p>
         </InfoCard>
       </div>
-      <div className="mt-4 flex items-center gap-3 bg-[#0c0d10]/60 rounded-md border-l-3 border-menthe p-4" style={{ borderLeft: '3px solid #96c0b8' }}>
+      <div className="mt-4 flex items-center gap-3 bg-fond/60 rounded-md border-l-3 border-menthe p-4" style={{ borderLeft: '3px solid #96c0b8' }}>
         <CheckCircle2 className="w-5 h-5 text-menthe flex-shrink-0" />
         <p className="text-craie text-[0.9vw]">Potentiel commercial confirmé par les niveaux de loyers et valorisations du secteur.</p>
       </div>
@@ -402,11 +403,11 @@ function BailSlide({ slide }) {
   const dateFormat = (d) => { if (!d) return null; try { return new Date(d).toLocaleDateString('fr-FR'); } catch { return d; } };
 
   const cards = [
-    { icon: FileText, color: "#96c0b8", label: "TYPE DE BAIL", value: c.bail_type || "Commercial 3/6/9", detail: "Bail classique offrant sécurité et visibilité à long terme." },
-    { icon: Calendar, color: "#96c0b8", label: "DURÉE ET ÉCHÉANCE", value: `${dateFormat(c.date_debut) || "—"} - ${dateFormat(c.echeance) || "—"}`, detail: c.statut_bail ? `Statut: ${c.statut_bail}` : null },
-    { icon: Building2, color: "#96c0b8", label: "DESTINATION", value: c.activite || "Activité commerciale", detail: "La destination des locaux loués." },
-    { icon: Euro, color: "#e8746a", label: "LOYER ANNUEL", value: c.loyer_annuel || "—", detail: `Indexation: ${c.indexation || "ILC"}` },
-    { icon: Wrench, color: "#96c0b8", label: "CHARGES ET CONDITIONS", value: c.surface || "—", detail: null },
+    { icon: FileText, color: J["menthe"], label: "TYPE DE BAIL", value: c.bail_type || "Commercial 3/6/9", detail: "Bail classique offrant sécurité et visibilité à long terme." },
+    { icon: Calendar, color: J["menthe"], label: "DURÉE ET ÉCHÉANCE", value: `${dateFormat(c.date_debut) || "—"} - ${dateFormat(c.echeance) || "—"}`, detail: c.statut_bail ? `Statut: ${c.statut_bail}` : null },
+    { icon: Building2, color: J["menthe"], label: "DESTINATION", value: c.activite || "Activité commerciale", detail: "La destination des locaux loués." },
+    { icon: Euro, color: J["alerte"], label: "LOYER ANNUEL", value: c.loyer_annuel || "—", detail: `Indexation: ${c.indexation || "ILC"}` },
+    { icon: Wrench, color: J["menthe"], label: "CHARGES ET CONDITIONS", value: c.surface || "—", detail: null },
     { icon: LandmarkIcon, color: "#8B5CF6", label: "TAXE FONCIÈRE", value: "Charge Propriétaire", detail: null },
   ];
 
@@ -421,7 +422,7 @@ function BailSlide({ slide }) {
       </div>
       <div className="flex-1 grid grid-cols-3 gap-4 mt-1">
         {cards.map((card, i) => (
-          <div key={i} className="rounded-md bg-[#0c0d10]/80 border border-trait overflow-hidden">
+          <div key={i} className="rounded-md bg-fond/80 border border-trait overflow-hidden">
             <div className="h-[3px]" style={{ backgroundColor: card.color }} />
             <div className="p-4 flex items-start gap-3">
               <IconCircle icon={card.icon} color={card.color} size="w-9 h-9" />
@@ -454,9 +455,9 @@ function AcquisitionVsMarcheSlide({ slide }) {
       <SlideTitle title="PRIX D'ACQUISITION ET LOYERS VS MARCHÉ" subtitle="Analyse comparative du positionnement de l'actif" />
       <div className="flex-1 grid grid-cols-2 gap-5 mt-2">
         {/* Marché */}
-        <InfoCard color="#96c0b8">
+        <InfoCard color={J["menthe"]}>
           <div className="flex items-center gap-3 mb-5">
-            <IconCircle icon={TrendingUp} color="#96c0b8" size="w-9 h-9" />
+            <IconCircle icon={TrendingUp} color={J["menthe"]} size="w-9 h-9" />
             <div>
               <p className="text-encre text-[1.1vw] font-bold">PRIX DE MARCHÉ</p>
               <p className="text-ardoise text-[0.8vw]">Secteur Centre-Ville</p>
@@ -485,9 +486,9 @@ function AcquisitionVsMarcheSlide({ slide }) {
         </InfoCard>
 
         {/* Actif cible */}
-        <InfoCard color="#96c0b8">
+        <InfoCard color={J["menthe"]}>
           <div className="flex items-center gap-3 mb-5">
-            <IconCircle icon={MapPin} color="#96c0b8" size="w-9 h-9" />
+            <IconCircle icon={MapPin} color={J["menthe"]} size="w-9 h-9" />
             <div>
               <p className="text-encre text-[1.1vw] font-bold">LOCAL CIBLE</p>
               <p className="text-ardoise text-[0.8vw]">Actif Cible</p>
@@ -523,7 +524,7 @@ function AcquisitionVsMarcheSlide({ slide }) {
           </div>
         </InfoCard>
       </div>
-      <div className="mt-4 flex items-center gap-3 p-4 rounded-md bg-[#0c0d10]/60" style={{ borderLeft: '3px solid #96c0b8' }}>
+      <div className="mt-4 flex items-center gap-3 p-4 rounded-md bg-fond/60" style={{ borderLeft: '3px solid #96c0b8' }}>
         <CheckCircle2 className="w-5 h-5 text-menthe flex-shrink-0" />
         <p className="text-craie text-[0.85vw]">Point d'entrée attractif avec potentiel de valorisation long terme.</p>
       </div>
@@ -535,11 +536,11 @@ function AcquisitionVsMarcheSlide({ slide }) {
 function ProjectionSlide({ slide }) {
   const c = slide.content;
   const cards = [
-    { icon: Euro, color: "#96c0b8", label: "LOYER INITIAL", value: c.loyer_initial || "—", detail: "Montant annuel HT HC\n(Base de calcul An 1)" },
-    { icon: Building2, color: "#96c0b8", label: "CHARGES DE COPROPRIÉTÉ", value: "Locataire", detail: "Entièrement refacturées\n(Impact net nul)" },
-    { icon: Wrench, color: "#96c0b8", label: "TRAVAUX (ARTICLE 606)", value: "10 000 €", detail: "Provision décennale\n(Tous les 10 ans)" },
-    { icon: LandmarkIcon, color: "#e8746a", label: "TAXE FONCIÈRE", value: "Bailleur", detail: "Charge propriétaire" },
-    { icon: TrendingUp, color: "#96c0b8", label: "INDEXATION ILC", value: `+ ${c.indexation || 2} %`, detail: "Évolution théorique annuelle\n(Indice des Loyers Commerciaux)" },
+    { icon: Euro, color: J["menthe"], label: "LOYER INITIAL", value: c.loyer_initial || "—", detail: "Montant annuel HT HC\n(Base de calcul An 1)" },
+    { icon: Building2, color: J["menthe"], label: "CHARGES DE COPROPRIÉTÉ", value: "Locataire", detail: "Entièrement refacturées\n(Impact net nul)" },
+    { icon: Wrench, color: J["menthe"], label: "TRAVAUX (ARTICLE 606)", value: "10 000 €", detail: "Provision décennale\n(Tous les 10 ans)" },
+    { icon: LandmarkIcon, color: J["alerte"], label: "TAXE FONCIÈRE", value: "Bailleur", detail: "Charge propriétaire" },
+    { icon: TrendingUp, color: J["menthe"], label: "INDEXATION ILC", value: `+ ${c.indexation || 2} %`, detail: "Évolution théorique annuelle\n(Indice des Loyers Commerciaux)" },
     { icon: Info, color: "#6B7280", label: null, value: null, isInfo: true },
   ];
 
@@ -551,14 +552,14 @@ function ProjectionSlide({ slide }) {
         {cards.map((card, i) => {
           if (card.isInfo) {
             return (
-              <div key={i} className="rounded-md border border-dashed border-encre/[0.1] bg-[#0c0d10]/40 flex flex-col items-center justify-center p-4 text-center">
+              <div key={i} className="rounded-md border border-dashed border-encre/[0.1] bg-fond/40 flex flex-col items-center justify-center p-4 text-center">
                 <IconCircle icon={Info} color="#6B7280" size="w-10 h-10" />
                 <p className="text-ardoise text-[0.8vw] mt-3 leading-snug">Ces hypothèses servent de base<br/>aux projections sur 20 ans.</p>
               </div>
             );
           }
           return (
-            <div key={i} className="rounded-md bg-[#0c0d10]/80 border border-trait p-5">
+            <div key={i} className="rounded-md bg-fond/80 border border-trait p-5">
               <IconCircle icon={card.icon} color={card.color} size="w-10 h-10" />
               <p className="text-ardoise text-[0.7vw] uppercase tracking-wider mt-3">{card.label}</p>
               <p className="text-menthe text-[1.3vw] font-bold mt-1">{card.value}</p>
@@ -579,7 +580,7 @@ function ConditionsSlide({ slide }) {
   const montant = items.find(i => i.label?.toLowerCase().includes('emprunt') || i.label?.toLowerCase().includes('montant'))?.value || "—";
 
   const condCards = [
-    { icon: Calendar, color: "#96c0b8", label: "DURÉE DU PRÊT", value: duree.replace(/\D*(\d+)\D*/, '$1'), suffix: "ANS" },
+    { icon: Calendar, color: J["menthe"], label: "DURÉE DU PRÊT", value: duree.replace(/\D*(\d+)\D*/, '$1'), suffix: "ANS" },
     { icon: Percent, color: "#6366F1", label: "TYPE DE TAUX", value: "TAUX FIXE", suffix: null },
     { icon: HandCoins, color: "#10B981", label: "MONTANT MAXIMUM EMPRUNTÉ", value: montant, suffix: null },
   ];
@@ -613,8 +614,8 @@ function CVSlide({ slide }) {
       <SlideTitle title="STRUCTURATION DE L'OPÉRATION" subtitle="ORGANISATION JURIDIQUE ET CAPITALISTIQUE" />
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="flex gap-8 mb-8">
-          <InfoCard color="#96c0b8" className="w-56 text-center py-6">
-            <IconCircle icon={Users} color="#96c0b8" size="w-12 h-12" />
+          <InfoCard color={J["menthe"]} className="w-56 text-center py-6">
+            <IconCircle icon={Users} color={J["menthe"]} size="w-12 h-12" />
             <p className="text-encre text-[1.1vw] font-semibold mt-3">{c.nom || "Investisseur"}</p>
             <p className="text-ardoise text-[0.75vw] uppercase tracking-wider mt-1">PERSONNE PHYSIQUE</p>
           </InfoCard>
@@ -623,8 +624,8 @@ function CVSlide({ slide }) {
           <div className="w-px h-8 border-l border-dashed border-bord" />
           <div className="w-2 h-2 border border-bord rotate-45" />
         </div>
-        <InfoCard color="#96c0b8" className="w-72 text-center py-6 bg-[#1A2332]">
-          <IconCircle icon={LandmarkIcon} color="#96c0b8" size="w-12 h-12" />
+        <InfoCard color={J["menthe"]} className="w-72 text-center py-6 bg-[#1A2332]">
+          <IconCircle icon={LandmarkIcon} color={J["menthe"]} size="w-12 h-12" />
           <p className="text-encre text-[1.1vw] font-bold mt-3">SOCIÉTÉ CIVILE</p>
           <p className="text-ardoise text-[0.75vw] uppercase tracking-wider mt-1">STRUCTURE MORALE & SUPPORT<br/>D'INVESTISSEMENT</p>
         </InfoCard>

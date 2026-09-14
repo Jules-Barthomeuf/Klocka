@@ -1,5 +1,6 @@
 import React from "react";
 import { ton } from "@/components/preanalyse/journal-tons";
+import { J } from "@/design/jetons";
 
 // La barre de résultat, une fois la lecture finie : les quatre chiffres qu'on
 // retient, posés en bas de la zone de contenu.
@@ -20,11 +21,11 @@ export default function JournalResultat({ cartes, onOuvrir }) {
               key={c.cle}
               type="button"
               onClick={() => onOuvrir(c)}
-              className="text-left rounded-[10px] bg-[#15181c] border border-l-[3px] px-3 py-2.5 hover:bg-[#191d22] transition-colors"
+              className="text-left rounded-[10px] bg-surface border border-l-[3px] px-3 py-2.5 hover:bg-relief transition-colors"
               style={{
-                borderTopColor: "#23272d",
-                borderRightColor: "#23272d",
-                borderBottomColor: "#23272d",
+                borderTopColor: J["bord"],
+                borderRightColor: J["bord"],
+                borderBottomColor: J["bord"],
                 borderLeftColor: couleur.pastille,
               }}
             >

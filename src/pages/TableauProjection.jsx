@@ -568,7 +568,7 @@ export default function TableauProjection() {
                       <tr>
                         <td className={`px-3 py-1.5 ${textClass} sticky left-0 z-10 bg-surface border-r border-menthe min-w-[200px]`}>Bénéfice imposable</td>
                         {tableauAnnuel.slice(1, Math.min(anneeRevente + 6, 26)).map((row) => (
-                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.beneficeImposable > 0 ? 'text-[#7fada4]' : 'text-red-600'} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
+                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.beneficeImposable > 0 ? 'text-menthe-fonce' : 'text-red-600'} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
                             {formatCurrency(row.beneficeImposable)}
                           </td>
                         ))}
@@ -597,7 +597,7 @@ export default function TableauProjection() {
                       {tableauAnnuel.slice(1, Math.min(anneeRevente + 6, 26)).map((row) => {
                         const tresorerieTVAValue = row.tresorerieTVACashFlow;
                         return (
-                          <td key={row.annee} className={`px-2 py-1.5 text-center ${tresorerieTVAValue > 0 ? 'text-[#7fada4]' : tresorerieTVAValue < 0 ? 'text-red-600' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
+                          <td key={row.annee} className={`px-2 py-1.5 text-center ${tresorerieTVAValue > 0 ? 'text-menthe-fonce' : tresorerieTVAValue < 0 ? 'text-red-600' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
                             {tresorerieTVAValue !== 0 ? formatCurrency(tresorerieTVAValue) : '-'}
                           </td>
                         );
@@ -609,7 +609,7 @@ export default function TableauProjection() {
                       <tr>
                         <td className={`px-3 py-1.5 ${textClass} sticky left-0 z-10 bg-surface border-r border-menthe min-w-[200px]`}>TVA collectée</td>
                         {tableauAnnuel.slice(1, Math.min(anneeRevente + 6, 26)).map((row) => (
-                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.tvaCollectee > 0 ? 'text-[#7fada4]' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
+                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.tvaCollectee > 0 ? 'text-menthe-fonce' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
                             {row.tvaCollectee > 0 ? formatCurrency(row.tvaCollectee) : '-'}
                           </td>
                         ))}
@@ -617,7 +617,7 @@ export default function TableauProjection() {
                       <tr>
                         <td className={`px-3 py-1.5 ${textClass} sticky left-0 z-10 bg-surface border-r border-menthe min-w-[200px]`}>TVA déductible</td>
                         {tableauAnnuel.slice(1, Math.min(anneeRevente + 6, 26)).map((row) => (
-                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.tvaDeductible > 0 ? 'text-[#7fada4]' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
+                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.tvaDeductible > 0 ? 'text-menthe-fonce' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
                             {row.tvaDeductible > 0 ? formatCurrency(row.tvaDeductible) : '-'}
                           </td>
                         ))}
@@ -625,7 +625,7 @@ export default function TableauProjection() {
                       <tr>
                         <td className={`px-3 py-1.5 ${textClass} sticky left-0 z-10 bg-surface border-r border-menthe min-w-[200px]`}>Crédit de TVA</td>
                         {tableauAnnuel.slice(1, Math.min(anneeRevente + 6, 26)).map((row) => (
-                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.creditTVA > 0 ? 'text-[#7fada4]' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
+                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.creditTVA > 0 ? 'text-menthe-fonce' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
                             {row.creditTVA !== 0 ? formatCurrency(row.creditTVA) : '-'}
                           </td>
                         ))}
@@ -635,7 +635,7 @@ export default function TableauProjection() {
                         {tableauAnnuel.slice(1, Math.min(anneeRevente + 6, 26)).map((row) => {
                           const tresorerieTVAValue = row.tresorerieTVACashFlow;
                           return (
-                            <td key={row.annee} className={`px-2 py-1.5 text-center ${tresorerieTVAValue > 0 ? 'text-[#7fada4]' : tresorerieTVAValue < 0 ? 'text-red-600' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
+                            <td key={row.annee} className={`px-2 py-1.5 text-center ${tresorerieTVAValue > 0 ? 'text-menthe-fonce' : tresorerieTVAValue < 0 ? 'text-red-600' : mutedClass} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
                               {tresorerieTVAValue !== 0 ? formatCurrency(tresorerieTVAValue) : '-'}
                             </td>
                           );
@@ -656,7 +656,7 @@ export default function TableauProjection() {
                   <tr className="font-medium bg-fond">
                     <td className={`px-3 py-1.5 ${textClass} sticky left-0 z-10 bg-fond border-r border-menthe min-w-[200px]`}>Cash flow / an</td>
                     {tableauAnnuel.slice(1, Math.min(anneeRevente + 6, 26)).map((row) => (
-                      <td key={row.annee} className={`px-2 py-1.5 text-center ${row.cashFlowAnnuel >= 0 ? 'text-[#7fada4]' : 'text-red-600'} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
+                      <td key={row.annee} className={`px-2 py-1.5 text-center ${row.cashFlowAnnuel >= 0 ? 'text-menthe-fonce' : 'text-red-600'} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
                         {formatCurrency(row.cashFlowAnnuel)}
                       </td>
                     ))}
@@ -666,7 +666,7 @@ export default function TableauProjection() {
                       <tr>
                         <td className={`px-3 py-1.5 ${textClass} sticky left-0 z-10 bg-surface border-r border-menthe min-w-[200px]`}>Cash flow / mois</td>
                         {tableauAnnuel.slice(1, Math.min(anneeRevente + 6, 26)).map((row) => (
-                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.cashFlowMensuel >= 0 ? 'text-[#7fada4]' : 'text-red-600'} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
+                          <td key={row.annee} className={`px-2 py-1.5 text-center ${row.cashFlowMensuel >= 0 ? 'text-menthe-fonce' : 'text-red-600'} ${row.annee > anneeRevente ? 'bg-bord/30' : ''}`}>
                             {formatCurrency(row.cashFlowMensuel)}
                           </td>
                         ))}

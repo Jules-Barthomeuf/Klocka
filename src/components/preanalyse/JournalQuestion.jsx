@@ -116,7 +116,7 @@ function Source({ s }) {
         <span className="flex-shrink-0 font-pill text-[9px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] rounded-[3px] border border-[rgba(150,192,184,.35)] text-menthe">
           {s.service}
         </span>
-        <span className="text-[12.5px] text-[#dfe3e8]">{s.titre}</span>
+        <span className="text-[12.5px] text-craie">{s.titre}</span>
         <span className="text-[13px] font-medium text-encre">
           {bornes.join(" / ")} {s.unite || ""}
         </span>
@@ -156,8 +156,8 @@ function Repertoire({ onChoisir, versLeHaut }) {
           <div key={f.famille} className="px-1.5 py-1">
             <div className="flex flex-wrap items-baseline gap-x-2 px-2.5 pt-1.5 pb-1">
               <span className="font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-menthe">{f.famille}</span>
-              <span className="text-[10.5px] text-[#4e545e]">{f.source}</span>
-              {f.credit && <span className="text-[10px] text-[#d9a441]">1 crédit</span>}
+              <span className="text-[10.5px] text-brume">{f.source}</span>
+              {f.credit && <span className="text-[10px] text-ambre">1 crédit</span>}
             </div>
             {f.questions.map((q) => (
               <button
@@ -165,7 +165,7 @@ function Repertoire({ onChoisir, versLeHaut }) {
                 type="button"
                 role="menuitem"
                 onClick={() => onChoisir(q)}
-                className="block w-full text-left rounded-[8px] px-2.5 py-1.5 text-[12.5px] leading-5 text-[#c6ccd3] hover:text-encre hover:bg-[#1a1d22] transition-colors"
+                className="block w-full text-left rounded-[8px] px-2.5 py-1.5 text-[12.5px] leading-5 text-craie hover:text-encre hover:bg-relief transition-colors"
               >
                 {q}
               </button>
@@ -252,7 +252,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
         <div key={i} className="flex flex-col gap-5">
           <MessageIA m={{ role: "user", contenu: e.question }} />
           {e.erreur ? (
-            <p className="m-0 text-[12.5px] text-[#e0655f]">{e.erreur}</p>
+            <p className="m-0 text-[12.5px] text-alerte">{e.erreur}</p>
           ) : (
             <>
               {/* La réponse se lit comme partout ailleurs : texte plein, et les
@@ -260,21 +260,21 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
                   n'existe que dans ce chat-ci. */}
               <MessageIA m={{ role: "assistant", contenu: e.reponse || "" }} question={e.question} surface="marche" dealId={dealId} />
               {e.outils?.length > 0 && (
-                <p className="m-0 text-[11px] text-[#4e545e]">
+                <p className="m-0 text-[11px] text-brume">
                   {e.outils.map((o) => `${o.service} · ${o.ok ? `${Math.round(o.ms / 1000)} s` : `échec : ${o.erreur || ""}`}`).join("  ·  ")}
                 </p>
               )}
               {e.sources?.length > 0 ? (
                 <div>
-                  <span className="block font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-[#4e545e] mb-1">Ce qui a été lu</span>
-                  <ul className="m-0 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
+                  <span className="block font-pill text-[9px] font-semibold uppercase tracking-[.1em] text-brume mb-1">Ce qui a été lu</span>
+                  <ul className="m-0 p-0 list-none flex flex-col divide-y divide-relief border-y border-relief">
                     {e.sources.map((s, k) => (
                       <Source key={`${s.indicateur}-${k}`} s={s} />
                     ))}
                   </ul>
                 </div>
               ) : (
-                <p className="m-0 text-[11.5px] text-[#d9a441]">
+                <p className="m-0 text-[11.5px] text-ambre">
                   Aucune source n’a répondu : ce qui précède ne s’appuie sur rien de vérifiable.
                 </p>
               )}

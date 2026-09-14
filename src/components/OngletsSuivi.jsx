@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { J } from "@/design/jetons";
 
 // Suivi : une seule entrée dans le menu, deux pages derrière.
 //
@@ -24,7 +25,7 @@ export default function OngletsSuivi({ className = "" }) {
             to={p.to}
             aria-current={actif ? "page" : undefined}
             className="relative pb-2 text-[11px] uppercase tracking-[.16em] transition-colors"
-            style={{ color: actif ? "#96c0b8" : "#77777e", borderBottom: actif ? "1.5px solid #96c0b8" : "1.5px solid transparent" }}
+            style={{ color: actif ? J["menthe"] : J["brume"], borderBottom: actif ? "1.5px solid #96c0b8" : "1.5px solid transparent" }}
           >
             {p.mot}
           </Link>

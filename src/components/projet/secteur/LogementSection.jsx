@@ -2,8 +2,9 @@ import React from "react";
 import { Home } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import SectionCard, { KPI } from "./SectionCard";
+import { J } from "@/design/jetons";
 
-const tooltipStyle = { backgroundColor: '#0f1114', border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
+const tooltipStyle = { backgroundColor: J["surface"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
 
 // Moyennes nationales France (INSEE)
 const FR_LOG = {
@@ -26,13 +27,13 @@ function FrCompare({ local, national, unit = "%", invert = false }) {
 
 export default function LogementSection({ data }) {
   const pieLogement = [
-    data.pct_residences_principales > 0 && { name: "Rés. principales", value: data.pct_residences_principales, fill: "#96c0b8" },
-    data.pct_residences_secondaires > 0 && { name: "Rés. secondaires", value: data.pct_residences_secondaires, fill: "#c3ddd6" },
-    data.pct_logements_vacants > 0 && { name: "Vacants", value: data.pct_logements_vacants, fill: "#e8746a" },
+    data.pct_residences_principales > 0 && { name: "Rés. principales", value: data.pct_residences_principales, fill: J["menthe"] },
+    data.pct_residences_secondaires > 0 && { name: "Rés. secondaires", value: data.pct_residences_secondaires, fill: J["menthe-clair"] },
+    data.pct_logements_vacants > 0 && { name: "Vacants", value: data.pct_logements_vacants, fill: J["alerte"] },
   ].filter(Boolean);
 
   const pieType = [
-    data.pct_maisons > 0 && { name: "Maisons", value: data.pct_maisons, fill: "#96c0b8" },
+    data.pct_maisons > 0 && { name: "Maisons", value: data.pct_maisons, fill: J["menthe"] },
     data.pct_appartements > 0 && { name: "Appartements", value: data.pct_appartements, fill: "#1f6b62" },
   ].filter(Boolean);
 

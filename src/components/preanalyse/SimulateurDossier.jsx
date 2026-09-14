@@ -266,7 +266,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
                   onClick={() => enregistrer.mutate()}
                   disabled={enregistrer.isPending}
                   title={enregistreLe ? `Enregistré le ${enregistreLe.toLocaleDateString("fr-FR")} à ${enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "Garder ces chiffres sur le dossier"}
-                  className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-menthe text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] text-[11px] disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-menthe text-fond font-semibold hover:bg-menthe-survol text-[11px] disabled:opacity-40"
                 >
                   {enregistrer.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : enregistreLe ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
                   {enregistreLe ? "Enregistrer à nouveau" : "Enregistrer les chiffres"}

@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowRight, FileText } from "lucide-react";
 import { chrono } from "@/components/preanalyse/journal-tons";
+import { J } from "@/design/jetons";
 
 // La barre du bas : où en est la recherche, et ce que l'agent vient de faire.
 //
@@ -18,7 +19,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
     return (
       <div className="border-t border-trait bg-surface">
         <div className="mx-auto w-full max-w-[780px] px-4 sm:px-6 py-2.5">
-          <span className="text-[12px] text-[#4e545e]">Aucune recherche en cours</span>
+          <span className="text-[12px] text-brume">Aucune recherche en cours</span>
         </div>
       </div>
     );
@@ -43,7 +44,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
               className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-[9px] h-[9px] rounded-full border-2 border-surface transition-colors duration-300 ${r.encours ? "ja-pastille-fraiche" : ""}`}
               style={{
                 left: `${r.position * 100}%`,
-                background: r.echoue ? "#e0655f" : r.franchi ? "#96c0b8" : r.encours ? "#d9a441" : "#3a424d",
+                background: r.echoue ? J["alerte"] : r.franchi ? J["menthe"] : r.encours ? J["ambre"] : J["brume"],
               }}
               aria-hidden
             />
@@ -57,7 +58,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
             <span
               key={r.cle}
               className={`absolute top-0 text-[10px] whitespace-nowrap transition-colors duration-300 ${
-                r.franchi || r.encours ? "text-ardoise" : "text-[#3a424d]"
+                r.franchi || r.encours ? "text-ardoise" : "text-brume"
               } ${r.position === 0 ? "left-0" : r.position === 1 ? "right-0" : "-translate-x-1/2"}`}
               style={r.position === 0 || r.position === 1 ? undefined : { left: `${r.position * 100}%` }}
             >
@@ -68,8 +69,8 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
 
         {courante && (
           <p key={courante.cle} className="ja-etape m-0 mt-2.5 text-[12px] leading-5 text-ardoise min-h-[40px]" role="status">
-            <span style={{ color: courante.echoue ? "#e0655f" : courante.encours ? "#d9a441" : "#96c0b8" }}>{courante.libelle}</span>
-            <span className="text-[#3a424d]"> · </span>
+            <span style={{ color: courante.echoue ? J["alerte"] : courante.encours ? J["ambre"] : J["menthe"] }}>{courante.libelle}</span>
+            <span className="text-brume"> · </span>
             {courante.explication}
           </p>
         )}
@@ -81,7 +82,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
           onClick={onJournal}
           title="Journal détaillé"
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] transition-colors ${
-            journalOuvert ? "bg-trait text-encre" : "text-brume hover:text-[#c6ccd3] hover:bg-[#1a1d22]"
+            journalOuvert ? "bg-trait text-encre" : "text-brume hover:text-craie hover:bg-relief"
           }`}
         >
           <FileText className="w-3.5 h-3.5" /> Journal détaillé
@@ -91,12 +92,12 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
           <button
             type="button"
             onClick={onVoirAnalyse}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#b8dcc8] text-[#04140c] text-[12px] font-semibold px-4 py-1.5 hover:bg-[#c8e8d6] transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full bg-menthe-clair text-sur-menthe text-[12px] font-semibold px-4 py-1.5 hover:bg-menthe-clair transition-colors"
           >
             Voir l’analyse <ArrowRight className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className="ml-auto font-mono text-[11px] text-[#4e545e] tabular-nums">{chrono(temps)}</span>
+        <span className="ml-auto font-mono text-[11px] text-brume tabular-nums">{chrono(temps)}</span>
       </div>
     </div>
   );

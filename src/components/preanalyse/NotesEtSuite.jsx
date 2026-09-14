@@ -33,23 +33,23 @@ export default function NotesEtSuite({ dealId, etape, apercu = false }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-5 px-6 max-md:px-4 py-5 border-b border-trait bg-[#050506]">
       <div>
         <div className="flex items-baseline justify-between gap-3 mb-2"><Mono>Notes</Mono>{data?.maj_le && <Mono className="normal-case tracking-[.04em]">{enregistrer.isPending ? "enregistrement…" : `enregistré · ${new Date(data.maj_le).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${data.maj_par ? ` · ${data.maj_par}` : ""}`}</Mono>}</div>
-        <textarea value={notes} onChange={(e) => changerNotes(e.target.value)} disabled={apercu} rows={6} placeholder="Ce que vous retenez, ce qui vous gêne, ce que l'agent a dit au téléphone…" className="w-full bg-transparent border border-trait focus:border-bord-vif outline-none px-3 py-2.5 text-[13.5px] leading-[1.65] text-encre placeholder:text-[#4d545d] resize-y" />
+        <textarea value={notes} onChange={(e) => changerNotes(e.target.value)} disabled={apercu} rows={6} placeholder="Ce que vous retenez, ce qui vous gêne, ce que l'agent a dit au téléphone…" className="w-full bg-transparent border border-trait focus:border-bord-vif outline-none px-3 py-2.5 text-[13.5px] leading-[1.65] text-encre placeholder:text-brume resize-y" />
       </div>
       <div>
         <div className="flex items-baseline justify-between gap-3 mb-2"><Mono>La suite</Mono><Mono className="normal-case tracking-[.04em]">{aFaire.length} à faire{faites.length ? ` · ${faites.length} fait${faites.length > 1 ? "es" : "e"}` : ""}</Mono></div>
         <div className="flex items-center gap-2 mb-2">
-          <input value={nouvelle} onChange={(e) => setNouvelle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") ajouter(); }} disabled={apercu} placeholder="Quoi faire ensuite — Entrée pour ajouter" className="flex-1 bg-transparent border border-trait focus:border-bord-vif outline-none px-3 py-2 text-[13.5px] text-encre placeholder:text-[#4d545d]" />
+          <input value={nouvelle} onChange={(e) => setNouvelle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") ajouter(); }} disabled={apercu} placeholder="Quoi faire ensuite — Entrée pour ajouter" className="flex-1 bg-transparent border border-trait focus:border-bord-vif outline-none px-3 py-2 text-[13.5px] text-encre placeholder:text-brume" />
           <button onClick={ajouter} disabled={apercu || !nouvelle.trim()} className="w-9 h-9 border border-bord-doux text-craie hover:text-encre flex items-center justify-center disabled:opacity-40"><Plus className="w-4 h-4" /></button>
         </div>
         <ul className="m-0 p-0 list-none">
           {[...aFaire, ...faites].map((t) => (
-            <li key={t.id} className="flex items-start gap-3 py-2 border-t border-[#15171b] group">
+            <li key={t.id} className="flex items-start gap-3 py-2 border-t border-relief group">
               <button onClick={() => !apercu && majTaches(taches.map((x) => (x.id === t.id ? { ...x, fait: !x.fait } : x)))} className={`mt-[2px] w-4 h-4 border flex items-center justify-center flex-none ${t.fait ? "bg-encre border-encre text-fond" : "border-bord-vif hover:border-encre"}`}>{t.fait && <Check className="w-3 h-3" strokeWidth={3} />}</button>
               <span className={`flex-1 text-[13.5px] leading-[1.5] ${t.fait ? "text-brume line-through" : "text-encre"}`}>{t.texte}{t.etape ? <Mono className="ml-2 normal-case tracking-[.04em]">étape {t.etape}</Mono> : null}</span>
               <button onClick={() => !apercu && majTaches(taches.filter((x) => x.id !== t.id))} className="opacity-0 group-hover:opacity-100 text-brume hover:text-alerte"><X className="w-3.5 h-3.5" /></button>
             </li>
           ))}
-          {!taches.length && <li className="py-2 text-[12.5px] text-[#4d545d]">Rien pour l'instant.</li>}
+          {!taches.length && <li className="py-2 text-[12.5px] text-brume">Rien pour l'instant.</li>}
         </ul>
       </div>
     </div>

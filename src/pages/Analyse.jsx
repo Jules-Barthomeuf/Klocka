@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
+import { J } from "@/design/jetons";
 
 // Dossiers — chaque dossier suit six étapes : Mail → Pré-analyse → Analyse →
 // Vidéo → Plateforme → Présentation. La liste présente des cartes simples
@@ -184,9 +185,9 @@ export default function Analyse() {
             {/* Bandeau : titre, tri, relances, nouveau dossier. */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5 border-b border-trait">
               <div>
-                <div className="alx-mont mb-2.5 text-[10px] font-medium uppercase tracking-[.14em] text-[#8B938F]">Pipeline</div>
-                <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-[#F3F7F5] max-md:text-[26px]">Dossiers</h1>
-                <p className="mb-0 mt-2.5 max-w-[52ch] text-[13.5px] leading-[1.65] text-[#8B938F]">
+                <div className="alx-mont mb-2.5 text-[10px] font-medium uppercase tracking-[.14em] text-ardoise">Pipeline</div>
+                <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Dossiers</h1>
+                <p className="mb-0 mt-2.5 max-w-[52ch] text-[13.5px] leading-[1.65] text-ardoise">
                   Du premier mail à l'agent jusqu'au dossier de présentation banque, en six étapes.
                 </p>
               </div>
@@ -197,7 +198,7 @@ export default function Analyse() {
                 <select
                   value={tri}
                   onChange={(e) => setTri(e.target.value)}
-                  className="rounded-[10px] border border-white/[0.09] bg-fond px-3 py-[8px] text-[13px] text-[#C3CBC7] outline-none transition-colors hover:border-white/[0.2]"
+                  className="rounded-[10px] border border-trait bg-fond px-3 py-[8px] text-[13px] text-craie outline-none transition-colors hover:border-bord"
                 >
                   {TRIS.map((t) => (
                     <option key={t.id} value={t.id}>Trier : {t.label}</option>
@@ -205,7 +206,7 @@ export default function Analyse() {
                 </select>
                 <button
                   onClick={() => setCreationOuverte(true)}
-                  className="alx-mont inline-flex items-center gap-2 rounded-full bg-[#96c0b8] px-[18px] py-[9px] text-[11px] font-semibold uppercase tracking-[.12em] text-[#08130D] transition-colors hover:bg-[#c3ddd6]"
+                  className="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[18px] py-[9px] text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe transition-colors hover:bg-menthe-clair"
                 >
                   <Plus className="w-4 h-4" /> Nouveau dossier
                 </button>
@@ -226,22 +227,22 @@ export default function Analyse() {
                 {dossiers.map((d) => (
                   <div
                     key={d.deal_id}
-                    className="relative rounded-[16px] border border-white/[0.07] bg-fond text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
+                    className="relative rounded-[16px] border border-trait bg-fond text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
                   >
                     <button onClick={() => montrerDeal(d.deal_id)} className="block w-full px-5 py-5 text-left" style={{ background: "transparent" }}>
                       <div className="flex items-start justify-between gap-2 pr-6">
-                        <p className="m-0 line-clamp-2 text-[15px] font-medium leading-snug text-[#F3F7F5]">
+                        <p className="m-0 line-clamp-2 text-[15px] font-medium leading-snug text-encre">
                           {d.titre || d.nom_fichier || d.deal_id}
                         </p>
                         {d.a_relancer && (
                           <span title="À relancer" className="flex-shrink-0 mt-0.5 text-red-400"><Clock className="w-3.5 h-3.5" /></span>
                         )}
                       </div>
-                      <p className="alx-mont m-0 mt-2.5 text-[9.5px] font-medium uppercase tracking-[.14em]" style={{ color: d.statut === "abandonne" ? "#8B938F" : "#96c0b8" }}>
+                      <p className="alx-mont m-0 mt-2.5 text-[9.5px] font-medium uppercase tracking-[.14em]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
                         Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
                         {d.statut === "abandonne" ? " · Abandonné" : ""}
                       </p>
-                      <p className="m-0 mt-2 truncate text-[12px] text-[#8B938F]">
+                      <p className="m-0 mt-2 truncate text-[12px] text-ardoise">
                         {(d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0])}
                         {d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}
                       </p>
@@ -343,7 +344,7 @@ export default function Analyse() {
                   onClick={() => creerDossier.mutate()}
                   disabled={!nomDossier.trim() || creerDossier.isPending}
                   className="inline-flex items-center gap-2 text-surface rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all"
-                  style={{ background: "#f2f3f5" }}
+                  style={{ background: J["encre"] }}
                 >
                   {creerDossier.isPending ? <><Loader2 className="w-4 h-4 animate-spin" />Création…</> : "Créer le dossier"}
                 </button>

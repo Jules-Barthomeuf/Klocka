@@ -4,7 +4,7 @@ import { ExternalLink } from "lucide-react";
 const LINK_CONFIG = {
   instagram: {
     label: "Instagram",
-    color: "from-menthe to-[#7fada4]",
+    color: "from-menthe to-menthe-fonce",
     borderColor: "border-menthe/30 hover:border-menthe/60",
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
@@ -14,7 +14,7 @@ const LINK_CONFIG = {
   },
   facebook: {
     label: "Facebook",
-    color: "from-menthe to-[#7fada4]",
+    color: "from-menthe to-menthe-fonce",
     borderColor: "border-menthe/30 hover:border-menthe/60",
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
@@ -24,7 +24,7 @@ const LINK_CONFIG = {
   },
   google_avis: {
     label: "Avis Google",
-    color: "from-menthe to-[#7fada4]",
+    color: "from-menthe to-menthe-fonce",
     borderColor: "border-menthe/30 hover:border-menthe/60",
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
@@ -34,7 +34,7 @@ const LINK_CONFIG = {
   },
   tripadvisor: {
     label: "TripAdvisor",
-    color: "from-menthe-clair to-[#7fada4]",
+    color: "from-menthe-clair to-menthe-fonce",
     borderColor: "border-menthe/30 hover:border-menthe/60",
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
@@ -50,7 +50,7 @@ const LINK_CONFIG = {
   },
   linkedin: {
     label: "LinkedIn",
-    color: "from-menthe to-[#7fada4]",
+    color: "from-menthe to-menthe-fonce",
     borderColor: "border-menthe/30 hover:border-menthe/60",
     icon: (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">

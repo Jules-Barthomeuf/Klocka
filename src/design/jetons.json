@@ -1,0 +1,72 @@
+{
+  "_lisez_moi": [
+    "Le socle visuel de Klocka : un seul endroit pour la couleur, le texte et les rayons.",
+    "Tailwind lit ce fichier (tailwind.config.js), et les modules qui posent des styles",
+    "en ligne aussi (src/design/jetons.js). Aucune couleur ne s'écrit en hexadécimal",
+    "ailleurs : une règle de lint le refuse (eslint no-restricted-syntax).",
+    "",
+    "Les noms disent le rôle, pas la couleur : « encre » restera le texte principal",
+    "le jour où il ne sera plus gris clair.",
+    "",
+    "Les gris penchent légèrement vers le vert : l'accent de la marque est la menthe,",
+    "et un gris neutre à côté d'un accent vert se lit comme une erreur d'impression.",
+    "Le plancher de contraste est 4,5 pour 1 sur le fond le plus clair (surface) :",
+    "brume, le gris le plus pâle employé pour du texte, est à 4,8."
+  ],
+
+  "couleurs": {
+    "fond": "#000000",
+    "surface": "#0f1114",
+    "relief": "#15171b",
+
+    "encre": "#f2f3f5",
+    "craie": "#c7cdc9",
+    "ardoise": "#949a97",
+    "brume": "#7c827f",
+
+    "menthe": "#96c0b8",
+    "menthe-clair": "#c3ddd6",
+    "menthe-survol": "#abd0c8",
+    "menthe-fonce": "#7fada4",
+    "sur-menthe": "#08130d",
+
+    "trait": "#1f2228",
+    "bord": "#22262d",
+    "bord-doux": "#2c3139",
+    "bord-vif": "#3a3f4a",
+
+    "alerte": "#e8746a",
+    "ambre": "#e0a45e",
+    "vert": "#7fd1a8",
+    "bleu": "#8fb6e8",
+
+    "appel": "#c9a889",
+    "ecrire": "#96c0b8",
+    "surveiller": "#8B938F",
+    "emplacement-1": "#6f8fe8",
+    "emplacement-1bis": "#b8863e",
+    "emplacement-2": "#c2695c"
+  },
+
+  "_texte": [
+    "Sept pas, et rien entre les deux. 11 pour une étiquette en capitales,",
+    "12,5 pour une note, 13,5 pour un tableau, 15 pour le corps, 18 pour un",
+    "chiffre, 24 pour un intertitre, 34 pour un titre de page."
+  ],
+  "texte": {
+    "etiquette": "11px",
+    "note": "12.5px",
+    "table": "13.5px",
+    "corps": "15px",
+    "chiffre": "18px",
+    "intertitre": "24px",
+    "titre": "34px"
+  },
+
+  "_rayons": ["Trois : un champ, un bloc, une pastille."],
+  "rayons": {
+    "champ": "10px",
+    "bloc": "16px",
+    "pastille": "9999px"
+  }
+}

@@ -98,7 +98,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
             <p className="text-menthe text-xs uppercase tracking-[0.15em] font-semibold text-center">Check 2</p>
           </div>
         </div>
-        <div className="divide-y divide-[#15171b]">
+        <div className="divide-y divide-relief">
           {TOGGLE_FIELDS.map((field) => {
             const val = checkData[field.key] || { ia: null, human: null };
             return (
@@ -131,7 +131,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
             <p className="text-encre/60 text-[11px] uppercase tracking-[0.15em] font-medium">{section.title}</p>
           </div>
           {/* Rows */}
-          <div className="divide-y divide-[#15171b]">
+          <div className="divide-y divide-relief">
             {section.fields.map((field) => {
             const val = checkData[field.key] || { ia: "", human: "" };
             return (

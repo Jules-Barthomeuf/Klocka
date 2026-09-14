@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Plus, X, Search, ChevronDown } from "lucide-react";
+import { J } from "@/design/jetons";
 
 const fieldWrap = "bg-transparent border border-[#1e1e1e] rounded-[12px] px-4 py-3.5 transition-colors focus-within:border-bord-vif";
 const fieldInput = "w-full bg-transparent border-none text-encre outline-none placeholder:text-brume";
@@ -133,7 +134,7 @@ export function CarteCollaborateurs({ formData, setFormData }) {
           return (
             <button key={admin.email} type="button" onClick={() => setFormData({ ...formData, admin_principal: selected ? "" : admin.email })}
               className="w-[34px] h-[34px] rounded-full overflow-hidden transition-all"
-              style={{ boxShadow: `0 0 0 2px ${selected ? "#96c0b8" : "transparent"}, 0 0 0 3px #000000` }}>
+              style={{ boxShadow: `0 0 0 2px ${selected ? J["menthe"] : "transparent"}, 0 0 0 3px #000000` }}>
               <img src={admin.url} alt={admin.email} className="w-full h-full object-cover" />
             </button>
           );
@@ -220,7 +221,7 @@ export function CarteDocuments({ formData, setFormData }) {
         <div className="flex flex-col gap-2.5">
           <div className="flex gap-2.5 items-center">
             <input value={newDocUrl} onChange={(e) => setNewDocUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addDoc(); }} placeholder="https://exemple.com/document.pdf" className={`${fieldInput} text-[15px] flex-1`} />
-            <button type="button" onClick={addDoc} className="w-8 h-8 rounded-full bg-menthe text-[#04140c] flex items-center justify-center text-[16px] cursor-pointer flex-shrink-0 hover:bg-[#abd0c8] transition-colors">+</button>
+            <button type="button" onClick={addDoc} className="w-8 h-8 rounded-full bg-menthe text-sur-menthe flex items-center justify-center text-[16px] cursor-pointer flex-shrink-0 hover:bg-menthe-survol transition-colors">+</button>
           </div>
           {formData.documents.length > 0 && (
             <div className="flex flex-wrap gap-2">

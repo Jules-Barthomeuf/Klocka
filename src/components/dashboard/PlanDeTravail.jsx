@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useUser } from "@/components/providers/UserProvider";
+import { J } from "@/design/jetons";
 
 // Le plan de travail : ce que l'assistant propose de faire, maintenant.
 //
@@ -63,7 +64,7 @@ export default function PlanDeTravail({ chat = null }) {
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
       {sante?.hebergeur === "render" && !sante?.base?.persistante && (
-        <div className="mt-8 border rounded-xl px-5 py-4" style={{ borderColor: "#e8746a66", background: "#0f1114" }}>
+        <div className="mt-8 border rounded-xl px-5 py-4" style={{ borderColor: "#e8746a66", background: J["surface"] }}>
           <p className="m-0 text-[10.5px] tracking-[.18em] uppercase text-alerte">La base sera effacée au prochain déploiement</p>
           <p className="m-0 mt-1.5 text-[13.5px] leading-[1.6] text-craie">{sante.base?.diagnostic}</p>
           <p className="m-0 mt-1.5 text-[12px] text-brume">

@@ -19,6 +19,7 @@ import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
 import CarteCessions from "./CarteCessions";
 import VilleSecteurIA, { useAnalyseIA } from "./SecteurAnalyseIA";
+import { J } from "@/design/jetons";
 
 // Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
 function SectionLabel({ children, tone = "muted", className = "" }) {
@@ -141,7 +142,7 @@ function GradeScale({ active, valueLabel }) {
         return (
           <div key={g} className="flex items-center gap-3">
             <span className={`w-5 text-center flex-shrink-0 ${isActive ? "font-cormorant text-[17px] text-encre" : "text-[12px] text-bord-vif"}`}>{g}</span>
-            <div className="h-[9px] flex-shrink-0" style={{ width: `${26 + idx * 10}%`, backgroundColor: isActive ? "#96c0b8" : "#1f2228" }} />
+            <div className="h-[9px] flex-shrink-0" style={{ width: `${26 + idx * 10}%`, backgroundColor: isActive ? J["menthe"] : J["trait"] }} />
             {isActive && valueLabel && <span className="text-[12px] text-menthe-clair whitespace-nowrap">{valueLabel}</span>}
           </div>
         );
@@ -343,10 +344,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   }
 
   const pieDataBudget = [
-    { name: 'Prix négocié', value: prixBienNegocie, fill: '#96c0b8' },
-    { name: "Droits enreg.", value: droitsEnregistrement, fill: '#c3ddd6' },
-    { name: 'Honoraires Klocka', value: feesKlocka, fill: '#96c0b8' },
-    { name: 'Incentive Klocka', value: incentiveKlocka, fill: '#d9b46a' },
+    { name: 'Prix négocié', value: prixBienNegocie, fill: J["menthe"] },
+    { name: "Droits enreg.", value: droitsEnregistrement, fill: J["menthe-clair"] },
+    { name: 'Honoraires Klocka', value: feesKlocka, fill: J["menthe"] },
+    { name: 'Incentive Klocka', value: incentiveKlocka, fill: J["ambre"] },
     { name: 'Frais divers', value: fraisDivers, fill: '#a8894f' }
   ];
 
@@ -621,7 +622,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 )}
               </div>
               <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-[#abd0c8] transition-colors">
+                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors">
                 Simulateur complet <span aria-hidden="true">→</span>
               </button>
             </div>
@@ -638,7 +639,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               </div>
             </div>
             <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-              className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[13px] font-semibold hover:bg-[#abd0c8] transition-colors">
+              className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[13px] font-semibold hover:bg-menthe-survol transition-colors">
               Simulateur complet <span aria-hidden="true">→</span>
             </button>
           </div>
@@ -1142,12 +1143,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 <div className="relative flex items-center justify-center w-full order-2 md:order-1">
                   <ResponsiveContainer width="100%" height={200} className="max-w-full">
                     <PieChart>
-                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#96c0b8' }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
-                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: '#96c0b8' }]).map((entry, index) => (
+                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: J["menthe"] }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
+                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: J["menthe"] }]).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => formatCurrency(value)} wrapperStyle={{ zIndex: 100 }} contentStyle={{ backgroundColor: '#0f1114', border: '1px solid #22262d', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#fff' }} position={{ y: -20 }} />
+                      <Tooltip formatter={(value) => formatCurrency(value)} wrapperStyle={{ zIndex: 100 }} contentStyle={{ backgroundColor: J["surface"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#fff' }} position={{ y: -20 }} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1163,7 +1164,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       <div><p className="text-xs text-encre/30">Prix du bien négocié FAI</p><p className="text-lg text-encre">{formatCurrency(prixBienNegocie)}</p></div>
                       <div><p className="text-xs text-encre/30">Droits d'enregistrement estimés</p><p className="text-lg text-encre">{formatCurrency(droitsEnregistrement)}</p></div>
                       <div><p className="text-xs text-encre/30">Honoraires Klocka</p><p className="text-lg text-menthe">{formatCurrency(feesKlocka)}</p></div>
-                      <div><p className="text-xs text-encre/30">Incentive Klocka (sur la négociation)</p><p className="text-lg" style={{ color: '#d9b46a' }}>{formatCurrency(incentiveKlocka)}</p></div>
+                      <div><p className="text-xs text-encre/30">Incentive Klocka (sur la négociation)</p><p className="text-lg" style={{ color: J["ambre"] }}>{formatCurrency(incentiveKlocka)}</p></div>
                       <div><p className="text-xs text-encre/30">Frais divers à l'acquisition</p><p className="text-lg text-menthe">{formatCurrency(fraisDivers)}</p></div>
                     </>
                   ) : (
@@ -1207,22 +1208,22 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <div className="h-[26rem] max-md:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={richesseRows} margin={{ top: 12, right: 20, left: 20, bottom: 40 }} barGap={4} barCategoryGap="20%">
-                  <CartesianGrid stroke="#f2f3f5" strokeOpacity={0.08} strokeDasharray="3 3" />
-                  <XAxis dataKey="annee" tick={{ fill: '#9298a6', fontSize: 10 }} axisLine={{ stroke: '#f2f3f5', strokeOpacity: 0.15 }} tickLine={{ stroke: '#f2f3f5', strokeOpacity: 0.15 }}
-                    label={{ value: 'Année', position: 'bottom', offset: 18, fill: '#9298a6', fontSize: 11 }} />
-                  <YAxis tick={{ fill: '#9298a6', fontSize: 10 }} axisLine={{ stroke: '#f2f3f5', strokeOpacity: 0.15 }} tickLine={{ stroke: '#f2f3f5', strokeOpacity: 0.15 }}
+                  <CartesianGrid stroke={J["encre"]} strokeOpacity={0.08} strokeDasharray="3 3" />
+                  <XAxis dataKey="annee" tick={{ fill: J["ardoise"], fontSize: 10 }} axisLine={{ stroke: J["encre"], strokeOpacity: 0.15 }} tickLine={{ stroke: J["encre"], strokeOpacity: 0.15 }}
+                    label={{ value: 'Année', position: 'bottom', offset: 18, fill: J["ardoise"], fontSize: 11 }} />
+                  <YAxis tick={{ fill: J["ardoise"], fontSize: 10 }} axisLine={{ stroke: J["encre"], strokeOpacity: 0.15 }} tickLine={{ stroke: J["encre"], strokeOpacity: 0.15 }}
                     tickFormatter={(v) => `${Math.round(v / 1000)}`}
-                    label={{ value: 'Milliers €', angle: -90, position: 'insideLeft', offset: -4, fill: '#9298a6', fontSize: 11, style: { textAnchor: 'middle' } }} />
+                    label={{ value: 'Milliers €', angle: -90, position: 'insideLeft', offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: 'middle' } }} />
                   <Tooltip cursor={{ fill: 'rgba(237,234,229,0.03)' }} content={({ active, payload, label }) => {
                     if (!active || !payload || !payload.length) return null;
                     const capital = payload.find((p) => p.dataKey === 'capital')?.value || 0;
                     const cashflow = payload.find((p) => p.dataKey === 'cashflow')?.value || 0;
                     return (
-                      <div style={{ background: '#0f1114', border: '1px solid #22262d', borderRadius: 6, padding: '10px 12px', maxWidth: 260 }}>
-                        <p style={{ color: '#f2f3f5', fontSize: 12, marginBottom: 6 }}>Année {label}</p>
+                      <div style={{ background: J["surface"], border: '1px solid #22262d', borderRadius: 6, padding: '10px 12px', maxWidth: 260 }}>
+                        <p style={{ color: J["encre"], fontSize: 12, marginBottom: 6 }}>Année {label}</p>
                         <p style={{ color: '#7FE0D3', fontSize: 11, marginBottom: 2 }}>Capital remboursé : {formatCurrency(capital)}</p>
-                        <p style={{ color: '#96c0b8', fontSize: 11, marginBottom: 8 }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
-                        <p style={{ color: '#9298a6', fontSize: 10, lineHeight: 1.4, borderTop: '1px solid rgba(237,234,229,0.1)', paddingTop: 8, margin: 0 }}>
+                        <p style={{ color: J["menthe"], fontSize: 11, marginBottom: 8 }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
+                        <p style={{ color: J["ardoise"], fontSize: 10, lineHeight: 1.4, borderTop: '1px solid rgba(237,234,229,0.1)', paddingTop: 8, margin: 0 }}>
                           La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.
                         </p>
                       </div>
@@ -1232,7 +1233,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     wrapperStyle={{ fontSize: 12, paddingBottom: 12 }}
                     formatter={(v) => <span className="text-craie text-[12px]">{v === 'capital' ? 'Capital remboursé' : 'Cash-flow annuel'}</span>} />
                   <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
-                  <Bar name="cashflow" dataKey="cashflow" fill="#96c0b8" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
+                  <Bar name="cashflow" dataKey="cashflow" fill={J["menthe"]} radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

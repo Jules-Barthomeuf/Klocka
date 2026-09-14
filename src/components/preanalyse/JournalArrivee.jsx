@@ -11,6 +11,7 @@ import MarcheVendeur from "@/components/preanalyse/MarcheVendeur";
 import GraphiqueLoyers from "@/components/preanalyse/GraphiqueLoyers";
 import { Onglets } from "@/components/preanalyse/marche-ui";
 import { Etiquette } from "@/components/alx/alx-commun";
+import { J } from "@/design/jetons";
 
 // L'onglet Marché, à l'arrivée. Deux états, et ils ne se ressemblent pas.
 //
@@ -71,21 +72,21 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
           <span
             key={c.cle}
             title={c.libelle}
-            className="inline-flex items-center rounded-full border border-bord-doux bg-[#15181c] px-3 py-1 font-pill text-[11px] font-medium uppercase tracking-[.04em] text-[#c6ccd3]"
+            className="inline-flex items-center rounded-full border border-bord-doux bg-surface px-3 py-1 font-pill text-[11px] font-medium uppercase tracking-[.04em] text-craie"
           >
             {c.valeur}
           </span>
         ))}
       </div>
 
-      <ul className="m-0 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
+      <ul className="m-0 p-0 list-none flex flex-col divide-y divide-relief border-y border-relief">
         {sources.map((s) => {
           const c = ton(s.ton);
           return (
             <li key={s.cle} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 py-3">
               <span className="flex-shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: c.pastille }} aria-hidden />
               <span className="flex-shrink-0 text-[13px] text-encre">{s.nom}</span>
-              <span className="min-w-0 flex-1 text-[12px]" style={{ color: s.ton === "ambre" ? c.etiquette : "#6a7180" }}>
+              <span className="min-w-0 flex-1 text-[12px]" style={{ color: s.ton === "ambre" ? c.etiquette : J["brume"] }}>
                 {s.acces}
               </span>
             </li>
@@ -98,7 +99,7 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
           type="button"
           onClick={() => onLancer(null)}
           disabled={apercu}
-          className="inline-flex items-center gap-2 rounded-full bg-[#b8dcc8] text-[#04140c] text-[13px] font-semibold px-5 py-2.5 hover:bg-[#c8e8d6] disabled:opacity-30 transition-colors"
+          className="inline-flex items-center gap-2 rounded-full bg-menthe-clair text-sur-menthe text-[13px] font-semibold px-5 py-2.5 hover:bg-menthe-clair disabled:opacity-30 transition-colors"
         >
           <Play className="w-3.5 h-3.5" /> Lancer la recherche
         </button>
@@ -152,13 +153,13 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
     const [mot, chiffre] = c.valeur.includes(" · ") ? c.valeur.split(" · ") : [null, c.valeur];
     return { mot, chiffre };
   };
-  const teinteDe = (c) => (c.ton === "ambre" ? "#e0a45e" : c.ton === "rouge" ? "#e0655f" : c.ton === "gris" ? "#8B938F" : ["reversion", "prix-fai"].includes(c.cle) ? "#96c0b8" : "#F3F7F5");
+  const teinteDe = (c) => (c.ton === "ambre" ? J["ambre"] : c.ton === "rouge" ? J["alerte"] : c.ton === "gris" ? J["ardoise"] : ["reversion", "prix-fai"].includes(c.cle) ? J["menthe"] : J["encre"]);
 
   return (
     <div className="pb-9 pt-[6px]">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <span className="text-[28px] font-normal tracking-[-.02em] text-[#F3F7F5]">Analyse du {analyse.le}</span>
-        <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-[#96c0b8] px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-[#08130D] hover:bg-[#c3ddd6] disabled:opacity-30 transition-colors" />
+        <span className="text-[28px] font-normal tracking-[-.02em] text-encre">Analyse du {analyse.le}</span>
+        <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe hover:bg-menthe-clair disabled:opacity-30 transition-colors" />
       </div>
 
       <Onglets items={ONGLETS} valeur={onglet} onChange={setOnglet} className="mt-6" />
@@ -168,7 +169,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
           <GraphiqueLoyers lectures={analyse.loyers_lectures || []} enPlace={analyse.en_place_m2} />
 
           {/* Les cinq chiffres : chacun ouvre sa démonstration en pleine largeur. */}
-          <div className="mt-8 grid grid-cols-2 border-t border-white/[0.16] md:grid-cols-5">
+          <div className="mt-8 grid grid-cols-2 border-t border-bord md:grid-cols-5">
             {analyse.cartes.map((c, i) => {
               const { mot, chiffre } = valeurDe(c);
               return (
@@ -177,15 +178,15 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   type="button"
                   onClick={() => onCarte(c)}
                   title={c.detail}
-                  className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-white/[0.16]"}`}
+                  className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-bord"}`}
                   style={{ background: "transparent" }}
                 >
-                  <span className="alx-mont flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[.14em] text-[#8B938F]">
+                  <span className="alx-mont flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[.14em] text-ardoise">
                     {c.libelle}
                     <InfoBulle texte={c.detail} />
                   </span>
                   <span className="mt-2 block whitespace-nowrap text-[18px] font-medium tabular-nums" style={{ color: teinteDe(c) }}>{chiffre}</span>
-                  {mot && <span className="mt-1 block text-[11.5px] text-[#8B938F]">{mot}</span>}
+                  {mot && <span className="mt-1 block text-[11.5px] text-ardoise">{mot}</span>}
                 </button>
               );
             })}
@@ -207,18 +208,18 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
               <SecondPointDeVue comparaison={analyse.parComparaison} ecart={analyse.ecartComparaison} />
             </div>
           )}
-          <div className={`grid grid-cols-1 gap-x-[34px] gap-y-8 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] ${analyse.recoupement || analyse.parComparaison ? "mt-[34px] border-t border-white/[0.07] pt-[26px]" : ""}`}>
+          <div className={`grid grid-cols-1 gap-x-[34px] gap-y-8 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] ${analyse.recoupement || analyse.parComparaison ? "mt-[34px] border-t border-trait pt-[26px]" : ""}`}>
             <section>
               <Etiquette>Sources</Etiquette>
               <ul className="m-0 mt-3.5 flex list-none flex-col p-0">
                 {analyse.sources.map((s, i) => {
                   const c = ton(s.ton);
                   return (
-                    <li key={`${s.nom}-${i}`} className={`flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-3 ${i < analyse.sources.length - 1 ? "border-b border-white/[0.05]" : ""}`}>
+                    <li key={`${s.nom}-${i}`} className={`flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-3 ${i < analyse.sources.length - 1 ? "border-b border-trait" : ""}`}>
                       <span className="h-[5px] w-[5px] flex-shrink-0 rounded-full" style={{ background: c.pastille }} aria-hidden />
-                      <span className="flex-shrink-0 text-[14px] text-[#F3F7F5]">{s.nom}</span>
-                      <span className="min-w-0 flex-1 text-[12.5px]" style={{ color: s.ton === "ambre" || s.ton === "rouge" ? c.etiquette : "#8B938F" }}>{s.etat}</span>
-                      <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] tabular-nums text-[#8B938F]">{s.quand}</span>
+                      <span className="flex-shrink-0 text-[14px] text-encre">{s.nom}</span>
+                      <span className="min-w-0 flex-1 text-[12.5px]" style={{ color: s.ton === "ambre" || s.ton === "rouge" ? c.etiquette : J["ardoise"] }}>{s.etat}</span>
+                      <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] tabular-nums text-ardoise">{s.quand}</span>
                     </li>
                   );
                 })}
@@ -229,9 +230,9 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
               <Etiquette>Dans l'ordre, ce que j'ai consulté</Etiquette>
               <ol className="m-0 mt-3.5 flex list-none flex-col p-0">
                 {analyse.consultations.map((c, i) => (
-                  <li key={`${c.quoi}-${i}`} title={c.url || undefined} className={`flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 py-3 ${i < analyse.consultations.length - 1 ? "border-b border-white/[0.05]" : ""}`}>
-                    <span className="flex-shrink-0 text-[11.5px] tabular-nums text-[#8B938F]">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="min-w-0 flex-1 text-[13.5px] text-[#C3CBC7]">{c.quoi}</span>
+                  <li key={`${c.quoi}-${i}`} title={c.url || undefined} className={`flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 py-3 ${i < analyse.consultations.length - 1 ? "border-b border-trait" : ""}`}>
+                    <span className="flex-shrink-0 text-[11.5px] tabular-nums text-ardoise">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="min-w-0 flex-1 text-[13.5px] text-craie">{c.quoi}</span>
                     <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] tabular-nums" style={{ color: ton(c.ton).etiquette }}>{c.issue}</span>
                   </li>
                 ))}

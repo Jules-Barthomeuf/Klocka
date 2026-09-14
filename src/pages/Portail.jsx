@@ -250,7 +250,7 @@ export default function Portail({ paiement2Fois = false }) {
 
         {/* Footer - only show on non-landing steps */}
         {etape !== 1 && (
-          <div className="mt-16 pt-8 border-t border-[#15171b] text-center px-6 pb-6 bg-fond">
+          <div className="mt-16 pt-8 border-t border-relief text-center px-6 pb-6 bg-fond">
             <p className="text-encre/15 text-xs">© 2026 Klocka · Développeur de revenus immobiliers</p>
           </div>
         )}

@@ -2,8 +2,9 @@ import React from "react";
 import { Users } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from "recharts";
 import SectionCard, { KPI } from "./SectionCard";
+import { J } from "@/design/jetons";
 
-const tooltipStyle = { backgroundColor: '#0f1114', border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
+const tooltipStyle = { backgroundColor: J["surface"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
 
 // Moyennes nationales France (INSEE)
 const FR_POP = {
@@ -95,11 +96,11 @@ export default function PopulationSection({ data }) {
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={pyramide} layout="vertical" margin={{ left: 10, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2228" horizontal={false} />
-                  <XAxis type="number" stroke="#9298a6" tick={{ fill: '#9298a6', fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 'auto']} />
-                  <YAxis type="category" dataKey="tranche" stroke="#9298a6" tick={{ fill: '#9298a6', fontSize: 11 }} width={70} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={J["trait"]} horizontal={false} />
+                  <XAxis type="number" stroke={J["ardoise"]} tick={{ fill: J["ardoise"], fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 'auto']} />
+                  <YAxis type="category" dataKey="tranche" stroke={J["ardoise"]} tick={{ fill: J["ardoise"], fontSize: 11 }} width={70} />
                   <Tooltip formatter={v => `${v}%`} contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" fill="#96c0b8" radius={[0, 4, 4, 0]} barSize={16} />
+                  <Bar dataKey="value" fill={J["menthe"]} radius={[0, 4, 4, 0]} barSize={16} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -113,11 +114,11 @@ export default function PopulationSection({ data }) {
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={historique} margin={{ left: 10, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2228" />
-                  <XAxis dataKey="annee" stroke="#9298a6" tick={{ fill: '#9298a6', fontSize: 11 }} />
-                  <YAxis stroke="#9298a6" tick={{ fill: '#9298a6', fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={J["trait"]} />
+                  <XAxis dataKey="annee" stroke={J["ardoise"]} tick={{ fill: J["ardoise"], fontSize: 11 }} />
+                  <YAxis stroke={J["ardoise"]} tick={{ fill: J["ardoise"], fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
                   <Tooltip formatter={v => v.toLocaleString()} contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="population" stroke="#96c0b8" strokeWidth={2} dot={{ fill: '#96c0b8', r: 3 }} />
+                  <Line type="monotone" dataKey="population" stroke={J["menthe"]} strokeWidth={2} dot={{ fill: J["menthe"], r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

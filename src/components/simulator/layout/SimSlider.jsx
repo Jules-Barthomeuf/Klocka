@@ -53,7 +53,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-            className="sim-num-input bg-[#0c0d10] text-encre text-right text-[13px] w-24 px-1.5 py-0.5 rounded border border-menthe/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
+            className="sim-num-input bg-fond text-encre text-right text-[13px] w-24 px-1.5 py-0.5 rounded border border-menthe/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
           />
         ) : (
           <button

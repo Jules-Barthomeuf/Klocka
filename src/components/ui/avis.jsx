@@ -1,6 +1,7 @@
 import React from "react";
 import { toast as sonner, Toaster as SonnerToaster } from "sonner";
 import { Check, CircleAlert, TriangleAlert, Info, LoaderCircle, X } from "lucide-react";
+import { J } from "@/design/jetons";
 
 // Les avis de l'application : la carte qui apparaît en haut de l'écran quand
 // quelque chose s'est passé. Une seule forme pour les cinq tons, reprise de la
@@ -14,11 +15,11 @@ import { Check, CircleAlert, TriangleAlert, Info, LoaderCircle, X } from "lucide
 // celui de Klocka.
 
 const TONS = {
-  succes: { teinte: "#96c0b8", Icone: Check, mot: "Succès" },
-  erreur: { teinte: "#e8746a", Icone: CircleAlert, mot: "Erreur" },
-  avertissement: { teinte: "#d9b46a", Icone: TriangleAlert, mot: "Avertissement" },
+  succes: { teinte: J["menthe"], Icone: Check, mot: "Succès" },
+  erreur: { teinte: J["alerte"], Icone: CircleAlert, mot: "Erreur" },
+  avertissement: { teinte: J["ambre"], Icone: TriangleAlert, mot: "Avertissement" },
   information: { teinte: "#7896eb", Icone: Info, mot: "Information" },
-  en_cours: { teinte: "#9298a6", Icone: LoaderCircle, mot: "En cours" },
+  en_cours: { teinte: J["ardoise"], Icone: LoaderCircle, mot: "En cours" },
 };
 
 const DUREES = { erreur: 7000, avertissement: 6000, en_cours: Infinity };
@@ -38,7 +39,7 @@ export function Avis({ ton = "information", titre, description = null, action = 
   return (
     <div
       role="status"
-      className="relative w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-white/[0.08] bg-surface px-[18px] py-4 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.9)]"
+      className="relative w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-trait bg-surface px-[18px] py-4 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.9)]"
     >
       <div className="flex items-start gap-3">
         <span

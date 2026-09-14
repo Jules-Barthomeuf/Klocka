@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { J } from "@/design/jetons";
 
 export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -133,9 +134,9 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
           >
             <defs>
               <linearGradient id="patrimoineAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#96c0b8" stopOpacity="0.35" />
-                <stop offset="50%" stopColor="#96c0b8" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#96c0b8" stopOpacity="0.02" />
+                <stop offset="0%" stopColor={J["menthe"]} stopOpacity="0.35" />
+                <stop offset="50%" stopColor={J["menthe"]} stopOpacity="0.15" />
+                <stop offset="100%" stopColor={J["menthe"]} stopOpacity="0.02" />
               </linearGradient>
               <filter id="patrimoineGlow" x="-100%" y="-100%" width="300%" height="300%">
                 <feGaussianBlur stdDeviation="2" result="blur" />
@@ -154,7 +155,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   y1={getY(tick)}
                   x2={chartWidth - padding.right}
                   y2={getY(tick)}
-                  stroke="#2c3139"
+                  stroke={J["bord-doux"]}
                   strokeWidth="1"
                   strokeDasharray="3 5"
                   opacity={0.3}
@@ -164,7 +165,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   y={getY(tick)}
                   textAnchor="end"
                   dominantBaseline="middle"
-                  fill="#9298a6"
+                  fill={J["ardoise"]}
                   fontSize="10"
                   fontWeight="500"
                 >
@@ -183,7 +184,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                     y1={padding.top}
                     x2={getX(i)}
                     y2={chartHeight - padding.bottom}
-                    stroke="#2c3139"
+                    stroke={J["bord-doux"]}
                     strokeWidth="1"
                     strokeDasharray="3 5"
                     opacity={hoveredIndex === i ? 0.8 : 0.3}
@@ -198,7 +199,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
             <path
               d={generatePath('patrimoine')}
               fill="none"
-              stroke="#96c0b8"
+              stroke={J["menthe"]}
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -207,7 +208,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
             <path
               d={generatePath('capitalRestant')}
               fill="none"
-              stroke="#e8746a"
+              stroke={J["alerte"]}
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -229,7 +230,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   cy={getY(data[hoveredIndex].patrimoine)}
                   r="8"
                   fill="#262627"
-                  stroke="#96c0b8"
+                  stroke={J["menthe"]}
                   strokeWidth="3"
                   filter="url(#patrimoineGlow)"
                 />
@@ -247,7 +248,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                   cy={getY(data[hoveredIndex].capitalRestant)}
                   r="8"
                   fill="#262627"
-                  stroke="#e8746a"
+                  stroke={J["alerte"]}
                   strokeWidth="3"
                   filter="url(#patrimoineGlow)"
                 />
@@ -263,7 +264,7 @@ export const PatrimoineChart = React.memo(function PatrimoineChart({ data }) {
                     x={getX(i)}
                     y={chartHeight - 10}
                     textAnchor="middle"
-                    fill="#9298a6"
+                    fill={J["ardoise"]}
                     fontSize="11"
                     fontWeight="500"
                   >

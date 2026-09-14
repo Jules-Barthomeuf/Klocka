@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { J } from "@/design/jetons";
 
 // La carte du projet, avec les cessions de fonds de commerce posées dessus.
 //
@@ -11,9 +12,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 // clé est déjà celle de l'application.
 
 const CLE = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
-const MENTHE = "#96c0b8";
-const OR = "#d9b46a";
-const GRIS = "#8d918f";
+const MENTHE = J["menthe"];
+const OR = J["ambre"];
+const GRIS = J["ardoise"];
 
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—");
@@ -29,7 +30,7 @@ function rayonDe(prix, median) {
 const STYLE_SOMBRE = [
   { elementType: "geometry", stylers: [{ color: "#1d2126" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#12151a" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#8d918f" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: J["ardoise"] }] },
   { featureType: "poi", stylers: [{ visibility: "off" }] },
   { featureType: "transit", stylers: [{ visibility: "off" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#2b3038" }] },
@@ -99,7 +100,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
             disableDefaultUI: true,
             zoomControl: true,
             gestureHandling: "cooperative",
-            backgroundColor: "#0f1114",
+            backgroundColor: J["surface"],
           });
           bulle.current = new g.InfoWindow();
         } else {
@@ -148,7 +149,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
             scale: 9,
             fillColor: MENTHE,
             fillOpacity: 1,
-            strokeColor: "#04140c",
+            strokeColor: J["sur-menthe"],
             strokeWeight: 3,
           },
         });
@@ -196,7 +197,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
               key={v}
               type="button"
               onClick={() => setFiltre(v)}
-              className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${filtre === v ? "bg-menthe text-[#04140c] border-menthe" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif"}`}
+              className={`px-3 py-1 rounded-full text-[12px] border transition-colors ${filtre === v ? "bg-menthe text-sur-menthe border-menthe" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif"}`}
             >
               {l}
             </button>

@@ -3,17 +3,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Check, ChevronDown, Loader2, RotateCcw } from "lucide-react";
+import { J } from "@/design/jetons";
 
 // Architecture B — la fiche. Un seul objet, le bien : une fiche par blocs,
 // une valeur retenue par champ, une pastille, un nombre de preuves. Le clic
 // déplie les preuves ; la frise place les faits datés sur le temps ; le
 // bandeau dit ce qui coince. On lit la fiche comme un dossier d'instruction.
 
-const TEINTE = { coherent: "#7fd1a8", contradictoire: "#e8927c", manquant: "#e8b04c", hors_critere: "#c39bd3", a_verifier: "#8fb6e8" };
+const TEINTE = { coherent: J["vert"], contradictoire: J["alerte"], manquant: J["ambre"], hors_critere: "#c39bd3", a_verifier: J["bleu"] };
 const LIBELLE = { coherent: "Cohérent", contradictoire: "Contradictoire", manquant: "Manquant", hors_critere: "Hors critère", a_verifier: "À vérifier" };
 
 function Pastille({ statut, titre = undefined }) {
-  return <span title={titre || LIBELLE[statut]} className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: TEINTE[statut] || "#3a3f4a" }} />;
+  return <span title={titre || LIBELLE[statut]} className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: TEINTE[statut] || J["bord-vif"] }} />;
 }
 
 // --- Le bandeau d'alertes ----------------------------------------------------------
@@ -26,7 +27,7 @@ function Bandeau({ fiche, onAller }) {
     ["a_verifier", a.a_verifier, "à vérifier"],
   ].filter(([, ids]) => ids.length);
   const champs = new Map(fiche.blocs.flatMap((b) => b.champs).map((c) => [c.id, c]));
-  if (!items.length) return <p className="m-0 mb-5 text-[13px] text-[#7fd1a8]">Aucune alerte : les pièces concordent sur tous les champs de la fiche.</p>;
+  if (!items.length) return <p className="m-0 mb-5 text-[13px] text-vert">Aucune alerte : les pièces concordent sur tous les champs de la fiche.</p>;
   return (
     <div className="mb-6 rounded-xl border border-bord bg-surface px-5 py-4">
       <div className="flex flex-wrap gap-x-6 gap-y-3">
@@ -46,7 +47,7 @@ function Bandeau({ fiche, onAller }) {
         ))}
       </div>
       {fiche.tensions.length > 0 && (
-        <p className="m-0 mt-3 text-[12.5px] text-[#e8927c]">
+        <p className="m-0 mt-3 text-[12.5px] text-alerte">
           Dates en tension : {fiche.tensions.map((t) => `${t.libelle} (${t.annees.join(" / ")})`).join(" · ")} — voir la frise.
         </p>
       )}
@@ -65,17 +66,17 @@ function Champ({ champ, dealId, ouvert, onOuvrir, onPreuve }) {
   });
   const n = champ.preuves.length;
   return (
-    <div id={`champ-${champ.id}`} className={`border-b border-[#1e1e22] last:border-b-0 ${ouvert ? "bg-encre/[0.02]" : ""}`}>
+    <div id={`champ-${champ.id}`} className={`border-b border-relief last:border-b-0 ${ouvert ? "bg-encre/[0.02]" : ""}`}>
       <button onClick={onOuvrir} className="w-full text-left grid grid-cols-[180px_1fr_auto] max-md:grid-cols-1 gap-x-5 gap-y-1 items-start px-4 py-3 hover:bg-encre/[0.02]">
         <span className="text-[12.5px] text-ardoise pt-px flex items-center gap-2.5">
           <Pastille statut={champ.statut} titre={`${LIBELLE[champ.statut]} — ${champ.detail}`} />
           {champ.libelle}
         </span>
-        <span className={`text-[14px] leading-[1.55] ${champ.valeur ? "text-encre" : "text-[#4d545d] italic"} ${ouvert ? "" : "line-clamp-2"}`}>
+        <span className={`text-[14px] leading-[1.55] ${champ.valeur ? "text-encre" : "text-brume italic"} ${ouvert ? "" : "line-clamp-2"}`}>
           {champ.valeur || (champ.statut === "hors_critere" ? "Non fourni — hors critère" : "Aucune pièce ne le dit")}
         </span>
         <span className="text-[11.5px] text-brume whitespace-nowrap flex items-center gap-2 justify-end">
-          {champ.forcage ? <span className="text-ambre">retenu à la main</span> : champ.source === "annonce" ? <span className="text-[#8fb6e8]">annonce seule</span> : null}
+          {champ.forcage ? <span className="text-ambre">retenu à la main</span> : champ.source === "annonce" ? <span className="text-bleu">annonce seule</span> : null}
           {n ? `${n} source${n > 1 ? "s" : ""}` : "0 source"}
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${ouvert ? "" : "-rotate-90"}`} />
         </span>
@@ -102,7 +103,7 @@ function Champ({ champ, dealId, ouvert, onOuvrir, onPreuve }) {
           })}
           <div className="flex flex-wrap items-center gap-2">
             <input value={libre} onChange={(e) => setLibre(e.target.value)} placeholder="Ou forcer une valeur à la main…" className="flex-1 min-w-[220px] bg-transparent border border-bord rounded-lg px-3 py-1.5 text-[13px] text-encre outline-none focus:border-menthe/60" />
-            <button onClick={() => forcer.mutate({ valeur: libre })} disabled={!libre.trim() || forcer.isPending} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-encre text-[#0b0c0e] font-semibold disabled:opacity-40"><Check className="w-3.5 h-3.5" /> Retenir</button>
+            <button onClick={() => forcer.mutate({ valeur: libre })} disabled={!libre.trim() || forcer.isPending} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full bg-encre text-fond font-semibold disabled:opacity-40"><Check className="w-3.5 h-3.5" /> Retenir</button>
             {champ.forcage && <button onClick={() => forcer.mutate({})} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre px-2"><RotateCcw className="w-3.5 h-3.5" /> Revenir à la règle</button>}
           </div>
         </div>
@@ -128,12 +129,12 @@ export function Frise({ fiche, onPreuve }) {
       <div className="absolute left-[7px] top-1 bottom-1 w-px bg-bord-doux" />
       {parAnnee.map((g) => (
         <div key={g.an} className="mb-6">
-          <p className={`m-0 mb-2 -ml-6 text-[11px] tracking-[.16em] uppercase font-semibold flex items-center gap-3 ${g.an > auj.slice(0, 4) ? "text-[#8fb6e8]" : "text-ardoise"}`}>
-            <span className="w-[15px] h-[15px] rounded-full border-2 border-[#0f0f11] flex-none" style={{ background: g.an > auj.slice(0, 4) ? "#8fb6e8" : "#6a7180" }} /> {g.an}{g.an === auj.slice(0, 4) ? " · cette année" : ""}
+          <p className={`m-0 mb-2 -ml-6 text-[11px] tracking-[.16em] uppercase font-semibold flex items-center gap-3 ${g.an > auj.slice(0, 4) ? "text-bleu" : "text-ardoise"}`}>
+            <span className="w-[15px] h-[15px] rounded-full border-2 border-fond flex-none" style={{ background: g.an > auj.slice(0, 4) ? J["bleu"] : J["brume"] }} /> {g.an}{g.an === auj.slice(0, 4) ? " · cette année" : ""}
           </p>
           <div className="space-y-2">
             {g.evts.map((e, i) => (
-              <button key={i} onClick={() => onPreuve(e)} className={`block w-full text-left rounded-lg border px-4 py-2.5 hover:border-bord-vif ${tendus.has(e.champ) ? "border-[#e8927c]/50" : "border-[#1e1e22]"}`}>
+              <button key={i} onClick={() => onPreuve(e)} className={`block w-full text-left rounded-lg border px-4 py-2.5 hover:border-bord-vif ${tendus.has(e.champ) ? "border-alerte/50" : "border-relief"}`}>
                 <span className="text-[12px] tabular-nums text-ardoise">{e.iso.split("-").reverse().join("/")}</span>
                 <span className="text-[13.5px] text-encre ml-3">{e.libelle}</span>
                 <span className="text-[12px] text-brume ml-2">· {e.document_nom}{e.page ? ` · p.${e.page}` : ""}</span>
@@ -163,11 +164,11 @@ export default function FicheDossier({ dealId, onPreuve, questionsLibres }) {
   return (
     <div>
       <Bandeau fiche={fiche} onAller={aller} />
-      <p className="m-0 mb-3 text-[12.5px] text-[#77777e]">{nbChamps} champs · {fiche.nb_documents} pièce{fiche.nb_documents > 1 ? "s" : ""} · la valeur retenue vient de la pièce la plus autoritaire (l'acte prime sur le bail, le bail sur le PV) sauf choix contraire.</p>
+      <p className="m-0 mb-3 text-[12.5px] text-brume">{nbChamps} champs · {fiche.nb_documents} pièce{fiche.nb_documents > 1 ? "s" : ""} · la valeur retenue vient de la pièce la plus autoritaire (l'acte prime sur le bail, le bail sur le PV) sauf choix contraire.</p>
       <div className="space-y-5">
         {fiche.blocs.map((b) => (
-          <section key={b.nom} className="border border-[#1e1e22] rounded-xl overflow-hidden">
-            <p className="m-0 px-4 py-2 text-[10.5px] tracking-[.16em] uppercase text-[#77777e] bg-[#0f0f11] border-b border-[#1e1e22]">{b.nom}</p>
+          <section key={b.nom} className="border border-relief rounded-xl overflow-hidden">
+            <p className="m-0 px-4 py-2 text-[10.5px] tracking-[.16em] uppercase text-brume bg-fond border-b border-relief">{b.nom}</p>
             {b.champs.map((c) => (
               <Champ key={c.id} champ={c} dealId={dealId} ouvert={ouvert === c.id} onOuvrir={() => setOuvert(ouvert === c.id ? null : c.id)} onPreuve={onPreuve} />
             ))}

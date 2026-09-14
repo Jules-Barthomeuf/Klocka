@@ -5,6 +5,7 @@ import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFondsDataB from "@/components/preanalyse/TransactionsFondsDataB";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
+import { J } from "@/design/jetons";
 
 // Ce que chaque plateforme a rendu, chez elle.
 //
@@ -25,7 +26,7 @@ const pct = (n, d = 1) => (n == null ? "—" : `${n > 0 ? "+" : ""}${Number(n).t
 export function Recoupement({ recoupement }) {
   if (!recoupement?.lectures?.length) return null;
   const { alerte, ecart, ecart_relatif: relatif, lectures, ecartees = [], incoherences = [] } = recoupement;
-  const teinte = alerte ? "#e0a45e" : "#96c0b8";
+  const teinte = alerte ? J["ambre"] : J["menthe"];
   return (
     <div className="rounded-[14px] border px-[22px] py-5" style={{ borderColor: alerte ? "rgba(224,164,94,0.35)" : "rgba(255,255,255,0.08)", background: alerte ? "rgba(224,164,94,0.04)" : "transparent" }}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -33,28 +34,28 @@ export function Recoupement({ recoupement }) {
           {alerte ? "Écart entre les sources" : "Les sources concordent"}
         </span>
         {ecart != null && (
-          <span className="text-[14px] font-medium tabular-nums text-[#F3F7F5]">
+          <span className="text-[14px] font-medium tabular-nums text-encre">
             {fmt(ecart)} €/m²/an{relatif != null ? ` · ${pct(relatif * 100, 0)}` : ""}
           </span>
         )}
       </div>
       <div className="mt-3.5 flex flex-col">
         {lectures.map((l, i) => (
-          <div key={`${l.service}-${i}`} className="flex items-baseline justify-between gap-3 border-t border-white/[0.06] py-[9px]">
-            <span className="text-[13.5px] text-[#C3CBC7]">{l.service}{l.service === "Data-B" && l.echelle ? `, ${l.echelle}${l.precision ? ` ${l.precision}` : ""}` : ""}</span>
-            <span className="whitespace-nowrap text-[14px] tabular-nums text-[#E8EFEB]">{l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an</span>
+          <div key={`${l.service}-${i}`} className="flex items-baseline justify-between gap-3 border-t border-trait py-[9px]">
+            <span className="text-[13.5px] text-craie">{l.service}{l.service === "Data-B" && l.echelle ? `, ${l.echelle}${l.precision ? ` ${l.precision}` : ""}` : ""}</span>
+            <span className="whitespace-nowrap text-[14px] tabular-nums text-encre">{l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an</span>
           </div>
         ))}
       </div>
       {/* Ce qui n'a PAS été comparé, et pourquoi : sans cette liste, l'écran
           affiche un écart sans dire qu'il a choisi une maille parmi trois. */}
       {ecartees.length > 0 && (
-        <p className="m-0 mt-3 text-[12.5px] leading-[1.6] text-[#8B938F]">
+        <p className="m-0 mt-3 text-[12.5px] leading-[1.6] text-ardoise">
           Non comparé : {ecartees.map((e) => `${e.service} ${e.echelle} ${e.bas != null && e.haut != null ? `${fmt(e.bas)}–${fmt(e.haut)}` : fmt(e.median)} €/m²/an`).join(" · ")}, autre territoire que la source de tête.
         </p>
       )}
       {incoherences.map((i) => (
-        <p key={i.service} className="m-0 mt-2 text-[12.5px] leading-[1.6] text-[#e0a45e]">
+        <p key={i.service} className="m-0 mt-2 text-[12.5px] leading-[1.6] text-ambre">
           {i.service} ne dit pas la même chose selon la maille : {i.haute.echelle} à {fmt(i.haute.centre)} contre {i.basse.echelle} à {fmt(i.basse.centre)} €/m²/an, soit {fmt(i.rapport, 1)} fois. À vérifier chez la source avant de retenir l'un ou l'autre.
         </p>
       ))}

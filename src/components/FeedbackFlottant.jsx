@@ -8,6 +8,7 @@ import { Image as ImageIcon, MessageSquarePlus, Mic, Square, X } from "lucide-re
 import { useDictee } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
+import { J } from "@/design/jetons";
 
 // Le signalement, sans quitter la page : une icône en haut à droite, un
 // panneau qui s'ouvre dessous, la remarque part de là. Les dernières remarques
@@ -16,16 +17,16 @@ import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 // Même entité que la page Feedback : une remarque écrite ici s'y retrouve.
 
 const URGENCES = [
-  { n: 1, mot: "Quand vous pouvez", teinte: "#4d545d" },
-  { n: 2, mot: "Peu pressé", teinte: "#6a7180" },
-  { n: 3, mot: "Normal", teinte: "#96c0b8" },
-  { n: 4, mot: "Pressé", teinte: "#d9b46a" },
-  { n: 5, mot: "Urgent", teinte: "#e8746a" },
+  { n: 1, mot: "Quand vous pouvez", teinte: J["brume"] },
+  { n: 2, mot: "Peu pressé", teinte: J["brume"] },
+  { n: 3, mot: "Normal", teinte: J["menthe"] },
+  { n: 4, mot: "Pressé", teinte: J["ambre"] },
+  { n: 5, mot: "Urgent", teinte: J["alerte"] },
 ];
 const urgenceDe = (n) => URGENCES[Math.min(5, Math.max(1, Number(n) || 3)) - 1];
 
 const ETATS = {
-  nouveau: { mot: "À faire", fond: "#2c3139" },
+  nouveau: { mot: "À faire", fond: J["bord-doux"] },
   en_cours: { mot: "En cours", fond: "#a8752a" },
   accepte: { mot: "En cours", fond: "#a8752a" },
   termine: { mot: "Fait", fond: "#2f7a5a" },
@@ -115,7 +116,7 @@ export default function FeedbackFlottant() {
         // Même taille que la pilule de l'assistant, en bas à droite : 48 px.
         className={`w-12 h-12 rounded-full flex items-center justify-center border transition-colors ${
           ouvert
-            ? "bg-menthe border-menthe text-[#0b0c0e]"
+            ? "bg-menthe border-menthe text-fond"
             : "bg-[#0a0a0bcc] backdrop-blur-md border-menthe/30 text-ardoise hover:text-encre hover:border-menthe/60"
         }`}
       >
@@ -166,7 +167,7 @@ export default function FeedbackFlottant() {
                 {apercu && (
                   <div className="relative inline-block mb-2.5">
                     <img src={apercu} alt="Capture" className="max-h-[120px] rounded-lg border border-bord" />
-                    <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#0a0a0b] border border-bord-doux text-ardoise hover:text-encre flex items-center justify-center" aria-label="Retirer la capture">
+                    <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-fond border border-bord-doux text-ardoise hover:text-encre flex items-center justify-center" aria-label="Retirer la capture">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -182,7 +183,7 @@ export default function FeedbackFlottant() {
                         aria-pressed={urgence === n}
                         title={URGENCES[n - 1].mot}
                         className="w-3 rounded-[2px] transition-all"
-                        style={{ height: 7 + n * 2.5, background: n <= urgence ? urgenceDe(urgence).teinte : "#22262d" }}
+                        style={{ height: 7 + n * 2.5, background: n <= urgence ? urgenceDe(urgence).teinte : J["bord"] }}
                       />
                     ))}
                   </span>

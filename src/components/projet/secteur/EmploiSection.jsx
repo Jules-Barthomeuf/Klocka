@@ -2,8 +2,9 @@ import React from "react";
 import { Briefcase } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import SectionCard, { KPI } from "./SectionCard";
+import { J } from "@/design/jetons";
 
-const tooltipStyle = { backgroundColor: '#0f1114', border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
+const tooltipStyle = { backgroundColor: J["surface"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
 
 // Moyennes nationales France (INSEE)
 const FR = {
@@ -59,9 +60,9 @@ function CompareBar({ label, local, national, unit = "%" }) {
 
 export default function EmploiSection({ data }) {
   const cspData = [
-    data.pct_cadres > 0 && { name: "Cadres", value: data.pct_cadres, fill: "#c3ddd6" },
-    data.pct_professions_intermediaires > 0 && { name: "Prof. intermédiaires", value: data.pct_professions_intermediaires, fill: "#96c0b8" },
-    data.pct_employes > 0 && { name: "Employés", value: data.pct_employes, fill: "#7fada4" },
+    data.pct_cadres > 0 && { name: "Cadres", value: data.pct_cadres, fill: J["menthe-clair"] },
+    data.pct_professions_intermediaires > 0 && { name: "Prof. intermédiaires", value: data.pct_professions_intermediaires, fill: J["menthe"] },
+    data.pct_employes > 0 && { name: "Employés", value: data.pct_employes, fill: J["menthe-fonce"] },
     data.pct_ouvriers > 0 && { name: "Ouvriers", value: data.pct_ouvriers, fill: "#1f6b62" },
     data.pct_artisans_commercants > 0 && { name: "Artisans/Comm.", value: data.pct_artisans_commercants, fill: "#17504a" },
     data.pct_agriculteurs > 0 && { name: "Agriculteurs", value: data.pct_agriculteurs, fill: "#113a35" },
@@ -70,9 +71,9 @@ export default function EmploiSection({ data }) {
   const emploiSecteur = [
     data.pct_emploi_agriculture > 0 && { name: "Agriculture", value: data.pct_emploi_agriculture, fill: "#113a35" },
     data.pct_emploi_industrie > 0 && { name: "Industrie", value: data.pct_emploi_industrie, fill: "#1f6b62" },
-    data.pct_emploi_construction > 0 && { name: "Construction", value: data.pct_emploi_construction, fill: "#7fada4" },
-    data.pct_emploi_commerce_services > 0 && { name: "Commerce/Services", value: data.pct_emploi_commerce_services, fill: "#96c0b8" },
-    data.pct_emploi_admin_public > 0 && { name: "Admin publique", value: data.pct_emploi_admin_public, fill: "#c3ddd6" },
+    data.pct_emploi_construction > 0 && { name: "Construction", value: data.pct_emploi_construction, fill: J["menthe-fonce"] },
+    data.pct_emploi_commerce_services > 0 && { name: "Commerce/Services", value: data.pct_emploi_commerce_services, fill: J["menthe"] },
+    data.pct_emploi_admin_public > 0 && { name: "Admin publique", value: data.pct_emploi_admin_public, fill: J["menthe-clair"] },
   ].filter(Boolean);
 
   return (
@@ -138,9 +139,9 @@ export default function EmploiSection({ data }) {
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={emploiSecteur} layout="vertical" margin={{ left: 5, right: 15 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2228" horizontal={false} />
-                  <XAxis type="number" stroke="#9298a6" tick={{ fill: '#9298a6', fontSize: 10 }} tickFormatter={v => `${v}%`} />
-                  <YAxis type="category" dataKey="name" stroke="#9298a6" tick={{ fill: '#9298a6', fontSize: 10 }} width={100} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={J["trait"]} horizontal={false} />
+                  <XAxis type="number" stroke={J["ardoise"]} tick={{ fill: J["ardoise"], fontSize: 10 }} tickFormatter={v => `${v}%`} />
+                  <YAxis type="category" dataKey="name" stroke={J["ardoise"]} tick={{ fill: J["ardoise"], fontSize: 10 }} width={100} />
                   <Tooltip formatter={v => `${v}%`} contentStyle={tooltipStyle} />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={14}>
                     {emploiSecteur.map((e, i) => <Cell key={i} fill={e.fill} />)}

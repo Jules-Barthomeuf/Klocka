@@ -9,11 +9,12 @@ import {
   RadialBarChart, RadialBar, Legend
 } from "recharts";
 import SectionCard, { KPI } from "./secteur/SectionCard";
+import { J } from "@/design/jetons";
 
 const DARK_TOOLTIP = {
-  contentStyle: { backgroundColor: "#0f1114", border: "1px solid #22262d", borderRadius: 8 },
+  contentStyle: { backgroundColor: J["surface"], border: "1px solid #22262d", borderRadius: 8 },
   labelStyle: { color: "#fff" },
-  itemStyle: { color: "#9298a6" }
+  itemStyle: { color: J["ardoise"] }
 };
 
 export default function EnvironnementIndicateurs({ project }) {
@@ -36,14 +37,14 @@ export default function EnvironnementIndicateurs({ project }) {
   /* ---- RADIAL ATTRACTIVITÉ ---- */
   const hasAttract = env.score_attractivite != null || env.nb_touristes_an != null || env.nb_etudiants != null;
   const radialAttract = [
-    env.score_attractivite != null && { name: "Attractivité", value: env.score_attractivite, fill: "#96c0b8" },
+    env.score_attractivite != null && { name: "Attractivité", value: env.score_attractivite, fill: J["menthe"] },
   ].filter(Boolean);
 
   /* ---- BAR ÉCONOMIE ---- */
   const hasEco = env.taux_chomage != null || env.nb_entreprises != null;
   const barEco = [
-    env.taux_chomage != null && { name: "Chômage %", val: env.taux_chomage, fill: env.taux_chomage < 7 ? "#96c0b8" : env.taux_chomage < 10 ? "#96c0b8" : "#e8746a" },
-    env.taux_vacance_commerciale != null && { name: "Vacance com. %", val: env.taux_vacance_commerciale, fill: env.taux_vacance_commerciale < 8 ? "#96c0b8" : env.taux_vacance_commerciale < 15 ? "#96c0b8" : "#e8746a" },
+    env.taux_chomage != null && { name: "Chômage %", val: env.taux_chomage, fill: env.taux_chomage < 7 ? J["menthe"] : env.taux_chomage < 10 ? J["menthe"] : J["alerte"] },
+    env.taux_vacance_commerciale != null && { name: "Vacance com. %", val: env.taux_vacance_commerciale, fill: env.taux_vacance_commerciale < 8 ? J["menthe"] : env.taux_vacance_commerciale < 15 ? J["menthe"] : J["alerte"] },
   ].filter(Boolean);
 
   /* ---- BAR PROJETS URBAINS ---- */
@@ -89,9 +90,9 @@ export default function EnvironnementIndicateurs({ project }) {
                 <div className="h-[220px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={radarDemog} cx="50%" cy="50%" outerRadius="70%">
-                      <PolarGrid stroke="#1f2228" />
-                      <PolarAngleAxis dataKey="cat" tick={{ fill: "#9298a6", fontSize: 10 }} />
-                      <Radar dataKey="val" stroke="#96c0b8" fill="#96c0b8" fillOpacity={0.2} strokeWidth={2} />
+                      <PolarGrid stroke={J["trait"]} />
+                      <PolarAngleAxis dataKey="cat" tick={{ fill: J["ardoise"], fontSize: 10 }} />
+                      <Radar dataKey="val" stroke={J["menthe"]} fill={J["menthe"]} fillOpacity={0.2} strokeWidth={2} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
@@ -198,7 +199,7 @@ export default function EnvironnementIndicateurs({ project }) {
                     <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%"
                       data={radialAttract} startAngle={90} endAngle={-270}
                     >
-                      <RadialBar dataKey="value" cornerRadius={6} background={{ fill: "#0f1114" }} label={{ fill: "#9298a6", fontSize: 10 }} />
+                      <RadialBar dataKey="value" cornerRadius={6} background={{ fill: J["surface"] }} label={{ fill: J["ardoise"], fontSize: 10 }} />
                       <Tooltip {...DARK_TOOLTIP} />
                       <Legend formatter={(v) => <span className="text-xs text-ardoise">{v}</span>} />
                     </RadialBarChart>
@@ -250,8 +251,8 @@ export default function EnvironnementIndicateurs({ project }) {
                 <div className="h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={barEco} layout="vertical" margin={{ left: 10, right: 20 }}>
-                      <XAxis type="number" domain={[0, 100]} tick={{ fill: "#6a7180", fontSize: 10 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: "#9298a6", fontSize: 11 }} width={110} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fill: J["brume"], fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: J["ardoise"], fontSize: 11 }} width={110} />
                       <Tooltip {...DARK_TOOLTIP} formatter={(v) => `${v}%`} />
                       <Bar dataKey="val" radius={[0, 4, 4, 0]}>
                         {barEco.map((entry, i) => <Cell key={i} fill={entry.fill} />)}

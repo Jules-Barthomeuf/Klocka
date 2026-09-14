@@ -603,7 +603,7 @@ export default function AdminClients() {
                     inviterTous.mutate();
                   }}
                   disabled={inviterTous.isPending}
-                  className="h-10 text-sm bg-encre hover:bg-[#ffffff] text-[#0b0c0e] font-semibold border-0 rounded-[10px]"
+                  className="h-10 text-sm bg-encre hover:bg-[#ffffff] text-fond font-semibold border-0 rounded-[10px]"
                 >
                   {inviterTous.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
                   Envoyer les liens ({sansMotDePasse})
@@ -682,7 +682,7 @@ export default function AdminClients() {
                     onClick={() => inviterUn.mutate(user)}
                     disabled={inviterUn.isPending}
                     title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
-                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase font-semibold text-[#0b0c0e] bg-encre hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
+                    className="px-4 py-1.5 text-[10px] tracking-[0.16em] uppercase font-semibold text-fond bg-encre hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
                   >
                     {inviterUn.isPending && inviterUn.variables?.id === user.id ? "Envoi…" : "Inviter"}
                   </button>

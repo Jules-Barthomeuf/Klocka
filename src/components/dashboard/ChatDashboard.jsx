@@ -11,6 +11,7 @@ import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
 import Message from "@/components/MessageIA";
+import { J } from "@/design/jetons";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -90,7 +91,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
         <button
           onClick={onEnvoyer}
           disabled={enCours || !b.destinataire.trim()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8] disabled:opacity-40"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40"
         >
           {enCours ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           Envoyer
@@ -149,7 +150,7 @@ function FicheClient({ champs, onChange, onValider, enCours }) {
         <button
           onClick={onValider}
           disabled={enCours}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8] disabled:opacity-40"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40"
         >
           {enCours ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
           Créer le client
@@ -251,7 +252,7 @@ function ResultatFiche({ r, clients }) {
         </p>
       )}
       <div className="mt-4 flex flex-wrap gap-3">
-        <button onClick={() => navigate(`/Analyse?deal_id=${r.deal_id}`)} className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-[#abd0c8]">
+        <button onClick={() => navigate(`/Analyse?deal_id=${r.deal_id}`)} className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol">
           Ouvrir le dossier <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -260,7 +261,7 @@ function ResultatFiche({ r, clients }) {
 }
 
 // Une carte d'échéance : un fait, une date, un geste.
-function Carte({ titre, sous, teinte = "#22262d", actions }) {
+function Carte({ titre, sous, teinte = J["bord"], actions }) {
   return (
     <div className="border border-trait rounded-xl bg-surface px-4 py-3.5 flex gap-3">
       <div className="w-[2px] flex-none self-stretch" style={{ background: teinte }} />
@@ -274,7 +275,7 @@ function Carte({ titre, sous, teinte = "#22262d", actions }) {
               onClick={a.onClick}
               disabled={a.enCours}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10.5px] tracking-[.14em] uppercase transition-colors disabled:opacity-40 ${
-                a.principal ? "bg-menthe text-fond hover:bg-[#abd0c8] font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"
+                a.principal ? "bg-menthe text-fond hover:bg-menthe-survol font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"
               }`}
             >
               {a.enCours ? <Loader2 className="w-3 h-3 animate-spin" /> : null}{a.libelle}
@@ -329,7 +330,7 @@ function Echeances({ onBrouillon }) {
             {sans_reponse.map((s) => (
               <Carte
                 key={s.deal_id}
-                teinte={s.jours >= 7 ? "#e8746a" : "#d9b46a"}
+                teinte={s.jours >= 7 ? J["alerte"] : J["ambre"]}
                 titre={<><span className="font-medium">{s.agent || s.destinataire}</span> a reçu {INTENTIONS_LIBELLES[s.intention] || "notre mail"} il y a {pluriel(s.jours, "jour")} — pas de réponse.</>}
                 sous={`${s.dossier} · envoyé le ${dateCourte(s.envoye_le)}${s.objet ? ` · « ${s.objet} »` : ""}`}
                 actions={[
@@ -604,7 +605,7 @@ export default function ChatDashboard() {
                 <button
                   key={s.libelle}
                   onClick={() => (s.externe ? window.open(s.externe, "_blank", "noopener") : s.href ? navigate(s.href) : lancer(s.texte))}
-                  className={`px-3 py-1.5 text-[10.5px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-menthe text-fond hover:bg-[#abd0c8] font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"}`}
+                  className={`px-3 py-1.5 text-[10.5px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-menthe text-fond hover:bg-menthe-survol font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"}`}
                 >
                   {s.libelle}
                 </button>

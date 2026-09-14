@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
 import { Check, Clock, Loader2, Sparkles } from "lucide-react";
+import { J } from "@/design/jetons";
 
 // Ce que coûte un geste, et non une opération technique.
 //
@@ -47,7 +48,7 @@ const ETATS = {
 function Levier({ etat, titre, effet, ou, children }) {
   const e = ETATS[etat];
   return (
-    <div className="border border-trait rounded-[16px] bg-[#0a0a0b] px-5 py-4">
+    <div className="border border-trait rounded-[16px] bg-fond px-5 py-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-white px-2.5 py-0.5 rounded-full" style={{ background: e.fond }}>
           <e.Icone className="w-3 h-3" /> {e.mot}
@@ -61,9 +62,9 @@ function Levier({ etat, titre, effet, ou, children }) {
   );
 }
 
-function Chiffre({ label, valeur, note, teinte = "#f2f3f5" }) {
+function Chiffre({ label, valeur, note, teinte = J["encre"] }) {
   return (
-    <div className="px-5 py-4 border border-trait rounded-[16px] bg-[#0a0a0b] min-w-0">
+    <div className="px-5 py-4 border border-trait rounded-[16px] bg-fond min-w-0">
       <p className="m-0 font-mono text-[10px] tracking-[.18em] uppercase text-brume">{label}</p>
       <p className="m-0 mt-1.5 text-[26px] font-light tabular-nums leading-none" style={{ color: teinte }}>{valeur}</p>
       {note && <p className="m-0 mt-1.5 text-[12px] text-ardoise">{note}</p>}
@@ -157,7 +158,7 @@ export default function CoutsIA() {
               <button
                 key={f.jours}
                 onClick={() => setJours(f.jours)}
-                className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${jours === f.jours ? "bg-encre text-[#0b0c0e] font-semibold" : "text-ardoise hover:text-encre"}`}
+                className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${jours === f.jours ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}
               >
                 {f.mot}
               </button>
@@ -179,19 +180,19 @@ export default function CoutsIA() {
                 label="Le geste le plus cher"
                 valeur={plusCher ? euros(plusCher.mediane) : "—"}
                 note={plusCher ? `${plusCher.libelle.toLowerCase()}, ${plusCher.unite}` : "aucun geste sur la période"}
-                teinte="#d9b46a"
+                teinte={J["ambre"]}
               />
               <Chiffre
                 label="Part en tâche de fond"
                 valeur={pourcent(data.part_fond)}
                 note="dépensé sans que personne clique"
-                teinte={data.part_fond > 0.4 ? "#e8746a" : "#f2f3f5"}
+                teinte={data.part_fond > 0.4 ? J["alerte"] : J["encre"]}
               />
               <Chiffre
                 label="Servi par le cache"
                 valeur={pourcent(data.part_cache)}
                 note={data.part_cache < 0.05 ? "le cache n'a pas encore mordu" : "à un dixième du prix plein"}
-                teinte={data.part_cache < 0.05 ? "#9298a6" : "#96c0b8"}
+                teinte={data.part_cache < 0.05 ? J["ardoise"] : J["menthe"]}
               />
             </div>
 

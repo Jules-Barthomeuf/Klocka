@@ -164,7 +164,7 @@ export default function Monitoring() {
                     </thead>
                     <tbody>
                       {data.personnes.map((p) => (
-                        <tr key={p.email} className="border-b border-[#15171b]">
+                        <tr key={p.email} className="border-b border-relief">
                           <td className="py-2.5 text-[12.5px] text-encre truncate max-w-[190px]">
                             {p.email}
                             {p.role === "admin" && <span className="text-menthe text-[10px] ml-1.5">admin</span>}
@@ -266,7 +266,7 @@ export default function Monitoring() {
                           <tr
                             key={p.cle}
                             onClick={() => { setParFiltre(actif ? null : p.cle); setLimiteCouts(100); }}
-                            className={`border-t border-[#15171b] cursor-pointer transition-colors ${actif ? "bg-menthe/[0.08]" : "hover:bg-encre/[0.02]"}`}
+                            className={`border-t border-relief cursor-pointer transition-colors ${actif ? "bg-menthe/[0.08]" : "hover:bg-encre/[0.02]"}`}
                           >
                             <td className={`py-2 pr-3 truncate max-w-[260px] ${actif ? "text-menthe" : "text-encre"}`}>{p.cle}</td>
                             <td className="py-2 px-3 text-right tabular-nums text-ardoise">{p.requetes}</td>
@@ -285,7 +285,7 @@ export default function Monitoring() {
                 <p className="m-0 mb-2 text-[10px] tracking-[.14em] uppercase text-brume">Par opération</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 mb-6">
                   {couts.operations.slice(0, 10).map((o) => (
-                    <div key={o.cle} className="flex justify-between text-[12.5px] py-1 border-b border-[#15171b]">
+                    <div key={o.cle} className="flex justify-between text-[12.5px] py-1 border-b border-relief">
                       <span className="text-craie">{o.cle}</span>
                       <span className="text-ardoise tabular-nums">
                         {euros(o.cout)} <span className="text-bord-vif">· {o.requetes} req. · {o.duree_ms ? duree(o.duree_ms / o.requetes) : "—"}</span>
@@ -302,7 +302,7 @@ export default function Monitoring() {
                   <span className="text-[11.5px] text-brume flex items-center gap-3">
                     {couts.journal.length} sur {couts.journal_total}
                     {parFiltre && (
-                      <button onClick={() => setParFiltre(null)} className="text-menthe hover:text-[#abd0c8]">Tout le monde</button>
+                      <button onClick={() => setParFiltre(null)} className="text-menthe hover:text-menthe-survol">Tout le monde</button>
                     )}
                   </span>
                 </div>
@@ -325,7 +325,7 @@ export default function Monitoring() {
                         const serie = g.etapes > 1;
                         return (
                           <React.Fragment key={g.id}>
-                            <tr onClick={() => serie && setGesteOuvert(ouvert ? null : g.id)} className={`border-t border-[#15171b] ${serie ? "cursor-pointer" : ""} ${ouvert ? "bg-encre/[0.03]" : "hover:bg-encre/[0.02]"}`}>
+                            <tr onClick={() => serie && setGesteOuvert(ouvert ? null : g.id)} className={`border-t border-relief ${serie ? "cursor-pointer" : ""} ${ouvert ? "bg-encre/[0.03]" : "hover:bg-encre/[0.02]"}`}>
                               <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-ardoise">
                                 <span className="inline-flex items-center gap-1.5">
                                   <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${serie ? "text-brume" : "text-transparent"} ${ouvert ? "" : "-rotate-90"}`} />
@@ -362,7 +362,7 @@ export default function Monitoring() {
                   </table>
                 </div>
                 {couts.journal_total > couts.journal.length && (
-                  <button onClick={() => setLimiteCouts((n) => n + 200)} className="mt-3 text-[12px] text-menthe hover:text-[#abd0c8]">
+                  <button onClick={() => setLimiteCouts((n) => n + 200)} className="mt-3 text-[12px] text-menthe hover:text-menthe-survol">
                     Voir 200 de plus
                   </button>
                 )}
@@ -393,7 +393,7 @@ export default function Monitoring() {
               Aucune demande enregistrée pour l'instant.
             </p>
           ) : (
-            <div className="divide-y divide-[#15171b]">
+            <div className="divide-y divide-relief">
               {historique.requetes.map((r) => {
                 const estOuverte = ouverte === r.id;
                 return (

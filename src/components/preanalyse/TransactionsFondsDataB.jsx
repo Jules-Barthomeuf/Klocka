@@ -42,7 +42,7 @@ export default function TransactionsFondsDataB({ lot, premiere = false }) {
           {activite && r?.activites?.length ? (
             <Phrase className="mt-5">Activité du locataire : {activite}. Dans la rue, on vend surtout {r.activites.slice(0, 3).map((x) => x.nom.toLowerCase()).join(", ")}.</Phrase>
           ) : null}
-          <div className="mt-6 overflow-hidden rounded-[16px] border border-white/[0.08]">
+          <div className="mt-6 overflow-hidden rounded-[16px] border border-trait">
             <CarteCessions resultat={resultat} titre={lot?.lot?.locataire_nom?.valeur || "Le bien"} adresse={resultat.adresse} hauteur={360} />
           </div>
           <Lignes
@@ -52,19 +52,19 @@ export default function TransactionsFondsDataB({ lot, premiere = false }) {
             rendu={(t) => (
               <>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] text-[#F3F7F5]">
+                  <span className="block truncate text-[14px] text-encre">
                     {t.enseigne}
                     {t.sur_place && <span className="ml-2 text-[11.5px]" style={{ color: TEINTE.menthe }}>au numéro du bien</span>}
                     {!t.sur_place && t.dans_la_rue && <span className="ml-2 text-[11.5px]" style={{ color: TEINTE.ambre }}>dans la rue</span>}
                   </span>
-                  <span className="block truncate text-[12px] text-[#8B938F]">{[t.activite, jour(t.date), t.adresse].filter(Boolean).join(" · ")}</span>
+                  <span className="block truncate text-[12px] text-ardoise">{[t.activite, jour(t.date), t.adresse].filter(Boolean).join(" · ")}</span>
                 </span>
-                <span className="whitespace-nowrap text-[14px] font-medium tabular-nums text-[#E8EFEB]">{euros(t.prix)}</span>
+                <span className="whitespace-nowrap text-[14px] font-medium tabular-nums text-encre">{euros(t.prix)}</span>
               </>
             )}
           />
           {lignes.length > 8 && (
-            <button type="button" onClick={() => setTout((v) => !v)} className="mt-3 text-[12.5px] text-[#96c0b8] hover:text-[#B8F0D6]" style={{ background: "transparent" }}>
+            <button type="button" onClick={() => setTout((v) => !v)} className="mt-3 text-[12.5px] text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>
               {tout ? "Voir moins" : `Voir les ${lignes.length} cessions retenues`}
             </button>
           )}

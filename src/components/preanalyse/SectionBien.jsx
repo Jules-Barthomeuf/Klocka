@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { VuesLieu, ChampFiche } from "@/components/preanalyse/DealResultat";
+import { J } from "@/design/jetons";
 
 // Le bien, et lui seul : ce que la fiche annonce, et sous chaque ligne le
 // détail que les pièces apportent. Le bail, les quittances, la copropriété et
 // les diagnostics ont leurs propres onglets : rien de tout cela ici.
 
-const TEINTE = { coherent: "#7fd1a8", contradictoire: "#e8927c", manquant: "#e8b04c", hors_critere: "#c39bd3", a_verifier: "#8fb6e8" };
+const TEINTE = { coherent: J["vert"], contradictoire: J["alerte"], manquant: J["ambre"], hors_critere: "#c39bd3", a_verifier: J["bleu"] };
 const LIBELLE = { coherent: "Cohérent", contradictoire: "Contradictoire", manquant: "Manquant", hors_critere: "Hors critère", a_verifier: "À vérifier" };
 
 // Les grandes parties : un titre, les champs de la fiche qui s'affichent
@@ -37,13 +38,13 @@ const Kicker = ({ children }) => <p className="m-0 text-[10.5px] tracking-[.18em
 
 function ChampLu({ c }) {
   return (
-    <div className="flex items-baseline justify-between gap-6 py-2 border-b border-[#15171b] last:border-b-0">
+    <div className="flex items-baseline justify-between gap-6 py-2 border-b border-relief last:border-b-0">
       <dt className="text-[13px] text-ardoise flex-none inline-flex items-center gap-2">
-        <span title={LIBELLE[c.statut]} className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: TEINTE[c.statut] || "#3a3f4a" }} />
+        <span title={LIBELLE[c.statut]} className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: TEINTE[c.statut] || J["bord-vif"] }} />
         {c.libelle}
       </dt>
       <dd className="m-0 text-right min-w-0 max-w-[70%]">
-        <span className={`text-[13.5px] leading-[1.6] font-light ${c.valeur ? "text-encre" : "text-[#4d545d]"}`}>{c.valeur || "—"}</span>
+        <span className={`text-[13.5px] leading-[1.6] font-light ${c.valeur ? "text-encre" : "text-brume"}`}>{c.valeur || "—"}</span>
         {c.preuves?.length > 0 && <span className="ml-2 text-[11px] text-brume whitespace-nowrap">{c.preuves.length} pièce{c.preuves.length > 1 ? "s" : ""}</span>}
       </dd>
     </div>
@@ -108,7 +109,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
               {/* Les valeurs de la fiche, toujours visibles : elles sont le bien. */}
               <dl className="m-0 pb-3">
                 {p.fiche.map((champ) => (
-                  <div key={champ} className="flex items-baseline justify-between gap-6 py-2 border-b border-[#15171b] last:border-b-0">
+                  <div key={champ} className="flex items-baseline justify-between gap-6 py-2 border-b border-relief last:border-b-0">
                     <dt className="text-[13px] text-ardoise flex-none">{LIBELLES_FICHE[champ]}</dt>
                     <dd className="m-0 text-right min-w-0"><ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
                   </div>

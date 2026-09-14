@@ -141,7 +141,7 @@ export default function InviterClient({ onCree } = {}) {
             )}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <code className="text-[12px] text-ardoise break-all bg-fond px-3 py-2 border border-[#15171b] flex-1 min-w-[260px]">
+            <code className="text-[12px] text-ardoise break-all bg-fond px-3 py-2 border border-relief flex-1 min-w-[260px]">
               {resultat.lien}
             </code>
             <button

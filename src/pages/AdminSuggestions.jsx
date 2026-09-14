@@ -6,6 +6,7 @@ import { Check, ChevronDown, Copy, Image as ImageIcon, Loader2, Mic, Pencil, Squ
 import { useDictee } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
+import { J } from "@/design/jetons";
 
 // Le feedback : un chat, une capture d'écran si on veut, rien d'autre. Chaque
 // remarque a un état qu'on change d'un clic : à faire, en cours, fait, refusé.
@@ -13,16 +14,16 @@ import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 // L'urgence, de 1 à 5 : on la règle au curseur en écrivant, on la lit d'un
 // coup d'œil ensuite. Cinq crans, du gris au corail.
 const URGENCES = [
-  { n: 1, mot: "Quand vous pouvez", teinte: "#4d545d" },
-  { n: 2, mot: "Peu pressé", teinte: "#6a7180" },
-  { n: 3, mot: "Normal", teinte: "#96c0b8" },
-  { n: 4, mot: "Pressé", teinte: "#d9b46a" },
-  { n: 5, mot: "Urgent", teinte: "#e8746a" },
+  { n: 1, mot: "Quand vous pouvez", teinte: J["brume"] },
+  { n: 2, mot: "Peu pressé", teinte: J["brume"] },
+  { n: 3, mot: "Normal", teinte: J["menthe"] },
+  { n: 4, mot: "Pressé", teinte: J["ambre"] },
+  { n: 5, mot: "Urgent", teinte: J["alerte"] },
 ];
 const urgenceDe = (n) => URGENCES[Math.min(5, Math.max(1, Number(n) || 3)) - 1];
 
 const STATUTS = [
-  { id: "nouveau", label: "À faire", fond: "#2c3139" },
+  { id: "nouveau", label: "À faire", fond: J["bord-doux"] },
   { id: "en_cours", label: "En cours", fond: "#a8752a" },
   { id: "termine", label: "Fait", fond: "#2f7a5a" },
   { id: "refuse", label: "Refusé", fond: "#9b3b32" },
@@ -47,9 +48,9 @@ function PromptCorrection({ r }) {
   };
   const bas = r.pouce === "bas";
   return (
-    <div className="mt-3 rounded-xl border border-bord bg-[#0a0a0b] px-4 py-3">
+    <div className="mt-3 rounded-xl border border-bord bg-fond px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: bas ? "#e8746a" : "#96c0b8" }}>
+        <p className="m-0 text-[10.5px] tracking-[.18em] uppercase" style={{ color: bas ? J["alerte"] : J["menthe"] }}>
           {bas ? "À corriger" : "À préserver"} — prompt pour Claude
         </p>
         <button onClick={copier} className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif">
@@ -181,7 +182,7 @@ export default function AdminSuggestions() {
               {apercu && (
                 <div className="relative inline-block mb-3">
                   <img src={apercu} alt="Capture" className="max-h-[160px] rounded-lg border border-bord" />
-                  <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#0a0a0b] border border-bord-doux text-ardoise hover:text-encre flex items-center justify-center" aria-label="Retirer la capture"><X className="w-3.5 h-3.5" /></button>
+                  <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-fond border border-bord-doux text-ardoise hover:text-encre flex items-center justify-center" aria-label="Retirer la capture"><X className="w-3.5 h-3.5" /></button>
                 </div>
               )}
               {/* L'urgence : cinq barres, on clique celle qu'on veut. */}
@@ -196,7 +197,7 @@ export default function AdminSuggestions() {
                       aria-pressed={urgence === n}
                       title={URGENCES[n - 1].mot}
                       className="w-3.5 rounded-[2px] transition-all hover:opacity-100"
-                      style={{ height: 8 + n * 3, background: n <= urgence ? urgenceDe(urgence).teinte : "#22262d", opacity: n <= urgence ? 1 : .85 }}
+                      style={{ height: 8 + n * 3, background: n <= urgence ? urgenceDe(urgence).teinte : J["bord"], opacity: n <= urgence ? 1 : .85 }}
                     />
                   ))}
                 </span>
@@ -209,7 +210,7 @@ export default function AdminSuggestions() {
               <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={(e) => { choisirCapture(e.target.files?.[0]); e.target.value = ""; }} />
               <BoutonBarre onClick={() => fichierRef.current?.click()} actif={!!capture} title="Joindre une capture d'écran"><ImageIcon className="w-4 h-4" /></BoutonBarre>
               <BoutonBarre onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter votre remarque"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
-              <span className="text-[11.5px] text-[#4d545d] ml-1 max-md:hidden">{ecoute ? "Je vous écoute…" : "Ctrl+V colle une capture"}</span>
+              <span className="text-[11.5px] text-brume ml-1 max-md:hidden">{ecoute ? "Je vous écoute…" : "Ctrl+V colle une capture"}</span>
             </>
           }
         />
@@ -218,14 +219,14 @@ export default function AdminSuggestions() {
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 mt-10 mb-4 border-b border-trait">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {[{ id: "tous", label: "Tout" }, ...STATUTS].map((s) => (
-              <button key={s.id} onClick={() => setFiltre(s.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${filtre === s.id ? "text-encre font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3]"}`}>
+              <button key={s.id} onClick={() => setFiltre(s.id)} className={`relative pb-3 text-[14px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${filtre === s.id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>
                 {s.label}<span className="ml-1.5 text-brume font-normal tabular-nums">{s.id === "tous" ? remarques.length : compte(s.id)}</span>
               </button>
             ))}
           </div>
           <div className="inline-flex items-center rounded-full border border-bord-doux p-0.5 mb-2">
             {[["date", "Plus récentes"], ["urgence", "Plus urgentes"]].map(([id, mot]) => (
-              <button key={id} onClick={() => setTri(id)} className={`px-3 py-1 rounded-full text-[12px] transition-colors ${tri === id ? "bg-encre text-[#0b0c0e] font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+              <button key={id} onClick={() => setTri(id)} className={`px-3 py-1 rounded-full text-[12px] transition-colors ${tri === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
             ))}
           </div>
         </div>
@@ -239,9 +240,9 @@ export default function AdminSuggestions() {
             {visibles.map((r) => {
               const statut = normaliser(r.statut);
               return (
-                <div key={r.id} className="flex gap-5 py-5 border-b border-[#15171b] group">
+                <div key={r.id} className="flex gap-5 py-5 border-b border-relief group">
                   {r.capture_url && (
-                    <button onClick={() => setZoom(r.capture_url)} className="flex-none w-[120px] h-[80px] rounded-lg border border-bord overflow-hidden bg-[#0a0a0b]" title="Agrandir">
+                    <button onClick={() => setZoom(r.capture_url)} className="flex-none w-[120px] h-[80px] rounded-lg border border-bord overflow-hidden bg-fond" title="Agrandir">
                       <img src={r.capture_url} alt="" className="w-full h-full object-cover" />
                     </button>
                   )}
@@ -250,7 +251,7 @@ export default function AdminSuggestions() {
                       <div>
                         <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: r.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); modifier.mutate({ id: r.id, contenu: edition.texte.trim() }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-3 py-2 outline-none text-[14.5px] leading-[1.6] text-encre resize-y" />
                         <div className="mt-1.5 flex items-center gap-2">
-                          <button onClick={() => modifier.mutate({ id: r.id, contenu: edition.texte.trim() })} disabled={modifier.isPending || !edition.texte.trim()} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> Enregistrer</button>
+                          <button onClick={() => modifier.mutate({ id: r.id, contenu: edition.texte.trim() })} disabled={modifier.isPending || !edition.texte.trim()} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> Enregistrer</button>
                           <button onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
                         </div>
                       </div>
@@ -262,7 +263,7 @@ export default function AdminSuggestions() {
                       <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n} sur 5 — cliquez une barre pour la changer`}>
                         <span className="inline-flex items-end gap-px">
                           {[1, 2, 3, 4, 5].map((n) => (
-                            <button key={n} type="button" onClick={() => noter.mutate({ id: r.id, urgence: n })} title={URGENCES[n - 1].mot} className="w-1.5 rounded-[2px] transition-colors" style={{ height: 5 + n * 1.6, background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : "#22262d" }} />
+                            <button key={n} type="button" onClick={() => noter.mutate({ id: r.id, urgence: n })} title={URGENCES[n - 1].mot} className="w-1.5 rounded-[2px] transition-colors" style={{ height: 5 + n * 1.6, background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : J["bord"] }} />
                           ))}
                         </span>
                         <span style={{ color: urgenceDe(r.urgence).teinte }}>{urgenceDe(r.urgence).mot}</span>
@@ -290,8 +291,8 @@ export default function AdminSuggestions() {
                         {s.label}
                       </button>
                     ))}
-                    <button onClick={() => setEdition({ id: r.id, texte: r.contenu || "" })} className="ml-2 text-[#3f4644] hover:text-encre opacity-0 group-hover:opacity-100 transition-opacity" title="Modifier"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => window.confirm("Supprimer cette remarque ?") && supprimer.mutate(r.id)} className="text-[#3f4644] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => setEdition({ id: r.id, texte: r.contenu || "" })} className="ml-2 text-brume hover:text-encre opacity-0 group-hover:opacity-100 transition-opacity" title="Modifier"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => window.confirm("Supprimer cette remarque ?") && supprimer.mutate(r.id)} className="text-brume hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               );

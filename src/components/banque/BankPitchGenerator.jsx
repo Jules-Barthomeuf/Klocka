@@ -351,7 +351,7 @@ function SlideBlock({ slide, index }) {
       {/* Content */}
       {open && (
         <div className="px-5 pb-5">
-          <div className="bg-fond/50 border border-[#15171b] rounded-lg p-4">
+          <div className="bg-fond/50 border border-relief rounded-lg p-4">
             <pre className="text-craie text-xs leading-relaxed whitespace-pre-wrap font-mono">
               {slide.text}
             </pre>

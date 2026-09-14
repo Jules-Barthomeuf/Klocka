@@ -1,6 +1,7 @@
 import React from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
 import TooltipInfo from "./TooltipInfo";
+import { J } from "@/design/jetons";
 
 export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, formatCurrency, textClass, mutedClass }) {
   return (
@@ -42,26 +43,26 @@ export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, 
           <BarChart
             data={[
               { name: 'Apport', value: apport, fill: '#6B7280' },
-              { name: 'Cash-flow cumulé', value: calculs.indicateurs.cashFlowCumule, fill: calculs.indicateurs.cashFlowCumule >= 0 ? '#22C55E' : '#e8746a' },
-              { name: 'Prix revente net', value: calculs.revente.prixVenteNet, fill: '#c3ddd6' },
+              { name: 'Cash-flow cumulé', value: calculs.indicateurs.cashFlowCumule, fill: calculs.indicateurs.cashFlowCumule >= 0 ? '#22C55E' : J["alerte"] },
+              { name: 'Prix revente net', value: calculs.revente.prixVenteNet, fill: J["menthe-clair"] },
               { name: 'Création richesse', value: calculs.indicateurs.creationRichesseBrute, fill: '#D4AF37' }
             ]}
             layout="vertical"
             margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#2c3139" horizontal={false} />
-            <XAxis type="number" stroke="#9298a6" tick={{ fontSize: 11 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-            <YAxis type="category" dataKey="name" stroke="#9298a6" tick={{ fontSize: 12 }} width={95} />
+            <CartesianGrid strokeDasharray="3 3" stroke={J["bord-doux"]} horizontal={false} />
+            <XAxis type="number" stroke={J["ardoise"]} tick={{ fontSize: 11 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+            <YAxis type="category" dataKey="name" stroke={J["ardoise"]} tick={{ fontSize: 12 }} width={95} />
             <Tooltip
               formatter={(value) => formatCurrency(value)}
-              contentStyle={{ backgroundColor: '#0c0d10', border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
+              contentStyle={{ backgroundColor: J["fond"], border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
               labelStyle={{ color: '#fff' }}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
               {[
                 { name: 'Apport', value: apport, fill: '#6B7280' },
-                { name: 'Cash-flow cumulé', value: calculs.indicateurs.cashFlowCumule, fill: calculs.indicateurs.cashFlowCumule >= 0 ? '#22C55E' : '#e8746a' },
-                { name: 'Prix revente net', value: calculs.revente.prixVenteNet, fill: '#c3ddd6' },
+                { name: 'Cash-flow cumulé', value: calculs.indicateurs.cashFlowCumule, fill: calculs.indicateurs.cashFlowCumule >= 0 ? '#22C55E' : J["alerte"] },
+                { name: 'Prix revente net', value: calculs.revente.prixVenteNet, fill: J["menthe-clair"] },
                 { name: 'Création richesse', value: calculs.indicateurs.creationRichesseBrute, fill: '#D4AF37' }
               ].map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
             </Bar>

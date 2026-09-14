@@ -1,6 +1,7 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
 import { DUREE_FRAICHE, chrono, ton } from "@/components/preanalyse/journal-tons";
+import { J } from "@/design/jetons";
 
 // Le fil chronologique : une entrée par ligne, trois colonnes fixes —
 // chrono, rail à pastille, contenu.
@@ -16,13 +17,13 @@ export function Entree({ entree, temps, onEncart, actif }) {
 
   return (
     <li className="ja-entree relative flex gap-3 sm:gap-4">
-      <time className="flex-shrink-0 w-[52px] sm:w-[60px] pt-[3px] font-mono text-[11px] leading-5 text-[#4e545e] tabular-nums">
+      <time className="flex-shrink-0 w-[52px] sm:w-[60px] pt-[3px] font-mono text-[11px] leading-5 text-brume tabular-nums">
         {chrono(entree.t)}
       </time>
 
       {/* Le rail court d'une entrée à l'autre : c'est lui qui fait le fil. */}
       <div className="flex-shrink-0 relative w-[9px] self-stretch">
-        <span className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-px bg-[#23272d]" aria-hidden />
+        <span className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-px bg-bord" aria-hidden />
         <span
           className={`absolute left-1/2 -translate-x-1/2 top-[7px] w-[7px] h-[7px] rounded-full ${fraiche ? "ja-pastille-fraiche" : ""}`}
           style={{ background: c.pastille }}
@@ -58,14 +59,14 @@ export function EncartDonnee({ encart, couleur, souligne, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="mt-2 w-full sm:w-auto sm:min-w-[280px] text-left rounded-[8px] bg-[#15181c] border border-l-[3px] px-3 py-2 hover:bg-[#191d22] transition-colors group"
+      className="mt-2 w-full sm:w-auto sm:min-w-[280px] text-left rounded-[8px] bg-surface border border-l-[3px] px-3 py-2 hover:bg-relief transition-colors group"
       // Les quatre bords sont écrits un par un : mêler `borderColor` et
       // `borderLeftColor` fait râler React, et le bord gauche l'emportait ou
       // non selon l'ordre des rendus.
       style={{
-        borderTopColor: souligne ? "rgba(150,192,184,.55)" : "#23272d",
-        borderRightColor: souligne ? "rgba(150,192,184,.55)" : "#23272d",
-        borderBottomColor: souligne ? "rgba(150,192,184,.55)" : "#23272d",
+        borderTopColor: souligne ? "rgba(150,192,184,.55)" : J["bord"],
+        borderRightColor: souligne ? "rgba(150,192,184,.55)" : J["bord"],
+        borderBottomColor: souligne ? "rgba(150,192,184,.55)" : J["bord"],
         borderLeftColor: couleur.pastille,
       }}
     >

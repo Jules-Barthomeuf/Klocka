@@ -97,14 +97,14 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
             value={newFileName}
             onChange={(e) => setNewFileName(e.target.value)}
             placeholder="Nom du fichier (ex: Bail commercial)"
-            className="bg-[#0c0d10] text-encre border-trait"
+            className="bg-fond text-encre border-trait"
           />
           <div className="flex gap-2">
             <Input
               value={newFileUrl}
               onChange={(e) => setNewFileUrl(e.target.value)}
               placeholder="https://..."
-              className="flex-1 bg-[#0c0d10] text-encre border-trait"
+              className="flex-1 bg-fond text-encre border-trait"
             />
             <Button onClick={addFileByUrl} className="bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1]">
               <Plus className="w-4 h-4" />

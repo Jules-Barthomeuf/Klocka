@@ -19,7 +19,7 @@ export default function SimulateurAnalyse({ dossier }) {
           <select
             value={index}
             onChange={(e) => setIndex(Number(e.target.value))}
-            className="bg-[#0c0d10] border border-trait rounded-md px-2.5 py-1.5 text-[12px] text-ardoise outline-none hover:border-bord-vif transition-colors max-w-[240px]"
+            className="bg-fond border border-trait rounded-md px-2.5 py-1.5 text-[12px] text-ardoise outline-none hover:border-bord-vif transition-colors max-w-[240px]"
           >
             {lots.map((l, i) => (
               <option key={i} value={i}>{l.synthese?.titre || l.intitule || `Lot ${i + 1}`}</option>

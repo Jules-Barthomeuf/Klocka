@@ -112,7 +112,7 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
       <span
         className={`inline-flex items-center gap-2 self-start rounded-full transition-colors ${
           principal
-            ? "px-6 py-3 bg-menthe text-fond text-[13px] font-semibold group-hover:bg-[#abd0c8]"
+            ? "px-6 py-3 bg-menthe text-fond text-[13px] font-semibold group-hover:bg-menthe-survol"
             : "px-4 py-2 border border-bord-doux text-craie text-[12.5px] group-hover:border-menthe group-hover:text-menthe"
         }`}
       >
@@ -199,7 +199,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
           </p>
           <button
             onClick={onRendezVous}
-            className="mt-6 self-start inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[13px] font-semibold hover:bg-[#abd0c8] transition-colors"
+            className="mt-6 self-start inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[13px] font-semibold hover:bg-menthe-survol transition-colors"
           >
             Prendre rendez-vous <ArrowRight className="w-4 h-4" />
           </button>

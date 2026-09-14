@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Check, RotateCw } from "lucide-react";
+import { J } from "@/design/jetons";
 
 // « Mettre à jour » : tout, ou seulement ce qu'on veut relire.
 //
@@ -57,7 +58,7 @@ export default function ChoixSources({ onLancer, apercu = false, libelle = "Mett
         disabled={apercu}
         aria-expanded={ouvert}
         aria-haspopup="true"
-        className={classeBouton || "inline-flex items-center gap-1.5 rounded-full bg-[#b8dcc8] text-[#04140c] text-[12.5px] font-semibold px-4 py-2 hover:bg-[#c8e8d6] disabled:opacity-30 transition-colors"}
+        className={classeBouton || "inline-flex items-center gap-1.5 rounded-full bg-menthe-clair text-sur-menthe text-[12.5px] font-semibold px-4 py-2 hover:bg-menthe-clair disabled:opacity-30 transition-colors"}
       >
         <RotateCw className="w-3.5 h-3.5" /> {libelle}
       </button>
@@ -72,7 +73,7 @@ export default function ChoixSources({ onLancer, apercu = false, libelle = "Mett
             <button
               type="button"
               onClick={() => setCochees(toutes ? [] : SOURCES.map((s) => s.cle))}
-              className="text-[11px] text-brume hover:text-[#c6ccd3]"
+              className="text-[11px] text-brume hover:text-craie"
             >
               {toutes ? "Tout décocher" : "Tout cocher"}
             </button>
@@ -87,17 +88,17 @@ export default function ChoixSources({ onLancer, apercu = false, libelle = "Mett
                 role="menuitemcheckbox"
                 aria-checked={coche}
                 onClick={() => basculer(s.cle)}
-                className="flex w-full items-start gap-2.5 px-3 py-1.5 text-left hover:bg-[#1a1d22] transition-colors"
+                className="flex w-full items-start gap-2.5 px-3 py-1.5 text-left hover:bg-relief transition-colors"
               >
                 <span
                   className="mt-[2px] flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded-[4px] border transition-colors"
-                  style={{ borderColor: coche ? "#96c0b8" : "#3a424d", background: coche ? "#96c0b8" : "transparent" }}
+                  style={{ borderColor: coche ? J["menthe"] : J["brume"], background: coche ? J["menthe"] : "transparent" }}
                 >
-                  {coche && <Check className="h-[11px] w-[11px] text-[#0b1211]" strokeWidth={3} />}
+                  {coche && <Check className="h-[11px] w-[11px] text-sur-menthe" strokeWidth={3} />}
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-[12.5px] leading-5 text-[#dfe3e8]">{s.nom}</span>
-                  <span className="block text-[10.5px] leading-4" style={{ color: s.coute ? "#d9a441" : "#6a7180" }}>{s.note}</span>
+                  <span className="block text-[12.5px] leading-5 text-craie">{s.nom}</span>
+                  <span className="block text-[10.5px] leading-4" style={{ color: s.coute ? J["ambre"] : J["brume"] }}>{s.note}</span>
                 </span>
               </button>
             );
@@ -108,7 +109,7 @@ export default function ChoixSources({ onLancer, apercu = false, libelle = "Mett
               type="button"
               onClick={lancer}
               disabled={!cochees.length}
-              className="w-full rounded-full bg-[#b8dcc8] px-4 py-1.5 text-[12.5px] font-semibold text-[#04140c] hover:bg-[#c8e8d6] disabled:opacity-30 transition-colors"
+              className="w-full rounded-full bg-menthe-clair px-4 py-1.5 text-[12.5px] font-semibold text-sur-menthe hover:bg-menthe-clair disabled:opacity-30 transition-colors"
             >
               {toutes ? "Tout relire" : `Relire ${cochees.length} source${cochees.length > 1 ? "s" : ""}`}
             </button>

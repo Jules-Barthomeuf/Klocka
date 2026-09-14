@@ -5,6 +5,7 @@ import { toast } from "@/components/ui/avis";
 import { Check, Loader2, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
+import { J } from "@/design/jetons";
 
 // Une grille de critères : critère, valeur lue au format voulu, statut en
 // case colorée, source à droite. La règle se lit d'un clic sur le critère.
@@ -29,7 +30,7 @@ const gardeeLe = (dealId, id) => lire(dealId, id)?.le ?? 0;
 // Les statuts prennent les teintes de l'application : menthe, ambre, rouge,
 // gris. La case est un fond très dilué, le mot porte la couleur pleine — un
 // aplat saturé faisait tache au milieu d'un tableau sombre.
-const TEINTE = { ok: "#96c0b8", a_checker: "#8fb3d9", warning: "#e0a45e", a_verifier: "#e0a45e", no_go: "#e0655f", vide: "#8B938F", non_lu: "#8B938F" };
+const TEINTE = { ok: J["menthe"], a_checker: "#8fb3d9", warning: J["ambre"], a_verifier: J["ambre"], no_go: J["alerte"], vide: J["ardoise"], non_lu: J["ardoise"] };
 const teinteDe = (st) => TEINTE[st] || TEINTE.vide;
 const FOND = Object.fromEntries(Object.entries(TEINTE).map(([k, v]) => [k, `${v}1f`]));
 const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
@@ -77,15 +78,15 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                   <div onClick={(e) => e.stopPropagation()}>
                     <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[14px] leading-[1.55] text-encre resize-y" />
                     <div className="mt-1.5 flex items-center gap-2">
-                      <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
+                      <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
                       <button onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
                       {l.correction && <button onClick={() => corriger.mutate({ critere: l.id, valeur: "" })} className="inline-flex items-center gap-1 text-[12px] text-ardoise hover:text-encre ml-auto"><RotateCcw className="w-3 h-3" /> Revenir à la valeur lue</button>}
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-start gap-2">
-                    {l.valeur ? <p className="m-0 flex-1 text-[14px] leading-[1.55] text-encre whitespace-pre-line">{l.valeur}</p> : <span className="flex-1 text-[13px] text-[#4d545d]">—</span>}
-                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} title="Modifier la valeur" className="flex-none text-[#4d545d] hover:text-encre opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
+                    {l.valeur ? <p className="m-0 flex-1 text-[14px] leading-[1.55] text-encre whitespace-pre-line">{l.valeur}</p> : <span className="flex-1 text-[13px] text-brume">—</span>}
+                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} title="Modifier la valeur" className="flex-none text-brume hover:text-encre opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
                   </div>
                 )}
                 {/* Une valeur venue d'une pièce qui ne relève pas de cette
@@ -104,7 +105,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
               </td>
               <td className={`px-4 py-3 border-b border-r border-trait relative ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
                 <span className="text-[13px] font-medium" style={{ color: teinteDe(l.statut) }}>{MOT[l.statut] || l.statut}</span>
-                {l.decision && <span className="block text-[10.5px] text-[#8B938F]">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
+                {l.decision && <span className="block text-[10.5px] text-ardoise">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
                 {/* Sur les deux dernières lignes, le menu s'ouvre vers le
                     haut : posé en dessous, il sortait du tableau et les statuts
                     n'étaient plus cliquables. */}
@@ -120,14 +121,14 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
               <td className={`px-4 py-3 border-b border-trait group ${sansSources ? "" : "border-r"}`}>
                 {note?.id === l.id ? (
                   <div>
-                    <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[13px] leading-[1.5] text-encre resize-y placeholder:text-[#4d545d]" />
+                    <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[13px] leading-[1.5] text-encre resize-y placeholder:text-brume" />
                     <div className="mt-1.5 flex items-center gap-2">
-                      <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-[#0b0c0e] font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
+                      <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
                       <button onClick={() => setNote(null)} className="text-[12px] text-ardoise hover:text-encre">Annuler</button>
                     </div>
                   </div>
                 ) : lectureSeule || !dealId ? (
-                  l.note ? <p className="m-0 text-[13px] leading-[1.5] text-craie whitespace-pre-line">{l.note.texte}</p> : <span className="text-[13px] text-[#4d545d]">—</span>
+                  l.note ? <p className="m-0 text-[13px] leading-[1.5] text-craie whitespace-pre-line">{l.note.texte}</p> : <span className="text-[13px] text-brume">—</span>
                 ) : (
                   <button onClick={() => setNote({ id: l.id, texte: l.note?.texte || "" })} title={l.note ? "Modifier la note" : "Écrire une note"} className="w-full text-left">
                     {l.note ? (
@@ -136,7 +137,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                         {l.note.par && <span className="block mt-1 text-[11px] text-brume">{l.note.par.split("@")[0]}</span>}
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[13px] text-[#4d545d] group-hover:text-ardoise transition-colors"><Pencil className="w-3 h-3" /> Ajouter une note</span>
+                      <span className="inline-flex items-center gap-1.5 text-[13px] text-brume group-hover:text-ardoise transition-colors"><Pencil className="w-3 h-3" /> Ajouter une note</span>
                     )}
                   </button>
                 )}
@@ -146,7 +147,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                   <div className="flex flex-col gap-1">
                     {l.preuves?.length ? l.preuves.slice(0, 3).map((p, i) => (
                       <button key={i} onClick={() => onPreuve?.(p)} title={p.citation || p.reponse} className="text-left text-[12px] text-ardoise hover:text-encre truncate max-w-[190px]">{(p.document_nom || "").replace(/\.pdf$/i, "")}{p.page ? ` · p. ${p.page}` : ""}</button>
-                    )) : <span className="text-[12px] text-[#4d545d]">—</span>}
+                    )) : <span className="text-[12px] text-brume">—</span>}
                   </div>
                 </td>
               )}
@@ -225,8 +226,8 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
         const resume = g ? { ok: g.resume.ok, a_checker: g.resume.a_checker || 0, warning: g.resume.warning + g.resume.a_verifier, no_go: g.resume.no_go || 0, vide: g.resume.vide + g.resume.non_lu } : null;
         const enCours = g?.remplissage?.etat === "en_cours";
         return (
-          <div key={v.id} className="overflow-hidden rounded-[16px] border border-white/[0.07] bg-fond">
-            <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4">
+          <div key={v.id} className="overflow-hidden rounded-[16px] border border-trait bg-fond">
+            <header className="flex flex-wrap items-center justify-between gap-4 border-b border-trait px-5 py-4">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 <h2 className="m-0 text-[17px] font-semibold text-encre">{v.titre || g?.titre || v.id}</h2>
                 {v.sousTitre && <span className="text-[13px] text-ardoise">{v.sousTitre}</span>}
@@ -249,11 +250,11 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                       {devis.cout == null ? "Coût inconnu" : `≈ ${devis.cout < 0.01 ? "moins d'un centime" : `${devis.cout.toFixed(2)} $`}`}
                       {devis.pieces ? <span className="text-ardoise"> · {devis.pieces} pièce{devis.pieces > 1 ? "s" : ""}</span> : null}
                     </span>
-                    <button onClick={() => relancer.mutate(v.id)} disabled={relancer.isPending} className="text-[12.5px] px-3 py-1 rounded-full bg-menthe text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">Relire</button>
+                    <button onClick={() => relancer.mutate(v.id)} disabled={relancer.isPending} className="text-[12.5px] px-3 py-1 rounded-full bg-menthe text-fond font-semibold hover:bg-menthe-survol disabled:opacity-40">Relire</button>
                     <button onClick={() => setDevis(null)} className="text-[12.5px] px-2.5 py-1 text-ardoise hover:text-encre">Annuler</button>
                   </span>
                 ) : (
-                  <button onClick={() => !apercu && chiffrer.mutate(v.id)} disabled={apercu || chiffrer.isPending || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} » — le prix s'affiche avant`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-menthe text-[#0b0c0e] font-semibold hover:bg-[#abd0c8] disabled:opacity-40">
+                  <button onClick={() => !apercu && chiffrer.mutate(v.id)} disabled={apercu || chiffrer.isPending || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} » — le prix s'affiche avant`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-menthe text-fond font-semibold hover:bg-menthe-survol disabled:opacity-40">
                     {chiffrer.isPending && chiffrer.variables === v.id ? <PenseeIA etat="working" taille={20} /> : <RefreshCw className="w-3.5 h-3.5" />} Relancer l'analyse
                   </button>
                 )}

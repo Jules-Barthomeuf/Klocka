@@ -29,7 +29,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
   const sousNotes = pieton?.note ? Object.entries(pieton.sous_notes || {}).map(([k, n]) => `${k} ${n?.note ?? "—"}/${n?.sur ?? 5}`).join(" · ") : null;
 
   return (
-    <Section premiere={premiere} titre="Étude d'implantation · Data-B" aside={<span className="text-[12px] text-[#8B938F]">{[emplacement.source, emplacement.quand].filter(Boolean).join(" · ")}</span>}>
+    <Section premiere={premiere} titre="Étude d'implantation · Data-B" aside={<span className="text-[12px] text-ardoise">{[emplacement.source, emplacement.quand].filter(Boolean).join(" · ")}</span>}>
       <Chiffres
         className="mt-4"
         items={[
@@ -63,7 +63,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
       {fluxFaibles && (
         <Encart teinte="ambre" className="mt-5">
           <span className="font-medium" style={{ color: TEINTE.ambre }}>Flux faibles.</span> Piéton {pieton?.note?.note}/5 et voiture {voiture?.note?.note}/5. Ce qui joue en sens inverse, si vous choisissez de le mettre en avant : revenu moyen{" "}
-          <span className="text-[#F3F7F5]">{fmt(revenu?.revenu_moyen_annuel)} €/an</span>{en_tete?.revenu_vs_france != null ? ` (${pct(en_tete.revenu_vs_france)} vs France)` : ""}, {fmt(revenu?.csp_plus)} CSP+ dans la zone.
+          <span className="text-encre">{fmt(revenu?.revenu_moyen_annuel)} €/an</span>{en_tete?.revenu_vs_france != null ? ` (${pct(en_tete.revenu_vs_france)} vs France)` : ""}, {fmt(revenu?.csp_plus)} CSP+ dans la zone.
         </Encart>
       )}
 
@@ -73,9 +73,9 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
           {commerces.length ? (
             <div className="mt-2 grid grid-cols-1 gap-x-8 sm:grid-cols-2 xl:grid-cols-3">
               {commerces.map((k, i) => (
-                <div key={`${k.enseigne}-${i}`} className="min-w-0 border-b border-white/[0.05] py-2">
-                  <span className="block truncate text-[13.5px] text-[#E8EFEB]" title={k.enseigne}>{k.enseigne}</span>
-                  <span className="block truncate text-[11.5px] text-[#8B938F]" title={k.activite}>{k.activite}</span>
+                <div key={`${k.enseigne}-${i}`} className="min-w-0 border-b border-trait py-2">
+                  <span className="block truncate text-[13.5px] text-encre" title={k.enseigne}>{k.enseigne}</span>
+                  <span className="block truncate text-[11.5px] text-ardoise" title={k.activite}>{k.activite}</span>
                 </div>
               ))}
             </div>
@@ -102,7 +102,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
       <div className="mt-7">
         <div className="flex items-baseline justify-between gap-3">
           <Etiquette>Revenu et CSP+</Etiquette>
-          <button type="button" onClick={() => setRevenusVisibles((v) => !v)} aria-pressed={!revenusVisibles} className="inline-flex items-center gap-1.5 text-[12px] text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>
+          <button type="button" onClick={() => setRevenusVisibles((v) => !v)} aria-pressed={!revenusVisibles} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
             {revenusVisibles ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
             {revenusVisibles ? "Masquer" : "Afficher"}
           </button>

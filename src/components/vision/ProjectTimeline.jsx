@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useInView, useMotionValue, useSpring } from "framer-motion";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { J } from "@/design/jetons";
 
 
 // Hook pour animer les chiffres
@@ -121,7 +122,7 @@ function IndividualProjectChart({ donneesProjet }) {
           <path
             d={generatePath('patrimoine', getYPatrimoine)}
             fill="none"
-            stroke="#96c0b8"
+            stroke={J["menthe"]}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -131,7 +132,7 @@ function IndividualProjectChart({ donneesProjet }) {
           <path
             d={generatePath('capital_restant', getYPatrimoine)}
             fill="none"
-            stroke="#e8746a"
+            stroke={J["alerte"]}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -162,13 +163,13 @@ function IndividualProjectChart({ donneesProjet }) {
               cx={getX(displayIndex)}
               cy={getYPatrimoine(data[displayIndex].patrimoine)}
               r="5"
-              fill="#96c0b8"
+              fill={J["menthe"]}
             />
             <circle
               cx={getX(displayIndex)}
               cy={getYPatrimoine(data[displayIndex].capital_restant)}
               r="5"
-              fill="#e8746a"
+              fill={J["alerte"]}
             />
           </>
         </svg>
@@ -190,7 +191,7 @@ function IndividualProjectChart({ donneesProjet }) {
           <path
             d={generatePath('cashflow', getYCashflow)}
             fill="none"
-            stroke="#96c0b8"
+            stroke={J["menthe"]}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -219,7 +220,7 @@ function IndividualProjectChart({ donneesProjet }) {
             cx={getX(displayIndex)}
             cy={getYCashflow(data[displayIndex].cashflow)}
             r="5"
-            fill="#96c0b8"
+            fill={J["menthe"]}
           />
         </svg>
         <p className={`text-sm mt-2 ${data[displayIndex].cashflow >= 0 ? 'text-menthe-clair' : 'text-red-400'}`}>
@@ -281,7 +282,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
         type: 'projet',
         label: `Projet ${idx + 1}`,
         montant: p.taille >= 1000 ? `${p.taille / 1000}M€` : `${p.taille}K€`,
-        color: '#96c0b8'
+        color: J["menthe"]
       });
     }
   });
@@ -292,7 +293,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
       type: 'apport',
       label: 'Apport récupéré',
       montant: formatValue(apportTotal),
-      color: '#96c0b8'
+      color: J["menthe"]
     });
   }
 
@@ -311,7 +312,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
       annee: crossoverYear,
       type: 'equilibre',
       label: 'Équilibre dette/patrimoine',
-      color: '#96c0b8'
+      color: J["menthe"]
     });
   }
 
@@ -320,7 +321,7 @@ export function ProjectTimeline({ projets, strategiesData, typeStrategie, freque
       annee: debtFullyPaidYear,
       type: 'dette_zero',
       label: 'Dette remboursée',
-      color: '#96c0b8'
+      color: J["menthe"]
     });
   }
 

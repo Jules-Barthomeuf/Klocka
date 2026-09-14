@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
+import { J } from "@/design/jetons";
 
 // La veille d'ALX, depuis n'importe quelle page : en bas à gauche, une carte
 // par ville qui tourne dit ce qu'ALX fait (la rue, le commerce, les comptes),
@@ -41,7 +42,7 @@ function CarteVeille({ v, etat, onVoir, onFermer }) {
   const enCours = etat === "en_cours";
   const m = enCours ? pendant(v) : fini(v);
   if (!m) return null;
-  const teinte = enCours ? "#8B938F" : m.erreur ? "#c2695c" : "#96c0b8";
+  const teinte = enCours ? J["ardoise"] : m.erreur ? J["emplacement-2"] : J["menthe"];
   if (repliee) {
     return (
       <button
@@ -57,22 +58,22 @@ function CarteVeille({ v, etat, onVoir, onFermer }) {
     );
   }
   return (
-    <div className="alx-entree flex w-[380px] max-w-[calc(100vw-48px)] items-center gap-3.5 rounded-[15px] border border-white/[0.09] px-5 py-[15px] shadow-[0_18px_40px_rgba(0,0,0,0.55)]" style={{ background: "#101211" }}>
+    <div className="alx-entree flex w-[380px] max-w-[calc(100vw-48px)] items-center gap-3.5 rounded-[15px] border border-trait px-5 py-[15px] shadow-[0_18px_40px_rgba(0,0,0,0.55)]" style={{ background: "#101211" }}>
       {enCours ? (
-        <span className="alx-pouls h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: "#8B938F" }} />
+        <span className="alx-pouls h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: J["ardoise"] }} />
       ) : (
-        <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[12px] font-bold text-[#08130D]" style={{ background: teinte }}>{m.erreur ? "!" : "✓"}</span>
+        <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[12px] font-bold text-sur-menthe" style={{ background: teinte }}>{m.erreur ? "!" : "✓"}</span>
       )}
       <div className="min-w-0 flex-1">
-        <div className="text-[14.5px] text-[#E8EFEB]">{m.titre}</div>
-        <div className="mt-1 text-[12.5px] leading-[1.45] text-[#8B938F]">{m.detail}</div>
+        <div className="text-[14.5px] text-encre">{m.titre}</div>
+        <div className="mt-1 text-[12.5px] leading-[1.45] text-ardoise">{m.detail}</div>
       </div>
-      <button onClick={() => onVoir(m.onglet || ongletDe(v.parcours || {}))} className="alx-mont shrink-0 rounded-full border px-3.5 py-2 text-[10px] uppercase tracking-[.12em] transition-colors hover:bg-menthe/10" style={{ borderColor: "rgba(150,192,184,0.45)", color: "#96c0b8", background: "transparent" }}>
+      <button onClick={() => onVoir(m.onglet || ongletDe(v.parcours || {}))} className="alx-mont shrink-0 rounded-full border px-3.5 py-2 text-[10px] uppercase tracking-[.12em] transition-colors hover:bg-menthe/10" style={{ borderColor: "rgba(150,192,184,0.45)", color: J["menthe"], background: "transparent" }}>
         Voir
       </button>
       <div className="flex shrink-0 flex-col gap-1">
-        <button onClick={() => setRepliee(true)} title="Replier" className="px-1 text-[11px] leading-none text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>▼</button>
-        {!enCours && <button onClick={onFermer} title="Fermer" className="px-1 text-[14px] leading-none text-[#8B938F] hover:text-[#E8EFEB]" style={{ background: "transparent" }}>×</button>}
+        <button onClick={() => setRepliee(true)} title="Replier" className="px-1 text-[11px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>▼</button>
+        {!enCours && <button onClick={onFermer} title="Fermer" className="px-1 text-[14px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
       </div>
     </div>
   );

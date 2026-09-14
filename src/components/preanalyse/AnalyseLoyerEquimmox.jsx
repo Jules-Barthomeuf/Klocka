@@ -44,7 +44,7 @@ export default function AnalyseLoyerEquimmox({ lot, premiere = true }) {
           />
           {v && (
             <Phrase className="mt-4">
-              Le bail, à <span className="tabular-nums text-[#F3F7F5]">{euros(loyerM2)} par m² et par an</span>, est <span style={{ color: v.teinte }}>{v.mot}</span> : {v.detail}.
+              Le bail, à <span className="tabular-nums text-encre">{euros(loyerM2)} par m² et par an</span>, est <span style={{ color: v.teinte }}>{v.mot}</span> : {v.detail}.
             </Phrase>
           )}
           <Note className="mt-3">Locaux commerciaux à moins de 500 m, de surface comparable à ±30 %, d'après Equimmox. En euros par m² et par an.</Note>

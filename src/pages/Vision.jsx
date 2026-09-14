@@ -22,6 +22,7 @@ import InteractiveFranceMap from "@/components/vision/InteractiveFranceMap";
 import { MorphingSquare } from "@/components/ui/morphing-square";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { J } from "@/design/jetons";
 
 // Hook pour animer les chiffres
 function useCountUp(end, isInView, duration = 2.5) {
@@ -402,8 +403,8 @@ export default function Vision() {
 
   const getStrategyColor = () => {
     switch (typeStrategie) {
-      case "agressive":return "#e8746a";
-      case "patrimoniale":return "#96c0b8";
+      case "agressive":return J["alerte"];
+      case "patrimoniale":return J["menthe"];
       case "mixte":return "#ffffff";
       default:return "#ffffff";
     }
@@ -422,8 +423,8 @@ export default function Vision() {
 
   const getBorderColor = () => {
     switch (typeStrategie) {
-      case "agressive":return "#e8746a";
-      case "patrimoniale":return "#96c0b8";
+      case "agressive":return J["alerte"];
+      case "patrimoniale":return J["menthe"];
       case "mixte":return "#ffffff";
       default:return "#ffffff";
     }
@@ -1385,32 +1386,32 @@ export default function Vision() {
                       <LineChart data={resultat.chartData}>
                         <defs>
                           <linearGradient id="patrimoineGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#96c0b8" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#96c0b8" stopOpacity={0} />
+                            <stop offset="5%" stopColor={J["menthe"]} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={J["menthe"]} stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="investGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#96c0b8" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#96c0b8" stopOpacity={0} />
+                            <stop offset="5%" stopColor={J["menthe"]} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={J["menthe"]} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#2c3139" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={J["bord-doux"]} />
                         <XAxis
                           dataKey="annee"
-                          stroke="#9298a6"
-                          tick={{ fontSize: 12, fill: '#9298a6' }}
-                          label={{ value: 'Année', position: 'insideBottom', offset: -5, fill: '#9298a6' }} />
+                          stroke={J["ardoise"]}
+                          tick={{ fontSize: 12, fill: J["ardoise"] }}
+                          label={{ value: 'Année', position: 'insideBottom', offset: -5, fill: J["ardoise"] }} />
 
                         <YAxis
-                          stroke="#9298a6"
-                          tick={{ fontSize: 12, fill: '#9298a6' }}
+                          stroke={J["ardoise"]}
+                          tick={{ fontSize: 12, fill: J["ardoise"] }}
                           tickFormatter={(value) => {
                             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                             return `${(value / 1000).toFixed(0)}K`;
                           }}
-                          label={{ value: 'Euros', angle: -90, position: 'insideLeft', fill: '#9298a6' }} />
+                          label={{ value: 'Euros', angle: -90, position: 'insideLeft', fill: J["ardoise"] }} />
 
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#0c0d10', border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
+                          contentStyle={{ backgroundColor: J["fond"], border: '1px solid #2c3139', borderRadius: '8px', color: '#fff' }}
                           labelStyle={{ color: '#fff' }}
                           formatter={(value) => `${(value / 1000).toFixed(0)}K €`} />
 
@@ -1418,7 +1419,7 @@ export default function Vision() {
                         <Line
                           type="monotone"
                           dataKey={() => resultat.apportTotal}
-                          stroke="#96c0b8"
+                          stroke={J["menthe"]}
                           strokeWidth={3}
                           strokeDasharray="5 5"
                           name="Investissement initial"
@@ -1427,7 +1428,7 @@ export default function Vision() {
                         <Area
                           type="monotone"
                           dataKey="patrimoine"
-                          stroke="#96c0b8"
+                          stroke={J["menthe"]}
                           strokeWidth={3}
                           fill="url(#patrimoineGradient)"
                           name="Patrimoine net" />
@@ -1435,7 +1436,7 @@ export default function Vision() {
                         <Line
                           type="monotone"
                           dataKey="patrimoine"
-                          stroke="#96c0b8"
+                          stroke={J["menthe"]}
                           strokeWidth={4}
                           name=""
                           dot={false}

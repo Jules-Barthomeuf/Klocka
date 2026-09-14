@@ -245,6 +245,9 @@ const TYPE_DE = (a) => {
   const t = `${a.familleavis || ''} ${a.typeavis || ''} ${JSON.stringify(a.listepersonnes || '')} ${JSON.stringify(a.modificationsgenerales || '')}`.toLowerCase();
   if (/liquidation|redressement|sauvegarde|collective/.test(t)) return 'procédure collective';
   if (/dissolution|radiation/.test(t)) return 'radiation ou dissolution';
+  // L'avis le dit parfois en clair : « suite au décès de ». Le plus fort des
+  // signaux patients, quand on le voit.
+  if (/d[ée]c[èe]s|d[ée]c[ée]d[ée]e?/.test(t)) return 'décès d’un dirigeant';
   if (/g[ée]rant|dirigeant|administrat/.test(t)) return 'changement de gérance';
   if (/si[èe]ge|transfert/.test(t)) return 'transfert de siège';
   if (/cession|vente/.test(t)) return 'cession';

@@ -18,7 +18,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { creerCible, creerVille, reclasser } from './index.js';
-import { observableEnProspection } from './classement.js';
+import { classer, observableEnProspection } from './classement.js';
 import * as enrichir from './enrichir.js';
 
 const ici = path.dirname(fileURLToPath(import.meta.url));
@@ -89,8 +89,15 @@ export async function relire({ journal = console.log } = {}) {
   journal(`Fini : ${faits} relus, ${proprios} propriétaires, ${erreurs} erreurs.`);
 }
 
-const CLES = ['marchand_fenetre', 'evenement_recent', 'echeance_proche', 'detention_longue', 'gerant_age', 'famille', 'loyer_bas', 'bien_isole'];
+const CLES = ['marchand_fenetre', 'evenement_recent', 'echeance_proche', 'locataire_en_difficulte', 'detention_longue', 'gerant_age', 'famille', 'loyer_bas', 'bien_isole', 'siege_ailleurs', 'voisin_mute'];
 const a = (c, cle) => [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].some((s) => s.cle === cle);
+/**
+ * La pile qu'ALX aurait donnée EN PROSPECTION : sans l'échéance du bail ni le
+ * loyer du bail, qu'on ne lit que sur un dossier entré. Un vendeur classé
+ * « à appeler » grâce à son bail n'aurait jamais été appelé dans la rue, et le
+ * compter ferait croire à un classement parfait.
+ */
+const pileEnProspection = (c) => classer({ ...c, bail_echeance: null, loyer_m2_bail: null, ecartee_regle: null }).pile;
 /** Les traits comparés entre vendeurs et témoins. Chacun lit une cible et rend vrai ou faux. */
 export const TRAITS = {
   ...Object.fromEntries(CLES.map((k) => [k, (c) => a(c, k)])),
@@ -101,8 +108,8 @@ export const TRAITS = {
   siege_ailleurs: (c) => !!c.societe?.siege?.ville && !!c.ville && c.societe.siege.ville.toLowerCase() !== String(c.ville).toLowerCase(),
   plusieurs_etablissements: (c) => (c.societe?.nombre_etablissements || 0) > 2,
   enseigne_nationale: (c) => !!c.occupant?.chaine,
-  pile_appeler: (c) => c.pile === 'appeler',
-  pile_ecrire: (c) => c.pile === 'ecrire',
+  pile_appeler: (c) => pileEnProspection(c) === 'appeler',
+  pile_ecrire: (c) => pileEnProspection(c) === 'ecrire',
 };
 
 /** Les mots des traits qui ne sont pas des signaux de signaux.json. */
@@ -159,7 +166,7 @@ export function rapport({ journal = console.log } = {}) {
       "Les vendeurs sont des dossiers arrivés par des agents : l'étude mesure qui vend par ce canal, pas qui vend. La mesure DVF (mesure-dvf.js) n'a pas ce biais.",
       "Les témoins sont des « pas encore vendus », pas des jamais-vendeurs : les lifts sont plutôt sous-estimés que l'inverse.",
       "Les signaux marqués non observables ne se lisent que sur un dossier entré : leur lift n'a pas de sens, il n'est pas calculé.",
-      'Les piles des vendeurs sont recalculées avec les règles du jour : ce sont des prédictions faites après coup, pas avant. Le journal des prédictions (predictions.js) fait la vraie épreuve, sur les cibles prospectées.',
+      "Les piles des vendeurs sont recalculées avec les règles du jour et les seuls signaux visibles en prospection (sans l'échéance ni le loyer du bail) : ce sont des prédictions faites après coup, pas avant. Le journal des prédictions (predictions.js) fait la vraie épreuve, sur les cibles prospectées.",
     ],
   };
   fs.writeFileSync(RAPPORT, JSON.stringify(sortie, null, 2));

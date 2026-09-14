@@ -1,17 +1,18 @@
 {
-  "le": "2026-09-14T06:10:56.456Z",
+  "le": "2026-09-14T15:49:45.978Z",
   "vendeurs": 43,
   "projets": 42,
   "dossiers": 1,
-  "temoins": 493,
+  "temoins": 494,
   "lignes": [
     {
       "trait": "pile_appeler",
-      "vendeurs": 14,
-      "vendeurs_pct": 33,
-      "temoins": 78,
-      "temoins_pct": 16,
-      "lift": 2.1
+      "vendeurs": 5,
+      "vendeurs_pct": 12,
+      "temoins": 2,
+      "temoins_pct": 0,
+      "lift": 28.7,
+      "observable": true
     },
     {
       "trait": "evenement_recent",
@@ -19,15 +20,17 @@
       "vendeurs_pct": 23,
       "temoins": 83,
       "temoins_pct": 17,
-      "lift": 1.4
+      "lift": 1.4,
+      "observable": true
     },
     {
       "trait": "siege_ailleurs",
       "vendeurs": 27,
       "vendeurs_pct": 63,
-      "temoins": 225,
+      "temoins": 226,
       "temoins_pct": 46,
-      "lift": 1.4
+      "lift": 1.4,
+      "observable": true
     },
     {
       "trait": "detention_longue",
@@ -35,23 +38,35 @@
       "vendeurs_pct": 14,
       "temoins": 65,
       "temoins_pct": 13,
-      "lift": 1.1
+      "lift": 1.1,
+      "observable": true
     },
     {
       "trait": "sci",
       "vendeurs": 27,
       "vendeurs_pct": 63,
-      "temoins": 343,
+      "temoins": 344,
       "temoins_pct": 70,
-      "lift": 0.9
+      "lift": 0.9,
+      "observable": true
     },
     {
       "trait": "plusieurs_etablissements",
       "vendeurs": 9,
       "vendeurs_pct": 21,
       "temoins": 116,
-      "temoins_pct": 24,
-      "lift": 0.9
+      "temoins_pct": 23,
+      "lift": 0.9,
+      "observable": true
+    },
+    {
+      "trait": "pile_ecrire",
+      "vendeurs": 25,
+      "vendeurs_pct": 58,
+      "temoins": 304,
+      "temoins_pct": 62,
+      "lift": 0.9,
+      "observable": true
     },
     {
       "trait": "famille",
@@ -59,7 +74,8 @@
       "vendeurs_pct": 40,
       "temoins": 232,
       "temoins_pct": 47,
-      "lift": 0.8
+      "lift": 0.8,
+      "observable": true
     },
     {
       "trait": "societe_20_ans",
@@ -67,15 +83,8 @@
       "vendeurs_pct": 37,
       "temoins": 283,
       "temoins_pct": 57,
-      "lift": 0.6
-    },
-    {
-      "trait": "pile_ecrire",
-      "vendeurs": 16,
-      "vendeurs_pct": 37,
-      "temoins": 289,
-      "temoins_pct": 59,
-      "lift": 0.6
+      "lift": 0.6,
+      "observable": true
     },
     {
       "trait": "gerant_age",
@@ -83,7 +92,8 @@
       "vendeurs_pct": 16,
       "temoins": 224,
       "temoins_pct": 45,
-      "lift": 0.4
+      "lift": 0.4,
+      "observable": true
     },
     {
       "trait": "marchand_fenetre",
@@ -91,7 +101,8 @@
       "vendeurs_pct": 7,
       "temoins": 0,
       "temoins_pct": 0,
-      "lift": null
+      "lift": null,
+      "observable": true
     },
     {
       "trait": "echeance_proche",
@@ -99,7 +110,17 @@
       "vendeurs_pct": 9,
       "temoins": 0,
       "temoins_pct": 0,
-      "lift": null
+      "lift": null,
+      "observable": false
+    },
+    {
+      "trait": "locataire_en_difficulte",
+      "vendeurs": 0,
+      "vendeurs_pct": 0,
+      "temoins": 0,
+      "temoins_pct": 0,
+      "lift": null,
+      "observable": true
     },
     {
       "trait": "loyer_bas",
@@ -107,7 +128,8 @@
       "vendeurs_pct": 2,
       "temoins": 0,
       "temoins_pct": 0,
-      "lift": null
+      "lift": null,
+      "observable": false
     },
     {
       "trait": "bien_isole",
@@ -115,7 +137,17 @@
       "vendeurs_pct": 0,
       "temoins": 0,
       "temoins_pct": 0,
-      "lift": null
+      "lift": null,
+      "observable": true
+    },
+    {
+      "trait": "voisin_mute",
+      "vendeurs": 0,
+      "vendeurs_pct": 0,
+      "temoins": 0,
+      "temoins_pct": 0,
+      "lift": null,
+      "observable": true
     },
     {
       "trait": "exploitant_proprietaire",
@@ -123,7 +155,8 @@
       "vendeurs_pct": 0,
       "temoins": 9,
       "temoins_pct": 2,
-      "lift": 0
+      "lift": 0,
+      "observable": true
     },
     {
       "trait": "personne_physique",
@@ -131,7 +164,8 @@
       "vendeurs_pct": 0,
       "temoins": 8,
       "temoins_pct": 2,
-      "lift": 0
+      "lift": 0,
+      "observable": true
     },
     {
       "trait": "enseigne_nationale",
@@ -139,7 +173,14 @@
       "vendeurs_pct": 0,
       "temoins": 43,
       "temoins_pct": 9,
-      "lift": 0
+      "lift": 0,
+      "observable": true
     }
+  ],
+  "limites": [
+    "Les vendeurs sont des dossiers arrivés par des agents : l'étude mesure qui vend par ce canal, pas qui vend. La mesure DVF (mesure-dvf.js) n'a pas ce biais.",
+    "Les témoins sont des « pas encore vendus », pas des jamais-vendeurs : les lifts sont plutôt sous-estimés que l'inverse.",
+    "Les signaux marqués non observables ne se lisent que sur un dossier entré : leur lift n'a pas de sens, il n'est pas calculé.",
+    "Les piles des vendeurs sont recalculées avec les règles du jour et les seuls signaux visibles en prospection (sans l'échéance ni le loyer du bail) : ce sont des prédictions faites après coup, pas avant. Le journal des prédictions (predictions.js) fait la vraie épreuve, sur les cibles prospectées."
   ]
 }

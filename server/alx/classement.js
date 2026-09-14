@@ -119,7 +119,7 @@ export function signauxDe(cible, { maintenant = Date.now() } = {}) {
   const rEvt = regle('signaux_forts', 'evenement_recent');
   const evtRecent = (cible.evenements || []).find((e) => {
     const mois = moisDepuis(e.date, maintenant);
-    return mois != null && mois <= (rEvt.fenetre_mois || 6) && /gerance|gérance|siege|siège|collective|dissolution|radiation/i.test(e.type || '');
+    return mois != null && mois <= (rEvt.fenetre_mois || 6) && /gerance|gérance|siege|siège|collective|dissolution|radiation|décès|deces/i.test(e.type || '');
   });
   if (evtRecent) {
     fort('evenement_recent', rEvt, { valeur: `${evtRecent.type} le ${String(evtRecent.date).slice(0, 10)}`, source: evtRecent.source || 'BODACC' }, evtRecent.type);

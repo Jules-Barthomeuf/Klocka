@@ -35,11 +35,12 @@
       "poids": 1.0,
       "poids_par_type": {
         "procédure collective": 3.0,
+        "décès": 2.5,
         "radiation ou dissolution": 2.5,
         "changement de gérance": 1.0,
         "transfert de siège": 0.7
       },
-      "pourquoi": "Lift 1,4 tous types confondus (23 % des vendeurs, 17 % des témoins). Un changement de gérance seul n'est donc plus un appel, c'est un courrier. Une procédure collective ou une dissolution du propriétaire garde un poids fort : pas mesurées à part, trop rares dans l'étude."
+      "pourquoi": "Lift 1,4 tous types confondus (23 % des vendeurs, 17 % des témoins). Un changement de gérance seul n'est donc plus un appel, c'est un courrier. Une procédure collective, un décès de dirigeant lu en clair dans l'avis, ou une dissolution du propriétaire gardent un poids fort : pas mesurés à part, trop rares dans l'étude."
     },
     {
       "cle": "echeance_proche",

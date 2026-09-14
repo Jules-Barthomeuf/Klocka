@@ -44,6 +44,10 @@ test('un changement de gérant récent fait écrire, une procédure collective f
   const collective = classer({ ...CIBLE_NUE, proprietaire: { nom: 'SCI Tarte' }, evenements: [{ date: ilYa(2), type: 'procédure collective', source: 'BODACC' }] }, opts);
   assert.equal(collective.pile, 'appeler');
   assert.equal(collective.signaux.forts[0].poids, 3);
+  // Un décès de dirigeant, lu en clair dans l'avis : 2,5, un courrier qui ne traîne pas.
+  const deces = classer({ ...CIBLE_NUE, proprietaire: { nom: 'SCI Tarte' }, evenements: [{ date: ilYa(4), type: 'décès d’un dirigeant', source: 'BODACC' }] }, opts);
+  assert.equal(deces.signaux.forts[0].poids, 2.5);
+  assert.equal(deces.pile, 'ecrire');
   const vieux = classer({ ...CIBLE_NUE, proprietaire: { nom: 'SCI Tarte' }, evenements: [{ date: ilYa(9), type: 'changement de gérance' }] }, opts);
   assert.notEqual(vieux.pile, 'appeler');
 });

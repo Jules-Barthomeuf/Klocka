@@ -7,6 +7,7 @@ import { Moon, Sun } from "lucide-react";
 import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { EMPLACEMENTS, ECARTEE, emplacementDe } from "./alx-commun";
+import { useFondDeCarte } from "@/lib/tuiles";
 import { J } from "@/design/jetons";
 
 // La carte des rues d'une ville. Chaque rue est dessinée sur son tracé
@@ -15,9 +16,11 @@ import { J } from "@/design/jetons";
 // rue pour la voir dans le panneau à côté et la cocher ; une rue cochée se
 // dessine plus épaisse.
 
-// Les tuiles d'OpenStreetMap, passées en sombre par un filtre (index.css) :
-// pas de clé à gérer, et le fond reste celui de l'application.
-const TUILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+// Le fond de carte vit dans src/lib/tuiles.js : OpenStreetMap a bloqué
+// l'application sur ses serveurs bénévoles, la Géoplateforme de l'IGN a pris
+// le relais, et un fond qui tombe passe la main au suivant. Les tuiles sont
+// passées en sombre par un filtre (index.css) : pas de clé à gérer, et le
+// fond reste celui de l'application.
 
 /**
  * Cadre la carte sur les rues, une fois. Sur leurs centres, pas sur leurs
@@ -80,7 +83,7 @@ function BoutonTheme({ sombre, onClick }) {
   );
 }
 
-function Legende() {
+function Legende({ attribution }) {
   return (
     <div className="absolute bottom-3 left-3 z-[400] flex flex-wrap gap-x-3.5 gap-y-1 rounded-[10px] border border-bord bg-surface/90 px-3 py-2 text-[11px] text-craie backdrop-blur">
       {[...EMPLACEMENTS, ECARTEE].map((e) => (
@@ -89,7 +92,8 @@ function Legende() {
           {e.classe ? `Emplacement ${e.mot}` : "Écartée"}
         </span>
       ))}
-      <span className="text-brume">© OpenStreetMap</span>
+      {/* L'attribution suit le fond : l'IGN comme OpenStreetMap l'exigent. */}
+      <span className="text-brume">{attribution}</span>
     </div>
   );
 }
@@ -145,6 +149,7 @@ function debutDuTrace(traceBrut, fraction) {
  */
 export default function CarteRues({ rues, ecartees = [], coches, choisie = null, onChoisir, centre = null, className = "", streetView = null, direct = null }) {
   const [sombre, basculerTheme] = useThemeCarte();
+  const { fond, surErreur } = useFondDeCarte();
   const visibles = useMemo(() => (direct ? rues.filter((r) => direct.retenues.includes(r.nom)) : rues), [rues, direct]);
   // Le cadrage vise le centre commerçant : les vingt rues les plus garnies,
   // à moins de 4 km du centre de la ville. Une rue mal géolocalisée ou un
@@ -181,7 +186,8 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
   return (
     <div className={`k-carte-rues ${sombre ? "" : "k-carte-claire"} relative overflow-hidden rounded-[18px] border border-trait bg-fond ${className}`}>
       <MapContainer center={centreCarte} zoom={14} minZoom={11} scrollWheelZoom className="h-full w-full" attributionControl={false} zoomControl={false}>
-        <TileLayer url={TUILES} attribution="&copy; OpenStreetMap" maxZoom={19} />
+        {/* `key` : changer d'URL ne suffit pas à Leaflet, il faut refaire la couche. */}
+        <TileLayer key={fond.cle} url={fond.url} attribution={fond.attribution} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />
         <Cadrage points={points} />
         {!direct && ecartees.map((r) =>
           (r.trace || []).map((troncon, i) => (
@@ -231,7 +237,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
           })}
       </MapContainer>
       <BoutonTheme sombre={sombre} onClick={basculerTheme} />
-      {!direct && <Legende />}
+      {!direct && <Legende attribution={fond.attribution} />}
       {avecTrace === 0 && (
         <div className="absolute inset-0 z-[400] grid place-items-center bg-fond/70 px-6 text-center text-[12.5px] text-ardoise">
           Les tracés arrivent avec le prochain relevé : cliquez « Refaire les rues ».

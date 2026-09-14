@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import InfoTooltip from "./InfoTooltip";
+import { useFondDeCarte } from "@/lib/tuiles";
 import { MapPin, Loader2 } from "lucide-react";
 
 const MARKER_COLORS = ["#991B1B", "#34D399", "#EAB308", "#C084FC"];
@@ -30,6 +31,7 @@ async function geocodeAddress(address) {
 }
 
 export default function CompareMap({ metrics }) {
+  const { fond, surErreur } = useFondDeCarte();
   const [resolvedCoords, setResolvedCoords] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -116,10 +118,8 @@ export default function CompareMap({ metrics }) {
           style={{ height: "100%", width: "100%" }}
           scrollWheelZoom={false}
         >
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-          />
+          {/* Le même fond que la carte d'ALX : voir src/lib/tuiles.js. */}
+          <TileLayer key={fond.cle} url={fond.url} attribution={fond.attribution} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />
           {projectsWithCoords.map((m) => {
             const icon = createColoredIcon(MARKER_COLORS[m.globalIdx]);
             return (

@@ -279,7 +279,7 @@ function ChatAlx({ villeId, onglet, onFait }) {
   const peutEnvoyer = !!texte.trim() && !envoyer.isPending;
   const placeholder = onglet === "commerces" ? "Regarde si Maison Peirano vaut le coup, prospecte le 12 rue d'Antibes…" : "Prospecte la rue Meynadier, ouvre le boulevard Carnot…";
   return (
-    <div className="mx-auto mt-6 w-full max-w-[860px]">
+    <div className="mx-auto mt-6 w-full max-w-[880px]">
       {/* Le composer du dossier, à l'identique : même boîte, même dictée, même bouton. */}
       <div className={`accueil-wrap ${ecoute ? "voix" : ""}`}>
         <div aria-hidden="true" className="accueil-ring-sage" />

@@ -5,13 +5,13 @@ import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { demanderNotifications } from "@/lib/notifications";
 import { toast } from "@/components/ui/avis";
-import { ArrowRight, Bell, Check, Copy, FileText, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, Settings, Square, User, X } from "lucide-react";
+import { ArrowRight, ArrowUp, Bell, Check, ChevronDown, Copy, FileText, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, SlidersHorizontal, Square, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
 import Message from "@/components/MessageIA";
-import { J } from "@/design/jetons";
+import { J, alpha } from "@/design/jetons";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -573,6 +573,12 @@ export default function ChatDashboard() {
 
   const aDuContenu = fil.length > 0 || fiche || brouillon;
 
+  // Le mode choisi, et sa vignette. Sans mode, la barre fait le tri.
+  const modeCourant = MODES.find((m) => m.id === mode) || null;
+  const IconeMode = modeCourant?.icone || SlidersHorizontal;
+  // Une note collée tient rarement sur une ligne : la pilule s'arrondit.
+  const multiligne = texte.includes("\n") || texte.length > 90;
+
   return (
     <div>
       {aDuContenu && (
@@ -616,100 +622,135 @@ export default function ChatDashboard() {
         </div>
       )}
 
-      {/* Le composeur de l'accueil : un cadre sombre, une lueur sauge au repos ;
-          en mode voix, un faisceau de couleurs fait le tour et le halo s'allume. */}
+      {/* Le composeur : une seule barre en pilule. À gauche le mode, au
+          milieu ce qu'on tape, à droite la pièce jointe, la voix et l'envoi.
+          Une note collée sur plusieurs lignes arrondit la barre au lieu de la
+          faire déborder. */}
       <div
-        className={`accueil-wrap ${ecoute ? "voix" : ""}`}
+        className="relative"
         onDragOver={(e) => { e.preventDefault(); setGlisse(true); }}
         onDragLeave={() => setGlisse(false)}
         onDrop={deposer}
       >
-        <div aria-hidden="true" className="accueil-ring-sage" style={glisse ? { boxShadow: "0 0 0 1px rgba(156,195,188,.6), 0 0 34px rgba(156,195,188,.3)" } : undefined} />
-        <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
-        <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>
+        <div
+          className={`flex items-center gap-3.5 border py-3 pl-6 pr-3 transition-colors ${multiligne ? "rounded-[28px] items-end" : "rounded-full"}`}
+          style={{ background: J["relief"], borderColor: glisse ? J["menthe"] : ecoute ? alpha("menthe", 0.5) : J["trait"] }}
+        >
+          {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
+          <div className="relative flex-none">
+            <button
+              type="button"
+              onClick={() => setCommandes((o) => !o)}
+              aria-expanded={commandes}
+              aria-haspopup="menu"
+              aria-label={modeCourant ? `Mode ${modeCourant.label}` : "Choisir un mode"}
+              title={modeCourant ? modeCourant.label : "Choisir ce que vous apportez : une note, une fiche, un mail, un rappel"}
+              className="flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 transition-colors hover:border-bord-vif"
+              style={{ background: "transparent", borderColor: modeCourant ? alpha("menthe", 0.45) : J["bord"] }}
+            >
+              <IconeMode className="h-4 w-4" style={{ color: modeCourant ? J["menthe"] : J["ardoise"] }} />
+              <ChevronDown className={`h-2.5 w-2.5 text-ardoise transition-transform ${commandes ? "rotate-180" : ""}`} />
+            </button>
+            {commandes && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
+                <div role="menu" className="absolute bottom-full left-0 z-20 mb-2 min-w-[320px] rounded-bloc border border-bord-doux bg-surface p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)]">
+                  {MODES.map((m) => {
+                    const Icone = m.icone;
+                    const actif = mode === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        role="menuitem"
+                        onClick={() => { const suivant = actif ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); setCommandes(false); }}
+                        className="flex w-full items-center gap-2.5 rounded-champ px-3 py-2 text-left text-[13.5px] transition-colors hover:bg-encre/[0.05]"
+                        style={{ background: "transparent", color: actif ? J["menthe"] : J["craie"] }}
+                        title={m.placeholder}
+                      >
+                        <Icone className="h-4 w-4 flex-none" />
+                        {m.label}
+                        {actif && <Check className="ml-auto h-3.5 w-3.5 flex-none" />}
+                      </button>
+                    );
+                  })}
+                  <div className="my-1.5 border-t border-trait" />
+                  {COMMANDES.map((c) => (
+                    <button
+                      key={c.texte}
+                      role="menuitem"
+                      onClick={() => { setTexte(c.texte); setMode(c.mode || null); setCommandes(false); }}
+                      className="w-full rounded-champ px-3 py-2 text-left text-[12.5px] text-brume transition-colors hover:bg-encre/[0.05] hover:text-craie"
+                      style={{ background: "transparent" }}
+                    >
+                      {c.texte}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
-        <div className="accueil-composer">
           <textarea
-            rows={Math.min(4, Math.max(2, texte.split("\n").length))}
+            rows={multiligne ? Math.min(6, Math.max(2, texte.split("\n").length)) : 1}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}
-            placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : MODES.find((m) => m.id === mode)?.placeholder || "Collez votre note, ou posez une question…"}
+            placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : modeCourant?.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
+            className="min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50"
           />
-          {(fichier || erreur || mode === "mail") && (
-            <div className="px-7 pb-3 -mt-4 flex flex-wrap items-center gap-2">
-              {fichier && (
-                <span className="inline-flex items-center gap-2 text-[12.5px] text-craie">
-                  <Paperclip className="w-3.5 h-3.5 text-menthe" /> {fichier.name}
-                  <button onClick={() => setFichier(null)} className="text-brume hover:text-alerte" aria-label="Retirer"><X className="w-3.5 h-3.5" /></button>
-                </span>
-              )}
-              {erreur && <span className="text-[12.5px] text-alerte">{erreur}</span>}
-              {mode === "mail" && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
-            </div>
-          )}
-          <div className="accueil-bar">
-            <div className="accueil-tools">
-              <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
-              <button type="button" className="accueil-icon" aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier" title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier" onClick={() => fichierRef.current?.click()}><Paperclip className="w-4 h-4" /></button>
-              <div className="relative">
-                <button type="button" className="accueil-icon" title="Commandes types" aria-label="Commandes types" onClick={() => setCommandes((o) => !o)}><Settings className="w-4 h-4" /></button>
-                {commandes && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
-                    <div className="absolute bottom-full left-0 mb-2 z-20 min-w-[300px] bg-surface border border-bord-doux rounded-xl shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5">
-                      {COMMANDES.map((c) => (
-                        <button key={c.texte} onClick={() => { setTexte(c.texte); setMode(c.mode || null); setCommandes(false); }} className="w-full text-left text-[12.5px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg">
-                          {c.texte}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-              <button
-                type="button"
-                id="accueil-voix"
-                aria-pressed={ecoute}
-                disabled={enCours}
-                onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-                aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"} title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
-              >
-                <span className="dot" /><span>Voix</span>
-              </button>
-            </div>
-            {enCours ? (
-              <button type="button" className="accueil-send" onClick={() => controleur.current?.abort()} aria-label="Interrompre la requête en cours" title="Interrompre la requête en cours">
-                <PenseeIA etat="working" taille={20} clair /> Arrêter
-              </button>
-            ) : (
-            <button type="button" className="accueil-send" onClick={() => lancer()} disabled={(!texte.trim() && !fichier) || enCours}>
-              {enCours ? <PenseeIA etat="working" taille={20} clair /> : null}
-              Envoyer
-            </button>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Les gestes courants, sous la boîte : un clic choisit le mode, un second
-          revient au tri automatique. */}
-      <div className="accueil-chips">
-        {MODES.filter((m) => ["note", "fiche", "mail", "rappel"].includes(m.id)).map((m) => {
-          const actif = mode === m.id;
-          return (
-            <button
-              key={m.id}
-              type="button"
-              aria-pressed={actif}
-              onClick={() => { const suivant = actif ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); }}
-              aria-label={actif ? "Revenir au tri automatique" : m.placeholder} title={actif ? "Revenir au tri automatique" : m.placeholder}
-            >
-              {m.label}
-            </button>
-          );
-        })}
+          <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
+          <button
+            type="button"
+            onClick={() => fichierRef.current?.click()}
+            aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
+            title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
+            className="grid h-8 w-8 flex-none place-items-center rounded-full border border-bord text-ardoise transition-colors hover:border-bord-vif hover:text-encre"
+            style={{ background: "transparent" }}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            aria-pressed={ecoute}
+            disabled={enCours}
+            onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
+            aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
+            title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
+            className="grid h-8 w-8 flex-none place-items-center rounded-full border transition-colors disabled:opacity-40"
+            style={{ background: ecoute ? alpha("menthe", 0.16) : "transparent", borderColor: ecoute ? J["menthe"] : J["bord"], color: ecoute ? J["menthe"] : J["ardoise"] }}
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => (enCours ? controleur.current?.abort() : lancer())}
+            disabled={!enCours && !texte.trim() && !fichier}
+            aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
+            title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
+            className="grid h-10 w-10 flex-none place-items-center rounded-full transition-opacity disabled:opacity-45"
+            style={{ background: J["menthe"], color: J["sur-menthe"] }}
+          >
+            {enCours ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
+          </button>
+        </div>
+
+        {/* La pièce jointe, l'erreur, les mails types : sous la barre. */}
+        {(fichier || erreur || mode === "mail") && (
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+            {fichier && (
+              <span className="inline-flex items-center gap-2 text-[12.5px] text-craie">
+                <Paperclip className="h-3.5 w-3.5 text-menthe" /> {fichier.name}
+                <button onClick={() => setFichier(null)} className="text-brume hover:text-alerte" aria-label="Retirer" title="Retirer"><X className="h-3.5 w-3.5" /></button>
+              </span>
+            )}
+            {erreur && <span className="text-[12.5px] text-alerte">{erreur}</span>}
+            {mode === "mail" && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
+          </div>
+        )}
       </div>
     </div>
   );

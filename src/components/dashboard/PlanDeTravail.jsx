@@ -53,17 +53,22 @@ export default function PlanDeTravail({ chat = null }) {
           son propre fond, délimité par un filet : ce qui est au-dessus se fait,
           ce qui est en dessous se reprend. */}
       <header className="accueil relative overflow-hidden rounded-bloc border border-trait pb-12 pt-[8vh] text-center max-md:pb-8 max-md:pt-8">
-        <div aria-hidden="true" className="accueil-halo-a" />
-        <div aria-hidden="true" className="accueil-halo-b" />
-        {/* Une lueur menthe dans le coin, comme sur le dossier. */}
-        <div aria-hidden="true" className="pointer-events-none absolute -left-[220px] -top-[240px] h-[620px] w-[840px]" style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.1)}, transparent)` }} />
-        <div aria-hidden="true" className="pointer-events-none absolute -right-[260px] bottom-[-280px] h-[560px] w-[760px]" style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.06)}, transparent)` }} />
-        <h1 className="relative m-0 font-display text-[34px] font-normal italic leading-[1.1] tracking-[-.01em] text-encre" >
+        {/* Le fond : une bande menthe horizontale, bord à bord, floutée.
+            Elle passe derrière le composeur et s'éteint sur les côtés. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-[36%] h-[190px]"
+          style={{
+            background: `linear-gradient(90deg, ${alpha("menthe", 0)} 0%, ${alpha("menthe", 0.14)} 28%, ${alpha("menthe", 0.22)} 50%, ${alpha("menthe", 0.14)} 72%, ${alpha("menthe", 0)} 100%)`,
+            filter: "blur(34px)",
+          }}
+        />
+        <h1 className="relative m-0 font-display font-normal italic leading-[1.05] tracking-[.01em] text-encre" style={{ fontSize: "clamp(34px, 4.6vw, 58px)" }}>
           {salut}
         </h1>
 
         {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
-        {chat && <div className="relative mx-auto mt-11 max-w-[900px] px-5 max-md:mt-8">{chat}</div>}
+        {chat && <div className="relative mx-auto mt-11 w-full max-w-[760px] px-5 max-md:mt-8">{chat}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}

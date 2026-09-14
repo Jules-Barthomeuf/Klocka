@@ -493,6 +493,17 @@ export function analyseDe(lot, passage) {
     ecartComparaison,
     recoupement,
     residentiel,
+    // Pour le graphique des loyers : le loyer en place au m², et les
+    // fourchettes des sources sur la même règle (la maille Data-B retenue par
+    // le recoupement, sinon la plus fine).
+    en_place_m2: loyerEnPlace != null && surfaceRetenue ? Math.round(loyerEnPlace / surfaceRetenue) : null,
+    loyers_lectures: (() => {
+      const l = [];
+      if (equimmox?.bas != null && equimmox?.haut != null) l.push({ service: "Equimmox", sous: `baux${equimmox.rayon ? ` · rayon ${equimmox.rayon}` : ""}`, bas: equimmox.bas, haut: equimmox.haut, median: equimmox.moyenne ?? null, principale: true });
+      const db = recoupement?.lectures?.find((x) => x.service === "Data-B") || (niveauDataB ? { bas: niveauDataB.basse, haut: niveauDataB.haute, echelle: echelleDataB, precision: niveauDataB.nom || null } : null);
+      if (db && db.bas != null && db.haut != null) l.push({ service: "Data-B", sous: `${db.echelle}${db.precision ? ` ${db.precision}` : ""}`, bas: db.bas, haut: db.haut, median: null, principale: !l.length });
+      return l;
+    })(),
     details: detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, dataB, transactions, figaro, passage }),
     journal: null,
     passage,

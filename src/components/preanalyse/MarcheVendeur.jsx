@@ -69,7 +69,7 @@ export default function MarcheVendeur({ lot, dossier, adresse }) {
   if (!adresse || !numerotee) return null;
   if (isLoading) {
     return (
-      <section className="rounded-[16px] border border-white/[0.07] px-6 py-5">
+      <section className="mt-[34px] border-t border-white/[0.07] pt-7">
         <Etiquette>Le vendeur · ALX</Etiquette>
         <div className="mt-2 text-[13.5px] text-[#8B938F]">ALX cherche le propriétaire des murs chez Data Foncier, puis sa société, le BODACC et DVF…</div>
       </section>
@@ -77,7 +77,7 @@ export default function MarcheVendeur({ lot, dossier, adresse }) {
   }
   if (error || !o) {
     return (
-      <section className="rounded-[16px] border border-white/[0.07] px-6 py-5">
+      <section className="mt-[34px] border-t border-white/[0.07] pt-7">
         <Etiquette>Le vendeur · ALX</Etiquette>
         <div className="mt-2 text-[13.5px] text-[#8B938F]">{error?.message || "ALX n'a pas pu lire le vendeur."}</div>
         <button onClick={() => refetch()} className="mt-2 text-[13px] text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>Réessayer</button>
@@ -101,7 +101,7 @@ export default function MarcheVendeur({ lot, dossier, adresse }) {
   const etude = o.etude || {};
 
   return (
-    <section className="rounded-[16px] border border-white/[0.07] px-6 py-5">
+    <section className="mt-[34px] border-t border-white/[0.07] pt-7">
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <Etiquette>Le vendeur · ALX</Etiquette>
         <button onClick={() => relire.mutate()} disabled={relire.isPending || isFetching} className="text-[12px] text-[#8B938F] hover:text-[#E8EFEB] disabled:opacity-50" style={{ background: "transparent" }} title="Relit Data Foncier, l'annuaire, le BODACC et DVF">

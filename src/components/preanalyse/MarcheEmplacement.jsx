@@ -1,7 +1,8 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Etiquette, Etoiles, Nombre, TEINTES, emplacementDe } from "@/components/alx/alx-commun";
+import { Etiquette, Etoiles, Nombre, emplacementDe } from "@/components/alx/alx-commun";
 
 // L'emplacement du dossier, vu par ALX.
 //
@@ -36,8 +37,8 @@ export default function MarcheEmplacement({ adresse }) {
   if (!adresse) return null;
   if (isLoading) {
     return (
-      <section className="rounded-[16px] border border-white/[0.07] px-6 py-5">
-        <Etiquette>L'emplacement</Etiquette>
+      <section className="mt-[34px] border-t border-white/[0.07] pt-7">
+        <Etiquette>L'emplacement · ALX</Etiquette>
         <div className="mt-2 text-[13.5px] text-[#8B938F]">ALX lit les rues de la ville sur OpenStreetMap…</div>
       </section>
     );
@@ -55,36 +56,36 @@ export default function MarcheEmplacement({ adresse }) {
   ];
 
   return (
-    <section className="rounded-[16px] border border-white/[0.07] px-6 py-5">
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+    <section className="mt-[34px] border-t border-white/[0.07] pt-7">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <Etiquette>L'emplacement · ALX</Etiquette>
-          <div className="mt-2 text-[20px] font-light tracking-[-.02em] text-[#F3F7F5]">{e.rue}<span className="text-[#8B938F]">, {e.ville}</span></div>
+          <div className="mt-2.5 text-[32px] font-light tracking-[-.025em] text-[#F3F7F5] max-md:text-[24px]">{e.rue}<span className="text-[#8B938F]">, {e.ville}</span></div>
         </div>
         {e.classe != null && (
-          <div className="flex items-center gap-3">
-            <span className="alx-mont rounded-full border px-3 py-1 text-[12px] font-medium" style={{ borderColor: emp.teinte, color: emp.teinte }}>Emplacement {emp.mot}</span>
+          <div className="flex shrink-0 items-center gap-3.5">
+            <span className="rounded-full border px-3.5 py-1.5 text-[13px]" style={{ borderColor: `${emp.teinte}59`, color: emp.teinte }}>Emplacement {emp.mot}</span>
             {e.flux && <Etoiles note={e.flux.note} taille={15} title={`flux ${e.flux_mesure ? "mesuré chez Data-B" : "estimé"} : piéton ${e.flux.pieton ?? "—"}/5, voiture ${e.flux.voiture ?? "—"}/5`} />}
           </div>
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3.5 md:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-6 grid grid-cols-2 gap-x-3.5 gap-y-4 md:grid-cols-3 xl:grid-cols-6">
         {chiffres.map(([mot, val]) => (
           <div key={mot}>
             <Etiquette className="!text-[9px]">{mot}</Etiquette>
-            <div className="mt-1"><Nombre taille={14.5} teinte="#F3F7F5">{val}</Nombre></div>
+            <div className="mt-[7px]"><Nombre taille={18} teinte="#E8EFEB">{val}</Nombre></div>
           </div>
         ))}
       </div>
 
-      <p className="m-0 mt-4 text-[13.5px] leading-[1.6] text-[#C3CBC7]">{phrase(e)}</p>
+      <p className="m-0 mt-[22px] max-w-[92ch] text-[14.5px] leading-[1.65] text-[#C3CBC7]" style={{ textWrap: "pretty" }}>{phrase(e)}</p>
 
       {(e.enseignes || []).length > 0 && (
-        <p className="m-0 mt-2 text-[12.5px] leading-[1.6] text-[#8B938F]">Dans la rue : {e.enseignes.slice(0, 10).join(" · ")}</p>
+        <p className="m-0 mt-2.5 text-[13px] leading-[1.6] text-[#8B938F]">Dans la rue : {e.enseignes.slice(0, 10).join(" · ")}</p>
       )}
 
-      <p className="m-0 mt-3 text-[11.5px] text-[#5A6762]">
+      <p className="m-0 mt-3 text-[12.5px] leading-[1.6] text-[#8B938F]">
         {e.par_alx ? `Classement ALX de ${e.ville}` : e.classe_source ? `Classe d'après le ${e.classe_source}` : "Classe inconnue"}
         {e.loyer_source ? ` · loyer ${e.loyer_source}` : ""}
         {e.prix_m2_source ? ` · prix ${e.prix_m2_source}` : ""}
@@ -92,9 +93,9 @@ export default function MarcheEmplacement({ adresse }) {
         {e.flux ? ` · flux ${e.flux_mesure ? "mesuré" : "estimé"}` : ""}
       </p>
       {e.classe != null && !e.par_alx && (
-        <p className="m-0 mt-1 text-[11.5px]" style={{ color: TEINTES.muet }}>
-          {e.ville} n'a pas été prospectée par ALX : lancez-la pour classer toutes ses rues et trouver les propriétaires.
-        </p>
+        <div className="mt-[18px] rounded-[12px] border px-[18px] py-[15px] text-[13.5px] leading-[1.6] text-[#C3CBC7]" style={{ borderColor: "rgba(150,192,184,0.25)", background: "rgba(150,192,184,0.05)" }}>
+          {e.ville} n'a pas été prospectée par ALX : <Link to="/ALX" className="text-[#96c0b8] hover:text-[#B8F0D6]">lancez-la</Link> pour classer toutes ses rues et trouver les propriétaires.
+        </div>
       )}
     </section>
   );

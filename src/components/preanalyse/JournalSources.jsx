@@ -29,68 +29,40 @@ function Vide({ children }) {
  */
 export function Recoupement({ recoupement }) {
   if (!recoupement?.lectures?.length) return null;
-  const { alerte, ecart, ecart_relatif: relatif, lectures, ecartees = [], incoherences = [], portee_reference: portee } = recoupement;
-  const c = ton(alerte ? "rouge" : "menthe");
+  const { alerte, ecart, ecart_relatif: relatif, lectures, ecartees = [], incoherences = [] } = recoupement;
+  const teinte = alerte ? "#e0a45e" : "#96c0b8";
   return (
-    <div
-      className="rounded-[12px] border px-4 py-3.5"
-      style={{ borderColor: c.bord, background: alerte ? "rgba(224,101,95,.06)" : "#15181c" }}
-    >
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        {alerte && <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: c.pastille }} />}
-        <span className="font-pill text-[9.5px] font-semibold uppercase tracking-[.08em]" style={{ color: alerte ? c.etiquette : "#6a7180" }}>
-          {alerte ? "Écart entre les sources — à vérifier" : "Les deux sources concordent"}
+    <div className="rounded-[14px] border px-[22px] py-5" style={{ borderColor: alerte ? "rgba(224,164,94,0.35)" : "rgba(255,255,255,0.08)", background: alerte ? "rgba(224,164,94,0.04)" : "transparent" }}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="alx-mont text-[9.5px] font-medium uppercase tracking-[.14em]" style={{ color: teinte }}>
+          {alerte ? "Écart entre les sources" : "Les sources concordent"}
         </span>
-        <span className="text-[12.5px]" style={{ color: c.texte }}>
-          {fmt(ecart)} €/m²/an d’écart{relatif != null ? ` · ${pct(relatif * 100, 0)}` : ""}
-        </span>
-        {portee != null && (
-          <span className="text-[11px] text-[#4e545e]">à maille comparable — environ {fmt(portee)} m</span>
+        {ecart != null && (
+          <span className="alx-mont text-[14px] tabular-nums text-[#F3F7F5]">
+            {fmt(ecart)} €/m²/an{relatif != null ? ` · ${pct(relatif * 100, 0)}` : ""}
+          </span>
         )}
       </div>
-      <ul className="m-0 mt-2.5 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
+      <div className="mt-3.5 flex flex-col">
         {lectures.map((l, i) => (
-          <li key={`${l.service}-${i}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
-            <span className="flex-shrink-0 text-[12.5px] text-encre w-[80px]">{l.service}</span>
-            <span className="flex-shrink-0 text-[13px] font-medium text-[#dfe3e8]">
-              {l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an
-            </span>
-            <span className="min-w-0 flex-1 text-[11.5px] text-brume">
-              {l.median != null ? `moyenne ${fmt(l.median)} · ` : ""}
-              {l.echelle}
-              {l.precision ? ` · ${l.precision}` : ""}
-            </span>
-          </li>
+          <div key={`${l.service}-${i}`} className="flex items-baseline justify-between gap-3 border-t border-white/[0.06] py-[9px]">
+            <span className="text-[13.5px] text-[#C3CBC7]">{l.service}{l.service === "Data-B" && l.echelle ? `, ${l.echelle}${l.precision ? ` ${l.precision}` : ""}` : ""}</span>
+            <span className="alx-mont whitespace-nowrap text-[14px] text-[#E8EFEB]">{l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an</span>
+          </div>
         ))}
-      </ul>
-      {/* Ce qui n'a PAS été comparé, et pourquoi. Sans cette liste, l'écran
-          affiche un écart sans dire qu'il a choisi une maille parmi trois —
-          et l'on ne peut plus le contredire. */}
+      </div>
+      {/* Ce qui n'a PAS été comparé, et pourquoi : sans cette liste, l'écran
+          affiche un écart sans dire qu'il a choisi une maille parmi trois. */}
       {ecartees.length > 0 && (
-        <p className="m-0 mt-2 text-[11px] leading-5 text-brume">
-          Non comparé :{" "}
-          {ecartees.map((e, i) => (
-            <span key={`${e.service}-${e.echelle}-${i}`}>
-              {i > 0 ? " · " : ""}
-              {e.service} {e.echelle}
-              {e.precision ? ` (${e.precision})` : ""} {e.bas != null && e.haut != null ? `${fmt(e.bas)}–${fmt(e.haut)}` : fmt(e.median)} €/m²/an
-            </span>
-          ))}
-          {" — "}
-          autre territoire que la source de tête.
+        <p className="m-0 mt-3 text-[12.5px] leading-[1.6] text-[#8B938F]">
+          Non comparé : {ecartees.map((e) => `${e.service} ${e.echelle} ${e.bas != null && e.haut != null ? `${fmt(e.bas)}–${fmt(e.haut)}` : fmt(e.median)} €/m²/an`).join(" · ")}, autre territoire que la source de tête.
         </p>
       )}
-
-      {/* Une source qui se contredit d'une maille à l'autre : même méthode,
-          même unité — aucune différence de définition ne peut l'expliquer. */}
       {incoherences.map((i) => (
-        <p key={i.service} className="m-0 mt-2 text-[11.5px] leading-5 text-[#d9a441]">
-          {i.service} ne dit pas la même chose selon la maille : {i.haute.echelle} à {fmt(i.haute.centre)} contre{" "}
-          {i.basse.echelle} à {fmt(i.basse.centre)} €/m²/an, soit {fmt(i.rapport, 1)} fois. À vérifier chez la source
-          avant de retenir l’un ou l’autre.
+        <p key={i.service} className="m-0 mt-2 text-[12.5px] leading-[1.6] text-[#e0a45e]">
+          {i.service} ne dit pas la même chose selon la maille : {i.haute.echelle} à {fmt(i.haute.centre)} contre {i.basse.echelle} à {fmt(i.basse.centre)} €/m²/an, soit {fmt(i.rapport, 1)} fois. À vérifier chez la source avant de retenir l'un ou l'autre.
         </p>
       ))}
-
     </div>
   );
 }

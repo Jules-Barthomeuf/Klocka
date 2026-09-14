@@ -21,7 +21,7 @@ export const SOURCES = [
   { cle: "data-b-implantation", nom: "Data-B · Étude d’implantation", note: "flux, tronçon, démographie · 1 crédit", coute: true },
 ];
 
-export default function ChoixSources({ onLancer, apercu = false, libelle = "Mettre à jour" }) {
+export default function ChoixSources({ onLancer, apercu = false, libelle = "Mettre à jour", classeBouton = null }) {
   const [ouvert, setOuvert] = useState(false);
   const [cochees, setCochees] = useState(() => SOURCES.map((s) => s.cle));
   const boite = useRef(null);
@@ -57,7 +57,7 @@ export default function ChoixSources({ onLancer, apercu = false, libelle = "Mett
         disabled={apercu}
         aria-expanded={ouvert}
         aria-haspopup="true"
-        className="inline-flex items-center gap-1.5 rounded-full bg-[#b8dcc8] text-[#04140c] text-[12.5px] font-semibold px-4 py-2 hover:bg-[#c8e8d6] disabled:opacity-30 transition-colors"
+        className={classeBouton || "inline-flex items-center gap-1.5 rounded-full bg-[#b8dcc8] text-[#04140c] text-[12.5px] font-semibold px-4 py-2 hover:bg-[#c8e8d6] disabled:opacity-30 transition-colors"}
       >
         <RotateCw className="w-3.5 h-3.5" /> {libelle}
       </button>

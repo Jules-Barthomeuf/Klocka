@@ -8,6 +8,7 @@ import { OngletDataB, OngletEquimmox, OngletFigaro, Recoupement } from "@/compon
 import { OngletBodacc, OngletDvf, SecondPointDeVue } from "@/components/preanalyse/JournalPubliques";
 import MarcheEmplacement from "@/components/preanalyse/MarcheEmplacement";
 import MarcheVendeur from "@/components/preanalyse/MarcheVendeur";
+import GraphiqueLoyers from "@/components/preanalyse/GraphiqueLoyers";
 import { Etiquette } from "@/components/alx/alx-commun";
 
 // L'onglet Marché, à l'arrivée. Deux états, et ils ne se ressemblent pas.
@@ -142,27 +143,29 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
     );
   }
 
+  const valeurDe = (c) => {
+    // « Au-dessus du marché · +10 % » : le chiffre en grand, le mot en dessous.
+    const [mot, chiffre] = c.valeur.includes(" · ") ? c.valeur.split(" · ") : [null, c.valeur];
+    return { mot, chiffre };
+  };
+  const teinteDe = (c) => (c.ton === "ambre" ? "#e0a45e" : c.ton === "rouge" ? "#e0655f" : c.ton === "gris" ? "#8B938F" : ["reversion", "prix-fai"].includes(c.cle) ? "#96c0b8" : "#F3F7F5");
+
   return (
-    <div className="px-4 sm:px-5 py-5 flex flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="min-w-0">
-          <h3 className="alx-serif m-0 text-[24px] italic tracking-[-.01em] text-[#F3F7F5]">Analyse du {analyse.le}</h3>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <ChoixSources onLancer={onLancer} apercu={apercu} />
-        </div>
+    <div className="px-6 pb-9 pt-[30px] max-md:px-4" style={{ background: "linear-gradient(162deg,rgba(150,192,184,0.075),rgba(150,192,184,0.02) 38%,rgba(10,12,11,0) 68%),#0A0C0B" }}>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <span className="text-[28px] font-light tracking-[-.025em] text-[#F3F7F5]" style={{ fontFamily: "Figtree, 'Instrument Sans', system-ui, sans-serif" }}>Analyse du {analyse.le}</span>
+        <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-[#96c0b8] px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-[#08130D] hover:bg-[#c3ddd6] disabled:opacity-30 transition-colors" />
       </div>
 
-      <div className="flex gap-6 border-b border-trait">
+      <div className="mt-6 flex gap-7 overflow-x-auto border-b border-white/[0.08]">
         {ONGLETS.map((o) => (
           <button
             key={o.cle}
             type="button"
             onClick={() => setOnglet(o.cle)}
             aria-pressed={onglet === o.cle}
-            className={`relative pb-2.5 text-[13.5px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:transition-transform after:duration-300 ${
-              onglet === o.cle ? "text-encre font-semibold after:scale-x-100" : "text-[#77777e] hover:text-[#c6ccd3] after:scale-x-0"
-            }`}
+            className="alx-mont whitespace-nowrap pb-3 text-[11px] font-medium uppercase tracking-[.14em] transition-colors"
+            style={{ background: "transparent", color: onglet === o.cle ? "#F3F7F5" : "#8B938F", borderBottom: onglet === o.cle ? "1.5px solid #96c0b8" : "1.5px solid transparent", marginBottom: -1 }}
           >
             {o.titre}
           </button>
@@ -171,25 +174,27 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
 
       {onglet === "bilan" && (
         <>
-          {/* Les verdicts : chacun ouvre sa démonstration en pleine largeur. */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-            {analyse.cartes.map((c) => {
-              const couleur = ton(c.ton);
+          <GraphiqueLoyers lectures={analyse.loyers_lectures || []} enPlace={analyse.en_place_m2} />
+
+          {/* Les cinq chiffres : chacun ouvre sa démonstration en pleine largeur. */}
+          <div className="mt-8 grid grid-cols-2 border-t border-white/[0.07] md:grid-cols-5">
+            {analyse.cartes.map((c, i) => {
+              const { mot, chiffre } = valeurDe(c);
               return (
                 <button
                   key={c.cle}
                   type="button"
                   onClick={() => onCarte(c)}
-                  className="rounded-[14px] border px-5 py-4 text-left transition-colors hover:bg-white/[0.025]"
-                  style={{ borderColor: couleur.bord }}
+                  title={c.detail}
+                  className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-white/[0.05]"}`}
+                  style={{ background: "transparent" }}
                 >
-                  <span className="alx-mont flex items-center gap-1.5 text-[9.5px] font-medium uppercase tracking-[.14em] text-[#8B938F]">
+                  <span className="alx-mont flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[.14em] text-[#8B938F]">
                     {c.libelle}
                     <InfoBulle texte={c.detail} />
                   </span>
-                  <span className="alx-mont mt-2 block text-[19px] leading-tight tabular-nums" style={{ color: couleur.texte }}>
-                    {c.valeur}
-                  </span>
+                  <span className="alx-mont mt-2 block whitespace-nowrap text-[17px] tabular-nums" style={{ color: teinteDe(c) }}>{chiffre}</span>
+                  {mot && <span className="mt-1 block text-[11.5px] text-[#8B938F]">{mot}</span>}
                 </button>
               );
             })}
@@ -198,60 +203,56 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
           <MarcheEmplacement adresse={analyse.adresse} />
           <MarcheVendeur adresse={analyse.adresse} lot={lot} dossier={dossier} />
 
-          {analyse.recoupement && <Recoupement recoupement={analyse.recoupement} />}
+          {(analyse.recoupement || analyse.parComparaison) && (
+            <div className="mt-[30px] grid grid-cols-1 gap-[18px] lg:grid-cols-2">
+              <Recoupement recoupement={analyse.recoupement} />
+              <SecondPointDeVue comparaison={analyse.parComparaison} ecart={analyse.ecartComparaison} />
+            </div>
+          )}
 
-          <SecondPointDeVue comparaison={analyse.parComparaison} ecart={analyse.ecartComparaison} />
-
-          <section>
-            <Etiquette className="mb-1.5">Sources</Etiquette>
-            <ul className="m-0 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
-              {analyse.sources.map((s, i) => {
-                const c = ton(s.ton);
-                return (
-                  <li key={`${s.nom}-${i}`} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 py-2.5">
-                    <span className="flex-shrink-0 w-[7px] h-[7px] rounded-full" style={{ background: c.pastille }} aria-hidden />
-                    <span className="flex-shrink-0 text-[13px] text-encre">{s.nom}</span>
-                    <span className="min-w-0 flex-1 text-[12px]" style={{ color: s.ton === "ambre" || s.ton === "rouge" ? c.etiquette : "#6a7180" }}>
-                      {s.etat}
-                    </span>
-                    <span className="flex-shrink-0 text-[11.5px] text-[#4e545e]">{s.quand}</span>
+          <div className="mt-[34px] grid grid-cols-1 gap-x-[34px] gap-y-8 border-t border-white/[0.07] pt-[26px] lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+            <section>
+              <Etiquette>Sources</Etiquette>
+              <ul className="m-0 mt-3.5 flex list-none flex-col p-0">
+                {analyse.sources.map((s, i) => {
+                  const c = ton(s.ton);
+                  return (
+                    <li key={`${s.nom}-${i}`} className={`flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-3 ${i < analyse.sources.length - 1 ? "border-b border-white/[0.05]" : ""}`}>
+                      <span className="h-[5px] w-[5px] flex-shrink-0 rounded-full" style={{ background: c.pastille }} aria-hidden />
+                      <span className="flex-shrink-0 text-[14px] text-[#F3F7F5]">{s.nom}</span>
+                      <span className="min-w-0 flex-1 text-[12.5px]" style={{ color: s.ton === "ambre" || s.ton === "rouge" ? c.etiquette : "#8B938F" }}>{s.etat}</span>
+                      <span className="alx-mont flex-shrink-0 whitespace-nowrap text-[11px] text-[#8B938F]">{s.quand}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+            <div className="hidden bg-white/[0.06] lg:block" />
+            <section>
+              <Etiquette>Dans l'ordre, ce que j'ai consulté</Etiquette>
+              <ol className="m-0 mt-3.5 flex list-none flex-col p-0">
+                {analyse.consultations.map((c, i) => (
+                  <li key={`${c.quoi}-${i}`} title={c.url || undefined} className={`flex flex-wrap items-baseline gap-x-3.5 gap-y-0.5 py-3 ${i < analyse.consultations.length - 1 ? "border-b border-white/[0.05]" : ""}`}>
+                    <span className="alx-mont flex-shrink-0 text-[11px] tabular-nums text-[#8B938F]">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="min-w-0 flex-1 text-[13.5px] text-[#C3CBC7]">{c.src ? `${c.quoi}` : c.quoi}</span>
+                    <span className="alx-mont flex-shrink-0 whitespace-nowrap text-[11px]" style={{ color: ton(c.ton).etiquette }}>{c.issue}</span>
                   </li>
-                );
-              })}
-            </ul>
-          </section>
-
-          <section>
-            <Etiquette className="mb-1.5">Dans l’ordre, ce que j’ai consulté</Etiquette>
-            <ol className="m-0 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
-              {analyse.consultations.map((c, i) => {
-                const couleur = ton(c.ton);
-                return (
-                  <li key={`${c.quoi}-${i}`} title={c.url || undefined} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2">
-                    <span className="flex-shrink-0 font-mono text-[10.5px] text-[#3a424d] tabular-nums w-[18px] text-right">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="flex-shrink-0 font-mono text-[10.5px] text-[#4e545e] tabular-nums w-[58px]">{c.quand || ""}</span>
-                    <span className="flex-shrink-0 font-mono text-[9.5px] text-brume w-[76px] truncate">{c.src}</span>
-                    <span className="min-w-0 flex-1 text-[12.5px] text-[#c6ccd3]">{c.quoi}</span>
-                    <span className="flex-shrink-0 text-[11.5px]" style={{ color: couleur.etiquette }}>{c.issue}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
+                ))}
+              </ol>
+            </section>
+          </div>
         </>
       )}
 
-      {onglet === "data-b" && (
-        <OngletDataB lot={lot} implantation={analyse.emplacement} />
+      {onglet !== "bilan" && (
+        <div className="mt-6">
+          {onglet === "data-b" && <OngletDataB lot={lot} implantation={analyse.emplacement} />}
+          {onglet === "equimmox" && <OngletEquimmox lot={lot} />}
+          {onglet === "figaro" && <OngletFigaro lot={lot} />}
+          {onglet === "dvf" && <OngletDvf ventes={analyse.dvf} />}
+          {onglet === "bodacc" && <OngletBodacc vitalite={analyse.vitalite} />}
+        </div>
       )}
-      {onglet === "equimmox" && <OngletEquimmox lot={lot} />}
-      {onglet === "figaro" && <OngletFigaro lot={lot} />}
-
-      {onglet === "dvf" && <OngletDvf ventes={analyse.dvf} />}
-
-      {onglet === "bodacc" && <OngletBodacc vitalite={analyse.vitalite} />}
     </div>
   );
 }

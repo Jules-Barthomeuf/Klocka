@@ -35,38 +35,26 @@ function Chiffre({ libelle, valeur, note, couleur = "#f2f3f5" }) {
  */
 export function SecondPointDeVue({ comparaison, ecart }) {
   if (!comparaison) return null;
-  const cher = ecart != null && ecart > 0;
-  const c = ton(ecart != null && Math.abs(ecart / comparaison.valeur) > 0.1 ? (cher ? "ambre" : "menthe") : "menthe");
   return (
-    <div className="rounded-[12px] border px-4 py-3.5" style={{ borderColor: c.bord, background: "#15181c" }}>
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        {cher ? <TrendingUp className="w-4 h-4 flex-shrink-0" style={{ color: c.pastille }} /> : <TrendingDown className="w-4 h-4 flex-shrink-0" style={{ color: c.pastille }} />}
-        <span className="font-pill text-[9.5px] font-semibold uppercase tracking-[.08em]" style={{ color: c.etiquette }}>
-          Ce qui s’est vendu autour — DVF
-        </span>
-        <span className="text-[12.5px]" style={{ color: c.texte }}>
+    <div className="rounded-[14px] border border-white/[0.08] px-[22px] py-5">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="alx-mont text-[9.5px] font-medium uppercase tracking-[.14em] text-[#96c0b8]">Ce qui s'est vendu autour · DVF</span>
+        <span className="alx-mont text-[14px] tabular-nums text-[#F3F7F5]">
           {fmt(comparaison.prix_m2)} €/m² · {comparaison.n} vente{comparaison.n > 1 ? "s" : ""} dans {fmt(comparaison.rayon)} m
           {comparaison.periode ? ` · ${String(comparaison.periode.du).slice(0, 4)}–${String(comparaison.periode.au).slice(0, 4)}` : ""}
         </span>
       </div>
-      <p className="m-0 mt-2 text-[12.5px] leading-6 text-[#c6ccd3]">
-        Par comparaison, le bien vaudrait <strong className="font-medium text-encre">{fmt(comparaison.valeur)} €</strong>{" "}
-        ({fmt(comparaison.surface, 1)} m² bâtis × {fmt(comparaison.prix_m2)} €/m²)
+      <p className="m-0 mt-3.5 text-[14px] leading-[1.65] text-[#C3CBC7]" style={{ textWrap: "pretty" }}>
+        Par comparaison, le bien vaudrait <span className="text-[#F3F7F5]">{fmt(comparaison.valeur)} €</span> ({fmt(comparaison.surface, 1)} m² bâtis × {fmt(comparaison.prix_m2)} €/m²)
         {ecart != null && (
           <>
-            {" "}— le prix demandé est donc{" "}
-            <strong className="font-medium" style={{ color: c.texte }}>
-              {fmt(Math.abs(ecart))} € {ecart > 0 ? "au-dessus" : "en dessous"}
-            </strong>{" "}
-            de cette valeur
-            {comparaison.demande_m2 ? `, et revient à ${fmt(comparaison.demande_m2)} €/m² bâtis` : ""}.
+            , le prix demandé est donc <span className="text-[#F3F7F5]">{fmt(Math.abs(ecart))} € {ecart > 0 ? "au-dessus" : "en dessous"}</span> de cette valeur
+            {comparaison.demande_m2 ? `, et revient à ${fmt(comparaison.demande_m2)} €/m² bâtis` : ""}
           </>
         )}
+        .
       </p>
-      <p className="m-0 mt-1.5 text-[11px] leading-5 text-brume">
-        Aucun chiffre du vendeur n’entre dans ce calcul : ce sont des actes notariés, pas des annonces. En face, la
-        valorisation par capitalisation repose sur le taux qu’il affiche.
-      </p>
+      <p className="m-0 mt-2.5 text-[12.5px] leading-[1.6] text-[#8B938F]">Aucun chiffre du vendeur n'entre dans ce calcul : ce sont des actes notariés, pas des annonces.</p>
     </div>
   );
 }

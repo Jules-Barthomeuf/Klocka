@@ -52,7 +52,7 @@ export default function PlanDeTravail({ chat = null }) {
           centre, les gestes courants juste en dessous. L'ensemble est posé sur
           son propre fond, délimité par un filet : ce qui est au-dessus se fait,
           ce qui est en dessous se reprend. */}
-      <header className="accueil relative overflow-hidden pb-[22vh] pt-[8vh] text-center max-md:pb-24 max-md:pt-8">
+      <header className="accueil relative flex min-h-[74vh] flex-col items-center justify-center overflow-hidden text-center max-md:min-h-[58vh] max-md:py-14">
         {/* Le fond : une bande menthe horizontale, bord à bord, floutée.
             Elle passe derrière le composeur et s'éteint sur les côtés. */}
         <div
@@ -68,7 +68,7 @@ export default function PlanDeTravail({ chat = null }) {
         </h1>
 
         {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
-        {chat && <div className="relative mx-auto mt-11 w-full max-w-[760px] px-5 max-md:mt-8">{chat}</div>}
+        {chat && <div className="relative mt-11 w-full max-w-[760px] px-5 max-md:mt-8">{chat}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}

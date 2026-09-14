@@ -682,7 +682,7 @@ export default function AdminClients() {
                     onClick={() => inviterUn.mutate(user)}
                     disabled={inviterUn.isPending}
                     title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
-                    className="px-4 py-1.5 text-[11px] tracking-[0.16em] uppercase font-semibold text-fond bg-encre hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
+                    className="px-4 py-1.5 text-[11px] tracking-[0.16em] uppercase font-semibold text-sur-menthe bg-menthe rounded-full hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
                   >
                     {inviterUn.isPending && inviterUn.variables?.id === user.id ? "Envoi…" : "Inviter"}
                   </button>
@@ -757,7 +757,7 @@ export default function AdminClients() {
                     </div>
                     <div className="w-24 max-md:w-20 flex items-center gap-2.5">
                       <div className="flex-1 h-px bg-encre/[0.14] relative">
-                        <div className="absolute inset-y-0 left-0 bg-menthe transition-all duration-500" style={{ width: `${etape / 5 * 100}%`, height: "2px", top: "-0.5px" }} />
+                        <div className="absolute inset-y-0 left-0 bg-menthe transition-all duration-500 rounded-full" style={{ width: `${etape / 5 * 100}%`, height: "2px", top: "-0.5px" }} />
                       </div>
                       <span className="text-[11px] text-menthe-clair" style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(etape / 5 * 100)}%</span>
                     </div>

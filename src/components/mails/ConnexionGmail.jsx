@@ -88,7 +88,7 @@ export function BoutonConnecterGmail({ onConnecte, libelle = "Connecter Gmail", 
       type="button"
       onClick={connecter}
       disabled={enCours}
-      className={`inline-flex items-center gap-2.5 bg-encre text-[#3c4043] font-medium text-sm rounded-lg pl-3 pr-4 py-2 hover:bg-encre/10 transition-colors disabled:opacity-60 ${className}`}
+      className={`inline-flex items-center gap-2.5 bg-menthe text-[#3c4043] font-medium text-sm rounded-full pl-3 pr-4 py-2 hover:bg-encre/10 transition-colors disabled:opacity-60 ${className}`}
     >
       {enCours ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogoGoogle />}
       {enCours ? "Connexion en cours…" : libelle}

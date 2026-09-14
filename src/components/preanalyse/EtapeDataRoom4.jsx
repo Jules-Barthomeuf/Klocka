@@ -42,7 +42,7 @@ export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu
       <p className="m-0 px-6 max-md:px-4 py-4 text-[13.5px] leading-[1.65] text-craie border-b border-trait max-w-[900px]">Entre la décision de proposer et la signature, le deal évolue : questions de l'investisseur, contre-offres, compléments reçus. Cette étape trace tout et recalcule le prix à chaque nouveau fait.</p>
       <Section id="presentation" titre="1 · Présentation investisseur" droite="Même fiche de deal, présentée selon le profil ciblé">
         <div className="flex gap-6 border-b border-trait mb-5">
-          {e.presentations.map((x) => <button key={x.id} onClick={() => setProfil(x.id)} className={`relative pb-2.5 text-[13.5px] after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform ${profil === x.id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>{x.titre}</button>)}
+          {e.presentations.map((x) => <button key={x.id} onClick={() => setProfil(x.id)} className={`relative pb-2.5 text-[13.5px] after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-menthe rounded-full after:origin-left after:scale-x-0 after:transition-transform ${profil === x.id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>{x.titre}</button>)}
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <div>
@@ -63,7 +63,7 @@ export default function EtapeDataRoom4({ dossier, e, onPreuve, onRefresh, apercu
               ))}
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button onClick={() => setEdition((o) => !o)} className="px-4 py-2.5 bg-menthe text-fond text-[13.5px] font-semibold hover:bg-menthe-survol">{edition ? "Fermer l'édition" : "Générer et ouvrir en édition"}</button>
+              <button onClick={() => setEdition((o) => !o)} className="px-4 py-2.5 bg-menthe text-fond text-[13.5px] font-semibold hover:bg-menthe-survol rounded-full">{edition ? "Fermer l'édition" : "Générer et ouvrir en édition"}</button>
               <span className="text-[12.5px] text-ardoise">Le système pré-rédige, l'analyste ajuste et envoie.</span>
             </div>
           </div>

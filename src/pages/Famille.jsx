@@ -202,7 +202,7 @@ export default function Famille() {
           <h1 className="text-4xl font-montserrat text-encre mb-2">
             Comparaison Famille
           </h1>
-          <div className="h-0.5 w-32 bg-menthe mb-4"></div>
+          <div className="h-0.5 w-32 bg-menthe mb-4 rounded-full"></div>
           <div className="flex flex-wrap gap-2">
             {selectedUsers.map(u => (
               <Badge key={u.id} className="bg-menthe/20 text-menthe border border-menthe/50">

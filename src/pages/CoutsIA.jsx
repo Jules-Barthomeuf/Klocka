@@ -158,7 +158,7 @@ export default function CoutsIA() {
               <button
                 key={f.jours}
                 onClick={() => setJours(f.jours)}
-                className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${jours === f.jours ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}
+                className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${jours === f.jours ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}
               >
                 {f.mot}
               </button>

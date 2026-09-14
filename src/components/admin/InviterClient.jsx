@@ -111,7 +111,7 @@ export default function InviterClient({ onCree } = {}) {
             <button
               type="submit"
               disabled={!email.trim() || mutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.16em] uppercase font-medium disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.16em] uppercase font-medium disabled:opacity-40 rounded-full"
             >
               {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               Envoyer le lien

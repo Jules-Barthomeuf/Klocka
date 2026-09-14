@@ -21,7 +21,7 @@ function ToggleRow({ label, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-1.5">
       <span className="text-[12.5px] text-ardoise">{label}</span>
-      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-menthe h-4 w-7" />
+      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-menthe h-4 w-7 rounded-full" />
     </div>
   );
 }

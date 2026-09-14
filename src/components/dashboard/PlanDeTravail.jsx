@@ -1,12 +1,11 @@
 import React, { useRef, useState } from "react";
 import ReprisePlace from "./ReprisePlace";
 import CeQuiVousAttend from "@/components/dashboard/CeQuiVousAttend";
-import TuileAlx from "@/components/dashboard/TuileAlx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useUser } from "@/components/providers/UserProvider";
-import { J } from "@/design/jetons";
+import { J, alpha } from "@/design/jetons";
 
 // Le plan de travail : ce que l'assistant propose de faire, maintenant.
 //
@@ -46,26 +45,31 @@ export default function PlanDeTravail({ chat = null }) {
     minute: "2-digit",
   });
 
-  const REGLE = "h-px bg-trait my-12 max-md:my-9";
-
   return (
     <div>
-      {/* --- En-tête --------------------------------------------------------- */}
-      {/* On arrive sur une question, pas sur un tableau : le chat au centre,
-          un halo menthe derrière, les gestes courants juste en dessous. */}
-      {/* L'accueil : un salut en italique, deux halos sauge, le chat au centre. */}
-      <header className="accueil relative text-center pt-[10vh] max-md:pt-6">
+      {/* --- En-tête ---------------------------------------------------------
+          On arrive sur une question, pas sur un tableau : le salut, le chat au
+          centre, les gestes courants juste en dessous. L'ensemble est posé sur
+          son propre fond, délimité par un filet : ce qui est au-dessus se fait,
+          ce qui est en dessous se reprend. */}
+      <header className="accueil relative overflow-hidden rounded-bloc border border-trait pb-12 pt-[8vh] text-center max-md:pb-8 max-md:pt-8">
         <div aria-hidden="true" className="accueil-halo-a" />
         <div aria-hidden="true" className="accueil-halo-b" />
-        <h1 className="relative m-0 text-[40px] max-md:text-[34px] font-normal italic tracking-[-.01em] leading-[1.1] text-white" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+        {/* Une lueur menthe dans le coin, comme sur le dossier. */}
+        <div aria-hidden="true" className="pointer-events-none absolute -left-[220px] -top-[240px] h-[620px] w-[840px]" style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.1)}, transparent)` }} />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-[260px] bottom-[-280px] h-[560px] w-[760px]" style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.06)}, transparent)` }} />
+        <h1 className="relative m-0 font-display text-[34px] font-normal italic leading-[1.1] tracking-[-.01em] text-encre" >
           {salut}
         </h1>
+
+        {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
+        {chat && <div className="relative mx-auto mt-11 max-w-[900px] px-5 max-md:mt-8">{chat}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
       {sante?.hebergeur === "render" && !sante?.base?.persistante && (
-        <div className="mt-8 border rounded-xl px-5 py-4" style={{ borderColor: "#e8746a66", background: J["surface"] }}>
-          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-alerte">La base sera effacée au prochain déploiement</p>
+        <div className="mt-8 rounded-bloc border px-5 py-4" style={{ borderColor: alpha("alerte", 0.4), background: J["surface"] }}>
+          <p className="m-0 text-[11px] uppercase tracking-[.18em] text-alerte">La base sera effacée au prochain déploiement</p>
           <p className="m-0 mt-1.5 text-[13.5px] leading-[1.6] text-craie">{sante.base?.diagnostic}</p>
           <p className="m-0 mt-1.5 text-[12.5px] text-brume">
             Chemin : {sante.base?.emplacement} · déclaré : {sante.base?.declaree ? "oui" : "non"} · disque monté : {sante.base?.disque_monte ? "oui" : "non"}
@@ -73,25 +77,13 @@ export default function PlanDeTravail({ chat = null }) {
         </div>
       )}
 
-      {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
-      {chat && <div className="relative mt-11 max-md:mt-8 max-w-[900px] mx-auto">{chat}</div>}
-
-      <div className={REGLE} />
-
-      {/* Ce qui est dû : rappels, promesses des agents, relances de dossiers.
-          Avant « Reprenez là où vous en étiez » : ce qui attend passe avant ce
-          qu'on avait laissé en plan. */}
-      <CeQuiVousAttend />
-
-      <div className={REGLE} />
-
-      {/* La prospection off-market : ce qu'il y a à faire cette semaine. */}
-      <TuileAlx />
-
-      <div className={REGLE} />
-
-      {/* Là où on en était : les derniers dossiers et projets ouverts. */}
-      <ReprisePlace />
+      {/* Ce qui est dû passe avant ce qu'on avait laissé en plan. Les deux
+          blocs se cachent quand ils sont vides : une barre au-dessus du néant
+          ne sépare rien. */}
+      <div className="mt-12 flex flex-col gap-12 max-md:mt-9 max-md:gap-9">
+        <CeQuiVousAttend />
+        <ReprisePlace />
+      </div>
     </div>
   );
 }

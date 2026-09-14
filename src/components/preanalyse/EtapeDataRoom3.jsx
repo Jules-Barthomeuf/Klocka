@@ -144,7 +144,7 @@ export default function EtapeDataRoom3({ dossier, e, onPreuve, onRefresh, apercu
           <div className="border border-trait px-5 py-4">
             <p className="m-0 text-[13.5px] font-semibold text-encre">Demander des compléments</p>
             <p className="m-0 mt-1 text-[12.5px] leading-[1.55] text-ardoise">Le mail au vendeur cumule les demandes des trois étapes et les conditions cochées.</p>
-            <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => !apercu && setDialog("demande_documents")} disabled={apercu} className="text-[12.5px] px-3.5 py-1.5 bg-encre text-fond font-semibold disabled:opacity-40">Rédiger le mail</button></div>
+            <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => !apercu && setDialog("demande_documents")} disabled={apercu} className="text-[12.5px] px-3.5 py-1.5 bg-menthe rounded-full text-sur-menthe font-semibold disabled:opacity-40">Rédiger le mail</button></div>
           </div>
           <div className="border border-trait px-5 py-4">
             <p className="m-0 text-[13.5px] font-semibold text-encre">Passer</p>

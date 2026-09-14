@@ -328,7 +328,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
               <button
                 onClick={() => creerDrive.mutate()}
                 disabled={!compteDrive || creerDrive.isPending}
-                className="inline-flex items-center gap-2 text-surface bg-encre rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all"
+                className="inline-flex items-center gap-2 text-sur-menthe bg-menthe rounded-full rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all"
               >
                 {creerDrive.isPending ? <><Loader2 className="w-4 h-4 animate-spin" />Création…</> : "Oui, créer le dossier"}
               </button>

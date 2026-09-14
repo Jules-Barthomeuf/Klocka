@@ -38,7 +38,7 @@ export default function FicheSource({ dossier, className = "" }) {
               {pdf && texteDe(src) && (
                 <div className="inline-flex rounded-full border border-bord-doux p-0.5">
                   {[["document", "Document"], ["texte", "Texte"]].map(([id, mot]) => (
-                    <button key={id} onClick={() => setVue(id)} className={`px-3 py-1 rounded-full text-[12.5px] transition-colors ${vue === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+                    <button key={id} onClick={() => setVue(id)} className={`px-3 py-1 rounded-full text-[12.5px] transition-colors ${vue === id ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
                   ))}
                 </div>
               )}

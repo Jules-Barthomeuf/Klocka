@@ -101,7 +101,7 @@ function CTAButton({ onClick, label }) {
   return (
     <div className="text-center">
       <button onClick={onClick}
-        className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-menthe/20">
+        className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-10 py-4 rounded-full transition-all text-base group shadow-lg shadow-menthe/20">
         {label} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
       </button>
       <p className="text-brume text-xs mt-3 italic">Places limitées par cohorte</p>
@@ -166,7 +166,7 @@ export default function PortailLanding({ onContinue }) {
               </div>
 
               <button onClick={onContinue}
-                className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-8 py-4 rounded-md transition-all text-base group shadow-lg shadow-menthe/20">
+                className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-8 py-4 rounded-full transition-all text-base group shadow-lg shadow-menthe/20">
                 Je veux investir en immobilier commercial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <p className="text-brume text-xs mt-3 italic">Places limitées par cohorte</p>
@@ -480,7 +480,7 @@ export default function PortailLanding({ onContinue }) {
               Pour finaliser votre inscription, consultez et acceptez nos conditions générales, puis procédez au paiement sécurisé.
             </p>
             <button onClick={onContinue}
-              className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-10 py-4 rounded-md transition-all text-base group shadow-lg shadow-menthe/25">
+              className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-10 py-4 rounded-full transition-all text-base group shadow-lg shadow-menthe/25">
               Démarrer l'accompagnement <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <p className="text-brume text-xs mt-4 italic">Places limitées par cohorte</p>

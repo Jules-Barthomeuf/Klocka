@@ -173,7 +173,7 @@ export default function BaseDonneesMarche() {
           <h1 className="text-2xl md:text-4xl font-montserrat text-encre mb-2">
             Base de Données Marché
           </h1>
-          <div className="h-0.5 w-24 md:w-32 bg-menthe mb-2"></div>
+          <div className="h-0.5 w-24 md:w-32 bg-menthe mb-2 rounded-full"></div>
           <p className="text-ardoise text-sm md:text-lg">
             Gérez les données de marché pour l'auto-complétion des projets
           </p>
@@ -196,7 +196,7 @@ export default function BaseDonneesMarche() {
                 </div>
                 <Button
                   onClick={() => handleOpenDialog()}
-                  className="bg-menthe hover:bg-menthe/90 text-encre h-10 md:h-12"
+                  className="bg-menthe hover:bg-menthe/90 text-encre h-10 md:h-12 rounded-full"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Ajouter une donnée
@@ -322,7 +322,7 @@ export default function BaseDonneesMarche() {
               {!searchTerm && (
                 <Button
                   onClick={() => handleOpenDialog()}
-                  className="bg-menthe hover:bg-menthe/90 text-encre"
+                  className="bg-menthe hover:bg-menthe/90 text-encre rounded-full"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Ajouter ma première donnée
@@ -567,7 +567,7 @@ export default function BaseDonneesMarche() {
             </Button>
             <Button
               onClick={handleSubmit}
-              className="bg-menthe hover:bg-menthe/90 text-encre"
+              className="bg-menthe hover:bg-menthe/90 text-encre rounded-full"
               disabled={!formData.ville || createMutation.isPending || updateMutation.isPending}
             >
               {createMutation.isPending || updateMutation.isPending ? "Enregistrement..." : editingItem ? "Mettre à jour" : "Ajouter"}

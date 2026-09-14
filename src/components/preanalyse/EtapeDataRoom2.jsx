@@ -65,7 +65,7 @@ export default function EtapeDataRoom2({ dossier, e, onPreuve, onRefresh, apercu
         <p className="m-0 text-[15px] leading-[1.65] text-craie max-w-[720px]">{e.progression.presents_etape ? `${e.progression.presents_etape} pièce${e.progression.presents_etape > 1 ? "s" : ""} à lire : règlement de copropriété, PV d'AG, diagnostics, Carrez, plans, EDD, appels de charges.` : "Aucune pièce d'immeuble ou de copropriété dans le dossier : importez-les en bas de page, ou passez à l'étape 3 avec ce que dit le bail."}</p>
         <div className="mt-5 flex items-center gap-4">
           {enCours ? <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="w-4 h-4 animate-spin" /> {e.remplissage.fait}/{e.remplissage.total ?? "…"} — {e.remplissage.document || "lecture"}</span>
-            : e.progression.presents_etape ? <button onClick={() => lancer.mutate(2)} disabled={apercu || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire l'immeuble et la copropriété</button> : null}
+            : e.progression.presents_etape ? <button onClick={() => lancer.mutate(2)} disabled={apercu || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire l'immeuble et la copropriété</button> : null}
         </div>
       </div>
     );
@@ -78,7 +78,7 @@ export default function EtapeDataRoom2({ dossier, e, onPreuve, onRefresh, apercu
       <div className="px-6 max-md:px-4 flex items-center justify-between gap-4 border-b border-trait">
         <div className="flex gap-6">
           {[["blocs", "Synthèse"], ["grilles", "Extraction"]].map(([id, l]) => (
-            <button key={id} onClick={() => setVue(id)} className={`relative py-3 text-[13.5px] after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform ${vue === id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>{l}</button>
+            <button key={id} onClick={() => setVue(id)} className={`relative py-3 text-[13.5px] after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-menthe rounded-full after:origin-left after:scale-x-0 after:transition-transform ${vue === id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>{l}</button>
           ))}
         </div>
         <Mono className={e.nouveau_deal_breaker ? "text-alerte" : ""}>{e.nouveau_deal_breaker ? `${e.deal_breakers.filter((x) => !x.ok).length} nouveau${e.deal_breakers.filter((x) => !x.ok).length > 1 ? "x" : ""} deal-breaker${e.deal_breakers.filter((x) => !x.ok).length > 1 ? "s" : ""}` : "Aucun nouveau deal-breaker"}</Mono>

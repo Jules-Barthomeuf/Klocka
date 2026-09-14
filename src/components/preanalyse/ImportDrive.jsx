@@ -93,7 +93,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
             </div>
             <footer className="flex items-center justify-between gap-4 px-5 py-4 border-t border-trait">
               <span className="text-[12.5px] text-brume">{choisis.size ? `${choisis.size} fichier${choisis.size > 1 ? "s" : ""} choisi${choisis.size > 1 ? "s" : ""}` : "Cochez ce qu'il faut rapatrier."}</span>
-              <button onClick={() => importer.mutate()} disabled={!choisis.size || importer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+              <button onClick={() => importer.mutate()} disabled={!choisis.size || importer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
                 {importer.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Importer
               </button>
             </footer>

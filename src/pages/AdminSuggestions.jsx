@@ -219,14 +219,14 @@ export default function AdminSuggestions() {
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 mt-10 mb-4 border-b border-trait">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {[{ id: "tous", label: "Tout" }, ...STATUTS].map((s) => (
-              <button key={s.id} onClick={() => setFiltre(s.id)} className={`relative pb-3 text-[13.5px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-encre after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${filtre === s.id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>
+              <button key={s.id} onClick={() => setFiltre(s.id)} className={`relative pb-3 text-[13.5px] transition-colors after:absolute after:left-0 after:right-0 after:-bottom-px after:h-[2px] after:bg-menthe rounded-full after:origin-left after:scale-x-0 after:transition-transform after:duration-300 ${filtre === s.id ? "text-encre font-semibold after:scale-x-100" : "text-brume hover:text-craie"}`}>
                 {s.label}<span className="ml-1.5 text-brume font-normal tabular-nums">{s.id === "tous" ? remarques.length : compte(s.id)}</span>
               </button>
             ))}
           </div>
           <div className="inline-flex items-center rounded-full border border-bord-doux p-0.5 mb-2">
             {[["date", "Plus récentes"], ["urgence", "Plus urgentes"]].map(([id, mot]) => (
-              <button key={id} onClick={() => setTri(id)} className={`px-3 py-1 rounded-full text-[12.5px] transition-colors ${tri === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+              <button key={id} onClick={() => setTri(id)} className={`px-3 py-1 rounded-full text-[12.5px] transition-colors ${tri === id ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
             ))}
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function AdminSuggestions() {
                       <div>
                         <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: r.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); modifier.mutate({ id: r.id, contenu: edition.texte.trim() }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-3 py-2 outline-none text-[15px] leading-[1.6] text-encre resize-y" />
                         <div className="mt-1.5 flex items-center gap-2">
-                          <button onClick={() => modifier.mutate({ id: r.id, contenu: edition.texte.trim() })} disabled={modifier.isPending || !edition.texte.trim()} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> Enregistrer</button>
+                          <button onClick={() => modifier.mutate({ id: r.id, contenu: edition.texte.trim() })} disabled={modifier.isPending || !edition.texte.trim()} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> Enregistrer</button>
                           <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
                         </div>
                       </div>

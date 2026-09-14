@@ -144,7 +144,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
         {peutSurligner && (
           <span className="inline-flex items-center rounded-full border border-bord-doux p-0.5 flex-shrink-0">
             {[["passage", "Passage"], ["document", "Document"]].map(([id, mot]) => (
-              <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11px] transition-colors ${vue === id ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
+              <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11px] transition-colors ${vue === id ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
             ))}
           </span>
         )}
@@ -258,7 +258,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
         <button
           onClick={() => reessayer.mutate()}
           disabled={reessayer.isPending}
-          className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-encre text-fond text-[11px] tracking-[.14em] uppercase font-semibold rounded-[10px] hover:bg-[#ffffff] disabled:opacity-50"
+          className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-menthe rounded-full text-sur-menthe text-[11px] tracking-[.14em] uppercase font-semibold rounded-[10px] hover:bg-[#ffffff] disabled:opacity-50"
         >
           {reessayer.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
           Relancer l'analyse

@@ -91,7 +91,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
         <button
           onClick={onEnvoyer}
           disabled={enCours || !b.destinataire.trim()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40 rounded-full"
         >
           {enCours ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           Envoyer
@@ -150,7 +150,7 @@ function FicheClient({ champs, onChange, onValider, enCours }) {
         <button
           onClick={onValider}
           disabled={enCours}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40 rounded-full"
         >
           {enCours ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
           Créer le client
@@ -252,7 +252,7 @@ function ResultatFiche({ r, clients }) {
         </p>
       )}
       <div className="mt-4 flex flex-wrap gap-3">
-        <button onClick={() => navigate(`/Analyse?deal_id=${r.deal_id}`)} className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol">
+        <button onClick={() => navigate(`/Analyse?deal_id=${r.deal_id}`)} className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol rounded-full">
           Ouvrir le dossier <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>

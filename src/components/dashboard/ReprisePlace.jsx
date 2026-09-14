@@ -60,7 +60,7 @@ export default function ReprisePlace({ limite = 6 }) {
 
   return (
     <section>
-      <p className="m-0 mb-4 text-[13.5px] text-brume">Reprenez là où vous en étiez</p>
+      <p className="font-pill m-0 mb-4 text-[11px] font-medium uppercase tracking-[.14em] text-brume">Reprenez là où vous en étiez</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {liste.map((x) => {
           const Icone = x.icone;
@@ -68,7 +68,7 @@ export default function ReprisePlace({ limite = 6 }) {
             <button
               key={x.cle}
               onClick={() => navigate(x.vers)}
-              className="group text-left rounded-xl border border-trait bg-surface px-4 py-3.5 hover:border-bord-doux transition-colors"
+              className="group rounded-bloc border border-trait bg-fond px-5 py-4 text-left transition-colors hover:border-menthe/30"
             >
               <div className="flex items-start gap-3">
                 <Icone className="w-4 h-4 text-menthe flex-none mt-0.5" />

@@ -167,7 +167,7 @@ export function DialogueAssignerClient({ ouvert, onClose, users, formData, onVal
             <button onClick={onClose} className="px-4 py-2 border border-bord-doux text-[11px] tracking-[.14em] uppercase text-craie hover:bg-encre/[0.06]">
               Annuler
             </button>
-            <button onClick={valider} className="px-5 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol">
+            <button onClick={valider} className="px-5 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol rounded-full">
               Assigner
             </button>
           </div>
@@ -285,7 +285,7 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
             <button
               onClick={() => enregistrer.mutate(window.confirm("Prévenir le ou les clients par e-mail qu'un projet leur est attribué ?"))}
               disabled={enregistrer.isPending}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40 rounded-full"
             >
               {enregistrer.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Assigner

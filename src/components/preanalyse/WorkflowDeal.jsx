@@ -325,7 +325,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         <div className="flex flex-wrap items-end justify-between gap-6 pb-6 border-b border-trait">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="m-0 text-[34px] max-md:text-[24px] font-semibold tracking-[-.01em] text-encre truncate">
+              <h1 className="m-0 truncate text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">
                 {dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom"}
               </h1>
               {aRelancer && (
@@ -1201,7 +1201,7 @@ function BlocVideoPresentation({ dossier, apercu }) {
       {enCours && (
         <div className="h-1 rounded bg-[#1a1d1c] overflow-hidden">
           <div
-            className="h-full bg-menthe transition-all duration-500"
+            className="h-full bg-menthe transition-all duration-500 rounded-full"
             style={{ width: `${Math.max(progression, 3)}%` }}
           />
         </div>
@@ -1428,7 +1428,7 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
             {etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}
           </span>
         ) : (
-          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
             Pré-analyser à partir des {nb} pièce{nb > 1 ? "s" : ""}
           </button>
         )}

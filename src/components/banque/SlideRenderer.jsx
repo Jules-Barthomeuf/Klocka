@@ -688,7 +688,7 @@ function ContactSlide({ slide }) {
         <div className="w-8 h-8 bg-encre/10 rounded-lg flex items-center justify-center mx-auto mb-8">
           <Building2 className="w-4 h-4 text-encre/60" />
         </div>
-        <div className="w-20 h-[2px] bg-menthe mx-auto mb-8" />
+        <div className="w-20 h-[2px] bg-menthe mx-auto mb-8 rounded-full" />
         <h2 className="text-[3vw] font-extrabold text-encre uppercase">{c.message || "Merci pour votre attention"}</h2>
         {c.client_name && <p className="text-encre text-[1.4vw] font-light mt-4">{c.client_name}</p>}
         {c.client_email && (
@@ -696,7 +696,7 @@ function ContactSlide({ slide }) {
             <Mail className="w-4 h-4" /> {c.client_email}
           </p>
         )}
-        <div className="w-20 h-[2px] bg-menthe mx-auto mt-8" />
+        <div className="w-20 h-[2px] bg-menthe mx-auto mt-8 rounded-full" />
       </div>
     </div>
   );

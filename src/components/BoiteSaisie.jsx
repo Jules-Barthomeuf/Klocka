@@ -69,7 +69,7 @@ export default function BoiteSaisie({
           disabled={!peutEnvoyer || enCours || disabled}
           title={libelle}
           aria-label={libelle}
-          className={`inline-flex items-center justify-center rounded-full bg-encre text-fond hover:bg-[#ffffff] disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8" : "w-10 h-10"}`}
+          className={`inline-flex items-center justify-center rounded-full bg-menthe text-sur-menthe hover:bg-[#ffffff] disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8" : "w-10 h-10"}`}
         >
           {enCours ? <PenseeIA etat="working" taille={20} clair /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
         </button>

@@ -486,37 +486,37 @@ export default function Vision() {
             <TabsList className="w-full flex justify-center gap-4 max-md:gap-2 bg-transparent border-b border-surface mb-6 max-md:mb-4 rounded-none px-0 h-auto pb-0 overflow-x-auto max-md:overflow-x-scroll scrollbar-hide">
               <TabsTrigger
               value="tab-0"
-              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center rounded-full">
 
                 Vue d'ensemble
               </TabsTrigger>
               <TabsTrigger
               value="tab-1"
-              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center rounded-full">
 
                 Timeline
               </TabsTrigger>
               <TabsTrigger
               value="tab-2"
-              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center rounded-full">
 
                 Evolution
               </TabsTrigger>
               <TabsTrigger
               value="tab-3"
-              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center rounded-full">
 
                 Projets
               </TabsTrigger>
               <TabsTrigger
               value="tab-4"
-              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center rounded-full">
 
                 Comparatif
               </TabsTrigger>
               <TabsTrigger
               value="tab-5"
-              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center">
+              className="relative text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase bg-transparent border-0 text-ardoise hover:text-encre data-[state=active]:bg-transparent data-[state=active]:text-encre data-[state=active]:shadow-none transition-all duration-300 pb-3 max-md:text-xs max-md:pb-2 after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-menthe after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300 after:origin-center rounded-full">
 
                 Chiffres détaillés
               </TabsTrigger>
@@ -597,7 +597,7 @@ export default function Vision() {
                     </div>
                     <Button
                     onClick={() => {setResultat(null);setCurrentSlide(0);}}
-                    className="bg-menthe hover:bg-[#e5a968] text-black font-medium">
+                    className="bg-menthe hover:bg-[#e5a968] text-black font-medium rounded-full">
 
                       Recommencer
                     </Button>
@@ -1900,7 +1900,7 @@ export default function Vision() {
                                 variant="outline"
                                 size="icon"
                                 onClick={ajouterProjet}
-                                className="h-10 w-10 bg-menthe hover:bg-[#238276] text-encre border-0">
+                                className="h-10 w-10 bg-menthe hover:bg-[#238276] text-encre border-0 rounded-full">
 
                           <span className="text-lg">+</span>
                         </Button>

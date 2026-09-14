@@ -112,7 +112,7 @@ export default function LogementSection({ data }) {
               <p className="text-sm text-ardoise mb-2">Statut d'occupation</p>
               <div className="relative h-6 rounded-full overflow-hidden flex">
                 {data.pct_proprietaires > 0 && (
-                  <div className="bg-menthe flex items-center justify-center text-fond text-xs font-medium" style={{ width: `${data.pct_proprietaires}%` }}>
+                  <div className="bg-menthe flex items-center justify-center text-fond text-xs font-medium rounded-full" style={{ width: `${data.pct_proprietaires}%` }}>
                     {data.pct_proprietaires}%
                   </div>
                 )}

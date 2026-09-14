@@ -57,7 +57,7 @@ function Chiffre({ icone: Icone, valeur, libelle }) {
 function Barre({ part }) {
   return (
     <div className="h-1.5 rounded-full bg-encre/[0.06] overflow-hidden">
-      <div className="h-full bg-menthe" style={{ width: `${Math.max(2, part * 100)}%` }} />
+      <div className="h-full bg-menthe rounded-full" style={{ width: `${Math.max(2, part * 100)}%` }} />
     </div>
   );
 }

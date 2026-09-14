@@ -271,7 +271,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
             <button
               onClick={handleSaveShadow}
               disabled={saveShadowMutation.isPending}
-              className="flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25 text-encre px-6 py-2.5 rounded-md transition-all text-sm disabled:opacity-40"
+              className="flex items-center gap-2 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25 text-encre px-6 py-2.5 rounded-full transition-all text-sm disabled:opacity-40"
             >
               {saveShadowMutation.isPending
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</>

@@ -103,7 +103,7 @@ function Champ({ champ, dealId, ouvert, onOuvrir, onPreuve }) {
           })}
           <div className="flex flex-wrap items-center gap-2">
             <input value={libre} onChange={(e) => setLibre(e.target.value)} placeholder="Ou forcer une valeur à la main…" className="flex-1 min-w-[220px] bg-transparent border border-bord rounded-lg px-3 py-1.5 text-[12.5px] text-encre outline-none focus:border-menthe/60" />
-            <button onClick={() => forcer.mutate({ valeur: libre })} disabled={!libre.trim() || forcer.isPending} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-full bg-encre text-fond font-semibold disabled:opacity-40"><Check className="w-3.5 h-3.5" /> Retenir</button>
+            <button onClick={() => forcer.mutate({ valeur: libre })} disabled={!libre.trim() || forcer.isPending} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-full bg-menthe rounded-full text-sur-menthe font-semibold disabled:opacity-40"><Check className="w-3.5 h-3.5" /> Retenir</button>
             {champ.forcage && <button onClick={() => forcer.mutate({})} className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre px-2"><RotateCcw className="w-3.5 h-3.5" /> Revenir à la règle</button>}
           </div>
         </div>

@@ -228,7 +228,7 @@ function BoutonGoogle({ libelle = "Se connecter avec Google" }) {
   return (
     <a
       href={`/api/auth/google/login?returnTo=%2FDashboard${base44.auth.fenetre.active() ? "&fenetre=1" : ""}`}
-      className="w-full inline-flex items-center justify-center gap-2.5 bg-encre text-[#3c4043] font-medium text-sm rounded-none px-4 py-2.5 hover:opacity-90 transition-colors"
+      className="hover:bg-menthe-survol rounded-full w-full inline-flex items-center justify-center gap-2.5 bg-menthe text-[#3c4043] font-medium text-sm rounded-none px-4 py-2.5 hover:opacity-90 transition-colors"
     >
       <LogoGoogle />
       {libelle}

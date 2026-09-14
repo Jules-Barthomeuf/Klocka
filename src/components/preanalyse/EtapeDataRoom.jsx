@@ -44,7 +44,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
         <p className="m-0 text-[15px] leading-[1.65] text-craie max-w-[720px]">{nbDocs ? `${nbDocs} pièce${nbDocs > 1 ? "s" : ""} importée${nbDocs > 1 ? "s" : ""}. Le bail, ses avenants, les quittances et le Kbis sont lus en premier (${e.progression.presents_etape}). Les autres attendent l'étape 2.` : "Importez les pièces de la data room en bas de page : elles sont classées automatiquement."}</p>
         <div className="mt-5 flex items-center gap-4">
           {enCours ? <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="w-4 h-4 animate-spin" /> {e.remplissage.fait}/{e.remplissage.total ?? "…"} — {e.remplissage.document || "lecture"}</span>
-            : <button onClick={() => lancer.mutate(1)} disabled={apercu || !e.progression.presents_etape || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-encre text-fond text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire le bail et le locataire</button>}
+            : <button onClick={() => lancer.mutate(1)} disabled={apercu || !e.progression.presents_etape || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire le bail et le locataire</button>}
           {!e.progression.presents_etape && nbDocs > 0 && <span className="text-[12.5px] text-ambre">Aucune pièce classée Bail, Avenants, Quittances ou Kbis : vérifiez les catégories.</span>}
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
               <div className="mt-2 flex items-center gap-2">
                 <input autoFocus value={loyerSaisi} onChange={(x) => setLoyerSaisi(x.target.value)} onKeyDown={(x) => { if (x.key === "Enter") validerLoyer(); if (x.key === "Escape") setEditionLoyer(false); }} inputMode="numeric" className="w-[130px] bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[18px] font-light tabular-nums text-encre" />
                 <span className="text-[12.5px] text-brume">€ HT/an</span>
-                <button onClick={validerLoyer} disabled={forcerLoyer.isPending} className="text-[12.5px] px-2.5 py-1 bg-encre text-fond font-semibold">OK</button>
+                <button onClick={validerLoyer} disabled={forcerLoyer.isPending} className="hover:bg-menthe-survol rounded-full text-[12.5px] px-2.5 py-1 bg-menthe text-sur-menthe font-semibold">OK</button>
                 <button onClick={() => setEditionLoyer(false)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
               </div>
             ) : (

@@ -78,7 +78,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                   <div onClick={(e) => e.stopPropagation()}>
                     <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[13.5px] leading-[1.55] text-encre resize-y" />
                     <div className="mt-1.5 flex items-center gap-2">
-                      <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
+                      <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
                       <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
                       {l.correction && <button onClick={() => corriger.mutate({ critere: l.id, valeur: "" })} className="inline-flex items-center gap-1 text-[12.5px] text-ardoise hover:text-encre ml-auto"><RotateCcw className="w-3 h-3" /> Revenir à la valeur lue</button>}
                     </div>
@@ -123,7 +123,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                   <div>
                     <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[12.5px] leading-[1.5] text-encre resize-y placeholder:text-brume" />
                     <div className="mt-1.5 flex items-center gap-2">
-                      <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
+                      <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
                       <button onClick={() => setNote(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
                     </div>
                   </div>

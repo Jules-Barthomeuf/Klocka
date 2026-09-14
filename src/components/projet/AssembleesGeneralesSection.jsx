@@ -62,7 +62,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
           <Button
             size="sm"
             onClick={() => setShowForm(!showForm)}
-            className="bg-menthe hover:bg-menthe/80 text-encre gap-1.5"
+            className="bg-menthe hover:bg-menthe/80 text-encre gap-1.5 rounded-full"
           >
             <Plus className="w-4 h-4" />
             Ajouter une AG
@@ -120,7 +120,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                 <Button
                   onClick={handleAdd}
                   disabled={saving}
-                  className="bg-menthe hover:bg-menthe/80 text-encre gap-1.5"
+                  className="bg-menthe hover:bg-menthe/80 text-encre gap-1.5 rounded-full"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? "Enregistrement..." : "Enregistrer"}

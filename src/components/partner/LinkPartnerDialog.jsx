@@ -114,7 +114,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
               <Button
                 onClick={handleLinkPartner}
                 disabled={isLinking || !partnerEmail.trim()}
-                className="bg-menthe hover:bg-menthe/90"
+                className="bg-menthe hover:bg-menthe/90 rounded-full"
               >
                 {isLinking ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

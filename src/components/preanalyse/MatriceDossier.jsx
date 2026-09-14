@@ -83,7 +83,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
           <button onClick={() => setTri((t) => (t ? null : "statut"))} className={`text-[12.5px] px-3 py-1.5 rounded-full border transition-colors ${tri ? "border-alerte text-alerte" : "border-bord-doux text-ardoise hover:text-encre"}`}>
             {tri ? "Ordre du gabarit" : "Trier par statut"}
           </button>
-          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-full bg-encre text-fond font-semibold hover:bg-[#ffffff]">
+          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-full bg-menthe rounded-full text-sur-menthe font-semibold hover:bg-[#ffffff]">
             <Plus className="w-3.5 h-3.5" /> Ajouter une colonne
           </button>
         </div>
@@ -347,13 +347,13 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
         <div className="flex items-center gap-3 py-2">
           <div className="inline-flex rounded-full border border-bord-doux p-0.5 text-[12.5px]" title="Deux lectures des mêmes faits : la grille (documents × questions) ou la fiche (le bien, champ par champ)">
             {[["grille", "Grille"], ["fiche", "Fiche"]].map(([m, l]) => (
-              <button key={m} onClick={() => changerMode(m)} className={`px-3 py-1 rounded-full transition-colors ${mode === m ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{l}</button>
+              <button key={m} onClick={() => changerMode(m)} className={`px-3 py-1 rounded-full transition-colors ${mode === m ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{l}</button>
             ))}
           </div>
           {enCours ? (
             <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {m.remplissage.fait}/{m.remplissage.total ?? "…"} — {m.remplissage.document || "lecture"}</span>
           ) : (
-            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-encre text-fond hover:bg-[#ffffff] disabled:opacity-40">
+            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-menthe rounded-full text-sur-menthe hover:bg-[#ffffff] disabled:opacity-40">
               <RefreshCw className="w-3.5 h-3.5" /> {m?.lignes?.length ? "Relire les documents" : "Remplir la grille"}
             </button>
           )}

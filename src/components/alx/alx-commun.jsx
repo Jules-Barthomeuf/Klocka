@@ -61,7 +61,7 @@ export function EnTeteAlx({ titre = "ALX", sous, droite = null }) {
     <div className="mb-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2.5">
-          <div className="w-10 h-0.5 bg-menthe" />
+          <div className="w-10 h-0.5 bg-menthe rounded-full" />
           <div className="text-[11px] tracking-[.18em] uppercase text-ardoise">Prospection off-market</div>
           <h1 className="m-0 text-[34px] max-md:text-[24px] font-semibold tracking-[-.025em] leading-[1.05] text-encre">{titre}</h1>
         </div>

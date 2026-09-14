@@ -81,7 +81,7 @@ function InstagramPreview({ url }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rounded-md overflow-hidden border border-menthe/30 hover:border-menthe/60 transition-all duration-300 group"
+      className="block rounded-full overflow-hidden border border-menthe/30 hover:border-menthe/60 transition-all duration-300 group"
     >
       <div className="bg-gradient-to-br from-surface to-surface p-5">
         <div className="flex items-center gap-4 mb-4">
@@ -145,7 +145,7 @@ export default function LocataireLiensSociaux({ liens }) {
                 href={lien.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-4 p-4 bg-surface/50 rounded-md border ${config.borderColor} transition-all duration-300 group`}
+                className={`flex items-center gap-4 p-4 bg-surface/50 rounded-full border ${config.borderColor} transition-all duration-300 group`}
               >
                 <div className={`w-10 h-10 bg-gradient-to-br ${config.color} rounded-lg flex items-center justify-center text-encre flex-shrink-0 shadow-lg`}>
                   {config.icon}

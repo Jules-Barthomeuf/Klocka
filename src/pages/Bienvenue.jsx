@@ -47,7 +47,7 @@ export default function Bienvenue() {
             </div>
           ) : etat.valide ? (
             <>
-              <div className="w-10 h-0.5 bg-menthe mb-8" />
+              <div className="w-10 h-0.5 bg-menthe mb-8 rounded-full" />
               <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-encre">Créez votre espace</h1>
               <p className="m-0 mt-3 mb-8 text-[15px] leading-[1.7] text-ardoise">
                 {etat.commun
@@ -62,7 +62,7 @@ export default function Bienvenue() {
             </>
           ) : (
             <>
-              <div className="w-10 h-0.5 bg-menthe mb-8" />
+              <div className="w-10 h-0.5 bg-menthe mb-8 rounded-full" />
               <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-encre">Lien inutilisable</h1>
               <p className="m-0 mt-4 text-[15px] leading-[1.7] text-ardoise">{MESSAGES[etat.raison] || MESSAGES.inconnu}</p>
               <a

@@ -167,7 +167,7 @@ export default function Portail({ paiement2Fois = false }) {
               </label>
 
               <button onClick={accepterCGV} disabled={!cgvChecked}
-                className="w-full flex items-center justify-center gap-2 bg-menthe hover:bg-menthe/90 text-encre font-medium px-6 py-3.5 rounded-md transition-all disabled:opacity-30">
+                className="w-full flex items-center justify-center gap-2 bg-menthe hover:bg-menthe/90 text-encre font-medium px-6 py-3.5 rounded-full transition-all disabled:opacity-30">
                 Accepter et continuer <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -225,7 +225,7 @@ export default function Portail({ paiement2Fois = false }) {
               {/* Bouton de paiement */}
               <a href={paiementUrl}
                 target="_blank" rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-3 bg-menthe hover:bg-menthe/90 text-encre font-medium px-6 py-4 rounded-md transition-all mb-4 group">
+                className="w-full flex items-center justify-center gap-3 bg-menthe hover:bg-menthe/90 text-encre font-medium px-6 py-4 rounded-full transition-all mb-4 group">
                 <CreditCard className="w-5 h-5" />
                 <span>{paiement2Fois ? "Procéder au paiement — 2 × 3 500,00 €" : "Procéder au paiement — 7 000,00 €"}</span>
                 <ExternalLink className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />

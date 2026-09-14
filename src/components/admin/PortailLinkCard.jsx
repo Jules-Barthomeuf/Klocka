@@ -30,7 +30,7 @@ export default function PortailLinkCard({ title, subtitle, url, delay = 0 }) {
 
       <div className="flex items-center gap-3">
         <button onClick={copyLink}
-          className="flex items-center gap-2 bg-encre hover:bg-craie text-surface text-sm font-medium px-5 py-2.5 rounded-md transition-all">
+          className="flex items-center gap-2 bg-menthe hover:bg-craie text-sur-menthe text-sm font-medium px-5 py-2.5 rounded-full transition-all">
           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
           {copied ? "Copié !" : "Copier le lien"}
         </button>

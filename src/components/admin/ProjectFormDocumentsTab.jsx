@@ -69,7 +69,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
                       docs_checklist: { ...checklist, [key]: !!checked }
                     });
                   }}
-                  className="border-encre/20 data-[state=checked]:bg-menthe data-[state=checked]:border-menthe"
+                  className="border-encre/20 data-[state=checked]:bg-menthe data-[state=checked]:border-menthe rounded-full"
                 />
                 <span className="text-encre text-sm">{label}</span>
               </label>

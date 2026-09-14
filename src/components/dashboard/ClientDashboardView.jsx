@@ -41,7 +41,7 @@ function StepProgressBar({ etapes, userEtape }) {
         {/* Filet de fond + progression */}
         <div className="absolute top-[5px] h-px bg-encre/[0.14]" style={{ left: `${debut}%`, right: `${debut}%` }} />
         <motion.div
-          className="absolute top-[4.5px] h-[2px] bg-menthe"
+          className="absolute top-[4.5px] h-[2px] bg-menthe rounded-full"
           style={{ left: `${debut}%` }}
           initial={{ width: 0 }}
           animate={{ width: `${largeur}%` }}

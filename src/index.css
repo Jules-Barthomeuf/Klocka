@@ -98,18 +98,17 @@ input[type=range] { accent-color: #96c0b8; }
 /* Un bouton d'action est une pilule, comme « Commencer gratuitement ». Les
    remplissages clairs d'hier (ivoire) deviennent la menthe du site ; les
    contours restent des contours. Les champs, onglets et cases ne bougent pas. */
-button.rounded-md, a.rounded-md, button.rounded-lg, a.rounded-lg { border-radius: 9999px; }
-/* Tout ce qui est rempli de menthe est une pilule — bouton, lien, ou élément
-   qui se fait passer pour un bouton. Le sélecteur d'attribut vise le jeton
-   exact « bg-menthe » : les fonds teintés (…/[0.06]) ne sont pas touchés. */
-[class~="bg-menthe"] { border-radius: 9999px !important; }
-/* Un bouton cerclé de menthe est une pilule — mais pas un onglet souligné :
-   un trait sous un mot reste droit. */
-button[class*="border-menthe"]:not([class*="border-b"]):not([role="tab"]), a[class*="border-menthe"]:not([class*="border-b"]) { border-radius: 9999px !important; }
-button[class~="bg-encre"], a[class~="bg-encre"] { background-color: #96c0b8; color: #000000; border-color: #96c0b8; border-radius: 9999px !important; }
-button[class~="bg-encre"]:hover, a[class~="bg-encre"]:hover { border-color: #abd0c8; }
-button[class~="bg-encre"]:hover, a[class~="bg-encre"]:hover { background-color: #abd0c8; }
-button[class~="bg-[#ffffff]"] { border-radius: 9999px !important; }
+/* Un bouton est une pilule : c'est la forme de l'action chez Klocka. La règle
+   est ici, une fois, sans !important — un composant qui a besoin d'autre chose
+   pose sa propre classe de rayon, et elle gagne. Un onglet souligné reste droit :
+   un trait sous un mot n'est pas un bouton.
+
+   Ce qui a disparu d'ici : la règle qui repeignait « bg-encre » en menthe. Un
+   bouton déclaré blanc et rendu vert, c'était du code qui ment ; les vingt-sept
+   boutons concernés disent maintenant menthe. */
+:where(button, a).rounded-md:not([class*="border-b"]):not([role="tab"]),
+:where(button, a).rounded-lg:not([class*="border-b"]):not([role="tab"]),
+:where(button, a)[class~="bg-menthe"]:not([class*="border-b"]):not([role="tab"]) { border-radius: 9999px; }
 /* Les cases à cocher d'ALX (server/alx) : la couleur vient d'un style inline
    (seul moyen de battre la règle `button { background-color }` ci-dessus,
    qui n'est dans aucune @layer et prime donc sur toute classe Tailwind) ;

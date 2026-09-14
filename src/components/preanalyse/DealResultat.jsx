@@ -100,7 +100,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
           </p>
         </div>
         <div className="flex h-1.5 w-[220px] max-w-full overflow-hidden rounded-full bg-trait">
-          <div className="h-full bg-menthe" style={{ width: `${(passes / lignes.length) * 100}%` }} />
+          <div className="h-full bg-menthe rounded-full" style={{ width: `${(passes / lignes.length) * 100}%` }} />
           <div className="h-full bg-alerte" style={{ width: `${(echecs / lignes.length) * 100}%` }} />
         </div>
       </div>
@@ -631,7 +631,7 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
             disabled={v.id !== "carte" && !localisable}
             title={v.id !== "carte" && !localisable ? "Adresse inconnue pour ce lot" : undefined}
             className={`px-3.5 py-1.5 rounded-full text-[12.5px] border transition-colors disabled:opacity-40
-              ${vue === v.id ? "bg-encre border-encre text-fond font-medium" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`}
+              ${vue === v.id ? "bg-menthe rounded-full border-menthe text-sur-menthe font-medium" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`}
           >
             {v.label}
           </button>
@@ -679,7 +679,7 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
           inputMode="numeric"
           className={`w-[150px] bg-transparent border-b border-bord-vif focus:border-encre outline-none tabular-nums font-light text-encre placeholder:text-bord-vif ${compact ? "text-[13.5px] py-0.5" : "text-[24px] py-1"}`}
         />
-        <button onClick={valider} disabled={!valide || enCours} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
+        <button onClick={valider} disabled={!valide || enCours} className="hover:bg-menthe-survol inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe text-sur-menthe font-semibold rounded-full disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
         <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
       </div>
     );
@@ -728,7 +728,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
           const actif = choisi === v;
           const attend = enCours && choix === v;
           return (
-            <button key={mot} onClick={() => { if (modifiable && actuel !== v) { setChoix(v); valider(v); } }} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-all duration-200 disabled:cursor-default ${attend ? "bg-menthe border-menthe text-fond font-semibold animate-pulse" : actif ? "bg-encre border-encre text-fond font-semibold" : "border-bord-doux text-brume hover:text-encre hover:border-bord-vif"}`}>{mot}</button>
+            <button key={mot} onClick={() => { if (modifiable && actuel !== v) { setChoix(v); valider(v); } }} disabled={!modifiable || enCours} className={`px-2.5 py-0.5 rounded-full text-[12.5px] border transition-all duration-200 disabled:cursor-default ${attend ? "bg-menthe border-menthe text-sur-menthe font-semibold animate-pulse" : actif ? "bg-menthe rounded-full border-menthe text-sur-menthe font-semibold" : "border-bord-doux text-brume hover:text-encre hover:border-bord-vif"}`}>{mot}</button>
           );
         })}
         {enCours && choix !== null ? <span className="ml-1 text-[11px] text-menthe">recalcul…</span> : !absent && c.saisi_a_la_main && <span className="ml-1 text-[11px] text-ambre">saisi à la main</span>}
@@ -747,7 +747,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
           placeholder={champ === "adresse" ? "12 rue Exemple, 69002 Lyon" : ""}
           className="min-w-[220px] bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[13.5px] font-light tabular-nums text-encre py-0.5 placeholder:text-bord-vif"
         />
-        <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-encre text-fond font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
+        <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
         <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
       </span>
     );
@@ -866,7 +866,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             <div className="flex flex-wrap items-center gap-3 mb-5">
               <div className="inline-flex flex-wrap rounded-full border border-bord-doux p-0.5">
                 {EMPLACEMENTS.map((e) => (
-                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-encre text-fond font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
+                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
                 ))}
               </div>
               <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? J["ambre"] : J["ambre"] }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>

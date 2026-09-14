@@ -44,7 +44,7 @@ export default function NotesEtSuite({ dealId, etape, apercu = false }) {
         <ul className="m-0 p-0 list-none">
           {[...aFaire, ...faites].map((t) => (
             <li key={t.id} className="flex items-start gap-3 py-2 border-t border-relief group">
-              <button onClick={() => !apercu && majTaches(taches.map((x) => (x.id === t.id ? { ...x, fait: !x.fait } : x)))} className={`mt-[2px] w-4 h-4 border flex items-center justify-center flex-none ${t.fait ? "bg-encre border-encre text-fond" : "border-bord-vif hover:border-encre"}`}>{t.fait && <Check className="w-3 h-3" strokeWidth={3} />}</button>
+              <button onClick={() => !apercu && majTaches(taches.map((x) => (x.id === t.id ? { ...x, fait: !x.fait } : x)))} className={`mt-[2px] w-4 h-4 border flex items-center justify-center flex-none ${t.fait ? "bg-menthe rounded-full border-menthe text-sur-menthe" : "border-bord-vif hover:border-menthe"}`}>{t.fait && <Check className="w-3 h-3" strokeWidth={3} />}</button>
               <span className={`flex-1 text-[13.5px] leading-[1.5] ${t.fait ? "text-brume line-through" : "text-encre"}`}>{t.texte}{t.etape ? <Mono className="ml-2 normal-case tracking-[.04em]">étape {t.etape}</Mono> : null}</span>
               <button onClick={() => !apercu && majTaches(taches.filter((x) => x.id !== t.id))} className="opacity-0 group-hover:opacity-100 text-brume hover:text-alerte"><X className="w-3.5 h-3.5" /></button>
             </li>

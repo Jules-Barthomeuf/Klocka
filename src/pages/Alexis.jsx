@@ -101,7 +101,7 @@ export default function Alexis() {
       <div className="max-w-[1100px] mx-auto px-5 md:px-12 py-12 md:py-20">
         <header className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div className="w-10 h-0.5 bg-menthe mb-8" />
+            <div className="w-10 h-0.5 bg-menthe mb-8 rounded-full" />
             <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Page secrète — vous n'êtes jamais venu ici</p>
             <h1 className="m-0 mt-4 text-[46px] max-lg:text-[36px] max-md:text-[24px] font-semibold tracking-[-.025em] leading-[1.05] text-[#ffffff]">
               Alexis

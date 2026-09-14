@@ -7,7 +7,7 @@
 import { Records } from '../db.js';
 import { ok, wrap, currentUser } from '../contexte.js';
 import {
-  etatDesOutils, listerVilles, obtenirVille, creerVille, classerRue, retirerRue,
+  etatDesOutils, listerVilles, obtenirVille, creerVille, classerRue, retirerRue, reclasserRues,
   listerCibles, obtenirCible, creerCible, mettreAJourCible, reclasser, supprimerCible,
   enregistrerApproche, qualifierApproche, creerDossierDepuisCible, aFaire, bilan, PILES,
 } from '../alx/index.js';
@@ -91,6 +91,12 @@ export function monterAlx(app) {
     if (!r.ok) return erreur(res, r.error, 409);
     ok(res, r);
   }));
+  // Reclasse les rues avec la règle du jour, sans relire les sources.
+  app.post('/api/alx/villes/:id/reclasser-rues', wrap(async (req, res) => {
+    const r = await reclasserRues(req.params.id);
+    if (!r.ok) return erreur(res, r.error, 404);
+    ok(res, r);
+  }));
   app.post('/api/alx/villes/:id/rues', wrap(async (req, res) => {
     const r = await classerRue(req.params.id, { ...req.body, user: currentUser(req) });
     if (!r.ok) return erreur(res, r.error);
@@ -154,6 +160,27 @@ export function monterAlx(app) {
     } catch (e) {
       return erreur(res, e, e.statut || 400);
     }
+  }));
+
+  // Le vendeur d'un dossier : le propriétaire des murs et pourquoi il vend.
+  // Data Foncier, annuaire, BODACC, DVF, loyer de la rue : aucun crédit.
+  app.post('/api/alx/vendeur', wrap(async (req, res) => {
+    const { vendeurDe } = await import('../alx/vendeur.js');
+    try {
+      ok(res, await vendeurDe({ ...(req.body || {}), user: currentUser(req) }));
+    } catch (e) {
+      return erreur(res, e, e.statut || 400);
+    }
+  }));
+  app.get('/api/alx/vendeur/raisons', wrap(async (req, res) => {
+    const { RAISONS_REELLES, resumeEtude } = await import('../alx/vendeur.js');
+    ok(res, { raisons: RAISONS_REELLES, etude: resumeEtude() });
+  }));
+  app.post('/api/alx/vendeur/:id/raison', wrap(async (req, res) => {
+    const { poserRaisonReelle } = await import('../alx/vendeur.js');
+    const r = poserRaisonReelle(req.params.id, { raison_cle: req.body?.raison_cle, raison: req.body?.raison || null, user: currentUser(req) });
+    if (!r.ok) return erreur(res, r.error, 400);
+    ok(res, r);
   }));
 
   // Écarter, avec un retour qui devient une règle, et les semblables à écarter aussi.

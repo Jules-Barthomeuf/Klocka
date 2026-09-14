@@ -122,7 +122,12 @@ export function lireFiche(html) {
   const zone = debut >= 0 ? h.slice(debut, fin > debut ? fin : undefined) : h;
 
   const entete = decoder((h.match(/<h1[^>]*class="[^"]*(?:foncier|company)[^"]*"[^>]*>([\s\S]*?)<\/h1>/) || [])[1]);
-  const adresse = decoder((h.match(/^[\s\S]*?<(?:h1|h2|div)[^>]*>\s*([^<]*\d{5}\s+[A-ZÉÈ' -]+)\s*</) || [])[1]) || entete || null;
+  // Les adresses du bâtiment lui-même sont dans le popover d'adresses (un
+  // immeuble d'angle en a plusieurs). La première adresse écrite en gros dans
+  // la page est souvent celle du siège d'un propriétaire : elle ne dit rien
+  // du bâtiment, on ne s'y fie qu'à défaut.
+  const adresses = [...new Set([...h.matchAll(/foncierAddressPopover__item[\s\S]*?<span>([\s\S]*?)<\/span>/g)].map((m) => decoder(m[1])).filter((a) => /\d{5}/.test(a)))];
+  const adresse = adresses[0] || decoder((h.match(/^[\s\S]*?<(?:h1|h2|div)[^>]*>\s*([^<]*\d{5}\s+[A-ZÉÈ' -]+)\s*</) || [])[1]) || entete || null;
   const surfaceParcelle = Number((h.match(/Taille de la parcelle\s*:\s*([\d\s]+)\s*m/) || [])[1]?.replace(/\s/g, '')) || null;
   const surfaceBatiment = Number((h.match(/Taille du bâtiment\s*:\s*([\d\s]+)\s*m/) || [])[1]?.replace(/\s/g, '')) || null;
 
@@ -137,7 +142,7 @@ export function lireFiche(html) {
     vus.add(cle);
     proprietaires.push(p);
   }
-  return { adresse, surface_parcelle: surfaceParcelle, surface_batiment: surfaceBatiment, proprietaires };
+  return { adresse, adresses, surface_parcelle: surfaceParcelle, surface_batiment: surfaceBatiment, proprietaires };
 }
 
 /**
@@ -167,6 +172,8 @@ export function choisirProprietaire(proprietaires, occupant = null) {
 const distanceM = (lat1, lon1, lat2, lon2) => Math.hypot((lat2 - lat1) * 111000, (lon2 - lon1) * 111000 * Math.cos((lat1 * Math.PI) / 180));
 
 const numeroDe = (adresse) => (String(adresse || '').match(/^\s*(\d+)\s*(bis|ter)?/i) || [])[1] || null;
+/** Les numéros de rue d'une fiche : toutes les adresses du bâtiment. */
+const numerosDe = (fiche) => (fiche.adresses?.length ? fiche.adresses : [fiche.adresse]).map(numeroDe).filter(Boolean);
 
 /**
  * Les propriétaires d'une adresse, par Data Foncier.
@@ -215,7 +222,7 @@ export async function proprietairesDe(texteAdresse, { rayon = RAYON_M, essais = 
       fiche = f;
       retenu = b;
     }
-    if (numero && numeroDe(f.adresse) === String(numero)) {
+    if (numero && numerosDe(f).includes(String(numero))) {
       fiche = f;
       retenu = b;
       break;
@@ -226,7 +233,7 @@ export async function proprietairesDe(texteAdresse, { rayon = RAYON_M, essais = 
   const { choix, motif, occupant_proprietaire = false } = choisirProprietaire(fiche.proprietaires, occupant);
   // Sans numéro mais avec un point précis, le bâtiment le plus proche à
   // moins de quinze mètres est le bon : une vitrine touche son immeuble.
-  const nonConfirmee = numero ? numeroDe(fiche.adresse) !== String(numero) : !(point && retenu.distance_m <= 15);
+  const nonConfirmee = numero ? !numerosDe(fiche).includes(String(numero)) : !(point && retenu.distance_m <= 15);
   return {
     occupant_proprietaire,
     adresse: adresse.label,

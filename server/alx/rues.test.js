@@ -2,7 +2,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emplacementParLoyer, libelleEmplacement, proposerRues } from './rues.js';
+import { emplacementParLoyer, libelleEmplacement, proposerRues, classerParRang } from './rues.js';
 
 const SEUILS = { loyer_emplacement_1: 800, loyer_emplacement_1bis: 550, loyer_emplacement_2: 350 };
 
@@ -51,4 +51,20 @@ test('proposerRues garde le tracé, classe les rues vivantes et écarte les autr
   assert.equal(r.classees[0].commerces, 40);
   assert.equal(r.commerces_total, 67);
   assert.ok(journal.some((t) => /OpenStreetMap/.test(t)));
+});
+
+test('le rang mêle loyer, vitrines et prix au m² : un boulevard cher et garni passe devant une rue au loyer haut mais vide', () => {
+  const rues = [
+    { nom: 'Rue Chic', loyer: { basse: 900, haute: 1300 }, vitrines: 6, prix_m2: 5200 },
+    { nom: 'Boulevard Garni', loyer: { basse: 600, haute: 900 }, vitrines: 60, prix_m2: 6000 },
+    { nom: 'Rue Moyenne', loyer: { basse: 500, haute: 700 }, vitrines: 20, prix_m2: 4000 },
+    { nom: 'Rue Calme', loyer: { basse: 300, haute: 450 }, vitrines: 5, prix_m2: 3000 },
+  ];
+  const c = classerParRang(rues, { part_emplacement_1: 0.25, part_emplacement_1bis: 0.6, loyer_plancher_1: 450, loyer_emplacement_2: 250 });
+  const classe = Object.fromEntries(c.map((r) => [r.nom, r.classe]));
+  assert.equal(classe['Boulevard Garni'], 1);
+  assert.equal(classe['Rue Chic'], 1.5);
+  assert.equal(classe['Rue Moyenne'], 1.5);
+  assert.equal(classe['Rue Calme'], 2);
+  assert.match(c.find((r) => r.nom === 'Boulevard Garni').motif, /1e sur 4 de la ville \(loyer 2e, vitrines 1e, prix au m² 1e\)/);
 });

@@ -371,7 +371,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
           <div className="alx-entree flex flex-col gap-2.5 rounded-[12px] border border-white/[0.08] p-3.5">
             <div className="text-[13.5px] text-[#E8EFEB]">Pourquoi {emplacementDe(enAttente).mot} plutôt que {emplacementDe(rue.classe).mot} ?</div>
             <div className="flex flex-wrap gap-1.5">
-              {motifs.map((m) => (
+              {motifs.filter((m) => !m.sens || m.sens === "les_deux" || m.sens === (enAttente < rue.classe ? "hausse" : "baisse")).map((m) => (
                 <button key={m.cle} onClick={() => setMotifCle(m.cle)} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12px] transition-colors" style={{ borderColor: motifCle === m.cle ? "#96c0b8" : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? "#96c0b8" : "#C3CBC7", background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
               ))}
             </div>
@@ -430,7 +430,7 @@ function CaseTeinte({ teinte, title, onClick }) {
 function pourquoiEmplacement(r) {
   const e = emplacementDe(r.classe);
   const base = r.motif || (r.loyer ? `loyer ${Math.round(r.loyer[0])}–${Math.round(r.loyer[1])} €/m²/an` : "loyer inconnu");
-  return `Emplacement ${e.mot} : ${base}. L'emplacement est un rang dans la ville : les 10 % de rues les plus chères sont en 1, jusqu'à 35 % en 1 bis, le reste en 2. ${e.detail.charAt(0).toUpperCase() + e.detail.slice(1)}.`;
+  return `Emplacement ${e.mot} : ${base}. L'emplacement est un rang dans la ville, sur le loyer, les vitrines et le prix au m² : le quart de rues le plus commerçant est en 1 (les artères et places du centre), jusqu'à 60 % en 1 bis, le reste en 2. ${e.detail.charAt(0).toUpperCase() + e.detail.slice(1)}.`;
 }
 
 const valeurTri = (r, cle) => (cle === "classe" ? r.classe || 9 : cle === "loyer" ? (r.loyer ? (r.loyer[0] + r.loyer[1]) / 2 : 0) : r.prix_m2 || 0);
@@ -787,7 +787,8 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
   const rues = ville?.rues || [];
   const brouillons = cibles.filter((c) => c.brouillon).length;
   const [ongletChoisi, setOnglet] = useState(ongletDemande);
-  const onglet = ongletChoisi || (brouillons ? "messages" : cibles.length ? "commerces" : "rues");
+  // On arrive toujours sur les rues : c'est là qu'on coche, le reste suit.
+  const onglet = ongletChoisi || "rues";
   const navigate = useNavigate();
   const ouvrirFiche = (id) => navigate(`/ALXCible?id=${id}`);
 

@@ -2,7 +2,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ruesSemblables, reglesApprises, appliquerLecons, traitsDe } from './apprentissage.js';
+import { ruesSemblables, reglesApprises, appliquerLecons, traitsDe, motifsPour } from './apprentissage.js';
 
 const rue = (nom, classe, loyer, commerces, longueur_m, type, flux = 2) => ({ nom, classe, loyer, commerces, longueur_m, type, flux_estime: { note: flux } });
 
@@ -30,4 +30,21 @@ test('un plafond appris rétrograde une rue qui ressemble, et laisse la rue viva
   assert.equal(a.classe, 2);
   assert.match(a.motif, /d'après vos corrections/);
   assert.equal(appliquerLecons(RUES[2], regles).classe, 1.5, 'la rue vivante reste');
+});
+
+test('les motifs proposés suivent le sens de la correction', () => {
+  const baisse = motifsPour(1.5, 2).map((m) => m.cle);
+  const hausse = motifsPour(1.5, 1).map((m) => m.cle);
+  assert.ok(baisse.includes('loyer_surestime') && !baisse.includes('loyer_sousestime'));
+  assert.ok(hausse.includes('loyer_sousestime') && hausse.includes('artere') && !hausse.includes('loyer_surestime'));
+  assert.ok(baisse.includes('autre') && hausse.includes('autre'));
+});
+
+test('une artère montée en 1 fait monter les rues aussi longues et garnies', () => {
+  const croisette = rue('Boulevard de la Croisette', 1.5, [700, 1000], 45, 1800, 'primary', 4);
+  const regles = reglesApprises([{ ville_id: 'v', de: 1.5, vers: 1, motif_cle: 'artere', traits: traitsDe(croisette) }]);
+  assert.equal(regles.planchers.length, 1);
+  assert.equal(appliquerLecons(rue('Boulevard Carnot', 1.5, [500, 800], 50, 2000, 'primary', 3), regles).classe, 1);
+  assert.equal(appliquerLecons(RUES[0], regles).classe, 1.5, 'la petite rue calme ne bouge pas');
+  assert.deepEqual(ruesSemblables(croisette, [croisette, RUES[3], RUES[0]], 'artere').map((x) => x.nom), [], 'le boulevard large est déjà en 1, la rue calme trop courte');
 });

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+
+const AUCUNE = [];
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -81,13 +83,16 @@ export default function VeilleAlx() {
   const admin = !!user && user.role === "admin";
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
-  const { data: villes = [] } = useQuery({
+  // Un tableau vide stable : un `= []` par défaut serait un tableau neuf à
+  // chaque rendu, et l'effet qui dépend des villes tournerait sans fin.
+  const { data: villesLues } = useQuery({
     queryKey: ["alx-villes"],
     queryFn: () => base44.request("GET", "/api/alx/villes"),
     enabled: admin,
     refetchInterval: (q) => ((q.state.data || []).some((v) => v.parcours?.etat === "en_cours") ? 5000 : 30000),
   });
   // Les villes qu'on suit : en cours, ou finies sous nos yeux et pas encore fermées.
+  const villes = villesLues || AUCUNE;
   const [suivies, setSuivies] = useState({}); // { [villeId]: "en_cours" | "finie" }
   const etats = useRef(null);
 
@@ -104,7 +109,9 @@ export default function VeilleAlx() {
         else if (precedent && precedent[v.id] === "en_cours") n2[v.id] = "finie";
         else if (n2[v.id] === "en_cours") delete n2[v.id];
       }
-      return n2;
+      // Rien n'a changé : on rend le même objet, React ne redessine pas.
+      const memes = Object.keys(n2).length === Object.keys(s).length && Object.keys(n2).every((k) => n2[k] === s[k]);
+      return memes ? s : n2;
     });
     etats.current = courant;
   }, [villes, admin]);

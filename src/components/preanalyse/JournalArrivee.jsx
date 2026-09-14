@@ -7,6 +7,7 @@ import JournalDetail from "@/components/preanalyse/JournalDetail";
 import { OngletDataB, OngletEquimmox, OngletFigaro, Recoupement } from "@/components/preanalyse/JournalSources";
 import { OngletBodacc, OngletDvf, SecondPointDeVue } from "@/components/preanalyse/JournalPubliques";
 import MarcheEmplacement from "@/components/preanalyse/MarcheEmplacement";
+import MarcheVendeur from "@/components/preanalyse/MarcheVendeur";
 import { Etiquette } from "@/components/alx/alx-commun";
 
 // L'onglet Marché, à l'arrivée. Deux états, et ils ne se ressemblent pas.
@@ -195,6 +196,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
           </div>
 
           <MarcheEmplacement adresse={analyse.adresse} />
+          <MarcheVendeur adresse={analyse.adresse} lot={lot} dossier={dossier} />
 
           {analyse.recoupement && <Recoupement recoupement={analyse.recoupement} />}
 

@@ -90,7 +90,8 @@ export async function relire({ journal = console.log } = {}) {
 
 const CLES = ['marchand_fenetre', 'evenement_recent', 'echeance_proche', 'detention_longue', 'gerant_age', 'famille', 'loyer_bas', 'bien_isole'];
 const a = (c, cle) => [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].some((s) => s.cle === cle);
-const TRAITS = {
+/** Les traits comparés entre vendeurs et témoins. Chacun lit une cible et rend vrai ou faux. */
+export const TRAITS = {
   ...Object.fromEntries(CLES.map((k) => [k, (c) => a(c, k)])),
   sci: (c) => /SCI|civile/i.test(c.proprietaire?.forme || c.societe?.forme || ''),
   exploitant_proprietaire: (c) => !!c.proprietaire_occupant,
@@ -103,18 +104,48 @@ const TRAITS = {
   pile_ecrire: (c) => c.pile === 'ecrire',
 };
 
-export function rapport({ journal = console.log } = {}) {
+/** Les mots des traits qui ne sont pas des signaux de signaux.json. */
+export const LIBELLES_TRAITS = {
+  sci: 'Les murs sont dans une SCI',
+  exploitant_proprietaire: 'L\'exploitant est propriétaire de ses murs',
+  personne_physique: 'Propriétaire en nom propre',
+  societe_20_ans: 'Société de plus de vingt ans',
+  siege_ailleurs: 'Siège de la société dans une autre commune',
+  plusieurs_etablissements: 'Société à plusieurs établissements',
+  enseigne_nationale: 'Enseigne nationale en place',
+};
+
+/**
+ * Les vendeurs que l'étude connaît : les projets Klocka relus, et les
+ * dossiers de préanalyse lus par vendeur.js (une observation par adresse, la
+ * plus récente). Tous ont un propriétaire trouvé.
+ */
+export function vendeursConnus() {
   const ville = Records.list('Ville').find((v) => v.nom === NOM_VILLE);
-  const vendeurs = ville ? Records.filter('Cible', { ville_id: ville.id }).filter((c) => c.proprietaire?.nom) : [];
+  const projets = ville ? Records.filter('Cible', { ville_id: ville.id }).filter((c) => c.proprietaire?.nom) : [];
+  const parAdresse = new Map();
+  for (const o of Records.list('ObservationVendeur')) {
+    if (!o.cible?.proprietaire?.nom) continue;
+    const d = parAdresse.get(o.cle);
+    if (!d || String(o.le) > String(d.le)) parAdresse.set(o.cle, o);
+  }
+  const adressesProjets = new Set(projets.map((c) => `${c.adresse} ${c.ville}`.toLowerCase()));
+  const dossiers = [...parAdresse.values()].filter((o) => !adressesProjets.has(`${o.cible.adresse} ${o.cible.ville}`.toLowerCase())).map((o) => o.cible);
+  return { projets: projets.length, dossiers: dossiers.length, cibles: [...projets, ...dossiers] };
+}
+
+export function rapport({ journal = console.log } = {}) {
+  const connus = vendeursConnus();
+  const vendeurs = connus.cibles;
   const temoins = Records.list('Cible').filter((c) => !c.etude && c.proprietaire?.nom && !(c.mutation?.du_local && String(c.mutation.date) >= '2021'));
   const lignes = Object.entries(TRAITS).map(([cle, f]) => {
     const v = vendeurs.filter(f).length, t = temoins.filter(f).length;
     const pv = v / Math.max(1, vendeurs.length), pt = t / Math.max(1, temoins.length);
     return { trait: cle, vendeurs: v, vendeurs_pct: Math.round(pv * 100), temoins: t, temoins_pct: Math.round(pt * 100), lift: pt > 0 ? Math.round((pv / pt) * 10) / 10 : null };
   }).sort((x, y) => (y.lift ?? 0) - (x.lift ?? 0));
-  const sortie = { le: new Date().toISOString(), vendeurs: vendeurs.length, temoins: temoins.length, lignes };
+  const sortie = { le: new Date().toISOString(), vendeurs: vendeurs.length, projets: connus.projets, dossiers: connus.dossiers, temoins: temoins.length, lignes };
   fs.writeFileSync(RAPPORT, JSON.stringify(sortie, null, 2));
-  journal(`Vendeurs (projets Klocka, propriétaire trouvé) : ${vendeurs.length} · témoins (rues prospectées, non vendus) : ${temoins.length}`);
+  journal(`Vendeurs (${connus.projets} projets Klocka, ${connus.dossiers} dossiers lus, propriétaire trouvé) : ${vendeurs.length} · témoins (rues prospectées, non vendus) : ${temoins.length}`);
   journal('trait'.padEnd(26) + 'vendeurs'.padStart(10) + 'témoins'.padStart(10) + 'lift'.padStart(7));
   for (const l of lignes) journal(l.trait.padEnd(26) + `${l.vendeurs_pct}% (${l.vendeurs})`.padStart(10) + `${l.temoins_pct}% (${l.temoins})`.padStart(10) + String(l.lift ?? '—').padStart(7));
   journal(`Rapport écrit : ${RAPPORT}`);

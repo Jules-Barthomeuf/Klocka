@@ -97,3 +97,19 @@ test('un HTML sans carte ne casse rien', () => {
   assert.deepEqual(f.proprietaires, []);
   assert.equal(lireFiche('').proprietaires.length, 0);
 });
+
+test('l’adresse du bâtiment vient du popover d’adresses, pas du siège du premier propriétaire', () => {
+  const html = `
+    <div><ul><li class="foncierAddressPopover__item"><i class="fa-solid fa-location-dot"></i><span>93 AVENUE MARCEAU 92400 COURBEVOIE</span></li>
+    <li class="foncierAddressPopover__item"><i class="fa-solid fa-location-dot"></i><span>95 AVENUE MARCEAU 92400 COURBEVOIE</span></li></ul></div>
+    <div id="prop_all">
+      <div class="foncierCard check_save foncierOwnerCard">
+        <h1 class="company-title" siren="337724561">LE PATRIMOINE DE LOCATION</h1>
+        <div class="row"><div class="k">Adresse</div><div class="v">163 AVENUE CHARLES DE GAULLE 92200 NEUILLY-SUR-SEINE</div></div>
+      </div>
+    </div>`;
+  const f = lireFiche(html);
+  assert.equal(f.adresse, '93 AVENUE MARCEAU 92400 COURBEVOIE');
+  assert.deepEqual(f.adresses, ['93 AVENUE MARCEAU 92400 COURBEVOIE', '95 AVENUE MARCEAU 92400 COURBEVOIE']);
+  assert.equal(f.proprietaires[0].adresse, '163 AVENUE CHARLES DE GAULLE 92200 NEUILLY-SUR-SEINE', 'le siège reste sur la carte du propriétaire');
+});

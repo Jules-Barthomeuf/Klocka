@@ -137,6 +137,37 @@ export async function classerRue(villeId, { nom, classe, motif = null, motif_cle
 }
 
 /**
+ * Reclasse les rues d'une ville avec la règle du jour, sans rien relire :
+ * ce qu'ALX sait de chaque rue (loyer, vitrines, prix) suffit au rang. Les
+ * rues classées à la main gardent leur classe ; les leçons s'appliquent.
+ */
+export async function reclasserRues(villeId) {
+  const ville = Records.get('Ville', villeId);
+  if (!ville) return { ok: false, error: 'Ville introuvable.' };
+  const { classerParRang } = await import('./rues.js');
+  const { leconsDe, reglesApprises, appliquerLecons } = await import('./apprentissage.js');
+  const toutes = [...(ville.rues || []), ...(ville.rues_ecartees || [])];
+  const enObjet = (r) => ({ ...r, loyer: Array.isArray(r.loyer) ? { basse: r.loyer[0], haute: r.loyer[1] } : r.loyer });
+  const enTableau = (r) => ({ ...r, loyer: r.loyer && !Array.isArray(r.loyer) ? [r.loyer.basse, r.loyer.haute] : r.loyer });
+  const classes = classerParRang(toutes.map(enObjet)).map(enTableau);
+  const regles = reglesApprises(leconsDe(villeId));
+  const rues = [];
+  const ecartees = [];
+  let changees = 0;
+  for (const x of classes) {
+    const avant = toutes.find((r) => r.nom === x.nom);
+    if (avant?.par && avant.par !== 'alx') { rues.push(avant); continue; }
+    if (!x.classe) { const { classe: _c, ...reste } = x; ecartees.push(reste); continue; }
+    const y = appliquerLecons(x, regles);
+    if (y.classe !== avant?.classe) changees += 1;
+    rues.push({ ...y, par: 'alx', le: maintenant() });
+  }
+  rues.sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0));
+  const compte = (c) => rues.filter((r) => r.classe === c).length;
+  return { ok: true, ville: Records.update('Ville', villeId, { rues, rues_ecartees: ecartees }), changees, repartition: { 1: compte(1), '1 bis': compte(1.5), 2: compte(2), ecartees: ecartees.length } };
+}
+
+/**
  * Le flux d'une rue chez Data-B : l'Étude d'implantation, à l'adresse de la
  * rue, rend le flux piéton et le flux voiture notés sur cinq. La moyenne des
  * deux devient la note de la rue. Une étude consomme un crédit Data-B et

@@ -87,23 +87,45 @@ const milieuDe = (loyer) => (loyer?.basse != null && loyer?.haute != null ? (loy
  * 2 par défaut. Pure : rend les rues avec `classe` (null = écartée) et `motif`.
  */
 export function classerParRang(rues, seuils = SEUILS) {
-  const p1 = seuils.part_emplacement_1 ?? 0.10;
-  const p15 = seuils.part_emplacement_1bis ?? 0.35;
-  const avec = rues.filter((r) => milieuDe(r.loyer) != null).sort((a, b) => milieuDe(b.loyer) - milieuDe(a.loyer));
+  const p1 = seuils.part_emplacement_1 ?? 0.25;
+  const p15 = seuils.part_emplacement_1bis ?? 0.60;
+  const poids = seuils.poids_commercialite || { loyer: 0.5, vitrines: 0.3, prix_m2: 0.2 };
+  // Le rang de chaque rue sur chaque critère, en part de la ville (0 = la
+  // première). Une rue sans la donnée n'est pas rangée sur ce critère.
+  const partDe = (cle) => {
+    const avec = rues.filter((r) => cle(r) != null).sort((a, b) => cle(b) - cle(a));
+    return new Map(avec.map((r, i) => [r, avec.length > 1 ? i / (avec.length - 1) : 0]));
+  };
+  const parLoyer = partDe((r) => milieuDe(r.loyer));
+  const parVitrines = partDe((r) => r.vitrines ?? r.commerces ?? null);
+  const parPrix = partDe((r) => (r.prix_m2 > 0 ? r.prix_m2 : null));
+  const score = (r) => {
+    const parts = [[parLoyer.get(r), poids.loyer], [parVitrines.get(r), poids.vitrines], [parPrix.get(r), poids.prix_m2]].filter(([x]) => x != null);
+    const total = parts.reduce((a, [, w]) => a + w, 0);
+    return total ? parts.reduce((a, [x, w]) => a + x * w, 0) / total : null;
+  };
+  const avec = rues.filter((r) => milieuDe(r.loyer) != null).map((r) => ({ r, s: score(r) })).sort((a, b) => a.s - b.s);
   const n = avec.length;
-  const rang = new Map(avec.map((r, i) => [r, i]));
+  const rang = new Map(avec.map(({ r }, i) => [r, i]));
+  const place = (m, i) => `${i + 1}e sur ${n} de la ville`;
   return rues.map((r) => {
     const loyer = r.loyer;
     const m = milieuDe(loyer);
-    const densite = `${r.vitrines ?? r.commerces ?? 0} vitrine${(r.vitrines ?? r.commerces ?? 0) > 1 ? 's' : ''}`;
+    const vitrines = r.vitrines ?? r.commerces ?? 0;
+    const densite = `${vitrines} vitrine${vitrines > 1 ? 's' : ''}`;
     if (m == null) return { ...r, classe: 2, motif: `${densite} · loyer inconnu : classée 2 par défaut, à vérifier` };
     const fourchette = `loyer ${Math.round(loyer.basse ?? m)}–${Math.round(loyer.haute ?? m)} €/m²/an`;
     if (m < (seuils.loyer_emplacement_2 ?? 250)) return { ...r, classe: null, motif: `${densite} · ${fourchette} : trop bas pour le mandat` };
     const i = rang.get(r);
-    const place = `${i + 1}e sur ${n} de la ville`;
-    if (i < n * p1 && m >= (seuils.loyer_plancher_1 ?? 450)) return { ...r, classe: 1, motif: `${densite} · ${fourchette} · ${place}, dans les ${Math.round(p1 * 100)} % les plus chères` };
-    if (i < n * p15) return { ...r, classe: 1.5, motif: `${densite} · ${fourchette} · ${place}, dans les ${Math.round(p15 * 100)} % les plus chères` };
-    return { ...r, classe: 2, motif: `${densite} · ${fourchette} · ${place}` };
+    const detail = [
+      parLoyer.has(r) ? `loyer ${Math.round(parLoyer.get(r) * (parLoyer.size - 1)) + 1}e` : null,
+      parVitrines.has(r) ? `vitrines ${Math.round(parVitrines.get(r) * (parVitrines.size - 1)) + 1}e` : null,
+      parPrix.has(r) ? `prix au m² ${Math.round(parPrix.get(r) * (parPrix.size - 1)) + 1}e` : null,
+    ].filter(Boolean).join(', ');
+    const rangTexte = `${place(m, i)} (${detail})`;
+    if (i < n * p1 && m >= (seuils.loyer_plancher_1 ?? 450)) return { ...r, classe: 1, motif: `${densite} · ${fourchette} · ${rangTexte}, dans les ${Math.round(p1 * 100)} % les plus commerçantes` };
+    if (i < n * p15) return { ...r, classe: 1.5, motif: `${densite} · ${fourchette} · ${rangTexte}, dans les ${Math.round(p15 * 100)} % les plus commerçantes` };
+    return { ...r, classe: 2, motif: `${densite} · ${fourchette} · ${rangTexte}` };
   });
 }
 

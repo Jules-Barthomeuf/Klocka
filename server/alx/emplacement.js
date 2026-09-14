@@ -53,8 +53,8 @@ export function rangDe(rues, cle, min = SEUILS.min_commerces_par_rue ?? 3) {
 /** La classe d'après la part du rang, quand la ville n'a pas été classée par ALX. Pure. */
 export function classeParPart(part, seuils = SEUILS) {
   if (part == null) return null;
-  if (part <= (seuils.part_emplacement_1 ?? 0.1)) return 1;
-  if (part <= (seuils.part_emplacement_1bis ?? 0.35)) return 1.5;
+  if (part <= (seuils.part_emplacement_1 ?? 0.25)) return 1;
+  if (part <= (seuils.part_emplacement_1bis ?? 0.6)) return 1.5;
   return 2;
 }
 

@@ -210,7 +210,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
       `}</style>
 
       {/* Dans le dossier : l'écran d'arrivée. Le fil ne s'y déroule jamais. */}
-      <section className="border border-bord-doux rounded-[16px] bg-surface overflow-hidden">
+      <section className="overflow-hidden">
         <JournalArrivee
           intention={INTENTION}
           criteres={criteres}

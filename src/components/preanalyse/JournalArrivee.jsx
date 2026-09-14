@@ -151,7 +151,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
   const teinteDe = (c) => (c.ton === "ambre" ? "#e0a45e" : c.ton === "rouge" ? "#e0655f" : c.ton === "gris" ? "#8B938F" : ["reversion", "prix-fai"].includes(c.cle) ? "#96c0b8" : "#F3F7F5");
 
   return (
-    <div className="px-6 pb-9 pt-[30px] max-md:px-4" style={{ background: "#0A0C0B" }}>
+    <div className="pb-9 pt-[6px]">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <span className="text-[28px] font-light tracking-[-.025em] text-[#F3F7F5]" style={{ fontFamily: "Figtree, 'Instrument Sans', system-ui, sans-serif" }}>Analyse du {analyse.le}</span>
         <ChoixSources onLancer={onLancer} apercu={apercu} classeBouton="alx-mont inline-flex items-center gap-2 rounded-full bg-[#96c0b8] px-[22px] py-[11px] text-[11px] font-semibold uppercase tracking-[.12em] text-[#08130D] hover:bg-[#c3ddd6] disabled:opacity-30 transition-colors" />

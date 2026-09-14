@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { EMPLACEMENTS, ECARTEE, emplacementDe } from "./alx-commun";
@@ -20,10 +20,17 @@ const TUILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
  */
 function Cadrage({ points }) {
   const map = useMap();
+  // On ne recadre que si les points ont vraiment bougé. Reclasser une rue,
+  // la cocher ou relire la ville rend un nouveau tableau aux mêmes
+  // coordonnées : le zoom de l'équipe reste où elle l'a mis.
+  const signature = points.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(";");
+  const cadree = useRef(null);
   useEffect(() => {
+    if (cadree.current === signature) return;
+    cadree.current = signature;
     if (points.length >= 3) map.fitBounds(points, { padding: [40, 40], maxZoom: 15 });
     else if (points.length) map.setView(points[0], 15);
-  }, [map, points]);
+  }, [map, signature]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 

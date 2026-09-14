@@ -34,7 +34,18 @@ export async function communeDe(nom) {
 }
 
 /** Le nom officiel d'une rue et son code postal, par la BAN ; à défaut, ce qu'on avait. */
-export async function rueOfficielle(nom, ville, codeInsee = null) {
+// Les nombres qu'on trouve dans les noms de rues (dates, surtout) : la BAN
+// écrit « Quatorze Juillet », l'équipe tape « 14 juillet ».
+const NOMBRES = { 1: 'premier', '1er': 'premier', 2: 'deux', 3: 'trois', 4: 'quatre', 5: 'cinq', 6: 'six', 7: 'sept', 8: 'huit', 9: 'neuf', 10: 'dix', 11: 'onze', 12: 'douze', 13: 'treize', 14: 'quatorze', 15: 'quinze', 16: 'seize', 17: 'dix sept', 18: 'dix huit', 19: 'dix neuf', 20: 'vingt', 21: 'vingt et un', 22: 'vingt deux', 23: 'vingt trois', 24: 'vingt quatre', 25: 'vingt cinq', 26: 'vingt six', 27: 'vingt sept', 28: 'vingt huit', 29: 'vingt neuf', 30: 'trente', 31: 'trente et un' };
+const enLettres = (cle) => String(cle || '').replace(/\b(\d{1,2})(er)?\b/g, (m, n, er) => NOMBRES[er ? `${n}er` : n] || m).replace(/\s+/g, ' ').trim();
+
+/**
+ * La rue telle que la Base Adresse Nationale l'écrit, avec son point.
+ * En mode souple (le chat), on accepte une écriture différente du même nom
+ * (« 14 juillet » pour « Quatorze Juillet ») et un score plus bas, tant que
+ * la commune est la bonne.
+ */
+export async function rueOfficielle(nom, ville, codeInsee = null, { souple = false } = {}) {
   try {
     const params = new URLSearchParams({ limit: '1', type: 'street', q: `${nom} ${ville}` });
     // Le code commune tient la BAN dans la ville : sans lui, une rue Jean Jaurès
@@ -42,10 +53,11 @@ export async function rueOfficielle(nom, ville, codeInsee = null) {
     if (codeInsee) params.set('citycode', String(codeInsee));
     const r = await fetch(`https://api-adresse.data.gouv.fr/search/?${params}`, { signal: AbortSignal.timeout(15000) });
     const f = (await r.json()).features?.[0];
-    if (!f || (f.properties?.score ?? 0) < 0.5) return null;
+    if (!f || (f.properties?.score ?? 0) < (souple && codeInsee ? 0.35 : 0.5)) return null;
     const p = f.properties;
     if (codeInsee && p.citycode && String(p.citycode) !== String(codeInsee)) return null;
-    if (cleRue(p.name || p.street) !== cleRue(nom)) return null;
+    const meme = souple ? enLettres(cleRue(p.name || p.street)) === enLettres(cleRue(nom)) : cleRue(p.name || p.street) === cleRue(nom);
+    if (!meme) return null;
     return { nom: p.name || p.street, code_postal: p.postcode, lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
   } catch {
     return null;

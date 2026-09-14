@@ -396,6 +396,9 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .alx ::selection { background: #1E3A2C; color: #E8EFEB; }
 /* Les boutons d'ALX gardent leur fond transparent malgré la règle globale `button`. */
 .alx button { background-color: transparent; }
+/* Le composer du dossier, repris sur ALX : ses boutons gardent leurs couleurs. */
+.alx button.accueil-send { background-color: #9CC3BC; }
+.alx button.accueil-send:hover:not(:disabled) { background-color: #B4D3CE; }
 .alx button.alx-principal:hover:not(:disabled) { background-color: #c3ddd6 !important; }
 @keyframes alx-vague { 0%, 100% { transform: translateY(0); opacity: .45; } 50% { transform: translateY(-5px); opacity: 1; } }
 @keyframes alx-entree { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

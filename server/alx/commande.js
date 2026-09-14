@@ -84,6 +84,8 @@ Actions possibles :
 - ouvrir_commerce : montrer la fiche d'un commerce déjà analysé, sans relire (ouvre, montre + un nom d'enseigne).
 - inconnu : rien de tout ça ; écris alors dans « reponse » ce que tu peux faire, en une phrase.
 
+Une rue absente de la liste ci-dessous est quand même une rue : rends prospecter_rue ou ouvrir_rue avec le nom tel qu'il est écrit, le code l'ajoutera. Ne réponds jamais qu'une rue est introuvable.
+
 Les rues classées dans la ville (pour reconnaître un nom mal écrit, garde alors le nom exact de la liste) :
 ${rues.slice(0, 400).map((r) => r.nom).join(' · ')}
 
@@ -93,6 +95,11 @@ ${cibles.slice(0, 300).map((c) => c.enseigne).filter(Boolean).join(' · ') || 'a
 Phrase : « ${String(texte).trim()} »`;
   const r = await invokeLLM({ prompt, response_json_schema: SCHEMA });
   const action = ACTIONS.includes(r?.action) ? r.action : 'inconnu';
+  // Le modèle a déclaré forfait mais la phrase nomme une voie : on la prend.
+  if (action === 'inconnu') {
+    const simple = interpreterSansModele(texte, { rues, cibles });
+    if (simple.action === 'prospecter_rue' || simple.action === 'ouvrir_rue') return simple;
+  }
   return { action, rue: r?.rue || null, enseigne: r?.enseigne || null, adresse: r?.adresse || null, activite: r?.activite || null, reponse: r?.reponse || '' };
 }
 
@@ -102,7 +109,7 @@ Phrase : « ${String(texte).trim()} »`;
  */
 async function ajouterRue(ville, nom, user) {
   const { rueOfficielle, emplacementParLoyer } = await import('./rues.js');
-  const off = await rueOfficielle(nom, ville.nom, ville.code_insee || null);
+  const off = await rueOfficielle(nom, ville.nom, ville.code_insee || null, { souple: true });
   if (!off?.nom) return { ok: false, error: `La Base Adresse Nationale ne trouve pas « ${nom} » à ${ville.nom}.` };
   const { joliNomDeRue } = await import('./commerces.js');
   const propre = joliNomDeRue(off.nom);

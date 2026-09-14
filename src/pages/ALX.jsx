@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useDictee } from "@/lib/dictee";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast, avis } from "@/components/ui/avis";
 import { PILES, EMPLACEMENTS, TEINTES, emplacementDe, Bouton, Etiquette, Etoiles, Nombre, Champ, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
@@ -269,30 +270,54 @@ function FilDuParcours({ p }) {
 function ChatAlx({ villeId, onglet, onFait }) {
   const [texte, setTexte] = useState("");
   const [reponse, setReponse] = useState(null);
+  const { supporte: dicteeOk, ecoute, demarrer, arreter } = useDictee({ onTexte: (t) => setTexte(t) });
   const envoyer = useMutation({
     mutationFn: (t) => base44.request("POST", `/api/alx/villes/${villeId}/commande`, { body: { texte: t } }),
     onSuccess: (r) => { setReponse(r); setTexte(""); onFait(r); },
     onError: (e) => setReponse({ reponse: e?.message || "ALX n'a pas compris.", erreur: true }),
   });
+  const peutEnvoyer = !!texte.trim() && !envoyer.isPending;
   const placeholder = onglet === "commerces" ? "Regarde si Maison Peirano vaut le coup, prospecte le 12 rue d'Antibes…" : "Prospecte la rue Meynadier, ouvre le boulevard Carnot…";
   return (
     <div className="mt-6">
-      <form
-        onSubmit={(e) => { e.preventDefault(); if (texte.trim() && !envoyer.isPending) envoyer.mutate(texte.trim()); }}
-        className="flex items-center gap-2.5 rounded-full border border-white/[0.09] bg-[#0A0C0B] py-[6px] pl-[20px] pr-[6px] focus-within:border-menthe/50"
-      >
-        <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder={placeholder} disabled={envoyer.isPending} className="min-w-0 flex-1 border-0 bg-transparent py-2 text-[15px] text-[#E8EFEB] outline-none placeholder:text-[#5A6762]" />
-        <Bouton type="submit" principal disabled={!texte.trim() || envoyer.isPending}>
-          {envoyer.isPending ? (
-            <span className="flex items-center gap-2.5">
-              <span className="flex h-3 items-end gap-[4px]">{[0, 0.18, 0.36].map((d) => <span key={d} className="alx-vague h-[5px] w-[5px] rounded-full bg-[#08130D]" style={{ animationDelay: `${d}s` }} />)}</span>
-              ALX s'en occupe
-            </span>
-          ) : "Envoyer"}
-        </Bouton>
-      </form>
+      {/* Le composer du dossier, à l'identique : même boîte, même dictée, même bouton. */}
+      <div className={`accueil-wrap ${ecoute ? "voix" : ""}`}>
+        <div aria-hidden="true" className="accueil-ring-sage" />
+        <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
+        <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>
+        <div className="accueil-composer">
+          <textarea
+            rows={Math.min(4, Math.max(2, texte.split("\n").length))}
+            value={texte}
+            onChange={(e) => setTexte(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer) { e.preventDefault(); envoyer.mutate(texte.trim()); } }}
+            placeholder={placeholder}
+            disabled={envoyer.isPending}
+          />
+          <div className="accueil-bar">
+            <div className="accueil-tools">
+              <button
+                type="button"
+                id="accueil-voix"
+                aria-pressed={ecoute}
+                onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
+                title={ecoute ? "Arrêter la voix" : "Dicter"}
+              >
+                <span className="dot" />
+                <span>Voix</span>
+              </button>
+            </div>
+            <button type="button" className="accueil-send" onClick={() => peutEnvoyer && envoyer.mutate(texte.trim())} disabled={!peutEnvoyer}>
+              {envoyer.isPending ? (
+                <span className="flex h-3 items-end gap-[4px]">{[0, 0.18, 0.36].map((d) => <span key={d} className="alx-vague h-[5px] w-[5px] rounded-full bg-[#08130D]" style={{ animationDelay: `${d}s` }} />)}</span>
+              ) : null}
+              {envoyer.isPending ? "ALX s'en occupe…" : "Envoyer"}
+            </button>
+          </div>
+        </div>
+      </div>
       {reponse?.reponse && (
-        <div className="alx-entree mt-2.5 flex items-baseline gap-2.5 px-5 text-[13.5px]" style={{ color: reponse.erreur ? TEINTES.urgence5 : "#C3CBC7" }}>
+        <div className="alx-entree mt-3 flex items-baseline gap-2.5 px-4 text-[13.5px]" style={{ color: reponse.erreur ? TEINTES.urgence5 : "#C3CBC7" }}>
           <span className="alx-mont text-[10px] uppercase tracking-[.14em] text-[#8B938F]">ALX</span>
           <span>{reponse.reponse}</span>
         </div>

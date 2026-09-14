@@ -6,6 +6,8 @@ import ChoixSources from "@/components/preanalyse/ChoixSources";
 import JournalDetail from "@/components/preanalyse/JournalDetail";
 import { OngletDataB, OngletEquimmox, OngletFigaro, Recoupement } from "@/components/preanalyse/JournalSources";
 import { OngletBodacc, OngletDvf, SecondPointDeVue } from "@/components/preanalyse/JournalPubliques";
+import MarcheEmplacement from "@/components/preanalyse/MarcheEmplacement";
+import { Etiquette } from "@/components/alx/alx-commun";
 
 // L'onglet Marché, à l'arrivée. Deux états, et ils ne se ressemblent pas.
 //
@@ -143,7 +145,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
     <div className="px-4 sm:px-5 py-5 flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
-          <h3 className="m-0 text-[17px] font-semibold text-encre">Analyse du {analyse.le}</h3>
+          <h3 className="alx-serif m-0 text-[24px] italic tracking-[-.01em] text-[#F3F7F5]">Analyse du {analyse.le}</h3>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <ChoixSources onLancer={onLancer} apercu={apercu} />
@@ -177,14 +179,14 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   key={c.cle}
                   type="button"
                   onClick={() => onCarte(c)}
-                  className="text-left rounded-[12px] bg-[#15181c] border px-4 py-3 hover:bg-[#191d22] transition-colors"
+                  className="rounded-[14px] border px-5 py-4 text-left transition-colors hover:bg-white/[0.025]"
                   style={{ borderColor: couleur.bord }}
                 >
-                  <span className="flex items-center gap-1.5 font-pill text-[9.5px] font-semibold uppercase tracking-[.08em] text-brume">
+                  <span className="alx-mont flex items-center gap-1.5 text-[9.5px] font-medium uppercase tracking-[.14em] text-[#8B938F]">
                     {c.libelle}
                     <InfoBulle texte={c.detail} />
                   </span>
-                  <span className="block mt-1.5 text-[19px] leading-tight font-medium" style={{ color: couleur.texte }}>
+                  <span className="alx-mont mt-2 block text-[19px] leading-tight tabular-nums" style={{ color: couleur.texte }}>
                     {c.valeur}
                   </span>
                 </button>
@@ -192,12 +194,14 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
             })}
           </div>
 
+          <MarcheEmplacement adresse={analyse.adresse} />
+
           {analyse.recoupement && <Recoupement recoupement={analyse.recoupement} />}
 
           <SecondPointDeVue comparaison={analyse.parComparaison} ecart={analyse.ecartComparaison} />
 
           <section>
-            <h4 className="m-0 mb-1 font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-[#4e545e]">Sources</h4>
+            <Etiquette className="mb-1.5">Sources</Etiquette>
             <ul className="m-0 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
               {analyse.sources.map((s, i) => {
                 const c = ton(s.ton);
@@ -216,9 +220,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
           </section>
 
           <section>
-            <h4 className="m-0 mb-1 font-pill text-[9.5px] font-semibold uppercase tracking-[.1em] text-[#4e545e]">
-              Dans l’ordre, ce que j’ai consulté
-            </h4>
+            <Etiquette className="mb-1.5">Dans l’ordre, ce que j’ai consulté</Etiquette>
             <ol className="m-0 p-0 list-none flex flex-col divide-y divide-[#1a1d22] border-y border-[#1a1d22]">
               {analyse.consultations.map((c, i) => {
                 const couleur = ton(c.ton);

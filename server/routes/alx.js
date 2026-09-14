@@ -33,6 +33,15 @@ export function monterAlx(app) {
   }));
 
   // --- Villes ---------------------------------------------------------------
+  // L'emplacement d'une adresse, pour l'analyse de marché : le rang de sa rue
+  // dans sa ville, ses vitrines, son loyer. Gratuit, et gardé trente jours.
+  app.get('/api/alx/emplacement', wrap(async (req, res) => {
+    const { emplacementDeLAdresse } = await import('../alx/emplacement.js');
+    const r = await emplacementDeLAdresse(req.query.adresse, { forcer: req.query.forcer === '1' });
+    if (!r) return erreur(res, "Adresse incomplète : il faut au moins « rue, ville ».", 400);
+    ok(res, r);
+  }));
+
   app.get('/api/alx/villes', wrap((req, res) => ok(res, listerVilles())));
   app.post('/api/alx/villes', wrap((req, res) => {
     const r = creerVille({ ...req.body, user: currentUser(req) });

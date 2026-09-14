@@ -476,6 +476,8 @@ export function analyseDe(lot, passage) {
   const le = passage.fin || passage.le;
   const date = le ? new Date(le) : null;
   return {
+    // L'adresse du lot : l'emplacement d'ALX la reprend pour situer la rue dans sa ville.
+    adresse: adresseDe(lot) || passage.adresse || null,
     le: date ? date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "",
     court: date ? date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) : "",
     anciennete: date ? anciennete(date) : "",

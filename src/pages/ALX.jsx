@@ -896,8 +896,10 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
   const [motStatut, teinteStatut] = statutDe(p?.etat);
 
   return (
+    // Pas de halo en haut à droite : la seule couleur de cette page est celle
+    // qui entoure la barre de chat, et elle se voit d'autant mieux que rien
+    // d'autre n'en porte.
     <div className="relative mx-auto max-w-[1400px] pt-[22px]">
-      <div aria-hidden className="pointer-events-none absolute -right-[220px] -top-[240px] z-0 h-[540px] w-[760px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.075),transparent)" }} />
       <div className="relative">
         <div>
           <button

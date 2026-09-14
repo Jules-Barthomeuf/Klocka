@@ -377,13 +377,11 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 
 /* ALX, le registre de la maquette : Figtree pour le texte, Montserrat en
    capitales pour les étiquettes et les nombres, Instrument Serif pour les
-   titres. Le fond porte trois halos menthe très doux. */
+   titres. Le fond reste noir : les halos menthe qui le teintaient se
+   cumulaient avec celui de la barre de chat et avec ceux des cartes, et le
+   haut de la page virait au vert. La seule couleur d'un écran est celle qui
+   entoure le chat. */
 .alx { font-family: Figtree, "Instrument Sans", system-ui, sans-serif; color: #E8EFEB; background: #08090A; position: relative; }
-.alx::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background:
-    radial-gradient(900px 620px at 82% -8%, rgba(150,192,184,0.10), transparent 70%),
-    radial-gradient(760px 520px at 8% 4%, rgba(150,192,184,0.055), transparent 70%),
-    radial-gradient(1100px 700px at 50% 118%, rgba(150,192,184,0.045), transparent 70%); }
 .alx > * { position: relative; z-index: 1; }
 .alx-mont { font-family: Montserrat, "Instrument Sans", system-ui, sans-serif; }
 .alx-serif { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; }

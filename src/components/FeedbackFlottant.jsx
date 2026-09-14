@@ -141,7 +141,12 @@ export default function FeedbackFlottant() {
               {dernieres.map((r) => (
                 <div key={r.id} className="flex items-start gap-2.5 rounded-lg border border-trait px-3 py-2">
                   <span className="mt-[3px] w-1.5 h-1.5 rounded-full flex-none" style={{ background: urgenceDe(r.urgence).teinte }} />
-                  <p className="m-0 flex-1 min-w-0 text-[12.5px] leading-[1.5] text-craie line-clamp-2">{r.contenu}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="m-0 text-[12.5px] leading-[1.5] text-craie line-clamp-2">{r.contenu}</p>
+                    {/* Un chantier ouvert : Claude Code cherche la cause et
+                        proposera une pull request. Voir server/atelier.js. */}
+                    {r.chantier_id && <p className="m-0 mt-0.5 text-[11px] text-menthe">Claude s'en occupe</p>}
+                  </div>
                   <span className="flex-none text-[11px] px-2 py-0.5 rounded-full text-white/90" style={{ background: etatDe(r.statut).fond }}>
                     {etatDe(r.statut).mot}
                   </span>

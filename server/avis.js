@@ -93,5 +93,17 @@ ${precision ? `\n--- CE QUE L'UTILISATEUR REPROCHE ---\n${String(precision).trim
     client_name: user?.full_name || user?.email || null,
   });
 
-  return { ok: true, remarque, prompt: promptCorrection, resume };
+  // Un pouce en bas ouvre un chantier : le prompt qu'on vient d'écrire part
+  // à Claude Code, qui corrige la cause et propose une pull request. Un pouce
+  // en haut reste une note — doitLancer() l'écarte.
+  let chantier = null;
+  try {
+    const { surNouvelleRemarque } = await import('./atelier.js');
+    const lance = surNouvelleRemarque(remarque, user);
+    chantier = lance?.ok ? lance.chantier : null;
+  } catch (e) {
+    console.error('[atelier] avis non pris :', e.message);
+  }
+
+  return { ok: true, remarque, prompt: promptCorrection, resume, chantier };
 }

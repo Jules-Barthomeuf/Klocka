@@ -14,11 +14,11 @@ import { J, alpha } from "@/design/jetons";
 // est identique, et c'est le but : trois composeurs dessinés différemment
 // pour le même geste, c'était trois occasions de se tromper.
 
-// Le gris de la barre : entre le noir de la page et le relief d'un bloc. Le
-// menu, lui, doit être opaque — on empile la même teinte sur le noir.
-const VOILE = alpha("craie", 0.045);
-const OPAQUE = { backgroundColor: J["fond"], backgroundImage: `linear-gradient(${VOILE}, ${VOILE})` };
-const ROND = alpha("craie", 0.08);
+// Le gris de la barre et celui des ronds posés dessus : deux jetons, les
+// mêmes que la barre du dashboard, pour que les trois chats soient un seul
+// objet. Opaques : le menu qui descend de la vignette ne laisse rien passer.
+const OPAQUE = { backgroundColor: J["barre"] };
+const ROND = J["barre-relief"];
 
 /** Un rond de la barre : une icône, un titre, un état actif. */
 export function RondChat({ icone: Icone, onClick, titre, actif = false, disabled = false, teinte = null }) {

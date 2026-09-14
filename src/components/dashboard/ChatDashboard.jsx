@@ -634,7 +634,7 @@ export default function ChatDashboard() {
       >
         <div
           className={`flex items-center gap-3 py-3 pl-5 pr-3 transition-colors ${multiligne ? "items-end rounded-[30px]" : "rounded-full"}`}
-          style={{ background: "#121413", boxShadow: glisse ? `0 0 0 1px ${J["menthe"]}` : ecoute ? `0 0 0 1px ${alpha("menthe", 0.5)}` : "none" }}
+          style={{ background: J["barre"], boxShadow: glisse ? `0 0 0 1px ${J["menthe"]}` : ecoute ? `0 0 0 1px ${alpha("menthe", 0.5)}` : "none" }}
         >
           {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
           <div className="relative flex-none">
@@ -646,7 +646,7 @@ export default function ChatDashboard() {
               aria-label={modeCourant ? `Mode ${modeCourant.label}` : "Choisir un mode"}
               title={modeCourant ? modeCourant.label : "Choisir ce que vous apportez : une note, une fiche, un mail, un rappel"}
               className="flex items-center gap-1.5 rounded-full px-3 py-2 transition-colors"
-              style={{ background: modeCourant ? alpha("menthe", 0.16) : "#1b1e1d" }}
+              style={{ background: modeCourant ? alpha("menthe", 0.16) : J["barre-relief"] }}
             >
               <IconeMode className="h-4 w-4" style={{ color: modeCourant ? J["menthe"] : J["ardoise"] }} />
               <ChevronDown className={`h-2.5 w-2.5 text-ardoise transition-transform ${commandes ? "rotate-180" : ""}`} />
@@ -657,7 +657,7 @@ export default function ChatDashboard() {
                 <div
                   role="menu"
                   className="absolute left-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]"
-                  style={{ background: "#121413" }}
+                  style={{ background: J["barre"] }}
                 >
                   <div className="border-b border-bord px-4 pb-2.5 pt-3.5">
                     <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Ce que vous apportez</span>
@@ -720,7 +720,7 @@ export default function ChatDashboard() {
             aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
             title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
             className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise transition-colors hover:text-encre"
-            style={{ background: "#1b1e1d" }}
+            style={{ background: J["barre-relief"] }}
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -733,7 +733,7 @@ export default function ChatDashboard() {
             aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
             title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
             className="grid h-9 w-9 flex-none place-items-center rounded-full transition-colors disabled:opacity-40"
-            style={{ background: ecoute ? alpha("menthe", 0.2) : "#1b1e1d", color: ecoute ? J["menthe"] : J["ardoise"] }}
+            style={{ background: ecoute ? alpha("menthe", 0.2) : J["barre-relief"], color: ecoute ? J["menthe"] : J["ardoise"] }}
           >
             <Mic className="h-4 w-4" />
           </button>

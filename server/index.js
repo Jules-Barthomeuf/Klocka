@@ -46,6 +46,7 @@ import { monterCourriel } from './routes/courriel.js';
 import { monterIntegrations } from './routes/integrations.js';
 import { monterMonday } from './routes/monday.js';
 import { monterAlx } from './routes/alx.js';
+import { monterAtelier } from './routes/atelier.js';
 // Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
 import {
   UPLOAD_DIR,
@@ -658,7 +659,7 @@ app.use((req, res, next) => {
 // concernent que l'équipe. Sans ce filtre, un compte client — il y en a
 // soixante-quinze — pouvait lire les verdicts, les prix et les adresses des
 // agents, et déclencher des actions en son nom.
-const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring|alx)\b/;
+const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring|alx|atelier)\b/;
 
 app.use((req, res, next) => {
   if (AUTH_DESACTIVEE) return next();
@@ -1000,6 +1001,8 @@ monterIntegrations(app);
 
 monterMonday(app);
 monterAlx(app);
+// L'atelier : une remarque du Feedback devient une branche et une pull request.
+monterAtelier(app);
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {

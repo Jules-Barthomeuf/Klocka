@@ -11,7 +11,10 @@
     "Les gris penchent légèrement vers le vert : l'accent de la marque est la menthe,",
     "et un gris neutre à côté d'un accent vert se lit comme une erreur d'impression.",
     "Le plancher de contraste est 4,5 pour 1 sur le fond le plus clair (surface) :",
-    "brume, le gris le plus pâle employé pour du texte, est à 4,8."
+    "brume, le gris le plus pâle employé pour du texte, est à 4,8.",
+    "",
+    "« barre » et « barre-relief » sont les deux gris de la barre de chat : la",
+    "pilule elle-même, et les ronds posés dessus."
   ],
 
   "couleurs": {
@@ -29,6 +32,9 @@
     "menthe-survol": "#abd0c8",
     "menthe-fonce": "#7fada4",
     "sur-menthe": "#08130d",
+
+    "barre": "#121413",
+    "barre-relief": "#1b1e1d",
 
     "trait": "#1f2228",
     "bord": "#22262d",

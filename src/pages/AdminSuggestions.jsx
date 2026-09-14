@@ -10,6 +10,7 @@ import { Check, ChevronDown, Copy, Image as ImageIcon, Loader2, Mic, Pencil, Squ
 import { useDictee } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
+import ChantierRemarque from "@/components/admin/ChantierRemarque";
 import { J } from "@/design/jetons";
 
 // Le feedback : un chat, une capture d'écran si on veut, rien d'autre. Chaque
@@ -263,6 +264,8 @@ export default function AdminSuggestions() {
                       <p className="m-0 text-[15px] leading-[1.65] text-encre whitespace-pre-wrap">{r.contenu}</p>
                     )}
                     {r.prompt_correction && <PromptCorrection r={r} />}
+                    {/* Le chantier : ce que Claude Code a fait de la remarque. */}
+                    <ChantierRemarque remarque={r} />
                     <p className="m-0 mt-1.5 text-[12.5px] text-brume flex flex-wrap items-center gap-x-2">
                       <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n} sur 5 — cliquez une barre pour la changer`}>
                         <span className="inline-flex items-end gap-px">

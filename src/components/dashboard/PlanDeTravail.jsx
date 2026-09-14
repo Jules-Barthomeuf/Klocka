@@ -52,7 +52,7 @@ export default function PlanDeTravail({ chat = null }) {
           centre, les gestes courants juste en dessous. L'ensemble est posé sur
           son propre fond, délimité par un filet : ce qui est au-dessus se fait,
           ce qui est en dessous se reprend. */}
-      <header className="accueil relative overflow-hidden pb-12 pt-[8vh] text-center max-md:pb-8 max-md:pt-8">
+      <header className="accueil relative overflow-hidden pb-[22vh] pt-[8vh] text-center max-md:pb-24 max-md:pt-8">
         {/* Le fond : une bande menthe horizontale, bord à bord, floutée.
             Elle passe derrière le composeur et s'éteint sur les côtés. */}
         <div

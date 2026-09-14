@@ -634,7 +634,7 @@ export default function ChatDashboard() {
       >
         <div
           className={`flex items-center gap-3.5 border py-3 pl-6 pr-3 transition-colors ${multiligne ? "rounded-[28px] items-end" : "rounded-full"}`}
-          style={{ background: J["relief"], borderColor: glisse ? J["menthe"] : ecoute ? alpha("menthe", 0.5) : J["trait"] }}
+          style={{ background: J["fond"], borderColor: glisse ? J["menthe"] : ecoute ? alpha("menthe", 0.5) : J["trait"] }}
         >
           {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
           <div className="relative flex-none">

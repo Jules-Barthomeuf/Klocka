@@ -177,3 +177,34 @@ export async function commercesDeLaRue({ nom, ville, points = null, arreter = ()
   const commerces = [...vus.values()].filter(Boolean).sort((a, b) => (Number(a.numero) || 9999) - (Number(b.numero) || 9999));
   return { commerces, ignores, pas: pas.length };
 }
+
+const TEXTE = 'https://places.googleapis.com/v1/places:searchText';
+
+/**
+ * Un commerce nommé, dans une ville : « Maison Peirano, Cannes ». Pour le
+ * chat d'ALX, quand l'équipe désigne une enseigne sans donner l'adresse.
+ * Rend le premier lieu de Maps qui a une vitrine, ou null.
+ */
+export async function chercherCommerce(texte, ville) {
+  if (!placesConfigure()) throw new ErreurSource('La clé GOOGLE_MAPS_SERVEUR manque.', { service: 'Google Places', classe: 'definitive' });
+  const r = await fetch(TEXTE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': cle(), 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.primaryType,places.types,places.location,places.businessStatus' },
+    body: JSON.stringify({ textQuery: `${texte}, ${ville}`, languageCode: 'fr', regionCode: 'FR', maxResultCount: 5 }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new ErreurSource(`Places a répondu ${r.status}${j.error?.message ? ` : ${j.error.message}` : ''}.`, { service: 'Google Places', statut: r.status });
+  const lieu = (j.places || []).find((l) => vitrine(l).oui) || (j.places || [])[0] || null;
+  if (!lieu) return null;
+  const adresse = String(lieu.formattedAddress || '').split(',')[0].trim();
+  return {
+    place_id: lieu.id,
+    enseigne: lieu.displayName?.text || null,
+    adresse,
+    activite: motDuType(lieu.primaryType, lieu.types || []),
+    lat: lieu.location?.latitude ?? null,
+    lon: lieu.location?.longitude ?? null,
+    ferme: lieu.businessStatus && lieu.businessStatus !== 'OPERATIONAL',
+  };
+}

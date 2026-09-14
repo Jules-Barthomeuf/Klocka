@@ -260,6 +260,47 @@ function FilDuParcours({ p }) {
   );
 }
 
+/**
+ * Le chat de la ville : une phrase, un geste. « Prospecte la rue Meynadier »
+ * lance la rue et l'ouvre à droite de la carte ; « regarde si Maison Peirano
+ * vaut le coup » analyse le commerce et ouvre sa fiche. Visible sur Rues et
+ * Commerces, pas sur Messages.
+ */
+function ChatAlx({ villeId, onglet, onFait }) {
+  const [texte, setTexte] = useState("");
+  const [reponse, setReponse] = useState(null);
+  const envoyer = useMutation({
+    mutationFn: (t) => base44.request("POST", `/api/alx/villes/${villeId}/commande`, { body: { texte: t } }),
+    onSuccess: (r) => { setReponse(r); setTexte(""); onFait(r); },
+    onError: (e) => setReponse({ reponse: e?.message || "ALX n'a pas compris.", erreur: true }),
+  });
+  const placeholder = onglet === "commerces" ? "Regarde si Maison Peirano vaut le coup, prospecte le 12 rue d'Antibes…" : "Prospecte la rue Meynadier, ouvre le boulevard Carnot…";
+  return (
+    <div className="mt-6">
+      <form
+        onSubmit={(e) => { e.preventDefault(); if (texte.trim() && !envoyer.isPending) envoyer.mutate(texte.trim()); }}
+        className="flex items-center gap-2.5 rounded-full border border-white/[0.09] bg-[#0A0C0B] py-[6px] pl-[20px] pr-[6px] focus-within:border-menthe/50"
+      >
+        <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder={placeholder} disabled={envoyer.isPending} className="min-w-0 flex-1 border-0 bg-transparent py-2 text-[15px] text-[#E8EFEB] outline-none placeholder:text-[#5A6762]" />
+        <Bouton type="submit" principal disabled={!texte.trim() || envoyer.isPending}>
+          {envoyer.isPending ? (
+            <span className="flex items-center gap-2.5">
+              <span className="flex h-3 items-end gap-[4px]">{[0, 0.18, 0.36].map((d) => <span key={d} className="alx-vague h-[5px] w-[5px] rounded-full bg-[#08130D]" style={{ animationDelay: `${d}s` }} />)}</span>
+              ALX s'en occupe
+            </span>
+          ) : "Envoyer"}
+        </Bouton>
+      </form>
+      {reponse?.reponse && (
+        <div className="alx-entree mt-2.5 flex items-baseline gap-2.5 px-5 text-[13.5px]" style={{ color: reponse.erreur ? TEINTES.urgence5 : "#C3CBC7" }}>
+          <span className="alx-mont text-[10px] uppercase tracking-[.14em] text-[#8B938F]">ALX</span>
+          <span>{reponse.reponse}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const ONGLETS = [["rues", "Rues"], ["commerces", "Commerces"], ["messages", "Messages"]];
 
 /** Les trois onglets, avec le trait menthe qui glisse sous l'onglet ouvert. */
@@ -435,7 +476,7 @@ function pourquoiEmplacement(r) {
 
 const valeurTri = (r, cle) => (cle === "classe" ? r.classe || 9 : cle === "loyer" ? (r.loyer ? (r.loyer[0] + r.loyer[1]) / 2 : 0) : r.prix_m2 || 0);
 
-function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, onFlux, fluxPending, motifs = [], apprentissage = null, onClasserAussi }) {
+function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, onFlux, fluxPending, motifs = [], apprentissage = null, onClasserAussi, rueDemandee = null }) {
   const rues = ville?.rues || [];
   const ecartees = ville?.rues_ecartees || [];
   const enCours = ville?.parcours?.etat === "en_cours" && ville?.parcours?.phase === "rues";
@@ -445,6 +486,8 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
   const [streetView, setStreetView] = useState(false);
   // Changer de rue ramène la carte : Street View est un coup d'œil, pas un mode.
   const setChoisie = (nom) => { setChoisieBrute(nom); setStreetView(false); };
+  // Le chat a désigné une rue : elle s'ouvre à droite de la carte.
+  useEffect(() => { if (rueDemandee) { setChoisieBrute(rueDemandee.nom); setStreetView(false); } }, [rueDemandee]);
   const bascule = (nom, oui) => setCoches((c) => { const n = new Set(c); if (oui) n.add(nom); else n.delete(nom); return n; });
   const rueChoisie = rues.find((r) => r.nom === choisie) || null;
   const ecarteeChoisie = !rueChoisie ? ecartees.find((r) => r.nom === choisie) || null : null;
@@ -789,6 +832,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
   const rues = ville?.rues || [];
   const brouillons = cibles.filter((c) => c.brouillon).length;
   const [ongletChoisi, setOnglet] = useState(ongletDemande);
+  const [rueDemandee, setRueDemandee] = useState(null); // { nom, le } : la rue que le chat vient d'ouvrir
   // On arrive toujours sur les rues : c'est là qu'on coche, le reste suit.
   const onglet = ongletChoisi || "rues";
   const navigate = useNavigate();
@@ -837,7 +881,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
   const [motStatut, teinteStatut] = statutDe(p?.etat);
 
   return (
-    <div className="relative mx-auto max-w-[1060px] pt-[22px]">
+    <div className="relative mx-auto max-w-[1400px] pt-[22px]">
       <div aria-hidden className="pointer-events-none absolute -right-[220px] -top-[240px] z-0 h-[540px] w-[760px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.075),transparent)" }} />
       <div className="relative">
         <div className="flex items-start justify-between gap-4">
@@ -865,6 +909,18 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
           </div>
         </div>
 
+        {onglet !== "messages" && (
+          <ChatAlx
+            villeId={villeId}
+            onglet={onglet}
+            onFait={(r) => {
+              rafraichir();
+              if (r.ouvrir === "rues" && r.rue) { setOnglet("rues"); setRueDemandee({ nom: r.rue, le: Date.now() }); }
+              else if (r.ouvrir === "fiche" && r.cible_id) ouvrirFiche(r.cible_id);
+            }}
+          />
+        )}
+
         <div className="mt-[26px] flex flex-wrap items-end justify-between gap-x-6 border-b border-white/[0.07]">
           <Onglets onglet={onglet} onChange={setOnglet} compte={{ rues: rues.length, commerces: cibles.length, messages: brouillons }} />
           <div className="flex items-center gap-4 pb-3 text-[12.5px]">
@@ -891,7 +947,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, onSuivante, ongletD
         {maintenant && p.phase === "commerces" && <Direct ville={ville} p={p} />}
         {maintenant && <FilDuParcours p={p} />}
 
-        {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe, motif_cle, motif) => classer.mutate({ nom, classe, motif_cle, motif })} classerPending={classer.isPending || classerAussi.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} motifs={etat?.motifs_rue || []} apprentissage={apprentissage} onClasserAussi={(noms) => classerAussi.mutate(noms)} />}
+        {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe, motif_cle, motif) => classer.mutate({ nom, classe, motif_cle, motif })} classerPending={classer.isPending || classerAussi.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} motifs={etat?.motifs_rue || []} apprentissage={apprentissage} onClasserAussi={(noms) => classerAussi.mutate(noms)} rueDemandee={rueDemandee} />}
         {onglet === "commerces" && <OngletCommerces ville={ville} cibles={cibles} onOuvrir={ouvrirFiche} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
         {onglet === "messages" && <OngletMessages cibles={cibles} onOuvrir={ouvrirFiche} cibleDemandee={cibleDemandee} />}
 

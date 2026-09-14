@@ -91,6 +91,13 @@ export function monterAlx(app) {
     if (!r.ok) return erreur(res, r.error, 409);
     ok(res, r);
   }));
+  // Le chat de la ville : une phrase, un geste (prospecter une rue, analyser un commerce).
+  app.post('/api/alx/villes/:id/commande', wrap(async (req, res) => {
+    const { executerCommande } = await import('../alx/commande.js');
+    const r = await executerCommande(req.params.id, req.body?.texte || '', { user: currentUser(req) });
+    if (!r.ok) return erreur(res, r.error, 400);
+    ok(res, r);
+  }));
   // Reclasse les rues avec la règle du jour, sans relire les sources.
   app.post('/api/alx/villes/:id/reclasser-rues', wrap(async (req, res) => {
     const r = await reclasserRues(req.params.id);

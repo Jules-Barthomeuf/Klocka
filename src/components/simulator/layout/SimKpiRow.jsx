@@ -3,7 +3,7 @@ import React from "react";
 function Kpi({ label, value, accent = "text-encre" }) {
   return (
     <div className="px-4 py-3 min-w-0 border-trait">
-      <p className="text-[11px] uppercase tracking-[0.12em] font-medium leading-snug text-[hsl(var(--primary-foreground))]">{label}</p>
+      <p className="text-[11px] uppercase tracking-[0.12em] font-medium leading-snug text-ardoise">{label}</p>
       <p className={`text-lg font-medium tabular-nums mt-1 ${accent} whitespace-nowrap`}>{value}</p>
     </div>);
 

@@ -4,6 +4,7 @@ import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import PenseeIA from "@/components/PenseeIA";
+import BarreChat, { MenuChat } from "@/components/BarreChat";
 import MessageIA from "@/components/MessageIA";
 
 // Demander au marché — le composer du dossier, branché sur les sources.
@@ -103,7 +104,6 @@ const REPERTOIRE = [
 
 // La hauteur maximale du menu, en pixels : elle sert à choisir son côté
 // d'ouverture, et doit rester d'accord avec la classe max-h ci-dessous.
-const HAUTEUR_MENU = 460;
 
 const fmt = (n) => (n == null || !Number.isFinite(Number(n)) ? null : Number(n).toLocaleString("fr-FR", { maximumFractionDigits: 2 }));
 
@@ -145,44 +145,12 @@ function Source({ s }) {
  * longue conversation au-dessus, c'est l'inverse. On regarde donc la place
  * réellement disponible au moment du clic.
  */
-function Repertoire({ onChoisir, versLeHaut }) {
-  return (
-    <div
-      role="menu"
-      className={`absolute ${versLeHaut ? "bottom-[calc(100%+10px)]" : "top-[calc(100%+10px)]"} left-0 z-40 w-[min(420px,calc(100vw-40px))] max-h-[min(460px,60vh)] overflow-y-auto rounded-[14px] border border-bord-doux bg-surface shadow-[0_18px_50px_rgba(0,0,0,.55)] py-2`}
-    >
-      {REPERTOIRE.map((f) => {
-        return (
-          <div key={f.famille} className="px-1.5 py-1">
-            <div className="flex flex-wrap items-baseline gap-x-2 px-2.5 pt-1.5 pb-1">
-              <span className="font-pill text-[11px] font-semibold uppercase tracking-[.1em] text-menthe">{f.famille}</span>
-              <span className="text-[11px] text-brume">{f.source}</span>
-              {f.credit && <span className="text-[11px] text-ambre">1 crédit</span>}
-            </div>
-            {f.questions.map((q) => (
-              <button
-                key={q}
-                type="button"
-                role="menuitem"
-                onClick={() => onChoisir(q)}
-                className="block w-full text-left rounded-[8px] px-2.5 py-1.5 text-[12.5px] leading-5 text-craie hover:text-encre hover:bg-relief transition-colors"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, apercu = false }) {
   const [texte, setTexte] = useState("");
   const [enCours, setEnCours] = useState(false);
   const [echanges, setEchanges] = useState([]);
   const [repertoire, setRepertoire] = useState(false);
-  const [versLeHaut, setVersLeHaut] = useState(false);
   const champ = useRef(null);
   const boite = useRef(null);
 
@@ -283,75 +251,52 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
         </div>
       ))}
 
-      {/* Le composer du dossier, à l'identique. Seul ce qu'il y a derrière change. */}
-      <div className={`accueil-wrap sobre ${ecoute ? "voix" : ""}`}>
-        <div aria-hidden="true" className="accueil-ring-sage" />
-        <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
-        <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>
-
-        <div className="accueil-composer">
-          <textarea
-            ref={champ}
-            rows={Math.min(4, Math.max(2, texte.split("\n").length))}
-            value={texte}
-            onChange={(e) => setTexte(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && peutEnvoyer) {
-                e.preventDefault();
-                demander();
-              }
-            }}
-            placeholder={adresse ? `Poser une question sur ${adresse}…` : "Poser une question…"}
-            disabled={apercu}
-          />
-          <div className="accueil-bar">
-            <div className="accueil-tools">
-              <span ref={boite} className="relative">
-                <button
-                  type="button"
-                  className="accueil-icon"
-                  onClick={(e) => {
-                    // La place sous le bouton décide du sens : on n'ouvre vers
-                    // le haut que s'il y a moins de place en bas, et assez en haut.
-                    const r = e.currentTarget.getBoundingClientRect();
-                    const dessous = window.innerHeight - r.bottom;
-                    setVersLeHaut(dessous < HAUTEUR_MENU && r.top > dessous);
-                    setRepertoire((o) => !o);
-                  }}
-                  aria-expanded={repertoire}
-                  aria-haspopup="true"
-                  title="Questions courantes — ce que les sources savent réellement rendre"
-                  aria-label="Questions courantes"
-                >
-                  <MessageCircleQuestion className="w-4 h-4" />
-                </button>
-                {repertoire && <Repertoire onChoisir={choisir} versLeHaut={versLeHaut} />}
-              </span>
-              <button
-                type="button"
-                id="accueil-voix"
-                aria-pressed={ecoute}
-                disabled={apercu}
-                onClick={() =>
-                  dicteeOk
-                    ? ecoute
-                      ? arreter()
-                      : demarrer()
-                    : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." })
-                }
-                aria-label={ecoute ? "Arrêter la voix" : "Dicter"} title={ecoute ? "Arrêter la voix" : "Dicter"}
-              >
-                <span className="dot" />
-                <span>Voix</span>
-              </button>
-            </div>
-            <button type="button" className="accueil-send" onClick={() => demander()} disabled={!peutEnvoyer}>
-              {enCours ? <PenseeIA etat="searching" taille={20} clair /> : null}
-              {enCours ? "Je cherche…" : "Envoyer"}
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* La barre de chat de l'application. Ce qui change ici : la vignette
+          ouvre le répertoire des questions, et ce qui part derrière interroge
+          les connecteurs, pas les documents. */}
+      <BarreChat
+        valeur={texte}
+        onChange={setTexte}
+        onEnvoyer={() => demander()}
+        peutEnvoyer={peutEnvoyer}
+        enCours={enCours}
+        disabled={apercu}
+        placeholder={adresse ? `Poser une question sur ${adresse}…` : "Poser une question…"}
+        menu={{
+          icone: MessageCircleQuestion,
+          ouvert: repertoire,
+          onBasculer: () => setRepertoire((o) => !o),
+          titre: "Questions courantes — ce que les sources savent réellement rendre",
+          contenu: (
+            <MenuChat largeur={420}>
+              <div className="max-h-[min(460px,60vh)] overflow-y-auto py-1.5">
+                {REPERTOIRE.map((f) => (
+                  <div key={f.famille} className="px-1.5 py-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2 px-2.5 pb-1 pt-1.5">
+                      <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-menthe">{f.famille}</span>
+                      <span className="text-[11px] text-brume">{f.source}</span>
+                      {f.credit && <span className="text-[11px] text-ambre">1 crédit</span>}
+                    </div>
+                    {f.questions.map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => choisir(q)}
+                        className="block w-full rounded-champ px-2.5 py-1.5 text-left text-[12.5px] leading-5 text-craie transition-colors hover:bg-encre/[0.05] hover:text-encre"
+                        style={{ background: "transparent" }}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </MenuChat>
+          ),
+        }}
+        voix={{ ecoute, onBasculer: () => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." })) }}
+      />
 
       {enCours && (
         <p className="m-0 text-[11px] text-brume">

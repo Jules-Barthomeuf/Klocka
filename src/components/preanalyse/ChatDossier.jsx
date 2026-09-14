@@ -4,9 +4,10 @@ import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { nomOnglet } from "./AnalyseDocuments";
 import { toast } from "@/components/ui/avis";
-import { Mic, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip, ChevronDown } from "lucide-react";
+import { Mic, Microscope, Square, Loader2, X, Plus, PanelRight, HardDrive, Paperclip, ChevronDown, Zap } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import PenseeIA from "@/components/PenseeIA";
+import BarreChat, { MenuChat } from "@/components/BarreChat";
 import Message from "@/components/MessageIA";
 import { SuggestionsMail } from "./gabaritsMail";
 import ImportDrive from "./ImportDrive";
@@ -231,88 +232,64 @@ export default function ChatDossier({
         </div>
       )}
 
-      {/* Zone de saisie : le composeur de l'accueil, avec ce que le dossier a
-          en plus — les sources, la profondeur, les mails types. */}
-      <div className={`accueil-wrap sobre max-w-[880px] mx-auto ${ecoute ? "voix" : ""}`}>
-        <div aria-hidden="true" className="accueil-ring-sage" />
-        <div aria-hidden="true" className="accueil-ring"><div className="accueil-beam" /></div>
-        <div aria-hidden="true" className="accueil-ring-halo"><div className="accueil-beam" /></div>
-
-        <div className="accueil-composer">
-          <textarea
-            rows={Math.min(4, Math.max(2, texte.split("\n").length))}
-            value={texte}
-            onChange={(e) => setTexte(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer) { e.preventDefault(); lancer(); } }}
-            placeholder={placeholder}
-            disabled={apercu || !dossier}
-          />
-          {modeMail && (
-            <div className="px-7 pb-3 -mt-4 flex flex-wrap items-center gap-2">
-              <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
-            </div>
-          )}
-          <div className="accueil-bar">
-            <div className="accueil-tools">
-              <input
-                ref={fichierRef}
-                type="file"
-                accept=".pdf,.doc,.docx,.txt,.eml,.png,.jpg,.jpeg"
-                className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; if (modePreanalyse) onAnalyserFichier?.(f); else deposer.mutate(f); }}
-              />
-              {!modeMail && (
-                <div className="relative">
-                  <button type="button" className="accueil-icon" title="Ajouter un document" aria-label="Ajouter un document" onClick={() => setMenuPlus((o) => !o)} disabled={apercu || (!dossier && !modePreanalyse)}><Paperclip className="w-4 h-4" /></button>
-                  {menuPlus && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setMenuPlus(false)} />
-                      <div className="absolute bottom-full left-0 mb-2 z-20 bg-surface border border-bord-doux rounded-xl shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 min-w-[240px]">
-                        <button onClick={() => { setMenuPlus(false); fichierRef.current?.click(); }} className="w-full flex items-center gap-2.5 text-left text-[12.5px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg">
-                          <Paperclip className="w-3.5 h-3.5" /> Depuis cet ordinateur
-                        </button>
-                        <button onClick={() => { setMenuPlus(false); setDriveOuvert(true); }} disabled={!dossier} className="w-full flex items-center gap-2.5 text-left text-[12.5px] text-craie hover:text-encre hover:bg-encre/[0.05] px-3 py-2 rounded-lg disabled:opacity-40">
-                          <HardDrive className="w-3.5 h-3.5" /> Depuis le Google Drive
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-              {!modeMail && !modePreanalyse && (
-                <>
-                  <button type="button" className={`accueil-icon ${nbCoches ? "!border-menthe/60 !text-menthe" : ""}`} onClick={() => onToutCocher?.()} disabled={!documents.length} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"} aria-label="Sources"><PanelRight className="w-4 h-4" /></button>
-                  <span className="inline-flex items-center rounded-[9px] border border-trait p-0.5">
-                    {[["rapide", "Rapidité", "Une réponse courte et directe"], ["reflexion", "Réflexion", "L'analyse des pièces, plus longue"]].map(([id, mot, titre]) => (
-                      <button key={id} type="button" onClick={() => setProfondeur(id)} aria-label={titre} title={titre} className={`px-3 py-1.5 rounded-[7px] text-[12.5px] transition-colors ${profondeur === id ? "bg-[#9CC3BC] text-sur-menthe font-medium" : "text-[#9a9a9a] hover:text-encre"}`} style={{ fontFamily: "Figtree, sans-serif" }}>{mot}</button>
-                    ))}
-                  </span>
-                </>
-              )}
-              <button
-                type="button"
-                id="accueil-voix"
-                aria-pressed={ecoute}
-                disabled={apercu || !dossier}
-                onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-                aria-label={ecoute ? "Arrêter la voix" : "Dicter"} title={ecoute ? "Arrêter la voix" : "Dicter"}
-              >
-                <span className="dot" /><span>Voix</span>
-              </button>
-            </div>
-            {peutArreter ? (
-              <button type="button" className="accueil-send" onClick={interrompre} aria-label="Interrompre la requête en cours" title="Interrompre la requête en cours">
-                <PenseeIA etat="working" taille={20} clair /> Arrêter
-              </button>
-            ) : (
-              <button type="button" className="accueil-send" onClick={lancer} disabled={!peutEnvoyer}>
-                {enCours ? <PenseeIA etat="working" taille={20} clair /> : null}
-                {modeMail ? "Rédiger le mail" : modePreanalyse ? "Lancer l'analyse" : "Envoyer"}
-              </button>
-            )}
-          </div>
+      {/* La barre de chat de l'application. Ce que le dossier a en plus : le
+          dépôt d'un document, le choix des sources, la profondeur de lecture. */}
+      <input
+        ref={fichierRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.txt,.eml,.png,.jpg,.jpeg"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return; if (modePreanalyse) onAnalyserFichier?.(f); else deposer.mutate(f); }}
+      />
+      <BarreChat
+        className="mx-auto max-w-[880px]"
+        valeur={texte}
+        onChange={setTexte}
+        onEnvoyer={lancer}
+        onArreter={peutArreter ? interrompre : null}
+        peutEnvoyer={peutEnvoyer}
+        enCours={enCours}
+        disabled={apercu || !dossier}
+        placeholder={placeholder}
+        menu={modeMail ? null : {
+          icone: Paperclip,
+          ouvert: menuPlus,
+          onBasculer: () => setMenuPlus((o) => !o),
+          titre: "Ajouter un document",
+          contenu: (
+            <MenuChat largeur={260}>
+              <div className="p-1.5">
+                <button onClick={() => { setMenuPlus(false); fichierRef.current?.click(); }} className="flex w-full items-center gap-2.5 rounded-champ px-3 py-2 text-left text-[12.5px] text-craie transition-colors hover:bg-encre/[0.05] hover:text-encre" style={{ background: "transparent" }}>
+                  <Paperclip className="h-3.5 w-3.5" /> Depuis cet ordinateur
+                </button>
+                <button onClick={() => { setMenuPlus(false); setDriveOuvert(true); }} disabled={!dossier} className="flex w-full items-center gap-2.5 rounded-champ px-3 py-2 text-left text-[12.5px] text-craie transition-colors hover:bg-encre/[0.05] hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>
+                  <HardDrive className="h-3.5 w-3.5" /> Depuis le Google Drive
+                </button>
+              </div>
+            </MenuChat>
+          ),
+        }}
+        actions={[
+          ...(!modeMail && !modePreanalyse ? [{
+            icone: PanelRight,
+            onClick: () => onToutCocher?.(),
+            disabled: !documents.length,
+            actif: nbCoches > 0,
+            titre: documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé",
+          }, {
+            icone: profondeur === "reflexion" ? Microscope : Zap,
+            onClick: () => setProfondeur(profondeur === "reflexion" ? "rapide" : "reflexion"),
+            actif: profondeur === "reflexion",
+            titre: profondeur === "reflexion" ? "Réflexion : l'analyse des pièces, plus longue" : "Rapidité : une réponse courte et directe",
+          }] : []),
+        ]}
+        voix={{ ecoute, onBasculer: () => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." })) }}
+      />
+      {modeMail && (
+        <div className="mx-auto mt-3 flex max-w-[880px] flex-wrap items-center gap-2">
+          <SuggestionsMail dossier={dossier} onChoisir={setTexte} disabled={apercu} />
         </div>
-      </div>
+      )}
 
       {/* Documents, puis requêtes récentes : repliés, un clic les ouvre. Le
           chevron tourne, le contenu se déplie en hauteur — rien ne saute. */}

@@ -1,5 +1,5 @@
 import React from "react";
-import { Section, Vide } from "@/components/preanalyse/marche-ui";
+import { Section, Vide } from "@/components/ui/kit";
 import JournalEmplacement from "@/components/preanalyse/JournalEmplacement";
 import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";

@@ -86,7 +86,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                 ) : (
                   <div className="flex items-start gap-2">
                     {l.valeur ? <p className="m-0 flex-1 text-[13.5px] leading-[1.55] text-encre whitespace-pre-line">{l.valeur}</p> : <span className="flex-1 text-[12.5px] text-brume">—</span>}
-                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} title="Modifier la valeur" className="flex-none text-brume hover:text-encre opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
+                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} aria-label="Modifier la valeur" title="Modifier la valeur" className="flex-none text-brume hover:text-encre opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
                   </div>
                 )}
                 {/* Une valeur venue d'une pièce qui ne relève pas de cette
@@ -130,7 +130,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                 ) : lectureSeule || !dealId ? (
                   l.note ? <p className="m-0 text-[12.5px] leading-[1.5] text-craie whitespace-pre-line">{l.note.texte}</p> : <span className="text-[12.5px] text-brume">—</span>
                 ) : (
-                  <button onClick={() => setNote({ id: l.id, texte: l.note?.texte || "" })} title={l.note ? "Modifier la note" : "Écrire une note"} className="w-full text-left">
+                  <button onClick={() => setNote({ id: l.id, texte: l.note?.texte || "" })} aria-label={l.note ? "Modifier la note" : "Écrire une note"} title={l.note ? "Modifier la note" : "Écrire une note"} className="w-full text-left">
                     {l.note ? (
                       <>
                         <span className="block text-[12.5px] leading-[1.5] text-craie whitespace-pre-line">{l.note.texte}</span>
@@ -146,7 +146,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                 <td className="px-4 py-3 border-b border-trait">
                   <div className="flex flex-col gap-1">
                     {l.preuves?.length ? l.preuves.slice(0, 3).map((p, i) => (
-                      <button key={i} onClick={() => onPreuve?.(p)} title={p.citation || p.reponse} className="text-left text-[12.5px] text-ardoise hover:text-encre truncate max-w-[190px]">{(p.document_nom || "").replace(/\.pdf$/i, "")}{p.page ? ` · p. ${p.page}` : ""}</button>
+                      <button key={i} onClick={() => onPreuve?.(p)} aria-label={p.citation || p.reponse} title={p.citation || p.reponse} className="text-left text-[12.5px] text-ardoise hover:text-encre truncate max-w-[190px]">{(p.document_nom || "").replace(/\.pdf$/i, "")}{p.page ? ` · p. ${p.page}` : ""}</button>
                     )) : <span className="text-[12.5px] text-brume">—</span>}
                   </div>
                 </td>
@@ -254,7 +254,7 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                     <button onClick={() => setDevis(null)} className="text-[12.5px] px-2.5 py-1 text-ardoise hover:text-encre">Annuler</button>
                   </span>
                 ) : (
-                  <button onClick={() => !apercu && chiffrer.mutate(v.id)} disabled={apercu || chiffrer.isPending || relancer.isPending} title={`Relire toutes les pièces pour « ${v.titre || v.id} » — le prix s'affiche avant`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-menthe text-fond font-semibold hover:bg-menthe-survol disabled:opacity-40">
+                  <button onClick={() => !apercu && chiffrer.mutate(v.id)} disabled={apercu || chiffrer.isPending || relancer.isPending}  aria-label={`Relire toutes les pièces pour « ${v.titre || v.id} » — le prix s'affiche avant`} title={`Relire toutes les pièces pour « ${v.titre || v.id} » — le prix s'affiche avant`} className="inline-flex items-center gap-2 text-[12.5px] px-3.5 py-1.5 rounded-full bg-menthe text-fond font-semibold hover:bg-menthe-survol disabled:opacity-40">
                     {chiffrer.isPending && chiffrer.variables === v.id ? <PenseeIA etat="working" taille={20} /> : <RefreshCw className="w-3.5 h-3.5" />} Relancer l'analyse
                   </button>
                 )}

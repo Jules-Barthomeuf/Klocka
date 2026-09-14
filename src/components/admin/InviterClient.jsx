@@ -173,7 +173,7 @@ export function BoutonLienInvitation({ user }) {
     <button
       onClick={() => mutation.mutate()}
       disabled={mutation.isPending}
-      title="Copier un lien d'invitation"
+      aria-label="Copier un lien d'invitation" title="Copier un lien d'invitation"
       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] tracking-[0.16em] uppercase border border-bord-doux text-ardoise hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-40 flex-shrink-0"
     >
       {mutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}

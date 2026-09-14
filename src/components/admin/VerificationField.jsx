@@ -40,7 +40,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
           <button
             type="button"
             onClick={() => setField({ checked: !isChecked })}
-            title={isChecked ? "Marquer comme non vérifié" : "Marquer comme vérifié"}
+            aria-label={isChecked ? "Marquer comme non vérifié" : "Marquer comme vérifié"} title={isChecked ? "Marquer comme non vérifié" : "Marquer comme vérifié"}
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               isChecked
                 ? "border-menthe/50 bg-menthe/10 text-menthe-clair hover:bg-menthe/20"
@@ -58,7 +58,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
           <button
             type="button"
             onClick={() => setShowNote(!showNote)}
-            title="Ajouter une note"
+            aria-label="Ajouter une note" title="Ajouter une note"
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               hasNote
                 ? "border-orange-500/50 bg-orange-500/10 text-orange-400"

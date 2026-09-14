@@ -59,7 +59,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
           <button
             onClick={beginEdit}
             className={`tabular-nums font-medium transition-all duration-300 ease-out ${alerte ? "text-alerte" : muted ? "text-craie" : "text-encre"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-menthe"}`}
-            title={alerte || "Cliquer pour modifier"}
+            aria-label={alerte || "Cliquer pour modifier"} title={alerte || "Cliquer pour modifier"}
           >
             {display}{unit}
           </button>

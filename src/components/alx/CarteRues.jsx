@@ -66,7 +66,7 @@ function BoutonTheme({ sombre, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      title={sombre ? "Fond de carte clair" : "Fond de carte sombre"}
+      aria-label={sombre ? "Fond de carte clair" : "Fond de carte sombre"} title={sombre ? "Fond de carte clair" : "Fond de carte sombre"}
       className="absolute right-3 top-3 z-[400] grid h-9 w-9 place-items-center rounded-full border border-bord backdrop-blur transition-colors hover:text-encre"
       // Le style est posé ici : la règle globale « .alx button » rend les boutons transparents.
       style={{ background: "rgba(15,17,20,0.9)", color: J["encre"] }}

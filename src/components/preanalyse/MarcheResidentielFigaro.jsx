@@ -1,5 +1,5 @@
 import React from "react";
-import { Section, Chiffres, Phrase, Note, Vide, LienSource, Etiquette, euros, pct, TEINTE } from "@/components/preanalyse/marche-ui";
+import { Section, Chiffres, Phrase, Note, Vide, LienSource, Etiquette, euros, pct, TEINTE } from "@/components/ui/kit";
 
 // Le marché résidentiel autour du bien, d'après Le Figaro Immobilier.
 //

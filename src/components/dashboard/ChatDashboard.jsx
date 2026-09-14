@@ -652,7 +652,7 @@ export default function ChatDashboard() {
           <div className="accueil-bar">
             <div className="accueil-tools">
               <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
-              <button type="button" className="accueil-icon" title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier" onClick={() => fichierRef.current?.click()}><Paperclip className="w-4 h-4" /></button>
+              <button type="button" className="accueil-icon" aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier" title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier" onClick={() => fichierRef.current?.click()}><Paperclip className="w-4 h-4" /></button>
               <div className="relative">
                 <button type="button" className="accueil-icon" title="Commandes types" aria-label="Commandes types" onClick={() => setCommandes((o) => !o)}><Settings className="w-4 h-4" /></button>
                 {commandes && (
@@ -674,13 +674,13 @@ export default function ChatDashboard() {
                 aria-pressed={ecoute}
                 disabled={enCours}
                 onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-                title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
+                aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"} title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
               >
                 <span className="dot" /><span>Voix</span>
               </button>
             </div>
             {enCours ? (
-              <button type="button" className="accueil-send" onClick={() => controleur.current?.abort()} title="Interrompre la requête en cours">
+              <button type="button" className="accueil-send" onClick={() => controleur.current?.abort()} aria-label="Interrompre la requête en cours" title="Interrompre la requête en cours">
                 <PenseeIA etat="working" taille={20} clair /> Arrêter
               </button>
             ) : (
@@ -704,7 +704,7 @@ export default function ChatDashboard() {
               type="button"
               aria-pressed={actif}
               onClick={() => { const suivant = actif ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); }}
-              title={actif ? "Revenir au tri automatique" : m.placeholder}
+              aria-label={actif ? "Revenir au tri automatique" : m.placeholder} title={actif ? "Revenir au tri automatique" : m.placeholder}
             >
               {m.label}
             </button>

@@ -23,7 +23,7 @@ export default function FicheSource({ dossier, className = "" }) {
         type="button"
         onClick={() => setOuvert(true)}
         className={`inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif transition-colors ${className}`}
-        title="Consulter la fiche commerciale importée"
+        aria-label="Consulter la fiche commerciale importée" title="Consulter la fiche commerciale importée"
       >
         <FileText className="w-3.5 h-3.5" /> Fiche commerciale importée
       </button>

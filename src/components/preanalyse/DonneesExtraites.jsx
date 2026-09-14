@@ -101,7 +101,7 @@ export default function DonneesExtraites({ dossier, apercu = false }) {
                       </td>
                       <td className="py-3 pr-4 text-[12.5px] whitespace-nowrap">
                         {lien ? (
-                          <a href={lien} target="_blank" rel="noopener noreferrer" className="text-menthe-clair hover:text-encre transition-colors" title={l.document_nom}>
+                          <a href={lien} target="_blank" rel="noopener noreferrer" className="text-menthe-clair hover:text-encre transition-colors" aria-label={l.document_nom} title={l.document_nom}>
                             {l.page ? `page ${l.page}` : "voir"}
                           </a>
                         ) : (

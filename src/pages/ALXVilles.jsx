@@ -131,11 +131,11 @@ export default function ALXVilles() {
                             </div>
                             <span className="text-[12.5px] text-ardoise text-right">{v.cibles_par_rue?.[r.nom] || 0} cible{(v.cibles_par_rue?.[r.nom] || 0) > 1 ? "s" : ""}</span>
                             {v.parcours?.etat !== "en_cours" && (
-                              <button onClick={() => parcourir.mutate({ id: v.id, nom: r.nom })} disabled={parcourir.isPending} className="opacity-0 group-hover:opacity-100 text-[11px] text-menthe hover:text-menthe-clair transition-opacity whitespace-nowrap" title="Parcourir cette rue seule">
+                              <button onClick={() => parcourir.mutate({ id: v.id, nom: r.nom })} disabled={parcourir.isPending} className="opacity-0 group-hover:opacity-100 text-[11px] text-menthe hover:text-menthe-clair transition-opacity whitespace-nowrap" aria-label="Parcourir cette rue seule" title="Parcourir cette rue seule">
                                 {r.parcourue_le ? "Repasser" : "Parcourir"}
                               </button>
                             )}
-                            <button onClick={() => retirer.mutate({ id: v.id, nom: r.nom })} className="opacity-0 group-hover:opacity-100 text-brume hover:text-alerte transition-opacity" title="Retirer">
+                            <button onClick={() => retirer.mutate({ id: v.id, nom: r.nom })} className="opacity-0 group-hover:opacity-100 text-brume hover:text-alerte transition-opacity" aria-label="Retirer" title="Retirer">
                               <X className="w-3.5 h-3.5" />
                             </button>
                           </div>

@@ -105,7 +105,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
     <section className={premiere ? "" : "mt-[34px] border-t border-trait pt-7"}>
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <Etiquette>Le vendeur · ALX</Etiquette>
-        <button onClick={() => relire.mutate()} disabled={relire.isPending || isFetching} className="text-[12.5px] text-ardoise hover:text-encre disabled:opacity-50" style={{ background: "transparent" }} title="Relit Data Foncier, l'annuaire, le BODACC et DVF">
+        <button onClick={() => relire.mutate()} disabled={relire.isPending || isFetching} className="text-[12.5px] text-ardoise hover:text-encre disabled:opacity-50" style={{ background: "transparent" }} aria-label="Relit Data Foncier, l'annuaire, le BODACC et DVF" title="Relit Data Foncier, l'annuaire, le BODACC et DVF">
           {relire.isPending ? "ALX relit…" : `Relire${o.du_cache ? ` · lu le ${new Date(o.le).toLocaleDateString("fr-FR")}` : ""}`}
         </button>
       </div>

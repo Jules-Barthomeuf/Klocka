@@ -9,7 +9,7 @@ import { OngletBodacc, OngletDvf, SecondPointDeVue } from "@/components/preanaly
 import MarcheEmplacement from "@/components/preanalyse/MarcheEmplacement";
 import MarcheVendeur from "@/components/preanalyse/MarcheVendeur";
 import GraphiqueLoyers from "@/components/preanalyse/GraphiqueLoyers";
-import { Onglets } from "@/components/preanalyse/marche-ui";
+import { Onglets } from "@/components/ui/kit";
 import { Etiquette } from "@/components/alx/alx-commun";
 import { J } from "@/design/jetons";
 
@@ -177,7 +177,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   key={c.cle}
                   type="button"
                   onClick={() => onCarte(c)}
-                  title={c.detail}
+                  aria-label={c.detail} title={c.detail}
                   className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-bord"}`}
                   style={{ background: "transparent" }}
                 >

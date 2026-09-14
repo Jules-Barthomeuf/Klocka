@@ -181,7 +181,7 @@ export default function FeedbackFlottant() {
                         type="button"
                         onClick={() => setUrgence(n)}
                         aria-pressed={urgence === n}
-                        title={URGENCES[n - 1].mot}
+                        aria-label={URGENCES[n - 1].mot} title={URGENCES[n - 1].mot}
                         className="w-3 rounded-[2px] transition-all"
                         style={{ height: 7 + n * 2.5, background: n <= urgence ? urgenceDe(urgence).teinte : J["bord"] }}
                       />

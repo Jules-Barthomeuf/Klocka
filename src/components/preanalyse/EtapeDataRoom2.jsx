@@ -35,7 +35,7 @@ function GrilleCategorie({ g, onPreuve }) {
                 </td>
                 {g.colonnes.map((c) => { const cel = l.cellules[c.id]; return (
                   <td key={c.id} className="px-3 py-2 border-b border-r border-relief align-top">
-                    {cel?.reponse ? <button onClick={() => onPreuve({ document_id: l.document_id, document_nom: l.document_nom, document_url: l.document_url, page: cel.page, citation: cel.citation })} className="text-left text-craie hover:text-[#ffffff] line-clamp-3" title={cel.citation || cel.reponse}>{cel.reponse}{cel.page ? <span className="text-brume"> · p.{cel.page}</span> : null}</button> : <span className="text-bord-vif">—</span>}
+                    {cel?.reponse ? <button onClick={() => onPreuve({ document_id: l.document_id, document_nom: l.document_nom, document_url: l.document_url, page: cel.page, citation: cel.citation })} className="text-left text-craie hover:text-[#ffffff] line-clamp-3" aria-label={cel.citation || cel.reponse} title={cel.citation || cel.reponse}>{cel.reponse}{cel.page ? <span className="text-brume"> · p.{cel.page}</span> : null}</button> : <span className="text-bord-vif">—</span>}
                   </td>
                 ); })}
               </tr>

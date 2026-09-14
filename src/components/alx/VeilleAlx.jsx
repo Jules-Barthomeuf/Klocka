@@ -47,7 +47,7 @@ function CarteVeille({ v, etat, onVoir, onFermer }) {
     return (
       <button
         onClick={() => setRepliee(false)}
-        title={m.titre}
+        aria-label={m.titre} title={m.titre}
         className="flex items-center gap-2.5 rounded-full border px-3.5 py-2 text-[12.5px] transition-colors"
         style={{ background: "#101211", borderColor: `${teinte}55`, color: teinte }}
       >
@@ -72,8 +72,8 @@ function CarteVeille({ v, etat, onVoir, onFermer }) {
         Voir
       </button>
       <div className="flex shrink-0 flex-col gap-1">
-        <button onClick={() => setRepliee(true)} title="Replier" className="px-1 text-[11px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>▼</button>
-        {!enCours && <button onClick={onFermer} title="Fermer" className="px-1 text-[13.5px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
+        <button onClick={() => setRepliee(true)} aria-label="Replier" title="Replier" className="px-1 text-[11px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>▼</button>
+        {!enCours && <button onClick={onFermer} aria-label="Fermer" title="Fermer" className="px-1 text-[13.5px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { emplacementDe } from "@/components/alx/alx-commun";
-import { Section, Titre, Chiffres, Etoiles, Vide, fmt } from "@/components/preanalyse/marche-ui";
+import { Section, Titre, Chiffres, Etoiles, Vide, fmt } from "@/components/ui/kit";
 
 // L'emplacement du dossier, vu par ALX, en une ligne de bilan.
 //

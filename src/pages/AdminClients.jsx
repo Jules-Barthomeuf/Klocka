@@ -681,7 +681,7 @@ export default function AdminClients() {
                   <button
                     onClick={() => inviterUn.mutate(user)}
                     disabled={inviterUn.isPending}
-                    title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
+                    aria-label="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1" title="Envoyer le lien d'accès (ou le copier, sans boîte d'envoi) : la personne choisit son mot de passe et entre à l'étape 1"
                     className="px-4 py-1.5 text-[11px] tracking-[0.16em] uppercase font-semibold text-sur-menthe bg-menthe rounded-full hover:bg-[#ffffff] rounded-[10px] disabled:opacity-50 transition-colors"
                   >
                     {inviterUn.isPending && inviterUn.variables?.id === user.id ? "Envoi…" : "Inviter"}
@@ -689,7 +689,7 @@ export default function AdminClients() {
                   <button
                     onClick={() => updateUserMutation.mutate({ userId: user.id, data: { etape_actuelle: 1 } })}
                     disabled={updateUserMutation.isPending}
-                    title="Passer client tout de suite (étape 1), sans envoyer de lien maintenant"
+                    aria-label="Passer client tout de suite (étape 1), sans envoyer de lien maintenant" title="Passer client tout de suite (étape 1), sans envoyer de lien maintenant"
                     className="px-4 py-1.5 text-[11px] tracking-[0.16em] uppercase border border-bord-doux text-encre hover:bg-encre/[0.06] transition-colors disabled:opacity-40 flex-shrink-0"
                   >
                     Client direct
@@ -780,7 +780,7 @@ export default function AdminClients() {
                     <Trash2 className="w-4 h-4" />
                   </Button>
                   <button onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
-                    className="w-8 h-8 flex items-center justify-center text-brume hover:text-encre transition-colors" title="Détails">
+                    className="w-8 h-8 flex items-center justify-center text-brume hover:text-encre transition-colors" aria-label="Détails" title="Détails">
                     <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                   </button>
                 </div>

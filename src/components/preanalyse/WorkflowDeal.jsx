@@ -49,7 +49,7 @@ const GRILLES_ANALYSE = [
   { id: "marche", titre: "Marché", grilles: null },
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
-import { Onglets } from "@/components/preanalyse/marche-ui";
+import { Onglets } from "@/components/ui/kit";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // Workflow d'un deal en cinq étapes, sur une seule page :
@@ -107,7 +107,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
                   role="menuitem"
                   onClick={() => { fermer(); if (accessible) onEtape(e.n); else if (dossier && !deblocageEnCours) onPasser(e.n); }}
                   disabled={!accessible && !dossier}
-                  title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
+                  aria-label={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"} title={accessible ? e.sub : dossier ? "Ouvrir cette étape — les précédentes seront validées" : "Analysez d'abord la fiche"}
                   className={`flex w-full items-baseline gap-3 px-3.5 py-2 text-left text-[13.5px] transition-colors hover:bg-encre/[0.06]
                     ${active ? "text-encre font-semibold" : accessible ? "text-craie" : "text-brume"}`}
                   style={{ background: "transparent" }}
@@ -125,7 +125,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
                   role="menuitem"
                   onClick={() => { fermer(); onAbandonner(); }}
                   disabled={abandonne || dossier.statut === "projet_cree"}
-                  title="Classer le dossier sans suite : il reste consultable, il n'avance plus"
+                  aria-label="Classer le dossier sans suite : il reste consultable, il n'avance plus" title="Classer le dossier sans suite : il reste consultable, il n'avance plus"
                   className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12.5px] text-red-300 transition-colors hover:bg-red-500/[0.08] disabled:opacity-40"
                   style={{ background: "transparent" }}
                 >
@@ -914,14 +914,14 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
       <div className="fixed z-40 right-5 bottom-[84px] max-md:right-3 max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom)+70px)] flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
         <button
           onClick={() => ouvrir(intentionNon)}
-          title={`${titreNon} — ${descNon}`}
+           aria-label={`${titreNon} — ${descNon}`} title={`${titreNon} — ${descNon}`}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#9b3b32]/60 bg-[#0a0a0bee] backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,.5)] text-alerte text-[13.5px] font-semibold hover:bg-[#9b3b32]/20 hover:border-[#9b3b32] transition-colors"
         >
           <ThumbsDown className="w-4 h-4" /> Abandonner
         </button>
         <button
           onClick={() => ouvrir(intentionOui)}
-          title={`${titreOui} — ${descOui}`}
+           aria-label={`${titreOui} — ${descOui}`} title={`${titreOui} — ${descOui}`}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-menthe shadow-[0_10px_30px_rgba(0,0,0,.5)] text-fond text-[13.5px] font-semibold hover:bg-menthe-survol transition-colors"
         >
           <ThumbsUp className="w-4 h-4" /> Poursuivre

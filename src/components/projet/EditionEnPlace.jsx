@@ -28,7 +28,7 @@ export function BoutonMasquer({ champ, titre = "Supprimer de la page" }) {
   return (
     <button
       type="button"
-      title={titre}
+      aria-label={titre} title={titre}
       onClick={(e) => {
         e.stopPropagation();
         edition.onChamp("champs_masques", [...(edition.masques || []), champ], true);
@@ -85,7 +85,7 @@ export function ValeurEditable({ champ, children, type = "number" }) {
   return (
     <button
       type="button"
-      title={`Modifier — ${champ}`}
+       aria-label={`Modifier — ${champ}`} title={`Modifier — ${champ}`}
       onClick={(e) => {
         e.stopPropagation();
         setBrouillon(valeurInitiale());
@@ -128,7 +128,7 @@ export function TexteEditable({ champ, children, className = "" }) {
   return (
     <button
       type="button"
-      title={`Modifier — ${champ}`}
+       aria-label={`Modifier — ${champ}`} title={`Modifier — ${champ}`}
       onClick={(e) => {
         e.stopPropagation();
         setBrouillon(String(lireChemin(edition.valeurs, champ) ?? ""));
@@ -210,7 +210,7 @@ export function ChampsPersonnalises({ zone, project }) {
                   <Poignee i={i} />
                   <ValeurEditable champ={`champs_personnalises.${i}.label`} type="text">{champ.label || "Sans libellé"}</ValeurEditable>
                   {edition?.onChamp && (
-                    <button type="button" onClick={() => supprimer(i)} title="Supprimer ce champ"
+                    <button type="button" onClick={() => supprimer(i)} aria-label="Supprimer ce champ" title="Supprimer ce champ"
                       className="text-bord-vif hover:text-red-400 transition-colors text-[12.5px] leading-none">×</button>
                   )}
                 </div>
@@ -242,7 +242,7 @@ export function ChampsPersonnalises({ zone, project }) {
               <span className="text-right text-encre flex items-center gap-2">
                 <ValeurEditable champ={`champs_personnalises.${i}.valeur`} type="text">{champ.valeur || "—"}</ValeurEditable>
                 {edition?.onChamp && (
-                  <button type="button" onClick={() => supprimer(i)} title="Supprimer ce champ"
+                  <button type="button" onClick={() => supprimer(i)} aria-label="Supprimer ce champ" title="Supprimer ce champ"
                     className="text-brume hover:text-red-400 transition-colors text-[12.5px] leading-none">×</button>
                 )}
               </span>

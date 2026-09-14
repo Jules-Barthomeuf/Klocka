@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Section, Chiffres, Lignes, Encart, Note, Etiquette, Etoiles, fmt, pct, TEINTE } from "@/components/preanalyse/marche-ui";
+import { Section, Chiffres, Lignes, Encart, Note, Etiquette, Etoiles, fmt, pct, TEINTE } from "@/components/ui/kit";
 
 // L'étude d'implantation Data-B : ce que le lieu vaut au-delà du loyer. Le
 // flux piéton et voiture, la commercialité du tronçon, la rue, les gens qui

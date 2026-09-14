@@ -1,6 +1,6 @@
 import React from "react";
 import EchelleFourchettes from "@/components/preanalyse/EchelleFourchettes";
-import { Section, Chiffres, Phrase, Note, Vide, euros, TEINTE } from "@/components/preanalyse/marche-ui";
+import { Section, Chiffres, Phrase, Note, Vide, euros, TEINTE } from "@/components/ui/kit";
 
 // L'analyse de loyer d'Equimmox : les loyers observés autour d'une adresse,
 // dans un rayon de 500 m, pour des locaux de surface comparable (±30 %).

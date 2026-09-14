@@ -100,7 +100,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
                 <th key={c.id} className="text-left px-3 py-3 border-b border-r border-relief min-w-[190px] align-top font-normal">
                   <button
                     onClick={() => setEdition(edition === c.id ? null : c.id)}
-                    title={c.question}
+                    aria-label={c.question} title={c.question}
                     className="text-left w-full group"
                   >
                     <span className="block text-[11px] tracking-[.14em] uppercase text-brume">{c.bloc}</span>
@@ -129,7 +129,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
                   return (
                     <td key={c.id} className={`px-3 py-3 border-b border-r border-relief align-top ${ouverte ? "bg-menthe/[0.08]" : ""}`}>
                       {cel?.reponse ? (
-                        <button onClick={() => onCellule({ ligne: l, colonne: c.id, cellule: cel })} className="text-left text-[12.5px] leading-[1.5] text-craie hover:text-[#ffffff] line-clamp-3" title={cel.citation || cel.reponse}>
+                        <button onClick={() => onCellule({ ligne: l, colonne: c.id, cellule: cel })} className="text-left text-[12.5px] leading-[1.5] text-craie hover:text-[#ffffff] line-clamp-3" aria-label={cel.citation || cel.reponse} title={cel.citation || cel.reponse}>
                           {cel.reponse}
                           {cel.page ? <span className="text-brume"> · p.{cel.page}</span> : null}
                         </button>
@@ -237,7 +237,7 @@ function Anomalies({ m, dealId, onCellule }) {
               <div className="flex items-center gap-1.5 flex-none">
                 <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "confirme" ? null : "confirme", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11px] border transition-colors ${r?.verdict === "confirme" ? "bg-alerte border-alerte text-fond font-semibold" : "border-bord-doux text-craie hover:border-alerte"}`}>Confirmé</button>
                 <button onClick={() => reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict === "faux_positif" ? null : "faux_positif", commentaire: r?.commentaire })} className={`px-3 py-1.5 rounded-full text-[11px] border transition-colors ${r?.verdict === "faux_positif" ? "bg-bord-vif border-bord-vif text-encre" : "border-bord-doux text-craie hover:border-bord-vif"}`}>Faux positif</button>
-                <button onClick={() => setOuvert(ouvert === a.colonne.id ? null : a.colonne.id)} className="text-brume hover:text-encre px-1.5" title="Sources et commentaire"><ChevronDown className={`w-4 h-4 transition-transform ${ouvert === a.colonne.id ? "" : "-rotate-90"}`} /></button>
+                <button onClick={() => setOuvert(ouvert === a.colonne.id ? null : a.colonne.id)} className="text-brume hover:text-encre px-1.5" aria-label="Sources et commentaire" title="Sources et commentaire"><ChevronDown className={`w-4 h-4 transition-transform ${ouvert === a.colonne.id ? "" : "-rotate-90"}`} /></button>
               </div>
             </div>
             {ouvert === a.colonne.id && (
@@ -353,7 +353,7 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
           {enCours ? (
             <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {m.remplissage.fait}/{m.remplissage.total ?? "…"} — {m.remplissage.document || "lecture"}</span>
           ) : (
-            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-menthe rounded-full text-sur-menthe hover:bg-[#ffffff] disabled:opacity-40">
+            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} aria-label={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-menthe rounded-full text-sur-menthe hover:bg-[#ffffff] disabled:opacity-40">
               <RefreshCw className="w-3.5 h-3.5" /> {m?.lignes?.length ? "Relire les documents" : "Remplir la grille"}
             </button>
           )}

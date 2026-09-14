@@ -302,7 +302,7 @@ function ChatAlx({ villeId, onglet, onFait }) {
                 id="accueil-voix"
                 aria-pressed={ecoute}
                 onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-                title={ecoute ? "Arrêter la voix" : "Dicter"}
+                aria-label={ecoute ? "Arrêter la voix" : "Dicter"} title={ecoute ? "Arrêter la voix" : "Dicter"}
               >
                 <span className="dot" />
                 <span>Voix</span>
@@ -384,7 +384,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
           <button
             type="button"
             onClick={onStreetView}
-            title={enStreetView ? "Revenir à la carte" : "Voir la rue dans Street View"}
+            aria-label={enStreetView ? "Revenir à la carte" : "Voir la rue dans Street View"} title={enStreetView ? "Revenir à la carte" : "Voir la rue dans Street View"}
             aria-pressed={enStreetView}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border transition-colors"
             style={{ borderColor: enStreetView ? J["menthe"] : "rgba(255,255,255,0.12)", color: enStreetView ? J["menthe"] : J["ardoise"], background: enStreetView ? "rgba(150,192,184,0.12)" : "transparent" }}
@@ -415,7 +415,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
             <Etoiles note={flux?.note ?? null} taille={17} title={flux ? `piéton ${flux.pieton ?? "—"}/5 · voiture ${flux.voiture ?? "—"}/5` : "flux inconnu"} />
             {flux && <span className="text-[12.5px] text-ardoise">piéton {flux.pieton ?? "—"} · voiture {flux.voiture ?? "—"}</span>}
             {!fluxMesure && (
-              <button onClick={onFlux} disabled={fluxPending} className="text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }} title="Étude d'implantation Data-B : un crédit, deux à cinq minutes">
+              <button onClick={onFlux} disabled={fluxPending} className="text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }} aria-label="Étude d'implantation Data-B : un crédit, deux à cinq minutes" title="Étude d'implantation Data-B : un crédit, deux à cinq minutes">
                 {fluxPending ? "Data-B lit la rue (2 à 5 min)…" : "Mesurer chez Data-B · 1 crédit"}
               </button>
             )}
@@ -439,7 +439,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
             <div className="text-[13.5px] text-encre">Pourquoi {emplacementDe(enAttente).mot} plutôt que {emplacementDe(rue.classe).mot} ?</div>
             <div className="flex flex-wrap gap-1.5">
               {motifs.filter((m) => !m.sens || m.sens === "les_deux" || m.sens === (enAttente < rue.classe ? "hausse" : "baisse")).map((m) => (
-                <button key={m.cle} onClick={() => setMotifCle(m.cle)} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12.5px] transition-colors" style={{ borderColor: motifCle === m.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? J["menthe"] : J["craie"], background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
+                <button key={m.cle} onClick={() => setMotifCle(m.cle)} aria-label={m.detail} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12.5px] transition-colors" style={{ borderColor: motifCle === m.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? J["menthe"] : J["craie"], background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
               ))}
             </div>
             <input value={motifTexte} onChange={(e) => setMotifTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="rounded-[10px] border border-trait bg-fond px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/50" />
@@ -490,7 +490,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
 
 /** Une case pleine d'une teinte : « toutes les rues de cette couleur ». */
 function CaseTeinte({ teinte, title, onClick }) {
-  return <button type="button" onClick={onClick} title={title} className="h-4 w-4 rounded-[4px] border transition-transform hover:scale-110" style={{ borderColor: teinte, background: teinte }} />;
+  return <button type="button" onClick={onClick} aria-label={title} title={title} className="h-4 w-4 rounded-[4px] border transition-transform hover:scale-110" style={{ borderColor: teinte, background: teinte }} />;
 }
 
 /** Pourquoi cette rue est en 1, 1 bis ou 2 : son rang dans la ville, écrit dans son motif. */
@@ -948,7 +948,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
             {enCours ? (
               <button onClick={() => arreter.mutate()} disabled={arreter.isPending} className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>Arrêter</button>
             ) : (
-              <button onClick={() => lancer.mutate()} disabled={lancer.isPending} title="Relit la commune sur OpenStreetMap et repropose les rues" className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>{lancer.isPending ? "…" : rues.length ? "Refaire les rues" : "Lancer ALX"}</button>
+              <button onClick={() => lancer.mutate()} disabled={lancer.isPending} aria-label="Relit la commune sur OpenStreetMap et repropose les rues" title="Relit la commune sur OpenStreetMap et repropose les rues" className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>{lancer.isPending ? "…" : rues.length ? "Refaire les rues" : "Lancer ALX"}</button>
             )}
           </div>
         </div>

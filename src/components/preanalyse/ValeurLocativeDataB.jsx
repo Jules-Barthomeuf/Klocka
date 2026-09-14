@@ -1,6 +1,6 @@
 import React from "react";
 import EchelleFourchettes from "@/components/preanalyse/EchelleFourchettes";
-import { Section, Chiffres, Phrase, Note, Vide, LienSource, euros, fmt, TEINTE } from "@/components/preanalyse/marche-ui";
+import { Section, Chiffres, Phrase, Note, Vide, LienSource, euros, fmt, TEINTE } from "@/components/ui/kit";
 
 // La valeur locative d'après Data-B : la fourchette de loyer au m² de la rue,
 // du quartier et de la ville, et le loyer du bail posé en face. C'est le

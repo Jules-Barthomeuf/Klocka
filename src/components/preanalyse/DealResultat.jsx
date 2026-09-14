@@ -147,7 +147,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                             <button
                               type="button"
                               onClick={() => onVerifier(cleLigne(l), suivant)}
-                              title={verif === null ? "Marquer comme vérifié" : verif === "verifie" ? "Marquer comme pas sûr" : "Revenir au calcul"}
+                              aria-label={verif === null ? "Marquer comme vérifié" : verif === "verifie" ? "Marquer comme pas sûr" : "Revenir au calcul"} title={verif === null ? "Marquer comme vérifié" : verif === "verifie" ? "Marquer comme pas sûr" : "Revenir au calcul"}
                               className="text-left hover:text-[#ffffff]"
                             >
                               {l.critere}
@@ -176,7 +176,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                       <button
                         type="button"
                         onClick={() => (l.valeur != null || l.details?.length) && basculer(cle)}
-                        title={l.valeur || undefined}
+                        aria-label={l.valeur || undefined} title={l.valeur || undefined}
                         className={`max-w-[46%] flex-none text-right text-[12.5px] leading-snug ${
                           l.valeur == null ? "text-brume italic" : "text-craie"
                         } ${ouvert ? "whitespace-normal break-words" : "truncate"}`}
@@ -629,7 +629,7 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
             key={v.id}
             onClick={() => setVue(v.id)}
             disabled={v.id !== "carte" && !localisable}
-            title={v.id !== "carte" && !localisable ? "Adresse inconnue pour ce lot" : undefined}
+            aria-label={v.id !== "carte" && !localisable ? "Adresse inconnue pour ce lot" : undefined} title={v.id !== "carte" && !localisable ? "Adresse inconnue pour ce lot" : undefined}
             className={`px-3.5 py-1.5 rounded-full text-[12.5px] border transition-colors disabled:opacity-40
               ${vue === v.id ? "bg-menthe rounded-full border-menthe text-sur-menthe font-medium" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`}
           >
@@ -689,7 +689,7 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
     <button
       onClick={() => modifiable && setEdition(valeur != null ? String(valeur) : "")}
       disabled={!modifiable || enCours}
-      title={modifiable ? "Modifier le prix affiché" : undefined}
+      aria-label={modifiable ? "Modifier le prix affiché" : undefined} title={modifiable ? "Modifier le prix affiché" : undefined}
       className={`group inline-flex items-baseline gap-2 text-left tabular-nums font-light ${compact ? "text-[13.5px]" : "text-[24px]"} ${valeur == null ? "text-ambre" : "text-encre"} disabled:cursor-default`}
     >
       {valeur == null ? "à renseigner" : euros(valeur)}
@@ -757,7 +757,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false }) {
     <button
       onClick={() => modifiable && setEdition(texteBrut(champ, c))}
       disabled={!modifiable || enCours}
-      title={modifiable ? "Modifier" : c?.citation || undefined}
+      aria-label={modifiable ? "Modifier" : c?.citation || undefined} title={modifiable ? "Modifier" : c?.citation || undefined}
       className={`group inline-flex items-baseline gap-2 text-right text-[13.5px] tabular-nums font-light min-w-0 disabled:cursor-default ${absent ? "text-brume" : "text-encre"}`}
     >
       <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>

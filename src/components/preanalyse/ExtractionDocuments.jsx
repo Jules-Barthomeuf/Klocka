@@ -253,7 +253,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
               ))}
             </SelectContent>
           </Select>
-          <button onClick={onSupprimer} className="text-brume hover:text-red-400 p-1.5" title="Retirer">
+          <button onClick={onSupprimer} className="text-brume hover:text-red-400 p-1.5" aria-label="Retirer" title="Retirer">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -346,7 +346,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
                           ? "border-menthe/40 bg-menthe/20 text-menthe-clair"
                           : "border-encre/10 text-ardoise hover:text-encre hover:border-encre/25"
                       }`}
-                      title={v.citation}
+                      aria-label={v.citation} title={v.citation}
                     >
                       <Quote className="w-3 h-3 inline mr-1" />
                       p.{v.page}

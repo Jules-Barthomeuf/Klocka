@@ -252,7 +252,7 @@ export default function Analyse() {
                     <button
                       onClick={(e) => { e.stopPropagation(); setMenuCarte(menuCarte === d.deal_id ? null : d.deal_id); }}
                       className="absolute top-3 right-2.5 text-brume hover:text-encre transition-colors"
-                      title="Actions"
+                      aria-label="Actions" title="Actions"
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </button>

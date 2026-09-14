@@ -1,6 +1,6 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
-import { Section, Chiffres, Lignes, Note, Vide, LienSource, Etiquette, fmt, jour, TEINTE } from "@/components/preanalyse/marche-ui";
+import { Section, Chiffres, Lignes, Note, Vide, LienSource, Etiquette, fmt, jour, TEINTE } from "@/components/ui/kit";
 
 // Les deux sources publiques du marché : DVF et le BODACC. Elles ne coûtent
 // rien et ne doivent rien au vendeur ; ce sont les seules à dire ce qui s'est

@@ -3,13 +3,16 @@ import { ExternalLink } from "lucide-react";
 import { Etiquette, Etoiles } from "@/components/alx/alx-commun";
 import { J } from "@/design/jetons";
 
-// Le registre du marché, partagé par le bilan et par chaque onglet source.
+// La trousse de Klocka : les objets que toute page repose de la même façon.
 //
-// Deux polices : celle de l'application pour tout ce qui se lit, Montserrat
-// pour les seules capitales espacées. Des sections séparées par un filet, des
-// chiffres en colonnes séparées par des filets, des listes en lignes fines.
-// Ce qui se voit dans le bilan se retrouve tel quel chez Data-B, Equimmox,
-// Le Figaro, DVF et le BODACC : un seul vocabulaire.
+// Écrite d'abord pour le marché, elle vaut partout — le dossier, les projets,
+// ALX. Deux polices : celle de l'application pour tout ce qui se lit,
+// Montserrat pour les seules capitales espacées. Des sections séparées par un
+// filet, des chiffres en colonnes séparées par des filets, des listes en
+// lignes fines, un état vide qui ne s'invente pas à chaque écran.
+//
+// Neuf cartes de chiffre, six barres d'onglets et cent-neuf états vides
+// existaient en parallèle. Ils descendent ici, un écran à la fois.
 
 export { Etiquette, Etoiles };
 

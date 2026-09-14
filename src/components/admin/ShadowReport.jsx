@@ -193,14 +193,14 @@ Réponds UNIQUEMENT en JSON.`;
                       <button
                         onClick={() => handleClickDiff(diff.tab, "current")}
                         className="text-[11px] text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
-                        title="Modifier dans le projet actuel"
+                        aria-label="Modifier dans le projet actuel" title="Modifier dans le projet actuel"
                       >
                         <ExternalLink className="w-3 h-3" /> Actuel
                       </button>
                       <button
                         onClick={() => handleClickDiff(diff.tab, "shadow")}
                         className="text-[11px] text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
-                        title="Modifier dans le shadow"
+                        aria-label="Modifier dans le shadow" title="Modifier dans le shadow"
                       >
                         <ExternalLink className="w-3 h-3" /> Shadow
                       </button>

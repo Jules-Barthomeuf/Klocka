@@ -112,7 +112,7 @@ export function Bouton({ children, onClick, disabled = false, principal = false,
       ? "px-2 py-[13px] text-[13.5px] text-ardoise hover:text-encre"
       : "px-[22px] py-[13px] text-[13.5px] text-craie border border-bord hover:border-bord-vif";
   return (
-    <button type={type} onClick={onClick} disabled={disabled} title={title || undefined} className={`${base} ${registre} ${className}`} style={{ background: principal ? J["menthe"] : "transparent" }}>
+    <button type={type} onClick={onClick} disabled={disabled} aria-label={title || undefined} title={title || undefined} className={`${base} ${registre} ${className}`} style={{ background: principal ? J["menthe"] : "transparent" }}>
       {children}
     </button>
   );

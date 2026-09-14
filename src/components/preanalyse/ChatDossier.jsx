@@ -284,7 +284,7 @@ export default function ChatDossier({
                   <button type="button" className={`accueil-icon ${nbCoches ? "!border-menthe/60 !text-menthe" : ""}`} onClick={() => onToutCocher?.()} disabled={!documents.length} title={documents.length ? `Sources : ${nbCoches ? `${nbCoches} document${nbCoches > 1 ? "s" : ""}` : "aucune"} — choisir les documents interrogés` : "Aucun document importé"} aria-label="Sources"><PanelRight className="w-4 h-4" /></button>
                   <span className="inline-flex items-center rounded-[9px] border border-trait p-0.5">
                     {[["rapide", "Rapidité", "Une réponse courte et directe"], ["reflexion", "Réflexion", "L'analyse des pièces, plus longue"]].map(([id, mot, titre]) => (
-                      <button key={id} type="button" onClick={() => setProfondeur(id)} title={titre} className={`px-3 py-1.5 rounded-[7px] text-[12.5px] transition-colors ${profondeur === id ? "bg-[#9CC3BC] text-sur-menthe font-medium" : "text-[#9a9a9a] hover:text-encre"}`} style={{ fontFamily: "Figtree, sans-serif" }}>{mot}</button>
+                      <button key={id} type="button" onClick={() => setProfondeur(id)} aria-label={titre} title={titre} className={`px-3 py-1.5 rounded-[7px] text-[12.5px] transition-colors ${profondeur === id ? "bg-[#9CC3BC] text-sur-menthe font-medium" : "text-[#9a9a9a] hover:text-encre"}`} style={{ fontFamily: "Figtree, sans-serif" }}>{mot}</button>
                     ))}
                   </span>
                 </>
@@ -295,13 +295,13 @@ export default function ChatDossier({
                 aria-pressed={ecoute}
                 disabled={apercu || !dossier}
                 onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-                title={ecoute ? "Arrêter la voix" : "Dicter"}
+                aria-label={ecoute ? "Arrêter la voix" : "Dicter"} title={ecoute ? "Arrêter la voix" : "Dicter"}
               >
                 <span className="dot" /><span>Voix</span>
               </button>
             </div>
             {peutArreter ? (
-              <button type="button" className="accueil-send" onClick={interrompre} title="Interrompre la requête en cours">
+              <button type="button" className="accueil-send" onClick={interrompre} aria-label="Interrompre la requête en cours" title="Interrompre la requête en cours">
                 <PenseeIA etat="working" taille={20} clair /> Arrêter
               </button>
             ) : (
@@ -336,7 +336,7 @@ export default function ChatDossier({
                   <button
                     onClick={() => { if (window.confirm(`Supprimer « ${r.titre} » ?`)) r.supprimer(); }}
                     className="text-brume hover:text-red-400 transition-colors flex-shrink-0"
-                    title="Supprimer"
+                    aria-label="Supprimer" title="Supprimer"
                   >
                     <X className="w-4 h-4" />
                   </button>

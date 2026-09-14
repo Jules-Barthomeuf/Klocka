@@ -339,7 +339,7 @@ export default function JournalQuestion({ dealId, lotIndex = 0, adresse = null, 
                       : demarrer()
                     : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." })
                 }
-                title={ecoute ? "Arrêter la voix" : "Dicter"}
+                aria-label={ecoute ? "Arrêter la voix" : "Dicter"} title={ecoute ? "Arrêter la voix" : "Dicter"}
               >
                 <span className="dot" />
                 <span>Voix</span>

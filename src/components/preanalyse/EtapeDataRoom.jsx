@@ -71,7 +71,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
       <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-trait border-b border-trait">
         {[["Loyer HT/an", bandeau.loyer != null ? eur(bandeau.loyer) : "—", "", true], ["Revenu net", bandeau.revenu_net != null ? eur(bandeau.revenu_net) : "—", ""], ["Net AEM", bandeau.net_aem != null ? `${bandeau.net_aem.toFixed(2).replace(".", ",")} %` : "—", bandeau.net_aem != null && bandeau.net_aem >= r.seuil ? "text-vert" : "text-alerte"], ["Écart teaser", bandeau.ecart_teaser_pt != null ? `${bandeau.ecart_teaser_pt >= 0 ? "+" : "−"}${Math.abs(bandeau.ecart_teaser_pt).toFixed(2).replace(".", ",")} pt` : "—", bandeau.ecart_teaser_pt != null && bandeau.ecart_teaser_pt < 0 ? "text-alerte" : "text-ardoise"]].map(([l, v, c, loyer]) => (
           <div key={l} className="px-6 max-md:px-4 py-5">
-            <div className="flex items-center justify-between gap-2"><Mono>{l}</Mono>{loyer && !editionLoyer && <button onClick={() => { setLoyerSaisi(bandeau.loyer ? String(Math.round(bandeau.loyer)) : ""); setEditionLoyer(true); }} disabled={apercu} title="Modifier le loyer : tout se recalcule" className="text-brume hover:text-encre"><Pencil className="w-3.5 h-3.5" /></button>}</div>
+            <div className="flex items-center justify-between gap-2"><Mono>{l}</Mono>{loyer && !editionLoyer && <button onClick={() => { setLoyerSaisi(bandeau.loyer ? String(Math.round(bandeau.loyer)) : ""); setEditionLoyer(true); }} disabled={apercu} aria-label="Modifier le loyer : tout se recalcule" title="Modifier le loyer : tout se recalcule" className="text-brume hover:text-encre"><Pencil className="w-3.5 h-3.5" /></button>}</div>
             {loyer && editionLoyer ? (
               <div className="mt-2 flex items-center gap-2">
                 <input autoFocus value={loyerSaisi} onChange={(x) => setLoyerSaisi(x.target.value)} onKeyDown={(x) => { if (x.key === "Enter") validerLoyer(); if (x.key === "Escape") setEditionLoyer(false); }} inputMode="numeric" className="w-[130px] bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[18px] font-light tabular-nums text-encre" />
@@ -83,7 +83,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
               <p className={`m-0 mt-2 text-[24px] font-light tabular-nums ${c || "text-encre"}`}>{v}</p>
             )}
             {loyer && bandeau.loyer_force && !editionLoyer && (
-              <p className="m-0 mt-1 flex items-center gap-2 text-[11px] text-ambre">saisi à la main{bandeau.loyer_force.par ? ` · ${bandeau.loyer_force.par}` : ""}<button onClick={() => forcerLoyer.mutate(null)} title="Revenir au loyer du bail" className="inline-flex items-center gap-1 text-ardoise hover:text-encre"><RotateCcw className="w-3 h-3" /> bail</button></p>
+              <p className="m-0 mt-1 flex items-center gap-2 text-[11px] text-ambre">saisi à la main{bandeau.loyer_force.par ? ` · ${bandeau.loyer_force.par}` : ""}<button onClick={() => forcerLoyer.mutate(null)} aria-label="Revenir au loyer du bail" title="Revenir au loyer du bail" className="inline-flex items-center gap-1 text-ardoise hover:text-encre"><RotateCcw className="w-3 h-3" /> bail</button></p>
             )}
           </div>
         ))}

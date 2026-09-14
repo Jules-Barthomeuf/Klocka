@@ -190,7 +190,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                 <th className="w-9 py-2.5">
                   <button
                     onClick={() => onCocher?.(tousCoches ? [] : documents.map((d) => d.id))}
-                    title={tousCoches ? "Tout décocher" : "Tout cocher"}
+                    aria-label={tousCoches ? "Tout décocher" : "Tout cocher"} title={tousCoches ? "Tout décocher" : "Tout cocher"}
                     className={`w-[17px] h-[17px] rounded-[4px] border flex items-center justify-center transition-colors
                       ${tousCoches ? "bg-menthe border-menthe text-fond" : "border-bord-doux hover:border-menthe-clair"}`}
                   >
@@ -213,7 +213,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                     <td className="py-3">
                       <button
                         onClick={() => basculer(d.id)}
-                        title={coche ? "Retirer des sources" : "Interroger ce document"}
+                        aria-label={coche ? "Retirer des sources" : "Interroger ce document"} title={coche ? "Retirer des sources" : "Interroger ce document"}
                         className={`w-[17px] h-[17px] rounded-[4px] border flex items-center justify-center transition-colors
                           ${coche ? "bg-menthe border-menthe text-fond" : "border-bord-doux hover:border-menthe-clair"}`}
                       >
@@ -231,7 +231,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                           className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[13.5px] text-encre outline-none"
                         />
                       ) : (
-                        <button onClick={() => !apercu && setRenommage({ id: d.id, nom: d.nom })} className="block w-full text-left text-[13.5px] text-encre truncate hover:text-menthe-clair transition-colors" title="Cliquer pour renommer">
+                        <button onClick={() => !apercu && setRenommage({ id: d.id, nom: d.nom })} className="block w-full text-left text-[13.5px] text-encre truncate hover:text-menthe-clair transition-colors" aria-label="Cliquer pour renommer" title="Cliquer pour renommer">
                           {d.nom}
                         </button>
                       )}
@@ -269,7 +269,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                     <td className="py-3 text-right text-[12.5px] text-ardoise">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>
                     <td className="py-3 text-right text-[12.5px] text-encre">{tailleLisible(d.taille)}</td>
                     <td className="py-3 text-right relative">
-                      <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-brume hover:text-encre transition-colors" title="Actions">
+                      <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-brume hover:text-encre transition-colors" aria-label="Actions" title="Actions">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                       {menu === d.id && (

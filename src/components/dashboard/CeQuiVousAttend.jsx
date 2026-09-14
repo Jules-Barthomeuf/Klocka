@@ -174,7 +174,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                           </button>
                           <button
                             onClick={() => { if (window.confirm("Supprimer ce rappel ?")) supprimer.mutate(l.id); }}
-                            title="Supprimer"
+                            aria-label="Supprimer" title="Supprimer"
                             className="text-brume hover:text-alerte transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />

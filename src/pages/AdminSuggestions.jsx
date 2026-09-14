@@ -195,7 +195,7 @@ export default function AdminSuggestions() {
                       type="button"
                       onClick={() => setUrgence(n)}
                       aria-pressed={urgence === n}
-                      title={URGENCES[n - 1].mot}
+                      aria-label={URGENCES[n - 1].mot} title={URGENCES[n - 1].mot}
                       className="w-3.5 rounded-[2px] transition-all hover:opacity-100"
                       style={{ height: 8 + n * 3, background: n <= urgence ? urgenceDe(urgence).teinte : J["bord"], opacity: n <= urgence ? 1 : .85 }}
                     />
@@ -242,7 +242,7 @@ export default function AdminSuggestions() {
               return (
                 <div key={r.id} className="flex gap-5 py-5 border-b border-relief group">
                   {r.capture_url && (
-                    <button onClick={() => setZoom(r.capture_url)} className="flex-none w-[120px] h-[80px] rounded-lg border border-bord overflow-hidden bg-fond" title="Agrandir">
+                    <button onClick={() => setZoom(r.capture_url)} className="flex-none w-[120px] h-[80px] rounded-lg border border-bord overflow-hidden bg-fond" aria-label="Agrandir" title="Agrandir">
                       <img src={r.capture_url} alt="" className="w-full h-full object-cover" />
                     </button>
                   )}
@@ -263,7 +263,7 @@ export default function AdminSuggestions() {
                       <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n} sur 5 — cliquez une barre pour la changer`}>
                         <span className="inline-flex items-end gap-px">
                           {[1, 2, 3, 4, 5].map((n) => (
-                            <button key={n} type="button" onClick={() => noter.mutate({ id: r.id, urgence: n })} title={URGENCES[n - 1].mot} className="w-1.5 rounded-[2px] transition-colors" style={{ height: 5 + n * 1.6, background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : J["bord"] }} />
+                            <button key={n} type="button" onClick={() => noter.mutate({ id: r.id, urgence: n })} aria-label={URGENCES[n - 1].mot} title={URGENCES[n - 1].mot} className="w-1.5 rounded-[2px] transition-colors" style={{ height: 5 + n * 1.6, background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : J["bord"] }} />
                           ))}
                         </span>
                         <span style={{ color: urgenceDe(r.urgence).teinte }}>{urgenceDe(r.urgence).mot}</span>
@@ -275,7 +275,7 @@ export default function AdminSuggestions() {
                       {r.page && (
                         <>
                           <span className="text-bord-vif">·</span>
-                          <a href={r.page} className="text-brume hover:text-menthe underline decoration-bord underline-offset-2" title="Ouvrir la page d'où vient la remarque">{r.page}</a>
+                          <a href={r.page} className="text-brume hover:text-menthe underline decoration-bord underline-offset-2" aria-label="Ouvrir la page d'où vient la remarque" title="Ouvrir la page d'où vient la remarque">{r.page}</a>
                         </>
                       )}
                     </p>
@@ -291,8 +291,8 @@ export default function AdminSuggestions() {
                         {s.label}
                       </button>
                     ))}
-                    <button onClick={() => setEdition({ id: r.id, texte: r.contenu || "" })} className="ml-2 text-brume hover:text-encre opacity-0 group-hover:opacity-100 transition-opacity" title="Modifier"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => window.confirm("Supprimer cette remarque ?") && supprimer.mutate(r.id)} className="text-brume hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => setEdition({ id: r.id, texte: r.contenu || "" })} className="ml-2 text-brume hover:text-encre opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Modifier" title="Modifier"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => window.confirm("Supprimer cette remarque ?") && supprimer.mutate(r.id)} className="text-brume hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Supprimer" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               );

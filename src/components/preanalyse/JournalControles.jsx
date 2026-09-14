@@ -80,7 +80,7 @@ export default function JournalControles({ phase, temps, reperes, avancement = 0
         <button
           type="button"
           onClick={onJournal}
-          title="Journal détaillé"
+          aria-label="Journal détaillé" title="Journal détaillé"
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] transition-colors ${
             journalOuvert ? "bg-trait text-encre" : "text-brume hover:text-craie hover:bg-relief"
           }`}

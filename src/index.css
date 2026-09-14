@@ -198,39 +198,43 @@ button.k-case:not([aria-checked="true"]):hover { border-color: #3a3f4a; }
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+  /* Klocka est une application sombre : la classe est posée sur <html> dans
+     index.html. Les variables de shadcn ne prennent plus les valeurs grises
+     de la bibliothèque, mais les jetons de la marque — sinon un <Card> posé
+     de bonne foi rendait un bloc blanc au milieu d'un écran noir. */
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 0 0% 0%;          /* fond */
+    --foreground: 220 13% 95%;      /* encre */
+    --card: 216 14% 7%;             /* surface */
+    --card-foreground: 220 13% 95%;
+    --popover: 216 14% 7%;
+    --popover-foreground: 220 13% 95%;
+    --primary: 169 25% 67%;         /* menthe */
+    --primary-foreground: 147 41% 5%;  /* sur-menthe */
+    --secondary: 220 13% 14%;       /* trait */
+    --secondary-foreground: 220 13% 95%;
+    --muted: 220 13% 14%;
+    --muted-foreground: 160 3% 60%; /* ardoise */
+    --accent: 218 14% 15%;          /* bord */
+    --accent-foreground: 220 13% 95%;
+    --destructive: 5 73% 66%;       /* alerte */
+    --destructive-foreground: 147 41% 5%;
+    --border: 218 14% 15%;          /* bord */
+    --input: 218 14% 15%;
+    --ring: 169 25% 67%;            /* menthe */
+    --chart-1: 169 25% 67%;
+    --chart-2: 30 68% 62%;
+    --chart-3: 5 73% 66%;
+    --chart-4: 154 48% 66%;
+    --chart-5: 215 66% 74%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 220 13% 95%;
+    --sidebar-primary: 169 25% 67%;
+    --sidebar-primary-foreground: 147 41% 5%;
+    --sidebar-accent: 218 14% 15%;
+    --sidebar-accent-foreground: 220 13% 95%;
+    --sidebar-border: 218 14% 15%;
+    --sidebar-ring: 169 25% 67%;
   }
 }
 
@@ -422,3 +426,14 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 @keyframes alx-reflet { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 .alx button.alx-principal.alx-redige { background-image: linear-gradient(110deg, #96c0b8 0%, #96c0b8 35%, #d7ece7 50%, #96c0b8 65%, #96c0b8 100%) !important; background-size: 200% 100%; animation: alx-reflet 1.6s linear infinite; opacity: 1 !important; }
 @media (prefers-reduced-motion: reduce) { .alx button.alx-principal.alx-redige { animation: none; } }
+
+/* --- Le focus au clavier -----------------------------------------------
+   Les boutons de shadcn portent leur propre anneau ; les quatre cent
+   cinquante-cinq boutons écrits à la main n'en avaient aucun, et la
+   navigation au clavier était invisible. Une règle, en menthe, partout. */
+:where(button, a, [role="button"], [role="tab"], summary):focus-visible,
+:where(input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid #96c0b8;
+  outline-offset: 2px;
+  border-radius: inherit;
+}

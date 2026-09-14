@@ -289,7 +289,7 @@ export default function ALXCible() {
           <div className="relative flex flex-col gap-[26px] rounded-[20px] border border-trait bg-[#0B0D0C] p-7">
             <button
               onClick={() => setAnalyseOuverte((x) => !x)}
-              title={analyseOuverte ? "Revenir à la fiche" : "Lire l'analyse"}
+              aria-label={analyseOuverte ? "Revenir à la fiche" : "Lire l'analyse"} title={analyseOuverte ? "Revenir à la fiche" : "Lire l'analyse"}
               aria-pressed={analyseOuverte}
               className="absolute right-5 top-5 flex h-9 items-center gap-2 rounded-full border px-3.5 text-[12.5px] transition-colors"
               style={{ borderColor: analyseOuverte ? J["menthe"] : "rgba(255,255,255,0.12)", color: analyseOuverte ? J["menthe"] : J["ardoise"], background: analyseOuverte ? "rgba(150,192,184,0.12)" : "transparent" }}

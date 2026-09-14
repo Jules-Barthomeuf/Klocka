@@ -555,7 +555,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         {!plongee && !streetView && (project.adresse_complete || (project.latitude && project.longitude)) && (
           <button
             onClick={(e) => { e.stopPropagation(); setPlongee(true); }}
-            title="Voir la vidéo du secteur"
+            aria-label="Voir la vidéo du secteur" title="Voir la vidéo du secteur"
             className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-fond/55 border border-encre/40 backdrop-blur-sm flex items-center justify-center text-encre hover:border-menthe hover:text-menthe-clair hover:scale-105 transition-all"
           >
             <Play className="w-6 h-6 ml-1 fill-current" />
@@ -585,7 +585,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 le clic ouvre la visionneuse (flèches pour naviguer). */}
             {project.photos && project.photos.length > 1 && (
               <button onClick={() => setSelectedImage(project.photos[0])}
-                title={`Voir les ${project.photos.length} photos`}
+                 aria-label={`Voir les ${project.photos.length} photos`} title={`Voir les ${project.photos.length} photos`}
                 className="relative group mr-1">
                 <span className="absolute -top-1 -right-1 w-full h-full border border-encre/[0.28] bg-fond/50" aria-hidden="true" />
                 <img src={project.photos[1]} alt="Galerie du projet"

@@ -1062,7 +1062,7 @@ export default function AdminProjets() {
             {editingProject?.id && (
               <button
                 onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")}
-                title="Ouvrir la page telle que le client la verra"
+                aria-label="Ouvrir la page telle que le client la verra" title="Ouvrir la page telle que le client la verra"
                 className="flex-shrink-0 w-[34px] h-[34px] rounded-full border border-[#2a2a2a] text-[#8a8a8a] hover:text-encre hover:border-[#4d4d4d] transition-colors inline-flex items-center justify-center"
               >
                 <Eye className="w-4 h-4" />
@@ -1097,7 +1097,7 @@ export default function AdminProjets() {
               <button
                 onClick={annulerDerniereModification}
                 disabled={!historique.length}
-                title={historique.length ? "Revenir à l'état précédent" : "Rien à annuler"}
+                aria-label={historique.length ? "Revenir à l'état précédent" : "Rien à annuler"} title={historique.length ? "Revenir à l'état précédent" : "Rien à annuler"}
                 className={FLECHE}
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -1105,7 +1105,7 @@ export default function AdminProjets() {
               <button
                 onClick={refaireDerniereModification}
                 disabled={!refaits.length}
-                title={refaits.length ? "Refaire ce qui vient d'être annulé" : "Rien à refaire"}
+                aria-label={refaits.length ? "Refaire ce qui vient d'être annulé" : "Rien à refaire"} title={refaits.length ? "Refaire ce qui vient d'être annulé" : "Rien à refaire"}
                 className={FLECHE}
               >
                 <ArrowRight className="w-4 h-4" />
@@ -1497,7 +1497,7 @@ export default function AdminProjets() {
               className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[15px] py-1"
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" title="Effacer">
+              <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" aria-label="Effacer" title="Effacer">
                 <X className="w-4 h-4" />
               </button>
             )}

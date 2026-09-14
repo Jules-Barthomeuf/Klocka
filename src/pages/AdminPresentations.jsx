@@ -65,17 +65,17 @@ function CasePhoto({ label, url, suggestions, onChange }) {
         <div className="flex items-center gap-1 flex-shrink-0">
           {suggestions.length > 1 && (
             <>
-              <button onClick={() => naviguer(-1)} title="Photo précédente du projet"
+              <button onClick={() => naviguer(-1)} aria-label="Photo précédente du projet" title="Photo précédente du projet"
                 className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-encre transition-colors">
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => naviguer(1)} title="Photo suivante du projet"
+              <button onClick={() => naviguer(1)} aria-label="Photo suivante du projet" title="Photo suivante du projet"
                 className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-encre transition-colors">
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </>
           )}
-          <button onClick={() => fichierRef.current?.click()} title="Importer une image"
+          <button onClick={() => fichierRef.current?.click()} aria-label="Importer une image" title="Importer une image"
             className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-menthe-clair transition-colors">
             <Upload className="w-3.5 h-3.5" />
           </button>

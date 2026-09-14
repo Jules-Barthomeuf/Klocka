@@ -142,7 +142,7 @@ export default function AdminBanque() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-ardoise hover:text-encre h-8 w-8 inline-flex items-center justify-center"
-                          title="Ouvrir la présentation"
+                          aria-label="Ouvrir la présentation" title="Ouvrir la présentation"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </a>

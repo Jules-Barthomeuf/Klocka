@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import CarteCessions from "@/components/projet/CarteCessions";
-import { Section, Chiffres, Lignes, Phrase, Note, Vide, LienSource, euros, TEINTE } from "@/components/preanalyse/marche-ui";
+import { Section, Chiffres, Lignes, Phrase, Note, Vide, LienSource, euros, TEINTE } from "@/components/ui/kit";
 
 // Les cessions de fonds de commerce autour du bien, d'après Data-B.
 //

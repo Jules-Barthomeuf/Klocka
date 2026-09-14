@@ -20,14 +20,14 @@ export default function SimChartCarousel({ calculs, anneeRevente, formatCurrency
       <button
         onClick={() => go(-1)}
         className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-fond/60 border border-bord flex items-center justify-center text-craie hover:text-encre hover:border-encre/[0.3] transition-colors"
-        title="Précédent"
+        aria-label="Précédent" title="Précédent"
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
       <button
         onClick={() => go(1)}
         className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-fond/60 border border-bord flex items-center justify-center text-craie hover:text-encre hover:border-encre/[0.3] transition-colors"
-        title="Suivant"
+        aria-label="Suivant" title="Suivant"
       >
         <ChevronRight className="w-4 h-4" />
       </button>

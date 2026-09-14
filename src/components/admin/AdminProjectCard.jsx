@@ -145,25 +145,25 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
 
           {/* Actions — apparaissent au survol */}
           <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} title="Simulateur">
+            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Simulateur" title="Simulateur">
               <Calculator className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} title="Modifier">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Modifier" title="Modifier">
               <Pencil className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} title="Preview client">
+            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Preview client" title="Preview client">
               <Eye className="w-3.5 h-3.5" />
             </button>
-            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} title="Copier le lien public (accessible sans compte)">
+            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Copier le lien public (accessible sans compte)" title="Copier le lien public (accessible sans compte)">
               {copied ? <Check className="w-3.5 h-3.5 text-menthe-clair" /> : <Share2 className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} title="Dupliquer">
+            <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Dupliquer" title="Dupliquer">
               <Copy className="w-3.5 h-3.5" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onArchive(project); }} className={`${actionBtn} ${project.archived ? 'text-menthe' : 'hover:text-menthe hover:border-menthe'}`} title={project.archived ? "Désarchiver" : "Archiver"}>
+            <button onClick={(e) => { e.stopPropagation(); onArchive(project); }} className={`${actionBtn} ${project.archived ? 'text-menthe' : 'hover:text-menthe hover:border-menthe'}`} aria-label={project.archived ? "Désarchiver" : "Archiver"} title={project.archived ? "Désarchiver" : "Archiver"}>
               {project.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(project.id); }} className={`${actionBtn} hover:text-red-400 hover:border-red-400/40`} title="Supprimer">
+            <button onClick={(e) => { e.stopPropagation(); onDelete(project.id); }} className={`${actionBtn} hover:text-red-400 hover:border-red-400/40`} aria-label="Supprimer" title="Supprimer">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>

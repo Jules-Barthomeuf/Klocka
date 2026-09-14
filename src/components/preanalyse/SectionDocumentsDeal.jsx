@@ -327,7 +327,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
                       <button
                         onClick={() => setFile((prev) => prev.filter((x) => x.nom !== f.nom))}
                         className="text-brume hover:text-encre flex-none"
-                        title="Masquer"
+                        aria-label="Masquer" title="Masquer"
                       >
                         ✕
                       </button>

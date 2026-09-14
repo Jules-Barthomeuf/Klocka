@@ -26,7 +26,12 @@ const gardeeLe = (dealId, id) => lire(dealId, id)?.le ?? 0;
 
 // « À checker » : bleu clair pâle, texte blanc — la valeur est là, un humain
 // doit encore la valider en OK.
-const FOND = { ok: "#2f7a5a", a_checker: "#5a8db5", warning: "#a8752a", a_verifier: "#a8752a", no_go: "#9b3b32", vide: "#2c3139", non_lu: "#2c3139" };
+// Les statuts prennent les teintes de l'application : menthe, ambre, rouge,
+// gris. La case est un fond très dilué, le mot porte la couleur pleine — un
+// aplat saturé faisait tache au milieu d'un tableau sombre.
+const TEINTE = { ok: "#96c0b8", a_checker: "#8fb3d9", warning: "#e0a45e", a_verifier: "#e0a45e", no_go: "#e0655f", vide: "#8B938F", non_lu: "#8B938F" };
+const teinteDe = (st) => TEINTE[st] || TEINTE.vide;
+const FOND = Object.fromEntries(Object.entries(TEINTE).map(([k, v]) => [k, `${v}1f`]));
 const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
 const Th = ({ children, className = "" }) => <th className={`text-left text-[11.5px] font-semibold tracking-[.02em] text-ardoise px-4 py-2.5 border-b border-r border-trait last:border-r-0 ${className}`}>{children}</th>;
 
@@ -98,15 +103,15 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                 )}
               </td>
               <td className={`px-4 py-3 border-b border-r border-trait relative ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
-                <span className="text-[13px] font-medium text-[#ffffff]">{MOT[l.statut] || l.statut}</span>
-                {l.decision && <span className="block text-[10.5px] text-[#ffffff]/70">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
+                <span className="text-[13px] font-medium" style={{ color: teinteDe(l.statut) }}>{MOT[l.statut] || l.statut}</span>
+                {l.decision && <span className="block text-[10.5px] text-[#8B938F]">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
                 {/* Sur les deux dernières lignes, le menu s'ouvre vers le
                     haut : posé en dessous, il sortait du tableau et les statuts
                     n'étaient plus cliquables. */}
                 {choix === l.id && (
                   <div className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
                     {[["ok", "OK"], ["a_checker", "À checker"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([st, mot]) => (
-                      <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="text-left text-[12.5px] text-[#ffffff] px-3 py-1.5 rounded-md" style={{ background: FOND[st] }}>{mot}</button>
+                      <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND[st], color: teinteDe(st) }}>{mot}</button>
                     ))}
                     {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="text-left text-[12px] text-ardoise hover:text-encre px-3 py-1">Revenir au calcul</button>}
                   </div>
@@ -220,8 +225,8 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
         const resume = g ? { ok: g.resume.ok, a_checker: g.resume.a_checker || 0, warning: g.resume.warning + g.resume.a_verifier, no_go: g.resume.no_go || 0, vide: g.resume.vide + g.resume.non_lu } : null;
         const enCours = g?.remplissage?.etat === "en_cours";
         return (
-          <div key={v.id} className="bg-fond border border-trait rounded-[18px] overflow-hidden">
-            <header className="px-5 py-4 border-b border-trait flex flex-wrap items-center justify-between gap-4">
+          <div key={v.id} className="overflow-hidden rounded-[16px] border border-white/[0.07] bg-fond">
+            <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.07] px-5 py-4">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 <h2 className="m-0 text-[17px] font-semibold text-encre">{v.titre || g?.titre || v.id}</h2>
                 {v.sousTitre && <span className="text-[13px] text-ardoise">{v.sousTitre}</span>}
@@ -229,11 +234,11 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
               <div className="flex flex-wrap items-center gap-4">
                 {resume && (
                   <span className="flex items-center gap-3 text-[12px] text-craie">
-                    <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.ok }} />{resume.ok} OK</span>
-                    {resume.a_checker > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.a_checker }} />{resume.a_checker} à checker</span>}
-                    <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.warning }} />{resume.warning} à vérifier</span>
-                    {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.no_go }} />{resume.no_go} no go</span>}
-                    {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: FOND.vide }} />{resume.vide} sans valeur</span>}
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.ok }} />{resume.ok} OK</span>
+                    {resume.a_checker > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.a_checker }} />{resume.a_checker} à checker</span>}
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} à vérifier</span>
+                    {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} no go</span>}
+                    {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.vide }} />{resume.vide} sans valeur</span>}
                   </span>
                 )}
                 {enCours ? (

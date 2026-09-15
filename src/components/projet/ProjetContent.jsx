@@ -551,8 +551,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <div className="absolute inset-0 bg-surface" />
         )}
         {/* En Street View, ni voile ni habillage : le panorama se manipule. */}
+        {/* Pendant la vidéo, le voile ne garde que le bas, pour lire le titre. */}
         {!streetView && (
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ background: plongee
+            ? 'linear-gradient(to top, rgba(10,12,12,0.9) 0%, rgba(10,12,12,0.35) 30%, rgba(10,12,12,0) 55%)'
+            : 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
         )}
 
         {/* Bouton play au centre : lance la vidéo du secteur (plongée 3D). */}
@@ -572,7 +575,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 par le bouton play au centre de l'image). */}
             {plongee && !streetView && (
               <button onClick={() => setPlongee(false)}
-                className="font-display text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors">
+                className="text-[12.5px] px-4 py-2 rounded-full bg-fond/50 backdrop-blur-sm border border-encre/[0.28] text-encre hover:border-encre transition-colors">
                 Arrêter la vidéo
               </button>
             )}
@@ -580,7 +583,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             {mapsKey && (project.adresse_complete || (project.latitude && project.longitude)) && (
               <button
                 onClick={() => { setStreetView((v) => !v); setPlongee(false); }}
-                className="font-display text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors"
+                className="text-[12.5px] px-4 py-2 rounded-full bg-fond/50 backdrop-blur-sm border border-encre/[0.28] text-encre hover:border-encre transition-colors"
               >
                 {streetView ? "Fermer Street View" : "Street View"}
               </button>
@@ -601,7 +604,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             )}
             {project.documents && project.documents.length > 0 && (
               <button onClick={() => window.open(project.documents[0], '_blank')}
-                className="font-display text-[13.5px] px-3.5 py-1.5 rounded bg-fond/50 border border-encre/[0.28] text-encre hover:border-encre transition-colors max-md:hidden">
+                className="text-[12.5px] px-4 py-2 rounded-full bg-fond/50 backdrop-blur-sm border border-encre/[0.28] text-encre hover:border-encre transition-colors max-md:hidden">
                 Documents ({project.documents.length})
               </button>
             )}
@@ -705,6 +708,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     refresh={refreshAnalyse}
                     project={project}
                     isPublic={isPublic}
+                    prixM2Revient={prixM2Revient}
+                    loyerM2={loyerM2}
+                    peutLancerEtude={isAdmin || modeEdition}
                   />
                 </div>
               </div>
@@ -1141,7 +1147,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             subtitle="Budget d'acquisition, indicateurs clés et création de richesse."
           />
           <div className="grid lg:grid-cols-2 gap-6 max-md:grid-cols-1 max-md:gap-4 mb-8 max-md:mb-4">
-            <div className="border-t border-encre/[0.35] pt-7 max-md:pt-5">
+            <div className="rounded-xl border border-bord bg-surface p-7 max-md:p-5">
               <SectionLabel tone="teal">Budget total</SectionLabel>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-md:gap-4 max-w-full">
                 <div className="relative flex items-center justify-center w-full order-2 md:order-1">
@@ -1157,37 +1163,37 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
-                      <p className="text-xl text-encre">{formatCurrency(prixRevientCalcule)}</p>
-                      <p className="text-xs text-encre">Prix de revient</p>
+                      <p className="text-[18px] font-light text-encre mb-0" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(prixRevientCalcule)}</p>
+                      <p className="text-[11px] tracking-[0.16em] uppercase text-ardoise mt-1 mb-0">Prix de revient</p>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-3 min-w-0 flex-shrink order-1 md:order-2">
                   {prixBienNegocie > 0 ? (
                     <>
-                      <div><p className="text-xs text-encre/30">Prix du bien négocié FAI</p><p className="text-lg text-encre">{formatCurrency(prixBienNegocie)}</p></div>
-                      <div><p className="text-xs text-encre/30">Droits d'enregistrement estimés</p><p className="text-lg text-encre">{formatCurrency(droitsEnregistrement)}</p></div>
-                      <div><p className="text-xs text-encre/30">Honoraires Klocka</p><p className="text-lg text-menthe">{formatCurrency(feesKlocka)}</p></div>
-                      <div><p className="text-xs text-encre/30">Incentive Klocka (sur la négociation)</p><p className="text-lg" style={{ color: J["ambre"] }}>{formatCurrency(incentiveKlocka)}</p></div>
-                      <div><p className="text-xs text-encre/30">Frais divers à l'acquisition</p><p className="text-lg text-menthe">{formatCurrency(fraisDivers)}</p></div>
+                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Prix du bien négocié FAI</p><p className="text-lg text-encre">{formatCurrency(prixBienNegocie)}</p></div>
+                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Droits d'enregistrement estimés</p><p className="text-lg text-encre">{formatCurrency(droitsEnregistrement)}</p></div>
+                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Honoraires Klocka</p><p className="text-lg text-menthe">{formatCurrency(feesKlocka)}</p></div>
+                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Incentive Klocka (sur la négociation)</p><p className="text-lg" style={{ color: J["ambre"] }}>{formatCurrency(incentiveKlocka)}</p></div>
+                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Frais divers à l'acquisition</p><p className="text-lg text-menthe">{formatCurrency(fraisDivers)}</p></div>
                     </>
                   ) : (
                     <>
-                      <div><p className="text-xs text-encre/30">Prix de revient</p><p className="text-lg text-encre">{formatCurrency(prixRevientCalcule)}</p></div>
-                      <div><p className="text-xs text-encre/30">Loyer annuel HT</p><p className="text-lg text-encre">{formatCurrency(loyerAnnuel)}</p></div>
-                      <div><p className="text-xs text-encre/30">Apport estimé</p><p className="text-lg text-encre">{formatCurrency(apport)}</p></div>
+                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Prix de revient</p><p className="text-lg text-encre">{formatCurrency(prixRevientCalcule)}</p></div>
+                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Loyer annuel HT</p><p className="text-lg text-encre">{formatCurrency(loyerAnnuel)}</p></div>
+                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Apport estimé</p><p className="text-lg text-encre">{formatCurrency(apport)}</p></div>
                     </>
                   )}
                 </div>
               </div>
               <button
                 onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-                className="w-full mt-7 py-2.5 text-[11px] tracking-[0.16em] uppercase bg-transparent border border-menthe text-menthe-clair hover:bg-menthe/[0.16] transition-colors">
-                Simulateur complet
+                className="mt-7 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors">
+                Simulateur complet <span aria-hidden="true">→</span>
               </button>
             </div>
 
-            <div className="border-t border-encre/[0.35] pt-7 max-md:pt-5">
+            <div className="rounded-xl border border-bord bg-surface p-7 max-md:p-5">
               <SectionLabel tone="teal">Indicateurs clés</SectionLabel>
               <KVRow label="Rendement locatif net" value={fmtPct(rendementLocatifNetCalcule)} accent="text-menthe-clair" />
               <KVRow label="Apport initial" value={formatCurrency(apport)} />
@@ -1201,7 +1207,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
         {/* Création de richesse annuelle — même graphique que le simulateur */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-8 max-md:mt-6">
-          <div className="border-t border-encre/[0.35] pt-7 max-md:pt-5">
+          <div className="rounded-xl border border-bord bg-surface p-7 max-md:p-5">
             <div className="flex items-start justify-between gap-6 mb-6 max-md:mb-4">
               <div>
                 <SectionLabel tone="teal" className="mb-1.5">Création de richesse annuelle</SectionLabel>

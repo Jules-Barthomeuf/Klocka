@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { MapPin, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import CarteDuProjet from "./CarteDuProjet";
 
 const statutLabels = {
   prospect: "Prospect",
@@ -69,9 +70,7 @@ export default function ClientProjectCard2({ project }) {
               className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
             />
           ) : (
-            <div className="w-full h-full bg-fond flex items-center justify-center">
-              <MapPin className="w-10 h-10 text-encre/[0.06]" />
-            </div>
+            <CarteDuProjet project={project} />
           )}
           <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,16,15,0.97) 6%, rgba(14,16,15,0.35) 55%, rgba(14,16,15,0.55) 100%)" }} />
           

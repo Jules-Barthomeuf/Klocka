@@ -97,6 +97,7 @@ export default function AdminProjets() {
     ville_secteur_champ3: "",
     // Les cinq chiffres de la bande du haut, et les paragraphes sous eux.
     ville_habitants: null,
+    ville_habitants_agglo: null,
     ville_evolution_pop: null,
     ville_revenu_median: null,
     ville_chomage: null,
@@ -339,7 +340,7 @@ export default function AdminProjets() {
       adresse_complete: "", statut: "prospect", suivi_message_envoye: false, suivi_retour_client: null,
       latitude: null, longitude: null, documents: [],
       ville_secteur_champ1: "", ville_secteur_champ2: "", ville_secteur_champ3: "",
-      ville_habitants: null, ville_evolution_pop: null, ville_revenu_median: null,
+      ville_habitants: null, ville_habitants_agglo: null, ville_evolution_pop: null, ville_revenu_median: null,
       ville_chomage: null, ville_prix_m2: null, ville_points: [], secteur_points: [],
       description_ville: "", description_secteur: "",
       env_data: {},
@@ -420,7 +421,7 @@ export default function AdminProjets() {
       longitude: project.longitude || null, documents: project.documents || [],
       ville_secteur_champ1: project.ville_secteur_champ1 || "", ville_secteur_champ2: project.ville_secteur_champ2 || "",
       ville_secteur_champ3: project.ville_secteur_champ3 || "",
-      ville_habitants: project.ville_habitants ?? null, ville_evolution_pop: project.ville_evolution_pop ?? null,
+      ville_habitants: project.ville_habitants ?? null, ville_habitants_agglo: project.ville_habitants_agglo ?? null, ville_evolution_pop: project.ville_evolution_pop ?? null,
       ville_revenu_median: project.ville_revenu_median ?? null, ville_chomage: project.ville_chomage ?? null,
       ville_prix_m2: project.ville_prix_m2 ?? null,
       ville_points: project.ville_points || [], secteur_points: project.secteur_points || [],
@@ -1306,18 +1307,15 @@ export default function AdminProjets() {
                     <FField label="Région" className="col-span-2"><FInput value={formData.ville_secteur_champ3} onChange={(e) => setFormData({...formData, ville_secteur_champ3: e.target.value})} placeholder="Auvergne-Rhône-Alpes" /></FField>
                   </div>
 
-                  {/* Les cinq chiffres de la bande du haut. Ce qui est saisi ici
-                      l'emporte sur le jeu de données : on corrige une commune
-                      mal couverte et la page le montre. */}
+                  {/* Les deux chiffres de la bande du haut. Vides, la page prend
+                      l'agglomération Insee et le revenu du jeu de données ;
+                      saisis, ils l'emportent. */}
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      ["ville_habitants", "Habitants", "522 000"],
-                      ["ville_evolution_pop", "Population / an (%)", "+0,4"],
+                      ["ville_habitants_agglo", "Habitants agglomération", "1 721 000"],
                       ["ville_revenu_median", "Revenu médian / UC (€)", "24 300"],
-                      ["ville_chomage", "Taux de chômage (%)", "11"],
-                      ["ville_prix_m2", "Prix médian appartement /m² (€)", "4 700"],
                     ].map(([champ, libelle, exemple]) => (
-                      <FField key={champ} label={libelle} className={champ === "ville_prix_m2" ? "col-span-2" : ""}>
+                      <FField key={champ} label={libelle}>
                         <FInput
                           type="number"
                           step="any"

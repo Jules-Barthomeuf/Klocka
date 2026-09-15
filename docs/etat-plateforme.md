@@ -6,44 +6,22 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-2 personnes, 756 pages ouvertes, 0 demandes à l'assistant, 0 actions exécutées.
+0 personnes, 0 pages ouvertes, 0 demandes à l'assistant, 0 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 694 | 0 | 0 | 15/09/2026 |
-| admin@klocka.local (équipe) | 62 | 0 | 0 | 15/09/2026 |
 
 ## Les pages qui comptent
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **ALX** — 230 (30 %)
-- **Analyse** — 211 (28 %)
-- **Dashboard** — 86 (11 %)
-- **ALXCible** — 77 (10 %)
-- **AdminProjets** — 31 (4 %)
-- **Monitoring** — 25 (3 %)
-- **AdminSuggestions** — 16 (2 %)
-- **ALXVilles** — 15 (2 %)
-- **ALXBilan** — 13 (2 %)
-- **ApercuEchelle** — 9 (1 %)
-- **ALXEntrainement** — 8 (1 %)
-- **CoutsIA** — 8 (1 %)
-- Le reste, sous 1 % : SimulateurRentabilite, ProjetDetail, Home, Feedback, MonCompte, AdminClients, MesProjets, Preanalyse
 
 ## Ce que l'IA coûte
 
-1,60 € sur la période, 90 appels, 226 k jetons. 0 % part en tâche de fond, sans que personne clique. 0 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+0 € sur la période, 0 appels, 0 k jetons. 0 % part en tâche de fond, sans que personne clique. 0 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Poser une question sur le marché | 0,03 € par question | 23 | 0,76 € | 14 s |
-| Prospecter avec ALX | 0,03 € par commande | 10 | 0,29 € | 6 s |
-| Appel direct au modèle | 0,05 € par appel | 6 | 0,27 € | 27 s |
-| Lire une devanture | 0,0091 € par commerce | 22 | 0,20 € | 6 s |
-| Écrire au propriétaire | 0,01 € par message | 4 | 0,06 € | 8 s |
-| Analyser une fiche commerciale | 0,0100 € par fiche | 2 | 0,02 € | 6 s |
-| Préparer un rappel (fond) | 0,0025 € par rappel | 2 | 0,0050 € | 2 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
@@ -59,7 +37,6 @@ Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf pl
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **ALX** : 30 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
-- Le geste le plus cher est « poser une question sur le marché » à 0,03 € par question : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
+- L'écran de travail, c'est **Analyse** : 0 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - 0 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

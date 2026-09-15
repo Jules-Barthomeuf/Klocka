@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { trouverVille, trouverSecteur, chiffresVille } from "@/data/villes";
+import { useSecteurProjet, ChiffresStrip, chiffresSecteur, LancerEtude, PrixEtLoyers, nf } from "./SecteurChiffres";
 
 // Analyse IA de la page projet : avis de synthèse + chiffres clés et points
 // marquants pour la ville et le secteur. Un SEUL appel LLM couvre les trois
@@ -37,12 +38,12 @@ const SCHEMA = {
         nom: { type: "string" },
         chiffres: {
           type: "array",
-          description: "4 à 5 chiffres clés réels et vérifiables (population, évolution, revenu médian, taux de chômage, prix médian au m², touristes/an...).",
+          description: "Le revenu médian par unité de consommation de la commune, s'il est connu.",
           items: {
             type: "object",
             properties: {
-              valeur: { type: "string", description: "Chiffre formaté, ex. '873 000' ou '+2,4 %'" },
-              label: { type: "string", description: "Libellé court, ex. 'Habitants'" },
+              valeur: { type: "string", description: "Chiffre formaté, ex. '23 400 €'" },
+              label: { type: "string", description: "Libellé court, ex. 'Revenu médian / UC'" },
             },
           },
         },
@@ -57,20 +58,9 @@ const SCHEMA = {
       type: "object",
       properties: {
         nom: { type: "string", description: "Nom de la rue, du quartier ou de l'axe commercial" },
-        chiffres: {
-          type: "array",
-          description: "3 à 5 chiffres clés du micro-secteur (flux piéton, loyers commerciaux €/m²/an, prix des murs €/m², taux de vacance commerciale, desserte).",
-          items: {
-            type: "object",
-            properties: {
-              valeur: { type: "string" },
-              label: { type: "string" },
-            },
-          },
-        },
         points: {
           type: "array",
-          description: "3 à 5 points courts sur l'emplacement : commercialité, enseignes présentes, accessibilité, clientèle, projets à proximité.",
+          description: "UNE seule phrase courte sur l'emplacement : sa commercialité et la clientèle qui y passe.",
           items: { type: "string" },
         },
       },
@@ -101,8 +91,8 @@ function buildPrompt(project, villeData, secteurData) {
 2. ${onglets}`
     : `1. avis_projet : 2 à 3 phrases sur l'intérêt de ce projet précis, en terminant par le principal point de vigilance.
 2. ${onglets}
-3. ville : les chiffres clés réels de la commune (données INSEE les plus récentes que tu connais) et les points marquants pour un investisseur.
-4. secteur : les chiffres et points propres à la rue / au micro-quartier de l'adresse (commercialité, flux, loyers commerciaux, desserte).`;
+3. ville : le revenu médian par UC de la commune (INSEE) s'il est connu, et les points marquants pour un investisseur.
+4. secteur : le nom de la rue ou du micro-quartier, et UNE seule phrase courte sur sa commercialité.`;
 
   return `Tu es analyste en immobilier commercial (murs de boutique) chez Klocka. Tu rédiges pour un investisseur particulier.
 
@@ -169,7 +159,7 @@ export function useAnalyseIA(project) {
       /* cache illisible : on relance l'analyse */
     }
     fetchAnalyse();
-     
+
   }, [projectId, adresse]);
 
   return { analyse: data, villeData, secteurData, loading, error, refresh: fetchAnalyse };
@@ -235,52 +225,6 @@ export function AvisProjetIA({ analyse, loading, error, vertical = false, sectio
   );
 }
 
-// Pastille « i » : comment lire le chiffre. Ouvre au survol et au clic, pour
-// rester utilisable sur mobile où il n'y a pas de survol.
-function InfoDot({ texte }) {
-  const [open, setOpen] = useState(false);
-  if (!texte) return null;
-  return (
-    <span className="relative inline-flex align-middle">
-      <button
-        type="button"
-        aria-label="Comment lire ce chiffre"
-        onClick={() => setOpen((v) => !v)}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        onBlur={() => setOpen(false)}
-        className={`w-[15px] h-[15px] rounded-full border text-[11px] leading-none flex items-center justify-center transition-colors
-          ${open ? "border-menthe-clair text-menthe-clair" : "border-encre/25 text-ardoise hover:border-menthe-clair hover:text-menthe-clair"}`}
-      >
-        i
-      </button>
-      {open && (
-        <span className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-30 w-64 max-md:w-52 bg-surface border border-bord px-3.5 py-3 text-[12.5px] leading-[1.6] text-craie text-left normal-case tracking-normal shadow-xl">
-          {texte}
-        </span>
-      )}
-    </span>
-  );
-}
-
-function ChiffresStrip({ chiffres }) {
-  const list = (chiffres || []).filter((c) => c && c.valeur);
-  if (!list.length) return null;
-  return (
-    <div className="flex flex-wrap border-t border-encre/[0.35] mb-5">
-      {list.map((c, i) => (
-        <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-4 max-md:py-3 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-5" : ""}`}>
-          <div className="text-[24px] max-md:text-[18px] font-light text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{c.valeur}</div>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[11px] text-ardoise">{c.label}</span>
-            <InfoDot texte={c.info} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function PointsList({ points }) {
   const list = (points || []).filter(Boolean);
   if (!list.length) return null;
@@ -296,60 +240,59 @@ function PointsList({ points }) {
   );
 }
 
-function Bloc({ label, nom, chiffres, points, loading, fallback }) {
-  const hasIA = (chiffres && chiffres.length) || (points && points.length);
-  if (!loading && !hasIA && !fallback) return null;
+function Titre({ label, nom }) {
   return (
-    <div className="mb-8 max-md:mb-6 last:mb-0">
-      <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-3">
-        {label}{nom ? ` — ${nom}` : ""}
-      </div>
-      {loading && !hasIA ? (
-        <div className="space-y-2.5">
-          <SkeletonLine w="60%" />
-          <SkeletonLine />
-          <SkeletonLine w="88%" />
-        </div>
-      ) : hasIA ? (
-        <>
-          <ChiffresStrip chiffres={chiffres} />
-          <PointsList points={points} />
-        </>
-      ) : (
-        <p className="text-[13.5px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{fallback}</p>
-      )}
+    <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-3">
+      {label}{nom ? ` — ${nom}` : ""}
     </div>
   );
 }
 
-// Blocs « La ville » et « Le secteur » alimentés par l'IA, avec repli sur les
-// descriptions saisies par l'administrateur si l'analyse échoue.
-export default function VilleSecteurIA({ analyse, villeData, secteurData, loading, error, refresh, project, isPublic }) {
+function Attente() {
+  return (
+    <div className="space-y-2.5">
+      <SkeletonLine w="60%" />
+      <SkeletonLine />
+      <SkeletonLine w="88%" />
+    </div>
+  );
+}
+
+const premierePhrase = (texte) => String(texte || "").trim().match(/^[\s\S]*?[.!?](?=\s|$)/)?.[0] || String(texte || "").trim();
+
+// Blocs « La ville » et « Le secteur ». La ville : habitants de l'agglomération
+// et revenu médian. Le secteur : une phrase, puis distance, commercialité et
+// flux, puis les prix et loyers du résidentiel, de la rue et du projet.
+export default function VilleSecteurIA({ analyse, villeData, secteurData, loading, error, refresh, project, isPublic, prixM2Revient = 0, loyerM2 = 0, peutLancerEtude = false }) {
+  const { data: donnees, isLoading: secteurEnAttente } = useSecteurProjet(project, !isPublic);
+
   // Ce que la fiche porte l'emporte : un chiffre corrigé à la main doit
-  // s'afficher, sinon on corrigerait dans le vide. Le dataset vient ensuite,
-  // l'IA en dernier pour les communes qu'il ne couvre pas.
-  const propres = chiffresVille({
-    nom: project.ville_secteur_champ1,
-    pop: Number(project.ville_habitants) || 0,
-    evo: Number.isFinite(Number(project.ville_evolution_pop)) && project.ville_evolution_pop !== "" && project.ville_evolution_pop !== null ? Number(project.ville_evolution_pop) : undefined,
-    revenu: Number(project.ville_revenu_median) || 0,
-    chomage: Number(project.ville_chomage) || 0,
-    prixM2: Number(project.ville_prix_m2) || 0,
-  });
-  const dataset = villeData || analyse?.ville;
-  const ville = propres.length || project.ville_points?.length
-    ? {
-        nom: project.ville_secteur_champ1 || dataset?.nom,
-        chiffres: propres.length ? propres : dataset?.chiffres,
-        points: project.ville_points?.length ? project.ville_points : dataset?.points,
-      }
-    : dataset;
-  const secteurBase = secteurData || analyse?.secteur;
-  const secteur = project.secteur_points?.length
-    ? { ...(secteurBase || {}), points: project.secteur_points }
-    : secteurBase;
-  const attenteIA = loading && !villeData && !propres.length;
-  const rien = !loading && !ville && !secteur && !project.description_ville && !project.description_secteur;
+  // s'afficher, sinon on corrigerait dans le vide.
+  const agglo = Number(project.ville_habitants_agglo) || donnees?.agglomeration?.population || 0;
+  const revenu = Number(project.ville_revenu_median) || villeData?.revenu || 0;
+  const revenuIA = !revenu ? (analyse?.ville?.chiffres || []).find((c) => /revenu/i.test(c?.label || "")) : null;
+  const chiffresDeLaVille = [
+    agglo > 0 && {
+      valeur: nf.format(agglo),
+      label: "Habitants agglomération",
+      info: donnees?.agglomeration
+        ? `Unité urbaine de ${donnees.agglomeration.nom} : ${nf.format(donnees.agglomeration.communes)} commune${donnees.agglomeration.communes > 1 ? "s" : ""} (Insee, unités urbaines 2020).`
+        : null,
+    },
+    ...(revenu > 0 ? chiffresVille({ revenu }) : revenuIA ? [revenuIA] : []),
+  ].filter(Boolean);
+
+  const nomVille = project.ville_secteur_champ1 || villeData?.nom || analyse?.ville?.nom || donnees?.agglomeration?.nom;
+  const pointsVille = project.ville_points?.length ? project.ville_points : (villeData?.points || analyse?.ville?.points);
+
+  const nomSecteur = secteurData?.nom || donnees?.rue?.nom || analyse?.secteur?.nom || project.marche_quartier_nom;
+  const phraseSecteur = premierePhrase(
+    project.secteur_points?.[0] || secteurData?.points?.[0] || analyse?.secteur?.points?.[0] || project.description_secteur || analyse?.avis_onglets?.secteur,
+  );
+  const bandeSecteur = chiffresSecteur(donnees);
+
+  const attenteVille = (loading && !villeData && !chiffresDeLaVille.length) || (secteurEnAttente && !chiffresDeLaVille.length);
+  const rien = !loading && !secteurEnAttente && !chiffresDeLaVille.length && !pointsVille?.length && !phraseSecteur && !bandeSecteur.length && !project.description_ville;
 
   if (rien) {
     return <p className="text-ardoise text-sm mb-0">Aucune donnée disponible pour ce secteur.</p>;
@@ -357,23 +300,33 @@ export default function VilleSecteurIA({ analyse, villeData, secteurData, loadin
 
   return (
     <div>
-      <Bloc
-        label="La ville"
-        nom={ville?.nom}
-        chiffres={ville?.chiffres}
-        points={ville?.points}
-        loading={attenteIA}
-        fallback={project.description_ville}
-      />
-      <Bloc
-        label="Le secteur"
-        nom={secteur?.nom || project.marche_quartier_nom}
-        chiffres={secteur?.chiffres}
-        points={secteur?.points}
-        loading={attenteIA}
-        fallback={project.description_secteur}
-      />
-      <p className="text-[11px] text-brume mb-0">Ordres de grandeur — INSEE (recensement 2022), observatoires notariaux et données publiques des collectivités.</p>
+      <div className="mb-8 max-md:mb-6">
+        <Titre label="La ville" nom={nomVille} />
+        {attenteVille ? <Attente /> : (
+          <>
+            <ChiffresStrip chiffres={chiffresDeLaVille} />
+            {pointsVille?.length ? <PointsList points={pointsVille} /> : project.description_ville ? (
+              <p className="text-[13.5px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.description_ville}</p>
+            ) : null}
+          </>
+        )}
+      </div>
+
+      <div className="mb-8 max-md:mb-6">
+        <Titre label="Le secteur" nom={nomSecteur} />
+        {phraseSecteur && <p className="text-[13.5px] leading-[1.75] text-craie mb-4 max-w-[720px]">{phraseSecteur}</p>}
+        {secteurEnAttente ? <Attente /> : <ChiffresStrip chiffres={bandeSecteur} />}
+        {donnees?.en_cours && !bandeSecteur.length && (
+          <p className="text-[12.5px] text-brume mb-4">Lecture du secteur en cours : distance, rue et marché résidentiel arrivent.</p>
+        )}
+        {peutLancerEtude && donnees && !donnees.en_cours && !donnees.flux && <LancerEtude project={project} />}
+        <PrixEtLoyers donnees={donnees} prixM2Revient={prixM2Revient} loyerM2={loyerM2} />
+      </div>
+
+      <p className="text-[11px] text-brume mb-0">
+        Sources : Insee (unités urbaines 2020, revenus), Le Figaro Immobilier, Data-B, relevé OpenStreetMap et Base Adresse Nationale
+        {donnees?.le ? `, lus le ${new Date(donnees.le).toLocaleDateString("fr-FR")}` : ""}.
+      </p>
       {!isPublic && (
         <div className="flex items-center gap-3 mt-3">
           <button onClick={refresh} disabled={loading}

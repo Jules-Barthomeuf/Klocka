@@ -116,7 +116,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
       {/* Scenario select */}
       {afficherScenario ? (
       <div className="px-3 pt-3 pb-2 border-b border-trait">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-brume font-medium mb-1.5">Scénario</p>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-brume font-medium mb-1.5">Projet</p>
         <Select value={selectedProjectId || "default"} onValueChange={onSelectProject}>
           <SelectTrigger className="bg-fond text-encre border-trait h-8 text-xs rounded-md">
             <SelectValue placeholder="Mode par défaut" />

@@ -112,6 +112,37 @@ export function monterMarche(app) {
     ok(res, { resultat: r.resultat });
   }));
 
+  // Les chiffres du secteur d'un projet : agglomération, centre-ville,
+  // résidentiel, rue, flux. Lus pour le client comme pour l'équipe ; le calcul
+  // tourne en arrière-plan et la page repasse tant que `en_cours` est vrai.
+  app.get('/api/projects/:id/secteur', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+    const { projetVisiblePar } = await import('../acces-entites.js');
+    if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
+    const { lireSecteur } = await import('../projet-secteur.js');
+    ok(res, lireSecteur(projet, { forcer: user.role === 'admin' && req.query.forcer === '1' }));
+  }));
+
+  // Les flux et la commercialité : l'étude d'implantation Data-B, un crédit.
+  // Jamais lancée sans qu'un membre de l'équipe l'ait demandé.
+  app.post('/api/projects/:id/data-b/implantation', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+    if (!projet.adresse_complete) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche.' });
+    const { etudeImplantation } = await import('../data-b-implantation.js');
+    const r = await etudeImplantation(projet.adresse_complete, { activite: projet.activite_locataire || null, user });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    const { lireSecteur, attendreSecteur } = await import('../projet-secteur.js');
+    lireSecteur(projet, { forcer: true });
+    await attendreSecteur(projet.id);
+    ok(res, lireSecteur(projet));
+  }));
+
   // Les mêmes cessions, pour un projet : un projet créé avant que le dossier ne
   // les relève peut les chercher depuis son éditeur.
   app.post('/api/projects/:id/data-b/transactions', wrap(async (req, res) => {

@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import LecteurRessource, { estVideo } from "@/components/ressources/LecteurRessource";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -55,6 +56,7 @@ export default function DashboardSuggestedResources({ user }) {
   const navigate = useNavigate();
   const userEtape = user?.etape_actuelle || 1;
   const viewedResources = user?.viewed_resources || [];
+  const [lue, setLue] = useState(null);
 
   const { data: resources = [] } = useQuery({
     queryKey: ['resources-all'],
@@ -72,13 +74,13 @@ export default function DashboardSuggestedResources({ user }) {
 
   const { resource, reason, allViewed } = suggestion;
 
-  const handleOpen = async () => {
+  const handleOpen = () => {
     if (!viewedResources.includes(resource.id)) {
-      await base44.auth.updateMe({ viewed_resources: [...viewedResources, resource.id] });
+      base44.auth.updateMe({ viewed_resources: [...viewedResources, resource.id] }).catch(() => {});
     }
-    if (resource.url_fichier) {
-      window.open(resource.url_fichier, '_blank');
-    }
+    // Une vidéo se lit dans la page ; un article s'ouvre dans un onglet.
+    if (estVideo(resource) || !resource.url_fichier) setLue(resource);
+    else window.open(resource.url_fichier, '_blank');
   };
 
   return (
@@ -151,6 +153,7 @@ export default function DashboardSuggestedResources({ user }) {
           )}
         </div>
       </div>
+      <LecteurRessource ressource={lue} onFermer={() => setLue(null)} />
     </motion.div>
   );
 }

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BookOpen, Play, FileText, CheckCircle2, ExternalLink, Video, ArrowRight, Clock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import LecteurRessource, { estVideo } from "@/components/ressources/LecteurRessource";
 
 
 const typeIcons = {
@@ -44,6 +45,7 @@ function ResourceImage({ src, alt }) {
 }
 
 export default function Ressources() {
+  const [lue, setLue] = useState(null);
   const navigate = useNavigate();
   const user = useUser();
 
@@ -66,9 +68,9 @@ export default function Ressources() {
 
   const handleOpenResource = (resource) => {
     handleMarkAsViewed(resource.id);
-    if (resource.url_fichier) {
-      window.open(resource.url_fichier, '_blank');
-    }
+    // Une vidéo se lit dans la page ; un article s'ouvre dans un onglet.
+    if (estVideo(resource) || !resource.url_fichier) setLue(resource);
+    else window.open(resource.url_fichier, '_blank');
   };
 
   if (!user || isLoading) {
@@ -199,6 +201,7 @@ export default function Ressources() {
           </div>
         )}
       </div>
+      <LecteurRessource ressource={lue} onFermer={() => setLue(null)} />
     </div>
   );
 }

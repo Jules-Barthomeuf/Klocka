@@ -1,30 +1,24 @@
-/* eslint-disable no-restricted-syntax -- palette de données.
-   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
-   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
-   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Map as CarteGL, setWorkerUrl } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
-// MapLibre analyse ses tuiles dans un Web Worker dont il déduit l'URL de
-// import.meta.url — cassé une fois le code inliné par le bundler. On fait
-// donc empaqueter le worker par Vite et on impose son URL.
-import urlWorkerMapLibre from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
-
-setWorkerUrl(urlWorkerMapLibre);
+import { J } from "@/design/jetons";
 
 // Plongée « drone » du détail projet : la France vue du ciel, vol continu
 // jusqu'à l'adresse, puis lente orbite autour du local.
 //
-// Deux moteurs :
+// Deux moteurs, tous deux Google :
 //  1. Google Maps 3D photoréaliste (Map3DElement) — le rendu Google Earth :
-//     bâtiments maillés en vraie 3D. Utilisé si VITE_GOOGLE_MAPS_API_KEY est
-//     renseignée et que le projet Google Cloud a activé les cartes 3D.
-//  2. Repli MapLibre GL : orthophotos IGN en orbite inclinée, sans clé.
-//     Bascule automatique si la clé manque ou est refusée.
+//     bâtiments maillés en vraie 3D. Utilisé si le projet Google Cloud a activé
+//     l'API Map Tiles.
+//  2. Repli : la carte satellite Google Maps, descente cran par cran puis
+//     ronde lente autour du local. Même clé que Street View, sans WebGL.
+//     Les orthophotos IGN sous MapLibre qui tenaient ce rôle restaient noires
+//     quand le navigateur n'offrait pas de WebGL.
+//  En dernier recours, la vue satellite de l'API Embed, fixe.
 
 const CLE_GOOGLE = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const FRANCE = { lat: 46.4, lon: 2.6 };
+const ZOOM_DEPART = 6;
+const ZOOM_ARRIVEE = 19;
 
 // La 3D photoréaliste exige une clé avec facturation et l'API Map Tiles
 // activées. Une requête à la racine des tuiles 3D le dit tout de suite —
@@ -43,25 +37,30 @@ async function google3DDisponible() {
   }
 }
 
-// Géolocalise le projet : coordonnées enregistrées, sinon API Adresse (BAN).
+// Géolocalise le projet : l'adresse d'abord (API Adresse, BAN), puis les
+// coordonnées enregistrées. Des coordonnées posées au centre de la commune
+// envoyaient le vol à l'Hôtel de Ville au lieu du local.
 // Partagé avec le Street View de la page projet (même clé de cache).
 export async function geolocaliser(project) {
+  const q = project.adresse_complete;
+  if (q) {
+    try {
+      const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=1&q=" + encodeURIComponent(q));
+      const f = r.ok ? (await r.json()).features?.[0] : null;
+      const precise = f && (f.properties?.score ?? 0) >= 0.5 && ["housenumber", "street"].includes(f.properties?.type);
+      if (precise) return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+    } catch {
+      /* BAN injoignable : les coordonnées enregistrées prennent le relais */
+    }
+  }
   if (project.latitude && project.longitude) {
     return { lat: Number(project.latitude), lon: Number(project.longitude) };
   }
-  const q = project.adresse_complete;
-  if (!q) return null;
-  const r = await fetch(
-    "https://api-adresse.data.gouv.fr/search/?limit=1&q=" + encodeURIComponent(q)
-  );
-  if (!r.ok) return null;
-  const f = (await r.json()).features?.[0];
-  if (!f || (f.properties?.score ?? 0) < 0.3) return null;
-  return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+  return null;
 }
 
 // ---------------------------------------------------------------------------
-// Moteur 1 — Google Maps 3D photoréaliste (rendu Google Earth)
+// Chargement de l'API Google Maps (une seule fois pour toute l'application)
 // ---------------------------------------------------------------------------
 
 let chargementGoogle = null;
@@ -80,6 +79,10 @@ function chargerGoogleMaps() {
   }
   return chargementGoogle;
 }
+
+// ---------------------------------------------------------------------------
+// Moteur 1 — Google Maps 3D photoréaliste (rendu Google Earth)
+// ---------------------------------------------------------------------------
 
 function PlongeeGoogle3D({ cible, onEchec }) {
   const conteneur = useRef(null);
@@ -155,103 +158,104 @@ function PlongeeGoogle3D({ cible, onEchec }) {
   }, [cible, onEchec]);
 
   return (
-    <div className="absolute inset-0 bg-[#04070a]">
+    <div className="absolute inset-0 bg-fond">
       <div ref={conteneur} className="absolute inset-0" />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Moteur 2 — repli MapLibre : orthophotos IGN, orbite inclinée, sans clé.
+// Moteur 2 — carte satellite Google : descente puis ronde autour du local
 // ---------------------------------------------------------------------------
 
-const STYLE_ORTHO = {
-  version: 8,
-  sources: {
-    ortho: {
-      type: "raster",
-      tiles: [
-        "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
-          "&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/jpeg" +
-          "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
-      ],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution: "© IGN",
-    },
-  },
-  layers: [
-    { id: "fond", type: "background", paint: { "background-color": "#000000" } },
-    { id: "ortho", type: "raster", source: "ortho" },
-  ],
-};
-
-function PlongeeMapLibre({ cible }) {
+function PlongeeSatellite({ cible }) {
   const conteneur = useRef(null);
-  const [erreurCarte, setErreurCarte] = useState(false);
+  const [repli, setRepli] = useState(false);
 
   useEffect(() => {
-    if (!conteneur.current) return;
-    let map;
-    let raf;
-    try {
-      map = new CarteGL({
-        container: conteneur.current,
-        style: STYLE_ORTHO,
-        center: [FRANCE.lon, FRANCE.lat],
-        zoom: 5.1,
-        pitch: 0,
-        bearing: 0,
-        interactive: false,
-        attributionControl: { compact: true },
-        fadeDuration: 300,
-        maxPitch: 72,
-      });
-    } catch {
-      setErreurCarte(true); // WebGL indisponible
-      return;
-    }
+    let abandonne = false;
+    let ronde;
+    const minuteurs = [];
+    const plusTard = (fn, ms) => minuteurs.push(setTimeout(fn, ms));
+    const echec = () => { if (!abandonne) setRepli(true); };
+    window.gm_authFailure = echec;
 
-    map.on("load", () => {
-      setTimeout(() => {
-        map.flyTo({
-          center: [cible.lon, cible.lat],
-          zoom: 17.4,
-          pitch: 63,
-          bearing: -25,
-          duration: 15000,
-          curve: 1.4,
-          essential: true,
+    (async () => {
+      try {
+        if (!CLE_GOOGLE) throw new Error("clé Google Maps absente");
+        await chargerGoogleMaps();
+        const { Map } = await window.google.maps.importLibrary("maps");
+        if (abandonne || !conteneur.current) return;
+
+        const centre = { lat: cible.lat, lng: cible.lon };
+        const carte = new Map(conteneur.current, {
+          center: centre,
+          zoom: ZOOM_DEPART,
+          mapTypeId: "satellite",
+          disableDefaultUI: true,
+          gestureHandling: "none",
+          keyboardShortcuts: false,
+          clickableIcons: false,
+          backgroundColor: J["fond"],
         });
-        map.once("moveend", () => {
-          const tourner = () => {
-            map.setBearing(map.getBearing() + 0.05);
-            raf = requestAnimationFrame(tourner);
-          };
-          tourner();
-        });
-      }, 900);
-    });
-    map.on("error", () => {
-      /* tuile manquante ou source lente : MapLibre continue sans casser */
-    });
+
+        // Autour du local, à une quarantaine de mètres : panTo anime les
+        // petits déplacements, la carte glisse comme une caméra qui tourne.
+        const tourner = () => {
+          if (abandonne) return;
+          let angle = 0;
+          const rayon = 0.00035;
+          const etirement = 1 / Math.cos((cible.lat * Math.PI) / 180);
+          ronde = setInterval(() => {
+            angle += Math.PI / 6;
+            carte.panTo({ lat: cible.lat + rayon * Math.sin(angle), lng: cible.lon + rayon * etirement * Math.cos(angle) });
+          }, 2600);
+        };
+        // Un cran à la fois : Google anime chaque changement de zoom.
+        let zoom = ZOOM_DEPART;
+        const descendre = () => {
+          if (abandonne) return;
+          zoom += 1;
+          carte.setZoom(zoom);
+          if (zoom < ZOOM_ARRIVEE) plusTard(descendre, 800);
+          else plusTard(tourner, 1500);
+        };
+        plusTard(descendre, 1200);
+      } catch (e) {
+        console.warn("[plongée satellite]", e?.message || e);
+        echec();
+      }
+    })();
 
     return () => {
-      if (raf) cancelAnimationFrame(raf);
-      map.remove();
+      abandonne = true;
+      minuteurs.forEach(clearTimeout);
+      clearInterval(ronde);
+      delete window.gm_authFailure;
     };
   }, [cible]);
 
-  if (erreurCarte) {
+  if (repli) {
+    if (!CLE_GOOGLE) {
+      return (
+        <div className="absolute inset-0 bg-fond flex items-center justify-center">
+          <p className="text-ardoise text-sm">Carte indisponible : la clé Google Maps n'est pas configurée.</p>
+        </div>
+      );
+    }
     return (
-      <div className="absolute inset-0 bg-fond flex items-center justify-center">
-        <p className="text-ardoise text-sm">Affichage 3D indisponible sur cet appareil.</p>
-      </div>
+      <iframe
+        title="Vue satellite du secteur"
+        className="absolute inset-0 w-full h-full"
+        style={{ border: 0 }}
+        src={`https://www.google.com/maps/embed/v1/view?key=${CLE_GOOGLE}&center=${cible.lat},${cible.lon}&zoom=18&maptype=satellite`}
+        referrerPolicy="no-referrer-when-downgrade"
+      />
     );
   }
 
   return (
-    <div className="absolute inset-0 bg-[#04070a]">
+    <div className="absolute inset-0 bg-fond">
       <div ref={conteneur} className="absolute inset-0" />
     </div>
   );
@@ -263,7 +267,7 @@ export default function PlongeeCarte({ project, onClose }) {
   const [repli, setRepli] = useState(false);
 
   const { data: cible, isError } = useQuery({
-    queryKey: ["geoloc-projet", project.id],
+    queryKey: ["geoloc-projet", project.id, project.adresse_complete],
     queryFn: () => geolocaliser(project),
     staleTime: Infinity,
   });
@@ -285,7 +289,7 @@ export default function PlongeeCarte({ project, onClose }) {
   if (cible === null || isError) {
     return (
       <div className="absolute inset-0 bg-fond flex items-center justify-center">
-        <p className="text-ardoise text-sm">Adresse non localisable — retour à la photo.</p>
+        <p className="text-ardoise text-sm">Adresse non localisable, retour à la photo.</p>
       </div>
     );
   }
@@ -300,6 +304,6 @@ export default function PlongeeCarte({ project, onClose }) {
   return google3D && !repli ? (
     <PlongeeGoogle3D cible={cible} onEchec={() => setRepli(true)} />
   ) : (
-    <PlongeeMapLibre cible={cible} />
+    <PlongeeSatellite cible={cible} />
   );
 }

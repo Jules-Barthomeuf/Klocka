@@ -10,7 +10,7 @@ const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 export default function StreetViewRue({ project }) {
   const { data: cible, isError } = useQuery({
-    queryKey: ["geoloc-projet", project.id], // même cache que la plongée 3D
+    queryKey: ["geoloc-projet", project.id, project.adresse_complete], // même cache que la plongée
     queryFn: () => geolocaliser(project),
     staleTime: Infinity,
   });

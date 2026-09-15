@@ -53,6 +53,37 @@ test('proposerRues garde le tracé, classe les rues vivantes et écarte les autr
   assert.ok(journal.some((t) => /OpenStreetMap/.test(t)));
 });
 
+test('un relevé arrêté pendant la lecture rend null, jamais une liste vide', async () => {
+  // Bordeaux, 15 septembre : un arrêt pendant la lecture Data-B rendait
+  // « zéro rue », que le parcours écrivait par-dessus 285 rues classées.
+  const trace = [[[44.84, -0.57], [44.84, -0.56]]];
+  const ruesDe = async () => ({
+    rues: ['a', 'b', 'c', 'd'].map((k) => ({ cle: k, nom: `Rue ${k}`, vitrines: 10, enseignes: [], trace, longueur_m: 300, centre: { lat: 44.84, lon: -0.565 } })),
+    vitrines_total: 40,
+    sans_rue: 0,
+  });
+  let lus = 0;
+  let arret = false;
+  const r = await proposerRues(
+    { nom: 'Bordeaux', code_insee: '33063', code_postal: '33000', centre: { lat: 44.84, lon: -0.57 } },
+    {
+      ruesDe,
+      // L'équipe clique sur Arrêter après la deuxième rue lue.
+      loyerDe: async () => { lus += 1; if (lus >= 2) arret = true; return { rue: { basse: 600, haute: 900 } }; },
+      prixDe: async () => null,
+      arreter: () => arret,
+    },
+  );
+  assert.equal(r, null, 'interrompu : rien à écrire');
+
+  // Sans arrêt, le même relevé rend bien ses rues.
+  const complet = await proposerRues(
+    { nom: 'Bordeaux', code_insee: '33063', code_postal: '33000', centre: { lat: 44.84, lon: -0.57 } },
+    { ruesDe, loyerDe: async () => ({ rue: { basse: 600, haute: 900 } }), prixDe: async () => null },
+  );
+  assert.equal(complet.classees.length, 4);
+});
+
 test('le rang mêle loyer, vitrines et prix au m² : un boulevard cher et garni passe devant une rue au loyer haut mais vide', () => {
   const rues = [
     { nom: 'Rue Chic', loyer: { basse: 900, haute: 1300 }, vitrines: 6, prix_m2: 5200 },

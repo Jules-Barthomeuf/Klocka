@@ -125,7 +125,10 @@ const TYPES_DE_VOIE = {
   rte: 'route', route: 'route',
   imp: 'impasse', impasse: 'impasse',
   qu: 'quai', quai: 'quai',
-  crs: 'cours', cours: 'cours',
+  // Google abrège « Cours » en « Cr » (« 22 Cr de l'Intendance ») : sans
+  // cette entrée, tout le Cours de l'Intendance passait pour une rue voisine
+  // et la balade rendait zéro vitrine sur l'artère la plus chère de Bordeaux.
+  cr: 'cours', crs: 'cours', cours: 'cours',
   sq: 'square', square: 'square',
   pas: 'passage', passage: 'passage',
   prom: 'promenade', promenade: 'promenade',

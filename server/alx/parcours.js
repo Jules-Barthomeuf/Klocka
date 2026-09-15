@@ -241,8 +241,23 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
   if (phases.includes('rues')) {
     ecrire(villeId, { phase: 'rues', etape: 2 });
     const r = await proposerRues(ville, { rayon_km, arreter: doitArreter, journal: (t) => noter(villeId, t) });
-    etablissementsParRue = r.etablissements_par_rue;
+    // Un relevé interrompu ne s'écrit pas : les rues d'avant restent telles
+    // qu'elles étaient. Avant, l'arrêt était vérifié APRÈS l'écriture, et
+    // l'écriture remplaçait la ville par une liste vide.
+    if (!r || doitArreter()) {
+      noter(villeId, 'Relevé interrompu : les rues déjà classées sont conservées telles quelles.');
+      return finir('arrete');
+    }
     ville = Records.get('Ville', villeId);
+    // Filet de sécurité : un relevé qui ne propose AUCUNE rue là où ALX en
+    // avait classé n'est pas un relevé, c'est une panne qu'on ne voit pas.
+    // On garde l'existant et on le dit, plutôt que d'effacer la ville.
+    const anciennesAlx = (ville.rues || []).filter((x) => !x.par || x.par === 'alx').length;
+    if (!r.classees.length && !r.ecartees.length && anciennesAlx > 0) {
+      noter(villeId, `Le relevé n'a proposé aucune rue alors que ${anciennesAlx} étaient classées : rien n'est remplacé. Relancez le relevé.`);
+      return finir('erreur');
+    }
+    etablissementsParRue = r.etablissements_par_rue;
     // Ce que l'équipe a classé à la main reste ; ce qu'ALX avait proposé est
     // remplacé. Une rue classée à la main prend quand même ce qu'ALX sait
     // d'elle (tracé, vitrines, loyer, prix) : la classe et l'auteur restent.

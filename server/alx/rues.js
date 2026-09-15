@@ -244,6 +244,13 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
     };
   });
 
+  // Un arrêt demandé pendant la lecture laisse des trous dans `lues` : ce
+  // n'est pas un relevé, c'est un relevé interrompu. Le rendre comme un
+  // résultat vide faisait écrire zéro rue par-dessus la ville entière — c'est
+  // ainsi que Bordeaux a perdu ses 285 rues. On rend null, et l'appelant le
+  // sait.
+  if (arreter()) return null;
+
   // Le classement se fait sur toute la ville à la fois : l'emplacement est un rang.
   const classes = classerParRang(lues.filter(Boolean)).map((x) => ({ ...x, loyer: x.loyer ? [x.loyer.basse, x.loyer.haute] : null }));
   const classees = classes.filter((x) => x.classe);

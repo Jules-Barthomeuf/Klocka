@@ -1,7 +1,3 @@
-/* eslint-disable no-restricted-syntax -- palette de données.
-   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
-   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
-   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useState, useRef, useMemo } from "react";
 import { EditionContext, ValeurEditable, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer } from "./EditionEnPlace";
 import { useNavigate } from "react-router-dom";
@@ -10,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Download, X, ChevronLeft, ChevronRight, FileText, Play } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
-import BailTabs from "./BailTabs";
+import GrilleCases, { useCasesProjet, PanneauPiece, FriseBail, dateFr } from "./CasesProjet";
 import PlongeeCarte from "./PlongeeCarte";
 import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
@@ -192,6 +187,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const [selectedImage, setSelectedImage] = useState(null);
   const [plongee, setPlongee] = useState(false);
   const [streetView, setStreetView] = useState(false);
+  // La pièce ouverte à droite quand on clique une case.
+  const [piece, setPiece] = useState(null);
+  const cases = useCasesProjet(project, isPublic);
+  const enPlace = cases?.locataire?.find((c) => c.id === "en_place");
   const [ongletChoisi, setOngletActif] = useState("secteur");
   const ongletActif = apercuOnglet || ongletChoisi;
   const [currentSlide] = useState(1);
@@ -230,171 +229,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
     : project.sim_prix_revient && project.sim_prix_revient > 0 ? project.sim_prix_revient : project.prix_acquisition || 0;
 
   const loyerAnnuel = project.sim_loyer_initial_ht || project.loyer_annuel_ht || 0;
-  const anneeRevente = project.sim_annee_revente || 20;
-  const apport = project.sim_apport || (prixRevientCalcule > 0 ? Math.round(prixRevientCalcule * 0.15) : 0);
-  const rendementBrutAcheteur = project.sim_rendement_capital || 6.5;
-  const tauxCommissionAgentRevente = project.sim_commission_agent_revente || 5;
-  const indexation = project.sim_indexation_loyers || 2;
-  const dureeCredit = project.sim_duree_credit || 20;
-  const tauxInteret = project.sim_taux_interet || 3.7;
-  const tauxAssuranceCredit = project.sim_taux_assurance || 0.25;
 
   const rendementLocatifNetCalcule = prixRevientCalcule > 0 && loyerAnnuel > 0
     ? (loyerAnnuel / prixRevientCalcule) * 100
     : project.sim_rendement_locatif_global_net || 0;
-
-  function PMT(rate, nper, pv) {
-    if (rate === 0) return -pv / nper;
-    const pvif = Math.pow(1 + rate, nper);
-    return -(rate * pv * pvif) / (pvif - 1);
-  }
-
-  const montantEmprunt = prixRevientCalcule - apport;
-  const echeanceMensuelle = montantEmprunt > 0 ? Math.abs(PMT((tauxInteret / 100) / 12, dureeCredit * 12, montantEmprunt)) : 0;
-
-  let cashFlowCumule = 0;
-  let capitalRestantDu = montantEmprunt;
-  let loyerAnnuelCourant = loyerAnnuel;
-  let loyerNetRevente = 0;
-  let totalLoyersNets = 0;
-
-  const comptabilite = project.sim_comptabilite || 600;
-  const assurancePNE = project.sim_assurance_pne || 400;
-  const chargesDiverses = project.sim_charges_diverses || 0;
-  const gestionLocative = project.sim_gestion_locative || 0;
-
-  const chargesCopropriete = project.sim_charges_copropriete || 0;
-  const chargesCoproRefacturables = project.sim_charges_refacturable !== false;
-  const taxeFonciere = project.sim_taxe_fonciere || 0;
-  const taxeFonciereRefacturable = project.sim_taxe_refacturable !== false;
-
-  for (let annee = 1; annee <= anneeRevente; annee++) {
-    if (annee > 1) {
-      loyerAnnuelCourant = loyerAnnuelCourant * (1 + indexation / 100);
-    }
-    const chargesCoproNonRefact = !chargesCoproRefacturables ? -chargesCopropriete : 0;
-    const taxeFonciereNonRefact = !taxeFonciereRefacturable ? -taxeFonciere : 0;
-    const loyersNetsCashFlow = loyerAnnuelCourant + chargesCoproNonRefact + taxeFonciereNonRefact;
-    totalLoyersNets += loyersNetsCashFlow;
-    if (annee === anneeRevente) {
-      loyerNetRevente = loyersNetsCashFlow;
-    }
-    let interetsAnnuels = 0;
-    let capitalRembourseAnnuel = 0;
-    let capitalTemp = capitalRestantDu;
-    if (capitalTemp > 0 && annee <= dureeCredit) {
-      const tauxMensuel = (tauxInteret / 100) / 12;
-      for (let mois = 0; mois < 12; mois++) {
-        if (capitalTemp <= 0) break;
-        const interetMois = capitalTemp * tauxMensuel;
-        interetsAnnuels += interetMois;
-        const capitalMois = echeanceMensuelle - interetMois;
-        capitalRembourseAnnuel += capitalMois;
-        capitalTemp -= capitalMois;
-      }
-      capitalRestantDu = Math.max(0, capitalRestantDu - capitalRembourseAnnuel);
-    }
-    const assuranceCreditAnnuel = annee <= dureeCredit ? -(montantEmprunt * (tauxAssuranceCredit / 100)) : 0;
-    const creditBancaireCashFlow = -(interetsAnnuels + capitalRembourseAnnuel + Math.abs(assuranceCreditAnnuel));
-    const gestionLocativeCost = -(loyersNetsCashFlow * (gestionLocative / 100));
-    const totalCharges = gestionLocativeCost - comptabilite - assurancePNE - chargesDiverses;
-    const cashFlowAnnuel = loyersNetsCashFlow + creditBancaireCashFlow + totalCharges;
-    cashFlowCumule += cashFlowAnnuel;
-  }
-
-  const prixVenteFAICalcule = rendementBrutAcheteur > 0 ? loyerNetRevente / (rendementBrutAcheteur / 100) : 0;
-  const commissionAgentReventeCalcule = prixVenteFAICalcule * (tauxCommissionAgentRevente / 100);
-  const prixVenteNetCalcule = prixVenteFAICalcule - commissionAgentReventeCalcule;
-
-  const loyerMoyenNet = anneeRevente > 0 ? totalLoyersNets / anneeRevente : 0;
-
-  let anneeRecuperationApport = null;
-  let cumulRecuperationApport = 0;
-  let capitalRestantTemp2 = montantEmprunt;
-  let loyerCourantTemp2 = loyerAnnuel;
-
-  for (let annee = 1; annee <= anneeRevente; annee++) {
-    if (annee > 1) {
-      loyerCourantTemp2 = loyerCourantTemp2 * (1 + indexation / 100);
-    }
-    const chargesCoproNonRefactTemp2 = !chargesCoproRefacturables ? -chargesCopropriete : 0;
-    const taxeFonciereNonRefactTemp2 = !taxeFonciereRefacturable ? -taxeFonciere : 0;
-    const loyersNetsCFTemp2 = loyerCourantTemp2 + chargesCoproNonRefactTemp2 + taxeFonciereNonRefactTemp2;
-    let interetsAnnuelsTemp2 = 0;
-    let capitalRembourseTemp2 = 0;
-    let capitalTempLoop2 = capitalRestantTemp2;
-    if (capitalTempLoop2 > 0 && annee <= dureeCredit) {
-      const tauxMensuelTemp2 = (tauxInteret / 100) / 12;
-      for (let mois = 0; mois < 12; mois++) {
-        if (capitalTempLoop2 <= 0) break;
-        const interetMoisTemp2 = capitalTempLoop2 * tauxMensuelTemp2;
-        interetsAnnuelsTemp2 += interetMoisTemp2;
-        const capitalMoisTemp2 = echeanceMensuelle - interetMoisTemp2;
-        capitalRembourseTemp2 += capitalMoisTemp2;
-        capitalTempLoop2 -= capitalMoisTemp2;
-      }
-      capitalRestantTemp2 = Math.max(0, capitalRestantTemp2 - capitalRembourseTemp2);
-    }
-    const assuranceCreditTemp2 = annee <= dureeCredit ? -(montantEmprunt * (tauxAssuranceCredit / 100)) : 0;
-    const creditBancaireCFTemp2 = -(interetsAnnuelsTemp2 + capitalRembourseTemp2 + Math.abs(assuranceCreditTemp2));
-    const gestionLocativeCostTemp2 = -(loyersNetsCFTemp2 * (gestionLocative / 100));
-    const totalChargesTemp2 = gestionLocativeCostTemp2 - comptabilite - assurancePNE - chargesDiverses;
-    const cashFlowAnnuelTemp2 = loyersNetsCFTemp2 + creditBancaireCFTemp2 + totalChargesTemp2;
-    cumulRecuperationApport += cashFlowAnnuelTemp2 + Math.abs(capitalRembourseTemp2);
-    if (cumulRecuperationApport >= apport && !anneeRecuperationApport) {
-      anneeRecuperationApport = annee;
-      break;
-    }
-  }
-
-  const pieDataBudget = [
-    { name: 'Prix négocié', value: prixBienNegocie, fill: J["menthe"] },
-    { name: "Droits enreg.", value: droitsEnregistrement, fill: J["menthe-clair"] },
-    { name: 'Honoraires Klocka', value: feesKlocka, fill: J["menthe"] },
-    { name: 'Incentive Klocka', value: incentiveKlocka, fill: J["ambre"] },
-    { name: 'Frais divers', value: fraisDivers, fill: '#a8894f' }
-  ];
-
-  // Création de richesse annuelle : capital remboursé + cash-flow, année par année
-  // (même lecture que le graphique du simulateur).
-  const richesseRows = (() => {
-    const rows = [];
-    let capitalRestantTemp = montantEmprunt;
-    let loyerCourantTemp = loyerAnnuel;
-    for (let annee = 1; annee <= Math.min(anneeRevente, 20); annee++) {
-      if (annee > 1) loyerCourantTemp = loyerCourantTemp * (1 + indexation / 100);
-      const chargesCoproNonRefactTemp = !chargesCoproRefacturables ? -chargesCopropriete : 0;
-      const taxeFonciereNonRefactTemp = !taxeFonciereRefacturable ? -taxeFonciere : 0;
-      const loyersNetsCFTemp = loyerCourantTemp + chargesCoproNonRefactTemp + taxeFonciereNonRefactTemp;
-      let interetsAnnuelsTemp = 0;
-      let capitalRembourseTemp = 0;
-      let capitalTempLoop = capitalRestantTemp;
-      if (capitalTempLoop > 0 && annee <= dureeCredit) {
-        const tauxMensuelTemp = (tauxInteret / 100) / 12;
-        for (let mois = 0; mois < 12; mois++) {
-          if (capitalTempLoop <= 0) break;
-          const interetMoisTemp = capitalTempLoop * tauxMensuelTemp;
-          interetsAnnuelsTemp += interetMoisTemp;
-          const capitalMoisTemp = echeanceMensuelle - interetMoisTemp;
-          capitalRembourseTemp += capitalMoisTemp;
-          capitalTempLoop -= capitalMoisTemp;
-        }
-        capitalRestantTemp = Math.max(0, capitalRestantTemp - capitalRembourseTemp);
-      }
-      const assuranceCreditTemp = annee <= dureeCredit ? -(montantEmprunt * (tauxAssuranceCredit / 100)) : 0;
-      const creditBancaireCFTemp = -(interetsAnnuelsTemp + capitalRembourseTemp + Math.abs(assuranceCreditTemp));
-      const gestionLocativeCostTemp = -(loyersNetsCFTemp * (gestionLocative / 100));
-      const totalChargesTemp = gestionLocativeCostTemp - comptabilite - assurancePNE - chargesDiverses;
-      const cashFlowAnnuelTemp = loyersNetsCFTemp + creditBancaireCFTemp + totalChargesTemp;
-      rows.push({
-        annee: `${annee}`,
-        capital: Math.round(Math.abs(capitalRembourseTemp)),
-        cashflow: Math.round(cashFlowAnnuelTemp),
-      });
-    }
-    return rows;
-  })();
-  const richesseBrute = richesseRows.reduce((acc, r) => acc + r.capital + r.cashflow, 0);
 
   // Clé Embed API extraite en variable d'environnement (VITE_GOOGLE_MAPS_API_KEY).
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -432,9 +270,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const locataireLead = project.nom_locataire
     ? `${project.nom_locataire}${project.activite_locataire ? ` — ${project.activite_locataire}` : ''}${loyerAnnuel > 0 ? `, ${fmtNum(loyerAnnuel)} € HT HC de loyer annuel` : ''}${anneesRestantesBail != null ? `, bail courant sur ${anneesRestantesBail.toFixed(1).replace('.', ',')} an(s)` : ''}.`
     : 'Identité du preneur, économie du bail et garanties associées.';
-  const bienLead = project.description_bien
-    || [surfaceRef > 0 ? `${fmtNum(surfaceRef)} m² exploités` : null, loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an de loyer` : null].filter(Boolean).join(', ')
-    || 'Surfaces, configuration et éléments marquants du lot.';
   const coproLead = [
     project.quote_part_lot > 0 ? `Quote-part du lot de ${project.quote_part_lot} %` : null,
     project.charges_copropriete > 0 ? `${fmtNum(project.charges_copropriete)} € de charges annuelles` : null,
@@ -839,56 +674,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="bien">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <TabHeader
-                title="Bien"
-                subtitle="Le physique : surfaces, configuration et éléments marquants du lot."
-                left={(project.bien_champ1 || project.bien_champ2 || project.bien_champ3) && (
-                  <div className="flex gap-2 mt-5 flex-wrap">
-                    {project.bien_champ1 && <span className="text-[12.5px] px-3.5 py-1 rounded-full bg-menthe/[0.16] border border-menthe text-menthe-clair"><ValeurEditable champ="bien_champ1" type="text">{project.bien_champ1}</ValeurEditable></span>}
-                    {project.bien_champ2 && <span className="text-[12.5px] px-3.5 py-1 rounded-full border border-menthe-clair/40 text-menthe-clair"><ValeurEditable champ="bien_champ2" type="text">{project.bien_champ2}</ValeurEditable></span>}
-                    {project.bien_champ3 && <span className="text-[12.5px] px-3.5 py-1 rounded-full border border-encre/[0.18] text-craie"><ValeurEditable champ="bien_champ3" type="text">{project.bien_champ3}</ValeurEditable></span>}
-                  </div>
-                )}
-                right={<LeadText>{bienLead}</LeadText>}
-              />
-
-              <KpiStrip items={[
-                surfaceRef > 0 && { value: `${fmtNum(surfaceRef)} m²`, label: 'Surface exploitée', champ: 'sim_surface' },
-                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-menthe-clair', champ: 'loyer_m2_an' },
-                loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC', champ: 'sim_loyer_initial_ht' },
-                prixM2Revient > 0 && { value: `${fmtNum(prixM2Revient)} €`, label: 'Prix de revient /m²' },
-                project.type_construction && { value: project.type_construction, label: 'Type de construction', champ: 'type_construction', typeChamp: 'text' },
-              ]} />
-
-              <div className="grid md:grid-cols-2 gap-x-12 gap-y-9">
-                <div>
-                  <SectionLabel tone="teal">Configuration</SectionLabel>
-                  <KVRow champ="surface_m2" label="Surface" value={surfaceRef > 0 ? `${fmtNum(surfaceRef)} m²` : null} />
-                  <KVRow champ="activite_locataire" typeChamp="text" label="Activité exploitée" value={project.activite_locataire} />
-                  <KVRow champ="type_construction" typeChamp="text" label="Type de construction" value={project.type_construction} />
-                  <KVRow champ="adresse_complete" typeChamp="text" label="Adresse" value={project.adresse_complete} />
-                </div>
-                <div>
-                  <SectionLabel tone="teal">Exploitation</SectionLabel>
-                  <KVRow label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} champ="sim_loyer_initial_ht" />
-                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-menthe-clair" champ="loyer_m2_an" />
-                  <KVRow champ="echeance_bail" typeChamp="date" label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
-                  <KVRow champ="dpe_note" typeChamp="text" label="DPE" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} />
-                </div>
-              </div>
-
-              {project.description_bien && (
-                <div className="mt-10 max-md:mt-6">
-                  <SectionLabel>Description</SectionLabel>
-                  <TexteEditable champ="description_bien"><p className="md:columns-2 md:gap-10 text-[15px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{project.description_bien}</p></TexteEditable>
-                </div>
-              )}
-
-              <NotesBlock notes={project.notes_bien} />
-
-              {!project.description_bien && !project.bien_champ1 && !project.bien_champ2 && !project.bien_champ3
-                && surfaceRef <= 0 && (!project.notes_bien || project.notes_bien.length === 0) && <EmptyTab />}
-              <ChampsPersonnalises zone="bien" project={project} />
+              <TabHeader title="Bien" />
+              <GrilleCases zone="bien" cases={cases?.bien} project={project} onSource={setPiece} />
             </motion.div>
           </TabsContent>
 
@@ -902,9 +689,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <KpiStrip items={[
                 loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC', champ: 'sim_loyer_initial_ht' },
-                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer /m²/an', accent: 'text-menthe-clair', champ: 'loyer_m2_an' },
+                enPlace?.valeur && { value: enPlace.valeur, label: 'En place depuis' },
                 anneesRestantesBail != null && { value: `${anneesRestantesBail.toFixed(1).replace('.', ',')} ans`, label: 'Bail restant à courir' },
-                project.echeance_bail && { value: moment(project.echeance_bail).format('MM/YYYY'), label: 'Échéance du bail', champ: 'echeance_bail', typeChamp: 'date' },
+                project.echeance_bail && { value: dateFr(project.echeance_bail, { month: 'long', year: 'numeric' }), label: 'Échéance du bail', champ: 'echeance_bail', typeChamp: 'date' },
               ]} />
 
               <div className="grid md:grid-cols-2 gap-x-12 gap-y-9">
@@ -917,8 +704,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 <div>
                   <SectionLabel tone="teal">Économie de la signature</SectionLabel>
                   <KVRow champ="sim_loyer_initial_ht" label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} />
-                  <KVRow label="Loyer au m²" value={loyerM2 > 0 ? `${fmtNum(loyerM2)} €/m²/an` : null} accent="text-menthe-clair" champ="loyer_m2_an" />
-                  <KVRow champ="echeance_bail" typeChamp="date" label="Échéance du bail" value={project.echeance_bail ? moment(project.echeance_bail).format('DD MMMM YYYY') : null} />
+                  <KVRow champ="echeance_bail" typeChamp="date" label="Échéance du bail" value={project.echeance_bail ? dateFr(project.echeance_bail) : null} />
                   <KVRow label="Dépôt de garantie" value={project.bail_depot_garantie > 0 ? `${fmtNum(project.bail_depot_garantie)} €` : null} champ="bail_depot_garantie" />
                 </div>
               </div>
@@ -950,34 +736,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="bail">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <TabHeader
-                title="Analyse du bail"
-                subtitle="Économie du bail, calendrier et clauses sensibles."
-                right={<LeadText>{project.bail_type || 'Bail commercial'}{project.echeance_bail ? ` — échéance au ${moment(project.echeance_bail).format('DD MMMM YYYY')}` : ''}{loyerAnnuel > 0 ? `, ${fmtNum(loyerAnnuel)} € HT/HC de loyer annuel.` : '.'}</LeadText>}
-              />
-
-              {(project.bail_date_debut || project.echeance_bail || project.bail_date_echeance) && (
-                <div className="mb-10 max-md:mb-6">
-                  <SectionLabel>Calendrier</SectionLabel>
-                  <div className="relative h-[3px] bg-trait mt-6">
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-menthe" />
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border border-menthe bg-fond" />
-                  </div>
-                  <div className="flex justify-between mt-3 text-[12.5px]">
-                    <div>
-                      <div className="text-menthe-clair">{project.bail_date_debut ? moment(project.bail_date_debut).format('MM/YYYY') : '—'}</div>
-                      <div className="text-[12.5px] text-ardoise">Prise d'effet</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-menthe-clair">{(project.bail_date_echeance || project.echeance_bail) ? moment(project.bail_date_echeance || project.echeance_bail).format('MM/YYYY') : '—'}</div>
-                      <div className="text-[12.5px] text-ardoise">Échéance</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <BailTabs project={project} />
-              <ChampsPersonnalises zone="bail" project={project} />
+              <TabHeader title="Analyse du bail" />
+              <FriseBail frise={cases?.frise} onSource={setPiece} />
+              <GrilleCases zone="bail" cases={cases?.bail} project={project} onSource={setPiece} />
             </motion.div>
           </TabsContent>
 
@@ -1139,117 +900,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           </TabsContent>
         </Tabs>
 
-        {/* Synthèse financière — masquée dans l'éditeur (le simulateur fait foi) */}
-        {!modeEdition && (<>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="mt-12 max-md:mt-6 pt-10 max-md:pt-6">
-          <TabHeader
-            title="Synthèse financière"
-            subtitle="Budget d'acquisition, indicateurs clés et création de richesse."
-          />
-          <div className="grid lg:grid-cols-2 gap-6 max-md:grid-cols-1 max-md:gap-4 mb-8 max-md:mb-4">
-            <div className="rounded-xl border border-bord bg-surface p-7 max-md:p-5">
-              <SectionLabel tone="teal">Budget total</SectionLabel>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-md:gap-4 max-w-full">
-                <div className="relative flex items-center justify-center w-full order-2 md:order-1">
-                  <ResponsiveContainer width="100%" height={200} className="max-w-full">
-                    <PieChart>
-                      <Pie data={prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: J["menthe"] }]} cx="50%" cy="50%" innerRadius={70} outerRadius={85} paddingAngle={2} dataKey="value" stroke="none">
-                        {(prixBienNegocie > 0 ? pieDataBudget : [{ name: 'Prix de revient', value: prixRevientCalcule, fill: J["menthe"] }]).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => formatCurrency(value)} wrapperStyle={{ zIndex: 100 }} contentStyle={{ backgroundColor: J["surface"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' }} labelStyle={{ color: '#fff' }} position={{ y: -20 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-center">
-                      <p className="text-[18px] font-light text-encre mb-0" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(prixRevientCalcule)}</p>
-                      <p className="text-[11px] tracking-[0.16em] uppercase text-ardoise mt-1 mb-0">Prix de revient</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3 min-w-0 flex-shrink order-1 md:order-2">
-                  {prixBienNegocie > 0 ? (
-                    <>
-                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Prix du bien négocié FAI</p><p className="text-lg text-encre">{formatCurrency(prixBienNegocie)}</p></div>
-                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Droits d'enregistrement estimés</p><p className="text-lg text-encre">{formatCurrency(droitsEnregistrement)}</p></div>
-                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Honoraires Klocka</p><p className="text-lg text-menthe">{formatCurrency(feesKlocka)}</p></div>
-                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Incentive Klocka (sur la négociation)</p><p className="text-lg" style={{ color: J["ambre"] }}>{formatCurrency(incentiveKlocka)}</p></div>
-                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Frais divers à l'acquisition</p><p className="text-lg text-menthe">{formatCurrency(fraisDivers)}</p></div>
-                    </>
-                  ) : (
-                    <>
-                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Prix de revient</p><p className="text-lg text-encre">{formatCurrency(prixRevientCalcule)}</p></div>
-                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Loyer annuel HT</p><p className="text-lg text-encre">{formatCurrency(loyerAnnuel)}</p></div>
-                      <div><p className="text-[12.5px] text-ardoise mb-0.5">Apport estimé</p><p className="text-lg text-encre">{formatCurrency(apport)}</p></div>
-                    </>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-                className="mt-7 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors">
-                Simulateur complet <span aria-hidden="true">→</span>
-              </button>
-            </div>
-
-            <div className="rounded-xl border border-bord bg-surface p-7 max-md:p-5">
-              <SectionLabel tone="teal">Indicateurs clés</SectionLabel>
-              <KVRow label="Rendement locatif net" value={fmtPct(rendementLocatifNetCalcule)} accent="text-menthe-clair" />
-              <KVRow label="Apport initial" value={formatCurrency(apport)} />
-              <KVRow label="Récupération de l'apport" value={anneeRecuperationApport ? `Année ${anneeRecuperationApport}` : '—'} accent="text-menthe" />
-              <KVRow label="Loyer moyen net" value={`${formatCurrency(loyerMoyenNet)} /an`} />
-              <KVRow label="Échéance mensuelle de crédit" value={echeanceMensuelle > 0 ? `${formatCurrency(echeanceMensuelle)} /mois` : null} />
-              <KVRow label="Cash-flow cumulé" value={cashFlowCumule ? formatCurrency(cashFlowCumule) : null} accent={cashFlowCumule >= 0 ? 'text-menthe-clair' : 'text-red-400'} />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Création de richesse annuelle — même graphique que le simulateur */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="mt-8 max-md:mt-6">
-          <div className="rounded-xl border border-bord bg-surface p-7 max-md:p-5">
-            <div className="flex items-start justify-between gap-6 mb-6 max-md:mb-4">
-              <div>
-                <SectionLabel tone="teal" className="mb-1.5">Création de richesse annuelle</SectionLabel>
-                <p className="mb-0 max-w-[62ch] text-[12.5px] leading-[1.55] text-ardoise">Barres : cash-flow et capital remboursé, année par année. Le total ajoute la revente en l'an {Math.min(anneeRevente, 20)}, apport déduit.</p>
-              </div>
-              <p className="text-[24px] max-md:text-[18px] font-light text-menthe mb-0 whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(richesseBrute)}</p>
-            </div>
-            <div className="h-[26rem] max-md:h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={richesseRows} margin={{ top: 12, right: 20, left: 20, bottom: 40 }} barGap={4} barCategoryGap="20%">
-                  <CartesianGrid stroke={J["encre"]} strokeOpacity={0.08} strokeDasharray="3 3" />
-                  <XAxis dataKey="annee" tick={{ fill: J["ardoise"], fontSize: 10 }} axisLine={{ stroke: J["encre"], strokeOpacity: 0.15 }} tickLine={{ stroke: J["encre"], strokeOpacity: 0.15 }}
-                    label={{ value: 'Année', position: 'bottom', offset: 18, fill: J["ardoise"], fontSize: 11 }} />
-                  <YAxis tick={{ fill: J["ardoise"], fontSize: 10 }} axisLine={{ stroke: J["encre"], strokeOpacity: 0.15 }} tickLine={{ stroke: J["encre"], strokeOpacity: 0.15 }}
-                    tickFormatter={(v) => `${Math.round(v / 1000)}`}
-                    label={{ value: 'Milliers €', angle: -90, position: 'insideLeft', offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: 'middle' } }} />
-                  <Tooltip cursor={{ fill: 'rgba(237,234,229,0.03)' }} content={({ active, payload, label }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const capital = payload.find((p) => p.dataKey === 'capital')?.value || 0;
-                    const cashflow = payload.find((p) => p.dataKey === 'cashflow')?.value || 0;
-                    return (
-                      <div style={{ background: J["surface"], border: '1px solid #22262d', borderRadius: 6, padding: '10px 12px', maxWidth: 260 }}>
-                        <p style={{ color: J["encre"], fontSize: 12, marginBottom: 6 }}>Année {label}</p>
-                        <p style={{ color: '#7FE0D3', fontSize: 11, marginBottom: 2 }}>Capital remboursé : {formatCurrency(capital)}</p>
-                        <p style={{ color: J["menthe"], fontSize: 11, marginBottom: 8 }}>Cash-flow annuel : {formatCurrency(cashflow)}</p>
-                        <p style={{ color: J["ardoise"], fontSize: 10, lineHeight: 1.4, borderTop: '1px solid rgba(237,234,229,0.1)', paddingTop: 8, margin: 0 }}>
-                          La création de richesse correspond au cash-flow cumulé + le prix de la revente, en retirant l'apport initial.
-                        </p>
-                      </div>
-                    );
-                  }} />
-                  <Legend verticalAlign="top" align="right" iconType="circle"
-                    wrapperStyle={{ fontSize: 12, paddingBottom: 12 }}
-                    formatter={(v) => <span className="text-craie text-[12.5px]">{v === 'capital' ? 'Capital remboursé' : 'Cash-flow annuel'}</span>} />
-                  <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
-                  <Bar name="cashflow" dataKey="cashflow" fill={J["menthe"]} radius={[3, 3, 0, 0]} animationDuration={Math.max(richesseRows.length * 90, 600)} animationEasing="ease-out" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </motion.div>
-        </>)}
         </div>
 
         {!apercuOnglet && (
@@ -1260,6 +910,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         )}
       </div>
     </motion.div>
+    <PanneauPiece piece={piece} onFermer={() => setPiece(null)} />
     </EditionContext.Provider>
   );
 }

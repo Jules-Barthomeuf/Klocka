@@ -42,6 +42,20 @@ export function monterMarche(app) {
     });
   }));
 
+  // Les cases de la page projet (Bien, Locataire, Analyse du bail), chacune
+  // avec la pièce et la page qui la prouvent : le client ouvre le bail à
+  // l'endroit exact au lieu de demander d'où vient le chiffre.
+  app.get('/api/projets/:id/cases', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const projet = Records.get('Project', req.params.id);
+    if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
+    const { projetVisiblePar } = await import('../acces-entites.js');
+    if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
+    const { lireCases } = await import('../projet-cases.js');
+    ok(res, lireCases(projet));
+  }));
+
   app.get('/api/marche/alex/etat', wrap(async (req, res) => {
     const { etatRechercheMarche } = await import('../alex.js');
     const t = etatRechercheMarche(String(req.query.cle || ''));

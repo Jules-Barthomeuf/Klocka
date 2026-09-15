@@ -8,6 +8,7 @@ import { llmEnabled, llmStatus } from './llm.js';
 import { googleStatus, disconnectAccount } from './google-oauth.js';
 import { changerStatut, repousserRelance, ajouterSuivi, statutDe } from './deal/lifecycle.js';
 import { alimenterBaseMarche } from './deal/marche.js';
+import { lireCases } from './projet-cases.js';
 
 // Fait avancer le cycle de vie d'un deal après l'envoi d'un mail d'intention :
 // trace l'envoi dans `suivi`, applique la transition de statut correspondante
@@ -152,7 +153,8 @@ export const functions = {
     if (!id) return { success: false, error: 'Missing project id' };
     const project = Records.get('Project', id);
     if (!project) return { success: false, error: 'Project not found' };
-    return { success: true, project };
+    // Le lien public montre les cases, sans les pièces : /uploads exige un compte.
+    return { success: true, project: { ...project, cases: lireCases(project, { sansSources: true }) } };
   },
 
   searchProjects({ searchTerm } = {}, { user }) {

@@ -446,6 +446,7 @@ export default function AdminProjets() {
       notes_secteur: project.notes_secteur || [], notes_bien: project.notes_bien || [],
       notes_locataire: project.notes_locataire || [], notes_marche: project.notes_marche || [],
       notes_diagnostique: project.notes_diagnostique || [], bail_admin_fields: project.bail_admin_fields || [],
+      cases_forcees: project.cases_forcees || {},
       fichiers_projet: project.fichiers_projet || [],
       docs_checklist: project.docs_checklist || {},
 
@@ -710,7 +711,8 @@ export default function AdminProjets() {
         liens_locataire: (currentFormData.liens_locataire || []).map(l => ({ type: l.type, url: l.url, label: l.label })),
         swot_liens: (currentFormData.swot_liens || []).map(s => ({ url: s.url, label: s.label })),
         secteur_transports: (currentFormData.secteur_transports || []).map(t => ({ ligne: t.ligne, type: t.type, distance_metres: t.distance_metres, temps_marche_min: t.temps_marche_min })),
-        champs_personnalises: (currentFormData.champs_personnalises || []).map(c => ({ id: c.id, label: c.label, valeur: c.valeur, zone: c.zone, style: c.style || 'ligne' })),
+        champs_personnalises: (currentFormData.champs_personnalises || []).map(c => ({ id: c.id, label: c.label, valeur: c.valeur, zone: c.zone, style: c.style || 'ligne', info: c.info || '', detail: c.detail || '' })),
+        cases_forcees: JSON.parse(JSON.stringify(currentFormData.cases_forcees || {})),
         champs_masques: [...(currentFormData.champs_masques || [])],
       };
       const data = {

@@ -154,7 +154,8 @@ export function ChampsPersonnalises({ zone, project }) {
   const source = React.useRef(null);
 
   const tous = project?.champs_personnalises || [];
-  const indices = tous.map((c, i) => i).filter((i) => (tous[i]?.zone || "secteur") === zone);
+  // Les cases (style « case ») ont leur propre grille : GrilleCases.
+  const indices = tous.map((c, i) => i).filter((i) => (tous[i]?.zone || "secteur") === zone && tous[i]?.style !== "case");
   if (!indices.length) return null;
 
   const deplacer = (depuis, vers) => {

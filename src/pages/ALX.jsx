@@ -472,9 +472,29 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
 }
 
 /** Une case pleine d'une teinte : « toutes les rues de cette couleur ». */
-function CaseTeinte({ teinte, title, onClick }) {
-  return <button type="button" onClick={onClick} aria-label={title} title={title} className="h-4 w-4 rounded-[4px] border transition-transform hover:scale-110" style={{ borderColor: teinte, background: teinte }} />;
+/**
+ * Une pastille d'emplacement : une bascule, pas un remplacement. Pleine quand
+ * toutes les rues de cet emplacement sont cochées, creuse sinon. Avant, un
+ * clic REMPLAÇAIT la sélection : cliquer 1 puis 1 bis ne gardait que les
+ * 1 bis, et on ne pouvait pas composer « toute la ville ».
+ */
+function CaseTeinte({ teinte, title, onClick, actif = false, partiel = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={title}
+      aria-pressed={actif}
+      title={title}
+      className="h-4 w-4 rounded-[4px] border transition-transform hover:scale-110"
+      style={{ borderColor: teinte, background: actif ? teinte : partiel ? `${teinte}55` : "transparent" }}
+    />
+  );
 }
+
+/** La lecture d'un commerce prend environ 9,5 s (mesuré sur Bordeaux, 17 rues, 219 commerces). */
+const SECONDES_PAR_COMMERCE = 9.5;
+const duree = (s) => (s < 3600 ? `${Math.max(1, Math.round(s / 60))} min` : `${(s / 3600).toFixed(s < 36000 ? 1 : 0).replace(".", ",")} h`);
 
 /** Pourquoi cette rue est en 1, 1 bis ou 2 : son rang dans la ville, écrit dans son motif. */
 function pourquoiEmplacement(r) {
@@ -548,13 +568,51 @@ function OngletRues({ ville, onProspecter, pending, onClasser, classerPending, o
       </div>
 
       <div className="mt-[30px] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13.5px] text-ardoise">
-          <span>{nSel ? `${nSel} rue${nSel > 1 ? "s" : ""} sélectionnée${nSel > 1 ? "s" : ""}` : "Cochez les rues à prospecter"}</span>
-          <span className="flex items-center gap-2 pl-1">
-            {EMPLACEMENTS.map((e) => (
-              <CaseTeinte key={e.classe} teinte={e.teinte} title={`Toutes les rues en emplacement ${e.mot}`} onClick={() => setCoches(new Set(rues.filter((r) => r.classe === e.classe).map((r) => r.nom)))} />
-            ))}
-          </span>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13.5px] text-ardoise">
+            <span>{nSel ? `${nSel} rue${nSel > 1 ? "s" : ""} sélectionnée${nSel > 1 ? "s" : ""}` : "Cochez les rues à prospecter"}</span>
+            <span className="flex items-center gap-2 pl-1">
+              {EMPLACEMENTS.map((e) => {
+                // La bascule d'un emplacement : ajoute ses rues, ou les retire
+                // si elles sont déjà toutes cochées. Les autres restent.
+                const deClasse = rues.filter((r) => r.classe === e.classe).map((r) => r.nom);
+                const cochees = deClasse.filter((n) => coches.has(n)).length;
+                const toutes = deClasse.length > 0 && cochees === deClasse.length;
+                return (
+                  <CaseTeinte
+                    key={e.classe}
+                    teinte={e.teinte}
+                    actif={toutes}
+                    partiel={cochees > 0 && !toutes}
+                    title={`${toutes ? "Retirer" : "Ajouter"} les ${deClasse.length} rues en emplacement ${e.mot}`}
+                    onClick={() => setCoches((c) => { const n = new Set(c); deClasse.forEach((nom) => (toutes ? n.delete(nom) : n.add(nom))); return n; })}
+                  />
+                );
+              })}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCoches(toutesCochees ? new Set() : new Set(rues.map((r) => r.nom)))}
+              className="text-[12.5px] text-menthe transition-colors hover:text-menthe-clair"
+              style={{ background: "transparent" }}
+            >
+              {toutesCochees ? "Aucune" : `Toutes (${rues.length})`}
+            </button>
+          </div>
+          {/* Ce que la sélection va coûter en temps : on ne lance pas dix
+              heures de lecture sans le savoir. Les commerces déjà lus sont
+              sautés, d'où le compte des rues déjà prospectées à part. */}
+          {nSel > 0 && (() => {
+            const choisies = rues.filter((r) => coches.has(r.nom));
+            const aFaire = choisies.filter((r) => !r.parcourue_le);
+            const vitrines = aFaire.reduce((t, r) => t + (r.commerces || 0), 0);
+            return (
+              <span className="text-[12.5px] text-brume">
+                ≈ {vitrines.toLocaleString("fr-FR")} vitrines à lire, environ {duree(vitrines * SECONDES_PAR_COMMERCE)} en tâche de fond
+                {choisies.length > aFaire.length ? ` · ${choisies.length - aFaire.length} rue${choisies.length - aFaire.length > 1 ? "s" : ""} déjà prospectée${choisies.length - aFaire.length > 1 ? "s" : ""}, relue${choisies.length - aFaire.length > 1 ? "s" : ""} vite` : ""}
+              </span>
+            );
+          })()}
         </div>
         <Bouton principal disabled={!nSel || pending} onClick={() => onProspecter([...coches])}>{pending ? "…" : nSel ? `Prospecter ${nSel} rue${nSel > 1 ? "s" : ""}` : "Prospecter"}</Bouton>
       </div>

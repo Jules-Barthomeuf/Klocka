@@ -109,6 +109,9 @@ export function grouper(lignes) {
       }
       continue;
     }
+    // Un département en deux fichiers (060-1, 060-2) a deux en-têtes : la
+    // seconde arrivait ici en donnée, avec « N° SIREN » pour SIREN.
+    if (/^"?D.partement/i.test(cases[0] || '')) continue;
     const parcelle = parcelleDe(cases);
     const siren = propre(cases[COLONNES.siren]);
     if (!parcelle || !siren) continue;

@@ -187,8 +187,27 @@ test('le verrou locatif écarte l’adresse en procédure, pas la rue entière',
   assert.equal(f.procedures_rue_18m, 1);
 });
 
+test('le démembrement et l’indivision se lisent dans les codes droit du millésime', () => {
+  const lignePmDroit = (droit, siren) => lignePm({ siren }).replace('"P";"XXXXXX"', `"${droit}";"XXXXXX"`);
+  const sujet = { parcelle: '33063000AB0001', rue: null, numero: null, mutations: [] };
+  // Usufruitier + nu-propriétaire : une succession en cours, pas un vendeur libre.
+  const demembre = new Map([[2022, millesime([lignePmDroit('U', '111111111'), lignePmDroit('N', '222222222')])]]);
+  const f1 = featuresA(sujet, '2022-06-01', { pm: demembre, ventesParParcelle: new Map(), rues: null, procedures: null });
+  assert.equal(f1.droit_demembre, 1);
+  assert.equal(f1.multi_proprietaires_pm, 0, 'un seul plein propriétaire');
+  // Deux personnes morales en pleine propriété : une indivision.
+  const indivis = new Map([[2022, millesime([lignePm({ siren: '111111111' }), lignePm({ siren: '333333333', nom: 'SCI SOEUR' })])]]);
+  const f2 = featuresA(sujet, '2022-06-01', { pm: indivis, ventesParParcelle: new Map(), rues: null, procedures: null });
+  assert.equal(f2.multi_proprietaires_pm, 1, 'deux pleines propriétés : une copropriété multi-PM');
+  assert.equal(f2.droit_demembre, 0);
+  // Parcelle absente du fichier : on ne sait pas — un trou, pas un zéro.
+  const vide = featuresA(sujet, '2022-06-01', { pm: new Map([[2022, millesime([])]]), ventesParParcelle: new Map(), rues: null, procedures: null });
+  assert.equal(vide.droit_demembre, null);
+  assert.equal(vide.multi_proprietaires_pm, null);
+});
+
 test('les colonnes du CSV sont stables et l’aléa est un vrai seed', () => {
-  assert.equal(COLONNES_FEATURES.length, 21);
+  assert.equal(COLONNES_FEATURES.length, 24);
   const a = alea(42), b = alea(42);
   assert.equal(a(), b());
 });

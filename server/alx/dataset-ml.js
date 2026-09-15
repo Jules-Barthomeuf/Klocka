@@ -101,7 +101,7 @@ export function indexerLocaux(lignes) {
         surface: nombre(l.surface_reelle_bati),
         mutations: [],
       };
-      if (!loc.mutations.some((m) => m.id === id)) loc.mutations.push({ id, date, prix, vente, en_bloc: enBloc, surface: nombre(l.surface_reelle_bati) });
+      if (!loc.mutations.some((m) => m.id === id)) loc.mutations.push({ id, date, prix, vente, en_bloc: enBloc, surface: nombre(l.surface_reelle_bati), lat: nombre(l.latitude), lon: nombre(l.longitude) });
       locaux.set(cle, loc);
     }
   }
@@ -152,6 +152,9 @@ export const COLONNES_FEATURES = [
   'mois_depuis_installation',
   'proximite_echeance_369',
   'age_gerant',
+  'droit_demembre',
+  'multi_proprietaires_pm',
+  'enseigne_nationale',
 ];
 
 /**
@@ -189,6 +192,9 @@ export function featuresA(sujet, T, ctx) {
     mois_depuis_installation: null,
     proximite_echeance_369: null,
     age_gerant: null,
+    droit_demembre: null,
+    multi_proprietaires_pm: null,
+    enseigne_nationale: sujet.enseigne_nationale ?? null,
   };
 
   // Le propriétaire, au millésime de l'année de T (situation au 1er janvier).
@@ -196,7 +202,19 @@ export function featuresA(sujet, T, ctx) {
   const millesime = ctx.pm.get(annee) || null;
   let proprietaire = null;
   if (millesime) {
-    const sur = (millesime.parcelles.get(sujet.parcelle) || []).filter((g) => !g.droit || g.droit === 'P');
+    const tous = millesime.parcelles.get(sujet.parcelle) || [];
+    // Le démembrement se lit dans le code droit MAJIC : U l'usufruitier, N le
+    // nu-propriétaire : une succession en cours, souvent — et un vendeur qui
+    // ne peut pas vendre seul. Plusieurs personnes morales en PLEINE propriété
+    // sur la parcelle, c'est presque toujours une copropriété multi-lots, pas
+    // une indivision (celle-ci vit au niveau du lot, invisible d'ici) ; et une
+    // parcelle multi-lots a mécaniquement plus de chances qu'UN lot se vende —
+    // l'étiquette parcelle le capte. Variable utile pour prioriser, à ne pas
+    // raconter comme un signal de succession.
+    f.droit_demembre = tous.length ? (tous.some((g) => g.droit === 'U' || g.droit === 'N') ? 1 : 0) : null;
+    const pleins = new Set(tous.filter((g) => !g.droit || g.droit === 'P').map((g) => g.siren));
+    f.multi_proprietaires_pm = tous.length ? (pleins.size > 1 ? 1 : 0) : null;
+    const sur = tous.filter((g) => !g.droit || g.droit === 'P');
     proprietaire = [...sur].sort((a, b) => (b.rez_de_chaussee ? 1 : 0) - (a.rez_de_chaussee ? 1 : 0) || b.locaux - a.locaux)[0] || null;
     if (proprietaire) {
       const p = proprietaire;
@@ -296,11 +314,12 @@ export function parcellesCommercantes(vitrines, cadastre) {
   for (const v of vitrines) {
     const parcelle = cadastre.parcelleProche(v.lat, v.lon);
     if (!parcelle) { sansParcelle += 1; continue; }
-    const p = out.get(parcelle) || { parcelle, rue: v.rue || null, numero: v.numero || null, vitrines_parcelle: 0, enseignes: [], installation: null };
+    const p = out.get(parcelle) || { parcelle, rue: v.rue || null, numero: v.numero || null, vitrines_parcelle: 0, enseignes: [], installation: null, lat: v.lat, lon: v.lon, marque: false };
     p.vitrines_parcelle += 1;
     if (!p.rue && v.rue) p.rue = v.rue;
     if (!p.numero && v.numero) p.numero = v.numero;
     if (v.enseigne && p.enseignes.length < 6 && !p.enseignes.includes(v.enseigne)) p.enseignes.push(v.enseigne);
+    if (v.marque) p.marque = true;
     // L'installation la plus ancienne des commerces de la parcelle : le bail
     // le plus mûr est celui dont l'échéance approche.
     if (v.installation && (!p.installation || v.installation < p.installation)) p.installation = v.installation;
@@ -322,7 +341,7 @@ export function observationsAdresse(parcellesCom, mutations, { references, horiz
     for (const p of parcellesCom.values()) {
       const liste = mutations.get(p.parcelle) || [];
       const venteDans = liste.find((m) => m.vente && m.date >= T && m.date < fin) || null;
-      out.push({ y: venteDans ? 1 : 0, sujet: { ...p, surface: null, mutations: liste }, T, date_vente: venteDans?.date || null });
+      out.push({ y: venteDans ? 1 : 0, sujet: { ...p, surface: null, mutations: liste }, T, date_vente: venteDans?.date || null, prix_vente: venteDans?.prix ?? null, lat: venteDans?.lat ?? p.lat ?? null, lon: venteDans?.lon ?? p.lon ?? null });
     }
   }
   return out.sort((a, b) => a.T.localeCompare(b.T));
@@ -497,6 +516,33 @@ export async function passeGerants(sirens, { journal = console.log } = {}) {
  */
 export async function construireDataset(villes, { seed = 42, journal = console.log } = {}) {
   const { chargerParcelles, indexerParcelles } = await import('./cadastre.js');
+
+  // Le registre des enseignes : combien de villes et de vitrines portent
+  // chaque nom. Une enseigne présente dans plusieurs villes est un réseau —
+  // le locataire dont le défaut est le moins probable.
+  const enseignes = new Map();
+  for (const ville of villes) {
+    const fichierOsm = path.join(CACHE, `osm-${ville.insee}.json`);
+    if (!fs.existsSync(fichierOsm)) continue;
+    for (const v of JSON.parse(fs.readFileSync(fichierOsm, 'utf-8')).vitrines) {
+      const nom = simple(v.enseigne);
+      if (!nom || nom.length < 3) continue;
+      const e = enseignes.get(nom) || { villes: new Set(), vitrines: 0 };
+      e.villes.add(ville.insee);
+      e.vitrines += 1;
+      enseignes.set(nom, e);
+    }
+  }
+  const nationale = (noms) => {
+    let vue = false;
+    for (const n of noms || []) {
+      const e = enseignes.get(simple(n));
+      if (!e) continue;
+      vue = true;
+      if (e.villes.size >= 2 || e.vitrines >= 4) return 1;
+    }
+    return vue ? 0 : null;
+  };
   const lignes = [];
   const stats = { univers: 'adresse (cadastre + vitrines OSM)', villes: [], colonnes: COLONNES_FEATURES, seed, horizon_mois: HORIZON_MOIS, recul_jours: RECUL_JOURS, le: new Date().toISOString() };
 
@@ -549,10 +595,11 @@ export async function construireDataset(villes, { seed = 42, journal = console.l
     let ecartees = 0;
     for (const o of observations) {
       if (verrouLocatif(o.sujet, o.T, procedures)) { ecartees += 1; continue; }
+      o.sujet.enseigne_nationale = nationale(o.sujet.enseignes);
       lignes.push({
         ville: ville.nom, insee: ville.insee, cle_local: o.sujet.parcelle, parcelle: o.sujet.parcelle,
         rue: o.sujet.rue, enseignes: o.sujet.enseignes.join(' · ') || null,
-        t_reference: o.T, date_vente: o.date_vente, y: o.y,
+        t_reference: o.T, date_vente: o.date_vente, prix_vente: o.prix_vente, lat: o.lat, lon: o.lon, y: o.y,
         ...featuresA(o.sujet, o.T, ctx),
       });
     }
@@ -562,7 +609,7 @@ export async function construireDataset(villes, { seed = 42, journal = console.l
     journal(`${ville.nom} : ${posees.length} observations, ${positifs} ventes (${posees.length ? Math.round((positifs / posees.length) * 100) : 0} %), ${ecartees} écartées par le verrou.`);
   }
 
-  const meta = ['ville', 'insee', 'cle_local', 'parcelle', 'rue', 'enseignes', 't_reference', 'date_vente', 'y'];
+  const meta = ['ville', 'insee', 'cle_local', 'parcelle', 'rue', 'enseignes', 't_reference', 'date_vente', 'prix_vente', 'lat', 'lon', 'y'];
   const entetes = [...meta, ...COLONNES_FEATURES];
   const cellule = (v) => (v == null ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
   const csv = [entetes.join(','), ...lignes.map((l) => entetes.map((c) => cellule(l[c])).join(','))].join('\n');

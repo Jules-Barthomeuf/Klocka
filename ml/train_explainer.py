@@ -57,6 +57,9 @@ LIBELLES = {
     "mois_depuis_installation": "Mois depuis l'installation du commerçant",
     "proximite_echeance_369": "Mois jusqu'à l'échéance triennale (3/6/9)",
     "age_gerant": "Âge du gérant (tranche, ramenée à la date)",
+    "droit_demembre": "Usufruit ou nue-propriété sur la parcelle",
+    "multi_proprietaires_pm": "Plusieurs personnes morales sur la parcelle (copropriété)",
+    "enseigne_nationale": "Enseigne présente dans plusieurs villes",
 }
 
 PARAMS = dict(
@@ -197,6 +200,9 @@ def principal():
             "enseignes": texte(df.iloc[i].get("enseignes")),
             "parcelle": texte(df.iloc[i]["parcelle"]), "date_vente": texte(df.iloc[i]["date_vente"]),
             "t_reference": texte(df.iloc[i]["t_reference"]),
+            "prix_vente": None if pd.isna(df.iloc[i].get("prix_vente")) else float(df.iloc[i]["prix_vente"]),
+            "lat": None if pd.isna(df.iloc[i].get("lat")) else round(float(df.iloc[i]["lat"]), 6),
+            "lon": None if pd.isna(df.iloc[i].get("lon")) else round(float(df.iloc[i]["lon"]), 6),
             "proba": round(float(proba[i]), 4),
             "confiance": round(float(confiance[i]), 3),
             "part_decision_inconnues": round(inconnues / somme, 3),

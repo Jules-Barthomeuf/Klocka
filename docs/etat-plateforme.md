@@ -6,18 +6,18 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-2 personnes, 754 pages ouvertes, 0 demandes à l'assistant, 0 actions exécutées.
+2 personnes, 756 pages ouvertes, 0 demandes à l'assistant, 0 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 693 | 0 | 0 | 15/09/2026 |
-| admin@klocka.local (équipe) | 61 | 0 | 0 | 15/09/2026 |
+| jules.b@klocka.immo (équipe) | 694 | 0 | 0 | 15/09/2026 |
+| admin@klocka.local (équipe) | 62 | 0 | 0 | 15/09/2026 |
 
 ## Les pages qui comptent
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **ALX** — 230 (31 %)
+- **ALX** — 230 (30 %)
 - **Analyse** — 211 (28 %)
 - **Dashboard** — 86 (11 %)
 - **ALXCible** — 77 (10 %)
@@ -27,8 +27,8 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **ALXVilles** — 15 (2 %)
 - **ALXBilan** — 13 (2 %)
 - **ApercuEchelle** — 9 (1 %)
+- **ALXEntrainement** — 8 (1 %)
 - **CoutsIA** — 8 (1 %)
-- **ALXEntrainement** — 6 (1 %)
 - Le reste, sous 1 % : SimulateurRentabilite, ProjetDetail, Home, Feedback, MonCompte, AdminClients, MesProjets, Preanalyse
 
 ## Ce que l'IA coûte
@@ -59,7 +59,7 @@ Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf pl
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **ALX** : 31 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **ALX** : 30 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « poser une question sur le marché » à 0,03 € par question : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
 - 0 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

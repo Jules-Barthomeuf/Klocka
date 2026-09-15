@@ -55,8 +55,16 @@ function Vente({ v, ouverte, onOuvrir }) {
         <div className="flex flex-col gap-2 pb-4 pl-1 pr-1">
           <p className="m-0 flex flex-wrap items-baseline gap-x-4 text-[11px] uppercase tracking-[.14em] text-brume">
             <span>Pourquoi le modèle y aurait cru, un an avant</span>
+            {v.prix_vente != null && <span className="text-craie">vendue {Math.round(v.prix_vente).toLocaleString("fr-FR")} €</span>}
             {v.confiance != null && <span>confiance {pctFr(v.confiance)}</span>}
             {v.part_decision_inconnues > 0.25 && <span className="text-ambre">{pctFr(v.part_decision_inconnues)} de la décision repose sur des trous</span>}
+            {/* La donnée source, vérifiable : la carte DVF d'Etalab, centrée
+                sur l'acte. Parcelle et date sont sur la ligne, le prix ici. */}
+            {v.lat != null && v.lon != null && (
+              <a href={`https://explore.data.gouv.fr/fr/immobilier?onglet=carte&filtre=tous&lat=${v.lat}&lng=${v.lon}&zoom=19.5`} target="_blank" rel="noreferrer" className="normal-case tracking-normal text-menthe hover:text-menthe-survol">
+                Vérifier sur la carte DVF →
+              </a>
+            )}
           </p>
           {v.contributions.map((c) => (
             <Jauge

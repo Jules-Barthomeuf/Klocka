@@ -241,6 +241,79 @@ export function anciennete(iso, maintenant = new Date()) {
 // Assemblage
 // ---------------------------------------------------------------------------
 
+/** Oui ou Non, sans le reste : « Refacturée » → Oui. */
+export function ouiNon(lu, oui, non) {
+  if (!lu?.valeur) return null;
+  if (lu.valeur === oui) return { valeur: 'Oui' };
+  if (lu.valeur === non) return { valeur: 'Non' };
+  return { valeur: 'À vérifier' };
+}
+
+/** Les charges se refacturent-elles au preneur ? */
+export function chargesRefacturees(charges, copro = '') {
+  const s = `${texte(charges)} ${texte(copro)}`.trim();
+  if (!s) return null;
+  if (BAILLEUR_PAIE.test(s) && !PRENEUR_PAIE.test(s)) return { valeur: 'Non' };
+  if (PRENEUR_PAIE.test(s) || /refacturables?|r[ée]cup[ée]rables?|inventaire limitatif|charges locatives/i.test(s)) return { valeur: 'Oui' };
+  return { valeur: 'À vérifier' };
+}
+
+/** Une clause dite simplement : sa première phrase, coupée court. */
+export function phraseSimple(t, n = 200) {
+  const s = texte(t).replace(/\s+/g, ' ');
+  if (!s) return null;
+  // Une abréviation (« art. », « n° », « Mme. ») ne ferme pas la phrase : le
+  // point doit suivre un vrai mot et précéder une majuscule ou la fin.
+  const ABREVIATION = /(?:\b[a-zà-ÿ]{1,2}|\bart|\barts|\bbd|n°|\bmme|\bmlle|\bcf|\betc|\bciv|\bcom|\bste|\bsté)$/i;
+  let premiere = s;
+  for (let i = 20; i < s.length; i++) {
+    const c = s[i];
+    if (c !== '.' && c !== ';') continue;
+    const suite = s.slice(i + 1);
+    if (c === ';' && /^\s/.test(suite)) { premiere = s.slice(0, i + 1); break; }
+    if (c === '.' && /^(?:\s+[A-ZÀ-Ý«(]|\s*$)/.test(suite) && !ABREVIATION.test(s.slice(0, i))) { premiere = s.slice(0, i + 1); break; }
+  }
+  return premiere.length > n ? `${premiere.slice(0, n - 1).trim()}…` : premiere;
+}
+
+/** Ce que disent les PV d'AG, en un mot : Oui, Aucun, PV absent, À vérifier. */
+export function pvCourt(id, t) {
+  const s = texte(t);
+  if (!s) return null;
+  if (/aucun (?:proc[èe]s-verbal|pv)|pas de (?:proc[èe]s-verbal|pv)|aucune donn[ée]e de copropri/i.test(s)) return { valeur: 'PV absent', detail: null };
+  const negation = /^(?:aucun|aucune|n[ée]ant|non\b|pas de|rien)/i.test(s)
+    || /\baucun(?:e|s)? (?:travaux|impay|r[ée]solution|dette|arri[ée]r)|n'ont pas [ée]t[ée]|ne fait l'objet d'aucune|pas d'impay/i.test(s);
+  if (negation) return { valeur: id === 'resolutions_non_votees' ? 'Aucune' : 'Aucun', detail: null };
+  const indices = {
+    travaux_votes: /vot[ée]|adopt|approuv|r[ée]alis|travaux/i,
+    travaux_discussion: /discussion|envisag|devis|report|question|pr[ée]vu|[àa] refaire/i,
+    resolutions_non_votees: /rejet|refus|non (?:vot|adopt)|pas (?:vot|adopt)/i,
+    // Le mot « impayés » seul ne prouve rien (un syndic « fait un point ») :
+    // il faut un montant ou un débiteur.
+    impayes_copro: /(?:impay[ée]s?|dette|arri[ée]r[ée]s?)[^.;]{0,80}\d|copropri[ée]taires? d[ée]biteurs?|proc[ée]dure (?:de recouvrement )?engag/i,
+  };
+  if (!indices[id]?.test(s)) return { valeur: 'À vérifier', detail: null };
+  const n = montant(s);
+  const gros = /\b606\b|gros ?[œo]e?uvre|toiture|ravalement|fa[çc]ade|[ée]tanch[ée]it|ascenseur|charpente/i.test(s);
+  return { valeur: 'Oui', detail: [n ? euros(n) : null, gros ? 'Gros travaux (art. 606)' : null].filter(Boolean).join(' · ') || null };
+}
+
+// Les clauses de la vue « Analyse du bail », dans l'ordre d'une lecture.
+const ANALYSE_BAIL = [
+  ['type_bail', 'Type de bail'], ['duree', 'Durée'], ['dates_bail', 'Dates'], ['parties', 'Les parties'],
+  ['destination', 'Destination'], ['loyer', 'Loyer'], ['conditions_exceptionnelles', 'Franchise et paliers'],
+  ['mode_reglement', 'Paiement'], ['tva_loyer', 'TVA'], ['indexation', 'Indexation et révision'],
+  ['depot', 'Dépôt de garantie'], ['pas_de_porte', 'Pas de porte'], ['caution', 'Caution'],
+  ['provision_charges', 'Provision sur charges'], ['charges', 'Charges et taxes'], ['taxe_fonciere', 'Taxe foncière'],
+  ['charges_non_recup', 'Travaux et entretien'], ['cession', 'Cession et sous-location'], ['resiliation', 'Résiliation'],
+  ['resolutoire', 'Clause résolutoire'], ['etat_lieux', 'État des lieux'], ['travaux_conformite', 'Travaux de conformité'],
+];
+
+const PV_AG = [
+  ['travaux_votes', 'Travaux votés'], ['travaux_discussion', 'Travaux en discussion'],
+  ['resolutions_non_votees', 'Résolutions non votées'], ['impayes_copro', 'Impayés au sein de la copropriété'],
+];
+
 const court = (s, n = 420) => { const t = texte(s); return t ? (t.length > n ? `${t.slice(0, n - 1)}…` : t) : null; };
 
 /**
@@ -259,6 +332,7 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
     return null;
   };
   const cas = (id, titre, lu, info, sources) => ({ id, titre, valeur: lu?.valeur ?? null, detail: lu?.detail ?? null, info: lu?.info ?? court(info), source: lu ? source(...sources) : null });
+  const valeurSeule = (lu) => (lu?.valeur ? { valeur: lu.valeur } : null);
 
   // --- Bien -----------------------------------------------------------------
   const activite = activiteCourte(projet.activite_locataire || v('destination') || lot?.locataire_activite?.valeur, projet.nom_locataire);
@@ -271,29 +345,27 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
     cas('surface', 'Surface exploitée', surface > 0 && { valeur: `${String(surface).replace('.', ',')}${INSECABLE}m²`, detail: detailSurface(texteSurface) }, v('surface'), ['surface']),
   ];
 
-  // --- Bail -----------------------------------------------------------------
+  // --- Bail : le résumé, une valeur par case, et l'analyse clause par clause --
   const lus = datesDuBail(v('dates_bail'));
   const debut = isoDe(projet.bail_date_debut) || lus.debut || null;
   const fin = isoDe(projet.bail_date_echeance) || isoDe(projet.echeance_bail) || lus.fin || null;
-  // Le loyer facial est celui du bail signé : un loyer lu dans l'annonce n'en est pas un.
-  const facial = Number(projet.bail_loyer_initial) || (champs.get('loyer')?.preuves?.length ? loyerHorsTaxes(v('loyer')) : null) || null;
-  const preneur = preneurDe(v('parties')) || texte(projet.nom_locataire) || null;
+  // Le loyer de signature est celui du bail signé : un loyer lu dans l'annonce n'en est pas un.
+  const signature = Number(projet.bail_loyer_initial) || (champs.get('loyer')?.preuves?.length ? loyerHorsTaxes(v('loyer')) : null) || null;
+  const provision = v('provision_charges') || (/provision/i.test(v('charges_copro')) ? v('charges_copro') : '');
   const bail = [
-    cas('type_bail', 'Type de bail', typeBailCourt(projet.bail_type || v('type_bail'), v('duree')), [v('type_bail'), v('duree')].filter(Boolean).join(' '), ['type_bail', 'duree']),
-    cas('preneurs', 'Preneur', preneur && { valeur: preneur }, v('parties'), ['parties']),
-    cas('loyer_facial', 'Loyer facial', facial && { valeur: `${euros(facial)} HT/an`, detail: 'À la signature du bail' }, v('loyer'), ['loyer']),
-    cas('loyer_indexe', 'Loyer actuel indexé', loyerActuel > 0 && {
-      valeur: `${euros(loyerActuel)} HT/an`,
-      detail: facial && Math.abs(loyerActuel - facial) / facial > 0.005 ? `${loyerActuel > facial ? '+' : ''}${(((loyerActuel - facial) / facial) * 100).toFixed(1).replace(/\.0$/, '').replace('.', ',')} % depuis la signature` : null,
-    }, v('paiements'), ['paiements', 'loyer']),
-    cas('tva', 'TVA', tvaCourte(v('tva_loyer'), projet.sim_loyer_soumis_tva === true), v('tva_loyer'), ['tva_loyer']),
-    cas('taxe_fonciere', 'Taxe foncière', taxeFonciereCourte(v('taxe_fonciere'), v('charges')), v('taxe_fonciere') || v('charges'), ['taxe_fonciere', 'charges']),
-    cas('depot', 'Dépôt de garantie', depotCourt(v('depot')) || (Number(projet.bail_depot_garantie) > 0 ? { valeur: euros(projet.bail_depot_garantie) } : null), v('depot'), ['depot']),
-    cas('pas_de_porte', 'Pas de porte', pasDePorteCourt(v('pas_de_porte')), v('pas_de_porte'), ['pas_de_porte']),
-    cas('provision_charges', 'Provision sur charges', provisionCourte(v('provision_charges') || (/provision/i.test(v('charges_copro')) ? v('charges_copro') : '')), v('provision_charges') || v('charges_copro'), ['provision_charges', 'charges_copro']),
-    cas('indexation', 'Indexation et révision', indexationCourte(v('indexation')), v('indexation'), ['indexation']),
-    cas('travaux', 'Travaux et entretien', travauxCourts(v('charges_non_recup'), v('charges')), [v('charges_non_recup'), v('charges')].filter(Boolean).join(' '), ['charges_non_recup', 'charges']),
+    cas('echeance', 'Échéance', fin && { valeur: dateLongue(fin) }, v('dates_bail'), ['dates_bail']),
+    cas('loyer_actuel', 'Prix du loyer', loyerActuel > 0 && { valeur: `${euros(loyerActuel)} HT/an` }, v('paiements'), ['paiements', 'loyer']),
+    cas('loyer_signature', 'Loyer de signature', signature && { valeur: `${euros(signature)} HT/an` }, v('loyer'), ['loyer']),
+    cas('provision_charges', 'Provision pour charges', valeurSeule(provisionCourte(provision)), provision, ['provision_charges', 'charges_copro']),
+    cas('tva', 'Loyer sujet à TVA', ouiNon(tvaCourte(v('tva_loyer'), projet.sim_loyer_soumis_tva === true), 'Soumis à TVA', 'Non soumis'), v('tva_loyer'), ['tva_loyer']),
+    cas('depot', 'Dépôt de garantie', valeurSeule(depotCourt(v('depot'))) || (Number(projet.bail_depot_garantie) > 0 ? { valeur: euros(projet.bail_depot_garantie) } : null), v('depot'), ['depot']),
+    cas('charges_refacturees', 'Charges refacturées', chargesRefacturees(v('charges'), v('charges_copro')), [v('charges'), v('charges_copro')].filter(Boolean).join(' '), ['charges', 'charges_copro']),
+    cas('taxe_refacturee', 'Taxe refacturée', ouiNon(taxeFonciereCourte(v('taxe_fonciere'), v('charges')), 'Refacturée', 'Non refacturée'), v('taxe_fonciere') || v('charges'), ['taxe_fonciere', 'charges']),
   ];
+  const analyse = ANALYSE_BAIL.filter(([id]) => v(id)).map(([id, titre]) => ({ id, titre, texte: phraseSimple(v(id)), source: source(id) }));
+
+  // --- Copropriété : les PV d'AG ----------------------------------------------
+  const copropriete = PV_AG.map(([id, titre]) => cas(id, titre, pvCourt(id, v(id)), v(id), [id]));
 
   // --- Locataire --------------------------------------------------------------
   const creation = dates(v('creation')).map((d) => d.iso).sort()[0] || null;
@@ -306,7 +378,9 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
   return {
     bien,
     bail,
+    analyse,
     locataire,
+    copropriete,
     frise: debut || fin ? { debut, fin, source: source('dates_bail') } : null,
     dossier: !!fiche,
   };

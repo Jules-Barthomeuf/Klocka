@@ -11,6 +11,8 @@ export default {
   			// Les pastilles de critères et les étiquettes de source du journal
   			// d'analyse : Montserrat, toujours en capitales.
   			pill: ['Montserrat', 'Instrument Sans', 'system-ui', 'sans-serif'],
+  			// La page projet, titres et onglets compris.
+  			projet: ['Montserrat', 'Instrument Sans', 'system-ui', 'sans-serif'],
   			// Le titre d'apparat : la page Projet et l'accueil d'ALX.
   			// `font-cormorant` demandait une famille qui n'était nulle part ;
   			// onze titres retombaient en silence sur la police par défaut.

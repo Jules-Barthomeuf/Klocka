@@ -10,6 +10,7 @@ process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-case
 const {
   montant, activiteCourte, detailSurface, typeBailCourt, preneurDe, tvaCourte, taxeFonciereCourte, depotCourt,
   pasDePorteCourt, provisionCourte, indexationCourte, travauxCourts, datesDuBail, anciennete, casesDuProjet,
+  chargesRefacturees, phraseSimple, pvCourt,
 } = await import('./projet-cases.js');
 
 const nbsp = (s) => String(s).replace(/\s/g, ' ');
@@ -91,14 +92,37 @@ test("l'assemblage : chaque case garde sa pièce et sa page, et les cases vides 
   const parId = (liste) => Object.fromEntries(liste.map((x) => [x.id, x]));
   const bail = parId(c.bail);
   assert.equal(bail.depot.source.page, 12);
-  assert.equal(bail.preneurs.valeur, 'SARL RIMEL');
-  assert.equal(bail.loyer_indexe.detail, '+2 % depuis la signature');
-  assert.equal(bail.pas_de_porte.valeur, null, 'rien dans le dossier : la case reste vide');
-  assert.equal(bail.pas_de_porte.source, null);
+  assert.equal(nbsp(bail.depot.valeur), '8 000 €');
+  assert.equal(bail.depot.detail, null, 'le résumé ne garde que la valeur');
+  assert.equal(nbsp(bail.loyer_signature.valeur), '48 000 € HT/an');
+  assert.equal(bail.taxe_refacturee.valeur, null, 'rien dans le dossier : la case reste vide');
+  assert.equal(bail.taxe_refacturee.source, null);
+  const parties = c.analyse.find((x) => x.id === 'parties');
+  assert.equal(parties.source.page, 1);
+  assert.match(parties.texte, /SARL RIMEL/);
+  assert.ok(c.copropriete.every((x) => x.valeur === null));
   assert.deepEqual({ debut: c.frise.debut, fin: c.frise.fin, page: c.frise.source.page }, { debut: '2026-03-16', fin: '2035-03-15', page: 8 });
   assert.equal(parId(c.locataire).en_place.valeur, '5 mois');
   assert.equal(parId(c.bien).activite.valeur, 'Meubles');
 
   const publique = casesDuProjet({ loyer_annuel_ht: 1 }, { fiche, sansSources: true });
   assert.ok(publique.bail.every((x) => x.source === null));
+});
+
+test('charges refacturées, phrase simple et PV d\'AG : un mot, jamais le pâté', () => {
+  assert.deepEqual(chargesRefacturees('Inventaire limitatif : impôts fonciers, charges de copropriété refacturables aux locataires'), { valeur: 'Oui' });
+  assert.deepEqual(chargesRefacturees('Les charges restent à la charge du bailleur'), { valeur: 'Non' });
+  assert.equal(chargesRefacturees(''), null);
+  assert.equal(phraseSimple('Neuf années entières et consécutives ; congé possible par le preneur à chaque période.'), 'Neuf années entières et consécutives ;');
+  assert.deepEqual(pvCourt('travaux_votes', "Le bailleur déclare qu'aucuns travaux n'ont été réalisés"), { valeur: 'Aucun', detail: null });
+  assert.equal(pvCourt('travaux_discussion', "Aucun procès-verbal d'assemblée générale n'est annexé").valeur, 'PV absent');
+  const refus = pvCourt('resolutions_non_votees', 'Résolution 16 (réfection de la toiture) rejetée à l\'unanimité');
+  assert.equal(refus.valeur, 'Oui');
+  assert.equal(refus.detail, 'Gros travaux (art. 606)');
+  assert.equal(pvCourt('impayes_copro', 'Le règlement décrit le régime de recouvrement').valeur, 'À vérifier');
+  assert.equal(pvCourt('impayes_copro', 'Point n°6 traité oralement : « Le syndic fait un point sur les impayés »').valeur, 'À vérifier', 'le mot seul ne prouve pas un impayé');
+  const impaye = pvCourt('impayes_copro', 'Trois copropriétaires débiteurs, impayés de 12 400 € au 31/12');
+  assert.equal(impaye.valeur, 'Oui');
+  assert.equal(nbsp(impaye.detail), '12 400 €');
+  assert.equal(phraseSimple('Bail commercial soumis au statut (art. L.145-1 et s. C. com.). Congé triennal.'), 'Bail commercial soumis au statut (art. L.145-1 et s. C. com.).');
 });

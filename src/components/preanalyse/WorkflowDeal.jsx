@@ -779,6 +779,36 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
   );
 }
 
+// L'attente d'une fiche : l'orbe du chat, et ce que Klocka fait, étape après
+// étape. Une analyse prend une à deux minutes ; trois points qui sautent ne
+// disaient pas que le travail avançait.
+const ETAPES_LECTURE = [
+  "Je lis la fiche…",
+  "J'extrais l'adresse, la surface et le loyer…",
+  "Je vérifie chaque citation dans le texte…",
+  "J'applique les règles Klocka…",
+  "Je prépare le verdict et le simulateur…",
+];
+
+function AttenteAnalyse() {
+  const [etape, setEtape] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setEtape((e) => Math.min(e + 1, ETAPES_LECTURE.length - 1)), 8000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="mt-6 py-4 flex flex-col items-center gap-3" role="status" aria-live="polite">
+      <PenseeIA etat={etape === 0 ? "searching" : "working"} taille={64} />
+      <p className="m-0 text-[13.5px] text-craie text-center">{ETAPES_LECTURE[etape]}</p>
+      <div className="flex gap-1.5" aria-hidden>
+        {ETAPES_LECTURE.map((_, k) => (
+          <span key={k} className={`h-1 rounded-full transition-all duration-500 ${k <= etape ? "w-5 bg-menthe" : "w-2 bg-bord"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DepotFiche({ onAnalyse, dealId = null }) {
   const inputFichier = useRef(null);
   const [texte, setTexte] = useState("");
@@ -857,25 +887,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
           )}
         </Button>
       </div>
-      {analyser.isPending && (
-        <div className="mt-4 flex flex-col items-center gap-1.5">
-          <div className="flex items-center gap-2.5">
-            <span className="text-encre text-sm">Analyse Klocka</span>
-            <span className="flex gap-1.5" aria-hidden>
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-encre animate-bounce"
-                  style={{ animationDelay: `${i * 0.18}s` }}
-                />
-              ))}
-            </span>
-          </div>
-          <p className="text-ardoise text-xs text-center">
-            Lecture, extraction, vérification des citations puis application des règles…
-          </p>
-        </div>
-      )}
+      {analyser.isPending && <AttenteAnalyse />}
     </div>
   );
 }

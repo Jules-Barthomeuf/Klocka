@@ -117,14 +117,24 @@ function chiffresDeLaCommune(ville, adresseComplete) {
   };
 }
 
-// Le titre d'un projet : « Locataire - Adresse ». Sans locataire, le bien se
-// nomme par ce qu'il est ; sans adresse, le locataire suffit à le reconnaître.
-//
-//   Patounes + 15 rue Exemple, Paris  →  « Patounes - 15 rue Exemple, Paris »
-//   15 rue Exemple, Paris seule       →  « Murs commerciaux - 15 rue Exemple, Paris »
-//   Patounes seul                     →  « Patounes - Murs commerciaux »
-export function titreProjet(locataire, adresse) {
-  const l = String(locataire || '').trim();
+// Le nom du local : l'activité puis l'enseigne, sans la forme juridique.
+//   « Chez Truc » + « Pizzeria »        →  « Pizzeria Chez Truc »
+//   « SARL RIMEL » + une longue activité →  « RIMEL »
+//   « Pizzeria Da Mario » + « pizzeria » →  « Pizzeria Da Mario »
+const FORMES_JURIDIQUES = /\b(?:SARL|SASU|SAS|EURL|SCI|SNC|SELARL|SCP|SA|EI|soci[ée]t[ée]|st[ée])\b\.?/gi;
+const sansAccents = (t) => t.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+export function nomDuLocal(locataire, activite) {
+  const nom = String(locataire || '').replace(FORMES_JURIDIQUES, ' ').replace(/\s+/g, ' ').replace(/^[\s,.-]+|[\s,.-]+$/g, '');
+  const act = String(activite || '').trim();
+  const courte = act && act.length <= 24 && act.split(/\s+/).length <= 3 ? act[0].toUpperCase() + act.slice(1).toLowerCase() : null;
+  if (nom && courte && !sansAccents(nom).includes(sansAccents(courte))) return `${courte} ${nom}`;
+  return nom || courte || '';
+}
+
+// Le titre d'un projet : « Nom du local - Adresse ». Sans nom, le bien se
+// nomme par ce qu'il est ; sans adresse, le nom suffit à le reconnaître.
+export function titreProjet(locataire, adresse, activite = null) {
+  const l = nomDuLocal(locataire, activite);
   const a = String(adresse || '').trim();
   if (l && a) return `${l} - ${a}`;
   if (a) return `Murs commerciaux - ${a}`;
@@ -291,7 +301,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
   const projet = {
     // Un projet issu d'un deal de test est marqué pour être repérable (et
     // supprimé avec le deal).
-    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom), adresseComplete)}`,
+    titre: `${deal.test ? '[TEST] ' : ''}${titreProjet(val(lot.lot.locataire_nom), adresseComplete, val(lot.lot.locataire_activite))}`,
     statut: 'analyse',
     archived: false,
     admin_principal: user?.email || adminEmails[0] || null,

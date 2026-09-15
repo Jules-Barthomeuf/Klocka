@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { trouverVille, trouverSecteur, chiffresVille } from "@/data/villes";
-import { useSecteurProjet, ChiffresStrip, chiffresSecteur, LancerEtude, PrixEtLoyers, nf } from "./SecteurChiffres";
+import { useSecteurProjet, ChiffresStrip, chiffresSecteur, PrixEtLoyers, nf } from "./SecteurChiffres";
 
 // Analyse IA de la page projet : avis de synthèse + chiffres clés et points
 // marquants pour la ville et le secteur. Un SEUL appel LLM couvre les trois
@@ -263,7 +263,7 @@ const premierePhrase = (texte) => String(texte || "").trim().match(/^[\s\S]*?[.!
 // Blocs « La ville » et « Le secteur ». La ville : habitants de l'agglomération
 // et revenu médian. Le secteur : une phrase, puis distance, commercialité et
 // flux, puis les prix et loyers du résidentiel, de la rue et du projet.
-export default function VilleSecteurIA({ analyse, villeData, secteurData, loading, error, refresh, project, isPublic, prixM2Revient = 0, loyerM2 = 0, peutLancerEtude = false }) {
+export default function VilleSecteurIA({ analyse, villeData, secteurData, loading, error, refresh, project, isPublic, prixM2Revient = 0, loyerM2 = 0 }) {
   const { data: donnees, isLoading: secteurEnAttente } = useSecteurProjet(project, !isPublic);
 
   // Ce que la fiche porte l'emporte : un chiffre corrigé à la main doit
@@ -319,7 +319,6 @@ export default function VilleSecteurIA({ analyse, villeData, secteurData, loadin
         {donnees?.en_cours && !bandeSecteur.length && (
           <p className="text-[12.5px] text-brume mb-4">Lecture du secteur en cours : distance, rue et marché résidentiel arrivent.</p>
         )}
-        {peutLancerEtude && donnees && !donnees.en_cours && !donnees.flux && <LancerEtude project={project} />}
         <PrixEtLoyers donnees={donnees} prixM2Revient={prixM2Revient} loyerM2={loyerM2} />
       </div>
 

@@ -10,7 +10,7 @@ import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
-import GrilleCases, { useCasesProjet, PanneauPiece, FriseBail, dateFr } from "./CasesProjet";
+import GrilleCases, { useCasesProjet, PanneauPiece, VueBail, dateFr } from "./CasesProjet";
 import PlongeeCarte from "./PlongeeCarte";
 import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
@@ -30,7 +30,7 @@ function SectionLabel({ children, tone = "muted", className = "" }) {
 function TabHeader({ title, subtitle, left = undefined, right = undefined }) {
   return (
     <div className="mb-6 max-md:mb-4">
-      <h2 className="font-display text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">{title}</h2>
+      <h2 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">{title}</h2>
       {subtitle && <p className="text-[13.5px] leading-[1.7] text-ardoise mb-0 max-w-[560px]">{subtitle}</p>}
       {left}
       {right && <div className="mt-5 max-md:mt-4 max-w-[880px] order-last">{right}</div>}
@@ -38,9 +38,6 @@ function TabHeader({ title, subtitle, left = undefined, right = undefined }) {
   );
 }
 
-function LeadText({ children }) {
-  return <p className="text-[13.5px] max-md:text-[12.5px] leading-[1.75] text-craie mb-0">{children}</p>;
-}
 
 function KpiStrip({ items, className = "" }) {
   const edition = useEdition();
@@ -51,7 +48,7 @@ function KpiStrip({ items, className = "" }) {
       {list.map((it, i) => (
         <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-6 max-md:py-4 pr-5 ${i > 0 ? "md:border-l md:border-trait md:pl-6" : ""}`}>
           <div className="text-[11px] tracking-[0.16em] uppercase text-ardoise mb-1.5 flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></div>
-          <div className={`font-display text-[34px] max-md:text-[24px] font-light leading-none ${it.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className={`text-[28px] max-md:text-[22px] font-light leading-tight whitespace-nowrap ${it.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
             <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
           </div>
         </div>
@@ -140,7 +137,7 @@ function GradeScale({ active, valueLabel }) {
         const isActive = active === g;
         return (
           <div key={g} className="flex items-center gap-3">
-            <span className={`w-5 text-center flex-shrink-0 ${isActive ? "font-display text-[18px] text-encre" : "text-[12.5px] text-bord-vif"}`}>{g}</span>
+            <span className={`w-5 text-center flex-shrink-0 ${isActive ? "text-[18px] text-encre" : "text-[12.5px] text-bord-vif"}`}>{g}</span>
             <div className="h-[9px] flex-shrink-0" style={{ width: `${26 + idx * 10}%`, backgroundColor: isActive ? J["menthe"] : J["trait"] }} />
             {isActive && valueLabel && <span className="text-[12.5px] text-menthe-clair whitespace-nowrap">{valueLabel}</span>}
           </div>
@@ -189,6 +186,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const [streetView, setStreetView] = useState(false);
   // La pièce ouverte à droite quand on clique une case.
   const [piece, setPiece] = useState(null);
+  // La localisation bascule entre la carte et Street View.
+  const [rueLocalisation, setRueLocalisation] = useState(false);
   const cases = useCasesProjet(project, isPublic);
   const enPlace = cases?.locataire?.find((c) => c.id === "en_place");
   const [ongletChoisi, setOngletActif] = useState("secteur");
@@ -259,25 +258,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const ecartValeurLocative = valeurLocativeSecteur > 0 && loyerM2 > 0
     ? ((loyerM2 - valeurLocativeSecteur) / valeurLocativeSecteur) * 100
     : null;
-  const marcheLead = ecartValeurLocative != null
-    ? `Le loyer en place ressort à ${fmtNum(loyerM2)} €/m²/an, soit ${Math.abs(ecartValeurLocative).toFixed(0)} % ${ecartValeurLocative < 0 ? 'sous' : 'au-dessus de'} la valeur locative du secteur, estimée à ${fmtNum(valeurLocativeSecteur)} €/m²/an.`
-    : project.marche_quartier_nom
-      ? `Positionnement du deal sur le secteur ${project.marche_quartier_nom}.`
-      : 'Comparables et fourchettes de valeurs relevés sur le secteur.';
   const anneesRestantesBail = project.echeance_bail && moment(project.echeance_bail).isValid()
     ? Math.max(0, moment(project.echeance_bail).diff(moment(), 'years', true))
     : null;
-  const locataireLead = project.nom_locataire
-    ? `${project.nom_locataire}${project.activite_locataire ? ` — ${project.activite_locataire}` : ''}${loyerAnnuel > 0 ? `, ${fmtNum(loyerAnnuel)} € HT HC de loyer annuel` : ''}${anneesRestantesBail != null ? `, bail courant sur ${anneesRestantesBail.toFixed(1).replace('.', ',')} an(s)` : ''}.`
-    : 'Identité du preneur, économie du bail et garanties associées.';
-  const coproLead = [
-    project.quote_part_lot > 0 ? `Quote-part du lot de ${project.quote_part_lot} %` : null,
-    project.charges_copropriete > 0 ? `${fmtNum(project.charges_copropriete)} € de charges annuelles` : null,
-    project.taxe_fonciere_an > 0 ? `${fmtNum(project.taxe_fonciere_an)} € de taxe foncière` : null,
-  ].filter(Boolean).join(' · ') || "Règlement, charges et décisions d'assemblée générale.";
-  const diagLead = project.dpe_note
-    ? `DPE classe ${project.dpe_note}${project.dpe_consommation > 0 ? ` — ${fmtNum(project.dpe_consommation)} kWh/m²/an` : ''}${project.ges_note ? `, GES classe ${project.ges_note}` : ''}.`
-    : 'Dossier de diagnostic technique du lot.';
 
   // Lien vers le simulateur public (accessible sans compte) — reprend les paramètres du projet
   const openPublicSimulator = () => {
@@ -338,7 +321,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       transition={{ duration: 0.4 }}
       // `overflow-x-clip` et non `hidden` : `hidden` crée un conteneur de
       // défilement qui neutralise le `sticky` du rail d'analyse.
-      className="projet-editorial min-h-screen bg-fond text-encre overflow-x-clip">
+      className="projet-editorial font-projet min-h-screen bg-fond text-encre overflow-x-clip">
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
@@ -449,7 +432,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         {/* Habillage masqué en Street View pour laisser le panorama réactif. */}
         <div className={`absolute bottom-9 md:bottom-11 left-5 right-5 md:left-14 md:right-14 grid md:grid-cols-[minmax(0,1fr)_300px] gap-6 md:gap-12 items-end ${streetView ? "hidden" : ""}`}>
           <div>
-            <h1 className="font-display text-[34px] md:text-[48px] font-light tracking-[-0.03em] leading-[1.02] text-encre mb-0">{project.titre}</h1>
+            <h1 className="text-[28px] md:text-[40px] font-light tracking-[-0.02em] leading-[1.08] text-encre mb-0">{project.titre}</h1>
             <div className="md:hidden mt-5">
               <div className="flex gap-8" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 <div>
@@ -472,11 +455,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <div className="max-md:hidden text-right">
             <div className="flex justify-end gap-10" style={{ fontVariantNumeric: 'tabular-nums' }}>
               <div>
-                <div className="text-[34px] font-light text-encre leading-tight">{formatCurrency(prixRevientCalcule)}</div>
+                <div className="text-[30px] font-light text-encre leading-tight whitespace-nowrap">{formatCurrency(prixRevientCalcule)}</div>
                 <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-1.5">Prix de revient</div>
               </div>
               <div>
-                <div className="text-[34px] font-light text-menthe-clair leading-tight">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : '—'}</div>
+                <div className="text-[30px] font-light text-menthe-clair leading-tight whitespace-nowrap">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : '—'}</div>
                 <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-1.5">Rendement net</div>
               </div>
             </div>
@@ -531,8 +514,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <TabsContent value="secteur" className="space-y-6 max-md:space-y-4">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <div className="mb-8 max-md:mb-5">
-                <h2 className="font-display text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">Secteur</h2>
-                <p className="text-[13.5px] leading-[1.7] text-ardoise mb-0 max-w-[560px]">Du macro au micro : la ville, le quartier, puis l'emplacement.</p>
+                <h2 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">Secteur</h2>
                 <div className="mt-6 max-md:mt-5">
                   <VilleSecteurIA
                     analyse={analyse}
@@ -545,15 +527,26 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     isPublic={isPublic}
                     prixM2Revient={prixM2Revient}
                     loyerM2={loyerM2}
-                    peutLancerEtude={isAdmin || modeEdition}
                   />
                 </div>
               </div>
 
               {(mapUrl || project.transactions_fonds) && (
                 <div className="mb-10 max-md:mb-6">
-                  <SectionLabel tone="teal">Localisation</SectionLabel>
-                  {project.transactions_fonds ? (
+                  <div className="flex items-start justify-between gap-4">
+                    <SectionLabel tone="teal">Localisation</SectionLabel>
+                    {mapsKey && (project.adresse_complete || (project.latitude && project.longitude)) && (
+                      <button type="button" onClick={() => setRueLocalisation((v) => !v)}
+                        className="-mt-1.5 mb-3 text-[12.5px] px-4 py-1.5 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif transition-colors">
+                        {rueLocalisation ? "Revenir à la carte" : "Street View"}
+                      </button>
+                    )}
+                  </div>
+                  {rueLocalisation ? (
+                    <div className="relative h-[420px] max-md:h-[260px] overflow-hidden bg-surface">
+                      <StreetViewRue project={project} />
+                    </div>
+                  ) : project.transactions_fonds ? (
                     <CarteCessions
                       resultat={project.transactions_fonds}
                       titre={project.titre}
@@ -603,8 +596,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader
                 title="Marché"
-                subtitle={<>Comparables du secteur et positionnement du deal.{project.marche_quartier_nom ? <> Secteur : <ValeurEditable champ="marche_quartier_nom" type="text">{project.marche_quartier_nom}</ValeurEditable>.</> : null}</>}
-                right={<LeadText>{marcheLead}</LeadText>}
               />
 
               <KpiStrip items={[
@@ -683,8 +674,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader
                 title="Locataire"
-                subtitle="La solidité de la signature : identité, ancienneté, comptes, garanties."
-                right={<LeadText>{locataireLead}</LeadText>}
               />
 
               <KpiStrip items={[
@@ -737,8 +726,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <TabsContent value="bail">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader title="Analyse du bail" />
-              <FriseBail frise={cases?.frise} onSource={setPiece} />
-              <GrilleCases zone="bail" cases={cases?.bail} project={project} onSource={setPiece} />
+              <VueBail cases={cases} project={project} onSource={setPiece} />
             </motion.div>
           </TabsContent>
 
@@ -746,9 +734,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader
                 title="Copropriété"
-                subtitle="Charges, quote-part du lot et décisions d'assemblée générale."
-                right={<LeadText>{coproLead}</LeadText>}
               />
+
+              <div className="mb-10 max-md:mb-6">
+                <SectionLabel tone="teal">PV d'assemblée générale</SectionLabel>
+                <GrilleCases zone="copropriete" cases={cases?.copropriete} project={project} onSource={setPiece} />
+              </div>
 
               <KpiStrip items={[
                 project.quote_part_lot > 0 && { value: `${project.quote_part_lot} %`, label: 'Quote-part du lot', champ: 'quote_part_lot' },
@@ -826,8 +817,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader
                 title="Diagnostique"
-                subtitle="Performance énergétique et émissions du lot."
-                right={<LeadText>{diagLead}</LeadText>}
               />
 
               {(project.dpe_note || project.ges_note) && (
@@ -871,10 +860,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader
                 title="Documents"
-                subtitle="Pièces du dossier mises à disposition."
-                right={<LeadText>{project.fichiers_projet && project.fichiers_projet.length > 0
-                  ? `${project.fichiers_projet.length} document${project.fichiers_projet.length > 1 ? 's' : ''} disponible${project.fichiers_projet.length > 1 ? 's' : ''} au téléchargement.`
-                  : 'Aucun document disponible pour ce projet.'}</LeadText>}
               />
 
               {project.fichiers_projet && project.fichiers_projet.length > 0 ? (

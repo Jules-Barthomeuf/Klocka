@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
@@ -101,28 +101,6 @@ export function chiffresSecteur(donnees) {
     f?.pieton && { valeur: <Etoiles {...f.pieton} />, label: "Flux piéton", info: "Estimation Data-B du passage piéton dans la zone." },
     f?.voiture && { valeur: <Etoiles {...f.voiture} />, label: "Flux voiture", info: "Estimation Data-B du trafic automobile dans la zone." },
   ].filter(Boolean);
-}
-
-/** L'étude d'implantation manque : l'équipe peut la lancer (un crédit Data-B). */
-export function LancerEtude({ project }) {
-  const client = useQueryClient();
-  const etude = useMutation({
-    mutationFn: () => base44.request("POST", `/api/projects/${project.id}/data-b/implantation`),
-    onSuccess: (donnees) => client.setQueryData(["secteur-projet", project.id, project.adresse_complete], donnees),
-  });
-  return (
-    <div className="flex flex-wrap items-center gap-3 mb-6">
-      <button
-        type="button"
-        onClick={() => etude.mutate()}
-        disabled={etude.isPending}
-        className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-4 py-2 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-40"
-      >
-        {etude.isPending ? "Étude Data-B en cours, une à trois minutes…" : "Lire les flux et la commercialité sur Data-B (1 crédit)"}
-      </button>
-      {etude.isError && <span className="text-[12.5px] text-red-400">{etude.error?.message}</span>}
-    </div>
-  );
 }
 
 /** Prix et loyers : le résidentiel du Figaro, puis la rue et le projet l'un sous l'autre. */

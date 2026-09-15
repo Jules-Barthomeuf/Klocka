@@ -156,18 +156,66 @@ export function raisonsDe(contributions, variables, libelles = {}, { max = 5, se
 // Une ville
 // ---------------------------------------------------------------------------
 
+/** Paris, Lyon, Marseille : DVF, le cadastre et le fichier DGFiP sont par arrondissement. */
+export function communesDe(insee) {
+  const c = String(insee || '');
+  if (c === '75056') return Array.from({ length: 20 }, (_, i) => `751${String(i + 1).padStart(2, '0')}`);
+  if (c === '69123') return Array.from({ length: 9 }, (_, i) => `6938${i + 1}`);
+  if (c === '13055') return Array.from({ length: 16 }, (_, i) => `132${String(i + 1).padStart(2, '0')}`);
+  return [c];
+}
+
+let publies = null;
+/** Les millésimes DGFiP publiés, relus une fois par jour. */
+async function millesimesPublies() {
+  if (publies && Date.now() - publies.le < 86400000) return publies.annees;
+  const { archives } = await import('./personnes-morales.js');
+  const annees = [...(await archives()).keys()].sort((a, b) => a - b);
+  publies = { annees, le: Date.now() };
+  return annees;
+}
+
+let file = Promise.resolve();
+/**
+ * Le fichier des sociétés du département : le dernier millésime publié, et un
+ * plus ancien (deux ans avant au moins) pour voir qui a acheté et vendu.
+ * Téléchargé à la première demande, une archive à la fois : deux villes du
+ * même département ne la téléchargent pas deux fois.
+ */
+export async function assurerMillesimes(dept, { journal = () => {} } = {}) {
+  const { extraire } = await import('./personnes-morales.js');
+  const annees = await millesimesPublies().catch(() => []);
+  if (!annees.length) return;
+  const dernier = annees[annees.length - 1];
+  const ancien = [...annees].reverse().find((a) => a <= dernier - 2);
+  for (const annee of [dernier, ancien].filter(Boolean)) {
+    if (dejaLa(annee, dept)) continue;
+    const tache = file.then(() => (dejaLa(annee, dept) ? null : extraire(annee, { departements: [dept], journal, garderArchive: true })));
+    file = tache.catch(() => {});
+    await tache.catch((e) => journal(`Fichier des sociétés ${annee} du département ${dept} indisponible : ${e.message}`));
+  }
+}
+
 /**
  * Tout ce qu'il faut pour calculer les variables d'aujourd'hui dans une
- * commune. null quand le département n'a aucun millésime DGFiP : sans
- * propriétaire, les variables ne ressemblent plus à celles apprises.
+ * commune, quelle qu'elle soit : les sources manquantes se téléchargent
+ * (fichier DGFiP du département, DVF, cadastre, OpenStreetMap, BODACC).
+ * null quand le département n'a aucun millésime DGFiP lisible.
  */
 export async function contexteVille(insee, { journal = () => {} } = {}) {
-  const dept = String(insee).slice(0, 2);
+  const { departementDe } = await import('../dvf.js');
+  const dept = departementDe(insee);
+  if (!dept) return null;
+  const communes = communesDe(insee);
+  const dansLaVille = new Set(communes);
   const annee = new Date().getFullYear();
+
+  journal(`Fichier des sociétés propriétaires du département ${dept}…`);
+  await assurerMillesimes(dept, { journal });
   const pm = new Map();
   for (let a = 2019; a <= annee; a += 1) {
     if (!dejaLa(a, dept)) continue;
-    const groupes = (lirePM(a, dept) || []).filter((g) => g.commune === insee);
+    const groupes = (lirePM(a, dept) || []).filter((g) => dansLaVille.has(g.commune));
     if (groupes.length) pm.set(a, { parcelles: parParcelle(groupes), sirens: parSiren(groupes) });
   }
   const annees = [...pm.keys()].sort((a, b) => a - b);
@@ -176,14 +224,24 @@ export async function contexteVille(insee, { journal = () => {} } = {}) {
   // Aujourd'hui se lit au dernier millésime publié (situation au 1er janvier).
   if (millesime < annee) pm.set(annee, pm.get(millesime));
 
-  const { lignes } = await lireCommune(insee, { journal });
+  journal('Ventes DVF de la commune…');
+  const lignes = [];
+  // Des boucles, pas `push(...liste)` : Toulouse passe les centaines de
+  // milliers de lignes DVF, au-delà de ce qu'un appel accepte d'arguments.
+  for (const c of communes) for (const l of (await lireCommune(c, { journal })).lignes) lignes.push(l);
   const mutations = mutationsParParcelle(indexerLocaux(lignes));
   const ventesParParcelle = new Map();
   for (const [parcelle, liste] of mutations) ventesParParcelle.set(parcelle, liste.filter((m) => m.vente).map((m) => m.date));
 
+  journal('Cadastre…');
   const { chargerParcelles, indexerParcelles } = await import('./cadastre.js');
-  const cadastre = indexerParcelles(await chargerParcelles(insee, { journal }));
+  const parcellesCadastre = [];
+  for (const c of communes) for (const p of await chargerParcelles(c, { journal })) parcellesCadastre.push(p);
+  const cadastre = indexerParcelles(parcellesCadastre);
+
+  journal('Vitrines OpenStreetMap…');
   const releve = await osmDeLaCommune(insee, journal);
+  journal('Procédures collectives BODACC…');
   const procedures = await proceduresDeLaCommune(insee, '2019-01-01', journal).catch(() => null);
   const { parcelles } = parcellesCommercantes(releve.vitrines, cadastre);
 

@@ -8,7 +8,7 @@ import os from 'os';
 import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-score-ville-'));
-const { tranchesDe, trancheDe, rangDans, groupeProprietaire, phraseVariable, raisonsDe, FIABILITE } = await import('./score-ville.js');
+const { tranchesDe, trancheDe, rangDans, groupeProprietaire, phraseVariable, raisonsDe, FIABILITE, communesDe } = await import('./score-ville.js');
 const { classer } = await import('./classement.js');
 
 const METRICS = {
@@ -81,4 +81,13 @@ test('la pile suit la tranche du modèle ; les exclusions restent au-dessus', ()
   assert.match(aveugle.motif, /le modèle voit mal/);
   // Un local vide reste écarté, quelle que soit la tranche.
   assert.equal(classer({ ...cible, occupe: false, score_ml: ml('top_5') }).pile, 'ecartee');
+});
+
+test('Paris, Lyon et Marseille se lisent par arrondissement, les autres communes telles quelles', () => {
+  assert.equal(communesDe('75056').length, 20);
+  assert.equal(communesDe('75056')[17], '75118');
+  assert.deepEqual(communesDe('69123').slice(0, 2), ['69381', '69382']);
+  assert.equal(communesDe('13055')[15], '13216');
+  assert.deepEqual(communesDe('06088'), ['06088']);
+  assert.deepEqual(communesDe('2A004'), ['2A004']);
 });

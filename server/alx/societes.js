@@ -113,24 +113,40 @@ export function accrocheDe({ nom, ville, murs, profils = [] }) {
 // ---------------------------------------------------------------------------
 
 const memo = new Map();
+const ATTENTE_MS = 8000;
 
-/** Le contexte de la ville et la probabilité de chaque parcelle à vitrine, gardés six heures. */
+/**
+ * Le contexte de la ville et la probabilité de chaque parcelle à vitrine,
+ * gardés six heures. La première lecture d'une ville télécharge ses sources
+ * (une à deux minutes) : elle tourne en arrière-plan, la requête attend huit
+ * secondes au plus, puis rend l'étape en cours ; l'écran repasse.
+ */
 async function villeScoree(ville) {
-  const garde = memo.get(ville.id);
-  if (garde && Date.now() - garde.le < GARDE_MS) return garde.promesse;
-  const promesse = (async () => {
-    const s = scorer();
-    if (!s) return { erreur: 'Aucun modèle entraîné.' };
-    const ctx = await contexteVille(ville.code_insee);
-    if (!ctx) return { erreur: `Pas de fichier des sociétés propriétaires pour le département ${String(ville.code_insee).slice(0, 2)} : ALX ne peut pas lire les portefeuilles de ${ville.nom}.` };
-    const probaParParcelle = new Map();
-    for (const parcelle of ctx.parcelles.keys()) probaParParcelle.set(parcelle, s.modele.predire(variablesDeParcelle(ctx, parcelle)));
-    const probas = [...probaParParcelle.values()].sort((a, b) => b - a);
-    return { ctx, s, probaParParcelle, probas, tranches: tranchesDe(s.metrics) };
-  })();
-  memo.set(ville.id, { promesse, le: Date.now() });
-  promesse.then((r) => { if (r.erreur) memo.delete(ville.id); }, () => memo.delete(ville.id));
-  return promesse;
+  let e = memo.get(ville.id);
+  if (e?.fini && e.erreur) { memo.delete(ville.id); return { erreur: e.erreur }; }
+  if (e?.fini && Date.now() - e.le > GARDE_MS) { memo.delete(ville.id); e = null; }
+  if (!e) {
+    const entree = { fini: false, etape: 'ALX prépare la ville…', le: Date.now() };
+    entree.promesse = (async () => {
+      const s = scorer();
+      if (!s) throw new Error('Aucun modèle entraîné.');
+      const ctx = await contexteVille(ville.code_insee, { journal: (m) => { entree.etape = m; } });
+      if (!ctx) throw new Error(`Aucun fichier des sociétés propriétaires lisible pour ${ville.nom} : data.gouv.fr n'a pas rendu le département.`);
+      entree.etape = 'Le modèle classe les parcelles à vitrine…';
+      const probaParParcelle = new Map();
+      for (const parcelle of ctx.parcelles.keys()) probaParParcelle.set(parcelle, s.modele.predire(variablesDeParcelle(ctx, parcelle)));
+      const probas = [...probaParParcelle.values()].sort((a, b) => b - a);
+      entree.resultat = { ctx, s, probaParParcelle, probas, tranches: tranchesDe(s.metrics) };
+    })()
+      .catch((err) => { entree.erreur = `${ville.nom} : ${err.message}`; })
+      .finally(() => { entree.fini = true; entree.le = Date.now(); });
+    memo.set(ville.id, entree);
+    e = entree;
+  }
+  if (!e.fini) await Promise.race([e.promesse, new Promise((r) => setTimeout(r, ATTENTE_MS))]);
+  if (!e.fini) return { en_preparation: true, etape: e.etape };
+  if (e.erreur) { memo.delete(ville.id); return { erreur: e.erreur }; }
+  return e.resultat;
 }
 
 const annuairesEnCache = () => new Map(Records.list('SocieteAnnuaire').map((r) => [r.siren, r]));
@@ -142,6 +158,7 @@ export async function listerSocietes(villeId) {
   if (lue.erreur) return { ok: false, erreur: lue.erreur };
   const { ville } = lue;
   const v = await villeScoree(ville);
+  if (v.en_preparation) return { ok: false, en_preparation: true, etape: v.etape };
   if (v.erreur) return { ok: false, erreur: v.erreur };
   const { ctx, probaParParcelle, probas, tranches } = v;
   const dernier = ctx.pm.get(ctx.millesime);
@@ -216,6 +233,7 @@ export async function detailSociete(villeId, siren, { forcer = false } = {}) {
   if (lue.erreur) return { ok: false, erreur: lue.erreur };
   const { ville } = lue;
   const v = await villeScoree(ville);
+  if (v.en_preparation) return { ok: false, en_preparation: true, etape: v.etape };
   if (v.erreur) return { ok: false, erreur: v.erreur };
   const { ctx, s, probaParParcelle, probas, tranches } = v;
   const groupes = (ctx.pm.get(ctx.millesime).sirens.get(siren) || []).filter((g) => !g.droit || g.droit === 'P');

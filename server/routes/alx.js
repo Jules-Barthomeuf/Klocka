@@ -147,12 +147,14 @@ export function monterAlx(app) {
   app.get('/api/alx/villes/:id/societes', wrap(async (req, res) => {
     const { listerSocietes } = await import('../alx/societes.js');
     const r = await listerSocietes(req.params.id);
+    if (r.en_preparation) return ok(res, r);
     if (!r.ok) return erreur(res, r.erreur);
     ok(res, r);
   }));
   app.get('/api/alx/villes/:id/societes/:siren', wrap(async (req, res) => {
     const { detailSociete } = await import('../alx/societes.js');
     const r = await detailSociete(req.params.id, String(req.params.siren), { forcer: req.query.forcer === '1' });
+    if (r.en_preparation) return ok(res, r);
     if (!r.ok) return erreur(res, r.erreur, 404);
     ok(res, r);
   }));

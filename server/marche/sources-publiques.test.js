@@ -65,7 +65,10 @@ test('DVF : seules les ventes comptent, pas les échanges ni les VEFA', () => {
 test('DVF : le département se déduit du code INSEE, outre-mer compris', () => {
   assert.equal(departementDe('92026'), '92');
   assert.equal(departementDe('97411'), '974', 'trois chiffres outre-mer');
-  assert.equal(departementDe('2A004'), null, 'la Corse s’écrit 2A : pas un code à cinq chiffres');
+  // DVF range la Corse sous « 2A » et « 2B » (communes/2A/2A004.csv) : le
+  // code à lettre est un vrai département, pas un code à rejeter.
+  assert.equal(departementDe('2A004'), '2A', 'la Corse garde sa lettre');
+  assert.equal(departementDe('2B033'), '2B');
   assert.equal(departementDe(''), null);
 });
 

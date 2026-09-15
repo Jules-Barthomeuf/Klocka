@@ -195,7 +195,7 @@ function lignesDuDepartement(zip, dept) {
  * @param {number} annee
  * @param {{departements?: string[], journal?: Function, forcer?: boolean}} [opts]
  */
-export async function extraire(annee, { departements = ['06'], journal = () => {}, forcer = false } = {}) {
+export async function extraire(annee, { departements = ['06'], journal = () => {}, forcer = false, garderArchive = false } = {}) {
   const manquants = departements.filter((d) => forcer || !dejaLa(annee, d));
   if (!manquants.length) {
     journal(`${annee} : déjà extrait (${departements.join(', ')}).`);
@@ -224,7 +224,9 @@ export async function extraire(annee, { departements = ['06'], journal = () => {
   }
   // L'archive nationale ne sert qu'à l'extraction : on la retire, les
   // départements gardés pèsent mille fois moins.
-  try { fs.unlinkSync(zip); } catch { /* déjà partie */ }
+  // Gardée quand ALX télécharge à la demande : le département suivant
+  // s'extrait de la même archive sans deux cents mégas de plus.
+  if (!garderArchive) { try { fs.unlinkSync(zip); } catch { /* déjà partie */ } }
   return faits;
 }
 

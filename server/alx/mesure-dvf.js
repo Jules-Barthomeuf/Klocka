@@ -111,7 +111,8 @@ export async function lireCommune(insee, { journal = () => {}, jusqua = new Date
     const texte = await fichierAnnee(dep, insee, a, journal);
     if (texte == null) continue;
     annees.push(a);
-    lignes.push(...lireCsv(texte));
+    // Une boucle : une grande commune dépasse le nombre d'arguments d'un appel.
+    for (const l of lireCsv(texte)) lignes.push(l);
   }
   return { insee, dep, annees, lignes };
 }

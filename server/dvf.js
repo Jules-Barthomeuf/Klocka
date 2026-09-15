@@ -51,7 +51,8 @@ const racine = process.env.DVF_RACINE || 'https://files.data.gouv.fr/geo-dvf/lat
 /** Le département d'un code INSEE : « 92026 » → « 92 », « 97411 » → « 974 ». */
 export function departementDe(insee) {
   const c = String(insee || '');
-  if (!/^\d{5}$/.test(c)) return null;
+  // La Corse écrit son département avec une lettre : 2A004, 2B033.
+  if (!/^(\d{5}|2[AB]\d{3})$/i.test(c)) return null;
   return c.startsWith('97') ? c.slice(0, 3) : c.slice(0, 2);
 }
 

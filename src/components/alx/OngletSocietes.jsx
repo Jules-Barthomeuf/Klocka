@@ -26,6 +26,17 @@ function Pastille({ children, actif, onClick }) {
   );
 }
 
+/** La première lecture d'une ville : ce qu'ALX télécharge en ce moment. */
+function Preparation({ etape }) {
+  return (
+    <div className="alx-entree mt-8 flex flex-col gap-1.5" role="status" aria-live="polite">
+      <p className="m-0 text-[15px] text-encre">ALX prépare les portefeuilles de la ville</p>
+      <p className="m-0 text-[13.5px] text-ardoise">{etape}</p>
+      <p className="m-0 text-[12.5px] text-brume">Première ouverture : fichier des sociétés du département, ventes DVF, cadastre et vitrines se téléchargent, une à deux minutes. La page se met à jour seule.</p>
+    </div>
+  );
+}
+
 export default function OngletSocietes({ villeId, onOuvrirCible }) {
   const [siren, setSiren] = useState(null);
   const [recherche, setRecherche] = useState("");
@@ -36,12 +47,15 @@ export default function OngletSocietes({ villeId, onOuvrirCible }) {
     queryKey: ["alx-societes", villeId],
     queryFn: () => base44.request("GET", `/api/alx/villes/${villeId}/societes`),
     staleTime: 10 * 60 * 1000,
+    // La première ouverture d'une ville télécharge ses sources : on repasse.
+    refetchInterval: (q) => (q.state.data?.en_preparation ? 4000 : false),
     retry: false,
   });
 
   if (siren) return <FicheSociete villeId={villeId} siren={siren} onRetour={() => setSiren(null)} onOuvrirCible={onOuvrirCible} />;
   if (isLoading) return <p className="alx-entree m-0 mt-8 text-[13.5px] text-ardoise">ALX lit le fichier des sociétés propriétaires et classe leurs murs…</p>;
   if (error) return <p className="alx-entree m-0 mt-8 text-[13.5px] text-ardoise">{error.message}</p>;
+  if (data?.en_preparation) return <Preparation etape={data.etape} />;
 
   const simple = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const q = simple(recherche.trim());
@@ -120,6 +134,7 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
     queryKey: cle,
     queryFn: () => base44.request("GET", `/api/alx/villes/${villeId}/societes/${siren}`),
     staleTime: 10 * 60 * 1000,
+    refetchInterval: (q) => (q.state.data?.en_preparation ? 4000 : false),
     retry: false,
   });
   const relire = async () => {
@@ -132,7 +147,8 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
       <button onClick={onRetour} className="inline-flex items-center gap-2 text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>← Toutes les sociétés</button>
       {isLoading && <p className="m-0 mt-6 text-[13.5px] text-ardoise">ALX lit le portefeuille, l'annuaire et le BODACC…</p>}
       {error && <p className="m-0 mt-6 text-[13.5px] text-ardoise">{error.message}</p>}
-      {s && (
+      {s?.en_preparation && <Preparation etape={s.etape} />}
+      {s && !s.en_preparation && (
         <>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">

@@ -47,24 +47,30 @@ function Vente({ v, ouverte, onOuvrir }) {
     <div className="border-t border-trait first:border-t-0">
       <button onClick={onOuvrir} className="grid w-full grid-cols-[86px_minmax(0,1fr)_150px_64px] items-baseline gap-3 py-[10px] text-left">
         <span className="text-[12.5px] tabular-nums text-ardoise">{quand(v.date_vente)}</span>
-        <span className="truncate text-[12.5px] text-craie">{v.rue || v.parcelle} · {v.ville}</span>
+        <span className="truncate text-[12.5px] text-craie">{v.enseignes || v.rue || v.parcelle} · {v.ville}</span>
         <span className="text-right text-[11px] uppercase tracking-[.1em] text-brume">lu le {quand(v.t_reference)}</span>
-        <span className="text-right text-[12.5px] font-medium tabular-nums" style={{ color: v.proba >= 0.5 ? J["menthe"] : J["ardoise"] }}>{pctFr(v.proba)}</span>
+        <span className="text-right text-[12.5px] font-medium tabular-nums text-encre">{pctFr(v.proba, 1)}</span>
       </button>
       {ouverte && (
         <div className="flex flex-col gap-2 pb-4 pl-1 pr-1">
-          <p className="m-0 text-[11px] uppercase tracking-[.14em] text-brume">Pourquoi le modèle y aurait cru, un an avant</p>
+          <p className="m-0 flex flex-wrap items-baseline gap-x-4 text-[11px] uppercase tracking-[.14em] text-brume">
+            <span>Pourquoi le modèle y aurait cru, un an avant</span>
+            {v.confiance != null && <span>confiance {pctFr(v.confiance)}</span>}
+            {v.part_decision_inconnues > 0.25 && <span className="text-ambre">{pctFr(v.part_decision_inconnues)} de la décision repose sur des trous</span>}
+          </p>
           {v.contributions.map((c) => (
             <Jauge
               key={c.feature}
               libelle={`${c.libelle}${c.valeur != null ? ` · ${String(c.valeur).replace(".", ",")}` : " · inconnue"}`}
               part={c.part_pct}
-              teinte={c.shap > 0 ? J["menthe"] : c.shap < 0 ? J["alerte"] : J["bord-vif"]}
+              // Une poussée née d'un trou n'est pas un signal : elle se voit
+              // en gris, quel que soit son sens.
+              teinte={c.inconnue ? J["bord-vif"] : c.shap > 0 ? J["menthe"] : J["alerte"]}
               droite={`${c.shap > 0 ? "+" : ""}${virgule(c.shap)}`}
             />
           ))}
           <p className="m-0 mt-1 text-[11px] leading-[1.5] text-brume">
-            En vert, ce qui poussait vers la vente ; en corail, ce qui retenait. Les valeurs sont des poussées SHAP (log-odds), leur largeur est la part de chacune dans la décision.
+            En vert, ce qui poussait vers la vente ; en corail, ce qui retenait ; en gris, une variable inconnue — le modèle devine, il ne sait pas. Les valeurs sont des poussées SHAP (log-odds), leur largeur est la part de chacune dans la décision.
           </p>
         </div>
       )}
@@ -130,6 +136,25 @@ export default function ALXEntrainement() {
                   </div>
                 ))}
               </div>
+              {/* L'ablation : le même modèle, sans l'historique DVF du local.
+                  Ce qui reste est ce qu'il sait dire du PROFIL — et c'est ce
+                  que la prospection lui demandera sur un bien jamais vendu. */}
+              {m?.ablation_sans_dvf?.holdout && (
+                <div className="mt-5 border-t border-trait pt-4">
+                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+                    <Etiquette>Le test d'ablation : sans l'historique DVF du local</Etiquette>
+                    <span className="text-[12.5px] text-brume">retirées : dernière mutation, prix, déjà muté, en bloc</span>
+                  </div>
+                  <div className="flex flex-wrap items-baseline gap-x-8 gap-y-4">
+                    <Stat label="ROC-AUC" valeur={virgule(m.ablation_sans_dvf.holdout.roc_auc)} detail={`contre ${virgule(holdout?.roc_auc)} avec tout`} />
+                    <Stat label="PR-AUC" valeur={virgule(m.ablation_sans_dvf.holdout.pr_auc)} detail={`contre ${virgule(holdout?.pr_auc)} avec tout`} />
+                    {m.ablation_sans_dvf.holdout.lift_en_tete?.top_10 && (
+                      <Stat label="Top 10 %" valeur={`×${virgule(m.ablation_sans_dvf.holdout.lift_en_tete.top_10.lift, 2)}`} detail="ce que le profil seul sait faire" />
+                    )}
+                    {m.confiance && <Stat label="Confiance moyenne" valeur={pctFr(m.confiance.moyenne)} detail="part renseignée des variables, pondérée" />}
+                  </div>
+                </div>
+              )}
               <p className="m-0 mt-4 border-t border-trait pt-3.5 text-[12.5px] leading-[1.65] text-brume">{m?.avertissement}</p>
             </Carte>
 

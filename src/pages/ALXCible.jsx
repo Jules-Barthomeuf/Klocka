@@ -419,6 +419,14 @@ export default function ALXCible() {
               <div className="mt-3.5 flex flex-col gap-[9px]">
                 {raisons.map((r) => <span key={r} className="flex items-baseline gap-3 text-[15px] leading-[1.5] text-craie"><span style={{ color: teinteVerdict }}>—</span>{r}</span>)}
               </div>
+              {/* Le score appris, à côté du classement, jamais à sa place :
+                  la probabilité du modèle entraîné sur l'historique DVF,
+                  multipliée par la part de variables réellement connues. */}
+              {c.score_ml && (
+                <p className="m-0 mt-3.5 border-t border-trait pt-3 text-[12.5px] leading-[1.6] text-brume">
+                  Modèle appris (expérimental) : {(c.score_ml.proba * 100).toFixed(1).replace(".", ",")} % de chance de vente sous un an, confiance {(c.score_ml.confiance * 100).toFixed(0)} % — score {(c.score_ml.score * 100).toFixed(1).replace(".", ",")}. Il ne décide pas de la pile.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-5">

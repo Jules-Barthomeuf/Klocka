@@ -123,9 +123,20 @@ export function monterAlx(app) {
     if (!r.ok) return erreur(res, r.error);
     ok(res, r);
   }));
-  app.get('/api/alx/cibles/:id', wrap((req, res) => {
+  app.get('/api/alx/cibles/:id', wrap(async (req, res) => {
     const c = obtenirCible(req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
+    // Le score appris, s'il y a un modèle entraîné : posé À CÔTÉ du
+    // classement, jamais à sa place — les knock-outs de classement.js
+    // restent au-dessus. Expérimental, et l'écran le dit.
+    try {
+      const { scoreDeCible } = await import('../alx/score-ml.js');
+      const ville = c.ville_id ? obtenirVille(c.ville_id) : null;
+      const score = scoreDeCible(c, { rues: ville?.rues || [] });
+      if (score) return ok(res, { ...c, score_ml: score });
+    } catch {
+      // Sans modèle, la fiche vit comme avant.
+    }
     ok(res, c);
   }));
   app.put('/api/alx/cibles/:id', wrap((req, res) => {

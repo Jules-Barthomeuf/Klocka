@@ -1,9 +1,9 @@
-// Le dataset d'apprentissage : le gel temporel, l'échantillonnage, le verrou.
+// Le dataset d'apprentissage : le gel temporel, l'univers adresse, le verrou.
 //
 // La seule chose qui puisse invalider tout le projet est une variable qui
-// voit le futur. Ces tests fabriquent des locaux et vérifient qu'à la date T,
-// rien de postérieur à T ne transpire — ni dans les mutations, ni chez le
-// propriétaire, ni dans la rotation de portefeuille.
+// voit le futur. Ces tests fabriquent des parcelles, des vitrines et des
+// millésimes, et vérifient qu'à la date T rien de postérieur ne transpire —
+// ni dans les mutations, ni chez le propriétaire, ni dans le cycle du bail.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,7 +12,7 @@ import os from 'os';
 import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-ml-'));
-const { alea, indexerLocaux, featuresA, echantillonner, verrouLocatif, COLONNES_FEATURES } = await import('./dataset-ml.js');
+const { alea, indexerLocaux, mutationsParParcelle, featuresA, observationsAdresse, parcellesCommercantes, installationDe, verrouLocatif, COLONNES_FEATURES } = await import('./dataset-ml.js');
 const { grouper, parParcelle, parSiren } = await import('./personnes-morales.js');
 
 // --- Des lignes DVF fabriquées -----------------------------------------------
@@ -33,6 +33,9 @@ test('l’inventaire garde l’adresse, la surface et les mutations datées', ()
   assert.equal(a.rue, 'RUE SAINTE-CATHERINE');
   assert.equal(a.surface, 80);
   assert.deepEqual(a.mutations.map((m) => m.date), ['2022-03-15', '2024-06-01'], 'triées');
+  // L'agrégation par parcelle, granularité de l'univers adresse.
+  const parParcelleDvf = mutationsParParcelle(locaux);
+  assert.equal(parParcelleDvf.get('33063000AB0001').length, 2);
 });
 
 test('rien de postérieur à T ne transpire dans les variables', () => {
@@ -99,7 +102,7 @@ test('la rotation ne compte que les ventes d’AVANT T, sur les AUTRES parcelles
   const ventes = new Map([
     ['33063000AB0002', ['2021-09-01']],   // avant T : compte
     ['33063000AB0003', ['2023-01-01']],   // après T : invisible
-    ['33063000AB0001', ['2021-02-01']],   // la parcelle du local : ne compte pas
+    ['33063000AB0001', ['2021-02-01']],   // la parcelle du sujet : ne compte pas
   ]);
   const f = featuresA(local, '2022-06-01', { pm, ventesParParcelle: ventes, rues: null, procedures: null });
   assert.equal(f.taille_portefeuille, 3);
@@ -107,47 +110,85 @@ test('la rotation ne compte que les ventes d’AVANT T, sur les AUTRES parcelles
   assert.equal(f.a_vendu_ailleurs_24m, 1);
 });
 
-test('l’échantillonnage : un an de recul, des témoins non vendus, reproductible', () => {
-  const lignes = [ligneDvf({ id: 'v1', date: '2023-06-15' })];
-  for (let i = 2; i <= 9; i += 1) {
-    lignes.push(ligneDvf({ id: `t${i}`, date: '2021-03-01', parcelle: `33063000AB000${i}`, numero: String(10 + i) }));
-  }
-  // Un piège : un local qui se vend DANS l'horizon des 12 mois — jamais témoin.
-  lignes.push(ligneDvf({ id: 'p1', date: '2021-03-01', parcelle: '33063000AC0001', numero: '99' }));
-  lignes.push(ligneDvf({ id: 'p2', date: '2022-09-01', parcelle: '33063000AC0001', numero: '99' }));
+// --- L'univers adresse ----------------------------------------------------------
 
-  const locaux = indexerLocaux(lignes);
-  const obs = echantillonner(locaux, { debut: '2022-01-01', fin: '2024-12-31', seed: 7 });
-  const positifs = obs.filter((o) => o.y === 1);
-  const negatifs = obs.filter((o) => o.y === 0);
-  // Deux ventes dans la fenêtre : v1 (2023-06-15) et la revente p2 (2022-09-01).
-  assert.equal(positifs.length, 2);
-  assert.deepEqual(positifs.map((o) => o.T).sort(), ['2021-09-01', '2022-06-15'], 'chacune lue un an avant sa vente');
-  assert.equal(negatifs.length, 6, 'trois témoins par vente');
-  const temoinsDeV1 = negatifs.filter((o) => o.T === '2022-06-15');
-  assert.equal(temoinsDeV1.length, 3, 'les témoins sont lus à la date de leur vente');
-  assert.ok(!temoinsDeV1.some((o) => o.local.parcelle === '33063000AC0001'), 'un local vendu dans l’horizon n’est pas un témoin');
-  // Reproductible : même seed, mêmes témoins.
-  const obs2 = echantillonner(locaux, { debut: '2022-01-01', fin: '2024-12-31', seed: 7 });
-  assert.deepEqual(obs2.map((o) => o.local.cle), obs.map((o) => o.local.cle));
-  const obs3 = echantillonner(locaux, { debut: '2022-01-01', fin: '2024-12-31', seed: 8 });
-  assert.notDeepEqual(obs3.filter((o) => !o.y).map((o) => o.local.cle), negatifs.map((o) => o.local.cle), 'un autre seed tire autrement');
+const carre = (id, lat, lon, cote = 0.0004) => ({ id, c: [[lat, lon], [lat + cote, lon], [lat + cote, lon + cote], [lat, lon + cote], [lat, lon]] });
+
+test('les vitrines se regroupent par parcelle, la plus vieille installation gagne', async () => {
+  const { indexerParcelles } = await import('./cadastre.js');
+  const cadastre = indexerParcelles([carre('33063000AB0001', 44.84, -0.57), carre('33063000AB0002', 44.84, -0.5694)]);
+  const { parcelles, sans_parcelle } = parcellesCommercantes([
+    { lat: 44.8401, lon: -0.5698, rue: 'Rue Sainte-Catherine', numero: '12', enseigne: 'Boulangerie', installation: '2015-03-01' },
+    { lat: 44.8402, lon: -0.5697, rue: 'Rue Sainte-Catherine', numero: '12', enseigne: 'Opticien', installation: '2021-09-01' },
+    { lat: 44.8401, lon: -0.5692, rue: 'Rue Sainte-Catherine', numero: '14', enseigne: 'Bar', installation: null },
+    { lat: 44.9, lon: -0.4, rue: 'Ailleurs', numero: null, enseigne: 'Perdu', installation: null },
+  ], cadastre);
+  assert.equal(parcelles.size, 2);
+  assert.equal(sans_parcelle, 1, 'la vitrine hors cadastre est comptée, pas inventée');
+  const p1 = parcelles.get('33063000AB0001');
+  assert.equal(p1.vitrines_parcelle, 2);
+  assert.equal(p1.installation, '2015-03-01', 'le bail le plus mûr : la plus vieille installation');
+});
+
+test('l’étiquette dit la vente dans les douze mois, la prévalence est celle du marché', () => {
+  const locaux = indexerLocaux([
+    ligneDvf({ id: 'v1', date: '2022-06-15' }),                                  // vendue dans l'horizon de T=2022
+    ligneDvf({ id: 'v2', date: '2024-03-01', parcelle: '33063000AB0002' }),      // vendue bien après
+  ]);
+  const mutations = mutationsParParcelle(locaux);
+  const parcelles = new Map([
+    ['33063000AB0001', { parcelle: '33063000AB0001', rue: 'RUE SAINTE-CATHERINE', numero: '12', vitrines_parcelle: 1, enseignes: [], installation: null }],
+    ['33063000AB0002', { parcelle: '33063000AB0002', rue: 'RUE SAINTE-CATHERINE', numero: '14', vitrines_parcelle: 1, enseignes: [], installation: null }],
+    ['33063000AB0003', { parcelle: '33063000AB0003', rue: 'RUE SAINTE-CATHERINE', numero: '16', vitrines_parcelle: 1, enseignes: [], installation: null }],
+  ]);
+  const obs = observationsAdresse(parcelles, mutations, { references: ['2022-01-01', '2023-01-01'] });
+  assert.equal(obs.length, 6, 'trois parcelles fois deux dates : pas d’échantillonnage');
+  const en2022 = Object.fromEntries(obs.filter((o) => o.T === '2022-01-01').map((o) => [o.sujet.parcelle, o]));
+  assert.equal(en2022['33063000AB0001'].y, 1, 'vendue en juin 2022');
+  assert.equal(en2022['33063000AB0001'].date_vente, '2022-06-15');
+  assert.equal(en2022['33063000AB0002'].y, 0, 'sa vente de 2024 est hors horizon');
+  assert.equal(en2022['33063000AB0003'].y, 0, 'jamais vendue : le vrai négatif, celui que DVF seul ne voyait pas');
+  const en2023 = Object.fromEntries(obs.filter((o) => o.T === '2023-01-01').map((o) => [o.sujet.parcelle, o]));
+  assert.equal(en2023['33063000AB0001'].y, 0, 'sa vente est PASSÉE à cette date, pas à venir');
+});
+
+test('le cycle du bail : l’installation date le commerce, l’échéance se compte en mois', () => {
+  const sujet = { parcelle: 'x', rue: null, numero: null, mutations: [], installation: '2014-01-01' };
+  const f = featuresA(sujet, '2023-01-01', { pm: new Map(), ventesParParcelle: new Map(), rues: null, procedures: null });
+  assert.equal(f.mois_depuis_installation, 108, 'neuf ans');
+  assert.equal(f.proximite_echeance_369, 0, 'pile sur une échéance triennale');
+  const milieu = featuresA({ ...sujet, installation: '2021-07-01' }, '2023-01-01', { pm: new Map(), ventesParParcelle: new Map(), rues: null, procedures: null });
+  assert.equal(milieu.proximite_echeance_369, 18, 'au milieu du cycle');
+  // Installé APRÈS T : le commerce n'existait pas, la variable non plus.
+  const futur = featuresA({ ...sujet, installation: '2024-01-01' }, '2023-01-01', { pm: new Map(), ventesParParcelle: new Map(), rues: null, procedures: null });
+  assert.equal(futur.mois_depuis_installation, null);
+});
+
+test('l’installation d’une vitrine se retrouve dans l’annuaire de sa rue', () => {
+  const annuaire = {
+    'rue sainte catherine': [
+      { numero: '12', nom: 'BOULANGERIE DUPONT', creation: '2012-05-01' },
+      { numero: '14', nom: 'OPTIQUE MARTIN', creation: '2020-01-01' },
+    ],
+  };
+  assert.equal(installationDe({ rue: 'Rue Sainte-Catherine', numero: '12', enseigne: 'Boulangerie Dupont' }, annuaire), '2012-05-01');
+  assert.equal(installationDe({ rue: 'Rue Sainte-Catherine', numero: '14', enseigne: null }, annuaire), '2020-01-01', 'sans enseigne mais seul à ce numéro');
+  assert.equal(installationDe({ rue: 'Rue Inconnue', numero: '1', enseigne: 'X' }, annuaire), null);
 });
 
 test('le verrou locatif écarte l’adresse en procédure, pas la rue entière', () => {
-  const locaux = indexerLocaux([ligneDvf({ id: 'm1', date: '2023-06-15', numero: '12' })]);
-  const [local] = [...locaux.values()];
+  const sujet = { parcelle: 'x', rue: 'RUE SAINTE-CATHERINE', numero: '12', mutations: [] };
   const procedures = [{ date: '2022-01-10', rue: 'rue sainte catherine', numero: '12' }];
-  assert.equal(verrouLocatif(local, '2022-06-15', procedures), true, 'procédure au 12, cinq mois avant T');
-  assert.equal(verrouLocatif(local, '2024-06-15', procedures), false, 'trop vieux : plus de dix-huit mois');
-  assert.equal(verrouLocatif(local, '2022-06-15', [{ ...procedures[0], numero: '48' }]), false, 'au 48, pas au 12');
+  assert.equal(verrouLocatif(sujet, '2022-06-15', procedures), true, 'procédure au 12, cinq mois avant T');
+  assert.equal(verrouLocatif(sujet, '2024-06-15', procedures), false, 'trop vieux : plus de dix-huit mois');
+  assert.equal(verrouLocatif(sujet, '2022-06-15', [{ ...procedures[0], numero: '48' }]), false, 'au 48, pas au 12');
   // La même procédure reste une VARIABLE au niveau de la rue.
-  const f = featuresA(local, '2022-06-15', { pm: new Map(), ventesParParcelle: new Map(), rues: null, procedures });
+  const f = featuresA(sujet, '2022-06-15', { pm: new Map(), ventesParParcelle: new Map(), rues: null, procedures });
   assert.equal(f.procedures_rue_18m, 1);
 });
 
 test('les colonnes du CSV sont stables et l’aléa est un vrai seed', () => {
-  assert.equal(COLONNES_FEATURES.length, 17);
+  assert.equal(COLONNES_FEATURES.length, 21);
   const a = alea(42), b = alea(42);
   assert.equal(a(), b());
 });

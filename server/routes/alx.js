@@ -123,22 +123,34 @@ export function monterAlx(app) {
     if (!r.ok) return erreur(res, r.error);
     ok(res, r);
   }));
+  // Le score appris est posé sur la cible par score-ville.js, ville par ville :
+  // la fiche le lit tel qu'il a fait la pile, sans le recalculer autrement.
   app.get('/api/alx/cibles/:id', wrap(async (req, res) => {
     const c = obtenirCible(req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
-    // Le score appris, s'il y a un modèle entraîné : posé À CÔTÉ du
-    // classement, jamais à sa place — les knock-outs de classement.js
-    // restent au-dessus. Expérimental, et l'écran le dit.
-    try {
-      const { scoreDeCible } = await import('../alx/score-ml.js');
-      const ville = c.ville_id ? obtenirVille(c.ville_id) : null;
-      const score = scoreDeCible(c, { rues: ville?.rues || [] });
-      if (score) return ok(res, { ...c, score_ml: score });
-    } catch {
-      // Sans modèle, la fiche vit comme avant.
-    }
     ok(res, c);
   }));
+
+  // Recalcule le score appris d'une ville et reclasse ses cibles (une à deux
+  // secondes par ville). Rend l'état de la passe.
+  app.post('/api/alx/villes/:id/score-ml', wrap(async (req, res) => {
+    const ville = obtenirVille(req.params.id);
+    if (!ville) return res.status(404).json({ error: 'Ville introuvable.' });
+    const { rescorerVille } = await import('../alx/score-ville.js');
+    const r = await rescorerVille(ville.id, { journal: (t) => console.log(t) });
+    if (!r.ok) return erreur(res, r.raison);
+    ok(res, r);
+  }));
+
+  // Le score appris vieillit avec DVF, le BODACC et le fichier des sociétés :
+  // une passe trente secondes après le démarrage, puis une par jour.
+  const passeScores = () => import('../alx/score-ville.js')
+    .then(({ rescorerToutesLesVilles }) => rescorerToutesLesVilles({ journal: (t) => console.log(t) }))
+    .catch((e) => console.error('[alx] passe des scores appris :', e.message));
+  if (process.env.NODE_ENV !== 'test') {
+    setTimeout(passeScores, 30_000).unref();
+    setInterval(passeScores, 24 * 3600 * 1000).unref();
+  }
   app.put('/api/alx/cibles/:id', wrap((req, res) => {
     const r = mettreAJourCible(req.params.id, req.body || {}, currentUser(req));
     if (!r.ok) return erreur(res, r.error, 404);

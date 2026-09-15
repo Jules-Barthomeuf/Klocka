@@ -350,7 +350,7 @@ export function observationsAdresse(parcellesCom, mutations, { references, horiz
 // --- Les sources annexes ----------------------------------------------------------
 
 /** Le relevé OSM d'une commune : rues agrégées ET vitrines en points. */
-async function osmDeLaCommune(insee, journal) {
+export async function osmDeLaCommune(insee, journal = () => {}) {
   fs.mkdirSync(CACHE, { recursive: true });
   const fichier = path.join(CACHE, `osm-${insee}.json`);
   if (fs.existsSync(fichier)) return JSON.parse(fs.readFileSync(fichier, 'utf-8'));
@@ -394,7 +394,7 @@ async function codesPostaux(insee) {
 }
 
 /** Les procédures collectives de la commune (BODACC), datées, par rue et numéro. */
-async function proceduresDeLaCommune(insee, depuis, journal) {
+export async function proceduresDeLaCommune(insee, depuis, journal = () => {}) {
   fs.mkdirSync(CACHE, { recursive: true });
   const fichier = path.join(CACHE, `bodacc-${insee}.json`);
   if (fs.existsSync(fichier)) return JSON.parse(fs.readFileSync(fichier, 'utf-8'));
@@ -514,26 +514,28 @@ export async function passeGerants(sirens, { journal = console.log } = {}) {
  * Construit le dataset des villes demandées et l'écrit en CSV.
  * @param {{insee: string, nom: string}[]} villes
  */
-export async function construireDataset(villes, { seed = 42, journal = console.log } = {}) {
-  const { chargerParcelles, indexerParcelles } = await import('./cadastre.js');
-
-  // Le registre des enseignes : combien de villes et de vitrines portent
-  // chaque nom. Une enseigne présente dans plusieurs villes est un réseau —
-  // le locataire dont le défaut est le moins probable.
+/**
+ * Le registre des enseignes : combien de villes et de vitrines portent chaque
+ * nom. Une enseigne présente dans plusieurs villes est un réseau — le
+ * locataire dont le défaut est le moins probable. Rend la fonction qui dit,
+ * pour les enseignes d'une parcelle, 1 (réseau), 0 (indépendant) ou null.
+ * @param {string[]} insees - les communes dont le relevé OSM est en cache
+ */
+export function registreEnseignes(insees) {
   const enseignes = new Map();
-  for (const ville of villes) {
-    const fichierOsm = path.join(CACHE, `osm-${ville.insee}.json`);
+  for (const insee of insees) {
+    const fichierOsm = path.join(CACHE, `osm-${insee}.json`);
     if (!fs.existsSync(fichierOsm)) continue;
     for (const v of JSON.parse(fs.readFileSync(fichierOsm, 'utf-8')).vitrines) {
       const nom = simple(v.enseigne);
       if (!nom || nom.length < 3) continue;
       const e = enseignes.get(nom) || { villes: new Set(), vitrines: 0 };
-      e.villes.add(ville.insee);
+      e.villes.add(insee);
       e.vitrines += 1;
       enseignes.set(nom, e);
     }
   }
-  const nationale = (noms) => {
+  return (noms) => {
     let vue = false;
     for (const n of noms || []) {
       const e = enseignes.get(simple(n));
@@ -543,6 +545,17 @@ export async function construireDataset(villes, { seed = 42, journal = console.l
     }
     return vue ? 0 : null;
   };
+}
+
+/** Les communes dont le relevé OSM est en cache : l'univers des enseignes. */
+export const communesEnCache = () => (fs.existsSync(CACHE)
+  ? fs.readdirSync(CACHE).map((n) => n.match(/^osm-(\d{5})\.json$/)?.[1]).filter(Boolean)
+  : []);
+
+export async function construireDataset(villes, { seed = 42, journal = console.log } = {}) {
+  const { chargerParcelles, indexerParcelles } = await import('./cadastre.js');
+
+  const nationale = registreEnseignes(villes.map((v) => v.insee));
   const lignes = [];
   const stats = { univers: 'adresse (cadastre + vitrines OSM)', villes: [], colonnes: COLONNES_FEATURES, seed, horizon_mois: HORIZON_MOIS, recul_jours: RECUL_JOURS, le: new Date().toISOString() };
 

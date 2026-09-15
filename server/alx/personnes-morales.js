@@ -97,7 +97,12 @@ export function parcelleDe(cases) {
 export function grouper(lignes) {
   const out = new Map();
   let entete = true;
-  for (const ligne of lignes) {
+  // Le millésime 2025 est publié en UTF-8, les précédents en latin-1 : lu en
+  // latin-1, « Département » devient « DÃ©partement ». L'en-tête le trahit,
+  // et chaque ligne est alors relue dans le bon encodage.
+  const utf8 = (lignes.find((l) => l && l.trim()) || '').includes('Ã');
+  for (const brute of lignes) {
+    const ligne = utf8 && brute ? Buffer.from(brute, 'latin1').toString('utf8') : brute;
     if (!ligne || !ligne.trim()) continue;
     const cases = ligne.split(';');
     if (entete) {
@@ -145,11 +150,16 @@ export const dejaLa = (annee, dept) => fs.existsSync(chemin(annee, dept));
 /** Les propriétaires d'un département à une date, depuis le cache. */
 export function lire(annee, dept = '06') {
   try {
-    return JSON.parse(fs.readFileSync(chemin(annee, dept), 'utf-8'));
+    // Le code droit s'écrit « P » jusqu'en 2023, « P - Propriétaire » en
+    // 2025 : les variables comparent au code, on le ramène à sa lettre.
+    return JSON.parse(fs.readFileSync(chemin(annee, dept), 'utf-8')).map((g) => ({ ...g, droit: codeDroit(g.droit) }));
   } catch {
     return null;
   }
 }
+
+/** « P - Propriétaire » → « P » ; un code déjà court reste tel quel. */
+export const codeDroit = (droit) => String(droit || '').split(/\s+-\s+/)[0].trim();
 
 /** Les lignes du département, tirées de l'archive nationale sans la dégonfler entière. */
 function lignesDuDepartement(zip, dept) {

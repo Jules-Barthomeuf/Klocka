@@ -40,7 +40,7 @@ export function dernierePrediction(c) {
 
 /** Ce qui fait qu'une lecture est la même qu'une autre. */
 export function signatureDe(c) {
-  return [c.pile, cles(c.signaux?.forts).join('+'), cles(c.signaux?.patients).join('+'), cles(c.drapeaux).join('+'), cles(c.knock_outs).join('+'), c.score?.total ?? ''].join('|');
+  return [c.pile, cles(c.signaux?.forts).join('+'), cles(c.signaux?.patients).join('+'), cles(c.drapeaux).join('+'), cles(c.knock_outs).join('+'), c.score?.total ?? '', c.score_ml?.tranche?.cle ?? ''].join('|');
 }
 
 /**

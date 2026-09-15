@@ -30,6 +30,20 @@ const VERDICTS = {
 };
 
 const annee = (iso) => (iso ? String(iso).slice(0, 4) : null);
+const pourcent = (x) => (x == null ? "—" : `${String(Math.round(x * 1000) / 10).replace(".", ",")} %`);
+
+/** Le verdict du modèle appris : la tranche, ce qu'elle a valu, et le geste. */
+function verdictModele(c, nom) {
+  const t = c.score_ml.tranche;
+  const niveau = `${pourcent(t.taux)} des adresses de ce niveau ont vu un local commercial se vendre dans les douze mois${t.lift ? `, ${String(t.lift).replace(".", ",")} fois la moyenne` : ""}`;
+  const ou = t.cle === "reste" ? "au-delà du top 20 % de sa ville" : `dans le ${t.libelle.toLowerCase()}`;
+  if (c.pile === "appeler") return `Le modèle place ${nom} ${ou} : ${niveau}. C'est un appel.`;
+  if (c.pile === "ecrire") {
+    const retenue = t.cle === "top_5" ? (c.motif || "").split(", mais ")[1]?.split(".")[0] : null;
+    return `${nom} est ${ou} : ${niveau}.${retenue ? ` Pas d'appel pour autant : ${retenue}.` : ""} Un courrier maintenant, une relance dans l'année.`;
+  }
+  return `${nom} est ${ou} : ${niveau}. ALX surveille le BODACC et DVF.`;
+}
 const anneeUtile = (iso) => (annee(iso) && Number(annee(iso)) > 1901 ? annee(iso) : null);
 
 const Case = ({ coche }) => (
@@ -96,11 +110,30 @@ function analyseTexte(c, explications = {}) {
     : c.pile === "ecrire" ? `ALX pense que les murs de ${nom} se vendront un jour, pas cette année : ${patients.length > 1 ? "les signaux sont patients" : "le signal est patient"}. Un courrier maintenant, une relance chaque année.`
     : c.pile === "ecartee" ? `${nom} est écarté${c.ecartee_motif ? ` : ${c.ecartee_motif}` : c.ecartee_regle?.pourquoi ? ` par une règle (${c.ecartee_regle.pourquoi})` : ""}.`
     : `ALX ne voit pas de raison de vendre pour l'instant chez ${nom}${p.nom ? "" : " : le propriétaire n'est pas encore établi"}. Il surveille le BODACC et DVF, et reviendra si quelque chose bouge.`;
-  blocs.push({ titre: "Le verdict", lignes: [verdict] });
+  const avecModele = !!c.score_ml?.tranche && c.pile !== "ecartee";
+  blocs.push({ titre: "Le verdict", lignes: [avecModele ? verdictModele(c, nom) : verdict] });
+
+  if (avecModele) {
+    const ml = c.score_ml;
+    const pousse = (ml.raisons || []).filter((r) => r.sens > 0);
+    const retient = (ml.raisons || []).filter((r) => r.sens < 0);
+    const enMots = (r) => `${r.phrase} (${r.nature}, effet ${r.force}).`;
+    if (pousse.length) blocs.push({ titre: "Ce qui pousse à vendre", lignes: pousse.map(enMots) });
+    if (retient.length) blocs.push({ titre: "Ce qui retient", lignes: retient.map(enMots) });
+    const limites = [`Fiabilité ${ml.fiabilite?.mot} : ${ml.fiabilite?.detail}`, "Le modèle prédit la vente d'un local commercial sur la parcelle, pas forcément celui de ce commerce."];
+    if (pousse.length && pousse.filter((r) => r.nature === "immeuble").length >= Math.ceil(pousse.length / 2)) {
+      limites.push("L'essentiel de ce qui pousse tient à l'immeuble (plusieurs lots, plusieurs propriétaires) plus qu'à l'envie de vendre du propriétaire.");
+    }
+    limites.push(`Classement parmi les ${ml.parcelles_ville} parcelles à vitrine de la ville, propriétaires lus au fichier DGFiP ${ml.millesime_dgfip}.`);
+    blocs.push({ titre: "Ce que le modèle voit mal", lignes: limites });
+  }
 
   const signal = (x, patient) => `${x.libelle}${x.valeur ? ` (${x.valeur})` : ""}${x.source ? `, lu sur ${x.source}` : ""}. ${explications[x.cle] || (patient ? "Un signal qui joue sur la durée." : "Un signal qui compte maintenant.")}`;
-  if (forts.length) blocs.push({ titre: forts.length > 1 ? "Les signaux forts" : "Le signal fort", lignes: forts.map((x) => signal(x, false)) });
-  if (patients.length) blocs.push({ titre: patients.length > 1 ? "Les signaux patients" : "Le signal patient", lignes: patients.map((x) => signal(x, true)) });
+  if (forts.length && !avecModele) blocs.push({ titre: forts.length > 1 ? "Les signaux forts" : "Le signal fort", lignes: forts.map((x) => signal(x, false)) });
+  if ((forts.length || patients.length) && avecModele) {
+    blocs.push({ titre: "Les signaux relevés", lignes: [`${[...forts, ...patients].map((x) => `${x.libelle}${x.valeur ? ` (${x.valeur})` : ""}`).join(" · ")}. Gardés pour mémoire : mesurés sur DVF, ils ne triaient pas, et ne décident plus de la pile.`] });
+  }
+  if (patients.length && !avecModele) blocs.push({ titre: patients.length > 1 ? "Les signaux patients" : "Le signal patient", lignes: patients.map((x) => signal(x, true)) });
 
   const proprio = [];
   if (p.nom) {
@@ -154,7 +187,7 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
   if (!id) return null;
   const p = c?.proprietaire || {};
   const v = c?.valorisation || {};
-  const raisons = c ? [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : "")) : [];
+  const raisons = c ? (c.score_ml?.raisons?.length ? c.score_ml.raisons.filter((r) => r.sens > 0).map((r) => r.phrase) : [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : ""))) : [];
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(4,5,5,0.74)] p-6" onClick={onFermer}>
       <div onClick={(e) => e.stopPropagation()} className="alx-entree w-full max-w-[960px] overflow-hidden rounded-[20px] border border-trait bg-[#0B0D0C]">
@@ -301,6 +334,8 @@ export default function ALXCible() {
   for (const d of c.drapeaux || []) if (d.effet !== "information" && d.effet !== "patient") raisons.push(d.libelle);
   if (!raisons.length && c.motif) raisons.push(c.motif);
   const score = typeof c.score?.total === "number" ? String(c.score.total).replace(".", ",") : null;
+  const ml = c.score_ml?.tranche ? c.score_ml : null;
+  const drapeauxEnMots = (c.drapeaux || []).filter((d) => d.effet !== "information" && d.effet !== "patient").map((d) => d.libelle);
   const gerants = (s.gerants || []).slice(0, 5);
   const depuis = c.mutation?.du_local && c.mutation.date ? `propriétaire des murs depuis ${annee(c.mutation.date)}` : anneeUtile(s.creation) ? `société créée en ${anneeUtile(s.creation)}` : null;
   const proprioMeta = [p.forme || s.forme || (p.nom ? "Personne physique" : null), depuis, s.siege?.ville ? `siège à ${joliNom(s.siege.ville)}` : null].filter(Boolean).join(" · ");
@@ -412,20 +447,33 @@ export default function ALXCible() {
                 <Etiquette>Va vendre ou pas</Etiquette>
                 <div className="flex items-center gap-3">
                   <Urgence c={c} compact />
-                  {score != null && !ecartee && <Etiquette title="La somme des poids des signaux : appeler à partir de 3, écrire à partir de 0,7">score {score}</Etiquette>}
+                  {!ml && score != null && !ecartee && <Etiquette title="La somme des poids des signaux : appeler à partir de 3, écrire à partir de 0,7">score {score}</Etiquette>}
+                  {ml && !ecartee && <Etiquette title={`Dans les ${Math.max(1, Math.round((ml.rang_part || 0) * 100))} % de tête, sur ${ml.parcelles_ville} parcelles à vitrine de la ville`}>{ml.tranche.libelle.replace(" de la ville", "")}</Etiquette>}
                   <Etiquette teinte={teinteVerdict}>{verdict}</Etiquette>
                 </div>
               </div>
-              <div className="mt-3.5 flex flex-col gap-[9px]">
-                {raisons.map((r) => <span key={r} className="flex items-baseline gap-3 text-[15px] leading-[1.5] text-craie"><span style={{ color: teinteVerdict }}>—</span>{r}</span>)}
-              </div>
-              {/* Le score appris, à côté du classement, jamais à sa place :
-                  la probabilité du modèle entraîné sur l'historique DVF,
-                  multipliée par la part de variables réellement connues. */}
-              {c.score_ml && (
-                <p className="m-0 mt-3.5 border-t border-trait pt-3 text-[12.5px] leading-[1.6] text-brume">
-                  Modèle appris (expérimental) : {(c.score_ml.proba * 100).toFixed(1).replace(".", ",")} % de chance de vente sous un an, confiance {(c.score_ml.confiance * 100).toFixed(0)} % — score {(c.score_ml.score * 100).toFixed(1).replace(".", ",")}. Il ne décide pas de la pile.
-                </p>
+              {ml && !ecartee ? (
+                <>
+                  <p className="m-0 mt-3.5 text-[15px] leading-[1.55] text-encre">
+                    <span className="text-[19px]" style={{ color: teinteVerdict, fontVariantNumeric: "tabular-nums" }}>{pourcent(ml.tranche.taux)}</span> des adresses de ce niveau ont vu un local commercial se vendre dans l'année, contre {pourcent(ml.tranche.prevalence)} en moyenne.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-[9px]">
+                    {(ml.raisons || []).map((r) => (
+                      <span key={r.variable} className="flex items-baseline gap-3 text-[15px] leading-[1.5] text-craie">
+                        <span style={{ color: r.sens > 0 ? teinteVerdict : J["ardoise"] }}>{r.sens > 0 ? "↑" : "↓"}</span>
+                        <span>{r.phrase}<span className="text-[12.5px] text-brume"> · {r.nature}, effet {r.force}</span></span>
+                      </span>
+                    ))}
+                  </div>
+                  {drapeauxEnMots.length > 0 && <p className="m-0 mt-3 text-[13.5px] text-craie">À savoir : {drapeauxEnMots.join(" · ")}</p>}
+                  <p className="m-0 mt-3.5 border-t border-trait pt-3 text-[12.5px] leading-[1.6] text-ardoise">
+                    Fiabilité {ml.fiabilite?.mot} : {ml.fiabilite?.detail} Le modèle prédit la vente d'un local commercial sur la parcelle, pas forcément celui-ci.
+                  </p>
+                </>
+              ) : (
+                <div className="mt-3.5 flex flex-col gap-[9px]">
+                  {raisons.map((r) => <span key={r} className="flex items-baseline gap-3 text-[15px] leading-[1.5] text-craie"><span style={{ color: teinteVerdict }}>—</span>{r}</span>)}
+                </div>
               )}
             </div>
 

@@ -526,5 +526,14 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
   const v2 = Records.get('Ville', villeId);
   const p = v2.parcours || {};
   noter(villeId, `Parcours terminé : ${p.rues_faites} rue${p.rues_faites > 1 ? 's' : ''}, ${p.cibles_creees} cible${p.cibles_creees > 1 ? 's' : ''} créée${p.cibles_creees > 1 ? 's' : ''}, ${p.proprietaires_trouves} propriétaire${p.proprietaires_trouves > 1 ? 's' : ''}, ${p.brouillons} brouillon${p.brouillons > 1 ? 's' : ''} à relire.`);
+  // Les nouvelles cibles prennent leur rang dans la ville : le score appris
+  // fait leur pile. Une ville que le modèle ne lit pas garde les signaux.
+  try {
+    const { rescorerVille } = await import('./score-ville.js');
+    const r = await rescorerVille(villeId, { journal: () => {} });
+    if (r.ok) noter(villeId, `Score appris : ${r.cibles} cibles classées parmi ${r.parcelles} parcelles à vitrine de la ville.`);
+  } catch (e) {
+    noter(villeId, `Score appris non recalculé (${e.message}) : les piles restent celles des signaux.`);
+  }
   finir('fini');
 }

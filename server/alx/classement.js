@@ -266,9 +266,35 @@ export function classer(cible, opts = {}) {
     return { ...base, score: scoreDe(signaux, drapeaux), pile: 'surveiller', motif: "Enseigne nationale propriétaire de ses murs : pas de vendeur à appeler. Veille DVF." };
   }
 
-  // Les paris : la somme des poids fait la pile, et le motif montre chaque
-  // contribution. Un drapeau lent retient un appel en courrier : on écrit,
-  // on n'appelle pas cette semaine pour un dossier qui prendra un an.
+  // Le modèle appris, quand la ville est scorée (score-ville.js) : sa tranche
+  // fait la pile. Les exclusions ci-dessus restent au-dessus ; les signaux
+  // restent lus et montrés, ils ne décident plus. Mesurés sur DVF, ils ne
+  // triaient rien (lift proche de 1) ; le modèle, lui, met quatre fois plus
+  // de ventes dans son top 5 % que la moyenne.
+  const ml = cible.score_ml;
+  if (ml?.tranche?.cle) {
+    const scoreSignaux = scoreDe(signaux, drapeaux);
+    const lentMl = drapeaux.find((d) => d.effet === 'lent');
+    const pousse = (ml.raisons || []).filter((r) => r.sens > 0).slice(0, 3)
+      .map((r) => r.phrase.charAt(0).toLowerCase() + r.phrase.slice(1)).join(', ');
+    const taux = ml.tranche.taux != null ? ` : ${Math.round(ml.tranche.taux * 100)} % des adresses de ce niveau ont vu un local commercial se vendre dans l'année` : '';
+    const suite = pousse ? ` Ce qui pousse : ${pousse}.` : '';
+    const tete = ml.tranche.cle === 'top_5';
+    const aveugle = ml.fiabilite?.cle === 'inconnu';
+    if (tete && !lentMl && !aveugle) {
+      return { ...base, score: scoreSignaux, pile: 'appeler', motif: `${ml.tranche.libelle}${taux}.${suite}` };
+    }
+    if (tete || ml.tranche.cle === 'top_10' || ml.tranche.cle === 'top_20') {
+      const retenue = !tete ? '' : lentMl ? `, mais ${lentMl.libelle.toLowerCase()} : un dossier lent` : ", mais le propriétaire n'est pas une société connue : le modèle voit mal";
+      return { ...base, score: scoreSignaux, pile: 'ecrire', motif: `${ml.tranche.libelle}${taux}${retenue}.${suite}` };
+    }
+    return { ...base, score: scoreSignaux, pile: 'surveiller', motif: `${ml.tranche.libelle}${taux}. Veille BODACC et DVF.` };
+  }
+
+  // Sans score appris (ville non couverte) : les paris. La somme des poids
+  // fait la pile, et le motif montre chaque contribution. Un drapeau lent
+  // retient un appel en courrier : on écrit, on n'appelle pas cette semaine
+  // pour un dossier qui prendra un an.
   const score = scoreDe(signaux, drapeaux);
   const lent = drapeaux.find((d) => d.effet === 'lent');
   const avecScore = { ...base, score };

@@ -247,14 +247,34 @@ export function scoreDansVille(cible, { ctx, s, probas, libelles = {} }) {
 // Le travail de fond : rescorer une ville et reclasser ses cibles
 // ---------------------------------------------------------------------------
 
+/**
+ * La ville, avec son code INSEE. Une ville créée sans avoir été lancée (Angers,
+ * dans la base) n'en a pas : on le retrouve par la Base Adresse Nationale et
+ * on l'enregistre, plutôt que de répondre « ville sans code INSEE ».
+ * @returns {Promise<{ville?: object, erreur?: string}>}
+ */
+export async function villeLisible(villeId) {
+  const ville = Records.get('Ville', villeId);
+  if (!ville) return { erreur: 'Ville introuvable.' };
+  if (ville.code_insee) return { ville };
+  if (ville.cachee) return { erreur: `« ${ville.nom} » regroupe des commerces de plusieurs communes : il n'y a pas de fichier de propriétaires à y lire. Ouvrez la ville elle-même.` };
+  const { communeDe } = await import('./rues.js');
+  const commune = await communeDe(ville.nom).catch(() => null);
+  // Le code postal, quand la ville en a un, départage les homonymes.
+  const memeDepartement = !ville.code_postal || String(commune?.code_postal || '').slice(0, 2) === String(ville.code_postal).slice(0, 2);
+  if (!commune?.code_insee || !memeDepartement) return { erreur: `ALX ne retrouve pas la commune « ${ville.nom} » dans la Base Adresse Nationale.` };
+  return { ville: Records.update('Ville', ville.id, { code_insee: commune.code_insee }) };
+}
+
 const enCours = new Map();
 
 /** Rescore les cibles d'une ville, puis les reclasse. Une seule passe à la fois par ville. */
 export function rescorerVille(villeId, { journal = console.log } = {}) {
   if (enCours.has(villeId)) return enCours.get(villeId);
   const tache = (async () => {
-    const ville = Records.get('Ville', villeId);
-    if (!ville?.code_insee) return { ok: false, raison: 'Ville sans code INSEE.' };
+    const lue = await villeLisible(villeId);
+    if (lue.erreur) return { ok: false, raison: lue.erreur };
+    const { ville } = lue;
     const s = scorer();
     if (!s) return { ok: false, raison: 'Aucun modèle entraîné.' };
     const ctx = await contexteVille(ville.code_insee, { journal });
@@ -288,7 +308,7 @@ export const rescoreEnCours = (villeId) => enCours.has(villeId);
 export async function rescorerToutesLesVilles({ journal = console.log } = {}) {
   const avecCibles = new Set(Records.list('Cible').map((c) => c.ville_id).filter(Boolean));
   const bilan = [];
-  for (const ville of Records.list('Ville').filter((v) => avecCibles.has(v.id) && v.code_insee)) {
+  for (const ville of Records.list('Ville').filter((v) => avecCibles.has(v.id) && !v.cachee)) {
     try {
       const r = await rescorerVille(ville.id, { journal });
       if (!r.ok) journal(`[alx] ${ville.nom} : ${r.raison}`);

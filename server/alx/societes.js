@@ -22,7 +22,7 @@
 
 import { Records } from '../db.js';
 import { scorer } from './score-ml.js';
-import { contexteVille, variablesDeParcelle, tranchesDe, trancheDe, rangDans, raisonsDe } from './score-ville.js';
+import { contexteVille, variablesDeParcelle, tranchesDe, trancheDe, rangDans, raisonsDe, villeLisible } from './score-ville.js';
 
 const GARDE_MS = 6 * 3600 * 1000;
 const GARDE_ANNUAIRE_MS = 30 * 86400000;
@@ -138,8 +138,9 @@ const gerant70De = (annuaire) => (annuaire?.annuaire?.gerants ? annuaire.annuair
 
 /** Les sociétés de la ville qui possèdent au moins un mur commercial, classées. */
 export async function listerSocietes(villeId) {
-  const ville = Records.get('Ville', villeId);
-  if (!ville?.code_insee) return { ok: false, erreur: 'Ville sans code INSEE.' };
+  const lue = await villeLisible(villeId);
+  if (lue.erreur) return { ok: false, erreur: lue.erreur };
+  const { ville } = lue;
   const v = await villeScoree(ville);
   if (v.erreur) return { ok: false, erreur: v.erreur };
   const { ctx, probaParParcelle, probas, tranches } = v;
@@ -211,8 +212,9 @@ async function annuaireDe(siren, { forcer = false } = {}) {
 const pourcent = (x) => `${String(Math.round(x * 1000) / 10).replace('.', ',')} %`;
 
 export async function detailSociete(villeId, siren, { forcer = false } = {}) {
-  const ville = Records.get('Ville', villeId);
-  if (!ville?.code_insee) return { ok: false, erreur: 'Ville sans code INSEE.' };
+  const lue = await villeLisible(villeId);
+  if (lue.erreur) return { ok: false, erreur: lue.erreur };
+  const { ville } = lue;
   const v = await villeScoree(ville);
   if (v.erreur) return { ok: false, erreur: v.erreur };
   const { ctx, s, probaParParcelle, probas, tranches } = v;

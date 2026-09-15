@@ -10,7 +10,7 @@ import { base44 } from "@/api/base44Client";
 // L'espace fine insécable du format français disparaît presque dans cette
 // police : une espace insécable ordinaire garde les millions lisibles.
 const format = new Intl.NumberFormat("fr-FR");
-export const nf = { format: (n) => format.format(n).replace(/ /g, " ") };
+export const nf = { format: (n) => format.format(n).replace(/\u202f/g, "\u00a0") };
 
 export function useSecteurProjet(project, actif = true) {
   return useQuery({

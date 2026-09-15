@@ -8,6 +8,7 @@ import { toast, avis } from "@/components/ui/avis";
 import { PILES, EMPLACEMENTS, TEINTES, emplacementDe, Bouton, Etiquette, Etoiles, Nombre, Champ, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
 import CarteRues from "@/components/alx/CarteRues";
 import BarreChat, { ZoneChat } from "@/components/BarreChat";
+import OngletSocietes from "@/components/alx/OngletSocietes";
 import { J } from "@/design/jetons";
 
 // ALX, tel que la maquette le dessine. On arrive toujours par la même porte :
@@ -310,9 +311,9 @@ function ChatAlx({ villeId, onglet, onFait }) {
   );
 }
 
-const ONGLETS = [["rues", "Rues"], ["commerces", "Commerces"], ["messages", "Messages"]];
+const ONGLETS = [["rues", "Rues"], ["commerces", "Commerces"], ["societes", "Sociétés"], ["messages", "Messages"]];
 
-/** Les trois onglets, avec le trait menthe qui glisse sous l'onglet ouvert. */
+/** Les onglets, avec le trait menthe qui glisse sous l'onglet ouvert. */
 function Onglets({ onglet, onChange, compte }) {
   const barre = useRef(null);
   const [pos, setPos] = useState({ left: 14, width: 60 });
@@ -1019,6 +1020,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
 
         {onglet === "rues" && <OngletRues key={rues.length} ville={ville} onProspecter={(noms) => prospecter.mutate({ rues: noms })} pending={prospecter.isPending} onClasser={(nom, classe, motif_cle, motif) => classer.mutate({ nom, classe, motif_cle, motif })} classerPending={classer.isPending || classerAussi.isPending} onFlux={(nom) => flux.mutate(nom)} fluxPending={flux.isPending ? flux.variables : null} motifs={etat?.motifs_rue || []} apprentissage={apprentissage} onClasserAussi={(noms) => classerAussi.mutate(noms)} rueDemandee={rueDemandee} />}
         {onglet === "commerces" && <OngletCommerces ville={ville} cibles={cibles} onOuvrir={ouvrirFiche} onRediger={(ids) => rediger.mutate({ cibles: ids })} pending={rediger.isPending} />}
+        {onglet === "societes" && <OngletSocietes villeId={villeId} onOuvrirCible={ouvrirFiche} />}
         {onglet === "messages" && <OngletMessages cibles={cibles} onOuvrir={ouvrirFiche} cibleDemandee={cibleDemandee} />}
 
         {!enCours && onglet === "commerces" && <div className="mt-2 flex justify-end"><AjoutCommerce villeId={villeId} ville={ville} onAjoute={rafraichir} /></div>}
@@ -1071,7 +1073,7 @@ export default function ALX() {
   const user = useUser();
   const [params, setParams] = useSearchParams();
   const villeId = params.get("ville");
-  const ongletDemande = ["rues", "commerces", "messages"].includes(params.get("onglet")) ? params.get("onglet") : null;
+  const ongletDemande = ["rues", "commerces", "societes", "messages"].includes(params.get("onglet")) ? params.get("onglet") : null;
   const cibleDemandee = params.get("cible") || null;
   const { data: villes = [] } = useQuery({ queryKey: ["alx-villes"], queryFn: () => base44.request("GET", "/api/alx/villes"), refetchInterval: (q) => ((q.state.data || []).some((v) => v.parcours?.etat === "en_cours") ? 5000 : false) });
   const ville = villes.find((v) => v.id === villeId);

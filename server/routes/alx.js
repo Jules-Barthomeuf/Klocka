@@ -142,6 +142,21 @@ export function monterAlx(app) {
     ok(res, r);
   }));
 
+  // Les portefeuilles : les sociétés qui possèdent des murs commerciaux dans
+  // la ville, classées par la chance qu'un de leurs murs se vende.
+  app.get('/api/alx/villes/:id/societes', wrap(async (req, res) => {
+    const { listerSocietes } = await import('../alx/societes.js');
+    const r = await listerSocietes(req.params.id);
+    if (!r.ok) return erreur(res, r.erreur);
+    ok(res, r);
+  }));
+  app.get('/api/alx/villes/:id/societes/:siren', wrap(async (req, res) => {
+    const { detailSociete } = await import('../alx/societes.js');
+    const r = await detailSociete(req.params.id, String(req.params.siren), { forcer: req.query.forcer === '1' });
+    if (!r.ok) return erreur(res, r.erreur, 404);
+    ok(res, r);
+  }));
+
   // Le score appris vieillit avec DVF, le BODACC et le fichier des sociétés :
   // une passe trente secondes après le démarrage, puis une par jour.
   const passeScores = () => import('../alx/score-ville.js')

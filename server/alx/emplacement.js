@@ -45,7 +45,9 @@ export async function releveDe(commune, { forcer = false } = {}) {
  */
 export function rangDe(rues, cle, min = SEUILS.min_commerces_par_rue ?? 3) {
   const commercantes = rues.filter((r) => (r.vitrines ?? 0) >= min).sort((a, b) => b.vitrines - a.vitrines);
-  const i = commercantes.findIndex((r) => r.cle === cle);
+  // La clé se recalcule sur le nom : un relevé gardé trente jours porte les
+  // clés de sa date, et la façon de les former a pu changer depuis.
+  const i = commercantes.findIndex((r) => cleRue(r.nom || r.cle) === cle);
   if (i < 0) return { rang: null, sur: commercantes.length, part: null };
   return { rang: i + 1, sur: commercantes.length, part: commercantes.length ? (i + 1) / commercantes.length : null };
 }
@@ -82,7 +84,7 @@ export async function emplacementDeLAdresse(adresse, { forcer = false, loyerDe =
   const dAlx = ville ? (ville.rues || []).find((r) => cleRue(r.nom) === k) : null;
 
   const releve = await releveDe(commune, { forcer });
-  const rue = releve.rues.find((r) => r.cle === k) || null;
+  const rue = releve.rues.find((r) => cleRue(r.nom || r.cle) === k) || null;
   const { rang, sur, part } = rangDe(releve.rues, k);
 
   // Le loyer de marché de la rue : celui qu'ALX a déjà, sinon Data-B (gratuit).

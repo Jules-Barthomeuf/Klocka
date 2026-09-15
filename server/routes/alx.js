@@ -143,6 +143,19 @@ export function monterAlx(app) {
   // --- Les connecteurs, un par geste ----------------------------------------
 
   // La devanture : photo datée et lecture par le modèle, à valider.
+  // Le point de vue face au commerce, pour ouvrir Street View au bon endroit :
+  // métadonnées seules, sans image ni modèle. Gardé sur la cible.
+  app.post('/api/alx/cibles/:id/vue', wrap(async (req, res) => {
+    const c = Records.get('Cible', req.params.id);
+    if (!c) return res.status(404).json({ error: 'Cible introuvable.' });
+    const enrichir = await import('../alx/enrichir.js');
+    try {
+      ok(res, await enrichir.lireVue(c.id, { user: currentUser(req), forcer: !!req.body?.forcer }));
+    } catch (e) {
+      return erreur(res, e, e.statut || 400);
+    }
+  }));
+
   app.post('/api/alx/cibles/:id/devanture', wrap(async (req, res) => {
     const c = Records.get('Cible', req.params.id);
     if (!c) return res.status(404).json({ error: 'Cible introuvable.' });

@@ -24,6 +24,17 @@ test('deux écritures d’une même rue donnent la même clé', () => {
   assert.notEqual(cleRue("Rue d'Antibes"), cleRue("Avenue d'Antibes"));
 });
 
+test('un article de plus ne fait pas une autre rue', () => {
+  // OpenStreetMap, à Antibes : 1,7 km en « Boulevard Président Wilson »,
+  // 39 m en « Boulevard du Président Wilson ». C'est le même boulevard.
+  assert.equal(cleRue('Boulevard du Président Wilson'), cleRue('Boulevard Président Wilson'));
+  assert.equal(cleRue('Rue de la République'), cleRue('Rue République'));
+  // Le type de voie distingue toujours : un passage n'est pas un boulevard.
+  assert.notEqual(cleRue('Passage Wilson'), cleRue('Boulevard Président Wilson'));
+  // Le premier mot reste, même quand c'est un article.
+  assert.notEqual(cleRue('La Croisette'), cleRue('Croisette'));
+});
+
 test('le nom d’une rue s’écrit proprement', () => {
   assert.equal(joliNomDeRue("RUE D'ANTIBES"), "Rue d'Antibes");
   assert.equal(joliNomDeRue('PLACE DU MARCHE AUX FLEURS'), 'Place du Marche aux Fleurs');

@@ -150,8 +150,16 @@ export function cleRue(nom) {
     .split(/[\s-]+/)
     .filter(Boolean);
   if (mots.length && TYPES_DE_VOIE[mots[0]]) mots[0] = sansAccent(TYPES_DE_VOIE[mots[0]]);
-  return mots.join(' ');
+  // Les articles ne distinguent pas deux rues : OpenStreetMap écrit
+  // « Boulevard Président Wilson » sur un kilomètre sept et « Boulevard du
+  // Président Wilson » sur trente-neuf mètres, et la clé qui gardait le « du »
+  // en faisait deux rues — la petite était classée et parcourue, la vraie
+  // oubliée. Le premier mot reste : « La Croisette » n'est pas « Croisette ».
+  return mots.filter((m, i) => i === 0 || !ARTICLES.has(m)).join(' ');
 }
+
+/** Ce qui se retire d'une clé de rue : les articles et les prépositions de liaison. */
+const ARTICLES = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'l', 'd']);
 
 const PETITS = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'et', 'sur', 'sous', 'en', 'au', 'aux', 'a', 'à', 'l', 'd']);
 

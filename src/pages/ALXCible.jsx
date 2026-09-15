@@ -63,6 +63,22 @@ function capVers(photo, c) {
 }
 
 /**
+ * L'adresse de Street View pour un commerce, face à sa vitrine.
+ *
+ * Donner seulement la position laissait Google choisir un panorama autour du
+ * point, parfois de l'autre côté de la rue, et le tourner vers le nord : il
+ * fallait marcher dans la rue pour trouver le commerce. Le panorama et le cap
+ * calculés par le serveur (la vue, ou la photo de la devanture) l'ouvrent
+ * directement devant. Sans eux, la position en dernier recours.
+ */
+function urlStreetView(c, cle, fov = 80) {
+  const vue = c.vue?.pano ? c.vue : c.photo?.pano ? c.photo : null;
+  if (vue) return `https://www.google.com/maps/embed/v1/streetview?key=${cle}&pano=${vue.pano}&heading=${vue.cap ?? capVers(vue, c)}&pitch=0&fov=${fov}`;
+  if (c.lat != null && c.lon != null) return `https://www.google.com/maps/embed/v1/streetview?key=${cle}&location=${c.lat},${c.lon}&heading=${capVers(null, c)}&pitch=0&fov=${fov}`;
+  return `https://www.google.com/maps/embed/v1/place?key=${cle}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`;
+}
+
+/**
  * L'analyse, en clair : pourquoi ALX pense que ça se vend, ou pas. Quelques
  * paragraphes courts, chaque signal avec ce qu'il veut dire, puis le
  * propriétaire, le marché, et ce qui manque.
@@ -122,7 +138,14 @@ function analyseTexte(c, explications = {}) {
 
 /** Un semblable en coup d'œil, par-dessus la fiche. */
 function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
-  const { data: c } = useQuery({ queryKey: ["alx-cible", id], queryFn: () => base44.request("GET", `/api/alx/cibles/${id}`), enabled: !!id });
+  const { data: c, refetch } = useQuery({ queryKey: ["alx-cible", id], queryFn: () => base44.request("GET", `/api/alx/cibles/${id}`), enabled: !!id });
+  // Le point de vue face au commerce, calculé une fois puis gardé : sans lui,
+  // Street View s'ouvre au hasard dans la rue.
+  const sansVue = !!c && !c.vue?.pano && !c.photo?.pano && c.lat != null && c.lon != null;
+  useEffect(() => {
+    if (!sansVue) return;
+    base44.request("POST", `/api/alx/cibles/${id}/vue`, { body: {} }).then(() => refetch()).catch(() => {});
+  }, [id, sansVue, refetch]);
   useEffect(() => {
     const echap = (e) => { if (e.key === "Escape") onFermer(); };
     window.addEventListener("keydown", echap);
@@ -163,7 +186,8 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
               </div>
             </div>
             <div className="isolate min-h-[360px] overflow-hidden bg-fond lg:rounded-r-[20px]">
-              {CLE_EMBED && <iframe title={`Street View ${c.adresse}`} src={c.lat != null && c.lon != null ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90` : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`} className="h-full min-h-[360px] w-full border-0 lg:rounded-r-[20px]" allowFullScreen loading="lazy" />}
+              {/* `key` : quand le point de vue arrive, l'iframe se recharge sur le bon panorama. */}
+              {CLE_EMBED && <iframe key={c.vue?.pano || c.photo?.pano || "position"} title={`Street View ${c.adresse}`} src={urlStreetView(c, CLE_EMBED, 90)} className="h-full min-h-[360px] w-full border-0 lg:rounded-r-[20px]" allowFullScreen loading="lazy" />}
             </div>
           </div>
         )}
@@ -236,6 +260,15 @@ export default function ALXCible() {
     onSuccess: rafraichir,
     onError: () => {},
   });
+  // Le point de vue face au commerce : avant même la lecture de la devanture,
+  // qui prend quelques secondes de plus, Street View doit s'ouvrir au bon
+  // endroit. Métadonnées seules, gardées sur la cible.
+  const vueTentee = useRef(null);
+  useEffect(() => {
+    if (!c || c.vue?.pano || c.photo?.pano || c.lat == null || c.lon == null || vueTentee.current === c.id) return;
+    vueTentee.current = c.id;
+    base44.request("POST", `/api/alx/cibles/${c.id}/vue`, { body: {} }).then(rafraichir).catch(() => {});
+  }, [c?.id, c?.vue?.pano, c?.photo?.pano]);
   const batimentLu = !!c?.valorisation?.batiment;
   const batimentTente = useRef(null);
   useEffect(() => {
@@ -481,12 +514,9 @@ export default function ALXCible() {
           <div className="isolate min-h-[460px] overflow-hidden rounded-[20px] border border-trait bg-fond">
             {CLE_EMBED ? (
               <iframe
+                key={c.vue?.pano || c.photo?.pano || "position"}
                 title={`Street View ${c.adresse}`}
-                src={c.photo?.pano
-                  ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&pano=${c.photo.pano}&heading=${c.photo.cap ?? capVers(c.photo, c)}&pitch=0&fov=80`
-                  : c.lat != null && c.lon != null
-                    ? `https://www.google.com/maps/embed/v1/streetview?key=${CLE_EMBED}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90`
-                    : `https://www.google.com/maps/embed/v1/place?key=${CLE_EMBED}&q=${encodeURIComponent([c.adresse, c.ville].filter(Boolean).join(", "))}`}
+                src={urlStreetView(c, CLE_EMBED)}
                 className="h-full min-h-[460px] w-full rounded-[20px] border-0"
                 allowFullScreen
                 loading="lazy"

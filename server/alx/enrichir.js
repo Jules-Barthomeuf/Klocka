@@ -334,6 +334,24 @@ export async function lireDevanture(id, { user = null } = {}) {
   return mettreAJourCible(c.id, patch, user);
 }
 
+/**
+ * Le point de vue Street View devant le commerce : le panorama Google le plus
+ * proche et le cap qui regarde la vitrine. Sans modèle et sans image, les
+ * seules métadonnées : c'est ce qui permet d'ouvrir une fiche directement
+ * face au commerce au lieu d'un panorama pris au hasard, tourné vers le nord.
+ * Gardé sur la cible : on ne le recalcule pas à chaque ouverture.
+ */
+export async function lireVue(id, { user = null, forcer = false } = {}) {
+  const c = cibleOu(id);
+  if (!forcer && c.vue?.pano) return { cible: c, du_cache: true };
+  if (!(Number(c.lat) && Number(c.lon))) throw new Error("Ce commerce n'a pas de position : Street View ne peut pas le viser.");
+  const { metadonnees } = await import('./streetview.js');
+  const m = await metadonnees(`${c.lat},${c.lon}`);
+  if (!m?.pano) throw new Error('Aucun panorama Street View devant ce commerce.');
+  const vue = { pano: m.pano, cap: m.cap ?? null, lat: m.lat, lon: m.lon, date: m.date || null, google: m.google ?? null, lue_le: new Date().toISOString() };
+  return mettreAJourCible(c.id, { vue }, user);
+}
+
 /** Un brouillon de premier message, gardé sur la cible en attendant la relecture. */
 export async function redigerBrouillon(id, { canal = null, user = null } = {}) {
   const c = cibleOu(id);

@@ -344,6 +344,23 @@ export function monterAlx(app) {
   }));
 
   // --- Le bilan --------------------------------------------------------------
+  // Les résultats du dernier entraînement (XGBoost + SHAP), écrits par
+  // ml/train_explainer.py dans server/alx/data/ml/resultats.json. La route ne
+  // calcule rien : elle relit et pagine les ventes expliquées.
+  app.get('/api/alx/ml', wrap(async (req, res) => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    const ici = path.dirname(fileURLToPath(import.meta.url));
+    const fichier = path.join(ici, '..', 'alx', 'data', 'ml', 'resultats.json');
+    if (!fs.existsSync(fichier)) {
+      return ok(res, { pret: false, comment: 'node server/alx/dataset-ml.js 33063:Bordeaux 37261:Tours, puis ml/.venv/bin/python ml/train_explainer.py' });
+    }
+    const d = JSON.parse(fs.readFileSync(fichier, 'utf-8'));
+    const limite = Math.min(2500, Number(req.query.ventes) || 300);
+    ok(res, { pret: true, metrics: d.metrics, poids: d.poids, ventes: (d.ventes || []).slice(0, limite), ventes_total: d.ventes_total ?? (d.ventes || []).length });
+  }));
+
   app.get('/api/alx/bilan', wrap((req, res) => ok(res, bilan())));
 
   // --- Les prédictions figées, et leur épreuve ---------------------------------

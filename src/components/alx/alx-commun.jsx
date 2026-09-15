@@ -56,6 +56,7 @@ export const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", {
 const ONGLETS = [
   { to: "/ALX", mot: "Villes" },
   { to: "/ALXBilan", mot: "Bilan" },
+  { to: "/ALXEntrainement", mot: "Entraînement" },
 ];
 
 /** L'en-tête d'ALX : surtitre, titre, onglets. */

@@ -43,3 +43,9 @@ server/Klocka/
 
 # Le navigateur téléchargé pour Equimmox chez un hébergeur.
 .playwright/
+
+# L'apprentissage (ml/) : l'environnement et les données générées ne se
+# committent pas — deux commandes les refont (voir server/alx/dataset-ml.js).
+ml/.venv/
+ml/data/
+ml/sortie/

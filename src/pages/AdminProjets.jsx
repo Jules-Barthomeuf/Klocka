@@ -1467,7 +1467,6 @@ export default function AdminProjets() {
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>
             <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Gestion des projets</h1>
-            <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Rechercher, filtrer et modifier les dossiers. Le survol d'une carte donne accès au simulateur, à l'aperçu client et au lien public.</p>
           </div>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
             className="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[18px] py-2.5 text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe transition-colors hover:bg-menthe-clair">

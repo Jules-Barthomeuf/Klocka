@@ -106,10 +106,6 @@ export default function Monitoring() {
           <div>
             <OngletsSuivi className="mb-3.5" />
             <h1 className="m-0 text-[34px] max-md:text-[24px] font-light tracking-[-.02em]">Usage de la plateforme</h1>
-            <p className="mt-2.5 mb-0 max-w-[62ch] text-[13.5px] leading-[1.65] text-ardoise">
-              Les pages consultées, les demandes faites à l'assistant, et ce qui a réellement été
-              exécuté au-dehors.
-            </p>
           </div>
           <div className="flex items-center gap-1.5">
             {FENETRES.map((f) => (

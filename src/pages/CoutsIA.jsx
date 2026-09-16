@@ -151,9 +151,6 @@ export default function CoutsIA() {
           <div>
             <OngletsSuivi className="mb-3.5" />
             <h1 className="m-0 text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05]">Ce que coûte chaque geste</h1>
-            <p className="m-0 mt-2 text-[13.5px] text-ardoise max-w-[62ch]">
-              Le prix d'une pièce lue, d'un mail rédigé, d'une question posée. Calculé sur votre journal, pas sur des ordres de grandeur.
-            </p>
           </div>
           <div className="inline-flex rounded-full border border-bord-doux p-0.5">
             {FENETRES.map((f) => (

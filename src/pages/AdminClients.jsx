@@ -550,7 +550,6 @@ export default function AdminClients() {
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Utilisateurs</h1>
-          <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Gérez tous les utilisateurs de la plateforme.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <InviterClient

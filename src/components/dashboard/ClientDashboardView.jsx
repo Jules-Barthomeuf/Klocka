@@ -233,7 +233,6 @@ export default function ClientDashboardView({
               <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">
                 Bonjour, {firstName}
               </h1>
-              <p className="text-[13.5px] leading-[1.7] text-ardoise mt-2 mb-0">Votre parcours d'investissement, étape par étape.</p>
             </div>
           </div>
         </motion.div>

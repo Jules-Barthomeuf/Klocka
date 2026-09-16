@@ -70,7 +70,7 @@ export default function ALXVilles() {
         {seulement ? (
           <Link to={`/ALX?ville=${seulement}`} className="inline-block mb-5 text-[12.5px] text-menthe hover:text-menthe-clair">← Retour à la ville</Link>
         ) : (
-          <EnTeteAlx titre="Rues" sous="Les rues de chaque ville, en emplacement 1, le solide, ou 2, pour les budgets plus petits. ALX propose, l'équipe corrige." />
+          <EnTeteAlx titre="Rues" />
         )}
 
         {!seulement && <form

@@ -194,7 +194,7 @@ function LayoutContent({ children, currentPageName }) {
   // travail : deux halos l'un sur l'autre ne font pas un fond.
   const PAGES_HALO = [
     "AdminProjets", "MesProjets", "Analyse", "AdminClients", "Ressources",
-    "Banque", "Monitoring", "SimulateurRentabilite", "ProjetDetail",
+    "Banque", "Monitoring", "ProjetDetail",
     "ALXVilles", "ALXBilan", "ALXEntrainement", "ALXCible",
   ];
   const fondHalo = PAGES_HALO.includes(currentPageName)

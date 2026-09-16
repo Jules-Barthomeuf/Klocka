@@ -70,9 +70,6 @@ export default function Familles() {
           <div>
             <h1 className="text-4xl font-montserrat text-encre mb-2">Familles</h1>
             <div className="h-0.5 w-32 bg-menthe mb-2 rounded-full"></div>
-            <p className="text-ardoise text-lg">
-              Gérez les groupes de co-investisseurs
-            </p>
           </div>
           <NeonButton
             onClick={() => navigate(createPageUrl("AdminClients"))}

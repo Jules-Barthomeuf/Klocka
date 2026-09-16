@@ -185,11 +185,7 @@ export default function Analyse() {
             {/* Bandeau : titre, tri, relances, nouveau dossier. */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5 border-b border-trait">
               <div>
-                <div className="alx-mont mb-2.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Pipeline</div>
                 <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Dossiers</h1>
-                <p className="mb-0 mt-2.5 max-w-[52ch] text-[13.5px] leading-[1.65] text-ardoise">
-                  Du premier mail à l'agent jusqu'au dossier de présentation banque, en six étapes.
-                </p>
               </div>
               <div className="flex items-center gap-3 flex-none flex-wrap">
                 <span className={`text-xs ${aRelancer ? "text-alerte" : "text-brume"}`}>

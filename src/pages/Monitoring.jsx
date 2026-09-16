@@ -100,7 +100,7 @@ export default function Monitoring() {
   const maxOutils = Math.max(1, ...(data?.outils || []).map((o) => o.appels));
 
   return (
-    <div className="bg-fond min-h-screen text-encre">
+    <div className="min-h-screen text-encre">
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 md:py-10">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-7">
           <div>

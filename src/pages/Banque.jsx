@@ -23,7 +23,7 @@ export default function Banque() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-fond text-encre p-4 md:p-8">
+    <div className="min-h-screen text-encre p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 max-md:mb-6">
           <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Banque</h1>

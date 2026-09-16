@@ -65,7 +65,7 @@ export default function ALXVilles() {
   if (!user || user.role !== "admin") return null;
 
   return (
-    <div className="bg-fond min-h-screen text-encre">
+    <div className="min-h-screen text-encre">
       <div className="max-w-[1440px] mx-auto px-7 pt-7 pb-20">
         {seulement ? (
           <Link to={`/ALX?ville=${seulement}`} className="inline-block mb-5 text-[12.5px] text-menthe hover:text-menthe-clair">← Retour à la ville</Link>

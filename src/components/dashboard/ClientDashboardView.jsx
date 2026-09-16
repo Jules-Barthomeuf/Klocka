@@ -217,7 +217,7 @@ export default function ClientDashboardView({
   const firstName = (user.full_name || user.email.split('@')[0]).split(' ')[0];
 
   return (
-    <div className="min-h-screen bg-fond">
+    <div className="min-h-screen">
       {rdvOuvert && <FenetreRendezVous user={user} onFermer={() => { setRdvOuvert(false); base44.auth.updateMe({ rdv_strategique_le: new Date().toISOString() }).catch(() => {}); }} />}
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
 

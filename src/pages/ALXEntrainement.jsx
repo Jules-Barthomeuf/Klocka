@@ -105,7 +105,7 @@ export default function ALXEntrainement() {
   const ventes = (data?.ventes || []).filter((v) => !filtreVille || v.ville === filtreVille).slice(0, 120);
 
   return (
-    <div className="alx min-h-screen px-8 pb-16 max-md:px-4">
+    <div className="alx sur-halo min-h-screen px-8 pb-16 max-md:px-4">
       <div className="mx-auto max-w-[1200px] pt-[22px]">
         <EnTeteAlx titre="Ce que le modèle a appris" sous={m ? `Entraîné le ${quand(m.le)} sur ${m.dataset.lignes} observations gelées un an avant leur issue — ${m.dataset.villes?.map((v) => v.nom).join(", ")}.` : "XGBoost + SHAP sur l'historique DVF, à date gelée."} />
 

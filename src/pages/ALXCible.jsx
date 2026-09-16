@@ -344,7 +344,7 @@ export default function ALXCible() {
   const retour = c.ville_id ? `/ALX?ville=${c.ville_id}&onglet=commerces` : "/ALX";
 
   return (
-    <div className="alx min-h-screen">
+    <div className="alx sur-halo min-h-screen">
       {apercu && (
         <ApercuCible
           id={apercu}

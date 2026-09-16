@@ -92,7 +92,7 @@ export default function Ressources() {
   const hasResources = resources.length > 0;
 
   return (
-    <div className="min-h-screen bg-fond text-encre p-3 md:p-8">
+    <div className="min-h-screen text-encre p-3 md:p-8">
 
       <div className="max-w-5xl mx-auto">
         {/* Header */}

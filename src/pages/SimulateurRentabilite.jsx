@@ -453,7 +453,7 @@ export default function SimulateurRentabilite() {
   ];
 
   return (
-    <div className="bg-fond min-h-screen relative w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen relative w-full max-w-full overflow-x-hidden">
 
       {isEtape2 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-fond/50 backdrop-blur-sm">

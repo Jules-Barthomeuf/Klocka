@@ -142,7 +142,7 @@ export default function Analyse() {
   }, [pipeline, tri]);
 
   return (
-    <div className="relative bg-fond min-h-screen text-encre w-full max-w-full overflow-x-hidden">
+    <div className="relative min-h-screen text-encre w-full max-w-full overflow-x-hidden">
       {/* Une lumière dans le coin, en haut à gauche, sur le dossier ouvert. */}
       {enWorkflow && <div aria-hidden className="pointer-events-none absolute -left-[260px] -top-[260px] h-[680px] w-[900px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.13),transparent)" }} />}
       <div

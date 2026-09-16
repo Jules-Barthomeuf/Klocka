@@ -319,7 +319,7 @@ export default function ALXBilan() {
   const villes = (villesLues || []).filter((v) => v.etat === "active" && !v.cachee && Object.values(v.cibles || {}).some((n) => n > 0));
 
   return (
-    <div className="bg-fond min-h-screen text-encre">
+    <div className="min-h-screen text-encre">
       <div className="max-w-[1440px] mx-auto px-7 pt-7 pb-20">
         <EnTeteAlx titre="Bilan" sous="Ce qui a répondu, ce qui s'est vendu, ce que les signaux valent. C'est ici qu'on décide de reculer un seuil, de changer un poids, ou d'abandonner un tronçon." />
 

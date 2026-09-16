@@ -545,7 +545,7 @@ export default function AdminClients() {
   }
 
   return (
-    <div className="min-h-screen bg-fond text-encre">
+    <div className="min-h-screen text-encre">
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>

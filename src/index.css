@@ -382,6 +382,8 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    haut de la page virait au vert. La seule couleur d'un écran est celle qui
    entoure le chat. */
 .alx { font-family: Figtree, "Instrument Sans", system-ui, sans-serif; color: #E8EFEB; background: #08090A; position: relative; }
+/* Sur les pages posées sur le halo, le fond vient de lui, pas de la classe. */
+.alx.sur-halo { background: transparent; }
 .alx > * { position: relative; z-index: 1; }
 .alx-mont { font-family: Montserrat, "Instrument Sans", system-ui, sans-serif; }
 .alx-serif { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; }

@@ -37,6 +37,7 @@ import { UserProvider, useUser } from "@/components/providers/UserProvider";
 import VeilleAlx from "@/components/alx/VeilleAlx";
 import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackFlottant from "@/components/FeedbackFlottant";
+import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
   [role="tooltip"],
@@ -184,10 +185,20 @@ function LayoutContent({ children, currentPageName }) {
   const alxAFaire = alx?.a_faire?.a_appeler || 0;
   const showClientView = !isAdmin || previewClientMode;
   const hideNavbar = pagesWithoutNavbar.includes(currentPageName);
-  // Les pages projets posent un halo sur tout l'écran : la nav s'efface
-  // pour le laisser passer, floutant ce qui défile derrière elle. Ailleurs,
-  // elle garde son dégradé opaque.
-  const fondHalo = ["AdminProjets", "MesProjets"].includes(currentPageName);
+  // Le halo : le fond de l'application. Il est posé ici, une fois, et les
+  // pages ne portent plus de fond opaque qui le masquerait. La nav s'efface
+  // pour le laisser passer, floutant ce qui défile derrière elle.
+  //
+  // Deux exceptions. ALX a son propre noir, qui fait tenir ses cartes et sa
+  // carte des rues. Le dashboard admin garde les nappes menthe du plan de
+  // travail : deux halos l'un sur l'autre ne font pas un fond.
+  const PAGES_HALO = [
+    "AdminProjets", "MesProjets", "Analyse", "AdminClients", "Ressources",
+    "Banque", "Monitoring", "SimulateurRentabilite", "ProjetDetail",
+    "ALXVilles", "ALXBilan", "ALXEntrainement", "ALXCible",
+  ];
+  const fondHalo = PAGES_HALO.includes(currentPageName)
+    || (currentPageName === "Dashboard" && showClientView);
 
   const isActivePage = (pageName) => {
     const pageUrl = createPageUrl(pageName);
@@ -340,6 +351,7 @@ function LayoutContent({ children, currentPageName }) {
     // défilement qui casserait les positions `sticky` des pages.
     <div className="min-h-screen flex w-full bg-fond relative overflow-x-clip">
       <style>{globalTooltipStyles}</style>
+      {fondHalo && <FondHalo />}
 
       {/* Desktop Sidebar */}
       {!hideNavbar && (
@@ -396,7 +408,7 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Main Content */}
       <main
-        className={`flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${!hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""} ${!hideNavbar ? (isAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0") : ""}`}
+        className={`relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${!hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""} ${!hideNavbar ? (isAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0") : ""}`}
       >
         {/* Entrée animée en CSS, sans animation de sortie : une sortie qui
             n'aboutit pas (framer-motion + layoutId) laissait l'écran noir. */}

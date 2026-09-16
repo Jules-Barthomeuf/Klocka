@@ -135,6 +135,36 @@ export function detacherVille(villeId) {
 }
 
 /**
+ * Les sociétés à démarcher pour cette carte.
+ *
+ * On ne les cherche pas à part : ce sont les propriétaires des commerces qui
+ * collent déjà aux critères. Une société qui tient trois de ces murs est un
+ * meilleur appel qu'une société qui n'en tient qu'un, et le meilleur bien
+ * de son lot ouvre la conversation.
+ */
+export function societesDesCibles(cibles = []) {
+  const parCle = new Map();
+  for (const c of cibles) {
+    const cle = c.proprietaire_siren || (c.proprietaire ? "nom:" + c.proprietaire.toLowerCase() : null);
+    if (!cle) continue;
+    if (!parCle.has(cle)) parCle.set(cle, { siren: c.proprietaire_siren || null, nom: c.proprietaire, biens: [], villes: new Set() });
+    const s = parCle.get(cle);
+    s.biens.push(c);
+    s.villes.add(c.ville);
+  }
+  return [...parCle.values()]
+    .map((s) => ({
+      siren: s.siren,
+      nom: s.nom,
+      villes: [...s.villes].filter(Boolean),
+      biens: s.biens.length,
+      loyer_total: s.biens.reduce((a, b) => a + (b.loyer_annuel || 0), 0),
+      meilleur: s.biens[0] || null,
+    }))
+    .sort((a, b) => b.biens - a.biens || b.loyer_total - a.loyer_total);
+}
+
+/**
  * La carte ouverte : ses critères, les villes déjà prospectées pour elle, les
  * villes que le tableau de marché conseille, et les cibles qui tiennent dans
  * le budget.
@@ -146,13 +176,15 @@ export function detailCarte(id) {
   const villes = villesDeLaCarte(id).map((v) => ({ ...v, cibles: compterCibles(v.id) }));
   const ids = new Set(villes.map((v) => v.id));
   const conseillees = chercherVilles(criteres);
+  const cibles = chercherCibles({ ...criteres, villes: [...ids] });
   return {
     carte: { ...carte, criteres, phrase: phraseCriteres(criteres) },
     villes,
     // Les villes conseillées qu'on ne prospecte pas encore pour cette carte.
     conseillees: conseillees.filter((c) => !c.ville_id || !ids.has(c.ville_id)),
     prospectees: conseillees.filter((c) => c.ville_id && ids.has(c.ville_id)),
-    cibles: chercherCibles({ ...criteres, villes: [...ids] }),
+    cibles,
+    societes: societesDesCibles(cibles),
     familles: familles(),
     source: reference().source,
   };

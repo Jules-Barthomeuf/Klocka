@@ -246,6 +246,8 @@ export function chercherCibles(criteres = {}, { limite = 60 } = {}) {
       prix_propose: propose,
       rendement: rendementDe(loyer, propose),
       proprietaire: c.proprietaire?.nom || null,
+      proprietaire_siren: c.proprietaire?.siren || null,
+      emplacement: c.emplacement ?? null,
       score_ml: c.score_ml?.tranche || null,
       proba: c.score_ml?.proba ?? null,
     });

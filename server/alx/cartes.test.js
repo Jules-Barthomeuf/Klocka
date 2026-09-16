@@ -8,7 +8,7 @@ import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-cartes-'));
 const { Records } = await import('../db.js');
-const { criteresPropres, phraseCriteres, listerCartes, creerCarte, majCarte, supprimerCarte, rattacherVille, detacherVille, detailCarte } = await import('./cartes.js');
+const { criteresPropres, phraseCriteres, listerCartes, creerCarte, majCarte, supprimerCarte, rattacherVille, detacherVille, detailCarte, societesDesCibles } = await import('./cartes.js');
 
 test('les critères se nettoient : des nombres, une famille connue', () => {
   const c = criteresPropres({ prix_min: '300 000 €', prix_max: '200000', rendement: '8,5', famille: 'Inventée', note: '  centre-ville  ' });
@@ -73,4 +73,20 @@ test('une carte se renomme, et s\'efface sans emporter les villes', () => {
   assert.equal(Records.get('Carte', carte.id), null);
   assert.equal(Records.get('Ville', ville.id).carte_id, null, 'la ville reste, détachée');
   assert.equal(supprimerCarte(carte.id).ok, false);
+});
+
+test('les sociétés à démarcher sont les propriétaires des biens qui collent', () => {
+  const r = societesDesCibles([
+    { proprietaire: 'SCI Deux Murs', proprietaire_siren: '111', ville: 'Dijon', loyer_annuel: 20000, nom: 'Pizzeria' },
+    { proprietaire: 'SCI Deux Murs', proprietaire_siren: '111', ville: 'Autun', loyer_annuel: 12000, nom: 'Coiffeur' },
+    { proprietaire: 'SCI Un Mur', proprietaire_siren: '222', ville: 'Dijon', loyer_annuel: 30000, nom: 'Boutique' },
+    { proprietaire: null, proprietaire_siren: null, ville: 'Dijon', loyer_annuel: 9000, nom: 'Sans propriétaire connu' },
+  ]);
+  // Celle qui tient deux murs passe devant, même avec un loyer total plus bas.
+  assert.deepEqual(r.map((s) => s.nom), ['SCI Deux Murs', 'SCI Un Mur']);
+  assert.deepEqual(r[0].villes, ['Dijon', 'Autun']);
+  assert.equal(r[0].biens, 2);
+  assert.equal(r[0].loyer_total, 32000);
+  assert.equal(r[0].meilleur.nom, 'Pizzeria');
+  assert.deepEqual(societesDesCibles([]), []);
 });

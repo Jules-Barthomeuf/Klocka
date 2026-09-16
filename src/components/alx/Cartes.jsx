@@ -290,6 +290,9 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
   const [tout, setTout] = useState(false);
   // La sélection est la même sur la carte et dans la liste : un code INSEE.
   const [cochees, setCochees] = useState(() => new Set());
+  const [detail, setDetail] = useState(null);
+  const [villeFiltre, setVilleFiltre] = useState(null);
+  const [societeFiltre, setSocieteFiltre] = useState(null);
   const basculer = (insee) => setCochees((s) => {
     const n = new Set(s);
     if (n.has(insee)) n.delete(insee); else n.add(insee);
@@ -333,7 +336,13 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
       </div>
     );
   }
-  const { carte, villes = [], conseillees = [], prospectees = [], cibles = [], familles = [] } = data;
+  const { carte, villes = [], conseillees = [], prospectees = [], cibles = [], societes = [], familles = [] } = data;
+  const criteres = carte.criteres || {};
+  // Les villes présentes dans les commerces retenus, pour filtrer la liste.
+  const villesDesCibles = [...new Map(cibles.filter((c) => c.ville).map((c) => [c.ville_id, c.ville])).entries()]
+    .map(([id, nom]) => [id, nom, cibles.filter((c) => c.ville_id === id).length]);
+  const retenues = cibles.filter((c) => (!villeFiltre || c.ville_id === villeFiltre)
+    && (!societeFiltre || (c.proprietaire_siren || c.proprietaire) === societeFiltre));
   const mot = texte.trim().toLowerCase();
   const filtrees = conseillees.filter((v) => !mot || `${v.ville} ${v.typologie} ${v.emplacement}`.toLowerCase().includes(mot));
   const montrees = tout || mot ? filtrees : filtrees.slice(0, 12);
@@ -435,35 +444,129 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
       </section>
 
       <section className="rounded-[18px] border border-trait bg-surface p-[26px]">
-        <Etiquette className="mb-1.5">Ce qui colle déjà</Etiquette>
-        <p className="m-0 mb-4 text-[12.5px] text-ardoise">
-          Les commerces relevés dont le prix, au rendement visé, tombe dans le budget. Le prix affiché est celui qu'il faut payer pour sortir à ce taux, pas une estimation de valeur.
-        </p>
-        {cibles.length === 0 ? (
-          <p className="m-0 text-[13px] text-ardoise">Rien encore. Ouvrez une ville ci-dessus : les commerces arrivent avec leur loyer.</p>
-        ) : (
-          <div className="flex flex-col">
-            {cibles.map((c) => (
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <div>
+            <Etiquette className="mb-1.5">Ce qui colle déjà</Etiquette>
+            <p className="m-0 max-w-[76ch] text-[12.5px] text-ardoise">
+              Les commerces relevés, toutes villes confondues, dont le prix au rendement visé tombe dans le budget. Le prix affiché est celui qu&apos;il faut payer pour sortir à ce taux, pas une estimation de valeur.
+            </p>
+          </div>
+          {societeFiltre && (
+            <button onClick={() => setSocieteFiltre(null)} className="text-[12.5px] text-menthe hover:underline">
+              Voir tous les commerces
+            </button>
+          )}
+        </div>
+
+        {/* Filtrer par ville : on cherche pour un investisseur, mais on appelle ville par ville. */}
+        {villesDesCibles.length > 1 && (
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+            {[[null, "Toutes", cibles.length], ...villesDesCibles].map(([cle, mot, n]) => (
               <button
-                key={c.id}
-                onClick={() => onOuvrirVille(c.ville_id, c.id)}
-                className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1 border-t border-trait py-3 text-left transition-colors hover:bg-white/[0.02]"
+                key={cle || "toutes"}
+                onClick={() => setVilleFiltre(cle)}
+                className={`alx-mont border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${
+                  villeFiltre === cle ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"
+                }`}
               >
-                <span className="min-w-[220px] flex-1">
-                  <span className="text-[14px] text-encre">{joliNom(c.nom)}</span>
-                  <span className="ml-2 text-[12.5px] text-brume">{[c.adresse, c.ville].filter(Boolean).join(", ")}</span>
-                </span>
-                <span className="text-[12.5px] text-craie tabular-nums">
-                  {fmt(c.loyer_annuel)} €/an{c.loyer_estime ? <span className="text-brume" title="Loyer estimé au loyer de marché de la rue, faute de bail connu"> estimé</span> : ""}
-                  {c.surface ? ` · ${fmt(c.surface)} m²` : ""}
-                </span>
-                <span className="whitespace-nowrap">
-                  <Nombre taille={15} teinte={J["encre"]}>{kEuros(c.prix_propose)}</Nombre>
-                  <Nombre taille={13} teinte={J["menthe"]} className="ml-2">{virgule(c.rendement)} %</Nombre>
-                </span>
-                <span className="w-[96px] text-right text-[11px] uppercase tracking-[.12em]" style={{ color: TEINTES[c.pile] || J["brume"] }}>{pileDe(c.pile).mot}</span>
+                {mot} <span className="text-brume">{n}</span>
               </button>
             ))}
+          </div>
+        )}
+
+        {cibles.length === 0 ? (
+          <p className="m-0 mt-4 text-[13px] text-ardoise">Rien encore. Cochez des villes ci-dessus : les commerces arrivent avec leur loyer.</p>
+        ) : (
+          <div className="mt-5 grid gap-7" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,320px)" }}>
+            <div className="flex flex-col">
+              {retenues.map((c) => {
+                const marche = prospectees.find((p) => p.ville_id === c.ville_id);
+                const ouvert = detail === c.id;
+                return (
+                  <div key={c.id} className="border-t border-trait">
+                    <button
+                      onClick={() => setDetail(ouvert ? null : c.id)}
+                      className="flex w-full flex-wrap items-baseline justify-between gap-x-5 gap-y-1 py-3 text-left transition-colors hover:bg-white/[0.02]"
+                    >
+                      <span className="min-w-[220px] flex-1">
+                        <span className="text-[14px] text-encre">{joliNom(c.nom)}</span>
+                        <span className="ml-2 text-[12.5px] text-brume">{[c.adresse, c.ville].filter(Boolean).join(", ")}</span>
+                      </span>
+                      <span className="text-[12.5px] text-craie tabular-nums">
+                        {fmt(c.loyer_annuel)} €/an{c.loyer_estime ? <span className="text-brume" title="Loyer estimé au loyer de marché de la rue, faute de bail connu"> estimé</span> : ""}
+                        {c.surface ? ` · ${fmt(c.surface)} m²` : ""}
+                      </span>
+                      <span className="whitespace-nowrap">
+                        <Nombre taille={15} teinte={J["encre"]}>{kEuros(c.prix_propose)}</Nombre>
+                        <Nombre taille={13} teinte={J["menthe"]} className="ml-2">{virgule(c.rendement)} %</Nombre>
+                      </span>
+                      <span className="w-[96px] text-right text-[11px] uppercase tracking-[.12em]" style={{ color: TEINTES[c.pile] || J["brume"] }}>{pileDe(c.pile).mot}</span>
+                    </button>
+
+                    {/* Pourquoi celui-ci : le calcul, pas une impression. */}
+                    {ouvert && (
+                      <div className="mb-3 rounded-[12px] border border-trait bg-fond px-4 py-3.5">
+                        <Etiquette className="mb-2">Pourquoi il correspond</Etiquette>
+                        <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-[12.5px] leading-[1.6] text-craie">
+                          <li>
+                            Loyer {c.loyer_estime ? "estimé" : "relevé"} de {fmt(c.loyer_annuel)} € par an
+                            {c.loyer_m2 ? ` (${fmt(c.loyer_m2)} €/m²)` : ""} : à {virgule(criteres.rendement || c.rendement)} %, il faut payer {kEuros(c.prix[0])} à {kEuros(c.prix[1])}.
+                          </li>
+                          <li>
+                            Le budget va de {kEuros(criteres.prix_min)} à {kEuros(criteres.prix_max)} : {kEuros(c.prix_propose)} y tombe, et sort à {virgule(c.rendement)} %.
+                          </li>
+                          {marche && (
+                            <li>{c.ville} se traite à {taux(marche.taux)} dans ce type d&apos;emplacement ({marche.emplacement}).</li>
+                          )}
+                          {c.emplacement && <li>Rue classée en emplacement {c.emplacement === 1.5 ? "1 bis" : c.emplacement}{c.rue ? ` (${c.rue})` : ""}.</li>}
+                          {c.score_ml && <li>Le modèle place cette adresse en {c.score_ml.libelle?.toLowerCase() || "rang inconnu"}.</li>}
+                          {c.proprietaire && <li>Propriétaire : {joliNom(c.proprietaire)}{c.proprietaire_siren ? ` (SIREN ${c.proprietaire_siren})` : ""}.</li>}
+                        </ul>
+                        <div className="mt-3 flex flex-wrap gap-4">
+                          <button onClick={() => onOuvrirVille(c.ville_id, c.id)} className="text-[12.5px] text-menthe hover:underline">Ouvrir la fiche du commerce</button>
+                          {c.proprietaire_siren && (
+                            <a href={`https://www.pappers.fr/recherche?q=${c.proprietaire_siren}`} target="_blank" rel="noreferrer" className="text-[12.5px] text-ardoise hover:text-encre">
+                              Le propriétaire sur Pappers
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {!retenues.length && <p className="m-0 py-4 text-[13px] text-ardoise">Aucun commerce pour ce filtre.</p>}
+            </div>
+
+            {/* Les sociétés à démarcher : les propriétaires de ces murs. */}
+            <div>
+              <Etiquette className="mb-2.5">Les sociétés à appeler</Etiquette>
+              {societes.length === 0 ? (
+                <p className="m-0 text-[12.5px] text-ardoise">Aucun propriétaire identifié sur ces commerces.</p>
+              ) : (
+                <div className="flex flex-col">
+                  {societes.slice(0, 14).map((s) => (
+                    <button
+                      key={s.siren || s.nom}
+                      onClick={() => { setSocieteFiltre(societeFiltre === (s.siren || s.nom) ? null : (s.siren || s.nom)); setDetail(null); }}
+                      className={`border-t border-trait py-2.5 text-left transition-colors hover:bg-white/[0.02] ${societeFiltre === (s.siren || s.nom) ? "bg-white/[0.03]" : ""}`}
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="min-w-0 truncate text-[13.5px] text-encre">{joliNom(s.nom)}</span>
+                        <Nombre taille={13} teinte={J["menthe"]}>{s.biens}</Nombre>
+                      </div>
+                      <div className="mt-0.5 text-[11.5px] text-brume">
+                        {s.villes.join(", ")} · {fmt(s.loyer_total)} €/an
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="m-0 mt-3 text-[11.5px] leading-[1.5] text-brume">
+                Une société qui tient plusieurs de ces murs vaut un appel avant les autres : c&apos;est une discussion, pas une offre.
+              </p>
+            </div>
           </div>
         )}
       </section>

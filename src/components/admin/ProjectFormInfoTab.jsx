@@ -6,9 +6,9 @@ import React, { useState } from "react";
 import { Plus, X, Search, ChevronDown } from "lucide-react";
 import { J } from "@/design/jetons";
 
-const fieldWrap = "bg-transparent border border-[#1e1e1e] rounded-[12px] px-4 py-3.5 transition-colors focus-within:border-bord-vif";
+const fieldWrap = "bg-surface border border-trait rounded-[12px] px-4 py-3.5 transition-colors focus-within:border-menthe/60";
 const fieldInput = "w-full bg-transparent border-none text-encre outline-none placeholder:text-brume";
-const flabel = "text-[12.5px] text-ardoise mb-2";
+const flabel = "text-[11px] uppercase tracking-[.16em] text-ardoise mb-2";
 
 const STATUSES = [
   { value: "prospect", label: "Prospect" },

@@ -196,12 +196,12 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
             <div className="flex flex-col gap-5 p-7">
               <div>
                 <Etiquette>Coup d'œil</Etiquette>
-                <div className="alx-serif mt-2 text-[34px] italic leading-tight text-encre">{joliNom(c.enseigne) || c.adresse}</div>
+                <div className="alx-mont mt-2 text-[32px] font-medium leading-tight tracking-[-.02em] text-encre">{joliNom(c.enseigne) || c.adresse}</div>
                 <div className="mt-1 text-[13.5px] text-ardoise">{c.adresse}{c.activite ? ` · ${c.activite}` : ""}</div>
               </div>
               <div>
                 <Etiquette>Propriétaire</Etiquette>
-                <div className="mt-1.5 text-[18px] text-encre">{p.nom ? joliNom(p.nom) : "À établir"}</div>
+                <div className="alx-mont mt-1.5 text-[17px] font-medium text-encre">{p.nom ? joliNom(p.nom) : "À établir"}</div>
               </div>
               <div>
                 <Etiquette>Analyse</Etiquette>
@@ -359,7 +359,7 @@ export default function ALXCible() {
 
         <div className="mt-5 flex flex-wrap items-end justify-between gap-5">
           <div className="min-w-0">
-            <h1 className="alx-serif m-0 text-[44px] italic leading-[1.05] tracking-[-.01em] text-encre max-md:text-[34px]">{joliNom(c.enseigne) || c.adresse}</h1>
+            <h1 className="alx-mont m-0 text-[42px] font-medium leading-[1.06] tracking-[-.02em] text-encre max-md:text-[32px]">{joliNom(c.enseigne) || c.adresse}</h1>
             <div className="mt-2 text-[15px] text-ardoise">{c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.activite ? ` · ${c.activite}` : ""}{c.emplacement ? ` · emplacement ${e.mot}` : ""}</div>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -413,7 +413,7 @@ export default function ALXCible() {
             <>
             <div className="pr-28">
               <Etiquette>Propriétaire</Etiquette>
-              <div className="mt-2 text-[24px] text-encre">{p.nom ? joliNom(p.nom) : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
+              <div className="alx-mont mt-2 text-[23px] font-medium tracking-[-.01em] text-encre">{p.nom ? joliNom(p.nom) : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
               {proprioMeta && <div className="mt-1 text-[13.5px] text-ardoise">{proprioMeta}</div>}
               {!p.nom && (
                 <button onClick={() => proprietaire.mutate()} disabled={proprietaire.isPending} className="mt-2 text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }}>

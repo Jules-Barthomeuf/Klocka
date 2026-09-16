@@ -123,9 +123,11 @@ export const loyerPour = (prix, taux) => Math.round((prix * taux) / 100);
  * @param {{prix_min?, prix_max?, rendement_min?, rendement_max?, famille?, texte?}} criteres
  */
 export function chercherVilles(criteres = {}) {
-  const { prix_min = null, prix_max = null, rendement_min = null, rendement_max = null, famille = null, texte = null } = criteres;
-  const vise = rendement_min != null || rendement_max != null
-    ? [rendement_min ?? 0, rendement_max ?? 99]
+  const { prix_min = null, prix_max = null, rendement = null, rendement_min = null, rendement_max = null, famille = null, texte = null } = criteres;
+  // Un rendement visé est un point, pas une fourchette : on garde les villes
+  // qui le traitent, c est-a-dire celles dont la fourchette le contient.
+  const vise = rendement != null ? [rendement, rendement]
+    : (rendement_min != null || rendement_max != null) ? [rendement_min ?? 0, rendement_max ?? 99]
     : null;
   const connues = villesProspectees();
   const mot = String(texte || '').trim().toLowerCase();
@@ -195,10 +197,10 @@ export function loyerAnnuelDe(cible) {
  * tombe dans le budget. On rend le prix à proposer, pas une estimation.
  */
 export function chercherCibles(criteres = {}, { limite = 60 } = {}) {
-  const { prix_min = null, prix_max = null, rendement_min = null, rendement_max = null, villes = null } = criteres;
+  const { prix_min = null, prix_max = null, rendement = null, rendement_min = null, rendement_max = null, villes = null } = criteres;
   if (prix_min == null || prix_max == null) return [];
-  const bas = rendement_min ?? 5;
-  const haut = rendement_max ?? 12;
+  const bas = rendement ?? rendement_min ?? 5;
+  const haut = rendement ?? rendement_max ?? 12;
   const noms = new Map(Records.list('Ville').map((v) => [v.id, v.nom]));
   const out = [];
   for (const c of Records.list('Cible')) {

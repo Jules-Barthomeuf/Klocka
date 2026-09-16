@@ -187,7 +187,7 @@ function Criteres({ carte, familles }) {
   const c = carte.criteres || {};
   const [f, setF] = useState({
     prix_min: c.prix_min ?? "", prix_max: c.prix_max ?? "",
-    rendement_min: c.rendement_min ?? "", rendement_max: c.rendement_max ?? "",
+    rendement: c.rendement ?? "",
     famille: c.famille ?? "", note: c.note ?? "",
   });
   const change = (k) => (v) => setF((s) => ({ ...s, [k]: v }));
@@ -203,8 +203,7 @@ function Criteres({ carte, familles }) {
       <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
         <Champ label="Budget mini" value={f.prix_min} onChange={change("prix_min")} placeholder="200 000" />
         <Champ label="Budget maxi" value={f.prix_max} onChange={change("prix_max")} placeholder="300 000" />
-        <Champ label="Rendement mini" value={f.rendement_min} onChange={change("rendement_min")} placeholder="8" />
-        <Champ label="Rendement maxi" value={f.rendement_max} onChange={change("rendement_max")} placeholder="9" />
+        <Champ label="Rendement visé" value={f.rendement} onChange={change("rendement")} placeholder="8" />
         <label className="block">
           <span className="mb-1.5 block text-[11px] uppercase tracking-[.16em] text-ardoise">Type de ville</span>
           <select value={f.famille} onChange={(e) => change("famille")(e.target.value)} className={CHAMP}>
@@ -212,7 +211,7 @@ function Criteres({ carte, familles }) {
             {(familles || []).map((x) => <option key={x} value={x}>{x}</option>)}
           </select>
         </label>
-        <Champ label="Note" value={f.note} onChange={change("note")} placeholder="Ce qu'il ne veut pas" />
+        <Champ label="Ce qu'il évite" value={f.note} onChange={change("note")} placeholder="Restauration rapide, pas de rez-de-chaussée aveugle…" />
       </div>
       <div className="mt-4 flex items-center gap-3">
         <Bouton principal onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}>{enregistrer.isPending ? <PenseeIA etat="working" taille={20} clair /> : "Enregistrer les critères"}</Bouton>

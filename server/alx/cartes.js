@@ -27,13 +27,13 @@ export function criteresPropres(brut = {}) {
   const connues = familles();
   const prix_min = nombre(brut.prix_min);
   const prix_max = nombre(brut.prix_max);
-  const rendement_min = nombre(brut.rendement_min);
-  const rendement_max = nombre(brut.rendement_max);
+  // Un seul rendement, pas une fourchette : un investisseur vise un taux.
+  // Les cartes écrites avant gardent leur borne basse, qui était ce taux.
+  const rendement = nombre(brut.rendement) ?? nombre(brut.rendement_min) ?? nombre(brut.rendement_max);
   return {
     prix_min: prix_min && prix_max ? Math.min(prix_min, prix_max) : prix_min,
     prix_max: prix_min && prix_max ? Math.max(prix_min, prix_max) : prix_max,
-    rendement_min: rendement_min && rendement_max ? Math.min(rendement_min, rendement_max) : rendement_min,
-    rendement_max: rendement_min && rendement_max ? Math.max(rendement_min, rendement_max) : rendement_max,
+    rendement,
     famille: connues.includes(brut.famille) ? brut.famille : null,
     note: String(brut.note || '').trim() || null,
   };
@@ -47,9 +47,7 @@ export function phraseCriteres(c = {}) {
   if (c.prix_min && c.prix_max) bouts.push(`${euros(c.prix_min)} à ${euros(c.prix_max)}`);
   else if (c.prix_max) bouts.push(`jusqu'à ${euros(c.prix_max)}`);
   else if (c.prix_min) bouts.push(`à partir de ${euros(c.prix_min)}`);
-  if (c.rendement_min && c.rendement_max) bouts.push(`${taux(c.rendement_min)} à ${taux(c.rendement_max)} %`);
-  else if (c.rendement_min) bouts.push(`${taux(c.rendement_min)} % minimum`);
-  else if (c.rendement_max) bouts.push(`${taux(c.rendement_max)} % maximum`);
+  if (c.rendement) bouts.push(`${taux(c.rendement)} %`);
   if (c.famille) bouts.push(c.famille.toLowerCase());
   return bouts.length ? bouts.join(' · ') : 'Aucun critère posé';
 }
@@ -69,7 +67,8 @@ function compterCibles(villeId) {
 
 /** Toutes les cartes, la plus récente d'abord, avec ce qu'elles tiennent. */
 export function listerCartes() {
-  return Records.list('Carte', { sort: '-created_date' }).map((carte) => {
+  return Records.list('Carte', { sort: '-created_date' }).map((brut) => {
+    const carte = { ...brut, criteres: criteresPropres(brut.criteres || {}) };
     const villes = villesDeLaCarte(carte.id);
     const cibles = villes.reduce((a, v) => {
       const c = compterCibles(v.id);
@@ -143,12 +142,12 @@ export function detacherVille(villeId) {
 export function detailCarte(id) {
   const carte = Records.get('Carte', id);
   if (!carte) return null;
-  const criteres = carte.criteres || {};
+  const criteres = criteresPropres(carte.criteres || {});
   const villes = villesDeLaCarte(id).map((v) => ({ ...v, cibles: compterCibles(v.id) }));
   const ids = new Set(villes.map((v) => v.id));
   const conseillees = chercherVilles(criteres);
   return {
-    carte: { ...carte, phrase: phraseCriteres(criteres) },
+    carte: { ...carte, criteres, phrase: phraseCriteres(criteres) },
     villes,
     // Les villes conseillées qu'on ne prospecte pas encore pour cette carte.
     conseillees: conseillees.filter((c) => !c.ville_id || !ids.has(c.ville_id)),

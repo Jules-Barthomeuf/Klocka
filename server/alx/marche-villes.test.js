@@ -78,6 +78,16 @@ test('8 % écarte Paris et retient les villes moyennes, avec le loyer à cherche
   assert.ok(r[0].ecart <= r[r.length - 1].ecart);
 });
 
+test('un rendement visé est un point : la ville doit le traiter', () => {
+  const a8 = chercherVilles({ rendement: 8 }).map((v) => v.ville);
+  assert.ok(a8.includes('Dijon'), 'Dijon va de 8 à 10,5 %');
+  assert.ok(!a8.includes('Autun'), 'Autun commence à 9,8 %');
+  // Le 18e monte à 8,5 % : c'est le seul arrondissement que 8 % laisse en jeu.
+  assert.deepEqual(a8.filter((v) => v.startsWith('Paris')), ['Paris 18e']);
+  // Le taux retenu est le taux visé, pas une fourchette.
+  assert.deepEqual(chercherVilles({ rendement: 8 }).find((v) => v.ville === 'Dijon').taux, [8, 8]);
+});
+
 test('un rendement haut descend la gamme, un rendement bas la remonte', () => {
   const haut = chercherVilles({ rendement_min: 10, rendement_max: 12 }).map((v) => v.ville);
   assert.ok(haut.includes('Nazelles-Négron'));

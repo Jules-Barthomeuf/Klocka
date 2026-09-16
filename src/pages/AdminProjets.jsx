@@ -19,7 +19,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from "framer-motion";
 import ProjectFormLocataireTab from "../components/admin/ProjectFormLocataireTab";
-import ProjectFormInfoTab, { CarteCollaborateurs, CarteClients, CarteDocuments } from "../components/admin/ProjectFormInfoTab";
+import ProjectFormInfoTab, { CarteDocuments } from "../components/admin/ProjectFormInfoTab";
+import ProjectFormGeneralTab from "../components/admin/ProjectFormGeneralTab";
 import ProjectFormDocumentsTab from "../components/admin/ProjectFormDocumentsTab";
 import ProjectFormDiagnosticsTab from "../components/admin/ProjectFormDiagnosticsTab";
 import ProjectFormSimulateurTab from "../components/admin/ProjectFormSimulateurTab";
@@ -28,7 +29,6 @@ import ProjectFormCoproTab from "../components/admin/ProjectFormCoproTab";
 import ProjectFormSwotTab from "../components/admin/ProjectFormSwotTab";
 import ProjectFormMarcheTab from "../components/admin/ProjectFormMarcheTab";
 import ProjectSimulatorPreview from "../components/admin/ProjectSimulatorPreview";
-import ProjectLivePreview from "../components/admin/ProjectLivePreview";
 import BoutonMonday from "@/components/BoutonMonday";
 import ProjetContent from "../components/projet/ProjetContent";
 
@@ -812,6 +812,11 @@ export default function AdminProjets() {
     bail: "bail", copropriete: "copropriete", diagnostique: "diagnostique",
     documents_projet: "docs_projet", simulateur: "simulateur",
   };
+  const PAGE_PAR_FORM = {
+    general: "secteur", secteur: "secteur", marche: "marche", informations: "bien",
+    locataire: "locataire", bail: "bail", copropriete: "copropriete",
+    diagnostique: "diagnostique", docs_projet: "documents_projet", simulateur: "simulateur",
+  };
   useEffect(() => {
     if (!isDialogOpen) return;
     const f = FORM_PAR_ONGLET[ongletPage];
@@ -1025,6 +1030,7 @@ export default function AdminProjets() {
   // Les onglets du panneau, dans l'ordre de la page projet : on regarde une
   // partie à gauche, on trouve ses champs à la même place à droite.
   const editorTabs = [
+    { value: "general", label: "Général" },
     { value: "secteur", label: "Secteur" },
     { value: "marche", label: "Marché" },
     { value: "informations", label: "Bien" },
@@ -1057,8 +1063,8 @@ export default function AdminProjets() {
         <div className="flex-shrink-0 px-6 max-md:px-4 pt-4 pb-3.5 border-b border-trait">
           <div className="flex items-start gap-5">
             <h1
-              className="flex-1 min-w-0 m-0 text-[clamp(22px,2.4vw,36px)] font-normal italic tracking-[-.01em] leading-[1.05] text-white"
-              style={{ fontFamily: "'Instrument Serif', Georgia, serif", textWrap: "pretty" }}
+              className="alx-mont flex-1 min-w-0 m-0 text-[clamp(22px,2.4vw,34px)] font-medium tracking-[-.02em] leading-[1.06] text-white"
+              style={{ textWrap: "pretty" }}
             >
               {formData.titre || "Nouveau projet"}
             </h1>
@@ -1174,17 +1180,14 @@ export default function AdminProjets() {
         >
           <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
-              <button key={t.value} onClick={() => setActiveTab(t.value)}
+              <button key={t.value} onClick={() => { setActiveTab(t.value); const p = PAGE_PAR_FORM[t.value]; if (p) setOngletPage(p); }}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-sur-menthe border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif hover:text-encre"}`}>
                 {t.label}
               </button>
             ))}
           </div>
 
-          {/* Ce qui ne dépend d'aucune section reste sous les yeux. */}
           <div className="flex-shrink-0 px-[18px] pb-3 flex flex-col gap-3">
-            <CarteCollaborateurs formData={formData} setFormData={setFormData} />
-            <CarteClients formData={formData} setFormData={setFormData} users={users} />
             <p className="m-0 mt-1 text-[11px] tracking-[.18em] uppercase text-[#7d7d7d]">
               {editorTabs.find((t) => t.value === activeTab)?.label || "Modifier"}
             </p>
@@ -1195,6 +1198,10 @@ export default function AdminProjets() {
               {/* « IA » et « Images » n'ont plus de pastille : les onglets du
                   panneau suivent ceux de la page projet. Leur contenu reste, le
                   jour où on leur redonnera une porte d'entrée. */}
+              <TabsContent value="general" className="space-y-3 mt-0">
+                <ProjectFormGeneralTab formData={formData} setFormData={setFormData} users={users} />
+              </TabsContent>
+
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
                 <div className="p-6 bg-surface rounded-none border border-trait">
                   <div className="flex items-center gap-3 mb-4">

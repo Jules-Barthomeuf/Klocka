@@ -88,6 +88,9 @@ export const sienPar = (champ) => (user) => (rec) => {
 export const projetVisiblePar = (user) => (p) =>
   !p.archived &&
   (p.admin_principal === user.email ||
+    // Plusieurs collaborateurs peuvent suivre un projet : le principal porte
+    // sa carte, les autres y ont les mêmes droits.
+    (Array.isArray(p.admins) && p.admins.includes(user.email)) ||
     p.client_email === user.email ||
     (Array.isArray(p.client_emails) && p.client_emails.includes(user.email)) ||
     p.created_by === user.email);

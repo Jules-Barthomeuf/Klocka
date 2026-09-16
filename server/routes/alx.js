@@ -116,6 +116,66 @@ export function monterAlx(app) {
     ok(res, { ok: true });
   }));
 
+  // --- Cartes de prospection ------------------------------------------------
+  // On ne prospecte pas « une ville », on prospecte pour quelqu'un. La carte
+  // porte le nom qu'on veut, les critères du client, et les villes ouvertes
+  // pour lui. Les critères rendent les villes à viser : le tableau de marché
+  // sait à quel rendement chaque ville se traite.
+  const cartes = () => import('../alx/cartes.js');
+
+  app.get('/api/alx/cartes', wrap(async (req, res) => ok(res, { cartes: (await cartes()).listerCartes() })));
+  app.post('/api/alx/cartes', wrap(async (req, res) => {
+    const r = (await cartes()).creerCarte({ ...req.body, user: currentUser(req) });
+    if (!r.ok) return erreur(res, r.error);
+    ok(res, r);
+  }));
+  app.get('/api/alx/cartes/:id', wrap(async (req, res) => {
+    const d = (await cartes()).detailCarte(req.params.id);
+    if (!d) return res.status(404).json({ error: 'Carte introuvable.' });
+    ok(res, d);
+  }));
+  app.patch('/api/alx/cartes/:id', wrap(async (req, res) => {
+    const r = (await cartes()).majCarte(req.params.id, req.body || {});
+    if (!r.ok) return erreur(res, r.error, 404);
+    ok(res, r);
+  }));
+  app.delete('/api/alx/cartes/:id', wrap(async (req, res) => {
+    const r = (await cartes()).supprimerCarte(req.params.id);
+    if (!r.ok) return erreur(res, r.error, 404);
+    ok(res, r);
+  }));
+  // Ouvrir une ville pour une carte : on la crée si elle n'existe pas, on la
+  // rattache, et le parcours part en tâche de fond.
+  app.post('/api/alx/cartes/:id/villes', wrap(async (req, res) => {
+    const { rattacherVille } = await cartes();
+    let villeId = req.body?.ville_id || null;
+    if (!villeId) {
+      const c = creerVille({ nom: req.body?.nom, code_postal: req.body?.code_postal || null, user: currentUser(req) });
+      if (!c.ok) return erreur(res, c.error);
+      villeId = c.ville.id;
+    }
+    const r = rattacherVille(req.params.id, villeId);
+    if (!r.ok) return erreur(res, r.error, 404);
+    if (req.body?.lancer !== false && r.ville.parcours?.etat !== 'en_cours') {
+      const { lancer } = await import('../alx/parcours.js');
+      lancer(villeId, { user: currentUser(req) });
+    }
+    ok(res, r);
+  }));
+  app.delete('/api/alx/cartes/:id/villes/:villeId', wrap(async (req, res) => {
+    const r = (await cartes()).detacherVille(req.params.villeId);
+    if (!r.ok) return erreur(res, r.error, 404);
+    ok(res, r);
+  }));
+
+  // La recherche par critères, sans carte : un budget, un rendement, et les
+  // villes où aller chercher avec le loyer et la surface à viser.
+  app.get('/api/alx/marche', wrap(async (req, res) => {
+    const { chercher } = await import('../alx/marche-villes.js');
+    const { criteresPropres } = await cartes();
+    ok(res, chercher({ ...criteresPropres(req.query), texte: String(req.query.texte || '').trim() || null }));
+  }));
+
   // --- Cibles ---------------------------------------------------------------
   app.get('/api/alx/cibles', wrap((req, res) => ok(res, listerCibles({ ville_id: req.query.ville || null, pile: req.query.pile || null }))));
   app.post('/api/alx/cibles', wrap((req, res) => {

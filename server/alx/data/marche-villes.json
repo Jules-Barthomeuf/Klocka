@@ -1,0 +1,1007 @@
+{
+ "source": "Tableau Klocka des rendements constatés par ville (septembre 2026), codes INSEE résolus par la Base Adresse Nationale.",
+ "le": "2026-09-16",
+ "villes": [
+  {
+   "ville": "Paris 3e",
+   "code_postal": "75003",
+   "insee": "75103",
+   "typologie": "Paris Intra-muros (Marais / Prime)",
+   "rendement": [
+    5.5,
+    7
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Paris 4e",
+   "code_postal": "75004",
+   "insee": "75104",
+   "typologie": "Paris Intra-muros (Bastille / Prime)",
+   "rendement": [
+    6,
+    7.5
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Paris 5e",
+   "code_postal": "75005",
+   "insee": "75105",
+   "typologie": "Paris Intra-muros (Quartier Latin)",
+   "rendement": [
+    6,
+    7.5
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Paris 6e",
+   "code_postal": "75006",
+   "insee": "75106",
+   "typologie": "Paris Intra-muros (Saint-Germain / Ultra-Prime)",
+   "rendement": [
+    5,
+    6.5
+   ],
+   "emplacement": "N°1 Ultra-prime"
+  },
+  {
+   "ville": "Paris 7e",
+   "code_postal": "75007",
+   "insee": "75107",
+   "typologie": "Paris Intra-muros (Prestige / Ultra-Prime)",
+   "rendement": [
+    5,
+    6
+   ],
+   "emplacement": "N°1 Ultra-prime"
+  },
+  {
+   "ville": "Paris 8e",
+   "code_postal": "75008",
+   "insee": "75108",
+   "typologie": "Paris Intra-muros (QCA / Ultra-Prime)",
+   "rendement": [
+    5,
+    6.5
+   ],
+   "emplacement": "N°1 Ultra-prime"
+  },
+  {
+   "ville": "Paris 9e",
+   "code_postal": "75009",
+   "insee": "75109",
+   "typologie": "Paris Intra-muros (Opéra / Grands Boulevards)",
+   "rendement": [
+    6,
+    7.5
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Paris 10e",
+   "code_postal": "75010",
+   "insee": "75110",
+   "typologie": "Paris Intra-muros (Canal / République)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Paris 11e",
+   "code_postal": "75011",
+   "insee": "75111",
+   "typologie": "Paris Intra-muros (Bastille / Commerce)",
+   "rendement": [
+    6,
+    7
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Paris 14e",
+   "code_postal": "75014",
+   "insee": "75114",
+   "typologie": "Paris Intra-muros (Montparnasse / Résidentiel)",
+   "rendement": [
+    6,
+    7.5
+   ],
+   "emplacement": "N°1 bis / N°2"
+  },
+  {
+   "ville": "Paris 15e",
+   "code_postal": "75015",
+   "insee": "75115",
+   "typologie": "Paris Intra-muros (Vaugirard / Résidentiel)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Paris 16e",
+   "code_postal": "75016",
+   "insee": "75116",
+   "typologie": "Paris Intra-muros (Passy / Prestige)",
+   "rendement": [
+    5,
+    6.5
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Paris 17e",
+   "code_postal": "75017",
+   "insee": "75117",
+   "typologie": "Paris Intra-muros (Ternes / Batignolles)",
+   "rendement": [
+    6,
+    7
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Paris 18e",
+   "code_postal": "75018",
+   "insee": "75118",
+   "typologie": "Paris Intra-muros (Montmartre / Poteau)",
+   "rendement": [
+    6,
+    8.5
+   ],
+   "emplacement": "N°1 bis / N°2"
+  },
+  {
+   "ville": "Paris 19e",
+   "code_postal": "75019",
+   "insee": "75119",
+   "typologie": "Paris Intra-muros (Crimée / Populaire)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°2"
+  },
+  {
+   "ville": "Boulogne-Billancourt",
+   "code_postal": "92100",
+   "insee": "92012",
+   "typologie": "1ère Couronne IDF (Hauts-de-Seine Prime)",
+   "rendement": [
+    5.5,
+    6.5
+   ],
+   "emplacement": "N°1"
+  },
+  {
+   "ville": "Levallois-Perret",
+   "code_postal": "92300",
+   "insee": "92044",
+   "typologie": "1ère Couronne IDF (Hauts-de-Seine Prime)",
+   "rendement": [
+    6,
+    7
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Courbevoie",
+   "code_postal": "92400",
+   "insee": "92026",
+   "typologie": "1ère Couronne IDF (La Défense / Affaires)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Issy-les-Moulineaux",
+   "code_postal": "92130",
+   "insee": "92040",
+   "typologie": "1ère Couronne IDF (Tertiaire / Residentiel)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Asnières-sur-Seine",
+   "code_postal": "92600",
+   "insee": "92004",
+   "typologie": "1ère Couronne IDF (Résidentiel Dense)",
+   "rendement": [
+    6.5,
+    10.5
+   ],
+   "emplacement": "N°1 bis / N°2"
+  },
+  {
+   "ville": "Suresnes",
+   "code_postal": "92150",
+   "insee": "92073",
+   "typologie": "1ère Couronne IDF (Bords de Seine)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Puteaux",
+   "code_postal": "92800",
+   "insee": "92062",
+   "typologie": "1ère Couronne IDF (La Défense Sud)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 bis"
+  },
+  {
+   "ville": "Châtenay-Malabry",
+   "code_postal": "92290",
+   "insee": "92019",
+   "typologie": "1ère Couronne IDF (Résidentiel Sud)",
+   "rendement": [
+    7,
+    7.5
+   ],
+   "emplacement": "N°1 bis / N°2"
+  },
+  {
+   "ville": "Malakoff",
+   "code_postal": "92240",
+   "insee": "92046",
+   "typologie": "1ère Couronne IDF (Petite Couronne Sud)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°2"
+  },
+  {
+   "ville": "Châtillon",
+   "code_postal": "92320",
+   "insee": "92020",
+   "typologie": "1ère Couronne IDF (Résidentiel)",
+   "rendement": [
+    7,
+    8
+   ],
+   "emplacement": "N°2"
+  },
+  {
+   "ville": "Aubervilliers",
+   "code_postal": "93300",
+   "insee": "93001",
+   "typologie": "1ère Couronne IDF (Seine-Saint-Denis)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°2 / Axe Majeur"
+  },
+  {
+   "ville": "Marseille",
+   "code_postal": "13000",
+   "insee": "13055",
+   "typologie": "Grande Métropole (PACA / Axe République)",
+   "rendement": [
+    5.8,
+    8.5
+   ],
+   "emplacement": "N°1 / N°1 bis / N°2"
+  },
+  {
+   "ville": "Lyon",
+   "code_postal": "69000",
+   "insee": "69123",
+   "typologie": "Grande Métropole (Rhône / Presqu'île)",
+   "rendement": [
+    5.5,
+    7.8
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Toulouse",
+   "code_postal": "31000",
+   "insee": "31555",
+   "typologie": "Grande Métropole (Haute-Garonne / Centre)",
+   "rendement": [
+    6,
+    8.5
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Bordeaux",
+   "code_postal": "33000",
+   "insee": "33063",
+   "typologie": "Grande Métropole (Gironde / Centre)",
+   "rendement": [
+    5.8,
+    8.5
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Lille",
+   "code_postal": "59000",
+   "insee": "59350",
+   "typologie": "Grande Métropole (Nord / Grand Place)",
+   "rendement": [
+    5.5,
+    8
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Nice",
+   "code_postal": "06000",
+   "insee": "06088",
+   "typologie": "Grande Métropole (Côte d'Azur / Jean Médecin)",
+   "rendement": [
+    6.5,
+    8.5
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Nantes",
+   "code_postal": "44000",
+   "insee": "44109",
+   "typologie": "Grande Métropole (Loire-Atlantique / Centre)",
+   "rendement": [
+    6,
+    8.5
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Rennes",
+   "code_postal": "35000",
+   "insee": "35238",
+   "typologie": "Grande Métropole (Ille-et-Vilaine / Centre)",
+   "rendement": [
+    6,
+    7.5
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Montpellier",
+   "code_postal": "34000",
+   "insee": "34172",
+   "typologie": "Grande Métropole (Hérault / Comédie)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Cannes",
+   "code_postal": "06400",
+   "insee": "06029",
+   "typologie": "Station Balnéaire Prime / Métropole Riviera",
+   "rendement": [
+    6,
+    8
+   ],
+   "emplacement": "N°1 / N°1 bis"
+  },
+  {
+   "ville": "Antibes",
+   "code_postal": "06600",
+   "insee": "06004",
+   "typologie": "Métropole Secondaire Riviera",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 bis / N°2"
+  },
+  {
+   "ville": "Cagnes-sur-Mer",
+   "code_postal": "06800",
+   "insee": "06027",
+   "typologie": "Métropole Secondaire Riviera",
+   "rendement": [
+    6,
+    7.8
+   ],
+   "emplacement": "Axe Commerçant / N°2"
+  },
+  {
+   "ville": "Menton",
+   "code_postal": "06500",
+   "insee": "06083",
+   "typologie": "Littoral Riviera / Frontière",
+   "rendement": [
+    6.5,
+    8.6
+   ],
+   "emplacement": "N°1 bis / Centre"
+  },
+  {
+   "ville": "Toulon",
+   "code_postal": "83000",
+   "insee": "83137",
+   "typologie": "Métropole Secondaire (Var)",
+   "rendement": [
+    6.5,
+    7.5
+   ],
+   "emplacement": "N°1 bis / N°2"
+  },
+  {
+   "ville": "Hyères",
+   "code_postal": "83400",
+   "insee": "83069",
+   "typologie": "Ville Littorale Var",
+   "rendement": [
+    8.5,
+    9.5
+   ],
+   "emplacement": "Centre Historique"
+  },
+  {
+   "ville": "Saint-Laurent-du-Var",
+   "code_postal": "06700",
+   "insee": "06123",
+   "typologie": "Agglomération Nice-Riviera",
+   "rendement": [
+    6.5,
+    7
+   ],
+   "emplacement": "Axe Périphérique"
+  },
+  {
+   "ville": "Mandelieu-la-Napoule",
+   "code_postal": "06210",
+   "insee": "06079",
+   "typologie": "Agglomération Cannes-Riviera",
+   "rendement": [
+    7,
+    8
+   ],
+   "emplacement": "Zone Commerciale"
+  },
+  {
+   "ville": "Biarritz",
+   "code_postal": "64200",
+   "insee": "64122",
+   "typologie": "Station Balnéaire Prestigieuse (Pays Basque)",
+   "rendement": [
+    7.5,
+    8.5
+   ],
+   "emplacement": "N°1 Clémenceau"
+  },
+  {
+   "ville": "Bayonne",
+   "code_postal": "64100",
+   "insee": "64102",
+   "typologie": "Agglomération Pays Basque",
+   "rendement": [
+    7.5,
+    8.5
+   ],
+   "emplacement": "Centre Piéton"
+  },
+  {
+   "ville": "Angers",
+   "code_postal": "49100",
+   "insee": "49007",
+   "typologie": "Métropole Secondaire (Maine-et-Loire)",
+   "rendement": [
+    5.7,
+    10
+   ],
+   "emplacement": "N°1 / Centre"
+  },
+  {
+   "ville": "Reims",
+   "code_postal": "51100",
+   "insee": "51454",
+   "typologie": "Métropole Secondaire (Marne)",
+   "rendement": [
+    5.5,
+    6.5
+   ],
+   "emplacement": "N°1 Vesle"
+  },
+  {
+   "ville": "Dijon",
+   "code_postal": "21000",
+   "insee": "21231",
+   "typologie": "Métropole Secondaire (Côte-d'Or)",
+   "rendement": [
+    8,
+    10.5
+   ],
+   "emplacement": "N°1 Libération / Centre"
+  },
+  {
+   "ville": "Clermont-Ferrand",
+   "code_postal": "63000",
+   "insee": "63113",
+   "typologie": "Métropole Secondaire (Puy-de-Dôme)",
+   "rendement": [
+    7,
+    7.5
+   ],
+   "emplacement": "Zone Commerciale"
+  },
+  {
+   "ville": "Brest",
+   "code_postal": "29200",
+   "insee": "29019",
+   "typologie": "Métropole Secondaire (Finistère)",
+   "rendement": [
+    7,
+    7.5
+   ],
+   "emplacement": "N°1 Siam"
+  },
+  {
+   "ville": "Rouen",
+   "code_postal": "76000",
+   "insee": "76540",
+   "typologie": "Métropole Secondaire (Seine-Maritime)",
+   "rendement": [
+    6.8,
+    7.2
+   ],
+   "emplacement": "Centre Historique"
+  },
+  {
+   "ville": "Poitiers",
+   "code_postal": "86000",
+   "insee": "86194",
+   "typologie": "Chef-Lieu Régional (Vienne)",
+   "rendement": [
+    8.5,
+    9.5
+   ],
+   "emplacement": "Place du Centre"
+  },
+  {
+   "ville": "Metz",
+   "code_postal": "57000",
+   "insee": "57463",
+   "typologie": "Métropole Secondaire (Moselle)",
+   "rendement": [
+    9.5,
+    10.5
+   ],
+   "emplacement": "Centre Piéton"
+  },
+  {
+   "ville": "Seichamps",
+   "code_postal": "54280",
+   "insee": "54498",
+   "typologie": "Agglomération Grand Nancy",
+   "rendement": [
+    7.5,
+    8.5
+   ],
+   "emplacement": "Axe Périphérique"
+  },
+  {
+   "ville": "La Rochelle",
+   "code_postal": "17000",
+   "insee": "17300",
+   "typologie": "Ville Littorale Prisée (Charente-Maritime)",
+   "rendement": [
+    6.5,
+    8.8
+   ],
+   "emplacement": "Axe Centre / Vieux Port"
+  },
+  {
+   "ville": "Saint-Nazaire",
+   "code_postal": "44600",
+   "insee": "44184",
+   "typologie": "Littoral Loire-Atlantique",
+   "rendement": [
+    6,
+    7
+   ],
+   "emplacement": "Axe République"
+  },
+  {
+   "ville": "Thonon-les-Bains",
+   "code_postal": "74200",
+   "insee": "74281",
+   "typologie": "Lac Léman / Zone Frontalière",
+   "rendement": [
+    7.5,
+    8.5
+   ],
+   "emplacement": "Centre-ville"
+  },
+  {
+   "ville": "Saint-Étienne-de-Tinée",
+   "code_postal": "06660",
+   "insee": "06120",
+   "typologie": "Station de Montagne (Mercantour)",
+   "rendement": [
+    5,
+    5.5
+   ],
+   "emplacement": "Coeur de Station"
+  },
+  {
+   "ville": "Dieppe",
+   "code_postal": "76200",
+   "insee": "76217",
+   "typologie": "Sous-préfecture Littorale (Normandie)",
+   "rendement": [
+    8,
+    9.5
+   ],
+   "emplacement": "Rue Commerçante / N°2"
+  },
+  {
+   "ville": "Libourne",
+   "code_postal": "33500",
+   "insee": "33243",
+   "typologie": "Sous-préfecture Gironde",
+   "rendement": [
+    8.5,
+    9.5
+   ],
+   "emplacement": "Place Centrale"
+  },
+  {
+   "ville": "Dax",
+   "code_postal": "40100",
+   "insee": "40088",
+   "typologie": "Sous-préfecture Landes / Thermale",
+   "rendement": [
+    8.5,
+    9.5
+   ],
+   "emplacement": "Centre-ville"
+  },
+  {
+   "ville": "Draguignan",
+   "code_postal": "83300",
+   "insee": "83050",
+   "typologie": "Sous-préfecture Var",
+   "rendement": [
+    8,
+    9
+   ],
+   "emplacement": "Place du Marché"
+  },
+  {
+   "ville": "Orléans",
+   "code_postal": "45000",
+   "insee": "45234",
+   "typologie": "Capitale Régionale Val de Loire",
+   "rendement": [
+    8.5,
+    9.5
+   ],
+   "emplacement": "Axe Jeanne d'Arc"
+  },
+  {
+   "ville": "Mâcon",
+   "code_postal": "71000",
+   "insee": "71270",
+   "typologie": "Chef-Lieu Saône-et-Loire",
+   "rendement": [
+    8,
+    8.8
+   ],
+   "emplacement": "Rue Commerçante"
+  },
+  {
+   "ville": "Poissy",
+   "code_postal": "78300",
+   "insee": "78498",
+   "typologie": "Ville Moyenne Yvelines",
+   "rendement": [
+    7,
+    8
+   ],
+   "emplacement": "Axe Général de Gaulle"
+  },
+  {
+   "ville": "Colmar",
+   "code_postal": "68000",
+   "insee": "68066",
+   "typologie": "Sous-préfecture Haut-Rhin",
+   "rendement": [
+    8,
+    8.8
+   ],
+   "emplacement": "Axe République"
+  },
+  {
+   "ville": "Douai",
+   "code_postal": "59500",
+   "insee": "59178",
+   "typologie": "Sous-préfecture Nord",
+   "rendement": [
+    7.8,
+    8.5
+   ],
+   "emplacement": "Place d'Armes"
+  },
+  {
+   "ville": "Cambrai",
+   "code_postal": "59400",
+   "insee": "59122",
+   "typologie": "Sous-préfecture Nord",
+   "rendement": [
+    5.5,
+    6.5
+   ],
+   "emplacement": "Axe Commerçant Majeur"
+  },
+  {
+   "ville": "Quimper",
+   "code_postal": "29000",
+   "insee": "29232",
+   "typologie": "Chef-Lieu Finistère",
+   "rendement": [
+    8,
+    8.8
+   ],
+   "emplacement": "Rue Sainte-Catherine"
+  },
+  {
+   "ville": "Saint-Brieuc",
+   "code_postal": "22000",
+   "insee": "22278",
+   "typologie": "Chef-Lieu Côtes-d'Armor",
+   "rendement": [
+    8,
+    8.8
+   ],
+   "emplacement": "Centre Historique"
+  },
+  {
+   "ville": "La Roche-sur-Yon",
+   "code_postal": "85000",
+   "insee": "85191",
+   "typologie": "Chef-Lieu Vendée",
+   "rendement": [
+    6,
+    7
+   ],
+   "emplacement": "Boulevard Principal"
+  },
+  {
+   "ville": "Fréjus",
+   "code_postal": "83600",
+   "insee": "83061",
+   "typologie": "Ville Littorale Var",
+   "rendement": [
+    6.5,
+    8.5
+   ],
+   "emplacement": "Centre / Front de Mer"
+  },
+  {
+   "ville": "Ajaccio",
+   "code_postal": "20000",
+   "insee": "2A004",
+   "typologie": "Capitale Corse-du-Sud",
+   "rendement": [
+    7.5,
+    8.5
+   ],
+   "emplacement": "Axe Entrant"
+  },
+  {
+   "ville": "Perpignan",
+   "code_postal": "66000",
+   "insee": "66136",
+   "typologie": "Chef-Lieu Pyrénées-Orientales",
+   "rendement": [
+    8,
+    8.5
+   ],
+   "emplacement": "Centre Historique"
+  },
+  {
+   "ville": "Nevers",
+   "code_postal": "58000",
+   "insee": "58194",
+   "typologie": "Chef-Lieu Nièvre",
+   "rendement": [
+    8,
+    8.8
+   ],
+   "emplacement": "Rue de Nièvre"
+  },
+  {
+   "ville": "Vence",
+   "code_postal": "06140",
+   "insee": "06157",
+   "typologie": "Arrière-pays Niçois",
+   "rendement": [
+    7,
+    8
+   ],
+   "emplacement": "Place de la Ville"
+  },
+  {
+   "ville": "Meaux",
+   "code_postal": "77100",
+   "insee": "77284",
+   "typologie": "Sous-préfecture Seine-et-Marne",
+   "rendement": [
+    7.5,
+    8.5
+   ],
+   "emplacement": "Rue du Général Leclerc"
+  },
+  {
+   "ville": "Firminy",
+   "code_postal": "42700",
+   "insee": "42095",
+   "typologie": "Bassin Industriel Loire",
+   "rendement": [
+    9.5,
+    10.5
+   ],
+   "emplacement": "Centre / Axe Secondaire"
+  },
+  {
+   "ville": "Autun",
+   "code_postal": "71400",
+   "insee": "71014",
+   "typologie": "Sous-préfecture Saône-et-Loire",
+   "rendement": [
+    9.8,
+    10.8
+   ],
+   "emplacement": "Axe Charles de Gaulle"
+  },
+  {
+   "ville": "Nazelles-Négron",
+   "code_postal": "37530",
+   "insee": "37163",
+   "typologie": "Périphérie Amboise (Indre-et-Loire)",
+   "rendement": [
+    10.5,
+    11.5
+   ],
+   "emplacement": "Zone Commerciale / Retail"
+  },
+  {
+   "ville": "Migné-Auxances",
+   "code_postal": "86440",
+   "insee": "86158",
+   "typologie": "Périphérie Poitiers (Vienne)",
+   "rendement": [
+    9.8,
+    10.8
+   ],
+   "emplacement": "Retail Park / ZAC"
+  },
+  {
+   "ville": "Thouars",
+   "code_postal": "79100",
+   "insee": "79329",
+   "typologie": "Sous-préfecture Deux-Sèvres",
+   "rendement": [
+    9.5,
+    10.5
+   ],
+   "emplacement": "Axe Leclerc"
+  },
+  {
+   "ville": "Bar-le-Duc",
+   "code_postal": "55000",
+   "insee": "55029",
+   "typologie": "Chef-Lieu Meuse",
+   "rendement": [
+    9.8,
+    10.8
+   ],
+   "emplacement": "Place Reggio"
+  },
+  {
+   "ville": "Le Cateau-Cambrésis",
+   "code_postal": "59360",
+   "insee": "59136",
+   "typologie": "Bassin Textile / Nord",
+   "rendement": [
+    8.5,
+    9.5
+   ],
+   "emplacement": "Zone Commerciale"
+  },
+  {
+   "ville": "Lure",
+   "code_postal": "70200",
+   "insee": "70310",
+   "typologie": "Sous-préfecture Haute-Saône",
+   "rendement": [
+    8,
+    8.8
+   ],
+   "emplacement": "Zone Commerciale"
+  },
+  {
+   "ville": "Chaintré",
+   "code_postal": "71570",
+   "insee": "71074",
+   "typologie": "ZAC Bouchardes (Mâcon Sud)",
+   "rendement": [
+    7,
+    8
+   ],
+   "emplacement": "Retail Park ZAC"
+  },
+  {
+   "ville": "Saint-Bonnet-de-Mure",
+   "code_postal": "69720",
+   "insee": "69287",
+   "typologie": "Est Lyonnais / Périphérie",
+   "rendement": [
+    7,
+    8
+   ],
+   "emplacement": "Montée du Château"
+  },
+  {
+   "ville": "Saint-Marcellin",
+   "code_postal": "38160",
+   "insee": "38416",
+   "typologie": "Bassin Isère",
+   "rendement": [
+    8,
+    8.8
+   ],
+   "emplacement": "Axe de Transit"
+  },
+  {
+   "ville": "Maillot",
+   "code_postal": "89100",
+   "insee": "89236",
+   "typologie": "Périphérie Sens (Yonne)",
+   "rendement": [
+    8,
+    9
+   ],
+   "emplacement": "Zone Commerciale Retail"
+  },
+  {
+   "ville": "Pamiers",
+   "code_postal": "09100",
+   "insee": "09225",
+   "typologie": "Bassin Ariège",
+   "rendement": [
+    7.5,
+    8.5
+   ],
+   "emplacement": "Route de Foix / Retail"
+  },
+  {
+   "ville": "Luçon",
+   "code_postal": "85400",
+   "insee": "85128",
+   "typologie": "Sud Vendée",
+   "rendement": [
+    9,
+    10
+   ],
+   "emplacement": "Place Centrale"
+  }
+ ]
+}

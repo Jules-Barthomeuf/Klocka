@@ -44,7 +44,7 @@ function hasAnyValue(...values) {
   return values.some(v => v && v !== 0);
 }
 
-export default function ProjectFormMarcheTab({ formData, setFormData }) {
+export default function ProjectFormMarcheTab({ formData, setFormData, projetId = null }) {
   const secteurs = formData.marche_secteurs || [];
 
   const addSecteur = () => {
@@ -72,7 +72,7 @@ export default function ProjectFormMarcheTab({ formData, setFormData }) {
 
   return (
     <div className="space-y-6 mt-6">
-      <MarcheCases formData={formData} setFormData={setFormData} />
+      <MarcheCases formData={formData} setFormData={setFormData} projetId={projetId} />
 
 
       {/* ── Visibilité des sections ── */}

@@ -183,7 +183,7 @@ export default function Analyse() {
         ) : (
           <div className="max-w-[1120px] mx-auto">
             {/* Bandeau : titre, tri, relances, nouveau dossier. */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5 border-b border-trait">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5">
               <div>
                 <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Dossiers</h1>
               </div>

@@ -1476,7 +1476,7 @@ export default function AdminProjets() {
         </div>
 
         {/* Bandeau de chiffres */}
-        <div className="mb-8 flex flex-wrap border-t border-bord max-md:mb-6">
+        <div className="mb-8 flex flex-wrap max-md:mb-6">
           {CHIFFRES.map((c, i) => (
             <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-6" : ""}`}>
               <div className={`text-[24px] font-medium tabular-nums max-md:text-[18px] ${c.accent || "text-encre"}`}>{c.valeur}</div>

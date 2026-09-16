@@ -198,7 +198,10 @@ function LayoutContent({ children, currentPageName }) {
     "ALXVilles", "ALXBilan", "ALXEntrainement", "ALXCible",
   ];
   const fondHalo = PAGES_HALO.includes(currentPageName)
-    || (currentPageName === "Dashboard" && showClientView);
+    || (currentPageName === "Dashboard" && showClientView)
+    // ALX garde son noir, sauf la carte d'un investisseur, qui est une page
+    // de travail comme les autres.
+    || (currentPageName === "ALX" && new URLSearchParams(location.search).has("carte"));
 
   const isActivePage = (pageName) => {
     const pageUrl = createPageUrl(pageName);

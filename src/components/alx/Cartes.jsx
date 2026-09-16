@@ -37,16 +37,57 @@ function Barres({ cibles }) {
 }
 
 function CarteDeProspection({ c, onOuvrir }) {
+  const qc = useQueryClient();
   const villes = c.villes || [];
+  // Le nom se corrige sur place : un clic dessus, on tape, on valide. Le reste
+  // de la carte ouvre la prospection.
+  const [edition, setEdition] = useState(false);
+  const [nom, setNom] = useState(c.nom);
+  const renommer = useMutation({
+    mutationFn: () => base44.request("PATCH", `/api/alx/cartes/${c.id}`, { body: { nom } }),
+    onSuccess: () => { setEdition(false); qc.invalidateQueries({ queryKey: ["alx-cartes"] }); },
+    onError: (e) => { toast.error(e?.message || "Impossible"); setNom(c.nom); setEdition(false); },
+  });
+  const valider = () => {
+    const propre = nom.trim();
+    if (!propre || propre === c.nom) { setNom(c.nom); setEdition(false); return; }
+    renommer.mutate();
+  };
+
   return (
-    <button
-      onClick={() => onOuvrir(c.id)}
-      className="relative flex flex-col overflow-hidden rounded-[18px] border border-trait text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => { if (!edition) onOuvrir(c.id); }}
+      onKeyDown={(e) => { if (!edition && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onOuvrir(c.id); } }}
+      className="relative flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
       style={{ background: J["fond"] }}
     >
       <Barres cibles={c.cibles} />
       <div className="flex items-baseline justify-between gap-3 px-6 pb-1.5 pt-6">
-        <span className="alx-mont text-[22px] font-medium tracking-[-.01em] text-encre">{c.nom}</span>
+        {edition ? (
+          <input
+            autoFocus
+            value={nom}
+            onChange={(e) => setNom(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onBlur={valider}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") valider();
+              if (e.key === "Escape") { setNom(c.nom); setEdition(false); }
+            }}
+            className="alx-mont min-w-0 flex-1 border-b border-menthe bg-transparent text-[22px] font-medium tracking-[-.01em] text-encre outline-none"
+          />
+        ) : (
+          <span
+            onClick={(e) => { e.stopPropagation(); setEdition(true); }}
+            title="Cliquer pour renommer"
+            className="alx-mont text-[22px] font-medium tracking-[-.01em] text-encre hover:text-menthe-clair"
+          >
+            {c.nom}
+          </span>
+        )}
         {c.client && <span className="shrink-0 text-[12.5px] text-ardoise">{c.client}</span>}
       </div>
       <div className="px-6 pb-5 text-[12.5px] text-menthe">{c.phrase}</div>
@@ -64,7 +105,7 @@ function CarteDeProspection({ c, onOuvrir }) {
           {villes.length ? villes.map((v) => v.nom).join(", ") : "aucune ville encore"}
         </span>
       </div>
-    </button>
+    </div>
   );
 }
 

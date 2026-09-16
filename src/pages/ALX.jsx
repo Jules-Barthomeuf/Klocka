@@ -187,17 +187,13 @@ function AccueilVille({ villes, onOuvrir }) {
  * la bascule dit laquelle, et le choix se garde d'une visite à l'autre.
  */
 function Accueil({ villes, onOuvrirCarte, onOuvrirVille }) {
-  const [vue, setVue] = useState(() => {
-    try { return localStorage.getItem("alx_vue") === "ville" ? "ville" : "investisseur"; } catch (_) { return "investisseur"; }
-  });
-  const changer = (v) => {
-    setVue(v);
-    try { localStorage.setItem("alx_vue", v); } catch (_) { /* navigation privée : le choix ne dure que la visite */ }
-  };
+  // On arrive toujours par l'investisseur : c'est pour lui qu'on cherche.
+  // La bascule sert le temps de la visite, elle ne se retient pas.
+  const [vue, setVue] = useState("investisseur");
   return (
     <div className="flex flex-col gap-7">
       <div className="flex justify-center">
-        <Bascule options={[["investisseur", "Investisseur"], ["ville", "Ville"]]} valeur={vue} onChange={changer} />
+        <Bascule options={[["investisseur", "Investisseur"], ["ville", "Ville"]]} valeur={vue} onChange={setVue} />
       </div>
       {vue === "ville"
         ? <AccueilVille villes={villes} onOuvrir={onOuvrirVille} />

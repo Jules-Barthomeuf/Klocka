@@ -36,7 +36,7 @@ import { useQuery } from "@tanstack/react-query";
 import { UserProvider, useUser } from "@/components/providers/UserProvider";
 import VeilleAlx from "@/components/alx/VeilleAlx";
 import AssistantFlottant from "@/components/AssistantFlottant";
-import FeedbackFlottant from "@/components/FeedbackFlottant";
+import FeedbackSurvol from "@/components/FeedbackSurvol";
 import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
@@ -281,7 +281,9 @@ function LayoutContent({ children, currentPageName }) {
             {/* Suivi : l'usage de la plateforme et ce que coûte chaque geste,
                 deux onglets d'une même page. */}
             <NavItem to="/Monitoring" icon={Activity} label="Suivi" isActive={isActivePage("Monitoring") || isActivePage("CoutsIA")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <FeedbackSurvol>
+              <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            </FeedbackSurvol>
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
 
@@ -422,7 +424,6 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Signaler quelque chose sans quitter la page : l'icône reste en haut à
           droite, le panneau s'ouvre dessous et la remarque part de là. */}
-      {isAdmin && !hideNavbar && <FeedbackFlottant />}
 
       {/* L'assistant suit l'admin de page en page. */}
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}

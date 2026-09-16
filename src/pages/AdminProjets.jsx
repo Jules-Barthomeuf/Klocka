@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ProjectFormLocataireTab from "../components/admin/ProjectFormLocataireTab";
 import ProjectFormInfoTab from "../components/admin/ProjectFormInfoTab";
 import CasesPanneau from "../components/admin/CasesPanneau";
+import AnalyseBailPanneau from "../components/admin/AnalyseBailPanneau";
 import GaleriePhotos from "../components/admin/GaleriePhotos";
 import ProjectFormGeneralTab from "../components/admin/ProjectFormGeneralTab";
 import SecteurTextes from "../components/admin/SecteurTextes";
@@ -1320,7 +1321,7 @@ export default function AdminProjets() {
               </TabsContent>
 
               <TabsContent value="locataire"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
-              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><div className="mt-6"><CasesPanneau zone="bail" formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div></motion.div></TabsContent>
+              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><div className="mt-6"><CasesPanneau zone="bail" formData={formData} setFormData={setFormData} projetId={editingProject?.id} /><AnalyseBailPanneau formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div></motion.div></TabsContent>
               <TabsContent value="copropriete"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormCoproTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
               <TabsContent value="marche"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormMarcheTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
               <TabsContent value="diagnostique"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDiagnosticsTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>

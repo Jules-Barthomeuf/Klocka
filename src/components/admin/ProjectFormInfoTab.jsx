@@ -3,20 +3,13 @@
    échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React, { useState } from "react";
-import { Plus, X, Search, ChevronDown } from "lucide-react";
+import { Plus, X, Search } from "lucide-react";
 import { J } from "@/design/jetons";
 
 const fieldWrap = "bg-surface border border-trait rounded-[12px] px-4 py-3.5 transition-colors focus-within:border-menthe/60";
 const fieldInput = "w-full bg-transparent border-none text-encre outline-none placeholder:text-brume";
 const flabel = "text-[11px] uppercase tracking-[.16em] text-ardoise mb-2";
 
-const STATUSES = [
-  { value: "prospect", label: "Prospect" },
-  { value: "analyse", label: "Analyse" },
-  { value: "negociation", label: "Négociation" },
-  { value: "financement", label: "Financement" },
-  { value: "signe", label: "Signé" },
-];
 
 const ADMINS = [
   { email: "jules.b@klocka.immo", url: "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png" },
@@ -36,46 +29,6 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
   const texte = (champ) => (e) => setFormData({ ...formData, [champ]: e.target.value });
   return (
     <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
-      {/* Statut + Suivi client */}
-      <div className={fieldWrap}>
-        <div className={flabel}>Statut du projet</div>
-        <div className="relative">
-          <select value={formData.statut || "prospect"} onChange={texte("statut")} className={`${fieldInput} text-[15px] appearance-none cursor-pointer pr-8`}>
-            {STATUSES.map((s) => <option key={s.value} value={s.value} className="bg-surface">{s.label}</option>)}
-          </select>
-          <ChevronDown className="w-4 h-4 text-brume absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-        </div>
-      </div>
-      <div className={fieldWrap}>
-        <div className={flabel}>Suivi client</div>
-        <div className="flex items-center gap-4 mt-1 flex-wrap">
-          <label className="flex items-center gap-2 cursor-pointer text-[12.5px] text-encre">
-            <input type="checkbox" checked={!!formData.suivi_message_envoye}
-              onChange={(e) => setFormData({ ...formData, suivi_message_envoye: e.target.checked, ...(e.target.checked ? {} : { suivi_retour_client: null }) })}
-              className="w-4 h-4 accent-menthe" />
-            Message envoyé au client
-          </label>
-          {formData.suivi_message_envoye && (
-            <div className="flex items-center gap-1.5 text-[12.5px]">
-              <span className="text-ardoise">Retour :</span>
-              {["oui", "non"].map((v) => (
-                <button key={v} type="button"
-                  onClick={() => setFormData({ ...formData, suivi_retour_client: formData.suivi_retour_client === v ? null : v })}
-                  className={`px-2.5 py-1 rounded-lg border text-[12.5px] transition-colors ${formData.suivi_retour_client === v ? (v === "oui" ? "bg-menthe/25 border-menthe text-menthe-clair" : "bg-red-500/20 border-red-400/60 text-red-300") : "border-encre/15 text-ardoise hover:border-encre/30"}`}>
-                  {v === "oui" ? "Oui" : "Non"}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className={`${fieldWrap} col-span-2 max-md:col-span-1`}>
-        <div className={flabel}>Adresse</div>
-        <input value={formData.adresse_complete || ""} onChange={texte("adresse_complete")} placeholder="Adresse complète" className={`${fieldInput} text-[15px]`} />
-      </div>
-
-      {/* Les cases de la page, dans le même ordre. */}
       <div className={fieldWrap}>
         <div className={flabel}>Activité</div>
         <input value={formData.activite_locataire || ""} onChange={texte("activite_locataire")} placeholder="Restaurant, pharmacie, prêt-à-porter" className={`${fieldInput} text-[15px]`} />
@@ -86,7 +39,6 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
         <textarea rows={2} value={formData.activite_detail || ""} onChange={texte("activite_detail")} placeholder="Ce qu'il faut savoir de plus" className={`${fieldInput} text-[14px] resize-y`} />
         <div className="mt-1.5 text-[11px] text-brume">caché derrière l&apos;info au survol</div>
       </div>
-
       <div className={fieldWrap}>
         <div className={flabel}>En place depuis</div>
         <input type="date" value={formData.locataire_depuis || ""} onChange={texte("locataire_depuis")} className={`${fieldInput} text-[15px] [color-scheme:dark]`} />
@@ -97,7 +49,6 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
         <input type="number" value={formData.derniere_vente_annee || ""} onChange={nombre("derniere_vente_annee")} placeholder="2019" className={`${fieldInput} text-[15px]`} />
         <div className="mt-1.5 text-[11px] text-brume">d&apos;après les ventes publiées ou l&apos;acte</div>
       </div>
-
       <div className={fieldWrap}>
         <div className={flabel}>Surface m²</div>
         <input type="number" value={formData.surface_m2 || ""} onChange={nombre("surface_m2")} placeholder="60" className={`${fieldInput} text-[15px]`} />

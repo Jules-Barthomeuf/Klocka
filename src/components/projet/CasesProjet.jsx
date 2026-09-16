@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useEdition, ValeurEditable } from "./EditionEnPlace";
 import { InfoDot } from "./SecteurChiffres";
 import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
+import { ChiffresStrip } from "./SecteurChiffres";
 
 // Les cases de la page projet : un titre, une valeur courte, un détail, un
 // « i » pour le texte du bail, et au clic la pièce ouverte à la bonne page.
@@ -182,26 +183,86 @@ export function FriseBail({ frise, onSource }) {
 }
 
 /** Le bail clause par clause : une phrase simple, et la pièce au clic. */
-function AnalyseBail({ lignes, onSource }) {
-  if (!lignes?.length) return <p className="text-[13.5px] text-ardoise m-0">Le bail n'a pas encore été lu dans le dossier.</p>;
+/**
+ * Les quatorze points de l'analyse du bail, dans l'ordre d'une lecture, et
+ * l'identifiant sous lequel le serveur lit chacun dans les pièces.
+ */
+export const SECTIONS_BAIL = [
+  ["type_bail", "Type de bail"],
+  ["dates_bail", "Échéance du bail (date de début, date de fin)"],
+  ["parties", "Les parties"],
+  ["loyer", "Conditions financières : loyer de signature"],
+  ["conditions_exceptionnelles", "Conditions financières exceptionnelles"],
+  ["mode_reglement", "Mode de règlement des loyers"],
+  ["tva_loyer", "Loyer assujetti à TVA"],
+  ["destination", "Destination du bail"],
+  ["cession", "Conditions de cession"],
+  ["indexation", "Indexation"],
+  ["depot", "Dépôt de garantie"],
+  ["pas_de_porte", "Pas de porte"],
+  ["charges", "Charges refacturées"],
+  ["taxe_fonciere", "Taxes refacturées"],
+];
+
+/**
+ * Les cases d'une zone en bandes, comme Marché : la valeur en grand, le
+ * libellé dessous, le détail derrière l'info au survol. En édition, les cases
+ * vides restent là.
+ */
+export function BandesCases({ zone, cases, project, titre = null }) {
+  const edition = useEdition();
+  const enEdition = !!edition?.onChamp;
+  const forcees = project?.cases_forcees || {};
+  const liste = (cases || [])
+    .map((c) => fusionner(c, forcees[`${zone}.${c.id}`]))
+    .filter((c) => enEdition || c.valeur)
+    .map((c) => ({
+      valeur: c.valeur || "—",
+      label: c.titre,
+      accent: c.valeur ? undefined : "text-brume",
+      info: [c.detail, c.info].filter(Boolean).join(" · ") || null,
+    }));
+  if (!liste.length) return null;
   return (
-    <div className="rounded-xl border border-bord bg-surface overflow-hidden">
-      {lignes.map((l, i) => {
-        const Corps = l.source ? "button" : "div";
+    <div>
+      {titre && <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-ardoise">{titre}</div>}
+      <ChiffresStrip chiffres={liste} />
+    </div>
+  );
+}
+
+/**
+ * L'analyse du bail, point par point. Le texte vient de la lecture des pièces
+ * (projet-cases), corrigé par ce que le dossier porte (bail_analyse). Un point
+ * sans texte reste affiché : on voit ce qu'il reste à lire.
+ */
+function AnalyseBail({ lignes, project, onSource }) {
+  const edition = useEdition();
+  const lues = new Map((lignes || []).map((l) => [l.id, l]));
+  const corrections = project?.bail_analyse || {};
+  return (
+    <ol className="m-0 list-none p-0">
+      {SECTIONS_BAIL.map(([id, titre], i) => {
+        const lu = lues.get(id);
+        const texte = (corrections[id] || "").trim() || lu?.texte || null;
+        if (!texte && !edition?.onChamp) return null;
+        const source = lu?.source || null;
         return (
-          <Corps
-            key={l.id}
-            type={l.source ? "button" : undefined}
-            onClick={l.source ? () => onSource({ ...l.source, titre: l.titre }) : undefined}
-            className={`group w-full text-left grid md:grid-cols-[190px_minmax(0,1fr)_auto] gap-x-6 gap-y-1 px-5 py-3.5 ${i > 0 ? "border-t border-trait" : ""} ${l.source ? "hover:bg-encre/[0.03] cursor-pointer" : ""}`}
-          >
-            <span className="text-[12.5px] text-ardoise">{l.titre}</span>
-            <span className="text-[13.5px] leading-[1.6] text-encre">{l.texte}</span>
-            {l.source ? <RenvoiPiece source={l.source} /> : <span />}
-          </Corps>
+          <li key={id} className={`py-4 ${i > 0 ? "border-t border-trait" : ""}`}>
+            <div className="flex items-baseline gap-3">
+              <span className="alx-mont w-7 flex-shrink-0 text-[12px] tabular-nums text-menthe">{i + 1}.</span>
+              <span className="text-[11px] uppercase tracking-[0.18em] text-ardoise">{titre}</span>
+              {source && (
+                <button type="button" onClick={() => onSource({ ...source, titre })} className="ml-auto flex-shrink-0" style={{ background: "transparent" }}>
+                  <RenvoiPiece source={source} />
+                </button>
+              )}
+            </div>
+            <p className={`m-0 mt-1.5 pl-10 text-[13.5px] leading-[1.7] ${texte ? "text-encre" : "text-brume"}`}>{texte || "—"}</p>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 
@@ -220,8 +281,8 @@ export function VueBail({ cases, project, onSource }) {
         ))}
       </div>
       {vue === "resume"
-        ? <GrilleCases zone="bail" cases={cases?.bail} project={project} onSource={onSource} />
-        : <AnalyseBail lignes={cases?.analyse} onSource={onSource} />}
+        ? <BandesCases zone="bail" cases={cases?.bail} project={project} titre="Le résumé du bail" />
+        : <AnalyseBail lignes={cases?.analyse} project={project} onSource={onSource} />}
     </>
   );
 }

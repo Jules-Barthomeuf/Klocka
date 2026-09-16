@@ -10,7 +10,7 @@ import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
-import GrilleCases, { useCasesProjet, PanneauPiece, VueBail, dateFr } from "./CasesProjet";
+import { useCasesProjet, PanneauPiece, VueBail, BandesCases, dateFr } from "./CasesProjet";
 import PlongeeCarte from "./PlongeeCarte";
 import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
@@ -666,7 +666,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <div className="mb-10 max-md:mb-6">
                 <SectionLabel tone="teal">PV d'assemblée générale</SectionLabel>
-                <GrilleCases zone="copropriete" cases={cases?.copropriete} project={project} onSource={setPiece} />
+                <BandesCases zone="copropriete" cases={cases?.copropriete} project={project} />
               </div>
 
               <KpiStrip items={[

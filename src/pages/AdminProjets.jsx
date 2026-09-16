@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -815,10 +815,15 @@ export default function AdminProjets() {
   const PAGE_PAR_FORM = {
     general: "secteur", secteur: "secteur", marche: "marche", informations: "bien",
     locataire: "locataire", bail: "bail", copropriete: "copropriete",
-    diagnostique: "diagnostique", docs_projet: "documents_projet", simulateur: "simulateur",
+    diagnostique: "diagnostique", docs_projet: "documents_projet",
+    images: "bien", simulateur: "simulateur",
   };
+  // Vrai le temps d'un aller : le clic vient du panneau de droite, la page de
+  // gauche ne doit pas le lui renvoyer.
+  const clicDroite = useRef(false);
   useEffect(() => {
     if (!isDialogOpen) return;
+    if (clicDroite.current) { clicDroite.current = false; return; }
     const f = FORM_PAR_ONGLET[ongletPage];
     if (f) setActiveTab(f);
   }, [ongletPage, isDialogOpen]);
@@ -1039,6 +1044,7 @@ export default function AdminProjets() {
     { value: "copropriete", label: "Copropriété" },
     { value: "diagnostique", label: "Diagnostique" },
     { value: "docs_projet", label: "Documents" },
+    { value: "images", label: "Images" },
     { value: "simulateur", label: "Simulateur" },
   ];
   // Onglets de la page projet, dans l'ordre de la barre.
@@ -1180,7 +1186,7 @@ export default function AdminProjets() {
         >
           <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
-              <button key={t.value} onClick={() => { setActiveTab(t.value); const p = PAGE_PAR_FORM[t.value]; if (p) setOngletPage(p); }}
+              <button key={t.value} onClick={() => { clicDroite.current = true; setActiveTab(t.value); const p = PAGE_PAR_FORM[t.value]; if (p) setOngletPage(p); }}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-sur-menthe border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif hover:text-encre"}`}>
                 {t.label}
               </button>
@@ -1253,60 +1259,6 @@ export default function AdminProjets() {
               <TabsContent value="informations"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormInfoTab formData={formData} setFormData={setFormData} users={users} /></motion.div></TabsContent>
 
               <TabsContent value="secteur" className="space-y-6 mt-0">
-                {/* Génération IA Secteur */}
-                <div className="p-5 bg-encre/[0.03] rounded-md border border-bord">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Sparkles className="w-5 h-5 text-ardoise" />
-                    <h4 className="text-encre text-sm font-medium">Générer les infos secteur avec l'IA</h4>
-                  </div>
-                  <div className="flex gap-2">
-                    <FField className="flex-1">
-                      <FInput
-                        value={formData.adresse_complete}
-                        onChange={(e) => setFormData({...formData, adresse_complete: e.target.value})}
-                        placeholder="Adresse complète du projet (ex: 12 rue de la Paix, Paris)"
-                      />
-                    </FField>
-                    <Button
-                      disabled={isGeneratingAI || !formData.adresse_complete?.trim()}
-                      onClick={async () => {
-                        setIsGeneratingAI(true);
-                        try {
-                          const result = await base44.integrations.Core.InvokeLLM({
-                            prompt: `Tu es un expert en immobilier commercial en France. À partir de l'adresse suivante, génère des informations détaillées sur la VILLE et le SECTEUR uniquement.\n\nAdresse: ${formData.adresse_complete}\n\nGénère:\n- ville_secteur_champ1: nom de la ville\n- ville_secteur_champ2: département ou arrondissement\n- ville_secteur_champ3: région ou zone géographique\n- description_ville: description détaillée de la ville (5-6 lignes, démographie, économie, attractivité)\n- description_secteur: description détaillée du secteur/quartier (5-6 lignes, commerces, transports, dynamisme)\n\nRéponds UNIQUEMENT avec le JSON.`,
-                            add_context_from_internet: true,
-                            response_json_schema: {
-                              type: "object",
-                              properties: {
-                                ville_secteur_champ1: { type: "string" },
-                                ville_secteur_champ2: { type: "string" },
-                                ville_secteur_champ3: { type: "string" },
-                                description_ville: { type: "string" },
-                                description_secteur: { type: "string" }
-                              }
-                            }
-                          });
-                          const updated = { ...formData };
-                          if (result.ville_secteur_champ1) updated.ville_secteur_champ1 = result.ville_secteur_champ1;
-                          if (result.ville_secteur_champ2) updated.ville_secteur_champ2 = result.ville_secteur_champ2;
-                          if (result.ville_secteur_champ3) updated.ville_secteur_champ3 = result.ville_secteur_champ3;
-                          if (result.description_ville) updated.description_ville = result.description_ville;
-                          if (result.description_secteur) updated.description_secteur = result.description_secteur;
-                          setFormData(updated);
-                          toast.success("Informations secteur générées !");
-                        } catch (error) {
-                          toast.error("Erreur lors de la génération : " + (error.message || error));
-                        } finally {
-                          setIsGeneratingAI(false);
-                        }
-                      }}
-                      className="bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre flex-shrink-0 h-[52px]"
-                    >
-                      {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2 text-ardoise" />Générer</>}
-                    </Button>
-                  </div>
-                </div>
-
                 {/* Ville & Secteur */}
                 <div className="space-y-4">
                   <h3 className="text-lg text-encre">Ville & Secteur</h3>

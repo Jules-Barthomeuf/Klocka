@@ -5,30 +5,29 @@ import { J } from "@/design/jetons";
 // Général : ce qui identifie le projet, avant tout ce qui le décrit.
 //
 // Le nom, les clients à qui il est assigné, et les collaborateurs qui le
-// suivent. La liste des collaborateurs vient des comptes admin de la
-// plateforme, pas d'une liste écrite en dur : personne n'y manque et personne
-// n'y reste après son départ. Les photos connues sont reprises, les autres
-// montrent leurs initiales.
+// suivent. L'équipe est nommée ici, une fois : la base porte trois comptes
+// « Jules » (l'admin local, l'adresse Klocka, une adresse personnelle) et pas
+// de compte pour Maxime, si bien qu'une liste tirée des comptes montrait
+// Jules trois fois et oubliait Maxime.
 
-const PHOTOS = {
-  "jules.b@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png",
-  "alexis.p@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e5f3e9394_Capturedecran2026-02-18a163239.png",
-  "maxime.p@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e92131b8c_Capturedecran2026-02-18a164304.png",
-  "paul.dz@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/db402bc1f_Capturedecran2026-06-24a122246.png",
-};
+const EQUIPE = [
+  { prenom: "Jules", email: "jules.b@klocka.immo", photo: "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png" },
+  { prenom: "Maxime", email: "maxime.p@klocka.immo", photo: "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e92131b8c_Capturedecran2026-02-18a164304.png" },
+  { prenom: "Coralie", email: "coralie.g@klocka.immo", photo: null },
+  { prenom: "Nora", email: "nora.l@klocka.immo", photo: null },
+  { prenom: "Paul", email: "paul.dz@klocka.immo", photo: "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/db402bc1f_Capturedecran2026-06-24a122246.png" },
+];
 
 const fieldWrap = "bg-surface border border-trait rounded-[14px] p-4";
 const flabel = "text-[11px] tracking-[.16em] uppercase text-ardoise mb-2.5";
 
-const initiales = (nom = "", email = "") => {
-  const source = nom.trim() || email.split("@")[0].replace(/[._-]+/g, " ");
-  return source.split(/\s+/).map((m) => m[0]).join("").slice(0, 2).toUpperCase();
+const initiales = (prenom = "", email = "") => {
+  const nom = email.split("@")[0].split(/[._-]/)[1] || "";
+  return (prenom[0] || "") + (nom[0] || "");
 };
 
-const prenom = (u) => (u.full_name || u.email.split("@")[0].replace(/[._-]+/g, " ")).split(" ")[0];
-
 export default function ProjectFormGeneralTab({ formData, setFormData, users = [] }) {
-  const collaborateurs = users.filter((u) => u.role === "admin");
+  const collaborateurs = EQUIPE;
   // Le principal reste le premier de la liste : c'est lui qui porte la carte
   // du projet et qui ouvre les droits côté serveur.
   const choisis = formData.admins?.length
@@ -61,27 +60,26 @@ export default function ProjectFormGeneralTab({ formData, setFormData, users = [
           <p className="m-0 text-[12.5px] text-ardoise">Aucun compte administrateur.</p>
         ) : (
           <div className="flex flex-wrap items-start gap-3">
-            {collaborateurs.map((u) => {
-              const actif = choisis.includes(u.email);
-              const photo = PHOTOS[u.email.toLowerCase()];
+            {collaborateurs.map((m) => {
+              const actif = choisis.includes(m.email);
               return (
                 <button
-                  key={u.email}
+                  key={m.email}
                   type="button"
-                  onClick={() => basculer(u.email)}
-                  title={u.full_name || u.email}
+                  onClick={() => basculer(m.email)}
+                  title={m.email}
                   className="flex w-[54px] flex-col items-center gap-1.5"
                 >
                   <span
                     className="flex h-[34px] w-[34px] items-center justify-center overflow-hidden rounded-full text-[11px] font-semibold text-craie transition-all"
                     style={{
-                      background: photo ? undefined : J["relief"],
+                      background: m.photo ? undefined : J["relief"],
                       boxShadow: `0 0 0 2px ${actif ? J["menthe"] : "transparent"}, 0 0 0 3px ${J["fond"]}`,
                     }}
                   >
-                    {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : initiales(u.full_name, u.email)}
+                    {m.photo ? <img src={m.photo} alt="" className="h-full w-full object-cover" /> : initiales(m.prenom, m.email)}
                   </span>
-                  <span className={`w-full truncate text-center text-[10.5px] ${actif ? "text-encre" : "text-brume"}`}>{prenom(u)}</span>
+                  <span className={`w-full truncate text-center text-[10.5px] ${actif ? "text-encre" : "text-brume"}`}>{m.prenom}</span>
                 </button>
               );
             })}

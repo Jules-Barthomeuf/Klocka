@@ -481,12 +481,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         </div>
       )}
 
-      {/* Pas de `items-start` ici : la colonne de droite doit s'étirer sur toute
-          la hauteur de la ligne, sinon le rail `sticky` n'a aucune course et
-          reste figé en haut de page. */}
       <div className={apercuOnglet
         ? "px-3 py-3"
-        : "max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-12"}>
+        : "max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-8"}>
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {!apercuOnglet && (
@@ -887,12 +884,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
         </div>
 
-        {!apercuOnglet && (
-        <aside className="max-lg:hidden">
-          <div className="sticky top-8">
-          </div>
-        </aside>
-        )}
       </div>
     </motion.div>
     <PanneauPiece piece={piece} onFermer={() => setPiece(null)} />

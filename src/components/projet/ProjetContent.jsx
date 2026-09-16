@@ -600,18 +600,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <MarcheProjet project={project} isPublic={isPublic} prixM2Revient={prixM2Revient} loyerM2={loyerM2} />
 
-              {!project.marche_masquer_secteurs && (
-                <DataTable
-                  label="Comparables du secteur"
-                  head={['Secteur', 'Estimation basse', 'Estimation haute']}
-                  rows={(project.marche_secteurs || []).map((s, idx) => [
-                    { value: <ValeurEditable champ={`marche_secteurs.${idx}.nom`} type="text">{s.nom || `Secteur ${idx + 1}`}</ValeurEditable> },
-                    { value: <ValeurEditable champ={`marche_secteurs.${idx}.estimation_basse`}>{s.estimation_basse ? `${fmtNum(s.estimation_basse)} €/m²` : '—'}</ValeurEditable> },
-                    { value: <ValeurEditable champ={`marche_secteurs.${idx}.estimation_haute`}>{s.estimation_haute ? `${fmtNum(s.estimation_haute)} €/m²` : '—'}</ValeurEditable>, accent: 'text-encre' },
-                  ])}
-                />
-              )}
-
               <NotesBlock notes={project.notes_marche} />
 
               {!project.marche_prix_m2_median && !project.marche_offre_moyenne && !project.marche_baux_moyenne

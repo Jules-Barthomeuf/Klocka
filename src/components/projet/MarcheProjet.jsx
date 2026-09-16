@@ -80,7 +80,7 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
 
   return (
     <div>
-      {!project.marche_masquer_residentiel && (prixRue > 0 || evo1 != null || evo5 != null || loyerResidentiel > 0) && (
+      {(prixRue > 0 || evo1 != null || evo5 != null || loyerResidentiel > 0) && (
         <>
           <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-ardoise">
             Résidentiel{r?.nom ? ` — ${r.nom}` : ""}
@@ -102,7 +102,7 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
         </>
       )}
 
-      {!project.marche_masquer_commercial && (bail > 0 || offre > 0) && (
+      {(bail > 0 || offre > 0) && (
         <div className="mt-8 max-md:mt-6">
           <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-ardoise">
             Commercial{rue?.nom ? ` — ${rue.nom}` : ""}

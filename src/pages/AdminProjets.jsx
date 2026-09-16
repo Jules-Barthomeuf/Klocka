@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ProjectFormLocataireTab from "../components/admin/ProjectFormLocataireTab";
 import ProjectFormInfoTab, { CarteDocuments } from "../components/admin/ProjectFormInfoTab";
 import ProjectFormGeneralTab from "../components/admin/ProjectFormGeneralTab";
+import SecteurTextes from "../components/admin/SecteurTextes";
 import ProjectFormDocumentsTab from "../components/admin/ProjectFormDocumentsTab";
 import ProjectFormDiagnosticsTab from "../components/admin/ProjectFormDiagnosticsTab";
 import ProjectFormSimulateurTab from "../components/admin/ProjectFormSimulateurTab";
@@ -1288,31 +1289,8 @@ export default function AdminProjets() {
                     ))}
                   </div>
 
-                  {/* Les petits paragraphes affichés sous les chiffres. */}
-                  {[
-                    ["ville_points", "Ce qu'il faut savoir sur la commune", "Premier marché commercial d'Europe continentale : la valeur se joue au numéro de rue."],
-                    ["secteur_points", "Ce qu'il faut savoir sur le secteur", "Le 9e arrondissement s'est mué en pôle tertiaire desservi par le métro D."],
-                  ].map(([champ, libelle, exemple]) => (
-                    <div key={champ} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-encre">{libelle}</Label>
-                        <Button type="button" variant="outline" size="sm"
-                          onClick={() => setFormData({ ...formData, [champ]: [...(formData[champ] || []), ""] })}
-                          className="border-trait text-encre/30 hover:text-encre hover:border-bord-vif">
-                          <Plus className="w-4 h-4 mr-1" />Ajouter
-                        </Button>
-                      </div>
-                      {(formData[champ] || []).map((texte, idx) => (
-                        <div key={idx} className="flex items-start gap-2">
-                          <FField className="flex-1">
-                            <FTextarea rows={2} value={texte} placeholder={exemple}
-                              onChange={(e) => { const u = [...(formData[champ] || [])]; u[idx] = e.target.value; setFormData({ ...formData, [champ]: u }); }} />
-                          </FField>
-                          <Button variant="ghost" size="icon" onClick={() => setFormData({ ...formData, [champ]: (formData[champ] || []).filter((_, i) => i !== idx) })} className="text-red-500 hover:bg-red-500/10 mt-1"><X className="w-4 h-4" /></Button>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
+                  <SecteurTextes formData={formData} setFormData={setFormData} />
+
                   <div className="grid grid-cols-2 gap-4">
                     <FField label="Description de la ville"><FTextarea value={formData.description_ville} onChange={(e) => setFormData({...formData, description_ville: e.target.value})} rows={4} placeholder="Description de la ville..." /></FField>
                     <FField label="Description du secteur"><FTextarea value={formData.description_secteur} onChange={(e) => setFormData({...formData, description_secteur: e.target.value})} rows={4} placeholder="Description du secteur..." /></FField>
@@ -1331,32 +1309,6 @@ export default function AdminProjets() {
                         <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_secteur: formData.notes_secteur.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
                       </div>
                       <FField><FTextarea value={note.contenu} onChange={(e) => { const u = [...formData.notes_secteur]; u[idx].contenu = e.target.value; setFormData({...formData, notes_secteur: u}); }} placeholder="Contenu..." rows={3} /></FField>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <h3 className="text-lg mb-4 text-encre">Bien</h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FField><FInput value={formData.bien_champ1} onChange={(e) => setFormData({...formData, bien_champ1: e.target.value})} placeholder="Champ 1 (Bien)" /></FField>
-                      <FField><FInput value={formData.bien_champ2} onChange={(e) => setFormData({...formData, bien_champ2: e.target.value})} placeholder="Champ 2 (Bien)" /></FField>
-                      <FField><FInput value={formData.bien_champ3} onChange={(e) => setFormData({...formData, bien_champ3: e.target.value})} placeholder="Champ 3 (Bien)" /></FField>
-                    </div>
-                    <FField label="Description bien"><FTextarea value={formData.description_bien} onChange={(e) => setFormData({...formData, description_bien: e.target.value})} rows={4} placeholder="Description du bien..." /></FField>
-                  </div>
-                </div>
-                <div className="space-y-4 pt-4 border-t border-trait">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-encre">Notes bien</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_bien: [...(formData.notes_bien || []), { titre: "", contenu: "" }]})} className="border-trait text-encre/30 hover:text-encre hover:border-bord-vif"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
-                  </div>
-                  {(formData.notes_bien || []).map((note, idx) => (
-                    <div key={idx} className="p-4 bg-encre/[0.02] rounded-lg space-y-3">
-                      <div className="flex items-center gap-3">
-                        <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const u = [...formData.notes_bien]; u[idx].titre = e.target.value; setFormData({...formData, notes_bien: u}); }} placeholder="Titre..." /></FField>
-                        <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_bien: formData.notes_bien.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
-                      </div>
-                      <FField><FTextarea value={note.contenu} onChange={(e) => { const u = [...formData.notes_bien]; u[idx].contenu = e.target.value; setFormData({...formData, notes_bien: u}); }} placeholder="Contenu..." rows={3} /></FField>
                     </div>
                   ))}
                 </div>

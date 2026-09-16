@@ -21,6 +21,7 @@
 //     poids : aucun n'a encore été mesuré contre les ventes réelles.
 
 import { Records } from '../db.js';
+import { distanceM } from '../dvf.js';
 import { scorer } from './score-ml.js';
 import { contexteVille, variablesDeParcelle, tranchesDe, trancheDe, rangDans, raisonsDe, villeLisible } from './score-ville.js';
 
@@ -316,5 +317,72 @@ export async function detailSociete(villeId, siren, { forcer = false } = {}) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Un bien : ce qu'il y a exactement à cette adresse
+// ---------------------------------------------------------------------------
+
+/**
+ * Les établissements de l'annuaire retenus pour une adresse : les plus proches
+ * d'abord, un par société, et jamais au-delà du rayon. Pure.
+ * @param {{lat:number, lon:number}} point
+ */
+export function commercesProches(etablissements, point, { rayon_m = 60, max = 12 } = {}) {
+  const vus = new Set();
+  const out = [];
+  for (const e of etablissements || []) {
+    if (e.actif === false || !e.siren || vus.has(e.siren)) continue;
+    const distance = e.lat != null && e.lon != null && point?.lat != null ? Math.round(distanceM(point.lat, point.lon, e.lat, e.lon)) : null;
+    if (distance != null && distance > rayon_m) continue;
+    vus.add(e.siren);
+    // `pied_d_immeuble` est un objet { oui, motif } : un booléen clair sort
+    // d'ici, sinon toute société domiciliée passait pour un commerce.
+    out.push({ ...e, distance_m: distance, commerce: e.pied_d_immeuble?.oui === true, hors_commerce: e.pied_d_immeuble?.oui === true ? null : e.pied_d_immeuble?.motif || null });
+  }
+  // Un commerce de pied d'immeuble d'abord : à la même adresse vivent aussi
+  // des holdings et des sociétés domiciliées, qui ne tiennent aucune vitrine.
+  return out
+    .sort((a, b) => (b.commerce ? 1 : 0) - (a.commerce ? 1 : 0) || (a.distance_m ?? 1e9) - (b.distance_m ?? 1e9))
+    .slice(0, max);
+}
+const commercesMemo = new Map();
+
+/** Ce qu'il y a sur une parcelle : les vitrines relevées, l'annuaire, et les cibles ALX. */
+export async function commercesDeParcelle(villeId, parcelle, { rayon_m = 60 } = {}) {
+  const lue = await villeLisible(villeId);
+  if (lue.erreur) return { ok: false, erreur: lue.erreur };
+  const v = await villeScoree(lue.ville);
+  if (v.en_preparation) return { ok: false, en_preparation: true, etape: v.etape };
+  if (v.erreur) return { ok: false, erreur: v.erreur };
+
+  const cle = `${villeId}|${parcelle}`;
+  const garde = commercesMemo.get(cle);
+  if (garde && Date.now() - garde.le < GARDE_MS) return garde.resultat;
+
+  const lieu = v.ctx.parcelles.get(parcelle) || null;
+  const vitrines = (v.ctx.vitrinesParParcelle?.get(parcelle) || []).map((x) => ({ enseigne: x.enseigne, type: x.type, rue: x.rue, lat: x.lat, lon: x.lon }));
+  const lat = lieu?.lat ?? vitrines[0]?.lat ?? null;
+  const lon = lieu?.lon ?? vitrines[0]?.lon ?? null;
+  let etablissements = [];
+  if (lat != null && lon != null) {
+    const { etablissementsAutour } = await import('./annuaire.js');
+    const bruts = await etablissementsAutour({ lat, lon, rayon_km: Math.max(0.05, rayon_m / 1000) }).catch(() => []);
+    etablissements = commercesProches(bruts, { lat, lon }, { rayon_m });
+  }
+  const resultat = {
+    ok: true,
+    parcelle,
+    adresse: adresseDe(lieu),
+    lat,
+    lon,
+    vitrines,
+    etablissements,
+    cibles: Records.filter('Cible', { ville_id: villeId })
+      .filter((c) => c.score_ml?.parcelle === parcelle)
+      .map((c) => ({ id: c.id, enseigne: c.enseigne || null, adresse: c.adresse || null, activite: c.activite || null, pile: c.pile })),
+  };
+  commercesMemo.set(cle, { resultat, le: Date.now() });
+  return resultat;
+}
+
 /** Pour les tests et le rechargement d'un modèle : oublie les villes scorées. */
-export const oublierVilles = () => memo.clear();
+export const oublierVilles = () => { memo.clear(); commercesMemo.clear(); };

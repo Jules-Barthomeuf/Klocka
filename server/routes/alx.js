@@ -159,6 +159,16 @@ export function monterAlx(app) {
     ok(res, r);
   }));
 
+  // Ce qu'il y a exactement sur une parcelle : les vitrines relevées, les
+  // établissements de l'annuaire à cette adresse, et les cibles ALX.
+  app.get('/api/alx/villes/:id/parcelles/:parcelle/commerces', wrap(async (req, res) => {
+    const { commercesDeParcelle } = await import('../alx/societes.js');
+    const r = await commercesDeParcelle(req.params.id, String(req.params.parcelle));
+    if (r.en_preparation) return ok(res, r);
+    if (!r.ok) return erreur(res, r.erreur, 404);
+    ok(res, r);
+  }));
+
   // Le score appris vieillit avec DVF, le BODACC et le fichier des sociétés :
   // une passe trente secondes après le démarrage, puis une par jour.
   const passeScores = () => import('../alx/score-ville.js')

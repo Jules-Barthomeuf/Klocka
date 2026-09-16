@@ -245,8 +245,18 @@ export async function contexteVille(insee, { journal = () => {} } = {}) {
   const procedures = await proceduresDeLaCommune(insee, '2019-01-01', journal).catch(() => null);
   const { parcelles } = parcellesCommercantes(releve.vitrines, cadastre);
 
+  // Les vitrines rangées par parcelle : c'est ce qui permet de dire ce qu'il y
+  // a exactement à une adresse, enseigne par enseigne.
+  const vitrinesParParcelle = new Map();
+  for (const v of releve.vitrines) {
+    const p = cadastre.parcelleProche(v.lat, v.lon);
+    if (!p) continue;
+    if (!vitrinesParParcelle.has(p)) vitrinesParParcelle.set(p, []);
+    vitrinesParParcelle.get(p).push(v);
+  }
+
   return {
-    insee, millesime, pm, mutations, ventesParParcelle, cadastre, parcelles, procedures,
+    insee, millesime, pm, mutations, ventesParParcelle, cadastre, parcelles, procedures, vitrinesParParcelle,
     rues: new Map(Object.entries(releve.rues)),
     nationale: registreEnseignes(communesEnCache()),
   };

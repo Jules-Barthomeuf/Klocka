@@ -8,7 +8,37 @@ import os from 'os';
 import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-societes-'));
-const { estPrivee, probaAuMoinsUne, millesimesDistincts, mouvementsDe, detentionDe, profilsDe, accrocheDe } = await import('./societes.js');
+const { estPrivee, probaAuMoinsUne, millesimesDistincts, mouvementsDe, detentionDe, profilsDe, accrocheDe, commercesProches } = await import('./societes.js');
+
+test("les commerces d'une adresse : les plus proches, un par société, dans le rayon", () => {
+  const point = { lat: 43.7, lon: 7.27 };
+  const loin = { lat: 43.705, lon: 7.27 }; // ~550 m
+  const etabs = [
+    { siren: '111', nom: 'Boulangerie', lat: 43.70002, lon: 7.27002, actif: true },
+    { siren: '111', nom: 'Le même SIREN, autre établissement', lat: 43.7, lon: 7.27, actif: true },
+    { siren: '222', nom: 'Coiffeur', lat: 43.70018, lon: 7.27, actif: true },
+    { siren: '333', nom: 'Trop loin', ...loin, actif: true },
+    { siren: '444', nom: 'Fermé', lat: 43.7, lon: 7.27, actif: false },
+    { siren: null, nom: 'Sans SIREN', lat: 43.7, lon: 7.27, actif: true },
+  ];
+  const r = commercesProches(etabs, point, { rayon_m: 60 });
+  assert.deepEqual(r.map((e) => e.siren), ['111', '222']);
+  // Un commerce de pied d'immeuble passe devant une holding domiciliée, même
+  // si celle-ci est à deux mètres de moins.
+  // L'annuaire rend un objet { oui, motif }, jamais un booléen : le prendre
+  // pour vrai faisait passer toute holding domiciliée pour un commerce.
+  const trie = commercesProches([
+    { siren: '555', nom: 'Holding', lat: 43.7, lon: 7.27, actif: true, pied_d_immeuble: { oui: false, motif: 'hors commerce (APE 7010Z)' } },
+    { siren: '666', nom: 'Restaurant', lat: 43.70002, lon: 7.27002, actif: true, pied_d_immeuble: { oui: true } },
+  ], point, { rayon_m: 60 });
+  assert.deepEqual(trie.map((e) => e.siren), ['666', '555']);
+  assert.deepEqual(trie.map((e) => e.commerce), [true, false]);
+  assert.equal(trie[1].hors_commerce, 'hors commerce (APE 7010Z)');
+  assert.equal(r[0].distance_m, 3);
+  assert.ok(r[1].distance_m > 15 && r[1].distance_m < 25, `distance ${r[1].distance_m}`);
+  assert.equal(commercesProches(etabs, point, { rayon_m: 60, max: 1 }).length, 1);
+  assert.deepEqual(commercesProches([], point), []);
+});
 
 // Trois millésimes et un alias : 2026 n'est que le 2025 reposé.
 const millesime = (couples) => {

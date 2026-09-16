@@ -7,7 +7,8 @@ import { J } from "@/design/jetons";
 // L'onglet Sociétés : partir du bailleur plutôt que de la vitrine. La liste
 // des sociétés qui possèdent des murs commerciaux dans la ville, classées par
 // la chance qu'un de leurs murs se vende ; un clic ouvre leur portefeuille,
-// rangé par le modèle, avec le décideur et l'accroche.
+// rangé par le modèle, avec le décideur, l'accroche, et pour chaque bien de
+// quoi aller voir ce que c'est : les commerces de l'adresse, la rue, DVF.
 
 const pourcent = (x) => (x == null ? "—" : x > 0.99 ? "> 99 %" : `${String(Math.round(x * 1000) / 10).replace(".", ",")} %`);
 const PROFILS = { rotateur: "Arbitre", liquidation: "Vend sans racheter", acheteur: "Achète sans vendre", transmission: "Transmission", stable: "Stable" };
@@ -16,6 +17,34 @@ const teinteTranche = (cle) => (cle === "top_5" ? TEINTES.ecrire : cle === "top_
 const PILES_MOT = { appeler: "à appeler", ecrire: "à écrire", surveiller: "à surveiller", ecartee: "écartée" };
 const TRIS = [["vente", "chance d'une vente"], ["meilleur", "meilleur bien"], ["murs", "nombre de murs"]];
 const PAR_PAGE = 40;
+
+/** Les liens externes d'une société : sa fiche publique, ailleurs. */
+const liensSociete = (siren) => [
+  ["Pappers", `https://www.pappers.fr/entreprise/${siren}`],
+  ["Annuaire des entreprises", `https://annuaire-entreprises.data.gouv.fr/entreprise/${siren}`],
+  ["Société.com", `https://www.societe.com/cgi-bin/search?champs=${siren}`],
+];
+
+/** Les liens d'un bien : la rue, la carte, les ventes, la parcelle. */
+const liensBien = ({ lat, lon, adresse, ville }) => {
+  const point = lat != null && lon != null ? `${lat},${lon}` : null;
+  const requete = encodeURIComponent([adresse, ville].filter(Boolean).join(", "));
+  return [
+    point && ["Street View", `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${point}`],
+    [adresse ? "Google Maps" : "Chercher sur Maps", point ? `https://www.google.com/maps/search/?api=1&query=${point}` : `https://www.google.com/maps/search/?api=1&query=${requete}`],
+    point && ["Ventes DVF", `https://explore.data.gouv.fr/fr/immobilier?onglet=carte&filtre=tous&lat=${lat}&lng=${lon}&zoom=19.5`],
+    point && ["Cadastre", `https://www.geoportail.gouv.fr/carte?c=${lon},${lat}&z=19&l0=CADASTRALPARCELS.PARCELLAIRE_EXPRESS(1)&permalink=yes`],
+  ].filter(Boolean);
+};
+
+function Lien({ href, children }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+      className="rounded-full border border-bord-doux px-3 py-1 text-[12.5px] text-craie transition-colors hover:border-menthe hover:text-menthe">
+      {children} ↗
+    </a>
+  );
+}
 
 function Pastille({ children, actif, onClick }) {
   return (
@@ -127,8 +156,56 @@ export default function OngletSocietes({ villeId, onOuvrirCible }) {
   );
 }
 
+/** Ce qu'il y a exactement à l'adresse : les vitrines, l'annuaire, les cibles. */
+function CommercesDuBien({ villeId, parcelle, ouvert, onOuvrirCible }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["alx-parcelle-commerces", villeId, parcelle],
+    queryFn: () => base44.request("GET", `/api/alx/villes/${villeId}/parcelles/${parcelle}/commerces`),
+    enabled: ouvert,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+  if (!ouvert) return null;
+  if (isLoading) return <p className="m-0 mt-3 text-[12.5px] text-ardoise">ALX lit l'adresse dans l'annuaire des entreprises…</p>;
+  if (error) return <p className="m-0 mt-3 text-[12.5px] text-ardoise">{error.message}</p>;
+  const rien = !data?.vitrines?.length && !data?.etablissements?.length && !data?.cibles?.length;
+  return (
+    <div className="mt-3 flex flex-col gap-2 border-t border-trait pt-3">
+      {rien && <p className="m-0 text-[12.5px] text-ardoise">Rien de relevé à cette adresse : ouvrez Street View.</p>}
+      {data?.cibles?.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {data.cibles.map((c) => <Bouton key={c.id} discret onClick={() => onOuvrirCible(c.id)}>Fiche ALX · {joliNom(c.enseigne) || c.adresse} · {PILES_MOT[c.pile] || c.pile}</Bouton>)}
+        </div>
+      )}
+      {[["Les commerces à cette adresse", (data?.etablissements || []).filter((e) => e.commerce)],
+        ["Autres sociétés domiciliées ici", (data?.etablissements || []).filter((e) => !e.commerce)]].map(([titre, liste]) => (
+        liste.length > 0 && (
+          <div key={titre} className="flex flex-col gap-1.5">
+            <Etiquette className="!text-[10px]">{titre}</Etiquette>
+            {liste.map((e) => (
+              <span key={e.siret} className="flex flex-wrap items-baseline gap-x-2 text-[13.5px] text-craie">
+                <span className="text-encre">{joliNom(e.enseigne) || joliNom(e.nom)}</span>
+                <span className="text-[12.5px] text-ardoise">
+                  {[e.activite || (e.ape ? `code ${e.ape}` : null), e.depuis ? `depuis ${String(e.depuis).slice(0, 4)}` : null, e.chaine ? "enseigne de réseau" : null].filter(Boolean).join(" · ")}
+                </span>
+                {e.siren && <a href={`https://www.pappers.fr/entreprise/${e.siren}`} target="_blank" rel="noopener noreferrer" className="text-[12.5px] text-menthe hover:text-menthe-clair">Pappers ↗</a>}
+              </span>
+            ))}
+          </div>
+        )
+      ))}
+      {data?.vitrines?.length > 0 && (
+        <p className="m-0 text-[12.5px] text-ardoise">
+          Vitrines relevées : {data.vitrines.map((v) => [joliNom(v.enseigne), v.type].filter(Boolean).join(" (") + (v.enseigne && v.type ? ")" : "")).join(" · ")}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
   const qc = useQueryClient();
+  const [ouvert, setOuvert] = useState(null); // la parcelle dépliée
   const cle = ["alx-societe", villeId, siren];
   const { data: s, isLoading, error, isFetching } = useQuery({
     queryKey: cle,
@@ -154,6 +231,9 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
             <div className="min-w-0">
               <h2 className="alx-mont m-0 text-[30px] font-medium tracking-[-.02em] text-encre max-md:text-[24px]">{joliNom(s.societe.nom)}</h2>
               <div className="mt-1 text-[13.5px] text-ardoise">{s.societe.forme} · SIREN {s.societe.siren} · {s.murs.length} mur{s.murs.length > 1 ? "s" : ""} commercia{s.murs.length > 1 ? "ux" : "l"} à {s.ville}</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {liensSociete(s.societe.siren).map(([mot, href]) => <Lien key={mot} href={href}>{mot}</Lien>)}
+              </div>
               {s.profils.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">{s.profils.map((p) => <Etiquette key={p.cle} teinte={TEINTES.ecrire} title={p.detail}>{p.mot}</Etiquette>)}</div>
               )}
@@ -195,6 +275,11 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
                       Siège : {[s.decideur.siege?.adresse, s.decideur.siege?.ville].filter(Boolean).join(", ") || "non publié"}
                       {s.decideur.creation ? ` · créée en ${s.decideur.creation.slice(0, 4)}` : ""}{s.decideur.active === false ? " · fermée" : ""}
                     </div>
+                    {s.decideur.siege?.adresse && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Lien href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([s.decideur.siege.adresse, s.decideur.siege.ville].filter(Boolean).join(", "))}`}>Le siège sur Maps</Lien>
+                      </div>
+                    )}
                   </div>
                 ) : <p className="m-0 mt-2 text-[13.5px] text-ardoise">L'annuaire n'a rien rendu pour ce SIREN.</p>}
               </div>
@@ -237,11 +322,15 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
                       {m.raisons.map((r) => <span key={r.variable}><span style={{ color: r.sens > 0 ? TEINTES.ecrire : J["ardoise"] }}>{r.sens > 0 ? "↑" : "↓"}</span> {r.phrase}</span>)}
                     </div>
                   )}
-                  {m.cibles.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {m.cibles.map((c) => <Bouton key={c.id} discret onClick={() => onOuvrirCible(c.id)}>{joliNom(c.enseigne) || c.adresse} · {PILES_MOT[c.pile] || c.pile}</Bouton>)}
-                    </div>
-                  )}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button onClick={() => setOuvert((p) => (p === m.parcelle ? null : m.parcelle))}
+                      className="rounded-full border px-3 py-1 text-[12.5px] transition-colors"
+                      style={{ borderColor: ouvert === m.parcelle ? J["menthe"] : "rgba(255,255,255,0.1)", color: ouvert === m.parcelle ? J["menthe"] : J["ardoise"], background: "transparent" }}>
+                      {ouvert === m.parcelle ? "Masquer le détail" : "Voir les commerces"}
+                    </button>
+                    {liensBien({ lat: m.lat, lon: m.lon, adresse: m.adresse, ville: s.ville }).map(([mot, href]) => <Lien key={mot} href={href}>{mot}</Lien>)}
+                  </div>
+                  <CommercesDuBien villeId={villeId} parcelle={m.parcelle} ouvert={ouvert === m.parcelle} onOuvrirCible={onOuvrirCible} />
                 </div>
               ))}
               {s.autres_parcelles > 0 && <p className="m-0 text-[12.5px] text-ardoise">Et {s.autres_parcelles} autre{s.autres_parcelles > 1 ? "s" : ""} parcelle{s.autres_parcelles > 1 ? "s" : ""} dans la commune, sans vitrine connue : hors du classement du modèle.</p>}

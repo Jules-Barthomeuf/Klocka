@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { Bouton, Etiquette, Nombre, TEINTES, emplacementDe, euros, Urgence, joliNom } from "@/components/alx/alx-commun";
+import CoordonneesProprietaire from "@/components/alx/CoordonneesProprietaire";
 import { J } from "@/design/jetons";
 
 // La fiche d'un commerce : la seule. À gauche, ce qu'on sait, le propriétaire,
@@ -421,6 +422,11 @@ export default function ALXCible() {
                 </button>
               )}
               {c.foncier?.motif_choix && <div className="mt-1.5 text-[12.5px] text-ardoise">{c.foncier.motif_choix}</div>}
+              {(p.siren || p.nom) && (
+                <div className="mt-3.5 max-w-[540px]">
+                  <CoordonneesProprietaire siren={p.siren} nom={p.nom} ville={c.ville} />
+                </div>
+              )}
             </div>
 
             {gerants.length > 0 && (

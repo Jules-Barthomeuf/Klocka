@@ -206,6 +206,55 @@ export function monterAlx(app) {
     ok(res, chercher({ ...criteresPropres(req.query), texte: String(req.query.texte || '').trim() || null }));
   }));
 
+  // Le propriétaire des murs, joignable.
+  //
+  // L annuaire des entreprises ne publie pas de téléphone pour une SCI, et
+  // il n y en a le plus souvent aucun : ce qui sert à écrire, c est l adresse
+  // du siège, la forme, l année de création et les gérants. Des gérants on ne
+  // garde que le nom, la qualité et une tranche d âge, jamais la date de
+  // naissance. Les fiches publiques permettent de vérifier le reste.
+  app.get("/api/alx/proprietaire", wrap(async (req, res) => {
+    const { societe } = await import("../alx/annuaire.js");
+    const siren = String(req.query.siren || "").replace(/\D/g, "") || null;
+    const nom = String(req.query.nom || "").trim() || null;
+    if (!siren && !nom) return erreur(res, "Il faut un SIREN ou un nom de société.");
+    const ville = req.query.ville || null;
+    const code_postal = req.query.code_postal || null;
+    // Le SIREN d abord. Beaucoup de SCI n en sortent pas : l annuaire public
+    // n indexe pas les entreprises non diffusibles, et une société radiée de
+    // longue date en disparaît. Le nom rattrape une partie de ces cas, et on
+    // dit alors que le recoupement s est fait sur le nom, pas sur le SIREN.
+    // Les fiches publiques marchent avec le seul SIREN, même quand la société
+    // ne sort pas de l annuaire : Pappers indexe ce que la recherche publique
+    // laisse de côté.
+    const liensDe = (n) => (n ? [
+      ["Pappers", `https://www.pappers.fr/entreprise/${n}`],
+      ["Annuaire des entreprises", `https://annuaire-entreprises.data.gouv.fr/entreprise/${n}`],
+      ["Société.com", `https://www.societe.com/cgi-bin/search?champs=${n}`],
+    ] : []);
+    let recoupe = siren ? "siren" : "nom";
+    let s = siren ? await societe({ siren }) : null;
+    if (!s && nom) { s = await societe({ nom, ville, code_postal }); recoupe = "nom"; }
+    if (!s) {
+      return ok(res, {
+        ok: false,
+        erreur: siren
+          ? "Pas de fiche à l annuaire public : société non diffusible, ou radiée de longue date."
+          : "Introuvable à l annuaire des entreprises.",
+        liens: liensDe(siren),
+      });
+    }
+    const siege = [s.siege?.adresse, s.siege?.code_postal, s.siege?.ville].filter(Boolean).join(", ");
+    ok(res, {
+      ok: true,
+      recoupe,
+      societe: s,
+      siege_ligne: siege || null,
+      maps: siege ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siege)}` : null,
+      liens: liensDe(s.siren || siren),
+    });
+  }));
+
   // --- Cibles ---------------------------------------------------------------
   app.get('/api/alx/cibles', wrap((req, res) => ok(res, listerCibles({ ville_id: req.query.ville || null, pile: req.query.pile || null }))));
   app.post('/api/alx/cibles', wrap((req, res) => {

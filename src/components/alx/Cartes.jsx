@@ -6,6 +6,7 @@ import { Bouton, Champ, Etiquette, Nombre, TEINTES, joliNom, pileDe } from "@/co
 import { J } from "@/design/jetons";
 import PenseeIA from "@/components/PenseeIA";
 import CarteDeFrance from "@/components/alx/CarteDeFrance";
+import CoordonneesProprietaire from "@/components/alx/CoordonneesProprietaire";
 
 // Les cartes de prospection. On ne cherche pas « dans une ville », on cherche
 // pour quelqu'un : la carte porte le nom qu'on veut, les critères du client,
@@ -525,12 +526,12 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
                         </ul>
                         <div className="mt-3 flex flex-wrap gap-4">
                           <button onClick={() => onOuvrirVille(c.ville_id, c.id)} className="text-[12.5px] text-menthe hover:underline">Ouvrir la fiche du commerce</button>
-                          {c.proprietaire_siren && (
-                            <a href={`https://www.pappers.fr/recherche?q=${c.proprietaire_siren}`} target="_blank" rel="noreferrer" className="text-[12.5px] text-ardoise hover:text-encre">
-                              Le propriétaire sur Pappers
-                            </a>
-                          )}
                         </div>
+                        {(c.proprietaire_siren || c.proprietaire) && (
+                          <div className="mt-3 max-w-[560px]">
+                            <CoordonneesProprietaire siren={c.proprietaire_siren} nom={c.proprietaire} ville={c.ville} />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

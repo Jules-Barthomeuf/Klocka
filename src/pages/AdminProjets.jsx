@@ -1166,6 +1166,7 @@ export default function AdminProjets() {
               project={projetAffiche}
               isAdmin={false}
               showAsClient
+              ongletDemande={ongletPage}
               onOngletChange={(o) => { setOngletPage(o); const f = FORM_PAR_ONGLET[o]; if (f) setActiveTab(f); }}
               modeEdition
               onChamp={modifierChamp}

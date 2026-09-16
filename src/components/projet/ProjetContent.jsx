@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { EditionContext, ValeurEditable, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer } from "./EditionEnPlace";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -19,6 +19,7 @@ import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
 import CarteCessions from "./CarteCessions";
 import VilleSecteurIA, { useAnalyseIA } from "./SecteurAnalyseIA";
 import { J } from "@/design/jetons";
+import MarcheProjet from "./MarcheProjet";
 
 // Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
 function SectionLabel({ children, tone = "muted", className = "" }) {
@@ -177,7 +178,7 @@ function RangeScale({ bas, median, haut, unit = "€", champBas, champMedian, ch
 // diagnostique, documents_projet), sans hero, sans barre d'onglets ni rail IA.
 // `modeEdition` + `onChamp` : éditeur admin — les chiffres deviennent des
 // champs au clic, et le hero comme la synthèse financière sont masqués.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [] }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null }) {
   const navigate = useNavigate();
   // Analyse IA (avis projet + chiffres ville/secteur), mutualisée en un appel.
   const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
@@ -191,6 +192,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const cases = useCasesProjet(project, isPublic);
   const enPlace = cases?.locataire?.find((c) => c.id === "en_place");
   const [ongletChoisi, setOngletActif] = useState("secteur");
+  // Le panneau d'édition choisit la section : la page la suit.
+  useEffect(() => { if (ongletDemande) setOngletActif(ongletDemande); }, [ongletDemande]);
   const ongletActif = apercuOnglet || ongletChoisi;
   const [currentSlide] = useState(1);
   const photosContainerRef = useRef(null);
@@ -595,49 +598,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 title="Marché"
               />
 
-              <KpiStrip items={[
-                loyerM2 > 0 && { value: `${fmtNum(loyerM2)} €`, label: 'Loyer en place /m²/an', champ: 'loyer_m2_an' },
-                valeurLocativeSecteur > 0 && { value: `${fmtNum(valeurLocativeSecteur)} €`, label: 'Valeur locative secteur', accent: 'text-menthe-clair', champ: 'marche_baux_moyenne' },
-                prixM2Revient > 0 && { value: `${fmtNum(prixM2Revient)} €`, label: 'Prix de revient /m²' },
-                project.marche_prix_m2_median > 0 && { value: `${fmtNum(project.marche_prix_m2_median)} €`, label: 'Prix médian résidentiel /m²', champ: 'marche_prix_m2_median' },
-                ecartValeurLocative != null && {
-                  value: `${ecartValeurLocative > 0 ? '+' : ''}${ecartValeurLocative.toFixed(0)} %`,
-                  label: 'Écart à la valeur locative',
-                  accent: ecartValeurLocative < 0 ? 'text-menthe' : 'text-menthe-clair',
-                },
-              ]} />
-
-              {(project.marche_prix_m2_median > 0 || project.marche_offre_moyenne > 0 || project.marche_baux_moyenne > 0) && (
-                <div className="grid md:grid-cols-2 gap-x-12 gap-y-9 mb-10 max-md:mb-6">
-                  {!project.marche_masquer_residentiel && project.marche_prix_m2_median > 0 && (
-                    <div>
-                      <SectionLabel tone="teal">Résidentiel — prix au m²</SectionLabel>
-                      <RangeScale bas={project.marche_prix_m2_bas} median={project.marche_prix_m2_median} haut={project.marche_prix_m2_haut} champBas="marche_prix_m2_bas" champMedian="marche_prix_m2_median" champHaut="marche_prix_m2_haut" />
-                    </div>
-                  )}
-                  {!project.marche_masquer_commercial && project.marche_offre_moyenne > 0 && (
-                    <div>
-                      <SectionLabel tone="teal">Commercial — valeur locative (offre)</SectionLabel>
-                      <RangeScale bas={project.marche_offre_bas} median={project.marche_offre_moyenne} haut={project.marche_offre_haut} unit="€/m²" champBas="marche_offre_bas" champMedian="marche_offre_moyenne" champHaut="marche_offre_haut" />
-                    </div>
-                  )}
-                  {!project.marche_masquer_commercial && project.marche_baux_moyenne > 0 && (
-                    <div>
-                      <SectionLabel tone="teal">Commercial — baux existants</SectionLabel>
-                      <RangeScale bas={project.marche_baux_bas} median={project.marche_baux_moyenne} haut={project.marche_baux_haut} unit="€/m²" champBas="marche_baux_bas" champMedian="marche_baux_moyenne" champHaut="marche_baux_haut" />
-                    </div>
-                  )}
-                  {(project.marche_evolution_1an || project.marche_evolution_5ans) && (
-                    <div>
-                      <SectionLabel>Évolution des prix</SectionLabel>
-                      <KVRow champ="marche_evolution_1an" label="Sur 1 an" value={project.marche_evolution_1an != null && project.marche_evolution_1an !== 0 ? `${project.marche_evolution_1an > 0 ? '+' : ''}${project.marche_evolution_1an} %` : null}
-                        accent={project.marche_evolution_1an >= 0 ? 'text-menthe-clair' : 'text-red-400'} />
-                      <KVRow champ="marche_evolution_5ans" label="Sur 5 ans" value={project.marche_evolution_5ans != null && project.marche_evolution_5ans !== 0 ? `${project.marche_evolution_5ans > 0 ? '+' : ''}${project.marche_evolution_5ans} %` : null}
-                        accent={project.marche_evolution_5ans >= 0 ? 'text-menthe-clair' : 'text-red-400'} />
-                    </div>
-                  )}
-                </div>
-              )}
+              <MarcheProjet project={project} isPublic={isPublic} prixM2Revient={prixM2Revient} loyerM2={loyerM2} />
 
               {!project.marche_masquer_secteurs && (
                 <DataTable

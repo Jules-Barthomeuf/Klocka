@@ -11,7 +11,9 @@
     5.5,
     7
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 2.3593,
+   "lat": 48.8626
   },
   {
    "ville": "Paris 4e",
@@ -22,7 +24,9 @@
     6,
     7.5
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.3569,
+   "lat": 48.8541
   },
   {
    "ville": "Paris 5e",
@@ -33,7 +37,9 @@
     6,
     7.5
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.3514,
+   "lat": 48.8454
   },
   {
    "ville": "Paris 6e",
@@ -44,7 +50,9 @@
     5,
     6.5
    ],
-   "emplacement": "N°1 Ultra-prime"
+   "emplacement": "N°1 Ultra-prime",
+   "lon": 2.3307,
+   "lat": 48.8495
   },
   {
    "ville": "Paris 7e",
@@ -55,7 +63,9 @@
     5,
     6
    ],
-   "emplacement": "N°1 Ultra-prime"
+   "emplacement": "N°1 Ultra-prime",
+   "lon": 2.3115,
+   "lat": 48.8548
   },
   {
    "ville": "Paris 8e",
@@ -66,7 +76,9 @@
     5,
     6.5
    ],
-   "emplacement": "N°1 Ultra-prime"
+   "emplacement": "N°1 Ultra-prime",
+   "lon": 2.3111,
+   "lat": 48.8732
   },
   {
    "ville": "Paris 9e",
@@ -77,7 +89,9 @@
     6,
     7.5
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 2.3379,
+   "lat": 48.8771
   },
   {
    "ville": "Paris 10e",
@@ -88,7 +102,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.3624,
+   "lat": 48.876
   },
   {
    "ville": "Paris 11e",
@@ -99,7 +115,9 @@
     6,
     7
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.3816,
+   "lat": 48.8601
   },
   {
    "ville": "Paris 14e",
@@ -110,7 +128,9 @@
     6,
     7.5
    ],
-   "emplacement": "N°1 bis / N°2"
+   "emplacement": "N°1 bis / N°2",
+   "lon": 2.323,
+   "lat": 48.8297
   },
   {
    "ville": "Paris 15e",
@@ -121,7 +141,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.2937,
+   "lat": 48.8417
   },
   {
    "ville": "Paris 16e",
@@ -132,7 +154,9 @@
     5,
     6.5
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 2.263,
+   "lat": 48.8572
   },
   {
    "ville": "Paris 17e",
@@ -143,7 +167,9 @@
     6,
     7
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.305,
+   "lat": 48.8874
   },
   {
    "ville": "Paris 18e",
@@ -154,7 +180,9 @@
     6,
     8.5
    ],
-   "emplacement": "N°1 bis / N°2"
+   "emplacement": "N°1 bis / N°2",
+   "lon": 2.3487,
+   "lat": 48.8919
   },
   {
    "ville": "Paris 19e",
@@ -165,7 +193,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°2"
+   "emplacement": "N°2",
+   "lon": 2.3878,
+   "lat": 48.8871
   },
   {
    "ville": "Boulogne-Billancourt",
@@ -176,7 +206,9 @@
     5.5,
     6.5
    ],
-   "emplacement": "N°1"
+   "emplacement": "N°1",
+   "lon": 2.2429,
+   "lat": 48.8375
   },
   {
    "ville": "Levallois-Perret",
@@ -187,7 +219,9 @@
     6,
     7
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.2874,
+   "lat": 48.8946
   },
   {
    "ville": "Courbevoie",
@@ -198,7 +232,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.2574,
+   "lat": 48.8976
   },
   {
    "ville": "Issy-les-Moulineaux",
@@ -209,7 +245,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.2628,
+   "lat": 48.824
   },
   {
    "ville": "Asnières-sur-Seine",
@@ -220,7 +258,9 @@
     6.5,
     10.5
    ],
-   "emplacement": "N°1 bis / N°2"
+   "emplacement": "N°1 bis / N°2",
+   "lon": 2.2935,
+   "lat": 48.9181
   },
   {
    "ville": "Suresnes",
@@ -231,7 +271,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.2183,
+   "lat": 48.871
   },
   {
    "ville": "Puteaux",
@@ -242,7 +284,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 bis"
+   "emplacement": "N°1 bis",
+   "lon": 2.2384,
+   "lat": 48.8824
   },
   {
    "ville": "Châtenay-Malabry",
@@ -253,7 +297,9 @@
     7,
     7.5
    ],
-   "emplacement": "N°1 bis / N°2"
+   "emplacement": "N°1 bis / N°2",
+   "lon": 2.2603,
+   "lat": 48.7697
   },
   {
    "ville": "Malakoff",
@@ -264,7 +310,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°2"
+   "emplacement": "N°2",
+   "lon": 2.2943,
+   "lat": 48.817
   },
   {
    "ville": "Châtillon",
@@ -275,7 +323,9 @@
     7,
     8
    ],
-   "emplacement": "N°2"
+   "emplacement": "N°2",
+   "lon": 2.2887,
+   "lat": 48.8031
   },
   {
    "ville": "Aubervilliers",
@@ -286,7 +336,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°2 / Axe Majeur"
+   "emplacement": "N°2 / Axe Majeur",
+   "lon": 2.3886,
+   "lat": 48.9128
   },
   {
    "ville": "Marseille",
@@ -297,7 +349,9 @@
     5.8,
     8.5
    ],
-   "emplacement": "N°1 / N°1 bis / N°2"
+   "emplacement": "N°1 / N°1 bis / N°2",
+   "lon": 5.3806,
+   "lat": 43.2803
   },
   {
    "ville": "Lyon",
@@ -308,7 +362,9 @@
     5.5,
     7.8
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 4.8351,
+   "lat": 45.758
   },
   {
    "ville": "Toulouse",
@@ -319,7 +375,9 @@
     6,
     8.5
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 1.4328,
+   "lat": 43.6007
   },
   {
    "ville": "Bordeaux",
@@ -330,7 +388,9 @@
     5.8,
     8.5
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": -0.5848,
+   "lat": 44.8624
   },
   {
    "ville": "Lille",
@@ -341,7 +401,9 @@
     5.5,
     8
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 3.0468,
+   "lat": 50.6311
   },
   {
    "ville": "Nice",
@@ -352,7 +414,9 @@
     6.5,
     8.5
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 7.2528,
+   "lat": 43.7032
   },
   {
    "ville": "Nantes",
@@ -363,7 +427,9 @@
     6,
     8.5
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": -1.5603,
+   "lat": 47.2382
   },
   {
    "ville": "Rennes",
@@ -374,7 +440,9 @@
     6,
     7.5
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": -1.6884,
+   "lat": 48.1159
   },
   {
    "ville": "Montpellier",
@@ -385,7 +453,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 3.8742,
+   "lat": 43.61
   },
   {
    "ville": "Cannes",
@@ -396,7 +466,9 @@
     6,
     8
    ],
-   "emplacement": "N°1 / N°1 bis"
+   "emplacement": "N°1 / N°1 bis",
+   "lon": 7.0152,
+   "lat": 43.5454
   },
   {
    "ville": "Antibes",
@@ -407,7 +479,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 bis / N°2"
+   "emplacement": "N°1 bis / N°2",
+   "lon": 7.1048,
+   "lat": 43.5823
   },
   {
    "ville": "Cagnes-sur-Mer",
@@ -418,7 +492,9 @@
     6,
     7.8
    ],
-   "emplacement": "Axe Commerçant / N°2"
+   "emplacement": "Axe Commerçant / N°2",
+   "lon": 7.1502,
+   "lat": 43.6712
   },
   {
    "ville": "Menton",
@@ -429,7 +505,9 @@
     6.5,
     8.6
    ],
-   "emplacement": "N°1 bis / Centre"
+   "emplacement": "N°1 bis / Centre",
+   "lon": 7.498,
+   "lat": 43.7961
   },
   {
    "ville": "Toulon",
@@ -440,7 +518,9 @@
     6.5,
     7.5
    ],
-   "emplacement": "N°1 bis / N°2"
+   "emplacement": "N°1 bis / N°2",
+   "lon": 5.9334,
+   "lat": 43.1364
   },
   {
    "ville": "Hyères",
@@ -451,7 +531,9 @@
     8.5,
     9.5
    ],
-   "emplacement": "Centre Historique"
+   "emplacement": "Centre Historique",
+   "lon": 6.2357,
+   "lat": 43.1139
   },
   {
    "ville": "Saint-Laurent-du-Var",
@@ -462,7 +544,9 @@
     6.5,
     7
    ],
-   "emplacement": "Axe Périphérique"
+   "emplacement": "Axe Périphérique",
+   "lon": 7.1822,
+   "lat": 43.6865
   },
   {
    "ville": "Mandelieu-la-Napoule",
@@ -473,7 +557,9 @@
     7,
     8
    ],
-   "emplacement": "Zone Commerciale"
+   "emplacement": "Zone Commerciale",
+   "lon": 6.918,
+   "lat": 43.5334
   },
   {
    "ville": "Biarritz",
@@ -484,7 +570,9 @@
     7.5,
     8.5
    ],
-   "emplacement": "N°1 Clémenceau"
+   "emplacement": "N°1 Clémenceau",
+   "lon": -1.5557,
+   "lat": 43.4709
   },
   {
    "ville": "Bayonne",
@@ -495,7 +583,9 @@
     7.5,
     8.5
    ],
-   "emplacement": "Centre Piéton"
+   "emplacement": "Centre Piéton",
+   "lon": -1.4611,
+   "lat": 43.4844
   },
   {
    "ville": "Angers",
@@ -506,7 +596,9 @@
     5.7,
     10
    ],
-   "emplacement": "N°1 / Centre"
+   "emplacement": "N°1 / Centre",
+   "lon": -0.5629,
+   "lat": 47.4819
   },
   {
    "ville": "Reims",
@@ -517,7 +609,9 @@
     5.5,
     6.5
    ],
-   "emplacement": "N°1 Vesle"
+   "emplacement": "N°1 Vesle",
+   "lon": 4.0551,
+   "lat": 49.2535
   },
   {
    "ville": "Dijon",
@@ -528,7 +622,9 @@
     8,
     10.5
    ],
-   "emplacement": "N°1 Libération / Centre"
+   "emplacement": "N°1 Libération / Centre",
+   "lon": 5.0322,
+   "lat": 47.3319
   },
   {
    "ville": "Clermont-Ferrand",
@@ -539,7 +635,9 @@
     7,
     7.5
    ],
-   "emplacement": "Zone Commerciale"
+   "emplacement": "Zone Commerciale",
+   "lon": 3.1127,
+   "lat": 45.787
   },
   {
    "ville": "Brest",
@@ -550,7 +648,9 @@
     7,
     7.5
    ],
-   "emplacement": "N°1 Siam"
+   "emplacement": "N°1 Siam",
+   "lon": -4.4996,
+   "lat": 48.4085
   },
   {
    "ville": "Rouen",
@@ -561,7 +661,9 @@
     6.8,
     7.2
    ],
-   "emplacement": "Centre Historique"
+   "emplacement": "Centre Historique",
+   "lon": 1.0912,
+   "lat": 49.4412
   },
   {
    "ville": "Poitiers",
@@ -572,7 +674,9 @@
     8.5,
     9.5
    ],
-   "emplacement": "Place du Centre"
+   "emplacement": "Place du Centre",
+   "lon": 0.3715,
+   "lat": 46.5846
   },
   {
    "ville": "Metz",
@@ -583,7 +687,9 @@
     9.5,
     10.5
    ],
-   "emplacement": "Centre Piéton"
+   "emplacement": "Centre Piéton",
+   "lon": 6.1962,
+   "lat": 49.1048
   },
   {
    "ville": "Seichamps",
@@ -594,7 +700,9 @@
     7.5,
     8.5
    ],
-   "emplacement": "Axe Périphérique"
+   "emplacement": "Axe Périphérique",
+   "lon": 6.2709,
+   "lat": 48.7159
   },
   {
    "ville": "La Rochelle",
@@ -605,7 +713,9 @@
     6.5,
     8.8
    ],
-   "emplacement": "Axe Centre / Vieux Port"
+   "emplacement": "Axe Centre / Vieux Port",
+   "lon": -1.1765,
+   "lat": 46.162
   },
   {
    "ville": "Saint-Nazaire",
@@ -616,7 +726,9 @@
     6,
     7
    ],
-   "emplacement": "Axe République"
+   "emplacement": "Axe République",
+   "lon": -2.2392,
+   "lat": 47.2768
   },
   {
    "ville": "Thonon-les-Bains",
@@ -627,7 +739,9 @@
     7.5,
     8.5
    ],
-   "emplacement": "Centre-ville"
+   "emplacement": "Centre-ville",
+   "lon": 6.4776,
+   "lat": 46.3745
   },
   {
    "ville": "Saint-Étienne-de-Tinée",
@@ -638,7 +752,9 @@
     5,
     5.5
    ],
-   "emplacement": "Coeur de Station"
+   "emplacement": "Coeur de Station",
+   "lon": 6.9252,
+   "lat": 44.2597
   },
   {
    "ville": "Dieppe",
@@ -649,7 +765,9 @@
     8,
     9.5
    ],
-   "emplacement": "Rue Commerçante / N°2"
+   "emplacement": "Rue Commerçante / N°2",
+   "lon": 1.0838,
+   "lat": 49.9199
   },
   {
    "ville": "Libourne",
@@ -660,7 +778,9 @@
     8.5,
     9.5
    ],
-   "emplacement": "Place Centrale"
+   "emplacement": "Place Centrale",
+   "lon": -0.2328,
+   "lat": 44.9125
   },
   {
    "ville": "Dax",
@@ -671,7 +791,9 @@
     8.5,
     9.5
    ],
-   "emplacement": "Centre-ville"
+   "emplacement": "Centre-ville",
+   "lon": -1.0637,
+   "lat": 43.7025
   },
   {
    "ville": "Draguignan",
@@ -682,7 +804,9 @@
     8,
     9
    ],
-   "emplacement": "Place du Marché"
+   "emplacement": "Place du Marché",
+   "lon": 6.4651,
+   "lat": 43.5346
   },
   {
    "ville": "Orléans",
@@ -693,7 +817,9 @@
     8.5,
     9.5
    ],
-   "emplacement": "Axe Jeanne d'Arc"
+   "emplacement": "Axe Jeanne d'Arc",
+   "lon": 1.9122,
+   "lat": 47.8734
   },
   {
    "ville": "Mâcon",
@@ -704,7 +830,9 @@
     8,
     8.8
    ],
-   "emplacement": "Rue Commerçante"
+   "emplacement": "Rue Commerçante",
+   "lon": 4.8083,
+   "lat": 46.3265
   },
   {
    "ville": "Poissy",
@@ -715,7 +843,9 @@
     7,
     8
    ],
-   "emplacement": "Axe Général de Gaulle"
+   "emplacement": "Axe Général de Gaulle",
+   "lon": 2.025,
+   "lat": 48.9241
   },
   {
    "ville": "Colmar",
@@ -726,7 +856,9 @@
     8,
     8.8
    ],
-   "emplacement": "Axe République"
+   "emplacement": "Axe République",
+   "lon": 7.3924,
+   "lat": 48.1115
   },
   {
    "ville": "Douai",
@@ -737,7 +869,9 @@
     7.8,
     8.5
    ],
-   "emplacement": "Place d'Armes"
+   "emplacement": "Place d'Armes",
+   "lon": 3.1004,
+   "lat": 50.3785
   },
   {
    "ville": "Cambrai",
@@ -748,7 +882,9 @@
     5.5,
     6.5
    ],
-   "emplacement": "Axe Commerçant Majeur"
+   "emplacement": "Axe Commerçant Majeur",
+   "lon": 3.2413,
+   "lat": 50.1722
   },
   {
    "ville": "Quimper",
@@ -759,7 +895,9 @@
     8,
     8.8
    ],
-   "emplacement": "Rue Sainte-Catherine"
+   "emplacement": "Rue Sainte-Catherine",
+   "lon": -4.0972,
+   "lat": 47.9982
   },
   {
    "ville": "Saint-Brieuc",
@@ -770,7 +908,9 @@
     8,
     8.8
    ],
-   "emplacement": "Centre Historique"
+   "emplacement": "Centre Historique",
+   "lon": -2.7657,
+   "lat": 48.5108
   },
   {
    "ville": "La Roche-sur-Yon",
@@ -781,7 +921,9 @@
     6,
     7
    ],
-   "emplacement": "Boulevard Principal"
+   "emplacement": "Boulevard Principal",
+   "lon": -1.4162,
+   "lat": 46.6659
   },
   {
    "ville": "Fréjus",
@@ -792,7 +934,9 @@
     6.5,
     8.5
    ],
-   "emplacement": "Centre / Front de Mer"
+   "emplacement": "Centre / Front de Mer",
+   "lon": 6.7848,
+   "lat": 43.4553
   },
   {
    "ville": "Ajaccio",
@@ -803,7 +947,9 @@
     7.5,
     8.5
    ],
-   "emplacement": "Axe Entrant"
+   "emplacement": "Axe Entrant",
+   "lon": 8.7058,
+   "lat": 41.9228
   },
   {
    "ville": "Perpignan",
@@ -814,7 +960,9 @@
     8,
     8.5
    ],
-   "emplacement": "Centre Historique"
+   "emplacement": "Centre Historique",
+   "lon": 2.9045,
+   "lat": 42.699
   },
   {
    "ville": "Nevers",
@@ -825,7 +973,9 @@
     8,
     8.8
    ],
-   "emplacement": "Rue de Nièvre"
+   "emplacement": "Rue de Nièvre",
+   "lon": 3.1598,
+   "lat": 46.9852
   },
   {
    "ville": "Vence",
@@ -836,7 +986,9 @@
     7,
     8
    ],
-   "emplacement": "Place de la Ville"
+   "emplacement": "Place de la Ville",
+   "lon": 7.0995,
+   "lat": 43.7373
   },
   {
    "ville": "Meaux",
@@ -847,7 +999,9 @@
     7.5,
     8.5
    ],
-   "emplacement": "Rue du Général Leclerc"
+   "emplacement": "Rue du Général Leclerc",
+   "lon": 2.9035,
+   "lat": 48.9573
   },
   {
    "ville": "Firminy",
@@ -858,7 +1012,9 @@
     9.5,
     10.5
    ],
-   "emplacement": "Centre / Axe Secondaire"
+   "emplacement": "Centre / Axe Secondaire",
+   "lon": 4.2895,
+   "lat": 45.3827
   },
   {
    "ville": "Autun",
@@ -869,7 +1025,9 @@
     9.8,
     10.8
    ],
-   "emplacement": "Axe Charles de Gaulle"
+   "emplacement": "Axe Charles de Gaulle",
+   "lon": 4.3038,
+   "lat": 46.9386
   },
   {
    "ville": "Nazelles-Négron",
@@ -880,7 +1038,9 @@
     10.5,
     11.5
    ],
-   "emplacement": "Zone Commerciale / Retail"
+   "emplacement": "Zone Commerciale / Retail",
+   "lon": 0.9489,
+   "lat": 47.433
   },
   {
    "ville": "Migné-Auxances",
@@ -891,7 +1051,9 @@
     9.8,
     10.8
    ],
-   "emplacement": "Retail Park / ZAC"
+   "emplacement": "Retail Park / ZAC",
+   "lon": 0.3008,
+   "lat": 46.6307
   },
   {
    "ville": "Thouars",
@@ -902,7 +1064,9 @@
     9.5,
     10.5
    ],
-   "emplacement": "Axe Leclerc"
+   "emplacement": "Axe Leclerc",
+   "lon": -0.2466,
+   "lat": 46.9765
   },
   {
    "ville": "Bar-le-Duc",
@@ -913,7 +1077,9 @@
     9.8,
     10.8
    ],
-   "emplacement": "Place Reggio"
+   "emplacement": "Place Reggio",
+   "lon": 5.1732,
+   "lat": 48.7628
   },
   {
    "ville": "Le Cateau-Cambrésis",
@@ -924,7 +1090,9 @@
     8.5,
     9.5
    ],
-   "emplacement": "Zone Commerciale"
+   "emplacement": "Zone Commerciale",
+   "lon": 3.5354,
+   "lat": 50.0873
   },
   {
    "ville": "Lure",
@@ -935,7 +1103,9 @@
     8,
     8.8
    ],
-   "emplacement": "Zone Commerciale"
+   "emplacement": "Zone Commerciale",
+   "lon": 6.4933,
+   "lat": 47.6817
   },
   {
    "ville": "Chaintré",
@@ -946,7 +1116,9 @@
     7,
     8
    ],
-   "emplacement": "Retail Park ZAC"
+   "emplacement": "Retail Park ZAC",
+   "lon": 4.7742,
+   "lat": 46.2587
   },
   {
    "ville": "Saint-Bonnet-de-Mure",
@@ -957,7 +1129,9 @@
     7,
     8
    ],
-   "emplacement": "Montée du Château"
+   "emplacement": "Montée du Château",
+   "lon": 5.0241,
+   "lat": 45.6975
   },
   {
    "ville": "Saint-Marcellin",
@@ -968,7 +1142,9 @@
     8,
     8.8
    ],
-   "emplacement": "Axe de Transit"
+   "emplacement": "Axe de Transit",
+   "lon": 5.3166,
+   "lat": 45.1526
   },
   {
    "ville": "Maillot",
@@ -979,7 +1155,9 @@
     8,
     9
    ],
-   "emplacement": "Zone Commerciale Retail"
+   "emplacement": "Zone Commerciale Retail",
+   "lon": 3.314,
+   "lat": 48.1629
   },
   {
    "ville": "Pamiers",
@@ -990,7 +1168,9 @@
     7.5,
     8.5
    ],
-   "emplacement": "Route de Foix / Retail"
+   "emplacement": "Route de Foix / Retail",
+   "lon": 1.6168,
+   "lat": 43.1278
   },
   {
    "ville": "Luçon",
@@ -1001,7 +1181,9 @@
     9,
     10
    ],
-   "emplacement": "Place Centrale"
+   "emplacement": "Place Centrale",
+   "lon": -1.1616,
+   "lat": 46.452
   }
  ]
 }

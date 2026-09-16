@@ -162,6 +162,31 @@ export function monterAlx(app) {
     }
     ok(res, r);
   }));
+  // Prospecter plusieurs villes d'un coup, pour une carte : chacune est créée
+  // si elle n'existe pas, rattachée, et lancée d'une traite. Pas d'arrêt sur
+  // les rues : on veut les commerces.
+  app.post('/api/alx/cartes/:id/prospecter', wrap(async (req, res) => {
+    const { rattacherVille } = await cartes();
+    const { lancer } = await import('../alx/parcours.js');
+    const demandees = Array.isArray(req.body?.villes) ? req.body.villes : [];
+    if (!demandees.length) return erreur(res, 'Cochez au moins une ville.');
+    const ouvertes = [];
+    for (const d of demandees) {
+      const villeId = d.ville_id || null;
+      let id = villeId;
+      if (!id) {
+        const c = creerVille({ nom: d.nom, code_postal: d.code_postal || null, user: currentUser(req) });
+        if (!c.ok) continue;
+        id = c.ville.id;
+      }
+      const r = rattacherVille(req.params.id, id);
+      if (!r.ok) continue;
+      // Une ville déjà en cours n'est pas relancée : elle finit son parcours.
+      const l = lancer(id, { user: currentUser(req), tout: true });
+      ouvertes.push({ id, nom: r.ville.nom, lancee: l.ok, raison: l.ok ? null : l.error });
+    }
+    ok(res, { ok: true, villes: ouvertes });
+  }));
   app.delete('/api/alx/cartes/:id/villes/:villeId', wrap(async (req, res) => {
     const r = (await cartes()).detacherVille(req.params.villeId);
     if (!r.ok) return erreur(res, r.error, 404);

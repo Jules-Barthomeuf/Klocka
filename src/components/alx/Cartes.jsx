@@ -5,6 +5,7 @@ import { toast } from "@/components/ui/avis";
 import { Bouton, Champ, Etiquette, Nombre, TEINTES, joliNom, pileDe } from "@/components/alx/alx-commun";
 import { J } from "@/design/jetons";
 import PenseeIA from "@/components/PenseeIA";
+import CarteDeFrance from "@/components/alx/CarteDeFrance";
 
 // Les cartes de prospection. On ne cherche pas « dans une ville », on cherche
 // pour quelqu'un : la carte porte le nom qu'on veut, les critères du client,
@@ -23,6 +24,22 @@ const taux = ([a, b]) => (a === b ? `${virgule(a)} %` : `${virgule(a)} à ${virg
 const plage = (f, unite) => (!f ? "—" : f[0] === f[1] ? `${fmt(f[0])} ${unite}` : `${fmt(f[0])} à ${fmt(f[1])} ${unite}`);
 
 const CHAMP = "w-full rounded-[10px] border border-bord bg-fond px-4 py-3 text-[15px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe";
+
+/** Une case à cocher : un carré, une coche. */
+function Case({ coche, onChange }) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={!!coche}
+      onClick={(e) => { e.stopPropagation(); onChange?.(!coche); }}
+      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border text-[11px] font-bold transition-colors"
+      style={{ borderColor: coche ? J["menthe"] : "rgba(255,255,255,0.16)", background: coche ? J["menthe"] : "transparent", color: J["sur-menthe"] }}
+    >
+      {coche ? "✓" : ""}
+    </button>
+  );
+}
 
 /** Les trois piles en une ligne de barres, comme sur la carte d'une ville. */
 function Barres({ cibles }) {
@@ -222,7 +239,7 @@ function Criteres({ carte, familles }) {
 }
 
 /** Une ville du tableau de marché : ce qu'on y cherche, et comment l'ouvrir. */
-function LigneVille({ v, carteId, onOuvrirVille }) {
+function LigneVille({ v, carteId, onOuvrirVille, cochee, onBasculer }) {
   const qc = useQueryClient();
   // Une ville qu'ALX a déjà relevée se rattache sans rien relire ; une ville
   // neuve part en prospection et s'ouvre.
@@ -240,6 +257,7 @@ function LigneVille({ v, carteId, onOuvrirVille }) {
   });
   return (
     <tr className="border-t border-trait align-top">
+      <td className="py-3 pr-3 align-middle"><Case coche={cochee} onChange={() => onBasculer(v.insee)} /></td>
       <td className="py-3 pr-4">
         <div className="text-[14px] text-encre">{v.ville}</div>
         <div className="text-[12px] text-brume">{v.typologie}</div>
@@ -270,6 +288,13 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
   const qc = useQueryClient();
   const [texte, setTexte] = useState("");
   const [tout, setTout] = useState(false);
+  // La sélection est la même sur la carte et dans la liste : un code INSEE.
+  const [cochees, setCochees] = useState(() => new Set());
+  const basculer = (insee) => setCochees((s) => {
+    const n = new Set(s);
+    if (n.has(insee)) n.delete(insee); else n.add(insee);
+    return n;
+  });
   const { data, isLoading } = useQuery({
     queryKey: ["alx-carte", carteId],
     queryFn: () => base44.request("GET", `/api/alx/cartes/${carteId}`),
@@ -278,6 +303,25 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
   const effacer = useMutation({
     mutationFn: () => base44.request("DELETE", `/api/alx/cartes/${carteId}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["alx-cartes"] }); onFermer(); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  // Les villes cochées partent ensemble, et vont droit aux commerces.
+  const prospecter = useMutation({
+    mutationFn: () => {
+      const toutes = [...(data?.conseillees || []), ...(data?.prospectees || [])];
+      const villes = [...cochees]
+        .map((insee) => toutes.find((x) => x.insee === insee))
+        .filter(Boolean)
+        .map((v) => ({ nom: v.ville, code_postal: v.code_postal, ville_id: v.ville_id }));
+      return base44.request("POST", `/api/alx/cartes/${carteId}/prospecter`, { body: { villes } });
+    },
+    onSuccess: (r) => {
+      setCochees(new Set());
+      qc.invalidateQueries({ queryKey: ["alx-carte", carteId] });
+      qc.invalidateQueries({ queryKey: ["alx-villes"] });
+      const lancees = (r.villes || []).filter((v) => v.lancee).length;
+      toast.success(lancees > 1 ? `${lancees} villes lancées` : lancees ? `${r.villes[0].nom} lancée` : "Rien à lancer");
+    },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
@@ -340,6 +384,13 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
         </section>
       )}
 
+      <section>
+        <Etiquette className="mb-3">Où chercher pour lui</Etiquette>
+        <div className="mx-auto w-full max-w-[680px]">
+          <CarteDeFrance villes={[...conseillees, ...prospectees]} cochees={cochees} onBasculer={basculer} hauteur={520} />
+        </div>
+      </section>
+
       <section className="overflow-hidden rounded-[18px] border border-trait bg-surface">
         <div className="flex flex-wrap items-center justify-between gap-3 px-[26px] pt-[24px]">
           <div>
@@ -348,12 +399,20 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
               {conseillees.length} ville{conseillees.length > 1 ? "s" : ""} se traite{conseillees.length > 1 ? "nt" : ""} à ce rendement. Le loyer est celui que le budget doit porter ; la surface s'en déduit quand ALX connaît déjà le loyer au mètre.
             </p>
           </div>
+          <div className="flex items-center gap-3">
+            {cochees.size > 0 && (
+              <Bouton principal onClick={() => prospecter.mutate()} disabled={prospecter.isPending}>
+                {prospecter.isPending ? <PenseeIA etat="searching" taille={20} clair /> : `Prospecter ${cochees.size} ville${cochees.size > 1 ? "s" : ""}`}
+              </Bouton>
+            )}
           <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Chercher une ville" className="w-[220px] rounded-full border border-bord bg-fond px-4 py-2 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+          </div>
         </div>
         <div className="overflow-x-auto px-[26px] pb-[10px]">
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
               <tr className="text-[11px] uppercase tracking-[.14em] text-brume">
+                <th className="py-3 pr-3 font-normal" />
                 <th className="py-3 pr-4 font-normal">Ville</th>
                 <th className="py-3 pr-4 font-normal">Taux</th>
                 <th className="py-3 pr-4 font-normal">Emplacement</th>
@@ -363,7 +422,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
               </tr>
             </thead>
             <tbody>
-              {montrees.map((v) => <LigneVille key={v.insee} v={v} carteId={carteId} onOuvrirVille={onOuvrirVille} />)}
+              {montrees.map((v) => <LigneVille key={v.insee} v={v} carteId={carteId} onOuvrirVille={onOuvrirVille} cochee={cochees.has(v.insee)} onBasculer={basculer} />)}
             </tbody>
           </table>
           {!montrees.length && <p className="py-6 text-center text-[13px] text-ardoise">Aucune ville à ce rendement. Élargissez la fourchette.</p>}

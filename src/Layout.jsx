@@ -184,6 +184,10 @@ function LayoutContent({ children, currentPageName }) {
   const alxAFaire = alx?.a_faire?.a_appeler || 0;
   const showClientView = !isAdmin || previewClientMode;
   const hideNavbar = pagesWithoutNavbar.includes(currentPageName);
+  // Les pages projets posent un halo sur tout l'écran : la nav s'efface
+  // pour le laisser passer, floutant ce qui défile derrière elle. Ailleurs,
+  // elle garde son dégradé opaque.
+  const fondHalo = ["AdminProjets", "MesProjets"].includes(currentPageName);
 
   const isActivePage = (pageName) => {
     const pageUrl = createPageUrl(pageName);
@@ -343,7 +347,8 @@ function LayoutContent({ children, currentPageName }) {
           className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 backdrop-blur-xl transition-all duration-300 ${sidebarCollapsed ? "w-[52px]" : "w-[172px]"}`}
           style={{
             paddingTop: "env(safe-area-inset-top)",
-            background: "linear-gradient(180deg, #070b0a 0%, #000000 55%, #040605 100%)",
+            background: fondHalo ? "rgba(8,9,10,0.12)" : "linear-gradient(180deg, #070b0a 0%, #000000 55%, #040605 100%)",
+            backdropFilter: fondHalo ? "blur(10px)" : undefined,
             boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)",
           }}
         >

@@ -19,6 +19,7 @@
 
   "couleurs": {
     "fond": "#000000",
+    "fond-halo": "#08090a",
     "surface": "#0f1114",
     "relief": "#15171b",
 

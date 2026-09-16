@@ -166,8 +166,13 @@ export function monterAlx(app) {
   // si elle n'existe pas, rattachée, et lancée d'une traite. Pas d'arrêt sur
   // les rues : on veut les commerces.
   app.post('/api/alx/cartes/:id/prospecter', wrap(async (req, res) => {
-    const { rattacherVille } = await cartes();
+    const { rattacherVille, criteresPropres } = await cartes();
     const { lancer } = await import('../alx/parcours.js');
+    const { classesPourTaux } = await import('../alx/marche-villes.js');
+    // Le taux visé par la carte dit quels emplacements lire : inutile de
+    // parcourir les 285 rues d'une ville quand le client en vise trois.
+    const carte = Records.get('Carte', req.params.id);
+    const classes = classesPourTaux(criteresPropres(carte?.criteres || {}).rendement);
     const demandees = Array.isArray(req.body?.villes) ? req.body.villes : [];
     if (!demandees.length) return erreur(res, 'Cochez au moins une ville.');
     const ouvertes = [];
@@ -182,7 +187,7 @@ export function monterAlx(app) {
       const r = rattacherVille(req.params.id, id);
       if (!r.ok) continue;
       // Une ville déjà en cours n'est pas relancée : elle finit son parcours.
-      const l = lancer(id, { user: currentUser(req), tout: true });
+      const l = lancer(id, { user: currentUser(req), tout: true, classes });
       ouvertes.push({ id, nom: r.ville.nom, lancee: l.ok, raison: l.ok ? null : l.error });
     }
     ok(res, { ok: true, villes: ouvertes });

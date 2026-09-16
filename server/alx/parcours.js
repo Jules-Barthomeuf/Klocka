@@ -100,7 +100,7 @@ const ETAT_INITIAL = (user, mode) => ({
  * @param {string} villeId
  * @param {{user?:object, rayon_km?:number, limite_par_rue?:number|null, rediger?:boolean}} o
  */
-export function lancer(villeId, { user = null, rayon_km = undefined, limite_par_rue = null, rediger = false, tout = false } = {}) {
+export function lancer(villeId, { user = null, rayon_km = undefined, limite_par_rue = null, rediger = false, tout = false, classes = null } = {}) {
   const v = Records.get('Ville', villeId);
   if (!v) return { ok: false, error: 'Ville introuvable.' };
   if (enCours.has(villeId)) return { ok: false, error: 'Un parcours est déjà en cours sur cette ville.' };
@@ -108,7 +108,7 @@ export function lancer(villeId, { user = null, rayon_km = undefined, limite_par_
   Records.update('Ville', villeId, { parcours: ETAT_INITIAL(user, tout ? 'ville' : 'rues') });
   // Par défaut on s'arrête aux rues proposées : l'équipe coche celles qu'elle
   // veut prospecter, puis parcourir() prend le relais. « tout » enchaîne.
-  executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues: null, phases: tout ? ['rues', 'commerces'] : ['rues'] }).catch((e) => {
+  executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues: null, classes, phases: tout ? ['rues', 'commerces'] : ['rues'] }).catch((e) => {
     noter(villeId, `Le parcours s'est arrêté sur une erreur : ${e.message}`);
     ecrire(villeId, { etat: 'erreur', fini_le: maintenant() });
     enCours.delete(villeId);
@@ -214,7 +214,7 @@ export function reprendreAuDemarrage() {
 // L'exécution
 // ---------------------------------------------------------------------------
 
-async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues, phases = ['rues', 'commerces'] }) {
+async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues, classes = null, phases = ['rues', 'commerces'] }) {
   const doitArreter = () => enCours.get(villeId)?.arreter === true;
   const finir = (etat) => {
     ecrire(villeId, { etat, fini_le: maintenant(), rue_en_cours: null });
@@ -304,8 +304,12 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
   ville = Records.get('Ville', villeId);
   // Toutes les rues classées, à chaque lancement : une cible déjà lue est
   // sautée en quelques millisecondes, un commerce nouveau est pris.
+  //
+  // Sauf quand on prospecte pour un investisseur : son taux visé dit quels
+  // emplacements portent son rendement, et on ne lit que ceux-là.
   const aParcourir = (ville.rues || [])
     .filter((x) => !rues || rues.some((n) => cleRue(n) === cleRue(x.nom)))
+    .filter((x) => !classes || classes.includes(x.classe))
     .sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0));
   // Ce qu'on prévoit de lire : les vitrines OSM de chaque rue, remplacées par
   // le vrai compte dès que la balade sur Maps l'a donné. L'avancement s'affiche en commerces, pas en minutes.

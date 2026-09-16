@@ -10,7 +10,7 @@ process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-marc
 const { Records } = await import('../db.js');
 const {
   reference, familleDe, familles, chevauchement, memeCommune, loyerPour,
-  chercherVilles, chercherCibles, loyerAnnuelDe, rendementDe,
+  chercherVilles, chercherCibles, loyerAnnuelDe, rendementDe, classesPourTaux,
 } = await import('./marche-villes.js');
 
 const dijon = reference().villes.find((v) => v.ville === 'Dijon');
@@ -137,4 +137,13 @@ test('les cibles retenues sont celles dont le prix à ce rendement tient dans le
   // Sans budget, on ne propose rien : le prix est ce qui fait la cible.
   assert.deepEqual(chercherCibles({ rendement_min: 8 }), []);
   assert.deepEqual(chercherCibles({ prix_min: 200000, prix_max: 300000, rendement_min: 8, rendement_max: 8.5, villes: ['autre'] }), []);
+});
+
+test('le taux visé dit quels emplacements lire', () => {
+  // Un rendement bas se paie sur la rue qui ne se discute pas ; un rendement
+  // haut se trouve en retrait. Sans taux, on lit tout.
+  assert.deepEqual(classesPourTaux(6.5), [1, 1.5]);
+  assert.deepEqual(classesPourTaux(8), [1.5, 2]);
+  assert.deepEqual(classesPourTaux(10.5), [2]);
+  assert.equal(classesPourTaux(null), null);
 });

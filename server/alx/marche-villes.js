@@ -110,6 +110,23 @@ export function villesProspectees() {
     });
 }
 
+/**
+ * Les emplacements à parcourir pour un taux visé.
+ *
+ * C'est la même règle que le tableau, à l'échelle d'une ville : un rendement
+ * bas se paie sur la rue qui ne se discute pas, un rendement haut se trouve
+ * en retrait. Inutile de lire les 285 rues d'une ville quand le client en
+ * vise trois : on lit celles où son taux existe.
+ *
+ * @returns {number[]|null} les classes (1, 1.5, 2), ou null pour toutes
+ */
+export function classesPourTaux(rendement) {
+  if (!rendement) return null;
+  if (rendement <= 7.5) return [1, 1.5];
+  if (rendement < 9) return [1.5, 2];
+  return [2];
+}
+
 /** Le loyer annuel qu'un prix doit porter pour sortir au taux demandé. */
 export const loyerPour = (prix, taux) => Math.round((prix * taux) / 100);
 

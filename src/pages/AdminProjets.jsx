@@ -19,7 +19,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from "framer-motion";
 import ProjectFormLocataireTab from "../components/admin/ProjectFormLocataireTab";
-import ProjectFormInfoTab, { CarteDocuments } from "../components/admin/ProjectFormInfoTab";
+import ProjectFormInfoTab from "../components/admin/ProjectFormInfoTab";
+import CasesPanneau from "../components/admin/CasesPanneau";
+import GaleriePhotos from "../components/admin/GaleriePhotos";
 import ProjectFormGeneralTab from "../components/admin/ProjectFormGeneralTab";
 import SecteurTextes from "../components/admin/SecteurTextes";
 import ProjectFormDocumentsTab from "../components/admin/ProjectFormDocumentsTab";
@@ -811,13 +813,13 @@ export default function AdminProjets() {
   const FORM_PAR_ONGLET = {
     bien: "informations", secteur: "secteur", marche: "marche", locataire: "locataire",
     bail: "bail", copropriete: "copropriete", diagnostique: "diagnostique",
-    documents_projet: "docs_projet", simulateur: "simulateur",
+    documents_projet: "docs_projet", simulateur: "simulateur", images: "images",
   };
   const PAGE_PAR_FORM = {
     general: "secteur", secteur: "secteur", marche: "marche", informations: "bien",
     locataire: "locataire", bail: "bail", copropriete: "copropriete",
     diagnostique: "diagnostique", docs_projet: "documents_projet",
-    images: "bien", simulateur: "simulateur",
+    images: "images", simulateur: "simulateur",
   };
   // Vrai le temps d'un aller : le clic vient du panneau de droite, la page de
   // gauche ne doit pas le lui renvoyer.
@@ -1147,7 +1149,9 @@ export default function AdminProjets() {
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
         <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-lg:grid-cols-1 max-lg:overflow-y-auto">
         <div className="min-h-0 overflow-y-auto border-r border-trait max-lg:border-r-0 max-lg:overflow-visible">
-          {ongletPage === "simulateur" ? (
+          {ongletPage === "images" ? (
+            <GaleriePhotos photos={formData.photos || []} />
+          ) : ongletPage === "simulateur" ? (
             <div className="max-w-[1100px] mx-auto px-4 md:px-6 pb-8">
               {/* La barre d'onglets de la page reste accessible au-dessus des chiffres. */}
               <div className="flex flex-wrap gap-x-7 gap-y-2 pt-6 pb-6 overflow-x-auto">
@@ -1316,18 +1320,14 @@ export default function AdminProjets() {
               </TabsContent>
 
               <TabsContent value="locataire"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
-              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
-              <TabsContent value="copropriete"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormCoproTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
+              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><div className="mt-6"><CasesPanneau zone="bail" formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div></motion.div></TabsContent>
+              <TabsContent value="copropriete"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormCoproTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
               <TabsContent value="marche"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormMarcheTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
               <TabsContent value="diagnostique"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDiagnosticsTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="docs_projet"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDocumentsTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="images"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormImagesTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} /></motion.div></TabsContent>
             </Tabs>
-          </div>
-          {/* Les documents étudiés, au pied du panneau, quelle que soit la section. */}
-          <div className="flex-shrink-0 px-[18px] pb-3">
-            <CarteDocuments formData={formData} setFormData={setFormData} />
           </div>
           <div className="px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center">
             <span className="text-[12.5px] text-[#6a6a6a]">Entrée met la page de gauche à jour sans enregistrer.</span>

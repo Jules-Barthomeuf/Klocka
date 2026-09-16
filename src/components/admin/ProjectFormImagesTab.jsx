@@ -6,7 +6,6 @@ import { X, GripVertical, Loader2 } from "lucide-react";
 export default function ProjectFormImagesTab({ formData, setFormData }) {
   const [dragOverIdx, setDragOverIdx] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [urlText, setUrlText] = useState("");
   const dragIdx = useRef(null);
 
   const handleFilesUpload = async (fileList) => {
@@ -21,15 +20,6 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
     setUploading(false);
   };
 
-  const handleAddUrls = () => {
-    const urls = urlText
-      .split(/[\n,;\s]+/)
-      .map((u) => u.trim())
-      .filter((u) => u.startsWith("http"));
-    if (urls.length === 0) return;
-    setFormData((prev) => ({ ...prev, photos: [...prev.photos, ...urls] }));
-    setUrlText("");
-  };
 
   const handleDragStart = (idx) => {
     dragIdx.current = idx;
@@ -73,21 +63,6 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
               <span>{uploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin inline" /> Import en cours…</> : "Choisir des images"}</span>
             </Button>
           </label>
-        </div>
-
-        <div className="p-6 bg-surface rounded-none border border-trait">
-          <div className="text-encre text-lg mb-4">Ajout par URL</div>
-          <p className="text-xs text-ardoise mb-4">Collez une ou plusieurs URL d'images (une par ligne, ou séparées par une virgule)</p>
-          <textarea
-            value={urlText}
-            onChange={(e) => setUrlText(e.target.value)}
-            rows={3}
-            placeholder="https://exemple.com/photo1.jpg&#10;https://exemple.com/photo2.jpg"
-            className="w-full resize-y bg-surface border border-encre/[0.10] rounded-lg px-3 py-2 text-encre text-sm placeholder:text-brume focus:outline-none focus:border-bord-vif mb-3"
-          />
-          <Button type="button" onClick={handleAddUrls} disabled={!urlText.trim()} className="w-full bg-encre/[0.06] border border-bord-doux hover:bg-encre/[0.1] text-encre disabled:opacity-30">
-            Ajouter les URL
-          </Button>
         </div>
 
         {formData.photos.length > 0 && (

@@ -5,7 +5,7 @@ function numberOrDefault(value, fallback) {
   return Number.isFinite(parsed) && parsed !== 0 ? parsed : fallback;
 }
 
-export default function ProjectSimulatorPreview({ formData, travauxList }) {
+export default function ProjectSimulatorPreview({ formData, travauxList, vue = null, hauteur = null }) {
   const previewUrl = useMemo(() => {
     const travauxBailleur = Array(25).fill(0);
 
@@ -64,8 +64,17 @@ export default function ProjectSimulatorPreview({ formData, travauxList }) {
       commissionAgentActive: !!formData.sim_commission_agent_active,
     };
 
-    return `/SimulateurPublic?data=${encodeURIComponent(JSON.stringify(params))}`;
-  }, [formData, travauxList]);
+    return `/SimulateurPublic?data=${encodeURIComponent(JSON.stringify(params))}${vue ? `&vue=${vue}` : ""}`;
+  }, [formData, travauxList, vue]);
+
+  // Une vue seule (le graphique) se pose sans en-tête, à la hauteur demandée.
+  if (vue) {
+    return (
+      <div className="overflow-hidden rounded-[14px] border border-trait bg-fond">
+        <iframe key={previewUrl} src={previewUrl} title="Graphique du simulateur" className="block w-full border-0" style={{ height: hauteur || 360 }} />
+      </div>
+    );
+  }
 
   return (
     <div className="mt-6 rounded-md border border-trait bg-fond overflow-hidden">

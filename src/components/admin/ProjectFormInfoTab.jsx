@@ -32,94 +32,81 @@ const initials = (name = "") => name.split(" ").map(w => w[0]).join("").slice(0,
 // documents ont quitté cet onglet : ils vivent dans le panneau, visibles quelle
 // que soit la section ouverte.
 export default function ProjectFormInfoTab({ formData, setFormData }) {
+  const nombre = (champ) => (e) => setFormData({ ...formData, [champ]: e.target.value === "" ? "" : parseFloat(e.target.value) });
+  const texte = (champ) => (e) => setFormData({ ...formData, [champ]: e.target.value });
   return (
     <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
-      {/* Titre */}
-      <div className={`${fieldWrap} col-span-2 max-md:col-span-1`}>
-        <div className={`${flabel} text-ardoise`}>Titre du projet</div>
-        <input value={formData.titre} onChange={(e) => setFormData({ ...formData, titre: e.target.value })} placeholder="Nom du projet" className={`${fieldInput} text-[18px] font-semibold`} />
+      {/* Statut + Suivi client */}
+      <div className={fieldWrap}>
+        <div className={flabel}>Statut du projet</div>
+        <div className="relative">
+          <select value={formData.statut || "prospect"} onChange={texte("statut")} className={`${fieldInput} text-[15px] appearance-none cursor-pointer pr-8`}>
+            {STATUSES.map((s) => <option key={s.value} value={s.value} className="bg-surface">{s.label}</option>)}
+          </select>
+          <ChevronDown className="w-4 h-4 text-brume absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+      </div>
+      <div className={fieldWrap}>
+        <div className={flabel}>Suivi client</div>
+        <div className="flex items-center gap-4 mt-1 flex-wrap">
+          <label className="flex items-center gap-2 cursor-pointer text-[12.5px] text-encre">
+            <input type="checkbox" checked={!!formData.suivi_message_envoye}
+              onChange={(e) => setFormData({ ...formData, suivi_message_envoye: e.target.checked, ...(e.target.checked ? {} : { suivi_retour_client: null }) })}
+              className="w-4 h-4 accent-menthe" />
+            Message envoyé au client
+          </label>
+          {formData.suivi_message_envoye && (
+            <div className="flex items-center gap-1.5 text-[12.5px]">
+              <span className="text-ardoise">Retour :</span>
+              {["oui", "non"].map((v) => (
+                <button key={v} type="button"
+                  onClick={() => setFormData({ ...formData, suivi_retour_client: formData.suivi_retour_client === v ? null : v })}
+                  className={`px-2.5 py-1 rounded-lg border text-[12.5px] transition-colors ${formData.suivi_retour_client === v ? (v === "oui" ? "bg-menthe/25 border-menthe text-menthe-clair" : "bg-red-500/20 border-red-400/60 text-red-300") : "border-encre/15 text-ardoise hover:border-encre/30"}`}>
+                  {v === "oui" ? "Oui" : "Non"}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Statut + Suivi client */}
-      <>
-        <div className={fieldWrap}>
-          <div className={flabel}>Statut du projet</div>
-          <div className="relative">
-            <select
-              value={formData.statut || "prospect"}
-              onChange={(e) => setFormData({ ...formData, statut: e.target.value })}
-              className={`${fieldInput} text-[15px] appearance-none cursor-pointer pr-8`}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value} className="bg-surface">
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 text-brume absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-        </div>
-        <div className={fieldWrap}>
-          <div className={flabel}>Suivi client</div>
-          <div className="flex items-center gap-4 mt-1 flex-wrap">
-            <label className="flex items-center gap-2 cursor-pointer text-[12.5px] text-encre">
-              <input
-                type="checkbox"
-                checked={!!formData.suivi_message_envoye}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    suivi_message_envoye: e.target.checked,
-                    // Décocher le message remet le retour client à zéro.
-                    ...(e.target.checked ? {} : { suivi_retour_client: null }),
-                  })
-                }
-                className="w-4 h-4 accent-menthe"
-              />
-              Message envoyé au client
-            </label>
-            {formData.suivi_message_envoye && (
-              <div className="flex items-center gap-1.5 text-[12.5px]">
-                <span className="text-ardoise">Retour :</span>
-                {["oui", "non"].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() =>
-                      setFormData({
-                        ...formData,
-                        suivi_retour_client: formData.suivi_retour_client === v ? null : v,
-                      })
-                    }
-                    className={`px-2.5 py-1 rounded-lg border text-[12.5px] transition-colors ${
-                      formData.suivi_retour_client === v
-                        ? v === "oui"
-                          ? "bg-menthe/25 border-menthe text-menthe-clair"
-                          : "bg-red-500/20 border-red-400/60 text-red-300"
-                        : "border-encre/15 text-ardoise hover:border-encre/30"
-                    }`}
-                  >
-                    {v === "oui" ? "Oui" : "Non"}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </>
+      <div className={`${fieldWrap} col-span-2 max-md:col-span-1`}>
+        <div className={flabel}>Adresse</div>
+        <input value={formData.adresse_complete || ""} onChange={texte("adresse_complete")} placeholder="Adresse complète" className={`${fieldInput} text-[15px]`} />
+      </div>
 
-      {/* Adresse + Surface */}
-      <>
-        <div className={fieldWrap}>
-          <div className={flabel}>Adresse</div>
-          <input value={formData.adresse_complete} onChange={(e) => setFormData({ ...formData, adresse_complete: e.target.value })} placeholder="Adresse complète" className={`${fieldInput} text-[15px]`} />
-        </div>
-        <div className={fieldWrap}>
-          <div className={flabel}>Surface m²</div>
-          <input type="number" value={formData.surface_m2 || ""} onChange={(e) => setFormData({ ...formData, surface_m2: parseFloat(e.target.value) || 0 })} placeholder="—" className={`${fieldInput} text-[15px]`} />
-        </div>
-      </>
+      {/* Les cases de la page, dans le même ordre. */}
+      <div className={fieldWrap}>
+        <div className={flabel}>Activité</div>
+        <input value={formData.activite_locataire || ""} onChange={texte("activite_locataire")} placeholder="Restaurant, pharmacie, prêt-à-porter" className={`${fieldInput} text-[15px]`} />
+        <div className="mt-1.5 text-[11px] text-brume">un mot ou deux : c&apos;est ce que le client lit en gros</div>
+      </div>
+      <div className={fieldWrap}>
+        <div className={flabel}>Détail de l&apos;activité</div>
+        <textarea rows={2} value={formData.activite_detail || ""} onChange={texte("activite_detail")} placeholder="Ce qu'il faut savoir de plus" className={`${fieldInput} text-[14px] resize-y`} />
+        <div className="mt-1.5 text-[11px] text-brume">caché derrière l&apos;info au survol</div>
+      </div>
 
+      <div className={fieldWrap}>
+        <div className={flabel}>En place depuis</div>
+        <input type="date" value={formData.locataire_depuis || ""} onChange={texte("locataire_depuis")} className={`${fieldInput} text-[15px] [color-scheme:dark]`} />
+        <div className="mt-1.5 text-[11px] text-brume">la même date que dans Locataire</div>
+      </div>
+      <div className={fieldWrap}>
+        <div className={flabel}>Année de la dernière vente</div>
+        <input type="number" value={formData.derniere_vente_annee || ""} onChange={nombre("derniere_vente_annee")} placeholder="2019" className={`${fieldInput} text-[15px]`} />
+        <div className="mt-1.5 text-[11px] text-brume">d&apos;après les ventes publiées ou l&apos;acte</div>
+      </div>
+
+      <div className={fieldWrap}>
+        <div className={flabel}>Surface m²</div>
+        <input type="number" value={formData.surface_m2 || ""} onChange={nombre("surface_m2")} placeholder="60" className={`${fieldInput} text-[15px]`} />
+      </div>
+      <div className={fieldWrap}>
+        <div className={flabel}>Détail des surfaces</div>
+        <textarea rows={2} value={formData.surface_detail || ""} onChange={texte("surface_detail")} placeholder="40 m² en rez-de-chaussée, 20 m² en sous-sol pondérés à 50 %" className={`${fieldInput} text-[14px] resize-y`} />
+        <div className="mt-1.5 text-[11px] text-brume">la pondération, caché derrière l&apos;info au survol</div>
+      </div>
     </div>
   );
 }

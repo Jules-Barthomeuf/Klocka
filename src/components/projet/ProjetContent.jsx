@@ -20,6 +20,8 @@ import CarteCessions from "./CarteCessions";
 import VilleSecteurIA, { useAnalyseIA } from "./SecteurAnalyseIA";
 import { J } from "@/design/jetons";
 import MarcheProjet from "./MarcheProjet";
+import BienProjet from "./BienProjet";
+import LocataireProjet from "./LocataireProjet";
 
 // Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
 function SectionLabel({ children, tone = "muted", className = "" }) {
@@ -612,7 +614,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <TabsContent value="bien">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader title="Bien" />
-              <GrilleCases zone="bien" cases={cases?.bien} project={project} onSource={setPiece} />
+              <BienProjet project={project} />
             </motion.div>
           </TabsContent>
 
@@ -622,27 +624,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 title="Locataire"
               />
 
-              <KpiStrip items={[
-                loyerAnnuel > 0 && { value: `${fmtNum(loyerAnnuel)} €`, label: 'Loyer annuel HT/HC', champ: 'sim_loyer_initial_ht' },
-                enPlace?.valeur && { value: enPlace.valeur, label: 'En place depuis' },
-                anneesRestantesBail != null && { value: `${anneesRestantesBail.toFixed(1).replace('.', ',')} ans`, label: 'Bail restant à courir' },
-                project.echeance_bail && { value: dateFr(project.echeance_bail, { month: 'long', year: 'numeric' }), label: 'Échéance du bail', champ: 'echeance_bail', typeChamp: 'date' },
-              ]} />
-
-              <div className="grid md:grid-cols-2 gap-x-12 gap-y-9">
-                <div>
-                  <SectionLabel tone="teal">Identité</SectionLabel>
-                  <KVRow champ="nom_locataire" typeChamp="text" label="Raison sociale" value={project.nom_locataire} />
-                  <KVRow champ="activite_locataire" typeChamp="text" label="Activité" value={project.activite_locataire} />
-                  <KVRow champ="adresse_complete" typeChamp="text" label="Adresse d'exploitation" value={project.adresse_complete} />
-                </div>
-                <div>
-                  <SectionLabel tone="teal">Économie de la signature</SectionLabel>
-                  <KVRow champ="sim_loyer_initial_ht" label="Loyer annuel HT/HC" value={loyerAnnuel > 0 ? `${fmtNum(loyerAnnuel)} €` : null} />
-                  <KVRow champ="echeance_bail" typeChamp="date" label="Échéance du bail" value={project.echeance_bail ? dateFr(project.echeance_bail) : null} />
-                  <KVRow label="Dépôt de garantie" value={project.bail_depot_garantie > 0 ? `${fmtNum(project.bail_depot_garantie)} €` : null} champ="bail_depot_garantie" />
-                </div>
-              </div>
+              <LocataireProjet project={project} />
 
               <div className="mt-8 max-md:mt-5">
                 <LocataireLiensSociaux liens={project.liens_locataire} />

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X, Upload, FileText, Loader2, ExternalLink } from "lucide-react";
 import VerificationField from "./VerificationField";
 import { FField, FInput, FTextarea } from "./FormField";
+import LocataireCases from "./LocataireCases";
 
 export default function ProjectFormLocataireTab({ formData, setFormData }) {
   const [uploadingBilan, setUploadingBilan] = useState(false);
@@ -48,54 +49,8 @@ export default function ProjectFormLocataireTab({ formData, setFormData }) {
 
   return (
     <div className="space-y-6 mt-6">
-      <h3 className="text-lg mb-4 text-encre">Locataire</h3>
+      <LocataireCases formData={formData} setFormData={setFormData} />
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <VerificationField fieldKey="nom_locataire" formData={formData} setFormData={setFormData}>
-            <FField label="Locataire">
-              <FInput value={formData.nom_locataire} onChange={(e) => setFormData({...formData, nom_locataire: e.target.value})} placeholder="Nom du locataire" />
-            </FField>
-          </VerificationField>
-
-          <VerificationField fieldKey="activite_locataire" formData={formData} setFormData={setFormData}>
-            <FField label="Activité du locataire">
-              <FInput value={formData.activite_locataire} onChange={(e) => setFormData({...formData, activite_locataire: e.target.value})} placeholder="Activité" />
-            </FField>
-          </VerificationField>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <VerificationField fieldKey="locataire_depuis" formData={formData} setFormData={setFormData}>
-            <FField label="Locataire en place depuis...">
-              <FInput type="date" value={formData.locataire_depuis} onChange={(e) => setFormData({...formData, locataire_depuis: e.target.value})} className="[color-scheme:dark]" />
-            </FField>
-          </VerificationField>
-
-          <VerificationField fieldKey="echeance_bail" formData={formData} setFormData={setFormData}>
-            <FField label="Échéance du bail">
-              <FInput type="date" value={formData.echeance_bail} onChange={(e) => setFormData({...formData, echeance_bail: e.target.value})} className="[color-scheme:dark]" />
-            </FField>
-          </VerificationField>
-        </div>
-
-        <VerificationField fieldKey="statut_bail" formData={formData} setFormData={setFormData}>
-          <FField label="Statut du bail">
-            <Select
-              value={formData.statut_bail || "en_cours"}
-              onValueChange={(value) => setFormData({...formData, statut_bail: value})}
-            >
-              <SelectTrigger className="bg-transparent border-none text-encre p-0 h-auto">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en_cours">En cours</SelectItem>
-                <SelectItem value="tacite_prolongation">En cours de tacite prolongation</SelectItem>
-                <SelectItem value="en_cours_renouvellement">En cours de renouvellement</SelectItem>
-              </SelectContent>
-            </Select>
-          </FField>
-        </VerificationField>
-
         <div className="p-4 bg-encre/[0.02] rounded-lg space-y-4">
           <div className="flex items-center gap-3">
             <Switch

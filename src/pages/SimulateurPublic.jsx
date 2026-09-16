@@ -7,6 +7,7 @@ import SimControlRail from "../components/simulator/layout/SimControlRail";
 import SimKpiRow from "../components/simulator/layout/SimKpiRow";
 import SimBudgetDonut from "../components/simulator/layout/SimBudgetDonut";
 import SimChartCarousel from "../components/simulator/layout/SimChartCarousel";
+import SimHeroChart from "../components/simulator/layout/SimHeroChart";
 import SimReventeSynthese from "../components/simulator/layout/SimReventeSynthese";
 import SimDataTable from "../components/simulator/layout/SimDataTable";
 import SimScenarios from "../components/simulator/layout/SimScenarios";
@@ -371,6 +372,15 @@ export default function SimulateurPublic() {
   ];
 
   if (!loaded) return <div className="min-h-screen bg-fond flex items-center justify-center"><div className="w-8 h-8 border-4 border-menthe/30 border-t-menthe rounded-full animate-spin" /></div>;
+
+  // « vue=graphique » : le seul graphique des bâtons, pour une page qui l'embarque.
+  if (new URLSearchParams(window.location.search).get("vue") === "graphique") {
+    return (
+      <div className="bg-fond min-h-screen p-3 [&_.recharts-wrapper]:!min-h-0">
+        <SimHeroChart calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} metric="richesse" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-fond min-h-screen relative w-full max-w-full overflow-x-hidden">

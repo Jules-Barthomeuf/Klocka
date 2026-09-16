@@ -10,6 +10,7 @@ import { Building2, ArrowRight, Calendar, MapPin, ArrowUpRight, Search } from "l
 import { motion } from "framer-motion";
 import { NeonButton } from "@/components/ui/neon-button";
 import ClientProjectCard2 from "@/components/dashboard/ClientProjectCard2";
+import FondNappes from "@/components/projet/FondNappes";
 import { FenetreRendezVous } from "@/components/dashboard/ClientDashboardView";
 
 const statutLabels = {
@@ -106,8 +107,9 @@ export default function MesProjets() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       {rdvOuvert && <FenetreRendezVous user={user} onFermer={() => setRdvOuvert(false)} />}
-    <div className="min-h-screen bg-fond">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
+    <div className="relative min-h-screen overflow-hidden bg-fond">
+      <FondNappes />
+      <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12">
 
         {/* Header */}
         <motion.div

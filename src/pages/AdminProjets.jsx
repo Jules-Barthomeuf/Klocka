@@ -31,6 +31,7 @@ import ProjectSimulatorPreview from "../components/admin/ProjectSimulatorPreview
 import ProjectLivePreview from "../components/admin/ProjectLivePreview";
 import BoutonMonday from "@/components/BoutonMonday";
 import ProjetContent from "../components/projet/ProjetContent";
+import FondNappes from "../components/projet/FondNappes";
 
 import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
@@ -1461,8 +1462,9 @@ export default function AdminProjets() {
   ];
 
   return (
-    <div className="projet-editorial min-h-screen bg-fond text-encre px-5 md:px-10 py-8 md:py-12">
-      <div className="max-w-[1400px] mx-auto">
+    <div className="projet-editorial relative min-h-screen overflow-hidden bg-fond px-5 py-8 text-encre md:px-10 md:py-12">
+      <FondNappes />
+      <div className="relative max-w-[1400px] mx-auto">
         {/* En-tête */}
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
           <div>

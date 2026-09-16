@@ -1,44 +1,24 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { Pencil, Copy, Trash2, Eye, Archive, ArchiveRestore, FileSearch, Calculator, Share2, Check } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { toast } from "@/components/ui/avis";
+import CarteProjet from "@/components/projet/CarteProjet";
 import ShadowReportDialog from "./ShadowReport";
 
-const statutColors = {
-  prospect: "text-ardoise border-encre/[0.18]",
-  analyse: "text-menthe-clair border-menthe-clair/40",
-  negociation: "text-menthe border-menthe/40",
-  financement: "text-menthe border-menthe/40",
-  signe: "text-menthe-clair border-menthe bg-menthe/[0.16]"
-};
-
-const statutLabels = {
-  prospect: "Prospect",
-  analyse: "En analyse",
-  negociation: "Négociation",
-  financement: "Financement",
-  signe: "Signé"
-};
+// La carte d'un projet côté admin : la carte commune, plus les gestes du
+// métier au survol (simulateur, modification, aperçu client, lien public,
+// duplication, archivage, suppression) et le rapport shadow en pied.
 
 const ADMIN_AVATARS = {
-  "jules": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png",
-  "alexis": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/b8c3065fa_1000031171.jpg",
-  "maxime": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e92131b8c_Capturedecran2026-02-18a164304.png",
-  "paul": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/db402bc1f_Capturedecran2026-06-24a122246.png",
+  "jules.b@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png",
+  "alexis.p@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/b8c3065fa_1000031171.jpg",
+  "maxime.p@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e92131b8c_Capturedecran2026-02-18a164304.png",
+  "paul.dz@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/db402bc1f_Capturedecran2026-06-24a122246.png",
 };
 
-function getAdminAvatar(email) {
-  if (!email) return null;
-  const lower = email.toLowerCase();
-  if (lower === "maxime.p@klocka.immo") return ADMIN_AVATARS.maxime;
-  if (lower === "alexis.p@klocka.immo") return ADMIN_AVATARS.alexis;
-  if (lower === "jules.b@klocka.immo") return ADMIN_AVATARS.jules;
-  if (lower === "paul.dz@klocka.immo") return ADMIN_AVATARS.paul;
-  return null;
-}
+const avatarDe = (email) => (email ? ADMIN_AVATARS[email.toLowerCase()] || null : null);
 
-export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelete, onArchive, onShadow, onShadowWithNav, shadowRecord }) {
+export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelete, onArchive, onShadowWithNav, shadowRecord }) {
   const [reportOpen, setReportOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
@@ -55,150 +35,48 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
       window.prompt("Copiez le lien public :", publicUrl);
     }
   };
-  const prixBienFAI = project.sim_prix_bien_fai || project.sim_prix_bien_negocie || 0;
-  const prixBienNegocie = project.sim_prix_bien_negocie || prixBienFAI;
-  const tauxDroitsEnregistrement = project.sim_droits_enregistrement ?? 8;
-  const tauxFeesKlocka = project.sim_fees_klocka ?? 8;
-  const feesKlockaType = project.sim_fees_klocka_type || "pourcentage";
-  const tauxIncentiveKlocka = project.sim_incentive_klocka ?? 20;
-  const commissionAgentActive = project.sim_commission_agent_active ?? false;
-  const commissionAgentType = project.sim_commission_agent_type || "pourcentage";
-  const tauxCommissionAgent = project.sim_commission_agent ?? 5;
-  const inclusFAI = project.sim_commission_agent_inclus_fai !== false;
-
-  const honorairesAgent = commissionAgentActive
-    ? (commissionAgentType === "fixe" ? tauxCommissionAgent : prixBienNegocie * (tauxCommissionAgent / 100))
-    : 0;
-
-  const prixHorsDroits = inclusFAI ? (prixBienNegocie - honorairesAgent) : prixBienNegocie;
-  const droitsEnregistrement = prixHorsDroits * (tauxDroitsEnregistrement / 100);
-  const feesKlocka = feesKlockaType === "fixe" ? tauxFeesKlocka : prixBienNegocie * (tauxFeesKlocka / 100);
-  const incentiveKlocka = Math.max(0, (prixBienFAI > 0 ? prixBienFAI : prixBienNegocie) - prixBienNegocie) * (tauxIncentiveKlocka / 100);
-  const totalFraisKlocka = feesKlocka + incentiveKlocka;
-  const fraisDivers = (project.sim_frais_dossier_bancaire || 0) + (project.sim_cout_creation_societe || 0) + (project.sim_frais_courtage || 0);
-
-  const prixRevient = prixBienNegocie > 0
-    ? prixBienNegocie + droitsEnregistrement + totalFraisKlocka + fraisDivers + (inclusFAI ? 0 : honorairesAgent)
-    : (project.sim_prix_revient || project.prix_acquisition || 0);
-
-  const loyerAnnuelInitial = project.sim_loyer_initial_ht || 0;
-  const anneeRevente = project.sim_annee_revente || 20;
-  const indexation = project.sim_indexation_loyers || 2;
-
-  let totalLoyersNets = 0;
-  let loyerCourant = loyerAnnuelInitial;
-  for (let annee = 1; annee <= anneeRevente; annee++) {
-    if (annee > 1) loyerCourant = loyerCourant * (1 + indexation / 100);
-    totalLoyersNets += loyerCourant;
-  }
-  const loyerMoyen = anneeRevente > 0 ? totalLoyersNets / anneeRevente : 0;
-  const rendementLocatifMoyen = prixRevient > 0 && loyerMoyen > 0 ? (loyerMoyen / prixRevient) * 100 : 0;
 
   const hasShadow = !!shadowRecord?.shadow_data;
-  const surface = project.sim_surface || project.surface_m2 || 0;
-
-  const formatPrice = (val) => {
-    if (val >= 1000000) return `${(val / 1000000).toFixed(2)}M €`;
-    if (val >= 1000) return `${Math.round(val / 1000)}K €`;
-    return `${Math.round(val)} €`;
-  };
-
   const actionBtn = "w-8 h-8 rounded-full bg-fond/70 backdrop-blur-sm border border-encre/[0.18] flex items-center justify-center text-craie transition-colors";
+  const geste = (e, quoi) => { e.stopPropagation(); quoi(); };
 
-  return (
-    <div>
-      <div
-        className="group relative cursor-pointer overflow-hidden rounded-[16px] border border-trait bg-fond transition-colors duration-300 hover:border-[rgba(150,192,184,0.3)]"
-        onClick={() => onEdit(project)}
-      >
-        {/* Image band */}
-        <div className="relative h-48 md:h-56 overflow-hidden">
-          {project.photos && project.photos.length > 0 ? (
-            <img src={project.photos[0]} alt={project.titre} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" />
-          ) : (
-            <div className="w-full h-full bg-fond flex items-center justify-center">
-              <Eye className="w-10 h-10 text-encre/[0.06]" />
-            </div>
-          )}
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,16,15,0.97) 6%, rgba(14,16,15,0.35) 55%, rgba(14,16,15,0.55) 100%)" }} />
+  const actions = (
+    <>
+      <button onClick={(e) => geste(e, () => window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, "_blank"))} className={`${actionBtn} hover:border-bord-vif hover:text-encre`} aria-label="Simulateur" title="Simulateur">
+        <Calculator className="h-3.5 w-3.5" />
+      </button>
+      <button onClick={(e) => geste(e, () => onEdit(project))} className={`${actionBtn} hover:border-bord-vif hover:text-encre`} aria-label="Modifier" title="Modifier">
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+      <button onClick={(e) => geste(e, () => window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, "_blank"))} className={`${actionBtn} hover:border-bord-vif hover:text-encre`} aria-label="Preview client" title="Preview client">
+        <Eye className="h-3.5 w-3.5" />
+      </button>
+      <button onClick={handleSharePublic} className={`${actionBtn} hover:border-bord-vif hover:text-encre`} aria-label="Copier le lien public (accessible sans compte)" title="Copier le lien public (accessible sans compte)">
+        {copied ? <Check className="h-3.5 w-3.5 text-menthe-clair" /> : <Share2 className="h-3.5 w-3.5" />}
+      </button>
+      <button onClick={(e) => geste(e, () => onDuplicate(project))} className={`${actionBtn} hover:border-bord-vif hover:text-encre`} aria-label="Dupliquer" title="Dupliquer">
+        <Copy className="h-3.5 w-3.5" />
+      </button>
+      <button onClick={(e) => geste(e, () => onArchive(project))} className={`${actionBtn} ${project.archived ? "text-menthe" : "hover:border-menthe hover:text-menthe"}`} aria-label={project.archived ? "Désarchiver" : "Archiver"} title={project.archived ? "Désarchiver" : "Archiver"}>
+        {project.archived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+      </button>
+      <button onClick={(e) => geste(e, () => onDelete(project.id))} className={`${actionBtn} hover:border-red-400/40 hover:text-red-400`} aria-label="Supprimer" title="Supprimer">
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </>
+  );
 
-          {/* Status badge */}
-          <div className="absolute top-4 left-4">
-            <span className={`alx-mont rounded-full border bg-fond/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[.14em] backdrop-blur-sm ${statutColors[project.statut] || 'text-ardoise border-encre/[0.18]'}`}>
-              {statutLabels[project.statut] || project.statut}
-            </span>
-          </div>
-
-          {/* Conseiller avatar */}
-          {getAdminAvatar(project.admin_principal) && (
-            <div className="absolute top-3 right-3">
-              <img src={getAdminAvatar(project.admin_principal)} alt="Admin" className="w-9 h-9 rounded-full object-cover border border-encre/25" />
-            </div>
-          )}
-
-          {/* Title overlay */}
-          <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-[18px] md:text-[24px] font-light text-encre tracking-[-0.02em] leading-tight truncate">{project.titre}</h2>
-            {project.adresse_complete && <p className="text-craie/70 text-[12.5px] mt-1 truncate">{project.adresse_complete}</p>}
-            {project.client_email && <p className="alx-mont mt-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">{project.client_email.split('@')[0]}</p>}
-          </div>
-
-          {/* Actions — apparaissent au survol */}
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Simulateur" title="Simulateur">
-              <Calculator className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); onEdit(project); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Modifier" title="Modifier">
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); window.open(`${createPageUrl("ProjetDetail")}?id=${project.id}`, '_blank'); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Preview client" title="Preview client">
-              <Eye className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={handleSharePublic} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Copier le lien public (accessible sans compte)" title="Copier le lien public (accessible sans compte)">
-              {copied ? <Check className="w-3.5 h-3.5 text-menthe-clair" /> : <Share2 className="w-3.5 h-3.5" />}
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); onDuplicate(project); }} className={`${actionBtn} hover:text-encre hover:border-bord-vif`} aria-label="Dupliquer" title="Dupliquer">
-              <Copy className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); onArchive(project); }} className={`${actionBtn} ${project.archived ? 'text-menthe' : 'hover:text-menthe hover:border-menthe'}`} aria-label={project.archived ? "Désarchiver" : "Archiver"} title={project.archived ? "Désarchiver" : "Archiver"}>
-              {project.archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(project.id); }} className={`${actionBtn} hover:text-red-400 hover:border-red-400/40`} aria-label="Supprimer" title="Supprimer">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Chiffres clés — filets fins, chiffres alignés */}
-        <div className="flex px-5 border-t border-encre/[0.12]" style={{ fontVariantNumeric: "tabular-nums" }}>
-          <div className="flex-1 min-w-0 py-4 pr-4">
-            <p className="m-0 text-[18px] font-medium tabular-nums text-encre">{formatPrice(prixRevient)}</p>
-            <p className="alx-mont m-0 mt-1 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise whitespace-nowrap">Prix de revient</p>
-          </div>
-          <div className="flex-1 min-w-0 py-4 px-4 border-l border-encre/[0.12]">
-            <p className="m-0 text-[18px] font-medium tabular-nums text-menthe-clair">{rendementLocatifMoyen.toFixed(2).replace(".", ",")} %</p>
-            <p className="alx-mont m-0 mt-1 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Rendement</p>
-          </div>
-          {surface > 0 && (
-            <div className="flex-1 min-w-0 py-4 pl-4 border-l border-encre/[0.12]">
-              <p className="m-0 text-[18px] font-medium tabular-nums text-encre">{surface} m²</p>
-              <p className="alx-mont m-0 mt-1 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Surface</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Voir le rapport button */}
+  const pied = (
+    <>
       {hasShadow && (
         <button
           onClick={() => setReportOpen(true)}
           className="alx-mont mt-2 flex w-full items-center justify-center gap-2 rounded-full border border-menthe/30 px-4 py-2.5 text-[11px] font-medium uppercase tracking-[.14em] text-menthe transition-colors hover:border-menthe"
         >
-          <FileSearch className="w-3.5 h-3.5" />
+          <FileSearch className="h-3.5 w-3.5" />
           Voir le rapport
         </button>
       )}
-
       <ShadowReportDialog
         open={reportOpen}
         onOpenChange={setReportOpen}
@@ -206,11 +84,20 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
         shadowRecord={shadowRecord}
         onNavigateToField={(tab, viewMode) => {
           setReportOpen(false);
-          setTimeout(() => {
-            if (onShadowWithNav) onShadowWithNav(project, tab, viewMode);
-          }, 200);
+          setTimeout(() => { if (onShadowWithNav) onShadowWithNav(project, tab, viewMode); }, 200);
         }}
       />
-    </div>
+    </>
+  );
+
+  return (
+    <CarteProjet
+      project={project}
+      onOuvrir={() => onEdit(project)}
+      avatar={avatarDe(project.admin_principal)}
+      sousLigne={project.client_email ? <p className="alx-mont mt-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">{project.client_email.split("@")[0]}</p> : null}
+      actions={actions}
+      pied={pied}
+    />
   );
 }

@@ -5,11 +5,12 @@ import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast, avis } from "@/components/ui/avis";
-import { PILES, EMPLACEMENTS, TEINTES, emplacementDe, Bouton, Etiquette, Etoiles, Nombre, Champ, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
+import { PILES, EMPLACEMENTS, TEINTES, emplacementDe, Bouton, Etiquette, Etoiles, Nombre, Champ, Bascule, Urgence, urgenceDe, joliNom } from "@/components/alx/alx-commun";
 import CarteRues from "@/components/alx/CarteRues";
 import BarreChat, { ZoneChat } from "@/components/BarreChat";
 import OngletSocietes from "@/components/alx/OngletSocietes";
 import Cartes, { PageCarte } from "@/components/alx/Cartes";
+import PenseeIA from "@/components/PenseeIA";
 import { J } from "@/design/jetons";
 
 // ALX, tel que la maquette le dessine. On arrive toujours par la même porte :
@@ -47,6 +48,161 @@ function Case({ coche, onChange, taille = 16 }) {
     >
       {coche ? "✓" : ""}
     </button>
+  );
+}
+
+// --- L'accueil : par investisseur, ou par ville ----------------------------------------------
+
+const VILLAGES = ["Trifouillis-les-Oies", "Pouilly-le-Sec", "Moulinet", "Sainte-Croix-à-Lauze", "Bézaudun-les-Alpes"];
+
+/** Le champ vide tape des noms de villages, lettre à lettre, comme dans la maquette. */
+function usePlaceholderTape(actif) {
+  const [etat, setEtat] = useState({ mot: 0, n: 0, retour: false, pause: 0 });
+  useEffect(() => {
+    if (!actif) return undefined;
+    const t = setInterval(() => {
+      setEtat((s) => {
+        const w = VILLAGES[s.mot % VILLAGES.length];
+        if (!s.retour) {
+          if (s.n < w.length) return { ...s, n: s.n + 1 };
+          if (s.pause < 12) return { ...s, pause: s.pause + 1 };
+          return { ...s, retour: true, pause: 0 };
+        }
+        if (s.n > 0) return { ...s, n: s.n - 1 };
+        return { mot: s.mot + 1, n: 0, retour: false, pause: 0 };
+      });
+    }, 110);
+    return () => clearInterval(t);
+  }, [actif]);
+  return `${VILLAGES[etat.mot % VILLAGES.length].slice(0, etat.n)}|`;
+}
+
+function CarteVille({ v, onOuvrir }) {
+  const p = v.parcours || {};
+  const c = v.cibles || {};
+  const enCours = p.etat === "en_cours";
+  const [mot, teinte] = statutDe(p.etat);
+  const total = (c.appeler || 0) + (c.ecrire || 0) + (c.surveiller || 0);
+  const part = (n) => (total ? `${((n || 0) / total) * 100}%` : "0%");
+  const nRues = (v.rues || []).length;
+  const pied = enCours
+    ? p.phase === "rues" ? "lecture des rues" : p.rue_en_cours ? `ALX lit ${p.rue_en_cours}` : p.phase === "redaction" ? "rédaction des messages" : "démarrage"
+    : p.etat === "fini" ? "parcours terminé" : p.etat === "rues_proposees" ? "rues à cocher" : p.etat ? mot.toLowerCase() : "pas encore lancée";
+  return (
+    <button
+      onClick={() => onOuvrir(v.id)}
+      className="relative flex flex-col overflow-hidden rounded-[18px] border border-trait text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
+      style={{ background: J["fond"] }}
+    >
+      <div className="flex h-[3px]">
+        <div style={{ width: part(c.appeler), background: TEINTES.appeler }} />
+        <div style={{ width: part(c.ecrire), background: TEINTES.ecrire }} />
+        <div style={{ width: part(c.surveiller), background: TEINTES.barreSurveiller }} />
+      </div>
+      <div className="flex items-baseline justify-between gap-3 px-6 pb-2 pt-6">
+        <span className="alx-mont text-[24px] font-medium tracking-[-.01em] text-encre">{v.nom}</span>
+        <Etiquette teinte={teinte} className="!text-[11px]">{mot}</Etiquette>
+      </div>
+      <div className="px-6 pb-5 text-[12.5px] text-ardoise">
+        {pluriel(nRues, "rue classée", "rues classées")}{v.recensement?.commerces_total ? ` · ${fmt(v.recensement.commerces_total)} vitrines` : ""}
+      </div>
+      <div className="flex w-full flex-col px-6 pb-2">
+        {[["À appeler", c.appeler, TEINTES.appeler], ["À écrire", c.ecrire, TEINTES.ecrire], ["À surveiller", c.surveiller, TEINTES.muet]].map(([m, n, t]) => (
+          <div key={m} className="flex items-baseline justify-between gap-3 border-t border-trait py-[11px]">
+            <span className="text-[13.5px] text-craie">{m}</span>
+            <Nombre taille={16} teinte={t}>{fmt(n)}</Nombre>
+          </div>
+        ))}
+      </div>
+      <div className="mt-auto flex w-full items-center gap-2 px-6 pb-4 pt-3.5 text-[12.5px] text-ardoise">
+        {enCours && <span className="alx-pouls h-[5px] w-[5px] shrink-0 rounded-full bg-menthe" />}
+        <span className="min-w-0 truncate">{pied}</span>
+        {p.brouillons > 0 && !enCours && <span className="ml-auto text-menthe">{p.brouillons} à relire</span>}
+      </div>
+    </button>
+  );
+}
+
+/** L'entrée par la ville : celle d'avant les cartes, gardée telle quelle. */
+function AccueilVille({ villes, onOuvrir }) {
+  const [nom, setNom] = useState("");
+  const placeholder = usePlaceholderTape(!nom);
+  const creer = useMutation({
+    mutationFn: async () => {
+      const r = await base44.request("POST", "/api/alx/villes", { body: { nom } });
+      try {
+        await base44.request("POST", `/api/alx/villes/${r.ville.id}/lancer`, { body: {} });
+      } catch (e) {
+        if (!/déjà en cours/.test(e?.message || "")) throw e;
+      }
+      return r;
+    },
+    onSuccess: (r) => { setNom(""); onOuvrir(r.ville.id); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+
+  return (
+    <div className="flex flex-col gap-11">
+      <section className="relative overflow-hidden rounded-[20px] border border-trait px-12 pb-[46px] pt-[52px] max-md:px-6 max-md:py-8" style={{ background: "linear-gradient(155deg,#141816 0%,#0C0F0E 48%,#0A0B0B 100%)" }}>
+        <div aria-hidden className="pointer-events-none absolute -left-[120px] -top-[220px] h-[520px] w-[700px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.055),transparent)" }} />
+        <div className="relative flex flex-col items-center text-center">
+          <h1 className="m-0 font-light leading-[1.06] tracking-[-.03em]" style={{ fontSize: "clamp(34px,3.6vw,52px)" }}>
+            <span className="block text-encre">Donnez une ville.</span>
+            <span className="block text-menthe">ALX <span className="alx-serif italic tracking-[-.01em]">s'occupe du reste.</span></span>
+          </h1>
+          <p className="mx-auto mb-0 mt-[22px] max-w-[56ch] text-[15px] leading-[1.6] text-[#8E9793]">
+            Il dessine les rues du centre, les classe par leur loyer, lit chaque vitrine des rues que vous cochez, retrouve le propriétaire, et vous rend trois piles avec les messages déjà écrits. Rien ne part sans votre relecture.
+          </p>
+          <form
+            onSubmit={(e) => { e.preventDefault(); if (nom.trim() && !creer.isPending) creer.mutate(); }}
+            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-fond py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50"
+          >
+            <input
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              placeholder={placeholder}
+              className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[18px] text-encre outline-none"
+            />
+            <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending}>
+              {creer.isPending ? <PenseeIA etat="searching" taille={20} clair /> : "Lancer ALX"}
+            </Bouton>
+          </form>
+          <p className="mb-0 mt-3.5 text-[12.5px] text-ardoise">Les rues arrivent en une minute, sur une carte. Vous cochez, ALX prospecte.</p>
+        </div>
+      </section>
+
+      {villes.length === 0 ? (
+        <p className="m-0 text-center text-[13.5px] text-ardoise">Aucune ville encore. La première que vous lancez apparaîtra ici.</p>
+      ) : (
+        <div className="mx-auto grid w-full max-w-[1160px] justify-center gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 360px))" }}>
+          {villes.map((v) => <CarteVille key={v.id} v={v} onOuvrir={onOuvrir} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * On cherche pour quelqu'un, ou on ouvre une ville. Les deux entrées existent,
+ * la bascule dit laquelle, et le choix se garde d'une visite à l'autre.
+ */
+function Accueil({ villes, onOuvrirCarte, onOuvrirVille }) {
+  const [vue, setVue] = useState(() => {
+    try { return localStorage.getItem("alx_vue") === "ville" ? "ville" : "investisseur"; } catch (_) { return "investisseur"; }
+  });
+  const changer = (v) => {
+    setVue(v);
+    try { localStorage.setItem("alx_vue", v); } catch (_) { /* navigation privée : le choix ne dure que la visite */ }
+  };
+  return (
+    <div className="flex flex-col gap-7">
+      <div className="flex justify-center">
+        <Bascule options={[["investisseur", "Investisseur"], ["ville", "Ville"]]} valeur={vue} onChange={changer} />
+      </div>
+      {vue === "ville"
+        ? <AccueilVille villes={villes} onOuvrir={onOuvrirVille} />
+        : <Cartes villes={villes} onOuvrirCarte={onOuvrirCarte} onOuvrirVille={onOuvrirVille} />}
+    </div>
   );
 }
 
@@ -966,7 +1122,7 @@ export default function ALX() {
         ) : carteId ? (
           <PageCarte key={carteId} carteId={carteId} onOuvrirVille={ouvrirVille} onFermer={() => setParams({})} />
         ) : (
-          <Cartes villes={villes} onOuvrirCarte={ouvrirCarte} onOuvrirVille={ouvrirVille} />
+          <Accueil villes={villes} onOuvrirCarte={ouvrirCarte} onOuvrirVille={ouvrirVille} />
         )}
         {!villeId && !carteId && (
           <div className="mt-10 text-center text-[12.5px] text-ardoise">

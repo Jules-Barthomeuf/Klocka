@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Bouton, Champ, Etiquette, Nombre, TEINTES, joliNom, pileDe } from "@/components/alx/alx-commun";
 import { J } from "@/design/jetons";
+import PenseeIA from "@/components/PenseeIA";
 
 // Les cartes de prospection. On ne cherche pas « dans une ville », on cherche
 // pour quelqu'un : la carte porte le nom qu'on veut, les critères du client,
@@ -145,7 +146,7 @@ export default function Cartes({ villes = [], onOuvrirCarte, onOuvrirVille }) {
               placeholder="Investisseur Machin"
               className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[18px] text-encre outline-none"
             />
-            <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending}>{creer.isPending ? "…" : "Créer la carte"}</Bouton>
+            <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending}>{creer.isPending ? <PenseeIA etat="working" taille={20} clair /> : "Créer la carte"}</Bouton>
           </form>
           <p className="mb-0 mt-3.5 text-[12.5px] text-ardoise">Le nom est libre. Les critères se posent dans la carte, et se changent quand le client change d'avis.</p>
         </div>
@@ -214,7 +215,7 @@ function Criteres({ carte, familles }) {
         <Champ label="Note" value={f.note} onChange={change("note")} placeholder="Ce qu'il ne veut pas" />
       </div>
       <div className="mt-4 flex items-center gap-3">
-        <Bouton principal onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}>{enregistrer.isPending ? "…" : "Enregistrer les critères"}</Bouton>
+        <Bouton principal onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}>{enregistrer.isPending ? <PenseeIA etat="working" taille={20} clair /> : "Enregistrer les critères"}</Bouton>
         <span className="text-[12.5px] text-ardoise">Le rendement commande la ville : au-delà de 9 %, on quitte les métropoles.</span>
       </div>
     </section>
@@ -258,7 +259,7 @@ function LigneVille({ v, carteId, onOuvrirVille }) {
           </button>
         )}
         <Bouton onClick={() => prospecter.mutate()} disabled={prospecter.isPending} className="!px-4 !py-2 !text-[12.5px]">
-          {prospecter.isPending ? "…" : deja ? "Ajouter" : "Prospecter"}
+          {prospecter.isPending ? <PenseeIA etat="searching" taille={20} /> : deja ? "Ajouter" : "Prospecter"}
         </Bouton>
       </td>
     </tr>
@@ -281,7 +282,14 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
-  if (isLoading || !data) return <div className="py-20 text-center text-[13.5px] text-ardoise">Ouverture de la carte…</div>;
+  if (isLoading || !data) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-24">
+        <PenseeIA etat="searching" taille={64} />
+        <span className="text-[13.5px] text-ardoise">Ouverture de la carte…</span>
+      </div>
+    );
+  }
   const { carte, villes = [], conseillees = [], prospectees = [], cibles = [], familles = [] } = data;
   const mot = texte.trim().toLowerCase();
   const filtrees = conseillees.filter((v) => !mot || `${v.ville} ${v.typologie} ${v.emplacement}`.toLowerCase().includes(mot));

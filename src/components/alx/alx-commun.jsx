@@ -252,7 +252,8 @@ export function Bascule({ options, valeur, onChange }) {
         <button
           key={cle}
           onClick={() => onChange(cle)}
-          className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${valeur === cle ? "bg-menthe text-sur-menthe font-medium" : "text-ardoise hover:text-encre"}`}
+          className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors ${valeur === cle ? "text-sur-menthe font-medium" : "text-ardoise hover:text-encre"}`}
+          style={{ background: valeur === cle ? J["menthe"] : "transparent" }}
         >
           {mot}{n != null ? <span className={`ml-1.5 tabular-nums ${valeur === cle ? "opacity-70" : "text-brume"}`}>{n}</span> : null}
         </button>

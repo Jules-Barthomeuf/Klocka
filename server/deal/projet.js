@@ -5,6 +5,7 @@
 // sim_*, mêmes conventions de défauts — pour que le simulateur complet
 // affiche les mêmes chiffres que le SimulateurRapide du deal.
 
+import { prixFai as prixFaiDuLot } from './prix.js';
 import { Records } from '../db.js';
 import { changerStatut } from './lifecycle.js';
 import { lotOuVide } from './index.js';
@@ -322,7 +323,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     latitude: commune?.centre?.lat ?? null,
     longitude: commune?.centre?.lon ?? null,
     surface_m2: val(lot.lot.surface_m2) ?? 0,
-    prix_acquisition: val(lot.lot.prix_fai) ?? 0,
+    prix_acquisition: prixFaiDuLot(lot.lot) ?? 0,
     rendement_locatif: val(lot.lot.rendement_annonce) ?? 0,
     loyer_annuel_ht: val(lot.lot.loyer_annuel_ht_hc) ?? 0,
     nom_locataire: val(lot.lot.locataire_nom) || '',

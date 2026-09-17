@@ -6,6 +6,7 @@
 // points notables, et les pièces qu'il faudra pour l'étape 2.
 // Étape 2 — Immeuble et copropriété. Étape 3 — Prix et négociation.
 
+import { prixFai as prixFaiDuLot } from './prix.js';
 import { Records } from '../db.js';
 import { lireMatrice, lireFiche, lancerRemplissage, livrables } from './matrice.js';
 import { montants, surfaces, dates, loyerAnnuel } from './dossier-lecture.js';
@@ -106,7 +107,7 @@ export function lireEtape1(dealId) {
   };
 
   // --- Bloc 2 : la rentabilité réelle ----------------------------------------------------
-  const prixFai = val(teaser.prix_fai) ?? null;
+  const prixFai = prixFaiDuLot(teaser) ?? null;
   const chargesNonRecup = montants(v('charges_non_recup') || '')[0]?.valeur ?? 0;
   const taxeRefacturee = /preneur|locataire/i.test(String(v('taxe_fonciere') || '')) || /taxe fonci/i.test(String(v('charges') || ''));
   const taxe = taxeRefacturee ? 0 : montants(v('taxe_fonciere') || '')[0]?.valeur ?? 0;

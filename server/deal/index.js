@@ -8,6 +8,7 @@
 // Le verdict est arrêté à l'étape 3. Les étapes 2 et 4 ne peuvent ni le
 // produire ni le modifier.
 
+import { prixFai as prixFaiDuLot } from './prix.js';
 import { randomUUID } from 'crypto';
 import { Records } from '../db.js';
 import { ingerer, archiverSource } from './ingest.js';
@@ -78,7 +79,7 @@ export async function analyserFiche(entree, ctx = {}) {
         // Complété en arrière-plan une fois le deal sauvegardé.
         contexte_marche: null,
         simulateur: parametresSimulateur({
-          prixFai: val(lot.prix_fai),
+          prixFai: prixFaiDuLot(lot),
           loyerAnnuel: val(lot.loyer_annuel_ht_hc),
           surface: val(lot.surface_m2),
         }),
@@ -255,10 +256,19 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   // le prix négocié et les travaux bailleur de la première année. Le verdict,
   // lui, reste jugé sur le prix FAI — ce sont les règles qui le disent.
   const sim = entree.simulateur || {};
+  // Un prix négocié n'est une décision que s'il s'écarte du prix FAI d'alors :
+  // à la création, le simulateur pose le négocié égal au FAI, et ce reflet
+  // était repris comme une négociation. Corriger le prix de la fiche mettait
+  // donc à jour le prix FAI en laissant le négocié sur l'ancien montant — or
+  // c'est lui qui porte le prix de revient, le cash-flow et le rendement. Le
+  // simulateur d'en dessous ne bougeait pas d'un euro.
+  const ancienFai = Number(sim.prixBienFAI) || 0;
+  const ancienNegocie = Number(sim.prixBienNegocie) || 0;
+  const vraimentNegocie = ancienNegocie > 0 && (ancienFai === 0 || Math.round(ancienNegocie) !== Math.round(ancienFai));
   const negocie = Number(saisie.prix_negocie) > 0
     ? Number(saisie.prix_negocie)
-    : Number(sim.prixBienNegocie) > 0
-    ? Number(sim.prixBienNegocie)
+    : vraimentNegocie
+    ? ancienNegocie
     : null;
   const travauxAn0 = Array.isArray(sim.travauxBailleur) ? Number(sim.travauxBailleur[0]) || 0 : 0;
   const evaluation = evaluer(lot, enrichissement, { prixNegocie: negocie, travaux: travauxAn0 });
@@ -283,7 +293,7 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
       const refait = {
         ...(entree.simulateur || {}),
         ...parametresSimulateur({
-          prixFai: val(lot.prix_fai),
+          prixFai: prixFaiDuLot(lot),
           loyerAnnuel: val(lot.loyer_annuel_ht_hc),
           surface: val(lot.surface_m2),
         }),

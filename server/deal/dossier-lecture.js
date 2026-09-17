@@ -14,6 +14,7 @@
 // Tout est déterministe : on compare des nombres et des dates relevés avec
 // leur citation. Aucun modèle n'intervient ici.
 
+import { prixFai as prixFaiDuLot } from './prix.js';
 import { Records } from '../db.js';
 
 // ---------------------------------------------------------------------------
@@ -259,7 +260,7 @@ export function ficheBien(deal) {
 
   // Le rendement se calcule : loyer retenu sur prix de revient annoncé.
   const loyer = fiche.find((f) => f.cle === 'loyer')?.nombre;
-  const prix = val(lot.prix_fai);
+  const prix = prixFaiDuLot(lot);
   if (loyer && prix) {
     const r = (loyer / prix) * 100;
     fiche.push({

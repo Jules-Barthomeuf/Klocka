@@ -10,6 +10,7 @@
 //   4. réserves                  -> GO SOUS RÉSERVE, sinon GO
 
 import { REGLES } from './enrich.js';
+import { prixFai } from './prix.js';
 import { calculerAEM } from './aem.js';
 
 export const VERDICTS = ['GO', 'GO SOUS RÉSERVE', 'INSUFFISANT', 'NO-GO'];
@@ -79,7 +80,7 @@ export function construireContexte(lot, enrichissement, aem) {
   return {
     // Extraction
     adresse: val(lot.adresse),
-    prix_fai: val(lot.prix_fai),
+    prix_fai: prixFai(lot),
     loyer_annuel_ht_hc: val(lot.loyer_annuel_ht_hc),
     surface_m2: val(lot.surface_m2),
     locataire_nom: val(lot.locataire_nom),
@@ -182,7 +183,7 @@ export function evaluer(lot, enrichissement, { prixNegocie = null, travaux = 0 }
   // le rendement AEM du verdict et celui affiché par le simulateur, juste en
   // dessous, ne parlaient pas du même bien.
   const aem = calculerAEM({
-    prixFai: val(lot.prix_fai),
+    prixFai: prixFai(lot),
     prixNegocie,
     loyerAnnuel: val(lot.loyer_annuel_ht_hc),
     travaux,

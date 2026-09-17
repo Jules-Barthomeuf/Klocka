@@ -6,6 +6,7 @@
 // registre de faits est la matrice (question × document, cité à la page) ;
 // ici, le code réconcilie — l'IA n'y touche pas.
 
+import { prixFai as prixFaiDuLot } from './prix.js';
 import { lireMatrice, lireFiche } from './matrice.js';
 import { montants, surfaces, dates, loyerAnnuel } from './dossier-lecture.js';
 import { calculerAEM } from './aem.js';
@@ -59,7 +60,7 @@ export function lireCarteDeal(dealId) {
   const taxeDR = montants(champs.get('taxe_fonciere')?.valeur || '')[0]?.valeur || null;
   const capital = montants(champs.get('capital')?.valeur || '')[0]?.valeur || null;
 
-  const prixFai = val(teaser.prix_fai);
+  const prixFai = prixFaiDuLot(teaser);
   const loyerTeaser = val(teaser.loyer_annuel_ht_hc);
   const surfaceTeaser = val(teaser.surface_m2);
   const echeanceTeaser = Number(String(val(teaser.bail_echeance) || '').match(/\d{4}/)?.[0]) || null;

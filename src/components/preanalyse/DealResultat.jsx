@@ -226,6 +226,39 @@ export const CHAMPS_AFFICHES = [
 ];
 const LIBELLE_CHAMP = Object.fromEntries(CHAMPS_AFFICHES);
 
+const valChamp = (c) => (c && c.absent === false ? c.valeur : null);
+
+/**
+ * Le prix FAI du lot, et le net vendeur quand la fiche annonce un prix hors
+ * honoraires. Même règle que server/deal/prix.js : le chiffre de la fiche est
+ * alors le net vendeur, et le FAI vaut ce prix plus les honoraires.
+ */
+export function prixDuLot(entree) {
+  // Les champs de la fiche vivent sous `lot.lot` quand on reçoit l'entrée du
+  // dossier, et à la racine quand on reçoit le lot seul : on accepte les deux,
+  // comme ChampFiche.
+  const lot = entree?.lot ?? entree;
+  const prix = valChamp(lot?.prix_fai);
+  const honoraires = valChamp(lot?.montant_honoraires);
+  const hors = valChamp(lot?.honoraires_inclus) === false && honoraires > 0;
+  return { prix, honoraires, hors, fai: prix == null ? null : hors ? prix + honoraires : prix };
+}
+
+/**
+ * Les lignes de la fiche, dans l'ordre. Hors honoraires, le prix de la fiche
+ * s'appelle « Prix net vendeur » et une ligne calculée donne le prix FAI :
+ * deux lignes, et plus rien à taper à la main.
+ */
+function lignesFiche(lot) {
+  const { hors } = prixDuLot(lot);
+  const lignes = [];
+  for (const [champ, libelle] of CHAMPS_AFFICHES) {
+    lignes.push([champ, champ === "prix_fai" && hors ? "Prix net vendeur" : libelle]);
+    if (champ === "montant_honoraires" && hors) lignes.push(["prix_fai_calcule", "Prix FAI"]);
+  }
+  return lignes;
+}
+
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 
 export function afficherValeur(champ, valeur) {
@@ -713,6 +746,38 @@ const texteBrut = (champ, c) => {
   if (champ === "adresse" && v && typeof v === "object") return [v.rue, [v.code_postal, v.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return v == null ? "" : String(v);
 };
+/** Le prix FAI, quand la fiche annonce un net vendeur : net + honoraires. */
+function PrixFaiCalcule({ lot }) {
+  const { prix, honoraires, fai } = prixDuLot(lot);
+  if (fai == null) return <span className="text-[15px] text-brume">—</span>;
+  return (
+    <span className="inline-flex items-baseline gap-2">
+      <span className="text-[15px] tabular-nums text-encre">{euros(fai)}</span>
+      <span className="text-[11px] text-brume">{euros(prix)} + {euros(honoraires)}</span>
+    </span>
+  );
+}
+
+/**
+ * Le rendement, calculé sur le prix FAI. La fiche en annonce souvent un autre,
+ * calculé sur le net vendeur : il est rappelé à côté quand il diffère.
+ */
+function RendementSurFai({ lot }) {
+  const { fai } = prixDuLot(lot);
+  const champs = lot?.lot ?? lot;
+  const loyer = valChamp(champs?.loyer_annuel_ht_hc);
+  const annonce = valChamp(champs?.rendement_annonce);
+  if (!fai || !loyer) return <span className="text-[15px] text-brume">{annonce == null ? "—" : `${String(annonce).replace(".", ",")} %`}</span>;
+  const calcule = (loyer / fai) * 100;
+  const ecart = annonce != null && Math.abs(annonce - calcule) >= 0.05;
+  return (
+    <span className="inline-flex items-baseline gap-2">
+      <span className="text-[15px] tabular-nums text-encre">{calcule.toFixed(2).replace(".", ",")} %</span>
+      {ecart && <span className="text-[11px] text-brume">fiche : {String(annonce).replace(".", ",")} %</span>}
+    </span>
+  );
+}
+
 export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sansNote = false, aGauche = false, teinte = null }) {
   const c = lot?.lot?.[champ];
   const absent = !c || c.absent;
@@ -832,10 +897,14 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             </div>
             <BandeauRecalcul actif={enCours} />
             <dl className="m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12">
-              {CHAMPS_AFFICHES.map(([champ, libelle]) => (
+              {lignesFiche(lot).map(([champ, libelle]) => (
                 <div key={champ} className="flex items-baseline justify-between gap-5 py-2">
                   <dt className="text-[12.5px] text-ardoise flex-none">{libelle}</dt>
-                  <dd className="m-0 text-right min-w-0"><ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
+                  <dd className="m-0 text-right min-w-0">
+                    {champ === "prix_fai_calcule" ? <PrixFaiCalcule lot={lot} />
+                      : champ === "rendement_annonce" ? <RendementSurFai lot={lot} />
+                      : <ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} />}
+                  </dd>
                 </div>
               ))}
             </dl>

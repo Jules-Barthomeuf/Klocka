@@ -11,6 +11,7 @@
 // quand l'équipe ajoute une colonne et l'enregistre. Au bout de vingt
 // dossiers, la grille est la méthode Klocka.
 
+import { prixFai as prixFaiDuLot } from './prix.js';
 import { createHash } from 'crypto';
 import { Records } from '../db.js';
 import { montants, surfaces, dates } from './dossier-lecture.js';
@@ -410,7 +411,7 @@ export function lireMatrice(dealId) {
   const vivantes = lignes.filter((l) => !l.perime);
   const lot = brut.lots?.[0]?.lot || {};
   const loyerAnnonce = val(lot.loyer_annuel_ht_hc);
-  const prix = val(lot.prix_fai);
+  const prix = prixFaiDuLot(lot);
   const recalc = loyerAnnonce && prix ? (loyerAnnonce / prix) * 100 : null;
   const contexte = {
     loyer_annonce: loyerAnnonce,

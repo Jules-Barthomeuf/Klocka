@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { J } from "@/design/jetons";
 import { useEdition, ValeurEditable } from "./EditionEnPlace";
 import { InfoDot } from "./SecteurChiffres";
 import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
@@ -227,6 +228,62 @@ export function BandesCases({ zone, cases, project, titre = null }) {
     <div>
       {titre && <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-ardoise">{titre}</div>}
       <ChiffresStrip chiffres={liste} />
+    </div>
+  );
+}
+
+/**
+ * Les trois colonnes de l'assemblée générale : ce qui est voté, ce qui se
+ * discute, ce qui ne l'est pas encore. Trois cases côte à côte se lisaient
+ * comme trois chiffres sans lien ; un tableau les met en regard, et la couleur
+ * dit l'état — le vert pour ce qui est acté, l'ambre pour ce qui se discute,
+ * le gris pour ce qui attend.
+ */
+const COLONNES_AG = [
+  ["travaux_votes", "Travaux votés", J["menthe"]],
+  ["travaux_discussion", "Travaux en discussion", J["ambre"]],
+  ["resolutions_non_votees", "Résolutions non votées", J["ardoise"]],
+];
+
+export function TableauAG({ cases, project }) {
+  const edition = useEdition();
+  const enEdition = !!edition?.onChamp;
+  const forcees = project?.cases_forcees || {};
+  const lu = (id) => {
+    const brut = (cases || []).find((c) => c.id === id);
+    return brut ? fusionner(brut, forcees[`copropriete.${id}`]) : null;
+  };
+  const colonnes = COLONNES_AG.map(([id, titre, teinte]) => ({ id, titre, teinte, c: lu(id) }));
+  if (!enEdition && !colonnes.some((x) => x.c?.valeur)) return null;
+
+  return (
+    <div className="overflow-x-auto rounded-[16px] border border-trait">
+      <table className="w-full min-w-[640px] border-collapse text-left">
+        <thead>
+          <tr>
+            {colonnes.map(({ id, titre, teinte }) => (
+              <th key={id} className="border-b border-trait px-5 py-3.5 align-bottom font-normal" style={{ width: "33.33%" }}>
+                <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em]" style={{ color: teinte }}>
+                  <span className="h-[3px] w-5 rounded-full" style={{ background: teinte }} />
+                  {titre}
+                </span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {colonnes.map(({ id, c }) => (
+              <td key={id} className="px-5 py-4 align-top text-[13.5px] leading-[1.6]" style={{ color: c?.valeur ? undefined : undefined }}>
+                <span className={c?.valeur ? "text-craie" : "text-brume"}>{c?.valeur || "—"}</span>
+                {(c?.detail || c?.info) && (
+                  <span className="mt-1.5 block text-[12px] text-brume">{[c.detail, c.info].filter(Boolean).join(" · ")}</span>
+                )}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }

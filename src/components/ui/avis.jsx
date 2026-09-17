@@ -43,7 +43,7 @@ export function Avis({ ton = "information", titre, description = null, action = 
   return (
     <div
       role="status"
-      className="relative w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-trait bg-surface px-[18px] py-4 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.9)]"
+      className="relative w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-bord bg-surface-pleine px-[18px] py-4 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.9)]"
     >
       <div className="flex items-start gap-3">
         <span

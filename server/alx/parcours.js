@@ -192,13 +192,34 @@ export function redigerPour(villeId, ids, { user = null } = {}) {
   return { ok: true, ville: Records.get('Ville', villeId) };
 }
 
-/** Demande l'arrêt : le parcours s'arrête à la fin de la cible en cours. */
+/**
+ * Arrête le parcours d'une ville.
+ *
+ * L'arrêt s'écrit tout de suite dans la ville : le bouton disait « Arrêter »
+ * sans que rien ne bouge, parce qu'il ne levait qu'un drapeau en mémoire et
+ * que la tâche de fond ne s'en aperçoit qu'entre deux rues — une requête
+ * OpenStreetMap peut tenir la ligne une minute. La tâche voit le drapeau et
+ * s'arrête de son côté ; elle n'écrasera pas cet état, « arrete » étant déjà
+ * celui qu'elle poserait.
+ *
+ * Et quand plus rien ne tourne en mémoire — le serveur a redémarré, la tâche
+ * est morte en chemin — la ville restait « en cours » pour toujours, avec un
+ * bouton qui ne répondait qu'« aucun parcours en cours ». On la remet propre.
+ */
 export function arreter(villeId) {
+  const v = Records.get('Ville', villeId);
+  if (!v) return { ok: false, error: 'Ville introuvable.' };
   const r = enCours.get(villeId);
-  if (!r) return { ok: false, error: "Aucun parcours en cours sur cette ville." };
-  r.arreter = true;
-  noter(villeId, "Arrêt demandé : ALX finit la cible en cours et s'arrête.");
-  return { ok: true };
+  if (r) {
+    r.arreter = true;
+    noter(villeId, "Arrêt demandé : ALX finit la cible en cours et s'arrête.");
+  } else if (v.parcours?.etat !== 'en_cours') {
+    return { ok: false, error: "Aucun parcours en cours sur cette ville." };
+  } else {
+    noter(villeId, "Arrêt : plus aucune tâche ne tournait pour cette ville, son état est remis au propre.");
+  }
+  ecrire(villeId, { etat: 'arrete', fini_le: maintenant(), rue_en_cours: null });
+  return { ok: true, ville: Records.get('Ville', villeId) };
 }
 
 /** Au démarrage du serveur : un parcours laissé « en cours » ne l'est plus. */

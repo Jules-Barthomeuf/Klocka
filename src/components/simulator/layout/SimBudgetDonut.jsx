@@ -58,7 +58,7 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
         <div className="w-full sm:w-auto sm:flex-1 min-w-0 space-y-2.5">
           {items.map((d, i) =>
           <div key={i} className="flex items-center justify-between text-sm">
-              <span className="truncate pr-3 text-ardoise">{d.name}</span>
+              <span className="truncate pr-3 text-encre">{d.name}</span>
               <span className="text-encre tabular-nums font-medium whitespace-nowrap">{formatCurrency(d.value)}</span>
             </div>
           )}

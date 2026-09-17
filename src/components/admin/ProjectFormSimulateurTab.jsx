@@ -31,7 +31,7 @@ function SectionTitle({ children, accent = undefined }) {
 // Toggle stylé "IMMO OS"
 function ToggleRow({ checked, onCheckedChange, title, description = undefined }) {
   return (
-    <div className="flex items-center gap-3 bg-surface border border-trait rounded-none px-[18px] py-3.5">
+    <div className="flex items-center gap-3 bg-surface border border-trait rounded-[12px] px-[18px] py-3.5">
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
       <div>
         <Label className="text-encre text-[13.5px] font-medium cursor-pointer">{title}</Label>
@@ -44,7 +44,7 @@ function ToggleRow({ checked, onCheckedChange, title, description = undefined })
 // Select stylé "IMMO OS"
 function FSelect({ label, value, onValueChange, children }) {
   return (
-    <div className="bg-surface border border-trait rounded-none px-[18px] py-3 transition-all focus-within:border-bord-vif">
+    <div className="bg-surface border border-trait rounded-[12px] px-[18px] py-3 transition-all focus-within:border-bord-vif">
       {label && <div className="text-[12.5px] text-ardoise font-semibold mb-1.5">{label}</div>}
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger className="bg-transparent border-none h-auto p-0 text-[15px] text-encre focus:ring-0"><SelectValue /></SelectTrigger>
@@ -109,7 +109,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
       />
 
       {modeNetVendeur ? (
-        <div className="space-y-4 p-4 bg-encre/[0.02] rounded-none border border-trait">
+        <div className="space-y-4 p-4 bg-encre/[0.02] rounded-[12px] border border-trait">
           <div className="grid md:grid-cols-2 gap-4">
             <FField label="Prix net vendeur (€)">
               <FInput type="number" value={formData.sim_prix_net_vendeur || ''} onChange={(e) => handleNetVendeurChange("sim_prix_net_vendeur", parseFloat(e.target.value) || 0)} />
@@ -132,7 +132,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
               <FField label={(formData.sim_honoraires_agent_mode || "pct_ttc").startsWith("pct") ? "Taux (%)" : "Montant HT (€)"}>
                 <FInput type="number" step="0.1" value={formData.sim_honoraires_agent_montant || ''} onChange={(e) => handleNetVendeurChange("sim_honoraires_agent_montant", parseFloat(e.target.value) || 0)} />
               </FField>
-              <div className="bg-surface border border-trait rounded-none px-[18px] py-3">
+              <div className="bg-surface border border-trait rounded-[12px] px-[18px] py-3">
                 <div className="text-[12.5px] text-ardoise font-semibold mb-1.5">Honoraires TTC calculés</div>
                 <span className="text-encre font-semibold text-[15px]">
                   {honorairesAgent > 0 ? fmtEur(honorairesAgent) : "—"}
@@ -306,7 +306,7 @@ export default function ProjectFormSimulateurTab({ formData, setFormData, travau
       </div>
 
       <SectionTitle accent={J["menthe"]}>8. Paramètres Administrateur</SectionTitle>
-      <div className="space-y-4 p-4 bg-menthe/10 rounded-none border border-menthe/30">
+      <div className="space-y-4 p-4 bg-menthe/10 rounded-[12px] border border-menthe/30">
         <ToggleRow checked={formData.sim_commission_agent_active ?? false} onCheckedChange={(checked) => setFormData({...formData, sim_commission_agent_active: checked})} title="Honoraires à la charge de l'acquéreur TTC" />
         {formData.sim_commission_agent_active && (
           <div className="space-y-4">

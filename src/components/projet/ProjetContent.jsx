@@ -10,7 +10,7 @@ import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
-import { useCasesProjet, PanneauPiece, VueBail, BandesCases, dateFr } from "./CasesProjet";
+import { useCasesProjet, PanneauPiece, VueBail, BandesCases, TableauAG, dateFr } from "./CasesProjet";
 import PlongeeCarte from "./PlongeeCarte";
 import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
@@ -666,7 +666,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <div className="mb-10 max-md:mb-6">
                 <SectionLabel tone="teal">PV d'assemblée générale</SectionLabel>
-                <BandesCases zone="copropriete" cases={cases?.copropriete} project={project} />
+                <TableauAG cases={cases?.copropriete} project={project} />
+                {/* Les impayés ne sont pas une résolution : ils restent une case. */}
+                <div className="mt-5">
+                  <BandesCases zone="copropriete" cases={(cases?.copropriete || []).filter((c) => c.id === "impayes_copro")} project={project} />
+                </div>
               </div>
 
               <KpiStrip items={[

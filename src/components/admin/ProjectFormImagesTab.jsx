@@ -51,7 +51,7 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
   return (
     <div className="space-y-6 mt-6">
       <div className="space-y-4">
-        <div className="p-6 bg-surface rounded-none border border-trait">
+        <div className="p-6 bg-surface rounded-[12px] border border-trait">
           <div className="text-encre text-lg mb-4">Upload direct</div>
           <p className="text-xs text-ardoise mb-4">Sélectionnez une ou plusieurs images depuis votre ordinateur</p>
           <label className="cursor-pointer">

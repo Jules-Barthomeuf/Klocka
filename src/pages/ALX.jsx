@@ -1030,7 +1030,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
                 className="alx-mont rounded-full px-5 py-2 text-[11px] font-semibold uppercase tracking-[.14em] transition-opacity hover:opacity-85 disabled:opacity-50"
                 style={{ background: J["alerte"], color: J["fond"] }}
               >
-                {arreter.isPending ? "…" : "Arrêter"}
+                {arreter.isPending ? "Arrêt en cours" : "Arrêter"}
               </button>
             ) : (
               <button

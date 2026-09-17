@@ -199,11 +199,12 @@ export default function Cartes({ villes = [], onOuvrirCarte, onOuvrirVille }) {
   );
 }
 
-/** Les critères de la carte, posés une fois et relus à chaque ouverture. */
+/**
+ * Les critères de la carte. Ils ne s'ouvrent plus par une barre à eux : la
+ * flèche vit à côté du nom de la carte, là où l'œil la cherche.
+ */
 function Criteres({ carte, familles }) {
   const qc = useQueryClient();
-  // Repliés par défaut : on les pose une fois, on les relit rarement.
-  const [ouvert, setOuvert] = useState(false);
   const c = carte.criteres || {};
   const [f, setF] = useState({
     prix_min: c.prix_min ?? "", prix_max: c.prix_max ?? "",
@@ -219,18 +220,7 @@ function Criteres({ carte, familles }) {
 
   return (
     <section className="rounded-[18px] border border-trait bg-surface p-[26px]">
-      <button
-        type="button"
-        onClick={() => setOuvert((o) => !o)}
-        aria-expanded={ouvert}
-        className="flex w-full items-center justify-between gap-4 text-left"
-        style={{ background: "transparent" }}
-      >
-        <Etiquette>Critères</Etiquette>
-        <ChevronDown className={`h-4 w-4 flex-none text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
-      </button>
-      {ouvert && (
-      <div className="mt-4 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
         <Champ label="Budget mini" value={f.prix_min} onChange={change("prix_min")} placeholder="200 000" />
         <Champ label="Budget maxi" value={f.prix_max} onChange={change("prix_max")} placeholder="300 000" />
         <Champ label="Rendement visé" value={f.rendement} onChange={change("rendement")} placeholder="8" />
@@ -243,13 +233,10 @@ function Criteres({ carte, familles }) {
         </label>
         <Champ label="Ce qu'il évite" value={f.note} onChange={change("note")} placeholder="Restauration rapide, pas de rez-de-chaussée aveugle…" />
       </div>
-      )}
-      {ouvert && (
       <div className="mt-4 flex items-center gap-3">
         <Bouton principal onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}>{enregistrer.isPending ? <PenseeIA etat="working" taille={20} clair /> : "Enregistrer les critères"}</Bouton>
         <span className="text-[12.5px] text-ardoise">Le rendement commande la ville : au-delà de 9 %, on quitte les métropoles.</span>
       </div>
-      )}
     </section>
   );
 }
@@ -304,6 +291,8 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
   const qc = useQueryClient();
   const [texte, setTexte] = useState("");
   const [tout, setTout] = useState(false);
+  // Les critères sont repliés : on les pose une fois, on les relit rarement.
+  const [criteresOuverts, setCriteresOuverts] = useState(false);
   // La sélection est la même sur la carte et dans la liste : un code INSEE.
   const [cochees, setCochees] = useState(() => new Set());
   const [detail, setDetail] = useState(null);
@@ -347,7 +336,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
   if (isLoading || !data) {
     return (
       <div className="flex flex-col items-center gap-7 py-28">
-        <PenseeIA etat="searching" taille={168} />
+        <PenseeIA etat="searching" taille={64} pixels={150} />
         <span className="text-[15px] text-ardoise">Ouverture de la carte…</span>
       </div>
     );
@@ -375,7 +364,21 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <button onClick={onFermer} className="mb-2 text-[12.5px] text-ardoise hover:text-encre">← Toutes les cartes</button>
-          <h1 className="alx-mont m-0 text-[34px] font-medium tracking-[-.02em] text-encre">{carte.nom}</h1>
+          {/* La flèche contre le nom : elle ouvre les critères de cette carte. */}
+          <div className="flex items-center gap-2.5">
+            <h1 className="alx-mont m-0 text-[34px] font-medium tracking-[-.02em] text-encre">{carte.nom}</h1>
+            <button
+              type="button"
+              onClick={() => setCriteresOuverts((o) => !o)}
+              aria-expanded={criteresOuverts}
+              aria-label={criteresOuverts ? "Masquer les critères" : "Voir les critères"}
+              title={criteresOuverts ? "Masquer les critères" : "Voir les critères"}
+              className="grid h-8 w-8 flex-none place-items-center rounded-full border border-bord text-ardoise transition-colors hover:border-menthe hover:text-menthe"
+              style={{ background: "transparent" }}
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${criteresOuverts ? "rotate-180" : ""}`} />
+            </button>
+          </div>
           <p className="m-0 mt-1.5 text-[13.5px] text-menthe">{carte.phrase}{carte.client ? ` · ${carte.client}` : ""}</p>
           {carte.criteres?.note && <p className="m-0 mt-1 text-[12.5px] text-ardoise">{carte.criteres.note}</p>}
         </div>
@@ -387,7 +390,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
         </button>
       </header>
 
-      <Criteres carte={carte} familles={familles} />
+      {criteresOuverts && <Criteres carte={carte} familles={familles} />}
 
       {villes.length > 0 && (
         <section>

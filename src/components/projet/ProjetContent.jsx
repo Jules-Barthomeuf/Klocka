@@ -5,13 +5,12 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Download, X, ChevronLeft, ChevronRight, FileText, Play } from "lucide-react";
+import { Download, X, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import moment from "moment";
 import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
 import { useCasesProjet, PanneauPiece, VueBail, BandesCases, TableauAG, dateFr } from "./CasesProjet";
-import PlongeeCarte from "./PlongeeCarte";
 import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
@@ -185,10 +184,15 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   // Analyse IA (avis projet + chiffres ville/secteur), mutualisée en un appel.
   const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
   const [selectedImage, setSelectedImage] = useState(null);
-  // Une photo morte (URL d'un hébergeur disparu) affichait son texte de
-  // remplacement en travers du hero : on bascule alors sur la carte.
-  const [photoHeroKo, setPhotoHeroKo] = useState(false);
-  const [plongee, setPlongee] = useState(false);
+  // Le carrousel du hero : le rang de la photo montrée, et les adresses qui ne
+  // répondent plus (un hébergeur disparu ne doit pas condamner les suivantes).
+  const [iPhoto, setIPhoto] = useState(0);
+  const [urlsMortes, setUrlsMortes] = useState(() => new Set());
+  // Ce que le carrousel montre : les photos qui répondent encore, celle du
+  // rang courant, et la rue s'il y a de quoi la situer.
+  const photosVivantes = (project.photos || []).filter((u) => u && !urlsMortes.has(u));
+  const photoMontree = photosVivantes[Math.min(iPhoto, photosVivantes.length - 1)] || null;
+  const rueDisponible = !!(project.adresse_complete || (project.latitude && project.longitude));
   const [streetView, setStreetView] = useState(false);
   // La pièce ouverte à droite quand on clique une case.
   const [piece, setPiece] = useState(null);
@@ -366,66 +370,79 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       <div className="relative w-full h-[560px] max-md:h-[440px] overflow-hidden">
         {streetView ? (
           <StreetViewRue project={project} />
-        ) : plongee ? (
-          <PlongeeCarte project={project} onClose={() => setPlongee(false)} />
-        ) : project.photos && project.photos.length > 0 && !photoHeroKo ? (
-          <img src={project.photos[0]} alt="" onError={() => setPhotoHeroKo(true)} onClick={() => setSelectedImage(project.photos[0])}
-            className="absolute inset-0 w-full h-full object-cover cursor-pointer" />
+        ) : photoMontree ? (
+          <img
+            key={photoMontree}
+            src={photoMontree}
+            alt=""
+            onError={() => setUrlsMortes((s) => new Set(s).add(photoMontree))}
+            onClick={() => setSelectedImage(photoMontree)}
+            className="absolute inset-0 h-full w-full cursor-pointer object-cover"
+          />
         ) : mapUrl ? (
           <iframe src={mapUrl} className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du projet" />
         ) : (
           <div className="absolute inset-0 bg-surface" />
         )}
         {/* En Street View, ni voile ni habillage : le panorama se manipule. */}
-        {/* Pendant la vidéo, le voile ne garde que le bas, pour lire le titre. */}
         {!streetView && (
-          <div className="absolute inset-0 pointer-events-none" style={{ background: plongee
-            ? 'linear-gradient(to top, rgba(10,12,12,0.9) 0%, rgba(10,12,12,0.35) 30%, rgba(10,12,12,0) 55%)'
-            : 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
         )}
 
-        {/* Bouton play au centre : lance la vidéo du secteur (plongée 3D). */}
-        {!plongee && !streetView && (project.adresse_complete || (project.latitude && project.longitude)) && (
-          <button
-            onClick={(e) => { e.stopPropagation(); setPlongee(true); }}
-            aria-label="Voir la vidéo du secteur" title="Voir la vidéo du secteur"
-            className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-fond/55 border border-encre/40 backdrop-blur-sm flex items-center justify-center text-encre hover:border-menthe hover:text-menthe-clair hover:scale-105 transition-all"
-          >
-            <Play className="w-6 h-6 ml-1 fill-current" />
-          </button>
+        {/* Le carrousel : une photo, les suivantes d'un clic, et la rue au
+            bout. Les flèches ne s'affichent que s'il y a quelque part où
+            aller. */}
+        {!streetView && photoMontree && (photosVivantes.length > 1 || rueDisponible) && (
+          <>
+            {photosVivantes.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setIPhoto((i) => (i - 1 + photosVivantes.length) % photosVivantes.length); }}
+                aria-label="Photo précédente" title="Photo précédente"
+                className="absolute left-5 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-encre/[0.28] bg-fond/50 text-encre backdrop-blur-sm transition-colors hover:border-encre max-md:left-3"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (iPhoto < photosVivantes.length - 1) setIPhoto(iPhoto + 1);
+                else if (rueDisponible) setStreetView(true);
+                else setIPhoto(0);
+              }}
+              aria-label={iPhoto < photosVivantes.length - 1 ? "Photo suivante" : "Voir la rue"}
+              title={iPhoto < photosVivantes.length - 1 ? "Photo suivante" : "Voir la rue"}
+              className="absolute right-5 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-encre/[0.28] bg-fond/50 text-encre backdrop-blur-sm transition-colors hover:border-encre max-md:right-3"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
+
+        {/* Les pastilles : où l'on en est, et la dernière mène à la rue. */}
+        {!streetView && photosVivantes.length > 1 && (
+          <div className="absolute bottom-[104px] left-1/2 flex -translate-x-1/2 items-center gap-2 max-md:bottom-[92px]">
+            {photosVivantes.map((u, i) => (
+              <button
+                key={u}
+                onClick={(e) => { e.stopPropagation(); setIPhoto(i); }}
+                aria-label={`Aller à la photo ${i + 1}`}
+                className="h-1.5 rounded-full transition-all"
+                style={{ width: i === iPhoto ? 22 : 6, background: i === iPhoto ? J["menthe"] : "rgba(242,243,245,0.35)" }}
+              />
+            ))}
+          </div>
         )}
 
         <div className="absolute top-7 left-5 right-5 md:left-14 md:right-14 flex justify-end items-center gap-3">
           <div className="flex gap-2 flex-wrap justify-end items-center">
-            {/* Fermeture de la vidéo du secteur (le lancement, lui, se fait
-                par le bouton play au centre de l'image). */}
-            {plongee && !streetView && (
-              <button onClick={() => setPlongee(false)}
-                className="text-[12.5px] px-4 py-2 rounded-full bg-fond/50 backdrop-blur-sm border border-encre/[0.28] text-encre hover:border-encre transition-colors">
-                Arrêter la vidéo
-              </button>
-            )}
             {/* Street View : se déplacer dans la rue autour du local. */}
             {mapsKey && (project.adresse_complete || (project.latitude && project.longitude)) && (
               <button
-                onClick={() => { setStreetView((v) => !v); setPlongee(false); }}
+                onClick={() => setStreetView((v) => !v)}
                 className="text-[12.5px] px-4 py-2 rounded-full bg-fond/50 backdrop-blur-sm border border-encre/[0.28] text-encre hover:border-encre transition-colors"
               >
                 {streetView ? "Fermer Street View" : "Street View"}
-              </button>
-            )}
-            {/* Galerie : miniature empilée quand le dossier a plusieurs photos ;
-                le clic ouvre la visionneuse (flèches pour naviguer). */}
-            {project.photos && project.photos.length > 1 && (
-              <button onClick={() => setSelectedImage(project.photos[0])}
-                 aria-label={`Voir les ${project.photos.length} photos`} title={`Voir les ${project.photos.length} photos`}
-                className="relative group mr-1">
-                <span className="absolute -top-1 -right-1 w-full h-full border border-encre/[0.28] bg-fond/50" aria-hidden="true" />
-                <img src={project.photos[1]} alt="Galerie du projet"
-                  className="relative h-9 w-14 object-cover border border-encre/[0.28] group-hover:border-encre transition-colors" />
-                <span className="absolute inset-0 flex items-center justify-center bg-fond/45 text-[11px] tracking-[0.08em] text-encre" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                  +{project.photos.length - 1}
-                </span>
               </button>
             )}
             {project.documents && project.documents.length > 0 && (

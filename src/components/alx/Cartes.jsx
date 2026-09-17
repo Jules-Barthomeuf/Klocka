@@ -1,11 +1,11 @@
 import React, { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Bouton, Champ, Etiquette, Nombre, TEINTES, joliNom, pileDe } from "@/components/alx/alx-commun";
 import { J } from "@/design/jetons";
 import PenseeIA from "@/components/PenseeIA";
-import CarteDeFrance from "@/components/alx/CarteDeFrance";
 import CoordonneesProprietaire from "@/components/alx/CoordonneesProprietaire";
 
 // Les cartes de prospection. On ne cherche pas « dans une ville », on cherche
@@ -202,6 +202,8 @@ export default function Cartes({ villes = [], onOuvrirCarte, onOuvrirVille }) {
 /** Les critères de la carte, posés une fois et relus à chaque ouverture. */
 function Criteres({ carte, familles }) {
   const qc = useQueryClient();
+  // Repliés par défaut : on les pose une fois, on les relit rarement.
+  const [ouvert, setOuvert] = useState(false);
   const c = carte.criteres || {};
   const [f, setF] = useState({
     prix_min: c.prix_min ?? "", prix_max: c.prix_max ?? "",
@@ -217,8 +219,18 @@ function Criteres({ carte, familles }) {
 
   return (
     <section className="rounded-[18px] border border-trait bg-surface p-[26px]">
-      <Etiquette className="mb-4">Ce qu'on cherche pour lui</Etiquette>
-      <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
+      <button
+        type="button"
+        onClick={() => setOuvert((o) => !o)}
+        aria-expanded={ouvert}
+        className="flex w-full items-center justify-between gap-4 text-left"
+        style={{ background: "transparent" }}
+      >
+        <Etiquette>Critères</Etiquette>
+        <ChevronDown className={`h-4 w-4 flex-none text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
+      </button>
+      {ouvert && (
+      <div className="mt-4 grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
         <Champ label="Budget mini" value={f.prix_min} onChange={change("prix_min")} placeholder="200 000" />
         <Champ label="Budget maxi" value={f.prix_max} onChange={change("prix_max")} placeholder="300 000" />
         <Champ label="Rendement visé" value={f.rendement} onChange={change("rendement")} placeholder="8" />
@@ -231,10 +243,13 @@ function Criteres({ carte, familles }) {
         </label>
         <Champ label="Ce qu'il évite" value={f.note} onChange={change("note")} placeholder="Restauration rapide, pas de rez-de-chaussée aveugle…" />
       </div>
+      )}
+      {ouvert && (
       <div className="mt-4 flex items-center gap-3">
         <Bouton principal onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}>{enregistrer.isPending ? <PenseeIA etat="working" taille={20} clair /> : "Enregistrer les critères"}</Bouton>
         <span className="text-[12.5px] text-ardoise">Le rendement commande la ville : au-delà de 9 %, on quitte les métropoles.</span>
       </div>
+      )}
     </section>
   );
 }
@@ -347,6 +362,13 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
   const mot = texte.trim().toLowerCase();
   const filtrees = conseillees.filter((v) => !mot || `${v.ville} ${v.typologie} ${v.emplacement}`.toLowerCase().includes(mot));
   const montrees = tout || mot ? filtrees : filtrees.slice(0, 12);
+  // La case du coin du tableau : elle coche ce qui est affiché, filtre compris.
+  const toutesCochees = montrees.length > 0 && montrees.every((v) => cochees.has(v.insee));
+  const basculerToutes = () => setCochees((s) => {
+    const n = new Set(s);
+    for (const v of montrees) { if (toutesCochees) n.delete(v.insee); else n.add(v.insee); }
+    return n;
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -394,13 +416,6 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
         </section>
       )}
 
-      <section>
-        <Etiquette className="mb-3">Où chercher pour lui</Etiquette>
-        <div className="mx-auto w-full max-w-[680px]">
-          <CarteDeFrance villes={[...conseillees, ...prospectees]} cochees={cochees} onBasculer={basculer} hauteur={520} />
-        </div>
-      </section>
-
       <section className="overflow-hidden rounded-[18px] border border-trait bg-surface">
         <div className="flex flex-wrap items-center justify-between gap-3 px-[26px] pt-[24px]">
           <div>
@@ -422,7 +437,9 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
               <tr className="text-[11px] uppercase tracking-[.14em] text-brume">
-                <th className="py-3 pr-3 font-normal" />
+                <th className="py-3 pr-3 font-normal">
+                  <Case coche={toutesCochees} onChange={basculerToutes} />
+                </th>
                 <th className="py-3 pr-4 font-normal">Ville</th>
                 <th className="py-3 pr-4 font-normal">Taux</th>
                 <th className="py-3 pr-4 font-normal">Emplacement</th>
@@ -445,13 +462,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
       </section>
 
       <section className="rounded-[18px] border border-trait bg-surface p-[26px]">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <div>
-            <Etiquette className="mb-1.5">Ce qui colle déjà</Etiquette>
-            <p className="m-0 max-w-[76ch] text-[12.5px] text-ardoise">
-              Les commerces relevés, toutes villes confondues, dont le prix au rendement visé tombe dans le budget. Le prix affiché est celui qu&apos;il faut payer pour sortir à ce taux, pas une estimation de valeur.
-            </p>
-          </div>
+        <div className="flex flex-wrap items-baseline justify-end gap-3">
           {societeFiltre && (
             <button onClick={() => setSocieteFiltre(null)} className="text-[12.5px] text-menthe hover:underline">
               Voir tous les commerces

@@ -70,6 +70,7 @@ const Famille = lazy(() => import('./pages/Famille'));
 const Familles = lazy(() => import('./pages/Familles'));
 const Feedback = lazy(() => import('./pages/Feedback'));
 const Home = lazy(() => import('./pages/Home'));
+const KData = lazy(() => import('./pages/KData'));
 const MesProjets = lazy(() => import('./pages/MesProjets'));
 const MonCompte = lazy(() => import('./pages/MonCompte'));
 const ProjetDetail = lazy(() => import('./pages/ProjetDetail'));
@@ -99,6 +100,7 @@ export const PAGES = {
     "Familles": Familles,
     "Feedback": Feedback,
     "Home": Home,
+    "KData": KData,
     "MesProjets": MesProjets,
     "MonCompte": MonCompte,
     "ProjetDetail": ProjetDetail,

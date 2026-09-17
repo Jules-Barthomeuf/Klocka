@@ -26,7 +26,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass } from "lucide-react";
+  Upload, Mic, Compass, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
@@ -308,6 +308,9 @@ function LayoutContent({ children, currentPageName }) {
             </FeedbackSurvol>
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            {/* L'autre côté de l'application : la donnée du commerce, sans
+                dossier ni client. */}
+            <NavItem to={createPageUrl("KData")} icon={Database} label="K-Data" isActive={isActivePage("KData")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
 
             <div className="pt-3">
               <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />

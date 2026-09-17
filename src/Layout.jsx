@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -26,8 +26,6 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Pin,
-  PinOff,
   Upload, Mic, Compass } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,15 +83,54 @@ function Wordmark({ collapsed = false }) {
   );
 }
 
+// La pilule de verre : une seule, posée sous le lien de la page où l'on est,
+// qui glisse jusqu'au suivant quand on change de page. Elle se mesure sur le
+// lien marqué data-actif, dans la piste qui contient les liens.
+function PiluleNav({ piste, cles }) {
+  const [pos, setPos] = useState(null);
+  const premier = useRef(true);
+  // Le tableau de clés change à chaque rendu ; sa version texte, non.
+  const cle = cles.join("|");
+  // Un effet passif, pas de mise en page : la pilule est l'enfant de la piste,
+  // et son effet de mise en page partirait avant que la ref de la piste soit
+  // posée.
+  useEffect(() => {
+    const cont = piste.current;
+    if (!cont) return;
+    const mesurer = () => {
+      const el = cont.querySelector('[data-actif="1"]');
+      if (!el) { setPos(null); return; }
+      const a = el.getBoundingClientRect();
+      const c = cont.getBoundingClientRect();
+      const suite = { top: a.top - c.top + cont.scrollTop, left: a.left - c.left + cont.scrollLeft, width: a.width, height: a.height };
+      setPos((p) => (p && p.top === suite.top && p.left === suite.left && p.width === suite.width && p.height === suite.height ? p : suite));
+    };
+    mesurer();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(mesurer) : null;
+    ro?.observe(cont);
+    return () => ro?.disconnect();
+  }, [piste, cle]);
+  useEffect(() => { if (pos) premier.current = false; }, [pos]);
+  if (!pos) return null;
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute z-0 rounded-full border border-encre/[0.10] bg-encre/[0.07] shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-md"
+      style={{
+        top: pos.top, left: pos.left, width: pos.width, height: pos.height,
+        transition: premier.current ? "none" : "top 380ms cubic-bezier(.22,1,.36,1), height 380ms cubic-bezier(.22,1,.36,1), left 300ms ease, width 300ms ease",
+      }}
+    />
+  );
+}
+
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
   return (
-    <Link to={to} onClick={onClick} title={collapsed ? label : undefined}>
+    <Link to={to} onClick={onClick} title={collapsed ? label : undefined} data-actif={isActive ? "1" : undefined} className={`relative z-[1] block rounded-full ${collapsed ? "mx-1.5" : "ml-2 mr-1"}`}>
       <div className={`relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group
         ${isActive ? "text-encre" : "text-ardoise hover:text-encre"}
         ${collapsed ? "justify-center px-0 py-2" : ""}
       `}>
-        <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[2px] rounded-full transition-all duration-200
-          ${isActive ? "h-5 bg-menthe" : "h-0 bg-transparent group-hover:h-3 group-hover:bg-encre/20"}`} />
         {collapsed ? (
           <Icon className={`w-[17px] h-[17px] flex-shrink-0 transition-colors ${isActive ? "text-menthe" : "text-brume group-hover:text-craie"}`} />
         ) : (
@@ -145,10 +182,9 @@ function LayoutContent({ children, currentPageName }) {
   const navigate = useNavigate();
   const user = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // La barre latérale est ouverte par défaut ; elle ne se replie que si on
-  // l'a explicitement détachée.
-  const [sidebarPinned, setSidebarPinned] = useState(() => localStorage.getItem('sidebarPinned') !== 'false');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebarPinned') === 'false');
+  // La barre latérale est ouverte à chaque chargement ; le chevron la replie
+  // le temps de la session, et rien ne s'en souvient.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [previewClientMode, setPreviewClientMode] = useState(() => localStorage.getItem('previewClientMode') === 'true');
   const [autreOpen, setAutreOpen] = useState(false);
   const isChildPage = CHILD_PAGES.includes(currentPageName);
@@ -157,11 +193,6 @@ function LayoutContent({ children, currentPageName }) {
   const pagesWithoutNavbar = ['Questionnaire', 'Home', 'Alexis'];
 
   useEffect(() => { localStorage.setItem('previewClientMode', previewClientMode); }, [previewClientMode]);
-
-  useEffect(() => {
-    localStorage.setItem('sidebarPinned', sidebarPinned);
-    if (sidebarPinned) setSidebarCollapsed(false);
-  }, [sidebarPinned]);
 
   const isAdmin = user?.role === "admin";
   // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un
@@ -203,12 +234,17 @@ function LayoutContent({ children, currentPageName }) {
     // de travail comme les autres.
     || (currentPageName === "ALX" && new URLSearchParams(location.search).has("carte"));
 
+  // Les chemins se comparent sans la casse : « /Analyse » et « /analyse »
+  // sont la même page, et le lien Dossiers pointe sur le premier.
   const isActivePage = (pageName) => {
     const pageUrl = createPageUrl(pageName);
-    return location.pathname === pageUrl || location.pathname === pageUrl + '/';
+    const ici = location.pathname.toLowerCase();
+    return ici === pageUrl || ici === pageUrl + '/';
   };
 
   const closeMobile = () => setIsMobileMenuOpen(false);
+  const pisteBureau = useRef(null);
+  const pisteMobile = useRef(null);
 
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
@@ -224,24 +260,6 @@ function LayoutContent({ children, currentPageName }) {
         )}
       </div>
       <div className={`h-px bg-gradient-to-r from-transparent via-menthe/25 to-transparent ${sidebarCollapsed && !isMobile ? "mx-2" : "mx-3.5"}`} />
-
-      {/* Toggle rester ouvert (desktop uniquement, sidebar ouverte) */}
-      {!isMobile && !sidebarCollapsed && (
-        <div className="px-3.5 pt-3.5">
-          <button
-            onClick={() => setSidebarPinned((v) => !v)}
-            className={`w-full flex items-center gap-2 py-1.5 transition-colors text-[11px] tracking-[0.08em]
-              ${sidebarPinned ? "text-menthe" : "text-brume hover:text-craie"}`}
-            aria-label={sidebarPinned ? "La barre reste ouverte" : "Garder la barre ouverte"} title={sidebarPinned ? "La barre reste ouverte" : "Garder la barre ouverte"}
-          >
-            {sidebarPinned ? <Pin className="w-3 h-3" /> : <PinOff className="w-3 h-3" />}
-            <span className="flex-1 text-left">Rester ouvert</span>
-            <span className={`w-7 h-3.5 rounded-full relative transition-colors flex-shrink-0 ${sidebarPinned ? "bg-menthe" : "bg-encre/10"}`}>
-              <span className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all ${sidebarPinned ? "left-4 bg-fond" : "left-0.5 bg-encre/70"}`} />
-            </span>
-          </button>
-        </div>
-      )}
 
       {/* Admin view switcher */}
       {isAdmin && !(sidebarCollapsed && !isMobile) && (
@@ -263,7 +281,7 @@ function LayoutContent({ children, currentPageName }) {
       )}
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto pl-0 pr-1.5 pt-4 pb-4 space-y-1">
+      <div ref={isMobile ? pisteMobile : pisteBureau} className="relative flex-1 overflow-y-auto pl-0 pr-1.5 pt-4 pb-4 space-y-1">
         {showClientView ? (
           <>
             <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-alerte/20 text-alerte" />
@@ -302,6 +320,7 @@ function LayoutContent({ children, currentPageName }) {
             </div>
           </>
         ) : null}
+        <PiluleNav piste={isMobile ? pisteMobile : pisteBureau} cles={[location.pathname, autreOpen, sidebarCollapsed, showClientView, isMobile]} />
       </div>
 
       {/* User & Logout */}
@@ -372,10 +391,9 @@ function LayoutContent({ children, currentPageName }) {
         >
           {sidebarContent(false)}
           <button
-            onClick={() => { if (!sidebarPinned) setSidebarCollapsed(!sidebarCollapsed); }}
-            disabled={sidebarPinned}
-            className={`hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-fond border border-encre/10 items-center justify-center text-ardoise hover:text-encre hover:border-menthe/50 transition-colors ${sidebarPinned ? "opacity-40 cursor-not-allowed" : ""}`}
-            aria-label={sidebarPinned ? "Désépinglez pour fermer" : sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"} title={sidebarPinned ? "Désépinglez pour fermer" : sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-fond border border-encre/10 items-center justify-center text-ardoise hover:text-encre hover:border-menthe/50 transition-colors"
+            aria-label={sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"} title={sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
           >
             <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
           </button>

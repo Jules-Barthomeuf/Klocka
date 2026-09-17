@@ -34,7 +34,7 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
   };
 
   return (
-    <div className="border border-trait rounded-lg bg-fond">
+    <div className="border border-trait rounded-lg">
       <div className="px-5 py-3 border-b border-trait">
         <p className="text-encre text-sm font-medium">Budget total</p>
       </div>

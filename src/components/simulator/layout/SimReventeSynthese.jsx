@@ -52,7 +52,7 @@ export default function SimReventeSynthese({ calculs, anneeRevente, formatCurren
   ];
 
   return (
-    <div className="border border-trait rounded-md bg-surface">
+    <div className="border border-trait rounded-md">
       <div className="flex items-center justify-between px-4 py-3 border-b border-trait">
         <p className="text-encre text-sm font-medium">Synthèse à la revente</p>
         <p className="text-menthe text-sm font-medium tabular-nums">×{ind.multipleNetFondsPropres}</p>

@@ -46,19 +46,10 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Droite — connexion / création de compte.
-              Le cadre est peint par la couche du dessous : un filet constant,
-              plus un dégradé conique qui tourne lentement — la lueur blanche
-              qui parcourt le bord. */}
-          <div className="relative p-px overflow-hidden bg-encre/[0.12]">
-            <div
-              aria-hidden="true"
-              className="absolute inset-[-100%] animate-[spin_10s_linear_infinite]"
-              style={{ background: "conic-gradient(rgba(237,234,229,0) 0deg, rgba(237,234,229,0) 288deg, rgba(237,234,229,0.9) 332deg, rgba(237,234,229,0) 360deg)" }}
-            />
-            <div className="relative bg-surface px-8 py-8 max-md:px-5 max-md:py-6">
-              <ConnexionPanel />
-            </div>
+          {/* Droite — connexion. Une carte de verre, et rien d'autre : plus de
+              filet lumineux qui tourne autour du cadre. */}
+          <div className="rounded-[18px] border border-encre/[0.10] bg-encre/[0.05] px-8 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-xl max-md:px-5 max-md:py-6">
+            <ConnexionPanel />
           </div>
         </div>
       </section>

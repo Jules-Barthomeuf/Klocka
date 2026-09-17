@@ -119,7 +119,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
   const toggle = (title) => setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }));
 
   return (
-    <div className="border border-trait rounded-md bg-surface overflow-hidden">
+    <div className="border border-trait rounded-md overflow-hidden">
       <div className="px-4 py-3 border-b border-trait">
         <p className="text-encre text-sm font-medium">Tableau annuel détaillé</p>
       </div>

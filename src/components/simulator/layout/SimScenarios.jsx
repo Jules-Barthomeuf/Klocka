@@ -138,7 +138,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
       </div>
 
       {/* Détail du scénario sélectionné */}
-      <div key={selected.niveau} className="rounded-md border border-trait bg-[#0f0f0f] p-4 animate-in fade-in duration-300">
+      <div key={selected.niveau} className="rounded-md border border-trait p-4 animate-in fade-in duration-300">
         <p className="text-[11px] uppercase tracking-[0.18em] mb-3 text-[hsl(var(--background))]">
           Scénario sélectionné · {selected.niveau === "custom" ? "Prix personnalisé" : `Négociation -${selected.niveau}%`}
         </p>
@@ -155,7 +155,7 @@ export default function SimScenarios({ params, formatCurrency, selectedNiveau, o
       </div>
 
       {/* Comparatif de tous les niveaux */}
-      <div className="rounded-md border border-trait bg-[#0f0f0f] overflow-x-auto">
+      <div className="rounded-md border border-trait overflow-x-auto">
         <table className="w-full min-w-[560px] text-xs table-fixed">
           <colgroup>
             <col className="w-[14%]" />

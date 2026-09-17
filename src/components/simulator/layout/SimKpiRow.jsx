@@ -19,7 +19,7 @@ export default function SimKpiRow({ calculs, anneeRevente, formatCurrency }) {
   { label: `TRI brut sur ${anneeRevente} ans`, value: `${ind.triBrut}%` }];
 
   return (
-    <div className="border border-trait rounded-md bg-surface overflow-hidden">
+    <div className="border border-trait rounded-md overflow-hidden">
       <div className="px-4 py-3 border-b border-trait flex items-center justify-between">
         <p className="text-encre text-sm font-medium">Indicateurs clés</p>
         <p className="text-[11px] text-ardoise">sur {anneeRevente} ans</p>

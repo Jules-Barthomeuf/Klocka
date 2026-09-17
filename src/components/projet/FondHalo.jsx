@@ -4,11 +4,9 @@ import { J, alpha } from "@/design/jetons";
 // Le fond des pages projets : trois couches sur une base unie.
 //
 // 1. Le halo. Un bloc large remonté hors de l'écran : on n'en voit que la
-//    retombée, jamais le centre. Deux ellipses s'y superposent, le doré au
-//    dessus (haut-droite, dominante), le vert dessous (bas-gauche, moitié
-//    moins opaque) ; leur zone commune donne un vert-olive chaud. Les étapes
-//    s'assombrissent de proche en proche (jaune clair, brun sourd, rien) :
-//    une lumière qui s'éteint, pas une tache de peinture.
+//    retombée, jamais le centre. Trois nappes s'y superposent, celles du
+//    dashboard admin : menthe au centre, une pointe d'ambre à gauche, un vert
+//    plus sombre à droite, aux mêmes opacités douces.
 // 2. Le fondu. Un dégradé vertical qui écrase le bas du halo dans le noir,
 //    pour que les cartes reposent sur un fond neutre.
 // 3. La nav, rendue translucide par le Layout sur ces pages : le halo la
@@ -17,8 +15,9 @@ import { J, alpha } from "@/design/jetons";
 export const FOND_BASE = J["fond-halo"];
 
 const HALO = [
-  "radial-gradient(58% 52% at 58% 42%, rgba(232,192,116,0.40) 0%, rgba(188,152,84,0.22) 32%, rgba(72,62,30,0.09) 58%, transparent 80%)",
-  "radial-gradient(44% 42% at 34% 58%, rgba(78,214,162,0.20) 0%, rgba(52,160,124,0.10) 34%, rgba(20,64,52,0.05) 58%, transparent 78%)",
+  `radial-gradient(58% 52% at 58% 42%, ${alpha("menthe", 0.22)} 0%, ${alpha("menthe", 0.10)} 34%, ${alpha("menthe-fonce", 0.05)} 60%, transparent 80%)`,
+  `radial-gradient(44% 42% at 30% 60%, ${alpha("ambre", 0.11)} 0%, ${alpha("ambre", 0.05)} 40%, transparent 76%)`,
+  `radial-gradient(40% 40% at 78% 56%, ${alpha("menthe-fonce", 0.16)} 0%, ${alpha("menthe-fonce", 0.06)} 45%, transparent 78%)`,
 ].join(", ");
 
 const FONDU = `linear-gradient(180deg, transparent 0%, transparent 40%, ${alpha("fond-halo", 0.75)} 78%, ${FOND_BASE} 100%)`;

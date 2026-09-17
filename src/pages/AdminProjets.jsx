@@ -1400,7 +1400,7 @@ export default function AdminProjets() {
 
         {/* Recherche + filtres */}
         <div className="mb-8 max-md:mb-6">
-          <div className="mb-5 flex items-center gap-3 border-b border-bord pb-2 transition-colors focus-within:border-menthe/50">
+          <div className="mb-5 flex max-w-[640px] items-center gap-3 rounded-full border border-encre/[0.10] bg-encre/[0.05] px-5 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl transition-colors focus-within:border-menthe/50 focus-within:bg-encre/[0.07]">
             <FolderSearch className="w-4 h-4 text-brume flex-shrink-0" />
             <input
               placeholder="Rechercher un projet, une adresse, un client…"

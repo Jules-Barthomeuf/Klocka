@@ -158,7 +158,7 @@ export function useAnalyseIA(project) {
     } catch {
       /* cache illisible : on relance l'analyse */
     }
-    fetchAnalyse();
+    // Pas d'appel au modèle à l'ouverture : la page se lit sans lui.
 
   }, [projectId, adresse]);
 
@@ -326,16 +326,6 @@ export default function VilleSecteurIA({ analyse, villeData, secteurData, loadin
         Sources : Insee (unités urbaines 2020, revenus), Le Figaro Immobilier, Data-B, relevé OpenStreetMap et Base Adresse Nationale
         {donnees?.le ? `, lus le ${new Date(donnees.le).toLocaleDateString("fr-FR")}` : ""}.
       </p>
-      {!isPublic && (
-        <div className="flex items-center gap-3 mt-3">
-          <button onClick={refresh} disabled={loading}
-            className="inline-flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-ardoise hover:text-encre transition-colors disabled:opacity-40">
-            <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
-            Actualiser l'analyse
-          </button>
-          {error && <span className="text-[11px] text-menthe">{error}</span>}
-        </div>
-      )}
     </div>
   );
 }

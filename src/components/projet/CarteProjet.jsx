@@ -100,7 +100,7 @@ export default function CarteProjet({ project, onOuvrir, avatar = null, sousLign
   return (
     <div>
       <div
-        className="group relative cursor-pointer overflow-hidden rounded-[16px] border border-trait bg-fond transition-colors duration-300 hover:border-[rgba(150,192,184,0.3)]"
+        className="group relative cursor-pointer overflow-hidden rounded-[16px] border border-trait bg-surface transition-colors duration-300 hover:border-[rgba(150,192,184,0.3)]"
         onClick={onOuvrir}
       >
         <div className="relative h-48 overflow-hidden md:h-56">

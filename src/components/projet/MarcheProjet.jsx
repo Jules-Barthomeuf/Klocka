@@ -42,7 +42,7 @@ function Comparaison({ bail, offre, projet }) {
             <YAxis tick={{ fill: J["ardoise"], fontSize: 11 }} axisLine={false} tickLine={false} width={58} tickFormatter={(v) => `${nf.format(v)} €`} />
             <Tooltip
               cursor={{ fill: "rgba(255,255,255,0.03)" }}
-              contentStyle={{ background: J["surface"], border: `1px solid ${J["bord"]}`, borderRadius: 10, fontSize: 12 }}
+              contentStyle={{ background: J["surface-pleine"], border: `1px solid ${J["bord"]}`, borderRadius: 10, fontSize: 12 }}
               labelStyle={{ color: J["encre"] }}
               formatter={(v) => [`${nf.format(v)} € HT HC /m²/an`, ""]}
             />

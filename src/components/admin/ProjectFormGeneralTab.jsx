@@ -47,7 +47,7 @@ export default function ProjectFormGeneralTab({ formData, setFormData, users = [
           value={formData.titre || ""}
           onChange={(e) => setFormData({ ...formData, titre: e.target.value })}
           placeholder="Pizzeria Chez Truc - 12 rue de la Liberté"
-          className="w-full rounded-[10px] border border-bord bg-fond px-3.5 py-2.5 text-[14px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe"
+          className="w-full rounded-[10px] border border-bord bg-surface px-3.5 py-2.5 text-[14px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe"
         />
         <p className="m-0 mt-2 text-[11.5px] text-brume">Il s&apos;écrit en haut de l&apos;écran, et c&apos;est celui que le client lit.</p>
       </div>

@@ -8,7 +8,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis
 import SectionCard, { KPI } from "./SectionCard";
 import { J } from "@/design/jetons";
 
-const tooltipStyle = { backgroundColor: J["surface"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
+const tooltipStyle = { backgroundColor: J["surface-pleine"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
 
 // Moyennes nationales France (INSEE)
 const FR = {
@@ -31,7 +31,7 @@ function CompareBar({ label, local, national, unit = "%" }) {
   const max = Math.max(local || 0, national || 0) * 1.2 || 1;
   const diff = local && national ? local - national : null;
   return (
-    <div className="p-3 bg-surface/50 rounded-lg border border-bord">
+    <div className="p-3 bg-surface rounded-lg border border-bord">
       <p className="text-xs text-ardoise mb-2">{label}</p>
       <div className="flex items-end gap-3 mb-1">
         <div className="flex-1">
@@ -176,7 +176,7 @@ export default function EmploiSection({ data }) {
 
 function MiniBox({ label, value }) {
   return (
-    <div className="p-3 bg-surface/50 rounded-lg border border-bord text-center">
+    <div className="p-3 bg-surface rounded-lg border border-bord text-center">
       <p className="text-lg text-encre font-semibold">{value}</p>
       <p className="text-xs text-ardoise mt-0.5">{label}</p>
     </div>

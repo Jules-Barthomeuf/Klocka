@@ -87,7 +87,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
     });
 
   return (
-    <div className="border-b border-trait px-5 py-5">
+    <div className="px-5 py-5">
       {/* --- Le bilan, en une ligne ---------------------------------------- */}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
@@ -116,7 +116,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
           const ko = g.lignes.filter((l) => l.ok === false).length;
           return (
             <section key={g.nom} className="min-w-0">
-              <div className="flex items-baseline justify-between gap-4 pb-2 border-b border-bord">
+              <div className="flex items-baseline justify-between gap-4 pb-2">
                 <p className="m-0 text-[11px] tracking-[.16em] uppercase text-menthe/80">{g.nom}</p>
                 <p className="m-0 text-[11px] text-brume">
                   {ok}/{g.lignes.length}
@@ -135,7 +135,7 @@ function GrilleCriteres({ lignes, lot, onVerifier = null }) {
                       key={cle}
                       title={l.motif || undefined}
                       style={verif ? { background: `${VERIF[verif].fond}22`, boxShadow: `inset 3px 0 0 ${VERIF[verif].fond}` } : undefined}
-                      className={`flex items-start gap-3 py-2.5 border-b border-trait/60 ${verif ? "-mx-2 px-2 rounded" : l.ok === false ? "bg-alerte/[0.04] -mx-2 px-2 rounded" : ""}`}
+                      className={`flex items-start gap-3 py-2.5 ${verif ? "-mx-2 px-2 rounded" : l.ok === false ? "bg-alerte/[0.04] -mx-2 px-2 rounded" : ""}`}
                     >
                       <span
                         className="mt-[3px] flex h-[18px] w-[18px] flex-none items-center justify-center rounded-full"
@@ -547,7 +547,7 @@ const LIBELLES_SUIVI = {
 export function JournalSuivi({ suivi }) {
   if (!suivi?.length) return null;
   return (
-    <div className="bg-fond border border-trait rounded-md px-5 py-4">
+    <div className="bg-surface border border-trait rounded-md px-5 py-4">
       <p className="text-ardoise text-xs mb-3">Historique du dossier</p>
       <div className="space-y-2">
         {[...suivi].reverse().map((e, i) => (
@@ -606,7 +606,7 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <figure className="m-0">
             <figcaption className="mb-2 font-mono text-[11px] uppercase tracking-[.18em] text-brume">Depuis la rue</figcaption>
-            <div className="relative h-[300px] rounded-[14px] overflow-hidden border border-trait bg-fond">
+            <div className="relative h-[300px] rounded-[14px] overflow-hidden border border-trait bg-surface">
               {!CLE_MAPS ? (
                 <p className="absolute inset-0 flex items-center justify-center m-0 px-6 text-center text-[12.5px] text-ardoise">Street View indisponible : renseignez <code className="text-craie mx-1">VITE_GOOGLE_MAPS_API_KEY</code>.</p>
               ) : localisable ? <StreetViewRue project={lieu} /> : (
@@ -817,7 +817,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
       <div className="pt-2">
         <main className="min-w-0">
           {/* La fiche du bien : ce que la fiche commerciale dit, champ par champ */}
-          <section className="pb-8 border-b border-trait">
+          <section className="pb-8">
             <div className="flex items-center gap-3 flex-wrap mb-4">
               <h2 className="m-0 text-[18px] font-semibold">Fiche du bien</h2>
               <span className="text-[12.5px] text-brume">ce que la fiche commerciale donne, champ par champ</span>
@@ -833,7 +833,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             <BandeauRecalcul actif={enCours} />
             <dl className="m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12">
               {CHAMPS_AFFICHES.map(([champ, libelle]) => (
-                <div key={champ} className="flex items-baseline justify-between gap-5 py-2 border-b border-relief">
+                <div key={champ} className="flex items-baseline justify-between gap-5 py-2">
                   <dt className="text-[12.5px] text-ardoise flex-none">{libelle}</dt>
                   <dd className="m-0 text-right min-w-0"><ChampFiche champ={champ} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} /></dd>
                 </div>
@@ -843,7 +843,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
 
           {/* La grille de critères : coche menthe, croix corail, sous les yeux */}
           {nbCriteres > 0 && (
-            <section className="py-8 border-b border-trait">
+            <section className="py-8">
               <div className="flex items-baseline gap-3 flex-wrap mb-1">
                 <h2 className="m-0 text-[18px] font-semibold">Grille de critères</h2>
                 <span className="text-[12.5px] text-brume">{nbCriteres} critères{ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""} — le verdict n'est que leur somme</span>
@@ -853,7 +853,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
           )}
 
           {/* Le simulateur, tel quel */}
-          <section className="py-8 border-b border-trait">
+          <section className="py-8">
             <div className="flex items-baseline gap-3 flex-wrap mb-5">
               <h2 className="m-0 text-[18px] font-semibold">Simulateur</h2>
               <span className="text-[12.5px] text-brume">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
@@ -863,7 +863,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
 
           {/* L'emplacement : la seule donnée humaine, elle change le verdict.
               On le juge sur pièces — la rue, puis le plan. */}
-          <section className="py-8 border-b border-trait">
+          <section className="py-8">
             <div className="flex items-baseline gap-3 flex-wrap mb-4">
               <h2 className="m-0 text-[18px] font-semibold">Emplacement</h2>
               <span className="text-[12.5px] text-brume">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>

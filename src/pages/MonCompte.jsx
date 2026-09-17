@@ -186,7 +186,7 @@ export default function MonCompte() {
                     {user.comptes_lies && user.comptes_lies.length > 0 ? (
                       <div className="space-y-2">
                         {user.comptes_lies.map((email) => (
-                          <div key={email} className="p-3 bg-surface/50 rounded-lg border border-bord flex items-center justify-between">
+                          <div key={email} className="p-3 bg-surface rounded-lg border border-bord flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Mail className="w-4 h-4 text-menthe" />
                               <span className="text-encre">{email}</span>

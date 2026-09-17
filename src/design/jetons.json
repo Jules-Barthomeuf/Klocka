@@ -17,11 +17,19 @@
     "pilule elle-même, et les ronds posés dessus."
   ],
 
+  "_verre": [
+    "Les surfaces sont du verre : « surface », « relief » et les traits sont",
+    "de l'encre diluée, posée sur le halo de Layout. « surface-pleine » est",
+    "l'ancien gris opaque, pour ce qui doit couvrir un graphique (infobulles).",
+    "Les modificateurs d'opacité (bg-surface/50) n'ont plus de sens dessus :",
+    "on écrit la classe nue."
+  ],
   "couleurs": {
     "fond": "#000000",
     "fond-halo": "#08090a",
-    "surface": "#0f1114",
-    "relief": "#15171b",
+    "surface": "rgba(242, 243, 245, 0.045)",
+    "surface-pleine": "#0f1114",
+    "relief": "rgba(242, 243, 245, 0.07)",
 
     "encre": "#f2f3f5",
     "craie": "#c7cdc9",
@@ -37,10 +45,10 @@
     "barre": "#121413",
     "barre-relief": "#1b1e1d",
 
-    "trait": "#1f2228",
-    "bord": "#22262d",
-    "bord-doux": "#2c3139",
-    "bord-vif": "#3a3f4a",
+    "trait": "rgba(242, 243, 245, 0.08)",
+    "bord": "rgba(242, 243, 245, 0.11)",
+    "bord-doux": "rgba(242, 243, 245, 0.16)",
+    "bord-vif": "rgba(242, 243, 245, 0.24)",
 
     "alerte": "#e8746a",
     "ambre": "#e0a45e",

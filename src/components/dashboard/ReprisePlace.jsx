@@ -68,7 +68,7 @@ export default function ReprisePlace({ limite = 6 }) {
             <button
               key={x.cle}
               onClick={() => navigate(x.vers)}
-              className="group rounded-bloc border border-trait bg-fond px-5 py-4 text-left transition-colors hover:border-menthe/30"
+              className="group rounded-bloc border border-trait bg-surface px-5 py-4 text-left transition-colors hover:border-menthe/30"
             >
               <div className="flex items-start gap-3">
                 <Icone className="w-4 h-4 text-menthe flex-none mt-0.5" />

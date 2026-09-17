@@ -82,7 +82,7 @@ export default function PlanDeTravail({ chat = null }) {
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
       {sante?.hebergeur === "render" && !sante?.base?.persistante && (
-        <div className="mt-8 rounded-bloc border px-5 py-4" style={{ borderColor: alpha("alerte", 0.4), background: J["surface"] }}>
+        <div className="mt-8 rounded-bloc border px-5 py-4" style={{ borderColor: alpha("alerte", 0.4), background: J["surface-pleine"] }}>
           <p className="m-0 text-[11px] uppercase tracking-[.18em] text-alerte">La base sera effacée au prochain déploiement</p>
           <p className="m-0 mt-1.5 text-[13.5px] leading-[1.6] text-craie">{sante.base?.diagnostic}</p>
           <p className="m-0 mt-1.5 text-[12.5px] text-brume">

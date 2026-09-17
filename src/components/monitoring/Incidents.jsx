@@ -95,7 +95,7 @@ export default function Incidents() {
                     <span className="truncate text-[12.5px] text-craie">{i.message}</span>
                   </button>
                   {ouvert && i.pile && (
-                    <pre className="mt-2 max-h-[280px] overflow-auto whitespace-pre-wrap rounded-md border border-trait bg-fond px-3 py-2 font-mono text-[11px] leading-[1.6] text-ardoise">{i.pile}</pre>
+                    <pre className="mt-2 max-h-[280px] overflow-auto whitespace-pre-wrap rounded-md border border-trait bg-surface px-3 py-2 font-mono text-[11px] leading-[1.6] text-ardoise">{i.pile}</pre>
                   )}
                 </div>
               );

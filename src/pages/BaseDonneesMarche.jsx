@@ -182,7 +182,7 @@ export default function BaseDonneesMarche() {
         {/* Barre de recherche et bouton ajouter */}
         <div className="relative rounded-[1.25rem] border-[0.75px] border-bord p-2 md:rounded-[1.5rem] md:p-3 mb-4 md:mb-6">
           <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-          <Card className="relative bg-gradient-to-br from-bord/80 to-surface border-none">
+          <Card className="relative bg-gradient-to-br from-bord to-surface border-none">
             <CardContent className="p-4 md:p-6">
               <div className="flex flex-col md:flex-row gap-3 md:gap-4">
                 <div className="relative flex-1">
@@ -211,7 +211,7 @@ export default function BaseDonneesMarche() {
           {filteredData.map((item) => (
             <div key={item.id} className="relative rounded-[1.25rem] border-[0.75px] border-bord p-2 md:rounded-[1.5rem] md:p-3">
               <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} borderWidth={3} />
-              <Card className="relative bg-gradient-to-br from-bord/80 to-surface border-none">
+              <Card className="relative bg-gradient-to-br from-bord to-surface border-none">
                 <CardContent className="p-4 md:p-6">
                   <div className="flex flex-col md:flex-row justify-between gap-4">
                     <div className="flex-1">

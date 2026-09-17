@@ -81,7 +81,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
               <Label className="text-encre">Partenaires liés</Label>
               <div className="space-y-2">
                 {linkedPartners.map((email) => (
-                  <div key={email} className="flex items-center justify-between p-3 bg-surface/50 rounded-lg border border-bord">
+                  <div key={email} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-bord">
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-menthe" />
                       <span className="text-encre text-sm">{email}</span>

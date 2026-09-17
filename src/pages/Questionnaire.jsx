@@ -298,7 +298,7 @@ export default function Questionnaire() {
                 
                 {/* Section partenaire - uniquement sur la première question */}
                 {question.id === "nom_complet" && (
-                  <div className="p-4 bg-surface/50 rounded-md border border-bord space-y-4">
+                  <div className="p-4 bg-surface rounded-md border border-bord space-y-4">
                     <div className="flex items-center gap-2">
                       <Users className="w-5 h-5 text-menthe" />
                       <Label className="text-encre font-medium">Investir à deux ? (optionnel)</Label>

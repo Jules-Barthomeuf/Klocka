@@ -155,7 +155,7 @@ function AccueilVille({ villes, onOuvrir }) {
           </p>
           <form
             onSubmit={(e) => { e.preventDefault(); if (nom.trim() && !creer.isPending) creer.mutate(); }}
-            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-fond py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50"
+            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-surface py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50"
           >
             <input
               value={nom}
@@ -451,7 +451,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
                 <button key={m.cle} onClick={() => setMotifCle(m.cle)} aria-label={m.detail} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12.5px] transition-colors" style={{ borderColor: motifCle === m.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? J["menthe"] : J["craie"], background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
               ))}
             </div>
-            <input value={motifTexte} onChange={(e) => setMotifTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="rounded-[10px] border border-trait bg-fond px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/50" />
+            <input value={motifTexte} onChange={(e) => setMotifTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="rounded-[10px] border border-trait bg-surface px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/50" />
             <div className="flex flex-wrap items-center gap-2">
               <Bouton principal onClick={() => valider(false)} disabled={classerPending || !motifCle}>{classerPending ? "…" : "ALX retient"}</Bouton>
               <Bouton discret onClick={() => valider(true)} disabled={classerPending}>Sans raison</Bouton>
@@ -742,7 +742,7 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
 
   return (
     <div className="alx-entree">
-      <div className="mt-6 flex items-center gap-3 rounded-full border border-trait bg-fond py-[7px] pl-5 pr-3 focus-within:border-menthe/50">
+      <div className="mt-6 flex items-center gap-3 rounded-full border border-trait bg-surface py-[7px] pl-5 pr-3 focus-within:border-menthe/50">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={J["ardoise"]} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher un commerce, une adresse, un propriétaire" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[15px] text-encre outline-none" />
         {recherche && <button onClick={() => setRecherche("")} className="px-1.5 text-[15px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
@@ -1079,7 +1079,7 @@ function AjoutCommerce({ villeId, ville, onAjoute }) {
         <Champ label="Activité" value={f.activite} onChange={poser("activite")} placeholder="épicerie fine" />
         <label className="block">
           <Etiquette className="mb-1.5">Rue classée</Etiquette>
-          <select value={f.rue} onChange={(e) => poser("rue")(e.target.value)} className="w-full rounded-[10px] border border-trait bg-fond px-4 py-3 text-[15px] text-encre outline-none focus:border-menthe/50">
+          <select value={f.rue} onChange={(e) => poser("rue")(e.target.value)} className="w-full rounded-[10px] border border-trait bg-surface px-4 py-3 text-[15px] text-encre outline-none focus:border-menthe/50">
             <option value="">Hors classement</option>
             {rues.map((r) => <option key={r.nom} value={r.nom}>{r.nom} · emplacement {emplacementDe(r.classe).mot}</option>)}
           </select>

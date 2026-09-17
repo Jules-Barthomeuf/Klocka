@@ -238,6 +238,20 @@ button.k-case:not([aria-checked="true"]):hover { border-color: #3a3f4a; }
   }
 }
 
+/* Le verre. Les surfaces sont translucides (jetons : surface, trait, bord),
+   posées sur le halo que Layout dessine derrière chaque page. Deux choses en
+   découlent : une racine de page peinte en bg-fond laisserait le halo dehors,
+   elle devient transparente ; et ce qui flotte au-dessus du contenu (menu,
+   en-tête collant, infobulle) se floute et se fonce, sinon on lirait à
+   travers. */
+main .min-h-screen.bg-fond { background-color: transparent; }
+.bg-surface:is(.sticky, .absolute, .fixed),
+:is(.absolute, .fixed) > .bg-surface {
+  background-color: rgba(12, 13, 15, 0.86);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
 /* Masquer la scrollbar de la sidebar tout en gardant le scroll */
 aside .overflow-y-auto {
   scrollbar-width: none;

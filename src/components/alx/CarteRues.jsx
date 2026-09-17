@@ -85,7 +85,7 @@ function BoutonTheme({ sombre, onClick }) {
 
 function Legende({ attribution }) {
   return (
-    <div className="absolute bottom-3 left-3 z-[400] flex flex-wrap gap-x-3.5 gap-y-1 rounded-[10px] border border-bord bg-surface/90 px-3 py-2 text-[11px] text-craie backdrop-blur">
+    <div className="absolute bottom-3 left-3 z-[400] flex flex-wrap gap-x-3.5 gap-y-1 rounded-[10px] border border-bord bg-surface px-3 py-2 text-[11px] text-craie backdrop-blur">
       {[...EMPLACEMENTS, ECARTEE].map((e) => (
         <span key={String(e.classe)} className="inline-flex items-center gap-1.5">
           <span className="h-[3px] w-4 rounded" style={{ background: e.teinte }} />
@@ -167,7 +167,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
   // Street View à la place de la carte : on est dans la rue choisie.
   if (streetView) {
     return (
-      <div className={`k-carte-rues relative isolate overflow-hidden rounded-[18px] border border-trait bg-fond ${className}`}>
+      <div className={`k-carte-rues relative isolate overflow-hidden rounded-[18px] border border-trait bg-surface ${className}`}>
         {CLE_EMBED ? (
           <iframe
             title={`Street View ${streetView.nom || ""}`}
@@ -184,7 +184,7 @@ export default function CarteRues({ rues, ecartees = [], coches, choisie = null,
   }
 
   return (
-    <div className={`k-carte-rues ${sombre ? "" : "k-carte-claire"} relative overflow-hidden rounded-[18px] border border-trait bg-fond ${className}`}>
+    <div className={`k-carte-rues ${sombre ? "" : "k-carte-claire"} relative overflow-hidden rounded-[18px] border border-trait bg-surface ${className}`}>
       <MapContainer center={centreCarte} zoom={14} minZoom={11} scrollWheelZoom className="h-full w-full" attributionControl={false} zoomControl={false}>
         {/* `key` : changer d'URL ne suffit pas à Leaflet, il faut refaire la couche. */}
         <TileLayer key={fond.cle} url={fond.url} attribution={fond.attribution} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />

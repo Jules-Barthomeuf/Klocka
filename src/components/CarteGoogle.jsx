@@ -29,7 +29,7 @@ export default function CarteGoogle({ adresse, lat, lon, zoom = undefined, haute
 
   if (!MAPS_KEY) {
     return (
-      <div className={`${hauteur} rounded-md border border-trait bg-fond flex flex-col items-center justify-center gap-3 text-center px-6`}>
+      <div className={`${hauteur} rounded-md border border-trait bg-surface flex flex-col items-center justify-center gap-3 text-center px-6`}>
         <MapPin className="w-6 h-6 text-menthe/50" />
         <p className="text-ardoise text-xs max-w-sm">
           Carte intégrée indisponible : renseignez <code className="text-craie">VITE_GOOGLE_MAPS_API_KEY</code>{" "}

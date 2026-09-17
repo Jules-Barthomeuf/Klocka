@@ -145,7 +145,7 @@ export default function LocataireLiensSociaux({ liens }) {
                 href={lien.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-4 p-4 bg-surface/50 rounded-full border ${config.borderColor} transition-all duration-300 group`}
+                className={`flex items-center gap-4 p-4 bg-surface rounded-full border ${config.borderColor} transition-all duration-300 group`}
               >
                 <div className={`w-10 h-10 bg-gradient-to-br ${config.color} rounded-lg flex items-center justify-center text-encre flex-shrink-0 shadow-lg`}>
                   {config.icon}

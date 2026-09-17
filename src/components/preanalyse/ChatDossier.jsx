@@ -341,7 +341,7 @@ export default function ChatDossier({
 function Volet({ titre, nombre = 0, ouvert, onBasculer, className = "", children }) {
   return (
     <div className={className}>
-      <button type="button" onClick={onBasculer} aria-expanded={ouvert} className="w-full flex items-center justify-between py-3 border-t border-b border-relief text-left group">
+      <button type="button" onClick={onBasculer} aria-expanded={ouvert} className="w-full flex items-center justify-between py-3 text-left group">
         <span className="text-[15px] font-medium text-encre">{titre}{nombre ? <span className="text-brume font-normal"> · {nombre}</span> : null}</span>
         <span className={`w-7 h-7 rounded-full flex items-center justify-center text-brume group-hover:text-encre group-hover:bg-encre/5 transition-all duration-300 ${ouvert ? "rotate-180" : ""}`}>
           <ChevronDown className="w-4 h-4" />

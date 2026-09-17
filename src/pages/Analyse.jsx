@@ -174,7 +174,7 @@ export default function Analyse() {
                 onRefresh={recharger}
               />
             ) : (
-              <div className="bg-fond border border-trait rounded-md p-8 text-center">
+              <div className="bg-surface border border-trait rounded-md p-8 text-center">
                 <Loader2 className="w-6 h-6 text-ardoise animate-spin mx-auto mb-3" />
                 <p className="text-ardoise text-sm">Ouverture du dossier…</p>
               </div>
@@ -311,7 +311,7 @@ export default function Analyse() {
                 onChange={(e) => setNomDossier(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && nomDossier.trim()) creerDossier.mutate(); }}
                 placeholder="Ex. : Boulangerie — Marseille République"
-                className="w-full bg-fond border border-trait focus:border-menthe rounded-md px-3.5 py-2.5 text-[13.5px] text-encre outline-none placeholder:text-bord-vif transition-colors mb-4"
+                className="w-full bg-surface border border-trait focus:border-menthe rounded-md px-3.5 py-2.5 text-[13.5px] text-encre outline-none placeholder:text-bord-vif transition-colors mb-4"
               />
 
               <label className="block text-[11px] tracking-[0.14em] uppercase text-ardoise mb-1.5">Admins responsables</label>

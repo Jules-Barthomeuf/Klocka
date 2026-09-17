@@ -260,7 +260,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
                       const d = payload[0];
                       const pct = totalAllScores > 0 ? ((d.value / totalAllScores) * 100).toFixed(1) : 0;
                       return (
-                        <div className="bg-fond border border-bord rounded-lg p-3 text-encre text-sm">
+                        <div className="bg-surface border border-bord rounded-lg p-3 text-encre text-sm">
                           <p className="font-medium">{d.name}</p>
                           <p className="text-encre/60">Score : {d.value}/100</p>
                           <p className="text-encre/60">Part : {pct}%</p>

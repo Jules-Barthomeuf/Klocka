@@ -60,7 +60,7 @@ function noteDe(champ, lot) {
 
 function ChampLu({ c }) {
   return (
-    <div className="flex items-baseline justify-between gap-6 py-2 border-b border-relief last:border-b-0">
+    <div className="flex items-baseline justify-between gap-6 py-2">
       <dt className="text-[12.5px] text-ardoise flex-none inline-flex items-center gap-2">
         <span title={LIBELLE[c.statut]} className="inline-block w-2 h-2 rounded-full flex-none" style={{ background: TEINTE[c.statut] || J["bord-vif"] }} />
         {c.libelle}
@@ -103,7 +103,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
     const detail = p.pieces.map((id) => lus.get(id)).filter((c) => c && (c.valeur || c.preuves?.length));
     const nbPieces = detail.reduce((n, c) => n + (c.preuves?.length || 0), 0);
     return (
-      <section className="border-t border-trait">
+      <section>
         <button
           type="button"
           onClick={() => basculer(p.id)}
@@ -166,7 +166,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
   };
 
   return (
-    <div className="border-b border-trait">
+    <div>
       {/* L'adresse et son lieu : en pleine largeur, ouverts d'emblée. */}
       <Partie p={ADRESSE} large />
 

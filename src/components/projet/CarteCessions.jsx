@@ -104,7 +104,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
             disableDefaultUI: true,
             zoomControl: true,
             gestureHandling: "cooperative",
-            backgroundColor: J["surface"],
+            backgroundColor: J["surface-pleine"],
           });
           bulle.current = new g.InfoWindow();
         } else {

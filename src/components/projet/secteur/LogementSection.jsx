@@ -8,7 +8,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import SectionCard, { KPI } from "./SectionCard";
 import { J } from "@/design/jetons";
 
-const tooltipStyle = { backgroundColor: J["surface"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
+const tooltipStyle = { backgroundColor: J["surface-pleine"], border: '1px solid #22262d', borderRadius: '8px', color: '#fff' };
 
 // Moyennes nationales France (INSEE)
 const FR_LOG = {

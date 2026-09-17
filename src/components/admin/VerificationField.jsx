@@ -44,7 +44,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               isChecked
                 ? "border-menthe/50 bg-menthe/10 text-menthe-clair hover:bg-menthe/20"
-                : "border-bord bg-surface/60 text-ardoise hover:text-craie hover:border-bord"
+                : "border-bord bg-surface text-ardoise hover:text-craie hover:border-bord"
             }`}
           >
             {isChecked ? (
@@ -62,7 +62,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] transition-all border ${
               hasNote
                 ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
-                : "border-bord bg-surface/60 text-ardoise hover:text-craie hover:border-bord"
+                : "border-bord bg-surface text-ardoise hover:text-craie hover:border-bord"
             }`}
           >
             <MessageSquare className="w-3 h-3" />

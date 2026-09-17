@@ -406,7 +406,7 @@ export default function PortailLanding({ onContinue }) {
 
         {/* Platform screenshot */}
         <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-trait bg-gradient-to-br from-fond to-fond p-3 mb-12">
-          <div className="rounded-md bg-fond border border-trait overflow-hidden">
+          <div className="rounded-md bg-surface border border-trait overflow-hidden">
             <div className="h-7 bg-fond flex items-center gap-1.5 px-3 border-b border-trait">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
               <div className="w-2.5 h-2.5 rounded-full bg-menthe/60" />
@@ -427,7 +427,7 @@ export default function PortailLanding({ onContinue }) {
         </Title>
 
         {/* Video témoignage */}
-        <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-trait bg-fond aspect-video mb-8">
+        <div className="max-w-3xl mx-auto rounded-md overflow-hidden border border-trait bg-surface aspect-video mb-8">
           <iframe
             src="https://drive.google.com/file/d/11RUUz1Ec0Two6NbIWoNTXUtq4683A-sb/preview"
             className="w-full h-full"

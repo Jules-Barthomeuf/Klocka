@@ -47,7 +47,7 @@ export default function CoordonneesProprietaire({ siren = null, nom = null, vill
   // la recherche publique laisse de côté.
   if (!data?.ok) {
     return (
-      <div className="rounded-[12px] border border-trait bg-fond px-4 py-3">
+      <div className="rounded-[12px] border border-trait bg-surface px-4 py-3">
         <p className="m-0 text-[12.5px] leading-[1.6] text-ardoise">{data?.erreur || "Introuvable à l'annuaire des entreprises."}</p>
         {(data?.liens || []).length > 0 && (
           <div className="mt-2 flex flex-wrap gap-3">
@@ -62,7 +62,7 @@ export default function CoordonneesProprietaire({ siren = null, nom = null, vill
   const gerants = (s.gerants || []).filter((g) => g.nom).slice(0, 4);
 
   return (
-    <div className="rounded-[12px] border border-trait bg-fond px-4 py-3.5">
+    <div className="rounded-[12px] border border-trait bg-surface px-4 py-3.5">
       <Etiquette className="mb-2">Où le joindre</Etiquette>
       <div className="flex flex-col gap-1.5 text-[12.5px] leading-[1.6] text-craie">
         {data.siege_ligne && (

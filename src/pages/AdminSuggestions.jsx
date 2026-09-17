@@ -52,7 +52,7 @@ function PromptCorrection({ r }) {
   };
   const bas = r.pouce === "bas";
   return (
-    <div className="mt-3 rounded-xl border border-bord bg-fond px-4 py-3">
+    <div className="mt-3 rounded-xl border border-bord bg-surface px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <p className="m-0 text-[11px] tracking-[.18em] uppercase" style={{ color: bas ? J["alerte"] : J["menthe"] }}>
           {bas ? "À corriger" : "À préserver"} — prompt pour Claude
@@ -186,7 +186,7 @@ export default function AdminSuggestions() {
               {apercu && (
                 <div className="relative inline-block mb-3">
                   <img src={apercu} alt="Capture" className="max-h-[160px] rounded-lg border border-bord" />
-                  <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-fond border border-bord-doux text-ardoise hover:text-encre flex items-center justify-center" aria-label="Retirer la capture"><X className="w-3.5 h-3.5" /></button>
+                  <button onClick={retirerCapture} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface border border-bord-doux text-ardoise hover:text-encre flex items-center justify-center" aria-label="Retirer la capture"><X className="w-3.5 h-3.5" /></button>
                 </div>
               )}
               {/* L'urgence : cinq barres, on clique celle qu'on veut. La boîte

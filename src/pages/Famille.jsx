@@ -225,7 +225,7 @@ export default function Famille() {
               {selectedUsers.map(u => {
                 const profil = profilLabels[u.profil_investisseur];
                 return (
-                  <div key={u.id} className="p-4 bg-surface/50 rounded-lg border border-bord">
+                  <div key={u.id} className="p-4 bg-surface rounded-lg border border-bord">
                     <div className="flex items-center gap-3 mb-3">
                       <div className={`w-10 h-10 rounded-full ${profil?.color || 'bg-bord'} flex items-center justify-center`}>
                         <span className="text-encre font-bold">
@@ -265,7 +265,7 @@ export default function Famille() {
             </CardHeader>
             <CardContent className="space-y-4">
               {discords.map((discord, idx) => (
-                <div key={idx} className="p-4 bg-surface/50 rounded-lg border border-red-500/30">
+                <div key={idx} className="p-4 bg-surface rounded-lg border border-red-500/30">
                   <p className="text-encre font-medium mb-3">{discord.question.question}</p>
                   <div className="space-y-2">
                     {discord.responses.map((r, rIdx) => (
@@ -299,7 +299,7 @@ export default function Famille() {
             </CardHeader>
             <CardContent className="space-y-3">
               {agreements.map((agreement, idx) => (
-                <div key={idx} className="p-3 bg-surface/50 rounded-lg border border-menthe/30 flex items-center gap-3">
+                <div key={idx} className="p-3 bg-surface rounded-lg border border-menthe/30 flex items-center gap-3">
                   <CheckCircle2 className="w-5 h-5 text-menthe flex-shrink-0" />
                   <div>
                     <p className="text-encre text-sm font-medium">{agreement.question.question}</p>

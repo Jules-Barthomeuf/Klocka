@@ -69,7 +69,7 @@ export default function FeedbackSurvol({ children }) {
             }}
             rows={3}
             placeholder="Ce que vous voulez dire…"
-            className="w-full resize-none rounded-[10px] border border-bord bg-fond px-3 py-2.5 text-[13.5px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe"
+            className="w-full resize-none rounded-[10px] border border-bord bg-surface px-3 py-2.5 text-[13.5px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe"
           />
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="text-[11px] text-brume">Entrée + Cmd pour envoyer</span>

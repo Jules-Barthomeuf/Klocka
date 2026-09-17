@@ -692,7 +692,7 @@ export default function Vision() {
 
 
     {/* Container principal de la Timeline */}
-    <div className="relative rounded-[2rem] border border-trait bg-fond/50 shadow-2xl overflow-hidden">
+    <div className="relative rounded-[2rem] border border-trait bg-surface/50 shadow-2xl overflow-hidden">
       {/* Effet de lueur en arrière-plan */}
 
       <div className="relative p-6 md:p-10">
@@ -702,7 +702,7 @@ export default function Vision() {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.2 }}
-                        className="mb-12 p-6 rounded-md bg-gradient-to-br from-fond/80 to-black border border-trait/50 shadow-inner">
+                        className="mb-12 p-6 rounded-md bg-gradient-to-br from-fond/80 to-black border border-trait shadow-inner">
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-1">
@@ -735,7 +735,7 @@ export default function Vision() {
                                 value={revenusMensuels}
                                 onChange={(e) => setRevenusMensuels(e.target.value)}
                                 placeholder="Montant personnalisé..."
-                                className="w-full h-11 px-4 pr-12 rounded-md bg-fond border border-trait group-hover:border-menthe/50 focus:border-menthe text-encre font-normal text-sm transition-all outline-none" />
+                                className="w-full h-11 px-4 pr-12 rounded-md bg-surface border border-trait group-hover:border-menthe/50 focus:border-menthe text-encre font-normal text-sm transition-all outline-none" />
 
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-brume font-normal text-xs group-focus-within:text-menthe">€ / mois</span>
               </div>
@@ -1378,7 +1378,7 @@ export default function Vision() {
                 transition={{ duration: 0.6 }}
                 className="mb-12">
 
-                <div className="relative h-fit rounded-[1.5rem] border border-trait bg-fond backdrop-blur-md overflow-hidden">
+                <div className="relative h-fit rounded-[1.5rem] border border-trait bg-surface backdrop-blur-md overflow-hidden">
                   <div className="p-6 border-b border-trait bg-fond">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-menthe" />
@@ -1949,7 +1949,7 @@ export default function Vision() {
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: 10 }}
-                              className="p-3 rounded-md border border-trait bg-fond/30 flex items-center gap-2">
+                              className="p-3 rounded-md border border-trait bg-surface/30 flex items-center gap-2">
 
                           <div className="flex-1 min-w-0">
                             <div className="text-[11px] text-menthe font-bold uppercase mb-1">

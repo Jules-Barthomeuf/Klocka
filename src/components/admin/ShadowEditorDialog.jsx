@@ -233,7 +233,7 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
         {/* Form tabs */}
         <div>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-10 bg-fond border border-trait rounded-md p-1">
+            <TabsList className="grid w-full grid-cols-10 bg-surface border border-trait rounded-md p-1">
               <TabsTrigger value="informations" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Infos</TabsTrigger>
               <TabsTrigger value="environnement" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Env.</TabsTrigger>
               <TabsTrigger value="secteur" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Secteur</TabsTrigger>

@@ -114,7 +114,7 @@ export default function ALXEntrainement() {
         ) : !data?.pret ? (
           <Carte>
             <p className="m-0 text-[13.5px] leading-[1.7] text-craie">Aucun entraînement encore. Deux commandes, dans l'ordre :</p>
-            <pre className="mt-3 overflow-x-auto rounded-md border border-trait bg-fond px-4 py-3 font-mono text-[12px] leading-[1.8] text-ardoise">{data?.comment}</pre>
+            <pre className="mt-3 overflow-x-auto rounded-md border border-trait bg-surface px-4 py-3 font-mono text-[12px] leading-[1.8] text-ardoise">{data?.comment}</pre>
           </Carte>
         ) : (
           <div className="flex flex-col gap-4">

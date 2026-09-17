@@ -9,9 +9,9 @@ export const fourchette = (f, suffixe = " €") => (!f || f[0] == null ? "—" :
 
 // Le titre d'une sous-partie a la même voix que celui de l'étape :
 // « 1 · Copropriété », en gras, pas en mono.
-export function Section({ id, titre, droite, children, sansFilet = false }) {
+export function Section({ id, titre, droite, children }) {
   return (
-    <section id={id} className={`px-6 max-md:px-4 py-6 ${sansFilet ? "" : "border-b border-trait"}`}>
+    <section id={id} className="px-6 max-md:px-4 py-6">
       <div className="flex flex-wrap items-baseline justify-between gap-4 mb-4">
         <h3 className="m-0 text-[18px] font-semibold text-encre tracking-[-.01em]">{titre}</h3>
         {droite ? <span className="text-[12.5px] text-ardoise">{droite}</span> : null}
@@ -24,7 +24,7 @@ export function Section({ id, titre, droite, children, sansFilet = false }) {
 export default function CadreEtapes({ etapes, etape, etapeMax = etape, compteurs = {}, titre, statut, question, progression, onEtape, apercu, pied, actions = null, bandeau = null, children }) {
   const part = progression?.total ? Math.round((progression.lus / progression.total) * 100) : 0;
   return (
-    <div className="bg-fond border border-trait rounded-md overflow-hidden">
+    <div className="bg-surface border border-trait rounded-md overflow-hidden">
       {/* Les étapes, en haut */}
       <div className="flex items-stretch border-b border-trait overflow-x-auto">
         {etapes.map((x) => (
@@ -35,7 +35,7 @@ export default function CadreEtapes({ etapes, etape, etapeMax = etape, compteurs
         ))}
       </div>
 
-      <header className="px-6 max-md:px-4 py-4 border-b border-trait flex flex-wrap items-center justify-between gap-4">
+      <header className="px-6 max-md:px-4 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 min-w-0">
           <h2 className="m-0 text-[18px] font-semibold text-encre"><span className="font-light tabular-nums">Étape {etape}</span> · {titre}</h2>
           {statut && <Mono className="text-ardoise">{statut}</Mono>}
@@ -54,7 +54,7 @@ export default function CadreEtapes({ etapes, etape, etapeMax = etape, compteurs
       {bandeau}
       {children}
       {pied && (
-        <footer className="px-6 max-md:px-4 py-4 border-t border-trait flex flex-wrap items-center justify-between gap-3">
+        <footer className="px-6 max-md:px-4 py-4 flex flex-wrap items-center justify-between gap-3">
           {pied}
         </footer>
       )}

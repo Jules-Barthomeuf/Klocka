@@ -126,7 +126,7 @@ function PiluleNav({ piste, cles }) {
 
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
   return (
-    <Link to={to} onClick={onClick} title={collapsed ? label : undefined} data-actif={isActive ? "1" : undefined} className={`relative z-[1] block rounded-full ${collapsed ? "mx-1.5" : "ml-2 mr-1"}`}>
+    <Link to={to} onClick={onClick} title={collapsed ? label : undefined} data-actif={isActive ? "1" : undefined} className="relative z-[1] block rounded-full">
       <div className={`relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group
         ${isActive ? "text-encre" : "text-ardoise hover:text-encre"}
         ${collapsed ? "justify-center px-0 py-2" : ""}
@@ -216,23 +216,19 @@ function LayoutContent({ children, currentPageName }) {
   const alxAFaire = alx?.a_faire?.a_appeler || 0;
   const showClientView = !isAdmin || previewClientMode;
   const hideNavbar = pagesWithoutNavbar.includes(currentPageName);
-  // Le halo : le fond de l'application. Il est posé ici, une fois, et les
-  // pages ne portent plus de fond opaque qui le masquerait. La nav s'efface
-  // pour le laisser passer, floutant ce qui défile derrière elle.
+  // Le halo : le fond de l'application, posé ici une fois derrière toutes
+  // les pages, dont les surfaces sont du verre. La nav s'efface pour le
+  // laisser passer, floutant ce qui défile derrière elle.
   //
-  // Deux exceptions. ALX a son propre noir, qui fait tenir ses cartes et sa
-  // carte des rues. Le dashboard admin garde les nappes menthe du plan de
-  // travail : deux halos l'un sur l'autre ne font pas un fond.
-  const PAGES_HALO = [
-    "AdminProjets", "MesProjets", "Analyse", "AdminClients", "Ressources",
-    "Banque", "Monitoring", "ProjetDetail",
-    "ALXVilles", "ALXBilan", "ALXEntrainement", "ALXCible",
-  ];
-  const fondHalo = PAGES_HALO.includes(currentPageName)
-    || (currentPageName === "Dashboard" && showClientView)
-    // ALX garde son noir, sauf la carte d'un investisseur, qui est une page
-    // de travail comme les autres.
-    || (currentPageName === "ALX" && new URLSearchParams(location.search).has("carte"));
+  // Trois exceptions. ALX a son propre noir, qui fait tenir ses cartes et sa
+  // carte des rues (sauf la carte d'un investisseur, page de travail comme
+  // les autres). Le dashboard admin garde les nappes menthe du plan de
+  // travail : deux halos l'un sur l'autre ne font pas un fond. Le simulateur
+  // reste sur le noir.
+  const fondHalo = !hideNavbar
+    && !(currentPageName === "Dashboard" && !showClientView)
+    && currentPageName !== "SimulateurRentabilite"
+    && !(currentPageName === "ALX" && !new URLSearchParams(location.search).has("carte"));
 
   // Les chemins se comparent sans la casse : « /Analyse » et « /analyse »
   // sont la même page, et le lien Dossiers pointe sur le premier.
@@ -281,7 +277,7 @@ function LayoutContent({ children, currentPageName }) {
       )}
 
       {/* Navigation */}
-      <div ref={isMobile ? pisteMobile : pisteBureau} className="relative flex-1 overflow-y-auto pl-0 pr-1.5 pt-4 pb-4 space-y-1">
+      <div ref={isMobile ? pisteMobile : pisteBureau} className="relative flex-1 overflow-y-auto px-2 pt-4 pb-4 space-y-1">
         {showClientView ? (
           <>
             <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-alerte/20 text-alerte" />

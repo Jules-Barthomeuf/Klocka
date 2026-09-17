@@ -71,7 +71,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
         <button onClick={onFermer} className="text-brume hover:text-encre" aria-label="Fermer"><X className="w-4 h-4" /></button>
       </div>
       {[["destinataire", "À"], ["objet", "Objet"]].map(([cle, libelle]) => (
-        <label key={cle} className="flex items-baseline gap-3 py-1.5 border-b border-trait/70">
+        <label key={cle} className="flex items-baseline gap-3 py-1.5 border-b border-trait">
           <span className="text-[11px] text-brume w-[60px] flex-shrink-0">{libelle}</span>
           <input
             value={b[cle]}
@@ -116,7 +116,7 @@ function FicheClient({ champs, onChange, onValider, enCours }) {
           const v = champs[cle];
           const affiche = v == null || v === "" ? null : unite === "€" ? euros(v) : unite ? `${v} ${unite}` : String(v);
           return (
-            <div key={cle} className="flex items-baseline gap-3 py-1 border-b border-trait/70 min-w-0">
+            <div key={cle} className="flex items-baseline gap-3 py-1 border-b border-trait min-w-0">
               <dt className="text-[11px] text-brume w-[120px] flex-shrink-0">{libelle}</dt>
               {edition === cle ? (
                 <input

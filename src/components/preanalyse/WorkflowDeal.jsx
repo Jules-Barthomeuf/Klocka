@@ -322,7 +322,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
 
       {/* En-tête du dossier : nom, repères, actions */}
       {dossier && (
-        <div className="flex flex-wrap items-end justify-between gap-6 pb-6 border-b border-trait">
+        <div className="flex flex-wrap items-end justify-between gap-6 pb-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="m-0 truncate text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">
@@ -553,7 +553,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
   // Le chat du haut rédige : ici on ne montre plus que le brouillon obtenu.
   if (onBrouillon && !brouillon && !etapeFranchie) {
     return (
-      <div className="bg-fond border border-trait rounded-md px-5 py-8 text-center">
+      <div className="bg-surface border border-trait rounded-md px-5 py-8 text-center">
         <p className="m-0 text-[13.5px] text-ardoise">
           Décrivez le mail dans le chat ci-dessus, ou choisissez un gabarit, puis générez le brouillon.
         </p>
@@ -591,7 +591,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
         description="À écrire pendant l'appel, depuis le chat en haut de page. Le brouillon apparaît ici, prêt à relire et à envoyer depuis votre Gmail — ou passez si vous avez déjà la fiche."
       />
       {!brouillon ? (
-        <div className="bg-fond border border-trait rounded-xl px-6 py-10 text-center">
+        <div className="bg-surface border border-trait rounded-xl px-6 py-10 text-center">
           <p className="m-0 text-[13.5px] text-ardoise">
             Rédigez le mail dans le chat en haut de page — un gabarit pour partir vite, puis générez.
           </p>
@@ -604,7 +604,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
           </Button>
         </div>
       ) : (
-        <div className="bg-fond border border-trait rounded-xl overflow-hidden">
+        <div className="bg-surface border border-trait rounded-xl overflow-hidden">
           {/* Expéditeur : la ligne d'identité du message */}
           {comptes.length > 0 ? (
             <div className="flex items-center gap-3 px-5 py-3 border-b border-relief">
@@ -720,7 +720,7 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
         {dossier?.documents_espace?.length > 0 ? (
           <PreanalyseDepuisDocuments dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
         ) : analyseParChat ? (
-          <div className="bg-fond border border-trait rounded-xl px-6 py-10 text-center">
+          <div className="bg-surface border border-trait rounded-xl px-6 py-10 text-center">
             <p className="m-0 text-[13.5px] text-ardoise">
               Importez un fichier ou collez l'email dans le chat pour lancer l'analyse.
             </p>
@@ -836,7 +836,7 @@ function DepotFiche({ onAnalyse, dealId = null }) {
   };
 
   return (
-    <div className="bg-fond border border-trait rounded-md p-6">
+    <div className="bg-surface border border-trait rounded-md p-6">
       <p className="text-encre text-sm font-medium mb-1">Pré-analyser la fiche</p>
       <p className="text-ardoise text-xs mb-4">
         Déposez la fiche commerciale reçue de l'agent (ou collez le texte du mail) : extraction,
@@ -1096,7 +1096,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
         description="Le dossier de présentation bancaire du bien, généré depuis les données du deal : le bien, le bail, l'opération, le plan de financement, le marché et les points forts. Modifiable ensuite dans Google Slides."
       />
 
-      <div className="bg-fond border border-trait rounded-md p-6 space-y-4">
+      <div className="bg-surface border border-trait rounded-md p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-encre text-sm font-medium mb-1">Présentation bancaire</p>
@@ -1184,7 +1184,7 @@ function BlocVideoPresentation({ dossier, apercu }) {
   const progression = Math.round((statut?.progression || 0) * 100);
 
   return (
-    <div className="bg-fond border border-trait rounded-md px-5 py-4 space-y-3">
+    <div className="bg-surface border border-trait rounded-md px-5 py-4 space-y-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Film className="w-4 h-4 text-ardoise" />
@@ -1274,7 +1274,7 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
   return (
     <>
       {dossier.synthese_documents?.resume && (
-        <div className="bg-fond border border-trait rounded-md px-5 py-4">
+        <div className="bg-surface border border-trait rounded-md px-5 py-4">
           <p className="text-ardoise text-xs mb-2">Rappel de la synthèse documentaire</p>
           <p className="text-craie text-sm leading-relaxed">{dossier.synthese_documents.resume}</p>
           {dossier.synthese_documents.points_a_verifier?.length > 0 && (
@@ -1347,7 +1347,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
     return (
       <>
       {titre}
-      <div className="bg-fond border border-bord rounded-md p-6 text-center">
+      <div className="bg-surface border border-bord rounded-md p-6 text-center">
         <span className="w-10 h-10 rounded-md bg-encre/[0.05] text-ardoise flex items-center justify-center mx-auto mb-3">
           <Briefcase className="w-5 h-5" />
         </span>
@@ -1370,7 +1370,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
   return (
     <>
     {titre}
-    <div className="bg-fond border border-trait rounded-md p-6 text-center">
+    <div className="bg-surface border border-trait rounded-md p-6 text-center">
       <span className="w-10 h-10 rounded-md bg-encre/[0.05] text-ardoise flex items-center justify-center mx-auto mb-3">
         <Briefcase className="w-5 h-5" />
       </span>
@@ -1428,7 +1428,7 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
   const enCours = etat?.etat === "en_cours" || lancer.isPending;
 
   return (
-    <div className="bg-fond border border-trait rounded-xl px-6 py-8">
+    <div className="bg-surface border border-trait rounded-xl px-6 py-8">
       <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Pas de teaser, mais {nb} pièce{nb > 1 ? "s" : ""} dans le dossier</p>
       <p className="m-0 mt-2 text-[15px] leading-[1.65] text-craie max-w-[720px]">
         La fiche se compose depuis les documents — adresse, surface, locataire, bail, loyer, charges — puis passe dans la pré-analyse habituelle : mêmes critères, même verdict. Le prix de vente, absent des pièces, restera à renseigner.

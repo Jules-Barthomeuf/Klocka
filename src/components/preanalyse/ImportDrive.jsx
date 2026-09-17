@@ -44,7 +44,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
 
   return (
     <div onClick={onFermer} className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-6">
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[720px] max-h-[80vh] flex flex-col bg-fond border border-bord rounded-[18px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,.6)]">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[720px] max-h-[80vh] flex flex-col bg-surface border border-bord rounded-[18px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,.6)]">
         <header className="flex items-center justify-between gap-4 px-5 py-4 border-b border-trait">
           <div className="min-w-0">
             <p className="m-0 text-[15px] font-semibold text-encre">Importer depuis le Drive</p>

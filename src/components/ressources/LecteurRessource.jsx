@@ -25,7 +25,7 @@ export default function LecteurRessource({ ressource, onFermer }) {
   const media = urlIntegrable(ressource?.url_fichier);
   return (
     <Dialog open={!!ressource} onOpenChange={(o) => { if (!o) onFermer(); }}>
-      <DialogContent className="max-w-4xl w-[calc(100vw-32px)] p-0 bg-fond border border-bord rounded-xl overflow-hidden">
+      <DialogContent className="max-w-4xl w-[calc(100vw-32px)] p-0 bg-surface border border-bord rounded-xl overflow-hidden">
         <DialogTitle className="px-6 pt-5 pb-3 text-[18px] font-light text-encre">{ressource?.titre}</DialogTitle>
         {media?.type === "cadre" ? (
           <div className="relative w-full aspect-video bg-black">

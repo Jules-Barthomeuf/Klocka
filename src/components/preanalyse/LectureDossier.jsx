@@ -59,7 +59,7 @@ export default function LectureDossier({ dealId, nbExtractions = 0 }) {
         enfants={
           <dl className="m-0">
             {fiche.map((f) => (
-              <div key={f.cle} className="flex items-baseline gap-4 py-2 border-b border-relief/70">
+              <div key={f.cle} className="flex items-baseline gap-4 py-2 border-b border-relief">
                 <dt className="w-[190px] max-md:w-[130px] flex-none text-[12.5px] text-brume">{f.libelle}</dt>
                 <dd className={`m-0 flex-1 min-w-0 text-[13.5px] leading-[1.6] ${f.affiche ? "text-encre" : "text-brume italic"}`}>
                   {f.affiche || "non renseigné"}

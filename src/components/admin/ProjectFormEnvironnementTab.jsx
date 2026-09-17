@@ -21,7 +21,7 @@ function Field({ label, info, children }) {
               <Info className="w-3 h-3" />
             </button>
             {show && (
-              <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-fond border border-trait rounded-lg p-2.5 text-xs text-craie shadow-xl">
+              <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 bg-surface border border-trait rounded-lg p-2.5 text-xs text-craie shadow-xl">
                 {info}
                 <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-fond border-r border-b border-trait rotate-45 -mt-1" />
               </div>

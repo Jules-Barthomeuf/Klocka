@@ -72,7 +72,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
 
       {/* Formulaire d'ajout */}
       {showForm && (
-        <div className="mb-6 p-5 bg-surface/50 rounded-md border border-menthe/30 space-y-4">
+        <div className="mb-6 p-5 bg-surface rounded-md border border-menthe/30 space-y-4">
           <div>
             <label className="text-sm text-ardoise mb-1 block">Année</label>
             <Select value={selectedYear} onValueChange={setSelectedYear}>

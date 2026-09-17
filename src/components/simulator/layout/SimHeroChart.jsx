@@ -118,10 +118,10 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "#fff" }} formatter={(v) => [formatCurrency(v), ""]} />
               <Area type="monotone" dataKey="value" stroke={config.color} strokeWidth={2} fill="url(#simHeroFill)" />
               {config.markers?.recupApport && (
-                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill={J["menthe"]} stroke={J["surface"]} strokeWidth={2} isFront />
+                <ReferenceDot x={config.markers.recupApport.annee} y={config.markers.recupApport.value} r={6} fill={J["menthe"]} stroke={J["surface-pleine"]} strokeWidth={2} isFront />
               )}
               {config.markers?.doubleApport && (
-                <ReferenceDot x={config.markers.doubleApport.annee} y={config.markers.doubleApport.value} r={6} fill="#a8894f" stroke={J["surface"]} strokeWidth={2} isFront />
+                <ReferenceDot x={config.markers.doubleApport.annee} y={config.markers.doubleApport.value} r={6} fill="#a8894f" stroke={J["surface-pleine"]} strokeWidth={2} isFront />
               )}
             </AreaChart>
           )}

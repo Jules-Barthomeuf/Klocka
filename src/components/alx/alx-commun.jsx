@@ -161,7 +161,7 @@ export function Champ({ label, value, onChange, placeholder = "", type = "text",
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-fond border border-bord rounded-[10px] px-4 py-3 text-[15px] text-encre placeholder:text-brume outline-none focus:border-menthe transition-colors"
+        className="w-full bg-surface border border-bord rounded-[10px] px-4 py-3 text-[15px] text-encre placeholder:text-brume outline-none focus:border-menthe transition-colors"
       />
     </label>
   );

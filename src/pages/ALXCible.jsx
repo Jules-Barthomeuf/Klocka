@@ -518,7 +518,7 @@ export default function ALXCible() {
             {mode === "ecart" && (
               <div className="alx-entree flex flex-col gap-3.5 border-t border-trait pt-6">
                 <Etiquette>Pourquoi écarter</Etiquette>
-                <input value={motif} onChange={(ev) => setMotif(ev.target.value)} placeholder="Le gérant vient de renouveler son bail" className="rounded-[12px] border border-trait bg-fond px-4 py-[13px] text-[15px] text-encre outline-none focus:border-menthe/50" />
+                <input value={motif} onChange={(ev) => setMotif(ev.target.value)} placeholder="Le gérant vient de renouveler son bail" className="rounded-[12px] border border-trait bg-surface px-4 py-[13px] text-[15px] text-encre outline-none focus:border-menthe/50" />
                 <Etiquette className="mt-1">Ce non généralise</Etiquette>
                 <div className="flex flex-col gap-0.5">
                   {[["activite", `Cette activité${c.activite ? ` (${c.activite})` : ""}`], ["proprietaire", `Ce propriétaire${p.nom ? ` (${joliNom(p.nom)})` : ""}`], ["enseigne", `Cette enseigne${c.enseigne ? ` (${joliNom(c.enseigne)})` : ""}`]].map(([k, mot]) => (
@@ -573,7 +573,7 @@ export default function ALXCible() {
             )}
           </div>
 
-          <div className="isolate min-h-[460px] overflow-hidden rounded-[20px] border border-trait bg-fond">
+          <div className="isolate min-h-[460px] overflow-hidden rounded-[20px] border border-trait bg-surface">
             {CLE_EMBED ? (
               <iframe
                 key={c.vue?.pano || c.photo?.pano || "position"}

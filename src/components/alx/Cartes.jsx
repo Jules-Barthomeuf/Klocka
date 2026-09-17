@@ -24,7 +24,7 @@ const kEuros = (n) => (n == null ? "—" : n >= 10000 ? `${fmt(Math.round(n / 10
 const taux = ([a, b]) => (a === b ? `${virgule(a)} %` : `${virgule(a)} à ${virgule(b)} %`);
 const plage = (f, unite) => (!f ? "—" : f[0] === f[1] ? `${fmt(f[0])} ${unite}` : `${fmt(f[0])} à ${fmt(f[1])} ${unite}`);
 
-const CHAMP = "w-full rounded-[10px] border border-bord bg-fond px-4 py-3 text-[15px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe";
+const CHAMP = "w-full rounded-[10px] border border-bord bg-surface px-4 py-3 text-[15px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe";
 
 /** Une case à cocher : un carré, une coche. */
 function Case({ coche, onChange }) {
@@ -156,7 +156,7 @@ export default function Cartes({ villes = [], onOuvrirCarte, onOuvrirVille }) {
           </p>
           <form
             onSubmit={(e) => { e.preventDefault(); if (nom.trim() && !creer.isPending) creer.mutate(); }}
-            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-fond py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50"
+            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-surface py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50"
           >
             <input
               value={nom}
@@ -377,7 +377,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
                 <button
                   key={v.id}
                   onClick={() => onOuvrirVille(v.id)}
-                  className="overflow-hidden rounded-[14px] border border-trait bg-fond text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
+                  className="overflow-hidden rounded-[14px] border border-trait bg-surface text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
                 >
                   <Barres cibles={v.cibles} />
                   <div className="flex items-baseline justify-between gap-2 px-4 pb-1 pt-3.5">
@@ -415,7 +415,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
                 {prospecter.isPending ? <PenseeIA etat="searching" taille={20} clair /> : `Prospecter ${cochees.size} ville${cochees.size > 1 ? "s" : ""}`}
               </Bouton>
             )}
-          <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Chercher une ville" className="w-[220px] rounded-full border border-bord bg-fond px-4 py-2 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+          <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Chercher une ville" className="w-[220px] rounded-full border border-bord bg-surface px-4 py-2 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
           </div>
         </div>
         <div className="overflow-x-auto px-[26px] pb-[10px]">
@@ -507,7 +507,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
 
                     {/* Pourquoi celui-ci : le calcul, pas une impression. */}
                     {ouvert && (
-                      <div className="mb-3 rounded-[12px] border border-trait bg-fond px-4 py-3.5">
+                      <div className="mb-3 rounded-[12px] border border-trait bg-surface px-4 py-3.5">
                         <Etiquette className="mb-2">Pourquoi il correspond</Etiquette>
                         <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-[12.5px] leading-[1.6] text-craie">
                           <li>

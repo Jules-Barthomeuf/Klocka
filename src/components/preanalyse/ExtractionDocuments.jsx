@@ -137,7 +137,7 @@ export default function ExtractionDocuments() {
       </div>
 
       {/* Dépôt */}
-      <div className="bg-fond border border-trait rounded-md p-5 mb-6">
+      <div className="bg-surface border border-trait rounded-md p-5 mb-6">
         <p className="text-ardoise text-xs mb-2">
           Déposez le bail, les PV d'AG, le règlement de copropriété, les quittances, les diagnostics…
         </p>
@@ -230,7 +230,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
   const renseignes = lignes.filter((c) => doc.champs?.[c.id] && !doc.champs[c.id].absent).length;
 
   return (
-    <div className="bg-fond border border-trait rounded-md overflow-hidden">
+    <div className="bg-surface border border-trait rounded-md overflow-hidden">
       <div className="px-5 py-4 border-b border-trait flex items-start gap-3">
         <FileText className="w-4 h-4 text-ardoise flex-shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
@@ -370,7 +370,7 @@ export function CarteDocument({ doc, types, sourceActive, onVoirSource, onReclas
 export function Visionneuse({ source, onFermer }) {
   if (!source) {
     return (
-      <div className="bg-fond border border-trait rounded-md h-[70vh] flex flex-col items-center justify-center text-center px-8">
+      <div className="bg-surface border border-trait rounded-md h-[70vh] flex flex-col items-center justify-center text-center px-8">
         <Quote className="w-8 h-8 text-ardoise/40 mb-3" />
         <p className="text-ardoise text-sm">
           Cliquez sur le repère de page à côté d'une donnée : le document s'ouvrira ici, à la bonne page.
@@ -382,7 +382,7 @@ export function Visionneuse({ source, onFermer }) {
   const estPdf = /\.pdf($|\?)/i.test(source.url || "");
 
   return (
-    <div className="bg-fond border border-bord rounded-md overflow-hidden">
+    <div className="bg-surface border border-bord rounded-md overflow-hidden">
       <div className="px-4 py-3 border-b border-trait flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-encre text-sm font-medium truncate">

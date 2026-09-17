@@ -108,7 +108,7 @@ export default function Portail({ paiement2Fois = false }) {
               </p>
 
               {/* CGV Content */}
-              <div className="bg-fond border border-trait rounded-md p-6 md:p-10 mb-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
+              <div className="bg-surface border border-trait rounded-md p-6 md:p-10 mb-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
                 <div className="text-center mb-12">
                   <h2 className="text-encre text-2xl md:text-4xl font-extrabold tracking-tight mb-2">{CGV_HEADER.title}</h2>
                   <p className="text-menthe text-sm md:text-base font-medium mb-1">{CGV_HEADER.subtitle}</p>

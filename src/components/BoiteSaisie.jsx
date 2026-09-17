@@ -31,7 +31,8 @@ export default function BoiteSaisie({
   const { className: classeConteneur = "", ...propsConteneur } = conteneur;
   // Même cadre que la connexion : la couche du dessous peint un filet constant
   // tout autour, et un dégradé conique qui tourne lentement fait courir une
-  // lueur blanche sur ce filet. Le fond de la boîte couvre le reste.
+  // lueur blanche sur ce filet. Le fond de la boîte couvre le reste : il reste
+  // opaque dans ce cas-là, et passe en verre sinon.
   return (
     <div
       {...propsConteneur}
@@ -45,7 +46,7 @@ export default function BoiteSaisie({
         />
       )}
     <div
-      className={`relative bg-fond transition-colors ${lumiere ? "rounded-[19px]" : "border border-trait rounded-[20px] focus-within:border-bord-vif [.glisse_&]:border-menthe"} ${className}`}
+      className={`relative transition-colors ${lumiere ? "bg-fond rounded-[19px]" : "bg-surface backdrop-blur-xl border border-trait rounded-[20px] focus-within:border-bord-vif [.glisse_&]:border-menthe"} ${className}`}
     >
       <div className={compact ? "px-5 pt-3" : "px-7 max-md:px-5 pt-6"}>
         <textarea

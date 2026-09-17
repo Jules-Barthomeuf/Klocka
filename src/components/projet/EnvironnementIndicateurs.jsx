@@ -16,7 +16,7 @@ import SectionCard, { KPI } from "./secteur/SectionCard";
 import { J } from "@/design/jetons";
 
 const DARK_TOOLTIP = {
-  contentStyle: { backgroundColor: J["surface"], border: "1px solid #22262d", borderRadius: 8 },
+  contentStyle: { backgroundColor: J["surface-pleine"], border: "1px solid #22262d", borderRadius: 8 },
   labelStyle: { color: "#fff" },
   itemStyle: { color: J["ardoise"] }
 };
@@ -85,7 +85,7 @@ export default function EnvironnementIndicateurs({ project }) {
                 {env.taux_natalite != null && <KPI label="Taux natalité" value={`${env.taux_natalite}‰`} color="teal" />}
               </div>
               {env.analyse_demographie && (
-                <p className="text-sm text-craie leading-relaxed bg-surface/40 rounded-md p-4 border border-bord">{env.analyse_demographie}</p>
+                <p className="text-sm text-craie leading-relaxed bg-surface rounded-md p-4 border border-bord">{env.analyse_demographie}</p>
               )}
             </div>
             {(env.pct_moins_25ans != null || env.pct_plus_65ans != null) && (
@@ -124,7 +124,7 @@ export default function EnvironnementIndicateurs({ project }) {
               </div>
             )}
             {env.politique_fiscale && (
-              <div className="p-4 bg-surface/40 rounded-md border border-bord">
+              <div className="p-4 bg-surface rounded-md border border-bord">
                 <p className="text-xs text-ardoise font-semibold uppercase tracking-wider mb-2">Politique fiscale</p>
                 <p className="text-sm text-craie leading-relaxed">{env.politique_fiscale}</p>
               </div>
@@ -167,7 +167,7 @@ export default function EnvironnementIndicateurs({ project }) {
             </div>
           )}
           {env.zones_revitalisation && (
-            <div className="p-4 bg-surface/40 rounded-md border border-bord">
+            <div className="p-4 bg-surface rounded-md border border-bord">
               <p className="text-xs text-ardoise font-semibold uppercase tracking-wider mb-2">Zones de revitalisation</p>
               <p className="text-sm text-craie leading-relaxed">{env.zones_revitalisation}</p>
             </div>
@@ -192,7 +192,7 @@ export default function EnvironnementIndicateurs({ project }) {
                 {env.nb_hopitaux != null && <KPI label="Hôpitaux / cliniques" value={env.nb_hopitaux} color="teal" />}
               </div>
               {env.points_forts_ville && (
-                <p className="text-sm text-craie leading-relaxed bg-surface/40 rounded-md p-4 border border-bord">{env.points_forts_ville}</p>
+                <p className="text-sm text-craie leading-relaxed bg-surface rounded-md p-4 border border-bord">{env.points_forts_ville}</p>
               )}
             </div>
             {radialAttract.length > 0 && (
@@ -203,7 +203,7 @@ export default function EnvironnementIndicateurs({ project }) {
                     <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%"
                       data={radialAttract} startAngle={90} endAngle={-270}
                     >
-                      <RadialBar dataKey="value" cornerRadius={6} background={{ fill: J["surface"] }} label={{ fill: J["ardoise"], fontSize: 10 }} />
+                      <RadialBar dataKey="value" cornerRadius={6} background={{ fill: J["surface-pleine"] }} label={{ fill: J["ardoise"], fontSize: 10 }} />
                       <Tooltip {...DARK_TOOLTIP} />
                       <Legend formatter={(v) => <span className="text-xs text-ardoise">{v}</span>} />
                     </RadialBarChart>
@@ -242,7 +242,7 @@ export default function EnvironnementIndicateurs({ project }) {
                   </div>
                 )}
                 {env.grands_employeurs && (
-                  <div className="p-4 bg-surface/40 rounded-md border border-bord">
+                  <div className="p-4 bg-surface rounded-md border border-bord">
                     <p className="text-xs text-ardoise font-semibold uppercase tracking-wider mb-2">Grands employeurs</p>
                     <p className="text-sm text-craie leading-relaxed">{env.grands_employeurs}</p>
                   </div>

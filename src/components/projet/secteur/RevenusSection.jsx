@@ -84,7 +84,7 @@ export default function RevenusSection({ data }) {
 
       {/* Rapport interdécile */}
       {data.rapport_interdecile > 0 && (
-        <div className="mt-4 p-4 bg-surface/50 rounded-md border border-bord">
+        <div className="mt-4 p-4 bg-surface rounded-md border border-bord">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-ardoise">Rapport interdécile (D9/D1)</p>
@@ -102,7 +102,7 @@ export default function RevenusSection({ data }) {
 
 function StatBox({ label, value, sub }) {
   return (
-    <div className="p-3 bg-surface/50 rounded-lg border border-bord">
+    <div className="p-3 bg-surface rounded-lg border border-bord">
       <p className="text-xs text-ardoise">{label}</p>
       <p className="text-lg text-encre font-semibold mt-1">{value}</p>
       {sub && <p className="text-xs text-ardoise mt-0.5">{sub}</p>}

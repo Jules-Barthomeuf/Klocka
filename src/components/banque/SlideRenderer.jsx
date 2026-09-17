@@ -179,7 +179,7 @@ function TransitionSlide({ slide }) {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center bg-bord relative overflow-hidden">
       {c.photo && <div className="absolute inset-0 opacity-20" style={{ backgroundImage: `url(${c.photo})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />}
-      <div className="absolute inset-0 bg-gradient-to-t from-bord via-bord/80 to-bord/60" />
+      <div className="absolute inset-0 bg-gradient-to-t from-bord via-bord to-bord" />
       <DecoArcs opacity={0.1} />
       <div className="relative z-10 text-center px-[10%]">
         <h2 className="text-[3.5vw] font-extrabold text-encre tracking-tight uppercase">{slide.title}</h2>

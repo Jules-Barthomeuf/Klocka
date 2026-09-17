@@ -133,7 +133,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
   useEffect(() => { setVue(peutSurligner ? "passage" : "document"); }, [peutSurligner, extraction.document_id, page, ligne?.citation]);
 
   return (
-    <div className="bg-fond border border-trait rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] [.panneau-source_&]:static">
+    <div className="bg-surface border border-trait rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] [.panneau-source_&]:static">
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-bord flex-shrink-0">
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[12.5px] text-encre truncate">{extraction.document_nom}</p>
@@ -331,7 +331,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher"
-            className="bg-fond border border-trait focus:border-menthe/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-encre outline-none placeholder:text-brume transition-colors w-[170px]"
+            className="bg-surface border border-trait focus:border-menthe/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-encre outline-none placeholder:text-brume transition-colors w-[170px]"
           />
           <button onClick={() => onSupprimer?.(extraction.id)} className="text-[12.5px] text-brume hover:text-red-400 transition-colors" title="Retirer cette extraction">
             Retirer

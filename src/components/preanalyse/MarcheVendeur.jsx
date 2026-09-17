@@ -222,7 +222,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
                 </div>
                 {raisonCle && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <input value={raisonTexte} onChange={(e) => setRaisonTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="min-w-0 flex-1 rounded-[10px] border border-trait bg-fond px-3 py-1.5 text-[12.5px] text-encre outline-none focus:border-menthe/50" />
+                    <input value={raisonTexte} onChange={(e) => setRaisonTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="min-w-0 flex-1 rounded-[10px] border border-trait bg-surface px-3 py-1.5 text-[12.5px] text-encre outline-none focus:border-menthe/50" />
                     <Bouton principal onClick={() => poser.mutate()} disabled={poser.isPending}>{poser.isPending ? "…" : "ALX retient"}</Bouton>
                     <Bouton discret onClick={() => { setRaisonCle(null); setRaisonTexte(""); }}>Annuler</Bouton>
                   </div>

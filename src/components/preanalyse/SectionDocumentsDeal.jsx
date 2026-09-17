@@ -194,7 +194,7 @@ export default function SectionDocumentsDeal({ dossier, onRefresh, masquerSynthe
   const synthese = dossier.synthese_documents;
 
   return (
-    <div className="bg-fond border border-trait rounded-md overflow-hidden">
+    <div className="bg-surface border border-trait rounded-md overflow-hidden">
       <div className="px-5 py-4 border-b border-trait flex flex-wrap items-center gap-3">
         <p className="text-encre text-sm font-medium">Documents du deal</p>
         {documents.length > 0 && (

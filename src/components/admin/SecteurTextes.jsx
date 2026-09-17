@@ -62,7 +62,7 @@ function Liste({ titre, aide, champ, formData, setFormData, reference }) {
           </div>
         ))
       ) : reference?.length ? (
-        <ul className="m-0 flex list-none flex-col gap-1.5 rounded-[10px] border border-trait bg-fond p-3 pl-3">
+        <ul className="m-0 flex list-none flex-col gap-1.5 rounded-[10px] border border-trait bg-surface p-3 pl-3">
           {reference.slice(0, MAX).map((p, i) => (
             <li key={i} className="flex gap-2 text-[12.5px] leading-[1.6] text-craie">
               <span className="mt-[7px] h-1 w-1 flex-shrink-0 rounded-full bg-menthe" />

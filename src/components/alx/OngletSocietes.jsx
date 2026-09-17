@@ -99,7 +99,7 @@ export default function OngletSocietes({ villeId, onOuvrirCible }) {
 
   return (
     <div className="alx-entree">
-      <div className="mt-6 flex items-center gap-3 rounded-full border border-trait bg-fond py-[7px] pl-5 pr-3 focus-within:border-menthe/50">
+      <div className="mt-6 flex items-center gap-3 rounded-full border border-trait bg-surface py-[7px] pl-5 pr-3 focus-within:border-menthe/50">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={J["ardoise"]} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher une société, un SIREN, une adresse" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[15px] text-encre outline-none" />
         {recherche && <button onClick={() => setRecherche("")} className="px-1.5 text-[15px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}

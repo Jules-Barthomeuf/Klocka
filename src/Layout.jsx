@@ -127,7 +127,7 @@ function PiluleNav({ piste, cles }) {
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
   return (
     <Link to={to} onClick={onClick} title={collapsed ? label : undefined} data-actif={isActive ? "1" : undefined} className="relative z-[1] block rounded-full">
-      <div className={`relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group
+      <div className={`relative flex items-center justify-center gap-2 px-3 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group
         ${isActive ? "text-encre" : "text-ardoise hover:text-encre"}
         ${collapsed ? "justify-center px-0 py-2" : ""}
       `}>
@@ -136,9 +136,9 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
         ) : (
           <>
             <Icon className={`w-[15px] h-[15px] flex-shrink-0 transition-colors ${isActive ? "text-menthe" : "text-brume group-hover:text-craie"}`} />
-            <span className="flex-1 truncate">{label}</span>
+            <span className="truncate">{label}</span>
             {badge && (
-              <Badge className={`${badgeColor || "bg-transparent text-menthe-clair"} text-[11px] tracking-[0.12em] px-1.5 py-0 border-0`}>
+              <Badge className={`${badgeColor || "bg-transparent text-menthe-clair"} absolute right-2 top-1/2 -translate-y-1/2 text-[11px] tracking-[0.12em] px-1.5 py-0 border-0`}>
                 {badge}
               </Badge>
             )}
@@ -153,12 +153,12 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
 function AutreToggle({ open, onClick, collapsed }) {
   return (
     <button onClick={onClick} aria-label="Autre" title="Autre"
-      className={`w-full relative flex items-center gap-2 pl-3.5 pr-2.5 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group text-brume hover:text-encre ${collapsed ? "justify-center px-0 py-2" : ""}`}>
+      className={`w-full relative flex items-center justify-center gap-2 px-3 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group text-brume hover:text-encre ${collapsed ? "px-0 py-2" : ""}`}>
       {collapsed ? (
         <ChevronDown className={`w-[17px] h-[17px] flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       ) : (
         <>
-          <span className="flex-1 text-left">Autre</span>
+          <span>Autre</span>
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
         </>
       )}

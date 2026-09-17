@@ -8,9 +8,15 @@ import ShadowReportDialog from "./ShadowReport";
 // La carte d'un projet côté admin : la carte commune, plus les gestes du
 // métier au survol (simulateur, modification, aperçu client, lien public,
 // duplication, archivage, suppression) et le rapport shadow en pied.
-//
-// Ni photo de conseiller ni nom du client dessus : la carte ne porte plus que
-// le titre, le prix et le rendement.
+
+const ADMIN_AVATARS = {
+  "jules.b@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/03bb5f5c4_Capturedecran2026-06-24a120022.png",
+  "alexis.p@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/b8c3065fa_1000031171.jpg",
+  "maxime.p@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/e92131b8c_Capturedecran2026-02-18a164304.png",
+  "paul.dz@klocka.immo": "https://media.base44.com/images/public/68f0bd18555df3520e1740ca/db402bc1f_Capturedecran2026-06-24a122246.png",
+};
+
+const avatarDe = (email) => (email ? ADMIN_AVATARS[email.toLowerCase()] || null : null);
 
 export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelete, onArchive, onShadowWithNav, shadowRecord }) {
   const [reportOpen, setReportOpen] = React.useState(false);
@@ -88,6 +94,8 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
     <CarteProjet
       project={project}
       onOuvrir={() => onEdit(project)}
+      avatar={avatarDe(project.admin_principal)}
+      sousLigne={project.client_email ? <p className="alx-mont mt-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">{project.client_email.split("@")[0]}</p> : null}
       actions={actions}
       pied={pied}
     />

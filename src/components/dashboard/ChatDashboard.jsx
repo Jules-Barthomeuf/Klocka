@@ -542,8 +542,13 @@ export default function ChatDashboard() {
     setSuites([]);
     const choisi = MODES.find((m) => m.id === mode) || null;
     setEnCoursTexte(choisi ? "Je m'en occupe…" : "Je fais le tri…");
-    // En mode Mail, l'assistant prépare un brouillon : rien ne part sans relecture.
-    boite.mutate({ t: mode === "mail" ? `Prépare un mail (brouillon à relire, sans l'envoyer) : ${t}` : t, type: type || choisi?.type || null });
+    // En mode Mail, la consigne n'accompagne que le premier message du fil.
+    // Ajoutée à chaque tour, elle contredisait la conversation : « Envoie »
+    // arrivait au modèle enveloppé de « sans l'envoyer », et il s'abstenait en
+    // disant que la demande se contredisait. Le refus d'envoyer sans accord est
+    // déjà une règle du serveur, sa place est là-bas.
+    const premierDuFil = !fil.some((m) => m.role === "user");
+    boite.mutate({ t: mode === "mail" && premierDuFil ? `Écris un mail : ${t}` : t, type: type || choisi?.type || null });
   };
 
   // Le micro : la dictée remplit le champ, et part quand on se tait si la

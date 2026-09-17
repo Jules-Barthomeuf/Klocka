@@ -67,6 +67,27 @@ export function listerVilles() {
   }));
 }
 
+/**
+ * Les villes, réduites à ce que la veille affiche.
+ *
+ * La liste complète pèse près de trois mégaoctets : chaque ville y porte ses
+ * rues une à une et le compte des cibles rue par rue. La veille vit dans le
+ * Layout, donc sur toutes les pages, et la redemandait toutes les trente
+ * secondes : changer de menu attendait ce téléchargement. Elle n'a besoin que
+ * de l'avancement et des trois comptes.
+ */
+export function listerVillesLeger() {
+  return Records.list('Ville', { sort: '-created_date' })
+    .filter((v) => !v.cachee)
+    .map((v) => ({
+      id: v.id,
+      nom: v.nom,
+      parcours: v.parcours || null,
+      cibles: compterParPile(v.id),
+      rues_nb: (v.rues || []).length,
+    }));
+}
+
 function comptesParRue(villeId) {
   const out = {};
   for (const c of Records.filter('Cible', { ville_id: villeId })) {

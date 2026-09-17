@@ -34,7 +34,7 @@ function pendant(v) {
 function fini(v) {
   const p = v.parcours || {};
   const c = v.cibles || {};
-  if (p.etat === "rues_proposees") return { titre: `${v.nom} est prête.`, detail: `${n((v.rues || []).length, "rue classée", "rues classées")}, à cocher sur la carte.`, onglet: "rues" };
+  if (p.etat === "rues_proposees") return { titre: `${v.nom} est prête.`, detail: `${n(v.rues_nb ?? (v.rues || []).length, "rue classée", "rues classées")}, à cocher sur la carte.`, onglet: "rues" };
   if (p.etat === "fini") return { titre: `${v.nom} : lecture terminée.`, detail: `${c.appeler || 0} à appeler, ${c.ecrire || 0} à écrire, ${c.surveiller || 0} à surveiller${p.brouillons ? ` · ${n(p.brouillons, "message à relire", "messages à relire")}` : ""}.`, onglet: p.brouillons ? "messages" : "commerces" };
   if (p.etat === "arrete") return { titre: `${v.nom} : arrêté.`, detail: `${n(p.rues_faites, "rue lue", "rues lues")} avant l'arrêt.`, onglet: "commerces" };
   if (p.etat === "erreur") return { titre: `${v.nom} : en erreur.`, detail: (p.journal || []).slice(-1)[0]?.texte || "", onglet: "commerces", erreur: true };
@@ -139,7 +139,10 @@ export default function VeilleAlx() {
   // chaque rendu, et l'effet qui dépend des villes tournerait sans fin.
   const { data: villesLues } = useQuery({
     queryKey: ["alx-villes"],
-    queryFn: () => base44.request("GET", "/api/alx/villes"),
+    // La liste allégée : l'avancement et les trois comptes. La liste entière
+    // pèse près de trois mégaoctets, et la veille interroge depuis toutes les
+    // pages, toutes les trente secondes.
+    queryFn: () => base44.request("GET", "/api/alx/villes?leger=1"),
     enabled: admin,
     refetchInterval: (q) => ((q.state.data || []).some((v) => v.parcours?.etat === "en_cours") ? 5000 : 30000),
   });

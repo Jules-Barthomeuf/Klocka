@@ -103,7 +103,7 @@ export default function Ressources() {
 
         {/* Barre de progression */}
         {hasResources && (
-          <div className="bg-surface border border-encre/[0.12] p-5 mb-6">
+          <div className="rounded-[16px] bg-surface border border-encre/[0.12] p-5 mb-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-encre/60 text-xs uppercase tracking-[0.2em]">Progression</span>
               <span className="text-menthe text-sm font-medium">{progressPercent}%</span>
@@ -126,7 +126,7 @@ export default function Ressources() {
                 <div
                   key={resource.id}
                   onClick={() => handleOpenResource(resource)}
-                  className={`group bg-surface border border-encre/[0.12] hover:border-menthe/30 transition-all duration-300 cursor-pointer overflow-hidden ${
+                  className={`group rounded-[16px] bg-surface border border-encre/[0.12] hover:border-menthe/30 transition-all duration-300 cursor-pointer overflow-hidden ${
                     isViewed ? 'opacity-70' : ''
                   }`}
                 >

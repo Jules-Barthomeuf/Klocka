@@ -87,7 +87,7 @@ export default function CarteProjet({ project, onOuvrir, sousLigne = null, actio
   return (
     <div>
       <div
-        className="group relative cursor-pointer overflow-hidden rounded-[16px] border border-encre/[0.10] bg-encre/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl transition-colors duration-300 hover:border-menthe/40 hover:bg-encre/[0.06]"
+        className="group relative cursor-pointer overflow-hidden rounded-[16px] bg-encre/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl transition-colors duration-300 hover:bg-encre/[0.07]"
         onClick={onOuvrir}
       >
         <div className="relative h-44 overflow-hidden md:h-48">

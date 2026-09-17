@@ -7,7 +7,7 @@
 import { Records } from '../db.js';
 import { ok, wrap, currentUser } from '../contexte.js';
 import {
-  etatDesOutils, listerVilles, obtenirVille, creerVille, classerRue, retirerRue, reclasserRues,
+  etatDesOutils, listerVilles, listerVillesLeger, obtenirVille, creerVille, classerRue, retirerRue, reclasserRues,
   listerCibles, obtenirCible, creerCible, mettreAJourCible, reclasser, supprimerCible,
   enregistrerApproche, qualifierApproche, creerDossierDepuisCible, aFaire, bilan, PILES,
 } from '../alx/index.js';
@@ -42,7 +42,9 @@ export function monterAlx(app) {
     ok(res, r);
   }));
 
-  app.get('/api/alx/villes', wrap((req, res) => ok(res, listerVilles())));
+  // « ?leger=1 » : l'avancement seul, pour la veille qui interroge depuis
+  // toutes les pages. La liste entière reste le défaut, pour les écrans d'ALX.
+  app.get('/api/alx/villes', wrap((req, res) => ok(res, req.query.leger === '1' ? listerVillesLeger() : listerVilles())));
   app.post('/api/alx/villes', wrap((req, res) => {
     const r = creerVille({ ...req.body, user: currentUser(req) });
     if (!r.ok) return erreur(res, r.error);

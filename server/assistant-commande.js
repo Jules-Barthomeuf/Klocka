@@ -106,17 +106,23 @@ const OUTILS = [
   {
     name: 'preparer_mail',
     description:
-      "Rédige un brouillon de mail à l'agent pour un dossier. Intentions : demande_documents, relance, refus, abandon, presentation_client. Le brouillon n'est PAS envoyé : il est proposé à l'analyste.",
+      "Ouvre un brouillon de mail dans la fenêtre de relecture de l'analyste. C'est le SEUL moyen de rendre un mail : n'en recopie jamais un dans ta réponse. Avec un dossier, donne deal_id et intention (demande_documents, relance, refus, abandon, presentation_client) et le texte est tiré du dossier. Sans dossier, écris toi-même destinataire, objet et corps. Le brouillon n'est PAS envoyé : il est proposé à l'analyste.",
     input_schema: {
       type: 'object',
       properties: {
-        deal_id: { type: 'string' },
+        deal_id: { type: 'string', description: "l'identifiant du dossier, s'il y en a un" },
         intention: {
           type: 'string',
           enum: ['demande_documents', 'relance', 'refus', 'abandon', 'presentation_client'],
         },
+        destinataire: { type: 'string', description: "l'adresse du destinataire, pour un mail sans dossier" },
+        objet: { type: 'string', description: "l'objet du mail, pour un mail sans dossier" },
+        corps: {
+          type: 'string',
+          description: 'le mail entier en texte brut, signature comprise, pour un mail sans dossier',
+        },
       },
-      required: ['deal_id', 'intention'],
+      required: [],
     },
   },
   {
@@ -351,8 +357,26 @@ export async function executerOutil({ name, input }, user) {
   }
 
   if (name === 'preparer_mail') {
+    // Un mail sans dossier : le modèle écrit lui-même l'objet et le corps, et
+    // on les rend en brouillon. Sans cette voie, un mail à quelqu'un qui n'a
+    // pas de dossier finissait recopié en texte dans la réponse, là où il
+    // devait s'ouvrir dans la fenêtre de relecture.
+    if (!input.deal_id) {
+      if (!input.corps) return { erreur: "Rappelle preparer_mail avec le corps du mail : il ne s'écrit pas dans la réponse." };
+      return {
+        ok: true,
+        brouillon: true,
+        titre: null,
+        deal_id: null,
+        intention: null,
+        destinataire: input.destinataire || '',
+        objet: input.objet || '',
+        corps: input.corps,
+      };
+    }
     const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
+    if (!input.intention) return { erreur: 'Intention manquante pour un mail lié à un dossier' };
     const lot = deal.lots?.[0];
     if (!lot) return { erreur: 'Aucun lot analysé sur ce dossier' };
     const { redigerMailIntention } = await import('./deal/mails-cycle.js');
@@ -872,7 +896,7 @@ RÈGLES :
 5. Une fois l'action faite, dis ce qui a été fait et donne le lien.
 6. N'invente jamais un chiffre sur un bien : si tu ne l'as pas reçu d'un outil, dis que tu ne l'as pas. Et n'invente pas non plus d'explication à une donnée absente — dis simplement qu'elle n'est pas au dossier.
 7. Une simulation se rend avec ses hypothèses : dis toujours sur quel apport, quel taux et quelle durée elle repose.
-8. Un brouillon de mail n'est pas un envoi. Annonce-le comme une proposition à relire, jamais comme un message parti.
+8. Un brouillon de mail n'est pas un envoi. Annonce-le comme une proposition à relire, jamais comme un message parti. Et un mail se rend TOUJOURS par preparer_mail, qui l'ouvre dans la fenêtre de relecture : ne recopie jamais un mail dans ta réponse. Sans dossier au nom du destinataire, appelle quand même preparer_mail, avec destinataire, objet et corps écrits par toi.
 9. Un mail ne part jamais sans accord explicite : propose le texte, attends « envoie », alors seulement envoie.
 10. « Annule » défait la dernière action réversible. Si elle ne l'est pas, dis-le sans détour au lieu de faire semblant.
 11. Un agent immobilier n'a pas besoin d'un dossier pour entrer au CRM : si on te donne un nom et une adresse mail, inscris-le. Ne réclame un dossier que si l'adresse manque.

@@ -229,14 +229,12 @@ function LayoutContent({ children, currentPageName }) {
   // les pages, dont les surfaces sont du verre. La nav s'efface pour le
   // laisser passer, floutant ce qui défile derrière elle.
   //
-  // Trois exceptions. ALX a son propre noir, qui fait tenir ses cartes et sa
+  // Deux exceptions. ALX a son propre noir, qui fait tenir ses cartes et sa
   // carte des rues (sauf la carte d'un investisseur, page de travail comme
   // les autres). Le dashboard admin garde les nappes menthe du plan de
-  // travail : deux halos l'un sur l'autre ne font pas un fond. Le simulateur
-  // reste sur le noir.
+  // travail : deux halos l'un sur l'autre ne font pas un fond.
   const fondHalo = !hideNavbar
     && !(currentPageName === "Dashboard" && !showClientView)
-    && currentPageName !== "SimulateurRentabilite"
     && !(currentPageName === "ALX" && !new URLSearchParams(location.search).has("carte"));
 
   // Les chemins se comparent sans la casse : « /Analyse » et « /analyse »

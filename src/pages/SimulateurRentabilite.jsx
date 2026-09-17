@@ -453,7 +453,7 @@ export default function SimulateurRentabilite() {
   ];
 
   return (
-    <div className="bg-fond min-h-screen relative w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen relative w-full max-w-full overflow-x-hidden">
 
       {isEtape2 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-fond/50 backdrop-blur-sm">
@@ -490,7 +490,7 @@ export default function SimulateurRentabilite() {
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between gap-3 border-b border-trait px-4 h-11 sticky top-0 bg-fond z-10 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center justify-between gap-3 px-4 h-11 sticky top-0 bg-surface z-10 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
               <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-surface border border-trait min-w-0 overflow-x-auto flex-shrink-0 max-md:flex-shrink">
                 {tabs.map((t) => {
                   const active = activeTab === t.id;

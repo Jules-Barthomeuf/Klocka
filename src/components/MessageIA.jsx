@@ -6,9 +6,10 @@ import { Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 import { J } from "@/design/jetons";
 
-// Un message de conversation, le même partout : la question dans une bulle à
-// droite, la réponse en texte plein à gauche — elle se lit comme une page, pas
-// comme un cadre. Le markdown résiduel est nettoyé à l'affichage.
+// Un message de conversation, le même partout : la question dans une bulle de
+// verre, la réponse en texte plein — l'une sous l'autre, toutes deux calées à
+// gauche, pour que l'œil suive une seule colonne. Le markdown résiduel est
+// nettoyé à l'affichage.
 //
 // Sous une réponse, deux pouces. Un clic crée une remarque dans le Feedback
 // avec l'échange, et fait rédiger le prompt à coller dans Claude pour corriger
@@ -112,8 +113,8 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
 export default function MessageIA({ m, question = null, surface = null, dealId = null }) {
   if (m.role === "user") {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-[20px] bg-[#1a1d1c] px-5 py-3.5 text-[15px] leading-[1.6] text-encre whitespace-pre-wrap">{m.contenu}</div>
+      <div className="flex justify-start">
+        <div className="max-w-[85%] rounded-[20px] bg-encre/[0.06] backdrop-blur-xl px-5 py-3.5 text-[15px] leading-[1.6] text-encre whitespace-pre-wrap">{m.contenu}</div>
       </div>
     );
   }

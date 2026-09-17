@@ -185,6 +185,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   // Analyse IA (avis projet + chiffres ville/secteur), mutualisée en un appel.
   const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
   const [selectedImage, setSelectedImage] = useState(null);
+  // Une photo morte (URL d'un hébergeur disparu) affichait son texte de
+  // remplacement en travers du hero : on bascule alors sur la carte.
+  const [photoHeroKo, setPhotoHeroKo] = useState(false);
   const [plongee, setPlongee] = useState(false);
   const [streetView, setStreetView] = useState(false);
   // La pièce ouverte à droite quand on clique une case.
@@ -326,7 +329,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       transition={{ duration: 0.4 }}
       // `overflow-x-clip` et non `hidden` : `hidden` crée un conteneur de
       // défilement qui neutralise le `sticky` du rail d'analyse.
-      className="projet-editorial font-projet min-h-screen bg-fond text-encre overflow-x-clip">
+      className="projet-editorial font-projet min-h-screen text-encre overflow-x-clip">
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
@@ -365,8 +368,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <StreetViewRue project={project} />
         ) : plongee ? (
           <PlongeeCarte project={project} onClose={() => setPlongee(false)} />
-        ) : project.photos && project.photos.length > 0 ? (
-          <img src={project.photos[0]} alt={project.titre} onClick={() => setSelectedImage(project.photos[0])}
+        ) : project.photos && project.photos.length > 0 && !photoHeroKo ? (
+          <img src={project.photos[0]} alt="" onError={() => setPhotoHeroKo(true)} onClick={() => setSelectedImage(project.photos[0])}
             className="absolute inset-0 w-full h-full object-cover cursor-pointer" />
         ) : mapUrl ? (
           <iframe src={mapUrl} className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du projet" />
@@ -488,7 +491,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
       <div className={apercuOnglet
         ? "px-3 py-3"
-        : "max-w-[1400px] mx-auto px-3 md:px-6 py-4 md:py-8"}>
+        : "max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-8"}>
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {!apercuOnglet && (

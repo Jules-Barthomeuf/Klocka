@@ -28,13 +28,13 @@ export default function ProjetDetail() {
   });
 
   if (!user || isLoading || !projectId) return (
-    <div className="min-h-screen bg-fond flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-menthe/30 border-t-menthe rounded-full animate-spin"></div>
     </div>
   );
 
   if (!project) return (
-    <div className="min-h-screen bg-fond flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <p className="text-encre/30">Projet introuvable.</p>
     </div>
   );

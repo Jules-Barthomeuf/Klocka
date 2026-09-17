@@ -9,8 +9,11 @@ import { J } from "@/design/jetons";
 //  1. Google Maps 3D photoréaliste (Map3DElement) — le rendu Google Earth :
 //     bâtiments maillés en vraie 3D. Utilisé si le projet Google Cloud a activé
 //     l'API Map Tiles.
-//  2. Repli : la carte satellite Google Maps, descente cran par cran puis
-//     ronde lente autour du local. Même clé que Street View, sans WebGL.
+//  2. Repli : la carte satellite Google Maps, descente continue puis ronde
+//     lente autour du local. Même clé que Street View, sans WebGL. La
+//     descente avance à chaque image, en zoom fractionnaire : elle montait
+//     autrefois d'un cran entier toutes les huit dixièmes de seconde, treize
+//     fois de suite, ce qui donnait une succession de sauts au lieu d'un vol.
 //     Les orthophotos IGN sous MapLibre qui tenaient ce rôle restaient noires
 //     quand le navigateur n'offrait pas de WebGL.
 //  En dernier recours, la vue satellite de l'API Embed, fixe.
@@ -19,6 +22,9 @@ const CLE_GOOGLE = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const FRANCE = { lat: 46.4, lon: 2.6 };
 const ZOOM_DEPART = 6;
 const ZOOM_ARRIVEE = 19;
+// Le vol de la France jusqu'à la rue, puis un tour complet autour du local.
+const DUREE_DESCENTE_MS = 12000;
+const DUREE_TOUR_MS = 30000;
 
 // La 3D photoréaliste exige une clé avec facturation et l'API Map Tiles
 // activées. Une requête à la racine des tuiles 3D le dit tout de suite —
@@ -197,30 +203,50 @@ function PlongeeSatellite({ cible }) {
           keyboardShortcuts: false,
           clickableIcons: false,
           backgroundColor: J["fond"],
+          // Sans cela, Google arrondit chaque zoom à l'entier : l'interpolation
+          // ci-dessous retomberait sur les mêmes treize sauts.
+          isFractionalZoomEnabled: true,
         });
 
-        // Autour du local, à une quarantaine de mètres : panTo anime les
-        // petits déplacements, la carte glisse comme une caméra qui tourne.
+        const etirement = 1 / Math.cos((cible.lat * Math.PI) / 180);
+
+        // L'orbite : l'angle avance à chaque image, la caméra glisse sans
+        // reprise. setCenter, pas panTo — panTo anime de son côté et se
+        // battrait avec la boucle.
         const tourner = () => {
           if (abandonne) return;
-          let angle = 0;
           const rayon = 0.00035;
-          const etirement = 1 / Math.cos((cible.lat * Math.PI) / 180);
-          ronde = setInterval(() => {
-            angle += Math.PI / 6;
-            carte.panTo({ lat: cible.lat + rayon * Math.sin(angle), lng: cible.lon + rayon * etirement * Math.cos(angle) });
-          }, 2600);
+          const depart = performance.now();
+          const tour = () => {
+            if (abandonne) return;
+            const angle = ((performance.now() - depart) / DUREE_TOUR_MS) * 2 * Math.PI;
+            carte.setCenter({
+              lat: cible.lat + rayon * Math.sin(angle),
+              lng: cible.lon + rayon * etirement * Math.cos(angle),
+            });
+            ronde = requestAnimationFrame(tour);
+          };
+          ronde = requestAnimationFrame(tour);
         };
-        // Un cran à la fois : Google anime chaque changement de zoom.
-        let zoom = ZOOM_DEPART;
+
+        // La descente : un vol d'un seul tenant. Le zoom avance à chaque image
+        // sur une courbe qui part doucement, prend de la vitesse au-dessus du
+        // département, puis freine à l'approche de la rue.
         const descendre = () => {
           if (abandonne) return;
-          zoom += 1;
-          carte.setZoom(zoom);
-          if (zoom < ZOOM_ARRIVEE) plusTard(descendre, 800);
-          else plusTard(tourner, 1500);
+          const depart = performance.now();
+          const vol = () => {
+            if (abandonne) return;
+            const part = Math.min(1, (performance.now() - depart) / DUREE_DESCENTE_MS);
+            // Accélère puis freine (cosinus adouci) : un avion, pas un ascenseur.
+            const adouci = 0.5 - Math.cos(part * Math.PI) / 2;
+            carte.setZoom(ZOOM_DEPART + (ZOOM_ARRIVEE - ZOOM_DEPART) * adouci);
+            if (part < 1) requestAnimationFrame(vol);
+            else tourner();
+          };
+          requestAnimationFrame(vol);
         };
-        plusTard(descendre, 1200);
+        plusTard(descendre, 900);
       } catch (e) {
         console.warn("[plongée satellite]", e?.message || e);
         echec();
@@ -230,7 +256,7 @@ function PlongeeSatellite({ cible }) {
     return () => {
       abandonne = true;
       minuteurs.forEach(clearTimeout);
-      clearInterval(ronde);
+      cancelAnimationFrame(ronde);
       delete window.gm_authFailure;
     };
   }, [cible]);

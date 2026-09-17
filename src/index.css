@@ -389,6 +389,13 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .k-carte-rues.k-carte-claire .leaflet-tile-pane { filter: saturate(.55) contrast(.95) brightness(1.02); }
 .k-carte-rues .leaflet-interactive { cursor: pointer; }
 
+/* K-Zoning (src/pages/KZoning.jsx) : une carte blanche, pas le fond sombre
+   d'ALX. Le module se lit comme un plan — les zones et les commerces y sont
+   les seules couleurs, et un fond inversé les rendrait illisibles. */
+.k-carte-zoning .leaflet-container { background: #eef1f4; font-family: inherit; }
+.k-carte-zoning .leaflet-tile-pane { filter: saturate(.45) contrast(.92) brightness(1.04); }
+.k-carte-zoning .leaflet-interactive { cursor: pointer; }
+
 /* ALX, le registre de la maquette : Figtree pour le texte, Montserrat en
    capitales pour les étiquettes et les nombres, Instrument Serif pour les
    titres. Le fond reste noir : les halos menthe qui le teintaient se

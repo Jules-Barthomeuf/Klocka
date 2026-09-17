@@ -205,7 +205,7 @@ function BarreKData({ user, isActivePage }) {
       </Link>
       <div className="mr-2 h-5 w-px flex-shrink-0 bg-encre/[0.1]" />
 
-      <nav className="flex flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap">
+      <nav className="flex flex-1 items-center justify-center gap-1 overflow-x-auto whitespace-nowrap">
         <Link
           to={createPageUrl("KData")}
           data-actif={isActivePage("KData") ? "1" : undefined}

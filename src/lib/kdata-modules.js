@@ -12,8 +12,8 @@ export const MODULES_KDATA = [
     nom: "K-Zoning",
     icone: Map,
     phrase: "Délimiter une zone de chalandise et lire le flux commercial d'un emplacement.",
-    chemin: null,
-    etat: "En construction",
+    chemin: "/kzoning",
+    etat: "Ouvert",
   },
   {
     cle: "kexpertise",

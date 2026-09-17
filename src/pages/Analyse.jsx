@@ -194,7 +194,7 @@ export default function Analyse() {
                 <select
                   value={tri}
                   onChange={(e) => setTri(e.target.value)}
-                  className="rounded-[10px] border border-trait bg-fond px-3 py-[8px] text-[12.5px] text-craie outline-none transition-colors hover:border-bord"
+                  className="rounded-full border border-encre/[0.10] bg-encre/[0.05] px-4 py-[8px] text-[12.5px] text-craie outline-none backdrop-blur-xl transition-colors hover:border-menthe/40"
                 >
                   {TRIS.map((t) => (
                     <option key={t.id} value={t.id}>Trier : {t.label}</option>
@@ -223,7 +223,7 @@ export default function Analyse() {
                 {dossiers.map((d) => (
                   <div
                     key={d.deal_id}
-                    className="relative rounded-[16px] border border-trait bg-fond text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
+                    className="relative rounded-[16px] border border-encre/[0.10] bg-encre/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl text-left transition-colors hover:border-menthe/40 hover:bg-encre/[0.06]"
                   >
                     <button onClick={() => montrerDeal(d.deal_id)} className="block w-full px-5 py-5 text-left" style={{ background: "transparent" }}>
                       <div className="flex items-start justify-between gap-2 pr-6">
@@ -253,7 +253,7 @@ export default function Analyse() {
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
                     {menuCarte === d.deal_id && (
-                      <div className="absolute top-9 right-2.5 z-20 bg-surface border border-bord rounded-md py-1 min-w-[170px] shadow-xl">
+                      <div className="absolute top-9 right-2.5 z-20 rounded-[12px] border border-encre/[0.12] bg-[rgba(10,10,11,0.72)] py-1 min-w-[170px] shadow-[0_18px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl">
                         <button
                           onClick={() => {
                             setMenuCarte(null);

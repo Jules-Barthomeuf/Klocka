@@ -364,8 +364,9 @@ function LayoutContent({ children, currentPageName }) {
           className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 backdrop-blur-xl transition-all duration-300 ${sidebarCollapsed ? "w-[52px]" : "w-[172px]"}`}
           style={{
             paddingTop: "env(safe-area-inset-top)",
-            background: fondHalo ? "rgba(8,9,10,0.12)" : "linear-gradient(180deg, #070b0a 0%, #000000 55%, #040605 100%)",
-            backdropFilter: fondHalo ? "blur(10px)" : undefined,
+            background: "rgba(8,9,10,0.42)",
+            backdropFilter: "blur(16px) saturate(1.15)",
+            WebkitBackdropFilter: "blur(16px) saturate(1.15)",
             boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)",
           }}
         >
@@ -403,7 +404,7 @@ function LayoutContent({ children, currentPageName }) {
       {isMobileMenuOpen && !hideNavbar && (
         <>
           <div className="md:hidden fixed inset-0 bg-fond/60 z-40" onClick={closeMobile} />
-          <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-fond" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
+          <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-fond/80 backdrop-blur-xl" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
             {sidebarContent(true)}
           </aside>
         </>

@@ -1,69 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Map, Gauge, TrendingUp, LandPlot, Banknote, Store, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { useUser } from "@/components/providers/UserProvider";
+import { MODULES_KDATA } from "@/lib/kdata-modules";
 
 // K-Data : l'autre côté de l'application. Klocka accompagne un client sur un
 // projet ; K-Data répond à une question de marché, sans dossier et sans client.
-// Les deux côtés partagent le compte et la barre latérale, rien d'autre.
+// Les deux côtés partagent le compte ; la bascule dans la barre latérale de
+// Klocka échange celle-ci contre la barre du haut de K-Data, propre à ce côté.
 //
 // Cette page n'est qu'une porte : six modules, une carte chacun. Le travail
-// vit dans les modules, pas ici.
-
-/**
- * Les six modules. `chemin` reste nul tant que le module n'existe pas : une
- * carte qui n'ouvre rien le dit, plutôt que de mener à une page absente.
- */
-const MODULES = [
-  {
-    cle: "kzoning",
-    nom: "K-Zoning",
-    icone: Map,
-    phrase: "Délimiter une zone de chalandise et lire le flux commercial d'un emplacement.",
-    chemin: null,
-    etat: "En construction",
-  },
-  {
-    cle: "kexpertise",
-    nom: "K-Expertise",
-    icone: Gauge,
-    phrase: "Estimer un local commercial et poser un avis de valeur argumenté.",
-    chemin: null,
-    etat: "Bientôt",
-  },
-  {
-    cle: "kprospective",
-    nom: "K-Prospective",
-    icone: TrendingUp,
-    phrase: "Projeter un secteur : population, pouvoir d'achat, concurrence à venir.",
-    chemin: null,
-    etat: "Bientôt",
-  },
-  {
-    cle: "kfoncier",
-    nom: "K-Foncier",
-    icone: LandPlot,
-    phrase: "Repérer le foncier disponible et les mutations autour d'une adresse.",
-    chemin: null,
-    etat: "Bientôt",
-  },
-  {
-    cle: "valeur-locative",
-    nom: "Valeur locative",
-    icone: Banknote,
-    phrase: "Calculer la valeur locative de marché d'un local, loyer et droit au bail.",
-    chemin: null,
-    etat: "Bientôt",
-  },
-  {
-    cle: "transaction-fonds",
-    nom: "Transaction de fonds",
-    icone: Store,
-    phrase: "Suivre les cessions de fonds de commerce et les prix pratiqués.",
-    chemin: null,
-    etat: "Bientôt",
-  },
-];
+// vit dans les modules, pas ici. La liste des modules est partagée avec cette
+// barre du haut, dans src/lib/kdata-modules.js : un seul endroit les décrit.
 
 /** Une carte de module : le nom, ce qu'il fait, son état. Rien de plus. */
 function CarteModule({ module: m }) {
@@ -129,7 +77,7 @@ export default function KData() {
         </header>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {MODULES.map((m) => (
+          {MODULES_KDATA.map((m) => (
             <CarteModule key={m.cle} module={m} />
           ))}
         </div>

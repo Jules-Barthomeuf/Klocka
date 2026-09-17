@@ -27,6 +27,7 @@ import {
   ChevronDown,
   ExternalLink,
   Upload, Mic, Compass, Database } from "lucide-react";
+import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
@@ -183,6 +184,72 @@ function NavSection({ children }) {
   return <>{children}</>;
 }
 
+// La barre du haut de K-Data : le logo ramène à Klocka, le menu ouvre les
+// six applications. Elle remplace la barre latérale entière — K-Data n'a pas
+// de sidebar, il a sa propre barre, pour se sentir comme un autre onglet de
+// l'application plutôt que comme une page de plus dans Klocka.
+function BarreKData({ user, isActivePage }) {
+  return (
+    <div
+      className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-1 border-b border-trait px-3 md:px-5"
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        background: "rgba(8,9,10,0.42)",
+        backdropFilter: "blur(16px) saturate(1.15)",
+        WebkitBackdropFilter: "blur(16px) saturate(1.15)",
+      }}
+    >
+      <Link to={createPageUrl("Dashboard")} className="flex flex-shrink-0 items-center gap-2 pr-3" title="Revenir à Klocka">
+        <img src="/logo-klocka.svg" alt="" className="h-6 w-6 rounded-[5px]" draggable={false} />
+        <ChevronLeft className="h-3.5 w-3.5 text-brume" />
+      </Link>
+      <div className="mr-2 h-5 w-px flex-shrink-0 bg-encre/[0.1]" />
+
+      <nav className="flex flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap">
+        <Link
+          to={createPageUrl("KData")}
+          data-actif={isActivePage("KData") ? "1" : undefined}
+          className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition-colors ${isActivePage("KData") ? "bg-encre/[0.07] text-encre" : "text-ardoise hover:text-encre"}`}
+        >
+          K-Data
+        </Link>
+        {MODULES_KDATA.map((m) => {
+          const actif = isActivePage(m.pageName);
+          const ouvrable = !!m.chemin;
+          const Icone = m.icone;
+          const classes = `flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition-colors ${
+            actif ? "bg-encre/[0.07] text-encre" : ouvrable ? "text-ardoise hover:text-encre" : "cursor-default text-brume/50"
+          }`;
+          return ouvrable ? (
+            <Link key={m.cle} to={m.chemin} data-actif={actif ? "1" : undefined} className={classes}>
+              <Icone className="h-3.5 w-3.5" />{m.nom}
+            </Link>
+          ) : (
+            <span key={m.cle} className={classes} title={m.etat}>
+              <Icone className="h-3.5 w-3.5" />{m.nom}
+            </span>
+          );
+        })}
+      </nav>
+
+      <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+        <div className="hidden h-7 w-7 items-center justify-center rounded-full border border-menthe/40 md:flex" title={user?.full_name || user?.email}>
+          <span className="text-[11px] text-menthe tracking-[0.06em]">{(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => base44.auth.logout(window.location.origin + '/Home')}
+          className="h-8 w-8 text-brume hover:bg-transparent hover:text-encre"
+          title="Déconnexion"
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // Pages that are "child" pages (show back button on mobile)
 const CHILD_PAGES = ['ProjetDetail', 'MonCompte', 'Questionnaire', 'Vision', 'SimulateurRentabilite', 'Comparateur', 'Ressources'];
 
@@ -250,6 +317,13 @@ function LayoutContent({ children, currentPageName }) {
   const pisteBureau = useRef(null);
   const pisteMobile = useRef(null);
 
+  // On est dans K-Data dès que la page ouverte est son tableau de bord ou
+  // l'un de ses modules. Ce n'est pas un lien de plus dans le menu : c'est un
+  // autre espace, qui échange la barre latérale de Klocka contre sa propre
+  // barre du haut.
+  const enKData = PAGES_KDATA.some((p) => isActivePage(p));
+  const modoKData = enKData && isAdmin && !hideNavbar;
+
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
       {/* Marque */}
@@ -264,6 +338,30 @@ function LayoutContent({ children, currentPageName }) {
         )}
       </div>
       <div className={`h-px bg-gradient-to-r from-transparent via-menthe/25 to-transparent ${sidebarCollapsed && !isMobile ? "mx-2" : "mx-3.5"}`} />
+
+      {/* Bascule Klocka / K-Data : deux espaces, un compte. Choisir K-Data
+          quitte cette barre latérale pour la barre du haut de K-Data — ce
+          n'est pas un lien de plus, c'est un autre côté de l'application. */}
+      {isAdmin && !(sidebarCollapsed && !isMobile) && (
+        <div className="px-3.5 pt-3 pb-1">
+          <div className="flex items-center gap-2 border-b border-encre/[0.06] pb-1">
+            <Database className="w-3.5 h-3.5 text-brume" />
+            <AnimatedDropdown
+              value={enKData ? "kdata" : "klocka"}
+              onChange={(v) => {
+                if (isMobile) closeMobile();
+                navigate(v === "kdata" ? createPageUrl("KData") : createPageUrl("Dashboard"));
+              }}
+              options={[
+                { value: "klocka", label: "Klocka" },
+                { value: "kdata", label: "K-Data" },
+              ]}
+              className="flex-1"
+              triggerClassName="bg-transparent border-none text-encre h-7 px-0 hover:bg-transparent hover:text-encre"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Admin view switcher */}
       {isAdmin && !(sidebarCollapsed && !isMobile) && (
@@ -308,9 +406,6 @@ function LayoutContent({ children, currentPageName }) {
             </FeedbackSurvol>
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            {/* L'autre côté de l'application : la donnée du commerce, sans
-                dossier ni client. */}
-            <NavItem to={createPageUrl("KData")} icon={Database} label="K-Data" isActive={isActivePage("KData")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
 
             <div className="pt-3">
               <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
@@ -384,62 +479,77 @@ function LayoutContent({ children, currentPageName }) {
       <style>{globalTooltipStyles}</style>
       {fondHalo && <FondHalo />}
 
-      {/* Desktop Sidebar */}
-      {!hideNavbar && (
-        <aside
-          className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 backdrop-blur-xl transition-all duration-300 ${sidebarCollapsed ? "w-[52px]" : "w-[172px]"}`}
-          style={{
-            paddingTop: "env(safe-area-inset-top)",
-            background: "rgba(8,9,10,0.42)",
-            backdropFilter: "blur(16px) saturate(1.15)",
-            WebkitBackdropFilter: "blur(16px) saturate(1.15)",
-            boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)",
-          }}
-        >
-          {sidebarContent(false)}
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-fond border border-encre/10 items-center justify-center text-ardoise hover:text-encre hover:border-menthe/50 transition-colors"
-            aria-label={sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"} title={sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
-          >
-            <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
-          </button>
-        </aside>
-      )}
-
-      {/* Mobile Top Bar */}
-      {!hideNavbar && (
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-fond/80 backdrop-blur-xl border-b border-trait flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-          {isChildPage ? (
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-encre -ml-2">
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-          ) : (
-            <Link to={createPageUrl("Dashboard")} className="flex items-center">
-              <Wordmark />
-            </Link>
-          )}
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-encre">
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
-        </div>
-      )}
-
-      {/* Mobile Sidebar Overlay */}
-      {isMobileMenuOpen && !hideNavbar && (
+      {modoKData ? (
+        /* K-Data n'a pas de barre latérale : sa barre du haut, seule, sur
+           bureau comme sur mobile — c'est elle qui fait sentir qu'on a
+           changé de côté de l'application. */
+        <BarreKData user={user} isActivePage={isActivePage} />
+      ) : (
         <>
-          <div className="md:hidden fixed inset-0 bg-fond/60 z-40" onClick={closeMobile} />
-          <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-fond/80 backdrop-blur-xl" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
-            {sidebarContent(true)}
-          </aside>
+          {/* Desktop Sidebar */}
+          {!hideNavbar && (
+            <aside
+              className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 backdrop-blur-xl transition-all duration-300 ${sidebarCollapsed ? "w-[52px]" : "w-[172px]"}`}
+              style={{
+                paddingTop: "env(safe-area-inset-top)",
+                background: "rgba(8,9,10,0.42)",
+                backdropFilter: "blur(16px) saturate(1.15)",
+                WebkitBackdropFilter: "blur(16px) saturate(1.15)",
+                boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)",
+              }}
+            >
+              {sidebarContent(false)}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-fond border border-encre/10 items-center justify-center text-ardoise hover:text-encre hover:border-menthe/50 transition-colors"
+                aria-label={sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"} title={sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
+              >
+                <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
+              </button>
+            </aside>
+          )}
+
+          {/* Mobile Top Bar */}
+          {!hideNavbar && (
+            <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-fond/80 backdrop-blur-xl border-b border-trait flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+              {isChildPage ? (
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-encre -ml-2">
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+              ) : (
+                <Link to={createPageUrl("Dashboard")} className="flex items-center">
+                  <Wordmark />
+                </Link>
+              )}
+              <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-encre">
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+            </div>
+          )}
+
+          {/* Mobile Sidebar Overlay */}
+          {isMobileMenuOpen && !hideNavbar && (
+            <>
+              <div className="md:hidden fixed inset-0 bg-fond/60 z-40" onClick={closeMobile} />
+              <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-fond/80 backdrop-blur-xl" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
+                {sidebarContent(true)}
+              </aside>
+            </>
+          )}
         </>
       )}
 
-
-
       {/* Main Content */}
       <main
-        className={`relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${!hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""} ${!hideNavbar ? (isAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0") : ""}`}
+        className={`relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${
+          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""
+        } ${
+          modoKData
+            ? "pt-14"
+            : !hideNavbar
+              ? (isAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0")
+              : ""
+        }`}
       >
         {/* Entrée animée en CSS, sans animation de sortie : une sortie qui
             n'aboutit pas (framer-motion + layoutId) laissait l'écran noir. */}
@@ -451,10 +561,11 @@ function LayoutContent({ children, currentPageName }) {
       {/* Signaler quelque chose sans quitter la page : l'icône reste en haut à
           droite, le panneau s'ouvre dessous et la remarque part de là. */}
 
-      {/* L'assistant suit l'admin de page en page. */}
+      {/* L'assistant suit l'admin de page en page, côté Klocka seulement :
+          K-Data répond à une question de marché, pas à un dossier client. */}
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}
       {/* La pilule flottante se tait sur le dashboard : le chat y est déjà. */}
-      {isAdmin && !hideNavbar && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
+      {isAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
 
       {/* Barre d'onglets mobile */}
       {!hideNavbar && showClientView && <BottomTabs />}

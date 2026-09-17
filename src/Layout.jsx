@@ -106,16 +106,25 @@ function PiluleNav({ piste, cles }) {
       setPos((p) => (p && p.top === suite.top && p.left === suite.left && p.width === suite.width && p.height === suite.height ? p : suite));
     };
     mesurer();
+    // La pilule doit suivre le lien même quand la piste, elle, ne change pas
+    // de taille : la police d'écriture arrive après le premier rendu et
+    // décale les liens de quelques pixels, une pastille apparaît, un groupe
+    // s'ouvre. Sans ces trois guets, la pilule reste où elle a été mesurée et
+    // le mot ne tombe plus en son milieu.
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(mesurer) : null;
     ro?.observe(cont);
-    return () => ro?.disconnect();
+    const mo = typeof MutationObserver !== "undefined" ? new MutationObserver(mesurer) : null;
+    mo?.observe(cont, { childList: true, subtree: true, attributes: true });
+    window.addEventListener("resize", mesurer);
+    document.fonts?.ready?.then(mesurer);
+    return () => { ro?.disconnect(); mo?.disconnect(); window.removeEventListener("resize", mesurer); };
   }, [piste, cle]);
   useEffect(() => { if (pos) premier.current = false; }, [pos]);
   if (!pos) return null;
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute z-0 rounded-full border border-encre/[0.10] bg-encre/[0.07] shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-md"
+      className="pointer-events-none absolute z-0 !mt-0 rounded-full border border-encre/[0.10] bg-encre/[0.07] shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-md"
       style={{
         top: pos.top, left: pos.left, width: pos.width, height: pos.height,
         transition: premier.current ? "none" : "top 380ms cubic-bezier(.22,1,.36,1), height 380ms cubic-bezier(.22,1,.36,1), left 300ms ease, width 300ms ease",
@@ -127,7 +136,7 @@ function PiluleNav({ piste, cles }) {
 function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
   return (
     <Link to={to} onClick={onClick} title={collapsed ? label : undefined} data-actif={isActive ? "1" : undefined} className="relative z-[1] block rounded-full">
-      <div className={`relative flex items-center justify-center gap-2 px-3 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group
+      <div className={`relative flex items-center gap-2 px-3 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group
         ${isActive ? "text-encre" : "text-ardoise hover:text-encre"}
         ${collapsed ? "justify-center px-0 py-2" : ""}
       `}>
@@ -153,7 +162,7 @@ function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, 
 function AutreToggle({ open, onClick, collapsed }) {
   return (
     <button onClick={onClick} aria-label="Autre" title="Autre"
-      className={`w-full relative flex items-center justify-center gap-2 px-3 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group text-brume hover:text-encre ${collapsed ? "px-0 py-2" : ""}`}>
+      className={`w-full relative flex items-center gap-2 px-3 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group text-brume hover:text-encre ${collapsed ? "justify-center px-0 py-2" : ""}`}>
       {collapsed ? (
         <ChevronDown className={`w-[17px] h-[17px] flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       ) : (

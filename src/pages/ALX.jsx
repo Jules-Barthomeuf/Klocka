@@ -1110,8 +1110,10 @@ export default function ALX() {
 
   if (!user || user.role !== "admin") return null;
 
+  // Sans « sur-halo », la classe alx repeint son noir par-dessus le halo du
+  // Layout : l'accueil le garde, une carte et une ville le laissent passer.
   return (
-    <div className={`alx min-h-screen ${carteId ? "sur-halo" : ""}`}>
+    <div className={`alx min-h-screen ${carteId || villeId ? "sur-halo" : ""}`}>
       <div className="mx-auto max-w-[1800px] px-[34px] pb-[70px] pt-[26px] max-md:px-4">
         {villeId ? (
           <VillePage key={villeId} villeId={villeId} ville={ville} onNouvelle={fermerVille} ongletDemande={ongletDemande} cibleDemandee={cibleDemandee} />

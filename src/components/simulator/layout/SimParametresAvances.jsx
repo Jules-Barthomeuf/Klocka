@@ -64,7 +64,10 @@ export default function SimParametresAvances({ values, advanced, calculs, format
       {/* Renégociation & prêt */}
       <Card title="Financement">
         <div className="space-y-1">
-          <ToggleRow label="Prêt in fine" checked={advanced.pretInFine} onChange={advanced.setPretInFine} />
+          <ToggleRow label="Achat comptant (sans crédit)" checked={advanced.sansCredit} onChange={advanced.setSansCredit} />
+          {!advanced.sansCredit && (
+            <ToggleRow label="Prêt in fine" checked={advanced.pretInFine} onChange={advanced.setPretInFine} />
+          )}
           <ToggleRow label="Renégociation du crédit" checked={advanced.renegociationActive} onChange={advanced.setRenegociationActive} />
           {advanced.renegociationActive && (
             <div className="pt-1">

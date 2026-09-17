@@ -12,12 +12,12 @@ export function calculerTableauAnnuel(params) {
     tauxCommissionAgent, commissionAgentType, commissionAgentActive, commissionAgentInclusFAI,
     tauxDroitsEnregistrement,
     tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, fraisDossierBancaire, coutCreationSociete,
-    fraisCourtage, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive,
+    fraisCourtage, apport: apportSaisi, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive,
     anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, vacancesLocatives,
     travauxBailleur, gestionLocative, comptabilite, assurancePNE, chargesDiverses,
     chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere,
     loyerSoumisTVA, tauxTVA, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur,
-    revalorisationActive, pretInFine
+    revalorisationActive, pretInFine, sansCredit
   } = params;
 
   const loyerParM2 = surface > 0 ? Math.round(loyerInitialHTHC / surface) : 0;
@@ -42,7 +42,12 @@ export function calculerTableauAnnuel(params) {
   const prixRevient = prixBienNegocie + droitsEnregistrement + totalFraisKlocka + fraisDivers + travauxAnnee0
     + (inclusFAI ? 0 : honorairesChargeAcquereur);
 
-  const montantEmprunt = prixRevient - apport;
+  // Achat comptant : le client pose tout, il n'y a pas d'emprunt. L'apport
+  // devient le prix de revient et l'emprunt tombe à zéro ; mensualité,
+  // intérêts, assurance et capital restant dû suivent d'eux-mêmes, puisque
+  // tous se calculent sur ce montant.
+  const apport = sansCredit ? prixRevient : apportSaisi;
+  const montantEmprunt = sansCredit ? 0 : prixRevient - apport;
   const pourcentageEmprunt = prixRevient > 0 ? Math.round(montantEmprunt / prixRevient * 100) : 0;
   const pourcentageApport = prixRevient > 0 ? Math.round(apport / prixRevient * 100) : 0;
   const totalFinancement = apport + montantEmprunt;

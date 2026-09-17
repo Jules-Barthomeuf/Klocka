@@ -54,6 +54,13 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
 
   const isRevente = activeTab === "revente";
 
+  // En achat comptant, les curseurs du crédit n'ont plus de prise. Ils vivent à
+  // deux endroits, les champs principaux et la section FINANCEMENT, et les
+  // laisser manipulables à l'un des deux serait mentir : le filtre passe donc
+  // par ici, quel que soit le chemin de rendu.
+  const CLES_CREDIT = ["apport", "dureeCredit", "tauxInteret", "tauxAssuranceCredit"];
+  const horsCredit = (items) => (advanced?.sansCredit ? items.filter((it) => !CLES_CREDIT.includes(it.key)) : items);
+
   const groups = [
     {
       title: "ACQUISITION",
@@ -146,7 +153,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
         {/* Champs principaux - non repliable */}
         <div className="mt-3 rounded-lg border border-menthe/40 bg-menthe/[0.06] p-2.5">
           <p className="text-[11px] uppercase tracking-[0.18em] text-menthe font-semibold pb-1">Champs principaux</p>
-          {acquisitionMainItems.map((it) => (
+          {horsCredit(acquisitionMainItems).map((it) => (
             <SimSlider
               key={it.key}
               label={it.label}
@@ -195,7 +202,7 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
         {groups.map((g) => (
           <div key={g.title}>
             <SectionHeader title={g.title} open={isOpen(g.title)} onToggle={() => toggleSection(g.title)} />
-            {isOpen(g.title) && g.items.map((it) => (
+            {isOpen(g.title) && horsCredit(g.items).map((it) => (
               <SimSlider
                 key={it.key}
                 label={it.label}
@@ -225,13 +232,23 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
             )}
             {isOpen(g.title) && g.title === "FINANCEMENT" && (
               <div className="mt-1 space-y-0">
-                <ToggleRow label="Prêt in fine" checked={advanced.pretInFine} onChange={advanced.setPretInFine} />
-                <ToggleRow label="Renégociation" checked={advanced.renegociationActive} onChange={advanced.setRenegociationActive} />
-                {advanced.renegociationActive && (
+                <ToggleRow label="Achat comptant" checked={advanced.sansCredit} onChange={advanced.setSansCredit} />
+                {advanced.sansCredit ? (
+                  <p className="mt-1 mb-2 text-[11px] leading-[1.5] text-brume">
+                    Le client finance tout : pas d&apos;emprunt, pas de mensualité, pas d&apos;assurance.
+                    L&apos;apport vaut le prix de revient.
+                  </p>
+                ) : (
                   <>
-                    <SimSlider label="Année renégociation" value={advanced.anneeRenegociation} onChange={advanced.setAnneeRenegociation} min={1} max={values.dureeCredit || 20} step={1} unit="" />
-                    <SimSlider label="Nouveau taux" value={advanced.nouveauTauxRenegociation} onChange={advanced.setNouveauTauxRenegociation} min={0} max={10} step={0.1} unit="%" />
-                    <SimSlider label="IRA (mois)" value={advanced.iraRenegociation} onChange={advanced.setIraRenegociation} min={0} max={12} step={1} unit="" />
+                    <ToggleRow label="Prêt in fine" checked={advanced.pretInFine} onChange={advanced.setPretInFine} />
+                    <ToggleRow label="Renégociation" checked={advanced.renegociationActive} onChange={advanced.setRenegociationActive} />
+                    {advanced.renegociationActive && (
+                      <>
+                        <SimSlider label="Année renégociation" value={advanced.anneeRenegociation} onChange={advanced.setAnneeRenegociation} min={1} max={values.dureeCredit || 20} step={1} unit="" />
+                        <SimSlider label="Nouveau taux" value={advanced.nouveauTauxRenegociation} onChange={advanced.setNouveauTauxRenegociation} min={0} max={10} step={0.1} unit="%" />
+                        <SimSlider label="IRA (mois)" value={advanced.iraRenegociation} onChange={advanced.setIraRenegociation} min={0} max={12} step={1} unit="" />
+                      </>
+                    )}
                   </>
                 )}
               </div>

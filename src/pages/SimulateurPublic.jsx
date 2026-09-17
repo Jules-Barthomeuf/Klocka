@@ -58,6 +58,7 @@ export default function SimulateurPublic() {
   const [tauxInteret, setTauxInteret] = useState(3.9);
   const [tauxAssuranceCredit, setTauxAssuranceCredit] = useState(0.25);
   const [pretInFine, setPretInFine] = useState(false);
+  const [sansCredit, setSansCredit] = useState(false);
   const [renegociationActive, setRenegociationActive] = useState(false);
   const [anneeRenegociation, setAnneeRenegociation] = useState(10);
   const [nouveauTauxRenegociation, setNouveauTauxRenegociation] = useState(2.5);
@@ -110,6 +111,7 @@ export default function SimulateurPublic() {
         if (p.tauxInteret !== undefined) setTauxInteret(p.tauxInteret);
         if (p.tauxAssuranceCredit !== undefined) setTauxAssuranceCredit(p.tauxAssuranceCredit);
         if (p.pretInFine !== undefined) setPretInFine(p.pretInFine);
+        if (p.sansCredit !== undefined) setSansCredit(p.sansCredit);
         if (p.renegociationActive !== undefined) setRenegociationActive(p.renegociationActive);
         if (p.anneeRenegociation !== undefined) setAnneeRenegociation(p.anneeRenegociation);
         if (p.nouveauTauxRenegociation !== undefined) setNouveauTauxRenegociation(p.nouveauTauxRenegociation);
@@ -142,10 +144,12 @@ export default function SimulateurPublic() {
     const fraisDivers = fraisDossierBancaire + coutCreationSociete + fraisCourtage;
     const travauxAnnee0 = travauxBailleur[0] || 0;
     const prixRevient = prixBienNegocie + droitsEnregistrement + totalFraisKlocka + fraisDivers + travauxAnnee0 + (commissionAgentInclusFAI ? 0 : honorairesCA);
-    const montantEmprunt = prixRevient - apport;
+    // Achat comptant : pas d'emprunt, l'apport vaut tout le prix de revient.
+    const apportEffectif = sansCredit ? prixRevient : apport;
+    const montantEmprunt = sansCredit ? 0 : prixRevient - apportEffectif;
     const pourcentageEmprunt = prixRevient > 0 ? Math.round(montantEmprunt / prixRevient * 100) : 0;
-    const pourcentageApport = prixRevient > 0 ? Math.round(apport / prixRevient * 100) : 0;
-    const totalFinancement = apport + montantEmprunt;
+    const pourcentageApport = prixRevient > 0 ? Math.round(apportEffectif / prixRevient * 100) : 0;
+    const totalFinancement = apportEffectif + montantEmprunt;
     const amortissementAnnuel = prixHorsDroits * 0.8 / 25;
 
     const tableauAnnuel = [];
@@ -321,18 +325,18 @@ export default function SimulateurPublic() {
     const margeBruteRevente = prixVenteNet - prixRevient;
     const pourcentageMargeBrute = prixRevient > 0 ? margeBruteRevente / prixRevient * 100 : 0;
     const capitalARemboursserRevente = tableauAnnuel[anneeRevente]?.capitalRestantDu || 0;
-    const creationRichesseBrute = cashFlowCumule + prixVenteNet - apport - capitalARemboursserRevente;
+    const creationRichesseBrute = cashFlowCumule + prixVenteNet - apportEffectif - capitalARemboursserRevente;
     const plusValue = prixVenteNet - valeurNetComptable;
     let impotPlusValue = 0;
     if (plusValue > 0) impotPlusValue = Math.min(plusValue, 42500) * 0.15 + Math.max(plusValue - 42500, 0) * 0.25;
-    const multipleNetFondsPropres = apport > 0 ? creationRichesseBrute / apport : 0;
-    const triBrut = apport > 0 && anneeRevente > 0 ? (Math.pow(1 + creationRichesseBrute / apport, 1 / anneeRevente) - 1) * 100 : 0;
+    const multipleNetFondsPropres = apportEffectif > 0 ? creationRichesseBrute / apportEffectif : 0;
+    const triBrut = apportEffectif > 0 && anneeRevente > 0 ? (Math.pow(1 + creationRichesseBrute / apportEffectif, 1 / anneeRevente) - 1) * 100 : 0;
     let anneeRecuperationApport = null, cumulRecuperationApport = 0, anneeDoubleApport = null;
     for (let i = 1; i <= tableauAnnuel.length - 1; i++) {
       const r = tableauAnnuel[i];
       cumulRecuperationApport += Math.abs(r.capitalRembourse) + r.cashFlowAnnuel;
-      if (anneeRecuperationApport === null && apport > 0 && cumulRecuperationApport >= apport) anneeRecuperationApport = i;
-      if (anneeDoubleApport === null && apport > 0 && cumulRecuperationApport >= apport * 2) anneeDoubleApport = i;
+      if (anneeRecuperationApport === null && apportEffectif > 0 && cumulRecuperationApport >= apportEffectif) anneeRecuperationApport = i;
+      if (anneeDoubleApport === null && apportEffectif > 0 && cumulRecuperationApport >= apportEffectif * 2) anneeDoubleApport = i;
     }
 
     return {
@@ -346,14 +350,14 @@ export default function SimulateurPublic() {
       revente: { loyerHTRevente: Math.round(loyerHTRevente), loyerHTParM2Revente, valeurNetComptable: Math.round(valeurNetComptable), vncParM2, prixVenteFAI: Math.round(prixVenteFAI), commissionAgentRevente: Math.round(commissionAgentRevente), prixVenteNet: Math.round(prixVenteNet), prixNetParM2, rendementNetAcheteur: rendementNetAcheteur.toFixed(1) },
       indicateurs: { nbAnnees: anneeRevente, rendementLocatifGlobalNet: rendementLocatifGlobalNet.toFixed(1), rendementEnCapital: rendementEnCapital.toFixed(1), triBrut: triBrut.toFixed(2), loyerAnnuelMoyen: Math.round(loyerAnnuelMoyen), capitalRembourseAnnuelMoyen: Math.round(capitalRembourseAnnuelMoyen), cashFlowCumule: Math.round(cashFlowCumule), cashFlowMoyenAn: Math.round(cashFlowMoyenAn), cashFlowMoyenMois: Math.round(cashFlowMoyenMois), margeBruteRevente: Math.round(margeBruteRevente), pourcentageMargeBrute: pourcentageMargeBrute.toFixed(2), capitalARemboursserRevente: Math.round(capitalARemboursserRevente), creationRichesseBrute: Math.round(creationRichesseBrute), impotPlusValue: Math.round(impotPlusValue), multipleNetFondsPropres: multipleNetFondsPropres.toFixed(2), apportInitial: apport, plusValue: Math.round(plusValue), anneeRecuperationApport, anneeDoubleApport, loyerNetMoyen: Math.round(loyerNetMoyen) }
     };
-  }, [surface, loyerInitialHTHC, loyerRevalorise, anneeRevalorisation, prixBienFAI, prixBienNegocieEffectif, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, fraisDossierBancaire, coutCreationSociete, fraisCourtage, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, vacancesLocatives, travauxBailleur, gestionLocative, comptabilite, assurancePNE, chargesDiverses, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerSoumisTVA, tauxTVA, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, revalorisationActive, pretInFine, commissionAgentActive]);
+  }, [surface, loyerInitialHTHC, loyerRevalorise, anneeRevalorisation, prixBienFAI, prixBienNegocieEffectif, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, fraisDossierBancaire, coutCreationSociete, fraisCourtage, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, vacancesLocatives, travauxBailleur, gestionLocative, comptabilite, assurancePNE, chargesDiverses, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerSoumisTVA, tauxTVA, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, revalorisationActive, pretInFine, sansCredit, commissionAgentActive]);
 
   const formatCurrency = (value) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(value)).replace(/\u00A0/g, ' ');
 
   const setters = { prixBienFAI: setPrixBienFAI, surface: setSurface, prixBienNegocie: setPrixBienNegocie, loyerInitialHTHC: setLoyerInitialHTHC, indexation: setIndexation, chargesCopropriete: setChargesCopropriete, taxeFonciere: setTaxeFonciere, apport: setApport, dureeCredit: setDureeCredit, tauxInteret: setTauxInteret, tauxAssuranceCredit: setTauxAssuranceCredit, anneeRevente: setAnneeRevente, tauxCommissionAgentRevente: setTauxCommissionAgentRevente, rendementBrutAcheteur: setRendementBrutAcheteur, coutCreationSociete: setCoutCreationSociete, fraisDossierBancaire: setFraisDossierBancaire, fraisCourtage: setFraisCourtage, comptabilite: setComptabilite, assurancePNE: setAssurancePNE, gestionLocative: setGestionLocative, chargesDiverses: setChargesDiverses };
   const values = { prixBienFAI, surface, prixBienNegocie, loyerInitialHTHC, indexation, chargesCopropriete, taxeFonciere, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, coutCreationSociete, fraisDossierBancaire, fraisCourtage, comptabilite, assurancePNE, gestionLocative, chargesDiverses };
   const onChange = (key, val) => setters[key]?.(val);
-  const advanced = { loyerSoumisTVA, setLoyerSoumisTVA, chargesCoproRefacturables, setChargesCoproRefacturables, taxeFonciereRefacturable, setTaxeFonciereRefacturable, pretInFine, setPretInFine, revalorisationActive, setRevalorisationActive, anneeRevalorisation, setAnneeRevalorisation, loyerRevalorise, setLoyerRevalorise, renegociationActive, setRenegociationActive, anneeRenegociation, setAnneeRenegociation, nouveauTauxRenegociation, setNouveauTauxRenegociation, iraRenegociation, setIraRenegociation, vacancesLocatives, setVacancesLocatives, travauxBailleur, setTravauxBailleur };
+  const advanced = { loyerSoumisTVA, setLoyerSoumisTVA, chargesCoproRefacturables, setChargesCoproRefacturables, taxeFonciereRefacturable, setTaxeFonciereRefacturable, pretInFine, setPretInFine, sansCredit, setSansCredit, revalorisationActive, setRevalorisationActive, anneeRevalorisation, setAnneeRevalorisation, loyerRevalorise, setLoyerRevalorise, renegociationActive, setRenegociationActive, anneeRenegociation, setAnneeRenegociation, nouveauTauxRenegociation, setNouveauTauxRenegociation, iraRenegociation, setIraRenegociation, vacancesLocatives, setVacancesLocatives, travauxBailleur, setTravauxBailleur };
 
   const exportParams = { surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive };
 

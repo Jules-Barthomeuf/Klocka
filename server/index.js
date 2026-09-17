@@ -347,15 +347,15 @@ function mailAcces(prenom, lien, admin, base = '') {
   const esc = (t) => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const body = `Bonjour${prenom ? ` ${prenom}` : ''},
 
-Vous pouvez dès à présent créer votre espace via le lien suivant : ${lien}
+Tu peux dès à présent accéder à ton espace Klocka via le lien suivant : ${lien}
 
-Hâte de lancer l'accompagnement,
+Au plaisir de t'accompagner !
 
 ${signature}`;
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.7;color:#111">
 <p>Bonjour${prenom ? ` ${esc(prenom)}` : ''},</p>
-<p>Vous pouvez dès à présent créer votre espace via le lien suivant : <a href="${esc(lien)}" style="color:#1a56db;text-decoration:underline">Créer mon espace</a></p>
-<p>Hâte de lancer l'accompagnement,</p>
+<p>Tu peux dès à présent accéder à ton espace Klocka via le lien suivant : <a href="${esc(lien)}" style="color:#1a56db;text-decoration:underline">Créer mon espace</a></p>
+<p>Au plaisir de t'accompagner !</p>
 <p>${esc(signature)}</p>
 ${logo ? `<p style="margin-top:18px"><img src="${esc(logo)}" alt="Klocka" width="48" height="48" style="border-radius:10px"></p>` : ''}
 </div>`;

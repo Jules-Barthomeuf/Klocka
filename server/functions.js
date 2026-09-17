@@ -179,14 +179,13 @@ export const functions = {
     const base = (basePublique || process.env.APP_URL || '').replace(/\/$/, '');
     // Sans identifiant de projet, la liste reste le meilleur repli.
     const lien = projectId ? `${base}/ProjetDetail?id=${encodeURIComponent(projectId)}` : `${base}/MesProjets`;
-    const titre = String(projectTitle || '').trim();
     await sendEmail({
       owner: user?.email,
       to: recipient,
       subject: 'Klocka - Un nouveau projet vous a été attribué dans votre espace 🚀',
       body: `Bonjour${prenom ? ` ${prenom}` : ''},
 
-Bonne nouvelle ! Un nouveau projet vient de vous être attribué${titre ? ` : ${titre}` : ''}.
+Bonne nouvelle ! Un nouveau projet vient de vous être attribué.
 
 Découvrez-le sans plus attendre sur notre plateforme Klocka :
 

@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { MapContainer, TileLayer, CircleMarker, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import { base44 } from "@/api/base44Client";
 import { Bouton, Etiquette, Nombre, TEINTES, joliNom } from "@/components/alx/alx-commun";
+import { useFondDeCarte } from "@/lib/tuiles";
 import { J } from "@/design/jetons";
 
 // L'onglet Sociétés : partir du bailleur plutôt que de la vitrine. La liste
@@ -203,9 +206,158 @@ function CommercesDuBien({ villeId, parcelle, ouvert, onOuvrirCible }) {
   );
 }
 
+/** Cadre la carte du portefeuille sur ses biens, une fois. */
+function CadragePortefeuille({ points }) {
+  const map = useMap();
+  const signature = points.map(([a, b]) => `${a.toFixed(5)},${b.toFixed(5)}`).join(";");
+  const cadree = useRef(null);
+  useEffect(() => {
+    if (cadree.current === signature) return;
+    cadree.current = signature;
+    if (points.length === 1) map.setView(points[0], 16);
+    else if (points.length > 1) map.fitBounds(points, { padding: [50, 50], maxZoom: 16 });
+  }, [signature]);
+  return null;
+}
+
+/**
+ * La carte du portefeuille : un point par bien, coloré selon sa tranche.
+ * Comme la carte des rues, mais avec des points au lieu de tracés — le
+ * portefeuille d'une société n'a pas de rues à dessiner, juste des adresses.
+ */
+function CartePortefeuille({ murs, choisie, onChoisir, className = "" }) {
+  const { fond, surErreur } = useFondDeCarte();
+  const points = useMemo(() => murs.filter((m) => m.lat != null && m.lon != null), [murs]);
+  const centres = useMemo(() => points.map((m) => [m.lat, m.lon]), [points]);
+  const centre = centres[0] || [46.6, 2.4];
+
+  if (!points.length) {
+    return (
+      <div className={`k-carte-rues relative grid place-items-center overflow-hidden rounded-[18px] border border-trait bg-surface px-6 text-center text-[12.5px] text-ardoise ${className}`}>
+        Aucun bien géolocalisé pour ce portefeuille.
+      </div>
+    );
+  }
+  return (
+    <div className={`k-carte-rues relative overflow-hidden rounded-[18px] border border-trait bg-surface ${className}`}>
+      <MapContainer center={centre} zoom={15} minZoom={5} scrollWheelZoom className="h-full w-full" attributionControl={false} zoomControl={false}>
+        <TileLayer key={fond.cle} url={fond.url} attribution={fond.attribution} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />
+        <CadragePortefeuille points={centres} />
+        {points.map((m) => {
+          const active = choisie === m.parcelle;
+          const teinte = m.rang === 1 ? TEINTES.ecrire : m.tranche ? teinteTranche(m.tranche.cle) : J["ardoise"];
+          return (
+            <CircleMarker
+              key={m.parcelle}
+              center={[m.lat, m.lon]}
+              radius={active ? 12 : 8}
+              pathOptions={{ color: teinte, fillColor: teinte, fillOpacity: active ? 1 : 0.65, weight: active ? 3 : 1.5 }}
+              eventHandlers={{ click: () => onChoisir(m.parcelle) }}
+            />
+          );
+        })}
+      </MapContainer>
+      <div className="absolute bottom-3 left-3 z-[400] rounded-[10px] border border-bord bg-surface px-3 py-2 text-[11px] text-craie backdrop-blur">
+        {fond.attribution}
+      </div>
+    </div>
+  );
+}
+
+/** Le détail d'un bien du portefeuille : ce qui était la carte du classement,
+ *  ouverte plein cadre au lieu d'un élément de liste. */
+function DetailMur({ m, ville, villeId, onOuvrirCible, ouvert, onToggleOuvert }) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <span className="min-w-0 text-[16px] text-encre">
+          <span className="mr-2 text-ardoise">n°{m.rang}</span>{m.adresse || `Parcelle ${m.parcelle}`}
+          {m.rang === 1 && <span className="ml-2 text-[12.5px]" style={{ color: TEINTES.ecrire }}>à proposer en premier</span>}
+        </span>
+        <span className="flex items-baseline gap-3">
+          {m.tranche && <span className="text-[12.5px]" style={{ color: teinteTranche(m.tranche.cle) }}>{TRANCHE_MOT[m.tranche.cle]}</span>}
+          <Nombre taille={16} teinte={J["encre"]}>{pourcent(m.proba)}</Nombre>
+        </span>
+      </div>
+      <div className="mt-1.5 text-[12.5px] text-ardoise">
+        {[m.enseignes.length ? m.enseignes.join(", ") : null, m.vitrines ? `${m.vitrines} vitrine${m.vitrines > 1 ? "s" : ""}` : null, `${m.locaux} local${m.locaux > 1 ? "aux" : ""} à la société${m.rez_de_chaussee ? ", dont le rez-de-chaussée" : ""}`,
+          m.detention ? `${m.detention.censuree ? "détenu depuis au moins" : "détenu depuis"} ${m.detention.depuis}` : null,
+          m.derniere_vente ? `dernière vente ${m.derniere_vente.date.slice(0, 4)}${m.derniere_vente.prix ? ` à ${Math.round(m.derniere_vente.prix / 1000)} k€` : ""}` : null].filter(Boolean).join(" · ")}
+      </div>
+      {m.raisons.length > 0 && (
+        <div className="mt-2.5 flex flex-col gap-1 text-[13.5px] text-craie">
+          {m.raisons.map((r) => <span key={r.variable}><span style={{ color: r.sens > 0 ? TEINTES.ecrire : J["ardoise"] }}>{r.sens > 0 ? "↑" : "↓"}</span> {r.phrase}</span>)}
+        </div>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button onClick={onToggleOuvert}
+          className="rounded-full border px-3 py-1 text-[12.5px] transition-colors"
+          style={{ borderColor: ouvert ? J["menthe"] : "rgba(255,255,255,0.1)", color: ouvert ? J["menthe"] : J["ardoise"], background: "transparent" }}>
+          {ouvert ? "Masquer le détail" : "Voir les commerces"}
+        </button>
+        {liensBien({ lat: m.lat, lon: m.lon, adresse: m.adresse, ville }).map(([mot, href]) => <Lien key={mot} href={href}>{mot}</Lien>)}
+      </div>
+      <CommercesDuBien villeId={villeId} parcelle={m.parcelle} ouvert={ouvert} onOuvrirCible={onOuvrirCible} />
+    </div>
+  );
+}
+
+/**
+ * Le portefeuille : la carte à gauche, à droite le bien qu'on vient de
+ * choisir — sur la carte ou dans la liste — puis la liste entière en
+ * dessous. Une page à elle seule : elle ne partage plus l'écran avec la
+ * présentation de la société.
+ */
+function PagePortefeuille({ villeId, murs, ville, autresParcelles, onOuvrirCible }) {
+  const [choisie, setChoisie] = useState(murs[0]?.parcelle ?? null);
+  const [ouvert, setOuvert] = useState(null);
+  const mur = murs.find((m) => m.parcelle === choisie) || null;
+  const choisirEtDeplier = (parcelle) => { setChoisie(parcelle); setOuvert(null); };
+
+  return (
+    <div className="mt-6">
+      <div className="grid grid-cols-1 items-start gap-3.5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        <CartePortefeuille murs={murs} choisie={choisie} onChoisir={choisirEtDeplier} className="h-[500px] max-md:h-[320px]" />
+        <div className="flex min-h-[500px] flex-col rounded-[16px] border border-trait max-md:min-h-[220px]">
+          <div className="border-b border-trait p-5">
+            {mur
+              ? <DetailMur m={mur} ville={ville} villeId={villeId} onOuvrirCible={onOuvrirCible} ouvert={ouvert === mur.parcelle} onToggleOuvert={() => setOuvert((p) => (p === mur.parcelle ? null : mur.parcelle))} />
+              : <p className="m-0 text-[13.5px] text-ardoise">Cliquez un point sur la carte, ou un bien dans la liste ci-dessous.</p>}
+          </div>
+          <div className="flex-1 overflow-y-auto p-2">
+            {murs.map((m) => (
+              <button
+                key={m.parcelle}
+                onClick={() => choisirEtDeplier(m.parcelle)}
+                className="flex w-full items-baseline justify-between gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.04]"
+                style={{ background: choisie === m.parcelle ? "rgba(150,192,184,0.08)" : "transparent" }}
+              >
+                <span className="min-w-0 truncate text-[13.5px]" style={{ color: choisie === m.parcelle ? J["encre"] : J["craie"] }}>
+                  <span className="mr-1.5 text-ardoise">n°{m.rang}</span>{m.adresse || `Parcelle ${m.parcelle}`}
+                </span>
+                <Nombre taille={13} teinte={m.rang === 1 ? TEINTES.ecrire : J["ardoise"]}>{pourcent(m.proba)}</Nombre>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {autresParcelles > 0 && <p className="m-0 mt-3 text-[12.5px] text-ardoise">Et {autresParcelles} autre{autresParcelles > 1 ? "s" : ""} parcelle{autresParcelles > 1 ? "s" : ""} dans la commune, sans vitrine connue : hors du classement du modèle.</p>}
+    </div>
+  );
+}
+
+/** Un des deux onglets de la fiche société. */
+function OngletFiche({ actif, onClick, children }) {
+  return (
+    <button onClick={onClick} className="alx-mont border-b-2 pb-2.5 text-[12px] font-medium uppercase tracking-[.12em] transition-colors" style={{ background: "transparent", borderColor: actif ? J["menthe"] : "transparent", color: actif ? J["encre"] : J["ardoise"] }}>
+      {children}
+    </button>
+  );
+}
+
 function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
   const qc = useQueryClient();
-  const [ouvert, setOuvert] = useState(null); // la parcelle dépliée
+  const [page, setPage] = useState("presentation"); // "presentation" | "portefeuille"
   const cle = ["alx-societe", villeId, siren];
   const { data: s, isLoading, error, isFetching } = useQuery({
     queryKey: cle,
@@ -245,8 +397,15 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-            <div className="flex flex-col gap-6 rounded-[20px] border border-trait bg-surface p-7">
+          {/* Deux pages : la présentation ne montre plus le portefeuille, qui
+              vit désormais seul, avec sa carte. */}
+          <div className="mt-6 flex items-center gap-6 border-b border-trait">
+            <OngletFiche actif={page === "presentation"} onClick={() => setPage("presentation")}>Présentation</OngletFiche>
+            <OngletFiche actif={page === "portefeuille"} onClick={() => setPage("portefeuille")}>Portefeuille · {s.murs.length}</OngletFiche>
+          </div>
+
+          {page === "presentation" ? (
+            <div className="mt-6 flex max-w-[760px] flex-col gap-6 rounded-[20px] border border-trait bg-surface p-7">
               {s.accroche && (
                 <div className="rounded-[14px] border px-5 py-4" style={{ borderColor: `${TEINTES.ecrire}47` }}>
                   <Etiquette teinte={TEINTES.ecrire}>L'accroche</Etiquette>
@@ -297,45 +456,9 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
               )}
               <div className="border-t border-trait pt-4 text-[12.5px] leading-[1.6] text-brume">{s.limites.map((l, i) => <p key={i} className="m-0 mb-1">{l}</p>)}</div>
             </div>
-
-            <div className="flex flex-col gap-3">
-              <Etiquette>Le portefeuille à {s.ville}, dans l'ordre où le proposer</Etiquette>
-              {s.murs.map((m) => (
-                <div key={m.parcelle} className="rounded-[16px] border px-5 py-4" style={{ borderColor: m.rang === 1 ? `${TEINTES.ecrire}66` : "rgba(255,255,255,0.08)", background: m.rang === 1 ? "rgba(150,192,184,0.05)" : "transparent" }}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-3">
-                    <span className="min-w-0 text-[15px] text-encre">
-                      <span className="mr-2 text-ardoise">n°{m.rang}</span>{m.adresse || `Parcelle ${m.parcelle}`}
-                      {m.rang === 1 && <span className="ml-2 text-[12.5px]" style={{ color: TEINTES.ecrire }}>à proposer en premier</span>}
-                    </span>
-                    <span className="flex items-baseline gap-3">
-                      {m.tranche && <span className="text-[12.5px]" style={{ color: teinteTranche(m.tranche.cle) }}>{TRANCHE_MOT[m.tranche.cle]}</span>}
-                      <Nombre taille={15} teinte={J["encre"]}>{pourcent(m.proba)}</Nombre>
-                    </span>
-                  </div>
-                  <div className="mt-1 text-[12.5px] text-ardoise">
-                    {[m.enseignes.length ? m.enseignes.join(", ") : null, m.vitrines ? `${m.vitrines} vitrine${m.vitrines > 1 ? "s" : ""}` : null, `${m.locaux} local${m.locaux > 1 ? "aux" : ""} à la société${m.rez_de_chaussee ? ", dont le rez-de-chaussée" : ""}`,
-                      m.detention ? `${m.detention.censuree ? "détenu depuis au moins" : "détenu depuis"} ${m.detention.depuis}` : null,
-                      m.derniere_vente ? `dernière vente ${m.derniere_vente.date.slice(0, 4)}${m.derniere_vente.prix ? ` à ${Math.round(m.derniere_vente.prix / 1000)} k€` : ""}` : null].filter(Boolean).join(" · ")}
-                  </div>
-                  {m.raisons.length > 0 && (
-                    <div className="mt-2 flex flex-col gap-1 text-[13.5px] text-craie">
-                      {m.raisons.map((r) => <span key={r.variable}><span style={{ color: r.sens > 0 ? TEINTES.ecrire : J["ardoise"] }}>{r.sens > 0 ? "↑" : "↓"}</span> {r.phrase}</span>)}
-                    </div>
-                  )}
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <button onClick={() => setOuvert((p) => (p === m.parcelle ? null : m.parcelle))}
-                      className="rounded-full border px-3 py-1 text-[12.5px] transition-colors"
-                      style={{ borderColor: ouvert === m.parcelle ? J["menthe"] : "rgba(255,255,255,0.1)", color: ouvert === m.parcelle ? J["menthe"] : J["ardoise"], background: "transparent" }}>
-                      {ouvert === m.parcelle ? "Masquer le détail" : "Voir les commerces"}
-                    </button>
-                    {liensBien({ lat: m.lat, lon: m.lon, adresse: m.adresse, ville: s.ville }).map(([mot, href]) => <Lien key={mot} href={href}>{mot}</Lien>)}
-                  </div>
-                  <CommercesDuBien villeId={villeId} parcelle={m.parcelle} ouvert={ouvert === m.parcelle} onOuvrirCible={onOuvrirCible} />
-                </div>
-              ))}
-              {s.autres_parcelles > 0 && <p className="m-0 text-[12.5px] text-ardoise">Et {s.autres_parcelles} autre{s.autres_parcelles > 1 ? "s" : ""} parcelle{s.autres_parcelles > 1 ? "s" : ""} dans la commune, sans vitrine connue : hors du classement du modèle.</p>}
-            </div>
-          </div>
+          ) : (
+            <PagePortefeuille villeId={villeId} murs={s.murs} ville={s.ville} autresParcelles={s.autres_parcelles} onOuvrirCible={onOuvrirCible} />
+          )}
         </>
       )}
     </div>

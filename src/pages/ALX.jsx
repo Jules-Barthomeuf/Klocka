@@ -1020,10 +1020,29 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
         <div className="mt-[26px] flex flex-wrap items-end justify-between gap-x-6 border-b border-trait">
           <Onglets onglet={onglet} onChange={setOnglet} compte={{ rues: rues.length, commerces: cibles.length, messages: brouillons }} />
           <div className="flex items-center gap-4 pb-3 text-[12.5px]">
+            {/* Deux gestes qui engagent la ville : ils se voient. Le fond passe
+                en style en ligne, la règle `.alx button` rendant transparente
+                toute classe de fond. */}
             {enCours ? (
-              <button onClick={() => arreter.mutate()} disabled={arreter.isPending} className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>Arrêter</button>
+              <button
+                onClick={() => arreter.mutate()}
+                disabled={arreter.isPending}
+                className="alx-mont rounded-full px-5 py-2 text-[11px] font-semibold uppercase tracking-[.14em] transition-opacity hover:opacity-85 disabled:opacity-50"
+                style={{ background: J["alerte"], color: J["fond"] }}
+              >
+                {arreter.isPending ? "…" : "Arrêter"}
+              </button>
             ) : (
-              <button onClick={() => lancer.mutate()} disabled={lancer.isPending} aria-label="Relit la commune sur OpenStreetMap et repropose les rues" title="Relit la commune sur OpenStreetMap et repropose les rues" className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>{lancer.isPending ? "…" : rues.length ? "Refaire les rues" : "Lancer ALX"}</button>
+              <button
+                onClick={() => lancer.mutate()}
+                disabled={lancer.isPending}
+                aria-label="Relit la commune sur OpenStreetMap et repropose les rues"
+                title="Relit la commune sur OpenStreetMap et repropose les rues"
+                className="alx-mont rounded-full px-5 py-2 text-[11px] font-semibold uppercase tracking-[.14em] transition-opacity hover:opacity-85 disabled:opacity-50"
+                style={{ background: J["menthe"], color: J["sur-menthe"] }}
+              >
+                {lancer.isPending ? "…" : rues.length ? "Refaire les rues" : "Lancer ALX"}
+              </button>
             )}
           </div>
         </div>

@@ -346,9 +346,9 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
 
   if (isLoading || !data) {
     return (
-      <div className="flex flex-col items-center gap-4 py-24">
-        <PenseeIA etat="searching" taille={64} />
-        <span className="text-[13.5px] text-ardoise">Ouverture de la carte…</span>
+      <div className="flex flex-col items-center gap-7 py-28">
+        <PenseeIA etat="searching" taille={168} />
+        <span className="text-[15px] text-ardoise">Ouverture de la carte…</span>
       </div>
     );
   }

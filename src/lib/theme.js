@@ -40,15 +40,18 @@ export function appliquerTheme(theme) {
  * et vaut pour l'appareil, pas pour le compte : un même dossier se relit dans
  * le train en sombre et au bureau en clair.
  */
-export function useTheme() {
+export function useTheme(permis = true) {
   const [theme, poser] = useState(lireTheme);
 
+  // `permis` : le clair n'existe que dans K-Data. Ailleurs, Klocka reste
+  // sombre quel que soit le choix retenu — et ce choix n'est pas perdu, il
+  // reprend effet dès qu'on revient dans K-Data.
   useEffect(() => {
-    appliquerTheme(theme);
+    appliquerTheme(permis ? theme : SOMBRE);
     try {
       localStorage.setItem(CLE, theme);
     } catch { /* stockage refusé : le thème vaut pour cette session */ }
-  }, [theme]);
+  }, [theme, permis]);
 
   const basculer = useCallback(() => poser((t) => (t === CLAIR ? SOMBRE : CLAIR)), []);
   return { theme, clair: theme === CLAIR, poser, basculer };

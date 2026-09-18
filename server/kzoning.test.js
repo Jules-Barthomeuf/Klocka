@@ -103,6 +103,7 @@ test('la fiche d\'un commerce reprend ses champs OpenStreetMap tels quels, sans 
         name: 'Terra Nova', shop: 'books', 'contact:housenumber': '18', 'contact:street': 'Rue Léon Gambetta',
         opening_hours: 'Mo-Sa 10:00-19:00', phone: '+33 5 61 21 17 47', website: 'https://librairie-terranova.fr/',
         email: 'contact@librairie-terranova.fr', wheelchair: 'no', outdoor_seating: 'yes', cuisine: 'french;pizza',
+        'ref:FR:SIRET': '47840389200019',
       },
     },
     { type: 'node', id: 10, lat: 43.601, lon: 1.441, tags: { name: 'Sans fiche', shop: 'clothes' } },
@@ -120,9 +121,10 @@ test('la fiche d\'un commerce reprend ses champs OpenStreetMap tels quels, sans 
   assert.equal(complet.pmr, 'no');
   assert.equal(complet.terrasse, true);
   assert.equal(complet.cuisine, 'french, pizza');
+  assert.equal(complet.siret, '47840389200019');
 
   // Un commerce sans ces champs les rend absents, jamais devinés.
-  for (const cle of ['horaires', 'telephone', 'site', 'email', 'pmr', 'cuisine']) assert.equal(vide[cle], null);
+  for (const cle of ['horaires', 'telephone', 'site', 'email', 'pmr', 'cuisine', 'siret']) assert.equal(vide[cle], null);
   assert.equal(vide.terrasse, null);
 });
 

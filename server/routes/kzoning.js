@@ -10,9 +10,10 @@ import {
   listerZones, listerDossiers, creerZoneCercle, renommerZone, deplacerZone,
   supprimerZone, creerDossier, renommerDossier, supprimerDossier,
 } from '../kzoning.js';
-import { listerMetiers, filtresDe, TOUS_LES_COMMERCES } from '../kzoning-metiers.js';
+import { listerMetiers, filtresDe, TOUS_LES_COMMERCES, nomMetierDe } from '../kzoning-metiers.js';
 import { commercesDeLaZone, equipementsDeLaZone } from '../kzoning-commerces.js';
 import { habitantsDeLaZone } from '../kzoning-insee.js';
+import { societe } from '../kzoning-societe.js';
 
 /** Monte les routes « kzoning » sur l'application. */
 export function monterKZoning(app) {
@@ -73,6 +74,22 @@ export function monterKZoning(app) {
     rendre(res, supprimerDossier(req.params.id));
   }));
 
+  /**
+   * La société derrière une devanture : son identité, son siège, ses
+   * établissements, ses dirigeants, ses comptes déposés. On l'interroge par le
+   * SIRET que porte le commerce dans OpenStreetMap, ou à défaut par son nom.
+   */
+  app.get('/api/kzoning/societe', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = await societe({
+      siret: req.query.siret || null,
+      nom: req.query.nom || null,
+      forcer: req.query.forcer === '1',
+    });
+    if (!r.ok) return res.status(r.error?.includes('Aucune') ? 404 : 502).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // --- Ce qu'on lit dans une zone -----------------------------------------
 
   // Le référentiel des métiers, tel que la barre de recherche le montre.
@@ -124,6 +141,10 @@ export function monterKZoning(app) {
       forcer: !!req.body?.forcer,
     });
     if (!r.ok) return res.status(502).json({ error: r.error });
-    ok(res, { ...r, metiers });
+    // Le nom français du métier voyage avec le commerce : la fiche société
+    // l'affiche à côté du code NAF, que l'œil ne sait pas lire.
+    const nomDe = nomMetierDe();
+    const commerces = (r.commerces || []).map((c) => ({ ...c, metier: nomDe(c.genre) }));
+    ok(res, { ...r, commerces, metiers });
   }));
 }

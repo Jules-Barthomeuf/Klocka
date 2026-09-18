@@ -115,6 +115,9 @@ export function normaliser(elements, centre) {
         site: t.website || t['contact:website'] || null,
         email: t.email || t['contact:email'] || null,
         pmr: t.wheelchair || null,
+        // Le SIRET est le pont entre une devanture et sa société : environ deux
+        // commerces sur trois le portent dans OpenStreetMap.
+        siret: t['ref:FR:SIRET'] || null,
         cuisine: t.cuisine ? t.cuisine.split(';').join(', ') : null,
         terrasse: t.outdoor_seating === 'yes' ? true : t.outdoor_seating === 'no' ? false : null,
       };

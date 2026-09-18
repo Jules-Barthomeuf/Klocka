@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Plus, FolderPlus, Folder, ChevronRight, Eye, EyeOff, Trash2, X, PieChart, Store, Loader2,
-  ChevronLeft, Phone, Globe, Mail, Accessibility, UtensilsCrossed, Armchair, Clock, ExternalLink,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
 import CarteGoogleZones, { TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
+import FicheSociete from "@/components/kzoning/FicheSociete";
 
 // K-Zoning : on pose une zone sur la carte, on lit ce qu'il y a dedans.
 //
@@ -416,73 +416,6 @@ function PanneauInformations({ zone }) {
   );
 }
 
-/** Une ligne d'information dans la fiche d'un commerce : une icône, un texte. */
-function LigneFiche({ icone: Icone, children, lien = null }) {
-  const corps = (
-    <>
-      <Icone className="h-3.5 w-3.5 flex-shrink-0 text-brume" />
-      <span className="min-w-0 flex-1 text-[13px] text-craie">{children}</span>
-    </>
-  );
-  if (!lien) return <div className="flex items-center gap-2.5 py-1.5">{corps}</div>;
-  return (
-    <a href={lien} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 py-1.5 hover:text-encre">
-      {corps}
-    </a>
-  );
-}
-
-const PMR = { yes: "Accessible aux personnes à mobilité réduite", limited: "Accès partiellement adapté", no: "Non accessible aux personnes à mobilité réduite" };
-
-/**
- * La fiche d'un commerce, au clic sur une ligne ou sur la carte. Chaque champ
- * vient tel quel de sa fiche OpenStreetMap ; un champ absent ne s'affiche pas
- * — on ne comble jamais un trou par une supposition.
- */
-function FicheCommerce({ commerce: c, labelGenre, onRetour }) {
-  return (
-    <div className="px-4 py-4">
-      <button onClick={onRetour} className="mb-3 flex items-center gap-1.5 text-[11.5px] text-ardoise hover:text-encre">
-        <ChevronLeft className="h-3.5 w-3.5" /> Retour à la liste
-      </button>
-
-      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.14em] text-menthe-texte">
-        {c.vacant ? "Local vacant" : labelGenre(c.genre)}
-      </p>
-      <h3 className="mt-1 mb-0 text-[18px] font-medium leading-tight text-encre">
-        {c.nom || (c.vacant ? "Local sans enseigne" : "Sans nom relevé")}
-      </h3>
-      {c.adresse && <p className="mt-1 mb-0 text-[12.5px] text-brume">{c.adresse}</p>}
-      <p className="mt-1 mb-0 text-[11px] text-brume">à {c.distance_m} m du centre de la zone</p>
-
-      <div className="mt-4 border-t border-trait pt-1">
-        {c.horaires && <LigneFiche icone={Clock}>Horaires : {c.horaires}</LigneFiche>}
-        {c.telephone && <LigneFiche icone={Phone} lien={`tel:${c.telephone.replace(/\s+/g, "")}`}>{c.telephone}</LigneFiche>}
-        {c.site && <LigneFiche icone={Globe} lien={c.site}>{c.site.replace(/^https?:\/\//, "")}</LigneFiche>}
-        {c.email && <LigneFiche icone={Mail} lien={`mailto:${c.email}`}>{c.email}</LigneFiche>}
-        {c.pmr && <LigneFiche icone={Accessibility}>{PMR[c.pmr] || c.pmr}</LigneFiche>}
-        {c.cuisine && <LigneFiche icone={UtensilsCrossed}>Cuisine : {c.cuisine.replace(/_/g, " ")}</LigneFiche>}
-        {c.terrasse != null && <LigneFiche icone={Armchair}>{c.terrasse ? "Avec terrasse" : "Sans terrasse"}</LigneFiche>}
-      </div>
-
-      {!(c.horaires || c.telephone || c.site || c.email || c.pmr || c.cuisine || c.terrasse != null) && (
-        <p className="mt-4 mb-0 text-[12px] text-brume">OpenStreetMap ne porte pas d&apos;autre information sur ce local.</p>
-      )}
-
-      <div className="mt-5 flex gap-2 border-t border-trait pt-4">
-        <a href={`https://www.openstreetmap.org/${c.id}`} target="_blank" rel="noreferrer"
-          className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full border border-bord text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
-          OpenStreetMap <ExternalLink className="h-3 w-3" />
-        </a>
-        <a href={`https://www.google.com/maps?q=${c.lat},${c.lon}`} target="_blank" rel="noreferrer"
-          className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full border border-bord text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
-          Google Maps <ExternalLink className="h-3 w-3" />
-        </a>
-      </div>
-    </div>
-  );
-}
-
 /** La concurrence dans la zone : on choisit des métiers, on les relève. */
 function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuvert }) {
   const [recherche, setRecherche] = useState("");
@@ -524,10 +457,6 @@ function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuve
   });
 
   const basculer = (nom) => setChoisis((c) => (c.includes(nom) ? c.filter((x) => x !== nom) : [...c, nom]));
-
-  if (commerceOuvert) {
-    return <FicheCommerce commerce={commerceOuvert} labelGenre={labelGenre} onRetour={() => setCommerceOuvert(null)} />;
-  }
 
   if (releve) {
     return (
@@ -700,6 +629,11 @@ export default function KZoning() {
       </div>
       <SelecteurFond type={typeCarte} setType={setTypeCarte} />
 
+      {/* La fiche d'une société : plein écran, par-dessus la carte. */}
+      {commerceOuvert && (
+        <FicheSociete commerce={commerceOuvert} metier={commerceOuvert.metier || null} onFermer={() => setCommerceOuvert(null)} />
+      )}
+
       {/* Le panneau de gauche : chercher, créer, retrouver */}
       <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
         <div className="flex-shrink-0 p-3">
@@ -795,8 +729,10 @@ export default function KZoning() {
                 key={cle}
                 onClick={() => setMode(cle)}
                 title={titre}
-                className={`flex h-10 w-10 items-center justify-center rounded-[12px] border backdrop-blur-xl transition-colors ${
-                  mode === cle ? "border-menthe/40 bg-relief text-encre" : "border-bord bg-fond/70 text-ardoise hover:text-encre"
+                className={`flex h-10 w-10 items-center justify-center rounded-[12px] border transition-colors ${
+                  mode === cle
+                    ? "border-menthe bg-menthe text-sur-menthe"
+                    : "border-bord bg-surface-pleine text-craie hover:border-menthe/40 hover:text-encre"
                 }`}
               >
                 <Icone className="h-[18px] w-[18px]" />

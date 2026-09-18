@@ -196,3 +196,13 @@ export function filtresDe(noms) {
   }
   return [...parCle.entries()].map(([cle, valeurs]) => ({ cle, valeurs: [...valeurs] }));
 }
+
+/**
+ * De l'étiquette OpenStreetMap au nom français du métier : `bakery` devient
+ * « Boulangerie ». Une table montée une fois, rendue comme fonction.
+ */
+export function nomMetierDe() {
+  const table = new Map();
+  for (const m of METIERS) for (const f of m.filtres) for (const v of f.valeurs) if (!table.has(v)) table.set(v, m.nom);
+  return (genre) => table.get(genre) || null;
+}

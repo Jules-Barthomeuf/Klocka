@@ -283,7 +283,6 @@ function LayoutContent({ children, currentPageName }) {
   // La barre latérale est ouverte à chaque chargement ; le chevron la replie
   // le temps de la session, et rien ne s'en souvient.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { clair, basculer } = useTheme();
   const [previewClientMode, setPreviewClientMode] = useState(() => localStorage.getItem('previewClientMode') === 'true');
   const [autreOpen, setAutreOpen] = useState(false);
   const isChildPage = CHILD_PAGES.includes(currentPageName);
@@ -346,6 +345,9 @@ function LayoutContent({ children, currentPageName }) {
   // barre du haut.
   const enKData = PAGES_KDATA.some((p) => isActivePage(p));
   const modoKData = enKData && isAdmin && !hideNavbar;
+
+  // Le mode clair n'existe que dans K-Data : ailleurs Klocka reste sombre.
+  const { clair, basculer } = useTheme(enKData);
 
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
@@ -461,7 +463,6 @@ function LayoutContent({ children, currentPageName }) {
               <p className="text-[12.5px] text-encre truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
               <p className="text-[11px] text-brume truncate">{user?.email}</p>
             </div>
-            <BasculeTheme clair={clair} onBasculer={basculer} />
             <Button
               variant="ghost"
               size="icon"

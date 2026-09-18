@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine } from "recharts";
-import { ArrowRight, ArrowLeft, Loader2, Check, MapPin, Store, Phone, Maximize2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Loader2, Check, MapPin, Store, Phone, Maximize2, Play } from "lucide-react";
 import { JL } from "@/design/jetons";
 import FondHalo from "@/components/projet/FondHalo";
+import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
 // « Ma feuille de route » : la page ouverte à tous, sans compte.
 //
@@ -25,8 +26,16 @@ const HORIZONS = [10, 15, 20, 25, 30, 35];
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const k = (n) => `${Math.round(n / 1000)} k€`;
 
-// L'anneau blanc qui montre de quoi le guide parle.
-const anneauSi = (actif) => (actif ? "ring-2 ring-encre/70 ring-offset-4 ring-offset-fond-halo" : "ring-0");
+// Le guide ne cerne pas ce dont il parle : il efface le reste. Tant qu'on n'a
+// pas commencé, rien n'est flouté — on voit la page entière, et la carte de
+// droite propose d'entrer dans le guide.
+const TRANSITION = "transition-[filter,opacity,transform] duration-700 ease-out";
+const flouSi = (zoneActive, zone) => {
+  if (!zoneActive) return TRANSITION;
+  return zoneActive === zone
+    ? `${TRANSITION} opacity-100 blur-0`
+    : `${TRANSITION} pointer-events-none select-none opacity-30 blur-[5px]`;
+};
 
 function Champ({ label, aide = null, children }) {
   return (
@@ -131,6 +140,11 @@ function etapesDuGuide(r) {
     });
   }
   etapes.push({
+    zone: "simulateur",
+    titre: "Le calcul complet, poste par poste",
+    texte: `Tout en bas, le simulateur de Klocka, celui que nous utilisons pour nos clients, pré-rempli avec le local que vous regardez à gauche : crédit, charges, impôt, revente, année par année. Changez de commerce en haut et il se recalcule. Tous les curseurs sont manipulables, essayez.`,
+  });
+  etapes.push({
     zone: "acquisitions",
     titre: `${r.nombre_acquisitions} acquisition${r.nombre_acquisitions > 1 ? "s" : ""} en tout`,
     texte: `Faites-les défiler à gauche. On commence petit, avec ce que vous avez, puis on monte en gamme à mesure que le portefeuille porte l'achat suivant. Au terme, ${euros(r.patrimoine_final)} de patrimoine produisant ${euros(r.atteint_mensuel)} par mois.`,
@@ -145,10 +159,28 @@ function etapesDuGuide(r) {
   return etapes;
 }
 
-function Guide({ r, etape, setEtape, setAcqEnAvant }) {
+function Guide({ r, etape, setEtape, setAcqEnAvant, demarre, onDemarrer }) {
   const etapes = useMemo(() => etapesDuGuide(r), [r]);
   const e = etapes[etape];
-  useEffect(() => { setAcqEnAvant(e?.avant ?? null); }, [etape]);
+  useEffect(() => { if (demarre) setAcqEnAvant(e?.avant ?? null); }, [etape, demarre]);
+
+  // Avant de commencer : la page est entière et nette, et la carte invite.
+  if (!demarre) {
+    return (
+      <div className={`${CARTE} flex h-full flex-col justify-center p-6 text-center`}>
+        <h3 className="m-0 text-[20px] font-light leading-[1.3] text-encre">Votre feuille de route est prête</h3>
+        <p className="m-0 mt-3 text-[13.5px] leading-[1.7] text-craie">
+          Prenez trente secondes : nous vous montrons ce qu&apos;il y a à gauche, morceau par morceau — votre premier local,
+          ce qu&apos;il rapporte, et comment le suivant se finance.
+        </p>
+        <button onClick={onDemarrer}
+          className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-menthe px-6 text-[12.5px] font-medium uppercase tracking-[.12em] text-sur-menthe">
+          <Play className="h-4 w-4" />Commencer
+        </button>
+        <p className="m-0 mt-3 text-[11px] text-brume">{etapes.length} étapes · vous pouvez sortir quand vous voulez</p>
+      </div>
+    );
+  }
 
   return (
     <div className={`${CARTE} flex h-full flex-col p-5`}>
@@ -176,11 +208,13 @@ function Guide({ r, etape, setEtape, setAcqEnAvant }) {
         ))}
       </div>
 
-      {etape === etapes.length - 1 && (
+      {etape === etapes.length - 1 ? (
         <a href={LIEN_RDV} target={LIEN_RDV.startsWith("http") ? "_blank" : undefined} rel="noreferrer"
           className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-menthe px-5 text-[12.5px] font-medium uppercase tracking-[.12em] text-sur-menthe">
           <Phone className="h-4 w-4" />Réserver mon appel gratuit
         </a>
+      ) : (
+        <button onClick={onDemarrer} className="mt-4 text-[11.5px] text-brume hover:text-ardoise">Voir toute la page</button>
       )}
     </div>
   );
@@ -189,33 +223,52 @@ function Guide({ r, etape, setEtape, setAcqEnAvant }) {
 // ── Le résultat ─────────────────────────────────────────────────────────────
 
 function Resultat({ r, prenom, onRecommencer }) {
+  const [demarre, setDemarre] = useState(false);
   const [etape, setEtape] = useState(0);
   const [acq, setAcq] = useState(0);
   const [acqEnAvant, setAcqEnAvant] = useState(null);
   const [plein, setPlein] = useState(false);
-  const zone = etapesDuGuide(r)[etape]?.zone;
+  const etapes = useMemo(() => etapesDuGuide(r), [r]);
+  const zone = demarre ? etapes[etape]?.zone : null;
   const a = r.acquisitions[acq];
+  const flou = (z) => flouSi(zone, z);
 
   // Le guide met en avant une acquisition : la fiche de gauche suit.
   useEffect(() => { if (acqEnAvant != null) setAcq(acqEnAvant); }, [acqEnAvant]);
 
+  // Le simulateur complet, pré-rempli avec le local qu'on regarde. Il se
+  // recalcule de lui-même quand l'acquisition change : son état suit ses
+  // paramètres. Sans dealId, aucun enregistrement n'est proposé — cette page
+  // n'a pas de compte derrière elle.
+  const parametresSimulateur = useMemo(() => (a ? {
+    surface: a.surface,
+    loyerInitialHTHC: a.loyer_annuel,
+    prixBienFAI: a.prix,
+    prixBienNegocie: a.prix,
+    apport: a.apport,
+    dureeCredit: 20,
+    tauxInteret: 3.7,
+    anneeRevente: 20,
+  } : null), [a]);
+
   return (
     <div className="mx-auto max-w-[1280px] px-4 pb-24 pt-10">
-      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Votre feuille de route</p>
-      <h1 className="mt-2 mb-2 text-[30px] font-light leading-[1.15] tracking-[-0.01em] text-encre">
-        {prenom}, voici le chemin vers {euros(r.objectif_mensuel)} par mois
-      </h1>
-      <p className="m-0 mb-7 text-[13.5px] leading-[1.7] text-ardoise">
-        {r.nombre_acquisitions} acquisition{r.nombre_acquisitions > 1 ? "s" : ""} sur {r.horizon_ans} ans, soit {euros(r.patrimoine_final)} de patrimoine.
-        {r.quartier ? ` Chiffré sur ${r.quartier}` : ""}
-        {r.marche ? `, au prix réel du quartier (${euros(r.marche.m2)} / m², ${r.marche.ventes} ventes).` : r.prix_m2_estime ? `, sur un prix de ${euros(r.prix_m2_retenu)} / m² faute de ventes publiées.` : "."}
-      </p>
+      <div className={flou("titre")}>
+        <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Votre feuille de route</p>
+        <h1 className="mt-2 mb-2 text-[30px] font-light leading-[1.15] tracking-[-0.01em] text-encre">
+          {prenom}, voici le chemin vers {euros(r.objectif_mensuel)} par mois
+        </h1>
+        <p className="m-0 mb-7 text-[13.5px] leading-[1.7] text-ardoise">
+          {r.nombre_acquisitions} acquisition{r.nombre_acquisitions > 1 ? "s" : ""} sur {r.horizon_ans} ans, soit {euros(r.patrimoine_final)} de patrimoine.
+          {r.quartier ? ` Chiffré sur ${r.quartier}` : ""}
+          {r.marche ? `, au prix réel du quartier (${euros(r.marche.m2)} / m², ${r.marche.ventes} ventes).` : r.prix_m2_estime ? `, sur un prix de ${euros(r.prix_m2_retenu)} / m² faute de ventes publiées.` : "."}
+        </p>
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-        {/* ── Gauche : le portefeuille et le simulateur ── */}
         <div className="min-w-0">
           {/* Les commerces à acheter, qu'on fait défiler */}
-          <div className={`mb-4 rounded-[18px] transition-all duration-500 ${anneauSi(zone === "acquisitions")}`}>
+          <div className={`mb-4 ${flou("acquisitions")}`}>
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {r.acquisitions.map((x, i) => (
                 <button key={x.rang} onClick={() => setAcq(i)}
@@ -229,7 +282,7 @@ function Resultat({ r, prenom, onRecommencer }) {
 
           {/* La fiche du projet regardé */}
           {a && (
-            <div className={`${CARTE} mb-4 p-5 transition-all duration-500 ${anneauSi(zone === "projet")}`}>
+            <div className={`${CARTE} mb-4 p-5 ${flou("projet")}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div>
                   <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">Acquisition {a.rang} sur {r.nombre_acquisitions}</p>
@@ -238,10 +291,6 @@ function Resultat({ r, prenom, onRecommencer }) {
                     environ {a.surface} m² · achat en année {a.annee} · rendement cible {a.rendement_cible} %
                   </p>
                 </div>
-                <a href={r.lien_simulateur} target="_blank" rel="noreferrer"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord px-3.5 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
-                  <Maximize2 className="h-3.5 w-3.5" />Simulateur complet
-                </a>
               </div>
 
               <div className="mt-4 grid gap-2 sm:grid-cols-4">
@@ -254,39 +303,41 @@ function Resultat({ r, prenom, onRecommencer }) {
               </div>
 
               {a.exemple && (
-                <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-trait bg-relief px-4 py-3">
-                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-trait"><Store className="h-4 w-4 text-menthe" /></span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-[13px] font-medium text-encre">{a.exemple.nom}</span>
-                    <span className="block truncate text-[11.5px] text-ardoise">
-                      {a.exemple.metier}{a.exemple.adresse ? ` · ${a.exemple.adresse}` : ""}{a.exemple.distance_m != null ? ` · à ${a.exemple.distance_m} m de chez vous` : ""}
+                <>
+                  <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-trait bg-relief px-4 py-3">
+                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-trait"><Store className="h-4 w-4 text-menthe" /></span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium text-encre">{a.exemple.nom}</span>
+                      <span className="block truncate text-[11.5px] text-ardoise">
+                        {a.exemple.metier}{a.exemple.adresse ? ` · ${a.exemple.adresse}` : ""}{a.exemple.distance_m != null ? ` · à ${a.exemple.distance_m} m de chez vous` : ""}
+                      </span>
                     </span>
-                  </span>
-                </div>
+                  </div>
+                  <p className="m-0 mt-2 text-[11px] text-brume">Ce commerce existe et <span className="text-ardoise">n&apos;est pas à vendre</span> : il montre le type de local et le niveau de prix sur lesquels votre plan est calculé.</p>
+                </>
               )}
-              {a.exemple && <p className="m-0 mt-2 text-[11px] text-brume">Ce commerce existe et <span className="text-ardoise">n&apos;est pas à vendre</span> : il montre le type de local et le niveau de prix sur lesquels votre plan est calculé.</p>}
             </div>
           )}
 
-          {/* Le simulateur : tous les biens, sur tout l'horizon */}
-          <div className={`${CARTE} p-5 transition-all duration-500 ${anneauSi(zone === "graphique")}`}>
+          {/* La vue d'ensemble : tous les biens, sur tout l'horizon */}
+          <div className={`${CARTE} p-5 ${flou("graphique")}`}>
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
               <div>
                 <h2 className="m-0 text-[16px] font-medium text-encre">Votre cash-flow, tous les biens cumulés</h2>
-                <p className="m-0 mt-0.5 text-[11.5px] text-ardoise">sur {r.horizon_ans} ans · en ambre les années d'achat, où le bien ne compte qu'une demi-année</p>
+                <p className="m-0 mt-0.5 text-[11.5px] text-ardoise">sur {r.horizon_ans} ans · en ambre les années d&apos;achat, où le bien ne compte qu&apos;une demi-année</p>
               </div>
               <button onClick={() => setPlein(true)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-bord px-3 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
                 <Maximize2 className="h-3.5 w-3.5" />Agrandir
               </button>
             </div>
             <Simulateur r={r} acquisitionEnAvant={acqEnAvant} />
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <div className={`mt-3 grid gap-2 sm:grid-cols-3 ${flou("objectif")}`}>
               {[
                 ["Revenu au terme", `${euros(r.atteint_mensuel)} / mois`],
                 ["Patrimoine", euros(r.patrimoine_final)],
                 ["Objectif atteint", r.annee_objectif != null ? `en ${r.annee_objectif} ans` : "—"],
               ].map(([t, v]) => (
-                <div key={t} className={`rounded-[10px] border px-3 py-2 transition-all duration-500 ${t === "Objectif atteint" ? anneauSi(zone === "objectif") : ""} border-trait bg-relief`}>
+                <div key={t} className="rounded-[10px] border border-trait bg-relief px-3 py-2">
                   <p className="m-0 text-[10.5px] uppercase tracking-[.08em] text-brume">{t}</p>
                   <p className="m-0 mt-0.5 text-[15px] font-semibold tabular-nums text-encre">{v}</p>
                 </div>
@@ -295,13 +346,33 @@ function Resultat({ r, prenom, onRecommencer }) {
           </div>
         </div>
 
-        {/* ── Droite : le guide ── */}
         <div className="lg:sticky lg:top-6 lg:self-start">
-          <Guide r={r} etape={etape} setEtape={setEtape} setAcqEnAvant={setAcqEnAvant} />
+          <Guide r={r} etape={etape} setEtape={setEtape} setAcqEnAvant={setAcqEnAvant}
+            demarre={demarre} onDemarrer={() => { setDemarre((d) => !d); setEtape(0); }} />
         </div>
       </div>
 
-      <details className="mt-8">
+      {/* Le simulateur complet, tout en bas : celui de Klocka, pré-rempli avec
+          le local qu'on regarde, et qui se recalcule quand on en change. */}
+      {parametresSimulateur && (
+        <div className={`mt-6 ${flou("simulateur")}`}>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <h2 className="m-0 text-[18px] font-medium text-encre">Le calcul complet · {a.metier} à {euros(a.prix)}</h2>
+              <p className="m-0 mt-0.5 text-[12px] text-ardoise">
+                notre simulateur, pré-rempli avec ce local · changez de commerce en haut et tout se recalcule
+              </p>
+            </div>
+            <a href={r.lien_simulateur} target="_blank" rel="noreferrer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord px-3.5 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
+              <Maximize2 className="h-3.5 w-3.5" />Ouvrir dans une page
+            </a>
+          </div>
+          <SimulateurDossier parametres={parametresSimulateur} compact />
+        </div>
+      )}
+
+      <details className={`mt-8 ${flou("annexes")}`}>
         <summary className="cursor-pointer text-[12.5px] text-ardoise hover:text-encre">Sur quoi ce plan est-il calculé ?</summary>
         <div className="mt-3 space-y-2 text-[12px] leading-[1.7] text-brume">
           <p className="m-0">Rendement brut visé : {r.hypotheses.rendement_cible} %. Part du loyer qui reste en poche une fois le crédit, les charges, la gestion et l&apos;impôt payés : {Math.round(r.hypotheses.part_cash_flow * 100)} %. Apport par acquisition : {Math.round(r.hypotheses.part_apport * 100)} % du prix. Épargne supposée : {Math.round(r.hypotheses.part_epargne * 100)} % de vos revenus nets. Le prix d&apos;un local est sa surface type multipliée par le prix du quartier.</p>
@@ -310,7 +381,7 @@ function Resultat({ r, prenom, onRecommencer }) {
         </div>
       </details>
 
-      <button onClick={onRecommencer} className="mt-6 text-[12.5px] text-ardoise hover:text-encre">Refaire avec d&apos;autres chiffres</button>
+      <button onClick={onRecommencer} className={`mt-6 text-[12.5px] text-ardoise hover:text-encre ${flou("annexes")}`}>Refaire avec d&apos;autres chiffres</button>
 
       {plein && (
         <div className="fixed inset-0 z-[600] flex flex-col bg-fond-halo p-4 md:p-8" onClick={() => setPlein(false)}>

@@ -9,6 +9,7 @@ import { ArrowRight, ArrowUp, Bell, Check, ChevronDown, Copy, FileText, Loader2,
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
+import { telLisible } from "@/components/dashboard/CeQuiVousAttend";
 import PenseeIA from "@/components/PenseeIA";
 import Message from "@/components/MessageIA";
 import { J, alpha } from "@/design/jetons";
@@ -21,7 +22,7 @@ const COMMANDES = [
   { texte: "J'ai eu [prénom] de [agence], il me rappelle [jour] pour [bien]", mode: "note" },
   { texte: "Crée un dossier depuis cette fiche : [collez le mail de l'agent]", mode: "fiche" },
   { texte: "Prépare un mail de relance à [email de l'agent] pour [adresse du bien]", mode: "mail" },
-  { texte: "Rappelle-moi dans [x] jours de rappeler [nom], voici son numéro : [numéro]", mode: "rappel" },
+  { texte: "Rappelle-moi dans 3 jours de relancer Monsieur Lardeux au 06 12 34 56 78", mode: "rappel" },
   { texte: "Qu'est-ce qui attend ?", mode: "question" },
   { texte: "Où en est le dossier [ville ou adresse] ?", mode: "question" },
 ];
@@ -32,7 +33,7 @@ const MODES = [
   { id: "mail", label: "Mail", icone: Mail, type: "assistant", placeholder: "Décrivez le mail à écrire, ou choisissez un mail type et remplacez les valeurs entre crochets…" },
   { id: "client", label: "Client", icone: User, type: "client", placeholder: "Collez le compte rendu de l'appel de découverte : la fiche client est à valider ensuite." },
   { id: "question", label: "Question", icone: MessageCircle, type: "assistant", placeholder: "Une question, un ordre : dossiers, mails, Monday, simulation…" },
-  { id: "rappel", label: "Rappel", icone: Bell, type: "rappel", placeholder: "Rappelle-moi dans 3 jours de rappeler Marc, voici son numéro : 06…", gabarit: "Rappelle-moi dans [x] jours de rappeler [nom], voici son numéro : [numéro]" },
+  { id: "rappel", label: "Rappel", icone: Bell, type: "rappel", placeholder: "Ce que vous voulez, en disant quand : « dans 3 jours, relancer Monsieur Lardeux au 06… »" },
 ];
 
 // Le chat du tableau de bord : une seule zone, on y met ce qu'on veut, il
@@ -509,7 +510,7 @@ export default function ChatDashboard() {
     mutationFn: (t) => { demanderNotifications(); return base44.request("POST", "/api/assistant/rappels", { body: { texte: t } }); },
     onSuccess: (r) => {
       const d = new Date(r.rappel.echeance);
-      pousser({ role: "assistant", contenu: `Noté : rappeler ${r.rappel.nom}${r.rappel.telephone ? ` au ${r.rappel.telephone}` : ""} le ${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}. Le rappel s'affichera ici ce jour-là.` });
+      pousser({ role: "assistant", contenu: `Noté : ${r.rappel.titre || "rappel"}${r.rappel.telephone ? ` au ${telLisible(r.rappel.telephone)}` : ""} le ${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}. Le rappel s'affichera ici ce jour-là.` });
       queryClient.invalidateQueries({ queryKey: ["ce-qui-attend"] });
     },
     onError: (e) => pousser({ role: "assistant", contenu: e?.message || "Je n'ai pas pu noter ce rappel." }),

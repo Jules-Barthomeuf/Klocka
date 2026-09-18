@@ -65,7 +65,12 @@ const SOI = /^(moi|moi[- ]m[eê]me|me|je|nous|soi)$/i;
  * bail ».
  */
 export function objetDuRappel(texte) {
-  const t = String(texte || '').trim();
+  // Le numéro ne fait pas partie de ce qu'il y a à faire : il est lu à part et
+  // devient un bouton d'appel sur la carte. Laissé dans le titre, il s'y
+  // affichait une fois, puis une seconde fois à côté.
+  const t = String(texte || '')
+    .replace(/[\s,;]*(?:voici\s+(?:son|le)\s+(?:num[ée]ro|t[ée]l[ée]phone)\s*:?\s*|num[ée]ro\s*:?\s*|t[ée]l[ée]phone\s*:?\s*|au\s+|sur\s+)?(?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}.*$/i, '')
+    .trim();
   let m;
   if ((m = t.match(/\bde\s+([^\n.;]{3,120})/i))) return m[1].trim().replace(/\s+$/, '');
   // Sans « de », on ampute la phrase de sa formule d'ouverture ET du moment,
@@ -76,6 +81,16 @@ export function objetDuRappel(texte) {
     .replace(/^\s*(dans\s+\d{1,3}\s*(?:jours?|j|semaines?|mois)|demain|apr[eè]s[- ]demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|le\s+\d{1,2}[/.]\d{1,2}(?:[/.]\d{2,4})?)\b[\s,:]*/i, '')
     .trim();
   return nu.length >= 3 ? nu.slice(0, 120) : null;
+}
+
+const capitale = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+/**
+ * Le titre d'un rappel : ce qu'on a demandé, tel qu'on l'a demandé. Le nom
+ * ne sert de titre que pour les rappels d'avant, qui ne portaient pas `quoi`.
+ */
+export function titreDuRappel(r) {
+  return capitale(r?.quoi || null) || (r?.nom ? `Rappeler ${r.nom}` : null) || r?.note || 'Rappel';
 }
 
 async function lireParModele(texte) {
@@ -104,8 +119,6 @@ export async function creerRappel({ texte, user }) {
   let nom = lireNom(brut);
   let telephone = lireTelephone(brut);
   let note = null;
-  // Les crochets du gabarit laissés tels quels : il manque une valeur.
-  if (/\[[^\]]*\]/.test(brut)) return { ok: false, error: 'Remplacez les valeurs entre crochets : le nombre de jours, le nom, le numéro.' };
   if (!echeance || !nom) {
     const lu = await lireParModele(brut);
     if (lu) {
@@ -116,11 +129,12 @@ export async function creerRappel({ texte, user }) {
     }
   }
   if (!echeance) return { ok: false, error: 'Je ne lis pas quand : dites « dans 3 jours », « lundi » ou une date.' };
-  // Un rappel n'est pas toujours un appel : « rappelle-moi jeudi de vérifier la
-  // surface Carrez » est un rappel valable, sans personne à joindre. Le titre
-  // devient alors ce qu'il y a à faire.
-  const quoi = nom ? null : objetDuRappel(brut);
-  if (!nom && !quoi) return { ok: false, error: 'Je ne lis pas ce qu\'il faut faire : dites « de rappeler Marc » ou « de vérifier le bail ».' };
+  // Ce qu'il y a à faire, gardé tel quel : c'est le titre du rappel. Un rappel
+  // n'est pas toujours un appel — « rappelle-moi jeudi de vérifier la surface
+  // Carrez » en est un, sans personne à joindre — et quand il en est un, le
+  // verbe dit est celui qu'on relira : relancer, passer voir, rappeler.
+  const quoi = objetDuRappel(brut);
+  if (!nom && !quoi) return { ok: false, error: 'Je ne lis pas ce qu\'il faut faire : dites « relancer Marc » ou « vérifier le bail ».' };
   const rappel = Records.create('Rappel', {
     nom,
     quoi,
@@ -133,7 +147,7 @@ export async function creerRappel({ texte, user }) {
     cree_par: user?.email || null,
     fait_le: null,
   });
-  return { ok: true, rappel };
+  return { ok: true, rappel: { ...rappel, titre: titreDuRappel(rappel) } };
 }
 
 const dans = (iso) => Math.round((aMidi(new Date(iso)) - aMidi(new Date())) / 86400000);

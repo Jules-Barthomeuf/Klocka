@@ -10,7 +10,7 @@
 // déjà. Une ligne mène toujours à l'endroit où l'on peut agir.
 
 import { Records } from './db.js';
-import { listerRappels } from './rappels.js';
+import { listerRappels, titreDuRappel } from './rappels.js';
 import { engagementsOuverts } from './deal/engagements.js';
 import { aRelancer, statutDe } from './deal/lifecycle.js';
 
@@ -44,8 +44,9 @@ export function ceQuiAttend(user) {
       id: r.id,
       source: 'rappel',
       nature: 'Rappel',
-      titre: r.nom ? `Rappeler ${r.nom}` : r.quoi || r.note || 'Rappel',
-      detail: r.nom ? r.note && r.note !== r.nom ? r.note : null : null,
+      titre: titreDuRappel(r),
+      // Le détail ne répète pas le titre : il ne dit que ce qu'il ajoute.
+      detail: r.note && r.note !== r.quoi && r.note !== r.nom ? r.note : null,
       telephone: r.telephone || null,
       echeance: r.echeance,
       dans: dans(r.echeance),

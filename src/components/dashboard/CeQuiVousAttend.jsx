@@ -45,7 +45,8 @@ const quand = (dans, echeance) => {
   return new Date(echeance).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
 };
 
-const telLisible = (t) => String(t || "").replace(/(\d{2})(?=\d)/g, "$1 ").trim();
+/** Un numéro rendu lisible : par paires de chiffres. Le chat s'en sert aussi. */
+export const telLisible = (t) => String(t || "").replace(/(\d{2})(?=\d)/g, "$1 ").trim();
 
 export default function CeQuiVousAttend({ limite = 12 }) {
   const queryClient = useQueryClient();

@@ -4,7 +4,7 @@ import { Search, Loader2, ChevronLeft, FileText, Pencil, Download, RotateCcw, Pr
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
-import CarteLoyers, { couleurDe, echelle } from "@/components/kdata/CarteLoyers";
+import CarteLoyers, { COULEURS_NIVEAU } from "@/components/kdata/CarteLoyers";
 
 // Valeur locative : la fourchette de loyer au m² d'une adresse.
 //
@@ -21,6 +21,14 @@ const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
 
 const NIVEAUX = [["rue", "Rue"], ["quartier", "Quartier"], ["ville", "Ville"]];
+
+// Les quatre classes de la carte, du plus cher au moins cher.
+const CLASSES = [
+  ["tres_elevee", "Très élevée", "bg-alerte"],
+  ["elevee", "Élevée / intermédiaire", "bg-ambre"],
+  ["moyenne", "Moyenne / faible", "bg-jaune"],
+  ["tres_faible", "Très faible", "bg-vert"],
+];
 
 /** Un niveau du panneau : son nom, sa fourchette. */
 function Niveau({ titre, valeur }) {
@@ -138,8 +146,9 @@ export default function ValeurLocative() {
   if (vue) {
     const r = vue.resultat;
     if (rapport) return <Rapport r={r} point={vue.point} onFermer={() => setRapport(false)} />;
-    const e = echelle(vue.secteurs || []);
-    const nQuartiers = (vue.secteurs || []).filter((s) => s.source === "quartier").length;
+    const secteurs = vue.secteurs || [];
+    const parClasse = Object.fromEntries(CLASSES.map(([cle]) => [cle, secteurs.filter((x) => x.niveau === cle).sort((a, b) => (b.ici ? 1 : 0) - (a.ici ? 1 : 0) || a.nom_iris.localeCompare(b.nom_iris))]));
+    const nLus = secteurs.filter((x) => x.origine === "quartier").length;
     return (
       <div className="relative h-[calc(100dvh-56px)] overflow-hidden">
         <CarteLoyers point={vue.point} secteurs={vue.secteurs || []} onSecteur={setSecteurOuvert} onErreur={(m) => toast.error(m)} />
@@ -162,14 +171,22 @@ export default function ValeurLocative() {
           </div>
 
           <div className="border-t border-trait px-4 py-3">
-            {e.min != null ? (
-              <>
-                <div className="h-2 w-full rounded-full" style={{ background: `linear-gradient(90deg, ${couleurDe(0)}, ${couleurDe(0.5)}, ${couleurDe(1)})` }} />
-                <div className="mt-1 flex justify-between text-[10.5px] tabular-nums text-brume"><span>{euros(e.min)} / m²</span><span>{euros(e.max)} / m²</span></div>
-              </>
-            ) : <p className="m-0 text-[11px] text-brume">{vue.erreur_secteurs ? `Secteurs indisponibles : ${vue.erreur_secteurs}` : "Aucun secteur à colorer."}</p>}
+            <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">Découpage par niveau de valeur locative</p>
+            {secteurs.some((x) => x.niveau) ? CLASSES.map(([cle, libelle, chip]) => (
+              <div key={cle} className="mb-2">
+                <p className="m-0 flex items-center gap-2 text-[12px] font-medium text-encre">
+                  <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${chip}`} />{libelle}
+                  <span className="text-brume">· {parClasse[cle].length}</span>
+                </p>
+                <p className="m-0 mt-0.5 pl-[18px] text-[11px] leading-[1.55] text-ardoise">
+                  {parClasse[cle].length ? parClasse[cle].map((x, i) => (
+                    <span key={x.code_iris}>{i > 0 ? ", " : ""}<span className={x.ici ? "font-semibold text-encre" : ""}>{x.nom_iris}{x.ici ? " (quartier ciblé)" : ""}</span></span>
+                  )) : <span className="text-brume">aucun</span>}
+                </p>
+              </div>
+            )) : <p className="m-0 text-[11px] text-brume">{vue.erreur_secteurs ? `Secteurs indisponibles : ${vue.erreur_secteurs}` : "Aucun secteur à classer."}</p>}
             <p className="m-0 mt-2 text-[10.5px] leading-[1.5] text-brume">
-              {nQuartiers} quartier{nQuartiers > 1 ? "s" : ""} coloré{nQuartiers > 1 ? "s" : ""} d&apos;après les recherches faites dans la commune ; les autres prennent la fourchette de la ville.
+              {nLus} quartier{nLus > 1 ? "s" : ""} classé{nLus > 1 ? "s" : ""} par sa fourchette Data-B ; les autres par un indice de position (commerces relevés, niveau de vie), qui classe sans chiffrer.
               {r.du_cache ? " Donnée reprise de la base, aucun crédit dépensé." : " Un crédit Data-B dépensé."}
             </p>
           </div>
@@ -181,8 +198,10 @@ export default function ValeurLocative() {
               <div className="min-w-0">
                 <p className="m-0 truncate text-[13px] font-medium text-encre">{secteurOuvert.nom_iris}</p>
                 <p className="m-0 mt-0.5 text-[12px] tabular-nums text-ardoise">
-                  {secteurOuvert.basse == null && secteurOuvert.haute == null ? "Pas de fourchette connue"
-                    : `${euros(secteurOuvert.basse)} à ${euros(secteurOuvert.haute)} / m² / an · ${secteurOuvert.source === "quartier" ? "fourchette du quartier" : "fourchette de la ville"}`}
+                  <span className="mr-1.5 inline-block h-2 w-2 rounded-full align-middle" style={{ background: COULEURS_NIVEAU[secteurOuvert.niveau] || "transparent" }} />
+                  {CLASSES.find(([c]) => c === secteurOuvert.niveau)?.[1] || "Non classé"}
+                  {secteurOuvert.origine === "quartier" ? ` · ${euros(secteurOuvert.basse)} à ${euros(secteurOuvert.haute)} / m² / an (Data-B)`
+                    : secteurOuvert.origine === "indice" ? ` · indice : ${secteurOuvert.commerces ?? "—"} commerces${secteurOuvert.niveau_de_vie ? `, ${euros(secteurOuvert.niveau_de_vie)} de niveau de vie` : ""}` : ""}
                 </p>
               </div>
               <button onClick={() => setSecteurOuvert(null)} className="text-brume hover:text-encre"><X className="h-4 w-4" /></button>

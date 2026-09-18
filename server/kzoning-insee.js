@@ -51,7 +51,7 @@ function centreDe(geometrie) {
   return { lat, lon };
 }
 
-async function chercherCarreaux(lat, lon, rayon_m) {
+export async function chercherCarreaux(lat, lon, rayon_m) {
   const b = boiteDe(lat, lon, rayon_m);
   const p = new URLSearchParams({
     SERVICE: 'WFS', VERSION: '2.0.0', REQUEST: 'GetFeature', TYPENAMES: COUCHE,

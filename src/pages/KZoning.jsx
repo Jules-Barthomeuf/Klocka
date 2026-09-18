@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, Circle, CircleMarker, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Plus, FolderPlus, Folder, ChevronRight, Eye, EyeOff, Trash2, X, PieChart, Store, Loader2,
@@ -9,7 +7,8 @@ import {
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
-import { J, JL } from "@/design/jetons";
+import { J } from "@/design/jetons";
+import CarteGoogleZones, { TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
 
 // K-Zoning : on pose une zone sur la carte, on lit ce qu'il y a dedans.
 //
@@ -28,35 +27,19 @@ const RAYON_DEFAUT = 300;
 
 const km = (m) => (m >= 1000 ? `${(m / 1000).toFixed(2).replace(".", ",")} km` : `${m} m`);
 
-// Les fonds de carte à comparer, le temps que Jules choisisse. Six designs
-// bien distincts, tous gratuits et sans clé — et vérifiés à l'image, pas
-// seulement au code HTTP : CARTO (Positron, Voyager, Dark Matter) répondait
-// 200 avec un vrai PNG, mais ce PNG portait « API KEY REQUIRED » en filigrane
-// sur chaque tuile. Ce service anonyme est mort, y compris là où Klocka s'y
-// appuyait déjà en repli (src/lib/tuiles.js, corrigé au passage). Stadia
-// (Toner, Alidade) répond franchement 401 sans compte. Une fois le choix
-// fait, ce sélecteur disparaît et le fond retenu devient le seul, câblé en dur.
-const STYLES_CARTE = [
-  { cle: "ign", nom: "Plan IGN", url: "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png", attribution: "© IGN — Géoplateforme", zoom_max: 19, classe: "" },
-  { cle: "clair", nom: "Clair", url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", attribution: "© Esri", zoom_max: 16, classe: "" },
-  { cle: "routier", nom: "Routier", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", attribution: "© Esri, © OpenStreetMap", zoom_max: 19, classe: "" },
-  { cle: "relief", nom: "Relief", url: "https://a.tile.opentopomap.org/{z}/{x}/{y}.png", attribution: "© OpenStreetMap, © OpenTopoMap (CC-BY-SA)", zoom_max: 17, classe: "" },
-  { cle: "sombre", nom: "Sombre", url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", attribution: "© Esri", zoom_max: 16, classe: "k-carte-zoning-sombre" },
-  { cle: "satellite", nom: "Satellite", url: "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg", attribution: "© IGN — Géoplateforme", zoom_max: 19, classe: "k-carte-zoning-sombre" },
-];
 
-/** Le sélecteur de fond de carte, le temps de choisir un design. */
-function SelecteurFond({ style, setStyle }) {
+/** Le fond de carte : les types de Google, puisque la carte est la sienne. */
+function SelecteurFond({ type, setType }) {
   return (
     <div className="absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 rounded-full border border-bord bg-fond/80 p-1 backdrop-blur-xl">
       <div className="flex items-center gap-0.5">
-        {STYLES_CARTE.map((s) => (
+        {TYPES_CARTE.map((t) => (
           <button
-            key={s.cle}
-            onClick={() => setStyle(s.cle)}
-            className={`rounded-full px-3 py-1.5 text-[11.5px] transition-colors ${s.cle === style ? "bg-encre/[0.09] text-encre" : "text-ardoise hover:text-encre"}`}
+            key={t.cle}
+            onClick={() => setType(t.cle)}
+            className={`rounded-full px-3 py-1.5 text-[11.5px] transition-colors ${t.cle === type ? "bg-encre/[0.09] text-encre" : "text-ardoise hover:text-encre"}`}
           >
-            {s.nom}
+            {t.nom}
           </button>
         ))}
       </div>
@@ -64,42 +47,6 @@ function SelecteurFond({ style, setStyle }) {
   );
 }
 
-/**
- * Le point d'une zone, marqué franchement : un halo, un anneau clair, un
- * cœur plein — pour se voir sur n'importe quel fond, pas seulement sur du
- * noir. Le bord du cercle qui l'entoure est plein, pas pointillé : c'est lui
- * qui doit se remarquer, pas s'estomper.
- */
-function PointCentre({ centre, teinte = JL["menthe-fonce"] }) {
-  return (
-    <>
-      <CircleMarker center={centre} radius={11} pathOptions={{ stroke: false, fillColor: teinte, fillOpacity: 0.22 }} />
-      <CircleMarker center={centre} radius={6} pathOptions={{ color: JL["encre"], weight: 2, fillColor: teinte, fillOpacity: 1 }} />
-      <CircleMarker center={centre} radius={2} pathOptions={{ stroke: false, fillColor: JL["encre"], fillOpacity: 1 }} />
-    </>
-  );
-}
-
-/** Le cercle d'une zone : un remplissage discret, un bord plein et net. */
-const cercleZone = (teinte, ouvert) => ({
-  color: teinte, weight: 2.5, opacity: 1, fillColor: teinte, fillOpacity: ouvert ? 0.16 : 0.08,
-});
-
-/** Recentre la carte quand la zone regardée change. */
-function Cadrage({ centre, rayon_m }) {
-  const map = useMap();
-  const fait = useRef(null);
-  const signature = centre ? `${centre[0].toFixed(5)},${centre[1].toFixed(5)},${rayon_m}` : null;
-  useEffect(() => {
-    if (!centre || fait.current === signature) return;
-    fait.current = signature;
-    // Le zoom se déduit du rayon : une zone de 200 m et une de 5 km ne se
-    // regardent pas de la même hauteur.
-    const z = rayon_m > 4000 ? 12 : rayon_m > 2000 ? 13 : rayon_m > 800 ? 14 : rayon_m > 400 ? 15 : 16;
-    map.setView(centre, z);
-  }, [map, signature]);
-  return null;
-}
 
 /** La recherche d'adresse : Base Adresse Nationale, gratuite et sans clé. */
 function ChercheAdresse({ onChoisi }) {
@@ -171,7 +118,7 @@ function ReglageRayon({ point, rayon_m, setRayon, onCreer, onAnnuler, enCours })
       <p className="m-0 truncate text-[12.5px] text-encre">{point.libelle}</p>
       <div className="mt-3 flex items-baseline justify-between">
         <span className="alx-mont text-[11px] uppercase tracking-[.14em] text-brume">Rayon</span>
-        <span className="text-[15px] tabular-nums text-menthe">{km(rayon_m)}</span>
+        <span className="text-[15px] tabular-nums text-menthe-texte">{km(rayon_m)}</span>
       </div>
       <input
         type="range" min={50} max={5000} step={50} value={rayon_m}
@@ -440,7 +387,7 @@ function PanneauInformations({ zone }) {
       </div>
       <div className="px-4 py-4">
         <div className="flex items-baseline justify-between">
-          <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe">{onglet}</p>
+          <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe-texte">{onglet}</p>
           <span className="text-[11px] text-brume">rayon de {km(zone.rayon_m)}</span>
         </div>
         {isLoading && (
@@ -499,7 +446,7 @@ function FicheCommerce({ commerce: c, labelGenre, onRetour }) {
         <ChevronLeft className="h-3.5 w-3.5" /> Retour à la liste
       </button>
 
-      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.14em] text-menthe">
+      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.14em] text-menthe-texte">
         {c.vacant ? "Local vacant" : labelGenre(c.genre)}
       </p>
       <h3 className="mt-1 mb-0 text-[18px] font-medium leading-tight text-encre">
@@ -586,7 +533,7 @@ function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuve
     return (
       <div className="px-4 py-4">
         <div className="flex items-center justify-between">
-          <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe">
+          <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe-texte">
             {releve.commerces.length} commerce{releve.commerces.length > 1 ? "s" : ""}
           </p>
           <button onClick={() => { setReleve(null); onCommerces?.([]); }} className="text-[11.5px] text-ardoise hover:text-encre">Changer de métier</button>
@@ -667,9 +614,8 @@ function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuve
 export default function KZoning() {
   const user = useUser();
   const qc = useQueryClient();
-  // Cinq fonds à comparer, le temps que Jules choisisse : voir SelecteurFond.
-  const [styleFond, setStyleFond] = useState(STYLES_CARTE[0].cle);
-  const fond = STYLES_CARTE.find((s) => s.cle === styleFond) || STYLES_CARTE[0];
+  // Le fond : un type de carte Google (plan, satellite, hybride, relief).
+  const [typeCarte, setTypeCarte] = useState(TYPES_CARTE[0].cle);
 
   const [point, setPoint] = useState(null);
   const [rayon, setRayon] = useState(RAYON_DEFAUT);
@@ -738,40 +684,21 @@ export default function KZoning() {
 
   return (
     <div className="relative h-[calc(100vh-3.5rem)] w-full overflow-hidden">
-      {/* La carte, en fond */}
-      <div className={`k-carte-zoning absolute inset-0 ${fond.classe}`}>
-        <MapContainer center={CENTRE_FRANCE} zoom={ZOOM_FRANCE} className="h-full w-full" zoomControl={false} attributionControl>
-          {/* `key` : changer de fournisseur en cours de route laisse parfois
-              des tuiles de l'ancien visibles par-dessus le nouveau tant que le
-              panneau ne recharge pas la couche entière. */}
-          <TileLayer key={fond.cle} url={fond.url} attribution={fond.attribution} maxZoom={fond.zoom_max} />
-          {visibles.map((z) => (
-            <Circle
-              key={z.id}
-              center={[Number(z.centre_lat), Number(z.centre_lon)]}
-              radius={Number(z.rayon_m)}
-              pathOptions={cercleZone(JL["menthe-fonce"], zoneOuverte?.id === z.id)}
-              eventHandlers={{ click: () => { setZoneOuverte(z); setMode("infos"); } }}
-            />
-          ))}
-          {zoneOuverte && !point && <PointCentre centre={centreOuvert} />}
-          {/* L'aperçu avant validation : le point et son rayon, dans le même
-              habillage qu'une zone posée — un bord plein et net, pas pointillé. */}
-          {point && (
-            <>
-              <Circle center={[point.lat, point.lon]} radius={rayon} pathOptions={cercleZone(JL["menthe-fonce"], true)} />
-              <PointCentre centre={[point.lat, point.lon]} />
-            </>
-          )}
-          {commerces.map((c) => (
-            <CircleMarker key={c.id} center={[c.lat, c.lon]} radius={4}
-              eventHandlers={{ click: () => setCommerceOuvert(c) }}
-              pathOptions={{ color: c.vacant ? JL["ambre"] : JL["alerte"], fillColor: c.vacant ? JL["ambre"] : JL["alerte"], fillOpacity: 0.9, weight: 1 }} />
-          ))}
-          <Cadrage centre={point ? [point.lat, point.lon] : centreOuvert} rayon_m={point ? rayon : zoneOuverte?.rayon_m || 0} />
-        </MapContainer>
+      {/* La carte : Google, comme demandé — le cercle d'une zone y porte un
+          bord noir et un vert nourri, pour se voir d'un coup d'œil. */}
+      <div className="absolute inset-0">
+        <CarteGoogleZones
+          zones={visibles}
+          zoneOuverte={zoneOuverte}
+          apercu={point ? { lat: point.lat, lon: point.lon, rayon_m: rayon } : null}
+          commerces={commerces}
+          type={typeCarte}
+          onZone={(z) => { setZoneOuverte(z); setMode("infos"); }}
+          onCommerce={(c) => setCommerceOuvert(c)}
+          onErreur={(m) => toast.error(m)}
+        />
       </div>
-      <SelecteurFond style={styleFond} setStyle={setStyleFond} />
+      <SelecteurFond type={typeCarte} setType={setTypeCarte} />
 
       {/* Le panneau de gauche : chercher, créer, retrouver */}
       <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
@@ -880,7 +807,7 @@ export default function KZoning() {
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
             <div className="flex flex-shrink-0 items-start gap-3 border-b border-trait p-4">
               <div className="min-w-0 flex-1">
-                <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe">
+                <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe-texte">
                   {mode === "infos" ? "Informations dans la zone" : "Concurrence dans la zone"}
                 </p>
                 <h2 className="mt-1 mb-0 truncate text-[17px] font-medium text-encre">{zoneOuverte.nom}</h2>

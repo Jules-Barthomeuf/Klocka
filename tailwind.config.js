@@ -52,6 +52,7 @@ export default {
 			'menthe-clair': 'rgb(var(--k-menthe-clair-rgb) / <alpha-value>)',
 			'menthe-survol': 'rgb(var(--k-menthe-survol-rgb) / <alpha-value>)',
 			'menthe-fonce': 'rgb(var(--k-menthe-fonce-rgb) / <alpha-value>)',
+			'menthe-texte': 'rgb(var(--k-menthe-texte-rgb) / <alpha-value>)',
 			'sur-menthe': 'rgb(var(--k-sur-menthe-rgb) / <alpha-value>)',
 			barre: 'rgb(var(--k-barre-rgb) / <alpha-value>)',
 			'barre-relief': 'rgb(var(--k-barre-relief-rgb) / <alpha-value>)',

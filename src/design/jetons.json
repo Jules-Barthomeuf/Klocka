@@ -37,6 +37,7 @@
     "menthe-clair": "#c3ddd6",
     "menthe-survol": "#abd0c8",
     "menthe-fonce": "#7fada4",
+    "menthe-texte": "#96c0b8",
     "sur-menthe": "#08130d",
     "barre": "#121413",
     "barre-relief": "#1b1e1d",
@@ -104,6 +105,7 @@
     "trait": "rgba(16, 20, 24, 0.09)",
     "bord": "rgba(16, 20, 24, 0.13)",
     "bord-doux": "rgba(16, 20, 24, 0.18)",
-    "bord-vif": "rgba(16, 20, 24, 0.28)"
+    "bord-vif": "rgba(16, 20, 24, 0.28)",
+    "menthe-texte": "#2f6d5f"
   }
 }

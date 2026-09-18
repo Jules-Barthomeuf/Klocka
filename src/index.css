@@ -4,18 +4,6 @@
 
 
 /* :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -103,6 +91,7 @@ button:focus-visible {
     --k-menthe-clair-rgb: 195 221 214;
     --k-menthe-survol-rgb: 171 208 200;
     --k-menthe-fonce-rgb: 127 173 164;
+    --k-menthe-texte-rgb: 150 192 184;
     --k-sur-menthe-rgb: 8 19 13;
     --k-barre-rgb: 18 20 19;
     --k-barre-relief-rgb: 27 30 29;
@@ -140,6 +129,7 @@ button:focus-visible {
     --k-bord: rgba(16, 20, 24, 0.13);
     --k-bord-doux: rgba(16, 20, 24, 0.18);
     --k-bord-vif: rgba(16, 20, 24, 0.28);
+    --k-menthe-texte-rgb: 47 109 95;
 }
 
 body {
@@ -450,16 +440,6 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .k-carte-rues.k-carte-claire .leaflet-tile-pane { filter: saturate(.55) contrast(.95) brightness(1.02); }
 .k-carte-rues .leaflet-interactive { cursor: pointer; }
 
-/* K-Zoning (src/pages/KZoning.jsx) : une carte blanche, pas le fond sombre
-   d'ALX. Le module se lit comme un plan — les zones et les commerces y sont
-   les seules couleurs, et un fond inversé les rendrait illisibles. */
-.k-carte-zoning .leaflet-container { background: #eef1f4; font-family: inherit; }
-.k-carte-zoning .leaflet-tile-pane { filter: saturate(.45) contrast(.92) brightness(1.04); }
-.k-carte-zoning .leaflet-interactive { cursor: pointer; }
-/* Les fonds sombres ou photo (Sombre, Satellite) n'ont pas besoin de
-   l'adoucissement pensé pour le plan clair : il les délaverait. */
-.k-carte-zoning.k-carte-zoning-sombre .leaflet-container { background: #14181c; }
-.k-carte-zoning.k-carte-zoning-sombre .leaflet-tile-pane { filter: none; }
 
 /* ALX, le registre de la maquette : Figtree pour le texte, Montserrat en
    capitales pour les étiquettes et les nombres, Instrument Serif pour les

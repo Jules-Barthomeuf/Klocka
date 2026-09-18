@@ -56,9 +56,9 @@ export const MODULES_KDATA = [
     pageName: "ValeurLocative",
     nom: "Valeur locative",
     icone: Banknote,
-    phrase: "Calculer la valeur locative de marché d'un local, loyer et droit au bail.",
-    chemin: null,
-    etat: "Bientôt",
+    phrase: "La fourchette de loyer au m² d'une adresse : la rue, le quartier, la ville.",
+    chemin: "/valeurlocative",
+    etat: "Ouvert",
   },
   {
     cle: "transaction-fonds",

@@ -22,7 +22,7 @@ export const TYPES_CARTE = [
 ];
 
 let chargement = null;
-function chargerGoogleMaps() {
+export function chargerGoogleMaps() {
   if (window.google?.maps?.Map) return Promise.resolve();
   if (!CLE) return Promise.reject(new Error("clé Google Maps absente"));
   if (!chargement) {

@@ -637,7 +637,10 @@ function LayoutContent({ children, currentPageName }) {
       >
         {/* Entrée animée en CSS, sans animation de sortie : une sortie qui
             n'aboutit pas (framer-motion + layoutId) laissait l'écran noir. */}
-        <div key={location.pathname} className="min-h-screen animate-in fade-in slide-in-from-right-4 duration-300 ease-out">
+        {/* `main` porte 56px de padding en haut sous la barre de K-Data : une
+            hauteur minimale d'un écran plein y ajoutait 56px de vide en bas,
+            sous les cartes qui, elles, tombent juste. */}
+        <div key={location.pathname} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? "min-h-[calc(100dvh-3.5rem)]" : "min-h-screen"}`}>
           {children}
         </div>
       </main>

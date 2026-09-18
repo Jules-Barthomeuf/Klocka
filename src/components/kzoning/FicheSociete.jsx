@@ -291,7 +291,9 @@ export default function FicheSociete({ commerce, metier = null, onFermer }) {
   const s = data?.societe;
 
   return (
-    <div className="fixed inset-0 z-[1000] overflow-y-auto bg-fond">
+    // Un voile, pas un mur : la carte Google reste visible derrière, comme un
+    // calque posé dessus. `bg-fond` plein masquait tout, cartes comprises.
+    <div className="fixed inset-0 z-[1000] overflow-y-auto bg-fond/85 backdrop-blur-sm">
       {/* `pt-20` : la barre du haut de K-Data est fixe, la fiche doit passer
           dessous sans s'y glisser. */}
       <div className="mx-auto max-w-[1400px] px-6 pb-16 pt-20 max-md:px-4">

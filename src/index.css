@@ -395,6 +395,10 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .k-carte-zoning .leaflet-container { background: #eef1f4; font-family: inherit; }
 .k-carte-zoning .leaflet-tile-pane { filter: saturate(.45) contrast(.92) brightness(1.04); }
 .k-carte-zoning .leaflet-interactive { cursor: pointer; }
+/* Les fonds sombres ou photo (Sombre, Satellite) n'ont pas besoin de
+   l'adoucissement pensé pour le plan clair : il les délaverait. */
+.k-carte-zoning.k-carte-zoning-sombre .leaflet-container { background: #14181c; }
+.k-carte-zoning.k-carte-zoning-sombre .leaflet-tile-pane { filter: none; }
 
 /* ALX, le registre de la maquette : Figtree pour le texte, Montserrat en
    capitales pour les étiquettes et les nombres, Instrument Serif pour les

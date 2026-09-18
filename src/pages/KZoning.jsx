@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Circle, CircleMarker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, FolderPlus, Folder, ChevronRight, Eye, EyeOff, Trash2, X, PieChart, Store, Loader2 } from "lucide-react";
+import {
+  Search, Plus, FolderPlus, Folder, ChevronRight, Eye, EyeOff, Trash2, X, PieChart, Store, Loader2,
+  ChevronLeft, Phone, Globe, Mail, Accessibility, UtensilsCrossed, Armchair, Clock, ExternalLink,
+} from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
-import { useFondDeCarte } from "@/lib/tuiles";
 import { J } from "@/design/jetons";
 
 // K-Zoning : on pose une zone sur la carte, on lit ce qu'il y a dedans.
@@ -25,6 +27,63 @@ const ZOOM_FRANCE = 6;
 const RAYON_DEFAUT = 300;
 
 const km = (m) => (m >= 1000 ? `${(m / 1000).toFixed(2).replace(".", ",")} km` : `${m} m`);
+
+// Les fonds de carte à comparer, le temps que Jules choisisse. Six designs
+// bien distincts, tous gratuits et sans clé — et vérifiés à l'image, pas
+// seulement au code HTTP : CARTO (Positron, Voyager, Dark Matter) répondait
+// 200 avec un vrai PNG, mais ce PNG portait « API KEY REQUIRED » en filigrane
+// sur chaque tuile. Ce service anonyme est mort, y compris là où Klocka s'y
+// appuyait déjà en repli (src/lib/tuiles.js, corrigé au passage). Stadia
+// (Toner, Alidade) répond franchement 401 sans compte. Une fois le choix
+// fait, ce sélecteur disparaît et le fond retenu devient le seul, câblé en dur.
+const STYLES_CARTE = [
+  { cle: "ign", nom: "Plan IGN", url: "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png", attribution: "© IGN — Géoplateforme", zoom_max: 19, classe: "" },
+  { cle: "clair", nom: "Clair", url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", attribution: "© Esri", zoom_max: 16, classe: "" },
+  { cle: "routier", nom: "Routier", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", attribution: "© Esri, © OpenStreetMap", zoom_max: 19, classe: "" },
+  { cle: "relief", nom: "Relief", url: "https://a.tile.opentopomap.org/{z}/{x}/{y}.png", attribution: "© OpenStreetMap, © OpenTopoMap (CC-BY-SA)", zoom_max: 17, classe: "" },
+  { cle: "sombre", nom: "Sombre", url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", attribution: "© Esri", zoom_max: 16, classe: "k-carte-zoning-sombre" },
+  { cle: "satellite", nom: "Satellite", url: "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg", attribution: "© IGN — Géoplateforme", zoom_max: 19, classe: "k-carte-zoning-sombre" },
+];
+
+/** Le sélecteur de fond de carte, le temps de choisir un design. */
+function SelecteurFond({ style, setStyle }) {
+  return (
+    <div className="absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 rounded-full border border-bord bg-fond/80 p-1 backdrop-blur-xl">
+      <div className="flex items-center gap-0.5">
+        {STYLES_CARTE.map((s) => (
+          <button
+            key={s.cle}
+            onClick={() => setStyle(s.cle)}
+            className={`rounded-full px-3 py-1.5 text-[11.5px] transition-colors ${s.cle === style ? "bg-encre/[0.09] text-encre" : "text-ardoise hover:text-encre"}`}
+          >
+            {s.nom}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Le point d'une zone, marqué franchement : un halo, un anneau clair, un
+ * cœur plein — pour se voir sur n'importe quel fond, pas seulement sur du
+ * noir. Le bord du cercle qui l'entoure est plein, pas pointillé : c'est lui
+ * qui doit se remarquer, pas s'estomper.
+ */
+function PointCentre({ centre, teinte = J["menthe-fonce"] }) {
+  return (
+    <>
+      <CircleMarker center={centre} radius={11} pathOptions={{ stroke: false, fillColor: teinte, fillOpacity: 0.22 }} />
+      <CircleMarker center={centre} radius={6} pathOptions={{ color: J["encre"], weight: 2, fillColor: teinte, fillOpacity: 1 }} />
+      <CircleMarker center={centre} radius={2} pathOptions={{ stroke: false, fillColor: J["encre"], fillOpacity: 1 }} />
+    </>
+  );
+}
+
+/** Le cercle d'une zone : un remplissage discret, un bord plein et net. */
+const cercleZone = (teinte, ouvert) => ({
+  color: teinte, weight: 2.5, opacity: 1, fillColor: teinte, fillOpacity: ouvert ? 0.16 : 0.08,
+});
 
 /** Recentre la carte quand la zone regardée change. */
 function Cadrage({ centre, rayon_m }) {
@@ -410,8 +469,75 @@ function PanneauInformations({ zone }) {
   );
 }
 
+/** Une ligne d'information dans la fiche d'un commerce : une icône, un texte. */
+function LigneFiche({ icone: Icone, children, lien = null }) {
+  const corps = (
+    <>
+      <Icone className="h-3.5 w-3.5 flex-shrink-0 text-brume" />
+      <span className="min-w-0 flex-1 text-[13px] text-craie">{children}</span>
+    </>
+  );
+  if (!lien) return <div className="flex items-center gap-2.5 py-1.5">{corps}</div>;
+  return (
+    <a href={lien} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 py-1.5 hover:text-encre">
+      {corps}
+    </a>
+  );
+}
+
+const PMR = { yes: "Accessible aux personnes à mobilité réduite", limited: "Accès partiellement adapté", no: "Non accessible aux personnes à mobilité réduite" };
+
+/**
+ * La fiche d'un commerce, au clic sur une ligne ou sur la carte. Chaque champ
+ * vient tel quel de sa fiche OpenStreetMap ; un champ absent ne s'affiche pas
+ * — on ne comble jamais un trou par une supposition.
+ */
+function FicheCommerce({ commerce: c, labelGenre, onRetour }) {
+  return (
+    <div className="px-4 py-4">
+      <button onClick={onRetour} className="mb-3 flex items-center gap-1.5 text-[11.5px] text-ardoise hover:text-encre">
+        <ChevronLeft className="h-3.5 w-3.5" /> Retour à la liste
+      </button>
+
+      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.14em] text-menthe">
+        {c.vacant ? "Local vacant" : labelGenre(c.genre)}
+      </p>
+      <h3 className="mt-1 mb-0 text-[18px] font-medium leading-tight text-encre">
+        {c.nom || (c.vacant ? "Local sans enseigne" : "Sans nom relevé")}
+      </h3>
+      {c.adresse && <p className="mt-1 mb-0 text-[12.5px] text-brume">{c.adresse}</p>}
+      <p className="mt-1 mb-0 text-[11px] text-brume">à {c.distance_m} m du centre de la zone</p>
+
+      <div className="mt-4 border-t border-trait pt-1">
+        {c.horaires && <LigneFiche icone={Clock}>Horaires : {c.horaires}</LigneFiche>}
+        {c.telephone && <LigneFiche icone={Phone} lien={`tel:${c.telephone.replace(/\s+/g, "")}`}>{c.telephone}</LigneFiche>}
+        {c.site && <LigneFiche icone={Globe} lien={c.site}>{c.site.replace(/^https?:\/\//, "")}</LigneFiche>}
+        {c.email && <LigneFiche icone={Mail} lien={`mailto:${c.email}`}>{c.email}</LigneFiche>}
+        {c.pmr && <LigneFiche icone={Accessibility}>{PMR[c.pmr] || c.pmr}</LigneFiche>}
+        {c.cuisine && <LigneFiche icone={UtensilsCrossed}>Cuisine : {c.cuisine.replace(/_/g, " ")}</LigneFiche>}
+        {c.terrasse != null && <LigneFiche icone={Armchair}>{c.terrasse ? "Avec terrasse" : "Sans terrasse"}</LigneFiche>}
+      </div>
+
+      {!(c.horaires || c.telephone || c.site || c.email || c.pmr || c.cuisine || c.terrasse != null) && (
+        <p className="mt-4 mb-0 text-[12px] text-brume">OpenStreetMap ne porte pas d&apos;autre information sur ce local.</p>
+      )}
+
+      <div className="mt-5 flex gap-2 border-t border-trait pt-4">
+        <a href={`https://www.openstreetmap.org/${c.id}`} target="_blank" rel="noreferrer"
+          className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full border border-bord text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
+          OpenStreetMap <ExternalLink className="h-3 w-3" />
+        </a>
+        <a href={`https://www.google.com/maps?q=${c.lat},${c.lon}`} target="_blank" rel="noreferrer"
+          className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full border border-bord text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
+          Google Maps <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 /** La concurrence dans la zone : on choisit des métiers, on les relève. */
-function PanneauConcurrence({ zone, onCommerces }) {
+function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuvert }) {
   const [recherche, setRecherche] = useState("");
   const [choisis, setChoisis] = useState([]);
   const [releve, setReleve] = useState(null);
@@ -422,6 +548,15 @@ function PanneauConcurrence({ zone, onCommerces }) {
     staleTime: Infinity,
   });
   const metiers = referentiel?.metiers || [];
+
+  // Le référentiel des métiers dit déjà quelle étiquette OpenStreetMap
+  // correspond à quel nom français ; on la relit pour l'afficher, plutôt que
+  // de tenir un second dictionnaire qui finirait par diverger du premier.
+  const labelGenre = useMemo(() => {
+    const table = new Map();
+    for (const m of metiers) for (const f of m.filtres || []) for (const v of f.valeurs || []) if (!table.has(v)) table.set(v, m.nom);
+    return (genre) => table.get(genre) || genre || "Commerce";
+  }, [metiers]);
 
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -443,6 +578,10 @@ function PanneauConcurrence({ zone, onCommerces }) {
 
   const basculer = (nom) => setChoisis((c) => (c.includes(nom) ? c.filter((x) => x !== nom) : [...c, nom]));
 
+  if (commerceOuvert) {
+    return <FicheCommerce commerce={commerceOuvert} labelGenre={labelGenre} onRetour={() => setCommerceOuvert(null)} />;
+  }
+
   if (releve) {
     return (
       <div className="px-4 py-4">
@@ -457,14 +596,16 @@ function PanneauConcurrence({ zone, onCommerces }) {
         </p>
         <ul className="mt-4 m-0 list-none space-y-px p-0">
           {releve.commerces.map((c) => (
-            <li key={c.id} className="flex items-baseline gap-3 border-b border-trait py-2.5">
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13.5px] text-encre">
-                  {c.nom || (c.vacant ? "Local vacant" : "Sans nom")}
+            <li key={c.id}>
+              <button onClick={() => setCommerceOuvert(c)} className="flex w-full items-baseline gap-3 border-b border-trait py-2.5 text-left hover:bg-surface">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13.5px] text-encre">
+                    {c.nom || (c.vacant ? "Local vacant" : "Sans nom")}
+                  </span>
+                  {c.adresse && <span className="block truncate text-[11px] text-brume">{c.adresse}</span>}
                 </span>
-                {c.adresse && <span className="block truncate text-[11px] text-brume">{c.adresse}</span>}
-              </span>
-              <span className="flex-shrink-0 text-[11px] tabular-nums text-ardoise">{c.distance_m} m</span>
+                <span className="flex-shrink-0 text-[11px] tabular-nums text-ardoise">{c.distance_m} m</span>
+              </button>
             </li>
           ))}
         </ul>
@@ -526,7 +667,9 @@ function PanneauConcurrence({ zone, onCommerces }) {
 export default function KZoning() {
   const user = useUser();
   const qc = useQueryClient();
-  const { fond, surErreur } = useFondDeCarte();
+  // Cinq fonds à comparer, le temps que Jules choisisse : voir SelecteurFond.
+  const [styleFond, setStyleFond] = useState(STYLES_CARTE[0].cle);
+  const fond = STYLES_CARTE.find((s) => s.cle === styleFond) || STYLES_CARTE[0];
 
   const [point, setPoint] = useState(null);
   const [rayon, setRayon] = useState(RAYON_DEFAUT);
@@ -539,6 +682,7 @@ export default function KZoning() {
   const [masquees, setMasquees] = useState(() => new Set());
   const [filtreZone, setFiltreZone] = useState("");
   const [commerces, setCommerces] = useState([]);
+  const [commerceOuvert, setCommerceOuvert] = useState(null);
 
   const { data } = useQuery({
     queryKey: ["kzoning-zones"],
@@ -581,7 +725,7 @@ export default function KZoning() {
 
   // Les commerces relevés se posent aussi sur la carte : une liste sans les
   // points ne dit pas si la concurrence est en face ou à l'autre bout.
-  useEffect(() => { setCommerces([]); }, [zoneOuverte?.id, mode]);
+  useEffect(() => { setCommerces([]); setCommerceOuvert(null); }, [zoneOuverte?.id, mode]);
 
   if (!user || user.role !== "admin") return null;
 
@@ -595,32 +739,39 @@ export default function KZoning() {
   return (
     <div className="relative h-[calc(100vh-3.5rem)] w-full overflow-hidden">
       {/* La carte, en fond */}
-      <div className="k-carte-zoning absolute inset-0">
+      <div className={`k-carte-zoning absolute inset-0 ${fond.classe}`}>
         <MapContainer center={CENTRE_FRANCE} zoom={ZOOM_FRANCE} className="h-full w-full" zoomControl={false} attributionControl>
-          <TileLayer url={fond.url} attribution={fond.attribution} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />
+          {/* `key` : changer de fournisseur en cours de route laisse parfois
+              des tuiles de l'ancien visibles par-dessus le nouveau tant que le
+              panneau ne recharge pas la couche entière. */}
+          <TileLayer key={fond.cle} url={fond.url} attribution={fond.attribution} maxZoom={fond.zoom_max} />
           {visibles.map((z) => (
             <Circle
               key={z.id}
               center={[Number(z.centre_lat), Number(z.centre_lon)]}
               radius={Number(z.rayon_m)}
-              pathOptions={{ color: J["menthe-fonce"], weight: 2, fillColor: J["vert"], fillOpacity: zoneOuverte?.id === z.id ? 0.3 : 0.14 }}
+              pathOptions={cercleZone(J["menthe-fonce"], zoneOuverte?.id === z.id)}
               eventHandlers={{ click: () => { setZoneOuverte(z); setMode("infos"); } }}
             />
           ))}
-          {/* L'aperçu avant validation : le point et son rayon */}
+          {zoneOuverte && !point && <PointCentre centre={centreOuvert} />}
+          {/* L'aperçu avant validation : le point et son rayon, dans le même
+              habillage qu'une zone posée — un bord plein et net, pas pointillé. */}
           {point && (
             <>
-              <Circle center={[point.lat, point.lon]} radius={rayon} pathOptions={{ color: J["menthe-fonce"], weight: 2, dashArray: "5 5", fillColor: J["vert"], fillOpacity: 0.18 }} />
-              <CircleMarker center={[point.lat, point.lon]} radius={5} pathOptions={{ color: J["menthe-fonce"], fillColor: J["menthe-fonce"], fillOpacity: 1 }} />
+              <Circle center={[point.lat, point.lon]} radius={rayon} pathOptions={cercleZone(J["menthe-fonce"], true)} />
+              <PointCentre centre={[point.lat, point.lon]} />
             </>
           )}
           {commerces.map((c) => (
             <CircleMarker key={c.id} center={[c.lat, c.lon]} radius={4}
+              eventHandlers={{ click: () => setCommerceOuvert(c) }}
               pathOptions={{ color: c.vacant ? J["ambre"] : J["alerte"], fillColor: c.vacant ? J["ambre"] : J["alerte"], fillOpacity: 0.9, weight: 1 }} />
           ))}
           <Cadrage centre={point ? [point.lat, point.lon] : centreOuvert} rayon_m={point ? rayon : zoneOuverte?.rayon_m || 0} />
         </MapContainer>
       </div>
+      <SelecteurFond style={styleFond} setStyle={setStyleFond} />
 
       {/* Le panneau de gauche : chercher, créer, retrouver */}
       <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
@@ -741,7 +892,7 @@ export default function KZoning() {
             <div className="min-h-0 flex-1 overflow-y-auto">
               {mode === "infos"
                 ? <PanneauInformations zone={zoneOuverte} />
-                : <PanneauConcurrence zone={zoneOuverte} onCommerces={setCommerces} />}
+                : <PanneauConcurrence zone={zoneOuverte} onCommerces={setCommerces} commerceOuvert={commerceOuvert} setCommerceOuvert={setCommerceOuvert} />}
             </div>
           </div>
         </div>

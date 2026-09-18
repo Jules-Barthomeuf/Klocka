@@ -96,8 +96,8 @@ export function normaliser(elements, centre) {
       vus.add(cle);
       // `shop=vacant` : un local vide. Il n'a pas de nom et c'est normal.
       const vacant = t.shop === 'vacant' || t.disused === 'yes' || !!t['disused:shop'];
-      const numero = t['addr:housenumber'];
-      const rue = t['addr:street'];
+      const numero = t['addr:housenumber'] || t['contact:housenumber'];
+      const rue = t['addr:street'] || t['contact:street'];
       return {
         id: cle,
         nom: t.name || t.brand || t.operator || null,
@@ -108,6 +108,15 @@ export function normaliser(elements, centre) {
         lon,
         adresse: [numero, rue].filter(Boolean).join(' ') || null,
         distance_m: centre ? metresEntre(centre.lat, centre.lon, lat, lon) : null,
+        // Rien de calculé ni de deviné : chaque champ vient tel quel de la
+        // fiche OpenStreetMap, absent quand elle ne le porte pas.
+        horaires: t.opening_hours || null,
+        telephone: t.phone || t['contact:phone'] || null,
+        site: t.website || t['contact:website'] || null,
+        email: t.email || t['contact:email'] || null,
+        pmr: t.wheelchair || null,
+        cuisine: t.cuisine ? t.cuisine.split(';').join(', ') : null,
+        terrasse: t.outdoor_seating === 'yes' ? true : t.outdoor_seating === 'no' ? false : null,
       };
     })
     .filter(Boolean)

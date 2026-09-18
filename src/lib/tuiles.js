@@ -15,6 +15,12 @@ import { useCallback, useMemo, useState } from "react";
 //
 // Un fond peut tomber à son tour : la liste est ordonnée, et `useFondDeCarte`
 // passe au suivant quand les tuiles refusent de venir.
+//
+// Le repli Carto (basemaps.cartocdn.com) a cessé d'être gratuit sans y rien
+// annoncer : il répond toujours 200 avec un vrai PNG, mais ce PNG porte
+// désormais « API KEY REQUIRED » en filigrane sur chaque tuile — invisible à
+// une vérification qui ne regarde que le code HTTP, trouvé en ouvrant l'image.
+// Esri sert un plan clair équivalent, gratuit et sans clé, sans ce piège.
 
 /**
  * Les fonds de carte, du meilleur au dernier recours.
@@ -29,11 +35,11 @@ export const FONDS = [
     zoom_max: 19,
   },
   {
-    cle: "carto",
-    nom: "Carto",
-    url: "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    attribution: "© OpenStreetMap, © CARTO",
-    zoom_max: 20,
+    cle: "esri",
+    nom: "Esri",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    attribution: "© Esri",
+    zoom_max: 16,
   },
   {
     cle: "osm",

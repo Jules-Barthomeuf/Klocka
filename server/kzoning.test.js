@@ -95,6 +95,37 @@ test('les objets OpenStreetMap deviennent des commerces situés et classés', ()
   assert.equal(commerces[1].nom, null);
 });
 
+test('la fiche d\'un commerce reprend ses champs OpenStreetMap tels quels, sans en inventer', () => {
+  const resultat = normaliser([
+    {
+      type: 'node', id: 9, lat: 43.6, lon: 1.44,
+      tags: {
+        name: 'Terra Nova', shop: 'books', 'contact:housenumber': '18', 'contact:street': 'Rue Léon Gambetta',
+        opening_hours: 'Mo-Sa 10:00-19:00', phone: '+33 5 61 21 17 47', website: 'https://librairie-terranova.fr/',
+        email: 'contact@librairie-terranova.fr', wheelchair: 'no', outdoor_seating: 'yes', cuisine: 'french;pizza',
+      },
+    },
+    { type: 'node', id: 10, lat: 43.601, lon: 1.441, tags: { name: 'Sans fiche', shop: 'clothes' } },
+  ], TOULOUSE);
+  // Le classement est par distance : on retrouve chaque fiche par son id
+  // plutôt que par sa position, pour ne pas dépendre du hasard des coordonnées.
+  const complet = resultat.find((c) => c.id === 'node/9');
+  const vide = resultat.find((c) => c.id === 'node/10');
+
+  assert.equal(complet.adresse, '18 Rue Léon Gambetta');
+  assert.equal(complet.horaires, 'Mo-Sa 10:00-19:00');
+  assert.equal(complet.telephone, '+33 5 61 21 17 47');
+  assert.equal(complet.site, 'https://librairie-terranova.fr/');
+  assert.equal(complet.email, 'contact@librairie-terranova.fr');
+  assert.equal(complet.pmr, 'no');
+  assert.equal(complet.terrasse, true);
+  assert.equal(complet.cuisine, 'french, pizza');
+
+  // Un commerce sans ces champs les rend absents, jamais devinés.
+  for (const cle of ['horaires', 'telephone', 'site', 'email', 'pmr', 'cuisine']) assert.equal(vide[cle], null);
+  assert.equal(vide.terrasse, null);
+});
+
 test('les métiers se cherchent de A à Z et se regroupent par étiquette', () => {
   const metiers = listerMetiers();
   assert.ok(metiers.length > 50, 'le référentiel couvre le commerce de détail');

@@ -27,12 +27,13 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Database, Sun, Moon } from "lucide-react";
+  Upload, Mic, Compass, Sun, Moon } from "lucide-react";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { useTheme } from "@/lib/theme";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
+import { Switch } from "@/components/ui/switch";
 import { useQuery } from "@tanstack/react-query";
 import { UserProvider, useUser } from "@/components/providers/UserProvider";
 import VeilleAlx from "@/components/alx/VeilleAlx";
@@ -74,6 +75,16 @@ const globalTooltipStyles = `
  * s'en souvient. Il ne touche qu'un attribut sur <html> : tout le reste suit
  * par les variables de couleur.
  */
+function BasculeKData({ enKData, onChanger }) {
+  return (
+    <div className="flex flex-1 items-center justify-between gap-2">
+      <span className={`text-[12.5px] transition-colors ${enKData ? "text-brume" : "font-medium text-encre"}`}>Klocka</span>
+      <Switch checked={enKData} onCheckedChange={onChanger} className="flex-shrink-0" aria-label="Basculer entre Klocka et K-Data" />
+      <span className={`text-[12.5px] transition-colors ${enKData ? "font-medium text-encre" : "text-brume"}`}>K-Data</span>
+    </div>
+  );
+}
+
 function BasculeTheme({ clair, onBasculer }) {
   return (
     <Button
@@ -420,21 +431,17 @@ function LayoutContent({ children, currentPageName }) {
           quitte cette barre latérale pour la barre du haut de K-Data — ce
           n'est pas un lien de plus, c'est un autre côté de l'application. */}
       {isAdmin && !(sidebarCollapsed && !isMobile) && (
-        <div className="px-3.5 pt-3 pb-1">
-          <div className="flex items-center gap-2 border-b border-encre/[0.06] pb-1">
-            <Database className="w-3.5 h-3.5 text-brume" />
-            <AnimatedDropdown
-              value={enKData ? "kdata" : "klocka"}
-              onChange={(v) => {
+        // Pas d'icône ici : « Klocka » et « K-Data » se nomment déjà, et la
+        // sidebar (172px) n'a pas la place d'en ajouter une sans faire courir
+        // « K-Data » sur deux lignes.
+        <div className="px-3.5 pt-3 pb-2">
+          <div className="border-b border-encre/[0.06] pb-2.5">
+            <BasculeKData
+              enKData={enKData}
+              onChanger={(kdata) => {
                 if (isMobile) closeMobile();
-                navigate(v === "kdata" ? createPageUrl("KData") : createPageUrl("Dashboard"));
+                navigate(kdata ? createPageUrl("KData") : createPageUrl("Dashboard"));
               }}
-              options={[
-                { value: "klocka", label: "Klocka" },
-                { value: "kdata", label: "K-Data" },
-              ]}
-              className="flex-1"
-              triggerClassName="bg-transparent border-none text-encre h-7 px-0 hover:bg-transparent hover:text-encre"
             />
           </div>
         </div>

@@ -38,9 +38,9 @@ export const MODULES_KDATA = [
     pageName: "KProspective",
     nom: "K-Prospective",
     icone: TrendingUp,
-    phrase: "Projeter un secteur : population, pouvoir d'achat, concurrence à venir.",
-    chemin: null,
-    etat: "Bientôt",
+    phrase: "Trouver les commerces d'une zone qui répondent à vos critères, et savoir à qui l'on parle.",
+    chemin: "/kprospective",
+    etat: "Ouvert",
   },
   {
     cle: "kfoncier",

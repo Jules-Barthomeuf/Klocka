@@ -76,6 +76,7 @@ const KExpertise = lazy(() => import('./pages/KExpertise'));
 const KEstimation = lazy(() => import('./pages/KEstimation'));
 const ValeurLocative = lazy(() => import('./pages/ValeurLocative'));
 const KFoncier = lazy(() => import('./pages/KFoncier'));
+const KProspective = lazy(() => import('./pages/KProspective'));
 const MesProjets = lazy(() => import('./pages/MesProjets'));
 const MonCompte = lazy(() => import('./pages/MonCompte'));
 const ProjetDetail = lazy(() => import('./pages/ProjetDetail'));
@@ -111,6 +112,7 @@ export const PAGES = {
     "KEstimation": KEstimation,
     "ValeurLocative": ValeurLocative,
     "KFoncier": KFoncier,
+    "KProspective": KProspective,
     "MesProjets": MesProjets,
     "MonCompte": MonCompte,
     "ProjetDetail": ProjetDetail,

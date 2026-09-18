@@ -52,7 +52,7 @@ export async function parcellesAutour(lat, lon, rayon_m = RAYON_PARCELLES) {
 }
 
 /** Les locaux des personnes morales d'une section, au dernier millésime servi. */
-async function locauxDeSection(codeInsee, section) {
+export async function locauxDeSection(codeInsee, section) {
   const cle = `${codeInsee}-${section}`;
   const garde = Records.filter(CACHE_SECTION, { cle })[0];
   if (garde && Date.now() - Date.parse(garde.le) < CACHE_JOURS * 86400000) return garde;

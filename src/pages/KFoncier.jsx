@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import CarteParcelles from "@/components/kdata/CarteParcelles";
+import FondHalo from "@/components/projet/FondHalo";
 import { effectif } from "@/components/kzoning/FicheSociete";
 
 // K-Foncier : les parcelles autour d'une adresse, et qui les possède.
@@ -156,9 +157,10 @@ function FicheParcelle({ parcelle: p, voisines, point, onFermer }) {
   const proprietaires = data?.proprietaires || [];
 
   return (
-    <div className="fixed inset-0 z-[600] overflow-y-auto bg-fond/85 backdrop-blur-sm">
-      <div className="mx-auto max-w-[1240px] px-4 py-6">
-        <div className="mb-4 flex items-start justify-between gap-4">
+    <div className="fixed inset-0 z-[600] flex flex-col">
+      <FondHalo />
+      <div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-1 flex-col overflow-hidden px-4 pt-6">
+        <div className="mb-4 flex flex-shrink-0 items-start justify-between gap-4">
           <div>
             <button onClick={onFermer} className="mb-2 inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre"><ChevronLeft className="h-4 w-4" />Retour à la carte</button>
             <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.16em] text-menthe-texte">Parcelle {p.section} {p.numero}</p>
@@ -171,8 +173,8 @@ function FicheParcelle({ parcelle: p, voisines, point, onFermer }) {
           <button onClick={onFermer} title="Fermer" className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre"><X className="h-4 w-4" /></button>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_460px]">
-          <div className="rounded-[16px] border border-bord bg-fond/70 p-4 backdrop-blur-xl">
+        <div className="grid min-h-0 flex-1 gap-4 pb-6 lg:grid-cols-[minmax(0,1fr)_460px]">
+          <div className="min-h-0 overflow-y-auto rounded-[18px] border border-trait bg-surface p-4">
             <p className="alx-mont m-0 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Propriétaires détenant un bien à cette adresse</p>
             {error && <p className="m-0 text-[13px] text-alerte">{error.message}</p>}
             {isLoading && <p className="m-0 flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Lecture…</p>}
@@ -183,15 +185,15 @@ function FicheParcelle({ parcelle: p, voisines, point, onFermer }) {
             </p>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <div className="overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
+          <div className="flex min-h-0 flex-col gap-4">
+            <div className="overflow-hidden rounded-[18px] border border-trait bg-surface">
               <p className="alx-mont m-0 border-b border-trait px-4 py-2.5 text-[10.5px] uppercase tracking-[.14em] text-brume">Vue de la rue</p>
               {CLE_MAPS && centre ? (
                 <iframe title="Vue de la rue" className="block h-[260px] w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen
                   src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_MAPS}&location=${centre.lat},${centre.lon}&heading=0&pitch=0&fov=90`} />
               ) : <p className="m-0 px-4 py-6 text-[12.5px] text-ardoise">Clé Google Maps absente.</p>}
             </div>
-            <div className="relative h-[340px] overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
+            <div className="relative min-h-[300px] flex-1 overflow-hidden rounded-[18px] border border-trait bg-surface">
               <CarteParcelles point={null} centre={centre} parcelles={voisines} misesEnAvant={[p.idu]} zoom={19} interactif={false} onErreur={() => {}} />
             </div>
           </div>

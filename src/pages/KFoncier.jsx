@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Loader2, X, Building2, Mail, Phone, ExternalLink, Clock } from "lucide-react";
+import { Search, Loader2, X, ChevronLeft, Building2, Mail, Phone, ExternalLink, Clock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
@@ -159,6 +160,7 @@ function FicheParcelle({ parcelle: p, voisines, point, onFermer }) {
       <div className="mx-auto max-w-[1240px] px-4 py-6">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
+            <button onClick={onFermer} className="mb-2 inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre"><ChevronLeft className="h-4 w-4" />Retour à la carte</button>
             <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.16em] text-menthe-texte">Parcelle {p.section} {p.numero}</p>
             <h1 className="m-0 mt-1 text-[24px] font-light text-encre">{p.contenance != null ? `${p.contenance.toLocaleString("fr-FR")} m²` : "Contenance inconnue"} · {point?.label}</h1>
             <p className="m-0 mt-1 text-[12px] text-ardoise">
@@ -166,7 +168,7 @@ function FicheParcelle({ parcelle: p, voisines, point, onFermer }) {
               {data?.annee ? ` · situation au 1er janvier ${data.annee}` : ""}
             </p>
           </div>
-          <button onClick={onFermer} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre"><X className="h-4 w-4" /></button>
+          <button onClick={onFermer} title="Fermer" className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_460px]">
@@ -189,7 +191,7 @@ function FicheParcelle({ parcelle: p, voisines, point, onFermer }) {
                   src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_MAPS}&location=${centre.lat},${centre.lon}&heading=0&pitch=0&fov=90`} />
               ) : <p className="m-0 px-4 py-6 text-[12.5px] text-ardoise">Clé Google Maps absente.</p>}
             </div>
-            <div className="relative h-[340px] overflow-hidden rounded-[16px] border border-bord">
+            <div className="relative h-[340px] overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
               <CarteParcelles point={null} centre={centre} parcelles={voisines} misesEnAvant={[p.idu]} zoom={19} interactif={false} onErreur={() => {}} />
             </div>
           </div>
@@ -296,7 +298,10 @@ export default function KFoncier() {
         </div>
       )}
 
-      {ouverte && <FicheParcelle parcelle={ouverte} voisines={voisines} point={vue?.point} onFermer={() => setOuverte(null)} />}
+      {ouverte && createPortal(
+        <FicheParcelle parcelle={ouverte} voisines={voisines} point={vue?.point} onFermer={() => setOuverte(null)} />,
+        document.body,
+      )}
     </div>
   );
 }

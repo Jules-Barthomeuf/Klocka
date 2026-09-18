@@ -344,7 +344,9 @@ function Formulaire({ estimation: e, choix, onCalculee, onQuitter }) {
 export default function KEstimation() {
   const user = useUser();
   const qc = useQueryClient();
-  const [partie, setPartie] = useState(null);
+  // Une seule partie pour l'instant : on y entre directement depuis le menu
+  // Apps, sans passer par un accueil de module qui n'aurait qu'une carte.
+  const [partie, setPartie] = useState("murs");
   const [activite, setActivite] = useState("");
   const [adresse, setAdresse] = useState("");
   const [suggestions, setSuggestions] = useState([]);

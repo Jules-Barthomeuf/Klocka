@@ -175,7 +175,7 @@ function Guide({ r, etape, setEtape, setAcqEnAvant, demarre, onDemarrer }) {
 
 // ── Le résultat ─────────────────────────────────────────────────────────────
 
-function Resultat({ r, prenom, onRecommencer }) {
+function Resultat({ r, onRecommencer }) {
   const [demarre, setDemarre] = useState(false);
   const [etape, setEtape] = useState(0);
   const [acq, setAcq] = useState(0);
@@ -206,10 +206,7 @@ function Resultat({ r, prenom, onRecommencer }) {
   return (
     <div className="mx-auto max-w-[1280px] px-4 pb-24 pt-10">
       <div className={`mb-8 text-center ${flou("titre")}`}>
-        <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Votre parcours d&apos;investissement</p>
-        <h1 className="mx-auto mt-3 mb-0 max-w-[820px] text-[32px] font-light leading-[1.15] tracking-[-0.01em] text-encre">
-          {prenom}, voici le chemin vers {euros(r.objectif_mensuel)} par mois
-        </h1>
+        <h1 className="m-0 text-[32px] font-light leading-[1.15] tracking-[-0.01em] text-encre">Votre parcours d&apos;investissement</h1>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -392,7 +389,7 @@ export default function FeuilleDeRoute() {
       <FondHalo />
       <div className="relative z-10">
         {roadmap ? (
-          <Resultat r={roadmap} prenom={f.nom.trim().split(" ")[0]} onRecommencer={() => setRoadmap(null)} />
+          <Resultat r={roadmap} onRecommencer={() => setRoadmap(null)} />
         ) : (
           <div className="mx-auto max-w-[680px] px-4 pb-24 pt-14">
             <div className="mb-8 text-center">

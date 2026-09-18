@@ -20,9 +20,9 @@ export const MODULES_KDATA = [
     pageName: "KExpertise",
     nom: "K-Expertise",
     icone: Gauge,
-    phrase: "Estimer un local commercial et poser un avis de valeur argumenté.",
-    chemin: null,
-    etat: "Bientôt",
+    phrase: "L'étude d'implantation d'une adresse : flux, rue, tronçon, zones de chalandise.",
+    chemin: "/kexpertise",
+    etat: "Ouvert",
   },
   {
     cle: "kprospective",

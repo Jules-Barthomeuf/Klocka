@@ -92,6 +92,9 @@ button:focus-visible {
     --k-menthe-survol-rgb: 171 208 200;
     --k-menthe-fonce-rgb: 127 173 164;
     --k-menthe-texte-rgb: 150 192 184;
+    --k-rapport-bleu-rgb: 15 76 100;
+    --k-rapport-orange-rgb: 247 148 29;
+    --k-rapport-sur-bleu-rgb: 255 255 255;
     --k-sur-menthe-rgb: 8 19 13;
     --k-barre-rgb: 18 20 19;
     --k-barre-relief-rgb: 27 30 29;

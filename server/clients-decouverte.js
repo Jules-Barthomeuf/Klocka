@@ -161,6 +161,32 @@ export async function poserClientMonday(champs, { par } = {}) {
 export async function creerClientDepuisDecouverte(champs, { admin, base }) {
   const fait = [];
   const rates = [];
+
+  // Un client ne naît pas : c'est un prospect qui signe. On le retrouve dans
+  // le tableau Prospects, on y coche son mandat, et ce qu'il savait déjà —
+  // métier, revenus, fonds propres, patrimoine — vient remplir la fiche
+  // client. L'appel de découverte, plus récent, prime sur lui.
+  //
+  // Un client sans fiche prospect reste possible : on le dit, on ne bloque pas.
+  let prospect = null;
+  try {
+    const { chercherProspect, champsDepuisProspect, cocherMandatSigne, fusionner } = await import('./clients-prospect.js');
+    const trouve = await chercherProspect({
+      email: champs.email || null,
+      nom: [champs.prenom, champs.nom].filter(Boolean).join(' ') || null,
+    });
+    if (trouve.ok) {
+      prospect = trouve.prospect;
+      champs = fusionner(champsDepuisProspect(prospect), champs);
+      await cocherMandatSigne(prospect.id);
+      fait.push(`prospect « ${prospect.nom} » passé en mandat signé, ses informations reprises`);
+    } else {
+      rates.push(`Prospect : ${trouve.error}`);
+    }
+  } catch (e) {
+    rates.push(`Prospect : ${e?.message || e}`);
+  }
+
   let monday = null;
   try {
     monday = await poserClientMonday(champs, { par: admin });
@@ -204,6 +230,7 @@ export async function creerClientDepuisDecouverte(champs, { admin, base }) {
   return {
     ok: !!(monday?.id || invitation),
     monday: monday?.id ? { id: monday.id, cree: !!monday.cree } : null,
+    prospect: prospect ? { id: prospect.id, nom: prospect.nom } : null,
     invitation,
     fait,
     rates,

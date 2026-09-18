@@ -28,6 +28,9 @@ export const TABLEAUX = {
   // l'archivage. MONDAY_BOARD_ECARTES est l'ancien nom, encore accepté.
   proprietes: (process.env.MONDAY_BOARD_PROPRIETES || process.env.MONDAY_BOARD_ECARTES || '').trim(),
   investisseurs: (process.env.MONDAY_BOARD_INVESTISSEURS || '').trim(),
+  // « Prospects » : ceux qu'on n'a pas encore signés. Un client n'y naît pas,
+  // il en sort — le mandat signé fait passer la fiche de l'un à l'autre.
+  prospects: (process.env.MONDAY_BOARD_PROSPECTS || '').trim(),
   agents: (process.env.MONDAY_BOARD_AGENTS || '').trim(),
 };
 

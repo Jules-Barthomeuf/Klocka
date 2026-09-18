@@ -258,10 +258,27 @@ async function commercesVoisins(lat, lon) {
     const nomDe = nomMetierDe();
     const r = await commercesDeLaZone({ lat, lon, rayon_m: 600, filtres: TOUS_LES_COMMERCES.filtres });
     if (!r.ok) return [];
+    // Tout ce que la fiche OpenStreetMap porte déjà : la page s'en sert pour
+    // montrer la devanture sur un plan et dire à quoi ressemble l'exploitant.
+    // Rien n'est deviné — un champ absent reste absent.
     return (r.commerces || [])
       .filter((c) => c.nom && !c.vacant)
-      .slice(0, 6)
-      .map((c) => ({ nom: c.nom, metier: nomDe(c.genre) || c.genre, adresse: c.adresse, distance_m: c.distance_m }));
+      .slice(0, 8)
+      .map((c) => ({
+        nom: c.nom,
+        enseigne: c.enseigne,
+        metier: nomDe(c.genre) || c.genre,
+        adresse: c.adresse,
+        distance_m: c.distance_m,
+        lat: c.lat,
+        lon: c.lon,
+        horaires: c.horaires,
+        telephone: c.telephone,
+        site: c.site,
+        cuisine: c.cuisine,
+        terrasse: c.terrasse,
+        pmr: c.pmr,
+      }));
   } catch (e) { console.warn(`[lm] commerces voisins indisponibles : ${e?.message || e}`); return []; }
 }
 

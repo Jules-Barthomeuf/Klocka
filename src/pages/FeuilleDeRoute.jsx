@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine } from "recharts";
-import { ArrowRight, ArrowLeft, Loader2, Check, MapPin, Store, Phone, Maximize2, Play } from "lucide-react";
-import { JL } from "@/design/jetons";
+import { ArrowRight, ArrowLeft, Loader2, Check, MapPin, Store, Phone, Maximize2, Play, Clock, Globe } from "lucide-react";
 import FondHalo from "@/components/projet/FondHalo";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 
@@ -20,6 +18,7 @@ import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 // devantures du quartier qui donnent le niveau de prix ; et quand l'objectif
 // demande plus de temps que l'horizon voulu, la page le dit.
 
+const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const LIEN_RDV = import.meta.env.VITE_LM_LIEN_RDV || "mailto:sourcing@klocka.immo?subject=Je%20souhaite%20un%20appel%20Klocka";
 const CARTE = "rounded-[18px] border border-trait bg-surface";
 const HORIZONS = [10, 15, 20, 25, 30, 35];
@@ -57,52 +56,6 @@ function Nombre({ valeur, onChange, unite, placeholder }) {
   );
 }
 
-// ── Le simulateur : un seul graphique, tous les biens cumulés ───────────────
-
-function Simulateur({ r, acquisitionEnAvant }) {
-  const donnees = useMemo(() => r.projection.map((p) => ({
-    annee: p.annee,
-    cash: p.cash_flow,
-    achat: p.achats.length > 0,
-    mensuel: p.mensuel,
-    apport: p.apport_verse,
-    patrimoine: p.patrimoine,
-    rangs: p.achats,
-  })), [r.projection]);
-
-  const anneeEnAvant = acquisitionEnAvant != null ? r.acquisitions[acquisitionEnAvant]?.annee : null;
-
-  return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={donnees} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={JL.encre} strokeOpacity={0.08} vertical={false} />
-          <XAxis dataKey="annee" tick={{ fill: JL.brume, fontSize: 11 }} tickLine={false} axisLine={false}
-            label={{ value: "années", position: "insideBottomRight", offset: -2, fill: JL.brume, fontSize: 10 }} />
-          <YAxis tickFormatter={(v) => k(v)} tick={{ fill: JL.brume, fontSize: 11 }} tickLine={false} axisLine={false} width={52} />
-          <Tooltip
-            cursor={{ fill: JL.encre, fillOpacity: 0.04 }}
-            contentStyle={{ background: JL["surface-pleine"], border: `1px solid ${JL.bord}`, borderRadius: 12, fontSize: 12, color: JL.encre }}
-            formatter={(v, nom, e) => [
-              `${euros(v)} sur l'année${e.payload.achat ? ` · ${euros(e.payload.apport)} d'apport versé, non compté ici` : ""}`,
-              `${euros(e.payload.mensuel)} par mois à plein régime`,
-            ]}
-            labelFormatter={(a) => `Année ${a}`}
-          />
-          <ReferenceLine y={0} stroke={JL.encre} strokeOpacity={0.25} />
-          <Bar dataKey="cash" radius={[3, 3, 0, 0]}>
-            {donnees.map((d) => (
-              <Cell key={d.annee}
-                fill={d.cash < 0 ? JL.alerte : d.achat ? JL.ambre : JL.menthe}
-                fillOpacity={anneeEnAvant != null && d.annee !== anneeEnAvant ? 0.35 : 0.95} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
 // ── Le guide, à droite ──────────────────────────────────────────────────────
 
 function etapesDuGuide(r) {
@@ -119,11 +72,11 @@ function etapesDuGuide(r) {
         : "Votre objectif est atteignable avec un seul bien.",
     },
     {
-      zone: "graphique",
-      titre: "Ce que ça donne, année par année",
-      texte: creux
-        ? `Chaque barre est ce qui reste dans votre poche sur l'année, une fois le crédit, les charges et l'impôt payés. Les barres ambrées sont les années où vous achetez : la barre y est plus courte parce que le nouveau local n'est détenu qu'une demi-année. Voyez l'année ${creux.annee}, puis la suivante : à plein régime, le loyer travaille pour vous.`
-        : `Chaque barre est ce qui reste dans votre poche sur l'année, une fois le crédit, les charges et l'impôt payés. L'apport, lui, n'y figure pas : c'est un investissement, pas une charge.`,
+      zone: "projet",
+      titre: "Qui paie le loyer",
+      texte: a0?.exemple
+        ? `À droite, la devanture d'un ${a0.metier.toLowerCase()} à ${a0.exemple.distance_m} m de chez vous. Un commerce comme celui-ci tient un bail 3-6-9 : c'est lui qui paie le crédit, les charges courantes et la taxe foncière quand le bail le prévoit. Ce commerce-là n'est pas à vendre, il montre le type d'exploitant qu'on cherche.`
+        : `Un local commercial se loue par un bail 3-6-9 : c'est le commerçant qui paie le crédit, les charges courantes et la taxe foncière quand le bail le prévoit. C'est ce qui distingue un commerce d'un appartement.`,
     },
   ];
   if (a1) {
@@ -131,7 +84,7 @@ function etapesDuGuide(r) {
     // les fonds propres qui portent les deux. Le raconter autrement serait faux.
     const memeAnnee = a1.annee === anneeAchat1;
     etapes.push({
-      zone: "graphique",
+      zone: "simulateur",
       avant: 1,
       titre: memeAnnee ? "Deux acquisitions dès le départ" : `Le deuxième achat, en année ${a1.annee}`,
       texte: memeAnnee
@@ -227,7 +180,6 @@ function Resultat({ r, prenom, onRecommencer }) {
   const [etape, setEtape] = useState(0);
   const [acq, setAcq] = useState(0);
   const [acqEnAvant, setAcqEnAvant] = useState(null);
-  const [plein, setPlein] = useState(false);
   const etapes = useMemo(() => etapesDuGuide(r), [r]);
   const zone = demarre ? etapes[etape]?.zone : null;
   const a = r.acquisitions[acq];
@@ -253,16 +205,11 @@ function Resultat({ r, prenom, onRecommencer }) {
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 pb-24 pt-10">
-      <div className={flou("titre")}>
-        <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Votre feuille de route</p>
-        <h1 className="mt-2 mb-2 text-[30px] font-light leading-[1.15] tracking-[-0.01em] text-encre">
+      <div className={`mb-8 text-center ${flou("titre")}`}>
+        <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Votre parcours d&apos;investissement</p>
+        <h1 className="mx-auto mt-3 mb-0 max-w-[820px] text-[32px] font-light leading-[1.15] tracking-[-0.01em] text-encre">
           {prenom}, voici le chemin vers {euros(r.objectif_mensuel)} par mois
         </h1>
-        <p className="m-0 mb-7 text-[13.5px] leading-[1.7] text-ardoise">
-          {r.nombre_acquisitions} acquisition{r.nombre_acquisitions > 1 ? "s" : ""} sur {r.horizon_ans} ans, soit {euros(r.patrimoine_final)} de patrimoine.
-          {r.quartier ? ` Chiffré sur ${r.quartier}` : ""}
-          {r.marche ? `, au prix réel du quartier (${euros(r.marche.m2)} / m², ${r.marche.ventes} ventes).` : r.prix_m2_estime ? `, sur un prix de ${euros(r.prix_m2_retenu)} / m² faute de ventes publiées.` : "."}
-        </p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -283,66 +230,84 @@ function Resultat({ r, prenom, onRecommencer }) {
           {/* La fiche du projet regardé */}
           {a && (
             <div className={`${CARTE} mb-4 p-5 ${flou("projet")}`}>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div>
-                  <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">Acquisition {a.rang} sur {r.nombre_acquisitions}</p>
-                  <h2 className="m-0 mt-1 text-[22px] font-light text-encre">{a.metier} · {euros(a.prix)}</h2>
-                  <p className="m-0 mt-1 text-[12.5px] text-ardoise">
-                    environ {a.surface} m² · achat en année {a.annee} · rendement cible {a.rendement_cible} %
-                  </p>
+              <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">Acquisition {a.rang} sur {r.nombre_acquisitions}</p>
+              <h2 className="m-0 mt-1 text-[22px] font-light text-encre">{a.metier} · {euros(a.prix)}</h2>
+              <p className="m-0 mt-1 text-[12.5px] text-ardoise">
+                environ {a.surface} m² · achat en année {a.annee} · rendement cible {a.rendement_cible} %
+              </p>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_280px]">
+                <div className="min-w-0">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[["Apport", euros(a.apport)], ["Financé", euros(a.prix - a.apport)], ["Loyer annuel", euros(a.loyer_annuel)], ["Cash-flow", `${euros(a.cash_flow_mensuel)} / mois`]].map(([t, v]) => (
+                      <div key={t} className="rounded-[10px] border border-trait bg-relief px-3 py-2">
+                        <p className="m-0 text-[10.5px] uppercase tracking-[.08em] text-brume">{t}</p>
+                        <p className="m-0 mt-0.5 text-[15px] font-semibold tabular-nums text-encre">{v}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Le locataire : ce que la fiche du commerce dit vraiment,
+                      sans rien inventer sur son bail ni sur ses comptes. */}
+                  <p className="alx-mont mt-4 mb-2 text-[10.5px] uppercase tracking-[.14em] text-menthe-texte">Le locataire type</p>
+                  {a.exemple ? (
+                    <div className="rounded-[12px] border border-trait bg-relief p-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-trait"><Store className="h-4 w-4 text-menthe" /></span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[13.5px] font-medium text-encre">{a.exemple.nom}</span>
+                          <span className="block truncate text-[11.5px] text-ardoise">
+                            {a.exemple.metier}{a.exemple.enseigne && a.exemple.enseigne !== a.exemple.nom ? ` · enseigne ${a.exemple.enseigne}` : ""}
+                            {a.exemple.distance_m != null ? ` · à ${a.exemple.distance_m} m de chez vous` : ""}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="mt-2 space-y-1 text-[11.5px] text-ardoise">
+                        {a.exemple.adresse && <p className="m-0 flex items-start gap-1.5"><MapPin className="mt-0.5 h-3 w-3 flex-shrink-0 text-brume" />{a.exemple.adresse}</p>}
+                        {a.exemple.horaires && <p className="m-0 flex items-start gap-1.5"><Clock className="mt-0.5 h-3 w-3 flex-shrink-0 text-brume" />{a.exemple.horaires}</p>}
+                        {a.exemple.telephone && <p className="m-0 flex items-start gap-1.5"><Phone className="mt-0.5 h-3 w-3 flex-shrink-0 text-brume" />{a.exemple.telephone}</p>}
+                        {a.exemple.site && <p className="m-0 flex items-start gap-1.5"><Globe className="mt-0.5 h-3 w-3 flex-shrink-0 text-brume" /><span className="truncate">{a.exemple.site.replace(/^https?:\/\//, "")}</span></p>}
+                      </div>
+                      <p className="m-0 mt-2 border-t border-trait pt-2 text-[11px] leading-[1.6] text-brume">
+                        Bail commercial 3-6-9 : le commerçant paie le loyer, les charges courantes, et la taxe foncière quand le bail le prévoit.
+                        Ce commerce existe et <span className="text-ardoise">n&apos;est pas à vendre</span> : il montre le type d&apos;exploitant recherché.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="m-0 text-[12px] leading-[1.6] text-ardoise">
+                      Bail commercial 3-6-9 : le commerçant paie le loyer, les charges courantes, et la taxe foncière quand le bail le prévoit.
+                    </p>
+                  )}
+                </div>
+
+                {/* La devanture, sur Google Maps */}
+                <div className="min-h-[260px] overflow-hidden rounded-[12px] border border-trait">
+                  {CLE_MAPS && a.exemple?.lat ? (
+                    <iframe title={`Vue de la rue · ${a.exemple.nom}`} className="block h-full min-h-[260px] w-full border-0" loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade" allowFullScreen
+                      src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_MAPS}&location=${a.exemple.lat},${a.exemple.lon}&heading=0&pitch=0&fov=90`} />
+                  ) : CLE_MAPS && r.quartier ? (
+                    <iframe title="Votre quartier" className="block h-full min-h-[260px] w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps/embed/v1/place?key=${CLE_MAPS}&q=${encodeURIComponent(r.quartier || "")}&zoom=14`} />
+                  ) : (
+                    <div className="flex h-full min-h-[260px] items-center justify-center px-4 text-center text-[12px] text-brume">Plan indisponible</div>
+                  )}
                 </div>
               </div>
-
-              <div className="mt-4 grid gap-2 sm:grid-cols-4">
-                {[["Apport", euros(a.apport)], ["Financé", euros(a.prix - a.apport)], ["Loyer annuel", euros(a.loyer_annuel)], ["Cash-flow", `${euros(a.cash_flow_mensuel)} / mois`]].map(([t, v]) => (
-                  <div key={t} className="rounded-[10px] border border-trait bg-relief px-3 py-2">
-                    <p className="m-0 text-[10.5px] uppercase tracking-[.08em] text-brume">{t}</p>
-                    <p className="m-0 mt-0.5 text-[15px] font-semibold tabular-nums text-encre">{v}</p>
-                  </div>
-                ))}
-              </div>
-
-              {a.exemple && (
-                <>
-                  <div className="mt-4 flex items-center gap-3 rounded-[12px] border border-trait bg-relief px-4 py-3">
-                    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-trait"><Store className="h-4 w-4 text-menthe" /></span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-medium text-encre">{a.exemple.nom}</span>
-                      <span className="block truncate text-[11.5px] text-ardoise">
-                        {a.exemple.metier}{a.exemple.adresse ? ` · ${a.exemple.adresse}` : ""}{a.exemple.distance_m != null ? ` · à ${a.exemple.distance_m} m de chez vous` : ""}
-                      </span>
-                    </span>
-                  </div>
-                  <p className="m-0 mt-2 text-[11px] text-brume">Ce commerce existe et <span className="text-ardoise">n&apos;est pas à vendre</span> : il montre le type de local et le niveau de prix sur lesquels votre plan est calculé.</p>
-                </>
-              )}
             </div>
           )}
 
-          {/* La vue d'ensemble : tous les biens, sur tout l'horizon */}
-          <div className={`${CARTE} p-5 ${flou("graphique")}`}>
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-              <div>
-                <h2 className="m-0 text-[16px] font-medium text-encre">Votre cash-flow, tous les biens cumulés</h2>
-                <p className="m-0 mt-0.5 text-[11.5px] text-ardoise">sur {r.horizon_ans} ans · en ambre les années d&apos;achat, où le bien ne compte qu&apos;une demi-année</p>
+          <div className={`grid gap-2 sm:grid-cols-3 ${flou("objectif")}`}>
+            {[
+              ["Revenu au terme", `${euros(r.atteint_mensuel)} / mois`],
+              ["Patrimoine", euros(r.patrimoine_final)],
+              ["Objectif atteint", r.annee_objectif != null ? `en ${r.annee_objectif} ans` : "—"],
+            ].map(([t, v]) => (
+              <div key={t} className={`${CARTE} px-4 py-3`}>
+                <p className="m-0 text-[10.5px] uppercase tracking-[.08em] text-brume">{t}</p>
+                <p className="m-0 mt-0.5 text-[16px] font-semibold tabular-nums text-encre">{v}</p>
               </div>
-              <button onClick={() => setPlein(true)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-bord px-3 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
-                <Maximize2 className="h-3.5 w-3.5" />Agrandir
-              </button>
-            </div>
-            <Simulateur r={r} acquisitionEnAvant={acqEnAvant} />
-            <div className={`mt-3 grid gap-2 sm:grid-cols-3 ${flou("objectif")}`}>
-              {[
-                ["Revenu au terme", `${euros(r.atteint_mensuel)} / mois`],
-                ["Patrimoine", euros(r.patrimoine_final)],
-                ["Objectif atteint", r.annee_objectif != null ? `en ${r.annee_objectif} ans` : "—"],
-              ].map(([t, v]) => (
-                <div key={t} className="rounded-[10px] border border-trait bg-relief px-3 py-2">
-                  <p className="m-0 text-[10.5px] uppercase tracking-[.08em] text-brume">{t}</p>
-                  <p className="m-0 mt-0.5 text-[15px] font-semibold tabular-nums text-encre">{v}</p>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
 
@@ -368,7 +333,7 @@ function Resultat({ r, prenom, onRecommencer }) {
               <Maximize2 className="h-3.5 w-3.5" />Ouvrir dans une page
             </a>
           </div>
-          <SimulateurDossier parametres={parametresSimulateur} compact />
+          <SimulateurDossier parametres={parametresSimulateur} />
         </div>
       )}
 
@@ -383,22 +348,6 @@ function Resultat({ r, prenom, onRecommencer }) {
 
       <button onClick={onRecommencer} className={`mt-6 text-[12.5px] text-ardoise hover:text-encre ${flou("annexes")}`}>Refaire avec d&apos;autres chiffres</button>
 
-      {plein && (
-        <div className="fixed inset-0 z-[600] flex flex-col bg-fond-halo p-4 md:p-8" onClick={() => setPlein(false)}>
-          <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="m-0 text-[20px] font-light text-encre">Votre cash-flow sur {r.horizon_ans} ans</h2>
-                <p className="m-0 mt-1 text-[12px] text-ardoise">tous les biens cumulés · en ambre les années d&apos;achat</p>
-              </div>
-              <button onClick={() => setPlein(false)} className="rounded-full border border-bord px-4 py-2 text-[12px] uppercase tracking-[.1em] text-ardoise hover:text-encre">Fermer</button>
-            </div>
-            <div className={`${CARTE} min-h-0 flex-1 p-5`}>
-              <div className="h-full min-h-[380px]"><Simulateur r={r} acquisitionEnAvant={null} /></div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

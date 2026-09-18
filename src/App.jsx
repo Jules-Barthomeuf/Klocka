@@ -33,6 +33,7 @@ const PAGES_CLIENT_MIN = new Set([...PAGES_CLIENT].map((p) => p.toLowerCase()));
 const Portail2Fois = lazy(() => import('@/pages/Portail2Fois'));
 const SimulateurPublic = lazy(() => import('@/pages/SimulateurPublic'));
 const ProjetPublic = lazy(() => import('@/pages/ProjetPublic'));
+const FeuilleDeRoute = lazy(() => import('@/pages/FeuilleDeRoute'));
 const Analyse = lazy(() => import('@/pages/Analyse'));
 const Monitoring = lazy(() => import('@/pages/Monitoring'));
 const CoutsIA = lazy(() => import('@/pages/CoutsIA'));
@@ -69,7 +70,7 @@ const AuthenticatedApp = () => {
   const isHomePage = location.pathname === '/' || location.pathname === '/Home';
 
   // Public pages accessible sans authentification (paiement, liens publics)
-  const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic', '/Bienvenue', '/Installer'];
+  const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic', '/Bienvenue', '/Installer', '/FeuilleDeRoute'];
   if (publicPaths.includes(location.pathname)) {
     return (
       <Suspense fallback={<EnChargement />}>
@@ -80,6 +81,7 @@ const AuthenticatedApp = () => {
         <Route path="/Portail2Fois" element={<Portail2Fois />} />
         <Route path="/SimulateurPublic" element={<SimulateurPublic />} />
         <Route path="/ProjetPublic" element={<ProjetPublic />} />
+        <Route path="/FeuilleDeRoute" element={<FeuilleDeRoute />} />
       </Routes>
       </Suspense>
     );
@@ -168,6 +170,7 @@ const AuthenticatedApp = () => {
       <Route path="/Portail2Fois" element={<Portail2Fois />} />
       <Route path="/SimulateurPublic" element={<SimulateurPublic />} />
       <Route path="/ProjetPublic" element={<ProjetPublic />} />
+      <Route path="/FeuilleDeRoute" element={<FeuilleDeRoute />} />
       <Route path="/Analyse" element={<LayoutWrapper currentPageName="Analyse"><Analyse /></LayoutWrapper>} />
       <Route path="/Monitoring" element={<LayoutWrapper currentPageName="Monitoring"><Monitoring /></LayoutWrapper>} />
       <Route path="/CoutsIA" element={<LayoutWrapper currentPageName="CoutsIA"><CoutsIA /></LayoutWrapper>} />

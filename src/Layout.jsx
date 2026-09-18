@@ -6,6 +6,7 @@ import BottomTabs from "@/components/mobile/BottomTabs";
 import {
   LayoutDashboard,
   LayoutGrid,
+  Magnet,
   Building2,
   Calculator,
   BookOpen,
@@ -490,6 +491,7 @@ function LayoutContent({ children, currentPageName }) {
             </FeedbackSurvol>
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("AdminLeadMagnets")} icon={Magnet} label="Lead magnets" isActive={isActivePage("AdminLeadMagnets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
 
             <div className="pt-3">
               <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />

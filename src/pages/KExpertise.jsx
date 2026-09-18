@@ -524,7 +524,7 @@ export default function KExpertise() {
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Expertise</p>
       <h1 className="mt-2 mb-6 text-[30px] font-light tracking-[-0.01em] text-encre">Étude d&apos;implantation d&apos;une adresse</h1>
 
-      <div className="rounded-[16px] border border-bord bg-panneau p-5 backdrop-blur-xl">
+      <div className="rounded-[18px] border border-trait bg-surface p-5">
         <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-ardoise">Type de commerce</label>
         <input value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant, opticien… ou vide pour tous les commerces"
           className="mb-4 h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-ardoise focus:border-menthe" />

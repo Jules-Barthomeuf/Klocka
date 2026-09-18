@@ -63,6 +63,7 @@ export default {
 			alerte: 'rgb(var(--k-alerte-rgb) / <alpha-value>)',
 			ambre: 'rgb(var(--k-ambre-rgb) / <alpha-value>)',
 			vert: 'rgb(var(--k-vert-rgb) / <alpha-value>)',
+			jaune: 'rgb(var(--k-jaune-rgb) / <alpha-value>)',
 			bleu: 'rgb(var(--k-bleu-rgb) / <alpha-value>)',
 			appel: 'rgb(var(--k-appel-rgb) / <alpha-value>)',
 			ecrire: 'rgb(var(--k-ecrire-rgb) / <alpha-value>)',

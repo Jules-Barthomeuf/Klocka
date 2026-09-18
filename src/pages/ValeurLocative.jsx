@@ -168,8 +168,6 @@ export default function ValeurLocative() {
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {NIVEAUX.map(([cle, titre]) => <Niveau key={cle} titre={titre} valeur={r[cle]} />)}
-          </div>
-
           <div className="border-t border-trait px-4 py-3">
             <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">Découpage par niveau de valeur locative</p>
             {secteurs.some((x) => x.niveau) ? CLASSES.map(([cle, libelle, chip]) => (
@@ -189,6 +187,7 @@ export default function ValeurLocative() {
               {nLus} quartier{nLus > 1 ? "s" : ""} classé{nLus > 1 ? "s" : ""} par sa fourchette Data-B ; les autres par un indice de position (commerces relevés, niveau de vie), qui classe sans chiffrer.
               {r.du_cache ? " Donnée reprise de la base, aucun crédit dépensé." : " Un crédit Data-B dépensé."}
             </p>
+          </div>
           </div>
         </div>
 

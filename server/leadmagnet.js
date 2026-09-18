@@ -49,6 +49,19 @@ export const TICKET_MAX = 450000;
 /** Au-delà, ce n'est plus une feuille de route, c'est un catalogue. */
 const ACQUISITIONS_MAX = 6;
 
+// La surface type d'un commerce, par métier. Une pharmacie n'occupe pas la
+// même boutique qu'un salon de coiffure, et c'est ce qui fait qu'elles ne
+// valent pas le même prix : le prix d'une acquisition, ici, est sa surface
+// multipliée par le prix du quartier. Ordres de grandeur d'exploitation,
+// posés ici pour être discutés d'un seul endroit.
+export const SURFACES = [
+  ['Coiffure', 45], ['Agence immobilière', 55], ['Opticien', 70], ['Prêt-à-porter', 75],
+  ['Boulangerie', 85], ['Café', 85], ['Boucherie, charcuterie', 90], ['Restaurant', 100],
+  ['Pharmacie', 120], ['Supérette', 150],
+];
+/** À défaut de prix de quartier, le m² qui sert de repère. Dit sur la page. */
+const M2_PIVOT = 2200;
+
 const euros = (n) => Math.round(n / 1000) * 1000;
 
 /**
@@ -62,72 +75,105 @@ const euros = (n) => Math.round(n / 1000) * 1000;
  * @param {number|null} p.prix_m2      le prix au m² du quartier, si DVF le donne
  * @returns {object} le plan, ses étapes et ses hypothèses
  */
-export function calculerRoadmap({ objectif_mensuel, fonds_propres = 0, revenus_annuels = 0, horizon_ans = 10, prix_m2 = null }) {
+export function calculerRoadmap({ objectif_mensuel, fonds_propres = 0, revenus_annuels = 0, horizon_ans = 20, prix_m2 = null, metiers = [] }) {
   const objectif = Math.max(0, Number(objectif_mensuel) || 0);
-  const horizon = Math.min(25, Math.max(1, Math.round(Number(horizon_ans) || 10)));
-  const fonds = Math.max(0, Number(fonds_propres) || 0);
+  const horizon = Math.min(40, Math.max(5, Math.round(Number(horizon_ans) || 20)));
   const revenus = Math.max(0, Number(revenus_annuels) || 0);
   if (!objectif) return { ok: false, error: 'Il faut un objectif de revenu mensuel.' };
 
-  // Du revenu voulu au patrimoine à constituer : le loyer qui le produit,
-  // puis le prix que ce loyer paie au rendement visé.
+  const m2 = Math.max(600, Math.round(Number(prix_m2) || M2_PIVOT));
   const loyer_annuel_vise = (objectif * 12) / PART_CASH_FLOW;
   const patrimoine_vise = euros(loyer_annuel_vise / (RENDEMENT_CIBLE / 100));
 
-  // Le ticket : on vise trois à quatre lots, bornés au marché du commerce.
-  const ticket = Math.min(TICKET_MAX, Math.max(TICKET_MIN, euros(patrimoine_vise / 3)));
-  const nombre = Math.min(ACQUISITIONS_MAX, Math.max(1, Math.round(patrimoine_vise / ticket)));
+  // Les commerces à viser : ceux du quartier quand on en connaît, sinon la
+  // table. Du plus petit au plus grand — on commence avec ce qu'on a, on
+  // monte en gamme à mesure que le portefeuille porte l'acquisition suivante.
+  const connus = SURFACES.filter(([nom]) => metiers.includes(nom));
+  const palette = (connus.length >= 3 ? connus : SURFACES).slice().sort((a, b) => a[1] - b[1]);
+  const prixDe = (surface) => Math.min(TICKET_MAX, Math.max(TICKET_MIN, euros(surface * m2)));
 
-  // Ce qu'on peut mettre : les fonds d'aujourd'hui, plus l'épargne à venir,
-  // plus le cash-flow des lots déjà achetés qui réalimente le suivant.
   const epargne_annuelle = euros(revenus * PART_EPARGNE);
-  const apport_par_lot = euros(ticket * PART_APPORT);
-
-  const etapes = [];
-  let disponible = fonds;
+  const acquisitions = [];
+  let disponible = Math.max(0, Number(fonds_propres) || 0);
   let annee = 0;
   let loyer_cumule = 0;
-  for (let i = 1; i <= nombre; i++) {
-    // On avance jusqu'à ce que l'apport soit réuni : épargne du foyer plus
-    // cash-flow des lots déjà en portefeuille.
+  let patrimoine = 0;
+
+  for (let i = 0; i < ACQUISITIONS_MAX; i++) {
+    if (patrimoine >= patrimoine_vise) break;
+    const [metier, surface] = palette[Math.min(i, palette.length - 1)];
+    const prix = prixDe(surface);
+    const apport = euros(prix * PART_APPORT);
+    // On avance jusqu'à ce que l'apport soit réuni : l'épargne du foyer, plus
+    // ce que rapportent les lots déjà détenus.
     let attente = 0;
-    while (disponible < apport_par_lot && annee + attente < horizon + 15) {
+    while (disponible < apport && annee + attente < horizon) {
       attente += 1;
       disponible += epargne_annuelle + loyer_cumule * PART_CASH_FLOW;
     }
+    if (annee + attente >= horizon && acquisitions.length) break;
     annee += attente;
-    disponible -= apport_par_lot;
-    const loyer = euros(ticket * (RENDEMENT_CIBLE / 100));
+    disponible -= apport;
+    const loyer = euros(prix * (RENDEMENT_CIBLE / 100));
     loyer_cumule += loyer;
-    etapes.push({
-      rang: i,
-      annee,
-      prix: ticket,
-      apport: apport_par_lot,
-      loyer_annuel: loyer,
-      rendement_cible: RENDEMENT_CIBLE,
-      surface_indicative: prix_m2 ? Math.round(ticket / prix_m2) : null,
+    patrimoine += prix;
+    acquisitions.push({
+      rang: i + 1, annee, metier, surface, prix, apport,
+      loyer_annuel: loyer, rendement_cible: RENDEMENT_CIBLE,
       cash_flow_mensuel: Math.round((loyer * PART_CASH_FLOW) / 12),
       cumul_mensuel: Math.round((loyer_cumule * PART_CASH_FLOW) / 12),
+      patrimoine_apres: patrimoine,
+      exemple: null,
     });
   }
 
-  const derniere = etapes[etapes.length - 1];
+  // La projection, année par année : c'est elle qu'on trace en bâtons.
+  const projection = [];
+  let loyerCourant = 0;
+  let cumul = 0;
+  let patrimoineCourant = 0;
+  for (let an = 0; an <= horizon; an++) {
+    const achats = acquisitions.filter((a) => a.annee === an);
+    const loyerNeuf = achats.reduce((t, a) => t + a.loyer_annuel, 0);
+    for (const a of achats) { loyerCourant += a.loyer_annuel; patrimoineCourant += a.prix; }
+    // L'apport n'est pas une charge : c'est un investissement, et le déduire du
+    // cash-flow donnait un graphique de six gouffres qui ne disait rien de
+    // l'exploitation. L'année d'un achat pèse autrement, et pour de vrai : le
+    // bien n'est détenu qu'une demi-année, donc il ne rapporte que la moitié.
+    const loyerDeLAnnee = loyerCourant - loyerNeuf / 2;
+    const cash_flow = Math.round(loyerDeLAnnee * PART_CASH_FLOW);
+    cumul += cash_flow;
+    projection.push({
+      annee: an,
+      cash_flow,
+      // Ce que la même année rapporterait à plein régime : la différence est
+      // exactement ce que coûte une acquisition en cours d'année.
+      cash_flow_hors_achat: Math.round(loyerCourant * PART_CASH_FLOW),
+      apport_verse: achats.reduce((t, a) => t + a.apport, 0),
+      cumul: Math.round(cumul),
+      patrimoine: patrimoineCourant,
+      achats: achats.map((a) => a.rang),
+      mensuel: Math.round((loyerCourant * PART_CASH_FLOW) / 12),
+    });
+  }
+
+  const derniere = acquisitions[acquisitions.length - 1];
   return {
     ok: true,
     objectif_mensuel: objectif,
     horizon_ans: horizon,
+    prix_m2_retenu: m2,
+    prix_m2_estime: !prix_m2,
     patrimoine_vise,
     loyer_annuel_vise: euros(loyer_annuel_vise),
-    nombre_acquisitions: nombre,
+    nombre_acquisitions: acquisitions.length,
     epargne_annuelle,
-    etapes,
-    // Ce que le plan atteint vraiment, et en combien de temps : arrondir au
-    // profit de la promesse serait le plus sûr moyen de décevoir au premier
-    // rendez-vous.
+    acquisitions,
+    projection,
+    patrimoine_final: derniere ? derniere.patrimoine_apres : 0,
     atteint_mensuel: derniere ? derniere.cumul_mensuel : 0,
     annee_objectif: derniere ? derniere.annee : null,
-    dans_horizon: !!derniere && derniere.annee <= horizon,
+    dans_horizon: !!derniere && derniere.cumul_mensuel >= objectif && derniere.annee <= horizon,
     hypotheses: {
       rendement_cible: RENDEMENT_CIBLE,
       part_cash_flow: PART_CASH_FLOW,
@@ -144,7 +190,7 @@ export function lienSimulateur(etape, base = '') {
     prixBienNegocie: etape.prix,
     loyerInitialHTHC: etape.loyer_annuel,
     apport: etape.apport,
-    surface: etape.surface_indicative || 60,
+    surface: etape.surface || 60,
     dureeCredit: 20,
     tauxInteret: 3.7,
     anneeRevente: 20,
@@ -286,8 +332,16 @@ export async function genererFeuilleDeRoute(reponses, { ip = null, base = '' } =
     revenus_annuels: reponses.revenus_annuels,
     horizon_ans: reponses.horizon_ans,
     prix_m2: marche?.m2 || null,
+    metiers: [...new Set(exemples.map((c) => c.metier).filter(Boolean))],
   });
   if (!plan.ok) return plan;
+  // Chaque acquisition reçoit une devanture du quartier, du même métier quand
+  // il s'en trouve une : le plan cesse d'être abstrait.
+  const pris = new Set();
+  for (const a of plan.acquisitions) {
+    const c = exemples.find((x) => x.metier === a.metier && !pris.has(x.nom)) || exemples.find((x) => !pris.has(x.nom));
+    if (c) { pris.add(c.nom); a.exemple = c; }
+  }
 
   const roadmap = {
     ...plan,
@@ -295,7 +349,7 @@ export async function genererFeuilleDeRoute(reponses, { ip = null, base = '' } =
     commune: marche?.commune || point?.ville || null,
     marche,
     exemples,
-    lien_simulateur: lienSimulateur(plan.etapes[0], base),
+    lien_simulateur: lienSimulateur(plan.acquisitions[0], base),
   };
 
   Records.create(ENTITE_LEAD, {

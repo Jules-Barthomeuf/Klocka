@@ -92,9 +92,6 @@ button:focus-visible {
     --k-menthe-survol-rgb: 171 208 200;
     --k-menthe-fonce-rgb: 127 173 164;
     --k-menthe-texte-rgb: 150 192 184;
-    --k-rapport-bleu-rgb: 15 76 100;
-    --k-rapport-orange-rgb: 247 148 29;
-    --k-rapport-sur-bleu-rgb: 255 255 255;
     --k-sur-menthe-rgb: 8 19 13;
     --k-barre-rgb: 18 20 19;
     --k-barre-relief-rgb: 27 30 29;
@@ -506,3 +503,47 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    le traitement doux déjà écrit pour « k-carte-claire ». */
 :root[data-theme="clair"] .k-carte-rues .leaflet-container { background: #e9e9e6; }
 :root[data-theme="clair"] .k-carte-rues .leaflet-tile-pane { filter: saturate(.55) contrast(.95) brightness(1.02); }
+
+/* --- L'impression d'un rapport K-Expertise -------------------------------
+   Le navigateur imprime, sa boîte de dialogue enregistre en PDF. Trois
+   choses à poser : ne garder que le rapport, repasser la palette en clair —
+   un fond noir sur papier vide une cartouche et se lit mal — et empêcher
+   qu'une section se coupe en deux entre deux pages. */
+@media print {
+  :root {
+    --k-fond-rgb: 246 247 248;
+    --k-fond-halo-rgb: 236 238 240;
+    --k-surface: rgba(16, 20, 24, 0.035);
+    --k-surface-pleine-rgb: 255 255 255;
+    --k-relief: rgba(16, 20, 24, 0.06);
+    --k-encre-rgb: 20 24 28;
+    --k-craie-rgb: 58 65 63;
+    --k-ardoise-rgb: 94 102 99;
+    --k-brume-rgb: 115 121 118;
+    --k-menthe-clair-rgb: 63 122 109;
+    --k-barre-rgb: 235 237 236;
+    --k-barre-relief-rgb: 223 226 225;
+    --k-trait: rgba(16, 20, 24, 0.09);
+    --k-bord: rgba(16, 20, 24, 0.13);
+    --k-bord-doux: rgba(16, 20, 24, 0.18);
+    --k-bord-vif: rgba(16, 20, 24, 0.28);
+    --k-menthe-texte-rgb: 47 109 95;
+  }
+  /* Tout se cache, le rapport se remontre : le tour classique, et le seul
+     qui marche quel que soit l'arbre au-dessus (barre latérale, panneaux). */
+  body * { visibility: hidden; }
+  .k-impression, .k-impression * { visibility: visible; }
+  .k-impression {
+    position: absolute; left: 0; top: 0; width: 100%;
+    max-width: none; padding: 0; margin: 0;
+  }
+  /* Ce qui n'a pas sa place sur le papier : les boutons, et les cartes
+     Google, qui s'impriment blanches. */
+  .k-sans-impression { display: none !important; }
+  /* Le verre n'existe pas à l'impression : un fond blanc, des filets nets. */
+  .k-impression [class*="backdrop-blur"] { backdrop-filter: none !important; }
+  .k-impression section { break-inside: avoid; page-break-inside: avoid; }
+  .k-impression table { break-inside: auto; }
+  .k-impression tr { break-inside: avoid; }
+  @page { margin: 12mm; }
+}

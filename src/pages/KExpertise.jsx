@@ -12,7 +12,7 @@ import { Etoiles } from "@/components/alx/alx-commun";
 // Le chargement, une barre qui avance étape par étape — une étude prend
 // plusieurs minutes, Data-B calcule ses flux à la demande. Puis le rapport,
 // dans le verre de Klocka : les mêmes panneaux translucides que le panneau
-// « Informations dans la zone » de K-Zoning (bg-fond/70, backdrop-blur), pas
+// « Informations dans la zone » de K-Zoning (bg-panneau, backdrop-blur), pas
 // le bleu et l'orange du PDF Data-B — Klocka a son propre habillage, et le
 // garde même quand la donnée vient d'ailleurs.
 //
@@ -95,7 +95,7 @@ function Ligne({ label, children, sous = false }) {
 }
 
 function Sources({ children }) {
-  return <p className="mt-3 mb-0 text-right text-[10.5px] italic text-brume">Sources : {children}</p>;
+  return <p className="mt-3 mb-0 text-right text-[10.5px] italic text-ardoise">Sources : {children}</p>;
 }
 
 // ── Le rapport ─────────────────────────────────────────────────────────────
@@ -183,14 +183,14 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
             className="inline-flex h-9 items-center gap-2 rounded-full border border-menthe/40 bg-menthe/10 px-4 text-[12px] font-medium uppercase tracking-[.08em] text-menthe-texte hover:bg-menthe/20">
             <Printer className="h-3.5 w-3.5" />Voir en PDF
           </button>
-          <button onClick={onSupprimer} className="inline-flex items-center gap-1.5 text-[12px] text-brume hover:text-alerte"><Trash2 className="h-3.5 w-3.5" />Supprimer</button>
+          <button onClick={onSupprimer} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-alerte"><Trash2 className="h-3.5 w-3.5" />Supprimer</button>
         </div>
       </div>
 
       {/* Un seul fond de verre derrière tout le rapport — le même que les
           panneaux de K-Zoning — plutôt qu'une carte par section, qui donnait
           des blocs flottants sans lien entre eux. */}
-      <div className="rounded-[20px] border border-bord bg-fond/70 p-7 backdrop-blur-xl max-md:p-4">
+      <div className="rounded-[20px] border border-bord bg-panneau p-7 backdrop-blur-xl max-md:p-4">
       {/* La couverture */}
         <section className="pb-2 text-center">
         <p className="alx-mont m-0 inline-block rounded-full border border-menthe/30 bg-menthe/10 px-4 py-1 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Rapport d&apos;implantation</p>
@@ -199,7 +199,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
         <p className="m-0 text-[21px] font-medium text-encre">{p?.libelle || e.adresse}</p>
         <p className="m-0 mt-1 text-[13px] text-ardoise">{e.activite}</p>
         <p className="m-0 mt-4 text-[13px] text-encre">Étude préparée par <strong>{e.par || user?.full_name || user?.email}</strong></p>
-        <p className="m-0 mt-1 text-[11.5px] text-brume">Document généré par K-Data le {quand(e.fini_le || e.cree_le)}{r.sources?.length ? ` · sources : ${r.sources.join(", ")}` : ""}</p>
+        <p className="m-0 mt-1 text-[11.5px] text-ardoise">Document généré par K-Data le {quand(e.fini_le || e.cree_le)}{r.sources?.length ? ` · sources : ${r.sources.join(", ")}` : ""}</p>
         {d?.du_cache && <p className="m-0 mt-2 text-[11.5px] text-menthe-texte">Étude Data-B reprise de la base, aucun crédit dépensé.</p>}
         {r.data_b_erreur && <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[12px] text-alerte"><AlertTriangle className="h-3.5 w-3.5" />Data-B : {r.data_b_erreur}</p>}
       </section>
@@ -214,7 +214,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
               <iframe title="Vue de la rue" className="h-[280px] w-full rounded-[12px] border border-trait" loading="lazy"
                 src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_MAPS}&location=${p.lat},${p.lon}&fov=90`} />
             </>
-          ) : <p className="m-0 text-[12.5px] text-brume">Plan indisponible.</p>}
+          ) : <p className="m-0 text-[12.5px] text-ardoise">Plan indisponible.</p>}
         </div>
         <Sources>Base Adresse Nationale, Google Maps — plan et vue de la rue visibles à l&apos;écran, non inclus dans le PDF</Sources>
       </Panel>
@@ -242,18 +242,18 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
 
       {/* Générateurs de flux */}
       <Panel titre="Générateurs de flux">
-        {!r.generateurs?.length ? <p className="m-0 text-[12.5px] text-brume">Aucun générateur cartographié dans 300 m.</p> :
+        {!r.generateurs?.length ? <p className="m-0 text-[12.5px] text-ardoise">Aucun générateur cartographié dans 300 m.</p> :
           ["Moins de 50 mètres", "De 50 à 100 mètres", "Plus de 100 mètres"].map((bande) => {
             const lot = r.generateurs.filter((g) => g.bande === bande);
             if (!lot.length) return null;
             return (
               <div key={bande} className="mb-4">
-                <p className="alx-mont m-0 mb-2 text-[11px] uppercase tracking-[.12em] text-brume">{bande} de l&apos;emplacement</p>
+                <p className="alx-mont m-0 mb-2 text-[11px] uppercase tracking-[.12em] text-ardoise">{bande} de l&apos;emplacement</p>
                 {lot.map((g) => (
                   <div key={g.rang} className="mb-1.5 flex items-center gap-3 rounded-[8px] border border-trait bg-surface px-3 py-2 text-[12.5px]">
                     <span className="w-14 flex-shrink-0 rounded-[6px] bg-relief py-1 text-center font-medium tabular-nums text-encre">{g.distance_m} m</span>
                     <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-menthe/20 text-[10px] font-bold text-menthe-texte">{g.rang}</span>
-                    <span className="min-w-0 flex-1"><strong className="text-encre">{g.genre}</strong> <span className="text-encre">{g.nom || ""}</span><span className="block text-[11px] text-brume">{g.famille}</span></span>
+                    <span className="min-w-0 flex-1"><strong className="text-encre">{g.genre}</strong> <span className="text-encre">{g.nom || ""}</span><span className="block text-[11px] text-ardoise">{g.famille}</span></span>
                     <span className="flex-shrink-0 text-[11px] uppercase text-ardoise">{g.adresse || ""}</span>
                   </div>
                 ))}
@@ -437,21 +437,21 @@ function Chargement({ expertise: e }) {
       <div className="mx-auto mt-8 h-3 w-full overflow-hidden rounded-full bg-relief">
         <div className="h-full rounded-full bg-menthe transition-[width] duration-700" style={{ width: `${Math.max(4, e?.progression || 0)}%` }} />
       </div>
-      <p className="m-0 mt-2 text-[12px] tabular-nums text-brume">{e?.progression || 0} %</p>
+      <p className="m-0 mt-2 text-[12px] tabular-nums text-ardoise">{e?.progression || 0} %</p>
       <ul className="mx-auto mt-8 m-0 max-w-[460px] list-none space-y-2 p-0 text-left">
         {etapes.map((s) => (
           <li key={s.cle} className="flex items-start gap-3 text-[13px]">
             <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-bord">
-              {s.etat === "faite" ? <Check className="h-3 w-3 text-vert" /> : s.etat === "ratee" ? <X className="h-3 w-3 text-alerte" /> : s.etat === "en_cours" ? <Loader2 className="h-3 w-3 animate-spin text-menthe" /> : <Clock className="h-3 w-3 text-brume" />}
+              {s.etat === "faite" ? <Check className="h-3 w-3 text-vert" /> : s.etat === "ratee" ? <X className="h-3 w-3 text-alerte" /> : s.etat === "en_cours" ? <Loader2 className="h-3 w-3 animate-spin text-menthe" /> : <Clock className="h-3 w-3 text-ardoise" />}
             </span>
             <span className="min-w-0">
-              <span className={`block ${s.etat === "a_faire" ? "text-brume" : "text-encre"}`}>{s.nom}</span>
+              <span className={`block ${s.etat === "a_faire" ? "text-ardoise" : "text-encre"}`}>{s.nom}</span>
               {s.detail && <span className="block text-[11.5px] text-ardoise">{s.detail}</span>}
             </span>
           </li>
         ))}
       </ul>
-      <p className="mt-8 mb-0 text-[11.5px] leading-[1.6] text-brume">Data-B calcule ses flux à la demande : comptez plusieurs minutes. Vous pouvez quitter cette page, l&apos;expertise continue et vous attendra dans la liste.</p>
+      <p className="mt-8 mb-0 text-[11.5px] leading-[1.6] text-ardoise">Data-B calcule ses flux à la demande : comptez plusieurs minutes. Vous pouvez quitter cette page, l&apos;expertise continue et vous attendra dans la liste.</p>
     </div>
   );
 }
@@ -524,16 +524,16 @@ export default function KExpertise() {
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Expertise</p>
       <h1 className="mt-2 mb-6 text-[30px] font-light tracking-[-0.01em] text-encre">Étude d&apos;implantation d&apos;une adresse</h1>
 
-      <div className="rounded-[16px] border border-bord bg-fond/70 p-5 backdrop-blur-xl">
-        <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-brume">Type de commerce</label>
+      <div className="rounded-[16px] border border-bord bg-panneau p-5 backdrop-blur-xl">
+        <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-ardoise">Type de commerce</label>
         <input value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant, opticien… ou vide pour tous les commerces"
-          className="mb-4 h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
-        <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-brume">Adresse précise</label>
+          className="mb-4 h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-ardoise focus:border-menthe" />
+        <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-ardoise">Adresse précise</label>
         <div className="relative">
           <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
-            <Search className="h-4 w-4 flex-shrink-0 text-brume" />
+            <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
             <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="48 rue Basfroi, 75011 Paris"
-              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-ardoise" />
           </div>
           {suggestions.length > 0 && (
             <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-fond p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
@@ -541,7 +541,7 @@ export default function KExpertise() {
             </ul>
           )}
         </div>
-        <p className="mt-3 mb-0 text-[11.5px] leading-[1.6] text-brume">
+        <p className="mt-3 mb-0 text-[11.5px] leading-[1.6] text-ardoise">
           {dejaEnBase ? "Cette adresse a déjà une expertise terminée : la relancer ne dépensera pas de crédit Data-B si elle a moins de trente jours."
             : "Une expertise lance une étude Data-B, qui consomme un crédit. Une même adresse et une même activité, dans les trente jours, n'en consomment pas de second."}
         </p>
@@ -552,7 +552,7 @@ export default function KExpertise() {
       </div>
 
       <h2 className="mt-10 mb-3 text-[17px] font-medium text-encre">Expertises réalisées</h2>
-      {!expertises.length ? <p className="m-0 text-[13px] text-brume">Aucune pour l&apos;instant.</p> : (
+      {!expertises.length ? <p className="m-0 text-[13px] text-ardoise">Aucune pour l&apos;instant.</p> : (
         <ul className="m-0 list-none p-0">
           {expertises.map((x) => (
             <li key={x.id}>
@@ -560,7 +560,7 @@ export default function KExpertise() {
                 <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${x.etat === "terminee" ? "bg-vert" : x.etat === "echec" ? "bg-alerte" : "bg-menthe animate-pulse"}`} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-medium text-encre">{x.libelle || x.adresse}</span>
-                  <span className="block text-[11.5px] text-brume">{x.activite} · {x.etat === "en_cours" ? `${x.progression} %` : quand(x.fini_le || x.cree_le)}{x.par ? ` · ${x.par}` : ""}</span>
+                  <span className="block text-[11.5px] text-ardoise">{x.activite} · {x.etat === "en_cours" ? `${x.progression} %` : quand(x.fini_le || x.cree_le)}{x.par ? ` · ${x.par}` : ""}</span>
                 </span>
               </button>
             </li>

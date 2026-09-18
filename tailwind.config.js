@@ -44,6 +44,7 @@ export default {
 			surface: 'var(--k-surface)',
 			'surface-pleine': 'rgb(var(--k-surface-pleine-rgb) / <alpha-value>)',
 			relief: 'var(--k-relief)',
+			panneau: 'var(--k-panneau)',
 			encre: 'rgb(var(--k-encre-rgb) / <alpha-value>)',
 			craie: 'rgb(var(--k-craie-rgb) / <alpha-value>)',
 			ardoise: 'rgb(var(--k-ardoise-rgb) / <alpha-value>)',

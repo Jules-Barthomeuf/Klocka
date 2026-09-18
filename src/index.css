@@ -83,6 +83,7 @@ button:focus-visible {
     --k-surface: rgba(242, 243, 245, 0.045);
     --k-surface-pleine-rgb: 15 17 20;
     --k-relief: rgba(242, 243, 245, 0.07);
+    --k-panneau: rgba(242, 243, 245, 0.26);
     --k-encre-rgb: 242 243 245;
     --k-craie-rgb: 199 205 201;
     --k-ardoise-rgb: 148 154 151;
@@ -118,6 +119,7 @@ button:focus-visible {
     --k-surface: rgba(16, 20, 24, 0.035);
     --k-surface-pleine-rgb: 255 255 255;
     --k-relief: rgba(16, 20, 24, 0.06);
+    --k-panneau: rgba(246, 247, 248, 0.70);
     --k-encre-rgb: 20 24 28;
     --k-craie-rgb: 58 65 63;
     --k-ardoise-rgb: 94 102 99;
@@ -528,6 +530,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
     --k-bord-doux: rgba(16, 20, 24, 0.18);
     --k-bord-vif: rgba(16, 20, 24, 0.28);
     --k-menthe-texte-rgb: 47 109 95;
+    --k-panneau: transparent;
   }
   /* Tout se cache, le rapport se remontre : le tour classique, et le seul
      qui marche quel que soit l'arbre au-dessus (barre latérale, panneaux). */

@@ -298,7 +298,10 @@ export default function FicheSociete({ commerce, metier = null, onFermer }) {
           dessous sans s'y glisser. */}
       <div className="mx-auto max-w-[1400px] px-6 pb-16 pt-20 max-md:px-4">
         {/* Le bandeau : qui c'est, et les quatre chiffres qui situent. */}
-        <div className="rounded-[18px] border border-bord bg-surface p-6 max-md:p-4">
+        {/* `bg-surface`, quasi invisible sur le thème sombre, laissait la
+            carte traverser bien au-delà du calque voulu. On s'aligne sur le
+            panneau « Concurrence dans la zone », posé sur la même carte. */}
+        <div className="rounded-[18px] border border-bord bg-fond/70 backdrop-blur-xl p-6 max-md:p-4">
           <div className="flex items-start gap-4">
             <div className="min-w-0 flex-1">
               <h2 className="m-0 truncate text-[26px] font-medium tracking-[-0.01em] text-encre max-md:text-[19px]">
@@ -353,7 +356,7 @@ export default function FicheSociete({ commerce, metier = null, onFermer }) {
           ))}
         </div>
 
-        <div className="mt-5 rounded-[18px] border border-bord bg-surface p-6 max-md:p-4">
+        <div className="mt-5 rounded-[18px] border border-bord bg-fond/70 backdrop-blur-xl p-6 max-md:p-4">
           {isLoading && (
             <p className="m-0 flex items-center gap-2 text-[13px] text-brume">
               <Loader2 className="h-4 w-4 animate-spin" /> L&apos;annuaire des entreprises répond…

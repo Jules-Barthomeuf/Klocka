@@ -9,7 +9,7 @@ import {
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
-import { J } from "@/design/jetons";
+import { J, JL } from "@/design/jetons";
 
 // K-Zoning : on pose une zone sur la carte, on lit ce qu'il y a dedans.
 //
@@ -70,12 +70,12 @@ function SelecteurFond({ style, setStyle }) {
  * noir. Le bord du cercle qui l'entoure est plein, pas pointillé : c'est lui
  * qui doit se remarquer, pas s'estomper.
  */
-function PointCentre({ centre, teinte = J["menthe-fonce"] }) {
+function PointCentre({ centre, teinte = JL["menthe-fonce"] }) {
   return (
     <>
       <CircleMarker center={centre} radius={11} pathOptions={{ stroke: false, fillColor: teinte, fillOpacity: 0.22 }} />
-      <CircleMarker center={centre} radius={6} pathOptions={{ color: J["encre"], weight: 2, fillColor: teinte, fillOpacity: 1 }} />
-      <CircleMarker center={centre} radius={2} pathOptions={{ stroke: false, fillColor: J["encre"], fillOpacity: 1 }} />
+      <CircleMarker center={centre} radius={6} pathOptions={{ color: JL["encre"], weight: 2, fillColor: teinte, fillOpacity: 1 }} />
+      <CircleMarker center={centre} radius={2} pathOptions={{ stroke: false, fillColor: JL["encre"], fillOpacity: 1 }} />
     </>
   );
 }
@@ -750,7 +750,7 @@ export default function KZoning() {
               key={z.id}
               center={[Number(z.centre_lat), Number(z.centre_lon)]}
               radius={Number(z.rayon_m)}
-              pathOptions={cercleZone(J["menthe-fonce"], zoneOuverte?.id === z.id)}
+              pathOptions={cercleZone(JL["menthe-fonce"], zoneOuverte?.id === z.id)}
               eventHandlers={{ click: () => { setZoneOuverte(z); setMode("infos"); } }}
             />
           ))}
@@ -759,14 +759,14 @@ export default function KZoning() {
               habillage qu'une zone posée — un bord plein et net, pas pointillé. */}
           {point && (
             <>
-              <Circle center={[point.lat, point.lon]} radius={rayon} pathOptions={cercleZone(J["menthe-fonce"], true)} />
+              <Circle center={[point.lat, point.lon]} radius={rayon} pathOptions={cercleZone(JL["menthe-fonce"], true)} />
               <PointCentre centre={[point.lat, point.lon]} />
             </>
           )}
           {commerces.map((c) => (
             <CircleMarker key={c.id} center={[c.lat, c.lon]} radius={4}
               eventHandlers={{ click: () => setCommerceOuvert(c) }}
-              pathOptions={{ color: c.vacant ? J["ambre"] : J["alerte"], fillColor: c.vacant ? J["ambre"] : J["alerte"], fillOpacity: 0.9, weight: 1 }} />
+              pathOptions={{ color: c.vacant ? JL["ambre"] : JL["alerte"], fillColor: c.vacant ? JL["ambre"] : JL["alerte"], fillOpacity: 0.9, weight: 1 }} />
           ))}
           <Cadrage centre={point ? [point.lat, point.lon] : centreOuvert} rayon_m={point ? rayon : zoneOuverte?.rayon_m || 0} />
         </MapContainer>

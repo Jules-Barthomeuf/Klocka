@@ -143,7 +143,7 @@ function AccueilVille({ villes, onOuvrir }) {
 
   return (
     <div className="flex flex-col gap-11">
-      <section className="relative overflow-hidden rounded-[20px] border border-trait px-12 pb-[46px] pt-[52px] max-md:px-6 max-md:py-8" style={{ background: "linear-gradient(155deg,#141816 0%,#0C0F0E 48%,#0A0B0B 100%)" }}>
+      <section className="relative overflow-hidden rounded-[20px] border border-trait px-12 pb-[46px] pt-[52px] max-md:px-6 max-md:py-8" style={{ background: "linear-gradient(155deg, rgb(var(--k-surface-pleine-rgb)) 0%, rgb(var(--k-fond-halo-rgb)) 48%, rgb(var(--k-fond-rgb)) 100%)" }}>
         <div aria-hidden className="pointer-events-none absolute -left-[120px] -top-[220px] h-[520px] w-[700px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.055),transparent)" }} />
         <div className="relative flex flex-col items-center text-center">
           <h1 className="m-0 font-light leading-[1.06] tracking-[-.03em]" style={{ fontSize: "clamp(34px,3.6vw,52px)" }}>

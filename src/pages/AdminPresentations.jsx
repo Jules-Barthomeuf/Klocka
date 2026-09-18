@@ -332,7 +332,7 @@ export default function AdminPresentations() {
   const ouvrirProjet = (id) => { setSelectedId(id); setRecherche(""); };
 
   return (
-    <div className="min-h-screen text-encre p-4 md:p-10" style={{ background: "linear-gradient(160deg,#000000 0%,#000000 90%)" }}>
+    <div className="min-h-screen text-encre p-4 md:p-10" style={{ background: "rgb(var(--k-fond-rgb))" }}>
       <div className="max-w-5xl mx-auto">
         <div className="mb-9 text-center">
           <h1 className="text-[24px] md:text-[34px] font-light leading-[1.08] -tracking-[0.02em] m-0">Présentations</h1>

@@ -1,7 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from '@/App.jsx'
+import { appliquerTheme, lireTheme } from '@/lib/theme'
 import '@/index.css'
+
+// Le thème avant le premier rendu : pas de clignotement pour qui a choisi le clair.
+appliquerTheme(lireTheme());
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   // <React.StrictMode>

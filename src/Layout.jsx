@@ -26,8 +26,9 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Database } from "lucide-react";
+  Upload, Mic, Compass, Database, Sun, Moon } from "lucide-react";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
+import { useTheme } from "@/lib/theme";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
@@ -43,29 +44,49 @@ const globalTooltipStyles = `
   [data-state="delayed-open"],
   [data-radix-popper-content-wrapper] [role="tooltip"],
   .recharts-tooltip-wrapper {
-    --tooltip-bg: #0c0d10 !important;
-    --tooltip-text: #fff !important;
+    --tooltip-bg: rgb(var(--k-surface-pleine-rgb)) !important;
+    --tooltip-text: rgb(var(--k-encre-rgb)) !important;
   }
   [role="tooltip"] {
-    background-color: #0c0d10 !important;
-    color: #fff !important;
-    border: 1px solid #2c3139 !important;
+    background-color: rgb(var(--k-surface-pleine-rgb)) !important;
+    color: rgb(var(--k-encre-rgb)) !important;
+    border: 1px solid var(--k-bord) !important;
   }
   [data-radix-popper-content-wrapper] {
     z-index: 50;
   }
   .recharts-tooltip-wrapper .recharts-default-tooltip {
-    background-color: #0c0d10 !important;
-    border: 1px solid #2c3139 !important;
+    background-color: rgb(var(--k-surface-pleine-rgb)) !important;
+    border: 1px solid var(--k-bord) !important;
     border-radius: 8px !important;
   }
   .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-label,
   .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item,
   .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-name,
   .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-value {
-    color: #fff !important;
+    color: rgb(var(--k-encre-rgb)) !important;
   }
 `;
+
+/**
+ * La bascule du thème. Klocka s'ouvre en sombre ; ce bouton passe au clair et
+ * s'en souvient. Il ne touche qu'un attribut sur <html> : tout le reste suit
+ * par les variables de couleur.
+ */
+function BasculeTheme({ clair, onBasculer }) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onBasculer}
+      className="text-brume hover:text-encre hover:bg-transparent h-8 w-8 flex-shrink-0"
+      title={clair ? "Passer en mode sombre" : "Passer en mode clair"}
+      aria-label={clair ? "Passer en mode sombre" : "Passer en mode clair"}
+    >
+      {clair ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+    </Button>
+  );
+}
 
 // Onglet Double Check masqué du menu. La page /AdminBrouillons reste en place et
 // accessible par son URL : passez ce drapeau à true pour la remontrer.
@@ -188,13 +209,13 @@ function NavSection({ children }) {
 // six applications. Elle remplace la barre latérale entière — K-Data n'a pas
 // de sidebar, il a sa propre barre, pour se sentir comme un autre onglet de
 // l'application plutôt que comme une page de plus dans Klocka.
-function BarreKData({ user, isActivePage }) {
+function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
   return (
     <div
       className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-1 border-b border-trait px-3 md:px-5"
       style={{
         paddingTop: "env(safe-area-inset-top)",
-        background: "rgba(8,9,10,0.42)",
+        background: "rgb(var(--k-fond-halo-rgb) / 0.42)",
         backdropFilter: "blur(16px) saturate(1.15)",
         WebkitBackdropFilter: "blur(16px) saturate(1.15)",
       }}
@@ -233,6 +254,7 @@ function BarreKData({ user, isActivePage }) {
       </nav>
 
       <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+        <BasculeTheme clair={clair} onBasculer={onBasculerTheme} />
         <div className="hidden h-7 w-7 items-center justify-center rounded-full border border-menthe/40 md:flex" title={user?.full_name || user?.email}>
           <span className="text-[11px] text-menthe tracking-[0.06em]">{(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}</span>
         </div>
@@ -261,6 +283,7 @@ function LayoutContent({ children, currentPageName }) {
   // La barre latérale est ouverte à chaque chargement ; le chevron la replie
   // le temps de la session, et rien ne s'en souvient.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { clair, basculer } = useTheme();
   const [previewClientMode, setPreviewClientMode] = useState(() => localStorage.getItem('previewClientMode') === 'true');
   const [autreOpen, setAutreOpen] = useState(false);
   const isChildPage = CHILD_PAGES.includes(currentPageName);
@@ -438,6 +461,7 @@ function LayoutContent({ children, currentPageName }) {
               <p className="text-[12.5px] text-encre truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
               <p className="text-[11px] text-brume truncate">{user?.email}</p>
             </div>
+            <BasculeTheme clair={clair} onBasculer={basculer} />
             <Button
               variant="ghost"
               size="icon"
@@ -483,7 +507,7 @@ function LayoutContent({ children, currentPageName }) {
         /* K-Data n'a pas de barre latérale : sa barre du haut, seule, sur
            bureau comme sur mobile — c'est elle qui fait sentir qu'on a
            changé de côté de l'application. */
-        <BarreKData user={user} isActivePage={isActivePage} />
+        <BarreKData user={user} isActivePage={isActivePage} clair={clair} onBasculerTheme={basculer} />
       ) : (
         <>
           {/* Desktop Sidebar */}
@@ -492,10 +516,10 @@ function LayoutContent({ children, currentPageName }) {
               className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 backdrop-blur-xl transition-all duration-300 ${sidebarCollapsed ? "w-[52px]" : "w-[172px]"}`}
               style={{
                 paddingTop: "env(safe-area-inset-top)",
-                background: "rgba(8,9,10,0.42)",
+                background: "rgb(var(--k-fond-halo-rgb) / 0.42)",
                 backdropFilter: "blur(16px) saturate(1.15)",
                 WebkitBackdropFilter: "blur(16px) saturate(1.15)",
-                boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)",
+                boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)",
               }}
             >
               {sidebarContent(false)}
@@ -531,7 +555,7 @@ function LayoutContent({ children, currentPageName }) {
           {isMobileMenuOpen && !hideNavbar && (
             <>
               <div className="md:hidden fixed inset-0 bg-fond/60 z-40" onClick={closeMobile} />
-              <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-fond/80 backdrop-blur-xl" style={{ boxShadow: "inset -1px 0 0 rgba(237,234,229,0.06)" }}>
+              <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-fond/80 backdrop-blur-xl" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)" }}>
                 {sidebarContent(true)}
               </aside>
             </>

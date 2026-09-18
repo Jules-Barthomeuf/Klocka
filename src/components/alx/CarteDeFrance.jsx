@@ -2,7 +2,7 @@ import React from "react";
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useFondDeCarte } from "@/lib/tuiles";
-import { J } from "@/design/jetons";
+import { J, JL } from "@/design/jetons";
 
 // Où chercher, vu de haut.
 //
@@ -12,9 +12,9 @@ import { J } from "@/design/jetons";
 // la liste dessous : c'est la même sélection, vue autrement.
 
 const teinteDe = (v, cochee) => {
-  if (cochee) return J["menthe"];
-  if (v.ville_id) return J["menthe-fonce"];
-  return J["ambre"];
+  if (cochee) return JL["menthe"];
+  if (v.ville_id) return JL["menthe-fonce"];
+  return JL["ambre"];
 };
 
 /** Les bornes qui contiennent tous les points, avec une marge d'un demi-degré. */

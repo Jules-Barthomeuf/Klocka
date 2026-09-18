@@ -81,12 +81,73 @@ button:focus-visible {
 /* La grammaire du site klocka : noir profond, grotesque serrée, boutons en
    pilule. L'application parle la même langue — mêmes fonds, mêmes accents
    (périvenche pour souligner, menthe pour agir), mêmes rayons. */
+/* --- Les deux thèmes ------------------------------------------------------
+   Klocka s'ouvre en sombre ; le mode clair se choisit et se retient. Tout
+   passe par ces variables : Tailwind ne connaît plus la moindre couleur, il
+   ne connaît que leurs noms. Basculer le thème ne touche donc à aucun écran.
+
+   Un jeton plein est donné en triplet RGB, pour que les classes à opacité
+   (bg-fond/70, bg-encre/[0.07]) continuent de fonctionner. Un jeton
+   translucide est donné entier : son alpha lui appartient. */
+:root {
+    --k-fond-rgb: 0 0 0;
+    --k-fond-halo-rgb: 8 9 10;
+    --k-surface: rgba(242, 243, 245, 0.045);
+    --k-surface-pleine-rgb: 15 17 20;
+    --k-relief: rgba(242, 243, 245, 0.07);
+    --k-encre-rgb: 242 243 245;
+    --k-craie-rgb: 199 205 201;
+    --k-ardoise-rgb: 148 154 151;
+    --k-brume-rgb: 124 130 127;
+    --k-menthe-rgb: 150 192 184;
+    --k-menthe-clair-rgb: 195 221 214;
+    --k-menthe-survol-rgb: 171 208 200;
+    --k-menthe-fonce-rgb: 127 173 164;
+    --k-sur-menthe-rgb: 8 19 13;
+    --k-barre-rgb: 18 20 19;
+    --k-barre-relief-rgb: 27 30 29;
+    --k-trait: rgba(242, 243, 245, 0.08);
+    --k-bord: rgba(242, 243, 245, 0.11);
+    --k-bord-doux: rgba(242, 243, 245, 0.16);
+    --k-bord-vif: rgba(242, 243, 245, 0.24);
+    --k-alerte-rgb: 232 116 106;
+    --k-ambre-rgb: 224 164 94;
+    --k-vert-rgb: 127 209 168;
+    --k-bleu-rgb: 143 182 232;
+    --k-appel-rgb: 201 168 137;
+    --k-ecrire-rgb: 150 192 184;
+    --k-surveiller-rgb: 139 147 143;
+    --k-emplacement-1-rgb: 111 143 232;
+    --k-emplacement-1bis-rgb: 184 134 62;
+    --k-emplacement-2-rgb: 194 105 92;
+}
+
+/* Le clair ne reprend que les neutres. Les accents ne bougent pas. */
+:root[data-theme="clair"] {
+    --k-fond-rgb: 246 247 248;
+    --k-fond-halo-rgb: 236 238 240;
+    --k-surface: rgba(16, 20, 24, 0.035);
+    --k-surface-pleine-rgb: 255 255 255;
+    --k-relief: rgba(16, 20, 24, 0.06);
+    --k-encre-rgb: 20 24 28;
+    --k-craie-rgb: 58 65 63;
+    --k-ardoise-rgb: 94 102 99;
+    --k-brume-rgb: 115 121 118;
+    --k-menthe-clair-rgb: 63 122 109;
+    --k-barre-rgb: 235 237 236;
+    --k-barre-relief-rgb: 223 226 225;
+    --k-trait: rgba(16, 20, 24, 0.09);
+    --k-bord: rgba(16, 20, 24, 0.13);
+    --k-bord-doux: rgba(16, 20, 24, 0.18);
+    --k-bord-vif: rgba(16, 20, 24, 0.28);
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   font-family: 'Instrument Sans', Inter, system-ui, -apple-system, sans-serif;
-  background: #000000;
-  color: #f2f3f5;
+  background: rgb(var(--k-fond-rgb));
+  color: rgb(var(--k-encre-rgb));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.005em;
@@ -120,25 +181,25 @@ button.k-case:not([aria-checked="true"]):hover { border-color: #3a3f4a; }
 
 /* Article lu via /api/lecture : le HTML arrive nettoyé et sans attribut, la
    mise en forme est donc entièrement portée par ces règles. */
-.article-lu { color: #c9cdd6; font-size: 14.5px; line-height: 1.8; }
+.article-lu { color: rgb(var(--k-craie-rgb)); font-size: 14.5px; line-height: 1.8; }
 .article-lu > * + * { margin-top: 1em; }
-.article-lu h1 { font-size: 26px; font-weight: 300; line-height: 1.2; color: #f2f3f5; margin-top: 1.4em; }
-.article-lu h2 { font-size: 20px; font-weight: 400; color: #f2f3f5; margin-top: 1.6em; }
-.article-lu h3 { font-size: 16px; font-weight: 500; color: #f2f3f5; margin-top: 1.5em; }
-.article-lu h4, .article-lu h5 { font-size: 14px; font-weight: 500; color: #f2f3f5; margin-top: 1.4em; }
+.article-lu h1 { font-size: 26px; font-weight: 300; line-height: 1.2; color: rgb(var(--k-encre-rgb)); margin-top: 1.4em; }
+.article-lu h2 { font-size: 20px; font-weight: 400; color: rgb(var(--k-encre-rgb)); margin-top: 1.6em; }
+.article-lu h3 { font-size: 16px; font-weight: 500; color: rgb(var(--k-encre-rgb)); margin-top: 1.5em; }
+.article-lu h4, .article-lu h5 { font-size: 14px; font-weight: 500; color: rgb(var(--k-encre-rgb)); margin-top: 1.4em; }
 .article-lu ul, .article-lu ol { padding-left: 1.2em; }
 .article-lu ul { list-style: disc; }
 .article-lu ol { list-style: decimal; }
 .article-lu li { margin-top: .45em; }
 .article-lu li::marker { color: #96c0b8; }
-.article-lu a { color: #c3ddd6; text-decoration: underline; text-underline-offset: 2px; }
-.article-lu a:hover { color: #f2f3f5; }
-.article-lu strong, .article-lu b { color: #f2f3f5; font-weight: 500; }
-.article-lu blockquote { border-left: 2px solid rgba(150, 192, 184, .6); padding-left: 1em; color: #9298a6; }
+.article-lu a { color: rgb(var(--k-menthe-clair-rgb)); text-decoration: underline; text-underline-offset: 2px; }
+.article-lu a:hover { color: rgb(var(--k-encre-rgb)); }
+.article-lu strong, .article-lu b { color: rgb(var(--k-encre-rgb)); font-weight: 500; }
+.article-lu blockquote { border-left: 2px solid rgba(150, 192, 184, .6); padding-left: 1em; color: rgb(var(--k-brume-rgb)); }
 .article-lu table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
-.article-lu th, .article-lu td { border-top: 1px solid rgba(237, 234, 229, .12); padding: .55em .7em; text-align: left; vertical-align: top; }
-.article-lu th { color: #9298a6; font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
-.article-lu dt { color: #f2f3f5; margin-top: .8em; }
+.article-lu th, .article-lu td { border-top: 1px solid var(--k-trait); padding: .55em .7em; text-align: left; vertical-align: top; }
+.article-lu th { color: rgb(var(--k-brume-rgb)); font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+.article-lu dt { color: rgb(var(--k-encre-rgb)); margin-top: .8em; }
 .article-lu dd { margin-left: 1em; }
 
 
@@ -319,7 +380,7 @@ body[data-editeur-projet] .assistant-flottant {
 .accueil-wrap { position: relative; width: 100%; }
 /* Le chat sobre, dans le dossier et sur ALX : un bord, pas de halo, pas de reflet, pas d'ombre. */
 .accueil-wrap.sobre .accueil-ring-sage, .accueil-wrap.sobre .accueil-ring, .accueil-wrap.sobre .accueil-ring-halo { display: none; }
-.accueil-wrap.sobre .accueil-composer { box-shadow: none; background: #0F1211; border-color: rgba(255,255,255,.09); }
+.accueil-wrap.sobre .accueil-composer { box-shadow: none; background: rgb(var(--k-surface-pleine-rgb)); border-color: var(--k-bord); }
 .accueil-ring-sage, .accueil-ring, .accueil-ring-halo { position: absolute; pointer-events: none; }
 .accueil-ring-sage { inset: 0; border-radius: 16px; transition: opacity .6s ease, box-shadow .3s ease;
   box-shadow: 0 0 0 1px rgba(156,195,188,.14), 0 0 34px rgba(156,195,188,.18), 0 0 90px rgba(156,195,188,.12); }
@@ -338,18 +399,18 @@ body[data-editeur-projet] .assistant-flottant {
 @keyframes kl-curseur { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .accueil-wrap.voix .accueil-beam { animation: none; } #accueil-voix[aria-pressed="true"] .dot { animation: none; } }
 
-.accueil-composer { position: relative; border: 1px solid rgba(255,255,255,.10); border-radius: 16px; background: #121414; box-shadow: 0 26px 70px rgba(0,0,0,.55); }
+.accueil-composer { position: relative; border: 1px solid var(--k-bord); border-radius: 16px; background: rgb(var(--k-surface-pleine-rgb)); box-shadow: 0 26px 70px rgb(var(--k-fond-rgb) / .35); }
 .accueil-composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent;
   padding: 20px 26px 22px; font: 300 16px/1.5 Figtree, "Instrument Sans", sans-serif; color: #eaeaea; max-height: 9em; overflow-y: auto; }
 .accueil-composer textarea::placeholder { font-size: 15px; }
 .accueil-composer textarea::placeholder { color: #6f6f6f; }
 .accueil-composer textarea:disabled { opacity: .6; }
-.accueil-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-top: 1px solid rgba(255,255,255,.07); }
+.accueil-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-top: 1px solid var(--k-trait); }
 .accueil-tools { display: flex; align-items: center; gap: 10px; }
-.accueil-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 9px; border: 1px solid rgba(255,255,255,.08); background: transparent; color: #9a9a9a; font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
+.accueil-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--k-trait); background: transparent; color: rgb(var(--k-brume-rgb)); font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
 .accueil-icon.mono { font: 11px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .04em; }
 .accueil-icon:hover { border-color: rgba(156,195,188,.5); color: #9CC3BC; }
-#accueil-voix { display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid rgba(255,255,255,.08); background: transparent; color: #9a9a9a; font: 14px Figtree, sans-serif; cursor: pointer; transition: all .24s; }
+#accueil-voix { display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--k-trait); background: transparent; color: rgb(var(--k-brume-rgb)); font: 14px Figtree, sans-serif; cursor: pointer; transition: all .24s; }
 #accueil-voix:disabled { opacity: .5; cursor: default; }
 #accueil-voix .dot { width: 8px; height: 8px; border-radius: 50%; background: #6a6a6a; }
 #accueil-voix[aria-pressed="true"] { border-color: rgba(156,195,188,.65); background: rgba(156,195,188,.16); color: #C4DED9; }
@@ -358,8 +419,8 @@ body[data-editeur-projet] .assistant-flottant {
 .accueil-send:hover { background: #B4D3CE; }
 .accueil-send:disabled { opacity: .45; cursor: default; }
 .accueil-chips { margin-top: 44px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
-.accueil-chips button { padding: 11px 20px; border-radius: 9px; border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.02); color: #c8c8c8; font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
-.accueil-chips button:hover, .accueil-chips button[aria-pressed="true"] { border-color: rgba(156,195,188,.45); color: #fff; }
+.accueil-chips button { padding: 11px 20px; border-radius: 9px; border: 1px solid var(--k-bord); background: var(--k-surface); color: rgb(var(--k-craie-rgb)); font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
+.accueil-chips button:hover, .accueil-chips button[aria-pressed="true"] { border-color: rgb(var(--k-menthe-rgb) / .45); color: rgb(var(--k-encre-rgb)); }
 .accueil-chips button[aria-pressed="true"] { background: rgba(156,195,188,.12); }
 
 /* Les avis (src/components/ui/avis.jsx) : le filet du bas s'écoule pendant la
@@ -406,14 +467,16 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    cumulaient avec celui de la barre de chat et avec ceux des cartes, et le
    haut de la page virait au vert. La seule couleur d'un écran est celle qui
    entoure le chat. */
-.alx { font-family: Figtree, "Instrument Sans", system-ui, sans-serif; color: #E8EFEB; background: #08090A; position: relative; }
+/* ALX avait son noir à elle. Elle suit maintenant le thème comme le reste :
+   ses accents menthe, eux, ne bougent pas — un accent se lit sur les deux fonds. */
+.alx { font-family: Figtree, "Instrument Sans", system-ui, sans-serif; color: rgb(var(--k-encre-rgb)); background: rgb(var(--k-fond-halo-rgb)); position: relative; }
 /* Sur les pages posées sur le halo, le fond vient de lui, pas de la classe. */
 .alx.sur-halo { background: transparent; }
 .alx > * { position: relative; z-index: 1; }
 .alx-mont { font-family: Montserrat, "Instrument Sans", system-ui, sans-serif; }
 .alx-serif { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; }
-.alx input::placeholder { color: #4E5553; }
-.alx ::selection { background: #1E3A2C; color: #E8EFEB; }
+.alx input::placeholder { color: rgb(var(--k-brume-rgb)); }
+.alx ::selection { background: rgb(var(--k-menthe-rgb) / .3); color: rgb(var(--k-encre-rgb)); }
 /* Les boutons d'ALX gardent leur fond transparent malgré la règle globale `button`. */
 .alx button { background-color: transparent; }
 /* Le composer du dossier, repris sur ALX : ses boutons gardent leurs couleurs. */
@@ -431,7 +494,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 /* Une info-bulle d'ALX : le texte est dans data-bulle, elle s'ouvre au survol. */
 .alx-bulle { position: relative; }
 .alx-bulle::after { content: attr(data-bulle); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
-  width: max-content; max-width: 300px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: #101211;
+  width: max-content; max-width: 300px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--k-bord); background: rgb(var(--k-surface-pleine-rgb));
   color: #C3CBC7; font: 12.5px/1.5 Figtree, "Instrument Sans", sans-serif; text-align: left; white-space: normal; text-transform: none; letter-spacing: 0;
   box-shadow: 0 14px 34px rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .15s; z-index: 30; }
 .alx-bulle:hover::after { opacity: 1; }
@@ -453,3 +516,10 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
   outline-offset: 2px;
   border-radius: inherit;
 }
+
+/* --- Les cartes en mode clair --------------------------------------------
+   Les tuiles d'ALX sont inversées pour devenir sombres ; sous le thème clair
+   cette inversion rendrait un négatif photographique. On retombe alors sur
+   le traitement doux déjà écrit pour « k-carte-claire ». */
+:root[data-theme="clair"] .k-carte-rues .leaflet-container { background: #e9e9e6; }
+:root[data-theme="clair"] .k-carte-rues .leaflet-tile-pane { filter: saturate(.55) contrast(.95) brightness(1.02); }

@@ -16,7 +16,6 @@
     "« barre » et « barre-relief » sont les deux gris de la barre de chat : la",
     "pilule elle-même, et les ronds posés dessus."
   ],
-
   "_verre": [
     "Les surfaces sont du verre : « surface », « relief » et les traits sont",
     "de l'encre diluée, posée sur le halo de Layout. « surface-pleine » est",
@@ -30,31 +29,25 @@
     "surface": "rgba(242, 243, 245, 0.045)",
     "surface-pleine": "#0f1114",
     "relief": "rgba(242, 243, 245, 0.07)",
-
     "encre": "#f2f3f5",
     "craie": "#c7cdc9",
     "ardoise": "#949a97",
     "brume": "#7c827f",
-
     "menthe": "#96c0b8",
     "menthe-clair": "#c3ddd6",
     "menthe-survol": "#abd0c8",
     "menthe-fonce": "#7fada4",
     "sur-menthe": "#08130d",
-
     "barre": "#121413",
     "barre-relief": "#1b1e1d",
-
     "trait": "rgba(242, 243, 245, 0.08)",
     "bord": "rgba(242, 243, 245, 0.11)",
     "bord-doux": "rgba(242, 243, 245, 0.16)",
     "bord-vif": "rgba(242, 243, 245, 0.24)",
-
     "alerte": "#e8746a",
     "ambre": "#e0a45e",
     "vert": "#7fd1a8",
     "bleu": "#8fb6e8",
-
     "appel": "#c9a889",
     "ecrire": "#96c0b8",
     "surveiller": "#8B938F",
@@ -62,7 +55,6 @@
     "emplacement-1bis": "#b8863e",
     "emplacement-2": "#c2695c"
   },
-
   "_texte": [
     "Sept pas, et rien entre les deux. 11 pour une étiquette en capitales,",
     "12,5 pour une note, 13,5 pour un tableau, 15 pour le corps, 18 pour un",
@@ -77,11 +69,41 @@
     "intertitre": "24px",
     "titre": "34px"
   },
-
-  "_rayons": ["Trois : un champ, un bloc, une pastille."],
+  "_rayons": [
+    "Trois : un champ, un bloc, une pastille."
+  ],
   "rayons": {
     "champ": "10px",
     "bloc": "16px",
     "pastille": "9999px"
+  },
+  "_clair": [
+    "Klocka est sombre par défaut. Le mode clair ne redéfinit que les neutres —",
+    "le fond, l'encre, les gris, les traits — et la seule teinte qui sert de",
+    "texte (menthe-clair), qui doit foncer pour rester lisible sur du blanc.",
+    "Les accents (menthe, alerte, ambre, vert, bleu) ne bougent pas : ils sont",
+    "lisibles sur les deux fonds, et les faire varier dédoublerait la marque.",
+    "",
+    "Ces valeurs ne sont pas lues par Tailwind : elles deviennent les variables",
+    "CSS de [data-theme=clair] dans index.css. Tailwind, lui, ne connaît que les",
+    "variables."
+  ],
+  "couleurs_clair": {
+    "fond": "#f6f7f8",
+    "fond-halo": "#eceef0",
+    "surface": "rgba(16, 20, 24, 0.035)",
+    "surface-pleine": "#ffffff",
+    "relief": "rgba(16, 20, 24, 0.06)",
+    "encre": "#14181c",
+    "craie": "#3a413f",
+    "ardoise": "#5e6663",
+    "brume": "#737976",
+    "menthe-clair": "#3f7a6d",
+    "barre": "#ebedec",
+    "barre-relief": "#dfe2e1",
+    "trait": "rgba(16, 20, 24, 0.09)",
+    "bord": "rgba(16, 20, 24, 0.13)",
+    "bord-doux": "rgba(16, 20, 24, 0.18)",
+    "bord-vif": "rgba(16, 20, 24, 0.28)"
   }
 }

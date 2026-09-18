@@ -31,11 +31,44 @@ export default {
   		fontSize: Object.fromEntries(Object.entries(jetons.texte).map(([nom, taille]) => [nom, taille])),
   		colors: {
   			// --- La palette Klocka -------------------------------------------
-  			// Elle ne vit plus ici : elle est dans src/design/jetons.json, que
-  			// ce fichier et le JavaScript lisent tous les deux. Un seul endroit
-  			// pour changer une teinte, et une règle de lint qui refuse
-  			// l'hexadécimal partout ailleurs dans src/.
-  			...jetons.couleurs,
+			// Les valeurs ne sont plus recopiées ici : chaque jeton pointe sur sa
+			// variable CSS, définie deux fois dans index.css (sombre par défaut,
+			// clair sous [data-theme=clair]). C'est ce qui fait basculer les quelque
+			// cinq mille usages de classes sans toucher un seul composant.
+			//
+			// Un jeton plein passe par son triplet RGB et garde <alpha-value> : sans
+			// cela « bg-fond/70 » et « bg-encre/[0.07] » perdraient leur opacité.
+			// Un jeton déjà translucide (surface, trait, bord) se donne entier.
+			fond: 'rgb(var(--k-fond-rgb) / <alpha-value>)',
+			'fond-halo': 'rgb(var(--k-fond-halo-rgb) / <alpha-value>)',
+			surface: 'var(--k-surface)',
+			'surface-pleine': 'rgb(var(--k-surface-pleine-rgb) / <alpha-value>)',
+			relief: 'var(--k-relief)',
+			encre: 'rgb(var(--k-encre-rgb) / <alpha-value>)',
+			craie: 'rgb(var(--k-craie-rgb) / <alpha-value>)',
+			ardoise: 'rgb(var(--k-ardoise-rgb) / <alpha-value>)',
+			brume: 'rgb(var(--k-brume-rgb) / <alpha-value>)',
+			menthe: 'rgb(var(--k-menthe-rgb) / <alpha-value>)',
+			'menthe-clair': 'rgb(var(--k-menthe-clair-rgb) / <alpha-value>)',
+			'menthe-survol': 'rgb(var(--k-menthe-survol-rgb) / <alpha-value>)',
+			'menthe-fonce': 'rgb(var(--k-menthe-fonce-rgb) / <alpha-value>)',
+			'sur-menthe': 'rgb(var(--k-sur-menthe-rgb) / <alpha-value>)',
+			barre: 'rgb(var(--k-barre-rgb) / <alpha-value>)',
+			'barre-relief': 'rgb(var(--k-barre-relief-rgb) / <alpha-value>)',
+			trait: 'var(--k-trait)',
+			bord: 'var(--k-bord)',
+			'bord-doux': 'var(--k-bord-doux)',
+			'bord-vif': 'var(--k-bord-vif)',
+			alerte: 'rgb(var(--k-alerte-rgb) / <alpha-value>)',
+			ambre: 'rgb(var(--k-ambre-rgb) / <alpha-value>)',
+			vert: 'rgb(var(--k-vert-rgb) / <alpha-value>)',
+			bleu: 'rgb(var(--k-bleu-rgb) / <alpha-value>)',
+			appel: 'rgb(var(--k-appel-rgb) / <alpha-value>)',
+			ecrire: 'rgb(var(--k-ecrire-rgb) / <alpha-value>)',
+			surveiller: 'rgb(var(--k-surveiller-rgb) / <alpha-value>)',
+			'emplacement-1': 'rgb(var(--k-emplacement-1-rgb) / <alpha-value>)',
+			'emplacement-1bis': 'rgb(var(--k-emplacement-1bis-rgb) / <alpha-value>)',
+			'emplacement-2': 'rgb(var(--k-emplacement-2-rgb) / <alpha-value>)',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

@@ -22,12 +22,14 @@ import { J } from "@/design/jetons";
 // Le cadre est unique : la barre de saisie du bas est la même que la pilule du
 // repos, simplement étirée. Rien ne se superpose, rien ne se déplace.
 
+// L'assistant se peint en ligne : ses couleurs passent par les variables du
+// thème, pour suivre le clair comme le sombre sans le savoir.
 const OR = J["menthe"];
-const FOND = "#000000";
-const TEXTE = "#dcdedb";
-const META = "#8b908c";
+const FOND = "rgb(var(--k-fond-rgb))";
+const TEXTE = "rgb(var(--k-craie-rgb))";
+const META = "rgb(var(--k-brume-rgb))";
 const FILET = J["bord-doux"];
-const SEPARATEUR = "#1f2321";
+const SEPARATEUR = "var(--k-bord)";
 
 // La police du reste de l'application, pas une seconde : l'assistant est une
 // pièce de Klocka, il n'a pas à s'annoncer par sa typographie. Instrument Sans

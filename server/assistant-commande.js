@@ -14,6 +14,7 @@ import { runAgent } from './llm.js';
 import { statutDe } from './deal/lifecycle.js';
 import { journaliser } from './assistant-journal.js';
 
+import { nomDossierDrive } from './deal/nom-drive.js';
 const UPLOAD_DIR = CHEMIN_UPLOADS;
 
 const norm = (s) =>
@@ -590,7 +591,7 @@ export async function executerOutil({ name, input }, user) {
     const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
     if (deal.drive_folder_url) {
-      return { deja_cree: true, url: deal.drive_folder_url, titre: titreDeal(deal) };
+      return { deja_cree: true, url: deal.drive_folder_url, titre: nomDossierDrive(deal) };
     }
     // Le compte Drive est celui de l'utilisateur qui parle, pas un compte
     // choisi au hasard : c'est son autorisation qui est engagée.
@@ -603,7 +604,7 @@ export async function executerOutil({ name, input }, user) {
       };
     }
     const { classerDansDrive } = await import('./google-drive.js');
-    const titre = titreDeal(deal);
+    const titre = nomDossierDrive(deal);
     const fichiers = (deal.documents_espace || [])
       .filter((d) => d.url)
       .map((d) => ({ nom: d.nom, chemin: d.url }));

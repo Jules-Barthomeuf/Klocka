@@ -16,6 +16,7 @@ import {
 } from '../assistant/index.js';
 import { analyserFiche, reevaluerLot, listerDossiers, obtenirDossier } from '../deal/index.js';
 import { classerDansDrive } from '../google-drive.js';
+import { nomDossierDrive } from '../deal/nom-drive.js';
 import { creerProjetDepuisDeal, completerAvantProjet } from '../deal/projet.js';
 import fs from 'fs';
 import path from 'path';
@@ -494,7 +495,7 @@ export function monterPreanalyse(app) {
     // Aucun fichier n'empêche rien : le dossier Drive peut être créé en avance,
     // les documents s'y classeront au fil de l'eau.
 
-    const titre = dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || dossier.deal_id;
+    const titre = nomDossierDrive(dossier);
     const r = await classerDansDrive(compte, titre, fichiers, UPLOAD_DIR);
 
     Records.update('Deal', dossier.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });

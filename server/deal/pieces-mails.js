@@ -16,6 +16,7 @@ import { ajouterDocument } from './espace.js';
 import { enfiler } from './file-extraction.js';
 import { ajouterSuivi } from './lifecycle.js';
 
+import { nomDossierDrive } from './nom-drive.js';
 // Ce qu'un agent transmet réellement — mêmes critères que le tri des mails.
 const UTILES = /\.(pdf|docx?|xlsx?|odt|ods|jpe?g|png|webp)$/i;
 const PARASITES = /^(image\d+|logo|signature|banniere|banner|icon|unnamed)/i;
@@ -142,7 +143,7 @@ export async function classerDeal(deal, { noms = null, comptePrefere = null } = 
       .filter((d) => d.url)
       .map((d) => ({ nom: d.nom, chemin: d.url }));
 
-    const titre = deal.nom || deal.lots?.[0]?.synthese?.titre || deal.deal_id;
+    const titre = nomDossierDrive(deal);
     const r = await classerDansDrive(compte, titre, aEnvoyer, CHEMIN_UPLOADS);
     Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
     erreurs.push(...(r.erreurs || []));

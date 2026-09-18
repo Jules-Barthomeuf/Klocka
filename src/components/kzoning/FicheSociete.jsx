@@ -38,7 +38,7 @@ const EFFECTIFS = {
   22: "100 à 199 salariés", 31: "200 à 249 salariés", 32: "250 à 499 salariés", 41: "500 à 999 salariés",
   42: "1 000 à 1 999 salariés", 51: "2 000 à 4 999 salariés", 52: "5 000 à 9 999 salariés", 53: "10 000 salariés et plus",
 };
-const effectif = (code) => EFFECTIFS[code] || (code ? `Code ${code}` : "—");
+export const effectif = (code) => EFFECTIFS[code] || (code ? `Code ${code}` : "—");
 
 /** Une ligne d'un tableau de fiche : un intitulé à gauche, sa valeur à droite. */
 function Ligne({ label, children, second = null }) {

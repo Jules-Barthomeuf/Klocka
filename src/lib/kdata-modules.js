@@ -47,9 +47,9 @@ export const MODULES_KDATA = [
     pageName: "KFoncier",
     nom: "K-Foncier",
     icone: LandPlot,
-    phrase: "Repérer le foncier disponible et les mutations autour d'une adresse.",
-    chemin: null,
-    etat: "Bientôt",
+    phrase: "Les parcelles autour d'une adresse, leur contenance, et les sociétés qui les possèdent.",
+    chemin: "/kfoncier",
+    etat: "Ouvert",
   },
   {
     cle: "valeur-locative",

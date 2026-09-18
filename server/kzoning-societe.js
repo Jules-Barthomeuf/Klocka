@@ -71,11 +71,13 @@ export async function comptesDe(siren) {
  * La fiche d'une société, d'après son SIRET ou son nom.
  * @param {{siret?: string, nom?: string, forcer?: boolean}} p
  */
-export async function societe({ siret = null, nom = null, forcer = false }) {
+// `leger` : la fiche seule, sans établissements ni comptes — deux appels de
+// moins, pour qui n'a besoin que du siège et des dirigeants (K-Foncier).
+export async function societe({ siret = null, nom = null, forcer = false, leger = false }) {
   const q = String(siret || nom || '').trim();
   if (!q) return { ok: false, error: 'Ni SIRET ni nom : rien à chercher.' };
 
-  const cle = `q:${q.toLowerCase()}`;
+  const cle = `q:${q.toLowerCase()}${leger ? ':leger' : ''}`;
   const garde = Records.findBy(CACHE, 'cle', cle);
   const frais = garde?.garde_le && Date.now() - new Date(garde.garde_le).getTime() < CACHE_JOURS * 86400000;
   if (garde && frais && !forcer) return { ok: true, societe: garde.societe, garde_le: garde.garde_le, du_cache: true };
@@ -92,7 +94,7 @@ export async function societe({ siret = null, nom = null, forcer = false }) {
 
   // Second appel, par le nom : c'est le seul qui rende les établissements.
   let etablissements = [];
-  try {
+  if (!leger) try {
     const parNom = await lire(`${ANNUAIRE}?${new URLSearchParams({
       q: r.nom_raison_sociale || r.nom_complet, per_page: '1', limite_matching_etablissement: '25',
     })}`);
@@ -114,7 +116,7 @@ export async function societe({ siret = null, nom = null, forcer = false }) {
   } catch { /* les établissements manqueront, le reste de la fiche tient */ }
 
   let comptes = [];
-  try {
+  if (!leger) try {
     comptes = await comptesDe(r.siren);
   } catch { /* les comptes manqueront, le reste de la fiche tient */ }
 

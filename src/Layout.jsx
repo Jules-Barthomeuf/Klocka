@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
 import {
   LayoutDashboard,
+  LayoutGrid,
   Building2,
   Calculator,
   BookOpen,
@@ -205,6 +206,80 @@ function NavSection({ children }) {
   return <>{children}</>;
 }
 
+// Le menu des applications. Un seul intitulé dans la barre, « Apps », et tout
+// s'ouvre au survol : à six modules la barre était déjà pleine, et elle ne
+// grandira pas avec le septième. Un délai de grâce laisse la souris traverser
+// le vide entre l'intitulé et le panneau, comme pour le survol du Feedback.
+function MenuApps({ isActivePage }) {
+  const [ouvert, setOuvert] = useState(false);
+  const minuterie = useRef(null);
+  const ouvrir = () => { clearTimeout(minuterie.current); setOuvert(true); };
+  const fermer = () => { minuterie.current = setTimeout(() => setOuvert(false), 180); };
+  useEffect(() => () => clearTimeout(minuterie.current), []);
+
+  // Le nom de l'application ouverte reste affiché : sans lui, la barre ne dirait
+  // plus où l'on se trouve.
+  const actif = MODULES_KDATA.find((m) => isActivePage(m.pageName));
+
+  return (
+    <div className="relative" onMouseEnter={ouvrir} onMouseLeave={fermer} onFocus={ouvrir} onBlur={fermer}>
+      <button
+        type="button"
+        onClick={() => (ouvert ? fermer() : ouvrir())}
+        aria-expanded={ouvert}
+        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition-colors ${ouvert || actif ? "bg-encre/[0.07] text-encre" : "text-ardoise hover:text-encre"}`}
+      >
+        <LayoutGrid className="h-3.5 w-3.5" />
+        Apps
+        {actif && <span className="text-menthe-texte">· {actif.nom}</span>}
+      </button>
+
+      {ouvert && (
+        <div className="absolute left-1/2 top-[calc(100%+8px)] z-50 w-[560px] max-w-[92vw] -translate-x-1/2 overflow-hidden rounded-[18px] border border-trait bg-surface-pleine p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+          <Link
+            to={createPageUrl("KData")}
+            onClick={() => setOuvert(false)}
+            className="mb-1 flex items-center gap-3 rounded-[12px] px-3 py-2.5 hover:bg-relief"
+          >
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] border border-trait bg-relief">
+              <LayoutGrid className="h-4 w-4 text-menthe" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-medium text-encre">K-Data</span>
+              <span className="block truncate text-[11.5px] text-ardoise">Le tableau de bord des six modules.</span>
+            </span>
+          </Link>
+          <div className="grid grid-cols-2 gap-1 max-sm:grid-cols-1">
+            {MODULES_KDATA.map((m) => {
+              const Icone = m.icone;
+              const contenu = (
+                <>
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] border border-trait bg-relief">
+                    <Icone className={`h-4 w-4 ${m.chemin ? "text-encre" : "text-brume"}`} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className={`block text-[13px] font-medium ${m.chemin ? "text-encre" : "text-brume"}`}>{m.nom}</span>
+                    <span className="block truncate text-[11.5px] text-ardoise">{m.chemin ? m.phrase : m.etat}</span>
+                  </span>
+                </>
+              );
+              const habit = "flex items-center gap-3 rounded-[12px] px-3 py-2.5";
+              return m.chemin ? (
+                <Link key={m.cle} to={m.chemin} onClick={() => setOuvert(false)}
+                  className={`${habit} ${isActivePage(m.pageName) ? "bg-encre/[0.07]" : "hover:bg-relief"}`}>
+                  {contenu}
+                </Link>
+              ) : (
+                <span key={m.cle} className={`${habit} cursor-default`}>{contenu}</span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // La barre du haut de K-Data : le logo ramène à Klocka, le menu ouvre les
 // six applications. Elle remplace la barre latérale entière — K-Data n'a pas
 // de sidebar, il a sa propre barre, pour se sentir comme un autre onglet de
@@ -226,31 +301,8 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
       </Link>
       <div className="mr-2 h-5 w-px flex-shrink-0 bg-encre/[0.1]" />
 
-      <nav className="flex flex-1 items-center justify-center gap-1 overflow-x-auto whitespace-nowrap">
-        <Link
-          to={createPageUrl("KData")}
-          data-actif={isActivePage("KData") ? "1" : undefined}
-          className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition-colors ${isActivePage("KData") ? "bg-encre/[0.07] text-encre" : "text-ardoise hover:text-encre"}`}
-        >
-          K-Data
-        </Link>
-        {MODULES_KDATA.map((m) => {
-          const actif = isActivePage(m.pageName);
-          const ouvrable = !!m.chemin;
-          const Icone = m.icone;
-          const classes = `flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition-colors ${
-            actif ? "bg-encre/[0.07] text-encre" : ouvrable ? "text-ardoise hover:text-encre" : "cursor-default text-brume/50"
-          }`;
-          return ouvrable ? (
-            <Link key={m.cle} to={m.chemin} data-actif={actif ? "1" : undefined} className={classes}>
-              <Icone className="h-3.5 w-3.5" />{m.nom}
-            </Link>
-          ) : (
-            <span key={m.cle} className={classes} title={m.etat}>
-              <Icone className="h-3.5 w-3.5" />{m.nom}
-            </span>
-          );
-        })}
+      <nav className="flex flex-1 items-center justify-center">
+        <MenuApps isActivePage={isActivePage} />
       </nav>
 
       <div className="ml-2 flex flex-shrink-0 items-center gap-2">

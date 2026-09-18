@@ -1,4 +1,4 @@
-import { Map, Gauge, TrendingUp, LandPlot, Banknote, Store } from "lucide-react";
+import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store } from "lucide-react";
 
 // Les six applications de K-Data, décrites une seule fois : le tableau de
 // bord en fait des cartes, la barre du haut de K-Data en fait un menu.
@@ -22,6 +22,15 @@ export const MODULES_KDATA = [
     icone: Gauge,
     phrase: "L'étude d'implantation d'une adresse : flux, rue, tronçon, zones de chalandise.",
     chemin: "/kexpertise",
+    etat: "Ouvert",
+  },
+  {
+    cle: "kestimation",
+    pageName: "KEstimation",
+    nom: "Estimation",
+    icone: Calculator,
+    phrase: "Estimer des murs commerciaux par le rendement attendu d'un investisseur.",
+    chemin: "/kestimation",
     etat: "Ouvert",
   },
   {

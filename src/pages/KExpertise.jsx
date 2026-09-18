@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, Play, Loader2, ChevronLeft, Trash2, Printer, X, Check, AlertTriangle, Clock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -464,6 +464,8 @@ export default function KExpertise() {
   const [activite, setActivite] = useState("");
   const [adresse, setAdresse] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  // L'adresse retenue dans la liste : le champ la contient, on ne repropose rien.
+  const choisie = useRef("");
   const [ouverte, setOuverte] = useState(null);
 
   const { data } = useQuery({ queryKey: ["kexpertise"], queryFn: () => base44.request("GET", "/api/kexpertise"), enabled: user?.role === "admin" });
@@ -483,7 +485,7 @@ export default function KExpertise() {
 
   useEffect(() => {
     const q = adresse.trim();
-    if (q.length < 3) { setSuggestions([]); return; }
+    if (q.length < 3 || q === choisie.current) { setSuggestions([]); return; }
     const t = setTimeout(async () => {
       try {
         const r = await fetch(`https://api-adresse.data.gouv.fr/search/?autocomplete=1&limit=5&q=${encodeURIComponent(q)}`);
@@ -537,7 +539,7 @@ export default function KExpertise() {
           </div>
           {suggestions.length > 0 && (
             <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-fond p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
-              {suggestions.map((s) => <li key={s}><button onClick={() => { setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13px] text-craie hover:bg-relief hover:text-encre">{s}</button></li>)}
+              {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13px] text-craie hover:bg-relief hover:text-encre">{s}</button></li>)}
             </ul>
           )}
         </div>

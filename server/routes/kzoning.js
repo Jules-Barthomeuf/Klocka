@@ -11,7 +11,8 @@ import {
   supprimerZone, creerDossier, renommerDossier, supprimerDossier,
 } from '../kzoning.js';
 import { listerMetiers, filtresDe, TOUS_LES_COMMERCES } from '../kzoning-metiers.js';
-import { commercesDeLaZone } from '../kzoning-commerces.js';
+import { commercesDeLaZone, equipementsDeLaZone } from '../kzoning-commerces.js';
+import { habitantsDeLaZone } from '../kzoning-insee.js';
 
 /** Monte les routes « kzoning » sur l'application. */
 export function monterKZoning(app) {
@@ -78,6 +79,32 @@ export function monterKZoning(app) {
   app.get('/api/kzoning/metiers', wrap((req, res) => {
     if (!admin(req, res)) return;
     ok(res, { tous: TOUS_LES_COMMERCES.nom, metiers: listerMetiers() });
+  }));
+
+  /**
+   * La lecture d'une zone : ses habitants d'après l'INSEE, ses équipements
+   * d'après OpenStreetMap. Les deux sources partent ensemble ; l'une qui tombe
+   * n'empêche pas l'autre d'être rendue.
+   */
+  app.get('/api/kzoning/zones/:id/lecture', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const zone = Records.get('ZoneKData', req.params.id);
+    if (!zone) return res.status(404).json({ error: 'Cette zone n\'existe plus.' });
+    const z = { lat: Number(zone.centre_lat), lon: Number(zone.centre_lon), rayon_m: Number(zone.rayon_m), forcer: req.query.forcer === '1' };
+    // `source` : l'écran demande les deux séparément. L'INSEE répond en trois
+    // secondes, OpenStreetMap parfois en deux minutes à froid : les onglets
+    // d'habitants n'ont pas à attendre les transports.
+    const source = String(req.query.source || '');
+    const veutInsee = source !== 'equipements';
+    const veutEquipements = source !== 'insee';
+    const [h, e] = await Promise.all([
+      veutInsee ? habitantsDeLaZone(z) : null,
+      veutEquipements ? equipementsDeLaZone(z) : null,
+    ]);
+    ok(res, {
+      ...(h ? { insee: h.ok ? h.insee : null, insee_erreur: h.ok ? null : h.error, insee_garde_le: h.ok ? h.garde_le : null } : {}),
+      ...(e ? { equipements: e.ok ? e.equipements : null, equipements_erreur: e.ok ? null : e.error, equipements_garde_le: e.ok ? e.garde_le : null } : {}),
+    });
   }));
 
   /**

@@ -157,14 +157,215 @@ function LigneZone({ zone, actif, visible, onOuvrir, onBasculerVisible, onSuppri
   );
 }
 
-/** Les sept onglets de lecture d'une zone. Leur contenu reste à écrire. */
+/** Les sept onglets de lecture d'une zone. */
 const ONGLETS_INFOS = [
   "Informations clés", "Population", "Ménages et familles",
   "Diplôme et éducation", "Revenus", "Logement", "Mobilité",
 ];
 
+const fmt = (n) => (n == null ? "—" : Math.round(n).toLocaleString("fr-FR"));
+const pct = (n) => (n == null ? "—" : `${String(n).replace(".", ",")} %`);
+const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
+
+/** Un chiffre-clé : la valeur, son libellé, une précision. */
+function Cle({ valeur, label, detail = null }) {
+  return (
+    <div className="rounded-[12px] border border-trait bg-surface px-3.5 py-3">
+      <p className="m-0 text-[20px] font-medium tabular-nums text-encre">{valeur}</p>
+      <p className="alx-mont m-0 mt-1 text-[10.5px] uppercase tracking-[.12em] text-brume">{label}</p>
+      {detail && <p className="m-0 mt-1 text-[11.5px] text-ardoise">{detail}</p>}
+    </div>
+  );
+}
+
+/** Une répartition en barres : des parts qui se comparent d'un coup d'œil. */
+function Barres({ titre, parts }) {
+  const lignes = Object.entries(parts || {}).filter(([, v]) => v != null);
+  if (!lignes.length) return null;
+  const max = Math.max(...lignes.map(([, v]) => v), 1);
+  return (
+    <div className="mt-5">
+      <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">{titre}</p>
+      <div className="space-y-1.5">
+        {lignes.map(([k, v]) => (
+          <div key={k} className="flex items-center gap-2">
+            <span className="w-24 flex-shrink-0 text-[11.5px] text-ardoise">{k}</span>
+            <span className="h-2 flex-1 overflow-hidden rounded-full bg-relief">
+              <span className="block h-full rounded-full" style={{ width: `${(v / max) * 100}%`, background: J["menthe"] }} />
+            </span>
+            <span className="w-12 flex-shrink-0 text-right text-[11.5px] tabular-nums text-encre">{pct(v)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Une liste de comptes : des équipements, par famille. */
+function Comptes({ lignes, vide }) {
+  if (!lignes?.length) return <p className="mt-3 mb-0 text-[12.5px] text-brume">{vide}</p>;
+  return (
+    <ul className="m-0 mt-3 list-none space-y-px p-0">
+      {lignes.map((l) => (
+        <li key={l.nom} className="flex items-baseline justify-between border-b border-trait py-2">
+          <span className="text-[13px] text-craie">{l.nom}</span>
+          <span className="text-[13px] tabular-nums text-encre">{l.nombre}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Source({ children }) {
+  return <p className="mt-5 mb-0 text-[11px] leading-[1.6] text-brume">{children}</p>;
+}
+
+const SOURCE_INSEE = "Source : INSEE, Filosofi, carreaux de 200 m. Les carreaux dont le centre tombe dans la zone sont additionnés.";
+const SOURCE_OSM = "Source : OpenStreetMap, ce qui est cartographié dans la zone.";
+
+function ContenuOnglet({ onglet, zone, lecture }) {
+  const i = lecture?.insee;
+  const e = lecture?.equipements;
+  const grille = "mt-3 grid grid-cols-2 gap-2";
+
+  if (onglet === "Informations clés") {
+    return (
+      <>
+        <div className={grille}>
+          <Cle valeur={fmt(i?.population.habitants)} label="Habitants" detail={i?.population.densite_km2 ? `${fmt(i.population.densite_km2)} hab./km²` : null} />
+          <Cle valeur={fmt(i?.menages.menages)} label="Ménages" detail={i?.menages.taille_moyenne ? `${String(i.menages.taille_moyenne).replace(".", ",")} pers. par ménage` : null} />
+          <Cle valeur={euros(i?.revenus.niveau_de_vie_moyen)} label="Niveau de vie moyen" detail="par personne et par an" />
+          <Cle valeur={pct(i?.revenus.taux_pauvrete)} label="Ménages pauvres" />
+          <Cle valeur={fmt(e?.commerces)} label="Commerces" detail={e ? (e.vacants ? `dont ${e.vacants} ${e.vacants > 1 ? "locaux vacants" : "local vacant"}` : "aucun local vacant relevé") : null} />
+          <Cle valeur={fmt(e?.restauration)} label="Restaurants, cafés, bars" />
+        </div>
+        {e && (
+          <p className="mt-4 mb-0 text-[12.5px] leading-[1.7] text-ardoise">
+            {[e.metro && "métro", e.tram && "tramway", e.gare && "gare"].filter(Boolean).length
+              ? `Desservie par ${[e.metro && "le métro", e.tram && "le tramway", e.gare && "une gare"].filter(Boolean).join(", ")}.`
+              : "Ni métro, ni tramway, ni gare dans la zone."}
+            {i?.communes?.length ? ` Commune${i.communes.length > 1 ? "s" : ""} : ${i.communes.join(", ")}.` : ""}
+          </p>
+        )}
+        <Source>{SOURCE_INSEE} {SOURCE_OSM}</Source>
+      </>
+    );
+  }
+
+  if (onglet === "Population") {
+    return (
+      <>
+        <div className={grille}>
+          <Cle valeur={fmt(i?.population.habitants)} label="Habitants" />
+          <Cle valeur={fmt(i?.population.densite_km2)} label="Habitants au km²" />
+          <Cle valeur={pct(i?.population.part_moins_18)} label="Moins de 18 ans" />
+          <Cle valeur={pct(i?.population.part_65_plus)} label="65 ans et plus" />
+        </div>
+        <Barres titre="Par tranche d'âge" parts={i?.population.ages} />
+        <Source>{SOURCE_INSEE}</Source>
+      </>
+    );
+  }
+
+  if (onglet === "Ménages et familles") {
+    return (
+      <>
+        <div className={grille}>
+          <Cle valeur={fmt(i?.menages.menages)} label="Ménages" />
+          <Cle valeur={i?.menages.taille_moyenne ? String(i.menages.taille_moyenne).replace(".", ",") : "—"} label="Personnes par ménage" />
+          <Cle valeur={pct(i?.menages.part_une_personne)} label="Personnes seules" />
+          <Cle valeur={pct(i?.menages.part_cinq_et_plus)} label="Ménages de 5 et plus" />
+          <Cle valeur={pct(i?.menages.part_monoparentales)} label="Familles monoparentales" />
+          <Cle valeur={pct(i?.menages.part_proprietaires)} label="Propriétaires" />
+        </div>
+        <Source>{SOURCE_INSEE}</Source>
+      </>
+    );
+  }
+
+  if (onglet === "Diplôme et éducation") {
+    return (
+      <>
+        <p className="mt-3 mb-0 text-[12.5px] leading-[1.7] text-ardoise">
+          L&apos;INSEE ne publie pas le niveau de diplôme à cette échelle. Voici les lieux d&apos;enseignement de la zone.
+        </p>
+        <Comptes lignes={e?.enseignement} vide="Aucun lieu d'enseignement cartographié dans la zone." />
+        {e?.ecoles?.length > 0 && (
+          <ul className="m-0 mt-4 list-none space-y-1 p-0">
+            {e.ecoles.map((x, k) => (
+              <li key={k} className="text-[12.5px] text-craie">{x.nom} <span className="text-brume">· {x.genre}</span></li>
+            ))}
+          </ul>
+        )}
+        <Source>{SOURCE_OSM}</Source>
+      </>
+    );
+  }
+
+  if (onglet === "Revenus") {
+    return (
+      <>
+        <div className={grille}>
+          <Cle valeur={euros(i?.revenus.niveau_de_vie_moyen)} label="Niveau de vie moyen" detail="par personne et par an" />
+          <Cle valeur={pct(i?.revenus.taux_pauvrete)} label="Taux de pauvreté" detail={i?.revenus.menages_pauvres != null ? `${fmt(i.revenus.menages_pauvres)} ménages` : null} />
+        </div>
+        <p className="mt-4 mb-0 text-[12.5px] leading-[1.7] text-ardoise">
+          Le niveau de vie est le revenu disponible du ménage rapporté à sa taille : il se compare d&apos;une zone à l&apos;autre.
+          Un ménage est pauvre sous 60 % du niveau de vie médian national.
+        </p>
+        <Source>{SOURCE_INSEE}</Source>
+      </>
+    );
+  }
+
+  if (onglet === "Logement") {
+    return (
+      <>
+        <div className={grille}>
+          <Cle valeur={pct(i?.logement.part_collectif)} label="En immeuble" />
+          <Cle valeur={pct(i?.logement.part_maisons)} label="En maison" />
+          <Cle valeur={pct(i?.logement.part_social)} label="Logement social" />
+          <Cle valeur={i?.logement.surface_moyenne_m2 ? `${fmt(i.logement.surface_moyenne_m2)} m²` : "—"} label="Surface moyenne" />
+        </div>
+        <Barres titre="Période de construction" parts={i?.logement.construction} />
+        <Source>{SOURCE_INSEE}</Source>
+      </>
+    );
+  }
+
+  if (onglet === "Mobilité") {
+    return (
+      <>
+        <div className={grille}>
+          <Cle valeur={e?.metro ? "Oui" : "Non"} label="Métro" />
+          <Cle valeur={e?.tram ? "Oui" : "Non"} label="Tramway" />
+        </div>
+        <Comptes lignes={e?.mobilite} vide="Aucun transport ni stationnement cartographié dans la zone." />
+        <Source>{SOURCE_OSM}</Source>
+      </>
+    );
+  }
+  return null;
+}
+
 function PanneauInformations({ zone }) {
   const [onglet, setOnglet] = useState(ONGLETS_INFOS[0]);
+  // Deux sources, deux requêtes : l'INSEE répond en quelques secondes,
+  // OpenStreetMap parfois en deux minutes à froid. Les onglets d'habitants
+  // s'affichent dès que l'INSEE est là, les équipements se posent ensuite.
+  const insee = useQuery({
+    queryKey: ["kzoning-lecture", "insee", zone.id],
+    queryFn: () => base44.request("GET", `/api/kzoning/zones/${zone.id}/lecture?source=insee`),
+    staleTime: 10 * 60 * 1000,
+  });
+  const equipements = useQuery({
+    queryKey: ["kzoning-lecture", "equipements", zone.id],
+    queryFn: () => base44.request("GET", `/api/kzoning/zones/${zone.id}/lecture?source=equipements`),
+    staleTime: 10 * 60 * 1000,
+  });
+  const isLoading = insee.isLoading;
+  const error = insee.error;
+  const lecture = insee.data ? { ...insee.data, ...(equipements.data || {}), equipements_en_attente: equipements.isLoading, equipements_echec: equipements.error?.message || null } : null;
   return (
     <>
       <div className="flex flex-wrap gap-1.5 border-b border-trait px-4 pb-3 pt-3">
@@ -178,15 +379,32 @@ function PanneauInformations({ zone }) {
           </button>
         ))}
       </div>
-      <div className="px-4 py-5">
-        <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe">{onglet}</p>
-        <p className="mt-3 mb-0 text-[13.5px] leading-[1.7] text-ardoise">
-          Cette zone couvre un rayon de {km(zone.rayon_m)} autour de {zone.adresse || zone.nom}.
-        </p>
-        <p className="mt-4 mb-0 text-[12.5px] leading-[1.7] text-brume">
-          Les chiffres de cet onglet attendent votre liste : vous avez dit me dire exactement quoi
-          mettre dans chaque case. Dès que je l&apos;ai, ils se branchent ici.
-        </p>
+      <div className="px-4 py-4">
+        <div className="flex items-baseline justify-between">
+          <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe">{onglet}</p>
+          <span className="text-[11px] text-brume">rayon de {km(zone.rayon_m)}</span>
+        </div>
+        {isLoading && (
+          <p className="mt-4 mb-0 flex items-center gap-2 text-[12.5px] text-brume">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> L&apos;INSEE répond…
+          </p>
+        )}
+        {error && <p className="mt-4 mb-0 text-[12.5px] text-alerte">{error.message || "La lecture n'a pas abouti."}</p>}
+        {lecture && (
+          <>
+            {lecture.insee_erreur && <p className="mt-3 mb-0 text-[12px] text-alerte">{lecture.insee_erreur}</p>}
+            {(lecture.equipements_erreur || lecture.equipements_echec) && <p className="mt-3 mb-0 text-[12px] text-alerte">{lecture.equipements_erreur || lecture.equipements_echec}</p>}
+            {lecture.equipements_en_attente && (
+              <p className="mt-3 mb-0 flex items-center gap-2 text-[11.5px] text-brume">
+                <Loader2 className="h-3 w-3 animate-spin" /> OpenStreetMap relève les commerces et les transports…
+              </p>
+            )}
+            {lecture.insee && lecture.insee.carreaux === 0 && (
+              <p className="mt-3 mb-0 text-[12px] text-ardoise">Aucun carreau INSEE habité dans la zone : personne n&apos;y réside, ou le rayon est trop petit.</p>
+            )}
+            <ContenuOnglet onglet={onglet} zone={zone} lecture={lecture} />
+          </>
+        )}
       </div>
     </>
   );

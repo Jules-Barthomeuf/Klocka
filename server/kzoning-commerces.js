@@ -50,7 +50,7 @@ export function construireRequete(filtres, lat, lon, rayon_m) {
   return `[out:json][timeout:60];(${corps});out center tags 3000;`;
 }
 
-async function interroger(requete) {
+export async function interroger(requete) {
   let derniere;
   for (const miroir of MIROIRS) {
     try {
@@ -150,4 +150,94 @@ export async function commercesDeLaZone({ lat, lon, rayon_m, filtres, forcer = f
   if (garde) Records.update(CACHE, garde.id, { commerces, garde_le });
   else Records.create(CACHE, { cle, commerces, garde_le });
   return { ok: true, commerces, garde_le };
+}
+
+// --- Les équipements de la zone --------------------------------------------
+//
+// Ce que Filosofi ne dit pas, OpenStreetMap le montre : les écoles et les
+// transports ne sont pas des chiffres sur les habitants mais des choses posées
+// dans la zone, avec un point. L'onglet le dit clairement — « équipements »,
+// pas « niveau de diplôme des résidents ».
+
+const FILTRES_EQUIPEMENTS = [
+  { cle: 'amenity', valeurs: ['kindergarten', 'childcare', 'school', 'college', 'university', 'library', 'language_school', 'music_school', 'driving_school'] },
+  { cle: 'highway', valeurs: ['bus_stop'] },
+  { cle: 'railway', valeurs: ['station', 'halt', 'tram_stop', 'subway_entrance'] },
+  { cle: 'station', valeurs: ['subway', 'light_rail'] },
+  { cle: 'amenity', valeurs: ['parking', 'bicycle_parking', 'bicycle_rental', 'car_sharing', 'charging_station', 'taxi', 'fuel'] },
+  { cle: 'shop', valeurs: [] },
+  { cle: 'amenity', valeurs: ['restaurant', 'cafe', 'bar', 'fast_food', 'pub'] },
+];
+
+const ENSEIGNEMENT = {
+  kindergarten: 'Écoles maternelles', childcare: 'Crèches, garderies', school: 'Écoles, collèges, lycées',
+  college: 'Enseignement supérieur', university: 'Universités', library: 'Bibliothèques',
+  language_school: 'Écoles de langues', music_school: 'Écoles de musique', driving_school: 'Auto-écoles',
+};
+const MOBILITE = {
+  bus_stop: 'Arrêts de bus', tram_stop: 'Arrêts de tramway', station: 'Gares et stations', halt: 'Haltes ferroviaires',
+  subway_entrance: 'Bouches de métro', parking: 'Parkings', bicycle_parking: 'Stationnements vélo',
+  bicycle_rental: 'Vélos en libre-service', car_sharing: 'Autopartage', charging_station: 'Bornes de recharge',
+  taxi: 'Stations de taxi', fuel: 'Stations-service',
+};
+
+const compter = (liste, table, lireCle) => {
+  const c = new Map();
+  for (const e of liste) {
+    const k = lireCle(e.tags || {});
+    if (!k || !table[k]) continue;
+    c.set(table[k], (c.get(table[k]) || 0) + 1);
+  }
+  return [...c.entries()].map(([nom, nombre]) => ({ nom, nombre })).sort((a, b) => b.nombre - a.nombre);
+};
+
+/**
+ * Les équipements d'une zone, comptés par famille. Pure sur `elements` ;
+ * testée sans réseau.
+ */
+export function classerEquipements(elements) {
+  const els = (elements || []).filter((e) => e.tags);
+  const t = (e) => e.tags;
+  const enseignement = compter(els, ENSEIGNEMENT, (x) => x.amenity);
+  const mobilite = compter(els, MOBILITE, (x) => {
+    if (x.highway === 'bus_stop') return 'bus_stop';
+    if (x.railway === 'tram_stop') return 'tram_stop';
+    if (x.railway === 'subway_entrance') return 'subway_entrance';
+    if (x.railway === 'station' || x.railway === 'halt') return x.railway;
+    if (x.amenity && MOBILITE[x.amenity]) return x.amenity;
+    return null;
+  });
+  const commerces = els.filter((e) => t(e).shop && t(e).shop !== 'vacant').length;
+  const vacants = els.filter((e) => t(e).shop === 'vacant').length;
+  const restauration = els.filter((e) => ['restaurant', 'cafe', 'bar', 'fast_food', 'pub'].includes(t(e).amenity)).length;
+  const metro = els.some((e) => t(e).railway === 'subway_entrance' || t(e).station === 'subway');
+  const tram = els.some((e) => t(e).railway === 'tram_stop');
+  const gare = els.some((e) => t(e).railway === 'station' && t(e).station !== 'subway');
+  const ecoles = els
+    .filter((e) => ['school', 'college', 'university', 'kindergarten'].includes(t(e).amenity) && t(e).name)
+    .map((e) => ({ nom: t(e).name, genre: ENSEIGNEMENT[t(e).amenity] }))
+    .slice(0, 12);
+  return { enseignement, mobilite, commerces, vacants, restauration, metro, tram, gare, ecoles };
+}
+
+const CACHE_EQ = 'CacheEquipementsKZoning';
+
+/** Les équipements d'une zone, gardés une demi-journée comme les commerces. */
+export async function equipementsDeLaZone({ lat, lon, rayon_m, forcer = false }) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(rayon_m)) return { ok: false, error: 'Zone incomplète.' };
+  const cle = `${lat.toFixed(5)},${lon.toFixed(5)},${rayon_m}`;
+  const garde = Records.findBy(CACHE_EQ, 'cle', cle);
+  if (garde && frais(garde.garde_le) && !forcer) return { ok: true, equipements: garde.equipements, garde_le: garde.garde_le, du_cache: true };
+  let brut;
+  try {
+    brut = await interroger(construireRequete(FILTRES_EQUIPEMENTS, lat, lon, rayon_m));
+  } catch (e) {
+    if (garde) return { ok: true, equipements: garde.equipements, garde_le: garde.garde_le, du_cache: true, perime: true };
+    return { ok: false, error: `OpenStreetMap n'a pas répondu : ${e?.message || e}` };
+  }
+  const equipements = classerEquipements(brut.elements);
+  const garde_le = new Date().toISOString();
+  if (garde) Records.update(CACHE_EQ, garde.id, { equipements, garde_le });
+  else Records.create(CACHE_EQ, { cle, equipements, garde_le });
+  return { ok: true, equipements, garde_le };
 }

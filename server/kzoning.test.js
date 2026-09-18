@@ -132,3 +132,69 @@ test('un relevé gardé sert sans repartir sur le réseau', async () => {
   assert.equal(r.du_cache, true);
   assert.equal(r.commerces[0].nom, 'Gardée');
 });
+
+test('les carreaux INSEE dont le centre tombe dans le cercle s\'additionnent, les autres non', async () => {
+  const { agreger, boiteDe } = await import('./kzoning-insee.js');
+  const carre = (lat, lon, props) => ({
+    type: 'Feature',
+    geometry: { type: 'MultiPolygon', coordinates: [[[[lon - 0.001, lat - 0.001], [lon - 0.001, lat + 0.001], [lon + 0.001, lat + 0.001], [lon + 0.001, lat - 0.001], [lon - 0.001, lat - 0.001]]]] },
+    properties: props,
+  });
+  const zone = { lat: 43.6, lon: 1.44, rayon_m: 300 };
+  const r = agreger([
+    carre(43.6, 1.44, { ind: 100, men: 50, ind_0_3: 10, ind_25_39: 40, ind_65_79: 10, men_1ind: 20, men_prop: 10, men_coll: 45, men_mais: 5, log_soc: 5, men_surf: 3000, ind_snv: 2000000, men_pauv: 5, log_av45: 25, log_ap90: 25, nom_com: 'Toulouse' }),
+    carre(43.6015, 1.44, { ind: 100, men: 50, ind_0_3: 0, ind_25_39: 100, men_1ind: 30, men_prop: 40, men_coll: 50, men_surf: 2000, ind_snv: 3000000, men_pauv: 0, nom_com: 'Toulouse', i_car_est: 1 }),
+    // À un kilomètre : hors zone.
+    carre(43.609, 1.44, { ind: 9999, men: 9999, nom_com: 'Ailleurs' }),
+  ], zone);
+
+  assert.equal(r.carreaux, 2);
+  assert.equal(r.carreaux_estimes, 1);
+  assert.deepEqual(r.communes, ['Toulouse']);
+  assert.equal(r.population.habitants, 200);
+  // Deux carreaux de quatre hectares : 200 habitants sur 0,08 km².
+  assert.equal(r.population.densite_km2, 2500);
+  assert.equal(r.population.ages['25-39 ans'], 70);
+  // Les 18-24 manquent de la grille : ils se déduisent du reste (200 - 160).
+  assert.equal(r.population.ages['18-24 ans'], 20);
+  assert.equal(r.menages.menages, 100);
+  assert.equal(r.menages.taille_moyenne, 2);
+  assert.equal(r.menages.part_une_personne, 50);
+  assert.equal(r.menages.part_proprietaires, 50);
+  // 5 000 000 de niveau de vie pour 200 personnes.
+  assert.equal(r.revenus.niveau_de_vie_moyen, 25000);
+  assert.equal(r.revenus.taux_pauvrete, 5);
+  assert.equal(r.logement.part_social, 5);
+  assert.equal(r.logement.surface_moyenne_m2, 50);
+  assert.equal(r.logement.construction['avant 1945'], 25);
+
+  // La boîte d'un cercle englobe le cercle : 300 m font un peu moins de 0,003°.
+  const b = boiteDe(43.6, 1.44, 300);
+  assert.ok(b.nord - 43.6 > 0.0026 && b.nord - 43.6 < 0.0028);
+  assert.ok(b.est - 1.44 > b.nord - 43.6, 'la longitude s\'étire à cette latitude');
+});
+
+test('les équipements se classent par famille, et le métro se remarque', async () => {
+  const { classerEquipements } = await import('./kzoning-commerces.js');
+  const e = classerEquipements([
+    { tags: { amenity: 'school', name: 'École Jules Ferry' } },
+    { tags: { amenity: 'school' } },
+    { tags: { amenity: 'kindergarten', name: 'Maternelle du Parc' } },
+    { tags: { highway: 'bus_stop' } }, { tags: { highway: 'bus_stop' } }, { tags: { highway: 'bus_stop' } },
+    { tags: { railway: 'subway_entrance' } },
+    { tags: { amenity: 'bicycle_rental' } },
+    { tags: { shop: 'bakery' } }, { tags: { shop: 'vacant' } },
+    { tags: { amenity: 'restaurant' } },
+    { tags: { power: 'pole' } },
+  ]);
+  assert.deepEqual(e.enseignement, [{ nom: 'Écoles, collèges, lycées', nombre: 2 }, { nom: 'Écoles maternelles', nombre: 1 }]);
+  assert.equal(e.mobilite[0].nom, 'Arrêts de bus');
+  assert.equal(e.mobilite[0].nombre, 3);
+  assert.equal(e.metro, true);
+  assert.equal(e.tram, false);
+  assert.equal(e.commerces, 1);
+  assert.equal(e.vacants, 1);
+  assert.equal(e.restauration, 1);
+  // Seules les écoles nommées se listent.
+  assert.deepEqual(e.ecoles.map((x) => x.nom), ['École Jules Ferry', 'Maternelle du Parc']);
+});

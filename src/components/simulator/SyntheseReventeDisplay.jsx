@@ -9,7 +9,7 @@ import { J } from "@/design/jetons";
 
 export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, formatCurrency, textClass, mutedClass }) {
   return (
-    <div className="bg-fond p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
+    <div className="p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
       <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3 mb-3 md:mb-4">
         <h3 className="font-light text-encre text-xl md:text-2xl tracking-tight">Synthèse à la revente</h3>
         <span className="text-xs text-encre/50">année {anneeRevente}</span>

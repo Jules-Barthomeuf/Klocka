@@ -19,6 +19,7 @@ import SimScenarios from "../components/simulator/layout/SimScenarios";
 import SimParametresAvances from "../components/simulator/layout/SimParametresAvances";
 import { calculerTVADeductible } from "../components/simulator";
 
+import { travauxParDefaut } from "@/components/simulator/CalculFinancier";
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
   const pvif = Math.pow(1 + rate, nper);
@@ -95,7 +96,7 @@ export default function SimulateurRentabilite() {
   const [fraisCourtage, setFraisCourtage] = useState(0);
   const [coutCreationSociete, setCoutCreationSociete] = useState(1000);
   const [vacancesLocatives, setVacancesLocatives] = useState(Array(25).fill(0));
-  const [travauxBailleur, setTravauxBailleur] = useState(Array(25).fill(0));
+  const [travauxBailleur, setTravauxBailleur] = useState(travauxParDefaut);
   const [prixBienFAI, setPrixBienFAI] = useState(327000);
   const [prixBienNegocie, setPrixBienNegocie] = useState(327000);
   const [tauxCommissionAgent, setTauxCommissionAgent] = useState(5);
@@ -429,7 +430,7 @@ export default function SimulateurRentabilite() {
     setDureeCredit(20); setTauxInteret(3.7); setTauxAssuranceCredit(0.25); setIndexation(2);
     setAnneeRevente(20); setRendementBrutAcheteur(6.5); setTauxCommissionAgentRevente(5);
     setRevalorisationActive(false); setRenegociationActive(false); setPretInFine(false);
-    setTravauxBailleur(Array(25).fill(0)); setVacancesLocatives(Array(25).fill(0));
+    setTravauxBailleur(travauxParDefaut()); setVacancesLocatives(Array(25).fill(0));
   };
 
   const handleCopyShareLink = () => {

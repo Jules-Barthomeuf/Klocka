@@ -6,6 +6,22 @@ function PMT(rate, nper, pv) {
   return -(rate * pv * pvif) / (pvif - 1);
 }
 
+// Deux remises en état sur vingt-cinq ans, posées d'office : un local qui ne
+// coûterait rien pendant vingt ans n'existe pas, et l'oublier flatte le
+// rendement. Les montants se changent curseur par curseur ; ce n'est qu'un
+// point de départ, mais il vaut mieux qu'un zéro.
+export const TRAVAUX_PAR_DEFAUT = [[10, 10000], [20, 10000]];
+
+/** Les mêmes travaux, sous la forme de liste qu'attend le formulaire projet. */
+export const travauxParDefautListe = () => TRAVAUX_PAR_DEFAUT.map(([annee, montant]) => ({ annee, montant }));
+
+/** Le tableau des travaux bailleur d'un projet neuf : 25 années, deux postes. */
+export function travauxParDefaut() {
+  const t = Array(25).fill(0);
+  for (const [annee, montant] of TRAVAUX_PAR_DEFAUT) t[annee - 1] = montant;
+  return t;
+}
+
 export function calculerTableauAnnuel(params) {
   const {
     surface, loyerInitialHTHC, loyerRevalorise, anneeRevalorisation, prixBienFAI, prixBienNegocie,

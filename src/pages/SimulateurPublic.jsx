@@ -13,6 +13,7 @@ import SimDataTable from "../components/simulator/layout/SimDataTable";
 import SimScenarios from "../components/simulator/layout/SimScenarios";
 import SimParametresAvances from "../components/simulator/layout/SimParametresAvances";
 
+import { travauxParDefaut } from "@/components/simulator/CalculFinancier";
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
   const pvif = Math.pow(1 + rate, nper);
@@ -43,7 +44,7 @@ export default function SimulateurPublic() {
   const [fraisCourtage, setFraisCourtage] = useState(0);
   const [coutCreationSociete, setCoutCreationSociete] = useState(1000);
   const [vacancesLocatives, setVacancesLocatives] = useState(Array(25).fill(0));
-  const [travauxBailleur, setTravauxBailleur] = useState(Array(25).fill(0));
+  const [travauxBailleur, setTravauxBailleur] = useState(travauxParDefaut);
   const [prixBienFAI, setPrixBienFAI] = useState(327000);
   const [prixBienNegocie, setPrixBienNegocie] = useState(327000);
   const [tauxCommissionAgent, setTauxCommissionAgent] = useState(5);

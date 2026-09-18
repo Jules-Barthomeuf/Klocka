@@ -39,6 +39,7 @@ import ProjetContent from "../components/projet/ProjetContent";
 import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
 
+import { travauxParDefautListe } from "@/components/simulator/CalculFinancier";
 export default function AdminProjets() {
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(() => {
@@ -73,7 +74,7 @@ export default function AdminProjets() {
   const [shadowProject, setShadowProject] = useState(null);
   const [showAdminPicker, setShowAdminPicker] = useState(false);
 
-  const [travauxList, setTravauxList] = useState([{ annee: 10, montant: 10000 }, { annee: 20, montant: 10000 }]);
+  const [travauxList, setTravauxList] = useState(travauxParDefautListe);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiPromptData, setAiPromptData] = useState({ ville: "", adresse: "", commerce: "" });
   const [aiFullText, setAiFullText] = useState("");
@@ -332,7 +333,7 @@ export default function AdminProjets() {
   });
 
   const resetForm = () => {
-    setTravauxList([]);
+    setTravauxList(travauxParDefautListe());
     setAiPromptData({ ville: "", adresse: "", commerce: "" });
     setAiFullText("");
     setAiDocuments([]);

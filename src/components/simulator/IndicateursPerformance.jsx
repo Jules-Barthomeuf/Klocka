@@ -3,7 +3,7 @@ import TooltipInfo from "./TooltipInfo";
 
 export default function IndicateursPerformance({ calculs, anneeRevente, formatCurrency, textClass, mutedClass }) {
   return (
-    <div className="bg-fond p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
+    <div className="p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
       <h3 className="font-light text-encre text-xl md:text-2xl tracking-tight mb-3 md:mb-4">Performance globale</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 w-full">
         <div className="p-2 md:p-4 rounded-md bg-encre/[0.04] border border-trait flex flex-col items-center justify-center text-center">

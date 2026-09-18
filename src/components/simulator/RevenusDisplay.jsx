@@ -3,7 +3,7 @@ import TooltipInfo from "./TooltipInfo";
 
 export default function RevenusDisplay({ calculs, anneeRevente, formatCurrency, textClass, mutedClass }) {
   return (
-    <div className="bg-fond p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
+    <div className="p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-3 md:mb-4 gap-1">
         <h3 className="font-light text-encre text-xl md:text-2xl tracking-tight">Revenus locatifs prévisionnels</h3>
         <span className={`text-xs ${mutedClass}`}>sur {anneeRevente} ans</span>

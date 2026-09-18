@@ -8,7 +8,7 @@ import { J } from "@/design/jetons";
 
 export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency, textClass, mutedClass, commissionAgentActive, commissionAgentInclusFAI = true }) {
   return (
-    <div className="bg-fond p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
+    <div className="p-4 rounded-md md:p-6 border border-encre/[0.1] max-w-full overflow-hidden">
       <h3 className="font-light text-encre text-xl md:text-2xl tracking-tight mb-3 md:mb-4">Budget total</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-full">
         <div className="relative flex items-center justify-center w-full">

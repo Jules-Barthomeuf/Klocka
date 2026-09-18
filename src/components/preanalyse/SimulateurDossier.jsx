@@ -3,7 +3,7 @@ import { RefreshCw, SlidersHorizontal, AlertTriangle, Save, Loader2, Check } fro
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { calculerTableauAnnuel } from "@/components/simulator/CalculFinancier";
+import { calculerTableauAnnuel, travauxParDefaut } from "@/components/simulator/CalculFinancier";
 import SimControlRail from "@/components/simulator/layout/SimControlRail";
 import SimKpiRow from "@/components/simulator/layout/SimKpiRow";
 import SimBudgetDonut from "@/components/simulator/layout/SimBudgetDonut";
@@ -95,7 +95,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
   const [etat, setEtat] = useState(() => etatInitial(parametres));
   // Tableaux annuels : hors CHAMPS car ils ne viennent jamais du dossier.
   const [vacancesLocatives, setVacancesLocatives] = useState(() => Array(25).fill(0));
-  const [travauxBailleur, setTravauxBailleur] = useState(() => Array(25).fill(0));
+  const [travauxBailleur, setTravauxBailleur] = useState(travauxParDefaut);
   // Un apport enregistré est repris tel quel ; sinon il suit les 15 %.
   const [apport, setApport] = useState(() => (parametres?.apport != null ? parametres.apport : 0));
   const [ongletActif, setOngletActif] = useState("graphiques");
@@ -109,7 +109,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
   useEffect(() => {
     setEtat(etatInitial(parametres));
     setVacancesLocatives(Array(25).fill(0));
-    setTravauxBailleur(Array(25).fill(0));
+    setTravauxBailleur(travauxParDefaut());
     setNegoPct(0);
     apportTouche.current = parametres?.apport != null;
     if (parametres?.apport != null) setApport(parametres.apport);
@@ -184,7 +184,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
   const reinitialiser = () => {
     setEtat(etatInitial(parametres));
     setVacancesLocatives(Array(25).fill(0));
-    setTravauxBailleur(Array(25).fill(0));
+    setTravauxBailleur(travauxParDefaut());
     setNegoPct(0);
     apportTouche.current = parametres?.apport != null;
     if (parametres?.apport != null) setApport(parametres.apport);
@@ -215,7 +215,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
   );
 
   return (
-    <div className="border border-trait rounded-md overflow-hidden bg-fond">
+    <div className="border border-trait rounded-md overflow-hidden">
       {manquants.length > 0 && (
         <div className="px-4 py-2 border-b border-trait flex items-start gap-2 text-[11px] text-menthe/80">
           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />

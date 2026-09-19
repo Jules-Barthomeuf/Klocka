@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { Etoiles } from "@/components/alx/alx-commun";
+import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 
 // K-Expertise : l'étude d'implantation d'une adresse.
 //
@@ -26,6 +27,15 @@ import { Etoiles } from "@/components/alx/alx-commun";
 // lancer, et le dit après.
 
 const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+
+// La mécanique : dans quel ordre K-Expertise interroge quoi.
+const ETAPES_MECANIQUE = [
+  { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée." },
+  { source: "Data-B, étude d'implantation", credit: true, quoi: "Flux piéton et voiture, la rue, le tronçon numéro par numéro, la démographie et le revenu du quartier. Une même adresse et une même activité, dans les trente jours, ne redemandent rien." },
+  { source: "OpenStreetMap", quoi: "Les générateurs de flux dans 300 m : arrêts, gares, bouches de métro, supermarchés, hôpitaux, écoles." },
+  { source: "INSEE Filosofi", quoi: "Trois zones de chalandise en carreaux de 200 m, sur des rayons de 400, 800 et 1 200 m — pas des isochrones." },
+  { source: "Google Maps", quoi: "Le plan et la vue de la rue, à l'écran seulement : le PDF ne les inclut pas." },
+];
 
 const nb = (n) => (n == null ? "—" : Math.round(n).toLocaleString("fr-FR"));
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
@@ -203,6 +213,10 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
         {d?.du_cache && <p className="m-0 mt-2 text-[11.5px] text-menthe-texte">Étude Data-B reprise de la base, aucun crédit dépensé.</p>}
         {r.data_b_erreur && <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[12px] text-alerte"><AlertTriangle className="h-3.5 w-3.5" />Data-B : {r.data_b_erreur}</p>}
       </section>
+
+      <div className="mt-7 border-t border-trait pt-7">
+        <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="La mécanique : d'où viennent ces chiffres" />
+      </div>
 
       {/* Descriptif de l'emplacement */}
       <Panel titre="Descriptif de l'emplacement" pourPdf={false}>

@@ -6,6 +6,7 @@ import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { JL } from "@/design/jetons";
 import CartePoints from "@/components/kdata/CartePoints";
+import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 
 // K-Vacance : les rideaux baissés d'un quartier, et le rythme auquel ses
 // commerces tournent.
@@ -22,6 +23,14 @@ const CARTE = "rounded-[18px] border border-trait bg-surface";
 const RAYONS = [250, 400, 800, 1500];
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
 const pct = (n) => (n == null ? "—" : `${String(n).replace(".", ",")} %`);
+
+// La mécanique : dans quel ordre K-Vacance interroge quoi.
+const ETAPES_MECANIQUE = [
+  { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée." },
+  { source: "OpenStreetMap", quoi: "Les devantures marquées vides depuis la rue : c'est le taux de vacance, rue par rue." },
+  { source: "Annuaire des entreprises, en deux appels", quoi: "Les établissements fermés autour du point, puis les sociétés entièrement cessées de la commune filtrées par distance — sans ce second appel, les commerces qui ont vraiment disparu manqueraient." },
+  { source: "Nomenclature NAF (INSEE)", quoi: "Le libellé du métier qui a fermé, à partir du code que le registre publie." },
+];
 
 /** La couleur d'une rue selon sa tension : du vert au rouge. */
 const couleurTaux = (t) => (t >= 20 ? JL.alerte : t >= 10 ? JL.ambre : t >= 5 ? JL.jaune : JL.vert);
@@ -152,6 +161,8 @@ function Resultat({ r, onRetour }) {
           </div>
         </div>
       </div>
+
+      <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="La mécanique : d'où viennent ces chiffres" className="mt-5" />
 
       <p className="m-0 mt-5 text-[10.5px] italic leading-[1.6] text-brume">
         Le taux de vacance compte les devantures marquées vides dans OpenStreetMap : il mesure ce qui est relevé, et une rue peu

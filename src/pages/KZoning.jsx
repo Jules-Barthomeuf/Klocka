@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
 import CarteGoogleZones, { TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
 import FicheSociete from "@/components/kzoning/FicheSociete";
+import { BoutonMecanique } from "@/components/kdata/Mecanique";
 
 // K-Zoning : on pose une zone sur la carte, on lit ce qu'il y a dedans.
 //
@@ -24,6 +25,15 @@ import FicheSociete from "@/components/kzoning/FicheSociete";
 const CENTRE_FRANCE = [46.6, 2.4];
 const ZOOM_FRANCE = 6;
 const RAYON_DEFAUT = 300;
+
+// La mécanique : dans quel ordre K-Zoning interroge quoi.
+const ETAPES_MECANIQUE = [
+  { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée : latitude, longitude, commune." },
+  { source: "OpenStreetMap (Overpass)", quoi: "Les commerces et les équipements de la zone — devanture, nom, métier, local vacant compris. Une même zone n'est réinterrogée qu'une fois par demi-journée." },
+  { source: "INSEE Filosofi", quoi: "Population, ménages, revenus et logement, par carreaux de 200 m dont le centre tombe dans la zone." },
+  { source: "Annuaire des entreprises", quoi: "La société derrière une devanture cliquée, par SIRET ou par proximité." },
+  { source: "Google Maps", quoi: "Le fond de carte et ses trois habillages." },
+];
 
 const km = (m) => (m >= 1000 ? `${(m / 1000).toFixed(2).replace(".", ",")} km` : `${m} m`);
 
@@ -628,6 +638,7 @@ export default function KZoning() {
         />
       </div>
       <SelecteurFond type={typeCarte} setType={setTypeCarte} />
+      <BoutonMecanique etapes={ETAPES_MECANIQUE} />
 
       {/* La fiche d'une société : plein écran, par-dessus la carte. */}
       {commerceOuvert && (

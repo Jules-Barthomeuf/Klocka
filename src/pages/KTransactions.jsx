@@ -6,6 +6,7 @@ import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import { JL } from "@/design/jetons";
 import CartePoints from "@/components/kdata/CartePoints";
+import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 
 // K-Transactions : ce que les murs et les fonds se sont vraiment vendus.
 //
@@ -47,6 +48,14 @@ const BANDES = [
   { cle: "bas", couleur: JL.vert, libelle: "sous le premier quartile" },
   { cle: "median", couleur: JL.jaune, libelle: "dans la fourchette courante" },
   { cle: "haut", couleur: JL.alerte, libelle: "au-dessus du troisième quartile" },
+];
+
+// La mécanique : dans quel ordre K-Transactions interroge quoi.
+const ETAPES_MECANIQUE = [
+  { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée." },
+  { source: "DVF, Etalab", quoi: "Les ventes de murs enregistrées par l'administration fiscale, localisées au point : le prix au m²." },
+  { source: "OpenStreetMap", quoi: "Le parc de locaux du secteur, pour juger si le nombre de ventes est beaucoup ou pas — un nombre seul ne veut rien dire sans son parc." },
+  { source: "BODACC, DILA", quoi: "Les cessions de fonds de commerce, dont le prix est écrit en clair dans l'annonce légale. Sans coordonnées : les comparables se rapprochent par nom de rue." },
 ];
 
 /** Le lien DVF d'une vente précise, au point. */
@@ -252,6 +261,8 @@ function Resultat({ r, onRetour }) {
           )}
         </div>
       </div>
+
+      <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="La mécanique : d'où viennent ces chiffres" className="mt-5" />
 
       <p className="m-0 mt-5 text-[10.5px] italic leading-[1.6] text-brume">
         Les murs viennent de DVF, les ventes enregistrées par l&apos;administration fiscale, localisées au point.

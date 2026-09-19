@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/avis";
 import CarteParcelles from "@/components/kdata/CarteParcelles";
 import FondHalo from "@/components/projet/FondHalo";
 import { effectif } from "@/components/kzoning/FicheSociete";
+import { BoutonMecanique } from "@/components/kdata/Mecanique";
 
 // K-Foncier : les parcelles autour d'une adresse, et qui les possède.
 //
@@ -35,6 +36,15 @@ const niveau = (n) => {
 };
 const initiales = (nom) => String(nom || "").split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0]).join("").toUpperCase() || "?";
 const chercherSurLeWeb = (q) => window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, "_blank", "noopener");
+
+// La mécanique : dans quel ordre K-Foncier interroge quoi.
+const ETAPES_MECANIQUE = [
+  { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée." },
+  { source: "Géoplateforme, Parcellaire Express", quoi: "Les parcelles cadastrales autour du point, avec leur contenance." },
+  { source: "Fichier MAJIC des personnes morales (DGFiP)", quoi: "Les propriétaires de chaque local, bâtiment par bâtiment. Les personnes physiques ne sont jamais publiques : une parcelle grise a peut-être un propriétaire, pas une société connue." },
+  { source: "Annuaire des entreprises", quoi: "La fiche de la société propriétaire, par son SIREN." },
+  { source: "Google Maps", quoi: "La vue de la rue, dans la fiche d'une parcelle." },
+];
 
 function Ligne({ label, children }) {
   return (
@@ -304,6 +314,7 @@ export default function KFoncier() {
         <FicheParcelle parcelle={ouverte} voisines={voisines} point={vue?.point} onFermer={() => setOuverte(null)} />,
         document.body,
       )}
+      {vue && <BoutonMecanique etapes={ETAPES_MECANIQUE} />}
     </div>
   );
 }

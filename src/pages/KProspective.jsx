@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/avis";
 import CarteCommerces, { familleDe } from "@/components/kdata/CarteCommerces";
 import FondHalo from "@/components/projet/FondHalo";
 import { effectif } from "@/components/kzoning/FicheSociete";
+import { BoutonMecanique } from "@/components/kdata/Mecanique";
 
 // K-Prospective : les commerces d'une zone qui répondent à des critères.
 //
@@ -29,6 +30,14 @@ const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const initiales = (nom) => String(nom || "").split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0]).join("").toUpperCase() || "?";
 const RUES = { n1: "Rue N°1", tres_commercante: "Rue très commerçante", commercante: "Rue commerçante", semi: "Rue semi commerçante", residentielle: "Rue résidentielle" };
+
+// La mécanique : dans quel ordre K-Prospective interroge quoi.
+const ETAPES_MECANIQUE = [
+  { source: "OpenStreetMap", quoi: "Les devantures de la zone pour le type d'activité choisi : nom, rue, et souvent le SIRET." },
+  { source: "Annuaire des entreprises", quoi: "La société derrière chaque devanture — par SIRET quand il est là, sinon par nom dans la commune, l'établissement le plus proche du point." },
+  { source: "Fichier des personnes morales (DGFiP)", quoi: "Les murs : la parcelle et son propriétaire, quand c'est une personne morale." },
+  { source: "Vos critères", quoi: "Appliqués à ce qu'on sait vraiment. La solvabilité chiffrée, le prix d'acquisition et l'échéance d'un bail n'ont pas de source ouverte : ces options sont grisées plutôt que devinées." },
+];
 
 function Ligne({ label, children }) {
   return (
@@ -262,6 +271,7 @@ function Resultats({ prospection: p, onRetour, onSupprimer }) {
       </div>
 
       {ouvert && createPortal(<FicheCommerce commerce={ouvert} point={p.point} onFermer={() => setOuvert(null)} />, document.body)}
+      <BoutonMecanique etapes={ETAPES_MECANIQUE} />
     </div>
   );
 }

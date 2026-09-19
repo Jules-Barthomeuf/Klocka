@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
 import CarteLoyers, { COULEURS_NIVEAU } from "@/components/kdata/CarteLoyers";
+import { BoutonMecanique } from "@/components/kdata/Mecanique";
 
 // Valeur locative : la fourchette de loyer au m² d'une adresse.
 //
@@ -21,6 +22,14 @@ const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
 
 const NIVEAUX = [["rue", "Rue"], ["quartier", "Quartier"], ["ville", "Ville"]];
+
+// La mécanique : dans quel ordre Valeur locative interroge quoi.
+const ETAPES_MECANIQUE = [
+  { source: "Data-B, module Valeurs locatives", credit: true, quoi: "La rue, le quartier et la ville, chacun en fourchette basse et haute. Le résultat se garde trente jours par adresse : le rouvrir ne redemande rien." },
+  { source: "Géoplateforme, contours IRIS", quoi: "Le découpage en quartiers statistiques pour colorer la carte." },
+  { source: "OpenStreetMap", quoi: "La densité de commerces d'un IRIS que Data-B n'a pas lu : un des deux signaux de l'indice de position." },
+  { source: "INSEE Filosofi", quoi: "Le niveau de vie des habitants d'un IRIS que Data-B n'a pas lu : le second signal. L'indice classe, il ne chiffre pas — aucun euro n'est inventé." },
+];
 
 // Les quatre classes de la carte, du plus cher au moins cher.
 const CLASSES = [
@@ -207,6 +216,7 @@ export default function ValeurLocative() {
             </div>
           </div>
         )}
+        <BoutonMecanique etapes={ETAPES_MECANIQUE} />
       </div>
     );
   }

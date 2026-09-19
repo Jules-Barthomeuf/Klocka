@@ -4,6 +4,7 @@ import { Search, Play, Loader2, ChevronLeft, ChevronRight, Trash2, Check, X, Clo
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
+import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 
 // K-Estimation : estimer des murs commerciaux par le rendement.
 //
@@ -18,6 +19,14 @@ import { toast } from "@/components/ui/avis";
 
 const CARTE = "rounded-[18px] border border-trait bg-surface";
 const ETAPES_FORM = ["Base", "Bien", "Occupation", "Estimation"];
+
+// La mécanique : dans quel ordre K-Estimation interroge quoi.
+const ETAPES_MECANIQUE = [
+  { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée." },
+  { source: "OpenStreetMap", quoi: "La densité commerciale autour du point : le taux de marché en tient compte avant toute saisie." },
+  { source: "INSEE Filosofi", quoi: "Le niveau de vie et la densité de population de la zone de 800 m." },
+  { source: "Vos réponses", quoi: "État du bâtiment et du local, caractéristiques commerciales, situation locative : chaque réponse ajoute ou retire des points au taux." },
+];
 
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const pct = (n) => (n == null ? "—" : `${String(n).replace(".", ",")} %`);
@@ -243,6 +252,8 @@ function Resultat({ estimation: e }) {
         (OpenStreetMap) et de la zone de chalandise de {marche.rayon_zone_m || 800} m (INSEE Filosofi) ; les ajustements
         viennent de vos réponses. Une estimation n&apos;est pas une expertise : elle situe, elle ne vaut pas avis de valeur.
       </p>
+
+      <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="La mécanique : d'où vient ce taux" className="mt-4" />
     </div>
   );
 }

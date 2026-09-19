@@ -60,6 +60,7 @@ import { monterKProspective } from './routes/kprospective.js';
 import { monterLeadMagnet } from './routes/leadmagnet.js';
 import { monterKTransactions } from './routes/ktransactions.js';
 import { monterKVacance } from './routes/kvacance.js';
+import { monterKData } from './routes/kdata.js';
 // Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
 import {
   UPLOAD_DIR,
@@ -654,7 +655,7 @@ app.use((req, res, next) => {
   // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
   // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance)\b/.test(
+    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/.test(
       req.path
     )
   ) {
@@ -672,7 +673,7 @@ app.use((req, res, next) => {
 // concernent que l'équipe. Sans ce filtre, un compte client — il y en a
 // soixante-quinze — pouvait lire les verdicts, les prix et les adresses des
 // agents, et déclencher des actions en son nom.
-const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance)\b/;
+const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/;
 
 app.use((req, res, next) => {
   if (AUTH_DESACTIVEE) return next();
@@ -1030,6 +1031,7 @@ monterKProspective(app);
 monterLeadMagnet(app);
 monterKTransactions(app);
 monterKVacance(app);
+monterKData(app);
 
 // L'état de la plateforme, écrit dans docs/etat-plateforme.md : une session de
 // travail le lit et connaît l'usage réel au lieu de repartir de zéro.

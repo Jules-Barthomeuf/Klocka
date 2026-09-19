@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Search, Play, Loader2, Clock, DoorClosed, TrendingDown, Hourglass, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -208,6 +209,20 @@ export default function KVacance() {
     onSuccess: (r) => { setVue(r); setSuggestions([]); qc.invalidateQueries({ queryKey: ["kvacance"] }); },
     onError: (e) => toast.error(e?.message || "Analyse impossible"),
   });
+
+  // Ouverte depuis la file de K-Data : « ?adresse=… » relance l'analyse, dont
+  // les sources sont en cache. Le paramètre ne se rejoue pas.
+  const { search } = useLocation();
+  const vuUrl = useRef("");
+  React.useEffect(() => {
+    if (vuUrl.current === search) return;
+    const a = new URLSearchParams(search).get("adresse");
+    if (!a) return;
+    vuUrl.current = search;
+    choisie.current = a;
+    setAdresse(a);
+    analyser.mutate(a);
+  }, [search]);
 
   if (!user || user.role !== "admin") return null;
   if (vue) return <Resultat r={vue} onRetour={() => setVue(null)} />;

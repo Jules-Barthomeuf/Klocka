@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Search, Loader2, ChevronLeft, FileText, Pencil, Download, RotateCcw, Printer, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -136,6 +137,21 @@ export default function ValeurLocative() {
     onSuccess: (r) => { setVue(r); setRapport(false); setSecteurOuvert(null); },
     onError: (err) => toast.error(err?.message || "Ouverture impossible"),
   });
+
+  // Ouverte depuis la file de K-Data : « ?id=… » rouvre une recherche sans
+  // crédit ; « ?adresse=… » en lance une. Le paramètre ne se rejoue pas.
+  const { search } = useLocation();
+  const vuUrl = useRef("");
+  useEffect(() => {
+    if (vuUrl.current === search) return;
+    const p = new URLSearchParams(search);
+    const id = p.get("id");
+    const a = p.get("adresse");
+    if (!id && !a) return;
+    vuUrl.current = search;
+    if (id) rouvrir.mutate(id);
+    else { choisie.current = a; setAdresse(a); chercher.mutate(a); }
+  }, [search]);
 
   if (!user || user.role !== "admin") return null;
 

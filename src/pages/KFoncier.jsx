@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Search, Loader2, X, ChevronLeft, Building2, Mail, Phone, ExternalLink, Clock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -244,6 +245,20 @@ export default function KFoncier() {
     onError: (err) => toast.error(err?.message || "Analyse impossible"),
   });
   const ouvrirParcelle = useCallback((p) => setOuverte(p), []);
+
+  // Ouverte depuis la file de K-Data : « ?adresse=… » relance l'analyse, dont
+  // les sources sont en cache. Le paramètre ne se rejoue pas.
+  const { search } = useLocation();
+  const vuUrl = useRef("");
+  useEffect(() => {
+    if (vuUrl.current === search) return;
+    const a = new URLSearchParams(search).get("adresse");
+    if (!a) return;
+    vuUrl.current = search;
+    choisie.current = a;
+    setAdresse(a);
+    analyser.mutate(a);
+  }, [search]);
 
   if (!user || user.role !== "admin") return null;
 

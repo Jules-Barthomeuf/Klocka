@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import {
   Search, Plus, FolderPlus, Folder, ChevronRight, Eye, EyeOff, Trash2, X, PieChart, Store, Loader2,
 } from "lucide-react";
@@ -611,6 +612,21 @@ export default function KZoning() {
   // Les commerces relevés se posent aussi sur la carte : une liste sans les
   // points ne dit pas si la concurrence est en face ou à l'autre bout.
   useEffect(() => { setCommerces([]); setCommerceOuvert(null); }, [zoneOuverte?.id, mode]);
+
+  // Ouverte depuis la file de K-Data : « ?zone=… » désigne la zone à lire,
+  // une fois la liste chargée. Le paramètre ne se rejoue pas.
+  const { search } = useLocation();
+  const vuUrl = useRef("");
+  useEffect(() => {
+    if (vuUrl.current === search || !zones.length) return;
+    const id = new URLSearchParams(search).get("zone");
+    if (!id) return;
+    const z = zones.find((x) => x.id === id);
+    if (!z) return;
+    vuUrl.current = search;
+    setZoneOuverte(z);
+    setMode("infos");
+  }, [search, zones]);
 
   if (!user || user.role !== "admin") return null;
 

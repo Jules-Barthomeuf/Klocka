@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Search, Play, Loader2, ChevronLeft, ChevronRight, Trash2, Check, X, Clock, Calculator } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -560,6 +561,17 @@ export default function KEstimation() {
   });
 
   const titre = useMemo(() => e?.libelle || e?.adresse || "", [e]);
+
+  // Ouverte depuis la file de K-Data : « ?id=… » désigne l'estimation à reprendre.
+  const { search } = useLocation();
+  const vuUrl = useRef("");
+  useEffect(() => {
+    if (vuUrl.current === search) return;
+    const id = new URLSearchParams(search).get("id");
+    if (!id) return;
+    vuUrl.current = search;
+    setOuverte(id);
+  }, [search]);
 
   if (!user || user.role !== "admin") return null;
 

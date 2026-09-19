@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Search, Play, Loader2, ChevronLeft, Trash2, Printer, X, Check, AlertTriangle, Clock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -521,6 +522,17 @@ export default function KExpertise() {
   });
 
   const dejaEnBase = useMemo(() => expertises.find((x) => x.etat === "terminee" && x.adresse.trim().toLowerCase() === adresse.trim().toLowerCase()), [expertises, adresse]);
+
+  // Ouverte depuis la file de K-Data : « ?id=… » désigne l'expertise à lire.
+  const { search } = useLocation();
+  const vuUrl = useRef("");
+  useEffect(() => {
+    if (vuUrl.current === search) return;
+    const id = new URLSearchParams(search).get("id");
+    if (!id) return;
+    vuUrl.current = search;
+    setOuverte(id);
+  }, [search]);
 
   if (!user || user.role !== "admin") return null;
 

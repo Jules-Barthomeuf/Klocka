@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Search, Play, Loader2, ChevronLeft, ChevronDown, Trash2, Check, X, Clock, Phone, Mail, Globe, ExternalLink, SlidersHorizontal } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
@@ -326,6 +327,17 @@ export default function KProspective() {
     mutationFn: (id) => base44.request("DELETE", `/api/kprospective/${id}`),
     onSuccess: () => { setOuverte(null); qc.invalidateQueries({ queryKey: ["kprospective"], exact: true }); },
   });
+
+  // Ouverte depuis la file de K-Data : « ?id=… » désigne la prospection à lire.
+  const { search } = useLocation();
+  const vuUrl = useRef("");
+  useEffect(() => {
+    if (vuUrl.current === search) return;
+    const id = new URLSearchParams(search).get("id");
+    if (!id) return;
+    vuUrl.current = search;
+    setOuverte(id);
+  }, [search]);
 
   if (!user || user.role !== "admin") return null;
 

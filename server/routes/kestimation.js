@@ -2,7 +2,7 @@
 // tout K-Data.
 
 import { currentUser, ok, wrap } from '../contexte.js';
-import { lancerEstimation, listerEstimations, lireEstimation, estimer, supprimerEstimation, ETAPES, CHOIX, TAUX_PIVOT } from '../kestimation.js';
+import { lancerEstimation, listerEstimations, lireEstimation, estimer, supprimerEstimation, ETAPES, CHOIX, GRILLE_TAUX } from '../kestimation.js';
 
 export function monterKEstimation(app) {
   const admin = (req, res) => {
@@ -13,7 +13,7 @@ export function monterKEstimation(app) {
 
   app.get('/api/kestimation', wrap((req, res) => {
     if (!admin(req, res)) return;
-    ok(res, { estimations: listerEstimations(), etapes: ETAPES, choix: CHOIX, pivot: TAUX_PIVOT });
+    ok(res, { estimations: listerEstimations(), etapes: ETAPES, choix: CHOIX, grille: GRILLE_TAUX });
   }));
 
   app.post('/api/kestimation', wrap((req, res) => {
@@ -35,8 +35,9 @@ export function monterKEstimation(app) {
   // la foulée : un enregistrement sans calcul laisserait une fiche à moitié
   // remplie, qu'il faudrait relancer à la main.
   app.patch('/api/kestimation/:id', wrap((req, res) => {
-    if (!admin(req, res)) return;
-    const r = estimer(req.params.id, req.body?.reponses);
+    const user = admin(req, res);
+    if (!user) return;
+    const r = estimer(req.params.id, req.body?.reponses, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));

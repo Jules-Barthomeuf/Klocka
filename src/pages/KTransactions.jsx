@@ -22,6 +22,21 @@ import CartePoints from "@/components/kdata/CartePoints";
 const CARTE = "rounded-[18px] border border-trait bg-surface";
 const ANNEES = [2, 5, 10];
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
+const fr = (n) => String(n).replace(".", ",");
+
+// « Est-ce beaucoup ? » est la question qu'un chiffre brut ne résout pas. On y
+// répond par une comparaison explicite, jamais par un score : le lecteur voit
+// à quoi on compare, et juge lui-même.
+function Repere({ titre, phrase, detail, reserve }) {
+  return (
+    <div className={`${CARTE} mb-3 p-4`}>
+      <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">{titre}</p>
+      <p className="m-0 mt-1 text-[14.5px] leading-[1.45] text-encre">{phrase}</p>
+      <p className="m-0 mt-1.5 text-[11.5px] leading-[1.6] text-ardoise">{detail}</p>
+      <p className="m-0 mt-1 text-[11px] leading-[1.6] text-brume">{reserve}</p>
+    </div>
+  );
+}
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
 
 // Les ventes de murs se posent sur un plan, colorées par leur prix au mètre
@@ -156,6 +171,13 @@ function Resultat({ r, onRetour }) {
                 <Chiffre titre="Ventes" valeur={String(murs.n)} detail={murs.annees?.join(", ")} />
                 <Chiffre titre="Rayon" valeur={`${murs.rayon} m`} detail={murs.commune} />
               </div>
+              {r.rotation && (
+                <Repere titre="Est-ce beaucoup ?"
+                  phrase={<>À ce rythme, un local du quartier change de main <span className="font-semibold">tous les {fr(r.rotation.periode_ans)} ans</span>.</>}
+                  detail={`${r.rotation.ventes} ventes sur ${r.rotation.annees} millésimes, pour ${r.rotation.locaux} locaux relevés dans le rayon : ${fr(r.rotation.part_annuelle)} % du parc vendu chaque année.`}
+                  reserve="Beaucoup de ventes n'est pas bon en soi : un quartier recherché et un quartier dont on sort produisent le même chiffre. C'est le prix au mètre, à côté, qui départage." />
+              )}
+
               <div className={`${CARTE} p-4`}>
                 <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">Les ventes les plus proches</p>
                 <div className="max-h-[360px] overflow-y-auto">
@@ -198,6 +220,15 @@ function Resultat({ r, onRetour }) {
                 <Chiffre titre="Sur la rue" valeur={fonds.prix_rue ? euros(fonds.prix_rue) : "—"}
                   detail={fonds.comparables_rue.length ? `${fonds.comparables_rue.length} cession${fonds.comparables_rue.length > 1 ? "s" : ""}` : "aucune sur cette rue"} />
               </div>
+              {r.tension_rue && (
+                <Repere titre="Est-ce beaucoup ?"
+                  phrase={r.tension_rue.n_rue
+                    ? <>Cette rue a connu <span className="font-semibold">{r.tension_rue.n_rue} cession{r.tension_rue.n_rue > 1 ? "s" : ""}</span> en {r.annees} ans, contre {r.tension_rue.mediane_par_rue} pour la rue médiane de la commune.</>
+                    : <>Aucune cession publiée sur cette rue en {r.annees} ans, contre {r.tension_rue.mediane_par_rue} pour la rue médiane de la commune.</>}
+                  detail={`${r.tension_rue.rues_comptees} rues de la commune ont eu au moins une cession${r.tension_rue.rang != null ? ` · cette rue dépasse ${r.tension_rue.rang} % d'entre elles` : ""}. Le quart le plus actif en compte ${r.tension_rue.haut_par_rue} ou plus.`}
+                  reserve="Le BODACC n'ayant pas de coordonnées, une rue ne peut se comparer qu'aux autres rues, pas à une densité. Une rue longue en aura mécaniquement plus qu'une rue courte." />
+              )}
+
               <div className={`${CARTE} p-4`}>
                 <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">
                   {fonds.comparables_rue.length ? "Les comparables de la rue" : "Les cessions de la commune"}

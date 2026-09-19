@@ -132,6 +132,64 @@ export function marcheDesFonds(cessions, rueVisee = null) {
   };
 }
 
+/**
+ * Beaucoup de ventes, ou pas ? Pure : testée sans réseau.
+ *
+ * Un nombre de ventes ne veut rien dire seul : cent ventes dans un quartier de
+ * mille locaux, ce n'est pas cent ventes dans un quartier de cent. On rapporte
+ * donc les ventes au parc, et on rend le résultat en DURÉE plutôt qu'en score :
+ * « un local change de main tous les X ans » se juge sans barème, là où
+ * « rotation élevée » demanderait un seuil que personne n'a fixé.
+ *
+ * Beaucoup de transactions n'est d'ailleurs pas bon en soi : cela peut dire un
+ * quartier recherché comme un quartier dont on sort. L'écran le dit.
+ */
+export function rotationDesMurs(nVentes, nAnnees, locaux) {
+  const n = Number(nVentes) || 0;
+  const annees = Number(nAnnees) || 0;
+  const parc = Number(locaux) || 0;
+  if (!n || !annees || !parc) return null;
+  const par_an = n / annees;
+  return {
+    ventes: n,
+    annees,
+    locaux: parc,
+    ventes_par_an: Math.round(par_an * 10) / 10,
+    part_annuelle: Math.round((par_an / parc) * 1000) / 10,
+    // Le temps qu'il faudrait, à ce rythme, pour que tout le parc soit vendu.
+    periode_ans: Math.round((parc / par_an) * 10) / 10,
+  };
+}
+
+/**
+ * Cette rue bouge-t-elle plus que les autres ? Pure : testée sans réseau.
+ *
+ * Le BODACC ne donne pas de coordonnées, donc pas de densité : la seule
+ * comparaison honnête est celle des rues entre elles, dans la même commune et
+ * sur la même période.
+ */
+export function tensionDeLaRue(cessions, rueVisee) {
+  const rue = normaliserRue(rueVisee);
+  const parRue = new Map();
+  for (const c of cessions || []) {
+    if (!c?.rue) continue;
+    parRue.set(c.rue, (parRue.get(c.rue) || 0) + 1);
+  }
+  const comptes = [...parRue.values()].sort((a, b) => a - b);
+  if (!comptes.length) return null;
+  const q = (p) => comptes[Math.min(comptes.length - 1, Math.floor(comptes.length * p))];
+  const n_rue = rue ? parRue.get(rue) || 0 : null;
+  return {
+    rue: rue || null,
+    n_rue,
+    rues_comptees: comptes.length,
+    mediane_par_rue: q(0.5),
+    haut_par_rue: q(0.75),
+    // La part des rues de la commune qui ont eu moins de cessions que celle-ci.
+    rang: n_rue == null ? null : Math.round((comptes.filter((x) => x < n_rue).length / comptes.length) * 100),
+  };
+}
+
 async function lireBodacc(params) {
   const r = await fetch(`${BODACC}?${new URLSearchParams(params)}`, {
     headers: { 'user-agent': UA, accept: 'application/json' },
@@ -178,7 +236,7 @@ export async function analyser(texte, { annees = ANNEES_DEFAUT, rayon = 500, use
   catch (e) { return { ok: false, error: e.message }; }
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texte || '').slice(0, 80)} ».` };
 
-  const [murs, fonds] = await Promise.all([
+  const [murs, fonds, locaux] = await Promise.all([
     (async () => {
       try {
         const { ventesAutour } = await import('./dvf.js');
@@ -187,9 +245,21 @@ export async function analyser(texte, { annees = ANNEES_DEFAUT, rayon = 500, use
       } catch (e) { return { erreur: e?.message || String(e) }; }
     })(),
     cessionsDeLaCommune(adresse.code_postal, adresse.ville, { annees }),
+    // Le parc de locaux du secteur, relevé sur OpenStreetMap : sans lui, un
+    // nombre de ventes ne peut pas se juger. Gratuit, et déjà en cache.
+    (async () => {
+      try {
+        const { commercesDeLaZone } = await import('./kzoning-commerces.js');
+        const { TOUS_LES_COMMERCES } = await import('./kzoning-metiers.js');
+        const r = await commercesDeLaZone({ lat: adresse.lat, lon: adresse.lon, rayon_m: rayon, filtres: TOUS_LES_COMMERCES.filtres });
+        return r.ok ? (r.commerces || []).length : null;
+      } catch { return null; }
+    })(),
   ]);
 
   const marche = fonds.ok ? marcheDesFonds(fonds.cessions, adresse.rue) : null;
+  const rotation = murs?.erreur ? null : rotationDesMurs(murs?.n, (murs?.annees || []).length, locaux);
+  const tension = fonds.ok ? tensionDeLaRue(fonds.cessions, adresse.rue) : null;
   const point = { lat: adresse.lat, lon: adresse.lon, label: adresse.label, ville: adresse.ville, code_postal: adresse.code_postal, rue: adresse.rue };
 
   const existante = Records.list(RECHERCHE).find((x) => x.adresse === adresse.label);
@@ -204,6 +274,9 @@ export async function analyser(texte, { annees = ANNEES_DEFAUT, rayon = 500, use
     rayon,
     murs: murs?.erreur ? null : murs,
     murs_erreur: murs?.erreur || null,
+    locaux,
+    rotation,
+    tension_rue: tension,
     fonds: marche,
     fonds_erreur: fonds.ok ? null : fonds.error,
     cessions: fonds.ok ? fonds.cessions.filter((c) => c.prix != null).slice(0, 60) : [],

@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Play, Loader2, Clock, DoorClosed, TrendingDown, X } from "lucide-react";
+import { Search, Play, Loader2, Clock, DoorClosed, TrendingDown, Hourglass, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
@@ -41,7 +41,9 @@ function Resultat({ r, onRetour }) {
   const [ouvert, setOuvert] = useState(null);
   const couches = useMemo(() => [
     { cle: "vide", couleur: JL.alerte, taille: 14, zIndex: 20, points: (r.locaux_vides || []).map((x) => ({ ...x, titre: x.adresse || "Local vide", nature: "Local vide" })) },
-    { cle: "ferme", couleur: JL.ambre, taille: 10, zIndex: 10, points: (r.fermetures || []).map((x) => ({ ...x, titre: x.nom, nature: "Fermeture" })) },
+    // Le métier du local, pas la raison sociale : « Formation continue
+    // d'adultes » dit ce qui a fermé, « ISATIS » ne dit rien.
+    { cle: "ferme", couleur: JL.ambre, taille: 10, zIndex: 10, points: (r.fermetures || []).map((x) => ({ ...x, titre: x.activite_libelle || x.enseigne || x.nom, nature: "Fermeture" })) },
   ], [r]);
 
   return (
@@ -52,13 +54,22 @@ function Resultat({ r, onRetour }) {
         {r.rayon} m autour du point · fermetures des {r.annees_fermeture} dernières années
       </p>
 
-      <div className="mb-5 grid gap-3 md:grid-cols-4">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Chiffre titre="Taux de vacance" icone={DoorClosed}
           valeur={r.vacance ? pct(r.vacance.taux) : "—"}
           detail={r.vacance ? `${r.vacance.vides} locaux vides sur ${r.vacance.total} devantures relevées` : r.vacance_erreur} />
         <Chiffre titre="Durée d'exploitation" icone={Clock}
           valeur={r.turnover.duree_mediane != null ? `${String(r.turnover.duree_mediane).replace(".", ",")} ans` : "—"}
-          detail={r.turnover.n ? `médiane sur ${r.turnover.n} fermetures` : "aucune fermeture relevée"} />
+          detail={r.turnover.n ? `médiane sur ${r.turnover.n} fermetures · un bail court par périodes de 3, 6 et 9 ans` : "aucune fermeture relevée"} />
+        {/* Le délai avant qu'un nouvel exploitant se déclare là où un commerce
+            a fermé. Ce n'est pas la vacance certifiée d'une boutique : un
+            numéro de rue abrite plusieurs locaux. En deçà de quelques reprises
+            datées, aucune médiane n'est affichée. */}
+        <Chiffre titre="Reprise d'activité" icone={Hourglass}
+          valeur={r.vacance_duree?.assez ? `${String(r.vacance_duree.mediane_ans).replace(".", ",")} ans` : "—"}
+          detail={r.vacance_duree?.assez
+            ? `médiane du délai avant une nouvelle déclaration, sur ${r.vacance_duree.n_reprises} adresses reprises`
+            : `${r.vacance_duree?.n_reprises || 0} reprise${(r.vacance_duree?.n_reprises || 0) > 1 ? "s" : ""} datée${(r.vacance_duree?.n_reprises || 0) > 1 ? "s" : ""} : moins de ${r.vacance_duree?.minimum_reprises || 5}, une médiane ne voudrait rien dire`} />
         <Chiffre titre="Ferment avant 3 ans" icone={TrendingDown}
           valeur={r.turnover.part_moins_3_ans != null ? `${r.turnover.part_moins_3_ans} %` : "—"}
           detail="des commerces qui ont fermé" />
@@ -119,11 +130,21 @@ function Resultat({ r, onRetour }) {
               <div className="max-h-[320px] overflow-y-auto">
                 {r.fermetures.slice(0, 40).map((f) => (
                   <div key={f.siret} className="border-b border-trait py-2 last:border-b-0">
-                    <p className="m-0 truncate text-[13px] text-encre">{f.enseigne || f.nom}</p>
+                    {/* Ce qui a fermé, pas qui l'exploitait. La raison sociale
+                        reste juste en dessous, avec l'adresse. */}
+                    <p className="m-0 truncate text-[13px] text-encre">{f.activite_libelle || f.enseigne || f.nom}</p>
                     <p className="m-0 text-[11px] text-brume">
                       fermé en {f.annee_fermeture}{f.duree_ans != null ? ` après ${String(f.duree_ans).replace(".", ",")} ans` : ""}
-                      {f.adresse ? ` · ${f.adresse}` : ""}{f.distance_m != null ? ` · ${f.distance_m} m` : ""}
+                      {f.enseigne || f.nom ? ` · ${f.enseigne || f.nom}` : ""}
+                      {f.adresse ? ` ${f.adresse}` : ""}{f.distance_m != null ? ` · ${f.distance_m} m` : ""}
                     </p>
+                    {f.vacance_ans != null && (
+                      <p className={`m-0 mt-0.5 text-[11px] ${f.en_cours ? "text-ambre" : "text-menthe-texte"}`}>
+                        {f.en_cours
+                          ? `aucune nouvelle déclaration à cette adresse depuis ${String(f.vacance_ans).replace(".", ",")} ans`
+                          : `déclaration suivante après ${String(f.vacance_ans).replace(".", ",")} ans${f.reprise_activite ? ` · ${f.reprise_activite}` : ""}${f.reprise_par ? ` (${f.reprise_par})` : ""}`}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -135,6 +156,11 @@ function Resultat({ r, onRetour }) {
       <p className="m-0 mt-5 text-[10.5px] italic leading-[1.6] text-brume">
         Le taux de vacance compte les devantures marquées vides dans OpenStreetMap : il mesure ce qui est relevé, et une rue peu
         cartographiée paraîtra saine. Le turn-over vient des dates d&apos;ouverture et de fermeture du registre des entreprises.
+        La reprise d&apos;activité est l&apos;écart entre la fermeture d&apos;un commerce et la déclaration suivante à la même adresse
+        postale{r.ouvertures_vues ? `, sur ${r.ouvertures_vues} établissements ouverts relevés dans la zone` : ""}. Deux réserves :
+        un numéro de rue abrite plusieurs locaux, donc une nouvelle déclaration n&apos;est pas forcément la reprise de la même
+        boutique ; et un repreneur qui ne se déclare pas exactement à la même adresse passe pour une adresse restée sans activité.
+        Ces délais sont donc un plafond, jamais un plancher.
         {r.erreurs?.length ? ` Lectures incomplètes : ${r.erreurs.join(" ; ")}.` : ""}
       </p>
     </div>

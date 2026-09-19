@@ -7,7 +7,7 @@ import os from 'os';
 import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-ktr-'));
-const { prixDuFonds, lireCession, marcheDesFonds } = await import('./ktransactions.js');
+const { prixDuFonds, lireCession, marcheDesFonds, rotationDesMurs, tensionDeLaRue } = await import('./ktransactions.js');
 
 test('le prix se lit dans la phrase, quelle que soit la tournure du greffe', () => {
   // Les deux formes relevées en vrai au BODACC.
@@ -64,6 +64,43 @@ test('le BODACC rend ses champs composés en chaîne JSON, et le prix s\'y lit q
   assert.equal(c.rue, 'jean medecin');
   // Une chaîne illisible ne fait pas tomber la lecture.
   assert.equal(lireCession({ id: 'B2', listeetablissements: '{ceci n est pas du json' }).prix, null);
+});
+
+test('un nombre de ventes se juge sur le parc, et se dit en durée', () => {
+  // Cent ventes sur cinq ans dans un quartier de deux cents locaux : vingt
+  // ventes par an, soit dix pour cent du parc, soit un local tous les dix ans.
+  const r = rotationDesMurs(100, 5, 200);
+  assert.equal(r.ventes_par_an, 20);
+  assert.equal(r.part_annuelle, 10);
+  assert.equal(r.periode_ans, 10);
+  // Le même nombre de ventes dans un quartier dix fois plus petit ne dit pas
+  // du tout la même chose : c'est tout l'objet du rapport au parc.
+  assert.equal(rotationDesMurs(100, 5, 20).periode_ans, 1);
+  // Sans parc relevé, on ne fabrique pas d'indicateur.
+  assert.equal(rotationDesMurs(100, 5, 0), null);
+  assert.equal(rotationDesMurs(0, 5, 200), null);
+  assert.equal(rotationDesMurs(100, 0, 200), null);
+});
+
+test('une rue se compare aux autres rues de la commune, faute de densité', () => {
+  const c = (rue) => ({ rue });
+  const t = tensionDeLaRue(
+    [c('dabray'), c('dabray'), c('dabray'), c('gambetta'), c('gambetta'), c('cessole'), c('vernier'), { rue: '' }],
+    'Rue Dabray',
+  );
+  assert.equal(t.rue, 'dabray');
+  assert.equal(t.n_rue, 3);
+  assert.equal(t.rues_comptees, 4, 'une cession sans rue ne crée pas de rue');
+  // Quantile par rang le plus proche sur [1, 1, 2, 3] : la médiane est 2, pas
+  // 1. C'est la lecture prudente : surestimer la rue médiane fait paraître la
+  // rue visée moins exceptionnelle, là où la sous-estimer la flatterait.
+  assert.equal(t.mediane_par_rue, 2);
+  assert.equal(t.haut_par_rue, 3);
+  // Dabray dépasse les trois autres rues : elle est au-dessus de 75 % d'entre elles.
+  assert.equal(t.rang, 75);
+  // Une rue sans aucune cession est une information, pas une absence.
+  assert.equal(tensionDeLaRue([c('gambetta')], 'Rue Dabray').n_rue, 0);
+  assert.equal(tensionDeLaRue([], 'Rue Dabray'), null);
 });
 
 test('le marché ne compte que les annonces qui portent un prix, et le dit', () => {

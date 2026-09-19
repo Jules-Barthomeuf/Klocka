@@ -1,9 +1,11 @@
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Play, Loader2, Clock, Building2, Store, ExternalLink } from "lucide-react";
+import { Search, Play, Loader2, Clock, Building2, Store, ExternalLink, MapPin, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { toast } from "@/components/ui/avis";
+import { JL } from "@/design/jetons";
+import CartePoints from "@/components/kdata/CartePoints";
 
 // K-Transactions : ce que les murs et les fonds se sont vraiment vendus.
 //
@@ -22,6 +24,19 @@ const ANNEES = [2, 5, 10];
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
 
+// Les ventes de murs se posent sur un plan, colorées par leur prix au mètre
+// face à la médiane du secteur. Vert, jaune, rouge disent ici « moins cher »,
+// « dans la moyenne », « plus cher » — et la légende nomme les seuils en euros
+// pour qu'aucune couleur ne se devine.
+const BANDES = [
+  { cle: "bas", couleur: JL.vert, libelle: "sous le premier quartile" },
+  { cle: "median", couleur: JL.jaune, libelle: "dans la fourchette courante" },
+  { cle: "haut", couleur: JL.alerte, libelle: "au-dessus du troisième quartile" },
+];
+
+/** Le lien DVF d'une vente précise, au point. */
+const lienDvf = (v) => `https://app.dvf.etalab.gouv.fr/?lat=${v.lat}&lon=${v.lon}&zoom=19`;
+
 function Chiffre({ titre, valeur, detail }) {
   return (
     <div className={`${CARTE} p-4`}>
@@ -35,6 +50,30 @@ function Chiffre({ titre, valeur, detail }) {
 function Resultat({ r, onRetour }) {
   const murs = r.murs;
   const fonds = r.fonds;
+  const [choisie, setChoisie] = useState(null);
+
+  // Le serveur ne rend que les quarante ventes les plus proches : la carte en
+  // montre donc au plus quarante, même quand le secteur en compte davantage.
+  // C'est écrit sous la carte plutôt que laissé à deviner.
+  const ventes = useMemo(
+    () => (murs?.ventes || []).filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lon)),
+    [murs],
+  );
+  const seuils = murs?.prix_m2 || null;
+  const bandeDe = (v) => {
+    if (!seuils || v.prix_m2 == null) return "median";
+    if (v.prix_m2 < seuils.bas) return "bas";
+    if (v.prix_m2 > seuils.haut) return "haut";
+    return "median";
+  };
+  const couches = useMemo(() => BANDES.map((b) => ({
+    cle: b.cle,
+    couleur: b.couleur,
+    taille: 14,
+    zIndex: b.cle === "haut" ? 30 : 20,
+    points: ventes.filter((v) => bandeDe(v) === b.cle),
+  })), [ventes, seuils]);
+
   return (
     <div className="mx-auto max-w-[1280px] px-4 pb-20 pt-8">
       <button onClick={onRetour} className="mb-3 text-[12.5px] text-ardoise hover:text-encre">Toutes les analyses</button>
@@ -42,6 +81,66 @@ function Resultat({ r, onRetour }) {
       <p className="m-0 mt-1 mb-6 text-[12.5px] text-ardoise">
         murs vendus dans {r.rayon} m · fonds cédés dans la commune sur {r.annees} ans
       </p>
+
+      {/* Le plan des ventes de murs. Les fonds n'y figurent pas : le BODACC ne
+          publie aucune coordonnée, seulement une adresse postale, et poser un
+          point à partir d'un nom de rue serait une localisation inventée. */}
+      {ventes.length > 0 && (
+        <div className="mb-5">
+          <div className={`${CARTE} relative min-h-[440px] overflow-hidden`}>
+            <CartePoints point={r.point} rayon_m={r.rayon} couches={couches}
+              onPoint={setChoisie} onErreur={(m) => toast.error(m)} />
+
+            <div className="pointer-events-none absolute bottom-3 left-3 rounded-[10px] border border-bord bg-fond/80 px-3 py-2 text-[11px] backdrop-blur-xl">
+              <p className="alx-mont m-0 mb-1 text-[9.5px] uppercase tracking-[.12em] text-brume">Prix au m² des murs</p>
+              {BANDES.map((b) => (
+                <p key={b.cle} className="m-0 mt-0.5 flex items-center gap-1.5 text-ardoise">
+                  <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: b.couleur }} />
+                  {b.cle === "bas" && seuils ? `moins de ${euros(seuils.bas)}` : null}
+                  {b.cle === "median" && seuils ? `${euros(seuils.bas)} à ${euros(seuils.haut)}` : null}
+                  {b.cle === "haut" && seuils ? `plus de ${euros(seuils.haut)}` : null}
+                  {!seuils ? b.libelle : null}
+                </p>
+              ))}
+            </div>
+
+            {choisie && (
+              <div className="absolute right-3 top-3 w-[290px] rounded-[12px] border border-bord bg-fond/85 p-3 backdrop-blur-xl">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="alx-mont m-0 text-[10px] uppercase tracking-[.12em] text-menthe-texte">Vente enregistrée</p>
+                  <button onClick={() => setChoisie(null)} className="text-brume hover:text-encre"><X className="h-3.5 w-3.5" /></button>
+                </div>
+                <p className="m-0 mt-1 text-[13px] font-medium leading-[1.4] text-encre">{choisie.adresse || choisie.commune || "Adresse non publiée"}</p>
+                <p className="m-0 mt-0.5 text-[11.5px] text-ardoise">
+                  {quand(choisie.date)}{choisie.distance_m != null ? ` · à ${choisie.distance_m} m du point` : ""}
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {[
+                    ["Prix", euros(choisie.prix)],
+                    ["Surface", choisie.surface ? `${choisie.surface} m²` : "—"],
+                    ["Prix au m²", choisie.prix_m2 != null ? `${euros(choisie.prix_m2)} / m²` : "—"],
+                    ["Type", choisie.type_local || "Local commercial"],
+                  ].map(([t, v]) => (
+                    <div key={t} className="rounded-[9px] border border-trait bg-relief px-2.5 py-1.5">
+                      <p className="m-0 text-[9.5px] uppercase tracking-[.08em] text-brume">{t}</p>
+                      <p className="m-0 mt-0.5 text-[12.5px] font-semibold tabular-nums text-encre">{v}</p>
+                    </div>
+                  ))}
+                </div>
+                <a href={lienDvf(choisie)} target="_blank" rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
+                  <ExternalLink className="h-3 w-3" />Cette vente sur DVF
+                </a>
+              </div>
+            )}
+          </div>
+          <p className="m-0 mt-2 text-[11px] text-brume">
+            {ventes.length} vente{ventes.length > 1 ? "s" : ""} de murs localisée{ventes.length > 1 ? "s" : ""} sur le plan
+            {murs?.n > ventes.length ? `, les plus proches des ${murs.n} du secteur` : ""}. Cliquez un point pour le détail.
+            Les cessions de fonds n&apos;y sont pas : le BODACC ne publie pas de coordonnées.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Les murs : DVF */}
@@ -60,17 +159,23 @@ function Resultat({ r, onRetour }) {
               <div className={`${CARTE} p-4`}>
                 <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">Les ventes les plus proches</p>
                 <div className="max-h-[360px] overflow-y-auto">
+                  {/* La liste et le plan montrent les mêmes ventes : cliquer
+                      ici ouvre la même fiche que cliquer le point. */}
                   {(murs.ventes || []).slice(0, 25).map((v, i) => (
-                    <div key={i} className="flex items-baseline justify-between gap-3 border-b border-trait py-2 last:border-b-0 text-[12.5px]">
+                    <button key={i} onClick={() => setChoisie(v)}
+                      className={`flex w-full items-baseline justify-between gap-3 border-b border-trait py-2 text-left last:border-b-0 text-[12.5px] ${choisie === v ? "bg-relief" : "hover:bg-relief"}`}>
                       <span className="min-w-0">
-                        <span className="block truncate text-encre">{v.adresse || v.commune || "Vente"}</span>
+                        <span className="flex items-center gap-1.5 truncate text-encre">
+                          {Number.isFinite(v.lat) && <MapPin className="h-3 w-3 flex-shrink-0 text-brume" />}
+                          {v.adresse || v.commune || "Vente"}
+                        </span>
                         <span className="block text-[11px] text-brume">{quand(v.date)}{v.surface ? ` · ${v.surface} m²` : ""}{v.distance_m != null ? ` · ${v.distance_m} m` : ""}</span>
                       </span>
                       <span className="flex-shrink-0 text-right">
                         <span className="block tabular-nums text-encre">{euros(v.prix)}</span>
                         {v.prix_m2 != null && <span className="block text-[11px] tabular-nums text-menthe-texte">{euros(v.prix_m2)} / m²</span>}
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 {murs.lien && <a href={murs.lien} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre"><ExternalLink className="h-3.5 w-3.5" />Voir sur DVF</a>}

@@ -28,7 +28,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Sun, Moon } from "lucide-react";
+  Upload, Mic, Compass, Sun, Moon, Home } from "lucide-react";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { useTheme } from "@/lib/theme";
 import { Badge } from "@/components/ui/badge";
@@ -307,9 +307,8 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
         WebkitBackdropFilter: "blur(16px) saturate(1.15)",
       }}
     >
-      <Link to={createPageUrl("Dashboard")} className="flex flex-shrink-0 items-center gap-2 pr-3" title="Revenir à Klocka">
-        <img src="/logo-klocka.svg" alt="" className="h-6 w-6 rounded-[5px]" draggable={false} />
-        <ChevronLeft className="h-3.5 w-3.5 text-brume" />
+      <Link to={createPageUrl("Dashboard")} className="flex flex-shrink-0 items-center pr-3" title="Revenir à Klocka">
+        <img src="/logo-klocka.svg" alt="Klocka" className="h-9 w-9 rounded-[7px]" draggable={false} />
       </Link>
       <div className="mr-2 h-5 w-px flex-shrink-0 bg-encre/[0.1]" />
 
@@ -318,6 +317,13 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
       </nav>
 
       <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+        <Link
+          to={createPageUrl("KData")}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-brume transition-colors hover:bg-encre/[0.06] hover:text-encre"
+          title="Tableau de bord K-Data"
+        >
+          <Home className="h-4 w-4" />
+        </Link>
         <BasculeTheme clair={clair} onBasculer={onBasculerTheme} />
         <div className="hidden h-7 w-7 items-center justify-center rounded-full border border-menthe/40 md:flex" title={user?.full_name || user?.email}>
           <span className="text-[11px] text-menthe tracking-[0.06em]">{(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}</span>

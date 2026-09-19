@@ -63,6 +63,26 @@ export async function metadonnees(adresse) {
   return m ? { ...m, cap: bearing(m, point) } : null;
 }
 
+/**
+ * Une seule sonde, pour les appelants qui ne peuvent pas attendre.
+ *
+ * `metadonnees` interroge neuf positions autour du point pour écarter les
+ * photo-sphères de particuliers : c'est ce qu'il faut pour lire une devanture,
+ * mais cela fait neuf allers-retours par commerce. Une page publique qui en
+ * affiche six n'a pas ce budget. Ici, une requête, et on écarte quand même ce
+ * qui n'est pas de l'imagerie Google : mieux vaut pas de panorama du tout que
+ * l'intérieur d'un restaurant à la place de sa façade.
+ *
+ * Rend `{ pano, cap, date, lat, lon }` ou null. Les métadonnées Street View
+ * sont gratuites et ne consomment aucun quota.
+ */
+export async function priseProche(lat, lon, { rayon = 50 } = {}) {
+  if (!cle() || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const m = await unePrise({ location: `${lat},${lon}`, radius: String(rayon), source: 'outdoor' });
+  if (!m || !m.google || m.lat == null || m.lon == null) return null;
+  return { ...m, cap: bearing(m, { lat, lon }) };
+}
+
 /** L'image elle-même, en JPEG : d'un panorama précis avec son cap, ou d'une adresse. */
 export async function photo(adresse, { largeur = 800, hauteur = 500, pano = null, cap = null } = {}) {
   if (!cle()) throw new ErreurSource("Street View n'est pas configuré.", { service: 'Street View', classe: 'definitive' });

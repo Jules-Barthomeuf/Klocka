@@ -529,6 +529,36 @@ async function commercesVoisins(lat, lon) {
   } catch (e) { console.warn(`[lm] commerces voisins indisponibles : ${e?.message || e}`); return []; }
 }
 
+/** Au-delà, on rend la page sans les panoramas : ils ne valent pas l'attente. */
+const DELAI_VUE_MS = 5000;
+
+/**
+ * Le panorama et le CAP de chaque devanture retenue.
+ *
+ * Sans le cap, une vue de rue regarde plein nord depuis le trottoir : le
+ * commerce se retrouve derrière la caméra et il faut tourner à la main pour le
+ * trouver. `metadonnees` rend la prise de vue de Google la plus proche, en
+ * écartant les photo-sphères de particuliers, et le cap vers le point visé.
+ *
+ * Ces requêtes sont gratuites et ne consomment aucun quota. On ne les fait que
+ * pour les devantures réellement montrées, en parallèle, et jamais de façon
+ * bloquante : une vue de rue manquante se remplace par un plan.
+ */
+async function viserLesDevantures(acquisitions) {
+  try {
+    const { streetViewConfigure, priseProche } = await import('./alx/streetview.js');
+    if (!streetViewConfigure()) return;
+    await Promise.all(acquisitions
+      .filter((a) => Number.isFinite(a.exemple?.lat) && Number.isFinite(a.exemple?.lon))
+      .map(async (a) => {
+        try {
+          const m = await priseProche(a.exemple.lat, a.exemple.lon);
+          if (m?.pano) a.exemple = { ...a.exemple, pano: m.pano, cap: m.cap ?? null, prise_le: m.date || null };
+        } catch { /* une devanture sans panorama garde sa vue de rue ordinaire */ }
+      }));
+  } catch (e) { console.warn(`[lm] vues de rue indisponibles : ${e?.message || e}`); }
+}
+
 // --- La fréquentation d'une page ouverte ------------------------------------
 //
 // Une page sans compte ne dit rien d'elle-même : sans mesure, on ne sait pas si
@@ -773,6 +803,7 @@ export async function genererFeuilleDeRoute(reponses, { ip = null, base = '' } =
     const c = exemples.find((x) => x.metier === a.metier && !pris.has(x.nom)) || exemples.find((x) => !pris.has(x.nom));
     if (c) { pris.add(c.nom); a.exemple = c; }
   }
+  await avecDelai(viserLesDevantures(plan.acquisitions), DELAI_VUE_MS, null);
 
   const roadmap = {
     ...plan,

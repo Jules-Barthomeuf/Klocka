@@ -162,7 +162,10 @@ function etapesDuGuide(r) {
       zone: "projet",
       titre: "Qui paie le loyer",
       texte: a0?.exemple
-        ? `À droite, la devanture d'un local ${deMetier(a0.metier)} à ${a0.exemple.distance_m} m de chez vous. ${a0.locataire} : ${a0.risque.toLowerCase()}. ${a0.bail} — c'est lui qui paie le crédit, les charges courantes et la taxe foncière quand le bail le prévoit. Ce commerce-là n'est pas à vendre, il montre le type d'exploitant qu'on cherche.`
+        // Le quartier ne fournit pas toujours une devanture du métier visé. La
+        // montrer quand même a du sens, l'annoncer comme telle n'en a pas : on
+        // ne dit « un local de coiffure » que si c'en est vraiment un.
+        ? `À droite, ${a0.exemple.metier === a0.metier ? `la devanture d'un local ${deMetier(a0.metier)}` : `une devanture du quartier, ${a0.exemple.nom}`} à ${a0.exemple.distance_m} m de chez vous. ${a0.locataire} : ${a0.risque.toLowerCase()}. ${a0.bail} — c'est lui qui paie le crédit, les charges courantes et la taxe foncière quand le bail le prévoit. Ce commerce-là n'est pas à vendre, il montre le type d'exploitant qu'on cherche.`
         : `${a0 ? `${a0.locataire} sur un ${a0.bail.toLowerCase()}` : "Un local commercial se loue par un bail 3-6-9"} : c'est le commerçant qui paie le crédit, les charges courantes et la taxe foncière quand le bail le prévoit. C'est ce qui distingue un commerce d'un appartement.`,
     },
   ];
@@ -280,11 +283,16 @@ function Guide({ r, etape, setEtape, setAcqEnAvant, demarre, onDemarrer, onAppel
 
 function Resultat({ r, onRecommencer, onAppel }) {
   const [demarre, setDemarre] = useState(false);
+  const [vu, setVu] = useState(false);
   const [etape, setEtape] = useState(0);
   const [acq, setAcq] = useState(0);
   const [acqEnAvant, setAcqEnAvant] = useState(null);
   const etapes = useMemo(() => etapesDuGuide(r), [r]);
-  const zone = demarre ? etapes[etape]?.zone : null;
+  // À l'arrivée, seul le titre est net : six blocs chiffrés d'un coup ne se
+  // lisent pas, et la carte de droite dit par où commencer. Une fois le guide
+  // ouvert au moins une fois, en sortir rend toute la page nette — sans quoi
+  // « Voir toute la page » ramènerait au brouillard du départ.
+  const zone = demarre ? etapes[etape]?.zone : (vu ? null : "titre");
   const a = r.acquisitions[acq];
   const c = r.capacite_initiale;
   const flou = (z) => flouSi(zone, z);
@@ -418,6 +426,10 @@ function Resultat({ r, onRecommencer, onAppel }) {
                       <p className="m-0 mt-2 border-t border-trait pt-2 text-[11px] leading-[1.6] text-brume">
                         C&apos;est le commerçant qui paie le loyer, les charges courantes, et la taxe foncière quand le bail le prévoit.
                         Ce commerce existe et <span className="text-ardoise">n&apos;est pas à vendre</span> : il montre le type d&apos;exploitant recherché.
+                        {/* Une photo de rue a un âge, et une enseigne peut avoir
+                            changé depuis : le dire évite de faire passer une
+                            image ancienne pour l'état d'aujourd'hui. */}
+                        {a.exemple.prise_le ? ` Vue de rue prise en ${a.exemple.prise_le}.` : ""}
                       </p>
                     </div>
                   ) : (
@@ -429,12 +441,24 @@ function Resultat({ r, onRecommencer, onAppel }) {
 
                 {/* La devanture, sur Google Maps */}
                 <div className="min-h-[260px] overflow-hidden rounded-[12px] border border-trait">
-                  {CLE_MAPS && a.exemple?.lat ? (
-                    <iframe title={`Vue de la rue · ${a.exemple.nom}`} className="block h-full min-h-[260px] w-full border-0" loading="lazy"
+                  {/* Le panorama exact, cadré sur la devanture par le cap
+                      calculé au serveur. Sans panorama, un plan centré sur le
+                      commerce vaut mieux qu'une vue de rue qui regarde
+                      ailleurs et qu'il faut faire pivoter à la main. */}
+                  {CLE_MAPS && a.exemple?.pano ? (
+                    <iframe title={`Vue de la rue · ${a.exemple.nom}`} className="block h-full min-h-[260px] w-full border-0"
                       referrerPolicy="no-referrer-when-downgrade" allowFullScreen
-                      src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_MAPS}&location=${a.exemple.lat},${a.exemple.lon}&heading=0&pitch=0&fov=90`} />
+                      src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_MAPS}&pano=${encodeURIComponent(a.exemple.pano)}&heading=${a.exemple.cap ?? 0}&pitch=0&fov=80`} />
+                  ) : CLE_MAPS && a.exemple?.lat ? (
+                    // Sans panorama identifié, la vue de rue ordinaire au point
+                    // du commerce. On n'impose pas de cap : « heading=0 »
+                    // regardait plein nord, ce qui mettait la devanture dans le
+                    // dos de la caméra.
+                    <iframe title={`Vue de la rue · ${a.exemple.nom}`} className="block h-full min-h-[260px] w-full border-0"
+                      referrerPolicy="no-referrer-when-downgrade" allowFullScreen
+                      src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_MAPS}&location=${a.exemple.lat},${a.exemple.lon}&fov=80`} />
                   ) : CLE_MAPS && r.quartier ? (
-                    <iframe title="Votre quartier" className="block h-full min-h-[260px] w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                    <iframe title="Votre quartier" className="block h-full min-h-[260px] w-full border-0" referrerPolicy="no-referrer-when-downgrade"
                       src={`https://www.google.com/maps/embed/v1/place?key=${CLE_MAPS}&q=${encodeURIComponent(r.quartier || "")}&zoom=14`} />
                   ) : (
                     <div className="flex h-full min-h-[260px] items-center justify-center px-4 text-center text-[12px] text-brume">Plan indisponible</div>
@@ -482,7 +506,7 @@ function Resultat({ r, onRecommencer, onAppel }) {
 
         <div className="lg:sticky lg:top-6 lg:self-start">
           <Guide r={r} etape={etape} setEtape={setEtape} setAcqEnAvant={setAcqEnAvant} onAppel={onAppel}
-            demarre={demarre} onDemarrer={() => { setDemarre((d) => !d); setEtape(0); }} />
+            demarre={demarre} onDemarrer={() => { setVu(true); setDemarre((d) => !d); setEtape(0); }} />
         </div>
       </div>
 
@@ -552,7 +576,10 @@ export default function FeuilleDeRoute() {
     if (q.length < 3 || roadmap) { setSuggestions([]); return undefined; }
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?type=municipality&autocomplete=1&limit=5&q=${encodeURIComponent(q)}`);
+        // Toute la Base Adresse, numéro de voie compris : une ville seule
+        // donnait des prix de quartier moyennés sur toute la commune et des
+        // commerces pris au hasard autour du centre.
+        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?autocomplete=1&limit=6&q=${encodeURIComponent(q)}`);
         const d = r.ok ? (await r.json()).features || [] : [];
         setSuggestions(d.map((x) => x.properties?.label).filter(Boolean));
       } catch { /* la Base Adresse ne répond pas : on saisit à la main */ }
@@ -631,11 +658,11 @@ export default function FeuilleDeRoute() {
                 </Champ>
               )}
 
-              <Champ label="Votre ville ou quartier" aide="C'est là que nous prenons les prix réels et les commerces en exemple.">
+              <Champ label="Votre adresse" aide="Le numéro et la rue, pas seulement la ville : c'est autour de ce point que nous prenons les prix réels et les commerces en exemple.">
                 <div className="relative">
                   <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
                     <MapPin className="h-4 w-4 flex-shrink-0 text-brume" />
-                    <input value={f.quartier} onChange={(e) => poser("quartier", e.target.value)} placeholder="Nantes, Saint-Nazaire…"
+                    <input value={f.quartier} onChange={(e) => poser("quartier", e.target.value)} placeholder="12 rue de la Paix, Saint-Nazaire"
                       className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
                   </div>
                   {suggestions.length > 0 && (

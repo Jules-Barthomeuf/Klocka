@@ -1,4 +1,4 @@
-import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store } from "lucide-react";
+import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store, DoorClosed } from "lucide-react";
 
 // Les six applications de K-Data, décrites une seule fois : le tableau de
 // bord en fait des cartes, la barre du haut de K-Data en fait un menu.
@@ -43,6 +43,15 @@ export const MODULES_KDATA = [
     etat: "Ouvert",
   },
   {
+    cle: "kvacance",
+    pageName: "KVacance",
+    nom: "K-Vacance",
+    icone: DoorClosed,
+    phrase: "Les locaux vides d'un quartier, et le rythme auquel ses commerces tournent.",
+    chemin: "/kvacance",
+    etat: "Ouvert",
+  },
+  {
     cle: "kfoncier",
     pageName: "KFoncier",
     nom: "K-Foncier",
@@ -61,13 +70,13 @@ export const MODULES_KDATA = [
     etat: "Ouvert",
   },
   {
-    cle: "transaction-fonds",
-    pageName: "TransactionFonds",
-    nom: "Transaction de fonds",
+    cle: "ktransactions",
+    pageName: "KTransactions",
+    nom: "K-Transactions",
     icone: Store,
-    phrase: "Suivre les cessions de fonds de commerce et les prix pratiqués.",
-    chemin: null,
-    etat: "Bientôt",
+    phrase: "Ce que les murs et les fonds se sont vraiment vendus, autour d'une adresse.",
+    chemin: "/ktransactions",
+    etat: "Ouvert",
   },
 ];
 

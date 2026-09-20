@@ -155,9 +155,6 @@ function Ligne({ a, cochee, onCocher, onOuvrir }) {
           <span className="text-[13.5px] font-medium text-encre">{a.nom_outil || m?.nom || a.outil}</span>
           <span className="truncate text-[12.5px] text-ardoise">{a.libelle || a.adresse}</span>
         </span>
-        <span className={`block truncate text-[11.5px] ${a.etat === "echec" ? "text-alerte" : "text-brume"}`}>
-          {a.etat === "en_cours" ? "en cours…" : a.etat === "echec" ? a.erreur || "échec" : a.resume || "prête"}
-        </span>
       </span>
       <span className="flex flex-shrink-0 items-center gap-2 text-[11px] text-brume">
         {a.dossier_nom && <span className="inline-flex items-center gap-1 rounded-full border border-trait px-2 py-0.5 text-ardoise"><Folder className="h-3 w-3" />{a.dossier_nom}</span>}
@@ -265,7 +262,7 @@ export default function KData() {
           </div>
 
           <div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3">
               {MODULES_KDATA.map((m) => <CarteModule key={m.cle} module={m} />)}
             </div>
           </div>

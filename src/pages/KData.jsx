@@ -30,21 +30,13 @@ const MODULES_PAR_CLE = Object.fromEntries(MODULES_KDATA.map((m) => [m.cle, m]))
 const lireOutils = () => { try { return new Set(JSON.parse(localStorage.getItem(CLE_OUTILS) || "[]")); } catch { return new Set(); } };
 const garderOutils = (s) => { try { localStorage.setItem(CLE_OUTILS, JSON.stringify([...s])); } catch { /* sans stockage, la sélection ne survit pas à la page */ } };
 
-/** Une carte de module : le nom, ce qu'il fait, son état. */
+/** Une carte de module : la photo, et son titre posé dessus. Rien de plus. */
 function CarteModule({ module: m }) {
-  const Icone = m.icone;
   return (
-    <Link to={m.chemin} className={`${CARTE} group block p-[18px] transition-colors duration-300 hover:border-menthe/40`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-trait bg-relief">
-          <Icone className="h-[17px] w-[17px] text-menthe" />
-        </div>
-        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-bord transition-colors group-hover:border-menthe">
-          <ArrowUpRight className="h-3.5 w-3.5 text-ardoise transition-colors group-hover:text-menthe-clair" />
-        </div>
-      </div>
-      <h2 className="m-0 mt-4 text-[15px] font-medium tracking-[-0.01em] text-encre">{m.nom}</h2>
-      <p className="mt-1.5 mb-0 text-[12.5px] leading-[1.6] text-ardoise">{m.phrase}</p>
+    <Link to={m.chemin} title={m.phrase} className={`${CARTE} group relative block aspect-[4/3] overflow-hidden`}>
+      <img src={m.image} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+      <div className="absolute inset-0 bg-gradient-to-t from-fond/90 via-fond/10 to-transparent transition-colors group-hover:from-fond/95" />
+      <h2 className="absolute inset-x-0 bottom-0 m-0 p-3 text-[13.5px] font-medium leading-tight tracking-[-0.01em] text-craie">{m.nom}</h2>
     </Link>
   );
 }
@@ -149,7 +141,6 @@ function Composeur({ onLancer, enCours }) {
 /** Une analyse dans la file : sa case, son outil, son adresse, son état. */
 function Ligne({ a, cochee, onCocher, onOuvrir }) {
   const m = MODULES_PAR_CLE[a.outil];
-  const Icone = m?.icone || Wrench;
   const ouvrable = !!a.lien;
   return (
     <div className={`flex items-center gap-3 border-b border-trait py-2.5 last:border-b-0 ${ouvrable ? "cursor-pointer hover:bg-relief" : ""}`} onClick={() => ouvrable && onOuvrir(a)}>
@@ -159,9 +150,6 @@ function Ligne({ a, cochee, onCocher, onOuvrir }) {
           {cochee && <Check className="h-3 w-3" style={{ color: J["sur-menthe"] }} />}
         </span>
       </label>
-      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[8px] border border-trait bg-relief">
-        <Icone className="h-4 w-4 text-menthe" />
-      </span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline gap-x-2">
           <span className="text-[13.5px] font-medium text-encre">{a.nom_outil || m?.nom || a.outil}</span>
@@ -224,8 +212,8 @@ export default function KData() {
 
   return (
     <div className="min-h-screen text-encre">
-      <div className="mx-auto max-w-[1100px] px-6 pb-20 pt-8">
-        <header className="mb-6">
+      <div className="mx-auto max-w-[1400px] px-6 pb-20 pt-8">
+        <header className="mb-8">
           <p className="alx-mont m-0 text-[11px] font-medium uppercase tracking-[.18em] text-menthe">K-Data</p>
           <h1 className="mt-2 mb-0 text-[30px] font-light leading-tight tracking-[-0.02em] text-encre">Une adresse, les analyses que vous voulez</h1>
           <p className="mt-2 mb-0 max-w-[62ch] text-[14px] leading-[1.7] text-ardoise">
@@ -233,55 +221,63 @@ export default function KData() {
           </p>
         </header>
 
-        <Composeur onLancer={(c) => lancer.mutate(c)} enCours={lancer.isPending} />
+        {/* Deux moitiés égales : à gauche le composeur et la file, à droite
+            les outils, un par un, en photo. */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+          <div>
+            <Composeur onLancer={(c) => lancer.mutate(c)} enCours={lancer.isPending} />
 
-        {/* La file : ce qui tourne, puis le plus récent. */}
-        <section className={`${CARTE} mt-6 p-4`}>
-          {/* Cocher une analyse remplace ici même l'en-tête « Vos analyses » par
-              la barre de rangement, à la même hauteur : rien ne s'ajoute, un
-              état chasse l'autre. */}
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            {coches.size > 0 ? (
-              <div className="flex flex-1 flex-wrap items-center gap-2">
-                <span className="text-[12.5px] text-encre">{coches.size} cochée{coches.size > 1 ? "s" : ""}</span>
-                <select value={dossierChoisi} onChange={(e) => setDossierChoisi(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-encre outline-none">
-                  <option value="">Choisir un dossier…</option>
-                  {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
-                </select>
-                <button type="button" disabled={!dossierChoisi || ranger.isPending} onClick={() => ranger.mutate({ ids: [...coches], dossier_id: dossierChoisi })}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-4 text-[11px] font-medium uppercase tracking-[.1em] text-sur-menthe disabled:opacity-50">
-                  {ranger.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Folder className="h-3.5 w-3.5" />}Envoyer dans le dossier
-                </button>
-                <button type="button" onClick={() => ranger.mutate({ ids: [...coches], dossier_id: null })} className="text-[11px] text-brume hover:text-encre">Sortir du dossier</button>
-                <button type="button" onClick={() => { if (window.confirm(`Supprimer ${coches.size} analyse${coches.size > 1 ? "s" : ""} de la file ?`)) [...coches].forEach((id) => supprimer.mutate(id)); }} className="text-[11px] text-brume hover:text-alerte">Supprimer</button>
-                <button type="button" onClick={() => setCoches(new Set())} className="ml-auto flex-shrink-0 text-brume hover:text-encre" aria-label="Tout décocher"><X className="h-3.5 w-3.5" /></button>
+            {/* La file : ce qui tourne, puis le plus récent. */}
+            <section className={`${CARTE} mt-6 p-4`}>
+              {/* Cocher une analyse remplace ici même l'en-tête « Vos analyses » par
+                  la barre de rangement, à la même hauteur : rien ne s'ajoute, un
+                  état chasse l'autre. */}
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                {coches.size > 0 ? (
+                  <div className="flex flex-1 flex-wrap items-center gap-2">
+                    <span className="text-[12.5px] text-encre">{coches.size} cochée{coches.size > 1 ? "s" : ""}</span>
+                    <select value={dossierChoisi} onChange={(e) => setDossierChoisi(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-encre outline-none">
+                      <option value="">Choisir un dossier…</option>
+                      {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
+                    </select>
+                    <button type="button" disabled={!dossierChoisi || ranger.isPending} onClick={() => ranger.mutate({ ids: [...coches], dossier_id: dossierChoisi })}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-4 text-[11px] font-medium uppercase tracking-[.1em] text-sur-menthe disabled:opacity-50">
+                      {ranger.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Folder className="h-3.5 w-3.5" />}Envoyer dans le dossier
+                    </button>
+                    <button type="button" onClick={() => ranger.mutate({ ids: [...coches], dossier_id: null })} className="text-[11px] text-brume hover:text-encre">Sortir du dossier</button>
+                    <button type="button" onClick={() => { if (window.confirm(`Supprimer ${coches.size} analyse${coches.size > 1 ? "s" : ""} de la file ?`)) [...coches].forEach((id) => supprimer.mutate(id)); }} className="text-[11px] text-brume hover:text-alerte">Supprimer</button>
+                    <button type="button" onClick={() => setCoches(new Set())} className="ml-auto flex-shrink-0 text-brume hover:text-encre" aria-label="Tout décocher"><X className="h-3.5 w-3.5" /></button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">
+                      Vos analyses{enCours.length ? ` · ${enCours.length} en cours` : ""} <span className="normal-case tracking-normal">· {visibles.length}</span>
+                    </p>
+                    <select value={filtre} onChange={(e) => setFiltre(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-ardoise outline-none">
+                      <option value="tous">Tous les dossiers</option>
+                      <option value="sans">Sans dossier</option>
+                      {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
+                    </select>
+                  </>
+                )}
               </div>
-            ) : (
-              <>
-                <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">
-                  Vos analyses{enCours.length ? ` · ${enCours.length} en cours` : ""} <span className="normal-case tracking-normal">· {visibles.length}</span>
-                </p>
-                <select value={filtre} onChange={(e) => setFiltre(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-ardoise outline-none">
-                  <option value="tous">Tous les dossiers</option>
-                  <option value="sans">Sans dossier</option>
-                  {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
-                </select>
-              </>
-            )}
+
+              {!visibles.length ? (
+                <p className="m-0 flex items-center gap-2 py-3 text-[13px] text-brume"><Clock className="h-3.5 w-3.5" />Aucune analyse{filtre !== "tous" ? " dans ce dossier" : " pour l'instant"}. Lancez-en une ci-dessus.</p>
+              ) : (
+                <div>
+                  {visibles.map((a) => <Ligne key={a.id} a={a} cochee={coches.has(a.id)} onCocher={cocher} onOuvrir={(x) => navigate(x.lien)} />)}
+                </div>
+              )}
+            </section>
           </div>
 
-          {!visibles.length ? (
-            <p className="m-0 flex items-center gap-2 py-3 text-[13px] text-brume"><Clock className="h-3.5 w-3.5" />Aucune analyse{filtre !== "tous" ? " dans ce dossier" : " pour l'instant"}. Lancez-en une ci-dessus.</p>
-          ) : (
-            <div>
-              {visibles.map((a) => <Ligne key={a.id} a={a} cochee={coches.has(a.id)} onCocher={cocher} onOuvrir={(x) => navigate(x.lien)} />)}
+          <div>
+            <h2 className="alx-mont m-0 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Les outils, un par un</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {MODULES_KDATA.map((m) => <CarteModule key={m.cle} module={m} />)}
             </div>
-          )}
-        </section>
-
-        <h2 className="alx-mont mt-10 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Les outils, un par un</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {MODULES_KDATA.map((m) => <CarteModule key={m.cle} module={m} />)}
+          </div>
         </div>
       </div>
     </div>

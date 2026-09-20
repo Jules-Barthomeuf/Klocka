@@ -154,7 +154,10 @@ function Ligne({ a, cochee, onCocher, onOuvrir }) {
   return (
     <div className={`flex items-center gap-3 border-b border-trait py-2.5 last:border-b-0 ${ouvrable ? "cursor-pointer hover:bg-relief" : ""}`} onClick={() => ouvrable && onOuvrir(a)}>
       <label className="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center" onClick={(e) => e.stopPropagation()}>
-        <input type="checkbox" checked={cochee} onChange={() => onCocher(a.id)} className="h-4 w-4 accent-menthe" aria-label={`Cocher ${a.nom_outil || a.outil}`} />
+        <input type="checkbox" checked={cochee} onChange={() => onCocher(a.id)} className="sr-only" aria-label={`Cocher ${a.nom_outil || a.outil}`} />
+        <span className={`flex h-4 w-4 items-center justify-center rounded-[4px] border bg-transparent transition-colors ${cochee ? "border-menthe bg-menthe" : "border-bord-vif"}`}>
+          {cochee && <Check className="h-3 w-3" style={{ color: J["sur-menthe"] }} />}
+        </span>
       </label>
       <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[8px] border border-trait bg-relief">
         <Icone className="h-4 w-4 text-menthe" />
@@ -234,34 +237,38 @@ export default function KData() {
 
         {/* La file : ce qui tourne, puis le plus récent. */}
         <section className={`${CARTE} mt-6 p-4`}>
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-            <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">
-              Vos analyses{enCours.length ? ` · ${enCours.length} en cours` : ""} <span className="normal-case tracking-normal">· {visibles.length}</span>
-            </p>
-            <select value={filtre} onChange={(e) => setFiltre(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-ardoise outline-none">
-              <option value="tous">Tous les dossiers</option>
-              <option value="sans">Sans dossier</option>
-              {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
-            </select>
+          {/* Cocher une analyse remplace ici même l'en-tête « Vos analyses » par
+              la barre de rangement, à la même hauteur : rien ne s'ajoute, un
+              état chasse l'autre. */}
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            {coches.size > 0 ? (
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                <span className="text-[12.5px] text-encre">{coches.size} cochée{coches.size > 1 ? "s" : ""}</span>
+                <select value={dossierChoisi} onChange={(e) => setDossierChoisi(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-encre outline-none">
+                  <option value="">Choisir un dossier…</option>
+                  {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
+                </select>
+                <button type="button" disabled={!dossierChoisi || ranger.isPending} onClick={() => ranger.mutate({ ids: [...coches], dossier_id: dossierChoisi })}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-4 text-[11px] font-medium uppercase tracking-[.1em] text-sur-menthe disabled:opacity-50">
+                  {ranger.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Folder className="h-3.5 w-3.5" />}Envoyer dans le dossier
+                </button>
+                <button type="button" onClick={() => ranger.mutate({ ids: [...coches], dossier_id: null })} className="text-[11px] text-brume hover:text-encre">Sortir du dossier</button>
+                <button type="button" onClick={() => { if (window.confirm(`Supprimer ${coches.size} analyse${coches.size > 1 ? "s" : ""} de la file ?`)) [...coches].forEach((id) => supprimer.mutate(id)); }} className="text-[11px] text-brume hover:text-alerte">Supprimer</button>
+                <button type="button" onClick={() => setCoches(new Set())} className="ml-auto flex-shrink-0 text-brume hover:text-encre" aria-label="Tout décocher"><X className="h-3.5 w-3.5" /></button>
+              </div>
+            ) : (
+              <>
+                <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">
+                  Vos analyses{enCours.length ? ` · ${enCours.length} en cours` : ""} <span className="normal-case tracking-normal">· {visibles.length}</span>
+                </p>
+                <select value={filtre} onChange={(e) => setFiltre(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-ardoise outline-none">
+                  <option value="tous">Tous les dossiers</option>
+                  <option value="sans">Sans dossier</option>
+                  {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
+                </select>
+              </>
+            )}
           </div>
-
-          {/* La barre de rangement : elle n'apparaît qu'avec une case cochée. */}
-          {coches.size > 0 && (
-            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-[12px] border border-menthe/30 bg-menthe/[0.06] px-3 py-2">
-              <span className="text-[12.5px] text-encre">{coches.size} cochée{coches.size > 1 ? "s" : ""} ·</span>
-              <select value={dossierChoisi} onChange={(e) => setDossierChoisi(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-encre outline-none">
-                <option value="">Choisir un dossier…</option>
-                {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
-              </select>
-              <button type="button" disabled={!dossierChoisi || ranger.isPending} onClick={() => ranger.mutate({ ids: [...coches], dossier_id: dossierChoisi })}
-                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-4 text-[11px] font-medium uppercase tracking-[.1em] text-sur-menthe disabled:opacity-50">
-                {ranger.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Folder className="h-3.5 w-3.5" />}Envoyer dans le dossier
-              </button>
-              <button type="button" onClick={() => ranger.mutate({ ids: [...coches], dossier_id: null })} className="text-[11px] text-brume hover:text-encre">Sortir du dossier</button>
-              <button type="button" onClick={() => { if (window.confirm(`Supprimer ${coches.size} analyse${coches.size > 1 ? "s" : ""} de la file ?`)) [...coches].forEach((id) => supprimer.mutate(id)); }} className="text-[11px] text-brume hover:text-alerte">Supprimer</button>
-              <button type="button" onClick={() => setCoches(new Set())} className="ml-auto text-brume hover:text-encre" aria-label="Tout décocher"><X className="h-3.5 w-3.5" /></button>
-            </div>
-          )}
 
           {!visibles.length ? (
             <p className="m-0 flex items-center gap-2 py-3 text-[13px] text-brume"><Clock className="h-3.5 w-3.5" />Aucune analyse{filtre !== "tous" ? " dans ce dossier" : " pour l'instant"}. Lancez-en une ci-dessus.</p>

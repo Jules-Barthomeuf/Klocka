@@ -45,9 +45,12 @@ export function Avis({ ton = "information", titre, description = null, action = 
       role="status"
       className="relative w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-bord bg-surface-pleine px-[18px] py-4 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.9)]"
     >
-      <div className="flex items-start gap-3">
+      {/* Sans description, le titre tient sur une ligne plus basse que la
+          pastille : centrer plutôt qu'aligner en haut évite le vide qui se
+          creusait sous une notification courte comme « 2 analyses rangées ». */}
+      <div className={`flex gap-3 ${description ? "items-start" : "items-center"}`}>
         <span
-          className="mt-px grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] border"
+          className={`grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] border ${description ? "mt-px" : ""}`}
           style={{ background: `${teinte}1f`, borderColor: `${teinte}3d`, color: teinte }}
         >
           <Icone className={`h-[15px] w-[15px] ${ton === "en_cours" ? "animate-spin" : ""}`} strokeWidth={2.5} />

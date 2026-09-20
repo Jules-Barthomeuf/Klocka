@@ -213,17 +213,9 @@ export default function KData() {
   return (
     <div className="min-h-screen text-encre">
       <div className="mx-auto max-w-[1400px] px-6 pb-20 pt-8">
-        <header className="mb-8">
-          <p className="alx-mont m-0 text-[11px] font-medium uppercase tracking-[.18em] text-menthe">K-Data</p>
-          <h1 className="mt-2 mb-0 text-[30px] font-light leading-tight tracking-[-0.02em] text-encre">Une adresse, les analyses que vous voulez</h1>
-          <p className="mt-2 mb-0 max-w-[62ch] text-[14px] leading-[1.7] text-ardoise">
-            Choisissez les outils, donnez l&apos;adresse : chaque analyse part de son côté et se range ensuite dans le dossier de votre choix.
-          </p>
-        </header>
-
         {/* Deux moitiés égales : à gauche le composeur et la file, à droite
-            les outils, un par un, en photo. */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+            les outils, en photo. */}
+        <div className="grid grid-cols-1 gap-8 pt-2 lg:grid-cols-2 lg:items-start">
           <div>
             <Composeur onLancer={(c) => lancer.mutate(c)} enCours={lancer.isPending} />
 
@@ -273,7 +265,6 @@ export default function KData() {
           </div>
 
           <div>
-            <h2 className="alx-mont m-0 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Les outils, un par un</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {MODULES_KDATA.map((m) => <CarteModule key={m.cle} module={m} />)}
             </div>

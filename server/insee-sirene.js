@@ -9,9 +9,15 @@
 // filtrés par date et par code d'activité, mille par page, avec leurs
 // coordonnées Lambert 93.
 //
-// Une clé gratuite, à créer sur portail-api.insee.fr, posée dans .env sous
-// INSEE_SIRENE_CLE. Trente requêtes par minute : une commune se lit en une
-// poignée d'appels, et le résultat se garde trente jours.
+// Une clé gratuite, à créer sur portail-api.insee.fr. La marche à suivre est
+// précise et le mode d'emploi de l'INSEE insiste : l'application doit être
+// créée en mode « simple », le mode « backend to backend » ne fonctionne en
+// aucun cas pour cette API. On souscrit ensuite au plan « Public », le seul
+// existant, qui délivre une clé sans date de fin. Elle se pose dans .env sous
+// INSEE_SIRENE_CLE et voyage dans l'en-tête X-INSEE-Api-Key-Integration.
+//
+// Trente requêtes par minute et deux mille par heure : une commune se lit en
+// une poignée d'appels, et le résultat se garde trente jours.
 
 import { fileURLToPath } from 'node:url';
 import { Records } from './db.js';
@@ -21,6 +27,8 @@ const RACINE = 'https://api.insee.fr/api-sirene/3.11';
 const CLE = (process.env.INSEE_SIRENE_CLE || '').trim();
 const UA = 'Klocka/1.0 (sourcing@klocka.immo)';
 const DELAI_MS = 60000;
+// Mille par page : c'est le plafond du format JSON, les deux cent mille
+// annoncés ailleurs ne valent que pour le CSV.
 const PAR_PAGE = 1000;
 // Trente appels par minute : deux secondes entre deux pages tiennent la marge.
 const PAUSE_MS = 2100;
@@ -28,7 +36,7 @@ const CACHE = 'CacheSireneKVacance';
 const CACHE_JOURS = 30;
 
 export const sireneConfigure = () => !!CLE;
-export const MESSAGE_SANS_CLE = "L'API Sirene de l'INSEE n'est pas configurée : INSEE_SIRENE_CLE manque dans .env (clé gratuite sur portail-api.insee.fr).";
+export const MESSAGE_SANS_CLE = "L'API Sirene de l'INSEE n'est pas configurée : INSEE_SIRENE_CLE manque dans .env (clé gratuite sur portail-api.insee.fr, application en mode « simple » souscrite au plan « Public »).";
 
 // --- Lambert 93 -> WGS 84 ------------------------------------------------
 //
@@ -124,9 +132,12 @@ async function appeler(params) {
   });
   // 404 : aucun établissement ne répond à la question, ce n'est pas une panne.
   if (r.status === 404) return { header: { total: 0 }, etablissements: [] };
-  if (r.status === 401 || r.status === 403) throw new Error("L'API Sirene refuse la clé INSEE_SIRENE_CLE : vérifiez-la sur portail-api.insee.fr.");
+  if (r.status === 401) throw new Error("L'API Sirene refuse la clé INSEE_SIRENE_CLE : vérifiez-la dans « souscriptions » sur portail-api.insee.fr.");
+  // 429 : le quota d'une minute est dépassé, on laisse passer la fenêtre.
   if (r.status === 429) { await new Promise((ok) => setTimeout(ok, 15000)); return appeler(params); }
-  if (!r.ok) throw new Error(`L'API Sirene a répondu ${r.status}`);
+  // 400 : une variable mal orthographiée ou oubliée hors de `periode(...)`.
+  // Le message du registre est plus utile que le code, on le garde.
+  if (!r.ok) throw new Error(`L'API Sirene a répondu ${r.status} : ${(await r.text()).slice(0, 200)}`);
   return r.json();
 }
 
@@ -137,17 +148,22 @@ async function appeler(params) {
 export const clauseActivites = (prefixes) => `(${(prefixes || []).map((p) => `activitePrincipaleEtablissement:${String(p).replace('.', '')}*`).join(' OR ')})`;
 
 /**
- * Toutes les pages d'une question, par curseur : Sirene rend `curseurSuivant`
- * égal au curseur envoyé quand il n'y a plus rien.
+ * Toutes les pages d'une question, par curseur.
+ *
+ * Le premier appel porte `curseur=*`, chaque réponse donne le curseur suivant,
+ * et l'on s'arrête quand les deux sont identiques : c'est la seule condition
+ * d'arrêt que le registre garantit. Une page plus courte que demandé n'en est
+ * pas une — la documentation montre une page de 84 résultats suivie d'une
+ * autre requête — donc on ne s'arrête surtout pas là-dessus.
  */
-async function toutesLesPages(q, champs) {
+async function toutesLesPages(q, champs, extra = {}) {
   const sortie = [];
   let curseur = '*';
   for (let page = 0; page < 60; page++) {
-    const d = await appeler({ q, nombre: String(PAR_PAGE), curseur, champs });
+    const d = await appeler({ q, nombre: String(PAR_PAGE), curseur, champs, ...extra });
     for (const e of d.etablissements || []) sortie.push(e);
     const suivant = d.header?.curseurSuivant;
-    if (!suivant || suivant === curseur || (d.etablissements || []).length < PAR_PAGE) break;
+    if (!suivant || suivant === curseur) break;
     curseur = suivant;
     await new Promise((ok) => setTimeout(ok, PAUSE_MS));
   }
@@ -183,8 +199,11 @@ export async function etablissementsDeLaCommune(codeInsee, { prefixes, anneesFer
   const activites = clauseActivites(prefixes);
   const brut = [];
   try {
-    // 1. Les actifs : la période en cours est à l'état A.
-    brut.push(...await toutesLesPages(`codeCommuneEtablissement:${codeInsee} AND periode(etatAdministratifEtablissement:A AND ${activites})`, CHAMPS));
+    // 1. Les actifs. `date` au jour même restreint à la période en cours :
+    //    sans lui, un établissement qui fut un commerce ouvert dans une vieille
+    //    période remonterait aussi, et gonflerait le stock d'aujourd'hui.
+    const aujourdhui = new Date().toISOString().slice(0, 10);
+    brut.push(...await toutesLesPages(`codeCommuneEtablissement:${codeInsee} AND periode(etatAdministratifEtablissement:A AND ${activites})`, CHAMPS, { date: aujourdhui }));
     await new Promise((ok) => setTimeout(ok, PAUSE_MS));
     // 2. Les fermés récents : la période à l'état F a commencé après la date.
     brut.push(...await toutesLesPages(`codeCommuneEtablissement:${codeInsee} AND periode(etatAdministratifEtablissement:F AND dateDebut:[${jour} TO *] AND ${activites})`, CHAMPS));

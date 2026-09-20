@@ -65,7 +65,7 @@ test('un établissement Sirene devient une ligne lisible, avec son adresse posta
   assert.equal(lireEtablissement({}), null);
 });
 
-test('la clause d\'activités cible des préfixes NAF, et sans clé la lecture dit quoi poser dans .env', async () => {
+test('la clause d\'activités cible des préfixes NAF, et sans identifiants la lecture dit quoi poser dans .env', async () => {
   assert.equal(clauseActivites(['47', '56', '960']), '(activitePrincipaleEtablissement:47* OR activitePrincipaleEtablissement:56* OR activitePrincipaleEtablissement:960*)');
   assert.equal(sireneConfigure(), false);
   const r = await etablissementsDeLaCommune('06088', { prefixes: ['47'] });

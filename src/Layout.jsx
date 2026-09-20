@@ -312,7 +312,7 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
       </Link>
       <div className="mr-2 h-5 w-px flex-shrink-0 bg-encre/[0.1]" />
 
-      <nav className="flex flex-1 items-center justify-start">
+      <nav className="flex flex-1 items-center justify-center">
         <MenuApps isActivePage={isActivePage} />
       </nav>
 

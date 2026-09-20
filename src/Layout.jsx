@@ -414,6 +414,11 @@ function LayoutContent({ children, currentPageName }) {
   // autre espace, qui échange la barre latérale de Klocka contre sa propre
   // barre du haut.
   const enKData = PAGES_KDATA.some((p) => isActivePage(p));
+  // Une page K-Data ouverte dans un cadre — la fenêtre de lecture d'un
+  // dossier — ne montre que l'analyse : ni barre du haut, ni déconnexion,
+  // ni menu des applications, qui n'ont aucun sens dans une fenêtre qu'on
+  // regarde puis qu'on ferme.
+  const enCadre = typeof window !== "undefined" && window.self !== window.top;
   const modoKData = enKData && isAdmin && !hideNavbar;
 
   // Le mode clair n'existe que dans K-Data : ailleurs Klocka reste sombre.
@@ -574,8 +579,8 @@ function LayoutContent({ children, currentPageName }) {
       {modoKData ? (
         /* K-Data n'a pas de barre latérale : sa barre du haut, seule, sur
            bureau comme sur mobile — c'est elle qui fait sentir qu'on a
-           changé de côté de l'application. */
-        <BarreKData user={user} isActivePage={isActivePage} clair={clair} onBasculerTheme={basculer} />
+           changé de côté de l'application. Dans un cadre, rien du tout. */
+        !enCadre && <BarreKData user={user} isActivePage={isActivePage} clair={clair} onBasculerTheme={basculer} />
       ) : (
         <>
           {/* Desktop Sidebar */}
@@ -637,7 +642,7 @@ function LayoutContent({ children, currentPageName }) {
           modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""
         } ${
           modoKData
-            ? "pt-14"
+            ? (enCadre ? "" : "pt-14")
             : !hideNavbar
               ? (isAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0")
               : ""
@@ -648,7 +653,7 @@ function LayoutContent({ children, currentPageName }) {
         {/* `main` porte 56px de padding en haut sous la barre de K-Data : une
             hauteur minimale d'un écran plein y ajoutait 56px de vide en bas,
             sous les cartes qui, elles, tombent juste. */}
-        <div key={location.pathname} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? "min-h-[calc(100dvh-3.5rem)]" : "min-h-screen"}`}>
+        <div key={location.pathname} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
           {children}
         </div>
       </main>

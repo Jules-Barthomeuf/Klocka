@@ -9,7 +9,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-kdata-'));
 const {
   resumerExpertise, resumerEstimation, resumerProspection, resumerFoncier, resumerValeurLocative, resumerVacance, resumerTransactions,
-  lienDe, ordonner, lancerAnalyses, ranger, creerDossier, CLES_OUTILS,
+  lienDe, ordonner, lancerAnalyses, ranger, listerAnalyses, listerDossiers, CLES_OUTILS,
 } = await import('./kdata.js');
 
 // Le français sépare les milliers par une espace fine insécable : on la
@@ -62,20 +62,31 @@ test('un lancement refuse une adresse vague, un outil inconnu, ou aucun outil', 
   assert.match(lancerAnalyses({ adresse: '49 rue Dabray 06000 Nice', outils: ['kvacance', 'magie'] }).error, /Outil inconnu : magie/);
 });
 
-test('des analyses se rangent dans un dossier existant, et en sortent', async () => {
+test("des analyses se rangent dans une affaire de la page Dossiers, et l'affaire les liste", async () => {
   const { Records } = await import('./db.js');
   const a = Records.create('AnalyseKData', { outil: 'kvacance', etat: 'terminee', adresse: 'x', cree_le: '2026-09-19T10:00:00Z' });
   const b = Records.create('AnalyseKData', { outil: 'kfoncier', etat: 'terminee', adresse: 'x', cree_le: '2026-09-19T10:00:00Z' });
-  const d = creerDossier('Nice centre').dossier;
+  // Une affaire, telle que la page Dossiers la crée : identifiée par son deal_id.
+  Records.create('Deal', { deal_id: 'cafpi-courbevoie', nom: 'CAFPI Courbevoie', cree_le: '2026-09-01T00:00:00Z', lots: [] });
+  Records.create('Deal', { deal_id: 'archivee', nom: 'Vieille affaire', archived: true, cree_le: '2026-01-01T00:00:00Z', lots: [] });
 
-  assert.match(ranger([], d.id).error, /Cochez/);
+  const dossiers = listerDossiers();
+  assert.ok(dossiers.some((d) => d.id === 'cafpi-courbevoie' && d.nom === 'CAFPI Courbevoie'));
+  assert.ok(!dossiers.some((d) => d.id === 'archivee'), "une affaire archivée n'est pas proposée");
+
+  assert.match(ranger([], 'cafpi-courbevoie').error, /Cochez/);
   assert.match(ranger([a.id], 'nulle-part').error, /n'existe plus/);
-  const r = ranger([a.id, b.id, 'fantome'], d.id);
+  const r = ranger([a.id, b.id, 'fantome'], 'cafpi-courbevoie');
   assert.equal(r.ok, true);
   assert.equal(r.rangees, 2, "l'identifiant fantôme est ignoré, pas fatal");
-  assert.equal(Records.get('AnalyseKData', a.id).dossier_id, d.id);
-  // `null` sort du dossier.
+  assert.equal(Records.get('AnalyseKData', a.id).dossier_id, 'cafpi-courbevoie');
+  // L'affaire retrouve ses analyses, avec son nom sur chaque ligne.
+  const siennes = listerAnalyses(60, { deal_id: 'cafpi-courbevoie' });
+  assert.deepEqual(siennes.map((x) => x.id).sort(), [a.id, b.id].sort());
+  assert.equal(siennes[0].dossier_nom, 'CAFPI Courbevoie');
+  assert.equal(listerAnalyses(60, { deal_id: 'autre' }).length, 0);
+  // `null` sort de l'affaire.
   assert.equal(ranger([a.id], null).ok, true);
   assert.equal(Records.get('AnalyseKData', a.id).dossier_id, null);
-  assert.match(ranger(['fantome'], d.id).error, /Aucune/);
+  assert.match(ranger(['fantome'], 'cafpi-courbevoie').error, /Aucune/);
 });

@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { X as IconeFermer } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +52,35 @@ const GRILLES_ANALYSE = [
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
+
+// Une analyse K-Data rangée dans l'affaire se lit ici, dans une fenêtre qui
+// montre l'outil sur l'adresse, tel quel. On la regarde, on la ferme : la
+// modifier se fait dans K-Data, pas depuis le dossier.
+function FenetreAnalyseKData({ analyse, onFermer }) {
+  useEffect(() => {
+    const k = (e) => { if (e.key === "Escape") onFermer(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onFermer]);
+  return createPortal(
+    <div className="fixed inset-0 z-[600] flex flex-col bg-fond/90 p-3 backdrop-blur-sm sm:p-6" onClick={onFermer}>
+      <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-[18px] border border-bord bg-fond shadow-[0_30px_80px_rgba(0,0,0,.6)]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-trait px-4 py-2.5">
+          <p className="m-0 min-w-0 truncate text-[13px] text-encre">
+            <span className="font-medium">{analyse.nom_outil}</span>
+            <span className="text-ardoise"> · {analyse.libelle || analyse.adresse}</span>
+            {analyse.resume && <span className="text-brume"> · {analyse.resume}</span>}
+          </p>
+          <button onClick={onFermer} title="Fermer" aria-label="Fermer" className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre">
+            <IconeFermer className="h-4 w-4" />
+          </button>
+        </div>
+        <iframe title={`${analyse.nom_outil} · ${analyse.libelle || analyse.adresse}`} src={analyse.lien} className="block h-full w-full flex-1 border-0 bg-fond" />
+      </div>
+    </div>,
+    document.body,
+  );
+}
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 
 // Workflow d'un deal en cinq étapes, sur une seule page :
@@ -209,6 +240,21 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // L'onglet Marché de l'étape Analyse : le seul endroit où le chat du haut
   // change de nature.
   const surMarche = etape === 3 && grilleAnalyse === "marche";
+  // Les analyses K-Data rangées dans cette affaire : un onglet chacune, à
+  // droite du marché, qui s'ouvre en fenêtre de lecture.
+  const { data: kdata } = useQuery({
+    queryKey: ["kdata-analyses", dossier?.deal_id],
+    queryFn: () => base44.request("GET", `/api/kdata/analyses?deal_id=${encodeURIComponent(dossier.deal_id)}`),
+    enabled: !!dossier?.deal_id && !apercu,
+  });
+  const analysesKData = (kdata?.analyses || []).filter((a) => a.lien);
+  const [analyseKData, setAnalyseKData] = useState(null);
+  // Deux analyses du même outil dans la même affaire se distinguent par un rang.
+  const ongletsKData = analysesKData.map((a, i, tous) => {
+    const memes = tous.filter((x) => x.nom_outil === a.nom_outil);
+    const rang = memes.length > 1 ? ` · ${memes.indexOf(a) + 1}` : "";
+    return { cle: `kdata:${a.id}`, titre: `${a.nom_outil}${rang}` };
+  });
   const [deblocageEnCours, setDeblocageEnCours] = useState(false);
   // Documents cochés dans l'étape Analyse, soumis au chat.
   const [documentsCoches, setDocumentsCoches] = useState([]);
@@ -422,7 +468,13 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         {etape === 3 && (
           <div id="tables-analyse" className="space-y-5">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
-            <Onglets items={GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: g.titre }))} valeur={grilleAnalyse} onChange={setGrilleAnalyse} taille="page" />
+            <Onglets
+              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: g.titre })), ...ongletsKData]}
+              valeur={grilleAnalyse}
+              onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))}
+              taille="page"
+            />
+            {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
             {grilleAnalyse === "marche" && (
               <div className="flex flex-col gap-4">

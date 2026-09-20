@@ -1,7 +1,7 @@
 // K-Data : le lanceur commun et la file des analyses. Réservé à l'équipe.
 
 import { currentUser, ok, wrap } from '../contexte.js';
-import { lancerAnalyses, listerAnalyses, ranger, supprimerAnalyse, listerDossiers, creerDossier } from '../kdata.js';
+import { lancerAnalyses, listerAnalyses, ranger, supprimerAnalyse, listerDossiers } from '../kdata.js';
 
 export function monterKData(app) {
   const admin = (req, res) => {
@@ -10,9 +10,12 @@ export function monterKData(app) {
     return user;
   };
 
+  // Toutes les analyses, ou celles d'une affaire : « ?deal_id=… » pour les
+  // onglets d'un dossier.
   app.get('/api/kdata/analyses', wrap((req, res) => {
     if (!admin(req, res)) return;
-    ok(res, { analyses: listerAnalyses(), dossiers: listerDossiers() });
+    const deal_id = String(req.query.deal_id || '').trim() || null;
+    ok(res, { analyses: listerAnalyses(60, { deal_id }), dossiers: deal_id ? [] : listerDossiers() });
   }));
 
   app.post('/api/kdata/analyses', wrap((req, res) => {
@@ -23,7 +26,7 @@ export function monterKData(app) {
     ok(res, r);
   }));
 
-  // Ranger : plusieurs analyses d'un coup, dans un dossier ou hors de tout dossier.
+  // Ranger : plusieurs analyses d'un coup, dans une affaire ou hors de toute affaire.
   app.patch('/api/kdata/analyses', wrap((req, res) => {
     if (!admin(req, res)) return;
     const r = ranger(req.body?.ids, req.body?.dossier_id ?? null);
@@ -35,14 +38,6 @@ export function monterKData(app) {
     if (!admin(req, res)) return;
     const r = supprimerAnalyse(req.params.id);
     if (!r.ok) return res.status(404).json({ error: r.error });
-    ok(res, r);
-  }));
-
-  app.post('/api/kdata/dossiers', wrap((req, res) => {
-    const user = admin(req, res);
-    if (!user) return;
-    const r = creerDossier(req.body?.nom, user);
-    if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
 }

@@ -7,8 +7,10 @@
 // Une analyse prête s'ouvre dans son outil ; plusieurs analyses cochées se
 // rangent dans un dossier.
 //
-// Les dossiers sont ceux de K-Zoning, `DossierKData`, qui rangeaient déjà des
-// zones : une seule notion de dossier pour tout K-Data, pas une par outil.
+// Les dossiers sont les affaires de la page Dossiers — « CAFPI de Courbevoie »
+// — celles que l'équipe suit d'un bout à l'autre. Une analyse rangée dans une
+// affaire y apparaît en onglet, à côté du bail et du marché, et s'y lit sans
+// s'y modifier.
 //
 // Ce module ne recalcule rien : il appelle les outils par leurs fonctions, les
 // mêmes que leurs routes, et garde de chaque analyse ce qu'il faut pour la
@@ -17,10 +19,10 @@
 
 import { Records } from './db.js';
 import { resoudreAdresse } from './data-b.js';
-import { listerDossiers, creerDossier, creerZoneCercle } from './kzoning.js';
+import { creerZoneCercle } from './kzoning.js';
+import { listerDossiers as listerAffaires } from './deal/index.js';
 
 const ENTITE = 'AnalyseKData';
-const DOSSIER = 'DossierKData';
 /** Au-delà, une analyse en tâche de fond est déclarée perdue. */
 const ATTENTE_MAX_MS = 25 * 60 * 1000;
 const RAYON_ZONE_M = 300;
@@ -255,15 +257,26 @@ export function ordonner(analyses, dossiers = []) {
     .map((a) => ({ ...a, lien: lienDe(a), dossier_nom: a.dossier_id ? noms.get(a.dossier_id) || null : null }));
 }
 
-export function listerAnalyses(limite = 60) {
-  return ordonner(Records.list(ENTITE), Records.list(DOSSIER)).slice(0, limite);
+/** Les affaires ouvertes, comme dossiers de rangement : leur deal_id et leur titre. */
+export function listerDossiers() {
+  return listerAffaires(300)
+    .filter((d) => !d.archived)
+    .map((d) => ({ id: d.deal_id, nom: d.titre || d.deal_id, cree_le: d.cree_le }));
 }
 
-/** Range des analyses dans un dossier, ou les en sort avec `null`. */
+/** Toutes les analyses, ou celles d'une seule affaire. */
+export function listerAnalyses(limite = 60, { deal_id = null } = {}) {
+  const toutes = Records.list(ENTITE).filter((a) => !deal_id || a.dossier_id === deal_id);
+  return ordonner(toutes, listerDossiers()).slice(0, limite);
+}
+
+const affaireExiste = (deal_id) => Records.list('Deal').some((d) => d.deal_id === deal_id);
+
+/** Range des analyses dans une affaire, ou les en sort avec `null`. */
 export function ranger(ids, dossier_id) {
   const liste = (Array.isArray(ids) ? ids : []).filter(Boolean);
   if (!liste.length) return { ok: false, error: 'Cochez au moins une analyse.' };
-  if (dossier_id && !Records.get(DOSSIER, dossier_id)) return { ok: false, error: "Ce dossier n'existe plus." };
+  if (dossier_id && !affaireExiste(dossier_id)) return { ok: false, error: "Ce dossier n'existe plus." };
   let n = 0;
   for (const id of liste) {
     if (!Records.get(ENTITE, id)) continue;
@@ -279,5 +292,3 @@ export function supprimerAnalyse(id) {
   Records.delete(ENTITE, id);
   return { ok: true };
 }
-
-export { listerDossiers, creerDossier };

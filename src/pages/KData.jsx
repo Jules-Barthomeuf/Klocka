@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowUp, ArrowUpRight, Check, ChevronDown, Clock, Folder, FolderPlus, Loader2, Search, Wrench, X, XCircle } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Check, ChevronDown, Clock, Folder, Loader2, Search, Wrench, X, XCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { MODULES_KDATA } from "@/lib/kdata-modules";
@@ -16,9 +16,9 @@ import { J, alpha } from "@/design/jetons";
 // tête, puis les plus récentes. Une analyse prête s'ouvre dans son outil d'un
 // clic ; plusieurs analyses cochées se rangent dans un dossier.
 //
-// Les dossiers sont ceux de K-Zoning, qui rangeaient déjà des zones : une
-// seule notion pour tout K-Data. Les cartes des outils restent en bas, pour
-// qui veut entrer dans un outil seul.
+// Les dossiers sont les affaires de la page Dossiers — « CAFPI de Courbevoie »
+// — où une analyse rangée apparaît en onglet, à côté du bail et du marché.
+// Les cartes des outils restent en bas, pour qui veut entrer dans un outil seul.
 
 const CARTE = "rounded-[18px] border border-trait bg-surface";
 const CLE_OUTILS = "kdata-outils";
@@ -207,11 +207,6 @@ export default function KData() {
     onSuccess: (r, v) => { invalider(); setCoches(new Set()); toast.success(v.dossier_id ? `${r.rangees} analyse${r.rangees > 1 ? "s" : ""} rangée${r.rangees > 1 ? "s" : ""}` : "Sorties du dossier"); },
     onError: (e) => toast.error(e?.message || "Rangement impossible"),
   });
-  const nouveauDossier = useMutation({
-    mutationFn: (nom) => base44.request("POST", "/api/kdata/dossiers", { body: { nom } }),
-    onSuccess: (r) => { invalider(); setDossierChoisi(r.dossier.id); },
-    onError: (e) => toast.error(e?.message || "Création impossible"),
-  });
   const supprimer = useMutation({
     mutationFn: (id) => base44.request("DELETE", `/api/kdata/analyses/${id}`),
     onSuccess: () => { invalider(); setCoches(new Set()); },
@@ -258,10 +253,6 @@ export default function KData() {
                 <option value="">Choisir un dossier…</option>
                 {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
               </select>
-              <button type="button" onClick={() => { const nom = window.prompt("Nom du nouveau dossier"); if (nom?.trim()) nouveauDossier.mutate(nom.trim()); }}
-                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-bord px-3 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre">
-                <FolderPlus className="h-3.5 w-3.5" />Nouveau
-              </button>
               <button type="button" disabled={!dossierChoisi || ranger.isPending} onClick={() => ranger.mutate({ ids: [...coches], dossier_id: dossierChoisi })}
                 className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-4 text-[11px] font-medium uppercase tracking-[.1em] text-sur-menthe disabled:opacity-50">
                 {ranger.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Folder className="h-3.5 w-3.5" />}Envoyer dans le dossier

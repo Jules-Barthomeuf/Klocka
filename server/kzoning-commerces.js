@@ -32,13 +32,17 @@ const CACHE = 'CacheCommercesKZoning';
  * les valeurs qui l'intéressent : { cle: 'shop', valeurs: ['bakery'] }.
  */
 function ligneFiltre({ cle, valeurs }, lat, lon, rayon) {
+  return ligneFiltreDans({ cle, valeurs }, `around:${rayon},${lat},${lon}`);
+}
+
+/** La même, pour n'importe quel sélecteur Overpass : un rayon, ou une aire. */
+function ligneFiltreDans({ cle, valeurs }, selecteur) {
   if (!cle) return '';
-  const autour = `around:${rayon},${lat},${lon}`;
-  if (!valeurs || !valeurs.length) return `nwr(${autour})["${cle}"];`;
+  if (!valeurs || !valeurs.length) return `nwr(${selecteur})["${cle}"];`;
   // Une seule valeur se compare, plusieurs se passent en expression : c'est
   // la forme qu'Overpass exécute le plus vite.
-  if (valeurs.length === 1) return `nwr(${autour})["${cle}"="${valeurs[0]}"];`;
-  return `nwr(${autour})["${cle}"~"^(${valeurs.join('|')})$"];`;
+  if (valeurs.length === 1) return `nwr(${selecteur})["${cle}"="${valeurs[0]}"];`;
+  return `nwr(${selecteur})["${cle}"~"^(${valeurs.join('|')})$"];`;
 }
 
 /** La requête Overpass d'une zone et d'une liste de filtres. */
@@ -162,6 +166,57 @@ export async function commercesDeLaZone({ lat, lon, rayon_m, filtres, forcer = f
   if (garde) Records.update(CACHE, garde.id, { commerces, garde_le });
   else Records.create(CACHE, { cle, commerces, garde_le });
   return { ok: true, commerces, garde_le };
+}
+
+// --- La vacance visible d'une commune entière ------------------------------
+//
+// Le repère du taux de vacance d'un quartier, c'est sa commune : même source,
+// même façon de relever, donc même biais. Deux comptages dans une seule
+// requête, sans rapatrier les objets ; une commune ne change pas d'un mois à
+// l'autre, on garde trente jours.
+
+const CACHE_COMMUNE = 'CacheVacanceCommuneOsm';
+const CACHE_COMMUNE_JOURS = 30;
+const FILTRES_VIDES = [{ cle: 'shop', valeurs: ['vacant'] }, { cle: 'disused:shop', valeurs: [] }];
+
+/** La requête de comptage d'une commune : ses devantures, puis ses vides. Pure. */
+export function construireRequeteCommune(codeInsee, filtres) {
+  const aire = 'area.a';
+  const tout = (filtres || []).map((f) => ligneFiltreDans(f, aire)).filter(Boolean).join('');
+  const vides = FILTRES_VIDES.map((f) => ligneFiltreDans(f, aire)).join('');
+  return `[out:json][timeout:90];area["ref:INSEE"="${codeInsee}"]->.a;(${tout})->.tout;.tout out count;(${vides})->.vides;.vides out count;`;
+}
+
+/** Les deux nombres d'une réponse de comptage. Pure : testée sans réseau. */
+export function lireComptages(elements) {
+  const comptes = (elements || []).filter((e) => e.type === 'count').map((e) => Number(e.tags?.total) || 0);
+  if (comptes.length < 2) return null;
+  const [total, vides] = comptes;
+  return { total, vides, taux: total ? Math.round((vides / total) * 1000) / 10 : null };
+}
+
+const fraisCommune = (iso) => iso && Date.now() - new Date(iso).getTime() < CACHE_COMMUNE_JOURS * 86400000;
+
+/**
+ * Le taux de vacance visible de toute une commune.
+ * @returns {Promise<{ok:true, total:number, vides:number, taux:number|null, garde_le:string} | {ok:false, error:string}>}
+ */
+export async function vacanceDeLaCommune(codeInsee, filtres, { forcer = false } = {}) {
+  if (!codeInsee) return { ok: false, error: 'Commune inconnue.' };
+  const garde = Records.findBy(CACHE_COMMUNE, 'cle', String(codeInsee));
+  if (garde && fraisCommune(garde.garde_le) && !forcer) return { ok: true, ...garde.comptes, garde_le: garde.garde_le, du_cache: true };
+  let comptes;
+  try {
+    comptes = lireComptages((await interroger(construireRequeteCommune(codeInsee, filtres))).elements);
+    if (!comptes) throw new Error('réponse sans comptage');
+  } catch (e) {
+    if (garde) return { ok: true, ...garde.comptes, garde_le: garde.garde_le, du_cache: true, perime: true };
+    return { ok: false, error: `OpenStreetMap n'a pas répondu pour la commune : ${e?.message || e}` };
+  }
+  const garde_le = new Date().toISOString();
+  if (garde) Records.update(CACHE_COMMUNE, garde.id, { comptes, garde_le });
+  else Records.create(CACHE_COMMUNE, { cle: String(codeInsee), comptes, garde_le });
+  return { ok: true, ...comptes, garde_le };
 }
 
 // --- Les équipements de la zone --------------------------------------------

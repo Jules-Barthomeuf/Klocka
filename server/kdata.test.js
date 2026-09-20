@@ -26,6 +26,8 @@ test('chaque outil se résume en une ligne, et ne dit rien quand il ne sait rien
   assert.equal(resumerFoncier({ total: 153, avec_proprietaires: 96 }), '153 parcelles dans 150 m, 96 avec propriétaire connu');
   assert.equal(resumerValeurLocative({ resultat: { rue: { basse: 276, haute: 414 }, du_cache: true } }), '276 € à 414 € / m² / an, reprise de la base');
   assert.equal(resumerVacance({ vacance: { taux: 1.6 }, turnover: { duree_mediane: 10 } }), "1,6 % de vacance · 10 ans d'exploitation médiane");
+  assert.equal(resumerVacance({ verdict: { niveau: 'forte' }, vacance: { taux: 12.5 } }), 'vacance forte : 12,5 % de devantures vides');
+  assert.equal(resumerVacance({ verdict: { niveau: 'inconnue' }, vacance: { taux: 1.6 } }), '1,6 % de vacance');
   assert.equal(plat(resumerTransactions({ murs: { prix_m2: { median: 2500 }, n: 155 }, fonds: { n_avec_prix: 513 } })), 'murs 2 500 € / m² sur 155 ventes · 513 cessions de fonds chiffrées');
   assert.equal(resumerTransactions({}), 'marché lu');
 });

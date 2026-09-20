@@ -8,14 +8,15 @@ import { toast } from "@/components/ui/avis";
 import { JL } from "@/design/jetons";
 import CartePoints from "@/components/kdata/CartePoints";
 import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
+import Repere from "@/components/kdata/Repere";
 
-// K-Vacance : les rideaux baissés d'un quartier, et le rythme auquel ses
-// commerces tournent.
+// K-Vacance : y a-t-il beaucoup de locaux vides ici, oui ou non ?
 //
-// Deux mesures, deux sources, et l'écran ne les mélange pas. Le TAUX DE
-// VACANCE vient d'OpenStreetMap : ce qu'on voit depuis le trottoir, rue par
-// rue. Le TURN-OVER vient de Sirene : combien d'années un commerce tient
-// avant de fermer, d'après les dates du registre.
+// Deux lectures, deux sources, et l'écran ne les mélange pas. La VACANCE
+// VISIBLE vient d'OpenStreetMap : ce qu'on voit depuis le trottoir, rue par
+// rue. La VACANCE AU REGISTRE vient de Sirene : les adresses commerçantes dont
+// le dernier commerce a fermé sans qu'un autre s'y déclare. Chacune se compare
+// à la même lecture pour toute la commune, et le verdict en sort, en tête.
 //
 // L'habit est celui des cartes du tableau de bord K-Data : bg-surface, filet
 // trait, rayon de 18, sans flou.
@@ -24,17 +25,50 @@ const CARTE = "rounded-[18px] border border-trait bg-surface";
 const RAYONS = [250, 400, 800, 1500];
 const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "");
 const pct = (n) => (n == null ? "—" : `${String(n).replace(".", ",")} %`);
+const fr = (n) => String(n).replace(".", ",");
 
 // La mécanique : dans quel ordre K-Vacance interroge quoi.
 const ETAPES_MECANIQUE = [
   { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée." },
-  { source: "OpenStreetMap", quoi: "Les devantures marquées vides depuis la rue : c'est le taux de vacance, rue par rue." },
-  { source: "Annuaire des entreprises, en deux appels", quoi: "Les établissements fermés autour du point, puis les sociétés entièrement cessées de la commune filtrées par distance — sans ce second appel, les commerces qui ont vraiment disparu manqueraient." },
+  { source: "OpenStreetMap, dans le rayon", quoi: "Les devantures marquées vides depuis la rue : c'est la vacance visible, rue par rue." },
+  { source: "OpenStreetMap, toute la commune", quoi: "Le même comptage à l'échelle de la commune, une fois par mois : c'est le repère du taux visible." },
+  { source: "API Sirene (INSEE)", quoi: "Tous les commerces de la commune, actifs et fermés depuis huit ans, avec leurs dates et leur point, une fois par mois. La zone et la commune se lisent dans le même registre, avec la même règle." },
   { source: "Nomenclature NAF (INSEE)", quoi: "Le libellé du métier qui a fermé, à partir du code que le registre publie." },
 ];
 
 /** La couleur d'une rue selon sa tension : du vert au rouge. */
 const couleurTaux = (t) => (t >= 20 ? JL.alerte : t >= 10 ? JL.ambre : t >= 5 ? JL.jaune : JL.vert);
+/** La couleur du verdict. */
+const couleurNiveau = { forte: JL.alerte, moyenne: JL.ambre, faible: JL.vert };
+const NOMS_LECTURE = { visible: "Vu de la rue", registre: "Au registre", rythme: "Rythme des fermetures" };
+
+/** Le bloc de tête : la réponse, ses appuis, ses réserves. */
+function Verdict({ v, registre }) {
+  const couleur = couleurNiveau[v.niveau] || JL.ardoise;
+  return (
+    <Repere titre="Y a-t-il beaucoup de vacance ?" className="mb-5"
+      phrase={<span className="flex items-start gap-2.5"><span className="mt-[6px] h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: couleur }} /><span className="text-[16px]">{v.phrase}</span></span>}
+      reserve={v.reserves.length ? v.reserves.join(" ") : null}>
+      {v.appuis.length > 0 && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {v.appuis.map((a) => (
+            <div key={a.lecture} className="rounded-[12px] border border-trait bg-fond/40 p-3">
+              <p className="alx-mont m-0 text-[10px] uppercase tracking-[.12em] text-menthe-texte">{NOMS_LECTURE[a.lecture] || a.lecture}</p>
+              <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-encre">{a.phrase}.</p>
+              <p className="m-0 mt-1 text-[11px] leading-[1.5] text-brume">{a.repere}.</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {registre?.etablissements_zone != null && (
+        <p className="m-0 mt-2 text-[11px] text-brume">
+          {registre.etablissements_zone} commerces au registre dans le rayon, {registre.etablissements_commune} dans la commune
+          {registre.garde_le ? ` · registre lu le ${quand(registre.garde_le)}` : ""}
+        </p>
+      )}
+    </Repere>
+  );
+}
 
 function Chiffre({ titre, valeur, detail, icone: Icone }) {
   return (
@@ -54,38 +88,49 @@ function Resultat({ r, onRetour }) {
     // Le métier du local, pas la raison sociale : « Formation continue
     // d'adultes » dit ce qui a fermé, « ISATIS » ne dit rien.
     { cle: "ferme", couleur: JL.ambre, taille: 10, zIndex: 10, points: (r.fermetures || []).map((x) => ({ ...x, titre: x.activite_libelle || x.enseigne || x.nom, nature: "Fermeture" })) },
+    // Les adresses vidées au registre : le dernier commerce a fermé, aucun ne
+    // s'est déclaré depuis.
+    { cle: "registre", couleur: JL.jaune, taille: 12, zIndex: 15, points: (r.registre?.zone?.lignes || []).filter((x) => x.lat != null).map((x) => ({ ...x, titre: x.activite_libelle || x.nom || x.adresse, nature: "Adresse vidée au registre", fermeture: x.fermee_le })) },
   ], [r]);
+
+  const zoneR = r.registre?.zone;
+  const communeR = r.registre?.commune;
+  const rythme = r.rythme?.zone;
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 pb-20 pt-8">
       <button onClick={onRetour} className="mb-3 text-[12.5px] text-ardoise hover:text-encre">Toutes les analyses</button>
       <h1 className="m-0 text-[24px] font-light tracking-[-0.01em] text-encre">{r.point.label}</h1>
       <p className="m-0 mt-1 mb-6 text-[12.5px] text-ardoise">
-        {r.rayon} m autour du point · fermetures des {r.annees_fermeture} dernières années
+        {r.rayon} m autour du point · fermetures des {r.annees_fermeture} dernières années · face à {r.point.ville || "la commune"}
       </p>
 
+      {r.verdict && <Verdict v={r.verdict} registre={r.registre} />}
+
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Chiffre titre="Taux de vacance" icone={DoorClosed}
+        <Chiffre titre="Vacance visible" icone={DoorClosed}
           valeur={r.vacance ? pct(r.vacance.taux) : "—"}
-          detail={r.vacance ? `${r.vacance.vides} locaux vides sur ${r.vacance.total} devantures relevées` : r.vacance_erreur} />
+          detail={r.vacance
+            ? `${r.vacance.vides} vide${r.vacance.vides > 1 ? "s" : ""} sur ${r.vacance.total} devantures relevées${r.visible?.commune?.taux != null ? ` · commune : ${pct(r.visible.commune.taux)}` : ""}`
+            : r.vacance_erreur} />
+        <Chiffre titre="Vacance au registre" icone={Hourglass}
+          valeur={zoneR?.taux != null ? pct(zoneR.taux) : "—"}
+          detail={zoneR
+            ? `${zoneR.vides} adresse${zoneR.vides > 1 ? "s" : ""} vidée${zoneR.vides > 1 ? "s" : ""} depuis ${zoneR.fenetre_ans} ans sur ${zoneR.adresses} commerçantes${communeR?.taux != null ? ` · commune : ${pct(communeR.taux)}` : ""}`
+            : r.sirene_erreur} />
+        <Chiffre titre="Fermetures par an" icone={TrendingDown}
+          valeur={rythme?.taux_annuel != null ? pct(rythme.taux_annuel) : "—"}
+          detail={rythme
+            ? `${rythme.fermees_12_mois} sur ${rythme.actifs + rythme.fermees_12_mois} en douze mois${rythme.un_sur ? `, un commerce sur ${rythme.un_sur}` : ""}${r.rythme?.commune?.taux_annuel != null ? ` · commune : ${pct(r.rythme.commune.taux_annuel)}` : ""}`
+            : "registre non lu"} />
         <Chiffre titre="Durée d'exploitation" icone={Clock}
-          valeur={r.turnover.duree_mediane != null ? `${String(r.turnover.duree_mediane).replace(".", ",")} ans` : "—"}
-          detail={r.turnover.n ? `médiane sur ${r.turnover.n} fermetures · un bail court par périodes de 3, 6 et 9 ans` : "aucune fermeture relevée"} />
-        {/* Le délai avant qu'un nouvel exploitant se déclare là où un commerce
-            a fermé. Ce n'est pas la vacance certifiée d'une boutique : un
-            numéro de rue abrite plusieurs locaux. En deçà de quelques reprises
-            datées, aucune médiane n'est affichée. */}
-        <Chiffre titre="Reprise d'activité" icone={Hourglass}
-          valeur={r.vacance_duree?.assez ? `${String(r.vacance_duree.mediane_ans).replace(".", ",")} ans` : "—"}
-          detail={r.vacance_duree?.assez
-            ? `médiane du délai avant une nouvelle déclaration, sur ${r.vacance_duree.n_reprises} adresses reprises`
-            : `${r.vacance_duree?.n_reprises || 0} reprise${(r.vacance_duree?.n_reprises || 0) > 1 ? "s" : ""} datée${(r.vacance_duree?.n_reprises || 0) > 1 ? "s" : ""} : moins de ${r.vacance_duree?.minimum_reprises || 5}, une médiane ne voudrait rien dire`} />
-        <Chiffre titre="Ferment avant 3 ans" icone={TrendingDown}
-          valeur={r.turnover.part_moins_3_ans != null ? `${r.turnover.part_moins_3_ans} %` : "—"}
-          detail="des commerces qui ont fermé" />
-        <Chiffre titre="Rues en tension" icone={DoorClosed}
-          valeur={r.vacance ? String(r.vacance.rues.filter((x) => x.taux >= 10).length) : "—"}
-          detail={r.vacance ? `sur ${r.vacance.rues.length} rues mesurées` : null} />
+          valeur={r.turnover.duree_mediane != null ? `${fr(r.turnover.duree_mediane)} ans` : "—"}
+          detail={r.turnover.n ? `médiane sur ${r.turnover.n} fermetures · ${r.turnover.part_moins_3_ans} % ferment avant 3 ans` : "aucune fermeture relevée"} />
+        <Chiffre titre="Parmi les rues" icone={DoorClosed}
+          valeur={r.registre?.rang ? `${r.registre.rang.rang} %` : "—"}
+          detail={r.registre?.rang
+            ? `des ${r.registre.rang.rues_comptees} rues de la commune ont moins de vacance au registre · rue médiane : ${pct(r.registre.rang.mediane_des_rues)}`
+            : "pas assez de rues comparables"} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -93,7 +138,8 @@ function Resultat({ r, onRetour }) {
           <CartePoints point={r.point} rayon_m={r.rayon} couches={couches} onPoint={setOuvert} onErreur={(m) => toast.error(m)} />
           <div className="pointer-events-none absolute bottom-3 left-3 rounded-[10px] border border-bord bg-fond/80 px-3 py-2 text-[11px] backdrop-blur-xl">
             <p className="m-0 flex items-center gap-1.5 text-ardoise"><span className="h-2.5 w-2.5 rounded-full" style={{ background: JL.alerte }} />Local vide vu depuis la rue</p>
-            <p className="m-0 mt-1 flex items-center gap-1.5 text-ardoise"><span className="h-2 w-2 rounded-full" style={{ background: JL.ambre }} />Établissement fermé au registre</p>
+            <p className="m-0 mt-1 flex items-center gap-1.5 text-ardoise"><span className="h-2.5 w-2.5 rounded-full" style={{ background: JL.jaune }} />Adresse vidée au registre, sans repreneur</p>
+            <p className="m-0 mt-1 flex items-center gap-1.5 text-ardoise"><span className="h-2 w-2 rounded-full" style={{ background: JL.ambre }} />Commerce fermé au registre</p>
           </div>
           {ouvert && (
             <div className="absolute right-3 top-3 w-[260px] rounded-[12px] border border-bord bg-fond/85 p-3 backdrop-blur-xl">
@@ -103,7 +149,8 @@ function Resultat({ r, onRetour }) {
               </div>
               <p className="m-0 mt-1 text-[13px] font-medium text-encre">{ouvert.titre || "—"}</p>
               {ouvert.adresse && <p className="m-0 mt-0.5 text-[11.5px] text-ardoise">{ouvert.adresse}</p>}
-              {ouvert.ouverture && <p className="m-0 mt-1 text-[11.5px] text-ardoise">{quand(ouvert.ouverture)} → {quand(ouvert.fermeture)}{ouvert.duree_ans != null ? ` · ${String(ouvert.duree_ans).replace(".", ",")} ans` : ""}</p>}
+              {ouvert.ouverture && <p className="m-0 mt-1 text-[11.5px] text-ardoise">{quand(ouvert.ouverture)} → {quand(ouvert.fermeture)}{ouvert.duree_ans != null ? ` · ${fr(ouvert.duree_ans)} ans` : ""}</p>}
+              {!ouvert.ouverture && ouvert.fermeture && <p className="m-0 mt-1 text-[11.5px] text-ardoise">dernier commerce fermé le {quand(ouvert.fermeture)}</p>}
             </div>
           )}
         </div>
@@ -133,6 +180,27 @@ function Resultat({ r, onRetour }) {
               </p>
             )}
           </div>
+
+          {zoneR && (
+            <div className={`${CARTE} mb-4 p-4`}>
+              <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">Les adresses vidées au registre</p>
+              {!zoneR.lignes?.length ? <p className="m-0 text-[12.5px] text-ardoise">Aucune adresse commerçante du rayon n&apos;a perdu son dernier commerce depuis {zoneR.fenetre_ans} ans.</p> : (
+                <div className="max-h-[260px] overflow-y-auto">
+                  {zoneR.lignes.map((x) => (
+                    <div key={x.cle} className="border-b border-trait py-2 last:border-b-0">
+                      <p className="m-0 truncate text-[13px] text-encre">{x.activite_libelle || x.nom || "Commerce"}</p>
+                      <p className="m-0 text-[11px] text-brume">fermé le {quand(x.fermee_le)}{x.nom && x.activite_libelle ? ` · ${x.nom}` : ""}{x.adresse ? ` · ${x.adresse}` : ""}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {zoneR.anciennes > 0 && (
+                <p className="m-0 mt-2 text-[10.5px] text-brume">
+                  {zoneR.anciennes} adresse{zoneR.anciennes > 1 ? "s" : ""} vidée{zoneR.anciennes > 1 ? "s" : ""} depuis plus de {zoneR.fenetre_ans} ans ne compte{zoneR.anciennes > 1 ? "nt" : ""} plus : sans doute plus un commerce.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className={`${CARTE} p-4`}>
             <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">Les dernières fermetures</p>
@@ -166,13 +234,12 @@ function Resultat({ r, onRetour }) {
       <MecaniqueEnLigne etapes={ETAPES_MECANIQUE} titre="La mécanique : d'où viennent ces chiffres" className="mt-5" />
 
       <p className="m-0 mt-5 text-[10.5px] italic leading-[1.6] text-brume">
-        Le taux de vacance compte les devantures marquées vides dans OpenStreetMap : il mesure ce qui est relevé, et une rue peu
-        cartographiée paraîtra saine. Le turn-over vient des dates d&apos;ouverture et de fermeture du registre des entreprises.
-        La reprise d&apos;activité est l&apos;écart entre la fermeture d&apos;un commerce et la déclaration suivante à la même adresse
-        postale{r.ouvertures_vues ? `, sur ${r.ouvertures_vues} établissements ouverts relevés dans la zone` : ""}. Deux réserves :
-        un numéro de rue abrite plusieurs locaux, donc une nouvelle déclaration n&apos;est pas forcément la reprise de la même
-        boutique ; et un repreneur qui ne se déclare pas exactement à la même adresse passe pour une adresse restée sans activité.
-        Ces délais sont donc un plafond, jamais un plancher.
+        La vacance visible compte les devantures marquées vides dans OpenStreetMap : elle mesure ce qui est relevé, une devanture
+        vide que personne n&apos;a notée paraît occupée, c&apos;est un plancher. La vacance au registre vient de l&apos;API Sirene de
+        l&apos;INSEE : parmi les adresses postales où un commerce (détail, restauration, coiffure et soins, réparation) a existé, celles
+        dont le dernier a fermé depuis moins de trois ans sans qu&apos;un autre s&apos;y déclare. Un numéro de rue abrite plusieurs locaux,
+        et un repreneur déclaré à l&apos;adresse voisine paraît absent : c&apos;est un plafond. La commune est lue avec la même source et
+        la même règle, c&apos;est ce qui permet de comparer.
         {r.erreurs?.length ? ` Lectures incomplètes : ${r.erreurs.join(" ; ")}.` : ""}
       </p>
     </div>
@@ -232,7 +299,7 @@ export default function KVacance() {
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Data</p>
       <h1 className="mt-2 mb-2 text-[30px] font-light tracking-[-0.01em] text-encre">K-Vacance</h1>
       <p className="m-0 mb-7 max-w-[620px] text-[13.5px] leading-[1.7] text-ardoise">
-        Les locaux vides d&apos;un quartier, rue par rue, et le nombre d&apos;années qu&apos;un commerce y tient avant de fermer.
+        Y a-t-il beaucoup de locaux vides ici ? Ce qu&apos;on voit depuis la rue et ce que dit le registre, comparés à la commune.
       </p>
 
       <div className={`${CARTE} p-5`}>
@@ -261,7 +328,7 @@ export default function KVacance() {
         </div>
 
         <p className="mt-4 mb-0 text-[11.5px] leading-[1.6] text-brume">
-          Les devantures viennent d&apos;OpenStreetMap, les fermetures du registre des entreprises. Sources ouvertes, aucun crédit dépensé.
+          Les devantures viennent d&apos;OpenStreetMap, les commerces actifs et fermés de l&apos;API Sirene de l&apos;INSEE. Sources ouvertes, aucun crédit dépensé. La première lecture d&apos;une commune prend une à deux minutes, les suivantes sont immédiates.
         </p>
         <button onClick={() => analyser.mutate(adresse)} disabled={analyser.isPending || adresse.trim().length < 5}
           className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-6 text-[12.5px] font-medium uppercase tracking-[.12em] text-sur-menthe disabled:opacity-50">

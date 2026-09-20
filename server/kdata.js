@@ -70,6 +70,11 @@ export function resumerValeurLocative(r) {
 }
 
 export function resumerVacance(r) {
+  // Le verdict d'abord : c'est la réponse à la question posée.
+  if (r?.verdict?.niveau && r.verdict.niveau !== 'inconnue') {
+    const mot = r.verdict.niveau === 'moyenne' ? 'dans la moyenne' : r.verdict.niveau;
+    return r?.vacance?.taux != null ? `vacance ${mot} : ${virg(r.vacance.taux)} % de devantures vides` : `vacance ${mot}`;
+  }
   const morceaux = [];
   if (r?.vacance?.taux != null) morceaux.push(`${virg(r.vacance.taux)} % de vacance`);
   if (r?.turnover?.duree_mediane != null) morceaux.push(`${virg(r.turnover.duree_mediane)} ans d'exploitation médiane`);

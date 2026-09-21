@@ -56,8 +56,8 @@ const OUTILS_AK = [
   },
   {
     name: 'analyser_fiche',
-    description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum reçu en pièce jointe (« crée ce dossier », « fais la pré-analyse ») : lecture du PDF, extraction du bien, synthèse. Prend le chemin de la pièce tel qu'il est donné dans le message. Une minute environ.",
-    input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' } }, required: ['chemin'] },
+    description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum (« crée ce dossier », « fais la pré-analyse ») : lecture, extraction du bien, synthèse. La fiche est soit une pièce jointe (donner son chemin tel qu'il est donné dans le message), soit collée dans le message lui-même (mettre texte_du_message à vrai : le texte complet du message est pris, inutile de le recopier). Une minute environ.",
+    input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, texte_du_message: { type: 'boolean', description: 'vrai quand la fiche est le texte du message' } } },
   },
   {
     name: 'ajouter_document',
@@ -121,7 +121,15 @@ export function decrireOutilsKdata() {
  * Exécute un outil d'AK, ou passe la main à l'assistant. `fond` reçoit les
  * tâches qui continuent après la réponse : c'est la veille qui les suit.
  */
-export async function executerOutil({ name, input }, user, { fond = () => {} } = {}) {
+export async function executerOutil({ name, input }, user, { fond = () => {}, message = null } = {}) {
+  if (name === 'analyser_fiche' && input.texte_du_message && !input.chemin) {
+    const texte = String(message?.texte || '').trim();
+    if (texte.length < 80) return { ok: false, error: 'Le message ne contient pas de fiche à lire.' };
+    const { analyserFiche } = await import('../deal/index.js');
+    const d = await analyserFiche({ texte }, { user });
+    const lot = d.lots?.[0];
+    return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || 'fiche collée', verdict: lot?.synthese?.verdict || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
+  }
   if (name === 'creer_dossier') {
     const { creerCoquille } = await import('../deal/index.js');
     const dossier = creerCoquille({
@@ -232,7 +240,7 @@ Tu as des outils. Le modèle ne décide de rien sur le fond : il traduit une phr
 
 RÈGLES :
 1. Cherche toujours avant d'agir (chercher_dossier, chercher_projet) : il te faut l'identifiant. Plusieurs résultats : liste-les et demande lequel. Aucun : dis-le, n'invente rien.
-2bis. Une pièce jointe (PDF) avec « crée ce dossier », « fais la pré-analyse », « mets ça sur la plateforme » : analyser_fiche avec le chemin donné, jamais creer_dossier à vide. Une pièce jointe pour un dossier déjà là (bail, PV, RCP…) : ajouter_document. Sans pièce jointe, dis que tu n'as rien reçu.
+2bis. Une pièce jointe (PDF) avec « crée ce dossier », « fais la pré-analyse », « mets ça sur la plateforme » : analyser_fiche avec le chemin donné, jamais creer_dossier à vide. Une fiche COLLÉE dans le message (un mémorandum, une annonce, des lignes de description du bien) avec la même demande : analyser_fiche avec texte_du_message, jamais creer_dossier. Une pièce jointe pour un dossier déjà là (bail, PV, RCP…) : ajouter_document. Sans pièce jointe, dis que tu n'as rien reçu.
 2. « Crée le projet pour X » : chercher_dossier puis creer_projet_depuis_dossier. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 4. Une tâche de fond (K-Data, préz) : dis que c'est parti, sans annoncer de résultat. Tu préviendras toi-même dans le chat quand ce sera fini.
@@ -306,7 +314,7 @@ export async function repondre(message) {
     tools: OUTILS,
     onTool: async (appel) => {
       outils.push(appel.name);
-      const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t) });
+      const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), message });
       const agissant = !['chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
       if (agissant) {
         if (resultat?.ok !== false) actions.push({ ...appel, resultat });

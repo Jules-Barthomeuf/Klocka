@@ -144,7 +144,8 @@ function analyseTexte(c, explications = {}) {
     const g = (s.gerants || []).length;
     if (g) proprio.push(`${g} gérant${g > 1 ? "s" : ""} au registre${(s.gerants || []).some((x) => /70/.test(x.tranche_age || "")) ? ", dont au moins un de plus de 70 ans" : ""}.`);
   } else if (c.foncier) {
-    proprio.push(`Data-B connaît plusieurs propriétaires à cette adresse, sans qu'ALX ait pu retenir celui du rez-de-chaussée${c.foncier.motif_choix ? ` (${c.foncier.motif_choix})` : ""}.`);
+    if (c.foncier.prive) proprio.push(`Aucune société n'est publiée sur cette parcelle au fichier de la DGFiP : les murs sont selon toute vraisemblance à des particuliers, que rien d'ouvert ne nomme. Un relevé de propriété se demande au service de la publicité foncière.`);
+    else proprio.push(`Le fichier de la DGFiP connaît plusieurs propriétaires sur cette parcelle, sans qu'ALX ait pu retenir celui du rez-de-chaussée${c.foncier.motif_choix ? ` (${c.foncier.motif_choix})` : ""}.`);
   } else {
     proprio.push("Le propriétaire des murs n'est pas encore établi : sans lui, pas de message.");
   }
@@ -313,7 +314,7 @@ export default function ALXCible() {
   const proprietaire = useMutation({
     mutationFn: () => base44.request("POST", `/api/alx/cibles/${id}/proprietaire`, { body: {} }),
     onSuccess: (r) => { toast.success(r.cible?.proprietaire?.nom ? `Propriétaire : ${joliNom(r.cible.proprietaire.nom)}` : r.foncier?.motif_choix || "Fiche lue"); rafraichir(); },
-    onError: (e) => toast.error(e?.message || "Data-B n'a pas répondu"),
+    onError: (e) => toast.error(e?.message || "Le fichier DGFiP n'a pas répondu"),
   });
 
   if (!user || user.role !== "admin") return null;
@@ -414,14 +415,17 @@ export default function ALXCible() {
             <>
             <div className="pr-28">
               <Etiquette>Propriétaire</Etiquette>
-              <div className="alx-mont mt-2 text-[23px] font-medium tracking-[-.01em] text-encre">{p.nom ? joliNom(p.nom) : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
+              <div className="alx-mont mt-2 text-[23px] font-medium tracking-[-.01em] text-encre">{p.nom ? joliNom(p.nom) : c.foncier?.prive ? "Particulier, non publié" : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
               {proprioMeta && <div className="mt-1 text-[13.5px] text-ardoise">{proprioMeta}</div>}
               {!p.nom && (
                 <button onClick={() => proprietaire.mutate()} disabled={proprietaire.isPending} className="mt-2 text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }}>
-                  {proprietaire.isPending ? "Data-B lit l'adresse…" : c.foncier ? "Relire chez Data-B" : "Chercher le propriétaire chez Data-B"}
+                  {proprietaire.isPending ? "Lecture du cadastre et du fichier DGFiP…" : c.foncier ? "Relire le fichier DGFiP" : "Chercher le propriétaire au fichier DGFiP"}
                 </button>
               )}
               {c.foncier?.motif_choix && <div className="mt-1.5 text-[12.5px] text-ardoise">{c.foncier.motif_choix}</div>}
+              {c.foncier?.prive && c.foncier?.demarche && (
+                <a href={c.foncier.demarche} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[12px] text-menthe hover:text-menthe-clair">Demander un relevé de propriété</a>
+              )}
               {(p.siren || p.nom) && (
                 <div className="mt-3.5 max-w-[540px]">
                   <CoordonneesProprietaire siren={p.siren} nom={p.nom} ville={c.ville} />

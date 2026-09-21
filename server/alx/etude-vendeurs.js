@@ -3,7 +3,7 @@
 // Chaque projet de l'application est un local dont les murs étaient à vendre,
 // avec son adresse exacte. Ce sont donc des vendeurs réels, vus avant la
 // vente. ALX les relit comme n'importe quel commerce (propriétaire chez
-// Data-B, société et gérants dans l'annuaire, BODACC, DVF, classement), dans
+// fichiers DGFiP, société et gérants dans l'annuaire, BODACC, DVF, classement), dans
 // une ville cachée qui n'apparaît nulle part. Le rapport compare ensuite les
 // signaux de ces vendeurs à ceux des commerces des rues prospectées, qui pour
 // l'immense majorité ne vendent pas : c'est le groupe témoin.
@@ -11,7 +11,7 @@
 //   node --env-file=.env server/alx/etude-vendeurs.js          relit les projets
 //   node --env-file=.env server/alx/etude-vendeurs.js rapport  imprime et écrit le rapport
 //
-// Aucun crédit Data-B : Data Foncier, l'annuaire, le BODACC et DVF ne coûtent rien.
+// Aucune source payante : le cadastre, la DGFiP, l'annuaire, le BODACC et DVF ne coûtent rien.
 
 import fs from 'fs';
 import path from 'path';

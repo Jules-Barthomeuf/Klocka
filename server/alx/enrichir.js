@@ -18,17 +18,15 @@ const cibleOu = (id) => {
 
 const adresseComplete = (c) => [c.adresse, c.ville].filter(Boolean).join(', ');
 
-/** Le propriétaire par Data Foncier, puis la société par l'annuaire, puis le classement. */
+/** Le propriétaire par les fichiers DGFiP, puis la société par l'annuaire, puis le classement. */
 export async function trouverProprietaire(id, { siren = null, user = null } = {}) {
   const c = cibleOu(id);
-  const { proprietairesDe } = await import('./foncier.js');
+  const { proprietairesDe } = await import('./foncier-ouvert.js');
   const ville = Records.get('Ville', c.ville_id);
   const point = c.source === 'Google Maps' && c.lat != null && c.lon != null ? { lat: c.lat, lon: c.lon } : null;
   if (!point && !/^\d/.test(String(c.adresse || '').trim())) throw new Error("L'adresse n'a pas de numéro : impossible de désigner le bâtiment.");
   const texte = [c.adresse, c.code_postal || ville?.code_postal, c.ville].filter(Boolean).join(' ');
   const f = await proprietairesDe(texte, { occupant: c.occupant || null, point });
-  // Un bâtiment dont le numéro ne concorde pas n'est pas le bon : on montre la liste, on ne retient personne.
-  if (f && f.adresse_non_confirmee) { f.choix = null; f.motif_choix = `bâtiment non confirmé (fiche ${f.adresse_fiche || 'sans adresse'}) : à vérifier sur Data-B`; }
   if (!f) throw new Error(`La Base Adresse Nationale ne connaît pas « ${texte} ».`);
 
   // Le choix explicite de l'équipe, parmi la liste, prime sur l'automatique.
@@ -43,7 +41,7 @@ export async function trouverProprietaire(id, { siren = null, user = null } = {}
       forme: choix.forme || c.proprietaire?.forme || null,
       parcelle: f.parcelle,
       lots: choix.lots,
-      source: 'Data-B · Foncier',
+      source: f.source,
       trouve_le: f.lu_le,
     };
     // L'annuaire complète (APE, forme exacte, siège) : gratuit, on ne s'en prive pas.
@@ -53,31 +51,31 @@ export async function trouverProprietaire(id, { siren = null, user = null } = {}
         const s = await societe({ siren: choix.siren });
         if (s) patch.societe = { ...s, gerants: s.gerants?.length ? s.gerants : choix.gerants };
       } catch {
-        // L'annuaire indisponible n'empêche pas de garder ce que Data-B a donné.
+        // L'annuaire indisponible n'empêche pas de garder ce que le fichier a donné.
       }
     }
     if (!patch.societe) {
-      patch.societe = { ...(c.societe || {}), nom: choix.nom, siren: choix.siren, forme: choix.forme, creation: choix.creation, ape_libelle: choix.activite, gerants: choix.gerants, siege: { adresse: choix.adresse }, source: 'Data-B · Foncier', lu_le: f.lu_le };
+      patch.societe = { ...(c.societe || {}), nom: choix.nom, siren: choix.siren, forme: choix.forme, creation: choix.creation, ape_libelle: choix.activite, gerants: choix.gerants, siege: { adresse: choix.adresse }, source: f.source, lu_le: f.lu_le };
     }
   }
   return { ...mettreAJourCible(c.id, patch, user), foncier: f };
 }
 
 /**
- * Rejoue le choix du propriétaire sur une fiche Data-B déjà lue, sans
- * rappeler Data-B : quand les règles de choix s'affinent, les cibles en
+ * Rejoue le choix du propriétaire sur une lecture déjà faite, sans rien
+ * relire : quand les règles de choix s'affinent, les cibles en
  * attente en profitent au parcours suivant.
  */
 export async function rechoisirProprietaire(id, { user = null } = {}) {
   const c = cibleOu(id);
   if (!c.foncier?.proprietaires?.length || c.proprietaire?.nom) return { ok: true, cible: c, inchangee: true };
-  const { choisirProprietaire } = await import('./foncier.js');
+  const { choisirProprietaire } = await import('./foncier-ouvert.js');
   const { choix, motif, occupant_proprietaire = false } = choisirProprietaire(c.foncier.proprietaires, c.occupant || null);
   if (!choix) return { ok: true, cible: c, inchangee: true };
   const patch = {
     foncier: { ...c.foncier, choix, motif_choix: motif, occupant_proprietaire },
     proprietaire_occupant: occupant_proprietaire,
-    proprietaire: { nom: choix.nom, siren: choix.siren, forme: choix.forme || null, parcelle: c.foncier.parcelle, lots: choix.lots, source: 'Data-B · Foncier', trouve_le: c.foncier.lu_le },
+    proprietaire: { nom: choix.nom, siren: choix.siren, forme: choix.forme || null, parcelle: c.foncier.parcelle, lots: choix.lots, source: c.foncier.source || 'DGFiP · locaux des personnes morales', trouve_le: c.foncier.lu_le },
   };
   if (choix.siren) {
     try {
@@ -85,10 +83,10 @@ export async function rechoisirProprietaire(id, { user = null } = {}) {
       const s = await societe({ siren: choix.siren });
       if (s) patch.societe = { ...s, gerants: s.gerants?.length ? s.gerants : choix.gerants };
     } catch {
-      // L'annuaire indisponible n'empêche pas de garder ce que Data-B a donné.
+      // L'annuaire indisponible n'empêche pas de garder ce que le fichier a donné.
     }
   }
-  if (!patch.societe) patch.societe = { nom: choix.nom, siren: choix.siren, forme: choix.forme, creation: choix.creation, ape_libelle: choix.activite, gerants: choix.gerants, siege: { adresse: choix.adresse }, source: 'Data-B · Foncier', lu_le: c.foncier.lu_le };
+  if (!patch.societe) patch.societe = { nom: choix.nom, siren: choix.siren, forme: choix.forme, creation: choix.creation, ape_libelle: choix.activite, gerants: choix.gerants, siege: { adresse: choix.adresse }, source: c.foncier.source || 'DGFiP · locaux des personnes morales', lu_le: c.foncier.lu_le };
   return mettreAJourCible(c.id, patch, user);
 }
 
@@ -98,7 +96,7 @@ export async function lireSociete(id, { siren = null, nom = null, user = null } 
   const { societe } = await import('./annuaire.js');
   const s0 = siren || c.proprietaire?.siren || null;
   const n0 = nom || c.proprietaire?.nom || null;
-  if (!s0 && !n0) throw new Error("Il faut un SIREN ou le nom du propriétaire (lu sur Data-B, ou saisi).");
+  if (!s0 && !n0) throw new Error("Il faut un SIREN ou le nom du propriétaire (lu au fichier DGFiP, ou saisi).");
   const ville = Records.get('Ville', c.ville_id);
   const s = await societe({ siren: s0, nom: n0, ville: c.ville, code_postal: ville?.code_postal || null });
   if (!s) {
@@ -154,7 +152,7 @@ export async function lireMutation(id, { rayon = 40, user = null, forcer = false
   if (!r.ok) throw new Error(r.error);
   const ventes = r.resultat?.ventes || r.resultat?.transactions || [];
   // La vente du local lui-même : même parcelle que le propriétaire lu sur
-  // Data-B, ou même numéro dans la rue. Sinon, la plus proche, à titre de repère.
+  // la fiche foncière, ou même numéro dans la rue. Sinon, la plus proche, à titre de repère.
   const parcelle = c.proprietaire?.parcelle || c.foncier?.parcelle || null;
   const numero = (String(c.adresse || '').match(/^(\d+)\s*(bis|ter)?/i) || []).slice(1).filter(Boolean).join('').toLowerCase() || null;
   const duLocal = ventes.find((v) => (parcelle && v.parcelle === parcelle) || (numero && v.numero === numero)) || null;

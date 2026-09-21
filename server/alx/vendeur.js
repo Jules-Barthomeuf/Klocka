@@ -5,7 +5,7 @@
 // sait tout le reste sans crédit : le propriétaire chez Data Foncier, sa
 // société et ses gérants dans l'annuaire (tranche d'âge seulement), ses
 // événements au BODACC, la dernière vente du local dans DVF, le loyer de la
-// rue chez Data-B. Le moteur de signaux (classement.js) dit alors ce qui
+// rue déduit des ventes. Le moteur de signaux (classement.js) dit alors ce qui
 // pousse ce propriétaire à vendre, et l'étude des vendeurs (etude-vendeurs.js)
 // dit combien chaque raison est plus fréquente chez les vendeurs que chez les
 // commerces qui ne vendent pas.
@@ -105,20 +105,19 @@ export async function vendeurDe({ adresse, locataire = null, activite = null, ba
   const gardee = derniere(cle);
   if (gardee && !forcer && Date.now() - Date.parse(gardee.le) < JOURS * 86400000) return { ...gardee, du_cache: true, etude: resumeEtude() };
 
-  const { resoudreAdresse, valeurLocative } = await import('../data-b.js');
+  const { resoudreAdresse } = await import('../data-b.js');
   const ban = await resoudreAdresse(texte);
   if (!ban) throw new Error(`La Base Adresse Nationale ne connaît pas « ${texte} ».`);
   const ville = ban.ville || (texte.split(',').pop() || '').replace(/^\s*\d{5}\s*/, '').trim();
 
-  // 1. Le propriétaire des murs, chez Data Foncier.
-  const { proprietairesDe } = await import('./foncier.js');
+  // 1. Le propriétaire des murs, par les fichiers DGFiP.
+  const { proprietairesDe } = await import('./foncier-ouvert.js');
   const occupant = locataire ? { nom: locataire, enseigne: locataire } : null;
   const f = await proprietairesDe(texte, { occupant, point: { lat: ban.lat, lon: ban.lon } });
-  if (!f) throw new Error(`Data Foncier ne trouve rien à « ${texte} ».`);
-  if (f.adresse_non_confirmee) { f.choix = null; f.motif_choix = `bâtiment non confirmé (fiche ${f.adresse_fiche || 'sans adresse'}) : à vérifier sur Data-B`; }
+  if (!f) throw new Error(`Aucune parcelle cadastrale sous « ${texte} ».`);
   const choix = f.choix;
 
-  // 2. La société et ses gérants : l'annuaire complète Data-B.
+  // 2. La société et ses gérants : l'annuaire complète le fichier.
   let societe = null;
   if (choix) {
     if (choix.siren) {
@@ -130,7 +129,7 @@ export async function vendeurDe({ adresse, locataire = null, activite = null, ba
         societe = null;
       }
     }
-    if (!societe) societe = { nom: choix.nom, siren: choix.siren, forme: choix.forme, creation: choix.creation, ape_libelle: choix.activite, gerants: choix.gerants, siege: { adresse: choix.adresse }, source: 'Data-B · Foncier' };
+    if (!societe) societe = { nom: choix.nom, siren: choix.siren, forme: choix.forme, creation: choix.creation, ape_libelle: choix.activite, gerants: choix.gerants, siege: { adresse: choix.adresse }, source: f.source };
   }
 
   // 3. Les événements de la société, au BODACC.
@@ -162,12 +161,13 @@ export async function vendeurDe({ adresse, locataire = null, activite = null, ba
     mutation = null;
   }
 
-  // 5. Le loyer de la rue, pour lire un loyer en place sous le marché.
+  // 5. Le loyer de la rue, déduit des ventes, pour lire un loyer en place sous le marché.
   let valorisation = {};
   try {
-    const vl = await valeurLocative(texte, { user });
-    const rue = vl.ok ? vl.resultat?.rue || vl.resultat?.quartier || null : null;
-    if (rue?.basse != null && rue?.haute != null) valorisation = { loyer_m2_marche: (rue.basse + rue.haute) / 2, loyer_fourchette: [rue.basse, rue.haute], loyer_source: vl.resultat?.rue ? 'Data-B, rue' : 'Data-B, quartier' };
+    const { loyerDeRue } = await import('../loyer-dvf.js');
+    const vl = await loyerDeRue(texte, { user });
+    const rue = vl.ok ? vl.resultat?.rue || null : null;
+    if (rue?.basse != null && rue?.haute != null) valorisation = { loyer_m2_marche: (rue.basse + rue.haute) / 2, loyer_fourchette: [rue.basse, rue.haute], loyer_source: 'DVF, déduit' };
   } catch {
     valorisation = {};
   }
@@ -183,7 +183,7 @@ export async function vendeurDe({ adresse, locataire = null, activite = null, ba
     occupant: locataire ? { nom: locataire } : null,
     occupe: true,
     proprietaire_occupant: !!(choix && f.occupant_proprietaire),
-    proprietaire: choix ? { nom: choix.nom, siren: choix.siren, forme: choix.forme || societe?.forme || null, parcelle: f.parcelle, lots: choix.lots, droit: (choix.lots || []).find((l) => l.rez_de_chaussee)?.droit || choix.lots?.[0]?.droit || null, source: 'Data-B · Foncier' } : null,
+    proprietaire: choix ? { nom: choix.nom, siren: choix.siren, forme: choix.forme || societe?.forme || null, parcelle: f.parcelle, lots: choix.lots, droit: (choix.lots || []).find((l) => l.rez_de_chaussee)?.droit || choix.lots?.[0]?.droit || choix.droit || null, source: f.source } : null,
     societe,
     evenements,
     mutation,

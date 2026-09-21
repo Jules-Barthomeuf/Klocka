@@ -1,10 +1,10 @@
 // Le parcours d'une ville : ce qu'ALX fait tout seul quand on lui donne un nom.
 //
 // Deux phases. Les rues : balayage du centre par l'annuaire, comptage des
-// commerces par rue, loyer de marché de chaque rue dense chez Data-B, et
+// commerces par rue, loyer de marché de chaque rue dense déduit des ventes, et
 // l'emplacement qui en découle (1, 2, ou écartée avec son motif). Les
 // commerces : rue par rue, classe 1 d'abord, chaque commerce de pied
-// d'immeuble devient une cible, puis propriétaire (Data-B), société
+// d'immeuble devient une cible, puis propriétaire (fichiers DGFiP), société
 // (annuaire), BODACC, DVF, loyer de la rue, classement, et un brouillon de
 // message pour les piles à appeler et à écrire.
 //
@@ -438,7 +438,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
       }
       if (r.deja) {
         compter(villeId, 'cibles_deja');
-        // Déjà lue : on ne refait pas Data-B pour rien. Mais si le choix du
+        // Déjà lue : on ne relit pas le fichier pour rien. Mais si le choix du
         // propriétaire était resté ouvert, on le rejoue avec les règles du jour.
         if (c.foncier && !c.proprietaire?.nom && !c.activite_exclue) {
           try {

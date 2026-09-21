@@ -103,3 +103,12 @@ test("la personne qui parle est reconnue parmi les comptes de l'équipe, jamais 
   assert.equal(utilisateurPour({ affiche: 'Quelqu\'un Inconnu' }, equipe), null);
   assert.equal(utilisateurPour({ affiche: '' }, equipe), null);
 });
+
+test("la flemme tombe une fois sur n, jamais deux fois de suite dans le même espace", async () => {
+  const { flemme } = await import('./veille.js');
+  assert.equal(flemme('s', { tirage: 0.1, un_sur: 6 }), true);
+  assert.equal(flemme('s', { tirage: 0.5, un_sur: 6 }), false);
+  assert.equal(flemme('s', { tirage: 0.1, un_sur: 0 }), false, 'désactivée');
+  assert.equal(flemme('s', { tirage: 0.1, un_sur: 6, maintenant: 1000000, dernieres: { s: 1000000 - 60000 } }), false, 'elle vient de tomber : on s\'exécute');
+  assert.equal(flemme('s', { tirage: 0.1, un_sur: 6, maintenant: 1000000, dernieres: { autre: 1000000 } }), true);
+});

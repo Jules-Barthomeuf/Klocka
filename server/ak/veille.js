@@ -13,6 +13,12 @@ import { chatDemande } from '../google-oauth.js';
 import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, mention, telechargerPiece, NOM } from './chat.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
+// La flemme : une fois sur AK_FLEMME, AK refuse et ne fait rien. Jamais deux
+// fois de suite dans le même espace : la personne insiste, il s'exécute. 0 :
+// jamais. C'est une demande de Jules, pas une panne.
+const FLEMME = Math.max(0, Number(process.env.AK_FLEMME ?? 6));
+const FLEMME_REPIT_MS = 15 * 60 * 1000;
+const CLE_FLEMME = 'ak.flemme';
 const CLE_DEPUIS = 'ak.depuis';
 const CLE_VUS = 'ak.vus';
 const ENTITE_TACHE = 'AkTache';
@@ -87,6 +93,16 @@ async function reposterEnAttente() {
   }
 }
 
+/** Pure : la flemme tombe-t-elle sur ce message ? `tirage` entre 0 et 1. */
+export function flemme(espace, { tirage = Math.random(), maintenant = Date.now(), dernieres = {}, un_sur = FLEMME } = {}) {
+  if (!un_sur) return false;
+  const derniere = Number(dernieres[espace] || 0);
+  if (maintenant - derniere < FLEMME_REPIT_MS) return false;
+  return tirage < 1 / un_sur;
+}
+
+const dernieresFlemmes = () => { try { return JSON.parse(Meta.get(CLE_FLEMME) || '{}'); } catch { return {}; } };
+
 /**
  * Un message qui nous parle : on répond dans le flux de l'espace, pas dans
  * un fil. Dans un espace à fils, une réponse de fil se replie derrière
@@ -96,6 +112,12 @@ async function traiter(message) {
   const { repondre } = await import('./agent.js');
   const { mesurer } = await import('../llm-couts.js');
   const texte = sansMention(message);
+  if (flemme(message.espace, { dernieres: dernieresFlemmes() })) {
+    Meta.set(CLE_FLEMME, JSON.stringify({ ...dernieresFlemmes(), [message.espace]: Date.now() }));
+    await poster(message.espace, `${mention(message.auteur)} Non j'ai la flemme de le faire débrouille-toi`, null);
+    dernier.repondus += 1;
+    return;
+  }
   // Les pièces jointes descendent dans les uploads, comme un fichier glissé
   // sur l'écran : AK les lit par leur chemin.
   const pieces = [];

@@ -112,3 +112,14 @@ test("la flemme tombe une fois sur n, jamais deux fois de suite dans le même es
   assert.equal(flemme('s', { tirage: 0.1, un_sur: 6, maintenant: 1000000, dernieres: { s: 1000000 - 60000 } }), false, 'elle vient de tomber : on s\'exécute');
   assert.equal(flemme('s', { tirage: 0.1, un_sur: 6, maintenant: 1000000, dernieres: { autre: 1000000 } }), true);
 });
+
+test("après une réponse d'AK, la même personne peut enchaîner sans le mentionner, cinq minutes durant", async () => {
+  const { enConversation } = await import('./veille.js');
+  const m = { espace: 'spaces/A', fil: 'spaces/A/threads/t9', auteur: { nom: 'users/1' } };
+  const attente = { auteur: 'users/1', fil: 'spaces/A/threads/t1', jusqua: 1000000 };
+  assert.equal(enConversation(m, { attente, maintenant: 999000 }), true, 'même personne, dans le délai');
+  assert.equal(enConversation(m, { attente, maintenant: 1000001 }), false, 'délai passé');
+  assert.equal(enConversation({ ...m, auteur: { nom: 'users/2' } }, { attente, maintenant: 999000 }), false, 'quelqu\'un d\'autre');
+  assert.equal(enConversation({ ...m, auteur: { nom: 'users/2' }, fil: 'spaces/A/threads/t1' }, { attente, maintenant: 2000000 }), true, 'dans le fil où AK a parlé');
+  assert.equal(enConversation(m, { attente: undefined }), false);
+});

@@ -22,6 +22,10 @@ const CLE_FLEMME = 'ak.flemme';
 const CLE_DEPUIS = 'ak.depuis';
 const CLE_VUS = 'ak.vus';
 const ENTITE_TACHE = 'AkTache';
+// Après une réponse d'AK, la personne à qui il vient de parler peut lui
+// répondre sans le mentionner, pendant ce délai : c'est une conversation.
+const CLE_ATTENTE = 'ak.attente';
+const ATTENTE_MS = 5 * 60 * 1000;
 const MAX_VUS = 400;
 
 let minuterie = null;
@@ -93,6 +97,24 @@ async function reposterEnAttente() {
   }
 }
 
+const attentes = () => { try { return JSON.parse(Meta.get(CLE_ATTENTE) || '{}'); } catch { return {}; } };
+/** AK vient de parler à cette personne dans cet espace : ses prochains mots sont pour lui. */
+function ouvrirAttente(message) {
+  if (!message.auteur?.nom) return;
+  Meta.set(CLE_ATTENTE, JSON.stringify({ ...attentes(), [message.espace]: { auteur: message.auteur.nom, fil: message.fil || null, jusqua: Date.now() + ATTENTE_MS } }));
+}
+
+/**
+ * Pure : le message est-il la suite d'une conversation avec AK ? La même
+ * personne dans le même espace, dans le délai, ou une réponse dans le fil
+ * où AK a parlé.
+ */
+export function enConversation(message, { attente = attentes()[message.espace], maintenant = Date.now() } = {}) {
+  if (!attente) return false;
+  if (message.fil && attente.fil && message.fil === attente.fil) return true;
+  return message.auteur?.nom === attente.auteur && maintenant < Number(attente.jusqua || 0);
+}
+
 /** Pure : la flemme tombe-t-elle sur ce message ? `tirage` entre 0 et 1. */
 export function flemme(espace, { tirage = Math.random(), maintenant = Date.now(), dernieres = {}, un_sur = FLEMME } = {}) {
   if (!un_sur) return false;
@@ -138,6 +160,7 @@ async function traiter(message) {
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
   }
   await poster(message.espace, `${mention(message.auteur)} ${r.texte}`, null);
+  ouvrirAttente(message);
   dernier.repondus += 1;
 }
 
@@ -159,7 +182,7 @@ export async function relever() {
         if (m.le > plusRecent) plusRecent = m.le;
         if (vus().includes(m.nom)) continue;
         noterVu(m.nom);
-        if (!estPourAk(m, { direct: espace.type === 'DIRECT_MESSAGE' })) continue;
+        if (!estPourAk(m, { direct: espace.type === 'DIRECT_MESSAGE' || enConversation(m) })) continue;
         try { await traiter(m); traites += 1; } catch (e) {
           dernier.erreur = e?.message || String(e);
           // L'envoi lui-même a échoué : la réponse attend, inutile d'en poster une autre.

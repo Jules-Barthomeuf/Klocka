@@ -210,15 +210,16 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
   journal(`${osm.rues.length} rues, ${vitrines} vitrines ${osm.zone === 'cercle' ? `à ${rayon_km} km du centre (contour de la commune inconnu)` : 'sur toute la commune'}${osm.sans_rue ? ` ; ${osm.sans_rue} sans rue à moins de 30 m, ignorées` : ''}.`);
 
   const denses = osm.rues.filter((r) => r.vitrines >= SEUILS.min_commerces_par_rue).slice(0, SEUILS.max_rues);
-  journal(`${denses.length} rues avec au moins ${SEUILS.min_commerces_par_rue} vitrines : lecture du loyer de marché chez Data-B.`);
+  journal(`${denses.length} rues avec au moins ${SEUILS.min_commerces_par_rue} vitrines : loyer déduit des ventes DVF autour de chacune.`);
 
   const lireLoyer = loyerDe || (async (adresse) => {
-    const { valeurLocative } = await import('../data-b.js');
-    const r = await valeurLocative(adresse);
+    const { loyerDeRue } = await import('../loyer-dvf.js');
+    const r = await loyerDeRue(adresse);
     return r.ok ? r.resultat : null;
   });
 
-  // Trois rues à la fois chez Data-B : la trentaine passe en une dizaine de secondes.
+  // Trois rues à la fois : le fichier DVF de la commune est en cache, chaque
+  // rue n'est plus qu'un filtre de distance.
   const lues = await parLots(denses, 3, async (r) => {
     if (arreter()) return null;
     const officielle = await rueOfficielle(r.nom, commune.nom, commune.code_insee);
@@ -230,7 +231,7 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
       valeurLocative = await lireLoyer(`${nom}, ${cp} ${commune.nom}`);
       loyer = valeurLocative?.rue || valeurLocative?.quartier || null;
     } catch (e) {
-      journal(`${nom} : Data-B n'a pas rendu de loyer (${e.message}).`);
+      journal(`${nom} : pas de loyer déductible (${e.message}).`);
     }
     // Le prix au m² des murs vendus autour de la rue (DVF), et le rendement qui
     // en découle avec le loyer ; à défaut, le prix que donne le loyer à 7 %.

@@ -5,16 +5,16 @@
 // Un BESOIN est une question posée au marché — « combien se loue le mètre
 // carré commercial ici ». Une CHAÎNE est la liste ordonnée des sources qui
 // savent y répondre, de la plus fiable à la moins précise. Le repli joue à
-// l'intérieur d'un besoin : Equimmox tombe, Data-B répond, la question reste
-// couverte.
+// l'intérieur d'un besoin : Equimmox tombe, le loyer déduit des ventes répond,
+// la question reste couverte.
 //
-// Une seule liste « Equimmox → Data-B → Figaro » aurait fait perdre des
+// Une seule liste « Equimmox → DVF → Figaro » aurait fait perdre des
 // données : les cessions de fonds et le résidentiel ne remplacent pas les
 // loyers, ils s'y ajoutent. Une source qui échoue ne doit coûter que ce
 // qu'elle apportait, pas le reste de la lecture.
 //
 // L'ordre se change sans toucher au code : MARCHE_CHAINE_LOYER_COMMERCIAL=
-// data-b-valeur-locative,equimmox inverse les deux. Ajouter une source, c'est
+// valeur-locative,equimmox inverse les deux. Ajouter une source, c'est
 // un fichier dans connecteurs/ et son nom dans la liste.
 
 import { tenter } from './connecteur.js';
@@ -27,11 +27,11 @@ export const BESOINS_DEFAUT = [
     cle: 'loyer_commercial',
     titre: 'les loyers commerciaux',
     indicateurs: ['loyer_commercial_m2_an'],
-    chaine: ['equimmox', 'data-b-valeur-locative'],
-    // Les deux sources sont interrogées, pas l'une puis l'autre en secours.
-    // Equimmox constate des baux signés, Data-B estime : quand les deux
-    // s'écartent, ce n'est pas un détail — c'est le signal qu'il faut aller
-    // voir. Un repli silencieux masquait cette information.
+    chaine: ['equimmox', 'valeur-locative'],
+    // Les deux lectures sont faites, pas l'une puis l'autre en secours.
+    // Le bien à surface comparable, puis la rue, le quartier et la ville, et le
+    // loyer déduit des ventes : quand ils s'écartent, ce n'est pas un détail,
+    // c'est le signal qu'il faut aller voir. Un repli silencieux le masquait.
     recouper: true,
   },
   {
@@ -72,7 +72,7 @@ export const BESOINS_DEFAUT = [
   },
 ];
 
-/** MARCHE_CHAINE_LOYER_COMMERCIAL=equimmox,data-b-valeur-locative */
+/** MARCHE_CHAINE_LOYER_COMMERCIAL=equimmox,valeur-locative */
 function chaineConfiguree(cle, defaut) {
   const brut = (process.env[`MARCHE_CHAINE_${cle.toUpperCase()}`] || '').trim();
   if (!brut) return defaut;
@@ -91,7 +91,7 @@ export async function registreParDefaut() {
   if (cacheRegistre) return cacheRegistre;
   const modules = await Promise.all([
     import('./connecteurs/equimmox.js'),
-    import('./connecteurs/data-b-valeur-locative.js'),
+    import('./connecteurs/valeur-locative.js'),
     import('./connecteurs/bodacc-cessions.js'),
     import('./connecteurs/figaro.js'),
     import('./connecteurs/data-b-implantation.js'),
@@ -155,7 +155,7 @@ function incoherences(lectures) {
 /**
  * Deux lectures ou plus d'un même indicateur, comparées À ÉCHELLE ÉGALE.
  *
- * Une source peut rendre plusieurs mailles (Data-B : rue, quartier, ville).
+ * Une source peut rendre plusieurs mailles (la valeur locative : rue, quartier, ville).
  * On retient, pour chacune, celle qui se compare le mieux à la portée de la
  * source de tête, et l'on écarte explicitement les autres — elles restent
  * lisibles dans `ecartees`, jamais supprimées.
@@ -193,7 +193,7 @@ export function comparer(cle, lectures) {
   const valeurs = points.map((p) => p.centre);
   const bas = Math.min(...valeurs);
   const haut = Math.max(...valeurs);
-  // L'écart rapporté à la plus basse : « Data-B est 22 % au-dessus d'Equimmox ».
+  // L'écart rapporté à la plus basse : « le secteur est 22 % au-dessus du bien ».
   const relatif = bas > 0 ? (haut - bas) / bas : null;
   return {
     cle,

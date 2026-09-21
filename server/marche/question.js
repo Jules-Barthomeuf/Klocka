@@ -18,11 +18,11 @@ const OUTILS = [
   {
     name: 'valeur_locative',
     description:
-      "Le loyer commercial au m² par an autour d'une adresse. Interroge Equimmox (baux réellement signés dans un rayon de 500 m, à surface comparable) ET Data-B (estimation à l'échelle de la rue, du quartier ou de la ville), puis rend les deux pour comparaison. C'est l'outil à utiliser pour toute question de loyer commercial, de valeur locative ou de prix au m² d'un local.",
+      "Le loyer commercial au m² par an autour d'une adresse. Interroge Equimmox (baux réellement signés dans un rayon de 500 m, à surface comparable), puis la valeur locative du secteur (Equimmox à l'échelle de la rue, du quartier et de la ville, et le loyer déduit des ventes DVF), et rend le tout pour comparaison. C'est l'outil à utiliser pour toute question de loyer commercial, de valeur locative ou de prix au m² d'un local.",
     input_schema: {
       type: 'object',
       properties: {
-        adresse: { type: 'string', description: "l'adresse COMPLÈTE, telle qu'on l'écrirait sur une enveloppe : « 12 rue de la République, 69002 Lyon ». Recopie exactement l'adresse du dossier, ou exactement celle que l'utilisateur a écrite — ne compose JAMAIS une adresse en mélangeant les deux. Equimmox exige une rue : avec une ville seule, il échouera et seul Data-B répondra." },
+        adresse: { type: 'string', description: "l'adresse COMPLÈTE, telle qu'on l'écrirait sur une enveloppe : « 12 rue de la République, 69002 Lyon ». Recopie exactement l'adresse du dossier, ou exactement celle que l'utilisateur a écrite — ne compose JAMAIS une adresse en mélangeant les deux. Equimmox exige une rue : avec une ville seule, il échouera et seul le loyer déduit des ventes répondra." },
         surface: { type: 'number', description: 'la surface du local en m², si elle est connue ; 0 sinon. Elle resserre la recherche Equimmox à ±30 %.' },
       },
       required: ['adresse'],
@@ -31,7 +31,7 @@ const OUTILS = [
   {
     name: 'cessions_de_fonds',
     description:
-      "Les cessions de fonds de commerce autour d'une adresse : combien se sont vendues, à quel prix, pour quelles activités, à quelle distance. Source : Data-B, rayon 250 m. À utiliser pour toute question sur le prix d'un fonds, la vitalité commerciale d'une rue ou ce qui s'y est vendu.",
+      "Les cessions de fonds de commerce autour d'une adresse : combien se sont vendues, à quel prix, pour quelles activités, à quelle distance. Source : BODACC, rayon 250 m, adresses géocodées. À utiliser pour toute question sur le prix d'un fonds, la vitalité commerciale d'une rue ou ce qui s'y est vendu.",
     input_schema: {
       type: 'object',
       properties: { adresse: { type: 'string', description: "l'adresse complète, recopiée du dossier ou de la question — jamais un mélange des deux" } },
@@ -186,9 +186,9 @@ export async function repondre(question, contexte = {}) {
         }
         const [equimmox, dataB] = await Promise.all([
           lire('equimmox', { adresse, surface: s }),
-          lire('data-b-valeur-locative', { adresse }),
+          lire('valeur-locative', { adresse }),
         ]);
-        return { equimmox, data_b: dataB, note: 'Equimmox constate des baux signés ; Data-B estime. Un écart entre les deux mérite d’être signalé.' };
+        return { equimmox, secteur: dataB, note: 'Equimmox à surface comparable, puis la rue, le quartier et la ville, et le loyer déduit des ventes DVF. Un écart entre ces lectures mérite d’être signalé.' };
       }
       case 'cessions_de_fonds':
         return lire('bodacc-cessions', { adresse, rayon: 250 });
@@ -224,7 +224,7 @@ function resume(cle, r) {
   switch (cle) {
     case 'equimmox':
       return { bas: r.bas, moyenne: r.moyenne, haut: r.haut, rayon: r.rayon, surface_min: r.surface_min, surface_max: r.surface_max, delai_jours: r.delai_jours };
-    case 'data-b-valeur-locative':
+    case 'valeur-locative':
       return { rue: r.rue, quartier: r.quartier, ville: r.ville };
     case 'bodacc-cessions':
       return { total: r.total, rayon: r.rayon, marche: r.marche, rue: r.rue, pertinentes: (r.pertinentes || []).slice(0, 8) };

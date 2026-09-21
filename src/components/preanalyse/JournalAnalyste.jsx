@@ -16,7 +16,7 @@ import { PanneauJournalDetaille, PanneauTracabilite } from "@/components/preanal
 // ligne à ligne pendant qu'il le fait — pour de vrai.
 //
 // « Mettre à jour » lance server/alex.js sur le lot : Equimmox, Data-B
-// (valeurs locatives, étude d'implantation), le BODACC (cessions), Le Figaro.
+// (étude d'implantation), le BODACC (cessions), Le Figaro.
 // L'écran interroge l'état toutes les deux secondes et demi et écrit une
 // ligne par tentative et par résultat posé — heure, source, issue, chiffre.
 // Rien ici n'est écrit à l'avance : marche-reel.js traduit l'état du serveur,
@@ -27,11 +27,11 @@ import { PanneauJournalDetaille, PanneauTracabilite } from "@/components/preanal
 // sources avec leur heure, l'emplacement, la trace des tentatives.
 
 const INTENTION =
-  "Je consulte Equimmox ET Data-B pour la valeur locative — les deux, pour les recouper —, puis les cessions de fonds, le résidentiel du Figaro et l’étude d’implantation : flux, tronçon, démographie, revenus. Chaque chiffre garde sa source et son heure, et un écart entre deux sources est signalé plutôt qu’absorbé. Je termine par les deux sources publiques — DVF pour ce qui s’est vendu pour de vrai, le BODACC pour ce qui ouvre et ce qui ferme dans la rue.";
+  "Je consulte Equimmox deux fois pour la valeur locative — le bien à surface comparable, puis la rue, le quartier et la ville, avec le loyer déduit des ventes DVF pour les recouper —, puis les cessions de fonds au BODACC, le résidentiel du Figaro et l’étude d’implantation : flux, tronçon, démographie, revenus. Chaque chiffre garde sa source et son heure, et un écart entre deux sources est signalé plutôt qu’absorbé. Je termine par les deux sources publiques — DVF pour ce qui s’est vendu pour de vrai, le BODACC pour ce qui ouvre et ce qui ferme dans la rue.";
 
 const SOURCES = [
   { cle: "equimmox", nom: "Equimmox", ton: "menthe", acces: "compte de service · baux comparables à 500 m" },
-  { cle: "data-b", nom: "Data-B", ton: "menthe", acces: "compte de service · valeurs locatives (3 secteurs), étude d’implantation (1 crédit)" },
+  { cle: "data-b", nom: "Data-B", ton: "menthe", acces: "compte de service · étude d’implantation (1 crédit)" },
   { cle: "figaro", nom: "Le Figaro Immobilier", ton: "menthe", acces: "accès public · prix, loyers et évolution du résidentiel" },
   { cle: "dvf", nom: "DVF", ton: "menthe", acces: "donnée publique · ventes de locaux commerciaux réellement conclues, 5 ans" },
   { cle: "bodacc", nom: "BODACC", ton: "menthe", acces: "donnée publique · créations, liquidations et radiations de la rue, cessions de fonds à 250 m avec leur prix" },

@@ -184,11 +184,11 @@ export async function lireMutation(id, { rayon = 40, user = null, forcer = false
   return maj;
 }
 
-/** Le loyer de marché de la rue, par Data-B, sur l'adresse de la cible. */
+/** Le loyer de marché de la rue, déduit des ventes DVF autour de l'adresse de la cible. */
 export async function lireLoyer(id, { user = null } = {}) {
   const c = cibleOu(id);
-  const { valeurLocative } = await import('../data-b.js');
-  const r = await valeurLocative(adresseComplete(c), { user });
+  const { loyerDeRue } = await import('../loyer-dvf.js');
+  const r = await loyerDeRue(adresseComplete(c), { user });
   if (!r.ok) throw new Error(r.error);
   return poserLoyer(c.id, r.resultat, user);
 }
@@ -205,7 +205,7 @@ export function poserLoyer(id, valeurLocative, user = null) {
     ...(c.valorisation || {}),
     loyer_m2_marche: loyer,
     loyer_fourchette: [rue.basse ?? null, rue.haute ?? null],
-    loyer_source: valeurLocative?.rue ? 'Data-B, rue' : 'Data-B, quartier',
+    loyer_source: `${valeurLocative?.derive ? 'DVF, déduit' : 'Equimmox'}, ${valeurLocative?.rue ? 'rue' : 'quartier'}`,
     valeur_locative: valeurLocative,
   };
   const maj = mettreAJourCible(c.id, { valorisation: v }, user);

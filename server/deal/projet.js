@@ -85,7 +85,7 @@ function mapperMarche(ville, codePostal, chiffres = null) {
   };
 }
 
-// Data-B donne le loyer de la rue, du quartier et de la ville, en € HT HC par
+// La valeur locative donne le loyer de la rue, du quartier et de la ville, en € HT HC par
 // m² et par an — l'unité même des cases « Offre actuelle ». On ne remplit que
 // ce qui est encore vide.
 function mapperValeurLocative(vl, deja = {}) {
@@ -341,7 +341,7 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
 
     ...mapperSimulateur(lot.simulateur),
     ...mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres),
-    // La valeur locative lue sur Data-B, si elle a été cherchée : la fourchette
+    // La valeur locative du secteur, si elle a été cherchée : la fourchette
     // de la rue entre dans « Offre actuelle », le quartier nomme le secteur.
     // Elle passe après la base marché et le point de marché, sans les écraser.
     ...mapperValeurLocative(lot.valeur_locative, mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres)),

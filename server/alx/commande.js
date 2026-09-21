@@ -104,7 +104,7 @@ Phrase : « ${String(texte).trim()} »`;
 }
 
 /**
- * Une rue que la ville n'a pas : la Base Adresse Nationale la confirme, Data-B
+ * Une rue que la ville n'a pas : la Base Adresse Nationale la confirme, DVF
  * donne son loyer, et elle entre dans la liste avec sa classe.
  */
 async function ajouterRue(ville, nom, user) {
@@ -115,8 +115,8 @@ async function ajouterRue(ville, nom, user) {
   const propre = joliNomDeRue(off.nom);
   let loyer = null;
   try {
-    const { valeurLocative } = await import('../data-b.js');
-    const vl = await valeurLocative(`${propre}, ${off.code_postal || ville.code_postal || ''} ${ville.nom}`.trim(), { user });
+    const { loyerDeRue } = await import('../loyer-dvf.js');
+    const vl = await loyerDeRue(`${propre}, ${off.code_postal || ville.code_postal || ''} ${ville.nom}`.trim(), { user });
     loyer = vl.ok ? vl.resultat?.rue || vl.resultat?.quartier || null : null;
   } catch {
     loyer = null;
@@ -126,7 +126,7 @@ async function ajouterRue(ville, nom, user) {
   const r = await classerRue(ville.id, { nom: propre, classe, motif: `ajoutée depuis le chat · ${e.motif}`, user });
   if (!r.ok) return r;
   // Ce qu'on sait déjà de la rue : son loyer, son point, pour la carte et la fiche.
-  const rues = (r.ville.rues || []).map((x) => (x.nom === propre ? { ...x, loyer: loyer ? [loyer.basse, loyer.haute] : null, loyer_source: loyer ? 'Data-B' : null, code_postal: off.code_postal || null, centre: { lat: off.lat, lon: off.lon }, commerces: x.commerces ?? 0 } : x));
+  const rues = (r.ville.rues || []).map((x) => (x.nom === propre ? { ...x, loyer: loyer ? [loyer.basse, loyer.haute] : null, loyer_source: loyer ? 'DVF, déduit' : null, code_postal: off.code_postal || null, centre: { lat: off.lat, lon: off.lon }, commerces: x.commerces ?? 0 } : x));
   Records.update('Ville', ville.id, { rues });
   return { ok: true, nom: propre, classe };
 }

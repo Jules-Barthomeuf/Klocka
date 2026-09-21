@@ -193,11 +193,11 @@
     "max_rues": 300,
     "part_emplacement_1": 0.25,
     "part_emplacement_1bis": 0.60,
-    "poids_commercialite": { "loyer": 0.5, "vitrines": 0.3, "prix_m2": 0.2 },
+    "poids_commercialite": { "loyer": 0, "vitrines": 0.5, "prix_m2": 0.5 },
     "loyer_plancher_1": 450,
     "loyer_emplacement_1": 800,
     "loyer_emplacement_1bis": 550,
     "loyer_emplacement_2": 250,
-    "_commentaire": "L'emplacement est relatif à la ville, comme dans le métier : les rues sont rangées par leur commercialité, une moyenne pondérée (poids_commercialite) de trois rangs, le milieu de la fourchette de loyer Data-B (€/m²/an), le nombre de vitrines OpenStreetMap et le prix au m² des murs autour (DVF, sinon déduit du loyer). Les part_emplacement_1 premières (25 %) sont en 1 : les artères et places principales du centre. Jusqu'à part_emplacement_1bis (60 %) en 1 bis : les petites rues du centre. Le reste en 2. Ces parts ont été relevées après Cannes, où 10 % laissait la Croisette et le centre hors du 1. Deux garde-fous absolus : une rue en 1 doit avoir au moins loyer_plancher_1 de loyer ; sous loyer_emplacement_2, la rue est écartée avec son motif et l'équipe peut la reprendre. loyer_emplacement_1 et _1bis ne servent plus qu'au classement d'une rue ajoutée seule, sans ville autour. Une rue est proposée si elle compte au moins min_commerces_par_rue vitrines sur OpenStreetMap ; les max_rues plus vivantes sont classées."
+    "_commentaire": "L'emplacement est relatif à la ville, comme dans le métier : les rues sont rangées par leur commercialité, une moyenne pondérée (poids_commercialite) de trois rangs, le nombre de vitrines OpenStreetMap et le prix au m² des murs autour (DVF). Le loyer de la rue, depuis la sortie de Data-B, est DÉDUIT de ce même prix au taux de rendement : le compter en plus reviendrait à peser deux fois le même signal, son poids est donc à zéro, et il ne sert plus qu'aux garde-fous absolus (loyer_plancher_1, loyer_emplacement_2). Les part_emplacement_1 premières (25 %) sont en 1 : les artères et places principales du centre. Jusqu'à part_emplacement_1bis (60 %) en 1 bis : les petites rues du centre. Le reste en 2. Ces parts ont été relevées après Cannes, où 10 % laissait la Croisette et le centre hors du 1. Deux garde-fous absolus : une rue en 1 doit avoir au moins loyer_plancher_1 de loyer ; sous loyer_emplacement_2, la rue est écartée avec son motif et l'équipe peut la reprendre. loyer_emplacement_1 et _1bis ne servent plus qu'au classement d'une rue ajoutée seule, sans ville autour. Une rue est proposée si elle compte au moins min_commerces_par_rue vitrines sur OpenStreetMap ; les max_rues plus vivantes sont classées."
   }
 }

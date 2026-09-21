@@ -20,12 +20,12 @@ import { libelleEmplacement } from './rues.js';
 // 1 vers 1 bis, de 1 bis vers 2), « hausse » quand elle la monte. On ne
 // propose que ceux du bon sens : « loyer trop haut » n'explique pas une montée.
 export const MOTIFS = [
-  { cle: 'loyer_surestime', sens: 'baisse', mot: 'Loyer Data-B trop haut pour cette rue', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
+  { cle: 'loyer_surestime', sens: 'baisse', mot: 'Loyer de marché trop haut pour cette rue', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
   { cle: 'peu_de_passage', sens: 'baisse', mot: 'Trop peu de passage', portee: 'partout', detail: 'Les rues aussi calmes ne monteront plus au-dessus de cette classe.' },
   { cle: 'residentielle', sens: 'baisse', mot: 'Rue de quartier, résidentielle', portee: 'partout', detail: 'Les rues de ce type, aussi peu denses, resteront à cette classe.' },
   { cle: 'trop_courte', sens: 'baisse', mot: 'Trop courte, trop peu de vitrines', portee: 'partout', detail: 'Les rues aussi courtes et aussi peu garnies resteront à cette classe.' },
   { cle: 'vacance', sens: 'baisse', mot: 'Beaucoup de locaux vides', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
-  { cle: 'loyer_sousestime', sens: 'hausse', mot: 'Loyer Data-B trop bas pour cette rue', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
+  { cle: 'loyer_sousestime', sens: 'hausse', mot: 'Loyer de marché trop bas pour cette rue', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
   { cle: 'artere', sens: 'hausse', mot: 'Artère ou place principale de la ville', portee: 'partout', detail: 'Les rues aussi longues et aussi garnies de la ville monteront à cette classe.' },
   { cle: 'beaucoup_de_passage', sens: 'hausse', mot: 'Beaucoup de passage', portee: 'partout', detail: 'Les rues aussi passantes et aussi denses monteront à cette classe.' },
   { cle: 'meilleure', sens: 'hausse', mot: 'Plus commerçante que le loyer ne le dit', portee: 'partout', detail: 'Les rues aussi denses, du même type, monteront à cette classe.' },

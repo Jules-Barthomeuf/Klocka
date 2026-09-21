@@ -15,8 +15,9 @@ import { BoutonMecanique } from "@/components/kdata/Mecanique";
 // avec à gauche le panneau de K-Zoning : la rue, le quartier, la ville,
 // chacun en fourchette basse et haute, en euros HT HC par m² et par an.
 //
-// UNE RECHERCHE NEUVE CONSOMME PROBABLEMENT UN CRÉDIT DATA-B : l'accueil le
-// dit avant de lancer, et le panneau dit après si la donnée venait du cache.
+// Une recherche neuve pilote Equimmox à trois rayons, quatre minutes : elle
+// part en tâche de fond et la page demande où elle en est toutes les trois
+// secondes. Le panneau dit après si la donnée venait de la base.
 
 const CARTE = "rounded-[18px] border border-trait bg-surface";
 const euros = (n) => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €`);
@@ -26,10 +27,11 @@ const NIVEAUX = [["rue", "Rue"], ["quartier", "Quartier"], ["ville", "Ville"]];
 
 // La mécanique : dans quel ordre Valeur locative interroge quoi.
 const ETAPES_MECANIQUE = [
-  { source: "Data-B, module Valeurs locatives", credit: true, quoi: "La rue, le quartier et la ville, chacun en fourchette basse et haute. Le résultat se garde trente jours par adresse : le rouvrir ne redemande rien." },
+  { source: "Equimmox, analyse de loyer, à trois rayons", quoi: "Des baux réellement signés : la rue à 200 m, le quartier à 500 m, la ville à 1 km, chacun en fourchette basse et haute. Le résultat se garde trente jours par adresse : le rouvrir ne relance rien." },
+  { source: "DVF, prix des murs × taux de rendement", quoi: "Le loyer déduit des ventes de murs commerciaux à 500 m, au taux de la grille d'estimation. Une déduction, qui sert de second regard, et de repli quand Equimmox manque." },
   { source: "Géoplateforme, contours IRIS", quoi: "Le découpage en quartiers statistiques pour colorer la carte." },
-  { source: "OpenStreetMap", quoi: "La densité de commerces d'un IRIS que Data-B n'a pas lu : un des deux signaux de l'indice de position." },
-  { source: "INSEE Filosofi", quoi: "Le niveau de vie des habitants d'un IRIS que Data-B n'a pas lu : le second signal. L'indice classe, il ne chiffre pas — aucun euro n'est inventé." },
+  { source: "OpenStreetMap", quoi: "La densité de commerces d'un IRIS qu'on n'a pas lu : un des deux signaux de l'indice de position." },
+  { source: "INSEE Filosofi", quoi: "Le niveau de vie des habitants d'un IRIS qu'on n'a pas lu : le second signal. L'indice classe, il ne chiffre pas — aucun euro n'est inventé." },
 ];
 
 // Les quatre classes de la carte, du plus cher au moins cher.
@@ -110,6 +112,10 @@ export default function ValeurLocative() {
   const [vue, setVue] = useState(null);
   const [rapport, setRapport] = useState(false);
   const [secteurOuvert, setSecteurOuvert] = useState(null);
+  // La recherche partie en tâche de fond : sa clé, et l'étape où elle en est.
+  const [attente, setAttente] = useState(null);
+  const minuteur = useRef(null);
+  useEffect(() => () => clearInterval(minuteur.current), []);
 
   const { data } = useQuery({ queryKey: ["kvaleurlocative"], queryFn: () => base44.request("GET", "/api/kvaleurlocative"), enabled: user?.role === "admin" });
   const recherches = data?.recherches || [];
@@ -127,9 +133,28 @@ export default function ValeurLocative() {
     return () => clearTimeout(t);
   }, [adresse]);
 
+  const poser = (r) => { setVue(r); setRapport(false); setSecteurOuvert(null); setSuggestions([]); qc.invalidateQueries({ queryKey: ["kvaleurlocative"] }); };
+  const arreter = () => { clearInterval(minuteur.current); minuteur.current = null; setAttente(null); };
+  // Equimmox se pilote pendant plusieurs minutes : on demande l'état toutes
+  // les trois secondes, et la page se remplit quand c'est prêt.
+  const suivre = (r) => {
+    setAttente({ cle: r.cle, jalon: r.jalon, point: r.point });
+    clearInterval(minuteur.current);
+    minuteur.current = setInterval(async () => {
+      try {
+        const t = await base44.request("GET", `/api/kvaleurlocative/etat?cle=${encodeURIComponent(r.cle)}`);
+        if (t.en_cours) { setAttente((a) => (a ? { ...a, jalon: t.jalon } : a)); return; }
+        arreter();
+        poser(t);
+      } catch (err) {
+        arreter();
+        toast.error(err?.message || "La recherche a échoué");
+      }
+    }, 3000);
+  };
   const chercher = useMutation({
     mutationFn: (texte) => base44.request("POST", "/api/kvaleurlocative", { body: { adresse: texte } }),
-    onSuccess: (r) => { setVue(r); setRapport(false); setSecteurOuvert(null); setSuggestions([]); qc.invalidateQueries({ queryKey: ["kvaleurlocative"] }); },
+    onSuccess: (r) => { if (r.en_cours) suivre(r); else poser(r); },
     onError: (err) => toast.error(err?.message || "Recherche impossible"),
   });
   const rouvrir = useMutation({
@@ -209,8 +234,8 @@ export default function ValeurLocative() {
               </div>
             )) : <p className="m-0 text-[11px] text-brume">{vue.erreur_secteurs ? `Secteurs indisponibles : ${vue.erreur_secteurs}` : "Aucun secteur à classer."}</p>}
             <p className="m-0 mt-2 text-[10.5px] leading-[1.5] text-brume">
-              {nLus} quartier{nLus > 1 ? "s" : ""} classé{nLus > 1 ? "s" : ""} par sa fourchette Data-B ; les autres par un indice de position (commerces relevés, niveau de vie), qui classe sans chiffrer.
-              {r.du_cache ? " Donnée reprise de la base, aucun crédit dépensé." : " Un crédit Data-B dépensé."}
+              {nLus} quartier{nLus > 1 ? "s" : ""} classé{nLus > 1 ? "s" : ""} par sa fourchette lue ; les autres par un indice de position (commerces relevés, niveau de vie), qui classe sans chiffrer.
+              {r.du_cache ? " Donnée reprise de la base." : r.constate ? " Baux constatés chez Equimmox." : " Loyer déduit des ventes, faute de lecture Equimmox."}
             </p>
           </div>
           </div>
@@ -224,7 +249,7 @@ export default function ValeurLocative() {
                 <p className="m-0 mt-0.5 text-[12px] tabular-nums text-ardoise">
                   <span className="mr-1.5 inline-block h-2 w-2 rounded-full align-middle" style={{ background: COULEURS_NIVEAU[secteurOuvert.niveau] || "transparent" }} />
                   {CLASSES.find(([c]) => c === secteurOuvert.niveau)?.[1] || "Non classé"}
-                  {secteurOuvert.origine === "quartier" ? ` · ${euros(secteurOuvert.basse)} à ${euros(secteurOuvert.haute)} / m² / an (Data-B)`
+                  {secteurOuvert.origine === "quartier" ? ` · ${euros(secteurOuvert.basse)} à ${euros(secteurOuvert.haute)} / m² / an (lu)`
                     : secteurOuvert.origine === "indice" ? ` · indice : ${secteurOuvert.commerces ?? "—"} commerces${secteurOuvert.niveau_de_vie ? `, ${euros(secteurOuvert.niveau_de_vie)} de niveau de vie` : ""}` : ""}
                 </p>
               </div>
@@ -238,7 +263,8 @@ export default function ValeurLocative() {
   }
 
   // ── L'accueil : une adresse, et les dernières recherches ─────────────────
-  const occupe = chercher.isPending || rouvrir.isPending;
+  const occupe = chercher.isPending || rouvrir.isPending || !!attente;
+  const JALONS = { adresse: "l'adresse", dvf: "les ventes DVF", rue: "la rue chez Equimmox, 200 m", quartier: "le quartier chez Equimmox, 500 m", ville: "la ville chez Equimmox, 1 km" };
   return (
     <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Data</p>
@@ -260,11 +286,16 @@ export default function ValeurLocative() {
           )}
         </div>
         <p className="mt-3 mb-0 text-[11.5px] leading-[1.6] text-brume">
-          Une recherche neuve lit Data-B et consomme probablement un crédit. Une même adresse dans les trente jours, ou une recherche de la liste ci-dessous, n&apos;en dépense aucun.
+          Une recherche neuve pilote Equimmox à trois rayons et prend quatre minutes environ. Une même adresse dans les trente jours, ou une recherche de la liste ci-dessous, revient tout de suite.
         </p>
+        {attente && (
+          <p className="mt-3 mb-0 flex items-center gap-2 text-[12.5px] text-menthe-texte">
+            <Loader2 className="h-4 w-4 animate-spin" />Lecture en cours : {JALONS[attente.jalon] || attente.jalon}…
+          </p>
+        )}
         <button onClick={() => chercher.mutate(adresse)} disabled={occupe || adresse.trim().length < 5}
           className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-6 text-[12.5px] font-medium uppercase tracking-[.12em] text-sur-menthe disabled:opacity-50">
-          {chercher.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Rechercher
+          {chercher.isPending || attente ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Rechercher
         </button>
       </div>
 

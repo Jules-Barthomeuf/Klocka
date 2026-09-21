@@ -14,7 +14,7 @@ import { J } from "@/design/jetons";
 
 export const SOURCES = [
   { cle: "equimmox", nom: "Equimmox", note: "baux comparables · environ une minute" },
-  { cle: "data-b-valeur-locative", nom: "Data-B · Valeurs locatives", note: "rue, quartier, ville" },
+  { cle: "valeur-locative", nom: "Equimmox · Valeur locative du secteur", note: "rue, quartier, ville · quatre minutes" },
   { cle: "bodacc-cessions", nom: "BODACC · Cessions de fonds", note: "rayon 250 m · gratuit" },
   { cle: "figaro", nom: "Le Figaro", note: "résidentiel du quartier et de la commune" },
   { cle: "dvf", nom: "DVF", note: "ventes réelles · gratuit" },

@@ -3,8 +3,8 @@
 // Ce qu'ALX a appris sur les rues sert aussi aux dossiers : une adresse, et on
 // dit ce que vaut sa rue dans SA ville — son rang parmi les rues commerçantes,
 // combien de vitrines elle porte, sur quelle longueur, quelles enseignes, le
-// loyer de marché de la rue chez Data-B, le flux estimé. Gratuit : OpenStreetMap
-// pour les rues et les vitrines, Data-B pour le loyer (pas de crédit, c'est la
+// loyer de marché de la rue déduit des ventes, le flux estimé. Gratuit : OpenStreetMap
+// pour les rues et les vitrines, DVF pour le loyer (déduit au taux de rendement, c'est la
 // valeur locative, pas l'étude d'implantation).
 //
 // Quand la ville a déjà été relevée par ALX, c'est SON classement qui parle :
@@ -87,19 +87,19 @@ export async function emplacementDeLAdresse(adresse, { forcer = false, loyerDe =
   const rue = releve.rues.find((r) => cleRue(r.nom || r.cle) === k) || null;
   const { rang, sur, part } = rangDe(releve.rues, k);
 
-  // Le loyer de marché de la rue : celui qu'ALX a déjà, sinon Data-B (gratuit).
+  // Le loyer de marché de la rue : celui qu'ALX a déjà, sinon déduit des ventes DVF.
   let loyer = dAlx?.loyer ? { basse: dAlx.loyer[0], haute: dAlx.loyer[1] } : null;
   let loyerSource = dAlx?.loyer_source || null;
   if (!loyer) {
     try {
       const lire = loyerDe || (async (a) => {
-        const { valeurLocative } = await import('../data-b.js');
-        const r = await valeurLocative(a);
+        const { loyerDeRue } = await import('../loyer-dvf.js');
+        const r = await loyerDeRue(a);
         return r.ok ? r.resultat : null;
       });
       const vl = await lire(`${rue?.nom || nomRue}, ${commune.code_postal} ${commune.nom}`);
       const n = vl?.rue || vl?.quartier || null;
-      if (n) { loyer = { basse: n.basse, haute: n.haute }; loyerSource = vl?.rue ? 'Data-B, rue' : 'Data-B, quartier'; }
+      if (n) { loyer = { basse: n.basse, haute: n.haute }; loyerSource = vl?.derive ? 'DVF, déduit' : vl?.rue ? 'Equimmox, rue' : 'Equimmox, quartier'; }
     } catch {
       loyer = null;
     }

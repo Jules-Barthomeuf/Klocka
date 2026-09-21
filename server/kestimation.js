@@ -14,7 +14,7 @@
 //      loyer facial est au-dessus ou en dessous du marché. La VLM n'est pas
 //      demandée à l'utilisateur, qui ne la connaît pas : le module va la
 //      chercher — Equimmox à surface comparable quand il est configuré,
-//      Data-B à la rue sinon.
+//      le loyer déduit des ventes DVF au taux de rendement sinon.
 //   3. LES COMPARABLES DVF — le prix au mètre carré, pondéré par la surface,
 //      des murs commerciaux vendus à moins de 500 m dans les 36 derniers mois,
 //      d'après les actes publiés par l'administration fiscale.
@@ -24,15 +24,15 @@
 // reloue moins cher, une fin de bail proche sans accord de renouvellement est
 // un risque de vacance. Chaque ligne est nommée et rendue à l'écran.
 //
-// Ce qui est un choix de modèle est dit comme tel, ici et à l'écran. Un crédit
-// Data-B peut être dépensé pour la valeur locative, sauf si l'adresse a été lue
-// dans les trente jours.
+// Ce qui est un choix de modèle est dit comme tel, ici et à l'écran. Aucune
+// source payante : DVF, INSEE, OpenStreetMap, et Equimmox sur le compte de
+// l'équipe, chaque lecture gardée trente jours.
 
 import { Records } from './db.js';
 import { geocoder } from './deal/geocodage.js';
 import { interroger, construireRequete } from './kzoning-commerces.js';
 import { habitantsDeLaZone } from './kzoning-insee.js';
-import { valeurLocative, dataBConfigure } from './data-b.js';
+import { loyerDvf } from './loyer-dvf.js';
 import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
 
 const ENTITE = 'EstimationMurs';
@@ -214,11 +214,11 @@ export function surfacePonderee({ surface_m2, surface_vente_m2, surface_reserve_
 }
 
 /**
- * Les lectures de valeur locative de marché, de la plus spécifique au bien à
- * la plus générale. Equimmox regarde des locaux de surface comparable à 500 m ;
- * Data-B donne la rue, tous locaux confondus. Les deux peuvent diverger
- * fortement, et l'écran doit le montrer plutôt que de retenir l'une en
- * silence.
+ * Les lectures de valeur locative de marché, de la plus sûre à la moins sûre.
+ * Equimmox constate des baux signés sur des locaux de surface comparable à
+ * 500 m ; le loyer déduit des ventes DVF au taux de rendement est une
+ * déduction, tous locaux confondus. Les deux peuvent diverger fortement, et
+ * l'écran doit le montrer plutôt que de retenir l'une en silence.
  */
 function lecturesVlm(marche) {
   const lectures = [];
@@ -227,11 +227,9 @@ function lecturesVlm(marche) {
     const moyen = eq.moyenne ?? ((eq.bas + eq.haut) / 2);
     lectures.push({ source: eq.source || 'Equimmox', bas: eq.bas ?? moyen, moyen, haut: eq.haut ?? moyen, detail: `${eq.rayon || '500 m'}, surfaces de ${eq.surface_min ?? '?'} à ${eq.surface_max ?? '?'} m²` });
   }
-  const db = marche?.vlm_datab;
-  const niveau = db?.rue?.basse ? db.rue : db?.quartier?.basse ? db.quartier : db?.ville?.basse ? db.ville : null;
-  if (niveau) {
-    const echelle = niveau === db.rue ? 'la rue' : niveau === db.quartier ? 'le quartier' : 'la ville';
-    lectures.push({ source: db.source || 'Data-B', bas: niveau.basse, moyen: Math.round((niveau.basse + niveau.haute) / 2), haut: niveau.haute, detail: `à l'échelle de ${echelle} (${niveau.nom || ''})`.trim() });
+  const dv = marche?.vlm_dvf;
+  if (dv && (dv.basse != null || dv.haute != null)) {
+    lectures.push({ source: dv.source || 'DVF, loyer déduit', bas: dv.basse, moyen: dv.moyenne ?? Math.round((dv.basse + dv.haute) / 2), haut: dv.haute, derive: true, detail: `déduit de ${dv.n} ventes de murs à ${dv.rayon}, au taux de ${String(dv.taux?.bas).replace('.', ',')} à ${String(dv.taux?.haut).replace('.', ',')} %` });
   }
   return lectures;
 }
@@ -464,22 +462,18 @@ async function executer(id, user) {
   etape(id, 'marche', h.ok ? 'faite' : 'ratee', h.ok ? `${h.insee?.population?.habitants ?? 0} habitants dans ${RAYON_ZONE} m` : h.error);
   noter(id, { marche });
 
-  // La valeur locative de marché : Data-B, à la rue, au quartier, à la ville.
-  // Un crédit, sauf si l'adresse a été lue dans les trente jours.
+  // La valeur locative de marché, déduite des ventes DVF au taux de rendement
+  // de la grille : une seconde, aucun crédit. Le constat Equimmox, à surface
+  // comparable, viendra après le formulaire et passera devant.
   etape(id, 'vlm', 'en_cours');
-  if (!dataBConfigure()) {
-    etape(id, 'vlm', 'ratee', 'Data-B non configuré : la valeur locative viendra d\'Equimmox après le formulaire, ou manquera');
-  } else {
-    try {
-      const v = await valeurLocative(point.libelle, { user });
-      marche.vlm_datab = v.ok ? v.resultat : null;
-      if (v.ok) marche.sources.push('Data-B');
-      const rue = v.resultat?.rue;
-      etape(id, 'vlm', v.ok ? 'faite' : 'ratee', v.ok ? `${rue?.basse ?? '?'} à ${rue?.haute ?? '?'} € HT HC / m² / an à la rue${v.resultat?.du_cache ? ', repris de la base' : ''}` : v.error);
-    } catch (err) {
-      marche.vlm_datab = null;
-      etape(id, 'vlm', 'ratee', err?.message || String(err));
-    }
+  try {
+    const v = await loyerDvf(point.libelle, { user });
+    marche.vlm_dvf = v.ok ? v.resultat : null;
+    if (v.ok) marche.sources.push('DVF, loyer déduit');
+    etape(id, 'vlm', v.ok ? 'faite' : 'ratee', v.ok ? `${v.resultat.basse} à ${v.resultat.haute} € / m² / an, déduits de ${v.resultat.n} ventes à ${v.resultat.rayon}` : v.error);
+  } catch (err) {
+    marche.vlm_dvf = null;
+    etape(id, 'vlm', 'ratee', err?.message || String(err));
   }
   noter(id, { etat: 'terminee', fini_le: new Date().toISOString(), progression: 100, marche });
 }

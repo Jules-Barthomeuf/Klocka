@@ -164,7 +164,7 @@ export function signauxDe(cible, { maintenant = Date.now() } = {}) {
   const rLoyer = regle('signaux_patients', 'loyer_bas');
   const v = cible.valorisation || {};
   if (cible.loyer_m2_bail > 0 && v.loyer_m2_marche > 0 && cible.loyer_m2_bail / v.loyer_m2_marche <= (rLoyer.ratio_max || 0.7)) {
-    patient('loyer_bas', rLoyer, { valeur: `${Math.round((cible.loyer_m2_bail / v.loyer_m2_marche) * 100)} % du marché`, source: v.loyer_source || 'Data-B / Equimmox' });
+    patient('loyer_bas', rLoyer, { valeur: `${Math.round((cible.loyer_m2_bail / v.loyer_m2_marche) * 100)} % du marché`, source: v.loyer_source || 'DVF / Equimmox' });
   }
 
   const rIsole = regle('signaux_patients', 'bien_isole');

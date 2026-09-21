@@ -32,7 +32,9 @@ const CACHE_JOURS = 30;
 const RAYON_METRES = 500;
 const ECART_SURFACE = 0.3;
 
-const cleCache = (adresse, surface) => `${String(adresse).toLowerCase().replace(/\s+/g, ' ').trim()}|${surface || 0}`;
+// Le rayon n'entre dans la clé que hors du 500 m historique : les recherches
+// déjà gardées restent lisibles.
+const cleCache = (adresse, surface, rayon = RAYON_METRES) => `${String(adresse).toLowerCase().replace(/\s+/g, ' ').trim()}|${surface || 0}${rayon && rayon !== RAYON_METRES ? `|${rayon}` : ''}`;
 
 const nombre = (s) => {
   const n = Number(String(s || '').replace(/[^\d,.-]/g, '').replace(/\s/g, '').replace(',', '.'));
@@ -135,12 +137,16 @@ async function seConnecter(p) {
  * @param {{surface?: number, forcer?: boolean, user?: object}} opts - la surface
  *   du local en m² (la recherche porte sur ±30 % autour) ; `forcer` ignore le cache
  */
-export async function analyseLoyer(adresse, { surface = null, forcer = false, user = null } = {}) {
+export async function analyseLoyer(adresse, { surface = null, rayon = RAYON_METRES, forcer = false, user = null } = {}) {
   if (!equimmoxConfigure()) return { ok: false, error: 'Equimmox n\'est pas configuré : EQUIMMOX_EMAIL et EQUIMMOX_MOT_DE_PASSE manquent dans .env.' };
   const texteAdresse = String(adresse || '').trim();
   if (texteAdresse.length < 4) return { ok: false, error: 'Adresse trop courte.' };
   const s = Number(surface) > 0 ? Math.round(Number(surface)) : null;
-  const cle = cleCache(texteAdresse, s);
+  // Le rayon : l'un des crans du curseur d'Equimmox. Hors 500 m, il sert à
+  // lire la rue (200 m) ou la ville (1 km), les trois échelles que la
+  // valeur locative présente.
+  const r = Number(rayon) > 0 ? Math.round(Number(rayon)) : RAYON_METRES;
+  const cle = cleCache(texteAdresse, s, r);
   if (!forcer) {
     const recent = Records.filter('EquimmoxRecherche', { cle })
       .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000)
@@ -202,8 +208,8 @@ export async function analyseLoyer(adresse, { surface = null, forcer = false, us
     // Le rayon : le curseur n'existe qu'une fois l'adresse choisie.
     const curseur = p.locator('input[type="range"]').first();
     await curseur.waitFor({ state: 'visible', timeout: 15000 }).catch(() => { throw new Error('Equimmox : l\'adresse n\'a pas été reconnue (pas de curseur de rayon).'); });
-    const rayonLu = await reglerRayon(p, curseur, RAYON_METRES);
-    if (!rayonLu) throw new Error(`Equimmox : impossible de régler le rayon à ${RAYON_METRES} m.`);
+    const rayonLu = await reglerRayon(p, curseur, r);
+    if (!rayonLu) throw new Error(`Equimmox : impossible de régler le rayon à ${r} m.`);
 
     // La surface : ±30 % autour de celle du local.
     if (s) {
@@ -241,7 +247,7 @@ export async function analyseLoyer(adresse, { surface = null, forcer = false, us
       par: user?.email || null,
     };
     await ctx.storageState({ path: SESSION }).catch(() => {});
-    Records.create('EquimmoxRecherche', { cle, adresse: texteAdresse, surface: s, resultat, le: resultat.le, par: resultat.par });
+    Records.create('EquimmoxRecherche', { cle, adresse: texteAdresse, surface: s, rayon_m: r, resultat, le: resultat.le, par: resultat.par });
     console.log(`[equimmox] analyse de loyer lue pour « ${texteAdresse} »${s ? ` (${s} m²)` : ''}${user?.email ? ` (${user.email})` : ''}`);
     return { ok: true, resultat };
   } catch (e) {
@@ -279,7 +285,7 @@ const PLAFOND_TRAVAUX = 50;
 
 /** Démarre — ou retrouve — la recherche pour cette adresse et cette surface. */
 export function lancerAnalyseLoyer(adresse, opts = {}) {
-  const cle = cleCache(adresse, Number(opts.surface) > 0 ? Math.round(Number(opts.surface)) : null);
+  const cle = cleCache(adresse, Number(opts.surface) > 0 ? Math.round(Number(opts.surface)) : null, Number(opts.rayon) > 0 ? Math.round(Number(opts.rayon)) : RAYON_METRES);
   const enCours = travaux.get(cle);
   if (enCours?.etat === 'en_cours') return { cle, ...enCours };
 
@@ -316,18 +322,28 @@ export function etatAnalyseLoyer(cle) {
 }
 
 /** Le résultat déjà gardé pour cette adresse, s'il en existe un de moins de trente jours. */
-export function analyseLoyerEnCache(adresse, surface = null) {
-  const cle = cleCache(adresse, Number(surface) > 0 ? Math.round(Number(surface)) : null);
+export function analyseLoyerEnCache(adresse, surface = null, rayon = RAYON_METRES) {
+  const cle = cleCache(adresse, Number(surface) > 0 ? Math.round(Number(surface)) : null, Number(rayon) > 0 ? Math.round(Number(rayon)) : RAYON_METRES);
   const recent = Records.filter('EquimmoxRecherche', { cle })
     .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000)
     .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
   return recent ? { ...recent.resultat, du_cache: true } : null;
 }
 
+/** « 500m » → 500, « 1.5km » → 1500. */
+const metresDe = (libelle) => {
+  const m = String(libelle || '').replace(/[+\s]/g, '').toLowerCase().match(/^(\d+(?:[.,]\d+)?)(m|km)$/);
+  if (!m) return null;
+  const n = Number(m[1].replace(',', '.'));
+  return m[2] === 'km' ? Math.round(n * 1000) : Math.round(n);
+};
+
 // Le curseur de rayon a neuf crans ; leur valeur en mètres se lit dans le
-// libellé affiché à côté. On avance cran par cran jusqu'au libellé voulu.
+// libellé affiché à côté. On les parcourt tous, puis on se pose sur le cran
+// le plus proche de ce qui est demandé : Equimmox n'a pas de cran à 250 m ni
+// à 1,5 km, et refuser aurait perdu la lecture. Le libellé rendu est celui du
+// cran réellement retenu, pour que l'écran dise le vrai rayon.
 async function reglerRayon(p, curseur, metres) {
-  const voulu = metres >= 1000 ? `${metres / 1000}km` : `${metres}m`;
   const poser = (v) => curseur.evaluate((el, val) => {
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
     setter.call(el, val);
@@ -336,11 +352,18 @@ async function reglerRayon(p, curseur, metres) {
   }, String(v));
   const min = Number(await curseur.getAttribute('min')) || 1;
   const max = Number(await curseur.getAttribute('max')) || 9;
+  const crans = [];
   for (let v = min; v <= max; v++) {
     await poser(v);
-    await p.waitForTimeout(500);
+    await p.waitForTimeout(400);
     const libelle = (await texteDe(p)).find((l) => /^\+?\s*\d+([.,]\d+)?\s*(m|km)$/i.test(l));
-    if (libelle && libelle.replace(/[+\s]/g, '').toLowerCase() === voulu) return libelle;
+    const m = metresDe(libelle);
+    if (m != null) crans.push({ v, metres: m, libelle });
+    if (m === metres) { return libelle; }
   }
-  return null;
+  if (!crans.length) return null;
+  const proche = crans.reduce((a, b) => (Math.abs(b.metres - metres) < Math.abs(a.metres - metres) ? b : a));
+  await poser(proche.v);
+  await p.waitForTimeout(400);
+  return proche.libelle;
 }

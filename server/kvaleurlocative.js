@@ -1,11 +1,13 @@
 // Valeur locative : la fourchette de loyer au m² d'une adresse, et la carte
 // des quartiers autour, en quatre classes.
 //
-// La donnée vient de Data-B (module « Valeurs locatives », déjà branché dans
-// data-b.js) : la rue, le quartier et la ville, chacun en fourchette basse et
-// haute, en euros HT HC par m² et par an. UNE RECHERCHE CONSOMME PROBABLEMENT
-// UN CRÉDIT ; data-b.js garde chaque résultat trente jours par adresse, et
-// rouvrir une recherche passée ne redemande jamais rien à Data-B.
+// La donnée vient de valeur-locative.js : Equimmox, qui constate des baux
+// signés, lu à trois rayons — la rue, le quartier, la ville — chacun en
+// fourchette basse et haute, en euros HT HC par m² et par an ; et à côté le
+// loyer déduit des ventes DVF. Trois lectures Equimmox prennent quatre
+// minutes : la recherche part en tâche de fond et la page vient demander où
+// elle en est. Chaque résultat se garde trente jours par adresse, et rouvrir
+// une recherche passée ne relance rien.
 //
 // La carte se colore par IRIS, les quartiers statistiques de l'INSEE, dont la
 // Géoplateforme sert les contours sans clé. Quatre classes : très élevée,
@@ -18,7 +20,8 @@
 // dit d'où vient chaque couleur.
 
 import { Records } from './db.js';
-import { valeurLocative, resoudreAdresse, dataBConfigure } from './data-b.js';
+import { resoudreAdresse } from './data-b.js';
+import { valeurLocative, lancerValeurLocative, etatValeurLocative, ouvrirValeurLocative, listerValeursLocatives } from './valeur-locative.js';
 import { boiteDe, chercherCarreaux } from './kzoning-insee.js';
 import { interroger } from './kzoning-commerces.js';
 
@@ -204,7 +207,7 @@ async function indiceCommune(codeInsee, iris, lat, lon) {
 /**
  * Attribue une classe à chaque IRIS. Pure : testée sans réseau.
  * @param {Array} iris        features GeoJSON de la commune
- * @param {Array} recherches  résultats Data-B déjà en base pour cette commune
+ * @param {Array} recherches  résultats déjà en base pour cette commune
  * @param {string|null} quartierIci le quartier de la recherche en cours
  * @param {object|null} indice l'indice de position de la commune
  */
@@ -239,11 +242,15 @@ export function colorerSecteurs(iris, recherches, quartierIci = null, indice = n
   });
 }
 
-/** Les résultats déjà en base pour une commune, du plus récent au plus ancien. */
+/**
+ * Les résultats déjà en base pour une commune, du plus récent au plus ancien.
+ * Les lectures Data-B d'avant restent lisibles : une couleur posée ne
+ * s'efface pas parce que la source a changé.
+ */
 function recherchesDe(nomVille) {
   const v = normaliser(nomVille);
-  return Records.list('DataBRecherche')
-    .filter((x) => normaliser(x.resultat?.ville?.nom) === v)
+  return [...Records.list('ValeurLocativeRecherche'), ...Records.list('DataBRecherche')]
+    .filter((x) => normaliser(x.resultat?.ville?.nom) === v || normaliser(x.point?.ville) === v)
     .sort((a, b) => String(b.le).localeCompare(String(a.le)))
     .map((x) => x.resultat);
 }
@@ -262,41 +269,67 @@ async function carteAutour(adresse, resultat) {
   return { secteurs, indice: indice ? { rayon_m: indice.rayon_m, commerces: indice.commerces, le: indice.le } : null, erreur_secteurs: erreurs.join(' ; ') || null };
 }
 
-/** Les dernières recherches, une par adresse. */
+/** Les dernières recherches, une par adresse : les neuves, puis celles d'avant. */
 export function listerRecherches(limite = 40) {
   const vues = new Set();
   const liste = [];
+  for (const x of listerValeursLocatives(limite)) {
+    const cle = normaliser(x.adresse);
+    if (vues.has(cle)) continue;
+    vues.add(cle);
+    liste.push({ ...x, origine: 'valeur-locative' });
+  }
   for (const x of Records.list('DataBRecherche').sort((a, b) => String(b.le).localeCompare(String(a.le)))) {
     if (!x.resultat?.rue && !x.resultat?.quartier) continue;
-    if (vues.has(x.cle)) continue;
-    vues.add(x.cle);
-    liste.push({ id: x.id, adresse: x.adresse, le: x.le, par: x.par, rue: x.resultat.rue || null, quartier: x.resultat.quartier || null, ville: x.resultat.ville || null });
+    const cle = normaliser(x.adresse);
+    if (vues.has(cle)) continue;
+    vues.add(cle);
+    liste.push({ id: x.id, adresse: x.adresse, le: x.le, par: x.par, rue: x.resultat.rue || null, quartier: x.resultat.quartier || null, ville: x.resultat.ville || null, origine: 'data-b' });
     if (liste.length >= limite) break;
   }
-  return liste;
+  return liste.slice(0, limite);
 }
 
-/** Une recherche : Data-B (ou son cache), puis la carte. */
+const pointDe = (adresse) => ({ lat: adresse.lat, lon: adresse.lon, label: adresse.label, code_insee: adresse.code_insee, ville: adresse.ville });
+
+/**
+ * Une recherche. Si l'adresse a été lue dans les trente jours, tout revient
+ * tout de suite. Sinon la lecture part en tâche de fond et l'on rend sa clé :
+ * la page demande l'état, puis ouvre le résultat.
+ */
 export async function rechercher(texte, { forcer = false, user = null } = {}) {
-  if (!dataBConfigure()) return { ok: false, error: 'Data-B n\'est pas configuré : DATAB_EMAIL et DATAB_MOT_DE_PASSE manquent dans .env.' };
   let adresse;
   try { adresse = await resoudreAdresse(texte); }
   catch (e) { return { ok: false, error: e.message }; }
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texte || '').slice(0, 80)} ».` };
-  const r = await valeurLocative(texte, { forcer, user });
-  if (!r.ok) return r;
-  const carte = await carteAutour(adresse, r.resultat);
-  const record = Records.list('DataBRecherche').filter((x) => x.adresse === adresse.label).sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
-  return { ok: true, id: record?.id || null, resultat: r.resultat, point: { lat: adresse.lat, lon: adresse.lon, label: adresse.label, code_insee: adresse.code_insee, ville: adresse.ville }, ...carte };
+  if (!forcer) {
+    const r = await valeurLocative(adresse.label, { user }).catch(() => null);
+    if (r?.ok && r.du_cache) {
+      const carte = await carteAutour(adresse, r.resultat);
+      return { ok: true, id: r.id, resultat: r.resultat, point: pointDe(adresse), ...carte };
+    }
+  }
+  const t = lancerValeurLocative(adresse.label, { forcer, user });
+  return { ok: true, en_cours: true, cle: t.cle, jalon: t.jalon, point: pointDe(adresse) };
 }
 
-/** Rouvre une recherche passée : jamais d'appel à Data-B, seulement la carte. */
+/** Où en est une recherche partie en tâche de fond ; prête, elle revient entière. */
+export async function etat(cle) {
+  const t = etatValeurLocative(cle);
+  if (!t) return { ok: false, error: 'Aucune recherche en cours sous cette clé.' };
+  if (t.etat === 'en_cours') return { ok: true, en_cours: true, jalon: t.jalon, depuis: t.depuis };
+  if (t.etat === 'erreur') return { ok: false, error: t.erreur || 'La recherche a échoué.' };
+  return ouvrir(t.id);
+}
+
+/** Rouvre une recherche passée : jamais de relance, seulement la carte. */
 export async function ouvrir(id) {
-  const x = Records.get('DataBRecherche', id);
+  const neuve = ouvrirValeurLocative(id);
+  const x = neuve || Records.get('DataBRecherche', id);
   if (!x?.resultat) return { ok: false, error: 'Cette recherche n\'existe plus.' };
   let adresse = null;
   try { adresse = await resoudreAdresse(x.adresse); } catch { /* la BAN ne répond pas : la carte se passe de point */ }
-  const point = adresse ? { lat: adresse.lat, lon: adresse.lon, label: adresse.label, code_insee: adresse.code_insee, ville: adresse.ville } : null;
+  const point = adresse ? pointDe(adresse) : x.point || null;
   const carte = adresse ? await carteAutour(adresse, x.resultat) : { secteurs: [], indice: null, erreur_secteurs: 'adresse non localisée' };
   return { ok: true, id, resultat: { ...x.resultat, du_cache: true }, point, ...carte };
 }

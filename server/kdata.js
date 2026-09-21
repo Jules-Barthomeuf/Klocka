@@ -48,8 +48,8 @@ export function resumerEstimation(e) {
   const m = e?.marche || {};
   const morceaux = [];
   if (m.dvf?.n != null) morceaux.push(`${m.dvf.n} vente${m.dvf.n > 1 ? 's' : ''} DVF à 500 m`);
-  const rue = m.vlm_datab?.rue;
-  if (rue?.basse) morceaux.push(`valeur locative ${euros(rue.basse)} à ${euros(rue.haute)} / m² / an`);
+  const vl = m.vlm_dvf;
+  if (vl?.basse) morceaux.push(`loyer déduit ${euros(vl.basse)} à ${euros(vl.haute)} / m² / an`);
   if (e?.resultat?.valeurs?.moyenne) return `${euros(e.resultat.valeurs.moyenne)} en valeur moyenne`;
   return `${morceaux.join(' · ') || 'marché lu'} · formulaire à remplir`;
 }

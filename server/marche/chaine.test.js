@@ -17,7 +17,7 @@ import { ErreurSource } from './erreurs.js';
 // variable d'environnement avant l'évaluation du module.
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-test-'));
 const vraiEquimmox = (await import('./connecteurs/equimmox.js')).default;
-const vraiDataB = (await import('./connecteurs/data-b-valeur-locative.js')).default;
+const vraiDataB = (await import('./connecteurs/valeur-locative.js')).default;
 const vraiTransactions = (await import('./connecteurs/bodacc-cessions.js')).default;
 const vraiFigaro = (await import('./connecteurs/figaro.js')).default;
 const vraiImplantation = (await import('./connecteurs/data-b-implantation.js')).default;
@@ -33,7 +33,7 @@ const EQUIMMOX_OK = {
   le: '2026-09-11T08:00:00.000Z',
 };
 const DATAB_OK = {
-  source: 'Data-B · Valeurs locatives',
+  source: 'Equimmox · Analyse de loyer',
   rue: { nom: 'Rue Gazan', basse: 140, haute: 200 },
   quartier: { nom: 'Centre', basse: 120, haute: 210 },
   ville: { nom: 'Grasse', basse: 100, haute: 240 },
@@ -107,7 +107,7 @@ function doublure(modele, { resultat = null, erreur = null } = {}) {
 function registre({ equimmox, dataB, figaro, transactions, implantation, dvf, bodacc } = {}) {
   return {
     equimmox: equimmox || doublure(vraiEquimmox, { resultat: EQUIMMOX_OK }),
-    'data-b-valeur-locative': dataB || doublure(vraiDataB, { resultat: DATAB_OK }),
+    'valeur-locative': dataB || doublure(vraiDataB, { resultat: DATAB_OK }),
     'bodacc-cessions': transactions || doublure(vraiTransactions, { resultat: TRANSACTIONS_OK }),
     figaro: figaro || doublure(vraiFigaro, { resultat: FIGARO_OK }),
     'data-b-implantation': implantation || doublure(vraiImplantation, { resultat: IMPLANTATION_OK }),
@@ -120,7 +120,7 @@ const contexte = { adresse: '9 rue Gazan, 06130 Grasse', surface: 100 };
 
 // ---------------------------------------------------------------------------
 
-test('Equimmox en 502 : trois réessais, puis Data-B prend le relais', async () => {
+test('Equimmox en 502 : trois réessais, puis la valeur locative du secteur prend le relais', async () => {
   const attentes = [];
   const equimmox = doublure(vraiEquimmox, {
     erreur: new ErreurSource('Equimmox a répondu 502.', { service: 'Equimmox', statut: 502 }),
@@ -137,21 +137,21 @@ test('Equimmox en 502 : trois réessais, puis Data-B prend le relais', async () 
   assert.deepEqual(attentes, [5000, 15000, 45000]);
 
   // Puis le repli a répondu, et c'est lui qui sert le besoin.
-  assert.equal(r.besoins.loyer_commercial.servi_par, 'data-b-valeur-locative');
-  assert.deepEqual(r.besoins.loyer_commercial.essayees, ['equimmox', 'data-b-valeur-locative']);
+  assert.equal(r.besoins.loyer_commercial.servi_par, 'valeur-locative');
+  assert.deepEqual(r.besoins.loyer_commercial.essayees, ['equimmox', 'valeur-locative']);
 
   // Le chiffre est là, dans le format pivot, étiqueté à sa vraie source.
   const loyer = r.indicateurs.loyer_commercial_m2_an;
   assert.ok(loyer, 'le loyer commercial est renseigné malgré la panne');
-  assert.equal(loyer.connecteur, 'data-b-valeur-locative');
-  assert.equal(loyer.service, 'Data-B');
-  assert.equal(loyer.source, 'Data-B · Valeurs locatives');
+  assert.equal(loyer.connecteur, 'valeur-locative');
+  assert.equal(loyer.service, 'Equimmox, secteur');
+  assert.equal(loyer.source, 'Equimmox · Analyse de loyer');
   assert.equal(loyer.collecte_le, '2026-09-11T08:01:00.000Z');
   assert.equal(loyer.unite, '€ / m² / an');
-  assert.equal(loyer.echelle, 'rue', 'la maille la plus fine que Data-B donne');
+  assert.equal(loyer.echelle, 'rue', 'la maille la plus fine que le secteur donne');
   assert.equal(loyer.bas, 140);
   assert.equal(loyer.haut, 200);
-  assert.equal(loyer.median, null, 'Data-B ne publie pas de médiane : elle reste vide');
+  assert.equal(loyer.median, null, 'sans moyenne lue, la médiane reste vide');
 
   // Et l'échec est tracé, sans faire tomber le reste de la lecture.
   const echec = r.sources_en_echec.find((s) => s.source === 'equimmox');
@@ -185,7 +185,7 @@ test('des identifiants refusés : aucun réessai, source suivante, et on notifie
 
   assert.equal(equimmox.appels.length, 1, 'un mur ne se force pas');
   assert.deepEqual(attentes, []);
-  assert.equal(r.besoins.loyer_commercial.servi_par, 'data-b-valeur-locative');
+  assert.equal(r.besoins.loyer_commercial.servi_par, 'valeur-locative');
   assert.equal(r.notifications.length, 1);
   assert.equal(r.notifications[0].service, 'Equimmox');
   assert.match(r.notifications[0].message, /refusée/);
@@ -229,8 +229,8 @@ test('une source à terre n’est pas resollicitée dans le même passage', asyn
   // source dans deux chaînes pour vérifier qu'elle n'est interrogée qu'une fois.
   const dataB = doublure(vraiDataB, { erreur: new ErreurSource('503', { statut: 503 }) });
   const besoins = [
-    { cle: 'a', titre: 'a', indicateurs: ['loyer_commercial_m2_an'], chaine: ['data-b-valeur-locative'] },
-    { cle: 'b', titre: 'b', indicateurs: ['loyer_commercial_m2_an'], chaine: ['data-b-valeur-locative'] },
+    { cle: 'a', titre: 'a', indicateurs: ['loyer_commercial_m2_an'], chaine: ['valeur-locative'] },
+    { cle: 'b', titre: 'b', indicateurs: ['loyer_commercial_m2_an'], chaine: ['valeur-locative'] },
   ];
   const r = await collecter(contexte, { ...sansAttente, besoins, connecteurs: registre({ dataB }) });
   assert.equal(dataB.appels.length, 4, 'quatre essais en tout, pas huit');
@@ -240,9 +240,9 @@ test('une source à terre n’est pas resollicitée dans le même passage', asyn
 test('la chaîne se réordonne sans toucher au code', async () => {
   const c = registre();
   // Sans recoupement, une source de tête qui répond arrête la chaîne.
-  const besoins = [{ ...BESOINS_DEFAUT[0], recouper: false, chaine: ['data-b-valeur-locative', 'equimmox'] }];
+  const besoins = [{ ...BESOINS_DEFAUT[0], recouper: false, chaine: ['valeur-locative', 'equimmox'] }];
   const r = await collecter(contexte, { ...sansAttente, besoins, connecteurs: c });
-  assert.equal(r.besoins.loyer_commercial.servi_par, 'data-b-valeur-locative');
+  assert.equal(r.besoins.loyer_commercial.servi_par, 'valeur-locative');
   assert.equal(c.equimmox.appels.length, 0, 'la source de tête a répondu : on s’arrête là');
 });
 
@@ -250,7 +250,7 @@ test('un besoin à recouper interroge TOUTES ses sources, même quand la premiè
   const c = registre();
   const r = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: c });
   assert.equal(c.equimmox.appels.length, 1);
-  assert.equal(c['data-b-valeur-locative'].appels.length, 1, 'la seconde source est lue aussi');
+  assert.equal(c['valeur-locative'].appels.length, 1, 'la seconde source est lue aussi');
   // Le chiffre retenu reste celui de la source de tête : le recoupement
   // éclaire, il ne renverse pas l'ordre de confiance.
   assert.equal(r.besoins.loyer_commercial.servi_par, 'equimmox');
@@ -290,7 +290,7 @@ test('la lecture avance à mesure, source par source', async () => {
     surResultat: (c, brut) => poses.push([c.cle, c.champ_lot, !!brut]),
   });
   assert.deepEqual(poses, [
-    ['data-b-valeur-locative', 'valeur_locative', true],
+    ['valeur-locative', 'valeur_locative', true],
     ['bodacc-cessions', 'transactions_fonds', true],
     ['figaro', 'prix_residentiel', true],
     ['dvf', 'ventes_dvf', true],
@@ -351,7 +351,7 @@ test('une source qui se contredit d’une maille à l’autre est signalée à p
   const r = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ dataB }) });
   const [inc] = r.recoupements.loyer_commercial_m2_an.incoherences;
   assert.ok(inc, 'la contradiction interne est relevée');
-  assert.equal(inc.service, 'Data-B');
+  assert.equal(inc.service, 'Equimmox, secteur');
   assert.equal(inc.haute.echelle, 'rue');
   assert.equal(inc.basse.echelle, 'quartier');
   assert.ok(inc.rapport > 3);

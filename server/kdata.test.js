@@ -19,7 +19,7 @@ const plat = (s) => String(s).replace(/\s/g, ' ');
 test('chaque outil se résume en une ligne, et ne dit rien quand il ne sait rien', () => {
   assert.equal(resumerExpertise({ resultat: { data_b: { flux_pieton: { par_heure: { basse: { min: 120 }, haute: { max: 480 } } }, rue: { commerces: 34 } }, generateurs: [1, 2, 3] } }), '120 à 480 piétons / h · 3 générateurs de flux · 34 commerces dans la rue');
   assert.equal(resumerExpertise({}), 'rapport prêt');
-  assert.match(resumerEstimation({ marche: { dvf: { n: 16 }, vlm_datab: { rue: { basse: 276, haute: 414 } } } }), /16 ventes DVF .* 276 € à 414 € .* formulaire à remplir/);
+  assert.match(resumerEstimation({ marche: { dvf: { n: 16 }, vlm_dvf: { basse: 276, haute: 414 } } }), /16 ventes DVF .* loyer déduit 276 € à 414 € .* formulaire à remplir/);
   assert.equal(plat(resumerEstimation({ resultat: { valeurs: { moyenne: 299000 } } })), '299 000 € en valeur moyenne');
   assert.equal(resumerProspection({ nb_retenus: 7, nb_commerces: 42 }), '7 commerces retenus sur 42');
   assert.equal(resumerProspection({ nb_retenus: 1, nb_commerces: 42 }), '1 commerce retenu sur 42');

@@ -2,7 +2,7 @@
 // dernières. Réservé à l'équipe, comme tout K-Data.
 
 import { currentUser, ok, wrap } from '../contexte.js';
-import { rechercher, ouvrir, listerRecherches } from '../kvaleurlocative.js';
+import { rechercher, ouvrir, etat, listerRecherches } from '../kvaleurlocative.js';
 
 export function monterKValeurLocative(app) {
   const admin = (req, res) => {
@@ -16,12 +16,19 @@ export function monterKValeurLocative(app) {
     ok(res, { recherches: listerRecherches() });
   }));
 
-  // Une recherche consomme probablement un crédit Data-B : c'est un geste
-  // d'équipe, jamais un effet de bord d'un affichage.
+  // Une recherche neuve pilote Equimmox pendant plusieurs minutes : elle part
+  // en tâche de fond, et la page vient demander où elle en est.
   app.post('/api/kvaleurlocative', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
     const r = await rechercher(req.body?.adresse, { forcer: !!req.body?.forcer, user });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
+  app.get('/api/kvaleurlocative/etat', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = await etat(String(req.query.cle || ''));
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));

@@ -2,9 +2,9 @@ import React from "react";
 import EchelleFourchettes from "@/components/preanalyse/EchelleFourchettes";
 import { Section, Chiffres, Phrase, Note, Vide, LienSource, euros, fmt, TEINTE } from "@/components/ui/kit";
 
-// La valeur locative d'après Data-B : la fourchette de loyer au m² de la rue,
-// du quartier et de la ville, et le loyer du bail posé en face. C'est le
-// contrôle que l'équipe faisait à la main, module « Valeurs locatives ».
+// La valeur locative du secteur : la fourchette de loyer au m² de la rue, du
+// quartier et de la ville, constatée chez Equimmox à trois rayons, avec le
+// loyer déduit des ventes DVF à côté, et le loyer du bail posé en face.
 //
 // Cet écran ne cherche rien : il montre ce que la lecture de marché a
 // rapporté. La recherche se lance depuis « Mettre à jour ».
@@ -20,7 +20,7 @@ function verdictLoyer(loyerM2, rue) {
 
 const fourchette = (n) => (n && (n.basse != null || n.haute != null) ? `${fmt(n.basse)} – ${fmt(n.haute)} €` : "—");
 
-export default function ValeurLocativeDataB({ lot, premiere = false }) {
+export default function ValeurLocativeMarche({ lot, premiere = false }) {
   const resultat = lot?.valeur_locative || null;
   const loyer = lot?.lot?.loyer_annuel_ht_hc?.valeur;
   const surface = lot?.lot?.surface_m2?.valeur;
@@ -28,9 +28,9 @@ export default function ValeurLocativeDataB({ lot, premiere = false }) {
   const verdict = resultat ? verdictLoyer(loyerM2, resultat.rue) : null;
 
   return (
-    <Section premiere={premiere} titre="Valeur locative · Data-B" aside={<LienSource href={resultat?.lien}>Voir sur Data-B</LienSource>}>
+    <Section premiere={premiere} titre={`Valeur locative du secteur · ${resultat?.constate ? "Equimmox" : resultat?.dvf ? "déduite des ventes" : "Equimmox"}`} aside={resultat?.dvf?.lien ? <LienSource href={resultat.dvf.lien}>Les ventes sur DVF</LienSource> : null}>
       {!resultat ? (
-        <Vide>Aucune lecture. Relancez l'analyse de marché avec la source Data-B cochée.</Vide>
+        <Vide>Aucune lecture. Relancez l'analyse de marché avec la valeur locative du secteur cochée.</Vide>
       ) : (
         <>
           <Chiffres
@@ -56,7 +56,12 @@ export default function ValeurLocativeDataB({ lot, premiere = false }) {
               Le bail, à <span className="tabular-nums text-encre">{euros(loyerM2)} par m² et par an</span>, est <span style={{ color: verdict.teinte }}>{verdict.mot}</span> : {verdict.detail}.
             </Phrase>
           )}
-          <Note className="mt-3">Loyer au m² de la rue, du quartier et de la ville, d'après Data-B. En euros HT hors charges, par m² et par an.</Note>
+          {resultat.dvf && (
+            <Phrase className="mt-4">
+              Déduit des ventes de murs : <span className="tabular-nums text-encre">{fmt(resultat.dvf.basse)} – {fmt(resultat.dvf.haute)} €</span> par m² et par an, sur {resultat.dvf.n} ventes à {resultat.dvf.rayon}, au taux de rendement de la grille. Une déduction, pas un bail.
+            </Phrase>
+          )}
+          <Note className="mt-3">Loyer au m² de la rue, du quartier et de la ville, constaté chez Equimmox à 200 m, 500 m et 1 km. En euros HT hors charges, par m² et par an.</Note>
         </>
       )}
     </Section>

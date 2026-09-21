@@ -16,7 +16,7 @@ const {
 const AUJOURDHUI = new Date('2026-09-19T00:00:00Z');
 const INSEE_AISE = { revenus: { niveau_de_vie_moyen: 30000, taux_pauvrete: 8 }, population: { densite_km2: 12000 } };
 const INSEE_PAUVRE = { revenus: { niveau_de_vie_moyen: 15000, taux_pauvrete: 28 }, population: { densite_km2: 900 } };
-const VLM_DATAB = { source: 'Data-B · Valeurs locatives', rue: { nom: 'Rue Dabray', basse: 300, haute: 400 }, quartier: { nom: 'Libération', basse: 250, haute: 350 } };
+const VLM_DVF = { source: 'DVF · prix des murs × taux de rendement', derive: true, basse: 300, moyenne: 350, haute: 400, n: 9, rayon: '500 m', taux: { bas: 6.5, haut: 8 } };
 const vente = (date, prix, surface, distance_m = 100) => ({ date, prix, surface, prix_m2: Math.round(prix / surface), adresse: 'x', distance_m });
 
 test("la grille de taux suit l'emplacement, le locataire et la ville", () => {
@@ -74,7 +74,7 @@ test('la surface pondérée compte la vente à plein et la réserve à part', ()
 });
 
 test('un local loué croise ses trois méthodes, et le loyer réel pèse le plus', () => {
-  const marche = { commerces: 40, insee: INSEE_AISE, vlm_datab: VLM_DATAB, dvf: comparablesDvf([vente('2025-01-01', 300000, 100), vente('2025-06-01', 280000, 80), vente('2026-02-01', 350000, 100)], { aujourdhui: AUJOURDHUI }) };
+  const marche = { commerces: 40, insee: INSEE_AISE, vlm_dvf: VLM_DVF, dvf: comparablesDvf([vente('2025-01-01', 300000, 100), vente('2025-06-01', 280000, 80), vente('2026-02-01', 350000, 100)], { aujourdhui: AUJOURDHUI }) };
   const r = calculerEstimation({
     marche, aujourdhui: AUJOURDHUI,
     reponses: { statut: 'loue', loyer_annuel: 30000, surface_m2: 100, surface_vente_m2: 80, surface_reserve_m2: 20, ville: 'grande', emplacement: 'n1bis', locataire: 'independant_solide' },
@@ -89,8 +89,8 @@ test('un local loué croise ses trois méthodes, et le loyer réel pèse le plus
   // Le taux est dans sa bande, et la bande est celle de la grille.
   assert.equal(r.taux.bande.cle, 'n1bis_n2');
   assert.ok(r.taux.retenu >= TAUX_MIN && r.taux.retenu <= TAUX_MAX);
-  // La VLM vient de la rue Data-B, et le loyer facial lui est comparé.
-  assert.match(r.vlm.detail, /la rue/);
+  // La VLM est déduite des ventes DVF, et le loyer facial lui est comparé.
+  assert.match(r.vlm.detail, /déduit de 9 ventes/);
   assert.equal(r.vlm.loyer.moyen, Math.round(350 * 88));
   assert.equal(typeof r.vlm.ecart_facial_pct, 'number');
   // Les comparables valent prix pondéré fois surface totale.
@@ -109,24 +109,25 @@ test('un local loué croise ses trois méthodes, et le loyer réel pèse le plus
   assert.equal(r.prix_m2, Math.round(r.valeurs.moyenne / 100));
 });
 
-test('Equimmox prime sur Data-B pour la valeur locative, et Data-B reste visible à côté', () => {
-  const marche = { commerces: 40, insee: INSEE_AISE, vlm_datab: VLM_DATAB, vlm_equimmox: { source: 'Equimmox · Analyse de loyer', bas: 137, moyenne: 164, haut: 186, rayon: '500m', surface_min: 70, surface_max: 130 } };
+test('Equimmox prime sur le loyer déduit des ventes, qui reste visible à côté', () => {
+  const marche = { commerces: 40, insee: INSEE_AISE, vlm_dvf: VLM_DVF, vlm_equimmox: { source: 'Equimmox · Analyse de loyer', bas: 137, moyenne: 164, haut: 186, rayon: '500m', surface_min: 70, surface_max: 130 } };
   const r = calculerEstimation({ marche, aujourdhui: AUJOURDHUI, reponses: { statut: 'loue', loyer_annuel: 30000, surface_m2: 100, ville: 'grande', emplacement: 'n2' } });
   assert.match(r.vlm.source, /Equimmox/);
   assert.equal(r.vlm.moyen, 164);
   // La lecture de la rue ne disparaît pas : elle est là, nommée, avec sa fourchette.
   assert.equal(r.vlm.alternatives.length, 1);
-  assert.match(r.vlm.alternatives[0].source, /Data-B/);
+  assert.match(r.vlm.alternatives[0].source, /DVF/);
+  assert.equal(r.vlm.alternatives[0].derive, true, 'une déduction est dite comme telle');
   assert.equal(r.vlm.alternatives[0].bas, 300);
   assert.deepEqual(r.methodes.vlm.alternatives, r.vlm.alternatives);
-  // Sans Equimmox, Data-B seul, sans alternative.
+  // Sans Equimmox, la déduction seule, sans alternative.
   const seul = calculerEstimation({ marche: { ...marche, vlm_equimmox: null }, aujourdhui: AUJOURDHUI, reponses: { statut: 'loue', loyer_annuel: 30000, surface_m2: 100, ville: 'grande', emplacement: 'n2' } });
-  assert.match(seul.vlm.source, /Data-B/);
+  assert.match(seul.vlm.source, /DVF/);
   assert.equal(seul.vlm.alternatives.length, 0);
 });
 
 test('un local vacant se calcule sur la valeur locative de marché, avec le risque de vacance', () => {
-  const marche = { commerces: 40, insee: INSEE_AISE, vlm_datab: VLM_DATAB };
+  const marche = { commerces: 40, insee: INSEE_AISE, vlm_dvf: VLM_DVF };
   const vacant = calculerEstimation({ marche, aujourdhui: AUJOURDHUI, reponses: { statut: 'vacant', surface_m2: 100, ville: 'grande', emplacement: 'n2' } });
   assert.equal(vacant.ok, true);
   assert.equal(vacant.methodes.capitalisation, undefined, 'pas de loyer réel, pas de capitalisation du loyer réel');
@@ -142,7 +143,7 @@ test('un local vacant se calcule sur la valeur locative de marché, avec le risq
 });
 
 test("la matrice d'ajustements : triple net, enseigne, extraction, fin de bail, surloyer", () => {
-  const marche = { commerces: 40, insee: INSEE_AISE, vlm_datab: VLM_DATAB };
+  const marche = { commerces: 40, insee: INSEE_AISE, vlm_dvf: VLM_DVF };
   const base = { statut: 'loue', loyer_annuel: 30000, surface_m2: 100, ville: 'grande', emplacement: 'n1bis', locataire: 'independant_solide' };
   const nu = calculerEstimation({ marche, aujourdhui: AUJOURDHUI, reponses: base });
 
@@ -185,7 +186,7 @@ test("la matrice d'ajustements : triple net, enseigne, extraction, fin de bail, 
 });
 
 test('la méthode DVF s\'abstient sous trois ventes, et les bornes du taux tiennent', () => {
-  const marche = { commerces: 40, insee: INSEE_AISE, vlm_datab: VLM_DATAB, dvf: comparablesDvf([vente('2025-01-01', 300000, 100), vente('2025-06-01', 280000, 80)], { aujourdhui: AUJOURDHUI }) };
+  const marche = { commerces: 40, insee: INSEE_AISE, vlm_dvf: VLM_DVF, dvf: comparablesDvf([vente('2025-01-01', 300000, 100), vente('2025-06-01', 280000, 80)], { aujourdhui: AUJOURDHUI }) };
   const r = calculerEstimation({ marche, aujourdhui: AUJOURDHUI, reponses: { statut: 'loue', loyer_annuel: 30000, surface_m2: 100, ville: 'grande', emplacement: 'n2' } });
   assert.equal(r.methodes.dvf, undefined, `deux ventes, c'est moins que ${MINIMUM_VENTES}`);
   assert.deepEqual(Object.keys(r.poids).sort(), ['capitalisation', 'vlm']);

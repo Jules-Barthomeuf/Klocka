@@ -34,7 +34,7 @@ const ETAPES_MECANIQUE = [
   { source: "DVF, Etalab", quoi: "Les ventes de murs commerciaux à moins de 500 m dans les 36 derniers mois : le prix au m² pondéré par la surface, pour la méthode par comparaison." },
   { source: "OpenStreetMap", quoi: "La densité commerciale autour du point : elle place le taux de capitalisation dans sa bande." },
   { source: "INSEE Filosofi", quoi: "Le niveau de vie de la zone de 800 m : le second signal qui place le taux dans sa bande." },
-  { source: "Data-B, valeurs locatives", credit: true, quoi: "La valeur locative de marché à la rue, au quartier et à la ville. Un crédit, sauf si l'adresse a été lue dans les trente jours." },
+  { source: "DVF, prix des murs × taux de rendement", quoi: "La valeur locative de marché déduite des ventes à 500 m, au taux de la grille : une déduction, dite comme telle, qui sert de premier repère." },
   { source: "Equimmox, analyse de loyer", quoi: "Après le formulaire, quand il est configuré : les loyers de locaux comparables à 500 m, de surface à ±30 %. Cette lecture remplace celle de la rue." },
   { source: "Vos réponses", quoi: "Statut, locataire, bail, local, emplacement : la grille de taux, puis chaque ajustement, nommé et chiffré." },
 ];
@@ -161,7 +161,7 @@ function Chargement({ estimation: e }) {
       <p className="mt-8 mb-0 text-[11.5px] leading-[1.6] text-brume">
         {affinage
           ? "Equimmox lit les loyers de locaux comparables dans un navigateur : comptez une minute. Vous pouvez quitter, l'estimation vous attendra dans la liste."
-          : "La valeur locative de marché peut coûter un crédit Data-B, sauf si l'adresse a été lue dans les trente jours. Le reste vient de sources ouvertes."}
+          : "Tout vient de sources ouvertes : DVF, OpenStreetMap, INSEE. Aucun crédit n'est dépensé."}
       </p>
     </div>
   );
@@ -657,7 +657,7 @@ export default function KEstimation() {
         </div>
         <p className="mt-3 mb-0 text-[11.5px] leading-[1.6] text-brume">
           La lecture du marché prend les ventes de murs à 500 m, les commerces autour, le niveau de vie de la zone, et la valeur
-          locative du secteur. Cette dernière peut coûter un crédit Data-B, sauf si l&apos;adresse a été lue dans les trente jours.
+          locative déduite des ventes au taux de rendement. Rien n&apos;est payant ; Equimmox affinera après le formulaire.
         </p>
         <button onClick={() => lancer.mutate()} disabled={lancer.isPending || adresse.trim().length < 5}
           className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-6 text-[12.5px] font-medium uppercase tracking-[.12em] text-sur-menthe disabled:opacity-50">

@@ -1,7 +1,7 @@
 import React from "react";
 import { Section, Vide } from "@/components/ui/kit";
 import JournalEmplacement from "@/components/preanalyse/JournalEmplacement";
-import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
+import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFonds from "@/components/preanalyse/TransactionsFonds";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
@@ -75,7 +75,7 @@ export function Recoupement({ recoupement }) {
 export function OngletDataB({ lot, implantation }) {
   return (
     <div>
-      <ValeurLocativeDataB lot={lot} premiere />
+      <ValeurLocativeMarche lot={lot} premiere />
       {/* L'emplacement avant les cessions : on regarde d'abord où est le bien,
           ensuite ce qui s'y est vendu. */}
       {implantation ? <JournalEmplacement emplacement={implantation} /> : <Section titre="Étude d'implantation · Data-B"><Vide>L'étude d'implantation n'a pas encore été lue sur ce lot. Lancez « Mettre à jour ».</Vide></Section>}

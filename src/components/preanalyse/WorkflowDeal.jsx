@@ -23,7 +23,7 @@ import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
 import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
 import SectionBien from "@/components/preanalyse/SectionBien";
-import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
+import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFonds from "@/components/preanalyse/TransactionsFonds";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";

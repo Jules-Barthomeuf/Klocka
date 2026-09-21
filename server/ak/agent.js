@@ -65,6 +65,16 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' } }, required: ['deal_id', 'chemin'] },
   },
   {
+    name: 'renommer_dossier',
+    description: "Change le nom d'un dossier de préanalyse. Chercher le dossier d'abord.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, nom: { type: 'string' } }, required: ['deal_id', 'nom'] },
+  },
+  {
+    name: 'supprimer_dossier',
+    description: "Retire un dossier de préanalyse de la plateforme (il passe « abandonné » et disparaît des listes ; un admin peut le retrouver). Chercher le dossier d'abord ; s'il y a un doute sur lequel, demander.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, motif: { type: 'string' } }, required: ['deal_id'] },
+  },
+  {
     name: 'creer_projet_depuis_dossier',
     description: "Crée la fiche projet d'un dossier de préanalyse déjà là (« crée le projet pour Devred de Firminy »). Chercher le dossier d'abord avec chercher_dossier ; s'il n'existe pas, le dire, ne rien créer de vide.",
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, lot_index: { type: 'number', description: 'index du lot, 0 sauf dossier multi-lots' } }, required: ['deal_id'] },
@@ -159,6 +169,19 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     const r = await deposerDocument(input.deal_id, fichier, { user });
     if (!r.ok) return r;
     return { ok: true, type: r.type || null, statut: r.deal?.statut || null, lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
+  }
+  if (name === 'renommer_dossier' || name === 'supprimer_dossier') {
+    const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
+    if (!deal) return { ok: false, error: 'Dossier introuvable.' };
+    if (name === 'renommer_dossier') {
+      const nom = String(input.nom || '').trim();
+      if (!nom) return { ok: false, error: 'Il faut un nom.' };
+      Records.update('Deal', deal.id, { nom });
+      return { ok: true, deal_id: deal.deal_id, nom, lien: lien(`/Analyse?deal_id=${deal.deal_id}`) };
+    }
+    const { changerStatut } = await import('../deal/lifecycle.js');
+    changerStatut(deal, 'abandonne', { user, note: `Retiré depuis le chat${input.motif ? ` : ${input.motif}` : ''}` });
+    return { ok: true, deal_id: deal.deal_id, retire: true };
   }
   if (name === 'creer_projet_depuis_dossier') {
     const { creerProjetDepuisDeal, completerAvantProjet } = await import('../deal/projet.js');

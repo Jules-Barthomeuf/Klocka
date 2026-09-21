@@ -55,7 +55,7 @@ async function annoncerLesTachesFinies() {
   for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) {
     const texte = t.etat === 'ratee' ? `dsl, ${t.libelle} a planté : ${t.resultat?.erreur || 'sans détail'}` : texteDeFin(t);
     try {
-      await envoyer(t.espace, `${mention(t.pour)} ${texte}`, { fil: t.fil });
+      await envoyer(t.espace, `${mention(t.pour)} ${texte}`);
       Records.update(ENTITE_TACHE, t.id, { annoncee_le: new Date().toISOString() });
     } catch (e) {
       dernier.erreur = e?.message || String(e);
@@ -85,7 +85,11 @@ async function reposterEnAttente() {
   }
 }
 
-/** Un message qui nous parle : on répond, dans son fil. */
+/**
+ * Un message qui nous parle : on répond dans le flux de l'espace, pas dans
+ * un fil. Dans un espace à fils, une réponse de fil se replie derrière
+ * « 1 réponse » et personne ne la voit ; on mentionne la personne à la place.
+ */
 async function traiter(message) {
   const { repondre } = await import('./agent.js');
   const { mesurer } = await import('../llm-couts.js');
@@ -95,7 +99,7 @@ async function traiter(message) {
     const tache = ouvrirTache(t, message);
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
   }
-  await poster(message.espace, r.texte, message.fil);
+  await poster(message.espace, `${mention(message.auteur)} ${r.texte}`, null);
   dernier.repondus += 1;
 }
 
@@ -122,7 +126,7 @@ export async function relever() {
           dernier.erreur = e?.message || String(e);
           // L'envoi lui-même a échoué : la réponse attend, inutile d'en poster une autre.
           if (!/Google Chat a répondu/.test(dernier.erreur)) {
-            try { await envoyer(m.espace, `${mention(m.auteur)} dsl, ça a planté de mon côté : ${dernier.erreur}`, { fil: m.fil }); } catch { /* on le dira au passage suivant */ }
+            try { await envoyer(m.espace, `${mention(m.auteur)} dsl, ça a planté de mon côté : ${dernier.erreur}`); } catch { /* on le dira au passage suivant */ }
           }
         }
       }

@@ -9,6 +9,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-kvac-'));
 const {
   tauxDeVacance, turnOver, lireFermeture, normaliserRue, cleAdresse, dureesDeVacance, MINIMUM_PAR_RUE,
+  attribuerLesRues, RAYON_RUE_VOISINE,
   estCommerce, dansLeRayon, vacanceAuRegistre, rythmeDesFermetures, rangParmiLesRues, comparer, verdictVacance, resumerVerdict,
   SEUILS, MINIMUM_DEVANTURES, MINIMUM_ADRESSES, MINIMUM_ADRESSES_RUE,
 } = await import('./kvacance.js');
@@ -38,6 +39,42 @@ test('le taux se calcule sur la zone et rue par rue, et une rue trop courte est 
   // Les rues les plus en tension d'abord.
   assert.equal(v.rues[0].rue, 'dabray');
   assert.equal(tauxDeVacance([]).taux, null);
+});
+
+test("un local vide sans adresse rejoint la rue de sa voisine, sinon aucune rue n'aurait de vide", () => {
+  // Le cas qui a motivé la déduction : sur le terrain, à Cannes, les quatre
+  // locaux vides de la zone étaient sans adresse, et toutes les rues
+  // sortaient à zéro pour cent alors que la zone en comptait quatre.
+  const p = (lat, lon, adresse, vacant = false) => ({ adresse, vacant, lat, lon });
+  const commerces = [
+    p(43.7000, 7.25, '1 Rue Dabray'), p(43.7001, 7.25, '3 Rue Dabray'),
+    p(43.7002, 7.25, '5 Rue Dabray'), p(43.7003, 7.25, '7 Rue Dabray'),
+    // À cinq mètres de la devanture adressée la plus proche.
+    p(43.70035, 7.25, null, true),
+    // À plus d'un kilomètre : on préfère ne pas savoir plutôt que de le ranger
+    // dans une rue qui n'est pas la sienne.
+    p(43.7100, 7.26, null, true),
+  ];
+
+  const situes = attribuerLesRues(commerces);
+  assert.equal(situes[4].rue, 'dabray');
+  assert.equal(situes[4].libelle_rue, 'Rue Dabray', 'il hérite aussi du libellé de sa voisine');
+  assert.equal(situes[4].rue_deduite, true, 'la rue est déduite, pas relevée');
+  assert.equal(situes[0].rue_deduite, false, 'une devanture adressée ne doit rien à personne');
+  assert.equal(situes[5].rue, null);
+  assert.equal(RAYON_RUE_VOISINE, 50);
+
+  const v = tauxDeVacance(commerces);
+  const dabray = v.rues.find((x) => x.rue === 'dabray');
+  assert.equal(dabray.total, 5);
+  assert.equal(dabray.vides, 1, 'sans la déduction, la rue sortait à zéro vide');
+  assert.equal(dabray.taux, 20);
+  assert.equal(dabray.points.length, 1, 'le vide déduit reste posé sur la carte à son vrai point');
+  assert.equal(v.rues_deduites, 1);
+  assert.equal(v.sans_rue, 1);
+  // Le taux de la zone, lui, n'a jamais dépendu des adresses.
+  assert.equal(v.total, 6);
+  assert.equal(v.vides, 2);
 });
 
 test('une fermeture porte sa durée d\'exploitation, et sans point elle est écartée', () => {
@@ -175,6 +212,18 @@ test('le verdict tranche quand les deux lectures convergent, hésite quand elles
   assert.match(faible.appuis[0].phrase, /en dessous de la commune/);
   assert.match(verdictVacance({ visible: visible(7), registre: registre(7) }).appuis[0].phrase, /comme la commune/);
 
+  // L'indicateur de droite : un cran, face à la moyenne de la ville. Il suit
+  // le registre quand il tient, plus complet que les devantures relevées.
+  assert.equal(forte.face_ville.cran, 'eleve');
+  assert.equal(forte.face_ville.source, 'registre');
+  assert.equal(forte.face_ville.zone, 18);
+  assert.equal(forte.face_ville.ville, 8);
+  assert.equal(faible.face_ville.cran, 'faible');
+  assert.equal(verdictVacance({ visible: visible(7), registre: registre(7) }).face_ville.cran, 'moyen');
+  // Sans registre exploitable, il se rabat sur la rue.
+  const surLaRue = verdictVacance({ visible: visible(14), registre: { zone: { taux: 50, adresses: 4 } } });
+  assert.equal(surLaRue.face_ville.source, 'visible');
+
   // Aux seuils exacts : 5 % n'est plus frictionnelle, 10 % est structurelle.
   assert.equal(verdictVacance({ visible: { zone: { taux: 5, total: 80 } }, registre: { zone: { taux: 5, adresses: 50 } } }).niveau, 'moyenne');
   assert.equal(verdictVacance({ visible: { zone: { taux: 10, total: 80 } }, registre: { zone: { taux: 10, adresses: 50 } } }).niveau, 'forte');
@@ -199,6 +248,7 @@ test('le verdict tranche quand les deux lectures convergent, hésite quand elles
   // Sans matière, rien.
   const rien = verdictVacance({ visible: { zone: { taux: 0, total: MINIMUM_DEVANTURES - 1 } }, registre: { zone: { taux: 0, adresses: MINIMUM_ADRESSES - 1 } } });
   assert.equal(rien.niveau, 'inconnue');
+  assert.equal(rien.face_ville, null, 'sans matière, aucun cran à montrer');
   assert.equal(rien.appuis.length, 0);
   assert.equal(rien.reserves.length, 2);
   assert.equal(verdictVacance({}).niveau, 'inconnue');

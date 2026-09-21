@@ -8,7 +8,6 @@ import { toast } from "@/components/ui/avis";
 import { JL } from "@/design/jetons";
 import CartePoints from "@/components/kdata/CartePoints";
 import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
-import Repere from "@/components/kdata/Repere";
 
 // K-Vacance : y a-t-il beaucoup de locaux vides ici, oui ou non ?
 //
@@ -42,31 +41,77 @@ const couleurTaux = (t) => (t >= 20 ? JL.alerte : t >= 10 ? JL.ambre : t >= 5 ? 
 const couleurNiveau = { forte: JL.alerte, moyenne: JL.ambre, faible: JL.vert };
 const NOMS_LECTURE = { visible: "Vu de la rue", registre: "Au registre", rythme: "Rythme des fermetures" };
 
-/** Le bloc de tête : la réponse, ses appuis, ses réserves. */
-function Verdict({ v, registre }) {
+// Les trois crans de l'indicateur, du plus tendu au plus sain : la zone se
+// pose sur l'un d'eux, face à la moyenne de sa ville.
+const CRANS_VILLE = [
+  { cle: "eleve", mot: "Élevé", couleur: JL.alerte },
+  { cle: "moyen", mot: "Moyen", couleur: JL.ambre },
+  { cle: "faible", mot: "Faible", couleur: JL.vert },
+];
+
+/** L'indicateur de droite : un cran, et les deux chiffres qui le justifient. */
+function JaugeVille({ f, ville }) {
+  if (!f) return null;
+  return (
+    <div className="flex-shrink-0 rounded-[14px] border border-trait bg-fond/40 p-3.5 sm:w-[212px]">
+      <p className="alx-mont m-0 text-[10px] uppercase tracking-[.12em] text-brume">
+        Face à {ville || "la ville"}
+      </p>
+      <div className="mt-2.5 flex flex-col gap-1.5">
+        {CRANS_VILLE.map((c) => {
+          const actif = c.cle === f.cran;
+          return (
+            <div key={c.cle} className="flex items-center gap-2">
+              <span className="h-[6px] flex-1 rounded-full" style={{ background: actif ? c.couleur : "rgba(148,154,151,0.16)" }} />
+              <span className={`w-[42px] text-right text-[11.5px] ${actif ? "font-semibold text-encre" : "text-brume"}`}>{c.mot}</span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="m-0 mt-3 text-[11.5px] leading-[1.5] text-ardoise">
+        {pct(f.zone)} ici, {pct(f.ville)} dans la ville{f.ratio ? ` · ${fr(f.ratio)} fois` : ""}
+      </p>
+      <p className="m-0 mt-0.5 text-[10.5px] text-brume">
+        {f.source === "registre" ? "d'après le registre" : "d'après la rue"}
+      </p>
+    </div>
+  );
+}
+
+/** Le bloc de tête : la réponse, ses appuis, ses réserves, et l'indicateur. */
+function Verdict({ v, registre, ville }) {
   const couleur = couleurNiveau[v.niveau] || JL.ardoise;
   return (
-    <Repere titre="Y a-t-il beaucoup de vacance ?" className="mb-5"
-      phrase={<span className="flex items-start gap-2.5"><span className="mt-[6px] h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: couleur }} /><span className="text-[16px]">{v.phrase}</span></span>}
-      reserve={v.reserves.length ? v.reserves.join(" ") : null}>
-      {v.appuis.length > 0 && (
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          {v.appuis.map((a) => (
-            <div key={a.lecture} className="rounded-[12px] border border-trait bg-fond/40 p-3">
-              <p className="alx-mont m-0 text-[10px] uppercase tracking-[.12em] text-menthe-texte">{NOMS_LECTURE[a.lecture] || a.lecture}</p>
-              <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-encre">{a.phrase}.</p>
-              <p className="m-0 mt-1 text-[11px] leading-[1.5] text-brume">{a.repere}.</p>
+    <div className={`${CARTE} mb-5 p-4`}>
+      <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">Y a-t-il beaucoup de vacance ?</p>
+      <div className="mt-1.5 flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="min-w-0 flex-1">
+          <p className="m-0 flex items-start gap-2.5 text-[16px] leading-[1.45] text-encre">
+            <span className="mt-[7px] h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: couleur }} />
+            <span>{v.phrase}</span>
+          </p>
+          {v.appuis.length > 0 && (
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {v.appuis.map((a) => (
+                <div key={a.lecture} className="rounded-[12px] border border-trait bg-fond/40 p-3">
+                  <p className="alx-mont m-0 text-[10px] uppercase tracking-[.12em] text-menthe-texte">{NOMS_LECTURE[a.lecture] || a.lecture}</p>
+                  <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-encre">{a.phrase}.</p>
+                  <p className="m-0 mt-1 text-[11px] leading-[1.5] text-brume">{a.repere}.</p>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+          {registre?.etablissements_zone != null && (
+            <p className="m-0 mt-2 text-[11px] text-brume">
+              {registre.etablissements_zone} commerces au registre dans le rayon, {registre.etablissements_commune} dans la commune
+              {registre.garde_le ? ` · registre lu le ${quand(registre.garde_le)}` : ""}
+            </p>
+          )}
+          {v.reserves.length > 0 && <p className="m-0 mt-1 text-[11px] leading-[1.6] text-brume">{v.reserves.join(" ")}</p>}
         </div>
-      )}
-      {registre?.etablissements_zone != null && (
-        <p className="m-0 mt-2 text-[11px] text-brume">
-          {registre.etablissements_zone} commerces au registre dans le rayon, {registre.etablissements_commune} dans la commune
-          {registre.garde_le ? ` · registre lu le ${quand(registre.garde_le)}` : ""}
-        </p>
-      )}
-    </Repere>
+        <JaugeVille f={v.face_ville} ville={ville} />
+      </div>
+    </div>
   );
 }
 
@@ -105,7 +150,7 @@ function Resultat({ r, onRetour }) {
         {r.rayon} m autour du point · fermetures des {r.annees_fermeture} dernières années · face à {r.point.ville || "la commune"}
       </p>
 
-      {r.verdict && <Verdict v={r.verdict} registre={r.registre} />}
+      {r.verdict && <Verdict v={r.verdict} registre={r.registre} ville={r.point.ville} />}
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Chiffre titre="Vacance visible" icone={DoorClosed}
@@ -177,6 +222,12 @@ function Resultat({ r, onRetour }) {
             {r.vacance?.rues_ecartees > 0 && (
               <p className="m-0 mt-2 text-[10.5px] text-brume">
                 {r.vacance.rues_ecartees} rue{r.vacance.rues_ecartees > 1 ? "s" : ""} écartée{r.vacance.rues_ecartees > 1 ? "s" : ""} : moins de {r.vacance.minimum_par_rue} devantures relevées, un taux n&apos;y voudrait rien dire.
+              </p>
+            )}
+            {r.vacance?.rues_deduites > 0 && (
+              <p className="m-0 mt-1 text-[10.5px] text-brume">
+                {r.vacance.rues_deduites} devanture{r.vacance.rues_deduites > 1 ? "s" : ""} sur {r.vacance.total} n&apos;{r.vacance.rues_deduites > 1 ? "ont" : "a"} pas d&apos;adresse dans OpenStreetMap et {r.vacance.rues_deduites > 1 ? "ont été rattachées" : "a été rattachée"} à la rue de la devanture adressée la plus proche, à moins de {r.vacance.rayon_rue} m. C&apos;est le cas de presque tous les locaux vides.
+                {r.vacance.sans_rue > 0 ? ` ${r.vacance.sans_rue} autre${r.vacance.sans_rue > 1 ? "s" : ""} rest${r.vacance.sans_rue > 1 ? "ent" : "e"} hors de toute rue.` : ""}
               </p>
             )}
           </div>

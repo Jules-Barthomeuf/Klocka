@@ -194,17 +194,61 @@ export function dureesDeVacance(fermetures, ouvertures, aujourdhui = new Date())
  */
 export const MINIMUM_PAR_RUE = 4;
 
-export function tauxDeVacance(commerces) {
-  const total = commerces.length;
-  const vides = commerces.filter((c) => c.vacant).length;
+/** Le libellé de rue d'une devanture : son adresse sans le numéro. */
+const libelleRueDe = (c) => String(c?.adresse || '').replace(/^\d+\w*\s+/, '').trim() || null;
+const rueDe = (c) => normaliserRue(libelleRueDe(c) || '') || null;
+
+/**
+ * Au-delà, la devanture adressée la plus proche n'est plus forcément dans la
+ * même rue : mieux vaut ne pas savoir que ranger un local dans la rue d'à côté.
+ */
+export const RAYON_RUE_VOISINE = 50;
+
+/**
+ * La rue de chaque devanture, y compris celles qu'OpenStreetMap n'adresse pas.
+ * Pure : testée sans réseau.
+ *
+ * Un local vide n'a presque jamais d'adresse dans OpenStreetMap : celui qui
+ * passe devant un rideau baissé note « shop=vacant » et s'arrête là, sans
+ * numéro ni voie. Ne classer que les devantures adressées revenait donc à
+ * n'en retenir aucun vide, et toutes les rues sortaient à zéro pour cent
+ * alors que la zone en comptait. Plus de la moitié des devantures ouvertes
+ * sont d'ailleurs dans le même cas.
+ *
+ * On prête donc à une devanture sans adresse la rue de la devanture adressée
+ * la plus proche, si elle est à portée de voisinage. C'est une déduction, pas
+ * un relevé : le résultat dit combien de devantures ont été placées ainsi,
+ * et l'écran le répète.
+ */
+export function attribuerLesRues(commerces, rayonMax = RAYON_RUE_VOISINE) {
+  const adressees = (commerces || []).filter((c) => rueDe(c) && Number.isFinite(c?.lat) && Number.isFinite(c?.lon));
+  return (commerces || []).map((c) => {
+    const rue = rueDe(c);
+    if (rue) return { ...c, rue, libelle_rue: libelleRueDe(c), rue_deduite: false };
+    if (!Number.isFinite(c?.lat) || !Number.isFinite(c?.lon)) return { ...c, rue: null, libelle_rue: null, rue_deduite: false };
+    let proche = null; let plusCourte = Infinity;
+    for (const a of adressees) {
+      const d = metres(c.lat, c.lon, a.lat, a.lon);
+      if (d < plusCourte) { plusCourte = d; proche = a; }
+    }
+    if (!proche || plusCourte > rayonMax) return { ...c, rue: null, libelle_rue: null, rue_deduite: false };
+    return { ...c, rue: rueDe(proche), libelle_rue: libelleRueDe(proche), rue_deduite: true };
+  });
+}
+
+export function tauxDeVacance(commerces, { rayonRue = RAYON_RUE_VOISINE } = {}) {
+  const total = (commerces || []).length;
+  const vides = (commerces || []).filter((c) => c.vacant).length;
+  const situes = attribuerLesRues(commerces, rayonRue);
   const parRue = new Map();
-  for (const c of commerces) {
-    const rue = normaliserRue((c.adresse || '').replace(/^\d+\w*\s+/, ''));
-    if (!rue) continue;
-    const r = parRue.get(rue) || { rue, libelle: (c.adresse || '').replace(/^\d+\w*\s+/, ''), total: 0, vides: 0, points: [] };
+  let deduites = 0; let sansRue = 0;
+  for (const c of situes) {
+    if (!c.rue) { sansRue += 1; continue; }
+    if (c.rue_deduite) deduites += 1;
+    const r = parRue.get(c.rue) || { rue: c.rue, libelle: c.libelle_rue, total: 0, vides: 0, points: [] };
     r.total += 1;
     if (c.vacant) { r.vides += 1; r.points.push({ lat: c.lat, lon: c.lon, adresse: c.adresse }); }
-    parRue.set(rue, r);
+    parRue.set(c.rue, r);
   }
   const rues = [...parRue.values()]
     .filter((r) => r.total >= MINIMUM_PAR_RUE)
@@ -217,6 +261,10 @@ export function tauxDeVacance(commerces) {
     rues,
     rues_ecartees: parRue.size - rues.length,
     minimum_par_rue: MINIMUM_PAR_RUE,
+    // Ce que la déduction a permis de classer, et ce qui reste hors des rues.
+    rues_deduites: deduites,
+    sans_rue: sansRue,
+    rayon_rue: rayonRue,
   };
 }
 
@@ -402,6 +450,9 @@ const lireSeuil = (t) => (t == null ? null : t < SEUILS.frictionnelle ? 'faible'
  */
 const faceALaCommune = (mot) => (mot === 'dans la moyenne' ? 'comme' : `${mot} de`);
 
+/** Le mot de comparaison devient le cran de l'indicateur affiché à droite. */
+const CRAN = { 'en dessous': 'faible', 'dans la moyenne': 'moyen', 'au-dessus': 'eleve' };
+
 /**
  * Beaucoup de vacance, ou pas ? Pure : testée sans réseau.
  *
@@ -463,6 +514,22 @@ export function verdictVacance({ visible = {}, registre = {}, rythme = {} } = {}
     });
   }
 
+  // L'indicateur qui se lit d'un coup d'oeil : où tombe la zone face à la
+  // moyenne de la ville. On prend la lecture du registre quand elle tient,
+  // plus complète que les devantures relevées ; sinon celle de la rue.
+  const mesures = [
+    r && r.adresses >= MINIMUM_ADRESSES && r.taux != null && registre.commune?.taux != null
+      ? { source: 'registre', zone: r.taux, ville: registre.commune.taux } : null,
+    v && v.total >= MINIMUM_DEVANTURES && v.taux != null && visible.commune?.taux != null
+      ? { source: 'visible', zone: v.taux, ville: visible.commune.taux } : null,
+  ].filter(Boolean);
+  let face_ville = null;
+  if (mesures.length) {
+    const m = mesures[0];
+    const c = comparer(m.zone, m.ville);
+    face_ville = { ...m, ratio: c?.ratio ?? null, mot: c?.mot || 'dans la moyenne', cran: CRAN[c?.mot] || 'moyen' };
+  }
+
   let niveau = 'inconnue';
   let phrase;
   if (!lectures.length) {
@@ -480,7 +547,7 @@ export function verdictVacance({ visible = {}, registre = {}, rythme = {} } = {}
         : 'Vacance dans la moyenne : ni plus ni moins de locaux vides qu\'ailleurs.';
     if (lectures.length === 1) reserves.push('Une seule lecture porte ce verdict.');
   }
-  return { niveau, phrase, appuis, reserves };
+  return { niveau, phrase, appuis, reserves, face_ville };
 }
 
 /** Le résumé en une ligne, pour la file de K-Data. Pure. */

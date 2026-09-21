@@ -1,0 +1,131 @@
+// La veille du chat : AK relit les espaces, répond quand on lui parle, et
+// revient dire quand une tâche de fond est finie.
+//
+// Un passage toutes les AK_INTERVALLE_S secondes. Chaque message déjà vu est
+// noté (Meta), donc un redémarrage ne fait pas répondre deux fois. Les
+// messages sont traités l'un après l'autre : deux demandes en même temps
+// font deux réponses, dans l'ordre.
+
+import { Records, Meta } from '../db.js';
+import { chatDemande } from '../google-oauth.js';
+import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, mention, NOM } from './chat.js';
+
+const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
+const CLE_DEPUIS = 'ak.depuis';
+const CLE_VUS = 'ak.vus';
+const ENTITE_TACHE = 'AkTache';
+const MAX_VUS = 400;
+
+let minuterie = null;
+let enCours = false;
+const dernier = { le: null, erreur: null, espaces: 0, repondus: 0 };
+
+const vus = () => { try { return JSON.parse(Meta.get(CLE_VUS) || '[]'); } catch { return []; } };
+const noterVu = (nom) => Meta.set(CLE_VUS, JSON.stringify([...vus(), nom].slice(-MAX_VUS)));
+
+/** Les tâches de fond qui n'ont pas encore été annoncées. */
+export const tachesEnCours = () => Records.filter(ENTITE_TACHE, { etat: 'en_cours' }).map((t) => ({ libelle: t.libelle, genre: t.genre, depuis: t.cree_le }));
+
+function ouvrirTache(t, message) {
+  return Records.create(ENTITE_TACHE, { ...t, espace: message.espace, fil: message.fil, pour: message.auteur, etat: 'en_cours', cree_le: new Date().toISOString(), fini_le: null, resultat: null, analyses: null });
+}
+
+/** Une préz se fabrique tout de suite ; la tâche se ferme quand elle est sur le Drive. */
+async function lancerPrez(tache) {
+  const { produirePrez } = await import('./agent.js');
+  try {
+    const resultat = await produirePrez(tache.projet_id);
+    Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', resultat, fini_le: new Date().toISOString() });
+  } catch (e) {
+    Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: e?.message || String(e) }, fini_le: new Date().toISOString() });
+  }
+}
+
+/** Les analyses K-Data d'une tâche : la tâche se ferme quand plus aucune ne tourne. */
+function suivreKdata(tache) {
+  const analyses = (tache.ids || []).map((id) => Records.get('AnalyseKData', id)).filter(Boolean);
+  if (!analyses.length || analyses.some((a) => a.etat === 'en_cours')) return;
+  Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', analyses: analyses.map(({ outil, nom_outil, etat, resume, erreur, ref }) => ({ outil, nom_outil, etat, resume, erreur, ref })), fini_le: new Date().toISOString() });
+}
+
+/** Les tâches finies sont annoncées une fois, là où on les a demandées. */
+async function annoncerLesTachesFinies() {
+  const { texteDeFin } = await import('./agent.js');
+  for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) if (t.genre === 'kdata') suivreKdata(t);
+  for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) {
+    const texte = t.etat === 'ratee' ? `dsl, ${t.libelle} a planté : ${t.resultat?.erreur || 'sans détail'}` : texteDeFin(t);
+    try {
+      await envoyer(t.espace, `${mention(t.pour)} ${texte}`, { fil: t.fil });
+      Records.update(ENTITE_TACHE, t.id, { annoncee_le: new Date().toISOString() });
+    } catch (e) {
+      dernier.erreur = e?.message || String(e);
+    }
+  }
+}
+
+/** Un message qui nous parle : on répond, dans son fil. */
+async function traiter(message) {
+  const { repondre } = await import('./agent.js');
+  const { mesurer } = await import('../llm-couts.js');
+  const texte = sansMention(message);
+  const { resultat: r } = await mesurer({ operation: 'ak', par: message.auteur.affiche || message.auteur.nom }, () => repondre({ ...message, texte }));
+  for (const t of r.fond || []) {
+    const tache = ouvrirTache(t, message);
+    if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
+  }
+  await envoyer(message.espace, r.texte, { fil: message.fil });
+  dernier.repondus += 1;
+}
+
+/** Un passage : relire, répondre, annoncer. */
+export async function relever() {
+  if (enCours) return { ok: false, error: 'un passage est déjà en cours' };
+  enCours = true;
+  try {
+    const c = compteAk();
+    if (!c.ok) { dernier.erreur = c.error; return { ok: false, error: c.error }; }
+    const depuis = Meta.get(CLE_DEPUIS) || new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const suivis = await espacesSuivis();
+    dernier.espaces = suivis.length;
+    let plusRecent = depuis;
+    let traites = 0;
+    for (const espace of suivis) {
+      const messages = await messagesDepuis(espace.nom, depuis);
+      for (const m of messages) {
+        if (m.le > plusRecent) plusRecent = m.le;
+        if (vus().includes(m.nom)) continue;
+        noterVu(m.nom);
+        if (!estPourAk(m, { direct: espace.type === 'DIRECT_MESSAGE' })) continue;
+        try { await traiter(m); traites += 1; } catch (e) {
+          dernier.erreur = e?.message || String(e);
+          try { await envoyer(m.espace, `${mention(m.auteur)} dsl, ça a planté de mon côté : ${dernier.erreur}`, { fil: m.fil }); } catch { /* on le dira au passage suivant */ }
+        }
+      }
+    }
+    Meta.set(CLE_DEPUIS, plusRecent);
+    await annoncerLesTachesFinies();
+    dernier.le = new Date().toISOString();
+    dernier.erreur = null;
+    return { ok: true, espaces: suivis.length, traites };
+  } catch (e) {
+    dernier.erreur = e?.message || String(e);
+    return { ok: false, error: dernier.erreur };
+  } finally {
+    enCours = false;
+  }
+}
+
+export const etatVeille = () => ({ ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours() });
+
+/** Démarre la veille si la portée Chat est demandée ; rend vrai si elle tourne. */
+export function demarrerVeille() {
+  if (!chatDemande || minuterie) return !!minuterie;
+  relever().catch(() => {});
+  minuterie = setInterval(() => relever().catch(() => {}), INTERVALLE_S * 1000);
+  return true;
+}
+
+export function arreterVeille() {
+  if (minuterie) clearInterval(minuterie);
+  minuterie = null;
+}

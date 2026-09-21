@@ -34,7 +34,7 @@ function correspond(texte, requete) {
   return mots.every((m) => cible.includes(m));
 }
 
-const OUTILS = [
+export const OUTILS = [
   {
     name: 'chercher_dossier',
     description:

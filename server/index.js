@@ -50,6 +50,7 @@ import { monterAlexis } from './routes/alexis.js';
 import { monterCourriel } from './routes/courriel.js';
 import { monterIntegrations } from './routes/integrations.js';
 import { monterMonday } from './routes/monday.js';
+import { monterAk } from './routes/ak.js';
 import { monterAlx } from './routes/alx.js';
 import { monterKZoning } from './routes/kzoning.js';
 import { monterKExpertise } from './routes/kexpertise.js';
@@ -1021,6 +1022,7 @@ monterCourriel(app);
 monterIntegrations(app);
 
 monterMonday(app);
+monterAk(app);
 monterAlx(app);
 monterKZoning(app);
 monterKExpertise(app);
@@ -1114,6 +1116,13 @@ import('./deal/veille-mails.js').then(({ demarrerVeille }) => {
       : '  ▸ Veille des boîtes mail inactive (GOOGLE_GMAIL_READ absent)'
   );
 }).catch((e) => console.warn(`[démarrage] veille des boîtes mail : ${e?.message || e}`));
+
+// AK dans Google Chat : le compte de l'équipe relit le groupe et répond
+// quand on le mentionne. Sans GOOGLE_CHAT=true, il ne démarre pas.
+import('./ak/veille.js').then(({ demarrerVeille }) => {
+  const active = demarrerVeille();
+  console.log(active ? `  ▸ AK suit Google Chat (toutes les ${process.env.AK_INTERVALLE_S || 15} s)` : '  ▸ AK inactif (GOOGLE_CHAT absent)');
+}).catch((e) => console.warn(`[démarrage] AK : ${e?.message || e}`));
 
 // Lectures de marché restées incomplètes : on avait promis d'y revenir, un
 // redémarrage n'annule pas la promesse.

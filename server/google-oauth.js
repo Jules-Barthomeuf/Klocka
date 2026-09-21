@@ -55,6 +55,14 @@ export const driveDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_DRIVE 
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.app.created';
 export const calendarDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_CALENDAR || '');
 
+// Google Chat, pour AK (server/ak) : lire les messages des espaces où le
+// compte est membre et y écrire. Le compte connecté est celui qui parle dans
+// le chat : ce que les autres voient, c'est lui. Deux portées : les messages
+// (lecture et écriture) et la liste des espaces, pour retrouver le groupe.
+const CHAT_MESSAGES_SCOPE = 'https://www.googleapis.com/auth/chat.messages';
+const CHAT_SPACES_SCOPE = 'https://www.googleapis.com/auth/chat.spaces.readonly';
+export const chatDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_CHAT || '');
+
 // Se connecter n'est pas connecter une boîte. Un client qui entre dans son
 // espace ne cède que son identité — nom, adresse, photo. Les portées Gmail,
 // Drive et Agenda sont réservées au rattachement d'une boîte d'équipe, par un
@@ -71,10 +79,11 @@ const SCOPES = [
   ...(gmailReadDemande ? [GMAIL_READ_SCOPE] : []),
   ...(driveDemande ? [DRIVE_SCOPE] : []),
   ...(calendarDemande ? [CALENDAR_SCOPE] : []),
+  ...(chatDemande ? [CHAT_MESSAGES_SCOPE, CHAT_SPACES_SCOPE] : []),
 ];
 
 // Un refresh token est nécessaire dès qu'une portée d'API long-terme est demandée.
-const besoinOffline = gmailSendDemande || gmailReadDemande || driveDemande || calendarDemande;
+const besoinOffline = gmailSendDemande || gmailReadDemande || driveDemande || calendarDemande || chatDemande;
 
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
@@ -200,11 +209,12 @@ export async function handleCallback({ code, state, owner }) {
   const peutDrive = portees.includes(DRIVE_FILE_SCOPE) || portees.includes(DRIVE_FULL_SCOPE);
   const driveEtendu = portees.includes(DRIVE_FULL_SCOPE);
   const peutAgenda = portees.includes(CALENDAR_SCOPE);
+  const peutChat = portees.includes(CHAT_MESSAGES_SCOPE);
 
   // Une boîte ne s'enregistre que si le parcours l'a demandé (état `boite`) —
   // jamais sur la foi des portées renvoyées. Une simple connexion, même si
   // Google renvoyait plus que prévu, ne crée pas de compte de boîte.
-  if (stateValue.boite && (peutEnvoyer || peutLire || peutDrive || peutAgenda)) {
+  if (stateValue.boite && (peutEnvoyer || peutLire || peutDrive || peutAgenda || peutChat)) {
     const existing = Records.filter('MailAccount', { email })[0] || null;
     const record = {
       provider: 'google',
@@ -223,6 +233,7 @@ export async function handleCallback({ code, state, owner }) {
       peut_drive: peutDrive,
       peut_drive_partage: driveEtendu,
       peut_agenda: peutAgenda,
+      peut_chat: peutChat,
     };
     if (existing) Records.update('MailAccount', existing.id, record);
     else Records.create('MailAccount', record);
@@ -277,6 +288,7 @@ export function listGoogleAccounts(ownerEmail) {
       peut_lire: !!a.peut_lire,
       peut_drive: !!a.peut_drive,
       peut_agenda: !!a.peut_agenda,
+      peut_chat: !!a.peut_chat,
       connected_at: a.connected_at || null,
     }));
 }
@@ -360,6 +372,7 @@ export function googleStatus() {
       ? `${(process.env.GOOGLE_DRIVE_NOM || 'Drive partagé').trim()} › ${(process.env.GOOGLE_DRIVE_DOSSIER || 'Projets').trim()}`
       : 'Klocka Projets',
     calendar: calendarDemande,
+    chat: chatDemande,
     scopes: SCOPES,
   };
 }

@@ -274,16 +274,28 @@ function Composeur({ onLancer, enCours, questions, notes }) {
         </div>
 
         <input value={adresse} onChange={(e) => setAdresse(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); envoyer(); } }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            // Quand des outils ont des questions, la touche Entrée ne lance
+            // plus : on descend remplir, et on lance sous les champs. Sinon
+            // l'adresse tapée partirait avant qu'on ait réglé quoi que ce soit.
+            if (!aQuestionner.length) envoyer();
+          }}
           placeholder={outils.size ? "L'adresse à analyser : 49 rue Dabray, 06000 Nice" : "Choisissez d'abord des outils, puis donnez l'adresse"}
           disabled={enCours}
           className="min-w-0 flex-1 border-0 bg-transparent py-1 text-[15px] text-encre outline-none placeholder:text-brume disabled:opacity-50" />
 
-        <button type="button" onClick={envoyer} disabled={!pret} aria-label="Lancer les analyses" title="Lancer les analyses"
-          className="grid h-11 w-11 flex-none place-items-center rounded-full transition-opacity disabled:opacity-40"
-          style={{ background: J["menthe"], color: J["sur-menthe"] }}>
-          {enCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
-        </button>
+        {/* Sans question à poser, la flèche lance d'ici. Dès qu'un outil en a,
+            le lancement descend sous les champs : un seul bouton, au bout du
+            formulaire, là où l'on finit de le remplir. */}
+        {aQuestionner.length === 0 && (
+          <button type="button" onClick={envoyer} disabled={!pret} aria-label="Lancer les analyses" title="Lancer les analyses"
+            className="grid h-11 w-11 flex-none place-items-center rounded-full transition-opacity disabled:opacity-40"
+            style={{ background: J["menthe"], color: J["sur-menthe"] }}>
+            {enCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
+          </button>
+        )}
       </div>
       {suggestions.length > 0 && (
         <ul className="absolute left-[120px] right-16 top-[58px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
@@ -306,6 +318,26 @@ function Composeur({ onLancer, enCours, questions, notes }) {
             <BlocOutil key={o} outil={o} liste={questions[o]} note={notes?.[o]}
               valeurs={reglages[o]} onChange={(cle, v) => repondre(o, cle, v)} />
           ))}
+
+          {/* Le lancement, au bout du formulaire. Remplir un champ ne déclenche
+              rien : tant qu'on n'a pas cliqué ici, aucune analyse ne part. */}
+          <div className="mt-3 flex flex-col gap-2.5 border-t border-trait pt-3 sm:flex-row sm:items-center sm:justify-between">
+            {manques.length > 0 ? (
+              <p className="m-0 text-[11.5px] leading-[1.5] text-ambre">
+                {manques.map((x) => `${MODULES_PAR_CLE[x.outil]?.nom || x.outil} : il manque ${x.manque.join(", ")}`).join(" · ")}
+              </p>
+            ) : adresse.trim().length < 5 ? (
+              <p className="m-0 text-[11.5px] text-brume">Donnez l&apos;adresse au-dessus, puis lancez.</p>
+            ) : (
+              <p className="m-0 text-[11.5px] text-brume">Rien ne part tant que vous n&apos;avez pas lancé.</p>
+            )}
+            <button type="button" onClick={envoyer} disabled={!pret}
+              className="inline-flex h-10 flex-none items-center justify-center gap-2 rounded-full px-5 text-[12.5px] font-medium transition-opacity disabled:opacity-40"
+              style={{ background: J["menthe"], color: J["sur-menthe"] }}>
+              {enCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
+              Lancer {outils.size} analyse{outils.size > 1 ? "s" : ""}
+            </button>
+          </div>
         </div>
       )}
     </div>

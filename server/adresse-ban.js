@@ -25,13 +25,24 @@ const SEUIL_BAN = 0.4;
  * repasse. Une panne de transport est désormais une panne, et remonte comme
  * telle.
  */
+// La BAN a des à-coups : une réponse en une seconde, la suivante en vingt.
+// Trois essais, chacun plus patient que le précédent, avant de renoncer.
+const DELAIS_MS = [12000, 20000, 30000];
+
 export async function propositionsBan(q, limite = 8) {
-  let r;
-  try {
-    r = await fetch(`https://api-adresse.data.gouv.fr/search/?limit=${limite}&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(15000) });
-  } catch (e) {
-    throw new ErreurSource(`La Base Adresse Nationale n'a pas répondu (${e?.message || e}).`, { service: 'BAN', cause: e });
+  const url = `https://api-adresse.data.gouv.fr/search/?limit=${limite}&q=${encodeURIComponent(q)}`;
+  let r; let derniere;
+  for (const delai of DELAIS_MS) {
+    try {
+      r = await fetch(url, { signal: AbortSignal.timeout(delai) });
+      // Une erreur du serveur se réessaie aussi ; un 4xx, non.
+      if (r.ok || r.status < 500) break;
+      derniere = new Error(`réponse ${r.status}`);
+    } catch (e) {
+      derniere = e; r = null;
+    }
   }
+  if (!r) throw new ErreurSource(`La Base Adresse Nationale n'a pas répondu (${derniere?.message || derniere}).`, { service: 'BAN', cause: derniere });
   if (!r.ok) throw new ErreurSource(`La Base Adresse Nationale a répondu ${r.status}.`, { service: 'BAN', statut: r.status });
   return ((await r.json()).features || []).map((f) => ({
     ...f.properties,

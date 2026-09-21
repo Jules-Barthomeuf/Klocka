@@ -63,6 +63,28 @@ async function annoncerLesTachesFinies() {
   }
 }
 
+const ENTITE_REPONSE = 'AkReponse';
+
+/**
+ * Poste, ou garde pour le passage suivant. Une réponse calculée coûte un
+ * appel au modèle et parfois une action : si Google refuse l'envoi (API
+ * Chat non configurée, réseau), elle attend au lieu de disparaître.
+ */
+async function poster(espace, texte, fil) {
+  try {
+    await envoyer(espace, texte, { fil });
+  } catch (e) {
+    Records.create(ENTITE_REPONSE, { espace, fil, texte, erreur: e?.message || String(e), cree_le: new Date().toISOString() });
+    throw e;
+  }
+}
+
+async function reposterEnAttente() {
+  for (const r of Records.list(ENTITE_REPONSE)) {
+    try { await envoyer(r.espace, r.texte, { fil: r.fil }); Records.delete(ENTITE_REPONSE, r.id); } catch (e) { dernier.erreur = e?.message || String(e); return; }
+  }
+}
+
 /** Un message qui nous parle : on répond, dans son fil. */
 async function traiter(message) {
   const { repondre } = await import('./agent.js');
@@ -73,7 +95,7 @@ async function traiter(message) {
     const tache = ouvrirTache(t, message);
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
   }
-  await envoyer(message.espace, r.texte, { fil: message.fil });
+  await poster(message.espace, r.texte, message.fil);
   dernier.repondus += 1;
 }
 
@@ -98,11 +120,15 @@ export async function relever() {
         if (!estPourAk(m, { direct: espace.type === 'DIRECT_MESSAGE' })) continue;
         try { await traiter(m); traites += 1; } catch (e) {
           dernier.erreur = e?.message || String(e);
-          try { await envoyer(m.espace, `${mention(m.auteur)} dsl, ça a planté de mon côté : ${dernier.erreur}`, { fil: m.fil }); } catch { /* on le dira au passage suivant */ }
+          // L'envoi lui-même a échoué : la réponse attend, inutile d'en poster une autre.
+          if (!/Google Chat a répondu/.test(dernier.erreur)) {
+            try { await envoyer(m.espace, `${mention(m.auteur)} dsl, ça a planté de mon côté : ${dernier.erreur}`, { fil: m.fil }); } catch { /* on le dira au passage suivant */ }
+          }
         }
       }
     }
     Meta.set(CLE_DEPUIS, plusRecent);
+    await reposterEnAttente();
     await annoncerLesTachesFinies();
     dernier.le = new Date().toISOString();
     dernier.erreur = null;
@@ -115,7 +141,7 @@ export async function relever() {
   }
 }
 
-export const etatVeille = () => ({ ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours() });
+export const etatVeille = () => ({ ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours(), reponses_en_attente: Records.list(ENTITE_REPONSE).length });
 
 /** Démarre la veille si la portée Chat est demandée ; rend vrai si elle tourne. */
 export function demarrerVeille() {

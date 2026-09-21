@@ -237,6 +237,9 @@ export async function handleCallback({ code, state, owner }) {
     };
     if (existing) Records.update('MailAccount', existing.id, record);
     else Records.create('MailAccount', record);
+    console.log(`[auth] boîte rattachée : ${email} (envoi ${peutEnvoyer ? 'oui' : 'non'}, lecture ${peutLire ? 'oui' : 'non'}, drive ${peutDrive ? 'oui' : 'non'}, chat ${peutChat ? 'oui' : 'non'})`);
+  } else if (stateValue.boite) {
+    console.log(`[auth] boîte NON rattachée pour ${email} : aucune portée accordée (${portees.join(' ')})`);
   }
 
   return {

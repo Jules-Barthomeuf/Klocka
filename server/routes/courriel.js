@@ -14,14 +14,20 @@ import { UPLOAD_DIR, compteAutorise, currentUser, ok, wrap } from '../contexte.j
 // qui demande à Google les portées Gmail, Drive et Agenda. Un client n'y
 // accède pas — sa connexion ne cède que son identité.
 function rattachementBoite(req, res, returnTo) {
-  if (currentUser(req)?.role !== 'admin') {
+  const user = currentUser(req);
+  // Journalisé : quand une boîte ne s'enregistre pas, c'est ici qu'on voit si
+  // la demande est seulement partie, et de qui.
+  console.log(`[auth] rattachement d'une boîte demandé par ${user?.email || 'personne (non connecté)'} depuis host=${req.headers.host}`);
+  if (user?.role !== 'admin') {
     return authResultPage(res, {
       ok: false,
       title: 'Réservé à l\'équipe',
       detail: "Seul un administrateur connecté peut rattacher une boîte Google à Klocka.",
     });
   }
-  res.redirect(buildAuthUrl({ returnTo, req, boite: true }));
+  const url = buildAuthUrl({ returnTo, req, boite: true });
+  console.log(`[auth]   redirect_uri envoyée : ${new URL(url).searchParams.get('redirect_uri')}`);
+  res.redirect(url);
 }
 
 /** Monte les routes « mail / mails » sur l'application. */

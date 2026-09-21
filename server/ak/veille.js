@@ -19,6 +19,24 @@ const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
 const FLEMME = Math.max(0, Number(process.env.AK_FLEMME ?? 6));
 const FLEMME_REPIT_MS = 15 * 60 * 1000;
 const CLE_FLEMME = 'ak.flemme';
+// Le râle : devant un pavé (une fiche entière collée, plusieurs pièces), AK
+// commence par râler et demande si c'est vraiment nécessaire. Un « oui » de
+// la même personne, et il s'y met, en râlant encore un peu. Un autre message
+// annule le râle : ce n'était pas si important.
+const RALE_CARACTERES = Math.max(0, Number(process.env.AK_RALE_CARACTERES ?? 1500));
+const RALE_MS = 10 * 60 * 1000;
+const CLE_RALE = 'ak.rale';
+const RALES = [
+  "j'ai vraiment trop la flemme de lire tout ça, t'es sûr que je dois le faire ?",
+  "sérieux, tout ça ? t'es sûr que tu veux que je m'y mette ?",
+  "c'est un roman ton truc, je suis obligé ?",
+  "pfff y'a de quoi lire là, on est sûr que c'est pour aujourd'hui ?",
+];
+const RALES_APRES = [
+  'ok mais alors laissez-moi tranquille après',
+  'bon ok, mais c\'est la dernière fois aujourd\'hui',
+  'ça marche, je m\'y mets, mais je râle',
+];
 const CLE_DEPUIS = 'ak.depuis';
 const CLE_VUS = 'ak.vus';
 const ENTITE_TACHE = 'AkTache';
@@ -97,6 +115,21 @@ async function reposterEnAttente() {
   }
 }
 
+const rales = () => { try { return JSON.parse(Meta.get(CLE_RALE) || '{}'); } catch { return {}; } };
+const poserRale = (espace, valeur) => { const r = rales(); if (valeur) r[espace] = valeur; else delete r[espace]; Meta.set(CLE_RALE, JSON.stringify(r)); };
+
+/** Pure : ce message mérite-t-il un râle ? Un pavé, ou un tas de pièces. */
+export function meriteUnRale(message, { seuil = RALE_CARACTERES } = {}) {
+  if (!seuil) return false;
+  return String(message.texte || '').length >= seuil || (message.pieces || []).length >= 3;
+}
+
+/** Pure : « oui », « vas-y », « go », « fais-le »… la personne insiste. */
+export function estUnOui(texte) {
+  const t = String(texte || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  return t.length <= 60 && /\b(oui|ouais|ouep|yes|yep|ok|okay|go|vas[- ]?y|fais[- ]?le|fais|allez|stp|svp|obligé|oblige|sur|sûr|please|bien sur)\b/.test(t);
+}
+
 const attentes = () => { try { return JSON.parse(Meta.get(CLE_ATTENTE) || '{}'); } catch { return {}; } };
 /** AK vient de parler à cette personne dans cet espace : ses prochains mots sont pour lui. */
 function ouvrirAttente(message) {
@@ -133,8 +166,26 @@ const dernieresFlemmes = () => { try { return JSON.parse(Meta.get(CLE_FLEMME) ||
 async function traiter(message) {
   const { repondre } = await import('./agent.js');
   const { mesurer } = await import('../llm-couts.js');
-  const texte = sansMention(message);
-  if (flemme(message.espace, { dernieres: dernieresFlemmes() })) {
+  let texte = sansMention(message);
+  let insiste = null;
+  // Un râle en attente : un « oui » relance le message d'origine, tout autre
+  // message le laisse tomber.
+  const rale = rales()[message.espace];
+  if (rale) {
+    poserRale(message.espace, null);
+    if (rale.auteur === message.auteur?.nom && Date.now() < rale.jusqua && estUnOui(texte)) {
+      insiste = RALES_APRES[Math.floor(Math.random() * RALES_APRES.length)];
+      message = { ...message, texte: rale.texte, pieces: rale.pieces || [] };
+      texte = rale.texte;
+    }
+  } else if (meriteUnRale(message)) {
+    poserRale(message.espace, { auteur: message.auteur?.nom, texte, pieces: message.pieces || [], jusqua: Date.now() + RALE_MS });
+    await poster(message.espace, `${mention(message.auteur)} ${RALES[Math.floor(Math.random() * RALES.length)]}`, null);
+    ouvrirAttente(message);
+    dernier.repondus += 1;
+    return;
+  }
+  if (!insiste && flemme(message.espace, { dernieres: dernieresFlemmes() })) {
     Meta.set(CLE_FLEMME, JSON.stringify({ ...dernieresFlemmes(), [message.espace]: Date.now() }));
     await poster(message.espace, `${mention(message.auteur)} Non j'ai la flemme de le faire débrouille-toi`, null);
     dernier.repondus += 1;
@@ -154,12 +205,12 @@ async function traiter(message) {
       pieces.push({ nom: p.nom, type: p.type, erreur: e?.message || String(e) });
     }
   }
-  const { resultat: r } = await mesurer({ operation: 'ak', par: message.auteur.affiche || message.auteur.nom }, () => repondre({ ...message, texte, pieces }));
+  const { resultat: r } = await mesurer({ operation: 'ak', par: message.auteur.affiche || message.auteur.nom }, () => repondre({ ...message, texte, pieces, insiste }));
   for (const t of r.fond || []) {
     const tache = ouvrirTache(t, message);
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
   }
-  await poster(message.espace, `${mention(message.auteur)} ${r.texte}`, null);
+  await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null);
   ouvrirAttente(message);
   dernier.repondus += 1;
 }

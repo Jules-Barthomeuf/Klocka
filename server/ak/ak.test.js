@@ -138,3 +138,13 @@ test("une capture d'écran jointe part au modèle en image, un pdf ou un fichier
   assert.equal(blocs[0].source.media_type, 'image/png');
   assert.equal(blocs[0].source.data, Buffer.from('img').toString('base64'));
 });
+
+test("devant un pavé AK râle, et un oui court le remet au travail", async () => {
+  const { meriteUnRale, estUnOui } = await import('./veille.js');
+  assert.equal(meriteUnRale({ texte: 'x'.repeat(2000), pieces: [] }), true);
+  assert.equal(meriteUnRale({ texte: 'crée le projet devred', pieces: [] }), false);
+  assert.equal(meriteUnRale({ texte: 'tiens', pieces: [{}, {}, {}] }), true, 'trois pièces');
+  assert.equal(meriteUnRale({ texte: 'x'.repeat(2000) }, { seuil: 0 }), false, 'désactivé');
+  for (const t of ['oui', 'Ouais vas-y', 'go', 'fais le stp', 'oui t\'es obligé', 'OK']) assert.equal(estUnOui(t), true, t);
+  for (const t of ['non laisse', 'crée plutôt le projet de lorient', 'x'.repeat(80) + ' oui']) assert.equal(estUnOui(t), false, t);
+});

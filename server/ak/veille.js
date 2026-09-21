@@ -6,9 +6,11 @@
 // messages sont traités l'un après l'autre : deux demandes en même temps
 // font deux réponses, dans l'ordre.
 
-import { Records, Meta } from '../db.js';
+import fs from 'fs';
+import path from 'path';
+import { Records, Meta, CHEMIN_UPLOADS } from '../db.js';
 import { chatDemande } from '../google-oauth.js';
-import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, mention, NOM } from './chat.js';
+import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, mention, telechargerPiece, NOM } from './chat.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
 const CLE_DEPUIS = 'ak.depuis';
@@ -94,7 +96,21 @@ async function traiter(message) {
   const { repondre } = await import('./agent.js');
   const { mesurer } = await import('../llm-couts.js');
   const texte = sansMention(message);
-  const { resultat: r } = await mesurer({ operation: 'ak', par: message.auteur.affiche || message.auteur.nom }, () => repondre({ ...message, texte }));
+  // Les pièces jointes descendent dans les uploads, comme un fichier glissé
+  // sur l'écran : AK les lit par leur chemin.
+  const pieces = [];
+  for (const p of message.pieces || []) {
+    try {
+      const buffer = await telechargerPiece(p);
+      const nomFichier = `ak-${Date.now()}-${String(p.nom).replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      fs.mkdirSync(CHEMIN_UPLOADS, { recursive: true });
+      fs.writeFileSync(path.join(CHEMIN_UPLOADS, nomFichier), buffer);
+      pieces.push({ nom: p.nom, type: p.type, chemin: path.join(CHEMIN_UPLOADS, nomFichier), url: `/uploads/${nomFichier}`, octets: buffer.length });
+    } catch (e) {
+      pieces.push({ nom: p.nom, type: p.type, erreur: e?.message || String(e) });
+    }
+  }
+  const { resultat: r } = await mesurer({ operation: 'ak', par: message.auteur.affiche || message.auteur.nom }, () => repondre({ ...message, texte, pieces }));
   for (const t of r.fond || []) {
     const tache = ouvrirTache(t, message);
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});

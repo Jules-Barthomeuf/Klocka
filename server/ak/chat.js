@@ -81,9 +81,16 @@ export function lireMessage(m) {
   const mentions = (m.annotations || [])
     .filter((a) => a.type === 'USER_MENTION' && a.userMention?.user)
     .map((a) => ({ nom: a.userMention.user.name || null, affiche: a.userMention.user.displayName || null }));
+  const pieces = (m.attachment || m.attachments || []).map((a) => ({
+    nom: a.contentName || a.name || 'pièce',
+    type: a.contentType || null,
+    ref: a.attachmentDataRef?.resourceName || null,
+    drive_id: a.driveDataRef?.driveFileId || null,
+  }));
   return {
     nom: m.name,
     espace: m.space?.name || String(m.name || '').split('/messages/')[0],
+    pieces,
     fil: m.thread?.name || null,
     le: m.createTime || '',
     texte: m.text || '',
@@ -132,6 +139,23 @@ export async function envoyer(espace, texte, { fil = null } = {}) {
   const m = await appeler(`${espace}/messages`, { method: 'POST', body, params });
   if (m?.sender?.name && !utilisateurAk()) Meta.set(CLE_UTILISATEUR, m.sender.name);
   return lireMessage(m);
+}
+
+/**
+ * Le contenu d'une pièce jointe : un fichier déposé dans Chat (media.download),
+ * ou un fichier Drive partagé dans le message (Drive, alt=media).
+ */
+export async function telechargerPiece(piece) {
+  const c = compteAk();
+  if (!c.ok) throw new Error(c.error);
+  const token = await accessTokenFor(Records.get('MailAccount', c.compte.id) || c.compte);
+  const url = piece.ref
+    ? `${RACINE}/media/${encodeURIComponent(piece.ref)}?alt=media`
+    : piece.drive_id ? `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(piece.drive_id)}?alt=media&supportsAllDrives=true` : null;
+  if (!url) throw new Error(`Pièce jointe sans contenu téléchargeable : ${piece.nom}.`);
+  const r = await fetch(url, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) });
+  if (!r.ok) throw new Error(`Google a répondu ${r.status} pour la pièce ${piece.nom}.`);
+  return Buffer.from(await r.arrayBuffer());
 }
 
 /** « <users/123> » : la mention d'une personne dans un message. Pure. */

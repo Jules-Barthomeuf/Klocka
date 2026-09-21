@@ -55,6 +55,16 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'analyser_fiche',
+    description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum reçu en pièce jointe (« crée ce dossier », « fais la pré-analyse ») : lecture du PDF, extraction du bien, synthèse. Prend le chemin de la pièce tel qu'il est donné dans le message. Une minute environ.",
+    input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' } }, required: ['chemin'] },
+  },
+  {
+    name: 'ajouter_document',
+    description: "Dépose une pièce jointe (bail, PV d'AG, RCP, diagnostics, quittances…) sur un dossier existant : lecture, classement, synthèse des points à vérifier. Chercher le dossier d'abord.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' } }, required: ['deal_id', 'chemin'] },
+  },
+  {
     name: 'creer_projet_depuis_dossier',
     description: "Crée la fiche projet d'un dossier de préanalyse déjà là (« crée le projet pour Devred de Firminy »). Chercher le dossier d'abord avec chercher_dossier ; s'il n'existe pas, le dire, ne rien créer de vide.",
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, lot_index: { type: 'number', description: 'index du lot, 0 sauf dossier multi-lots' } }, required: ['deal_id'] },
@@ -126,6 +136,21 @@ export async function executerOutil({ name, input }, user, { fond = () => {} } =
       },
     });
     return { ok: true, cree: true, deal_id: dossier.deal_id, nom: input.nom, lien: lien(`/Analyse?deal_id=${dossier.deal_id}`) };
+  }
+  if (name === 'analyser_fiche' || name === 'ajouter_document') {
+    const chemin = String(input.chemin || '');
+    if (!chemin.startsWith(CHEMIN_UPLOADS) || !fs.existsSync(chemin)) return { ok: false, error: 'Pièce jointe introuvable : elle doit venir du message.' };
+    const fichier = { buffer: fs.readFileSync(chemin), filename: path.basename(chemin).replace(/^ak-\d+-/, ''), mimetype: /\.pdf$/i.test(chemin) ? 'application/pdf' : undefined, url: `/uploads/${path.basename(chemin)}` };
+    if (name === 'analyser_fiche') {
+      const { analyserFiche } = await import('../deal/index.js');
+      const d = await analyserFiche({ buffer: fichier.buffer, filename: fichier.filename, mimetype: fichier.mimetype, sourceUrl: fichier.url }, { user });
+      const lot = d.lots?.[0];
+      return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || fichier.filename, verdict: lot?.synthese?.verdict || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
+    }
+    const { deposerDocument } = await import('../deal/deposer-document.js');
+    const r = await deposerDocument(input.deal_id, fichier, { user });
+    if (!r.ok) return r;
+    return { ok: true, type: r.type || null, statut: r.deal?.statut || null, lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
   }
   if (name === 'creer_projet_depuis_dossier') {
     const { creerProjetDepuisDeal, completerAvantProjet } = await import('../deal/projet.js');
@@ -207,6 +232,7 @@ Tu as des outils. Le modèle ne décide de rien sur le fond : il traduit une phr
 
 RÈGLES :
 1. Cherche toujours avant d'agir (chercher_dossier, chercher_projet) : il te faut l'identifiant. Plusieurs résultats : liste-les et demande lequel. Aucun : dis-le, n'invente rien.
+2bis. Une pièce jointe (PDF) avec « crée ce dossier », « fais la pré-analyse », « mets ça sur la plateforme » : analyser_fiche avec le chemin donné, jamais creer_dossier à vide. Une pièce jointe pour un dossier déjà là (bail, PV, RCP…) : ajouter_document. Sans pièce jointe, dis que tu n'as rien reçu.
 2. « Crée le projet pour X » : chercher_dossier puis creer_projet_depuis_dossier. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 4. Une tâche de fond (K-Data, préz) : dis que c'est parti, sans annoncer de résultat. Tu préviendras toi-même dans le chat quand ce sera fini.
@@ -267,7 +293,8 @@ export async function repondre(message) {
   const conversation = fil(message.espace);
   const prenom = (message.auteur.affiche || 'Quelqu\'un').split(' ')[0];
   const autres = (message.mentions || []).filter((m) => m.affiche).map((m) => `${m.affiche} = ${m.nom}`);
-  const entree = `${prenom} (${message.auteur.nom || '?'}) : ${message.texte}${autres.length ? `\n(mentionnés : ${autres.join(', ')})` : ''}`;
+  const pieces = (message.pieces || []).map((p) => (p.chemin ? `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin})` : `${p.nom} (impossible à télécharger : ${p.erreur})`));
+  const entree = `${prenom} (${message.auteur.nom || '?'}) : ${message.texte}${autres.length ? `\n(mentionnés : ${autres.join(', ')})` : ''}${pieces.length ? `\n(pièces jointes : ${pieces.join(' ; ')})` : ''}`;
   const historique = [...conversation.messages, { role: 'user', content: entree }].slice(-MAX_MESSAGES);
 
   const fond = [];

@@ -19,8 +19,11 @@ const brut = (texte, extra = {}) => ({
   ...extra,
 });
 
-test('un message du chat se lit : qui, quoi, où, les mentions', () => {
+test('un message du chat se lit : qui, quoi, où, les mentions, les pièces', () => {
   const m = lireMessage(brut('@Assistant Klocka crée le projet pour devred de firminy'));
+  assert.deepEqual(m.pieces, []);
+  const avec = lireMessage(brut('@Assistant Klocka crée ce dossier', { attachment: [{ name: 'spaces/AAA/messages/m1/attachments/X', contentName: 'teaser.pdf', contentType: 'application/pdf', attachmentDataRef: { resourceName: 'REF' } }, { name: 'd', contentName: 'bail.pdf', driveDataRef: { driveFileId: 'DRV' } }] }));
+  assert.deepEqual(avec.pieces, [{ nom: 'teaser.pdf', type: 'application/pdf', ref: 'REF', drive_id: null }, { nom: 'bail.pdf', type: null, ref: null, drive_id: 'DRV' }]);
   assert.equal(m.espace, 'spaces/AAA');
   assert.equal(m.fil, 'spaces/AAA/threads/t1');
   assert.equal(m.auteur.affiche, 'Jules Barthomeuf');
@@ -55,7 +58,7 @@ test("la consigne est le document de Jules, mot pour mot, puis le cadre de la pl
 
 test("les outils d'AK : ceux de l'assistant sans l'envoi de mail, plus les siens", () => {
   const noms = OUTILS.map((o) => o.name);
-  for (const n of ['chercher_dossier', 'chercher_projet', 'creer_projet_depuis_dossier', 'outils_kdata', 'lancer_kdata', 'generer_prez_bancaire', 'taches_en_cours', 'pousser_projet_monday']) assert.ok(noms.includes(n), n);
+  for (const n of ['chercher_dossier', 'chercher_projet', 'analyser_fiche', 'ajouter_document', 'creer_projet_depuis_dossier', 'outils_kdata', 'lancer_kdata', 'generer_prez_bancaire', 'taches_en_cours', 'pousser_projet_monday']) assert.ok(noms.includes(n), n);
   assert.ok(!noms.includes('envoyer_mail'), 'décidé : AK n\'envoie pas de mail');
   const creer = OUTILS.find((o) => o.name === 'creer_dossier');
   assert.match(creer.description, /rien d'autre : pas de Monday/, 'le creer_dossier d\'AK, pas celui de l\'assistant');

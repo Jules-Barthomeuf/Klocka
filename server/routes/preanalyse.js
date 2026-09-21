@@ -9,18 +9,13 @@ import { Records } from '../db.js';
 import { ajouterAuReferentiel } from '../deal/enrich.js';
 import { ajouterDocument as ajouterDocumentEspace, renommerDocument as renommerDocumentEspace, supprimerDocument as supprimerDocumentEspace, converser, supprimerConversation, renommerConversation, extraireDocuments, supprimerExtraction, renommerExtraction, majLigneExtraction } from '../deal/espace.js';
 import { alimenterBaseMarche } from '../deal/marche.js';
-import {
-  analyserDocument,
-  obtenirDossier as obtenirDossierDoc,
-  renommerDossier,
-} from '../assistant/index.js';
+import { obtenirDossier as obtenirDossierDoc } from '../assistant/index.js';
 import { analyserFiche, reevaluerLot, listerDossiers, obtenirDossier } from '../deal/index.js';
 import { classerDansDrive } from '../google-drive.js';
 import { nomDossierDrive } from '../deal/nom-drive.js';
 import { creerProjetDepuisDeal, completerAvantProjet } from '../deal/projet.js';
 import fs from 'fs';
 import path from 'path';
-import { syntheseDocuments } from '../deal/synthese-docs.js';
 import { UPLOAD_DIR, compteAutorise, currentUser, ok, upload, wrap } from '../contexte.js';
 
 /** Monte les routes « preanalyse » sur l'application. */
@@ -362,51 +357,17 @@ export function monterPreanalyse(app) {
   // Dépôt d'un document sur le deal : extraction via le pipeline Alexis,
   // liaison Deal ↔ DossierDoc, avancement du statut et synthèse recalculée.
   app.post('/api/preanalyse/dossiers/:dealId/documents', upload.single('fichier'), wrap(async (req, res) => {
-    const dossier = obtenirDossier(req.params.dealId);
-    if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-    if (dossier.test) {
-      return res.status(400).json({ error: 'Deal de test : utilisez « Simuler la réception des documents ».' });
-    }
     if (!req.file) return res.status(400).json({ error: 'Fichier manquant' });
-
-    const user = currentUser(req);
-    const r = await analyserDocument(
-      {
-        buffer: fs.readFileSync(req.file.path),
-        filename: req.file.originalname,
-        mimetype: req.file.mimetype,
-        url: `/uploads/${req.file.filename}`,
-      },
-      { dossierId: dossier.dossier_doc_id || undefined, typeForce: req.body?.type || undefined, user }
-    );
-
-    const patch = {};
-    if (!dossier.dossier_doc_id) {
-      patch.dossier_doc_id = r.dossier_id;
-      // Le dossier documentaire porte le titre du deal pour s'y retrouver.
-      const titre = dossier.lots?.[0]?.synthese?.titre;
-      if (titre) renommerDossier(r.dossier_id, titre);
-    }
-
-    // La synthèse « points à vérifier » est recalculée à chaque dépôt.
-    const dossierDoc = obtenirDossierDoc(r.dossier_id);
-    const synthese = await syntheseDocuments(dossier.lots?.[0], dossierDoc);
-    if (synthese) patch.synthese_documents = synthese;
-    if (Object.keys(patch).length) Records.update('Deal', dossier.id, patch);
-
-    // Avancement : demandes → reçus → extrait (les transitions invalides sont
-    // ignorées, un dépôt sur un deal déjà extrait ne change rien).
-    const enrichi = { ...dossier, ...patch };
-    if (statutDe(enrichi) === 'documents_demandes' || statutDe(enrichi) === 'analyse') {
-      changerStatut(enrichi, 'documents_recus', { user, note: `Document reçu : ${req.file.originalname}` });
-      enrichi.statut = 'documents_recus';
-      enrichi.suivi = Records.get('Deal', dossier.id)?.suivi || enrichi.suivi;
-    }
-    if (statutDe(enrichi) === 'documents_recus') {
-      changerStatut(enrichi, 'depouille', { user, note: 'Extraction effectuée' });
-    }
-
-    ok(res, { ...r, deal: { deal_id: dossier.deal_id, statut: statutDe(Records.get('Deal', dossier.id)), dossier_doc_id: patch.dossier_doc_id || dossier.dossier_doc_id, synthese_documents: patch.synthese_documents || dossier.synthese_documents } });
+    const { deposerDocument } = await import('../deal/deposer-document.js');
+    const r = await deposerDocument(req.params.dealId, {
+      buffer: fs.readFileSync(req.file.path),
+      filename: req.file.originalname,
+      mimetype: req.file.mimetype,
+      url: `/uploads/${req.file.filename}`,
+    }, { user: currentUser(req), typeForce: req.body?.type || undefined });
+    if (!r.ok) return res.status(r.error === 'Dossier introuvable' ? 404 : 400).json({ error: r.error });
+    const { ok: _ok, ...reste } = r;
+    ok(res, reste);
   }));
 
   // Les fichiers du Drive qu'on peut rapatrier : le dossier du deal s'il existe,

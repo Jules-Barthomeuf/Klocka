@@ -71,6 +71,20 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' } }, required: ['deal_id', 'chemin'] },
   },
   {
+    name: 'creer_client_monday',
+    description: "Crée (ou complète) un client dans le tableau Clients de Monday : un investisseur qui cherche des murs. Nom ou mail obligatoire ; le reste si on te le donne. Rien d'autre que ce qu'on te dit.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        nom: { type: 'string' }, email: { type: 'string' }, telephone: { type: 'string' },
+        budget: { type: 'number', description: 'budget total en euros' }, apport: { type: 'number', description: 'apport en euros' },
+        localisation: { type: 'string', description: 'où il cherche : ville, département, région' },
+        recherche: { type: 'string', description: 'ce qu\'il cherche, en une phrase' },
+        statut: { type: 'string', description: 'Recherche, Intérêt, Mandat signé, Stand-by… seulement si dit' },
+      },
+    },
+  },
+  {
     name: 'renommer_dossier',
     description: "Change le nom d'un dossier de préanalyse. Chercher le dossier d'abord.",
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, nom: { type: 'string' } }, required: ['deal_id', 'nom'] },
@@ -175,6 +189,13 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     const r = await deposerDocument(input.deal_id, fichier, { user });
     if (!r.ok) return r;
     return { ok: true, type: r.type || null, statut: r.deal?.statut || null, lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
+  }
+  if (name === 'creer_client_monday') {
+    const { creerClientMonday } = await import('../deal/monday-sync.js');
+    const r = await creerClientMonday(input);
+    if (r.ignore) return { ok: false, error: r.raison };
+    if (r.erreur) return { ok: false, error: r.erreur };
+    return { ok: true, cree: r.cree, monday_id: r.id, statut_ignore: r.statut_ignore || null };
   }
   if (name === 'renommer_dossier' || name === 'supprimer_dossier') {
     const deal = Records.findBy('Deal', 'deal_id', input.deal_id);

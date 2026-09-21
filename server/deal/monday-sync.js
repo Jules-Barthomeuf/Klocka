@@ -325,6 +325,43 @@ export async function creerAgentMonday({ nom, email, telephone, ville, entrepris
   return { ...r, entreprise_ignoree: entrepriseIgnoree };
 }
 
+/**
+ * Un client dans le tableau « Clients » (celui des investisseurs) : nom,
+ * mail, téléphone, budget, apport, où il cherche, ce qu'il cherche, statut.
+ * La fiche se retrouve par l'adresse mail, sinon par le nom : on ne crée pas
+ * deux fois la même. Le statut n'est posé que s'il existe dans la liste.
+ */
+export async function creerClientMonday({ nom, email, telephone, budget, apport, localisation, recherche, statut }) {
+  if (!mondayConfigure()) return { ignore: true, raison: "aucun jeton Monday n'est déclaré (MONDAY_TOKEN)" };
+  if (!TABLEAUX.investisseurs) return { ignore: true, raison: "le tableau Clients n'est pas déclaré (MONDAY_BOARD_INVESTISSEURS)" };
+  if (!nom && !email) return { erreur: 'Il faut au moins un nom ou une adresse mail.' };
+  const mail = email ? String(email).trim().toLowerCase() : null;
+  const colonnes = {
+    ...(mail ? { [COL_CLIENT.email]: { email: mail, text: mail } } : {}),
+    ...(telephone ? { [COL_CLIENT.telephone]: { phone: String(telephone).replace(/\s+/g, ''), countryShortName: 'FR' } } : {}),
+    ...(Number(budget) > 0 ? { [COL_CLIENT.budget]: String(Math.round(Number(budget))) } : {}),
+    ...(Number(apport) > 0 ? { [COL_CLIENT.apport]: String(Math.round(Number(apport))) } : {}),
+    ...(recherche ? { [COL_CLIENT.recherche]: String(recherche) } : {}),
+  };
+  if (localisation) {
+    const v = await valeurAdresse({ adresse: localisation });
+    if (v) colonnes[COL_CLIENT.localisation] = v;
+  }
+  let statutIgnore = null;
+  if (statut) {
+    const connu = await libelleExistant(TABLEAUX.investisseurs, COL_CLIENT.statut, statut);
+    if (connu) colonnes[COL_CLIENT.statut] = { label: connu };
+    else statutIgnore = statut;
+  }
+  const r = await poserElement(TABLEAUX.investisseurs, {
+    nom: nom || mail,
+    colonnes,
+    cle: mail ? { colonne: COL_CLIENT.email, valeur: mail } : { colonne: 'name', valeur: nom },
+  });
+  cache.delete('investisseurs');
+  return { ...r, statut_ignore: statutIgnore };
+}
+
 // --- Lecture : investisseurs et agents restent tenus dans Monday ------------
 
 // Colonnes du tableau « Clients ».

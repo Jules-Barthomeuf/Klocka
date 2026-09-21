@@ -58,7 +58,7 @@ test("la consigne est le document de Jules, mot pour mot, puis le cadre de la pl
 
 test("les outils d'AK : ceux de l'assistant sans l'envoi de mail, plus les siens", () => {
   const noms = OUTILS.map((o) => o.name);
-  for (const n of ['chercher_dossier', 'chercher_projet', 'analyser_fiche', 'ajouter_document', 'renommer_dossier', 'supprimer_dossier', 'creer_projet_depuis_dossier', 'outils_kdata', 'lancer_kdata', 'generer_prez_bancaire', 'taches_en_cours', 'pousser_projet_monday']) assert.ok(noms.includes(n), n);
+  for (const n of ['chercher_dossier', 'chercher_projet', 'analyser_fiche', 'ajouter_document', 'renommer_dossier', 'supprimer_dossier', 'creer_client_monday', 'creer_projet_depuis_dossier', 'outils_kdata', 'lancer_kdata', 'generer_prez_bancaire', 'taches_en_cours', 'pousser_projet_monday']) assert.ok(noms.includes(n), n);
   assert.ok(!noms.includes('envoyer_mail'), 'décidé : AK n\'envoie pas de mail');
   const creer = OUTILS.find((o) => o.name === 'creer_dossier');
   assert.match(creer.description, /rien d'autre : pas de Monday/, 'le creer_dossier d\'AK, pas celui de l\'assistant');

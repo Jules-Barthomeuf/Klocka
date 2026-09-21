@@ -30,11 +30,30 @@ const APP_URL = APP_URL_PROD || 'http://localhost:5173';
 /** Le document de Jules, mot pour mot. */
 export const CONSIGNE = fs.readFileSync(path.join(ici, 'consigne.md'), 'utf8');
 
-// Les outils de l'assistant qu'AK reprend. Pas l'envoi de mail : décidé.
-const EXCLUS = new Set(['envoyer_mail', 'preparer_mail']);
+// Les outils de l'assistant qu'AK reprend. Pas l'envoi de mail : décidé. Pas
+// non plus son creer_dossier, qui enchaîne CRM, Monday et promesse de
+// documents : dans le chat, « crée un dossier » crée un dossier, rien d'autre.
+const EXCLUS = new Set(['envoyer_mail', 'preparer_mail', 'creer_dossier']);
 const NOMS_KDATA = { kzoning: 'K-Zoning', kexpertise: 'K-Expertise', kestimation: 'Estimation', kprospective: 'K-Prospective', kfoncier: 'K-Foncier', 'valeur-locative': 'Valeur locative', kvacance: 'K-Vacance', ktransactions: 'K-Transactions' };
 
 const OUTILS_AK = [
+  {
+    name: 'creer_dossier',
+    description: "Crée un dossier de préanalyse, et rien d'autre : pas de Monday, pas de CRM, pas de promesse. Ce qu'on sait du bien va dans l'aperçu ; tout est facultatif sauf le nom.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        nom: { type: 'string', description: 'nom du dossier, ex: « Ben », « Local commercial — Lyon 3e »' },
+        ville: { type: 'string' }, rue: { type: 'string' },
+        prix: { type: 'number', description: 'prix FAI en euros, si donné' },
+        surface: { type: 'number', description: 'surface en m², si donnée' },
+        loyer: { type: 'number', description: 'loyer annuel HT HC en euros, si donné' },
+        activite: { type: 'string' },
+        agent_nom: { type: 'string' }, agent_email: { type: 'string' }, agent_telephone: { type: 'string' }, agence: { type: 'string' },
+      },
+      required: ['nom'],
+    },
+  },
   {
     name: 'creer_projet_depuis_dossier',
     description: "Crée la fiche projet d'un dossier de préanalyse déjà là (« crée le projet pour Devred de Firminy »). Chercher le dossier d'abord avec chercher_dossier ; s'il n'existe pas, le dire, ne rien créer de vide.",
@@ -93,6 +112,21 @@ export function decrireOutilsKdata() {
  * tâches qui continuent après la réponse : c'est la veille qui les suit.
  */
 export async function executerOutil({ name, input }, user, { fond = () => {} } = {}) {
+  if (name === 'creer_dossier') {
+    const { creerCoquille } = await import('../deal/index.js');
+    const dossier = creerCoquille({
+      nom: input.nom,
+      responsables: user?.full_name ? [user.full_name] : [],
+      user,
+      contact_agent_email: input.agent_email ? String(input.agent_email).trim().toLowerCase() : null,
+      apercu: {
+        ville: input.ville || null, rue: input.rue || null, prix: input.prix || null,
+        surface: input.surface || null, loyer: input.loyer || null, activite: input.activite || null,
+        agent_nom: input.agent_nom || null, agent_telephone: input.agent_telephone || null, agence: input.agence || null,
+      },
+    });
+    return { ok: true, cree: true, deal_id: dossier.deal_id, nom: input.nom, lien: lien(`/Analyse?deal_id=${dossier.deal_id}`) };
+  }
   if (name === 'creer_projet_depuis_dossier') {
     const { creerProjetDepuisDeal, completerAvantProjet } = await import('../deal/projet.js');
     try { await completerAvantProjet(input.deal_id, Number(input.lot_index) || 0); } catch { /* la fiche naît de ce qu'on a */ }
@@ -173,7 +207,7 @@ Tu as des outils. Le modèle ne décide de rien sur le fond : il traduit une phr
 
 RÈGLES :
 1. Cherche toujours avant d'agir (chercher_dossier, chercher_projet) : il te faut l'identifiant. Plusieurs résultats : liste-les et demande lequel. Aucun : dis-le, n'invente rien.
-2. « Crée le projet pour X » : chercher_dossier puis creer_projet_depuis_dossier. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme.
+2. « Crée le projet pour X » : chercher_dossier puis creer_projet_depuis_dossier. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 4. Une tâche de fond (K-Data, préz) : dis que c'est parti, sans annoncer de résultat. Tu préviendras toi-même dans le chat quand ce sera fini.
 5. Un mail : tu proposes le texte dans le chat, tu ne l'envoies jamais. Personne ne t'a donné ce droit.

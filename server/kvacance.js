@@ -80,6 +80,13 @@ const medianeAns = (xs) => {
 const pour100 = (n, d) => (d ? Math.round((n / d) * 1000) / 10 : null);
 const virg = (n) => String(n).replace('.', ',');
 
+/**
+ * « 1900-01-01 » est la sentinelle du registre pour une date inconnue. La
+ * prendre au mot donnerait des commerces exploités cent vingt ans, et une
+ * ouverture antérieure à toute fermeture. On la traite comme une absence.
+ */
+const dateConnue = (d) => !!d && String(d).slice(0, 4) > '1900';
+
 const TYPES_VOIE = 'RUE|AVENUE|AV|BOULEVARD|BD|PLACE|PL|COURS|CHEMIN|IMPASSE|ALLEE|ALLEES|QUAI|ROUTE|RTE|TRAVERSE|MONTEE|DESCENTE|PROMENADE|SQUARE|CORNICHE|PASSAGE|GALERIE|ESPLANADE|PARVIS|SENTIER|VOIE';
 
 /**
@@ -243,7 +250,7 @@ export function turnOver(fermetures) {
 export function lireFermeture(e, centre) {
   if (!e || e.etat !== 'F' || !e.fermeture) return null;
   if (!Number.isFinite(e.lat) || !Number.isFinite(e.lon)) return null;
-  const duree = e.ouverture ? Math.round(((Date.parse(e.fermeture) - Date.parse(e.ouverture)) / (365.25 * 86400000)) * 10) / 10 : null;
+  const duree = dateConnue(e.ouverture) ? Math.round(((Date.parse(e.fermeture) - Date.parse(e.ouverture)) / (365.25 * 86400000)) * 10) / 10 : null;
   return {
     siret: e.siret,
     nom: e.nom,
@@ -389,6 +396,13 @@ export function comparer(tauxZone, tauxCommune) {
 const lireSeuil = (t) => (t == null ? null : t < SEUILS.frictionnelle ? 'faible' : t < SEUILS.structurelle ? 'moyenne' : 'forte');
 
 /**
+ * La tournure qui relie une lecture à sa commune. « au-dessus » et « en
+ * dessous » appellent la préposition, « dans la moyenne » se dit « comme » :
+ * sans ce détour, la phrase sortait « au-dessus la commune ».
+ */
+const faceALaCommune = (mot) => (mot === 'dans la moyenne' ? 'comme' : `${mot} de`);
+
+/**
  * Beaucoup de vacance, ou pas ? Pure : testée sans réseau.
  *
  * Chaque lecture (visible, registre) donne un niveau par les seuils, corrigé
@@ -418,7 +432,7 @@ export function verdictVacance({ visible = {}, registre = {}, rythme = {} } = {}
     lectures.push(decaler(lireSeuil(v.taux), c?.mot));
     appuis.push({
       lecture: 'visible',
-      phrase: `${virg(v.taux)} % des ${v.total} devantures relevées sont vides` + (c ? `, ${c.mot === 'dans la moyenne' ? 'comme' : c.mot} le reste de la commune (${virg(visible.commune.taux)} %)` : ''),
+      phrase: `${virg(v.taux)} % des ${v.total} devantures relevées sont vides` + (c ? `, ${faceALaCommune(c.mot)} la commune (${virg(visible.commune.taux)} %)` : ''),
       repere: `moins de ${SEUILS.frictionnelle} % : vacance frictionnelle ; plus de ${SEUILS.structurelle} % : structurelle`,
     });
   } else if (v) {
@@ -432,7 +446,7 @@ export function verdictVacance({ visible = {}, registre = {}, rythme = {} } = {}
     const rang = registre.rang?.rang;
     appuis.push({
       lecture: 'registre',
-      phrase: `${virg(r.taux)} % des ${r.adresses} adresses commerçantes ont perdu leur dernier commerce sans qu'un autre s'y déclare` + (c ? `, ${c.mot === 'dans la moyenne' ? 'comme' : c.mot} la commune (${virg(registre.commune.taux)} %)` : ''),
+      phrase: `${virg(r.taux)} % des ${r.adresses} adresses commerçantes ont perdu leur dernier commerce sans qu'un autre s'y déclare` + (c ? `, ${faceALaCommune(c.mot)} la commune (${virg(registre.commune.taux)} %)` : ''),
       repere: rang != null ? `${rang} % des rues de la commune ont moins de vacance au registre que cette zone` : `fenêtre de ${r.fenetre_ans || FENETRE_VACANCE_ANS} ans, adresses postales et non locaux`,
     });
   } else if (r) {
@@ -444,7 +458,7 @@ export function verdictVacance({ visible = {}, registre = {}, rythme = {} } = {}
     const c = comparer(y.taux_annuel, rythme.commune?.taux_annuel);
     appuis.push({
       lecture: 'rythme',
-      phrase: `${y.fermees_12_mois} commerce${y.fermees_12_mois > 1 ? 's' : ''} sur ${y.actifs + y.fermees_12_mois} ${y.fermees_12_mois > 1 ? 'ont' : 'a'} fermé en un an` + (y.un_sur ? `, un sur ${y.un_sur}` : '') + (c ? `, ${c.mot === 'dans la moyenne' ? 'comme' : c.mot} la commune (${virg(rythme.commune.taux_annuel)} % par an)` : ''),
+      phrase: `${y.fermees_12_mois} commerce${y.fermees_12_mois > 1 ? 's' : ''} sur ${y.actifs + y.fermees_12_mois} ${y.fermees_12_mois > 1 ? 'ont' : 'a'} fermé en un an` + (y.un_sur ? `, un sur ${y.un_sur}` : '') + (c ? `, ${faceALaCommune(c.mot)} la commune (${virg(rythme.commune.taux_annuel)} % par an)` : ''),
       repere: 'un bail commercial court par périodes de 3, 6 et 9 ans',
     });
   }
@@ -508,7 +522,7 @@ export async function analyser(texte, { rayon = RAYON_DEFAUT, user = null } = {}
     const commune = (sirene.etablissements || []).filter((e) => estCommerce(e.activite));
     const zone = dansLeRayon(commune, point, rayon);
     fermetures = zone.map((e) => lireFermeture(e, point)).filter(Boolean).sort((a, b) => String(b.fermeture).localeCompare(String(a.fermeture)));
-    ouvertures = zone.filter((e) => e.etat === 'A' && e.cle_adresse && e.ouverture).map((e) => ({ cle: e.cle_adresse, date: e.ouverture, nom: e.enseigne || e.nom, activite_libelle: e.activite_libelle }));
+    ouvertures = zone.filter((e) => e.etat === 'A' && e.cle_adresse && dateConnue(e.ouverture)).map((e) => ({ cle: e.cle_adresse, date: e.ouverture, nom: e.enseigne || e.nom, activite_libelle: e.activite_libelle }));
     const zoneRegistre = vacanceAuRegistre(zone, { aujourdhui });
     registre = {
       zone: { ...zoneRegistre, lignes: zoneRegistre.lignes.slice(0, 60) },

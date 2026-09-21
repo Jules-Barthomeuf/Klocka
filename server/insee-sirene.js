@@ -24,7 +24,10 @@ import { Records } from './db.js';
 import { libelleActivite } from './naf.js';
 
 const RACINE = 'https://api.insee.fr/api-sirene/3.11';
-const CLE = (process.env.INSEE_SIRENE_CLE || '').trim();
+// Lue à chaque appel, et non une fois au chargement : le serveur charge .env
+// dans son point d'entrée, mais un module importé avant lui, ou lancé seul en
+// ligne de commande, lirait autrement une variable encore vide.
+const cle = () => (process.env.INSEE_SIRENE_CLE || '').trim();
 const UA = 'Klocka/1.0 (sourcing@klocka.immo)';
 const DELAI_MS = 60000;
 // Mille par page : c'est le plafond du format JSON, les deux cent mille
@@ -35,7 +38,7 @@ const PAUSE_MS = 2100;
 const CACHE = 'CacheSireneKVacance';
 const CACHE_JOURS = 30;
 
-export const sireneConfigure = () => !!CLE;
+export const sireneConfigure = () => !!cle();
 export const MESSAGE_SANS_CLE = "L'API Sirene de l'INSEE n'est pas configurée : INSEE_SIRENE_CLE manque dans .env (clé gratuite sur portail-api.insee.fr, application en mode « simple » souscrite au plan « Public »).";
 
 // --- Lambert 93 -> WGS 84 ------------------------------------------------
@@ -125,9 +128,9 @@ export function lireEtablissement(e) {
 // --- Interrogation --------------------------------------------------------
 
 async function appeler(params) {
-  if (!CLE) throw new Error(MESSAGE_SANS_CLE);
+  if (!sireneConfigure()) throw new Error(MESSAGE_SANS_CLE);
   const r = await fetch(`${RACINE}/siret?${new URLSearchParams(params)}`, {
-    headers: { 'X-INSEE-Api-Key-Integration': CLE, accept: 'application/json', 'user-agent': UA },
+    headers: { 'X-INSEE-Api-Key-Integration': cle(), accept: 'application/json', 'user-agent': UA },
     signal: AbortSignal.timeout(DELAI_MS),
   });
   // 404 : aucun établissement ne répond à la question, ce n'est pas une panne.
@@ -222,6 +225,10 @@ export async function etablissementsDeLaCommune(codeInsee, { prefixes, anneesFer
 
 // `node server/insee-sirene.js 06029` : lit une commune et dit ce qu'il trouve.
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  // Lancé seul, le module n'a pas eu le .env que le serveur charge pour lui.
+  // L'import reste ici : au chargement, il repeuplerait la variable que les
+  // tests effacent pour vérifier le message d'absence de clé.
+  await import('dotenv/config');
   const code = process.argv[2];
   const r = await etablissementsDeLaCommune(code, { prefixes: ['47', '56', '960', '952'], forcer: true });
   if (!r.ok) { console.error(r.error); process.exit(1); }

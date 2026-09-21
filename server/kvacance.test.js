@@ -51,6 +51,16 @@ test('une fermeture porte sa durée d\'exploitation, et sans point elle est éca
   assert.equal(f.cle_adresse, '19|alsace lorraine');
   assert.ok(Math.abs(f.duree_ans - 7.7) < 0.2, `durée ${f.duree_ans}`);
   assert.ok(f.distance_m > 0);
+  // « 1900-01-01 » est la sentinelle du registre pour une date inconnue : la
+  // compter donnerait un commerce exploité cent vingt ans, qui tirerait la
+  // durée médiane et la part des enseignes qui ne tiennent pas.
+  const sentinelle = lireFermeture(
+    { siret: '2', etat: 'F', ouverture: '1900-01-01', fermeture: '2020-06-30', lat: 43.7, lon: 7.25, adresse: '5 RUE DABRAY 06000 NICE' },
+    centre,
+  );
+  assert.equal(sentinelle.duree_ans, null, 'une ouverture inconnue ne donne pas de durée');
+  assert.equal(sentinelle.annee_fermeture, 2020, 'la fermeture, elle, reste connue');
+
   // Un établissement actif, sans point ou sans date de fermeture : rien à en tirer.
   assert.equal(lireFermeture({ siret: '1', etat: 'A', lat: 43.7, lon: 7.25 }, centre), null);
   assert.equal(lireFermeture({ siret: '1', etat: 'F', fermeture: '2020-01-01' }, centre), null);
@@ -154,13 +164,16 @@ test('le verdict tranche quand les deux lectures convergent, hésite quand elles
   assert.equal(forte.niveau, 'forte');
   assert.match(forte.phrase, /^Vacance forte/);
   assert.equal(forte.appuis.length, 3);
-  assert.match(forte.appuis[0].phrase, /14 % des 80 devantures .* au-dessus le reste de la commune \(6 %\)/);
+  // La préposition suit le mot : « au-dessus DE la commune », jamais « au-dessus la commune ».
+  assert.match(forte.appuis[0].phrase, /14 % des 80 devantures .* au-dessus de la commune \(6 %\)/);
   assert.match(forte.appuis[1].repere, /70 % des rues/);
   assert.match(forte.appuis[2].phrase, /4 commerces sur 44 ont fermé en un an, un sur 11/);
 
   const faible = verdictVacance({ visible: visible(2), registre: registre(3) });
   assert.equal(faible.niveau, 'faible');
   assert.match(faible.phrase, /peu de locaux vides/);
+  assert.match(faible.appuis[0].phrase, /en dessous de la commune/);
+  assert.match(verdictVacance({ visible: visible(7), registre: registre(7) }).appuis[0].phrase, /comme la commune/);
 
   // Aux seuils exacts : 5 % n'est plus frictionnelle, 10 % est structurelle.
   assert.equal(verdictVacance({ visible: { zone: { taux: 5, total: 80 } }, registre: { zone: { taux: 5, adresses: 50 } } }).niveau, 'moyenne');

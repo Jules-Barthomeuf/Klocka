@@ -10,7 +10,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-ak-'));
 process.env.AK_NOM = 'Assistant Klocka';
 const { lireMessage, estPourAk, estDeAk, sansMention, mention } = await import('./chat.js');
-const { CONSIGNE, consigne, OUTILS, decrireOutilsKdata, texteDeFin, utilisateurPour } = await import('./agent.js');
+const { CONSIGNE, consigne, OUTILS, decrireOutilsKdata, texteDeFin, utilisateurPour, imagesDe } = await import('./agent.js');
 
 const brut = (texte, extra = {}) => ({
   name: 'spaces/AAA/messages/m1', createTime: '2026-09-21T10:00:00Z', text: texte, argumentText: texte.replace('@Assistant Klocka', ''),
@@ -122,4 +122,19 @@ test("après une réponse d'AK, la même personne peut enchaîner sans le mentio
   assert.equal(enConversation({ ...m, auteur: { nom: 'users/2' } }, { attente, maintenant: 999000 }), false, 'quelqu\'un d\'autre');
   assert.equal(enConversation({ ...m, auteur: { nom: 'users/2' }, fil: 'spaces/A/threads/t1' }, { attente, maintenant: 2000000 }), true, 'dans le fil où AK a parlé');
   assert.equal(enConversation(m, { attente: undefined }), false);
+});
+
+test("une capture d'écran jointe part au modèle en image, un pdf ou un fichier trop lourd non", async () => {
+  const { provider } = await import('../llm.js');
+  const lire = () => Buffer.from('img');
+  const blocs = imagesDe([
+    { nom: 'a.png', type: 'image/png', chemin: '/x/a.png', octets: 10 },
+    { nom: 'b.pdf', type: 'application/pdf', chemin: '/x/b.pdf', octets: 10 },
+    { nom: 'c.jpg', type: 'image/jpeg', chemin: '/x/c.jpg', octets: 9 * 1024 * 1024 },
+    { nom: 'd.png', type: 'image/png', erreur: 'raté' },
+  ], lire);
+  if (provider !== 'anthropic') { assert.deepEqual(blocs, []); return; }
+  assert.equal(blocs.length, 1);
+  assert.equal(blocs[0].source.media_type, 'image/png');
+  assert.equal(blocs[0].source.data, Buffer.from('img').toString('base64'));
 });

@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Records, Conversations, CHEMIN_UPLOADS } from '../db.js';
-import { runAgent } from '../llm.js';
+import { runAgent, provider } from '../llm.js';
 import { OUTILS as OUTILS_ASSISTANT, executerOutil as executerOutilAssistant } from '../assistant-commande.js';
 import { journaliser } from '../assistant-journal.js';
 import { APP_URL_PROD } from '../contexte.js';
@@ -213,6 +213,17 @@ export async function produirePrez(projetId) {
   }
 }
 
+const TYPES_IMAGE = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+const IMAGE_MAX_OCTETS = 5 * 1024 * 1024;
+
+/** Les pièces jointes qui sont des images, en blocs pour le modèle. Pure sur des fichiers déjà lus. */
+export function imagesDe(pieces, lire = (chemin) => fs.readFileSync(chemin)) {
+  if (provider !== 'anthropic') return [];
+  return (pieces || [])
+    .filter((p) => p.chemin && TYPES_IMAGE.has(p.type) && (p.octets || 0) <= IMAGE_MAX_OCTETS)
+    .map((p) => ({ type: 'image', source: { type: 'base64', media_type: p.type, data: lire(p.chemin).toString('base64') } }));
+}
+
 /** Le résumé d'une tâche finie, tel qu'AK le postera. Pure. */
 export function texteDeFin(tache) {
   if (tache.genre === 'kdata') {
@@ -248,6 +259,7 @@ RÈGLES :
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas.
 7. Une action faite : UNE ligne, comme un collègue qui répond sur son téléphone. « C bon le dossier est créé et tout est dans monday bg ». Pas d'identifiant, pas de numéro d'item Monday, pas de date « par défaut », pas de rappel de ce que tu n'as pas fait, pas de « dis-moi si tu veux que… ». Le lien seulement si la personne en a besoin pour ouvrir un truc. Les réserves, les manques, les détails : uniquement si on te les demande.
 8. Si quelqu'un d'autre est mentionné dans la demande (« @Nora tu as fini ? »), tu peux le mentionner en écrivant son identifiant entre chevrons tel qu'il t'est donné : <users/123>. Ne mentionne pas la personne qui te parle : c'est déjà fait devant ta réponse.
+10. Tout le reste : une capture d'écran à commenter (design, ergonomie, une page de la plateforme, un site), une question de droit des baux, de financement, de code, ou n'importe quoi d'autre : réponds directement, sans outil, avec ton avis franc et argumenté, comme un collègue qu'on consulte. Sur une image, dis ce que tu vois, ce qui marche, ce qui cloche, et ce que tu changerais en premier.
 9. Tu parles sur Google Chat : texte brut, pas de markdown, pas de titres, pas d'astérisques. Une à deux phrases, jamais de paragraphes, jamais de liste sauf quand on te demande une liste. Tu écris comme l'équipe écrit (voir le document au-dessus) : « c bon », « dcp », « bg », minuscules, pas de ponctuation soignée. Tu n'es pas un service client, tu es un collègue.
 
 CE QU'IL NE FAUT PAS ÉCRIRE (trop corporate) :
@@ -303,7 +315,12 @@ export async function repondre(message) {
   const autres = (message.mentions || []).filter((m) => m.affiche).map((m) => `${m.affiche} = ${m.nom}`);
   const pieces = (message.pieces || []).map((p) => (p.chemin ? `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin})` : `${p.nom} (impossible à télécharger : ${p.erreur})`));
   const entree = `${prenom} (${message.auteur.nom || '?'}) : ${message.texte}${autres.length ? `\n(mentionnés : ${autres.join(', ')})` : ''}${pieces.length ? `\n(pièces jointes : ${pieces.join(' ; ')})` : ''}`;
-  const historique = [...conversation.messages, { role: 'user', content: entree }].slice(-MAX_MESSAGES);
+  // Les images se montrent au modèle telles quelles (une capture d'écran à
+  // commenter) ; le fil, lui, ne garde que le texte : une image de deux mégas
+  // par message ferait grossir la base pour rien.
+  const images = imagesDe(message.pieces);
+  const courant = images.length ? [{ type: 'text', text: entree }, ...images] : entree;
+  const historique = [...conversation.messages, { role: 'user', content: courant }].slice(-MAX_MESSAGES);
 
   const fond = [];
   const actions = [];
@@ -324,6 +341,6 @@ export async function repondre(message) {
     },
   });
   const texte = String(text || '').trim() || 'rav, je n\'ai rien à répondre là-dessus.';
-  Conversations.setMessages(conversation.id, [...historique, { role: 'assistant', content: texte }].slice(-MAX_MESSAGES));
+  Conversations.setMessages(conversation.id, [...conversation.messages, { role: 'user', content: entree }, { role: 'assistant', content: texte }].slice(-MAX_MESSAGES));
   return { texte, actions, outils, fond };
 }

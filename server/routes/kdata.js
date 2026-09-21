@@ -2,6 +2,7 @@
 
 import { currentUser, ok, wrap } from '../contexte.js';
 import { lancerAnalyses, listerAnalyses, ranger, supprimerAnalyse, listerDossiers } from '../kdata.js';
+import { QUESTIONS, NOTES } from '../kdata-questions.js';
 
 export function monterKData(app) {
   const admin = (req, res) => {
@@ -15,7 +16,14 @@ export function monterKData(app) {
   app.get('/api/kdata/analyses', wrap((req, res) => {
     if (!admin(req, res)) return;
     const deal_id = String(req.query.deal_id || '').trim() || null;
-    ok(res, { analyses: listerAnalyses(60, { deal_id }), dossiers: deal_id ? [] : listerDossiers() });
+    ok(res, {
+      analyses: listerAnalyses(60, { deal_id }),
+      dossiers: deal_id ? [] : listerDossiers(),
+      // Ce que chaque outil demande en plus de l'adresse : l'écran pose les
+      // questions avant de lancer, sans recopier les barèmes des outils.
+      questions: deal_id ? undefined : QUESTIONS,
+      notes: deal_id ? undefined : NOTES,
+    });
   }));
 
   app.post('/api/kdata/analyses', wrap((req, res) => {

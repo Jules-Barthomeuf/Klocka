@@ -42,7 +42,148 @@ function CarteModule({ module: m }) {
 }
 
 /** Le composeur : les outils à gauche, l'adresse au milieu, l'envoi à droite. */
-function Composeur({ onLancer, enCours }) {
+// --- Les questions que les outils posent avant de partir --------------------
+//
+// Le schéma vient du serveur : les listes d'options ne sont pas recopiées ici,
+// ce sont celles des barèmes des outils eux-mêmes. Cet écran ne fait que les
+// poser, et le serveur revérifie tout au lancement.
+
+const conditionOk = (si, v) => !si || String(v?.[si.cle] ?? "") === String(si.vaut);
+
+const defautsDe = (liste) => {
+  const d = {};
+  for (const q of liste || []) {
+    if (q.type === "criteres") d[q.cle] = {};
+    else if (q.defaut !== undefined) d[q.cle] = q.defaut;
+  }
+  return d;
+};
+
+const repondu = (v) => String(v ?? "").trim() !== "";
+
+/** Ce qui manque pour lancer un outil, dit en clair sous la barre. */
+function manqueDe(liste, valeurs) {
+  const v = { ...defautsDe(liste), ...valeurs };
+  const defauts = defautsDe(liste);
+  const entame = (liste || []).filter((q) => q.groupe).some((q) => repondu(v[q.cle]) && String(v[q.cle]) !== String(defauts[q.cle] ?? ""));
+  return (liste || [])
+    .filter((q) => q.requis)
+    .filter((q) => !q.groupe || entame)
+    .filter((q) => conditionOk(q.si, v) && conditionOk(q.requis === true ? null : q.requis, v))
+    .filter((q) => !repondu(v[q.cle]))
+    .map((q) => q.libelle.toLowerCase());
+}
+
+const PASTILLE = "rounded-full px-2.5 py-1 text-[12px] transition-colors";
+
+function Pastille({ actif, onClick, enfant, barre = false, titre = null }) {
+  return (
+    <button type="button" onClick={onClick} disabled={barre} title={titre || undefined}
+      className={`${PASTILLE} ${barre ? "cursor-not-allowed line-through opacity-40" : ""}`}
+      style={{ background: actif ? alpha("menthe", 0.16) : J["barre-relief"], color: actif ? J["menthe"] : J["ardoise"] }}>
+      {enfant}
+    </button>
+  );
+}
+
+function Question({ q, valeur, onChange }) {
+  const etiquette = (
+    <p className="m-0 mb-1 text-[11.5px] text-craie">
+      {q.libelle}{q.unite ? <span className="text-brume"> ({q.unite})</span> : null}
+    </p>
+  );
+
+  if (q.type === "choix") {
+    return (
+      <div>
+        {etiquette}
+        <div className="flex flex-wrap gap-1.5">
+          {q.options.map((o) => (
+            <Pastille key={String(o.valeur)} actif={String(valeur ?? "") === String(o.valeur)}
+              onClick={() => onChange(o.valeur)} enfant={o.nom} />
+          ))}
+        </div>
+        {q.aide && <p className="m-0 mt-1 text-[10.5px] text-brume">{q.aide}</p>}
+      </div>
+    );
+  }
+
+  if (q.type === "criteres") {
+    const choisis = valeur || {};
+    const basculer = (gcle, v) => {
+      const actuels = choisis[gcle] || [];
+      const suite = actuels.includes(v) ? actuels.filter((x) => x !== v) : [...actuels, v];
+      onChange({ ...choisis, [gcle]: suite });
+    };
+    return (
+      <div className="sm:col-span-2">
+        {etiquette}
+        {q.aide && <p className="m-0 mb-2 text-[10.5px] text-brume">{q.aide}</p>}
+        <div className="flex flex-col gap-2.5">
+          {(q.groupes || []).map((g) => (
+            <div key={g.cle}>
+              <p className="m-0 mb-1 text-[10.5px] uppercase tracking-[.1em] text-brume">{g.nom}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {g.options.map((o) => (
+                  <Pastille key={o.valeur} actif={(choisis[g.cle] || []).includes(o.valeur)}
+                    barre={!!o.indisponible} titre={o.pourquoi}
+                    onClick={() => basculer(g.cle, o.valeur)} enfant={o.nom} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {etiquette}
+      <input
+        type={q.type === "date" ? "date" : "text"}
+        inputMode={q.type === "nombre" ? "decimal" : undefined}
+        value={valeur ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={q.exemple || ""}
+        className="h-9 w-full rounded-champ border border-bord bg-surface px-3 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+      {q.aide && <p className="m-0 mt-1 text-[10.5px] text-brume">{q.aide}</p>}
+    </div>
+  );
+}
+
+/** Un outil et ses questions, repliable : on voit d'abord ce qu'on a choisi. */
+function BlocOutil({ outil, liste, note, valeurs, onChange }) {
+  const [ouvert, setOuvert] = useState(true);
+  const m = MODULES_KDATA.find((x) => x.cle === outil);
+  const v = { ...defautsDe(liste), ...valeurs };
+  const manque = manqueDe(liste, valeurs);
+  const Icone = m?.icone;
+  return (
+    <section className="border-b border-trait py-3 last:border-b-0 first:pt-0">
+      <button type="button" onClick={() => setOuvert((o) => !o)} className="flex w-full items-center gap-2 text-left">
+        {Icone && <Icone className="h-3.5 w-3.5 flex-none text-menthe" />}
+        <span className="text-[13px] font-medium text-encre">{m?.nom || outil}</span>
+        {manque.length > 0 && <span className="text-[11px] text-ambre">il manque {manque.join(", ")}</span>}
+        <span className="flex-1" />
+        <ChevronDown className={`h-3 w-3 flex-none text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
+      </button>
+      {ouvert && (
+        <>
+          {note && <p className="m-0 mt-1.5 text-[11px] leading-[1.5] text-brume">{note}</p>}
+          <div className="mt-2.5 grid gap-3 sm:grid-cols-2">
+            {liste.filter((q) => conditionOk(q.si, v)).map((q) => (
+              <Question key={q.cle} q={q} valeur={valeurs?.[q.cle] ?? (q.type === "criteres" ? {} : q.defaut)}
+                onChange={(x) => onChange(q.cle, x)} />
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Composeur({ onLancer, enCours, questions, notes }) {
   const [outils, setOutils] = useState(lireOutils);
   const [menu, setMenu] = useState(false);
   const [adresse, setAdresse] = useState("");
@@ -66,8 +207,26 @@ function Composeur({ onLancer, enCours }) {
 
   const basculer = (cle) => setOutils((s) => { const n = new Set(s); n.has(cle) ? n.delete(cle) : n.add(cle); return n; });
   const tous = outils.size === MODULES_KDATA.length;
-  const pret = adresse.trim().length >= 5 && outils.size > 0 && !enCours;
-  const envoyer = () => { if (!pret) return; onLancer({ adresse: adresse.trim(), outils: [...outils] }); setAdresse(""); choisie.current = ""; setSuggestions([]); };
+
+  // Les réponses aux questions des outils choisis. Un outil décoché garde les
+  // siennes de côté : le recocher ne fait pas tout resaisir.
+  const [reglages, setReglages] = useState({});
+  const repondre = (outil, cle, valeur) => setReglages((r) => ({ ...r, [outil]: { ...(r[outil] || {}), [cle]: valeur } }));
+
+  // Dans l'ordre des cartes, pour que le panneau ne saute pas d'un clic à l'autre.
+  const aQuestionner = MODULES_KDATA
+    .filter((m) => outils.has(m.cle) && (questions?.[m.cle] || []).length > 0)
+    .map((m) => m.cle);
+  const manques = aQuestionner
+    .map((o) => ({ outil: o, manque: manqueDe(questions[o], reglages[o]) }))
+    .filter((x) => x.manque.length);
+
+  const pret = adresse.trim().length >= 5 && outils.size > 0 && !enCours && manques.length === 0;
+  const envoyer = () => {
+    if (!pret) return;
+    onLancer({ adresse: adresse.trim(), outils: [...outils], reglages });
+    setAdresse(""); choisie.current = ""; setSuggestions([]);
+  };
 
   return (
     <div className="relative">
@@ -133,6 +292,21 @@ function Composeur({ onLancer, enCours }) {
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-craie hover:bg-relief hover:text-encre"><Search className="h-3.5 w-3.5 text-brume" />{s}</button></li>
           ))}
         </ul>
+      )}
+
+      {/* Une adresse ne suffit pas à tous les outils : le rayon d'une zone, les
+          années d'un marché, le loyer d'un local. On les demande avant de
+          lancer, plutôt que de partir sur des valeurs que personne n'a choisies. */}
+      {aQuestionner.length > 0 && (
+        <div className={`${CARTE} mt-3 px-4 py-3`}>
+          <p className="alx-mont m-0 mb-1 text-[10.5px] uppercase tracking-[.14em] text-brume">
+            Ce que ces outils demandent en plus de l&apos;adresse
+          </p>
+          {aQuestionner.map((o) => (
+            <BlocOutil key={o} outil={o} liste={questions[o]} note={notes?.[o]}
+              valeurs={reglages[o]} onChange={(cle, v) => repondre(o, cle, v)} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -214,7 +388,8 @@ export default function KData() {
             les outils, en photo. */}
         <div className="grid grid-cols-1 gap-8 pt-2 lg:grid-cols-2 lg:items-start">
           <div>
-            <Composeur onLancer={(c) => lancer.mutate(c)} enCours={lancer.isPending} />
+            <Composeur onLancer={(c) => lancer.mutate(c)} enCours={lancer.isPending}
+              questions={data?.questions} notes={data?.notes} />
 
             {/* La file : ce qui tourne, puis le plus récent. */}
             <section className={`${CARTE} mt-6 p-4`}>

@@ -64,6 +64,22 @@ test('un lancement refuse une adresse vague, un outil inconnu, ou aucun outil', 
   assert.match(lancerAnalyses({ adresse: '49 rue Dabray 06000 Nice', outils: ['kvacance', 'magie'] }).error, /Outil inconnu : magie/);
 });
 
+test("un lancement refuse un formulaire entamé auquel il manque une réponse", () => {
+  const adresse = '49 rue Dabray 06000 Nice';
+  // Une surface saisie engage le formulaire de valorisation : le loyer devient
+  // dû, et on le dit avant de lancer plutôt qu'en cours de route.
+  const loue = lancerAnalyses({ adresse, outils: ['kestimation'], reglages: { kestimation: { statut: 'loue', surface_m2: 90 } } });
+  assert.equal(loue.ok, false);
+  assert.match(loue.error, /Estimation : il manque loyer annuel/i);
+  // L'autre branche : un local vacant se valorise par sa surface.
+  assert.match(
+    lancerAnalyses({ adresse, outils: ['kestimation'], reglages: { kestimation: { statut: 'vacant' } } }).error,
+    /il manque surface totale/i,
+  );
+  // Un outil sans question obligatoire ne bloque jamais : c'est vérifié sans
+  // réseau dans kdata-questions.test.js, où rien ne part en tâche de fond.
+});
+
 test("des analyses se rangent dans une affaire de la page Dossiers, et l'affaire les liste", async () => {
   const { Records } = await import('./db.js');
   const a = Records.create('AnalyseKData', { outil: 'kvacance', etat: 'terminee', adresse: 'x', cree_le: '2026-09-19T10:00:00Z' });

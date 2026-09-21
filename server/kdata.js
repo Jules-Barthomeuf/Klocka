@@ -21,6 +21,7 @@ import { Records } from './db.js';
 import { resoudreAdresse } from './data-b.js';
 import { creerZoneCercle } from './kzoning.js';
 import { listerDossiers as listerAffaires } from './deal/index.js';
+import { nettoyerLot, manquantes, formulaireEntame } from './kdata-questions.js';
 
 const ENTITE = 'AnalyseKData';
 /** Au-delà, une analyse en tâche de fond est déclarée perdue. */
@@ -96,18 +97,19 @@ const OUTILS = {
   kzoning: {
     nom: 'K-Zoning',
     lien: (a) => `/kzoning?zone=${encodeURIComponent(a.ref?.id || '')}`,
-    async lancer(adresse, point, user) {
-      const r = creerZoneCercle({ adresse: point.label, lat: point.lat, lon: point.lon, rayon_m: RAYON_ZONE_M }, user);
+    async lancer(adresse, point, user, reglages = {}) {
+      const rayon = Number(reglages.rayon_m) || RAYON_ZONE_M;
+      const r = creerZoneCercle({ adresse: point.label, lat: point.lat, lon: point.lon, rayon_m: rayon }, user);
       if (!r.ok) throw new Error(r.error);
-      return { ref: { type: 'zone', id: r.zone.id }, resume: `zone de ${RAYON_ZONE_M} m posée, à lire`, libelle: point.label };
+      return { ref: { type: 'zone', id: r.zone.id }, resume: `zone de ${rayon} m posée, à lire`, libelle: point.label };
     },
   },
   kexpertise: {
     nom: 'K-Expertise',
     lien: (a) => `/kexpertise?id=${encodeURIComponent(a.ref?.id || '')}`,
-    async lancer(adresse, point, user) {
+    async lancer(adresse, point, user, reglages = {}) {
       const { lancerExpertise, lireExpertise } = await import('./kexpertise.js');
-      const r = lancerExpertise({ adresse: point.label }, user);
+      const r = lancerExpertise({ adresse: point.label, activite: reglages.activite || null }, user);
       if (!r.ok) throw new Error(r.error);
       const e = await attendreFiche(() => lireExpertise(r.id));
       if (e.etat === 'echec') throw new Error(e.erreur || "l'expertise n'a pas abouti");
@@ -117,21 +119,35 @@ const OUTILS = {
   kestimation: {
     nom: 'Estimation',
     lien: (a) => `/kestimation?id=${encodeURIComponent(a.ref?.id || '')}`,
-    async lancer(adresse, point, user) {
-      const { lancerEstimation, lireEstimation } = await import('./kestimation.js');
-      const r = lancerEstimation({ adresse: point.label }, user);
+    async lancer(adresse, point, user, reglages = {}) {
+      const { lancerEstimation, lireEstimation, estimer } = await import('./kestimation.js');
+      const { activite = null, ...reponses } = reglages;
+      const r = lancerEstimation({ adresse: point.label, activite }, user);
       if (!r.ok) throw new Error(r.error);
-      const e = await attendreFiche(() => lireEstimation(r.id));
+      let e = await attendreFiche(() => lireEstimation(r.id));
       if (e.etat === 'echec') throw new Error(e.erreur || "la lecture du marché n'a pas abouti");
+      // Le formulaire a été rempli avant le lancement : on enchaîne sur la
+      // valorisation, plutôt que de rendre une lecture de marché à finir à la
+      // main. Laissé vierge, l'outil s'arrête au marché, comme avant.
+      if (formulaireEntame('kestimation', reglages)) {
+        const calcul = estimer(r.id, reponses, user);
+        if (!calcul.ok) throw new Error(calcul.error);
+        e = await attendreFiche(() => lireEstimation(r.id));
+      }
       return { ref: { type: 'estimation', id: r.id }, resume: resumerEstimation(e), libelle: e.libelle || point.label };
     },
   },
   kprospective: {
     nom: 'K-Prospective',
     lien: (a) => `/kprospective?id=${encodeURIComponent(a.ref?.id || '')}`,
-    async lancer(adresse, point, user) {
+    async lancer(adresse, point, user, reglages = {}) {
       const { lancerProspection, lireProspection } = await import('./kprospective.js');
-      const r = lancerProspection({ adresse: point.label }, user);
+      const r = lancerProspection({
+        adresse: point.label,
+        activite: reglages.activite || null,
+        rayon_m: reglages.rayon_m,
+        criteres: reglages.criteres || {},
+      }, user);
       if (!r.ok) throw new Error(r.error);
       const p = await attendreFiche(() => lireProspection(r.id));
       if (p.etat === 'echec') throw new Error(p.erreur || "la prospection n'a pas abouti");
@@ -161,9 +177,9 @@ const OUTILS = {
   kvacance: {
     nom: 'K-Vacance',
     lien: (a) => `/kvacance?adresse=${encodeURIComponent(a.libelle || a.adresse)}`,
-    async lancer(adresse, point, user) {
+    async lancer(adresse, point, user, reglages = {}) {
       const { analyser } = await import('./kvacance.js');
-      const r = await analyser(point.label, { user });
+      const r = await analyser(point.label, { rayon: Number(reglages.rayon) || undefined, user });
       if (!r.ok) throw new Error(r.error);
       return { ref: { type: 'adresse' }, resume: resumerVacance(r), libelle: r.point?.label || point.label };
     },
@@ -171,9 +187,9 @@ const OUTILS = {
   ktransactions: {
     nom: 'K-Transactions',
     lien: (a) => `/ktransactions?adresse=${encodeURIComponent(a.libelle || a.adresse)}`,
-    async lancer(adresse, point, user) {
+    async lancer(adresse, point, user, reglages = {}) {
       const { analyser } = await import('./ktransactions.js');
-      const r = await analyser(point.label, { user });
+      const r = await analyser(point.label, { annees: Number(reglages.annees) || undefined, user });
       if (!r.ok) throw new Error(r.error);
       return { ref: { type: 'adresse' }, resume: resumerTransactions(r), libelle: r.point?.label || point.label };
     },
@@ -207,7 +223,7 @@ const noter = (id, patch) => Records.update(ENTITE, id, patch);
  * Lance une analyse par outil demandé, toutes sur la même adresse, et rend
  * tout de suite leurs identifiants : chacune tourne de son côté.
  */
-export function lancerAnalyses({ adresse, outils }, user = null) {
+export function lancerAnalyses({ adresse, outils, reglages = {} }, user = null) {
   const texte = String(adresse || '').trim();
   if (texte.length < 5) return { ok: false, error: 'Il faut une adresse précise : numéro, rue, ville.' };
   const demandes = [...new Set((Array.isArray(outils) ? outils : []).map((o) => String(o || '').trim()).filter(Boolean))];
@@ -215,10 +231,24 @@ export function lancerAnalyses({ adresse, outils }, user = null) {
   const inconnus = demandes.filter((o) => !OUTILS[o]);
   if (inconnus.length) return { ok: false, error: `Outil inconnu : ${inconnus.join(', ')}.` };
 
+  // Les réponses aux questions de chaque outil, ramenées à ce qu'il accepte.
+  // Une question obligatoire restée vide arrête le lot ici : mieux vaut le
+  // dire tout de suite que lancer une analyse qui échouera en chemin.
+  const propres = nettoyerLot(demandes, reglages);
+  for (const outil of demandes) {
+    const manque = manquantes(outil, propres[outil] || {});
+    if (manque.length) {
+      return { ok: false, error: `${OUTILS[outil].nom} : il manque ${manque.map((m) => m.libelle.toLowerCase()).join(', ')}.` };
+    }
+  }
+
   const lot = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   const le = new Date().toISOString();
   const analyses = demandes.map((outil) => Records.create(ENTITE, {
     outil, nom_outil: OUTILS[outil].nom, adresse: texte, libelle: texte, lot,
+    // Gardés avec l'analyse : on doit pouvoir dire avec quels réglages elle a
+    // été lancée, des mois plus tard.
+    reglages: propres[outil] || null,
     etat: 'en_cours', erreur: null, ref: null, resume: null, dossier_id: null,
     cree_le: le, fini_le: null, par: user?.email || null,
   }, user?.email));
@@ -235,7 +265,7 @@ export function lancerAnalyses({ adresse, outils }, user = null) {
     for (const a of analyses) noter(a.id, { libelle: point.label });
     await Promise.all(analyses.map(async (a) => {
       try {
-        const r = await OUTILS[a.outil].lancer(texte, point, user);
+        const r = await OUTILS[a.outil].lancer(texte, point, user, propres[a.outil] || {});
         noter(a.id, { etat: 'terminee', ref: r.ref, resume: r.resume, libelle: r.libelle || point.label, fini_le: new Date().toISOString() });
       } catch (e) {
         noter(a.id, { etat: 'echec', erreur: e?.message || String(e), fini_le: new Date().toISOString() });

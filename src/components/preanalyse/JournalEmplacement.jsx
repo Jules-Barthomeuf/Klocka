@@ -5,7 +5,7 @@ import { Section, Chiffres, Lignes, Encart, Note, Etiquette, Etoiles, fmt, pct, 
 // L'étude d'implantation : ce que le lieu vaut au-delà du loyer. Le flux
 // piéton et voiture, la commercialité du tronçon, la rue, les gens qui
 // vivent là et ce qu'ils gagnent. Chaque bloc lit la forme que rend
-// server/implantation/etude.js (et que rendaient les anciennes études Data-B).
+// server/implantation/etude.js (et que rendaient les anciennes études).
 //
 // Les revenus et les CSP+ se masquent d'un clic : devant un client, on choisit
 // ce qu'on montre. Quand les deux flux sont faibles, une ligne le signale et
@@ -29,7 +29,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
   const sousNotes = pieton?.note ? Object.entries(pieton.sous_notes || {}).map(([k, n]) => `${k} ${n?.note ?? "—"}/${n?.sur ?? 5}`).join(" · ") : null;
 
   return (
-    <Section premiere={premiere} titre={`Étude d'implantation · ${emplacement.estime ? "Klocka" : "Data-B"}`} aside={<span className="text-[12.5px] text-ardoise">{[emplacement.source, emplacement.quand].filter(Boolean).join(" · ")}</span>}>
+    <Section premiere={premiere} titre={`Étude d'implantation${emplacement.estime ? " · Klocka" : ""}`} aside={<span className="text-[12.5px] text-ardoise">{[emplacement.source, emplacement.quand].filter(Boolean).join(" · ")}</span>}>
       <Chiffres
         className="mt-4"
         items={[
@@ -47,7 +47,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
             valeur: noteDe(voiture?.note),
             teinte: teinteFlux(voiture?.note),
             extra: etoiles(voiture?.note),
-            note: voiture?.note ? (voiture.estime ? "estimé d'après la classe de la voie, sur cinq" : "la mesure Data-B, sur cinq") : voiture?.indisponible ? "Pas de classe de voie connue : le flux voiture n'est pas estimé." : "Le flux voiture n'est pas encore revenu. Relancez l'analyse.",
+            note: voiture?.note ? (voiture.estime ? "estimé d'après la classe de la voie, sur cinq" : "la mesure d'origine, sur cinq") : voiture?.indisponible ? "Pas de classe de voie connue : le flux voiture n'est pas estimé." : "Le flux voiture n'est pas encore revenu. Relancez l'analyse.",
           },
           {
             libelle: "Commercialité du tronçon",

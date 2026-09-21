@@ -1,7 +1,7 @@
 // Le flux, estimé. Pur.
 //
-// Personne ne compte les passants dans une rue de France : Data-B faisait
-// « un calcul algorithmique », nous aussi. Le nôtre est écrit ici, avec ses
+// Personne ne compte les passants dans une rue de France : les services
+// payants font « un calcul algorithmique », nous aussi. Le nôtre est écrit ici, avec ses
 // poids, pour qu'on puisse le lire et le contester.
 //
 // Le passage à pied tient d'abord à la commercialité : on va où il y a des
@@ -10,7 +10,7 @@
 // sous-notes reprennent ces trois familles : shopping, résidentiel,
 // travailleur. La commercialité fait la note ; les autres la nuancent.
 //
-// Calage : les trois rapports Data-B archivés. Rue Dabray à Nice, 13
+// Calage : les trois rapports archivés d'un service payant. Rue Dabray à Nice, 13
 // commerces sur le tronçon, 3/5 ; avenue Marceau à Courbevoie, 19, 3/5 ;
 // rue Saint-Agricol à Avignon, 33 sur une rue de 166 m, 5/5. L'estimation
 // retombe à une étoile près, et le dit : `estime: true` partout.

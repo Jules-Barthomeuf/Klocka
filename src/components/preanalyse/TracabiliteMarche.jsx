@@ -8,7 +8,7 @@ import { J } from "@/design/jetons";
 //
 // Avant, cette information vivait douze secondes dans un toast : passé le
 // délai, plus personne ne pouvait dire si le loyer affiché venait d'Equimmox
-// ou d'un repli sur Data-B, ni pourquoi une case était vide. Le serveur garde
+// ou d'un repli sur une estimation, ni pourquoi une case était vide. Le serveur garde
 // désormais chaque passage ; cet écran le relit.
 //
 // Trois choses, dans cet ordre : ce qui manque et pourquoi, d'où vient chaque

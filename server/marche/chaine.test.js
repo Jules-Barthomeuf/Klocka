@@ -17,7 +17,7 @@ import { ErreurSource } from './erreurs.js';
 // variable d'environnement avant l'évaluation du module.
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-test-'));
 const vraiEquimmox = (await import('./connecteurs/equimmox.js')).default;
-const vraiDataB = (await import('./connecteurs/valeur-locative.js')).default;
+const vraiSecteur = (await import('./connecteurs/valeur-locative.js')).default;
 const vraiTransactions = (await import('./connecteurs/bodacc-cessions.js')).default;
 const vraiFigaro = (await import('./connecteurs/figaro.js')).default;
 const vraiImplantation = (await import('./connecteurs/implantation.js')).default;
@@ -32,12 +32,12 @@ const EQUIMMOX_OK = {
   rayon: '500m', classe: 'Commerce', surface_min: 70, surface_max: 130,
   le: '2026-09-11T08:00:00.000Z',
 };
-const DATAB_OK = {
+const SECTEUR_OK = {
   source: 'Equimmox · Analyse de loyer',
   rue: { nom: 'Rue Gazan', basse: 140, haute: 200 },
   quartier: { nom: 'Centre', basse: 120, haute: 210 },
   ville: { nom: 'Grasse', basse: 100, haute: 240 },
-  lien: 'https://valeurlocative.data-b.com/search?x=1',
+  lien: null,
   le: '2026-09-11T08:01:00.000Z',
 };
 const FIGARO_OK = {
@@ -47,7 +47,7 @@ const FIGARO_OK = {
   le: '2026-09-11T08:02:00.000Z',
 };
 const TRANSACTIONS_OK = {
-  source: 'Data-B · Transactions de fonds de commerce',
+  source: 'BODACC · Cessions de fonds de commerce',
   rayon: '500 m',
   marche: { prix_bas: 30000, prix_median: 85000, prix_haut: 210000, avec_prix: 12 },
   rue: null,
@@ -57,13 +57,13 @@ const TRANSACTIONS_OK = {
 // L'étude d'implantation, réduite à ce que la normalisation lit : les notes
 // sur cinq, le revenu, les CSP+, les propriétaires.
 const IMPLANTATION_OK = {
-  source: 'Data-B · Étude d\'implantation',
+  source: 'Klocka · sources ouvertes',
   flux_pieton: { note: { note: 3, sur: 5 }, par_heure: { haute: { min: 400, max: 450 } } },
   flux_voiture: { note: { note: 3, sur: 5 } },
   troncon: { libelle: '19 commerces - tronçon premium', note: { note: 5, sur: 5 } },
   revenu: { revenu_moyen_annuel: 30246, csp_plus: 40298 },
   zone_primaire: { proprietaires: 3917 },
-  lien: 'https://expertise.data-b.com/edition?o=x&expertise_format=etude_implantation',
+  lien: null,
   le: '2026-09-11T08:04:00.000Z',
 };
 
@@ -104,10 +104,10 @@ function doublure(modele, { resultat = null, erreur = null } = {}) {
   };
 }
 
-function registre({ equimmox, dataB, figaro, transactions, implantation, dvf, bodacc } = {}) {
+function registre({ equimmox, secteur, figaro, transactions, implantation, dvf, bodacc } = {}) {
   return {
     equimmox: equimmox || doublure(vraiEquimmox, { resultat: EQUIMMOX_OK }),
-    'valeur-locative': dataB || doublure(vraiDataB, { resultat: DATAB_OK }),
+    'valeur-locative': secteur || doublure(vraiSecteur, { resultat: SECTEUR_OK }),
     'bodacc-cessions': transactions || doublure(vraiTransactions, { resultat: TRANSACTIONS_OK }),
     figaro: figaro || doublure(vraiFigaro, { resultat: FIGARO_OK }),
     implantation: implantation || doublure(vraiImplantation, { resultat: IMPLANTATION_OK }),
@@ -198,10 +198,10 @@ test('toutes les sources à terre : la lecture se termine quand même', async ()
     ...sansAttente,
     connecteurs: registre({
       equimmox: doublure(vraiEquimmox, { erreur: panne('Equimmox') }),
-      dataB: doublure(vraiDataB, { erreur: panne('Data-B') }),
-      transactions: doublure(vraiTransactions, { erreur: panne('Data-B') }),
+      secteur: doublure(vraiSecteur, { erreur: panne('Secteur') }),
+      transactions: doublure(vraiTransactions, { erreur: panne('Secteur') }),
       figaro: doublure(vraiFigaro, { erreur: panne('Le Figaro') }),
-      implantation: doublure(vraiImplantation, { erreur: panne('Data-B') }),
+      implantation: doublure(vraiImplantation, { erreur: panne('Secteur') }),
       dvf: doublure(vraiDvf, { erreur: panne('DVF') }),
       bodacc: doublure(vraiBodacc, { erreur: panne('BODACC') }),
     }),
@@ -225,15 +225,15 @@ test('toutes les sources à terre : la lecture se termine quand même', async ()
 });
 
 test('une source à terre n’est pas resollicitée dans le même passage', async () => {
-  // Data-B sert deux besoins par deux modules distincts ; ici on force la même
+  // Le secteur sert deux besoins par deux modules distincts ; ici on force la même
   // source dans deux chaînes pour vérifier qu'elle n'est interrogée qu'une fois.
-  const dataB = doublure(vraiDataB, { erreur: new ErreurSource('503', { statut: 503 }) });
+  const secteur = doublure(vraiSecteur, { erreur: new ErreurSource('503', { statut: 503 }) });
   const besoins = [
     { cle: 'a', titre: 'a', indicateurs: ['loyer_commercial_m2_an'], chaine: ['valeur-locative'] },
     { cle: 'b', titre: 'b', indicateurs: ['loyer_commercial_m2_an'], chaine: ['valeur-locative'] },
   ];
-  const r = await collecter(contexte, { ...sansAttente, besoins, connecteurs: registre({ dataB }) });
-  assert.equal(dataB.appels.length, 4, 'quatre essais en tout, pas huit');
+  const r = await collecter(contexte, { ...sansAttente, besoins, connecteurs: registre({ secteur }) });
+  assert.equal(secteur.appels.length, 4, 'quatre essais en tout, pas huit');
   assert.equal(r.sources_en_echec.length, 1);
 });
 
@@ -258,7 +258,7 @@ test('un besoin à recouper interroge TOUTES ses sources, même quand la premiè
 });
 
 test('deux lectures qui s’écartent trop lèvent un drapeau', async () => {
-  // Equimmox constate 150–220 (centre 180) ; Data-B estime 140–200 (centre 170).
+  // Equimmox constate 150–220 (centre 180) ; le secteur estime 140–200 (centre 170).
   const proche = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre() });
   const r1 = proche.recoupements.loyer_commercial_m2_an;
   assert.ok(r1, 'un recoupement existe dès que deux sources répondent');
@@ -270,10 +270,10 @@ test('deux lectures qui s’écartent trop lèvent un drapeau', async () => {
   // rayon de 500 m d'Equimmox. Abaisser la rue ne prouverait rien — elle est
   // écartée de la comparaison, justement parce qu'elle ne décrit pas le même
   // territoire.
-  const dataB = doublure(vraiDataB, {
-    resultat: { ...DATAB_OK, quartier: { nom: 'Centre', basse: 80, haute: 100 } },
+  const secteur = doublure(vraiSecteur, {
+    resultat: { ...SECTEUR_OK, quartier: { nom: 'Centre', basse: 80, haute: 100 } },
   });
-  const loin = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ dataB }) });
+  const loin = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ secteur }) });
   const r2 = loin.recoupements.loyer_commercial_m2_an;
   assert.equal(r2.alerte, true, '180 contre 90 : il faut aller voir');
   assert.equal(r2.bas, 90);
@@ -309,22 +309,22 @@ test('chaque tentative sait à quel besoin elle appartient', async () => {
 });
 
 test('le recoupement compare des mailles comparables, et écarte les autres', async () => {
-  // Le cas CAFPI, avec ses vrais chiffres : Data-B publie trois mailles, et
+  // Le cas CAFPI, avec ses vrais chiffres : le secteur publie trois mailles, et
   // c'est le quartier — pas la rue — qui se compare au rayon de 500 m
   // d'Equimmox. Comparer la rue donnait +189 %, un écart que personne n'avait
   // mesuré : il naissait du choix de la maille.
   const equimmox = doublure(vraiEquimmox, {
     resultat: { ...EQUIMMOX_OK, bas: 250, moyenne: 277, haut: 291, surface_min: 64, surface_max: 118 },
   });
-  const dataB = doublure(vraiDataB, {
+  const secteur = doublure(vraiSecteur, {
     resultat: {
-      ...DATAB_OK,
+      ...SECTEUR_OK,
       rue: { nom: 'Avenue Marceau', basse: 640, haute: 960 },
       quartier: { nom: 'Fauvelles', basse: 272, haute: 408 },
       ville: { nom: 'Courbevoie', basse: 369, haute: 553 },
     },
   });
-  const r = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ equimmox, dataB }) });
+  const r = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ equimmox, secteur }) });
   const rec = r.recoupements.loyer_commercial_m2_an;
 
   assert.equal(rec.portee_reference, 500, 'la portée de référence est le rayon de la source de tête');
@@ -340,15 +340,15 @@ test('le recoupement compare des mailles comparables, et écarte les autres', as
 test('une source qui se contredit d’une maille à l’autre est signalée à part', async () => {
   // Même service, même unité, même définition : ni la pondération ni le
   // périmètre de charges ne peuvent expliquer un rapport pareil.
-  const dataB = doublure(vraiDataB, {
+  const secteur = doublure(vraiSecteur, {
     resultat: {
-      ...DATAB_OK,
+      ...SECTEUR_OK,
       rue: { nom: 'Rue Gazan', basse: 900, haute: 1100 },
       quartier: { nom: 'Centre', basse: 120, haute: 210 },
       ville: { nom: 'Grasse', basse: 100, haute: 240 },
     },
   });
-  const r = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ dataB }) });
+  const r = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ secteur }) });
   const [inc] = r.recoupements.loyer_commercial_m2_an.incoherences;
   assert.ok(inc, 'la contradiction interne est relevée');
   assert.equal(inc.service, 'Equimmox, secteur');
@@ -358,13 +358,13 @@ test('une source qui se contredit d’une maille à l’autre est signalée à p
 });
 
 test('une maille trop large pour la référence n’est pas comparée', async () => {
-  // Data-B ne rend que sa ville : 3 km contre un rayon de 500 m. Les deux
+  // Le secteur ne rend que sa ville : 3 km contre un rayon de 500 m. Les deux
   // chiffres sont justes et ne se contredisent pas — ils ne parlent pas du
   // même territoire. Un drapeau rouge ici serait une invention.
-  const dataB = doublure(vraiDataB, {
-    resultat: { source: DATAB_OK.source, ville: { nom: 'Grasse', basse: 400, haute: 600 }, le: DATAB_OK.le },
+  const secteur = doublure(vraiSecteur, {
+    resultat: { source: SECTEUR_OK.source, ville: { nom: 'Grasse', basse: 400, haute: 600 }, le: SECTEUR_OK.le },
   });
-  const r = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ dataB }) });
+  const r = await collecter(contexte, { ...sansAttente, besoins: [BESOINS_DEFAUT[0]], connecteurs: registre({ secteur }) });
   const rec = r.recoupements.loyer_commercial_m2_an;
   assert.equal(rec.alerte, false);
   assert.equal(rec.lectures.length, 1, 'seule la source de tête reste comparable');

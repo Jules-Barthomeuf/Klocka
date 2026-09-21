@@ -3,7 +3,7 @@
 // Jusqu'ici, ce que la collecte avait vécu tenait dans une Map en mémoire,
 // évincée au bout de trente travaux, et s'affichait douze secondes dans un
 // toast. Autant dire nulle part : trois jours plus tard, personne ne pouvait
-// dire si le loyer affiché venait d'Equimmox ou d'un repli sur Data-B, ni
+// dire si le loyer affiché venait d'Equimmox ou d'un repli sur une estimation, ni
 // pourquoi une case était vide.
 //
 // Un passage laisse donc une trace durable : chaque tentative avec son heure,

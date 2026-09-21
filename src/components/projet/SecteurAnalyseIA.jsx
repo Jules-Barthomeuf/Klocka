@@ -323,7 +323,7 @@ export default function VilleSecteurIA({ analyse, villeData, secteurData, loadin
       </div>
 
       <p className="text-[11px] text-brume mb-0">
-        Sources : Insee (unités urbaines 2020, revenus), Le Figaro Immobilier, Data-B, relevé OpenStreetMap et Base Adresse Nationale
+        Sources : Insee (unités urbaines 2020, revenus), Le Figaro Immobilier, DVF, relevé OpenStreetMap et Base Adresse Nationale
         {donnees?.le ? `, lus le ${new Date(donnees.le).toLocaleDateString("fr-FR")}` : ""}.
       </p>
     </div>

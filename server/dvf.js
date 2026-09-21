@@ -24,7 +24,7 @@
 //     groupe. Elles ne disent rien du marché et sont écartées, en le disant.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { ErreurSource, SANS_DONNEE } from './marche/erreurs.js';
 
 // DVF paraît deux fois par an : un cache plus long que les autres sources n'a

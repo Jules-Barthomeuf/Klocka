@@ -226,7 +226,7 @@ export function rattacherVitrines(elements, rues) {
 /**
  * Une estimation du flux d'une rue, de 1 à 5, sans rien demander à personne :
  * la densité de vitrines par cent mètres dit le passage à pied, le type de
- * voie dit le passage en voiture. Data-B, quand on le lui demande, remplace
+ * voie dit le passage en voiture. L'étude d'implantation, sur demande, remplace
  * cette estimation par sa mesure.
  */
 export function fluxEstime(rue) {

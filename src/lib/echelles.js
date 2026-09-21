@@ -7,7 +7,7 @@
 //
 // D'où la portée : l'ordre de grandeur, en mètres, du territoire qu'une
 // lecture décrit. Elle sert à ne comparer que ce qui est comparable. Sans
-// elle, le recoupement opposait la rue de Data-B au rayon de 500 m d'Equimmox
+// elle, le recoupement opposait la rue du secteur au rayon de 500 m d'Equimmox
 // et levait un drapeau rouge à +189 % — un écart que personne n'avait mesuré,
 // que le système fabriquait en choisissant deux mailles différentes.
 //

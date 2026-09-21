@@ -8,7 +8,7 @@
 //
 // On la reconstitue ici, à partir de trois indices, du plus sûr au moins sûr :
 // le statut HTTP quand il y en a un, le code réseau de Node, puis le texte du
-// message — celui que data-b.js, equimmox.js et figaro.js écrivent déjà.
+// message — celui que equimmox.js, figaro.js et adresse-ban.js écrivent déjà.
 //
 // Trois classes, et pas deux :
 //   temporaire   le service a hoqueté → on réessaie, puis on passe à la suite
@@ -52,7 +52,7 @@ export function statutDe(erreur) {
   if (!erreur) return null;
   const direct = Number(erreur.statut ?? erreur.status ?? erreur.statusCode);
   if (Number.isInteger(direct) && direct >= 100 && direct < 600) return direct;
-  // « Data-B a répondu 502. », « Le Figaro a répondu 503. »
+  // « Equimmox a répondu 502. », « Le Figaro a répondu 503. »
   const ecrit = String(erreur.message || erreur).match(/a répondu\s+(\d{3})\b/i);
   return ecrit ? Number(ecrit[1]) : null;
 }

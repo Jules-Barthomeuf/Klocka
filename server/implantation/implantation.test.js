@@ -150,13 +150,13 @@ test('le tronçon : cent mètres, numéro par numéro, les trous sont des habita
 });
 
 test('le flux retombe à une étoile près des trois rapports archivés', () => {
-  // Rue Dabray, Nice : 13 commerces sur le tronçon, 35 sur 459 m ; Data-B 3/5.
+  // Rue Dabray, Nice : 13 commerces sur le tronçon, 35 sur 459 m ; le rapport archivé disait 3/5.
   const dabray = fluxPieton({ commerces_troncon: 13, commerces_rue: 35, longueur_rue_m: 459, type_voie: 'residential', habitants_5min: 5829, entreprises_5min: 1117, generateurs: [{ genre: 'Gare' }, { genre: 'Bus' }, { genre: 'Bus' }] });
   assert.ok(Math.abs(dabray.note.note - 3) <= 1, `Dabray ${dabray.note.note}`);
-  // Rue Saint-Agricol, Avignon : 33 sur le tronçon, 48 sur 166 m, piétonne ; Data-B 5/5.
+  // Rue Saint-Agricol, Avignon : 33 sur le tronçon, 48 sur 166 m, piétonne ; le rapport archivé disait 5/5.
   const agricol = fluxPieton({ commerces_troncon: 33, commerces_rue: 48, longueur_rue_m: 166, type_voie: 'pedestrian', habitants_5min: 3428, entreprises_5min: 1588, generateurs: [{ genre: 'Bus' }] });
   assert.equal(agricol.note.note, 5, `Saint-Agricol ${agricol.note.note}`);
-  // Avenue Marceau, Courbevoie : 19 sur le tronçon, 116 sur 583 m ; Data-B 3/5.
+  // Avenue Marceau, Courbevoie : 19 sur le tronçon, 116 sur 583 m ; le rapport archivé disait 3/5.
   const marceau = fluxPieton({ commerces_troncon: 19, commerces_rue: 116, longueur_rue_m: 583, type_voie: 'secondary', habitants_5min: 8334, entreprises_5min: 1365, generateurs: [{ genre: 'Bus' }, { genre: 'Bus' }] });
   assert.ok(Math.abs(marceau.note.note - 3) <= 1, `Marceau ${marceau.note.note}`);
   // Une rue sans rien.

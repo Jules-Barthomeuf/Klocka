@@ -12,7 +12,7 @@ const { colorerSecteurs, normaliser, listerRecherches, classerParValeur, classer
 const carre = (x, y, cote = 0.01) => ({ type: 'Polygon', coordinates: [[[x, y], [x + cote, y], [x + cote, y + cote], [x, y + cote], [x, y]]] });
 const iris = (nom, code, geom) => ({ properties: { code_iris: code, nom_iris: nom, code_insee: '31555' }, geometry: geom });
 
-test('un quartier lu par Data-B se classe contre la fourchette de la ville', () => {
+test('un quartier lu se classe contre la fourchette de la ville', () => {
   const ville = { basse: 200, haute: 300 };
   assert.equal(classerParValeur({ basse: 320, haute: 400 }, ville), 'tres_elevee');
   assert.equal(classerParValeur({ basse: 240, haute: 280 }, ville), 'elevee');
@@ -45,7 +45,7 @@ test('l\'indice compte les commerces et le niveau de vie dans chaque IRIS, puis 
   assert.equal(classes.d, 'tres_faible', 'le dernier est en périphérie');
   assert.equal(classes.a, ['tres_elevee', 'elevee'].includes(classes.a) ? classes.a : 'raté', 'le premier est en haut');
 
-  // Les secteurs colorés : un quartier lu par Data-B garde sa vraie fourchette.
+  // Les secteurs colorés : un quartier lu garde sa vraie fourchette.
   const recherches = [{ quartier: { nom: 'Couronne', basse: 400, haute: 600 }, ville: { nom: 'Toulouse', basse: 208, haute: 312 } }];
   const s = colorerSecteurs([a, b, c, d], recherches, 'Couronne', { secteurs: ind });
   assert.equal(s[1].origine, 'quartier'); assert.equal(s[1].niveau, 'tres_elevee'); assert.equal(s[1].ici, true); assert.equal(s[1].basse, 400);

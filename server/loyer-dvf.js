@@ -11,7 +11,7 @@
 // chez Equimmox, et l'écran le dit. Mais elle ne coûte rien, répond en une
 // seconde, et sait lire trois cents rues d'une ville — ce qu'aucun pilotage
 // de navigateur ne peut faire. C'est elle qui remplace le loyer de rue que
-// Data-B vendait à ALX.
+// un service payant vendait à ALX.
 
 import { ventesAutour, N_MINIMUM } from './dvf.js';
 
@@ -51,7 +51,7 @@ export const RAYON_RUE = 300;
 /**
  * Le loyer d'une rue, sous la forme que le classement ALX lisait — la
  * fourchette rangée sous `rue` — déduit des ventes à 300 m. C'est ce que
- * Data-B vendait rue par rue ; trois cents rues d'une ville se lisent ainsi
+ * Un service payant vendait cela rue par rue ; trois cents rues d'une ville se lisent ainsi
  * en quelques secondes, le fichier DVF de la commune étant en cache.
  */
 export async function loyerDeRue(adresse, { rayon = RAYON_RUE, user = null } = {}) {

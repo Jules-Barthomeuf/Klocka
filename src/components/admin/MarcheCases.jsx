@@ -105,7 +105,7 @@ export default function MarcheCases({ formData, setFormData, projetId = null }) 
         </p>
         <div className="grid grid-cols-2 gap-3">
           <Case label="Loyer moyen des baux existants" unite="€/m²/an · à saisir, aucune source ne le publie" champ="marche_baux_moyenne" formData={formData} setFormData={setFormData} reference={null} />
-          <Case label="Loyer moyen à l'offre" unite="€/m²/an" champ="marche_offre_moyenne" formData={formData} setFormData={setFormData} reference={rue?.loyer_m2_an ?? null} sourceMot="Data-B" />
+          <Case label="Loyer moyen à l'offre" unite="€/m²/an" champ="marche_offre_moyenne" formData={formData} setFormData={setFormData} reference={rue?.loyer_m2_an ?? null} sourceMot="ALX" />
         </div>
       </div>
 

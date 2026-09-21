@@ -244,14 +244,14 @@ export function analyseDe(lot, passage) {
   const rendementAnnonce = nb(lot.lot?.rendement_annonce);
   const implantation = lot.implantation || null;
   const equimmox = lot.analyse_loyer || null;
-  const dataB = lot.valeur_locative || null;
+  const secteur = lot.valeur_locative || null;
   const transactions = lot.transactions_fonds || null;
   const figaro = lot.prix_residentiel || null;
   const dvf = lot.ventes_dvf || null;
   const vitalite = lot.vitalite_rue || null;
 
   // La référence : la médiane de la source de tête (Equimmox) ; à défaut le
-  // milieu de la fourchette Data-B. Jamais une moyenne de deux échelles.
+  // milieu de la fourchette du secteur. Jamais une moyenne de deux échelles.
   const reference = loyerM2?.median ?? (loyerM2?.bas != null && loyerM2?.haut != null ? Math.round((loyerM2.bas + loyerM2.haut) / 2) : null);
 
   // La surface sur laquelle un loyer de commerce se calcule : la pondérée,
@@ -270,7 +270,7 @@ export function analyseDe(lot, passage) {
   // c'est de la valeur latente, récupérable au renouvellement.
   const reversion = ecartLoyer != null && loyerMarche ? ecartLoyer / loyerMarche : null;
   // La capitalisation : au taux affiché par le vendeur, seul taux que le
-  // dossier possède. Le rendement des transactions n'est pas publié par Data-B.
+  // dossier possède. Le rendement des transactions n'est pas publié.
   const valeur = loyerMarche != null && rendementAnnonce ? Math.round(loyerMarche / (rendementAnnonce / 100) / 1000) * 1000 : null;
   const ecartPrix = valeur != null && prixFai != null ? prixFai - valeur : null;
 
@@ -307,9 +307,9 @@ export function analyseDe(lot, passage) {
     {
       cle: "loyer-moyen",
       libelle: "LOYER MOYEN AU M²",
-      valeur: equimmox?.moyenne != null ? `${fmt(equimmox.moyenne)} €/m²/an` : dataB ? `${fmt((dataB.rue || dataB.quartier || dataB.ville)?.basse)} – ${fmt((dataB.rue || dataB.quartier || dataB.ville)?.haute)} €/m²/an` : "—",
-      detail: equimmox?.moyenne != null ? `moyenne des baux Equimmox${equimmox.rayon ? ` · rayon ${equimmox.rayon}` : ""}${equimmox.surface_min ? ` · ${equimmox.surface_min}–${equimmox.surface_max} m²` : ""}` : dataB ? "estimation Data-B, faute de baux Equimmox" : "aucun bail comparable lu",
-      ton: equimmox?.moyenne != null || dataB ? "menthe" : "gris",
+      valeur: equimmox?.moyenne != null ? `${fmt(equimmox.moyenne)} €/m²/an` : secteur ? `${fmt((secteur.rue || secteur.quartier || secteur.ville)?.basse)} – ${fmt((secteur.rue || secteur.quartier || secteur.ville)?.haute)} €/m²/an` : "—",
+      detail: equimmox?.moyenne != null ? `moyenne des baux Equimmox${equimmox.rayon ? ` · rayon ${equimmox.rayon}` : ""}${equimmox.surface_min ? ` · ${equimmox.surface_min}–${equimmox.surface_max} m²` : ""}` : secteur ? "valeur locative du secteur, faute de baux Equimmox" : "aucun bail comparable lu",
+      ton: equimmox?.moyenne != null || secteur ? "menthe" : "gris",
     },
     loyerEnPlace != null && loyerMarche != null
       ? {
@@ -346,10 +346,10 @@ export function analyseDe(lot, passage) {
       : { cle: "prix-fai", libelle: "PRIX FAI", valeur: prixFai != null ? `${fmt(prixFai)} €` : "—", detail: prixFai == null ? "prix non renseigné sur le lot" : !rendementAnnonce ? "aucun taux de capitalisation : le rendement affiché manque sur le lot" : "pas de loyer de marché pour valoriser", ton: "gris" },
   ];
 
-  // La maille la plus fine que Data-B ait donnée, et son nom. C'est celle qui
+  // La maille la plus fine que le secteur ait donnée, et son nom. C'est celle qui
   // s'affiche ; ce n'est pas forcément celle que le recoupement compare.
-  const niveauDataB = dataB ? dataB.rue || dataB.quartier || dataB.ville : null;
-  const echelleDataB = dataB?.rue ? "rue" : dataB?.quartier ? "quartier" : dataB?.ville ? "ville" : null;
+  const niveauSecteur = secteur ? secteur.rue || secteur.quartier || secteur.ville : null;
+  const echelleSecteur = secteur?.rue ? "rue" : secteur?.quartier ? "quartier" : secteur?.ville ? "ville" : null;
 
   // Les sources, avec leur issue et leur heure.
   const heure = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", " à") : "");
@@ -366,7 +366,7 @@ export function analyseDe(lot, passage) {
     ligneSource("equimmox", "Equimmox", equimmox ? `baux · bas ${fmt(equimmox.bas)} · moyenne ${fmt(equimmox.moyenne)} · haut ${fmt(equimmox.haut)} €/m²/an` : "a répondu"),
     // L'échelle avec le chiffre : « estimation 640–960 » ne veut rien dire si
     // l'on ne sait pas que c'est la rue, quand la comparaison porte sur le quartier.
-    ligneSource("valeur-locative", "Valeur locative du secteur", dataB ? `${niveauDataB?.derive ? "déduite" : "constatée"} ${fmt(niveauDataB?.basse)} – ${fmt(niveauDataB?.haute)} €/m²/an à l'échelle ${echelleDataB === "ville" ? "de la ville" : `${echelleDataB === "rue" ? "de la" : "du"} ${echelleDataB}`}${niveauDataB?.nom ? ` (${niveauDataB.nom})` : ""}` : "a répondu"),
+    ligneSource("valeur-locative", "Valeur locative du secteur", secteur ? `${niveauSecteur?.derive ? "déduite" : "constatée"} ${fmt(niveauSecteur?.basse)} – ${fmt(niveauSecteur?.haute)} €/m²/an à l'échelle ${echelleSecteur === "ville" ? "de la ville" : `${echelleSecteur === "rue" ? "de la" : "du"} ${echelleSecteur}`}${niveauSecteur?.nom ? ` (${niveauSecteur.nom})` : ""}` : "a répondu"),
     ligneSource("bodacc-cessions", "BODACC · Cessions de fonds", transactions ? `${fmt(transactions.total ?? transactions.transactions?.length)} cessions · rayon ${transactions.rayon}${transactions.marche?.prix_median ? ` · médiane ${fmt(transactions.marche.prix_median)} €` : ""}` : "a répondu"),
     ligneSource("figaro", "Le Figaro Immobilier", figaro ? `${fmt((figaro.quartier || figaro.commune)?.prix?.median)} €/m² médian${(figaro.quartier || figaro.commune)?.prix?.sur_1_an != null ? ` · ${pct((figaro.quartier || figaro.commune).prix.sur_1_an)} / 1 an` : ""}` : "a répondu"),
     ligneSource("dvf", "DVF · Valeurs foncières", dvf ? (dvf.prix_m2 ? `${fmt(dvf.prix_m2.median)} €/m² médian · ${fmt(dvf.n)} vente(s) dans ${fmt(dvf.rayon)} m` : `${fmt(dvf.n)} vente(s) : trop peu pour une médiane`) : "a répondu"),
@@ -384,7 +384,6 @@ export function analyseDe(lot, passage) {
     "bodacc-cessions": "Cessions de fonds · rayon 250 m, adresses géocodées par la Base Adresse",
     figaro: "Prix de l'immobilier · quartier et commune",
     implantation: "Étude d'implantation · Sirene, OpenStreetMap, IGN, INSEE",
-    "data-b-implantation": "Expertise / ELM · étude d'implantation Data-B (anciens dossiers)",
   };
   const consultations = (passage.tentatives || []).map((t) => ({
     quand: new Date(t.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
@@ -402,13 +401,13 @@ export function analyseDe(lot, passage) {
   // Ce que chaque plateforme a rendu, rangé chez elle. Le bilan croise ;
   // les onglets montrent la matière brute, sans mélange.
   const parSource = {
-    "data-b": {
-      nom: "Data-B",
-      valeur_locative: dataB
+    secteur: {
+      nom: "Valeur locative du secteur",
+      valeur_locative: secteur
         ? {
-            secteurs: ["rue", "quartier", "ville"].map((e) => (dataB[e] ? { echelle: e, ...dataB[e] } : null)).filter(Boolean),
-            lien: dataB.lien || null,
-            le: dataB.le || null,
+            secteurs: ["rue", "quartier", "ville"].map((e) => (secteur[e] ? { echelle: e, ...secteur[e] } : null)).filter(Boolean),
+            lien: secteur.lien || null,
+            le: secteur.le || null,
           }
         : null,
       transactions,
@@ -426,23 +425,23 @@ export function analyseDe(lot, passage) {
   const recoupement = (() => {
     const duServeur = passage.recoupements?.loyer_commercial_m2_an;
     // `portee_reference` signe un recoupement calculé à maille comparable. Les
-    // lectures antérieures opposaient la rue de Data-B au rayon d'Equimmox et
+    // lectures antérieures opposaient la rue du secteur au rayon d'Equimmox et
     // annonçaient des écarts qui n'existaient pas : on les recalcule ici
     // plutôt que de les réafficher.
     if (duServeur?.portee_reference !== undefined && duServeur?.lectures?.length >= 2) return duServeur;
 
     const centreEq = equimmox?.moyenne ?? (equimmox?.bas != null && equimmox?.haut != null ? (equimmox.bas + equimmox.haut) / 2 : null);
-    if (centreEq == null || !dataB) return null;
+    if (centreEq == null || !secteur) return null;
     const portee = rayonEnMetres(equimmox?.rayon);
 
-    // Les trois mailles de Data-B, et celle qui décrit un territoire du même
+    // Les trois mailles du secteur, et celle qui décrit un territoire du même
     // ordre que le rayon d'Equimmox. Les autres sont écartées, pas jetées.
     const mailles = ["rue", "quartier", "ville"]
       .map((echelle) => {
-        const v = dataB[echelle];
+        const v = secteur[echelle];
         if (!v || (v.basse == null && v.haute == null)) return null;
         return {
-          service: "Data-B", echelle, precision: v.nom || null,
+          service: v.derive ? "DVF, déduit" : "Equimmox, secteur", echelle, precision: v.nom || null,
           bas: v.basse, median: null, haut: v.haute,
           centre: v.basse != null && v.haute != null ? (v.basse + v.haute) / 2 : (v.basse ?? v.haute),
           portee_m: porteeDe(echelle),
@@ -495,17 +494,17 @@ export function analyseDe(lot, passage) {
     recoupement,
     residentiel,
     // Pour le graphique des loyers : le loyer en place au m², et les
-    // fourchettes des sources sur la même règle (la maille Data-B retenue par
+    // fourchettes des sources sur la même règle (la maille du secteur retenue par
     // le recoupement, sinon la plus fine).
     en_place_m2: loyerEnPlace != null && surfaceRetenue ? Math.round(loyerEnPlace / surfaceRetenue) : null,
     loyers_lectures: (() => {
       const l = [];
       if (equimmox?.bas != null && equimmox?.haut != null) l.push({ service: "Equimmox", sous: `baux${equimmox.rayon ? ` · rayon ${equimmox.rayon}` : ""}`, bas: equimmox.bas, haut: equimmox.haut, median: equimmox.moyenne ?? null, principale: true });
-      const db = recoupement?.lectures?.find((x) => x.service === "Data-B") || (niveauDataB ? { bas: niveauDataB.basse, haut: niveauDataB.haute, echelle: echelleDataB, precision: niveauDataB.nom || null } : null);
-      if (db && db.bas != null && db.haut != null) l.push({ service: "Data-B", sous: `${db.echelle}${db.precision ? ` ${db.precision}` : ""}`, bas: db.bas, haut: db.haut, median: null, principale: !l.length });
+      const db = recoupement?.lectures?.find((x) => x.service !== "Equimmox") || (niveauSecteur ? { service: niveauSecteur.derive ? "DVF, déduit" : "Equimmox, secteur", bas: niveauSecteur.basse, haut: niveauSecteur.haute, echelle: echelleSecteur, precision: niveauSecteur.nom || null } : null);
+      if (db && db.bas != null && db.haut != null) l.push({ service: db.service || "Secteur", sous: `${db.echelle}${db.precision ? ` ${db.precision}` : ""}`, bas: db.bas, haut: db.haut, median: null, principale: !l.length });
       return l;
     })(),
-    details: detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, dataB, transactions, figaro, passage }),
+    details: detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, secteur, transactions, figaro, passage }),
     journal: null,
     passage,
   };
@@ -519,24 +518,24 @@ function anciennete(date) {
 }
 
 /** Le détail des verdicts, calculé — chaque ligne dit son opération. */
-function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, dataB, transactions, figaro, passage }) {
+function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, secteur, transactions, figaro, passage }) {
   const pertinentes = transactions?.pertinentes || transactions?.transactions?.slice(0, 10) || [];
   const comparables = pertinentes.map((t) => ({
     adresse: t.adresse || t.enseigne || "—",
     surface: t.distance_m != null ? `${fmt(t.distance_m)} m` : "",
     prix: t.prix ? `${fmt(t.prix)} €` : "prix non publié",
-    src: `Data-B · cession ${t.date ? new Date(t.date).toLocaleDateString("fr-FR") : ""}${t.activite ? ` · ${t.activite}` : ""}`,
+    src: `BODACC · cession ${t.date ? new Date(t.date).toLocaleDateString("fr-FR") : ""}${t.activite ? ` · ${t.activite}` : ""}`,
     sort: "retenu",
   }));
   const sources = (passage.tentatives || []).filter((t) => t.ok).map((t) => ({
     nom: `${t.service} · ${t.source}`,
     quand: new Date(t.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-    url: { equimmox: null, "valeur-locative": dataB?.lien, "bodacc-cessions": transactions?.lien, figaro: (figaro?.quartier || figaro?.commune)?.lien || figaro?.lien, implantation: null }[t.source] || null,
+    url: { equimmox: null, "valeur-locative": secteur?.lien, "bodacc-cessions": transactions?.lien, figaro: (figaro?.quartier || figaro?.commune)?.lien || figaro?.lien, implantation: null }[t.source] || null,
     capture: null,
   }));
   const reserves = [];
   if (!passage.complet) reserves.push(`Lecture partielle : ${(passage.indicateurs_manquants || []).join(", ")} manquent.`);
-  if (loyerM2 && !loyerM2.median) reserves.push("La source de tête n'a pas donné de médiane : la référence est le milieu de la fourchette Data-B, une estimation.");
+  if (loyerM2 && !loyerM2.median) reserves.push("La source de tête n'a pas donné de médiane : la référence est le milieu de la fourchette du secteur, une estimation.");
   if (loyerM2?.du_cache) reserves.push("Le loyer commercial vient du cache (moins de 30 jours) : relancez avec « forcer » pour une lecture fraîche.");
 
   const d = {};
@@ -547,7 +546,7 @@ function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, d
       { libelle: "Source de tête", valeur: loyerM2.service || "—", note: loyerM2.source },
       { libelle: "Fourchette", valeur: loyerM2.bas != null ? `${fmt(loyerM2.bas)} – ${fmt(loyerM2.haut)} €/m²/an` : "—", note: loyerM2.precision },
       { libelle: "Référence retenue", valeur: `${fmt(reference)} €/m²/an`, note: loyerM2.median != null ? "la moyenne publiée par la source" : "milieu de la fourchette, faute de médiane" },
-      dataB ? { libelle: "Contrôle Data-B", valeur: `${fmt((dataB.rue || dataB.quartier || dataB.ville)?.basse)} – ${fmt((dataB.rue || dataB.quartier || dataB.ville)?.haute)} €/m²/an`, note: `estimation à l'échelle ${dataB.rue ? "de la rue" : dataB.quartier ? "du quartier" : "de la ville"}` } : null,
+      secteur ? { libelle: "Contrôle du secteur", valeur: `${fmt((secteur.rue || secteur.quartier || secteur.ville)?.basse)} – ${fmt((secteur.rue || secteur.quartier || secteur.ville)?.haute)} €/m²/an`, note: `estimation à l'échelle ${secteur.rue ? "de la rue" : secteur.quartier ? "du quartier" : "de la ville"}` } : null,
       { libelle: "Relevé le", valeur: loyerM2.collecte_le ? new Date(loyerM2.collecte_le).toLocaleString("fr-FR") : "—", note: loyerM2.du_cache ? "depuis le cache" : "lecture fraîche" },
     ].filter(Boolean),
     comparables, sources, reserves,
@@ -562,7 +561,7 @@ function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, d
       { libelle: "Périmètre", valeur: equimmox.rayon || "—", note: equimmox.surface_min ? `surfaces ${equimmox.surface_min}–${equimmox.surface_max} m²` : null },
       equimmox.delai_jours != null ? { libelle: "Délai de commercialisation", valeur: `${fmt(equimmox.delai_jours)} jours` } : null,
     ].filter(Boolean),
-    comparables, sources, reserves: ["Equimmox publie la fourchette et la moyenne, pas la liste des baux : les comparables ci-contre sont les cessions de fonds Data-B, une autre mesure."],
+    comparables, sources, reserves: ["Equimmox publie la fourchette et la moyenne, pas la liste des baux : les comparables ci-contre sont les cessions de fonds du BODACC, une autre mesure."],
   };
   d["loyer-place"] = loyerEnPlace != null && loyerMarche != null && {
     libelle: "LOYER EN PLACE", valeur: `${fmt(loyerEnPlace)} €/an`, ton: "ambre",
@@ -622,7 +621,7 @@ function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, d
     comparables, sources,
     reserves: [
       ...reserves,
-      "Le taux de capitalisation vient de l'annonce, pas d'une source de marché : Data-B ne publie pas de rendement sur les transactions.",
+      "Le taux de capitalisation vient de l'annonce, pas d'une source de marché : aucune source ne publie de rendement sur les transactions.",
       ...(parComparaison
         ? ["DVF mesure des mètres carrés bâtis, sans pondération commerciale : les deux valorisations ne reposent donc pas sur la même surface."]
         : ["Aucune valorisation par comparaison : DVF n'a pas rendu assez de ventes de locaux commerciaux autour de l'adresse."]),

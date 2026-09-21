@@ -756,11 +756,11 @@ export function monterPreanalyse(app) {
     ok(res, r);
   }));
 
-  // Data-B, valeurs locatives : la fourchette de loyer au m² d'une adresse.
+  // Valeur locative du secteur : la fourchette de loyer au m² d'une adresse.
   // Sur un lot, le résultat est gardé avec lui ; l'adresse peut être celle du
   // dossier ou une autre, saisie à la main.
-  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/valeur-locative', wrap(async (req, res) => {
-    const { valeurLocative } = await import('../data-b.js');
+  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/valeur-locative', wrap(async (req, res) => {
+    const { valeurLocative } = await import('../valeur-locative.js');
     const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const index = Number(req.params.index) || 0;
@@ -819,9 +819,8 @@ export function monterPreanalyse(app) {
   }));
 
   // BODACC, cessions de fonds : ce qui s'est vendu autour du bien, à quel
-  // prix, pour quelles activités. La rue est comptée à part. Le chemin garde
-  // son ancien nom pour les écrans qui l'appellent.
-  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/transactions', wrap(async (req, res) => {
+  // prix, pour quelles activités. La rue est comptée à part.
+  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/transactions', wrap(async (req, res) => {
     const { cessionsAutour: transactionsFonds } = await import('../cessions-fonds.js');
     const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });

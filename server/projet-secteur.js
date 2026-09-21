@@ -3,10 +3,10 @@
 //
 // Ce qui est gratuit se lit tout seul : l'agglomération (fichier Insee
 // embarqué), la mairie (geo.api.gouv.fr), le résidentiel (Le Figaro, pages
-// publiques), la rue (relevé OpenStreetMap et valeur locative Data-B). Les flux
-// et la commercialité viennent de l'étude d'implantation Data-B, qui coûte un
-// crédit : on reprend celle du dossier ou du cache, et on ne la lance que sur
-// demande de l'équipe.
+// publiques), la rue (relevé OpenStreetMap et loyer déduit des ventes). Les flux
+// et la commercialité viennent de l'étude d'implantation interne, longue la
+// première fois : on reprend celle du dossier ou du cache, et on ne la lance
+// que sur demande de l'équipe.
 
 import fs from 'fs';
 import path from 'path';
@@ -81,7 +81,7 @@ export function residentielDe(r) {
   };
 }
 
-/** La rue selon ALX : loyer de marché (Data-B), prix au m², rang. */
+/** La rue selon ALX : loyer de marché déduit, prix au m², rang. */
 export function rueDe(e) {
   if (!e) return null;
   const [bas, haut] = Array.isArray(e.loyer) ? e.loyer : [null, null];
@@ -138,7 +138,7 @@ export function lotDuProjet(projet, deal) {
 
 /** Assemble les chiffres du secteur. Les lecteurs sont injectables pour les tests. */
 export async function calculerSecteur(projet, {
-  resoudre = async (t) => (await import('./data-b.js')).resoudreAdresse(t),
+  resoudre = async (t) => (await import('./adresse-ban.js')).resoudreAdresse(t),
   mairie = mairieDe,
   figaro = async (t) => {
     const { prixResidentiel } = await import('./figaro.js');
@@ -146,7 +146,7 @@ export async function calculerSecteur(projet, {
     return r.ok ? r.resultat : null;
   },
   rue = async (t) => (await import('./alx/emplacement.js')).emplacementDeLAdresse(t),
-  // Les études internes d'abord ; les anciennes études Data-B restent lisibles.
+  // Les études internes d'abord ; les anciennes études (DataBImplantation) restent lisibles.
   etudes = () => [...Records.list('EtudeImplantation'), ...Records.list('DataBImplantation')],
   dealDe = (id) => Records.findBy('Deal', 'deal_id', id),
 } = {}) {

@@ -359,8 +359,8 @@ export function monterAlx(app) {
   }));
 
   // La société : l'annuaire des entreprises, par SIREN ou par le nom lu sur
-  // Data-B. Gratuit, sans clé. Le code postal de la ville filtre les homonymes.
-  // Le propriétaire par l'adresse : Data Foncier (Data-B), puis l'annuaire des
+  // un service payant. Gratuit, sans clé. Le code postal de la ville filtre les homonymes.
+  // Le propriétaire par l'adresse : les fichiers DGFiP, puis l'annuaire des
   // entreprises pour la société, puis le classement. Un seul geste.
   // Le bâtiment sur OpenStreetMap : l'emprise au sol, les façades rue par rue,
   // et la surface qu'on en déduit. Gratuit, et il voit les deux côtés d'un

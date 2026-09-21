@@ -649,13 +649,13 @@ app.use((req, res, next) => {
   // moindre authentification, alors que l'assistant écrit dans Monday, crée des
   // dossiers Drive et envoie des mails.
   //
-  // Les routes de marché — marche, equimmox, data-b, figaro — étaient dans le
+  // Les routes de marché — marche, equimmox, figaro — étaient dans le
   // même cas : l'état d'une recherche et son journal portent l'adresse du bien,
   // ses loyers et le nom du dossier. Leurs seuls appelants sont l'écran
   // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
   // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|data-b|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/.test(
+    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/.test(
       req.path
     )
   ) {

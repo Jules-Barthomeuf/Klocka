@@ -234,7 +234,7 @@ export default function MarcheVendeur({ lot, dossier, adresse, premiere = false 
       </div>
 
       <p className="m-0 mt-4 text-[11px] text-brume">
-        Data Foncier (Data-B) · annuaire des entreprises · BODACC · DVF · loyer de la rue Data-B · sans crédit, gardé trente jours.
+        Fichiers DGFiP · annuaire des entreprises · BODACC · DVF · loyer de la rue déduit des ventes · gratuit, gardé trente jours.
         {etude.vendeurs != null ? ` L'étude compare ${etude.vendeurs} vendeurs (${etude.projets} projets Klocka, ${etude.dossiers} dossier${etude.dossiers > 1 ? "s" : ""}) à ${etude.temoins} commerces qui ne vendent pas ; ce dossier en fait partie.` : ""}
       </p>
     </section>

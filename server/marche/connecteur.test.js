@@ -53,7 +53,7 @@ test('des identifiants refusés ne sont jamais réessayés', async () => {
   const { demandees, patienter } = attenteFactice();
   let appels = 0;
   const r = await tenter(
-    source(async () => { appels++; throw new Error('Connexion à Data-B refusée (identifiants refusés).'); }),
+    source(async () => { appels++; throw new Error('Connexion à Equimmox refusée (identifiants refusés).'); }),
     {},
     { patienter }
   );

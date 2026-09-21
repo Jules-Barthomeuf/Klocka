@@ -1,7 +1,7 @@
 // BODACC, cessions de fonds — ce que vaut le commerce, pas le mur.
 //
 // Le prix d'un fonds n'est pas au cadastre : il est dans l'annonce de vente
-// que le greffe publie au BODACC, en clair. C'est la source que Data-B
+// que le greffe publie au BODACC, en clair. C'est la source que les services payants
 // revendait ; on la lit directement, sans crédit.
 
 import { cessionsAutour, RAYON_DEFAUT } from '../../cessions-fonds.js';

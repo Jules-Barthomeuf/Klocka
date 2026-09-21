@@ -8,13 +8,13 @@ import { ThinkingOrb } from "@/components/ui/thinking-orbs";
 import { J } from "@/design/jetons";
 
 // L'écran qu'on voit pendant que Klocka va chercher sur un service extérieur,
-// Data-B ou Equimmox. Plein écran, noir. À gauche, ce que Klocka fait, étape
+// Equimmox. Plein écran, noir. À gauche, ce que Klocka fait, étape
 // par étape, tapé à la machine ; à droite, l'orbe. Les étapes défilent à leur
 // rythme ; celle qui correspond au vrai travail attend que la réponse soit là.
 // « Passer l'animation » rend la main tout de suite : le résultat s'affiche
 // dès qu'il arrive.
 //
-//   service    : le nom affiché en haut (« Data-B »)
+//   service    : le nom affiché en haut (« Equimmox »)
 //   etapes     : [{ court, ligne, legende }]
 //   attendA    : l'index de l'étape qui attend la réponse
 //   pret       : la réponse est arrivée

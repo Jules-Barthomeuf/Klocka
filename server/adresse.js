@@ -5,7 +5,7 @@
 // « Rue du Faubourg de Béthune 59000 Lille » à 0,43, juste au-dessus du seuil
 // d'acceptation : la Place de Béthune est en 59800, et un code postal erroné
 // suffisait à faire gagner une voie qui ne partage que la moitié du nom. Toute
-// l'analyse de marché partait ensuite sur cette adresse — Data-B et Equimmox
+// l'analyse de marché partait ensuite sur cette adresse — Equimmox, DVF
 // reçoivent le libellé retenu, ils ne le contestent pas.
 //
 // On compare donc ce qui a été tapé à ce qui est proposé, mot à mot, avec deux

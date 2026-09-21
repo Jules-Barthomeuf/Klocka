@@ -27,7 +27,7 @@ export const TEINTE = { clair: J.encre, texte: J.encre, doux: J.craie, muet: J.a
  * La barre d'onglets du marché, reprise partout dans le dossier.
  *
  * Deux tailles : « page » pour les onglets d'un écran (Bien, Simulateur,
- * Bail…), « section » pour ceux d'un bloc (Bilan, Data-B, Equimmox…). Dans
+ * Bail…), « section » pour ceux d'un bloc (Bilan, Secteur, Equimmox…). Dans
  * les deux cas, le même trait menthe sous l'onglet ouvert.
  */
 export function Onglets({ items, valeur, onChange, taille = "section", className = "" }) {

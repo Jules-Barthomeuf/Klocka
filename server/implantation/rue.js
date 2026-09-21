@@ -7,7 +7,7 @@
 // numéro par numéro, côté pair et côté impair.
 //
 // Les notes sur cinq suivent des seuils de nombre de commerces, écrits ici,
-// et calés sur trois rapports Data-B archivés (server/data/marche/
+// et calés sur trois rapports archivés d'un service payant (server/data/marche/
 // implantation-*.txt) : 13 commerces sur un tronçon faisaient « commerçant »
 // (3/5), 19 et 33 « premium » (5/5).
 

@@ -23,7 +23,7 @@ const n = (x, un, des) => `${x || 0} ${(x || 0) > 1 ? des : un}`;
 
 function pendant(v) {
   const p = v.parcours || {};
-  if (p.phase === "rues") return { titre: `${v.nom} · ALX relève les rues`, detail: "Rues et vitrines sur OpenStreetMap, loyer chez Data-B. Une minute." };
+  if (p.phase === "rues") return { titre: `${v.nom} · ALX relève les rues`, detail: "Rues et vitrines sur OpenStreetMap, loyer déduit des ventes. Une minute." };
   if (p.phase === "redaction") return { titre: `${v.nom} · ALX rédige`, detail: `${n(p.brouillons, "message écrit", "messages écrits")}.` };
   return {
     titre: p.rue_en_cours ? `${v.nom} · ALX lit ${p.rue_en_cours}` : `${v.nom} · ALX lit les commerces`,

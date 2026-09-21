@@ -54,7 +54,7 @@ test('proposerRues garde le tracé, classe les rues vivantes et écarte les autr
 });
 
 test('un relevé arrêté pendant la lecture rend null, jamais une liste vide', async () => {
-  // Bordeaux, 15 septembre : un arrêt pendant la lecture Data-B rendait
+  // Bordeaux, 15 septembre : un arrêt pendant la lecture des loyers rendait
   // « zéro rue », que le parcours écrivait par-dessus 285 rues classées.
   const trace = [[[44.84, -0.57], [44.84, -0.56]]];
   const ruesDe = async () => ({

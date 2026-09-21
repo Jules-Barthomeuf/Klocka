@@ -642,7 +642,7 @@ export async function genererPresentationProjet(project, photos = {}) {
       phrases.push(`Le niveau de loyer actuel de ${nombre(loyerM2)} €/m²/an est ${loyerM2 <= locatifSecteur ? 'inférieur' : 'supérieur'} à la moyenne locale de ${nombre(Math.round(locatifSecteur))} €/m²/an.`);
     }
     if (phrases.length) {
-      s.addText(phrases.join(' ') + ' Source : data-B', {
+      s.addText(phrases.join(' ') + ' Source : Klocka, sources ouvertes', {
         x: 1.1, y: 6.15, w: 11.1, h: 1.1, align: 'center', fontFace: SANS, fontSize: 12.5, color: C.ivoire, valign: 'top',
       });
     }

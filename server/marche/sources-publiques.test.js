@@ -117,7 +117,7 @@ test('BODACC : une liquidation ferme, un redressement non', () => {
 });
 
 test('BODACC : le prix d’une cession se lit dans l’origine du fonds', () => {
-  // Data-B vend cette information ; le BODACC la publie en clair.
+  // Les services payants vendent cette information ; le BODACC la publie en clair.
   const e = evenementDe({
     familleavis: 'vente', dateparution: '2026-08-21',
     listeetablissements: JSON.stringify({ etablissement: { origineFonds: 'siège et établissement principal acquis par achat au prix stipulé de 140000.00 euros', activite: 'restauration' } }),

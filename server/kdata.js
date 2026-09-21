@@ -18,7 +18,7 @@
 // sinon, et une ligne de résumé pour la liste.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { creerZoneCercle } from './kzoning.js';
 import { listerDossiers as listerAffaires } from './deal/index.js';
 import { nettoyerLot, manquantes, formulaireEntame } from './kdata-questions.js';

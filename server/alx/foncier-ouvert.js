@@ -1,6 +1,6 @@
 // Qui possède les murs d'une adresse, d'après les fichiers publics.
 //
-// Data Foncier, chez Data-B, le disait contre un compte de service. Les
+// Un service payant le disait contre un compte de service. Les
 // mêmes faits sont publiés par la DGFiP : le fichier des locaux des
 // personnes morales donne, parcelle par parcelle, chaque société
 // propriétaire avec son SIREN, sa forme, son droit, et l'étage de chacun de
@@ -24,7 +24,7 @@
 // Les gérants ne sont pas ici : l'annuaire des entreprises les donne, par
 // SIREN, avec leur tranche d'âge, et enrichir.js l'appelle déjà.
 
-import { resoudreAdresse } from '../data-b.js';
+import { resoudreAdresse } from '../adresse-ban.js';
 import { DATA_DIR } from '../db.js';
 import { chargerParcelles, indexerParcelles } from './cadastre.js';
 import { dejaLa, lire, parParcelle, PREMIERE_ANNEE } from './personnes-morales.js';

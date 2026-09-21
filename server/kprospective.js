@@ -10,11 +10,11 @@
 //
 // Chaque critère dit sa source, et ceux qu'aucune source ouverte ne sert
 // sont marqués indisponibles plutôt que devinés : la solvabilité chiffrée,
-// le prix d'acquisition, l'échéance d'un bail sont des données que Data-B
+// le prix d'acquisition, l'échéance d'un bail sont des données que les services payants
 // achète, pas des données publiques.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { commercesDeLaZone } from './kzoning-commerces.js';
 import { filtresDe, nomMetierDe, METIERS, TOUS_LES_COMMERCES } from './kzoning-metiers.js';
 import { parcellesAutour, locauxDeSection, grouperProprietaires } from './kfoncier.js';

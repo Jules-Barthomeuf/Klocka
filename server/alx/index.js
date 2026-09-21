@@ -44,7 +44,6 @@ export async function etatDesOutils() {
   const monday = clientsConfigure();
   return {
     street_view: !!(process.env.GOOGLE_MAPS_SERVEUR || '').trim(),
-    data_b: !!(process.env.DATAB_EMAIL || '').trim(),
     monday,
     // Combien de clients actifs on cherche pour, dès l'état : c'est la
     // première chose qu'on veut voir en ouvrant ALX.

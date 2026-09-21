@@ -1,4 +1,4 @@
-// Le recensement à l'IRIS : ce que Data-B appelait « INSEE RGP 2020 ».
+// Le recensement à l'IRIS : ce que les rapports du métier appellent « INSEE RGP ».
 //
 // Filosofi (kzoning-insee.js) dit les revenus, les ménages et les logements
 // par carreau de 200 m, mais ni les catégories socioprofessionnelles, ni le

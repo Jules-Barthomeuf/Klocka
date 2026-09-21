@@ -2,7 +2,7 @@
 //
 // OpenStreetMap donne en une seconde les rues du centre, leur tracé et les
 // vitrines que les contributeurs y ont posées ; on compte les vitrines par
-// rue. Les rues assez vivantes passent chez Data-B pour leur loyer de marché :
+// rue. Les rues assez vivantes reçoivent un loyer de marché déduit des ventes :
 // c'est lui qui fait l'emplacement, 1, 1 bis ou 2, ou qui écarte la rue. Tout
 // est écrit avec son motif ; l'équipe corrige.
 
@@ -239,7 +239,7 @@ export async function proposerRues(ville, { rayon_km = SEUILS.rayon_km, journal 
     return {
       nom, cle: r.cle, code_postal: cp, commerces: r.vitrines, enseignes: r.enseignes.slice(0, 8),
       trace: r.trace, longueur_m: r.longueur_m, type: r.type || null, flux_estime: r.flux_estime || null,
-      loyer, loyer_source: valeurLocative?.rue ? 'Data-B, rue' : valeurLocative?.quartier ? 'Data-B, quartier' : null,
+      loyer, loyer_source: valeurLocative?.rue ? 'DVF déduit, rue' : valeurLocative?.quartier ? 'DVF déduit, quartier' : null,
       ...marche,
       centre: officielle ? { lat: officielle.lat, lon: officielle.lon } : r.centre,
     };

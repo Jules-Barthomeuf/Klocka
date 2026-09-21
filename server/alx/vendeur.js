@@ -105,7 +105,7 @@ export async function vendeurDe({ adresse, locataire = null, activite = null, ba
   const gardee = derniere(cle);
   if (gardee && !forcer && Date.now() - Date.parse(gardee.le) < JOURS * 86400000) return { ...gardee, du_cache: true, etude: resumeEtude() };
 
-  const { resoudreAdresse } = await import('../data-b.js');
+  const { resoudreAdresse } = await import('../adresse-ban.js');
   const ban = await resoudreAdresse(texte);
   if (!ban) throw new Error(`La Base Adresse Nationale ne connaît pas « ${texte} ».`);
   const ville = ban.ville || (texte.split(',').pop() || '').replace(/^\s*\d{5}\s*/, '').trim();

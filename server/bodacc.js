@@ -19,7 +19,7 @@
 // aucune source publique ne le donne à l'échelle d'une rue.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { ErreurSource } from './marche/erreurs.js';
 
 const CACHE_JOURS = 7;
@@ -220,7 +220,7 @@ export async function vitaliteCommerciale(texteAdresse, { mois = MOIS_DEFAUT, fo
     sur_la_rue: { ...compter(surLaRue), evenements: surLaRue.slice(0, 40), annonces_lues: surLaRue.length, tronque: candidats.length < trouves },
     commune_entiere: commune,
     // Les prix de cession que le BODACC publie en clair : un contrôle gratuit
-    // de ce que Data-B vend.
+    // de ce que les services payants vendent.
     cessions_avec_prix: surLaRue.filter((e) => e.prix).map((e) => ({ date: e.date, prix: e.prix, activite: e.activite, commercant: e.commercant, numero: e.numero })),
     lien: `https://www.bodacc.fr/pages/annonces-commerciales-recherche/?q=${encodeURIComponent(adresse.rue + ' ' + adresse.ville)}`,
     le: new Date().toISOString(),

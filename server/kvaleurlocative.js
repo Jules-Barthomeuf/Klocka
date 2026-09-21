@@ -16,11 +16,11 @@
 // un INDICE DE POSITION, calculé ici à partir de deux signaux ouverts qui font
 // le loyer commercial : la densité de commerces (OpenStreetMap) et le niveau
 // de vie des habitants (INSEE Filosofi). L'indice classe, il ne chiffre pas :
-// aucun euro n'est inventé pour un quartier que Data-B n'a pas lu, et l'écran
+// aucun euro n'est inventé pour un quartier qui n'a pas été lu, et l'écran
 // dit d'où vient chaque couleur.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { valeurLocative, lancerValeurLocative, etatValeurLocative, ouvrirValeurLocative, listerValeursLocatives } from './valeur-locative.js';
 import { boiteDe, chercherCarreaux } from './kzoning-insee.js';
 import { interroger } from './kzoning-commerces.js';
@@ -99,7 +99,7 @@ function centreDe(geometry) {
 
 // ── Les classes ─────────────────────────────────────────────────────────────
 
-/** La classe d'un quartier dont Data-B a donné la fourchette, comparée à celle de la ville. */
+/** La classe d'un quartier dont on a la fourchette, comparée à celle de la ville. */
 export function classerParValeur(q, ville) {
   if (!q || (q.basse == null && q.haute == null)) return null;
   const mid = ((q.basse ?? q.haute) + (q.haute ?? q.basse)) / 2;
@@ -244,7 +244,7 @@ export function colorerSecteurs(iris, recherches, quartierIci = null, indice = n
 
 /**
  * Les résultats déjà en base pour une commune, du plus récent au plus ancien.
- * Les lectures Data-B d'avant restent lisibles : une couleur posée ne
+ * Les lectures d'avant (entité DataBRecherche) restent lisibles : une couleur posée ne
  * s'efface pas parce que la source a changé.
  */
 function recherchesDe(nomVille) {
@@ -284,7 +284,7 @@ export function listerRecherches(limite = 40) {
     const cle = normaliser(x.adresse);
     if (vues.has(cle)) continue;
     vues.add(cle);
-    liste.push({ id: x.id, adresse: x.adresse, le: x.le, par: x.par, rue: x.resultat.rue || null, quartier: x.resultat.quartier || null, ville: x.resultat.ville || null, origine: 'data-b' });
+    liste.push({ id: x.id, adresse: x.adresse, le: x.le, par: x.par, rue: x.resultat.rue || null, quartier: x.resultat.quartier || null, ville: x.resultat.ville || null, origine: 'ancienne' });
     if (liste.length >= limite) break;
   }
   return liste.slice(0, limite);

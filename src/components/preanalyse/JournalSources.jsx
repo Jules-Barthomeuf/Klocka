@@ -11,7 +11,7 @@ import { J } from "@/design/jetons";
 //
 // Le bilan croise les sources ; ces onglets montrent la matière brute, sans
 // mélange. On y va quand un chiffre du bilan surprend : on veut voir ce que
-// Data-B a dit, exactement, à quelle échelle, et à quelle heure.
+// la valeur locative a dit, exactement, à quelle échelle, et à quelle heure.
 
 const fmt = (n, d = 0) => (n == null || !Number.isFinite(Number(n)) ? "—" : Number(n).toLocaleString("fr-FR", { maximumFractionDigits: d }));
 const pct = (n, d = 1) => (n == null ? "—" : `${n > 0 ? "+" : ""}${Number(n).toLocaleString("fr-FR", { maximumFractionDigits: d })} %`);
@@ -20,7 +20,7 @@ const pct = (n, d = 1) => (n == null ? "—" : `${n > 0 ? "+" : ""}${Number(n).t
  * Le drapeau rouge : deux sources qui ne disent pas la même chose.
  *
  * Un repli silencieux masquait cet écart — on prenait Equimmox, et l'on ne
- * savait jamais que Data-B estimait tout autre chose. Ici il est montré, avec
+ * savait jamais que le secteur estimait tout autre chose. Ici il est montré, avec
  * les deux lectures et de combien elles divergent.
  */
 export function Recoupement({ recoupement }) {
@@ -42,7 +42,7 @@ export function Recoupement({ recoupement }) {
       <div className="mt-3.5 flex flex-col">
         {lectures.map((l, i) => (
           <div key={`${l.service}-${i}`} className="flex items-baseline justify-between gap-3 border-t border-trait py-[9px]">
-            <span className="text-[13.5px] text-craie">{l.service}{l.service === "Data-B" && l.echelle ? `, ${l.echelle}${l.precision ? ` ${l.precision}` : ""}` : ""}</span>
+            <span className="text-[13.5px] text-craie">{l.service}{l.service !== "Equimmox" && l.echelle ? `, ${l.echelle}${l.precision ? ` ${l.precision}` : ""}` : ""}</span>
             <span className="whitespace-nowrap text-[13.5px] tabular-nums text-encre">{l.bas != null && l.haut != null ? `${fmt(l.bas)} – ${fmt(l.haut)}` : fmt(l.centre)} €/m²/an</span>
           </div>
         ))}
@@ -64,7 +64,7 @@ export function Recoupement({ recoupement }) {
 }
 
 /**
- * Data-B : valeur locative, cessions de fonds, étude d'implantation.
+ * Le secteur : valeur locative, cessions de fonds, étude d'implantation.
  *
  * Les deux premières sont rendues par les composants de l'équipe, qui existent
  * depuis longtemps et disent bien plus que ce que je saurais réécrire : la
@@ -72,13 +72,13 @@ export function Recoupement({ recoupement }) {
  * numéro même du bien. Ils étaient affichés en permanence sous l'analyse ;
  * ils vivent désormais dans l'onglet de leur source.
  */
-export function OngletDataB({ lot, implantation }) {
+export function OngletSecteur({ lot, implantation }) {
   return (
     <div>
       <ValeurLocativeMarche lot={lot} premiere />
       {/* L'emplacement avant les cessions : on regarde d'abord où est le bien,
           ensuite ce qui s'y est vendu. */}
-      {implantation ? <JournalEmplacement emplacement={implantation} /> : <Section titre="Étude d'implantation · Data-B"><Vide>L'étude d'implantation n'a pas encore été lue sur ce lot. Lancez « Mettre à jour ».</Vide></Section>}
+      {implantation ? <JournalEmplacement emplacement={implantation} /> : <Section titre="Étude d'implantation"><Vide>L'étude d'implantation n'a pas encore été lue sur ce lot. Lancez « Mettre à jour ».</Vide></Section>}
       <TransactionsFonds lot={lot} />
     </div>
   );

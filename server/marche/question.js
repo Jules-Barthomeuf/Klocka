@@ -181,14 +181,14 @@ export async function repondre(question, contexte = {}) {
         // question posée en passant, c'est trop.
         const s = Number(input?.surface) > 0 ? Number(input.surface) : surface || null;
         if (rapide) {
-          const dataB = await lire('data-b-valeur-locative', { adresse });
-          return { data_b: dataB, note: 'Mode Rapidité : Equimmox n’a pas été interrogé (une minute de lecture). Data-B estime ; pour une fourchette de baux réellement signés, repassez en Réflexion.' };
+          const secteur = await lire('valeur-locative', { adresse });
+          return { secteur, note: 'Mode Rapidité : Equimmox n’a pas été interrogé à surface comparable (une minute de lecture). Pour une fourchette de baux réellement signés, repassez en Réflexion.' };
         }
-        const [equimmox, dataB] = await Promise.all([
+        const [equimmox, secteur] = await Promise.all([
           lire('equimmox', { adresse, surface: s }),
           lire('valeur-locative', { adresse }),
         ]);
-        return { equimmox, secteur: dataB, note: 'Equimmox à surface comparable, puis la rue, le quartier et la ville, et le loyer déduit des ventes DVF. Un écart entre ces lectures mérite d’être signalé.' };
+        return { equimmox, secteur, note: 'Equimmox à surface comparable, puis la rue, le quartier et la ville, et le loyer déduit des ventes DVF. Un écart entre ces lectures mérite d’être signalé.' };
       }
       case 'cessions_de_fonds':
         return lire('bodacc-cessions', { adresse, rayon: 250 });
@@ -212,7 +212,7 @@ export async function repondre(question, contexte = {}) {
   ];
 
   const consignes = rapide
-    ? `${CONSIGNES}\n\nMODE RAPIDITÉ : Equimmox et l'étude d'implantation ne sont pas disponibles pour cette question. Réponds avec ce que Data-B et Le Figaro donnent, et dis en une ligne ce qui manque de ce fait.`
+    ? `${CONSIGNES}\n\nMODE RAPIDITÉ : Equimmox et l'étude d'implantation ne sont pas disponibles pour cette question. Réponds avec ce que la valeur locative du secteur et Le Figaro donnent, et dis en une ligne ce qui manque de ce fait.`
     : CONSIGNES;
   const { text } = await runAgent({ system: consignes, messages, tools: outilsOfferts, onTool });
   return { reponse: text || 'Je n’ai pas de réponse.', sources, outils };

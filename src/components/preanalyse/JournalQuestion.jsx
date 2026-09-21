@@ -16,7 +16,7 @@ import MessageIA from "@/components/MessageIA";
 // C'est la même barre que le chat du dossier (ChatDossier) : mêmes classes,
 // même dictée, même bouton d'envoi. Seul ce qu'il y a derrière change. Ici la
 // question ne part pas dans les documents mais dans les connecteurs —
-// Equimmox, Data-B, Le Figaro — et la réponse revient avec ce qui a été lu.
+// Equimmox, DVF, le BODACC, Le Figaro — et la réponse revient avec ce qui a été lu.
 //
 // Le modèle n'a pas le droit de répondre de mémoire. Chaque chiffre qu'il
 // écrit vient d'un appel qu'il vient de faire, et l'écran affiche sous la
@@ -26,7 +26,7 @@ import MessageIA from "@/components/MessageIA";
 //
 // Il n'y a pas de réglage de profondeur ici : ce chat interroge TOUTES les
 // sources, Equimmox compris (une minute, un vrai navigateur) et l'étude
-// d'implantation Data-B (un crédit). C'est le chat de l'analyse — on y vient
+// d'implantation (plusieurs minutes). C'est le chat de l'analyse — on y vient
 // pour une réponse fondée, pas pour une réponse rapide. Le serveur accepte
 // toujours « rapide », mais plus personne ne le demande d'ici.
 const PROFONDEUR = "reflexion";
@@ -35,23 +35,23 @@ const PROFONDEUR = "reflexion";
 //
 // Chacune correspond à quelque chose qu'un connecteur sait réellement rendre :
 // on ne propose pas une question à laquelle aucune source ne peut répondre.
-// Les questions marquées « credit » passent par l'étude d'implantation Data-B,
-// qui coûte un crédit et exige le mode Réflexion — l'écran le dit avant.
+// Les questions marquées « credit » passent par l'étude d'implantation, qui
+// prend plusieurs minutes et exige le mode Réflexion — l'écran le dit avant.
 const REPERTOIRE = [
   {
     famille: "Valeur locative",
-    source: "Equimmox + Data-B",
+    source: "Equimmox + DVF",
     questions: [
       "Quelle est la valeur locative moyenne dans ce secteur ?",
       "Le loyer en place est-il au-dessus ou en dessous du marché ?",
       "Quelle fourchette de loyer pour une surface comparable à moins de 500 m ?",
-      "Equimmox et Data-B disent-ils la même chose sur le loyer ? Si non, de combien ?",
-      "À quelle échelle Data-B estime-t-il ce loyer : la rue, le quartier ou la ville ?",
+      "Equimmox et le loyer déduit des ventes disent-ils la même chose ? Si non, de combien ?",
+      "À quelle échelle la valeur locative est-elle lue : la rue, le quartier ou la ville ?",
     ],
   },
   {
     famille: "Fonds de commerce",
-    source: "Data-B",
+    source: "BODACC",
     questions: [
       "Qu’est-ce qui s’est vendu comme fonds de commerce autour du bien ?",
       "À quel prix se vendent les fonds dans un rayon de 250 m ?",
@@ -91,7 +91,7 @@ const REPERTOIRE = [
   },
   {
     famille: "Emplacement",
-    source: "Data-B · étude d’implantation",
+    source: "Klocka · étude d’implantation",
     credit: true,
     questions: [
       "Quel est le flux piéton devant le bien, et à quelles heures ?",

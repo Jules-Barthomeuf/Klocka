@@ -6,7 +6,7 @@
 import { Records } from '../db.js';
 import { currentUser, ok, wrap } from '../contexte.js';
 
-/** Monte les routes « data-b / equimmox / figaro / marche / projects / projets » sur l'application. */
+/** Monte les routes « equimmox / figaro / marche / projects / projets » sur l'application. */
 export function monterMarche(app) {
   // Ce que le client voit du bail sur sa page projet : quelques lignes, et
   // l'analyse complète derrière — sans les pièces.
@@ -142,7 +142,7 @@ export function monterMarche(app) {
 
   // Les flux et la commercialité : l'étude d'implantation interne. Longue la
   // première fois : jamais lancée sans qu'un membre de l'équipe l'ait demandé.
-  app.post('/api/projects/:id/data-b/implantation', wrap(async (req, res) => {
+  app.post('/api/projects/:id/implantation', wrap(async (req, res) => {
     const user = currentUser(req);
     if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
     const projet = Records.get('Project', req.params.id);
@@ -159,7 +159,7 @@ export function monterMarche(app) {
 
   // Les mêmes cessions, pour un projet : un projet créé avant que le dossier ne
   // les relève peut les chercher depuis son éditeur.
-  app.post('/api/projects/:id/data-b/transactions', wrap(async (req, res) => {
+  app.post('/api/projects/:id/transactions', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
     const { cessionsAutour: transactionsFonds } = await import('../cessions-fonds.js');
     const projet = Records.get('Project', req.params.id);
@@ -198,9 +198,9 @@ export function monterMarche(app) {
   }));
 
   // La même recherche, sans dossier : une adresse, une fourchette.
-  app.post('/api/data-b/valeur-locative', wrap(async (req, res) => {
+  app.post('/api/valeur-locative', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
-    const { valeurLocative } = await import('../data-b.js');
+    const { valeurLocative } = await import('../valeur-locative.js');
     const r = await valeurLocative(String(req.body?.adresse || ''), { forcer: !!req.body?.forcer, user: currentUser(req) });
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, { resultat: r.resultat });

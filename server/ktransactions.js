@@ -19,7 +19,7 @@
 // Tout est gratuit et public. Aucun crédit n'est dépensé.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 
 const BODACC = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records';
 const UA = 'Klocka/1.0 (sourcing@klocka.immo)';

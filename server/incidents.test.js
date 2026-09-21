@@ -20,7 +20,7 @@ test('une erreur garde sa date, son message et sa pile', () => {
 });
 
 test('un rejet sans erreur se note quand même', () => {
-  noterIncident('rejet', 'Data-B a répondu 502');
+  noterIncident('rejet', 'Equimmox a répondu 502');
   noterIncident('demarrage', 'Klocka démarre sur le port 3001');
   const tout = derniersIncidents();
   // Du plus récent au plus ancien.

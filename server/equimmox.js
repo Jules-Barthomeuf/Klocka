@@ -3,7 +3,7 @@
 //
 // Equimmox est une application Bubble : ses échanges internes sont opaques et
 // liés à la version de l'application, on ne peut pas les rejouer en HTTP comme
-// avec Data-B. Klocka pilote donc un vrai navigateur, sans écran, et refait le
+// avec un simple cookie. Klocka pilote donc un vrai navigateur, sans écran, et refait le
 // parcours que l'équipe suivait à la main : Analyse → Analyse de loyer →
 // l'adresse, la suggestion, le rayon à 500 m, la surface à ±30 %, Lancer, puis
 // lire Bas, Moyenne et Haut.
@@ -17,7 +17,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Records, DATA_DIR } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { poserChemin } from './chromium.js';
 import { ErreurSource } from './marche/erreurs.js';
 

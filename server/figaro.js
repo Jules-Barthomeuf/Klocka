@@ -13,7 +13,7 @@
 // Les valeurs bougent une fois par mois : on garde chaque lecture trente jours.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { ErreurSource } from './marche/erreurs.js';
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128 Safari/537.36';

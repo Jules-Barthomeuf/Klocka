@@ -54,8 +54,8 @@ test("le résidentiel prend le quartier, et une évolution nulle reste une évol
   assert.equal(residentielDe({ commune: { prix: {} } }), null);
 });
 
-test("la rue garde le milieu de la fourchette Data-B et ne fabrique pas de prix", () => {
-  const r = rueDe({ rue: 'Rue des Poteaux', loyer: [200, 300], loyer_source: 'Data-B, rue', prix_m2: null });
+test("la rue garde le milieu de la fourchette de loyer et ne fabrique pas de prix", () => {
+  const r = rueDe({ rue: 'Rue des Poteaux', loyer: [200, 300], loyer_source: 'DVF déduit, rue', prix_m2: null });
   assert.equal(r.loyer_m2_an, 250);
   assert.equal(r.prix_m2, null);
   assert.equal(rueDe({ rue: 'X', loyer: null, prix_m2: null }), null);

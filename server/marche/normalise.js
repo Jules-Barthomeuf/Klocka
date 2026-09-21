@@ -1,6 +1,6 @@
 // Le format pivot : un chiffre, son unité, son échelle, sa source, sa date.
 //
-// Les quatre services parlent quatre langues. Data-B rend
+// Les services parlent chacun leur langue. La valeur locative rend
 // { rue: { basse, haute } }, Equimmox rend { bas, moyenne, haut }, Le Figaro
 // rend { commune: { prix: { median, bas, haut } } }. Tant qu'on les compare à
 // l'œil, chacun garde sa forme ; dès qu'une source en remplace une autre, il
@@ -30,7 +30,7 @@ export const INDICATEURS = {
   // Le résidentiel bouge : Le Figaro publie l'évolution, on la garde.
   evolution_prix_residentiel_1_an: { titre: 'Évolution du prix résidentiel sur 1 an', unite: '%' },
   evolution_prix_residentiel_5_ans: { titre: 'Évolution du prix résidentiel sur 5 ans', unite: '%' },
-  // L'emplacement, d'après l'étude d'implantation Data-B. Les notes sont sur
+  // L'emplacement, d'après l'étude d'implantation. Les notes sont sur
   // cinq ; elles se comparent entre lots, pas à un loyer.
   flux_pieton_note: { titre: 'Flux piéton', unite: '/ 5' },
   flux_voiture_note: { titre: 'Flux voiture', unite: '/ 5' },

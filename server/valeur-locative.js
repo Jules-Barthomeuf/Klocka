@@ -1,7 +1,7 @@
 // La valeur locative d'une adresse : la fourchette de loyer au m² de la rue,
 // du quartier et de la ville, en euros HT HC par m² et par an.
 //
-// Data-B vendait ces trois échelles, estimées par un algorithme qu'il ne
+// Un service payant vendait ces trois échelles, estimées par un algorithme qu'il ne
 // décrivait pas. Elles se lisent désormais chez Equimmox, qui constate des
 // baux signés, à trois rayons, les crans de son curseur : 200 m pour la rue,
 // 500 m pour le quartier, 1 km pour la ville. Un constat vaut mieux qu'une
@@ -17,7 +17,7 @@
 // { rue, quartier, ville } × { nom, basse, haute }.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
 import { loyerDvf } from './loyer-dvf.js';
 

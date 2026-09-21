@@ -26,7 +26,7 @@
 // c'était tirer au sort. Voir insee-sirene.js.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { etablissementsDeLaCommune, sireneConfigure, MESSAGE_SANS_CLE } from './insee-sirene.js';
 
 const RECHERCHE = 'RechercheVacance';

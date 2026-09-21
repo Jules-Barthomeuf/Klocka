@@ -1,5 +1,5 @@
 // Un vrai navigateur, sans écran, pour les services qu'on ne peut pas rejouer
-// en HTTP — Equimmox (application Bubble) et le module Expertise de Data-B
+// en HTTP — Equimmox (application Bubble)
 // (assistant JavaScript). Equimmox a écrit ce code le premier, dans son propre
 // fichier ; il vit ici pour que le deuxième service n'en garde pas une copie.
 //

@@ -46,7 +46,7 @@ const GRILLES_ANALYSE = [
     { id: "rcp", titre: "Règlement de copropriété", sousTitre: "Activités autorisées ou non, quote-part." },
   ] },
   { id: "diagnostics", titre: "Diagnostics", grilles: [{ id: "diagnostics", titre: "Diagnostics", sousTitre: "L'état du bien, diagnostic par diagnostic." }] },
-  // Ce que disent les services extérieurs sur le loyer : Data-B pour la
+  // Ce que disent les services extérieurs sur le loyer : le secteur pour la
   // fourchette de la rue, Equimmox pour les baux comparables autour.
   { id: "marche", titre: "Marché", grilles: null },
 ];

@@ -304,7 +304,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
               ))}
             </Bloc>
           </div>
-          <Sources>{fluxP.estime ? fluxP.methode || "Estimation Klocka, pas un comptage sur site." : "Data-B. Estimation algorithmique, pas un comptage sur site."}</Sources>
+          <Sources>{fluxP.methode || "Estimation algorithmique, pas un comptage sur site."}</Sources>
         </Panel>
       )}
 
@@ -316,7 +316,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
             {fluxV.indisponible ? <p className="m-0 mt-2 text-[12.5px] text-ardoise">Pas de classe de voie connue pour cette rue : le flux voiture n&apos;est pas estimé.</p>
               : <div className="mt-2 inline-block rounded-[8px] bg-relief px-6 py-2"><Etoiles note={fluxV.note?.note ?? 0} sur={fluxV.note?.sur ?? 5} taille={24} /></div>}
           </Bloc>
-          <Sources>{fluxV.estime ? fluxV.methode || "Estimation Klocka d'après OpenStreetMap." : "Data-B"}</Sources>
+          <Sources>{fluxV.methode || "Estimation d'après la classe de la voie."}</Sources>
         </Panel>
       )}
 

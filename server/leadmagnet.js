@@ -13,7 +13,7 @@
 //      soumission serait une ardoise offerte au premier robot venu. Tout le
 //      calcul est déterministe, donc gratuit, reproductible, et testé.
 //   2. AUCUNE SOURCE PAYANTE. Les prix viennent de DVF (ventes réelles
-//      publiées par l'administration) et les commerces d'OpenStreetMap. Data-B
+//      publiées par l'administration) et les commerces d'OpenStreetMap. Un service payant
 //      coûte un crédit par recherche : il n'a rien à faire ici.
 //   3. CHAQUE HYPOTHÈSE EST DITE. Un plan d'acquisition qui ne montre pas ses
 //      hypothèses n'est pas un plan, c'est une promesse. Elles sont nommées
@@ -24,7 +24,7 @@
 // quartier. La page le dit mot pour mot.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 
 const ENTITE_LM = 'LeadMagnet';
 const ENTITE_LEAD = 'Lead';

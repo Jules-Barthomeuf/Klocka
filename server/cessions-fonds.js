@@ -6,7 +6,7 @@
 // depuis des années dit l'inverse. C'est le complément des loyers : le loyer
 // dit ce que vaut le mur, le fonds dit ce que vaut le commerce.
 //
-// Data-B vendait cette lecture ; elle vient en réalité du BODACC, que la DILA
+// Un service payant vendait cette lecture ; elle vient en réalité du BODACC, que la DILA
 // publie en open data et que ktransactions.js lit déjà commune par commune.
 // Une seule chose manquait pour retrouver un rayon : le BODACC n'a pas de
 // coordonnées. La Base Adresse Nationale géocode par lot, en une requête pour
@@ -15,7 +15,7 @@
 // Tout est gratuit et public. Aucun crédit n'est dépensé.
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { cessionsDeLaCommune } from './ktransactions.js';
 
 const BAN_LOT = 'https://api-adresse.data.gouv.fr/search/csv/';

@@ -390,7 +390,7 @@ function Formulaire({ estimation: e, choix, grille, onCalculee, onQuitter }) {
   const poser = (cle, v) => setRep((r) => ({ ...r, [cle]: v }));
   const loue = rep.statut !== "vacant";
   const bande = bandeDe(grille, rep);
-  const vlmConnue = !!(e.marche?.vlm_datab?.rue?.basse || e.marche?.vlm_datab?.quartier?.basse || e.marche?.vlm_datab?.ville?.basse);
+  const vlmConnue = !!(e.marche?.vlm_equimmox?.basse || e.marche?.vlm_dvf?.basse);
 
   const enregistrer = useMutation({
     mutationFn: () => base44.request("PATCH", `/api/kestimation/${e.id}`, { body: { reponses: rep } }),
@@ -584,7 +584,7 @@ export default function KEstimation() {
         <button onClick={() => setOuverte(null)} className="mt-6 text-[12.5px] text-ardoise hover:text-encre">Revenir</button>
       </div>
     );
-    const vlm = e.marche?.vlm_datab?.rue || e.marche?.vlm_datab?.quartier;
+    const vlm = e.marche?.vlm_equimmox?.basse ? e.marche.vlm_equimmox : e.marche?.vlm_dvf;
     return (
       <div className="mx-auto min-h-screen max-w-[900px] px-4 pb-20 pt-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">

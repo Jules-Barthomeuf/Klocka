@@ -15,8 +15,8 @@ import { PanneauJournalDetaille, PanneauTracabilite } from "@/components/preanal
 // Le journal d'analyste : ce qu'Alex fait pendant l'analyse de marché, écrit
 // ligne à ligne pendant qu'il le fait — pour de vrai.
 //
-// « Mettre à jour » lance server/alex.js sur le lot : Equimmox, Data-B
-// (étude d'implantation), le BODACC (cessions), Le Figaro.
+// « Mettre à jour » lance server/alex.js sur le lot : Equimmox, l'étude
+// d'implantation, le BODACC (cessions), Le Figaro.
 // L'écran interroge l'état toutes les deux secondes et demi et écrit une
 // ligne par tentative et par résultat posé — heure, source, issue, chiffre.
 // Rien ici n'est écrit à l'avance : marche-reel.js traduit l'état du serveur,
@@ -31,7 +31,7 @@ const INTENTION =
 
 const SOURCES = [
   { cle: "equimmox", nom: "Equimmox", ton: "menthe", acces: "compte de service · baux comparables à 500 m" },
-  { cle: "data-b", nom: "Data-B", ton: "menthe", acces: "compte de service · étude d’implantation (1 crédit)" },
+  { cle: "implantation", nom: "Klocka", ton: "menthe", acces: "sources ouvertes · étude d’implantation, flux estimés" },
   { cle: "figaro", nom: "Le Figaro Immobilier", ton: "menthe", acces: "accès public · prix, loyers et évolution du résidentiel" },
   { cle: "dvf", nom: "DVF", ton: "menthe", acces: "donnée publique · ventes de locaux commerciaux réellement conclues, 5 ans" },
   { cle: "bodacc", nom: "BODACC", ton: "menthe", acces: "donnée publique · créations, liquidations et radiations de la rue, cessions de fonds à 250 m avec leur prix" },

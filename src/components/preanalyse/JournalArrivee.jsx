@@ -4,7 +4,7 @@ import { chrono, ton } from "@/components/preanalyse/journal-tons";
 import InfoBulle from "@/components/preanalyse/InfoBulle";
 import ChoixSources from "@/components/preanalyse/ChoixSources";
 import JournalDetail from "@/components/preanalyse/JournalDetail";
-import { OngletDataB, OngletEquimmox, OngletFigaro, Recoupement } from "@/components/preanalyse/JournalSources";
+import { OngletSecteur, OngletEquimmox, OngletFigaro, Recoupement } from "@/components/preanalyse/JournalSources";
 import { OngletBodacc, OngletDvf, SecondPointDeVue } from "@/components/preanalyse/JournalPubliques";
 import MarcheEmplacement from "@/components/preanalyse/MarcheEmplacement";
 import MarcheVendeur from "@/components/preanalyse/MarcheVendeur";
@@ -111,7 +111,7 @@ function Vierge({ intention, criteres, sources, dureeEstimee, onLancer, apercu }
 
 const ONGLETS = [
   { cle: "bilan", titre: "Bilan" },
-  { cle: "data-b", titre: "Data-B" },
+  { cle: "secteur", titre: "Secteur" },
   { cle: "equimmox", titre: "Equimmox" },
   { cle: "figaro", titre: "Le Figaro" },
   // Les deux sources publiques, à part : elles ne coûtent rien et ne doivent
@@ -244,7 +244,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
 
       {!["bilan", "vendeur", "sources"].includes(onglet) && (
         <div className="mt-6">
-          {onglet === "data-b" && <OngletDataB lot={lot} implantation={analyse.emplacement} />}
+          {onglet === "secteur" && <OngletSecteur lot={lot} implantation={analyse.emplacement} />}
           {onglet === "equimmox" && <OngletEquimmox lot={lot} />}
           {onglet === "figaro" && <OngletFigaro lot={lot} />}
           {onglet === "dvf" && <OngletDvf ventes={analyse.dvf} />}

@@ -387,7 +387,7 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     }
     noter(villeId, `${rue.nom} (emplacement ${libelleEmplacement(rue.classe)}) : ${commerces.length} commerce${commerces.length > 1 ? 's' : ''}${limite_par_rue && commerces.length > limite_par_rue ? `, ${limite_par_rue} retenus pour cet essai` : ''}.`);
 
-    const loyerRue = rue.loyer ? { [rue.loyer_source === 'Data-B, quartier' ? 'quartier' : 'rue']: { nom: rue.nom, basse: rue.loyer[0], haute: rue.loyer[1] } } : null;
+    const loyerRue = rue.loyer ? { [/quartier/.test(rue.loyer_source || '') ? 'quartier' : 'rue']: { nom: rue.nom, basse: rue.loyer[0], haute: rue.loyer[1] } } : null;
     // Les bâtiments de la rue, en une seule requête : chaque commerce y
     // trouvera son emprise au sol et ses façades sans rappeler OpenStreetMap.
     // C'est ce qui donne une surface mesurée plutôt que devinée sur une photo,

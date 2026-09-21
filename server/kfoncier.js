@@ -20,7 +20,7 @@
 // au 1er janvier d'une année donnée, pas « aujourd'hui ».
 
 import { Records } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse } from './adresse-ban.js';
 import { boiteDe } from './kzoning-insee.js';
 import { societe } from './kzoning-societe.js';
 

@@ -7,7 +7,7 @@ import { J } from "@/design/jetons";
 // puis le projet lui-même.
 //
 // Chaque chiffre a une valeur de référence, lue chez Le Figaro pour le
-// résidentiel et chez Data-B pour la rue. Le dossier peut la corriger : ce
+// résidentiel et le loyer déduit des ventes pour la rue. Le dossier peut la corriger : ce
 // qu'il porte l'emporte toujours, sinon on corrigerait dans le vide.
 
 /** La tranche de surface sur laquelle se lisent les loyers commerciaux. */

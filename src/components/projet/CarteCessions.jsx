@@ -7,12 +7,12 @@ import { J } from "@/design/jetons";
 
 // La carte du projet, avec les cessions de fonds de commerce posées dessus.
 //
-// Data-B donne le point exact de chaque cession : on les montre autour du bien
+// Le BODACC, géocodé, donne le point de chaque cession : on les montre autour du bien
 // plutôt qu'en liste. La taille de la pastille dit le prix, sa couleur dit ce
 // qui touche le bien — la rue en or, le numéro même en menthe. On lit d'un coup
 // d'œil si la rue vit, et à quel niveau de prix.
 //
-// Carte Google : c'est le fond que l'équipe a sous les yeux chez Data-B, et la
+// Carte Google : c'est le fond que l'équipe a l'habitude de lire, et la
 // clé est déjà celle de l'application.
 
 const CLE = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -62,7 +62,7 @@ function chargerGoogleMaps() {
   return chargement;
 }
 
-// `resultat` est ce que Data-B a rendu : il vit sur un lot pendant l'analyse,
+// `resultat` est ce que la lecture a rendu : il vit sur un lot pendant l'analyse,
 // puis sur le projet. La carte se moque de savoir lequel des deux l'appelle.
 export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, hauteur = 420 }) {
   const [filtre, setFiltre] = useState("toutes");

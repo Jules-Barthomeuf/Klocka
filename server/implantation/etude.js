@@ -1,5 +1,5 @@
-// L'étude d'implantation, en interne. Ce que Data-B rendait en une étude
-// payante, avec les mêmes blocs et la même forme, à partir de sources
+// L'étude d'implantation, en interne. Ce qu'un service payant rendait en une
+// étude, avec les mêmes blocs et la même forme, à partir de sources
 // ouvertes : Base Adresse Nationale, Sirene, OpenStreetMap, IGN, INSEE
 // (Filosofi et recensement à l'IRIS). Trente jours de cache par adresse et
 // activité, sous la même clé que les anciennes études : les dossiers qui
@@ -10,7 +10,7 @@
 // recensement (null), les propriétaires sont ceux des ménages Filosofi.
 
 import { Records } from '../db.js';
-import { resoudreAdresse } from '../data-b.js';
+import { resoudreAdresse } from '../adresse-ban.js';
 import { etablissementsDeLaCommune, sireneConfigure, MESSAGE_SANS_CLE } from '../insee-sirene.js';
 import { releveDe, rangDe } from '../alx/emplacement.js';
 import { cleRue } from '../alx/commerces.js';

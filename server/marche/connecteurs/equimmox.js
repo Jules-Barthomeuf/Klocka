@@ -55,7 +55,7 @@ export default {
         haut: r.haut,
         echelle: 'rayon',
         // Le rayon EST la portée : « 500m » se lit 500. C'est ce qui permet de
-        // savoir, en face, si la rue ou le quartier de Data-B se compare.
+        // savoir, en face, si la rue ou le quartier du secteur se compare.
         portee_m: rayonEnMetres(r.rayon),
         precision: [r.rayon ? `rayon ${r.rayon}` : null, surfaces, r.classe].filter(Boolean).join(', ') || null,
         source,

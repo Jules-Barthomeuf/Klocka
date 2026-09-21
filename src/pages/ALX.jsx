@@ -419,13 +419,13 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
           </div>
         ))}
         <div className="col-span-2">
-          <Etiquette className="!text-[11px]">Flux{fluxMesure ? " · Data-B" : flux ? " · estimé" : ""}</Etiquette>
+          <Etiquette className="!text-[11px]">Flux{fluxMesure ? " · étude" : flux ? " · estimé" : ""}</Etiquette>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
             <Etoiles note={flux?.note ?? null} taille={17} title={flux ? `piéton ${flux.pieton ?? "—"}/5 · voiture ${flux.voiture ?? "—"}/5` : "flux inconnu"} />
             {flux && <span className="text-[12.5px] text-ardoise">piéton {flux.pieton ?? "—"} · voiture {flux.voiture ?? "—"}</span>}
             {!fluxMesure && (
-              <button onClick={onFlux} disabled={fluxPending} className="text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }} aria-label="Étude d'implantation Data-B : un crédit, deux à cinq minutes" title="Étude d'implantation Data-B : un crédit, deux à cinq minutes">
-                {fluxPending ? "Data-B lit la rue (2 à 5 min)…" : "Mesurer chez Data-B · 1 crédit"}
+              <button onClick={onFlux} disabled={fluxPending} className="text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }} aria-label="Étude d'implantation : plusieurs minutes la première fois" title="Étude d'implantation : plusieurs minutes la première fois">
+                {fluxPending ? "L'étude lit la rue…" : "Lancer l'étude d'implantation"}
               </button>
             )}
           </div>
@@ -972,8 +972,8 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
   });
   const flux = useMutation({
     mutationFn: (nom) => base44.request("POST", `/api/alx/villes/${villeId}/rues/${encodeURIComponent(nom)}/flux`, { body: {} }),
-    onSuccess: (r, nom) => { toast.success(`${nom} : flux ${String(r.flux.note).replace(".", ",")} sur 5`, { description: `piéton ${r.flux.pieton ?? "—"}, voiture ${r.flux.voiture ?? "—"}${r.flux.du_cache ? " (étude déjà faite, aucun crédit)" : ""}` }); rafraichir(); },
-    onError: (e) => toast.error(e?.message || "Data-B n'a pas rendu le flux"),
+    onSuccess: (r, nom) => { toast.success(`${nom} : flux ${String(r.flux.note).replace(".", ",")} sur 5`, { description: `piéton ${r.flux.pieton ?? "—"}, voiture ${r.flux.voiture ?? "—"}${r.flux.du_cache ? " (étude déjà faite)" : ""}` }); rafraichir(); },
+    onError: (e) => toast.error(e?.message || "L'étude n'a pas rendu le flux"),
   });
 
   const maintenant = enCeMoment(p, rues);

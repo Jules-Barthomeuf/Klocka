@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 
 // Les chiffres du secteur d'un projet, lus par le serveur (voir
 // server/projet-secteur.js) : agglomération, centre-ville, résidentiel du
-// Figaro, rue selon Data-B, flux et commercialité en étoiles.
+// Figaro, rue selon ALX, flux et commercialité en étoiles.
 
 // L'espace fine insécable du format français disparaît presque dans cette
 // police : une espace insécable ordinaire garde les millions lisibles.
@@ -96,10 +96,10 @@ export function chiffresSecteur(donnees) {
     f?.commercialite && {
       valeur: <Etoiles {...f.commercialite} />,
       label: "Commercialité",
-      info: `Note Data-B du tronçon${f.troncon ? ` : ${f.troncon}` : ""}.`,
+      info: `Note du tronçon${f.troncon ? ` : ${f.troncon}` : ""}.`,
     },
-    f?.pieton && { valeur: <Etoiles {...f.pieton} />, label: "Flux piéton", info: "Estimation Data-B du passage piéton dans la zone." },
-    f?.voiture && { valeur: <Etoiles {...f.voiture} />, label: "Flux voiture", info: "Estimation Data-B du trafic automobile dans la zone." },
+    f?.pieton && { valeur: <Etoiles {...f.pieton} />, label: "Flux piéton", info: "Estimation du passage piéton dans la zone, pas un comptage." },
+    f?.voiture && { valeur: <Etoiles {...f.voiture} />, label: "Flux voiture", info: "Estimation du trafic automobile d'après la classe de la voie." },
   ].filter(Boolean);
 }
 

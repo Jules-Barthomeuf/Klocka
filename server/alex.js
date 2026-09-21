@@ -1,8 +1,8 @@
 // Alex — l'agent qui fait la recherche de marché à votre place.
 //
-// L'équipe ouvrait trois services à la main, l'un après l'autre : Data-B pour
-// la valeur locative de la rue puis les cessions de fonds, Equimmox pour les
-// baux comparables, Le Figaro pour le résidentiel. Quatre lectures, un quart
+// L'équipe ouvrait trois services à la main, l'un après l'autre : la valeur
+// locative de la rue puis les cessions de fonds, Equimmox pour les baux
+// comparables, Le Figaro pour le résidentiel. Quatre lectures, un quart
 // d'heure, et autant d'occasions d'en oublier une.
 //
 // Alex pose désormais des QUESTIONS plutôt que d'ouvrir des services : « que
@@ -98,7 +98,7 @@ async function chercher(dealId, index, travail, { user, forcer, sources = null }
   const adresse = adresseDe(lot);
   if (!adresse) throw new Error('Aucune adresse sur ce lot : renseignez-la avant de lancer Alex.');
   const surface = Number(lot.lot?.surface_m2?.valeur) > 0 ? Number(lot.lot.surface_m2.valeur) : null;
-  // L'activité du locataire guide l'étude d'implantation de Data-B ; sans
+  // L'activité du locataire guide l'étude d'implantation ; sans
   // elle, l'étude porte sur « Tous les commerces ».
   const activite = String(lot.lot?.locataire_activite?.valeur || '').trim() || null;
 

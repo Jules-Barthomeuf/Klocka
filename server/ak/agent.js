@@ -21,6 +21,7 @@ import { APP_URL_PROD } from '../contexte.js';
 import { QUESTIONS, valeursParDefaut } from '../kdata-questions.js';
 import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
 import { COMPTE } from './chat.js';
+import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx } from './outils.js';
 
 const AGENT = 'ak';
 // Seize messages de mémoire : au-delà, chaque demande relit un roman qu'elle
@@ -29,7 +30,7 @@ const MAX_MESSAGES = 16;
 // AK peut tourner sur un modèle moins cher que le reste de la plateforme :
 // il traduit des phrases courtes en appels d'outils, ce n'est pas la lecture
 // d'un bail. Vide : le modèle de la configuration.
-const MODELE = (process.env.AK_MODELE || '').trim() || null;
+export const MODELE = (process.env.AK_MODELE || '').trim() || null;
 const ici = path.dirname(fileURLToPath(import.meta.url));
 const APP_URL = APP_URL_PROD || 'http://localhost:5173';
 
@@ -39,7 +40,7 @@ export const CONSIGNE = fs.readFileSync(path.join(ici, 'consigne.md'), 'utf8');
 // Les outils de l'assistant qu'AK reprend. Pas l'envoi de mail : décidé. Pas
 // non plus son creer_dossier, qui enchaîne CRM, Monday et promesse de
 // documents : dans le chat, « crée un dossier » crée un dossier, rien d'autre.
-const EXCLUS = new Set(['envoyer_mail', 'preparer_mail', 'creer_dossier']);
+const EXCLUS = new Set(['envoyer_mail', 'creer_dossier']);
 const NOMS_KDATA = { kzoning: 'K-Zoning', kexpertise: 'K-Expertise', kestimation: 'Estimation', kprospective: 'K-Prospective', kfoncier: 'K-Foncier', 'valeur-locative': 'Valeur locative', kvacance: 'K-Vacance', ktransactions: 'K-Transactions' };
 
 const OUTILS_AK = [
@@ -63,7 +64,37 @@ const OUTILS_AK = [
   {
     name: 'analyser_fiche',
     description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum (« crée ce dossier », « fais la pré-analyse ») : lecture, extraction du bien, synthèse. La fiche est soit une pièce jointe (donner son chemin tel qu'il est donné dans le message), soit collée dans le message lui-même (mettre texte_du_message à vrai : le texte complet du message est pris, inutile de le recopier). Une minute environ.",
-    input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, texte_du_message: { type: 'boolean', description: 'vrai quand la fiche est le texte du message' } } },
+    input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, texte_du_message: { type: 'boolean', description: 'vrai quand la fiche est le texte du message' }, texte: { type: 'string', description: 'la fiche recopiée par toi, quand elle est sur une image (capture d\'un mail, d\'une annonce) : tout ce que tu y lis, sans rien inventer' } } },
+  },
+  {
+    name: 'verifier_renta',
+    description: "Le couperet : ça tourne, c'est limite, ou c'est dead, avec les seuils de l'équipe (rendement acte en main, bail restant, taux d'effort si le CA est connu). Chercher le dossier ou le projet d'abord.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, projet_id: { type: 'string' } } },
+  },
+  {
+    name: 'chercher_biens',
+    description: "Cherche parmi les dossiers et projets de la plateforme ceux qui répondent à des critères : ville, prix max ou min, rendement FAI minimum en %, bail restant minimum en années, surface minimum, activité. Pour « t'as des murs à Lyon sous 500 k avec un bail de plus de 6 ans ? ».",
+    input_schema: { type: 'object', properties: { ville: { type: 'string' }, prix_max: { type: 'number' }, prix_min: { type: 'number' }, rendement_min: { type: 'number' }, bail_min_ans: { type: 'number' }, surface_min: { type: 'number' }, activite: { type: 'string' } } },
+  },
+  {
+    name: 'lire_piece',
+    description: "Lit le texte d'une pièce jointe (PDF ou texte) sans rien créer, pour la résumer ou répondre dessus (« c'est quoi ce truc ? »).",
+    input_schema: { type: 'object', properties: { chemin: { type: 'string' } }, required: ['chemin'] },
+  },
+  {
+    name: 'chercher_cible',
+    description: "Cherche une cible ALX (un commerce repéré en prospection) par son enseigne, son adresse ou sa ville. À faire avant brouillon_proprietaire.",
+    input_schema: { type: 'object', properties: { recherche: { type: 'string' } }, required: ['recherche'] },
+  },
+  {
+    name: 'brouillon_proprietaire',
+    description: "Rédige le brouillon du premier mail ou courrier au propriétaire d'une cible ALX, et le rend pour le coller dans le chat. Rien n'est envoyé.",
+    input_schema: { type: 'object', properties: { cible_id: { type: 'string' }, canal: { type: 'string', enum: ['mail', 'courrier'] } }, required: ['cible_id'] },
+  },
+  {
+    name: 'lancer_alx',
+    description: "Lance la prospection ALX d'une ville (« prospecte Antibes, emplacements n°2 ») : rues, commerces, propriétaires, en tâche de fond ; AK préviendra quand c'est fini. classes : les emplacements voulus, 1, 1.5 (1 bis) ou 2 ; vide : tous.",
+    input_schema: { type: 'object', properties: { ville: { type: 'string' }, code_postal: { type: 'string' }, classes: { type: 'array', items: { type: 'number' } }, budget: { type: 'number', description: 'budget du client en euros, pour mémoire' } }, required: ['ville'] },
   },
   {
     name: 'ajouter_document',
@@ -152,8 +183,8 @@ export function decrireOutilsKdata() {
  * tâches qui continuent après la réponse : c'est la veille qui les suit.
  */
 export async function executerOutil({ name, input }, user, { fond = () => {}, message = null } = {}) {
-  if (name === 'analyser_fiche' && input.texte_du_message && !input.chemin) {
-    const texte = String(message?.texte || '').trim();
+  if (name === 'analyser_fiche' && (input.texte_du_message || input.texte) && !input.chemin) {
+    const texte = String(input.texte || message?.texte || '').trim();
     if (texte.length < 80) return { ok: false, error: 'Le message ne contient pas de fiche à lire.' };
     const { analyserFiche } = await import('../deal/index.js');
     const d = await analyserFiche({ texte }, { user });
@@ -189,6 +220,25 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     const r = await deposerDocument(input.deal_id, fichier, { user });
     if (!r.ok) return r;
     return { ok: true, type: r.type || null, statut: r.deal?.statut || null, lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
+  }
+  if (name === 'verifier_renta') return verifierRenta(input);
+  if (name === 'chercher_biens') { const biens = chercherBiens(input); return { biens, nombre: biens.length }; }
+  if (name === 'lire_piece') {
+    const chemin = String(input.chemin || '');
+    if (!chemin.startsWith(CHEMIN_UPLOADS) || !fs.existsSync(chemin)) return { ok: false, error: 'Pièce jointe introuvable : elle doit venir du message.' };
+    return lirePiece(chemin);
+  }
+  if (name === 'chercher_cible') { const cibles = chercherCibles(input.recherche); return { cibles, nombre: cibles.length }; }
+  if (name === 'brouillon_proprietaire') {
+    const { redigerBrouillon } = await import('../alx/enrichir.js');
+    const r = await redigerBrouillon(input.cible_id, { canal: input.canal || null, user });
+    return { ok: true, brouillon: r.brouillon, enseigne: r.cible?.enseigne || null, proprietaire: r.cible?.foncier?.choix?.nom || null };
+  }
+  if (name === 'lancer_alx') {
+    const r = await lancerAlx({ ville: input.ville, code_postal: input.code_postal || null, classes: input.classes || null, user });
+    if (!r.ok) return r;
+    fond({ genre: 'alx', libelle: `la prospection ALX de ${r.nom}${input.classes?.length ? ` (emplacements ${input.classes.map((c) => (c === 1.5 ? '1 bis' : c)).join(', ')})` : ''}${input.budget ? `, budget ${Math.round(input.budget / 1000)} k` : ''}`, ville_id: r.ville_id });
+    return { ok: true, note: 'La prospection tourne ; AK préviendra dans le chat quand elle sera finie.', lien: lien(`/alx/villes/${r.ville_id}`) };
   }
   if (name === 'creer_client_monday') {
     const { creerClientMonday } = await import('../deal/monday-sync.js');
@@ -254,12 +304,13 @@ export async function produirePrez(projetId) {
   fs.mkdirSync(dossierPres, { recursive: true });
   fs.writeFileSync(path.join(dossierPres, nomFichier), buffer);
   const pptx = lien(`/uploads/presentations/${nomFichier}`);
+  const chemin = path.join(dossierPres, nomFichier);
   try {
     const { uploaderEnSlides } = await import('../google-drive.js');
     const r = await uploaderEnSlides(COMPTE, { nom: `Projet de financement — ${projet.titre || projet.adresse_complete || projet.id}`, buffer });
-    return { slides: r.slides_url, pptx };
+    return { slides: r.slides_url, pptx, chemin, nom_fichier: nomFichier };
   } catch (e) {
-    return { slides: null, pptx, erreur_drive: e?.message || String(e) };
+    return { slides: null, pptx, chemin, nom_fichier: nomFichier, erreur_drive: e?.message || String(e) };
   }
 }
 
@@ -284,6 +335,12 @@ export function texteDeFin(tache) {
     const ou = tache.deal_id ? ' rangé dans le dossier' : '';
     return `c'est bon, ${tache.libelle}${ou} :\n${lignes.join('\n')}`;
   }
+  if (tache.genre === 'alx') {
+    const r = tache.resultat || {};
+    if (tache.etat === 'ratee' || r.etat === 'erreur') return `dsl, ${tache.libelle} s'est arrêtée : ${r.erreur || 'sans détail'}`;
+    const piles = Object.entries(r.par_pile || {}).map(([p, n]) => `${n} à ${p === 'ecartee' ? 'écarter' : p}`).join(', ');
+    return `c'est bon, ${tache.libelle} est finie : ${r.rues || 0} rues, ${r.cibles || 0} cibles${piles ? ` (${piles})` : ''} ${lien(`/alx/villes/${tache.ville_id}`)}`;
+  }
   if (tache.genre === 'prez') {
     if (tache.resultat?.slides) return `📁 c'est fait, ${tache.libelle} est sur le Drive : ${tache.resultat.slides}`;
     return `${tache.libelle} est prête ici : ${tache.resultat?.pptx}${tache.resultat?.erreur_drive ? ` (le Drive a refusé : ${tache.resultat.erreur_drive})` : ''}`;
@@ -305,7 +362,10 @@ RÈGLES :
 2. « Crée le projet pour X » : chercher_dossier puis creer_projet_depuis_dossier. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 4. Une tâche de fond (K-Data, préz) : dis que c'est parti, sans annoncer de résultat. Tu préviendras toi-même dans le chat quand ce sera fini.
-5. Un mail : tu proposes le texte dans le chat, tu ne l'envoies jamais. Personne ne t'a donné ce droit.
+5. Un mail (« prépare le mail de relance pour l'agent de Dieppe ») : chercher_dossier puis preparer_mail ; tu colles l'objet et le corps rendus dans le chat, tels quels, et c'est quelqu'un de l'équipe qui l'envoie. Tu n'envoies jamais rien. Le brouillon au propriétaire d'une cible ALX (chercher_cible puis brouillon_proprietaire) se colle pareil.
+5bis. « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends le couperet en une ligne, cash : « ça tourne, 7,2 % AEM et 8 ans de bail » ou « c'est dead, 4,8 % AEM et le bail finit dans 14 mois ». Les seuils sont ceux de l'équipe, tu ne les discutes pas.
+5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
+5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas.
 7. Une action faite : UNE ligne, comme un collègue qui répond sur son téléphone. « C bon le dossier est créé et tout est dans monday bg ». Pas d'identifiant, pas de numéro d'item Monday, pas de date « par défaut », pas de rappel de ce que tu n'as pas fait, pas de « dis-moi si tu veux que… ». Le lien seulement si la personne en a besoin pour ouvrir un truc. Les réserves, les manques, les détails : uniquement si on te les demande.
 8. Si quelqu'un d'autre est mentionné dans la demande (« @Nora tu as fini ? »), tu peux le mentionner en écrivant son identifiant entre chevrons tel qu'il t'est donné : <users/123>. Ne mentionne pas la personne qui te parle : c'est déjà fait devant ta réponse.

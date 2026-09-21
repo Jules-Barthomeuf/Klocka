@@ -9,6 +9,8 @@
 //
 // Tout passe par l'API REST de Chat, avec le jeton du compte.
 
+import fs from 'fs';
+import path from 'path';
 import { Records, Meta } from '../db.js';
 import { accessTokenFor, storedAccount } from '../google-oauth.js';
 
@@ -156,6 +158,61 @@ export async function telechargerPiece(piece) {
   const r = await fetch(url, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) });
   if (!r.ok) throw new Error(`Google a répondu ${r.status} pour la pièce ${piece.nom}.`);
   return Buffer.from(await r.arrayBuffer());
+}
+
+/**
+ * Poste un fichier dans un espace : le contenu part d'abord chez Google
+ * (media.upload), puis un message le porte avec un texte.
+ */
+export async function envoyerFichier(espace, { chemin, nom = null, texte = '' }) {
+  const c = compteAk();
+  if (!c.ok) throw new Error(c.error);
+  const token = await accessTokenFor(Records.get('MailAccount', c.compte.id) || c.compte);
+  const nomFichier = nom || path.basename(chemin);
+  const contenu = fs.readFileSync(chemin);
+  const limite = `klocka${Date.now()}`;
+  const corps = Buffer.concat([
+    Buffer.from(`--${limite}\r\ncontent-type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ filename: nomFichier })}\r\n--${limite}\r\ncontent-type: application/octet-stream\r\n\r\n`),
+    contenu,
+    Buffer.from(`\r\n--${limite}--`),
+  ]);
+  const up = await fetch(`https://chat.googleapis.com/upload/v1/${espace}/attachments:upload?uploadType=multipart`, {
+    method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': `multipart/related; boundary=${limite}` }, body: corps, signal: AbortSignal.timeout(120000),
+  });
+  const reponse = await up.json().catch(() => ({}));
+  if (!up.ok || !reponse.attachmentDataRef) throw new Error(`Google Chat a refusé le fichier (${up.status}) : ${reponse.error?.message || 'sans détail'}`);
+  return appeler(`${espace}/messages`, { method: 'POST', body: { text: String(texte || '').slice(0, 4000), attachment: [{ attachmentDataRef: reponse.attachmentDataRef }] } }).then(lireMessage);
+}
+
+// Qui est qui dans le chat : le nom affiché de chaque personne vue, et son
+// identifiant Chat. C'est ce qui permet de la mentionner sans qu'elle ait
+// parlé dans ce message (le mot du matin, une relance).
+const CLE_PERSONNES = 'ak.personnes';
+export const personnes = () => { try { return JSON.parse(Meta.get(CLE_PERSONNES) || '{}'); } catch { return {}; } };
+export function retenirPersonne(auteur) {
+  if (!auteur?.nom || !auteur?.affiche) return;
+  const p = personnes();
+  if (p[auteur.affiche] === auteur.nom) return;
+  Meta.set(CLE_PERSONNES, JSON.stringify({ ...p, [auteur.affiche]: auteur.nom }));
+}
+
+/**
+ * La mention de quelqu'un désigné par un mail ou un nom (« nora.l@klocka.immo »,
+ * « Nora »), d'après les personnes déjà vues dans le chat et les comptes de
+ * la plateforme ; à défaut, son prénom en texte. Pure sur ses listes.
+ */
+export function mentionDe(qui, { vues = personnes(), utilisateurs = Records.filter('User', { role: 'admin' }) } = {}) {
+  const q = String(qui || '').trim();
+  if (!q) return '';
+  const bas = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const compte = utilisateurs.find((u) => bas(u.email) === bas(q)) || null;
+  const nomComplet = compte?.full_name || (q.includes('@') ? q.split('@')[0].split('.')[0] : q);
+  const mots = bas(nomComplet).split(/\s+/).filter(Boolean);
+  const vue = Object.entries(vues).find(([affiche]) => { const a = bas(affiche).split(/\s+/); return mots.length && mots.every((m) => a.includes(m)); })
+    || Object.entries(vues).find(([affiche]) => bas(affiche).split(/\s+/)[0] === mots[0]);
+  if (vue) return `<${vue[1]}>`;
+  const prenom = nomComplet.split(/\s+/)[0];
+  return prenom ? prenom.charAt(0).toUpperCase() + prenom.slice(1) : q;
 }
 
 /** « <users/123> » : la mention d'une personne dans un message. Pure. */

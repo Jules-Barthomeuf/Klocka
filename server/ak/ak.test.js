@@ -53,7 +53,7 @@ test("la consigne est le document de Jules, mot pour mot, puis le cadre de la pl
   assert.match(CONSIGNE, /Non je suis en train de faire autre chose rappelle-moi plus tard/);
   const c = consigne();
   assert.ok(c.startsWith(CONSIGNE));
-  assert.match(c, /tu ne l'envoies jamais/);
+  assert.match(c, /Tu n'envoies jamais rien/);
 });
 
 test("les outils d'AK : ceux de l'assistant sans l'envoi de mail, plus les siens", () => {
@@ -147,4 +147,55 @@ test("devant un pavé AK râle, et un oui court le remet au travail", async () =
   assert.equal(meriteUnRale({ texte: 'x'.repeat(2000) }, { seuil: 0 }), false, 'désactivé');
   for (const t of ['oui', 'Ouais vas-y', 'go', 'fais le stp', 'oui t\'es obligé', 'OK']) assert.equal(estUnOui(t), true, t);
   for (const t of ['non laisse', 'crée plutôt le projet de lorient', 'x'.repeat(80) + ' oui']) assert.equal(estUnOui(t), false, t);
+});
+
+test("le couperet : ça tourne, c'est limite, c'est dead, avec les seuils de l'équipe", async () => {
+  const { couperet, finDeBail, chercherBiens } = await import('./outils.js');
+  const le = new Date('2026-09-21');
+  const bon = couperet({ prix_fai: 1000000, loyer: 80000, bail_fin: new Date('2034-07-06') }, le);
+  assert.equal(bon.verdict, 'tourne');
+  assert.equal(bon.aem, 1075000);
+  assert.equal(bon.rendement_aem, 7.44);
+  assert.equal(bon.rendement_fai, 8);
+  assert.equal(bon.bail_restant_ans, 7.8);
+  assert.equal(couperet({ prix_fai: 1000000, loyer: 50000, bail_fin: new Date('2034-07-06') }, le).verdict, 'dead', 'rendement trop bas');
+  assert.equal(couperet({ prix_fai: 1000000, loyer: 80000, bail_fin: new Date('2028-06-01') }, le).verdict, 'limite', 'bail court');
+  assert.equal(couperet({ prix_fai: 1000000, loyer: 80000, bail_fin: new Date('2027-06-01'), ca: 400000 }, le).verdict, 'dead', "taux d'effort 20 %");
+  assert.equal(couperet({ prix_fai: 139000, loyer: 13560, honoraires_inclus: false, honoraires: 10000 }, le).aem, 160175);
+  assert.equal(couperet({ prix_fai: null, loyer: 1 }).verdict, null);
+  assert.equal(finDeBail('06/07/2034').toISOString().slice(0, 10), '2034-07-06');
+  assert.equal(finDeBail({ valeur: '2028-01-31' }).toISOString().slice(0, 10), '2028-01-31');
+  assert.equal(finDeBail('janvier 2028').toISOString().slice(0, 10), '2028-01-31');
+  assert.equal(finDeBail('fin 2030').toISOString().slice(0, 10), '2030-12-31');
+  assert.equal(finDeBail(''), null);
+
+  const deals = [
+    { deal_id: 'd1', nom: 'Lyon 3e', lots: [{ lot: { prix_fai: { valeur: 450000 }, loyer_annuel_ht_hc: { valeur: 36000 }, surface_m2: { valeur: 80 }, locataire_activite: { valeur: 'Boulangerie' }, bail_echeance: { valeur: '01/01/2034' }, adresse: { valeur: { ville: 'Lyon' } } } }] },
+    { deal_id: 'd2', nom: 'Lyon Part-Dieu', lots: [{ lot: { prix_fai: { valeur: 900000 }, loyer_annuel_ht_hc: { valeur: 60000 }, adresse: { valeur: { ville: 'Lyon' } } } }] },
+    { deal_id: 'd3', nom: 'Nice', archived: true, lots: [{ lot: { prix_fai: { valeur: 100000 }, adresse: { valeur: { ville: 'Lyon' } } } }] },
+  ];
+  const projets = [{ id: 'p1', titre: 'Devred - Firminy', ville_secteur_champ1: 'Firminy', prix_acquisition: 139000, loyer_annuel_ht: 13560, echeance_bail: '31/01/2028' }];
+  const r = chercherBiens({ ville: 'lyon', prix_max: 500000, bail_min_ans: 6 }, { deals, projets }, le);
+  assert.deepEqual(r.map((x) => x.id), ['d1']);
+  assert.equal(r[0].rendement, 8);
+  assert.equal(chercherBiens({}, { deals, projets }, le).length, 3, "l'archivé ne sort pas");
+  assert.equal(chercherBiens({ rendement_min: 9 }, { deals, projets }, le)[0].id, 'p1');
+});
+
+test("le mot du matin : jours ouvrés, une fois, après l'heure ; et l'on sait mentionner quelqu'un par son mail", async () => {
+  const { estLeMoment } = await import('./matin.js');
+  const { mentionDe } = await import('./chat.js');
+  const lundi = new Date('2026-09-21T09:00:00');
+  assert.equal(estLeMoment(lundi, { heure: '08:30', dernierJour: null }), true);
+  assert.equal(estLeMoment(new Date('2026-09-21T08:10:00'), { heure: '08:30', dernierJour: null }), false, 'trop tôt');
+  assert.equal(estLeMoment(lundi, { heure: '08:30', dernierJour: '2026-09-21' }), false, 'déjà fait');
+  assert.equal(estLeMoment(new Date('2026-09-20T10:00:00'), { heure: '08:30', dernierJour: null }), false, 'dimanche');
+  assert.equal(estLeMoment(lundi, { heure: '', dernierJour: null }), false, 'désactivé');
+  const vues = { 'Nora Lorinquer': 'users/5', 'Jules Barthomeuf': 'users/1' };
+  const utilisateurs = [{ email: 'nora.l@klocka.immo', full_name: 'Nora Lorinquer' }, { email: 'jules.b@klocka.immo', full_name: 'Jules Barthomeuf' }];
+  assert.equal(mentionDe('nora.l@klocka.immo', { vues, utilisateurs }), '<users/5>');
+  assert.equal(mentionDe('Nora', { vues, utilisateurs }), '<users/5>');
+  assert.equal(mentionDe('jules', { vues, utilisateurs }), '<users/1>');
+  assert.equal(mentionDe('marc@agence.fr', { vues, utilisateurs }), 'Marc', 'inconnu du chat : son prénom');
+  assert.equal(mentionDe('', { vues, utilisateurs }), '');
 });

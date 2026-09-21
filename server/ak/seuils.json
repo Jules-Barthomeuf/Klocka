@@ -1,0 +1,7 @@
+{
+  "_commentaire": "Les seuils du couperet « ça tourne / c'est dead » d'AK. Le rendement acte en main est le loyer annuel HT HC sur le prix FAI majoré des frais d'acquisition (frais_acquisition_pct). Entre « tourne » et « dead », c'est « limite ». Le taux d'effort ne se juge que si le chiffre d'affaires du locataire est connu.",
+  "frais_acquisition_pct": 7.5,
+  "rendement_aem": { "tourne": 7, "dead": 5.5 },
+  "bail_restant_ans": { "tourne": 3, "dead": 1 },
+  "taux_effort_pct": { "tourne": 10, "dead": 15 }
+}

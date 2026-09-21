@@ -10,7 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import { Records, Meta, CHEMIN_UPLOADS } from '../db.js';
 import { chatDemande } from '../google-oauth.js';
-import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, mention, telechargerPiece, NOM } from './chat.js';
+import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, envoyerFichier, mention, mentionDe, telechargerPiece, retenirPersonne, NOM } from './chat.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
 // La flemme : une fois sur AK_FLEMME, AK refuse et ne fait rien. Jamais deux
@@ -71,6 +71,18 @@ async function lancerPrez(tache) {
   }
 }
 
+/** Une prospection ALX : la tâche se ferme quand la ville n'est plus en cours. */
+function suivreAlx(tache) {
+  const v = Records.get('Ville', tache.ville_id);
+  if (!v) return Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: 'ville disparue' }, fini_le: new Date().toISOString() });
+  const p = v.parcours || {};
+  if (!p.etat || p.etat === 'en_cours') return;
+  const cibles = Records.filter('Cible', { ville_id: v.id });
+  const parPile = {};
+  for (const c of cibles) parPile[c.pile || 'autre'] = (parPile[c.pile || 'autre'] || 0) + 1;
+  Records.update(ENTITE_TACHE, tache.id, { etat: p.etat === 'fini' ? 'finie' : 'ratee', resultat: { etat: p.etat, cibles: cibles.length, par_pile: parPile, rues: (v.rues || []).length, erreur: p.etat === 'erreur' ? (p.journal || []).slice(-1)[0]?.texte || 'erreur' : null }, fini_le: new Date().toISOString() });
+}
+
 /** Les analyses K-Data d'une tâche : la tâche se ferme quand plus aucune ne tourne. */
 function suivreKdata(tache) {
   const analyses = (tache.ids || []).map((id) => Records.get('AnalyseKData', id)).filter(Boolean);
@@ -81,11 +93,18 @@ function suivreKdata(tache) {
 /** Les tâches finies sont annoncées une fois, là où on les a demandées. */
 async function annoncerLesTachesFinies() {
   const { texteDeFin } = await import('./agent.js');
-  for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) if (t.genre === 'kdata') suivreKdata(t);
+  for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) { if (t.genre === 'kdata') suivreKdata(t); if (t.genre === 'alx') suivreAlx(t); }
   for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) {
     const texte = t.etat === 'ratee' ? `dsl, ${t.libelle} a planté : ${t.resultat?.erreur || 'sans détail'}` : texteDeFin(t);
     try {
-      await envoyer(t.espace, `${mention(t.pour)} ${texte}`);
+      // La préz part en fichier dans le chat, en plus du lien : on l'ouvre
+      // sans passer par la plateforme.
+      if (t.genre === 'prez' && t.etat === 'finie' && t.resultat?.chemin && fs.existsSync(t.resultat.chemin)) {
+        try { await envoyerFichier(t.espace, { chemin: t.resultat.chemin, nom: t.resultat.nom_fichier, texte: `${mention(t.pour)} ${texte}` }); }
+        catch { await envoyer(t.espace, `${mention(t.pour)} ${texte}`); }
+      } else {
+        await envoyer(t.espace, `${mention(t.pour)} ${texte}`);
+      }
       Records.update(ENTITE_TACHE, t.id, { annoncee_le: new Date().toISOString() });
     } catch (e) {
       dernier.erreur = e?.message || String(e);
@@ -231,6 +250,8 @@ export async function relever() {
       const messages = await messagesDepuis(espace.nom, depuis);
       for (const m of messages) {
         if (m.le > plusRecent) plusRecent = m.le;
+        retenirPersonne(m.auteur);
+        for (const x of m.mentions) retenirPersonne(x);
         if (vus().includes(m.nom)) continue;
         noterVu(m.nom);
         if (!estPourAk(m, { direct: espace.type === 'DIRECT_MESSAGE' || enConversation(m) })) continue;
@@ -246,6 +267,7 @@ export async function relever() {
     Meta.set(CLE_DEPUIS, plusRecent);
     await reposterEnAttente();
     await annoncerLesTachesFinies();
+    await direLeMatin(suivis);
     dernier.le = new Date().toISOString();
     dernier.erreur = null;
     return { ok: true, espaces: suivis.length, traites };
@@ -255,6 +277,18 @@ export async function relever() {
   } finally {
     enCours = false;
   }
+}
+
+/** Le mot du matin, dans l'espace de l'équipe, une fois par jour ouvré. */
+async function direLeMatin(suivis) {
+  const { estLeMoment, motDuMatin, marquerFait } = await import('./matin.js');
+  if (!estLeMoment()) return;
+  const groupe = suivis.find((s) => s.type === 'SPACE');
+  if (!groupe) return;
+  marquerFait();
+  const { consigne, MODELE } = await import('./agent.js');
+  const texte = await motDuMatin({ mentionner: mentionDe, modele: MODELE, consigne: consigne() });
+  if (texte) await envoyer(groupe.nom, texte);
 }
 
 export const etatVeille = () => ({ ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours(), reponses_en_attente: Records.list(ENTITE_REPONSE).length });

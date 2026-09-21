@@ -23,7 +23,13 @@ import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
 import { COMPTE } from './chat.js';
 
 const AGENT = 'ak';
-const MAX_MESSAGES = 30;
+// Seize messages de mémoire : au-delà, chaque demande relit un roman qu'elle
+// paie, pour un chat où l'on parle d'une chose à la fois.
+const MAX_MESSAGES = 16;
+// AK peut tourner sur un modèle moins cher que le reste de la plateforme :
+// il traduit des phrases courtes en appels d'outils, ce n'est pas la lecture
+// d'un bail. Vide : le modèle de la configuration.
+const MODELE = (process.env.AK_MODELE || '').trim() || null;
 const ici = path.dirname(fileURLToPath(import.meta.url));
 const APP_URL = APP_URL_PROD || 'http://localhost:5173';
 
@@ -273,7 +279,7 @@ CE QUE TU SAIS FAIRE SUR LA PLATEFORME KLOCKA (${APP_URL})
 Tu as des outils. Le modèle ne décide de rien sur le fond : il traduit une phrase en appel d'outil, et le code agit. « Dossier » désigne un dossier de préanalyse (les documents reçus d'un agent) ; « projet » une fiche projet de la plateforme, créée à partir d'un dossier.
 
 RÈGLES :
-1. Cherche toujours avant d'agir (chercher_dossier, chercher_projet) : il te faut l'identifiant. Plusieurs résultats : liste-les et demande lequel. Aucun : dis-le, n'invente rien.
+1. Cherche toujours avant d'agir (chercher_dossier, chercher_projet) : il te faut l'identifiant. Plusieurs résultats : liste-les et demande lequel. Aucun : dis-le, n'invente rien. Une recherche, puis l'action : n'appelle pas verifier, etat_dossier ou etat_projet si on ne t'a rien demandé dessus, chaque appel coûte.
 2bis. Une pièce jointe (PDF) avec « crée ce dossier », « fais la pré-analyse », « mets ça sur la plateforme » : analyser_fiche avec le chemin donné, jamais creer_dossier à vide. Une fiche COLLÉE dans le message (un mémorandum, une annonce, des lignes de description du bien) avec la même demande : analyser_fiche avec texte_du_message, jamais creer_dossier. Une pièce jointe pour un dossier déjà là (bail, PV, RCP…) : ajouter_document. Sans pièce jointe, dis que tu n'as rien reçu.
 2. « Crée le projet pour X » : chercher_dossier puis creer_projet_depuis_dossier. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
@@ -353,6 +359,8 @@ export async function repondre(message) {
     system: consigne(),
     messages: historique,
     tools: OUTILS,
+    model: MODELE,
+    cache: true,
     onTool: async (appel) => {
       outils.push(appel.name);
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), message });

@@ -503,8 +503,11 @@ const MAX_TOOL_ROUNDS = 6;
  * @param {Array} opts.messages - [{role, content}]
  * @param {Array} opts.tools - [{name, description, input_schema}]
  * @param {function} opts.onTool - async ({name, input}) => resultObject
+ * @param {string} [opts.model] - un autre modèle que celui de la configuration (un agent bavard sur un modèle moins cher)
+ * @param {boolean} [opts.cache] - mettre la consigne et les outils en cache chez Anthropic : ils sont identiques
+ *   d'un appel à l'autre, et un jeton relu du cache coûte un dixième
  */
-export async function runAgent({ system, messages, tools = [], onTool }) {
+export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false }) {
   if (!llmEnabled) {
     return {
       text:
@@ -515,7 +518,7 @@ export async function runAgent({ system, messages, tools = [], onTool }) {
 
   return provider === 'gemini'
     ? runAgentGemini({ system, messages, tools, onTool })
-    : runAgentAnthropic({ system, messages, tools, onTool });
+    : runAgentAnthropic({ system, messages, tools, onTool, model, cache });
 }
 
 async function runAgentGemini({ system, messages, tools, onTool }) {
@@ -557,18 +560,24 @@ async function runAgentGemini({ system, messages, tools, onTool }) {
   return { text: 'Désolé, je n’ai pas pu terminer l’analyse (trop d’étapes).' };
 }
 
-async function runAgentAnthropic({ system, messages, tools, onTool }) {
+async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false }) {
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
+  const modele = model || ANTHROPIC_MODEL;
+  // Le cache se pose sur le dernier bloc stable : tout ce qui précède (les
+  // outils, puis la consigne) est relu au dixième du prix pendant cinq
+  // minutes. Les messages, eux, changent à chaque tour.
+  const systeme = cache && system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system;
+  const outils = cache && tools.length ? tools.map((t, i) => (i === tools.length - 1 ? { ...t, cache_control: { type: 'ephemeral' } } : t)) : tools;
 
   for (let i = 0; i < MAX_TOOL_ROUNDS; i++) {
     const resp = await anthropic.messages.create({
-      model: ANTHROPIC_MODEL,
+      model: modele,
       max_tokens: 16000,
-      ...(system ? { system } : {}),
-      ...(tools.length ? { tools } : {}),
+      ...(systeme ? { system: systeme } : {}),
+      ...(outils.length ? { tools: outils } : {}),
       messages: convo,
     });
-    compter(ANTHROPIC_MODEL, resp.usage);
+    compter(modele, resp.usage);
 
     if (resp.stop_reason === 'tool_use') {
       convo.push({ role: 'assistant', content: resp.content });

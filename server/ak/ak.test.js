@@ -199,3 +199,50 @@ test("le mot du matin : jours ouvrés, une fois, après l'heure ; et l'on sait m
   assert.equal(mentionDe('marc@agence.fr', { vues, utilisateurs }), 'Marc', 'inconnu du chat : son prénom');
   assert.equal(mentionDe('', { vues, utilisateurs }), '');
 });
+
+test("AK se propose : ce qui manque à un dossier, la phrase, les heures de bureau", async () => {
+  const { manques, phrase, heureDeBureau } = await import('./proactif.js');
+  const deal = { deal_id: 'd', nom: 'Debieu', contact_agent_email: null, projet_id: null };
+  const liste = manques(deal, { manquants: [{ type: 'bail', libelle: 'le bail commercial' }, { type: 'rcp', libelle: 'le règlement de copropriété' }], analyses: [], engagementsEnRetard: [{ quoi: 'PV promis', echeance: '2026-09-15' }] });
+  assert.deepEqual(liste.slice(0, 3), ['il manque bail commercial, règlement de copropriété', "pas d'agent rattaché", 'aucune analyse K-Data']);
+  assert.equal(liste.length, 5);
+  assert.equal(manques(deal, { manquants: [{}, {}, {}, {}, {}], analyses: [{}] })[0], 'aucun doc reçu');
+  assert.match(phrase(deal, liste, '<users/1>'), /^<users\/1> le dossier Debieu est pas complet : il manque bail commercial.*tu me files l'agent et je relance \?$/);
+  assert.deepEqual(manques({ contact_agent_email: 'a@b.fr', projet_id: 'p' }, { analyses: [{}], manquants: [] }), []);
+  assert.equal(heureDeBureau(new Date('2026-09-21T10:00:00')), true);
+  assert.equal(heureDeBureau(new Date('2026-09-21T20:00:00')), false);
+  assert.equal(heureDeBureau(new Date('2026-09-19T10:00:00')), false, 'samedi');
+});
+
+test("les corrections et les compliments se reconnaissent, et deviennent des exemples", async () => {
+  const { estUneCorrection, estUnCompliment, leconsPourConsigne, souvenirsPourConsigne } = await import('./lecons.js');
+  for (const t of ['non c\'est pas ça', 'Non', 'pas comme ça', 't\'as tout faux', 'trop corporate', 'refais']) assert.equal(estUneCorrection(t), true, t);
+  for (const t of ['nickel', 'parfait merci', 'bg', 'c\'est ça']) { assert.equal(estUnCompliment(t), true, t); assert.equal(estUneCorrection(t), false, t); }
+  assert.equal(estUneCorrection('crée le projet de nice'), false);
+  assert.equal(estUnCompliment('merci de créer le projet de nice stp et de le pousser dans monday avec tout ce qu\'il faut dedans, puis de me faire la préz, et aussi une analyse k-data complète'), false, 'trop long pour un compliment');
+  const bloc = leconsPourConsigne([{ verdict: 'correction', par: 'Jules', demande: 'crée un dossier', reponse: 'Dossier créé : /Analyse?deal_id=…', retour: 'trop corporate' }, { verdict: 'bien', par: 'Max', demande: 'pousse le', reponse: 'c bon', retour: 'nickel' }]);
+  assert.match(bloc, /CE QUE L'ÉQUIPE T'A APPRIS/);
+  assert.match(bloc, /Jules a corrigé : « trop corporate »/);
+  assert.match(bloc, /Bien : à « pousse le »/);
+  assert.equal(leconsPourConsigne([]), '');
+  assert.match(souvenirsPourConsigne([{ sujet: 'Devred', fait: 'c\'est Firminy', par: 'Jules' }]), /\[Devred\] c'est Firminy \(Jules\)/);
+});
+
+test("le bilan d'AK compte ce qu'il a fait, pour qui, et ce qu'on lui a repris", async () => {
+  const { bilanDe, bilanEnMarkdown } = await import('./bilan.js');
+  const le = new Date().toISOString();
+  const b = bilanDe({
+    actions: [{ outil: 'creer_dossier', par: 'jules.b@klocka.immo (AK pour Jules)', le }, { outil: 'creer_dossier', par: 'maxime.p@klocka.immo (AK pour Max)', le, echec: true }, { outil: 'pousser_dossier_monday', par: 'jules.b@klocka.immo', le }],
+    couts: [{ operation: 'ak', cout: 0.03, le }, { operation: 'ak', cout: 0.01, le }, { operation: 'assistant', cout: 5, le }],
+    taches: [{ genre: 'kdata', etat: 'finie', cree_le: le }, { genre: 'prez', etat: 'ratee', cree_le: le }],
+    lecons: [{ verdict: 'correction', le }, { verdict: 'bien', le }],
+  });
+  assert.equal(b.demandes, 2);
+  assert.equal(b.cout_total, 0.04);
+  assert.equal(b.actions, 2, "l'action de l'assistant de la plateforme ne compte pas");
+  assert.equal(b.echecs, 1);
+  assert.deepEqual(b.par_personne, [{ qui: 'Jules', n: 1 }, { qui: 'Max', n: 1 }]);
+  assert.equal(b.taux_correction, 50);
+  assert.match(bilanEnMarkdown(b), /2 demandes, 2 actions faites \(1 ratées\)/);
+  assert.match(bilanEnMarkdown(bilanDe({})), /Personne ne lui a parlé/);
+});

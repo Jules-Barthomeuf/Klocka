@@ -23,6 +23,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { synthese } from './journal-usage.js';
 import { coutsParAction, euros, syntheseCouts } from './llm-couts.js';
+import { bilanAk, bilanEnMarkdown } from './ak/bilan.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RACINE = path.resolve(__dirname, '..');
@@ -41,7 +42,8 @@ export function etatPlateforme(jours = 30) {
   const usage = synthese(jours);
   const couts = syntheseCouts(jours, { limite: 1 });
   const gestes = coutsParAction(jours);
-  return { jours, le: new Date().toISOString(), usage, couts, gestes };
+  const ak = bilanAk(jours);
+  return { jours, le: new Date().toISOString(), usage, couts, gestes, ak };
 }
 
 /** Le digest, en markdown : court, daté, et sans rien qu'on ne puisse vérifier. */
@@ -112,6 +114,8 @@ export function enMarkdown(etat) {
     l.push(`Déjà en place, à ne pas défaire : ${poses.map((x) => x.titre.toLowerCase()).join(' · ')}.`);
     l.push('');
   }
+
+  if (etat.ak) l.push(bilanEnMarkdown(etat.ak));
 
   l.push('## Ce qu\'il faut en retenir');
   l.push('');

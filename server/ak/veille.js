@@ -10,6 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import { Records, Meta, CHEMIN_UPLOADS } from '../db.js';
 import { chatDemande } from '../google-oauth.js';
+import { noterEchange, apprendre } from './lecons.js';
 import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, envoyerFichier, mention, mentionDe, telechargerPiece, retenirPersonne, NOM } from './chat.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
@@ -231,6 +232,7 @@ async function traiter(message) {
   }
   await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null);
   ouvrirAttente(message);
+  noterEchange({ espace: message.espace, auteur: message.auteur, demande: texte, reponse: r.texte });
   dernier.repondus += 1;
 }
 
@@ -254,6 +256,8 @@ export async function relever() {
         for (const x of m.mentions) retenirPersonne(x);
         if (vus().includes(m.nom)) continue;
         noterVu(m.nom);
+        // « non c'est pas ça », « nickel » : une leçon, pas une demande.
+        if (apprendre({ espace: m.espace, auteur: m.auteur, texte: sansMention(m) })) continue;
         if (!estPourAk(m, { direct: espace.type === 'DIRECT_MESSAGE' || enConversation(m) })) continue;
         try { await traiter(m); traites += 1; } catch (e) {
           dernier.erreur = e?.message || String(e);
@@ -268,6 +272,7 @@ export async function relever() {
     await reposterEnAttente();
     await annoncerLesTachesFinies();
     await direLeMatin(suivis);
+    await seProposer(suivis);
     dernier.le = new Date().toISOString();
     dernier.erreur = null;
     return { ok: true, espaces: suivis.length, traites };
@@ -289,6 +294,18 @@ async function direLeMatin(suivis) {
   const { consigne, MODELE } = await import('./agent.js');
   const texte = await motDuMatin({ mentionner: mentionDe, modele: MODELE, consigne: consigne() });
   if (texte) await envoyer(groupe.nom, texte);
+}
+
+/** AK se propose : un dossier incomplet, dit une fois, aux heures de bureau. */
+async function seProposer(suivis) {
+  const { estDu, aSignaler, marquer } = await import('./proactif.js');
+  if (!estDu()) return;
+  const groupe = suivis.find((s) => s.type === 'SPACE');
+  if (!groupe) return;
+  const liste = await aSignaler({ mentionner: mentionDe });
+  if (!liste.length) return;
+  for (const s of liste) await envoyer(groupe.nom, s.texte);
+  marquer(liste.map((s) => s.deal_id));
 }
 
 export const etatVeille = () => ({ ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours(), reponses_en_attente: Records.list(ENTITE_REPONSE).length });

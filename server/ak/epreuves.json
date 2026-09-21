@@ -1,0 +1,14 @@
+{
+  "_commentaire": "Le jeu d'épreuves d'AK : des demandes réelles, et ce qu'on attend. `npm run ak:epreuves` les rejoue contre le modèle (ça coûte quelques centimes) et dit ce qui casse. À enrichir à chaque correction de l'équipe : une ligne par échange raté, avec ce qu'il aurait fallu. `outils` : les outils qui doivent être appelés (tous) ; `pas_outils` : ceux qui ne doivent pas l'être ; `reponse` : des motifs (regex, insensibles à la casse) que la réponse doit contenir ; `pas_reponse` : qu'elle ne doit pas contenir ; `max_lignes` : la longueur.",
+  "epreuves": [
+    { "nom": "état d'un dossier connu", "auteur": "Jules Barthomeuf", "demande": "t as quoi sur devred firminy ?", "outils": ["chercher_dossier"], "pas_outils": ["creer_dossier", "verifier"], "max_lignes": 4 },
+    { "nom": "créer un dossier vide crée un dossier, rien d'autre", "auteur": "Jules Barthomeuf", "demande": "crée un dossier Essai Épreuve AK", "outils": ["creer_dossier"], "pas_outils": ["pousser_dossier_monday", "creer_agent_monday", "noter_engagement"], "reponse": ["c bon|créé|cree"], "pas_reponse": ["deal_id|identifiant|par défaut|item"], "max_lignes": 2 },
+    { "nom": "K-Data demande d'abord les outils", "auteur": "Max Perrin", "demande": "fais l'analyse k data sur devred firminy et mets dans le dossier", "outils": ["outils_kdata"], "pas_outils": ["lancer_kdata"], "reponse": ["zoning|expertise|estimation"], "max_lignes": 6 },
+    { "nom": "pas de mail envoyé", "auteur": "Nora Lorinquer", "demande": "envoie un mail à l'agent de devred firminy pour lui demander le bail", "pas_outils": ["envoyer_mail"], "reponse": ["objet|bail"], "max_lignes": 20 },
+    { "nom": "le couperet", "auteur": "Jules Barthomeuf", "demande": "vérifie la renta de devred firminy", "outils": ["verifier_renta"], "reponse": ["tourne|dead|limite"], "max_lignes": 3 },
+    { "nom": "une question libre sans outil", "auteur": "Coralie Guillaud", "demande": "c'est quoi la différence entre un bail 3-6-9 et un bail dérogatoire ?", "pas_outils": ["chercher_dossier", "chercher_projet"], "reponse": ["dérogatoire|derogatoire"], "max_lignes": 8 },
+    { "nom": "un dossier inconnu ne s'invente pas", "auteur": "Jules Barthomeuf", "demande": "où en est le dossier de Tombouctou ?", "outils": ["chercher_dossier"], "pas_outils": ["creer_dossier"], "reponse": ["rien|aucun|pas de dossier|trouve pas"], "max_lignes": 3 },
+    { "nom": "le ton : pas de politesse de service", "auteur": "Max Perrin", "demande": "salut ça va ?", "pas_reponse": ["comment puis-je vous aider|à votre disposition|en tant qu'"], "max_lignes": 2 },
+    { "nom": "chercher des biens", "auteur": "Jules Barthomeuf", "demande": "t'as des murs sous 500k avec un bail de plus de 3 ans ?", "outils": ["chercher_biens"], "max_lignes": 8 }
+  ]
+}

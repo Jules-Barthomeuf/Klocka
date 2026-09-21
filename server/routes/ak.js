@@ -24,6 +24,18 @@ export function monterAk(app) {
     ok(res, await relever());
   }));
 
+  // Ce qu'il a servi, et ce que l'équipe lui a appris.
+  app.get('/api/ak/bilan', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { bilanAk } = await import('../ak/bilan.js');
+    ok(res, bilanAk(Number(req.query.jours) || 30));
+  }));
+  app.get('/api/ak/lecons', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { lecons, souvenirs } = await import('../ak/lecons.js');
+    ok(res, { lecons: lecons(100), souvenirs: souvenirs(100) });
+  }));
+
   // Les espaces où le compte est membre : pour régler AK_ESPACE sans deviner.
   app.get('/api/ak/espaces', wrap(async (req, res) => {
     if (!admin(req, res)) return;

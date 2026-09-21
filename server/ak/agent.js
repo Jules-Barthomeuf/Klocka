@@ -22,6 +22,7 @@ import { QUESTIONS, valeursParDefaut } from '../kdata-questions.js';
 import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
 import { COMPTE } from './chat.js';
 import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx } from './outils.js';
+import { leconsPourConsigne, souvenirsPourConsigne, retenir, oublier, souvenirs } from './lecons.js';
 
 const AGENT = 'ak';
 // Seize messages de mémoire : au-delà, chaque demande relit un roman qu'elle
@@ -65,6 +66,21 @@ const OUTILS_AK = [
     name: 'analyser_fiche',
     description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum (« crée ce dossier », « fais la pré-analyse ») : lecture, extraction du bien, synthèse. La fiche est soit une pièce jointe (donner son chemin tel qu'il est donné dans le message), soit collée dans le message lui-même (mettre texte_du_message à vrai : le texte complet du message est pris, inutile de le recopier). Une minute environ.",
     input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, texte_du_message: { type: 'boolean', description: 'vrai quand la fiche est le texte du message' }, texte: { type: 'string', description: 'la fiche recopiée par toi, quand elle est sur une image (capture d\'un mail, d\'une annonce) : tout ce que tu y lis, sans rien inventer' } } },
+  },
+  {
+    name: 'retenir',
+    description: "Retient un fait durable ou une préférence pour les prochaines fois (« le Devred c'est Firminy », « Max veut pas de Monday sans demander », « le client Dupont a 300 k »). Pas les demandes du moment, pas ce qui est déjà dans la plateforme.",
+    input_schema: { type: 'object', properties: { sujet: { type: 'string', description: 'de qui ou de quoi : une personne, un dossier, un client, l\'équipe' }, fait: { type: 'string' } }, required: ['fait'] },
+  },
+  {
+    name: 'oublier',
+    description: "Efface un souvenir devenu faux. Prend l'identifiant vu dans souvenirs.",
+    input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+  },
+  {
+    name: 'souvenirs',
+    description: "La liste de ce qu'AK a retenu, avec les identifiants, pour en effacer un.",
+    input_schema: { type: 'object', properties: {} },
   },
   {
     name: 'verifier_renta',
@@ -221,6 +237,9 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     if (!r.ok) return r;
     return { ok: true, type: r.type || null, statut: r.deal?.statut || null, lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
   }
+  if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null });
+  if (name === 'oublier') return oublier(input.id);
+  if (name === 'souvenirs') return { souvenirs: souvenirs().map((s) => ({ id: s.id, sujet: s.sujet, fait: s.fait })) };
   if (name === 'verifier_renta') return verifierRenta(input);
   if (name === 'chercher_biens') { const biens = chercherBiens(input); return { biens, nombre: biens.length }; }
   if (name === 'lire_piece') {
@@ -378,8 +397,12 @@ CE QU'IL NE FAUT PAS ÉCRIRE (trop corporate) :
 CE QU'IL FAUT ÉCRIRE À LA PLACE :
 « c bon le dossier Ben est créé et tout est dans monday bg »`;
 
-/** La consigne complète : le document de Jules, puis le cadre technique. */
-export const consigne = () => CONSIGNE + CADRE;
+/**
+ * La consigne complète : le document de Jules, le cadre technique, puis ce
+ * que l'équipe lui a appris et ce qu'il a retenu. Les deux derniers blocs
+ * changent rarement : ils restent en cache avec le reste.
+ */
+export const consigne = () => CONSIGNE + CADRE + leconsPourConsigne() + souvenirsPourConsigne();
 
 function fil(espace) {
   return Conversations.list(AGENT).find((c) => c.metadata?.espace === espace) || Conversations.create({ agent_name: AGENT, metadata: { espace } });

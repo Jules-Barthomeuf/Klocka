@@ -9,6 +9,7 @@
     "server": "node server/index.js",
     "import": "node server/import.js",
     "etat": "node server/etat-plateforme.js",
+    "ak:epreuves": "node server/ak/epreuves.js",
     "build": "vite build",
     "lint": "eslint .",
     "test": "node --test server/*.test.js server/alx/*.test.js server/deal/*.test.js server/marche/*.test.js",

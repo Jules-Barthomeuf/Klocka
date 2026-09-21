@@ -818,10 +818,11 @@ export function monterPreanalyse(app) {
     ok(res, { resultat: r.resultat });
   }));
 
-  // Data-B, transactions de fonds : ce qui s'est vendu autour du bien, à quel
-  // prix, pour quelles activités. La rue est comptée à part.
+  // BODACC, cessions de fonds : ce qui s'est vendu autour du bien, à quel
+  // prix, pour quelles activités. La rue est comptée à part. Le chemin garde
+  // son ancien nom pour les écrans qui l'appellent.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/data-b/transactions', wrap(async (req, res) => {
-    const { transactionsFonds } = await import('../data-b-transactions.js');
+    const { cessionsAutour: transactionsFonds } = await import('../cessions-fonds.js');
     const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const index = Number(req.params.index) || 0;

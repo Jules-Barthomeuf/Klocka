@@ -25,7 +25,7 @@ import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
 import SectionBien from "@/components/preanalyse/SectionBien";
 import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
-import TransactionsFondsDataB from "@/components/preanalyse/TransactionsFondsDataB";
+import TransactionsFonds from "@/components/preanalyse/TransactionsFonds";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
 import JournalAnalyste from "@/components/preanalyse/JournalAnalyste";
 import JournalQuestion from "@/components/preanalyse/JournalQuestion";

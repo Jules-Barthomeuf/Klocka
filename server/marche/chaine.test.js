@@ -18,7 +18,7 @@ import { ErreurSource } from './erreurs.js';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-test-'));
 const vraiEquimmox = (await import('./connecteurs/equimmox.js')).default;
 const vraiDataB = (await import('./connecteurs/data-b-valeur-locative.js')).default;
-const vraiTransactions = (await import('./connecteurs/data-b-transactions.js')).default;
+const vraiTransactions = (await import('./connecteurs/bodacc-cessions.js')).default;
 const vraiFigaro = (await import('./connecteurs/figaro.js')).default;
 const vraiImplantation = (await import('./connecteurs/data-b-implantation.js')).default;
 const vraiDvf = (await import('./connecteurs/dvf.js')).default;
@@ -108,7 +108,7 @@ function registre({ equimmox, dataB, figaro, transactions, implantation, dvf, bo
   return {
     equimmox: equimmox || doublure(vraiEquimmox, { resultat: EQUIMMOX_OK }),
     'data-b-valeur-locative': dataB || doublure(vraiDataB, { resultat: DATAB_OK }),
-    'data-b-transactions': transactions || doublure(vraiTransactions, { resultat: TRANSACTIONS_OK }),
+    'bodacc-cessions': transactions || doublure(vraiTransactions, { resultat: TRANSACTIONS_OK }),
     figaro: figaro || doublure(vraiFigaro, { resultat: FIGARO_OK }),
     'data-b-implantation': implantation || doublure(vraiImplantation, { resultat: IMPLANTATION_OK }),
     dvf: dvf || doublure(vraiDvf, { resultat: DVF_OK }),
@@ -166,7 +166,7 @@ test('la panne d’Equimmox ne coûte rien aux autres besoins', async () => {
   const equimmox = doublure(vraiEquimmox, { erreur: new ErreurSource('502', { statut: 502 }) });
   const r = await collecter(contexte, { connecteurs: registre({ equimmox }), ...sansAttente });
 
-  assert.equal(r.besoins.cessions_fonds.servi_par, 'data-b-transactions');
+  assert.equal(r.besoins.cessions_fonds.servi_par, 'bodacc-cessions');
   assert.equal(r.besoins.residentiel.servi_par, 'figaro');
   assert.ok(r.indicateurs.prix_fonds_commerce);
   assert.ok(r.indicateurs.prix_residentiel_m2);
@@ -291,7 +291,7 @@ test('la lecture avance à mesure, source par source', async () => {
   });
   assert.deepEqual(poses, [
     ['data-b-valeur-locative', 'valeur_locative', true],
-    ['data-b-transactions', 'transactions_fonds', true],
+    ['bodacc-cessions', 'transactions_fonds', true],
     ['figaro', 'prix_residentiel', true],
     ['dvf', 'ventes_dvf', true],
     ['bodacc', 'vitalite_rue', true],

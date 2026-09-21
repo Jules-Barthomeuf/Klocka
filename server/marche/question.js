@@ -191,7 +191,7 @@ export async function repondre(question, contexte = {}) {
         return { equimmox, data_b: dataB, note: 'Equimmox constate des baux signés ; Data-B estime. Un écart entre les deux mérite d’être signalé.' };
       }
       case 'cessions_de_fonds':
-        return lire('data-b-transactions', { adresse, rayon: 250 });
+        return lire('bodacc-cessions', { adresse, rayon: 250 });
       case 'residentiel':
         return lire('figaro', { adresse });
       case 'ventes_reelles':
@@ -226,7 +226,7 @@ function resume(cle, r) {
       return { bas: r.bas, moyenne: r.moyenne, haut: r.haut, rayon: r.rayon, surface_min: r.surface_min, surface_max: r.surface_max, delai_jours: r.delai_jours };
     case 'data-b-valeur-locative':
       return { rue: r.rue, quartier: r.quartier, ville: r.ville };
-    case 'data-b-transactions':
+    case 'bodacc-cessions':
       return { total: r.total, rayon: r.rayon, marche: r.marche, rue: r.rue, pertinentes: (r.pertinentes || []).slice(0, 8) };
     case 'figaro':
       return { quartier: r.quartier, commune: r.commune };

@@ -16,7 +16,7 @@ import { PanneauJournalDetaille, PanneauTracabilite } from "@/components/preanal
 // ligne à ligne pendant qu'il le fait — pour de vrai.
 //
 // « Mettre à jour » lance server/alex.js sur le lot : Equimmox, Data-B
-// (valeurs locatives, cessions de fonds, étude d'implantation), Le Figaro.
+// (valeurs locatives, étude d'implantation), le BODACC (cessions), Le Figaro.
 // L'écran interroge l'état toutes les deux secondes et demi et écrit une
 // ligne par tentative et par résultat posé — heure, source, issue, chiffre.
 // Rien ici n'est écrit à l'avance : marche-reel.js traduit l'état du serveur,
@@ -31,10 +31,10 @@ const INTENTION =
 
 const SOURCES = [
   { cle: "equimmox", nom: "Equimmox", ton: "menthe", acces: "compte de service · baux comparables à 500 m" },
-  { cle: "data-b", nom: "Data-B", ton: "menthe", acces: "compte de service · valeurs locatives (3 secteurs), cessions à 250 m, étude d’implantation (1 crédit)" },
+  { cle: "data-b", nom: "Data-B", ton: "menthe", acces: "compte de service · valeurs locatives (3 secteurs), étude d’implantation (1 crédit)" },
   { cle: "figaro", nom: "Le Figaro Immobilier", ton: "menthe", acces: "accès public · prix, loyers et évolution du résidentiel" },
   { cle: "dvf", nom: "DVF", ton: "menthe", acces: "donnée publique · ventes de locaux commerciaux réellement conclues, 5 ans" },
-  { cle: "bodacc", nom: "BODACC", ton: "menthe", acces: "donnée publique · créations, cessions, liquidations et radiations de la rue" },
+  { cle: "bodacc", nom: "BODACC", ton: "menthe", acces: "donnée publique · créations, liquidations et radiations de la rue, cessions de fonds à 250 m avec leur prix" },
 ];
 
 const PROMPT = "Lance l’analyse de marché";

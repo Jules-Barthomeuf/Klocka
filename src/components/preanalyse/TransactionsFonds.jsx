@@ -2,7 +2,7 @@ import React from "react";
 import CarteCessions from "@/components/projet/CarteCessions";
 import { Section, Chiffres, Phrase, Vide, LienSource, euros, TEINTE } from "@/components/ui/kit";
 
-// Les cessions de fonds de commerce autour du bien, d'après Data-B.
+// Les cessions de fonds de commerce autour du bien, d'après le BODACC.
 //
 // Le loyer dit ce que vaut le mur ; le fonds dit ce que vaut le commerce. Une
 // rue où les fonds se vendent cher et souvent est une rue recherchée ; une rue
@@ -11,7 +11,7 @@ import { Section, Chiffres, Phrase, Vide, LienSource, euros, TEINTE } from "@/co
 
 const annee = (iso) => (iso ? new Date(iso).getFullYear() : "—");
 
-export default function TransactionsFondsDataB({ lot, premiere = false }) {
+export default function TransactionsFonds({ lot, premiere = false }) {
   const resultat = lot?.transactions_fonds || null;
   // La liste des cessions a disparu : la carte les montre toutes, et les
   // chiffres au-dessus disent ce qu'il faut en retenir. Une énumération de
@@ -22,9 +22,9 @@ export default function TransactionsFondsDataB({ lot, premiere = false }) {
   const rythme = (x) => (x ? `${x.nombre} cession${x.nombre > 1 ? "s" : ""}${x.par_an ? ` · ${String(x.par_an).replace(".", ",")} par an` : ""}` : null);
 
   return (
-    <Section premiere={premiere} titre="Cessions de fonds autour · Data-B" aside={<LienSource href={resultat?.lien}>Voir sur Data-B</LienSource>}>
+    <Section premiere={premiere} titre="Cessions de fonds autour · BODACC" aside={<LienSource href={resultat?.lien}>Voir au BODACC</LienSource>}>
       {!resultat ? (
-        <Vide>Aucune lecture. Relancez l'analyse de marché avec la source Data-B cochée.</Vide>
+        <Vide>Aucune lecture. Relancez l'analyse de marché avec la source BODACC cochée.</Vide>
       ) : (
         <>
           <Chiffres
@@ -38,6 +38,9 @@ export default function TransactionsFondsDataB({ lot, premiere = false }) {
           />
           {activite && r?.activites?.length ? (
             <Phrase className="mt-5">Activité du locataire : {activite}. Dans la rue, on vend surtout {r.activites.slice(0, 3).map((x) => x.nom.toLowerCase()).join(", ")}.</Phrase>
+          ) : null}
+          {resultat.geocodage ? (
+            <Phrase className="mt-3">{resultat.geocodage} Seule la rue, reconnue à son nom, est comptée.</Phrase>
           ) : null}
           <div className="mt-6 overflow-hidden rounded-[16px] border border-trait">
             <CarteCessions resultat={resultat} titre={lot?.lot?.locataire_nom?.valeur || "Le bien"} adresse={resultat.adresse} hauteur={360} />

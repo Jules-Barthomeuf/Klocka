@@ -38,7 +38,7 @@ export const BESOINS_DEFAUT = [
     cle: 'cessions_fonds',
     titre: 'les cessions de fonds',
     indicateurs: ['prix_fonds_commerce'],
-    chaine: ['data-b-transactions'],
+    chaine: ['bodacc-cessions'],
   },
   {
     cle: 'residentiel',
@@ -92,7 +92,7 @@ export async function registreParDefaut() {
   const modules = await Promise.all([
     import('./connecteurs/equimmox.js'),
     import('./connecteurs/data-b-valeur-locative.js'),
-    import('./connecteurs/data-b-transactions.js'),
+    import('./connecteurs/bodacc-cessions.js'),
     import('./connecteurs/figaro.js'),
     import('./connecteurs/data-b-implantation.js'),
     import('./connecteurs/dvf.js'),

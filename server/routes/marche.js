@@ -161,7 +161,7 @@ export function monterMarche(app) {
   // les relève peut les chercher depuis son éditeur.
   app.post('/api/projects/:id/data-b/transactions', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
-    const { transactionsFonds } = await import('../data-b-transactions.js');
+    const { cessionsAutour: transactionsFonds } = await import('../cessions-fonds.js');
     const projet = Records.get('Project', req.params.id);
     if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
     const adresse = String(req.body?.adresse || projet.adresse_complete || '').trim();

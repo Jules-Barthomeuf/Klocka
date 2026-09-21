@@ -33,7 +33,7 @@ const nb = (champ) => {
 const ETIQUETTES = {
   equimmox: "EQUIMMOX",
   "data-b-valeur-locative": "DATA-B",
-  "data-b-transactions": "DATA-B",
+  "bodacc-cessions": "BODACC",
   "data-b-implantation": "DATA-B",
   figaro: "LE FIGARO IMMOBILIER",
 };
@@ -78,7 +78,7 @@ function phraseResultat(champ, r) {
       return n ? `Data-B : valeur locative de la ${ech} ${n.nom ? `(${n.nom}) ` : ""}— de ${fmt(n.basse)} à ${fmt(n.haute)} €/m²/an.` : "Data-B a répondu sans estimation.";
     }
     case "transactions_fonds":
-      return `Data-B : ${fmt(r.total ?? r.transactions?.length)} cessions de fonds dans un rayon de ${r.rayon}${r.marche?.prix_median ? `, prix médian ${fmt(r.marche.prix_median)} €` : ""}${r.rue?.avec_prix ? ` — ${r.rue.avec_prix} dans la rue` : ""}.`;
+      return `BODACC : ${fmt(r.total ?? r.transactions?.length)} cessions de fonds dans un rayon de ${r.rayon}${r.marche?.prix_median ? `, prix médian ${fmt(r.marche.prix_median)} €` : ""}${r.rue?.avec_prix ? ` — ${r.rue.avec_prix} dans la rue` : ""}.`;
     case "prix_residentiel": {
       const q = r.quartier || r.commune;
       return q ? `Le Figaro : résidentiel ${q.nom ? `(${q.nom}) ` : ""}${fmt(q.prix?.median)} €/m² médian${q.prix?.sur_1_an != null ? `, ${pct(q.prix.sur_1_an)} sur 1 an` : ""}${q.prix?.sur_5_ans != null ? `, ${pct(q.prix.sur_5_ans)} sur 5 ans` : ""}${q.loyer?.median ? ` — loyer ${fmt(q.loyer.median, 1)} €/m²/mois` : ""}.` : "Le Figaro a répondu sans chiffre.";
@@ -154,7 +154,7 @@ export function filDe(etat, adresse = null) {
   // Les résultats posés : la phrase et l'encart. Leur instant est celui de la
   // tentative réussie de la même source.
   const finDe = (champ) => {
-    const cle = { analyse_loyer: "equimmox", valeur_locative: "data-b-valeur-locative", transactions_fonds: "data-b-transactions", prix_residentiel: "figaro", implantation: "data-b-implantation" }[champ];
+    const cle = { analyse_loyer: "equimmox", valeur_locative: "data-b-valeur-locative", transactions_fonds: "bodacc-cessions", prix_residentiel: "figaro", implantation: "data-b-implantation" }[champ];
     const t = (etat.tentatives || []).find((x) => x.source === cle && x.ok);
     return t ? depuis(t.debut, t0) + (t.ms || 0) / 1000 + 0.5 : null;
   };
@@ -163,7 +163,7 @@ export function filDe(etat, adresse = null) {
     if (!texte) continue;
     const t = finDe(champ) ?? (entrees.at(-1)?.t ?? 0) + 0.5;
     const encart = encartResultat(champ, r);
-    entrees.push({ t, source: etiquette({ analyse_loyer: "equimmox", valeur_locative: "data-b-valeur-locative", transactions_fonds: "data-b-transactions", prix_residentiel: "figaro", implantation: "data-b-implantation" }[champ]), ton: "menthe", texte, encart: encart || undefined });
+    entrees.push({ t, source: etiquette({ analyse_loyer: "equimmox", valeur_locative: "data-b-valeur-locative", transactions_fonds: "bodacc-cessions", prix_residentiel: "figaro", implantation: "data-b-implantation" }[champ]), ton: "menthe", texte, encart: encart || undefined });
   }
 
   // La fin : ce qui est couvert, ce qui manque.
@@ -367,7 +367,7 @@ export function analyseDe(lot, passage) {
     // L'échelle avec le chiffre : « estimation 640–960 » ne veut rien dire si
     // l'on ne sait pas que c'est la rue, quand la comparaison porte sur le quartier.
     ligneSource("data-b-valeur-locative", "Data-B · Valeurs locatives", dataB ? `estimation ${fmt(niveauDataB?.basse)} – ${fmt(niveauDataB?.haute)} €/m²/an à l'échelle ${echelleDataB === "ville" ? "de la ville" : `${echelleDataB === "rue" ? "de la" : "du"} ${echelleDataB}`}${niveauDataB?.nom ? ` (${niveauDataB.nom})` : ""}` : "a répondu"),
-    ligneSource("data-b-transactions", "Data-B · Transactions de fonds", transactions ? `${fmt(transactions.total ?? transactions.transactions?.length)} cessions · rayon ${transactions.rayon}${transactions.marche?.prix_median ? ` · médiane ${fmt(transactions.marche.prix_median)} €` : ""}` : "a répondu"),
+    ligneSource("bodacc-cessions", "BODACC · Cessions de fonds", transactions ? `${fmt(transactions.total ?? transactions.transactions?.length)} cessions · rayon ${transactions.rayon}${transactions.marche?.prix_median ? ` · médiane ${fmt(transactions.marche.prix_median)} €` : ""}` : "a répondu"),
     ligneSource("figaro", "Le Figaro Immobilier", figaro ? `${fmt((figaro.quartier || figaro.commune)?.prix?.median)} €/m² médian${(figaro.quartier || figaro.commune)?.prix?.sur_1_an != null ? ` · ${pct((figaro.quartier || figaro.commune).prix.sur_1_an)} / 1 an` : ""}` : "a répondu"),
     ligneSource("dvf", "DVF · Valeurs foncières", dvf ? (dvf.prix_m2 ? `${fmt(dvf.prix_m2.median)} €/m² médian · ${fmt(dvf.n)} vente(s) dans ${fmt(dvf.rayon)} m` : `${fmt(dvf.n)} vente(s) : trop peu pour une médiane`) : "a répondu"),
     ligneSource("bodacc", "BODACC · Annonces commerciales", vitalite ? `${fmt(vitalite.sur_la_rue?.creations)} création(s) · ${fmt(vitalite.sur_la_rue?.fermetures)} fermeture(s) sur ${vitalite.mois} mois` : "a répondu"),
@@ -381,7 +381,7 @@ export function analyseDe(lot, passage) {
     bodacc: "Annonces commerciales · créations, cessions, procédures, radiations",
     equimmox: "Analyse de loyer · baux comparables à 500 m",
     "data-b-valeur-locative": "Valeurs locatives · rue, quartier, ville",
-    "data-b-transactions": "Transactions de fonds · rayon 250 m",
+    "bodacc-cessions": "Cessions de fonds · rayon 250 m, adresses géocodées par la Base Adresse",
     figaro: "Prix de l'immobilier · quartier et commune",
     "data-b-implantation": "Expertise / ELM · étude d'implantation (1 crédit)",
   };
@@ -530,7 +530,7 @@ function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, d
   const sources = (passage.tentatives || []).filter((t) => t.ok).map((t) => ({
     nom: `${t.service} · ${t.source}`,
     quand: new Date(t.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-    url: { equimmox: null, "data-b-valeur-locative": dataB?.lien, "data-b-transactions": transactions?.lien, figaro: (figaro?.quartier || figaro?.commune)?.lien || figaro?.lien, "data-b-implantation": passage.indicateurs?.flux_pieton_note?.lien }[t.source] || null,
+    url: { equimmox: null, "data-b-valeur-locative": dataB?.lien, "bodacc-cessions": transactions?.lien, figaro: (figaro?.quartier || figaro?.commune)?.lien || figaro?.lien, "data-b-implantation": passage.indicateurs?.flux_pieton_note?.lien }[t.source] || null,
     capture: null,
   }));
   const reserves = [];

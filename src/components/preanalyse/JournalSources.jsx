@@ -3,7 +3,7 @@ import { Section, Vide } from "@/components/ui/kit";
 import JournalEmplacement from "@/components/preanalyse/JournalEmplacement";
 import ValeurLocativeDataB from "@/components/preanalyse/ValeurLocativeDataB";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
-import TransactionsFondsDataB from "@/components/preanalyse/TransactionsFondsDataB";
+import TransactionsFonds from "@/components/preanalyse/TransactionsFonds";
 import MarcheResidentielFigaro from "@/components/preanalyse/MarcheResidentielFigaro";
 import { J } from "@/design/jetons";
 
@@ -79,7 +79,7 @@ export function OngletDataB({ lot, implantation }) {
       {/* L'emplacement avant les cessions : on regarde d'abord où est le bien,
           ensuite ce qui s'y est vendu. */}
       {implantation ? <JournalEmplacement emplacement={implantation} /> : <Section titre="Étude d'implantation · Data-B"><Vide>L'étude d'implantation n'a pas encore été lue sur ce lot. Lancez « Mettre à jour ».</Vide></Section>}
-      <TransactionsFondsDataB lot={lot} />
+      <TransactionsFonds lot={lot} />
     </div>
   );
 }

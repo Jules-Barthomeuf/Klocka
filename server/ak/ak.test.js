@@ -10,7 +10,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-ak-'));
 process.env.AK_NOM = 'Assistant Klocka';
 const { lireMessage, estPourAk, estDeAk, sansMention, mention } = await import('./chat.js');
-const { CONSIGNE, consigne, OUTILS, decrireOutilsKdata, texteDeFin } = await import('./agent.js');
+const { CONSIGNE, consigne, OUTILS, decrireOutilsKdata, texteDeFin, utilisateurPour } = await import('./agent.js');
 
 const brut = (texte, extra = {}) => ({
   name: 'spaces/AAA/messages/m1', createTime: '2026-09-21T10:00:00Z', text: texte, argumentText: texte.replace('@Assistant Klocka', ''),
@@ -79,4 +79,22 @@ test("le mot de la fin d'une tâche dit ce qui a marché, ce qui a raté, et où
   assert.match(t, /K-Expertise : raté \(adresse introuvable\)/);
   assert.match(texteDeFin({ genre: 'prez', libelle: 'préz bancaire de Devred', resultat: { slides: 'https://docs.google.com/x' } }), /sur le Drive : https:\/\/docs\.google\.com\/x/);
   assert.match(texteDeFin({ genre: 'prez', libelle: 'préz bancaire de Devred', resultat: { slides: null, pptx: 'http://k/p.pptx', erreur_drive: 'pas de Drive' } }), /prête ici : http:\/\/k\/p\.pptx \(le Drive a refusé : pas de Drive\)/);
+});
+
+test("la personne qui parle est reconnue parmi les comptes de l'équipe, jamais le premier admin venu", () => {
+  const equipe = [
+    { email: 'coralie.g@klocka.immo', full_name: 'Guillaud Coralie', role: 'admin' },
+    { email: 'nora.l@klocka.immo', full_name: 'Nora Lorinquer', role: 'admin' },
+    { email: 'jules.btmf@gmail.com', full_name: 'Jules Barthomeuf', role: 'admin' },
+    { email: 'jules.b@klocka.immo', full_name: 'Jules Barthomeuf', role: 'admin' },
+    { email: 'maxime.p@klocka.immo', full_name: 'maxime.p', role: 'admin' },
+    { email: 'paul.dz@klocka.immo', full_name: 'Paul de Zulueta', role: 'admin' },
+  ];
+  assert.equal(utilisateurPour({ affiche: 'Jules Barthomeuf' }, equipe).email, 'jules.b@klocka.immo', "l'adresse klocka.immo avant la gmail");
+  assert.equal(utilisateurPour({ affiche: 'Coralie Guillaud' }, equipe).email, 'coralie.g@klocka.immo', 'nom et prénom dans l\'autre ordre');
+  assert.equal(utilisateurPour({ affiche: 'Nora Lorinquer' }, equipe).email, 'nora.l@klocka.immo');
+  assert.equal(utilisateurPour({ affiche: 'Maxime Perrin' }, equipe).email, 'maxime.p@klocka.immo', 'prénom.initiale');
+  assert.equal(utilisateurPour({ affiche: 'Paul de Zulueta' }, equipe).email, 'paul.dz@klocka.immo');
+  assert.equal(utilisateurPour({ affiche: 'Quelqu\'un Inconnu' }, equipe), null);
+  assert.equal(utilisateurPour({ affiche: '' }, equipe), null);
 });

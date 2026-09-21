@@ -189,7 +189,31 @@ function fil(espace) {
   return Conversations.list(AGENT).find((c) => c.metadata?.espace === espace) || Conversations.create({ agent_name: AGENT, metadata: { espace } });
 }
 
-/** Le compte Klocka au nom duquel AK agit. */
+const sansAccent = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+
+/**
+ * Le compte Klocka de la personne qui parle : ce qu'AK crée est signé d'elle,
+ * pas du premier administrateur venu. Google ne donne que le nom affiché
+ * (« Jules Barthomeuf ») ; on le rapproche des comptes de l'équipe par le
+ * nom complet, puis par « prénom.initiale » dans l'adresse (jules.b@), puis
+ * par le prénom seul. Pure sur `utilisateurs` : testée sans réseau.
+ */
+export function utilisateurPour(auteur, utilisateurs = Records.filter('User', { role: 'admin' })) {
+  const affiche = sansAccent(auteur?.affiche);
+  const equipe = utilisateurs.filter((u) => /@klocka\.immo$/i.test(u.email || ''));
+  const candidats = [...equipe, ...utilisateurs.filter((u) => !equipe.includes(u))];
+  if (!affiche) return null;
+  const mots = affiche.split(' ');
+  const [prenom, nom] = [mots[0], mots[mots.length - 1]];
+  const memeNom = (u) => { const m = sansAccent(u.full_name).split(' '); return m.length >= 2 && ((m[0] === prenom && m[m.length - 1] === nom) || (m[0] === nom && m[m.length - 1] === prenom)); };
+  const local = (u) => sansAccent(String(u.email || '').split('@')[0].replace(/\./g, ' '));
+  return candidats.find(memeNom)
+    || (nom && candidats.find((u) => local(u) === `${prenom} ${nom[0]}`))
+    || candidats.find((u) => local(u).split(' ')[0] === prenom && equipe.includes(u))
+    || null;
+}
+
+/** À défaut : le compte AK_COMPTE, puis un administrateur. */
 export function utilisateurAk() {
   return Records.filter('User', { email: COMPTE })[0] || Records.filter('User', { role: 'admin' })[0] || { email: COMPTE, role: 'admin', full_name: 'AK' };
 }
@@ -200,7 +224,7 @@ export function utilisateurAk() {
  * @param {{texte:string, auteur:{nom,affiche}, espace:string, mentions:Array}} message
  */
 export async function repondre(message) {
-  const user = utilisateurAk();
+  const user = utilisateurPour(message.auteur) || utilisateurAk();
   const conversation = fil(message.espace);
   const prenom = (message.auteur.affiche || 'Quelqu\'un').split(' ')[0];
   const autres = (message.mentions || []).filter((m) => m.affiche).map((m) => `${m.affiche} = ${m.nom}`);

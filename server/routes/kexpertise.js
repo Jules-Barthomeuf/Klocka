@@ -16,8 +16,8 @@ export function monterKExpertise(app) {
     ok(res, { expertises: listerExpertises(), etapes: ETAPES, zones: ZONES });
   }));
 
-  // Une étude Data-B consomme un crédit : le lancement est un geste
-  // d'équipe, jamais un effet de bord d'un affichage.
+  // Une étude lit plusieurs sources pendant plusieurs minutes : le lancement
+  // est un geste d'équipe, jamais un effet de bord d'un affichage.
   app.post('/api/kexpertise', wrap((req, res) => {
     const user = admin(req, res);
     if (!user) return;

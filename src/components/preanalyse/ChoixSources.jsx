@@ -4,10 +4,9 @@ import { J } from "@/design/jetons";
 
 // « Mettre à jour » : tout, ou seulement ce qu'on veut relire.
 //
-// Une lecture complète prend trois à quatre minutes et consomme un crédit
-// Data-B pour l'étude d'implantation. Quand une seule source a échoué, ou
-// qu'on veut juste rafraîchir le résidentiel, tout relancer est du gaspillage
-// — de temps et de crédit.
+// Une lecture complète prend plusieurs minutes. Quand une seule source a
+// échoué, ou qu'on veut juste rafraîchir le résidentiel, tout relancer est du
+// gaspillage de temps.
 //
 // Tout est coché d'entrée : le cas courant reste la lecture complète, et
 // décocher est un geste délibéré.
@@ -19,7 +18,7 @@ export const SOURCES = [
   { cle: "figaro", nom: "Le Figaro", note: "résidentiel du quartier et de la commune" },
   { cle: "dvf", nom: "DVF", note: "ventes réelles · gratuit" },
   { cle: "bodacc", nom: "BODACC", note: "vie de la rue · gratuit" },
-  { cle: "data-b-implantation", nom: "Data-B · Étude d’implantation", note: "flux, tronçon, démographie · 1 crédit", coute: true },
+  { cle: "implantation", nom: "Klocka · Étude d’implantation", note: "flux estimé, tronçon, démographie · gratuit" },
 ];
 
 export default function ChoixSources({ onLancer, apercu = false, libelle = "Mettre à jour", classeBouton = null }) {

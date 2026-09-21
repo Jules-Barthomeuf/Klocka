@@ -36,11 +36,12 @@ const virg = (n) => String(n).replace('.', ',');
 
 export function resumerExpertise(e) {
   const r = e?.resultat || {};
-  const p = r.data_b?.flux_pieton?.par_heure;
+  const d = r.etude || r.data_b;
+  const p = d?.flux_pieton?.par_heure;
   const morceaux = [];
   if (p?.basse?.min != null && p?.haute?.max != null) morceaux.push(`${Math.round(p.basse.min).toLocaleString('fr-FR')} à ${Math.round(p.haute.max).toLocaleString('fr-FR')} piétons / h`);
   if (r.generateurs?.length) morceaux.push(`${r.generateurs.length} générateurs de flux`);
-  if (r.data_b?.rue?.commerces) morceaux.push(`${r.data_b.rue.commerces} commerces dans la rue`);
+  if (d?.rue?.commerces) morceaux.push(`${d.rue.commerces} commerces dans la rue`);
   return morceaux.join(' · ') || 'rapport prêt';
 }
 

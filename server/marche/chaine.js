@@ -62,13 +62,13 @@ export const BESOINS_DEFAUT = [
     indicateurs: ['fermetures_rue', 'creations_rue'],
     chaine: ['bodacc'],
   },
-  // L'emplacement lui-même : le flux, le tronçon, le secteur. Une seule
-  // source le sait, et elle coûte un crédit — c'est la dernière question posée.
+  // L'emplacement lui-même : le flux, le tronçon, le secteur. L'étude interne
+  // le lit en dernier : c'est la plus longue la première fois.
   {
     cle: 'emplacement',
     titre: 'l’emplacement',
     indicateurs: ['flux_pieton_note', 'flux_voiture_note', 'commercialite_troncon_note', 'revenu_moyen_annuel', 'csp_plus', 'proprietaires_zone'],
-    chaine: ['data-b-implantation'],
+    chaine: ['implantation'],
   },
 ];
 
@@ -94,7 +94,7 @@ export async function registreParDefaut() {
     import('./connecteurs/valeur-locative.js'),
     import('./connecteurs/bodacc-cessions.js'),
     import('./connecteurs/figaro.js'),
-    import('./connecteurs/data-b-implantation.js'),
+    import('./connecteurs/implantation.js'),
     import('./connecteurs/dvf.js'),
     import('./connecteurs/bodacc.js'),
   ]);

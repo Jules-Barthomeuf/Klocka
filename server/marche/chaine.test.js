@@ -20,7 +20,7 @@ const vraiEquimmox = (await import('./connecteurs/equimmox.js')).default;
 const vraiDataB = (await import('./connecteurs/valeur-locative.js')).default;
 const vraiTransactions = (await import('./connecteurs/bodacc-cessions.js')).default;
 const vraiFigaro = (await import('./connecteurs/figaro.js')).default;
-const vraiImplantation = (await import('./connecteurs/data-b-implantation.js')).default;
+const vraiImplantation = (await import('./connecteurs/implantation.js')).default;
 const vraiDvf = (await import('./connecteurs/dvf.js')).default;
 const vraiBodacc = (await import('./connecteurs/bodacc.js')).default;
 
@@ -110,7 +110,7 @@ function registre({ equimmox, dataB, figaro, transactions, implantation, dvf, bo
     'valeur-locative': dataB || doublure(vraiDataB, { resultat: DATAB_OK }),
     'bodacc-cessions': transactions || doublure(vraiTransactions, { resultat: TRANSACTIONS_OK }),
     figaro: figaro || doublure(vraiFigaro, { resultat: FIGARO_OK }),
-    'data-b-implantation': implantation || doublure(vraiImplantation, { resultat: IMPLANTATION_OK }),
+    implantation: implantation || doublure(vraiImplantation, { resultat: IMPLANTATION_OK }),
     dvf: dvf || doublure(vraiDvf, { resultat: DVF_OK }),
     bodacc: bodacc || doublure(vraiBodacc, { resultat: BODACC_OK }),
   };
@@ -295,7 +295,7 @@ test('la lecture avance à mesure, source par source', async () => {
     ['figaro', 'prix_residentiel', true],
     ['dvf', 'ventes_dvf', true],
     ['bodacc', 'vitalite_rue', true],
-    ['data-b-implantation', 'implantation', true],
+    ['implantation', 'implantation', true],
   ]);
 });
 

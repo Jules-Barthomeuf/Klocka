@@ -12,29 +12,31 @@ import { MecaniqueEnLigne } from "@/components/kdata/Mecanique";
 //
 // Trois écrans. Le formulaire, avec les expertises déjà faites en dessous.
 // Le chargement, une barre qui avance étape par étape — une étude prend
-// plusieurs minutes, Data-B calcule ses flux à la demande. Puis le rapport,
+// plusieurs minutes la première fois, le registre d'une grande ville se lit
+// page par page. Puis le rapport,
 // dans le verre de Klocka : les mêmes panneaux translucides que le panneau
 // l'habit des six cartes du tableau de bord K-Data — bg-surface, filet trait,
-// rayon de 18, sans flou — et non le bleu et l'orange du PDF Data-B : Klocka a
-// son propre habillage, et le garde même quand la donnée vient d'ailleurs.
+// rayon de 18, sans flou : Klocka a son propre habillage, et le garde même
+// quand la donnée vient d'ailleurs.
 //
 // Le PDF, c'est l'impression du navigateur : la feuille @media print
 // d'index.css ne garde que le rapport et repasse la palette en clair. Le PDF
 // n'est donc jamais qu'une autre vue du même rapport, avec son texte
 // sélectionnable, et jamais un document à part qui pourrait en diverger.
 //
-// UNE ÉTUDE CONSOMME UN CRÉDIT DATA-B, sauf si la même adresse et la même
-// activité ont été étudiées dans les trente jours : l'écran le dit avant de
-// lancer, et le dit après.
+// Tout vient de sources ouvertes ; les flux sont une estimation, et chaque
+// panneau dit d'où vient ce qu'il montre. Une même adresse et une même
+// activité, dans les trente jours, reprennent l'étude en base.
 
 const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 // La mécanique : dans quel ordre K-Expertise interroge quoi.
 const ETAPES_MECANIQUE = [
   { source: "Base Adresse Nationale", quoi: "Localise l'adresse tapée." },
-  { source: "Data-B, étude d'implantation", credit: true, quoi: "Flux piéton et voiture, la rue, le tronçon numéro par numéro, la démographie et le revenu du quartier. Une même adresse et une même activité, dans les trente jours, ne redemandent rien." },
-  { source: "OpenStreetMap", quoi: "Les générateurs de flux dans 300 m : arrêts, gares, bouches de métro, supermarchés, hôpitaux, écoles." },
-  { source: "INSEE Filosofi", quoi: "Trois zones de chalandise en carreaux de 200 m, sur des rayons de 400, 800 et 1 200 m — pas des isochrones." },
+  { source: "Sirene (INSEE)", quoi: "Les établissements de la commune par famille de commerce : la rue, le tronçon numéro par numéro, l'ancienneté. Une grande ville se lit en plusieurs minutes la première fois, puis trente jours de cache." },
+  { source: "OpenStreetMap", quoi: "Le tracé, la longueur et la classe de la rue ; les générateurs de flux dans 300 m : arrêts, gares, bouches de métro, supermarchés, hôpitaux, écoles." },
+  { source: "IGN et INSEE", quoi: "Trois zones de chalandise à pied, 5, 10 et 15 minutes, en isochrones IGN, lues en carreaux Filosofi de 200 m et en IRIS du recensement (CSP, chômage, retraités)." },
+  { source: "Klocka", quoi: "Le flux piéton et le flux voiture : une estimation à partir de la commercialité, des habitants, des établissements et des transports. Pas un comptage." },
   { source: "Google Maps", quoi: "Le plan et la vue de la rue, à l'écran seulement : le PDF ne les inclut pas." },
 ];
 
@@ -113,7 +115,7 @@ function Sources({ children }) {
 
 function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
   const r = e.resultat || {};
-  const d = r.data_b || null;
+  const d = r.etude || r.data_b || null;
   const p = r.point;
   const zones = r.zones || [];
   const fluxP = d?.flux_pieton;
@@ -123,7 +125,6 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
   const numeros = d?.commerces_troncon?.numeros || [];
   const pair = numeros.filter((n) => n.cote === "pair");
   const impair = numeros.filter((n) => n.cote === "impair");
-  const totalZones = (cle, sous = null) => zones.reduce((s, z) => s + (sous ? z.insee?.[cle]?.[sous] ?? 0 : z.insee?.[cle] ?? 0), 0);
 
   // Le navigateur imprime, et sa boîte de dialogue propose « Enregistrer au
   // format PDF ». Le rapport s'y rend seul : la feuille @media print d'index.css
@@ -175,11 +176,11 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
               <Ligne label="Propriétaires">{pct(i.menages.part_proprietaires)}</Ligne>
               <Ligne label="Logement social">{pct(i.logement.part_social)}</Ligne>
               <Ligne label="Surface moyenne">{nb(i.logement.surface_moyenne_m2)} m²</Ligne>
-              <Ligne label="Rayon">{z.rayon_m} m · {i.carreaux} carreaux INSEE</Ligne>
+              <Ligne label="Emprise">{z.approximation ? `rayon de ${z.rayon_m} m` : `isochrone ${z.marche}`} · {i.carreaux} carreaux INSEE</Ligne>
             </Bloc>
           </div>
         )}
-        <Sources>INSEE Filosofi, carreaux de 200 m. Rayon de {z.rayon_m} m, l&apos;équivalent de {z.marche}.</Sources>
+        <Sources>INSEE Filosofi, carreaux de 200 m. {z.approximation ? `Rayon de ${z.rayon_m} m, l'équivalent de ${z.marche} : l'IGN n'a pas rendu l'isochrone.` : `Isochrone IGN à pied, ${z.marche}.`}</Sources>
       </Panel>
     );
   };
@@ -211,8 +212,9 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
         <p className="m-0 mt-1 text-[13px] text-ardoise">{e.activite}</p>
         <p className="m-0 mt-4 text-[13px] text-encre">Étude préparée par <strong>{e.par || user?.full_name || user?.email}</strong></p>
         <p className="m-0 mt-1 text-[11.5px] text-brume">Document généré par K-Data le {quand(e.fini_le || e.cree_le)}{r.sources?.length ? ` · sources : ${r.sources.join(", ")}` : ""}</p>
-        {d?.du_cache && <p className="m-0 mt-2 text-[11.5px] text-menthe-texte">Étude Data-B reprise de la base, aucun crédit dépensé.</p>}
-        {r.data_b_erreur && <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[12px] text-alerte"><AlertTriangle className="h-3.5 w-3.5" />Data-B : {r.data_b_erreur}</p>}
+        {d?.du_cache && <p className="m-0 mt-2 text-[11.5px] text-menthe-texte">Étude reprise de la base, moins de trente jours.</p>}
+        {(r.etude_erreur || r.data_b_erreur) && <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[12px] text-alerte"><AlertTriangle className="h-3.5 w-3.5" />Étude d&apos;implantation : {r.etude_erreur || r.data_b_erreur}</p>}
+        {d?.manques?.length > 0 && <p className="m-0 mt-2 text-[11.5px] text-ardoise">Lectures manquantes : {d.manques.join(" · ")}</p>}
       </section>
 
       <div className="mt-7 border-t border-trait pt-7">
@@ -251,7 +253,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
               <Etiquette label="Entreprises (zone)">{nb(d.zone_primaire?.entreprises)}</Etiquette>
             </Bloc>
           </div>
-          <Sources>Data-B, INSEE RGP, SIRENE</Sources>
+          <Sources>INSEE recensement et Filosofi sur les zones à pied, Sirene</Sources>
         </Panel>
       )}
 
@@ -302,7 +304,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
               ))}
             </Bloc>
           </div>
-          <Sources>Data-B. Estimation algorithmique, pas un comptage sur site.</Sources>
+          <Sources>{fluxP.estime ? fluxP.methode || "Estimation Klocka, pas un comptage sur site." : "Data-B. Estimation algorithmique, pas un comptage sur site."}</Sources>
         </Panel>
       )}
 
@@ -311,10 +313,10 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
         <Panel titre="Estimation du flux voiture dans la zone">
           <Bloc className="text-center">
             <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-ardoise">Densité du flux</p>
-            {fluxV.indisponible ? <p className="m-0 mt-2 text-[12.5px] text-ardoise">Data-B ne l&apos;a pas calculée à cette adresse.</p>
+            {fluxV.indisponible ? <p className="m-0 mt-2 text-[12.5px] text-ardoise">Pas de classe de voie connue pour cette rue : le flux voiture n&apos;est pas estimé.</p>
               : <div className="mt-2 inline-block rounded-[8px] bg-relief px-6 py-2"><Etoiles note={fluxV.note?.note ?? 0} sur={fluxV.note?.sur ?? 5} taille={24} /></div>}
           </Bloc>
-          <Sources>Data-B</Sources>
+          <Sources>{fluxV.estime ? fluxV.methode || "Estimation Klocka d'après OpenStreetMap." : "Data-B"}</Sources>
         </Panel>
       )}
 
@@ -328,17 +330,18 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
                 <p key={f.famille} className="m-0 flex items-center gap-2 text-[12.5px]"><span className="h-1.5 w-1.5 rounded-full bg-menthe" /><strong className="text-encre">{f.n}</strong><span className="text-ardoise">en {f.famille}</span></p>
               ))}
             </div>
-            <Etiquette label="Commercialité de la rue">{rue.commerces} commerces</Etiquette>
+            <Etiquette label="Commercialité de la rue" etoiles={rue.note}>{rue.libelle || `${rue.commerces} commerces`}{rue.rang?.rang ? ` · ${rue.rang.rang}e rue commerçante sur ${rue.rang.sur} dans la ville` : ""}</Etiquette>
+            {rue.anciennete?.length > 0 && <Etiquette label="Ancienneté des commerces">{rue.anciennete.map((t) => `${t.tranche} : ${t.n} (${t.part} %)`).join(" · ")}</Etiquette>}
           </Bloc>
-          <Sources>Data-B, SIRENE, OpenStreetMap</Sources>
+          <Sources>Sirene pour les commerces et leur ancienneté, OpenStreetMap pour la longueur</Sources>
         </Panel>
       )}
 
       {/* Le tronçon */}
       {troncon && (
         <Panel titre="Présentation du tronçon de rue">
-          <Bloc><Etiquette label="Commercialité du tronçon" etoiles={troncon.note}>{troncon.libelle}</Etiquette></Bloc>
-          <Sources>Data-B, SIRENE</Sources>
+          <Bloc><Etiquette label="Commercialité du tronçon" etoiles={troncon.note}>{troncon.libelle}{troncon.bornes ? ` · du n°${troncon.bornes.du} au n°${troncon.bornes.au}` : ""}</Etiquette></Bloc>
+          <Sources>Sirene, dans {troncon.rayon_m || 100} m autour de l&apos;adresse</Sources>
         </Panel>
       )}
       {numeros.length > 0 && (
@@ -354,7 +357,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
               {impair.map((n, i) => <Numero key={`${n.numero}-${i}`} n={n} />)}
             </div>
           </div>
-          <Sources>Data-B, SIRENE, INPI</Sources>
+          <Sources>Sirene : établissements actifs des familles de commerce, numéro par numéro</Sources>
         </Panel>
       )}
 
@@ -367,20 +370,18 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
               <thead><tr className="border-b border-bord text-left">
                 <th className="alx-mont px-3 py-2 text-[10.5px] uppercase tracking-[.12em] text-ardoise">Résidents</th>
                 {zones.map((z) => <th key={z.cle} className="alx-mont px-3 py-2 text-[10.5px] uppercase tracking-[.12em] text-ardoise">{z.marche}</th>)}
-                <th className="alx-mont px-3 py-2 text-[10.5px] uppercase tracking-[.12em] text-menthe-texte">Total</th>
               </tr></thead>
               <tbody>
                 {[["Population", "population", "habitants"], ["Ménages", "menages", "menages"], ["Ménages pauvres", "revenus", "menages_pauvres"]].map(([label, k, s]) => (
                   <tr key={label} className="border-b border-trait"><td className="px-3 py-1.5 font-medium text-encre">{label}</td>
-                    {zones.map((z) => <td key={z.cle} className="px-3 py-1.5 tabular-nums text-encre">{nb(z.insee?.[k]?.[s])}</td>)}
-                    <td className="px-3 py-1.5 font-semibold tabular-nums text-menthe-texte">{nb(totalZones(k, s))}</td></tr>
+                    {zones.map((z) => <td key={z.cle} className="px-3 py-1.5 tabular-nums text-encre">{nb(z.insee?.[k]?.[s])}</td>)}</tr>
                 ))}
                 <tr className="border-b border-trait"><td className="px-3 py-1.5 font-medium text-encre">Niveau de vie moyen</td>
-                  {zones.map((z) => <td key={z.cle} className="px-3 py-1.5 tabular-nums text-encre">{euros(z.insee?.revenus?.niveau_de_vie_moyen)}</td>)}<td /></tr>
+                  {zones.map((z) => <td key={z.cle} className="px-3 py-1.5 tabular-nums text-encre">{euros(z.insee?.revenus?.niveau_de_vie_moyen)}</td>)}</tr>
               </tbody>
             </table>
           </Bloc>
-          <Sources>INSEE Filosofi. Les zones s&apos;emboîtent : le total additionne trois rayons, pas trois couronnes.</Sources>
+          <Sources>INSEE Filosofi. Les zones s&apos;emboîtent : chaque colonne contient la précédente, il n&apos;y a pas de total à faire.</Sources>
         </Panel>
       )}
 
@@ -393,7 +394,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
             <Compteur titre="CSP +" valeur={nb(d.revenu?.csp_plus)} evolutions={d.revenu?.csp_plus_evolution && { "Évolution à 3 ans": d.revenu.csp_plus_evolution.a_3_ans, "à 5 ans": d.revenu.csp_plus_evolution.a_5_ans }} />
             <Compteur titre="Taux de chômage" valeur={pct(d.revenu?.taux_chomage)} />
           </div>
-          <Sources>Data-B, INSEE RGP</Sources>
+          <Sources>INSEE recensement (IRIS) et Filosofi, zone à 15 minutes à pied. Les évolutions attendent un second millésime.</Sources>
         </Panel>
       )}
 
@@ -406,7 +407,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
             <Compteur titre="Appartements" valeur={nb(d.zone_primaire.appartements)} />
             <Compteur titre="Propriétaires" valeur={nb(d.zone_primaire.proprietaires)} />
           </div>
-          <Sources>Data-B, INSEE RGP</Sources>
+          <Sources>INSEE Filosofi, zone à 5 minutes à pied : ménages, dont ménages propriétaires.</Sources>
         </Panel>
       )}
 
@@ -431,8 +432,8 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
 
       <Panel titre="Sources et responsabilités">
         <Bloc className="text-[12.5px] leading-[1.7] text-ardoise">
-          <p className="m-0"><strong className="text-encre">Sources.</strong> Les flux piéton et voiture, la rue et le tronçon numéro par numéro, la démographie et le revenu du quartier viennent de l&apos;étude d&apos;implantation Data-B, lancée depuis Klocka. Les générateurs de flux viennent d&apos;OpenStreetMap. Les zones de chalandise viennent de l&apos;INSEE (Filosofi, carreaux de 200 m), sur trois rayons de 400, 800 et 1 200 m et non sur des isochrones. Le plan et la vue de la rue viennent de Google.</p>
-          <p className="m-0 mt-3"><strong className="text-encre">Nature des résultats.</strong> Un outil d&apos;aide à la décision, daté du jour de sa génération. Le flux piéton est une estimation algorithmique, pas un comptage sur site. Ce qu&apos;aucune source ne donne n&apos;est pas affiché.</p>
+          <p className="m-0"><strong className="text-encre">Sources.</strong> La rue et le tronçon numéro par numéro viennent du registre Sirene de l&apos;INSEE ; la longueur et la classe de la rue, et les générateurs de flux, d&apos;OpenStreetMap. Les zones de chalandise sont des isochrones à pied de l&apos;IGN (5, 10, 15 minutes), lues en carreaux Filosofi de 200 m et en IRIS du recensement. Le plan et la vue de la rue viennent de Google.</p>
+          <p className="m-0 mt-3"><strong className="text-encre">Nature des résultats.</strong> Un outil d&apos;aide à la décision, daté du jour de sa génération. Les flux piéton et voiture sont une estimation de Klocka à partir de la commercialité, des habitants, des établissements et des transports : pas un comptage sur site. Ce qu&apos;aucune source ne donne n&apos;est pas affiché.</p>
         </Bloc>
       </Panel>
       </div>
@@ -466,7 +467,7 @@ function Chargement({ expertise: e }) {
           </li>
         ))}
       </ul>
-      <p className="mt-8 mb-0 text-[11.5px] leading-[1.6] text-brume">Data-B calcule ses flux à la demande : comptez plusieurs minutes. Vous pouvez quitter cette page, l&apos;expertise continue et vous attendra dans la liste.</p>
+      <p className="mt-8 mb-0 text-[11.5px] leading-[1.6] text-brume">La première étude d&apos;une grande ville lit le registre Sirene page par page : comptez plusieurs minutes. Vous pouvez quitter cette page, l&apos;expertise continue et vous attendra dans la liste.</p>
     </div>
   );
 }
@@ -570,8 +571,8 @@ export default function KExpertise() {
           )}
         </div>
         <p className="mt-3 mb-0 text-[11.5px] leading-[1.6] text-brume">
-          {dejaEnBase ? "Cette adresse a déjà une expertise terminée : la relancer ne dépensera pas de crédit Data-B si elle a moins de trente jours."
-            : "Une expertise lance une étude Data-B, qui consomme un crédit. Une même adresse et une même activité, dans les trente jours, n'en consomment pas de second."}
+          {dejaEnBase ? "Cette adresse a déjà une expertise terminée : la relancer reprend l'étude en base si elle a moins de trente jours."
+            : "Une expertise lit des sources ouvertes : Sirene, OpenStreetMap, IGN, INSEE. Les flux sont estimés, pas comptés. Une même adresse et une même activité, dans les trente jours, reprennent l'étude en base."}
         </p>
         <button onClick={() => lancer.mutate()} disabled={lancer.isPending || adresse.trim().length < 5}
           className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-6 text-[12.5px] font-medium uppercase tracking-[.12em] text-sur-menthe disabled:opacity-50">

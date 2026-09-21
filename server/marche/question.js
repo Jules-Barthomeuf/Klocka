@@ -77,7 +77,7 @@ const OUTILS = [
   {
     name: 'emplacement',
     description:
-      "L'étude d'implantation d'une adresse : flux piéton et flux voiture notés sur cinq, commerces du tronçon de rue numéro par numéro, démographie, revenu moyen, CSP+, propriétaires de la zone. Source : Data-B, module Expertise / ELM. ATTENTION : cette étude CONSOMME UN CRÉDIT Data-B et prend deux à trois minutes. Ne l'utiliser que si la question porte vraiment sur l'emplacement, le passage, les commerces voisins ou la population.",
+      "L'étude d'implantation d'une adresse : flux piéton et flux voiture estimés sur cinq, commerces du tronçon de rue numéro par numéro, démographie, revenu moyen, CSP+, ménages propriétaires de la zone à pied. Source : Klocka, sur Sirene, OpenStreetMap, IGN et INSEE. Gratuite, mais elle peut prendre plusieurs minutes la première fois dans une grande ville. Ne l'utiliser que si la question porte vraiment sur l'emplacement, le passage, les commerces voisins ou la population.",
     input_schema: {
       type: 'object',
       properties: {
@@ -199,8 +199,8 @@ export async function repondre(question, contexte = {}) {
       case 'vitalite_rue':
         return lire('bodacc', { adresse, mois: Number(input?.mois) > 0 ? Number(input.mois) : 24 });
       case 'emplacement':
-        if (rapide) return { erreur: 'Mode Rapidité : l’étude d’implantation coûte un crédit et prend trois minutes. Repassez en Réflexion pour la lancer.' };
-        return lire('data-b-implantation', { adresse, activite: input?.activite || activite || null });
+        if (rapide) return { erreur: 'Mode Rapidité : l’étude d’implantation peut prendre plusieurs minutes. Repassez en Réflexion pour la lancer.' };
+        return lire('implantation', { adresse, activite: input?.activite || activite || null });
       default:
         return { erreur: `Outil inconnu : ${name}.` };
     }
@@ -234,9 +234,9 @@ function resume(cle, r) {
       return { prix_m2: r.prix_m2, n: r.n, rayon: r.rayon, periode: r.periode, annees: r.annees, ecartees: r.ecartees, ventes: (r.ventes || []).slice(0, 12) };
     case 'bodacc':
       return { rue: r.rue, mois: r.mois, sur_la_rue: { ...r.sur_la_rue, evenements: (r.sur_la_rue?.evenements || []).slice(0, 15) }, commune_entiere: r.commune_entiere, cessions_avec_prix: r.cessions_avec_prix };
-    case 'data-b-implantation':
+    case 'implantation':
       return {
-        flux_pieton: r.flux_pieton, flux_voiture: r.flux_voiture, rue: r.rue, troncon: r.troncon,
+        estime: true, flux_pieton: r.flux_pieton, flux_voiture: r.flux_voiture, rue: r.rue, troncon: r.troncon,
         demographie: r.demographie, revenu: r.revenu, zone_primaire: r.zone_primaire,
         commerces_troncon: r.commerces_troncon?.total,
       };

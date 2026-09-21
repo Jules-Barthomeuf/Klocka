@@ -34,7 +34,7 @@ const ETIQUETTES = {
   equimmox: "EQUIMMOX",
   "valeur-locative": "EQUIMMOX · SECTEUR",
   "bodacc-cessions": "BODACC",
-  "data-b-implantation": "DATA-B",
+  implantation: "KLOCKA · IMPLANTATION",
   figaro: "LE FIGARO IMMOBILIER",
 };
 const etiquette = (source) => ETIQUETTES[source] || String(source || "AGENT").toUpperCase();
@@ -84,7 +84,7 @@ function phraseResultat(champ, r) {
       return q ? `Le Figaro : résidentiel ${q.nom ? `(${q.nom}) ` : ""}${fmt(q.prix?.median)} €/m² médian${q.prix?.sur_1_an != null ? `, ${pct(q.prix.sur_1_an)} sur 1 an` : ""}${q.prix?.sur_5_ans != null ? `, ${pct(q.prix.sur_5_ans)} sur 5 ans` : ""}${q.loyer?.median ? ` — loyer ${fmt(q.loyer.median, 1)} €/m²/mois` : ""}.` : "Le Figaro a répondu sans chiffre.";
     }
     case "implantation":
-      return `Data-B : étude d'implantation lue — flux piéton ${r.flux_pieton?.note ? `${r.flux_pieton.note.note}/${r.flux_pieton.note.sur}` : "—"}, flux voiture ${r.flux_voiture?.note ? `${r.flux_voiture.note.note}/${r.flux_voiture.note.sur}` : "—"}${r.troncon?.libelle ? `, ${r.troncon.libelle}` : ""}${r.demographie?.habitants ? `, ${fmt(r.demographie.habitants)} habitants` : ""}${r.revenu?.revenu_moyen_annuel ? `, revenu moyen ${fmt(r.revenu.revenu_moyen_annuel)} €/an` : ""}.`;
+      return `Étude d'implantation ${r.estime ? "estimée" : "lue"} — flux piéton ${r.flux_pieton?.note ? `${r.flux_pieton.note.note}/${r.flux_pieton.note.sur}` : "—"}, flux voiture ${r.flux_voiture?.note ? `${r.flux_voiture.note.note}/${r.flux_voiture.note.sur}` : "—"}${r.troncon?.libelle ? `, ${r.troncon.libelle}` : ""}${r.demographie?.habitants ? `, ${fmt(r.demographie.habitants)} habitants` : ""}${r.revenu?.revenu_moyen_annuel ? `, revenu moyen ${fmt(r.revenu.revenu_moyen_annuel)} €/an` : ""}.`;
     default:
       return null;
   }
@@ -154,7 +154,7 @@ export function filDe(etat, adresse = null) {
   // Les résultats posés : la phrase et l'encart. Leur instant est celui de la
   // tentative réussie de la même source.
   const finDe = (champ) => {
-    const cle = { analyse_loyer: "equimmox", valeur_locative: "valeur-locative", transactions_fonds: "bodacc-cessions", prix_residentiel: "figaro", implantation: "data-b-implantation" }[champ];
+    const cle = { analyse_loyer: "equimmox", valeur_locative: "valeur-locative", transactions_fonds: "bodacc-cessions", prix_residentiel: "figaro", implantation: "implantation" }[champ];
     const t = (etat.tentatives || []).find((x) => x.source === cle && x.ok);
     return t ? depuis(t.debut, t0) + (t.ms || 0) / 1000 + 0.5 : null;
   };
@@ -163,7 +163,7 @@ export function filDe(etat, adresse = null) {
     if (!texte) continue;
     const t = finDe(champ) ?? (entrees.at(-1)?.t ?? 0) + 0.5;
     const encart = encartResultat(champ, r);
-    entrees.push({ t, source: etiquette({ analyse_loyer: "equimmox", valeur_locative: "valeur-locative", transactions_fonds: "bodacc-cessions", prix_residentiel: "figaro", implantation: "data-b-implantation" }[champ]), ton: "menthe", texte, encart: encart || undefined });
+    entrees.push({ t, source: etiquette({ analyse_loyer: "equimmox", valeur_locative: "valeur-locative", transactions_fonds: "bodacc-cessions", prix_residentiel: "figaro", implantation: "implantation" }[champ]), ton: "menthe", texte, encart: encart || undefined });
   }
 
   // La fin : ce qui est couvert, ce qui manque.
@@ -371,7 +371,7 @@ export function analyseDe(lot, passage) {
     ligneSource("figaro", "Le Figaro Immobilier", figaro ? `${fmt((figaro.quartier || figaro.commune)?.prix?.median)} €/m² médian${(figaro.quartier || figaro.commune)?.prix?.sur_1_an != null ? ` · ${pct((figaro.quartier || figaro.commune).prix.sur_1_an)} / 1 an` : ""}` : "a répondu"),
     ligneSource("dvf", "DVF · Valeurs foncières", dvf ? (dvf.prix_m2 ? `${fmt(dvf.prix_m2.median)} €/m² médian · ${fmt(dvf.n)} vente(s) dans ${fmt(dvf.rayon)} m` : `${fmt(dvf.n)} vente(s) : trop peu pour une médiane`) : "a répondu"),
     ligneSource("bodacc", "BODACC · Annonces commerciales", vitalite ? `${fmt(vitalite.sur_la_rue?.creations)} création(s) · ${fmt(vitalite.sur_la_rue?.fermetures)} fermeture(s) sur ${vitalite.mois} mois` : "a répondu"),
-    ligneSource("data-b-implantation", "Data-B · Étude d'implantation", implantation ? `flux piéton ${implantation.flux_pieton?.note ? `${implantation.flux_pieton.note.note}/${implantation.flux_pieton.note.sur}` : "—"} · flux voiture ${implantation.flux_voiture?.note ? `${implantation.flux_voiture.note.note}/${implantation.flux_voiture.note.sur}` : "—"}${implantation.troncon?.libelle ? ` · ${implantation.troncon.libelle}` : ""}` : "a répondu"),
+    ligneSource("implantation", "Klocka · Étude d'implantation", implantation ? `${implantation.estime ? "estimé · " : ""}flux piéton ${implantation.flux_pieton?.note ? `${implantation.flux_pieton.note.note}/${implantation.flux_pieton.note.sur}` : "—"} · flux voiture ${implantation.flux_voiture?.note ? `${implantation.flux_voiture.note.note}/${implantation.flux_voiture.note.sur}` : "—"}${implantation.troncon?.libelle ? ` · ${implantation.troncon.libelle}` : ""}` : "a répondu"),
   ].filter(Boolean);
 
   // La trace : chaque tentative, dans l'ordre, dite en français. La clé du
@@ -383,7 +383,8 @@ export function analyseDe(lot, passage) {
     "valeur-locative": "Valeur locative · rue, quartier, ville chez Equimmox, et le loyer déduit des ventes DVF",
     "bodacc-cessions": "Cessions de fonds · rayon 250 m, adresses géocodées par la Base Adresse",
     figaro: "Prix de l'immobilier · quartier et commune",
-    "data-b-implantation": "Expertise / ELM · étude d'implantation (1 crédit)",
+    implantation: "Étude d'implantation · Sirene, OpenStreetMap, IGN, INSEE",
+    "data-b-implantation": "Expertise / ELM · étude d'implantation Data-B (anciens dossiers)",
   };
   const consultations = (passage.tentatives || []).map((t) => ({
     quand: new Date(t.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
@@ -530,7 +531,7 @@ function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, d
   const sources = (passage.tentatives || []).filter((t) => t.ok).map((t) => ({
     nom: `${t.service} · ${t.source}`,
     quand: new Date(t.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-    url: { equimmox: null, "valeur-locative": dataB?.lien, "bodacc-cessions": transactions?.lien, figaro: (figaro?.quartier || figaro?.commune)?.lien || figaro?.lien, "data-b-implantation": passage.indicateurs?.flux_pieton_note?.lien }[t.source] || null,
+    url: { equimmox: null, "valeur-locative": dataB?.lien, "bodacc-cessions": transactions?.lien, figaro: (figaro?.quartier || figaro?.commune)?.lien || figaro?.lien, implantation: null }[t.source] || null,
     capture: null,
   }));
   const reserves = [];

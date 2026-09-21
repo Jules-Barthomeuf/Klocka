@@ -39,6 +39,6 @@ test('les générateurs se classent du plus proche, par bande, et un arrêt à d
 test('trois zones à pied, cinq étapes, et un lancement qui refuse une adresse vague', () => {
   assert.deepEqual(ZONES.map((z) => z.rayon_m), [400, 800, 1200]);
   assert.equal(ETAPES.length, 5);
-  assert.equal(ETAPES[1].cle, 'data_b', 'Data-B est la deuxième étape, juste après l\'adresse');
+  assert.equal(ETAPES[1].cle, 'etude', 'l\'étude interne est la deuxième étape, juste après l\'adresse');
   assert.match(lancerExpertise({ adresse: 'Lyon' }).error, /adresse précise/);
 });

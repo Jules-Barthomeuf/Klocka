@@ -44,8 +44,8 @@ export default function MarcheEmplacement({ adresse }) {
             <span className="rounded-full border px-3.5 py-1.5 text-[12.5px]" style={{ borderColor: `${emp.teinte}59`, color: emp.teinte }}>Emplacement {emp.mot}</span>
             {flux && (
               <span className="flex items-center gap-2.5">
-                <Etoiles note={flux.note} taille={15} title={`flux ${e.flux_mesure ? "mesuré chez Data-B" : "estimé"}`} />
-                <span className="text-[12.5px] tabular-nums text-ardoise">piéton {flux.pieton ?? "—"} · voiture {flux.voiture ?? "—"}{e.flux_mesure ? "" : " · estimé"}</span>
+                <Etoiles note={flux.note} taille={15} title="flux estimé" />
+                <span className="text-[12.5px] tabular-nums text-ardoise">piéton {flux.pieton ?? "—"} · voiture {flux.voiture ?? "—"} · estimé</span>
               </span>
             )}
           </div>

@@ -1,19 +1,19 @@
 // K-Expertise : l'étude d'implantation d'une adresse, en grand.
 //
-// Ce que le rapport Data-B montre en vingt-quatre pages tient en quatre
-// sources, et une seule n'est pas ouverte :
+// Ce que le rapport montre en vingt-quatre pages tient en quatre sources,
+// toutes ouvertes :
 //
-//   1. Data-B lui-même, pour les flux piéton et voiture, la rue, le tronçon
-//      numéro par numéro, la démographie et le revenu du quartier. Ce sont
-//      ses estimations propriétaires ; aucune donnée ouverte ne les remplace,
-//      et l'application sait déjà lancer cette étude et la lire
-//      (data-b-implantation.js). UNE ÉTUDE CONSOMME UN CRÉDIT, et se garde
-//      trente jours par adresse et activité.
+//   1. L'étude d'implantation interne (implantation/etude.js) : les flux
+//      piéton et voiture estimés, la rue, le tronçon numéro par numéro, la
+//      démographie et le revenu des zones à pied. Sirene, OpenStreetMap,
+//      IGN, INSEE. Gratuite ; quelques minutes la première fois dans une
+//      grande ville, puis trente jours de cache par adresse et activité.
 //   2. OpenStreetMap, pour les générateurs de flux : arrêts, gares, bouches
 //      de métro, supermarchés, hôpitaux, écoles — avec leur distance.
-//   3. L'INSEE (Filosofi, carreaux de 200 m), pour les trois zones de
-//      chalandise. Data-B les découpe en isochrones à pied ; ici ce sont trois
-//      rayons — 400, 800, 1 200 m — et l'écran le dit tel quel.
+//   3. L'INSEE, pour les trois zones de chalandise : des isochrones à pied
+//      de l'IGN (5, 10, 15 minutes), lus en carreaux Filosofi de 200 m et en
+//      IRIS du recensement. Quand l'IGN ne répond pas, trois rayons — 400,
+//      800, 1 200 m — prennent la place et l'écran le dit.
 //   4. Google, pour le plan et la vue de la rue, côté écran.
 //
 // Une étude prend plusieurs minutes : elle part en tâche de fond, écrit sa
@@ -38,7 +38,7 @@ export const ZONES = [
 /** Les étapes, dans l'ordre où elles se suivent à l'écran. */
 export const ETAPES = [
   { cle: 'adresse', nom: "Localisation de l'adresse" },
-  { cle: 'data_b', nom: "Étude Data-B : flux, rue, tronçon, quartier" },
+  { cle: 'etude', nom: 'Étude d\'implantation : flux, rue, tronçon, quartier' },
   { cle: 'generateurs', nom: 'Générateurs de flux autour du point' },
   { cle: 'zones', nom: 'Zones de chalandise : habitants, logements' },
   { cle: 'synthese', nom: 'Synthèse' },
@@ -101,7 +101,7 @@ export function classerGenerateurs(elements, centre) {
   return uniques.slice(0, 20).map((g, i) => ({ ...g, rang: i + 1, bande: bande(g.distance_m) }));
 }
 
-async function generateursAutour(lat, lon) {
+export async function generateursAutour(lat, lon) {
   const filtres = GENERATEURS.map(({ cle, valeurs }) => ({ cle, valeurs }));
   const brut = await interroger(construireRequete(filtres, lat, lon, RAYON_GENERATEURS));
   return classerGenerateurs(brut.elements, { lat, lon });
@@ -168,24 +168,24 @@ async function executer(id, { forcer, user }) {
   noter(id, { libelle: point.libelle, resultat });
   etape(id, 'adresse', 'faite', point.libelle);
 
-  // 2. Data-B : la seule source fermée, et la seule qui sache les flux.
-  etape(id, 'data_b', 'en_cours');
+  // 2. L'étude interne : les flux, la rue, le tronçon, les zones à pied.
+  etape(id, 'etude', 'en_cours');
   try {
-    const { etudeImplantation } = await import('./data-b-implantation.js');
-    const r = await etudeImplantation(e.adresse, { activite: e.activite === 'Tous les commerces' ? null : e.activite, forcer, user });
+    const { etudeImplantation } = await import('./implantation/etude.js');
+    const r = await etudeImplantation(e.adresse, { activite: e.activite === 'Tous les commerces' ? null : e.activite, forcer, journal: (m) => etape(id, 'etude', 'en_cours', m) });
     if (r.ok) {
-      resultat.data_b = r.resultat;
-      resultat.sources.push('Data-B');
-      etape(id, 'data_b', 'faite', r.resultat.du_cache ? 'étude déjà en base, aucun crédit dépensé' : 'étude lancée, un crédit dépensé');
+      resultat.etude = r.resultat;
+      resultat.sources.push(...(r.resultat.sources || []).filter((x) => !resultat.sources.includes(x)));
+      etape(id, 'etude', 'faite', r.resultat.du_cache ? 'étude déjà en base' : r.resultat.manques?.length ? `étude faite, ${r.resultat.manques.length} lecture(s) manquante(s)` : 'étude faite');
     } else {
-      resultat.data_b = null;
-      resultat.data_b_erreur = r.error;
-      etape(id, 'data_b', 'ratee', r.error);
+      resultat.etude = null;
+      resultat.etude_erreur = r.error;
+      etape(id, 'etude', 'ratee', r.error);
     }
   } catch (err) {
-    resultat.data_b = null;
-    resultat.data_b_erreur = err?.message || String(err);
-    etape(id, 'data_b', 'ratee', resultat.data_b_erreur);
+    resultat.etude = null;
+    resultat.etude_erreur = err?.message || String(err);
+    etape(id, 'etude', 'ratee', resultat.etude_erreur);
   }
   noter(id, { resultat });
 
@@ -193,7 +193,7 @@ async function executer(id, { forcer, user }) {
   etape(id, 'generateurs', 'en_cours');
   try {
     resultat.generateurs = await generateursAutour(point.lat, point.lon);
-    resultat.sources.push('OpenStreetMap');
+    if (!resultat.sources.includes('OpenStreetMap')) resultat.sources.push('OpenStreetMap');
     etape(id, 'generateurs', 'faite', `${resultat.generateurs.length} générateurs dans ${RAYON_GENERATEURS} m`);
   } catch (err) {
     resultat.generateurs = [];
@@ -201,15 +201,22 @@ async function executer(id, { forcer, user }) {
   }
   noter(id, { resultat });
 
-  // 4. Les trois zones de chalandise.
+  // 4. Les trois zones de chalandise : celles de l'étude quand elle les a
+  //    lues (isochrones), sinon trois rayons Filosofi.
   etape(id, 'zones', 'en_cours');
-  resultat.zones = [];
-  for (const z of ZONES) {
-    const h = await habitantsDeLaZone({ lat: point.lat, lon: point.lon, rayon_m: z.rayon_m });
-    resultat.zones.push({ ...z, insee: h.ok ? h.insee : null, erreur: h.ok ? null : h.error });
+  const zonesEtude = (resultat.etude?.zones || []).filter((z) => z.insee);
+  if (zonesEtude.length === ZONES.length) {
+    resultat.zones = zonesEtude.map((z) => ({ ...z, erreur: null }));
+    etape(id, 'zones', 'faite', zonesEtude[0].approximation ? '3 zones, en rayons : l\'IGN n\'a pas rendu les isochrones' : '3 zones à pied, isochrones IGN');
+  } else {
+    resultat.zones = [];
+    for (const z of ZONES) {
+      const h = await habitantsDeLaZone({ lat: point.lat, lon: point.lon, rayon_m: z.rayon_m });
+      resultat.zones.push({ ...z, approximation: `rayon de ${z.rayon_m} m`, insee: h.ok ? h.insee : null, erreur: h.ok ? null : h.error });
+    }
+    etape(id, 'zones', resultat.zones.every((z) => z.insee) ? 'faite' : 'ratee', `${resultat.zones.filter((z) => z.insee).length} zones sur 3, en rayons`);
   }
-  if (resultat.zones.some((z) => z.insee)) resultat.sources.push('INSEE Filosofi');
-  etape(id, 'zones', resultat.zones.every((z) => z.insee) ? 'faite' : 'ratee', `${resultat.zones.filter((z) => z.insee).length} zones sur 3`);
+  if (resultat.zones.some((z) => z.insee) && !resultat.sources.includes('INSEE Filosofi')) resultat.sources.push('INSEE Filosofi');
   noter(id, { resultat });
 
   // 5. La synthèse : rien de calculé de neuf, tout est déjà là.

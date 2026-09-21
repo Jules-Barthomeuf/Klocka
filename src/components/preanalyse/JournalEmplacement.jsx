@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Section, Chiffres, Lignes, Encart, Note, Etiquette, Etoiles, fmt, pct, TEINTE } from "@/components/ui/kit";
 
-// L'étude d'implantation Data-B : ce que le lieu vaut au-delà du loyer. Le
-// flux piéton et voiture, la commercialité du tronçon, la rue, les gens qui
-// vivent là et ce qu'ils gagnent. Chaque bloc lit la forme exacte que rend
-// server/data-b-implantation.js.
+// L'étude d'implantation : ce que le lieu vaut au-delà du loyer. Le flux
+// piéton et voiture, la commercialité du tronçon, la rue, les gens qui
+// vivent là et ce qu'ils gagnent. Chaque bloc lit la forme que rend
+// server/implantation/etude.js (et que rendaient les anciennes études Data-B).
 //
 // Les revenus et les CSP+ se masquent d'un clic : devant un client, on choisit
 // ce qu'on montre. Quand les deux flux sont faibles, une ligne le signale et
@@ -29,7 +29,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
   const sousNotes = pieton?.note ? Object.entries(pieton.sous_notes || {}).map(([k, n]) => `${k} ${n?.note ?? "—"}/${n?.sur ?? 5}`).join(" · ") : null;
 
   return (
-    <Section premiere={premiere} titre="Étude d'implantation · Data-B" aside={<span className="text-[12.5px] text-ardoise">{[emplacement.source, emplacement.quand].filter(Boolean).join(" · ")}</span>}>
+    <Section premiere={premiere} titre={`Étude d'implantation · ${emplacement.estime ? "Klocka" : "Data-B"}`} aside={<span className="text-[12.5px] text-ardoise">{[emplacement.source, emplacement.quand].filter(Boolean).join(" · ")}</span>}>
       <Chiffres
         className="mt-4"
         items={[
@@ -40,14 +40,14 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
             extra: etoiles(pieton?.note),
             note: pieton?.note
               ? `${sousNotes ? `${sousNotes} · ` : ""}par heure ${fourchette(pieton.par_heure?.basse)} en creux, ${fourchette(pieton.par_heure?.haute)} en pointe · par jour ${fourchette(pieton.par_jour?.basse)} à ${fourchette(pieton.par_jour?.haute)}`
-              : pieton?.indisponible ? "Data-B déclare le flux piéton indisponible à cette adresse." : "Data-B calcule ce flux à la demande : il n'était pas encore revenu. Relancez l'analyse.",
+              : pieton?.indisponible ? "Le flux piéton n'a pas pu être estimé à cette adresse." : "Le flux piéton n'est pas encore revenu. Relancez l'analyse.",
           },
           {
             libelle: "Flux voiture",
             valeur: noteDe(voiture?.note),
             teinte: teinteFlux(voiture?.note),
             extra: etoiles(voiture?.note),
-            note: voiture?.note ? "la mesure Data-B, sur cinq" : voiture?.indisponible ? "Data-B déclare le flux voiture indisponible à cette adresse." : "Data-B calcule ce flux à la demande : il n'était pas encore revenu. Relancez l'analyse.",
+            note: voiture?.note ? (voiture.estime ? "estimé d'après la classe de la voie, sur cinq" : "la mesure Data-B, sur cinq") : voiture?.indisponible ? "Pas de classe de voie connue : le flux voiture n'est pas estimé." : "Le flux voiture n'est pas encore revenu. Relancez l'analyse.",
           },
           {
             libelle: "Commercialité du tronçon",
@@ -80,7 +80,7 @@ export default function JournalEmplacement({ emplacement, premiere = false }) {
               ))}
             </div>
           ) : (
-            <Note className="mt-2">Data-B n'a listé aucun commerce sur ce tronçon.</Note>
+            <Note className="mt-2">Aucun commerce listé sur ce tronçon.</Note>
           )}
           {rue?.familles?.length > 0 && <Note className="mt-3">La rue, par famille : {rue.familles.map((f) => `${f.n} ${f.famille}`).join(" · ")}.</Note>}
         </div>

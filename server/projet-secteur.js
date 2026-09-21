@@ -113,7 +113,7 @@ export function fluxDe(r) {
   return sortie.pieton || sortie.voiture || sortie.commercialite ? sortie : null;
 }
 
-/** La clé d'adresse du cache Data-B, sans l'activité (voir data-b-implantation.js). */
+/** La clé d'adresse du cache des études, sans l'activité (voir implantation/etude.js). */
 export const cleAdresse = (a) => `${a.numero} ${a.rue} ${a.code_postal} ${a.ville}`.toLowerCase().replace(/\s+/g, ' ').trim();
 
 /** L'étude la plus récente de cette adresse qui porte au moins une note. */
@@ -146,7 +146,8 @@ export async function calculerSecteur(projet, {
     return r.ok ? r.resultat : null;
   },
   rue = async (t) => (await import('./alx/emplacement.js')).emplacementDeLAdresse(t),
-  etudes = () => Records.list('DataBImplantation'),
+  // Les études internes d'abord ; les anciennes études Data-B restent lisibles.
+  etudes = () => [...Records.list('EtudeImplantation'), ...Records.list('DataBImplantation')],
   dealDe = (id) => Records.findBy('Deal', 'deal_id', id),
 } = {}) {
   const texte = String(projet.adresse_complete || '').trim();

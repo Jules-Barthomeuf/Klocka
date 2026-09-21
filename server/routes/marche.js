@@ -140,16 +140,16 @@ export function monterMarche(app) {
     ok(res, lireSecteur(projet, { forcer: user.role === 'admin' && req.query.forcer === '1' }));
   }));
 
-  // Les flux et la commercialité : l'étude d'implantation Data-B, un crédit.
-  // Jamais lancée sans qu'un membre de l'équipe l'ait demandé.
+  // Les flux et la commercialité : l'étude d'implantation interne. Longue la
+  // première fois : jamais lancée sans qu'un membre de l'équipe l'ait demandé.
   app.post('/api/projects/:id/data-b/implantation', wrap(async (req, res) => {
     const user = currentUser(req);
     if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
     const projet = Records.get('Project', req.params.id);
     if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
     if (!projet.adresse_complete) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche.' });
-    const { etudeImplantation } = await import('../data-b-implantation.js');
-    const r = await etudeImplantation(projet.adresse_complete, { activite: projet.activite_locataire || null, user });
+    const { etudeImplantation } = await import('../implantation/etude.js');
+    const r = await etudeImplantation(projet.adresse_complete, { activite: projet.activite_locataire || null });
     if (!r.ok) return res.status(400).json({ error: r.error });
     const { lireSecteur, attendreSecteur } = await import('../projet-secteur.js');
     lireSecteur(projet, { forcer: true });

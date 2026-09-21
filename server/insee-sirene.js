@@ -145,10 +145,15 @@ async function appeler(params) {
 }
 
 /**
- * Le morceau de requête qui cible des codes d'activité par préfixe :
- * « 47 » devient `activitePrincipaleEtablissement:47*`.
+ * Le morceau de requête qui cible des codes d'activité par préfixe. Le
+ * registre écrit « 47.71Z », avec le point après la division, et son joker
+ * ne l'ignore pas : « 4771* » ne rend rien, « 47.71* » rend la sous-classe.
+ * Vérifié sur Nice : « 960* » zéro, « 96.0* » 13 372. Le point se pose donc
+ * ici, quelle que soit l'écriture reçue : « 47 » → 47*, « 960 » → 96.0*,
+ * « 4778A » → 47.78A*.
  */
-export const clauseActivites = (prefixes) => `(${(prefixes || []).map((p) => `activitePrincipaleEtablissement:${String(p).replace('.', '')}*`).join(' OR ')})`;
+export const codeAvecPoint = (p) => { const c = String(p || '').replace('.', '').toUpperCase(); return c.length > 2 ? `${c.slice(0, 2)}.${c.slice(2)}` : c; };
+export const clauseActivites = (prefixes) => `(${(prefixes || []).map((p) => `activitePrincipaleEtablissement:${codeAvecPoint(p)}*`).join(' OR ')})`;
 
 /**
  * Toutes les pages d'une question, par curseur.

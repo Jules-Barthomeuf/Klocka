@@ -21,7 +21,7 @@ import { APP_URL_PROD } from '../contexte.js';
 import { QUESTIONS, valeursParDefaut } from '../kdata-questions.js';
 import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
 import { COMPTE } from './chat.js';
-import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx } from './outils.js';
+import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx, boiteRecue, lireMail, mailsDuDossier, preanalyserMailRecu, chercherSurLeDrive, rangerSurLeDrive, bloquerRendezVous, agendaDuJour } from './outils.js';
 import { leconsPourConsigne, souvenirsPourConsigne, retenir, oublier, souvenirs } from './lecons.js';
 
 const AGENT = 'ak';
@@ -66,6 +66,46 @@ const OUTILS_AK = [
     name: 'analyser_fiche',
     description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum (« crée ce dossier », « fais la pré-analyse ») : lecture, extraction du bien, synthèse. La fiche est soit une pièce jointe (donner son chemin tel qu'il est donné dans le message), soit collée dans le message lui-même (mettre texte_du_message à vrai : le texte complet du message est pris, inutile de le recopier). Une minute environ.",
     input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, texte_du_message: { type: 'boolean', description: 'vrai quand la fiche est le texte du message' }, texte: { type: 'string', description: 'la fiche recopiée par toi, quand elle est sur une image (capture d\'un mail, d\'une annonce) : tout ce que tu y lis, sans rien inventer' } } },
+  },
+  {
+    name: 'boite_recue',
+    description: "Les mails reçus par l'équipe et pas encore traités (« y'a quoi dans la boîte ? ») : qui, objet, extrait, pièces jointes. La boîte est relevée toutes les cinq minutes par la plateforme.",
+    input_schema: { type: 'object', properties: { limite: { type: 'number' }, tous: { type: 'boolean', description: 'vrai pour voir aussi les mails déjà rattachés à un dossier' } } },
+  },
+  {
+    name: 'lire_mail',
+    description: "Le texte complet d'un mail reçu, par son identifiant (boite_recue le donne).",
+    input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+  },
+  {
+    name: 'mails_du_dossier',
+    description: "Les derniers échanges de mails d'un dossier, reçus et envoyés (« qu'est-ce qu'il dit l'agent de Lorient ? »). Chercher le dossier d'abord.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' } }, required: ['deal_id'] },
+  },
+  {
+    name: 'preanalyser_mail',
+    description: "Crée le dossier de préanalyse à partir d'un mail reçu (sa fiche jointe, son texte), comme le bouton de la plateforme, et lie le mail au dossier. Une minute.",
+    input_schema: { type: 'object', properties: { id: { type: 'string', description: 'identifiant du mail, de boite_recue' } }, required: ['id'] },
+  },
+  {
+    name: 'chercher_drive',
+    description: "Cherche un fichier sur le Drive partagé (« c'est où la préz de Lorient ? »), dans le dossier Drive d'un deal si on le donne, sinon partout.",
+    input_schema: { type: 'object', properties: { recherche: { type: 'string' }, deal_id: { type: 'string' } } },
+  },
+  {
+    name: 'ranger_drive',
+    description: "Range une pièce jointe du message dans le dossier Drive d'un deal (« range ça dans le dossier de Devred »). Chercher le dossier d'abord ; le dossier Drive est créé s'il n'existe pas.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, nom: { type: 'string' } }, required: ['deal_id', 'chemin'] },
+  },
+  {
+    name: 'bloquer_rdv',
+    description: "Pose un rendez-vous dans l'agenda d'équipe (« bloque une visite mardi 14 h à Cannes »). Calcule la date exacte depuis la date du jour donnée dans le message ; une heure par défaut.",
+    input_schema: { type: 'object', properties: { titre: { type: 'string' }, debut: { type: 'string', description: 'ISO, ex. 2026-09-29T14:00:00+02:00' }, fin: { type: 'string' }, lieu: { type: 'string' }, description: { type: 'string' } }, required: ['titre', 'debut'] },
+  },
+  {
+    name: 'agenda',
+    description: "Les rendez-vous de l'agenda d'équipe un jour donné (AAAA-MM-JJ).",
+    input_schema: { type: 'object', properties: { jour: { type: 'string' } }, required: ['jour'] },
   },
   {
     name: 'retenir',
@@ -237,6 +277,18 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     if (!r.ok) return r;
     return { ok: true, type: r.type || null, statut: r.deal?.statut || null, lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
   }
+  if (name === 'boite_recue') { const mails = boiteRecue(undefined, { limite: input.limite || 10, non_rattaches: !input.tous }); return { mails, nombre: mails.length }; }
+  if (name === 'lire_mail') return lireMail(input.id);
+  if (name === 'mails_du_dossier') return { mails: mailsDuDossier(input.deal_id) };
+  if (name === 'preanalyser_mail') return preanalyserMailRecu(input.id, user);
+  if (name === 'chercher_drive') return chercherSurLeDrive(input);
+  if (name === 'ranger_drive') {
+    const chemin = String(input.chemin || '');
+    if (!chemin.startsWith(CHEMIN_UPLOADS) || !fs.existsSync(chemin)) return { ok: false, error: 'Pièce jointe introuvable : elle doit venir du message.' };
+    return rangerSurLeDrive({ deal_id: input.deal_id, chemin, nom: input.nom || null });
+  }
+  if (name === 'bloquer_rdv') return bloquerRendezVous(input);
+  if (name === 'agenda') return { jour: input.jour, rendez_vous: await agendaDuJour(input.jour) };
   if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null });
   if (name === 'oublier') return oublier(input.id);
   if (name === 'souvenirs') return { souvenirs: souvenirs().map((s) => ({ id: s.id, sujet: s.sujet, fait: s.fait })) };
@@ -384,6 +436,7 @@ RÈGLES :
 5. Un mail (« prépare le mail de relance pour l'agent de Dieppe ») : chercher_dossier puis preparer_mail ; tu colles l'objet et le corps rendus dans le chat, tels quels, et c'est quelqu'un de l'équipe qui l'envoie. Tu n'envoies jamais rien. Le brouillon au propriétaire d'une cible ALX (chercher_cible puis brouillon_proprietaire) se colle pareil.
 5bis. « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends le couperet en une ligne, cash : « ça tourne, 7,2 % AEM et 8 ans de bail » ou « c'est dead, 4,8 % AEM et le bail finit dans 14 mois ». Les seuils sont ceux de l'équipe, tu ne les discutes pas.
 5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
+5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc » : boite_recue puis preanalyser_mail. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas.
 7. Une action faite : UNE ligne, comme un collègue qui répond sur son téléphone. « C bon le dossier est créé et tout est dans monday bg ». Pas d'identifiant, pas de numéro d'item Monday, pas de date « par défaut », pas de rappel de ce que tu n'as pas fait, pas de « dis-moi si tu veux que… ». Le lien seulement si la personne en a besoin pour ouvrir un truc. Les réserves, les manques, les détails : uniquement si on te les demande.
@@ -448,7 +501,8 @@ export async function repondre(message) {
   const prenom = (message.auteur.affiche || 'Quelqu\'un').split(' ')[0];
   const autres = (message.mentions || []).filter((m) => m.affiche).map((m) => `${m.affiche} = ${m.nom}`);
   const pieces = (message.pieces || []).map((p) => (p.chemin ? `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin})` : `${p.nom} (impossible à télécharger : ${p.erreur})`));
-  const entree = `${prenom} (${message.auteur.nom || '?'}) : ${message.texte}${autres.length ? `\n(mentionnés : ${autres.join(', ')})` : ''}${pieces.length ? `\n(pièces jointes : ${pieces.join(' ; ')})` : ''}${message.insiste ? `\n(tu avais râlé devant ce pavé, ${prenom} insiste : tu t'y mets, ta réponse commence déjà par « ${message.insiste} », enchaîne directement sur le résultat)` : ''}`;
+  const aujourdhui = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
+  const entree = `${prenom} (${message.auteur.nom || '?'}, ${aujourdhui}) : ${message.texte}${autres.length ? `\n(mentionnés : ${autres.join(', ')})` : ''}${pieces.length ? `\n(pièces jointes : ${pieces.join(' ; ')})` : ''}${message.insiste ? `\n(tu avais râlé devant ce pavé, ${prenom} insiste : tu t'y mets, ta réponse commence déjà par « ${message.insiste} », enchaîne directement sur le résultat)` : ''}`;
   // Les images se montrent au modèle telles quelles (une capture d'écran à
   // commenter) ; le fil, lui, ne garde que le texte : une image de deux mégas
   // par message ferait grossir la base pour rien.

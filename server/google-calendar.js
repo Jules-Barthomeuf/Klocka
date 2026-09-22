@@ -181,3 +181,42 @@ export function lienCalendrier() {
 }
 
 export const calendrierConfigure = () => !!Meta.get(CLE_META);
+
+/**
+ * Un rendez-vous à l'heure dans l'agenda d'équipe : une visite, un appel.
+ * @param {{titre:string, debut:string, fin?:string, lieu?:string, description?:string}} rdv debut et fin en ISO, fin = debut + 1 h par défaut
+ */
+export async function poserRendezVous(compteEmail, { titre, debut, fin = null, lieu = null, description = null }) {
+  const account = compteAgenda(compteEmail);
+  const token = await accessTokenFor(account);
+  const { id } = await assurerCalendrier(compteEmail);
+  const d = new Date(debut);
+  if (Number.isNaN(d.getTime())) throw new Error(`Date illisible : ${debut}`);
+  const f = fin ? new Date(fin) : new Date(d.getTime() + 3600000);
+  const corps = {
+    summary: titre,
+    description: description || undefined,
+    location: lieu || undefined,
+    start: { dateTime: d.toISOString(), timeZone: 'Europe/Paris' },
+    end: { dateTime: f.toISOString(), timeZone: 'Europe/Paris' },
+    extendedProperties: { private: { klocka: `rdv:${d.toISOString()}:${titre.slice(0, 40)}` } },
+  };
+  const e = await calFetch(token, `/calendars/${encodeURIComponent(id)}/events`, { method: 'POST', body: JSON.stringify(corps) });
+  return { id: e.id, url: e.htmlLink || null, debut: d.toISOString(), fin: f.toISOString() };
+}
+
+/** Les événements d'un jour (AAAA-MM-JJ) de l'agenda d'équipe, dans l'ordre. */
+export async function evenementsDuJour(compteEmail, jour) {
+  const account = compteAgenda(compteEmail);
+  const token = await accessTokenFor(account);
+  const { id } = await assurerCalendrier(compteEmail);
+  const debut = new Date(`${jour}T00:00:00+02:00`); const fin = new Date(`${jour}T23:59:59+02:00`);
+  const p = new URLSearchParams({ timeMin: debut.toISOString(), timeMax: fin.toISOString(), singleEvents: 'true', orderBy: 'startTime', maxResults: '30' });
+  const data = await calFetch(token, `/calendars/${encodeURIComponent(id)}/events?${p}`);
+  return (data.items || []).map((e) => ({
+    titre: e.summary || '(sans titre)',
+    heure: e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : null,
+    lieu: e.location || null,
+    url: e.htmlLink || null,
+  }));
+}

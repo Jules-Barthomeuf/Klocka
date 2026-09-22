@@ -298,14 +298,14 @@ async function direLeMatin(suivis) {
 
 /** AK se propose : un dossier incomplet, dit une fois, aux heures de bureau. */
 async function seProposer(suivis) {
-  const { estDu, aSignaler, marquer } = await import('./proactif.js');
+  const { estDu, aSignaler, mailsASignaler, marquer } = await import('./proactif.js');
   if (!estDu()) return;
   const groupe = suivis.find((s) => s.type === 'SPACE');
   if (!groupe) return;
-  const liste = await aSignaler({ mentionner: mentionDe });
+  const liste = [...(await aSignaler({ mentionner: mentionDe })), ...mailsASignaler()];
   if (!liste.length) return;
   for (const s of liste) await envoyer(groupe.nom, s.texte);
-  marquer(liste.map((s) => s.deal_id));
+  marquer(liste.map((s) => s.deal_id || s.cle));
 }
 
 export const etatVeille = () => ({ ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours(), reponses_en_attente: Records.list(ENTITE_REPONSE).length });

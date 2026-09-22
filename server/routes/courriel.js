@@ -6,8 +6,7 @@
 import { authResultPage, RETOUR_POPUP } from '../pages-oauth.js';
 import { buildAuthUrl } from '../google-oauth.js';
 import { Records } from '../db.js';
-import { analyserFiche } from '../deal/index.js';
-import { releverBoite, listerBoite, telechargerRaw } from '../gmail-inbox.js';
+import { releverBoite, listerBoite } from '../gmail-inbox.js';
 import { UPLOAD_DIR, compteAutorise, currentUser, ok, wrap } from '../contexte.js';
 
 // Rattacher une boîte d'équipe : réservé aux admins, et c'est le seul parcours
@@ -63,27 +62,8 @@ export function monterCourriel(app) {
       return res.status(409).json({ error: 'Ce mail a déjà été préanalysé.', deal_id: mailRecu.deal_id });
     }
 
-    const user = currentUser(req);
-    const buffer = await telechargerRaw(mailRecu.compte, mailRecu.gmail_message_id);
-    const dossier = await analyserFiche(
-      {
-        buffer,
-        filename: `${(mailRecu.objet || 'mail').slice(0, 60)}.eml`,
-        mimetype: 'message/rfc822',
-        contactEmail: mailRecu.de_email || null,
-      },
-      { user, uploadDir: UPLOAD_DIR }
-    );
-
-    Records.update('MailRecu', mailRecu.id, { deal_id: dossier.deal_id });
-    Records.update('Deal', Records.findBy('Deal', 'deal_id', dossier.deal_id).id, {
-      source_mail: {
-        mail_recu_id: mailRecu.id,
-        de: mailRecu.de,
-        objet: mailRecu.objet,
-        date: mailRecu.date,
-      },
-    });
+    const { preanalyserMail } = await import('../deal/preanalyser-mail.js');
+    const dossier = await preanalyserMail(mailRecu, { user: currentUser(req), uploadDir: UPLOAD_DIR });
     ok(res, dossier);
   }));
 }

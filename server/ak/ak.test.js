@@ -246,3 +246,20 @@ test("le bilan d'AK compte ce qu'il a fait, pour qui, et ce qu'on lui a repris",
   assert.match(bilanEnMarkdown(b), /2 demandes, 2 actions faites \(1 ratées\)/);
   assert.match(bilanEnMarkdown(bilanDe({})), /Personne ne lui a parlé/);
 });
+
+test("la boîte reçue se lit sans réseau, et un mail avec une fiche se signale une fois", async () => {
+  const { boiteRecue } = await import('./outils.js');
+  const { mailsASignaler } = await import('./proactif.js');
+  const le = new Date().toISOString();
+  const mails = [
+    { id: 'm1', de: 'Marc <marc@agence.fr>', de_email: 'marc@agence.fr', objet: 'Local Lyon', date: le, extrait: 'Bonjour, ci-joint la fiche', pieces_jointes: ['fiche.pdf'], deal_id: null },
+    { id: 'm2', de: 'Nora', objet: 'Re: Lorient', date: '2026-09-01T10:00:00Z', extrait: '', pieces_jointes: [], deal_id: 'd1' },
+    { id: 'm3', de: 'Pub', objet: 'Promo', date: '2026-09-20T10:00:00Z', extrait: '', pieces_jointes: [], deal_id: null },
+  ];
+  const b = boiteRecue(mails);
+  assert.deepEqual(b.map((m) => m.id), ['m1', 'm3'], 'les rattachés ne sortent pas, les récents d\'abord');
+  assert.equal(boiteRecue(mails, { non_rattaches: false }).length, 3);
+  const s = mailsASignaler({ mails });
+  assert.equal(s.length, 1);
+  assert.match(s[0].texte, /un mail de Marc <marc@agence.fr> vient d'arriver : « Local Lyon », avec 1 pièce jointe\. je pré-analyse \?/);
+});

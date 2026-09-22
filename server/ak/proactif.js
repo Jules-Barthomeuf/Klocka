@@ -76,6 +76,19 @@ export async function aSignaler({ maintenant = new Date(), mentionner = (x) => x
   return sortie.slice(0, 3);
 }
 
+/**
+ * Les mails reçus ces dernières heures, pas rattachés, avec une pièce jointe :
+ * une fiche à pré-analyser, probablement. Signalés une fois.
+ */
+export function mailsASignaler({ maintenant = new Date(), mails = Records.list('MailRecu') } = {}) {
+  const deja = signales();
+  return mails
+    .filter((m) => !m.deal_id && (m.pieces_jointes || []).length && maintenant - new Date(m.date || 0) < 6 * 3600000)
+    .filter((m) => !deja[`mail:${m.id}`])
+    .slice(0, 3)
+    .map((m) => ({ cle: `mail:${m.id}`, texte: `un mail de ${m.de || m.de_email} vient d'arriver : « ${String(m.objet || '').slice(0, 80)} », avec ${m.pieces_jointes.length} pièce${m.pieces_jointes.length > 1 ? 's' : ''} jointe${m.pieces_jointes.length > 1 ? 's' : ''}. je pré-analyse ?` }));
+}
+
 export function marquer(dealIds, maintenant = new Date()) {
   const s = signales();
   for (const id of dealIds) s[id] = maintenant.toISOString();

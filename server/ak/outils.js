@@ -156,3 +156,73 @@ export async function lancerAlx({ ville, code_postal = null, classes = null, use
   if (!r.ok) return r;
   return { ok: true, ville_id: id, nom: r.ville.nom };
 }
+
+
+// --- Les mails, le Drive, l'agenda : par le compte de l'équipe (AK_COMPTE) ---
+
+const COMPTE = (process.env.AK_COMPTE || 'sourcing@klocka.immo').trim().toLowerCase();
+
+/** Les mails reçus non traités, les plus récents d'abord. Pure sur `mails`. */
+export function boiteRecue(mails = Records.list('MailRecu'), { limite = 10, non_rattaches = true } = {}) {
+  return mails
+    .filter((m) => !non_rattaches || !m.deal_id)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+    .slice(0, limite)
+    .map((m) => ({ id: m.id, de: m.de || m.de_email, objet: m.objet, date: m.date, extrait: String(m.extrait || '').slice(0, 160), pieces_jointes: m.pieces_jointes || [], deal_id: m.deal_id || null }));
+}
+
+export function lireMail(id) {
+  const m = Records.get('MailRecu', id) || Records.list('MailRecu').find((x) => x.gmail_message_id === id);
+  if (!m) return { ok: false, error: 'Mail introuvable.' };
+  return { ok: true, id: m.id, de: m.de || m.de_email, objet: m.objet, date: m.date, texte: String(m.texte || m.extrait || '').slice(0, 8000), pieces_jointes: m.pieces_jointes || [], deal_id: m.deal_id || null };
+}
+
+/** Les mails d'un dossier : reçus et envoyés, dans l'ordre. */
+export function mailsDuDossier(dealId, { limite = 8 } = {}) {
+  const recus = Records.filter('MailRecu', { deal_id: dealId }).map((m) => ({ sens: 'reçu', de: m.de || m.de_email, objet: m.objet, date: m.date, texte: String(m.texte || m.extrait || '').slice(0, 1500) }));
+  const envoyes = Records.filter('EmailLog', { deal_id: dealId }).map((m) => ({ sens: 'envoyé', a: m.to || m.a || null, objet: m.subject || m.objet, date: m.sent_at || m.le || m.created_date, texte: String(m.text || m.corps || '').slice(0, 800) }));
+  return [...recus, ...envoyes].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, limite);
+}
+
+export async function preanalyserMailRecu(id, user) {
+  const m = Records.get('MailRecu', id);
+  if (!m) return { ok: false, error: 'Mail introuvable.' };
+  if (m.deal_id) return { ok: false, error: 'Ce mail a déjà été préanalysé.', deal_id: m.deal_id };
+  const { preanalyserMail } = await import('../deal/preanalyser-mail.js');
+  const { CHEMIN_UPLOADS } = await import('../db.js');
+  const d = await preanalyserMail(m, { user, uploadDir: CHEMIN_UPLOADS });
+  const lot = d.lots?.[0];
+  return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || m.objet, verdict: lot?.synthese?.verdict || null };
+}
+
+/** Cherche un fichier sur le Drive partagé, dans le dossier d'un deal si on en a un. */
+export async function chercherSurLeDrive({ recherche = '', deal_id = null }) {
+  const { listerFichiers } = await import('../google-drive.js');
+  const deal = deal_id ? Records.findBy('Deal', 'deal_id', deal_id) : null;
+  const fichiers = await listerFichiers(COMPTE, { dossierId: deal?.drive_folder_id || null, recherche, limite: 12 });
+  return { fichiers, dossier_url: deal?.drive_folder_url || null };
+}
+
+/** Range une pièce jointe du chat dans le dossier Drive d'un deal (créé au besoin). */
+export async function rangerSurLeDrive({ deal_id, chemin, nom = null }) {
+  const deal = Records.findBy('Deal', 'deal_id', deal_id);
+  if (!deal) return { ok: false, error: 'Dossier introuvable.' };
+  const { classerDansDrive } = await import('../google-drive.js');
+  const { nomDossierDrive } = await import('../deal/nom-drive.js');
+  const nomFichier = (nom || path.basename(chemin)).replace(/^ak-\d+-/, '');
+  const r = await classerDansDrive(COMPTE, nomDossierDrive(deal), [{ nom: nomFichier, buffer: fs.readFileSync(chemin), mime: /\.pdf$/i.test(nomFichier) ? 'application/pdf' : undefined }]);
+  if (!deal.drive_folder_id) Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+  return { ok: true, envoyes: r.envoyes, erreurs: r.erreurs, dossier_url: r.folder_url, chemin: r.chemin };
+}
+
+/** Un rendez-vous dans l'agenda d'équipe. */
+export async function bloquerRendezVous({ titre, debut, fin = null, lieu = null, description = null }) {
+  const { poserRendezVous } = await import('../google-calendar.js');
+  return { ok: true, ...(await poserRendezVous(COMPTE, { titre, debut, fin, lieu, description })) };
+}
+
+/** Les rendez-vous d'un jour (AAAA-MM-JJ), pour le mot du matin ou une question. */
+export async function agendaDuJour(jour) {
+  const { evenementsDuJour } = await import('../google-calendar.js');
+  return evenementsDuJour(COMPTE, jour);
+}

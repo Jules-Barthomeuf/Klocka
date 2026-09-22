@@ -35,7 +35,7 @@ export async function matiere() {
   let rendez_vous = [];
   try { const { agendaDuJour } = await import('./outils.js'); rendez_vous = await agendaDuJour(new Date().toISOString().slice(0, 10)); } catch { rendez_vous = []; }
   let mails = [];
-  try { const { boiteRecue } = await import('./outils.js'); mails = boiteRecue(undefined, { limite: 5 }).map((m) => ({ de: m.de, objet: m.objet, pieces: m.pieces_jointes.length })); } catch { mails = []; }
+  try { const { boiteRecue } = await import('./outils.js'); mails = (await boiteRecue(null, { limite: 5, relever: false })).map((m) => ({ de: m.de, objet: m.objet, pieces: m.pieces_jointes.length })); } catch { mails = []; }
   const sansAgent = Records.list('Deal').filter((d) => !d.archived && !d.test && !d.contact_agent_email && ['analyse', 'documents_demandes'].includes(d.statut || 'analyse')).map(titreDeal);
   return {
     propositions: propositions.slice(0, 8).map((p) => ({ quoi: p.titre, detail: p.detail, urgence: p.priorite === 1 ? "aujourd'hui" : p.priorite === 2 ? 'attendu' : 'courant' })),

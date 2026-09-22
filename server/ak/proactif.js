@@ -84,6 +84,7 @@ export function mailsASignaler({ maintenant = new Date(), mails = Records.list('
   const deja = signales();
   return mails
     .filter((m) => !m.deal_id && (m.pieces_jointes || []).length && maintenant - new Date(m.date || 0) < 6 * 3600000)
+    .map((m) => ({ ...m, pieces_jointes: (m.pieces_jointes || []).map((p) => (typeof p === 'string' ? p : p?.nom)).filter(Boolean) }))
     .filter((m) => !deja[`mail:${m.id}`])
     .slice(0, 3)
     .map((m) => ({ cle: `mail:${m.id}`, texte: `un mail de ${m.de || m.de_email} vient d'arriver : « ${String(m.objet || '').slice(0, 80)} », avec ${m.pieces_jointes.length} pièce${m.pieces_jointes.length > 1 ? 's' : ''} jointe${m.pieces_jointes.length > 1 ? 's' : ''}. je pré-analyse ?` }));

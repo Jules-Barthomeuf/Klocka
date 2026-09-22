@@ -94,9 +94,15 @@ function extraireAdresse(de) {
  * Relève les derniers messages de la boîte et crée les MailRecu inconnus.
  * @returns {{ nouveaux: number, total: number }}
  */
-export async function releverBoite(compteEmail, { max = 25 } = {}) {
+export async function releverBoite(compteEmail, { max = 25, repecher = false } = {}) {
   const account = compteLisible(compteEmail);
   const token = await accessTokenFor(account);
+
+  // Les mails de l'équipe étaient tous écartés, pièces comprises ; ceux qui
+  // l'ont été sous l'ancienne règle repassent une fois devant le tri.
+  if (repecher) {
+    for (const e of Records.filter('MailEcarte', { compte: account.email, raison: 'échange interne' })) Records.delete('MailEcarte', e.id);
+  }
 
   const liste = await gmailGet(token, `/messages?labelIds=INBOX&maxResults=${max}`);
   const ids = (liste.messages || []).map((m) => m.id);
@@ -139,7 +145,7 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
 
       // Un mail sans rapport avec un dossier n'entre pas : la boîte de
       // l'application reste le reflet des dossiers, pas une copie de Gmail.
-      let { garder, raison, incertain } = trierMail(mail, ref);
+      let { garder, raison, incertain, interne: interneTri } = trierMail(mail, ref);
 
       // Un signal ambigu — une pièce jointe qui peut être un bail comme un RIB
       // — est le seul cas où l'on fait lire le mail.
@@ -165,7 +171,7 @@ export async function releverBoite(compteEmail, { max = 25 } = {}) {
         continue;
       }
 
-      Records.create('MailRecu', { ...mail, retenu_parce_que: raison, juge_par_ia: !!incertain });
+      Records.create('MailRecu', { ...mail, retenu_parce_que: raison, juge_par_ia: !!incertain, interne: !!interneTri });
       nouveaux++;
     } catch (e) {
       // Un message illisible ne doit pas bloquer la relève des autres.

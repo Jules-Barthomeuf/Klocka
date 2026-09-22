@@ -162,13 +162,25 @@ export async function lancerAlx({ ville, code_postal = null, classes = null, use
 
 const COMPTE = (process.env.AK_COMPTE || 'sourcing@klocka.immo').trim().toLowerCase();
 
-/** Les mails reçus non traités, les plus récents d'abord. Pure sur `mails`. */
-export function boiteRecue(mails = Records.list('MailRecu'), { limite = 10, non_rattaches = true } = {}) {
+/**
+ * Les mails reçus non traités, les plus récents d'abord. Avant de lister, la
+ * boîte est relevée : « je viens de te l'envoyer » ne doit pas attendre le
+ * passage suivant de la veille. Sans compte lisible, on liste ce qu'on a.
+ */
+export async function boiteRecue(mails = null, { limite = 10, non_rattaches = true, relever = mails == null } = {}) {
+  if (relever) {
+    try { const { releverBoite } = await import('../gmail-inbox.js'); await releverBoite(COMPTE, { repecher: true }); } catch { /* la boîte n'est pas lisible d'ici : on liste ce qu'on a */ }
+  }
+  return trierBoite(mails || Records.list('MailRecu'), { limite, non_rattaches });
+}
+
+/** Pure : le tri de la boîte, testé sans réseau. */
+export function trierBoite(mails, { limite = 10, non_rattaches = true } = {}) {
   return mails
     .filter((m) => !non_rattaches || !m.deal_id)
     .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
     .slice(0, limite)
-    .map((m) => ({ id: m.id, de: m.de || m.de_email, objet: m.objet, date: m.date, extrait: String(m.extrait || '').slice(0, 160), pieces_jointes: m.pieces_jointes || [], deal_id: m.deal_id || null }));
+    .map((m) => ({ id: m.id, de: m.de || m.de_email, objet: m.objet, date: m.date, extrait: String(m.extrait || '').slice(0, 160), pieces_jointes: (m.pieces_jointes || []).map((p) => (typeof p === 'string' ? p : p?.nom)).filter(Boolean), interne: !!m.interne, deal_id: m.deal_id || null }));
 }
 
 export function lireMail(id) {
@@ -391,4 +403,41 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
   } else etapes.push("K-Data non lancé : le dossier n'a pas d'adresse lisible");
 
   return { ok: true, cree: true, deal_id: dealId, titre, agent, drive, kdata, etapes };
+}
+
+/**
+ * Les pièces d'un mail reçu, déposées sur un dossier qui existe déjà (les PV
+ * d'AG, les avis d'échéance arrivés après la fiche), et sur son Drive. Le
+ * mail est lié au dossier.
+ */
+export async function deposerMail({ mail_id, deal_id, user = null }) {
+  const m = Records.get('MailRecu', mail_id);
+  if (!m) return { ok: false, error: 'Mail introuvable.' };
+  const deal = Records.findBy('Deal', 'deal_id', deal_id);
+  if (!deal) return { ok: false, error: 'Dossier introuvable.' };
+  const { telechargerPieceJointe } = await import('../gmail-inbox.js');
+  const { deposerDocument } = await import('../deal/deposer-document.js');
+  const { CHEMIN_UPLOADS } = await import('../db.js');
+  const deposees = []; const ratees = []; const fichiers = [];
+  for (const p of m.pieces_jointes || []) {
+    if (!p?.piece_id) continue;
+    try {
+      const buffer = await telechargerPieceJointe(m.compte, m.gmail_message_id, p.piece_id);
+      fichiers.push({ nom: p.nom, buffer, mime: p.mime || undefined });
+      const r = await deposerDocument(deal_id, { buffer, filename: p.nom, mimetype: p.mime || undefined }, { user });
+      if (r.ok) deposees.push(`${p.nom}${r.type ? ` (${r.type})` : ''}`); else ratees.push(`${p.nom} : ${r.error}`);
+    } catch (e) { ratees.push(`${p.nom} : ${e?.message || e}`); }
+  }
+  let drive = null;
+  if (fichiers.length) {
+    try {
+      const { classerDansDrive } = await import('../google-drive.js');
+      const { nomDossierDrive } = await import('../deal/nom-drive.js');
+      const r = await classerDansDrive(COMPTE, nomDossierDrive(deal), fichiers, CHEMIN_UPLOADS);
+      if (!deal.drive_folder_id) Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+      drive = r.folder_url;
+    } catch (e) { ratees.push(`Drive : ${e?.message || e}`); }
+  }
+  if (!m.deal_id) Records.update('MailRecu', m.id, { deal_id });
+  return { ok: true, deal_id, titre: deal.nom || deal.lots?.[0]?.synthese?.titre || deal_id, deposees, ratees, drive };
 }

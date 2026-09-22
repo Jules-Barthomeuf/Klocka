@@ -21,7 +21,7 @@ import { APP_URL_PROD } from '../contexte.js';
 import { QUESTIONS, valeursParDefaut } from '../kdata-questions.js';
 import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
 import { COMPTE } from './chat.js';
-import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx, boiteRecue, lireMail, mailsDuDossier, preanalyserMailRecu, chercherSurLeDrive, rangerSurLeDrive, bloquerRendezVous, agendaDuJour, titreCourt, nommer, faireTout } from './outils.js';
+import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx, boiteRecue, lireMail, mailsDuDossier, preanalyserMailRecu, chercherSurLeDrive, rangerSurLeDrive, bloquerRendezVous, agendaDuJour, titreCourt, nommer, faireTout, deposerMail } from './outils.js';
 import { leconsPourConsigne, souvenirsPourConsigne, retenir, oublier, souvenirs } from './lecons.js';
 
 const AGENT = 'ak';
@@ -94,6 +94,11 @@ const OUTILS_AK = [
         outils: { type: 'array', items: { type: 'string', enum: CLES_OUTILS }, description: 'les outils K-Data, si la personne en nomme ; sinon les trois par défaut' },
       },
     },
+  },
+  {
+    name: 'deposer_mail',
+    description: "Dépose les pièces jointes d'un mail reçu (PV d'AG, avis d'échéance, bail, diagnostics) sur un dossier qui existe déjà, et sur son Drive. Pour un mail de compléments qui arrive après la fiche. Chercher le dossier d'abord.",
+    input_schema: { type: 'object', properties: { mail_id: { type: 'string', description: 'de boite_recue' }, deal_id: { type: 'string' } }, required: ['mail_id', 'deal_id'] },
   },
   {
     name: 'preanalyser_mail',
@@ -322,13 +327,18 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     if (!r.ok) return r;
     return { ok: true, type: r.type || null, statut: r.deal?.statut || null, lien: lien(`/Analyse?deal_id=${input.deal_id}`) };
   }
-  if (name === 'boite_recue') { const mails = boiteRecue(undefined, { limite: input.limite || 10, non_rattaches: !input.tous }); return { mails, nombre: mails.length }; }
+  if (name === 'boite_recue') { const mails = await boiteRecue(null, { limite: input.limite || 10, non_rattaches: !input.tous }); return { mails, nombre: mails.length, boite: COMPTE }; }
   if (name === 'lire_mail') return lireMail(input.id);
   if (name === 'mails_du_dossier') return { mails: mailsDuDossier(input.deal_id) };
   if (name === 'faire_tout') {
     const chemins = (input.chemins || []).map(String).filter((c) => c.startsWith(CHEMIN_UPLOADS) && fs.existsSync(c));
     if (!input.mail_id && !chemins.length) return { ok: false, error: 'Il faut un mail (boite_recue) ou une pièce jointe dans le message.' };
     const r = await faireTout({ mail_id: input.mail_id || null, mail_ids: input.mail_ids || [], chemins, outils: input.outils || null, user, fond });
+    if (r.ok) r.lien = lien(`/Analyse?deal_id=${r.deal_id}`);
+    return r;
+  }
+  if (name === 'deposer_mail') {
+    const r = await deposerMail({ mail_id: input.mail_id, deal_id: input.deal_id, user });
     if (r.ok) r.lien = lien(`/Analyse?deal_id=${r.deal_id}`);
     return r;
   }
@@ -526,7 +536,7 @@ RÈGLES :
 5bis. « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends le couperet en une ligne, cash : « ça tourne, 7,2 % AEM et 8 ans de bail » ou « c'est dead, 4,8 % AEM et le bail finit dans 14 mois ». Les seuils sont ceux de l'équipe, tu ne les discutes pas.
 5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
 5sexies. « Crée une LOI », « fais la lettre d'intention pour X » : chercher_dossier si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.
-5septies. « Prends ce mail, fais tout », « prends ces deux mails et fais tout », « traite le mail de Paul », « fais tout avec ça » (avec des pièces jointes) : boite_recue pour trouver le ou les mails (les derniers du même expéditeur, ou du même sujet), puis faire_tout avec tous leurs identifiants dans mail_ids, sans poser de question : dossier, Drive, K-Data, tout part. Une ligne pour dire ce qui est fait et ce qui tourne ; tu préviendras quand K-Data sera fini. Si le mail n'est pas dans la boîte (il a été reçu par quelqu'un d'autre), dis-le : il faut le transférer à ${COMPTE} ou le coller dans le chat avec ses pièces.
+5septies. « Prends ce mail, fais tout », « prends ces deux mails et fais tout », « traite le mail de Paul », « fais tout avec ça » (avec des pièces jointes) : boite_recue pour trouver le ou les mails (les derniers du même expéditeur, ou du même sujet), puis faire_tout avec tous leurs identifiants dans mail_ids, sans poser de question. Ne mets ensemble que des mails qui parlent du MÊME bien (même adresse, même enseigne) ; un mail de compléments pour un bien qui a déjà son dossier (« doc complémentaire pour … ») se dépose avec deposer_mail sur ce dossier, il ne crée pas de doublon : dossier, Drive, K-Data, tout part. Une ligne pour dire ce qui est fait et ce qui tourne ; tu préviendras quand K-Data sera fini. Si le mail n'est pas dans la boîte (il a été reçu par quelqu'un d'autre), dis-le : il faut le transférer à ${COMPTE} ou le coller dans le chat avec ses pièces.
 5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc » : boite_recue puis preanalyser_mail. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas.

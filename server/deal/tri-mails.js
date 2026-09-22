@@ -213,8 +213,15 @@ export function trierMail(mail, ref) {
 
   // B. Les règles gratuites.
   if (ref.ignores.has(email)) return { garder: false, raison: 'expéditeur ignoré' };
-  if (ref.internes.has(email)) return { garder: false, raison: 'échange interne' };
-  if (domaine && ref.domaines.has(domaine)) return { garder: false, raison: 'échange interne' };
+  // Un mail de l'équipe : une pièce utile (une fiche, un bail transféré par
+  // un collègue) entre, marquée interne pour que l'expéditeur ne passe pas
+  // pour l'agent ; sans pièce, c'est une conversation, elle reste dehors.
+  const interne = ref.internes.has(email) || (!!domaine && ref.domaines.has(domaine));
+  if (interne) {
+    const utiles = (mail.pieces_jointes || []).filter((p) => PIECES_UTILES.test(p.nom || '') && !PIECES_INUTILES.test(p.nom || ''));
+    if (!utiles.length) return { garder: false, raison: 'échange interne, sans pièce' };
+    return { garder: true, interne: true, raison: `transféré par l'équipe (${utiles[0].nom})` };
+  }
   // Une réponse attendue passe telle quelle. Un agent connu qui écrit hors
   // dossier, lui, est examiné comme les autres : il envoie de bons biens ET des
   // mails sans intérêt, et les deux ne se valent pas.

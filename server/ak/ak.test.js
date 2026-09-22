@@ -254,7 +254,7 @@ test("le bilan d'AK compte ce qu'il a fait, pour qui, et ce qu'on lui a repris",
 });
 
 test("la boîte reçue se lit sans réseau, et un mail avec une fiche se signale une fois", async () => {
-  const { boiteRecue } = await import('./outils.js');
+  const { trierBoite: boiteRecue } = await import('./outils.js');
   const { mailsASignaler } = await import('./proactif.js');
   const le = new Date().toISOString();
   const mails = [
@@ -351,4 +351,22 @@ test("« fais tout » : l'adresse d'un dossier se lit, et un mail de l'équipe n
   assert.deepEqual(ordonnerMails([fiche, sans, docs]).map((m) => m.id), ['a', 'b', 'c'], 'un PDF d\'abord, le plus ancien en tête, le sans-pièce en dernier');
   const noms = OUTILS.map((o) => o.name);
   assert.ok(noms.includes('faire_tout'));
+  assert.ok(noms.includes('deposer_mail'));
+});
+
+test("un mail de l'équipe avec une pièce utile entre dans la boîte, marqué interne ; sans pièce, il reste dehors", async () => {
+  const { trierMail } = await import('../deal/tri-mails.js');
+  const ref = { internes: new Set(['jules.b@klocka.immo']), domaines: new Set(['klocka.immo']), ignores: new Set(), apprises: null, attendus: new Set(), agents: new Set() };
+  const avec = trierMail({ de_email: 'paul.dz@klocka.immo', objet: 'Due diligence', extrait: '', pieces_jointes: [{ nom: 'Teaser Firminy.pdf' }] }, ref);
+  assert.equal(avec.garder, true);
+  assert.equal(avec.interne, true);
+  assert.match(avec.raison, /transféré par l'équipe/);
+  const sans = trierMail({ de_email: 'jules.b@klocka.immo', objet: 'Re: réunion', extrait: 'ok pour 14h', pieces_jointes: [] }, ref);
+  assert.equal(sans.garder, false);
+  assert.equal(sans.raison, 'échange interne, sans pièce');
+  const logo = trierMail({ de_email: 'jules.b@klocka.immo', objet: 'x', extrait: '', pieces_jointes: [{ nom: 'logo.png' }] }, ref);
+  assert.equal(logo.garder, false, 'une signature n\'est pas une pièce');
+  const externe = trierMail({ de_email: 'marc@agence.fr', objet: 'Local à vendre', extrait: '', pieces_jointes: [{ nom: 'fiche.pdf' }] }, ref);
+  assert.equal(externe.garder, true);
+  assert.equal(externe.interne, undefined);
 });

@@ -11,6 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 import { CHEMIN_UPLOADS } from '../db.js';
+import { finDeBail } from './outils.js';
 
 /** Les champs sans lesquels la lettre ne se rédige pas, et leur question. */
 export const CHAMPS_REQUIS = [
@@ -55,7 +56,8 @@ export function enLettres(n) {
 }
 
 const euros = (n) => `${Math.round(Number(n) || 0).toLocaleString('fr-FR')} €`;
-const jour = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '');
+// Une date telle qu'on l'écrit : « 30/04/2032 » comme « 2032-04-30 ».
+const jour = (d) => { if (!d) return ''; const x = d instanceof Date ? d : finDeBail(d) || new Date(d); return Number.isNaN(x.getTime()) ? String(d) : x.toLocaleDateString('fr-FR', { timeZone: 'UTC' }); };
 const plusJours = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 const html = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 

@@ -108,6 +108,22 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { jour: { type: 'string' } }, required: ['jour'] },
   },
   {
+    name: 'rediger_loi',
+    description: "Rédige une lettre d'intention d'achat (LOI) sur le modèle de la maison, en PDF, et la pose dans le chat pour relecture. Si un dossier est donné, l'adresse, la surface, le locataire, le bail et le prix en viennent ; le reste est demandé. Ne rédige que quand tous les champs requis sont là : sinon l'outil rend la liste de ce qui manque, et tu la demandes en une ligne.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_id: { type: 'string' },
+        acquereur_nom: { type: 'string', description: 'la personne qui signe, ex. Olivier LUCCIONI' }, acquereur_societe: { type: 'string' }, acquereur_adresse: { type: 'string' },
+        vendeur_societe: { type: 'string' }, vendeur_representant: { type: 'string', description: 'ex. Monsieur Jérôme ABECASSIS' }, vendeur_adresse: { type: 'string' },
+        adresse_bien: { type: 'string' }, surface_m2: { type: 'number' }, locataire: { type: 'string', description: "l'enseigne ou la société locataire" }, fin_bail: { type: 'string', description: 'AAAA-MM-JJ' },
+        prix: { type: 'number', description: 'prix FAI TTC proposé, en euros' }, apport: { type: 'number' }, duree_ans: { type: 'number' }, taux: { type: 'number', description: 'en %, 4 par défaut' },
+        fin_exclusivite: { type: 'string', description: 'AAAA-MM-JJ, 23 jours par défaut' }, limite_documents: { type: 'string', description: 'AAAA-MM-JJ, 9 jours par défaut' }, validite: { type: 'string', description: 'AAAA-MM-JJ, 7 jours par défaut' },
+        lieu: { type: 'string', description: 'la ville de signature, Nice par défaut' },
+      },
+    },
+  },
+  {
     name: 'lancer_design',
     description: "Confie un changement de la plateforme Klocka elle-même à Claude Code (« redesign la page K-Zoning », « ajoute un filtre par ville sur Mes projets ») : il travaille sur une copie du dépôt, vérifie lint et build, et rend une branche à relire. Tâche de fond de cinq à trente minutes ; AK donnera la branche dans le chat. Reformule la demande en une consigne précise : quelle page, quoi changer, ce qu'il ne faut pas toucher.",
     input_schema: { type: 'object', properties: { demande: { type: 'string' } }, required: ['demande'] },
@@ -299,6 +315,16 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
   }
   if (name === 'bloquer_rdv') return bloquerRendezVous(input);
   if (name === 'agenda') return { jour: input.jour, rendez_vous: await agendaDuJour(input.jour) };
+  if (name === 'rediger_loi') {
+    const { manquants, champsDepuisDeal } = await import('./loi.js');
+    const deal = input.deal_id ? Records.findBy('Deal', 'deal_id', input.deal_id) : null;
+    if (input.deal_id && !deal) return { ok: false, error: 'Dossier introuvable.' };
+    const champs = { ...(deal ? champsDepuisDeal(deal) : {}), ...Object.fromEntries(Object.entries(input).filter(([k, v]) => k !== 'deal_id' && v !== undefined && v !== null && v !== '')) };
+    const m = manquants(champs);
+    if (m.length) return { ok: false, manque: m.map((x) => x.question), champs_connus: champs };
+    fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, deal_id: input.deal_id || null });
+    return { ok: true, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
+  }
   if (name === 'lancer_design') {
     const { designActif } = await import('./design.js');
     if (!designActif()) return { ok: false, error: "Les projets Claude Code ne sont pas activés sur ce serveur (AK_DESIGN)." };
@@ -426,6 +452,10 @@ export function texteDeFin(tache) {
     const ou = tache.deal_id ? ' rangé dans le dossier' : '';
     return `c'est bon, ${tache.libelle}${ou} :\n${lignes.join('\n')}`;
   }
+  if (tache.genre === 'loi') {
+    if (tache.etat === 'ratee') return `dsl, ${tache.libelle} a planté : ${tache.resultat?.erreur || 'sans détail'}`;
+    return `voilà ${tache.libelle}, à relire avant envoi${tache.resultat?.drive ? ` (aussi sur le Drive : ${tache.resultat.drive})` : ''}`;
+  }
   if (tache.genre === 'design') {
     const r = tache.resultat || {};
     if (tache.etat === 'ratee') return `dsl, ${tache.libelle} a planté : ${r.erreur || 'sans détail'}`;
@@ -463,6 +493,7 @@ RÈGLES :
 5. Un mail (« prépare le mail de relance pour l'agent de Dieppe ») : chercher_dossier puis preparer_mail ; tu colles l'objet et le corps rendus dans le chat, tels quels, et c'est quelqu'un de l'équipe qui l'envoie. Tu n'envoies jamais rien. Le brouillon au propriétaire d'une cible ALX (chercher_cible puis brouillon_proprietaire) se colle pareil.
 5bis. « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends le couperet en une ligne, cash : « ça tourne, 7,2 % AEM et 8 ans de bail » ou « c'est dead, 4,8 % AEM et le bail finit dans 14 mois ». Les seuils sont ceux de l'équipe, tu ne les discutes pas.
 5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
+5sexies. « Crée une LOI », « fais la lettre d'intention pour X » : chercher_dossier si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.
 5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc » : boite_recue puis preanalyser_mail. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas.

@@ -284,3 +284,31 @@ test("l'oreille : le JSON du modèle se lit, la phrase dit ce qui a été retenu
   assert.equal(estLeMoment(ancien, { dernier: Date.now() - 10 * 60000 }), true, 'assez de temps');
   assert.equal(estLeMoment([{ texte: 'x'.repeat(900), le: new Date().toISOString() }], { dernier: Date.now() }), true, 'assez de texte');
 });
+
+test("la LOI : les nombres en lettres, les champs manquants, le texte de la maison", async () => {
+  const { enLettres, manquants, lettre, champsDepuisDeal } = await import('./loi.js');
+  assert.equal(enLettres(200000), 'deux cent mille');
+  assert.equal(enLettres(40000), 'quarante mille');
+  assert.equal(enLettres(1134000), 'un million cent trente-quatre mille');
+  assert.equal(enLettres(71), 'soixante et onze');
+  assert.equal(enLettres(80), 'quatre-vingts');
+  assert.equal(enLettres(99), 'quatre-vingt-dix-neuf');
+  assert.equal(enLettres(1000), 'mille');
+  assert.equal(enLettres(300), 'trois cents');
+  assert.equal(enLettres(305), 'trois cent cinq');
+  assert.deepEqual(manquants({ acquereur_nom: 'X', prix: 1 }).map((m) => m.cle), ['vendeur_societe', 'adresse_bien', 'apport']);
+  const c = champsDepuisDeal({ lots: [{ lot: { adresse: { valeur: { rue: '1 avenue Mirabeau', code_postal: '06000', ville: 'Nice' } }, surface_m2: { valeur: 40 }, locataire_nom: { valeur: 'Cookietelier' }, bail_echeance: { valeur: '30/04/2032' }, prix_fai: { valeur: 200000 } } }] });
+  assert.equal(c.adresse_bien, '1 avenue Mirabeau, 06000 Nice');
+  const h = lettre({ ...c, acquereur_nom: 'Olivier LUCCIONI', acquereur_societe: 'FONCIERE ANGULARIS', acquereur_adresse: 'LOT 12, STILETTO, 20090 AJACCIO', vendeur_societe: 'PAX AVENUE', vendeur_representant: 'Monsieur Jérôme ABECASSIS', vendeur_adresse: '85 rue de France, 06000 Nice', apport: 40000, date: '2026-09-16', validite: '2026-09-23', fin_exclusivite: '2026-10-09', limite_documents: '2026-09-25' });
+  assert.match(h, /Lettre d'intention d'achat d'un local commercial situé au 1 avenue Mirabeau, 06000 Nice/);
+  assert.match(h, /200 000 € \(<i>deux cent mille euros<\/i>\)/);
+  assert.match(h, /apport personnel de 40 000 € \(quarante mille euros\)/);
+  assert.match(h, /durée maximale de 20 ans avec un taux cible de 4%/);
+  assert.match(h, /s'achèvera le 09\/10\/2026, sous réserve[\s\S]*d'ici le 25\/09\/2026/);
+  assert.match(h, /valable jusqu'au 23\/09\/2026/);
+  assert.match(h, /Le Kbis de la société Cookietelier/);
+  assert.match(h, /échéance le 30\/04\/2032/);
+  assert.match(h, /CPI75012024000000529/);
+  assert.match(h, /À Nice, le 16\/09\/2026/);
+  assert.ok(!/<script/.test(h));
+});

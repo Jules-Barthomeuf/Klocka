@@ -101,8 +101,8 @@ async function annoncerLesTachesFinies() {
     try {
       // La préz part en fichier dans le chat, en plus du lien : on l'ouvre
       // sans passer par la plateforme.
-      if (t.genre === 'prez' && t.etat === 'finie' && t.resultat?.chemin && fs.existsSync(t.resultat.chemin)) {
-        try { await envoyerFichier(t.espace, { chemin: t.resultat.chemin, nom: t.resultat.nom_fichier, texte: `${mention(t.pour)} ${texte}` }); }
+      if (['prez', 'loi'].includes(t.genre) && t.etat === 'finie' && t.resultat?.chemin && fs.existsSync(t.resultat.chemin)) {
+        try { await envoyerFichier(t.espace, { chemin: t.resultat.chemin, nom: t.resultat.nom_fichier || t.resultat.nom, texte: `${mention(t.pour)} ${texte}` }); }
         catch { await envoyer(t.espace, `${mention(t.pour)} ${texte}`); }
       } else {
         await envoyer(t.espace, `${mention(t.pour)} ${texte}`);
@@ -235,6 +235,7 @@ async function traiter(message) {
     const tache = ouvrirTache(t, message);
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
     if (t.genre === 'design') lancerDesign(tache).catch(() => {});
+    if (t.genre === 'loi') lancerLoi(tache).catch(() => {});
   }
   await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null, message.auteur);
   ouvrirAttente(message);
@@ -311,6 +312,21 @@ async function ecouterLeBureau(suivis) {
   const { MODELE } = await import('./agent.js');
   const texte = await relire({ modele: MODELE, mentionner: mentionDe });
   if (texte && groupe) await envoyer(groupe.nom, texte);
+}
+
+/** Une LOI : le PDF, posé dans le chat et, si le dossier a un Drive, rangé dedans. */
+async function lancerLoi(tache) {
+  const { produire } = await import('./loi.js');
+  try {
+    const r = await produire(tache.champs);
+    let drive = null;
+    if (tache.deal_id) {
+      try { const { rangerSurLeDrive } = await import('./outils.js'); const d = await rangerSurLeDrive({ deal_id: tache.deal_id, chemin: r.chemin, nom: r.nom }); drive = d.ok ? d.dossier_url : null; } catch { drive = null; }
+    }
+    Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', resultat: { ...r, drive }, fini_le: new Date().toISOString() });
+  } catch (e) {
+    Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: e?.message || String(e) }, fini_le: new Date().toISOString() });
+  }
 }
 
 /** Un projet Claude Code : la tâche se ferme quand la branche est là. */

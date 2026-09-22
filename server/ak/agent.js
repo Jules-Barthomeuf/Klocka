@@ -113,6 +113,11 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { demande: { type: 'string' } }, required: ['demande'] },
   },
   {
+    name: 'version',
+    description: "Quelle version de Klocka tourne (le commit git), et si la consigne contient bien un mot donné : pour vérifier qu'un changement est déployé (« t'es à jour ? »).",
+    input_schema: { type: 'object', properties: { mot: { type: 'string' } } },
+  },
+  {
     name: 'retenir',
     description: "Retient un fait durable ou une préférence pour les prochaines fois (« le Devred c'est Firminy », « Max veut pas de Monday sans demander », « le client Dupont a 300 k »). Pas les demandes du moment, pas ce qui est déjà dans la plateforme.",
     input_schema: { type: 'object', properties: { sujet: { type: 'string', description: 'de qui ou de quoi : une personne, un dossier, un client, l\'équipe' }, fait: { type: 'string' } }, required: ['fait'] },
@@ -299,6 +304,10 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     if (!designActif()) return { ok: false, error: "Les projets Claude Code ne sont pas activés sur ce serveur (AK_DESIGN)." };
     fond({ genre: 'design', libelle: `le projet « ${String(input.demande).slice(0, 80)} »`, demande: String(input.demande) });
     return { ok: true, note: 'Claude Code s\'y met sur une copie du dépôt ; AK donnera la branche dans le chat quand c\'est prêt.' };
+  }
+  if (name === 'version') {
+    const { versionQuiTourne } = await import('./veille.js');
+    return { version: versionQuiTourne(), consigne_contient: input.mot ? CONSIGNE.includes(input.mot) : null, modele: MODELE || 'celui de la plateforme' };
   }
   if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null });
   if (name === 'oublier') return oublier(input.id);

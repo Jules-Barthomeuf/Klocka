@@ -336,7 +336,14 @@ async function seProposer(suivis) {
   marquer(liste.map((s) => s.deal_id || s.cle));
 }
 
-export const etatVeille = () => ({ ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours(), reponses_en_attente: Records.list(ENTITE_REPONSE).length });
+// La version qui tourne : pour savoir, depuis le chat ou /api/ak/etat, si le
+// serveur a bien le dernier code. Sans git (un déploiement sans historique),
+// c'est la date du fichier.
+let version = null;
+try { const { execFileSync } = await import('child_process'); version = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim(); } catch { version = null; }
+export const versionQuiTourne = () => version || 'sans git';
+
+export const etatVeille = () => ({ version: versionQuiTourne(), ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours(), reponses_en_attente: Records.list(ENTITE_REPONSE).length });
 
 /** Démarre la veille si la portée Chat est demandée ; rend vrai si elle tourne. */
 export function demarrerVeille() {

@@ -4,8 +4,8 @@
 // l'acquéreur, le vendeur, l'identification de Klocka (fixe), l'offre, les
 // conditions suspensives (financement, exclusivité et pièces, diagnostics),
 // les modalités. Ce qui change d'une lettre à l'autre est un champ ; le reste
-// est le texte de la maison, mot pour mot. La lettre sort en PDF par le
-// navigateur sans écran (le même que pour Equimmox), et se relit avant de
+// est le texte de la maison, mot pour mot. La lettre sort en PDF par jsPDF,
+// sans navigateur ni rien à installer sur le serveur, et se relit avant de
 // partir : AK la pose dans le chat, personne ne l'envoie à sa place.
 
 import fs from 'fs';
@@ -83,66 +83,142 @@ export function completer(champs = {}) {
   };
 }
 
-/** Le texte de la lettre, en HTML prêt à imprimer. Pure. */
-export function lettre(brut) {
+/**
+ * La lettre, bloc par bloc : c'est la seule source. L'HTML (pour relire à
+ * l'écran) et le PDF (pour envoyer) en sortent tous deux. Pure.
+ * Types : entete (lignes à gauche), droite (lignes à droite), objet, h2, h3,
+ * p, li (avec `html` pour la mise en forme, `texte` pour le PDF), signature.
+ */
+export function blocs(brut) {
   const c = completer(brut);
   const acquereur = [c.acquereur_nom, c.acquereur_societe, c.acquereur_adresse].filter(Boolean);
-  const vendeur = [c.vendeur_societe, c.vendeur_representant ? `Représentée par ${c.vendeur_representant}` : null, c.vendeur_adresse].filter(Boolean);
+  const vendeur = ["À l'attention de :", c.vendeur_societe, c.vendeur_representant ? `Représentée par ${c.vendeur_representant}` : null, c.vendeur_adresse].filter(Boolean);
   const bien = [
     `Désignation du bien : Il s'agit d'un local commercial${c.surface_m2 ? ` d'une surface totale d'environ ${String(c.surface_m2).replace('.', ',')} m²` : ''},`,
     c.locataire ? `Local actuellement loué à l'enseigne ${c.locataire}${c.fin_bail ? ` via un bail commercial arrivant à échéance le ${jour(c.fin_bail)}` : ' via un bail commercial'}` : 'Local actuellement loué via un bail commercial',
-    `Le prix de vente FAI TTC proposé est de <b>${euros(c.prix)} (<i>${enLettres(c.prix)} euros</i>).</b>`,
   ];
+  const prix = `Le prix de vente FAI TTC proposé est de ${euros(c.prix)} (${enLettres(c.prix)} euros).`;
+  const li = (t, extra = {}) => ({ type: 'li', texte: t, ...extra });
+  return [
+    { type: 'entete', lignes: acquereur },
+    { type: 'droite', lignes: vendeur },
+    { type: 'droite', lignes: [`À ${c.lieu}, le ${jour(c.date)}`] },
+    { type: 'objet', texte: `Objet : Lettre d'intention d'achat d'un local commercial situé au ${c.adresse_bien}` },
+    { type: 'h2', texte: 'IDENTIFICATION DU CONSEIL' },
+    { type: 'p', texte: "L'acquéreur est assisté dans cette opération par le cabinet :" },
+    li('La société KLOCKA'),
+    li('Forme juridique : Société par action simplifiée (SAS) au capital social de 1 000 € (mille euros).'),
+    li('Siège social : 229 rue Saint-Honoré, 75001 Paris.'),
+    li('Immatriculation : R.C.S de Paris sous le numéro 932 230 394.'),
+    li('Représentation : Représentée par Paul de ZULUETA Y DE BESSON en qualité de Président.'),
+    li('Carte Professionnelle : n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ».'),
+    li('Assurance RCP et Garantie : GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.'),
+    { type: 'h2', texte: "I. L'OFFRE" },
+    { type: 'p', texte: `Je soussigné, ${c.acquereur_nom}, ai l'honneur de vous proposer l'achat d'un local commercial situé à l'adresse suivante : ${c.adresse_bien}` },
+    ...bien.map((t) => li(t)),
+    li(prix, { gras: true }),
+    { type: 'p', texte: 'À noter : Les honoraires de notre conseil, KLOCKA, seront également à notre charge.' },
+    { type: 'h2', texte: 'II. CONDITIONS SUSPENSIVES' },
+    { type: 'h3', texte: 'II.1. Financement :' },
+    { type: 'p', texte: `Cette opération sera financée par un apport personnel de ${euros(c.apport)} (${enLettres(c.apport)} euros) et au moyen d'un crédit bancaire d'une durée maximale de ${c.duree_ans} ans avec un taux cible de ${String(c.taux).replace('.', ',')}% (hors assurance).` },
+    { type: 'h3', texte: 'II.2. Exclusivité et Due Diligence :' },
+    { type: 'p', texte: `Une période d'exclusivité permettant la Due Diligence à accorder à l'acquéreur. Cette période s'achèvera le ${jour(c.fin_exclusivite)}, sous réserve que l'ensemble des documents de la dataroom soient communiqués de façon exhaustive d'ici le ${jour(c.limite_documents)}. L'offre pourra être confirmée à l'issue de cette période si l'analyse des documents s'avère satisfaisante et conforme, par mes conseils, à l'exécution de l'acquisition.` },
+    { type: 'p', texte: "Le vendeur s'engage à mettre à disposition :" },
+    li('Les quittances de loyers sur les 3 dernières années et la situation de compte avec les dates de règlement.'),
+    li("La confirmation d'absence de désordre ou litige entre le locataire actuel et le propriétaire."),
+    li("La confirmation d'absence de travaux majeurs dans la copropriété à la charge de l'acquéreur."),
+    li("Les trois derniers procès-verbaux d'assemblée générale"),
+    li("Le règlement de copropriété n'indiquant aucune contradiction avec l'activité du preneur actuel."),
+    li('Le détail de la taxe foncière et de sa répartition et refacturation avec le preneur'),
+    li('Les plans cotés des locaux concernés par la vente'),
+    ...(c.locataire ? [li(`Le Kbis de la société ${c.locataire}`)] : []),
+    li('Transmettre tous les diagnostics réglementaires dans le cadre de cette vente'),
+    li("Tout autre document nécessaire à l'analyse du présent projet"),
+    { type: 'h3', texte: 'II.3. Diagnostics :' },
+    { type: 'p', texte: 'La réalisation des diagnostics réglementaires ne révélant aucune non conformité majeure.' },
+    { type: 'h2', texte: 'III. MODALITÉS GÉNÉRALES' },
+    { type: 'p', texte: 'Clause de substitution : Je me réserve la faculté de me substituer toute structure (personne morale) dans laquelle je suis partie prenante.' },
+    { type: 'p', texte: `Validité de l'offre : La présente offre est valable jusqu'au ${jour(c.validite)}.` },
+    { type: 'p', texte: "Nous vous prions d'agréer, Monsieur, l'expression de nos salutations distinguées." },
+    { type: 'signature', lignes: [c.acquereur_nom, c.acquereur_societe].filter(Boolean) },
+  ];
+}
+
+/** La lettre en HTML, pour la relire à l'écran. Pure. */
+export function lettre(brut) {
+  const c = completer(brut);
   const style = `body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.45;color:#111;margin:0;padding:0 8mm}
-    p{margin:0 0 8px} h2{font-size:11pt;color:#1f3a68;margin:22px 0 8px;text-transform:uppercase} h3{font-size:11pt;color:#1f3a68;margin:16px 0 6px}
-    .droite{text-align:right} ul{margin:4px 0 10px 18px;padding:0} li{margin:2px 0} .signature{margin-top:36px;text-align:right}
-    .objet{font-weight:bold;margin:26px 0 18px} .saut{page-break-before:always}`;
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>LOI ${html(c.adresse_bien)}</title><style>${style}</style></head><body>
-<p>${acquereur.map(html).join('<br>')}</p>
-<p class="droite" style="margin-top:34px">À l'attention de :<br>${vendeur.map(html).join('<br>')}</p>
-<p class="droite">À ${html(c.lieu)}, le ${jour(c.date)}</p>
-<p class="objet">Objet : Lettre d'intention d'achat d'un local commercial situé au ${html(c.adresse_bien)}</p>
-<h2>Identification du conseil</h2>
-<p>L'acquéreur est assisté dans cette opération par le cabinet :</p>
-<ul>
-<li>La société KLOCKA</li>
-<li>Forme juridique : Société par action simplifiée (SAS) au capital social de 1 000 € (mille euros).</li>
-<li>Siège social : 229 rue Saint-Honoré, 75001 Paris.</li>
-<li>Immatriculation : R.C.S de Paris sous le numéro 932 230 394.</li>
-<li>Représentation : Représentée par Paul de ZULUETA Y DE BESSON en qualité de Président.</li>
-<li>Carte Professionnelle : n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ».</li>
-<li>Assurance RCP et Garantie : GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.</li>
-</ul>
-<h2>I. L'offre</h2>
-<p>Je soussigné, ${html(c.acquereur_nom)}, ai l'honneur de vous proposer l'achat d'un local commercial situé à l'adresse suivante : ${html(c.adresse_bien)}</p>
-<ul>${bien.map((l) => `<li>${l}</li>`).join('')}</ul>
-<p>À noter : Les honoraires de notre conseil, KLOCKA, seront également à notre charge.</p>
-<h2>II. Conditions suspensives</h2>
-<h3>II.1. Financement :</h3>
-<p>Cette opération sera financée par un apport personnel de ${euros(c.apport)} (${enLettres(c.apport)} euros) et au moyen d'un crédit bancaire d'une durée maximale de ${c.duree_ans} ans avec un taux cible de ${String(c.taux).replace('.', ',')}% (hors assurance).</p>
-<h3>II.2. Exclusivité et Due Diligence :</h3>
-<p>Une période d'exclusivité permettant la Due Diligence à accorder à l'acquéreur. Cette période s'achèvera le ${jour(c.fin_exclusivite)}, sous réserve que l'ensemble des documents de la dataroom soient communiqués de façon exhaustive d'ici le ${jour(c.limite_documents)}. L'offre pourra être confirmée à l'issue de cette période si l'analyse des documents s'avère satisfaisante et conforme, par mes conseils, à l'exécution de l'acquisition.</p>
-<p>Le vendeur s'engage à mettre à disposition :</p>
-<ul>
-<li>Les quittances de loyers sur les 3 dernières années et la situation de compte avec les dates de règlement.</li>
-<li>La confirmation d'absence de désordre ou litige entre le locataire actuel et le propriétaire.</li>
-<li>La confirmation d'absence de travaux majeurs dans la copropriété à la charge de l'acquéreur.</li>
-<li>Les trois derniers procès-verbaux d'assemblée générale</li>
-<li>Le règlement de copropriété n'indiquant aucune contradiction avec l'activité du preneur actuel.</li>
-<li>Le détail de la taxe foncière et de sa répartition et refacturation avec le preneur</li>
-<li>Les plans cotés des locaux concernés par la vente</li>
-${c.locataire ? `<li>Le Kbis de la société ${html(c.locataire)}</li>` : ''}
-<li>Transmettre tous les diagnostics réglementaires dans le cadre de cette vente</li>
-<li>Tout autre document nécessaire à l'analyse du présent projet</li>
-</ul>
-<h3>II.3. Diagnostics :</h3>
-<p>La réalisation des diagnostics réglementaires ne révélant aucune non conformité majeure.</p>
-<h2>III. Modalités générales</h2>
-<p>Clause de substitution : Je me réserve la faculté de me substituer toute structure (personne morale) dans laquelle je suis partie prenante.</p>
-<p>Validité de l'offre : La présente offre est valable jusqu'au ${jour(c.validite)}.</p>
-<p>Nous vous prions d'agréer, Monsieur, l'expression de nos salutations distinguées.</p>
-<p class="signature">${html(c.acquereur_nom)}${c.acquereur_societe ? `<br>${html(c.acquereur_societe)}` : ''}</p>
-</body></html>`;
+    p{margin:0 0 8px} h2{font-size:11pt;color:#1f3a68;margin:22px 0 8px} h3{font-size:11pt;color:#1f3a68;margin:16px 0 6px}
+    .droite{text-align:right} ul{margin:4px 0 10px 18px;padding:0} li{margin:2px 0} .signature{margin-top:36px;text-align:right} .objet{font-weight:bold;margin:26px 0 18px}`;
+  const corps = [];
+  let liste = [];
+  const fermer = () => { if (liste.length) { corps.push(`<ul>${liste.join('')}</ul>`); liste = []; } };
+  for (const b of blocs(c)) {
+    if (b.type === 'li') { liste.push(`<li>${b.gras ? `<b>${html(b.texte)}</b>` : html(b.texte)}</li>`); continue; }
+    fermer();
+    if (b.type === 'entete') corps.push(`<p>${b.lignes.map(html).join('<br>')}</p>`);
+    else if (b.type === 'droite') corps.push(`<p class="droite">${b.lignes.map(html).join('<br>')}</p>`);
+    else if (b.type === 'objet') corps.push(`<p class="objet">${html(b.texte)}</p>`);
+    else if (b.type === 'h2' || b.type === 'h3') corps.push(`<${b.type}>${html(b.texte)}</${b.type}>`);
+    else if (b.type === 'signature') corps.push(`<p class="signature">${b.lignes.map(html).join('<br>')}</p>`);
+    else corps.push(`<p>${html(b.texte)}</p>`);
+  }
+  fermer();
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>LOI ${html(c.adresse_bien)}</title><style>${style}</style></head><body>${corps.join('\n')}</body></html>`;
+}
+
+/**
+ * La lettre en PDF, écrite par jsPDF : pas de navigateur, rien à installer
+ * sur le serveur. A4, Helvetica, marges de 20 mm, saut de page quand il faut.
+ * Rend le tampon.
+ */
+export async function pdf(brut) {
+  const { jsPDF } = await import('jspdf');
+  const d = new jsPDF({ unit: 'mm', format: 'a4' });
+  const G = 20; const D = 190; const LARGEUR = D - G; const BAS = 277;
+  const BLEU = [31, 58, 104];
+  let y = 22;
+  const police = (style = 'normal', taille = 11, couleur = [17, 17, 17]) => { d.setFont('helvetica', style); d.setFontSize(taille); d.setTextColor(...couleur); };
+  const place = (h) => { if (y + h > BAS) { d.addPage(); y = 22; } };
+  const lignes = (texte, largeur) => d.splitTextToSize(String(texte), largeur);
+  const paragraphe = (texte, { style = 'normal', x = G, largeur = LARGEUR, apres = 3, interligne = 5.2, couleur } = {}) => {
+    police(style, 11, couleur);
+    for (const l of lignes(texte, largeur)) { place(interligne); d.text(l, x, y); y += interligne; }
+    y += apres;
+  };
+  const droite = (liste, { style = 'normal', apres = 3 } = {}) => {
+    police(style);
+    for (const l of liste) { place(5.2); d.text(String(l), D, y, { align: 'right' }); y += 5.2; }
+    y += apres;
+  };
+  for (const b of blocs(brut)) {
+    if (b.type === 'entete') { for (const l of b.lignes) paragraphe(l, { apres: 0 }); y += 8; }
+    else if (b.type === 'droite') droite(b.lignes, { apres: 2 });
+    else if (b.type === 'objet') { y += 6; paragraphe(b.texte, { style: 'bold', apres: 6 }); }
+    else if (b.type === 'h2') { y += 4; paragraphe(b.texte, { style: 'bold', apres: 2, couleur: BLEU }); }
+    else if (b.type === 'h3') { y += 2; paragraphe(b.texte, { style: 'bold', apres: 1, couleur: BLEU }); }
+    else if (b.type === 'li') {
+      police(b.gras ? 'bold' : 'normal');
+      const ls = lignes(b.texte, LARGEUR - 8);
+      place(5.2); d.text('-', G + 2, y);
+      for (const l of ls) { place(5.2); d.text(l, G + 8, y); y += 5.2; }
+      y += 1;
+    }
+    else if (b.type === 'signature') { y += 10; droite(b.lignes); }
+    else paragraphe(b.texte);
+  }
+  return Buffer.from(d.output('arraybuffer'));
+}
+
+/** La lettre en PDF, écrite dans les uploads. Rend son chemin et son adresse. */
+export async function produire(champs) {
+  const contenu = await pdf(champs);
+  const dossier = path.join(CHEMIN_UPLOADS, 'loi');
+  fs.mkdirSync(dossier, { recursive: true });
+  const nom = `LOI ${String(champs.adresse_bien || 'local').replace(/[^\p{L}\p{N} .-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60)} ${new Date().toISOString().slice(0, 10)}.pdf`;
+  const chemin = path.join(dossier, nom);
+  fs.writeFileSync(chemin, contenu);
+  return { chemin, nom, url: `/uploads/loi/${encodeURIComponent(nom)}` };
 }
 
 /** Ce que le dossier sait déjà : l'adresse, la surface, le locataire, le bail, le prix. Pure. */
@@ -158,24 +234,4 @@ export function champsDepuisDeal(deal) {
     fin_bail: val(l.bail_echeance) || null,
     prix: val(l.prix_fai) || null,
   };
-}
-
-/** La lettre en PDF, écrite dans les uploads. Rend son chemin et son adresse. */
-export async function produire(champs) {
-  const { lancerNavigateur } = await import('../marche/navigateur.js');
-  const navigateur = await lancerNavigateur('La lettre d\'intention');
-  try {
-    const page = await navigateur.newPage();
-    await page.setContent(lettre(champs), { waitUntil: 'load' });
-    const pdf = await page.pdf({ format: 'A4', margin: { top: '18mm', bottom: '18mm', left: '14mm', right: '14mm' }, printBackground: true });
-    const dossier = path.join(CHEMIN_UPLOADS, 'loi');
-    fs.mkdirSync(dossier, { recursive: true });
-    const nom = `LOI ${String(champs.adresse_bien || 'local').replace(/[^\p{L}\p{N} .-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60)} ${new Date().toISOString().slice(0, 10)}.pdf`;
-    const chemin = path.join(dossier, nom);
-    fs.writeFileSync(chemin, pdf);
-    await page.close().catch(() => {});
-    return { chemin, nom, url: `/uploads/loi/${encodeURIComponent(nom)}` };
-  } finally {
-    // Le navigateur est partagé (Equimmox s'en sert) : on ne le ferme pas.
-  }
 }

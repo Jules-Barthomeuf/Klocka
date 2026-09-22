@@ -301,7 +301,7 @@ test("la LOI : les nombres en lettres, les champs manquants, le texte de la mais
   assert.equal(c.adresse_bien, '1 avenue Mirabeau, 06000 Nice');
   const h = lettre({ ...c, acquereur_nom: 'Olivier LUCCIONI', acquereur_societe: 'FONCIERE ANGULARIS', acquereur_adresse: 'LOT 12, STILETTO, 20090 AJACCIO', vendeur_societe: 'PAX AVENUE', vendeur_representant: 'Monsieur Jérôme ABECASSIS', vendeur_adresse: '85 rue de France, 06000 Nice', apport: 40000, date: '2026-09-16', validite: '2026-09-23', fin_exclusivite: '2026-10-09', limite_documents: '2026-09-25' });
   assert.match(h, /Lettre d'intention d'achat d'un local commercial situé au 1 avenue Mirabeau, 06000 Nice/);
-  assert.match(h, /200[\s\u202f]000 € \(<i>deux cent mille euros<\/i>\)/);
+  assert.match(h, /<b>Le prix de vente FAI TTC proposé est de 200[\s\u202f]000 € \(deux cent mille euros\)\.<\/b>/);
   assert.match(h, /apport personnel de 40[\s\u202f]000 € \(quarante mille euros\)/);
   assert.match(h, /durée maximale de 20 ans avec un taux cible de 4%/);
   assert.match(h, /s'achèvera le 09\/10\/2026, sous réserve[\s\S]*d'ici le 25\/09\/2026/);
@@ -311,4 +311,7 @@ test("la LOI : les nombres en lettres, les champs manquants, le texte de la mais
   assert.match(h, /CPI75012024000000529/);
   assert.match(h, /À Nice, le 16\/09\/2026/);
   assert.ok(!/<script/.test(h));
+  const { pdf } = await import('./loi.js');
+  const b = await pdf({ acquereur_nom: 'X', vendeur_societe: 'Y', adresse_bien: 'Z', prix: 200000, apport: 40000 });
+  assert.equal(b.slice(0, 5).toString(), '%PDF-', 'un PDF sort sans navigateur');
 });

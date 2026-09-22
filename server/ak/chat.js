@@ -161,6 +161,17 @@ export async function telechargerPiece(piece) {
 }
 
 /**
+ * Ouvre (ou retrouve) le privé avec une personne depuis notre compte : un
+ * privé que l'autre a ouvert reste « non rejoint » tant que personne n'a
+ * cliqué dedans, et Google refuse d'y écrire. Créé de notre côté, il l'est.
+ * Demande la portée chat.spaces.create.
+ */
+export async function assurerPrive(utilisateur) {
+  const d = await appeler('spaces:setup', { method: 'POST', body: { space: { spaceType: 'DIRECT_MESSAGE' }, memberships: [{ member: { name: utilisateur, type: 'HUMAN' } }] } });
+  return d?.name || null;
+}
+
+/**
  * Poste un fichier dans un espace : le contenu part d'abord chez Google
  * (media.upload), puis un message le porte avec un texte.
  */

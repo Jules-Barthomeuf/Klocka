@@ -11,6 +11,7 @@ import path from 'path';
 import { Records, Meta, CHEMIN_UPLOADS } from '../db.js';
 import { chatDemande } from '../google-oauth.js';
 import { noterEchange, apprendre } from './lecons.js';
+import { assurerPrive } from './chat.js';
 import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, envoyerFichier, mention, mentionDe, telechargerPiece, retenirPersonne, NOM } from './chat.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
@@ -120,10 +121,14 @@ const ENTITE_REPONSE = 'AkReponse';
  * appel au modèle et parfois une action : si Google refuse l'envoi (API
  * Chat non configurée, réseau), elle attend au lieu de disparaître.
  */
-async function poster(espace, texte, fil) {
+async function poster(espace, texte, fil, auteur = null) {
   try {
     await envoyer(espace, texte, { fil });
   } catch (e) {
+    // Un privé où Google refuse d'écrire : on l'ouvre de notre côté, une fois, et on réessaie.
+    if (auteur?.nom && /a répondu 403/.test(e?.message || '')) {
+      try { const nouveau = await assurerPrive(auteur.nom); await envoyer(nouveau || espace, texte, { fil: null }); return; } catch { /* on garde la réponse pour plus tard */ }
+    }
     Records.create(ENTITE_REPONSE, { espace, fil, texte, erreur: e?.message || String(e), cree_le: new Date().toISOString() });
     throw e;
   }
@@ -200,14 +205,14 @@ async function traiter(message) {
     }
   } else if (meriteUnRale(message)) {
     poserRale(message.espace, { auteur: message.auteur?.nom, texte, pieces: message.pieces || [], jusqua: Date.now() + RALE_MS });
-    await poster(message.espace, `${mention(message.auteur)} ${RALES[Math.floor(Math.random() * RALES.length)]}`, null);
+    await poster(message.espace, `${mention(message.auteur)} ${RALES[Math.floor(Math.random() * RALES.length)]}`, null, message.auteur);
     ouvrirAttente(message);
     dernier.repondus += 1;
     return;
   }
   if (!insiste && flemme(message.espace, { dernieres: dernieresFlemmes() })) {
     Meta.set(CLE_FLEMME, JSON.stringify({ ...dernieresFlemmes(), [message.espace]: Date.now() }));
-    await poster(message.espace, `${mention(message.auteur)} Non j'ai la flemme de le faire débrouille-toi`, null);
+    await poster(message.espace, `${mention(message.auteur)} Non j'ai la flemme de le faire débrouille-toi`, null, message.auteur);
     dernier.repondus += 1;
     return;
   }
@@ -230,7 +235,7 @@ async function traiter(message) {
     const tache = ouvrirTache(t, message);
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
   }
-  await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null);
+  await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null, message.auteur);
   ouvrirAttente(message);
   noterEchange({ espace: message.espace, auteur: message.auteur, demande: texte, reponse: r.texte });
   dernier.repondus += 1;

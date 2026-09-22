@@ -61,6 +61,10 @@ export const calendarDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_CAL
 // (lecture et écriture) et la liste des espaces, pour retrouver le groupe.
 const CHAT_MESSAGES_SCOPE = 'https://www.googleapis.com/auth/chat.messages';
 const CHAT_SPACES_SCOPE = 'https://www.googleapis.com/auth/chat.spaces.readonly';
+// Ouvrir soi-même un message privé avec quelqu'un : un privé que l'autre a
+// ouvert reste « non rejoint » côté compte tant que personne n'y a cliqué,
+// et Google refuse alors d'y écrire. Créé depuis le compte, il est rejoint.
+const CHAT_SPACES_CREATE_SCOPE = 'https://www.googleapis.com/auth/chat.spaces.create';
 export const chatDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_CHAT || '');
 
 // Se connecter n'est pas connecter une boîte. Un client qui entre dans son
@@ -79,7 +83,7 @@ const SCOPES = [
   ...(gmailReadDemande ? [GMAIL_READ_SCOPE] : []),
   ...(driveDemande ? [DRIVE_SCOPE] : []),
   ...(calendarDemande ? [CALENDAR_SCOPE] : []),
-  ...(chatDemande ? [CHAT_MESSAGES_SCOPE, CHAT_SPACES_SCOPE] : []),
+  ...(chatDemande ? [CHAT_MESSAGES_SCOPE, CHAT_SPACES_SCOPE, CHAT_SPACES_CREATE_SCOPE] : []),
 ];
 
 // Un refresh token est nécessaire dès qu'une portée d'API long-terme est demandée.

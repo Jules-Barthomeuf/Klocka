@@ -318,7 +318,7 @@ async function ecouterLeBureau(suivis) {
 async function lancerLoi(tache) {
   const { produire } = await import('./loi.js');
   try {
-    const r = await produire(tache.champs);
+    const r = await produire(tache.champs, { format: tache.format || 'docx' });
     let drive = null;
     if (tache.deal_id) {
       try { const { rangerSurLeDrive } = await import('./outils.js'); const d = await rangerSurLeDrive({ deal_id: tache.deal_id, chemin: r.chemin, nom: r.nom }); drive = d.ok ? d.dossier_url : null; } catch { drive = null; }

@@ -109,7 +109,7 @@ const OUTILS_AK = [
   },
   {
     name: 'rediger_loi',
-    description: "Rédige une lettre d'intention d'achat (LOI) sur le modèle de la maison, en PDF, et la pose dans le chat pour relecture. Si un dossier est donné, l'adresse, la surface, le locataire, le bail et le prix en viennent ; le reste est demandé. Ne rédige que quand tous les champs requis sont là : sinon l'outil rend la liste de ce qui manque, et tu la demandes en une ligne.",
+    description: "Rédige une lettre d'intention d'achat (LOI) sur le modèle de la maison, en Word (docx, modifiable ; PDF si on le demande), et la pose dans le chat pour relecture. Si un dossier est donné, l'adresse, la surface, le locataire, le bail et le prix en viennent ; le reste est demandé. Ne rédige que quand tous les champs requis sont là : sinon l'outil rend la liste de ce qui manque, et tu la demandes en une ligne.",
     input_schema: {
       type: 'object',
       properties: {
@@ -120,6 +120,7 @@ const OUTILS_AK = [
         prix: { type: 'number', description: 'prix FAI TTC proposé, en euros' }, apport: { type: 'number' }, duree_ans: { type: 'number' }, taux: { type: 'number', description: 'en %, 4 par défaut' },
         fin_exclusivite: { type: 'string', description: 'AAAA-MM-JJ, 23 jours par défaut' }, limite_documents: { type: 'string', description: 'AAAA-MM-JJ, 9 jours par défaut' }, validite: { type: 'string', description: 'AAAA-MM-JJ, 7 jours par défaut' },
         lieu: { type: 'string', description: 'la ville de signature, Nice par défaut' },
+        format: { type: 'string', enum: ['docx', 'pdf'], description: 'docx par défaut' },
       },
     },
   },
@@ -319,10 +320,10 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     const { manquants, champsDepuisDeal } = await import('./loi.js');
     const deal = input.deal_id ? Records.findBy('Deal', 'deal_id', input.deal_id) : null;
     if (input.deal_id && !deal) return { ok: false, error: 'Dossier introuvable.' };
-    const champs = { ...(deal ? champsDepuisDeal(deal) : {}), ...Object.fromEntries(Object.entries(input).filter(([k, v]) => k !== 'deal_id' && v !== undefined && v !== null && v !== '')) };
+    const champs = { ...(deal ? champsDepuisDeal(deal) : {}), ...Object.fromEntries(Object.entries(input).filter(([k, v]) => !['deal_id', 'format'].includes(k) && v !== undefined && v !== null && v !== '')) };
     const m = manquants(champs);
     if (m.length) return { ok: false, manque: m.map((x) => x.question), champs_connus: champs };
-    fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, deal_id: input.deal_id || null });
+    fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, format: input.format === 'pdf' ? 'pdf' : 'docx', deal_id: input.deal_id || null });
     return { ok: true, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
   }
   if (name === 'lancer_design') {
@@ -454,7 +455,7 @@ export function texteDeFin(tache) {
   }
   if (tache.genre === 'loi') {
     if (tache.etat === 'ratee') return `dsl, ${tache.libelle} a planté : ${tache.resultat?.erreur || 'sans détail'}`;
-    return `voilà ${tache.libelle}, à relire avant envoi${tache.resultat?.drive ? ` (aussi sur le Drive : ${tache.resultat.drive})` : ''}`;
+    return `voilà ${tache.libelle} en ${tache.resultat?.format === 'pdf' ? 'PDF' : 'Word'}, à relire et retoucher avant envoi${tache.resultat?.drive ? ` (aussi sur le Drive : ${tache.resultat.drive})` : ''}`;
   }
   if (tache.genre === 'design') {
     const r = tache.resultat || {};

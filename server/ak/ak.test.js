@@ -314,4 +314,8 @@ test("la LOI : les nombres en lettres, les champs manquants, le texte de la mais
   const { pdf } = await import('./loi.js');
   const b = await pdf({ acquereur_nom: 'X', vendeur_societe: 'Y', adresse_bien: 'Z', prix: 200000, apport: 40000 });
   assert.equal(b.slice(0, 5).toString(), '%PDF-', 'un PDF sort sans navigateur');
+  const { docx } = await import('./loi.js');
+  const w = await docx({ acquereur_nom: 'X', vendeur_societe: 'Y', adresse_bien: 'Z', prix: 200000, apport: 40000 });
+  assert.equal(w.slice(0, 2).toString(), 'PK', 'un Word sort aussi (une archive zip)');
+  assert.ok(w.length > 3000);
 });

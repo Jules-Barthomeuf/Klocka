@@ -4,9 +4,10 @@
 // l'acquéreur, le vendeur, l'identification de Klocka (fixe), l'offre, les
 // conditions suspensives (financement, exclusivité et pièces, diagnostics),
 // les modalités. Ce qui change d'une lettre à l'autre est un champ ; le reste
-// est le texte de la maison, mot pour mot. La lettre sort en PDF par jsPDF,
-// sans navigateur ni rien à installer sur le serveur, et se relit avant de
-// partir : AK la pose dans le chat, personne ne l'envoie à sa place.
+// est le texte de la maison, mot pour mot. La lettre sort en Word (docx),
+// pour être retouchée avant d'être envoyée, ou en PDF (jsPDF) ; ni l'un ni
+// l'autre n'a besoin d'un navigateur. AK la pose dans le chat, personne ne
+// l'envoie à sa place.
 
 import fs from 'fs';
 import path from 'path';
@@ -210,15 +211,49 @@ export async function pdf(brut) {
   return Buffer.from(d.output('arraybuffer'));
 }
 
-/** La lettre en PDF, écrite dans les uploads. Rend son chemin et son adresse. */
-export async function produire(champs) {
-  const contenu = await pdf(champs);
+/**
+ * La lettre en Word (.docx), pour qu'on la retouche avant de l'envoyer :
+ * mêmes blocs, Arial 11, listes à tirets, en-têtes en bleu, signature à
+ * droite. C'est le format qui part dans le chat ; le PDF reste disponible.
+ */
+export async function docx(brut) {
+  const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import('docx');
+  const BLEU = '1F3A68';
+  const run = (texte, { gras = false, couleur = null, italique = false } = {}) => new TextRun({ text: String(texte), bold: gras, italics: italique, color: couleur || undefined, font: 'Arial', size: 22 });
+  const para = (runs, { align = AlignmentType.LEFT, avant = 0, apres = 120, retrait = null } = {}) =>
+    new Paragraph({ children: Array.isArray(runs) ? runs : [runs], alignment: align, spacing: { before: avant, after: apres, line: 300 }, ...(retrait ? { indent: retrait } : {}) });
+  const enfants = [];
+  for (const b of blocs(brut)) {
+    if (b.type === 'entete') { for (const l of b.lignes) enfants.push(para(run(l), { apres: 0 })); enfants.push(para(run(''), { apres: 240 })); }
+    else if (b.type === 'droite') { for (const l of b.lignes) enfants.push(para(run(l), { align: AlignmentType.RIGHT, apres: 0 })); enfants.push(para(run(''), { apres: 120 })); }
+    else if (b.type === 'objet') enfants.push(para(run(b.texte, { gras: true }), { avant: 240, apres: 360 }));
+    else if (b.type === 'h2') enfants.push(para(run(b.texte, { gras: true, couleur: BLEU }), { avant: 360, apres: 160 }));
+    else if (b.type === 'h3') enfants.push(para(run(b.texte, { gras: true, couleur: BLEU }), { avant: 200, apres: 100 }));
+    else if (b.type === 'li') enfants.push(para([run('-\t'), run(b.texte, { gras: !!b.gras })], { apres: 40, retrait: { left: 720, hanging: 360 } }));
+    else if (b.type === 'signature') { enfants.push(para(run(''), { apres: 480 })); for (const l of b.lignes) enfants.push(para(run(l), { align: AlignmentType.RIGHT, apres: 0 })); }
+    else enfants.push(para(run(b.texte)));
+  }
+  const doc = new Document({
+    creator: 'Klocka',
+    title: `LOI ${brut.adresse_bien || ''}`,
+    styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+    sections: [{ properties: { page: { margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } }, children: enfants }],
+  });
+  return Packer.toBuffer(doc);
+}
+
+/**
+ * La lettre écrite dans les uploads, en Word par défaut (on la retouche),
+ * en PDF si on le demande. Rend son chemin et son adresse.
+ */
+export async function produire(champs, { format = 'docx' } = {}) {
+  const contenu = format === 'pdf' ? await pdf(champs) : await docx(champs);
   const dossier = path.join(CHEMIN_UPLOADS, 'loi');
   fs.mkdirSync(dossier, { recursive: true });
-  const nom = `LOI ${String(champs.adresse_bien || 'local').replace(/[^\p{L}\p{N} .-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60)} ${new Date().toISOString().slice(0, 10)}.pdf`;
+  const nom = `LOI ${String(champs.adresse_bien || 'local').replace(/[^\p{L}\p{N} .-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60)} ${new Date().toISOString().slice(0, 10)}.${format === 'pdf' ? 'pdf' : 'docx'}`;
   const chemin = path.join(dossier, nom);
   fs.writeFileSync(chemin, contenu);
-  return { chemin, nom, url: `/uploads/loi/${encodeURIComponent(nom)}` };
+  return { chemin, nom, url: `/uploads/loi/${encodeURIComponent(nom)}`, format: format === 'pdf' ? 'pdf' : 'docx' };
 }
 
 /** Ce que le dossier sait déjà : l'adresse, la surface, le locataire, le bail, le prix. Pure. */

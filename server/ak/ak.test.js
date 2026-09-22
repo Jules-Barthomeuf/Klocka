@@ -334,3 +334,16 @@ test("un dossier s'appelle « Enseigne - Ville »", async () => {
   assert.equal(titreCourt({ nom: 'Ben' }), 'Ben');
   assert.equal(titreCourt({ ville: 'Lyon' }), 'Local - Lyon');
 });
+
+test("« fais tout » : l'adresse d'un dossier se lit, et un mail de l'équipe ne fait pas un agent", async () => {
+  const { adresseDuDeal, estInterne, OUTILS_TOUT } = await import('./outils.js');
+  assert.equal(adresseDuDeal({ lots: [{ lot: { adresse: { valeur: { rue: '1 avenue Mirabeau', code_postal: '06000', ville: 'Nice' } } } }] }), '1 avenue Mirabeau, 06000 Nice');
+  assert.equal(adresseDuDeal({ lots: [{ lot: { adresse: { valeur: 'Place Garibaldi, Nice' } } }] }), 'Place Garibaldi, Nice');
+  assert.equal(adresseDuDeal({}), null);
+  assert.equal(estInterne('paul.dz@klocka.immo', { domaines: ['klocka.immo'] }), true);
+  assert.equal(estInterne('marc@agence-immo.fr', { domaines: ['klocka.immo'] }), false);
+  assert.equal(estInterne('', { domaines: ['klocka.immo'] }), false);
+  assert.deepEqual(OUTILS_TOUT, ['kzoning', 'kexpertise', 'kestimation']);
+  const noms = OUTILS.map((o) => o.name);
+  assert.ok(noms.includes('faire_tout'));
+});

@@ -6,11 +6,14 @@ import { Records } from '../db.js';
 import { telechargerRaw } from '../gmail-inbox.js';
 import { analyserFiche } from './index.js';
 
-export async function preanalyserMail(mailRecu, { user = null, uploadDir = null } = {}) {
+export async function preanalyserMail(mailRecu, { user = null, uploadDir = null, contactEmail = undefined } = {}) {
   if (mailRecu.deal_id) throw new Error('Ce mail a déjà été préanalysé.');
   const buffer = await telechargerRaw(mailRecu.compte, mailRecu.gmail_message_id);
+  // L'expéditeur devient le contact agent, sauf quand on dit le contraire :
+  // un mail transféré par quelqu'un de l'équipe n'a pas d'agent dedans.
+  const contact = contactEmail === undefined ? mailRecu.de_email || null : contactEmail;
   const dossier = await analyserFiche(
-    { buffer, filename: `${(mailRecu.objet || 'mail').slice(0, 60)}.eml`, mimetype: 'message/rfc822', contactEmail: mailRecu.de_email || null },
+    { buffer, filename: `${(mailRecu.objet || 'mail').slice(0, 60)}.eml`, mimetype: 'message/rfc822', contactEmail: contact },
     { user, uploadDir }
   );
   Records.update('MailRecu', mailRecu.id, { deal_id: dossier.deal_id });

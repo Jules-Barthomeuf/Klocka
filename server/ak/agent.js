@@ -21,7 +21,7 @@ import { APP_URL_PROD } from '../contexte.js';
 import { QUESTIONS, valeursParDefaut } from '../kdata-questions.js';
 import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
 import { COMPTE } from './chat.js';
-import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx, boiteRecue, lireMail, mailsDuDossier, preanalyserMailRecu, chercherSurLeDrive, rangerSurLeDrive, bloquerRendezVous, agendaDuJour } from './outils.js';
+import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx, boiteRecue, lireMail, mailsDuDossier, preanalyserMailRecu, chercherSurLeDrive, rangerSurLeDrive, bloquerRendezVous, agendaDuJour, titreCourt, nommer, faireTout } from './outils.js';
 import { leconsPourConsigne, souvenirsPourConsigne, retenir, oublier, souvenirs } from './lecons.js';
 
 const AGENT = 'ak';
@@ -81,6 +81,18 @@ const OUTILS_AK = [
     name: 'mails_du_dossier',
     description: "Les derniers échanges de mails d'un dossier, reçus et envoyés (« qu'est-ce qu'il dit l'agent de Lorient ? »). Chercher le dossier d'abord.",
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' } }, required: ['deal_id'] },
+  },
+  {
+    name: 'faire_tout',
+    description: "« Prends ce mail, fais tout » : d'un mail reçu (son identifiant, de boite_recue) ou des pièces jointes du message, AK crée le dossier de préanalyse (fiche lue, dossier nommé « Enseigne - Ville »), ouvre son dossier Drive avec les pièces d'origine, et lance K-Data dessus (K-Zoning, K-Expertise, Estimation par défaut) rangé dans le dossier. Sans rien demander. Il préviendra quand K-Data sera fini. Un mail envoyé par quelqu'un de l'équipe ne fait pas de lui l'agent du dossier.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        mail_id: { type: 'string', description: 'le mail, de boite_recue' },
+        chemins: { type: 'array', items: { type: 'string' }, description: 'les pièces jointes du message, à défaut de mail : la première PDF est la fiche' },
+        outils: { type: 'array', items: { type: 'string', enum: CLES_OUTILS }, description: 'les outils K-Data, si la personne en nomme ; sinon les trois par défaut' },
+      },
+    },
   },
   {
     name: 'preanalyser_mail',
@@ -248,28 +260,10 @@ export const OUTILS = [...OUTILS_ASSISTANT.filter((o) => !EXCLUS.has(o.name)), .
 
 const lien = (chemin) => `${APP_URL}${chemin}`;
 
-/**
- * Le nom d'un dossier, comme l'équipe le dit : « Devred - Firminy », l'enseigne
- * (ou l'activité, ou le nom donné) puis la ville. Pure.
- */
-export function titreCourt({ nom = null, enseigne = null, activite = null, ville = null } = {}) {
-  const quoi = String(enseigne || nom || activite || 'Local').trim().replace(/\s+/g, ' ');
-  const ou = String(ville || '').trim().replace(/\s+/g, ' ');
-  if (!ou || new RegExp(`\\b${ou.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(quoi)) return quoi;
-  return `${quoi} - ${ou}`;
-}
-
-/** Un dossier tout juste né de la pré-analyse reçoit son nom court. */
-function nommer(dealId) {
-  const deal = Records.findBy('Deal', 'deal_id', dealId);
-  const l = deal?.lots?.[0]?.lot || {};
-  const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? x.valeur : x);
-  const a = val(l.adresse) || {};
-  const ville = (typeof a === 'object' && a.ville) || deal?.lots?.[0]?.enrichissement?.commune?.nom || null;
-  const nom = titreCourt({ enseigne: val(l.locataire_nom), activite: val(l.locataire_activite), ville });
-  if (deal && nom && nom !== 'Local') Records.update('Deal', deal.id, { nom });
-  return nom;
-}
+// Le nom court des dossiers (« Devred - Firminy ») vit dans outils.js, avec
+// le reste de ce qui touche à la plateforme ; il reste exporté d'ici pour
+// les tests et les anciens imports.
+export { titreCourt };
 
 /** Ce que chaque outil K-Data demande, lisible par le modèle et par la personne. Pure. */
 export function decrireOutilsKdata() {
@@ -330,6 +324,13 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
   if (name === 'boite_recue') { const mails = boiteRecue(undefined, { limite: input.limite || 10, non_rattaches: !input.tous }); return { mails, nombre: mails.length }; }
   if (name === 'lire_mail') return lireMail(input.id);
   if (name === 'mails_du_dossier') return { mails: mailsDuDossier(input.deal_id) };
+  if (name === 'faire_tout') {
+    const chemins = (input.chemins || []).map(String).filter((c) => c.startsWith(CHEMIN_UPLOADS) && fs.existsSync(c));
+    if (!input.mail_id && !chemins.length) return { ok: false, error: 'Il faut un mail (boite_recue) ou une pièce jointe dans le message.' };
+    const r = await faireTout({ mail_id: input.mail_id || null, chemins, outils: input.outils || null, user, fond });
+    if (r.ok) r.lien = lien(`/Analyse?deal_id=${r.deal_id}`);
+    return r;
+  }
   if (name === 'preanalyser_mail') {
     const r = await preanalyserMailRecu(input.id, user);
     if (r.ok) r.titre = nommer(r.deal_id) || r.titre;
@@ -524,6 +525,7 @@ RÈGLES :
 5bis. « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends le couperet en une ligne, cash : « ça tourne, 7,2 % AEM et 8 ans de bail » ou « c'est dead, 4,8 % AEM et le bail finit dans 14 mois ». Les seuils sont ceux de l'équipe, tu ne les discutes pas.
 5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
 5sexies. « Crée une LOI », « fais la lettre d'intention pour X » : chercher_dossier si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.
+5septies. « Prends ce mail, fais tout », « traite le mail de Paul », « fais tout avec ça » (avec des pièces jointes) : boite_recue pour trouver le mail si besoin, puis faire_tout, sans poser de question : dossier, Drive, K-Data, tout part. Une ligne pour dire ce qui est fait et ce qui tourne ; tu préviendras quand K-Data sera fini. Si le mail n'est pas dans la boîte (il a été reçu par quelqu'un d'autre), dis-le : il faut le transférer à ${COMPTE} ou le coller dans le chat avec ses pièces.
 5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc » : boite_recue puis preanalyser_mail. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas.

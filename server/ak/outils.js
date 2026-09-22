@@ -226,3 +226,140 @@ export async function agendaDuJour(jour) {
   const { evenementsDuJour } = await import('../google-calendar.js');
   return evenementsDuJour(COMPTE, jour);
 }
+
+
+// --- Le nom des dossiers ----------------------------------------------------
+
+/**
+ * Le nom d'un dossier, comme l'équipe le dit : « Devred - Firminy », l'enseigne
+ * (ou l'activité, ou le nom donné) puis la ville. Pure.
+ */
+export function titreCourt({ nom = null, enseigne = null, activite = null, ville = null } = {}) {
+  const quoi = String(enseigne || nom || activite || 'Local').trim().replace(/\s+/g, ' ');
+  const ou = String(ville || '').trim().replace(/\s+/g, ' ');
+  if (!ou || new RegExp(`\\b${ou.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(quoi)) return quoi;
+  return `${quoi} - ${ou}`;
+}
+
+/** Un dossier tout juste né de la pré-analyse reçoit son nom court. */
+export function nommer(dealId) {
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  const l = deal?.lots?.[0]?.lot || {};
+  const a = val(l.adresse) || {};
+  const ville = (typeof a === 'object' && a.ville) || deal?.lots?.[0]?.enrichissement?.commune?.nom || null;
+  const nom = titreCourt({ enseigne: val(l.locataire_nom), activite: val(l.locataire_activite), ville });
+  if (deal && nom && nom !== 'Local') Records.update('Deal', deal.id, { nom });
+  return nom;
+}
+
+/** L'adresse d'un dossier en une ligne, pour K-Data. Pure. */
+export function adresseDuDeal(deal) {
+  const a = val(deal?.lots?.[0]?.lot?.adresse) || {};
+  if (typeof a === 'string') return a.trim() || null;
+  const ligne = [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ').trim();
+  return ligne || null;
+}
+
+/**
+ * Un mail vient-il de l'équipe ? Alors son expéditeur n'est pas l'agent du
+ * bien. Pure sur ses listes : les domaines des comptes de l'équipe, et
+ * MAIL_DOMAINES_INTERNES.
+ */
+export function estInterne(email, { domaines = domainesInternes() } = {}) {
+  const d = String(email || '').toLowerCase().split('@')[1];
+  return !!d && domaines.includes(d);
+}
+function domainesInternes() {
+  const env = String(process.env.MAIL_DOMAINES_INTERNES || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  const equipe = Records.filter('User', { role: 'admin' }).map((u) => String(u.email || '').toLowerCase().split('@')[1]).filter((x) => x && !/gmail|outlook|hotmail|yahoo|klocka\.local/.test(x));
+  return [...new Set([...env, ...equipe])];
+}
+
+// --- « Prends ce mail, fais tout » --------------------------------------------
+
+/** Les outils K-Data du « fais tout » : ce qu'une due diligence commence par regarder. */
+export const OUTILS_TOUT = ['kzoning', 'kexpertise', 'kestimation'];
+
+/**
+ * D'un mail reçu ou de pièces jointes du chat : le dossier de préanalyse, son
+ * dossier Drive avec les pièces d'origine, et K-Data lancé dessus et rangé
+ * dedans. Chaque étape qui rate est dite, elle n'arrête pas les suivantes.
+ */
+export async function faireTout({ mail_id = null, chemins = [], outils = null, user = null, fond = () => {} }) {
+  const { CHEMIN_UPLOADS } = await import('../db.js');
+  const etapes = [];
+  const fichiers = [];
+  let dealId = null;
+  let agent = null;
+
+  // 1. Le dossier.
+  if (mail_id) {
+    const m = Records.get('MailRecu', mail_id);
+    if (!m) return { ok: false, error: 'Mail introuvable.' };
+    const interne = estInterne(m.de_email);
+    agent = interne ? null : m.de_email || null;
+    if (m.deal_id && Records.findBy('Deal', 'deal_id', m.deal_id)) {
+      dealId = m.deal_id;
+      etapes.push('dossier déjà créé depuis ce mail, repris');
+    } else {
+      const { preanalyserMail } = await import('../deal/preanalyser-mail.js');
+      const d = await preanalyserMail(m, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: agent });
+      dealId = d.deal_id;
+      etapes.push(`dossier créé${interne ? ` (mail interne de ${m.de || m.de_email} : pas d'agent rattaché)` : ''}`);
+    }
+    // Les pièces d'origine, pour le Drive.
+    const { telechargerPieceJointe } = await import('../gmail-inbox.js');
+    for (const p of m.pieces_jointes || []) {
+      if (!p?.piece_id) continue;
+      try { fichiers.push({ nom: p.nom, buffer: await telechargerPieceJointe(m.compte, m.gmail_message_id, p.piece_id), mime: p.mime || undefined }); }
+      catch (e) { etapes.push(`pièce ${p.nom} non lue : ${e?.message || e}`); }
+    }
+  } else {
+    const pdfs = chemins.filter((c) => /\.pdf$/i.test(c));
+    const fiche = pdfs[0] || chemins[0];
+    const { analyserFiche } = await import('../deal/index.js');
+    const nomDe = (c) => path.basename(c).replace(/^ak-\d+-/, '');
+    const d = await analyserFiche({ buffer: fs.readFileSync(fiche), filename: nomDe(fiche), mimetype: /\.pdf$/i.test(fiche) ? 'application/pdf' : undefined, sourceUrl: `/uploads/${path.basename(fiche)}` }, { user });
+    dealId = d.deal_id;
+    etapes.push('dossier créé depuis la pièce jointe');
+    const { deposerDocument } = await import('../deal/deposer-document.js');
+    for (const c of chemins) {
+      fichiers.push({ nom: nomDe(c), buffer: fs.readFileSync(c), mime: /\.pdf$/i.test(c) ? 'application/pdf' : undefined });
+      if (c === fiche) continue;
+      try { await deposerDocument(dealId, { buffer: fs.readFileSync(c), filename: nomDe(c), mimetype: /\.pdf$/i.test(c) ? 'application/pdf' : undefined, url: `/uploads/${path.basename(c)}` }, { user }); etapes.push(`${nomDe(c)} déposé sur le dossier`); }
+      catch (e) { etapes.push(`${nomDe(c)} non déposé : ${e?.message || e}`); }
+    }
+  }
+  const titre = nommer(dealId);
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+
+  // 2. Le Drive : le dossier du deal, avec les pièces d'origine dedans.
+  let drive = null;
+  try {
+    const { classerDansDrive } = await import('../google-drive.js');
+    const { nomDossierDrive } = await import('../deal/nom-drive.js');
+    const r = await classerDansDrive(COMPTE, nomDossierDrive(deal), fichiers, CHEMIN_UPLOADS);
+    if (!deal.drive_folder_id) Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+    drive = r.folder_url;
+    etapes.push(`Drive : ${r.envoyes.length} fichier${r.envoyes.length > 1 ? 's' : ''} rangé${r.envoyes.length > 1 ? 's' : ''}${r.erreurs.length ? `, ${r.erreurs.length} raté(s)` : ''}`);
+  } catch (e) {
+    etapes.push(`Drive raté : ${e?.message || e}`);
+  }
+
+  // 3. K-Data, rangé dans le dossier ; la veille dira quand c'est fini.
+  const adresse = adresseDuDeal(deal);
+  let kdata = null;
+  if (adresse) {
+    const { lancerAnalyses, ranger } = await import('../kdata.js');
+    const choisis = Array.isArray(outils) && outils.length ? outils : OUTILS_TOUT;
+    const r = lancerAnalyses({ adresse, outils: choisis, reglages: {} }, user);
+    if (r.ok) {
+      ranger(r.ids, dealId);
+      kdata = choisis;
+      fond({ genre: 'kdata', libelle: `K-Data sur ${titre || adresse} : ${choisis.join(', ')}`, ids: r.ids, deal_id: dealId });
+      etapes.push(`K-Data lancé : ${choisis.join(', ')}`);
+    } else etapes.push(`K-Data non lancé : ${r.error}`);
+  } else etapes.push("K-Data non lancé : le dossier n'a pas d'adresse lisible");
+
+  return { ok: true, cree: true, deal_id: dealId, titre, agent, drive, kdata, etapes };
+}

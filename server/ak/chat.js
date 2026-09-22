@@ -105,9 +105,14 @@ export function lireMessage(m) {
 /** L'identité Chat du compte (users/…), apprise au premier message qu'il poste. */
 export const utilisateurAk = () => Meta.get(CLE_UTILISATEUR) || null;
 
+// « assistant crée un dossier », « ak t'es là ? » : on lui parle sans le
+// mentionner. Le mot doit ouvrir le message ; au milieu d'une phrase entre
+// collègues (« l'assistant a planté ce matin »), ce n'est pas pour lui.
+const APPEL = /^\s*(assistant(?:\s+klocka)?|ak)\b[\s,:!.-]*/i;
+
 /**
- * Le message nous est-il adressé ? Une mention de notre nom, ou un message
- * privé. Pure : testée sans réseau.
+ * Le message nous est-il adressé ? Une mention de notre nom, un message qui
+ * commence par « assistant » ou « ak », ou un message privé. Pure.
  */
 export function estPourAk(message, { direct = false, utilisateur = utilisateurAk(), nom = NOM } = {}) {
   if (estDeAk(message, { utilisateur, nom })) return false;
@@ -115,7 +120,8 @@ export function estPourAk(message, { direct = false, utilisateur = utilisateurAk
   const parId = utilisateur && message.mentions.some((x) => x.nom === utilisateur);
   const parNom = message.mentions.some((x) => x.affiche && x.affiche.toLowerCase() === nom.toLowerCase());
   const parTexte = new RegExp(`@${nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(message.texte);
-  return !!(parId || parNom || parTexte);
+  const parAppel = APPEL.test(message.texte);
+  return !!(parId || parNom || parTexte || parAppel);
 }
 
 /** Le message vient-il du compte lui-même ? Pure. */
@@ -127,7 +133,7 @@ export function estDeAk(message, { utilisateur = utilisateurAk(), nom = NOM } = 
 /** Le texte sans la mention, pour ne pas faire lire « @Assistant Klocka » au modèle. Pure. */
 export function sansMention(message, nom = NOM) {
   const t = message.argument != null && message.argument.trim() ? message.argument : message.texte;
-  return t.replace(new RegExp(`@${nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi'), '').replace(/\s+/g, ' ').trim();
+  return t.replace(new RegExp(`@${nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi'), '').replace(APPEL, '').replace(/\s+/g, ' ').trim();
 }
 
 /**

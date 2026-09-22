@@ -51,7 +51,7 @@ const OUTILS_AK = [
     input_schema: {
       type: 'object',
       properties: {
-        nom: { type: 'string', description: 'nom du dossier, ex: « Ben », « Local commercial — Lyon 3e »' },
+        nom: { type: 'string', description: "l'enseigne ou le nom du bien, ex: « Devred », « Ben » ; la ville va dans son champ, le titre final sera « Devred - Firminy »" },
         ville: { type: 'string' }, rue: { type: 'string' },
         prix: { type: 'number', description: 'prix FAI en euros, si donné' },
         surface: { type: 'number', description: 'surface en m², si donnée' },
@@ -248,6 +248,29 @@ export const OUTILS = [...OUTILS_ASSISTANT.filter((o) => !EXCLUS.has(o.name)), .
 
 const lien = (chemin) => `${APP_URL}${chemin}`;
 
+/**
+ * Le nom d'un dossier, comme l'équipe le dit : « Devred - Firminy », l'enseigne
+ * (ou l'activité, ou le nom donné) puis la ville. Pure.
+ */
+export function titreCourt({ nom = null, enseigne = null, activite = null, ville = null } = {}) {
+  const quoi = String(enseigne || nom || activite || 'Local').trim().replace(/\s+/g, ' ');
+  const ou = String(ville || '').trim().replace(/\s+/g, ' ');
+  if (!ou || new RegExp(`\\b${ou.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(quoi)) return quoi;
+  return `${quoi} - ${ou}`;
+}
+
+/** Un dossier tout juste né de la pré-analyse reçoit son nom court. */
+function nommer(dealId) {
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  const l = deal?.lots?.[0]?.lot || {};
+  const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? x.valeur : x);
+  const a = val(l.adresse) || {};
+  const ville = (typeof a === 'object' && a.ville) || deal?.lots?.[0]?.enrichissement?.commune?.nom || null;
+  const nom = titreCourt({ enseigne: val(l.locataire_nom), activite: val(l.locataire_activite), ville });
+  if (deal && nom && nom !== 'Local') Records.update('Deal', deal.id, { nom });
+  return nom;
+}
+
 /** Ce que chaque outil K-Data demande, lisible par le modèle et par la personne. Pure. */
 export function decrireOutilsKdata() {
   return CLES_OUTILS.map((cle) => ({
@@ -272,12 +295,12 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
     const { analyserFiche } = await import('../deal/index.js');
     const d = await analyserFiche({ texte }, { user });
     const lot = d.lots?.[0];
-    return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || 'fiche collée', verdict: lot?.synthese?.verdict || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
+    return { ok: true, cree: true, deal_id: d.deal_id, titre: nommer(d.deal_id) || lot?.synthese?.titre || 'fiche collée', verdict: lot?.synthese?.verdict || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
   }
   if (name === 'creer_dossier') {
     const { creerCoquille } = await import('../deal/index.js');
     const dossier = creerCoquille({
-      nom: input.nom,
+      nom: titreCourt({ nom: input.nom, ville: input.ville }),
       responsables: user?.full_name ? [user.full_name] : [],
       user,
       contact_agent_email: input.agent_email ? String(input.agent_email).trim().toLowerCase() : null,
@@ -287,7 +310,7 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
         agent_nom: input.agent_nom || null, agent_telephone: input.agent_telephone || null, agence: input.agence || null,
       },
     });
-    return { ok: true, cree: true, deal_id: dossier.deal_id, nom: input.nom, lien: lien(`/Analyse?deal_id=${dossier.deal_id}`) };
+    return { ok: true, cree: true, deal_id: dossier.deal_id, nom: dossier.nom, lien: lien(`/Analyse?deal_id=${dossier.deal_id}`) };
   }
   if (name === 'analyser_fiche' || name === 'ajouter_document') {
     const chemin = String(input.chemin || '');
@@ -297,7 +320,7 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
       const { analyserFiche } = await import('../deal/index.js');
       const d = await analyserFiche({ buffer: fichier.buffer, filename: fichier.filename, mimetype: fichier.mimetype, sourceUrl: fichier.url }, { user });
       const lot = d.lots?.[0];
-      return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || fichier.filename, verdict: lot?.synthese?.verdict || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
+      return { ok: true, cree: true, deal_id: d.deal_id, titre: nommer(d.deal_id) || lot?.synthese?.titre || fichier.filename, verdict: lot?.synthese?.verdict || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
     }
     const { deposerDocument } = await import('../deal/deposer-document.js');
     const r = await deposerDocument(input.deal_id, fichier, { user });
@@ -307,7 +330,11 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
   if (name === 'boite_recue') { const mails = boiteRecue(undefined, { limite: input.limite || 10, non_rattaches: !input.tous }); return { mails, nombre: mails.length }; }
   if (name === 'lire_mail') return lireMail(input.id);
   if (name === 'mails_du_dossier') return { mails: mailsDuDossier(input.deal_id) };
-  if (name === 'preanalyser_mail') return preanalyserMailRecu(input.id, user);
+  if (name === 'preanalyser_mail') {
+    const r = await preanalyserMailRecu(input.id, user);
+    if (r.ok) r.titre = nommer(r.deal_id) || r.titre;
+    return r;
+  }
   if (name === 'chercher_drive') return chercherSurLeDrive(input);
   if (name === 'ranger_drive') {
     const chemin = String(input.chemin || '');

@@ -42,6 +42,11 @@ test("AK reconnaît ce qui lui est adressé, et ne se répond pas à lui-même",
   assert.equal(estPourAk(autre, { utilisateur: null, direct: true }), true, 'un message privé lui parle toujours');
   const texteSeul = lireMessage(brut('@Assistant Klocka ok', { annotations: [] }));
   assert.equal(estPourAk(texteSeul, { utilisateur: null }), true, 'la mention en texte suffit');
+  const appel = lireMessage(brut('assistant crée un dossier Ben', { annotations: [], argumentText: null }));
+  assert.equal(estPourAk(appel, { utilisateur: null }), true, '« assistant » en tête de message suffit');
+  assert.equal(sansMention(appel), 'crée un dossier Ben');
+  assert.equal(sansMention(lireMessage(brut('AK, t es là ?', { annotations: [], argumentText: null }))), 't es là ?');
+  assert.equal(estPourAk(lireMessage(brut("l'assistant a planté ce matin", { annotations: [], argumentText: null })), { utilisateur: null }), false, 'au milieu d\'une phrase, ce n\'est pas pour lui');
   const deLui = lireMessage(brut("c'est bon c'est fait", { sender: { name: 'users/999', displayName: 'Assistant Klocka', type: 'HUMAN' }, annotations: [] }));
   assert.equal(estDeAk(deLui, { utilisateur: null }), true);
   assert.equal(estPourAk(deLui, { utilisateur: 'users/999', direct: true }), false, 'même en privé');
@@ -318,4 +323,14 @@ test("la LOI : les nombres en lettres, les champs manquants, le texte de la mais
   const w = await docx({ acquereur_nom: 'X', vendeur_societe: 'Y', adresse_bien: 'Z', prix: 200000, apport: 40000 });
   assert.equal(w.slice(0, 2).toString(), 'PK', 'un Word sort aussi (une archive zip)');
   assert.ok(w.length > 3000);
+});
+
+test("un dossier s'appelle « Enseigne - Ville »", async () => {
+  const { titreCourt } = await import('./agent.js');
+  assert.equal(titreCourt({ nom: 'Devred', ville: 'Firminy' }), 'Devred - Firminy');
+  assert.equal(titreCourt({ enseigne: 'Cookietelier', activite: 'Pâtisserie', ville: 'Nice' }), 'Cookietelier - Nice');
+  assert.equal(titreCourt({ activite: 'Boulangerie', ville: 'Châtenay-Malabry' }), 'Boulangerie - Châtenay-Malabry');
+  assert.equal(titreCourt({ nom: 'Devred - Firminy', ville: 'Firminy' }), 'Devred - Firminy', 'pas deux fois la ville');
+  assert.equal(titreCourt({ nom: 'Ben' }), 'Ben');
+  assert.equal(titreCourt({ ville: 'Lyon' }), 'Local - Lyon');
 });

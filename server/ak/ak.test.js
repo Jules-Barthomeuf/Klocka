@@ -344,6 +344,11 @@ test("« fais tout » : l'adresse d'un dossier se lit, et un mail de l'équipe n
   assert.equal(estInterne('marc@agence-immo.fr', { domaines: ['klocka.immo'] }), false);
   assert.equal(estInterne('', { domaines: ['klocka.immo'] }), false);
   assert.deepEqual(OUTILS_TOUT, ['kzoning', 'kexpertise', 'kestimation']);
+  const { ordonnerMails } = await import('./outils.js');
+  const docs = { id: 'a', date: '2026-09-22T10:00:00Z', pieces_jointes: [{ nom: 'bail.pdf' }] };
+  const fiche = { id: 'b', date: '2026-09-22T12:00:00Z', pieces_jointes: [{ nom: 'teaser.pdf' }, { nom: 'photo.jpg' }] };
+  const sans = { id: 'c', date: '2026-09-21T09:00:00Z', pieces_jointes: [] };
+  assert.deepEqual(ordonnerMails([fiche, sans, docs]).map((m) => m.id), ['a', 'b', 'c'], 'un PDF d\'abord, le plus ancien en tête, le sans-pièce en dernier');
   const noms = OUTILS.map((o) => o.name);
   assert.ok(noms.includes('faire_tout'));
 });

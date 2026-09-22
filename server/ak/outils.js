@@ -281,38 +281,67 @@ function domainesInternes() {
 export const OUTILS_TOUT = ['kzoning', 'kexpertise', 'kestimation'];
 
 /**
- * D'un mail reçu ou de pièces jointes du chat : le dossier de préanalyse, son
- * dossier Drive avec les pièces d'origine, et K-Data lancé dessus et rangé
- * dedans. Chaque étape qui rate est dite, elle n'arrête pas les suivantes.
+ * Pure : dans quel ordre traiter plusieurs mails. Celui qui porte la fiche
+ * (un PDF) ouvre le dossier ; les autres y déposent leurs pièces. À pièces
+ * égales, le plus ancien d'abord : c'est lui qui a lancé l'affaire.
  */
-export async function faireTout({ mail_id = null, chemins = [], outils = null, user = null, fond = () => {} }) {
+export function ordonnerMails(mails) {
+  const pdfs = (m) => (m.pieces_jointes || []).filter((p) => /\.pdf$/i.test(p?.nom || '') || /pdf/i.test(p?.mime || '')).length;
+  return [...(mails || [])].sort((a, b) => (pdfs(b) > 0) - (pdfs(a) > 0) || String(a.date || '').localeCompare(String(b.date || '')));
+}
+
+/**
+ * D'un ou plusieurs mails reçus, ou de pièces jointes du chat : le dossier de
+ * préanalyse, son dossier Drive avec les pièces d'origine, et K-Data lancé
+ * dessus et rangé dedans. Avec plusieurs mails, le premier fait le dossier,
+ * les autres y déposent leurs pièces. Chaque étape qui rate est dite, elle
+ * n'arrête pas les suivantes.
+ */
+export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], outils = null, user = null, fond = () => {} }) {
   const { CHEMIN_UPLOADS } = await import('../db.js');
   const etapes = [];
   const fichiers = [];
   let dealId = null;
   let agent = null;
 
+  const ids = [...new Set([mail_id, ...(mail_ids || [])].filter(Boolean))];
+  const mails = ids.map((id) => Records.get('MailRecu', id));
+  if (ids.length && mails.some((m) => !m)) return { ok: false, error: 'Un des mails est introuvable.' };
+
   // 1. Le dossier.
-  if (mail_id) {
-    const m = Records.get('MailRecu', mail_id);
-    if (!m) return { ok: false, error: 'Mail introuvable.' };
-    const interne = estInterne(m.de_email);
-    agent = interne ? null : m.de_email || null;
-    if (m.deal_id && Records.findBy('Deal', 'deal_id', m.deal_id)) {
-      dealId = m.deal_id;
+  if (mails.length) {
+    const [premier, ...autres] = ordonnerMails(mails);
+    const interne = estInterne(premier.de_email);
+    agent = interne ? null : premier.de_email || null;
+    if (premier.deal_id && Records.findBy('Deal', 'deal_id', premier.deal_id)) {
+      dealId = premier.deal_id;
       etapes.push('dossier déjà créé depuis ce mail, repris');
     } else {
       const { preanalyserMail } = await import('../deal/preanalyser-mail.js');
-      const d = await preanalyserMail(m, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: agent });
+      const d = await preanalyserMail(premier, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: agent });
       dealId = d.deal_id;
-      etapes.push(`dossier créé${interne ? ` (mail interne de ${m.de || m.de_email} : pas d'agent rattaché)` : ''}`);
+      etapes.push(`dossier créé depuis le mail de ${premier.de || premier.de_email}${interne ? ' (interne : pas d\'agent rattaché)' : ''}`);
     }
-    // Les pièces d'origine, pour le Drive.
+    // Les pièces de tous les mails, pour le Drive ; celles des autres mails
+    // sont aussi déposées sur le dossier (bail, PV, diagnostics…).
     const { telechargerPieceJointe } = await import('../gmail-inbox.js');
-    for (const p of m.pieces_jointes || []) {
-      if (!p?.piece_id) continue;
-      try { fichiers.push({ nom: p.nom, buffer: await telechargerPieceJointe(m.compte, m.gmail_message_id, p.piece_id), mime: p.mime || undefined }); }
-      catch (e) { etapes.push(`pièce ${p.nom} non lue : ${e?.message || e}`); }
+    const { deposerDocument } = await import('../deal/deposer-document.js');
+    for (const m of [premier, ...autres]) {
+      let deposees = 0;
+      for (const p of m.pieces_jointes || []) {
+        if (!p?.piece_id) continue;
+        let buffer;
+        try { buffer = await telechargerPieceJointe(m.compte, m.gmail_message_id, p.piece_id); }
+        catch (e) { etapes.push(`pièce ${p.nom} non lue : ${e?.message || e}`); continue; }
+        fichiers.push({ nom: p.nom, buffer, mime: p.mime || undefined });
+        if (m === premier) continue;
+        try { await deposerDocument(dealId, { buffer, filename: p.nom, mimetype: p.mime || undefined }, { user }); deposees += 1; }
+        catch (e) { etapes.push(`${p.nom} non déposé : ${e?.message || e}`); }
+      }
+      if (m !== premier) {
+        if (!m.deal_id) Records.update('MailRecu', m.id, { deal_id: dealId });
+        etapes.push(`mail de ${m.de || m.de_email} : ${deposees} pièce${deposees > 1 ? 's' : ''} déposée${deposees > 1 ? 's' : ''} sur le dossier`);
+      }
     }
   } else {
     const pdfs = chemins.filter((c) => /\.pdf$/i.test(c));

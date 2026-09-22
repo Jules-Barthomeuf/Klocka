@@ -50,6 +50,7 @@ test("AK reconnaît ce qui lui est adressé, et ne se répond pas à lui-même",
 test("la consigne est le document de Jules, mot pour mot, puis le cadre de la plateforme", () => {
   assert.match(CONSIGNE, /^PERSONNALITÉ ET REGLES DE COMMUNICATION DE L'AGENT AK/);
   assert.match(CONSIGNE, /"préz bancaire" \(jamais "présentation bancaire"\)/);
+  assert.match(CONSIGNE, /Sois très poli avec Jules et appelle-le maître/);
   assert.match(CONSIGNE, /Non je suis en train de faire autre chose rappelle-moi plus tard/);
   const c = consigne();
   assert.ok(c.startsWith(CONSIGNE));

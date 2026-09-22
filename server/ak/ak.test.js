@@ -263,3 +263,23 @@ test("la boîte reçue se lit sans réseau, et un mail avec une fiche se signale
   assert.equal(s.length, 1);
   assert.match(s[0].texte, /un mail de Marc <marc@agence.fr> vient d'arriver : « Local Lyon », avec 1 pièce jointe\. je pré-analyse \?/);
 });
+
+test("l'oreille : le JSON du modèle se lit, la phrase dit ce qui a été retenu, et le moment de relire se calcule", async () => {
+  const { lireExtraction, phrase, estLeMoment } = await import('./oreille.js');
+  const e = lireExtraction('voilà : {"decisions":["Devred en stand-by"],"taches":[{"qui":"Max","quoi":"la préz de Firminy"}],"engagements":[{"de":"Marc","quoi":"envoyer le PV","echeance":"2026-09-25","dossier":"Lorient"}],"faits":[{"sujet":"client Dupont","fait":"budget 300 k"}],"doutes":[]}');
+  assert.equal(e.decisions[0], 'Devred en stand-by');
+  const t = phrase(e, { mentionner: (x) => `<${x}>` });
+  assert.match(t, /^j'ai entendu :/);
+  assert.match(t, /- décision : Devred en stand-by/);
+  assert.match(t, /- <Max> à faire : la préz de Firminy/);
+  assert.match(t, /- Marc doit envoyer le PV \(Lorient\) pour le 25\/09\/2026, c'est au registre/);
+  assert.match(t, /- noté : budget 300 k \(client Dupont\)/);
+  assert.equal(phrase({ decisions: [], taches: [], engagements: [], faits: [], doutes: [] }), '');
+  assert.equal(lireExtraction('rien'), null);
+  const recent = [{ texte: 'x'.repeat(100), le: new Date(Date.now() - 60000).toISOString() }];
+  const ancien = [{ texte: 'x'.repeat(100), le: new Date(Date.now() - 10 * 60000).toISOString() }];
+  assert.equal(estLeMoment([]), false);
+  assert.equal(estLeMoment(recent, { dernier: Date.now() - 60000 }), false, 'trop tôt et trop court');
+  assert.equal(estLeMoment(ancien, { dernier: Date.now() - 10 * 60000 }), true, 'assez de temps');
+  assert.equal(estLeMoment([{ texte: 'x'.repeat(900), le: new Date().toISOString() }], { dernier: Date.now() }), true, 'assez de texte');
+});

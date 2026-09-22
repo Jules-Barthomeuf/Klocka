@@ -234,6 +234,7 @@ async function traiter(message) {
   for (const t of r.fond || []) {
     const tache = ouvrirTache(t, message);
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
+    if (t.genre === 'design') lancerDesign(tache).catch(() => {});
   }
   await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null, message.auteur);
   ouvrirAttente(message);
@@ -278,6 +279,7 @@ export async function relever() {
     await annoncerLesTachesFinies();
     await direLeMatin(suivis);
     await seProposer(suivis);
+    await ecouterLeBureau(suivis);
     dernier.le = new Date().toISOString();
     dernier.erreur = null;
     return { ok: true, espaces: suivis.length, traites };
@@ -299,6 +301,27 @@ async function direLeMatin(suivis) {
   const { consigne, MODELE } = await import('./agent.js');
   const texte = await motDuMatin({ mentionner: mentionDe, modele: MODELE, consigne: consigne() });
   if (texte) await envoyer(groupe.nom, texte);
+}
+
+/** L'oreille : ce que le bureau a dit depuis la dernière relecture, en une ligne par chose retenue. */
+async function ecouterLeBureau(suivis) {
+  const { enAttente, estLeMoment, relire } = await import('./oreille.js');
+  if (!estLeMoment(enAttente())) return;
+  const groupe = suivis.find((s) => s.type === 'SPACE');
+  const { MODELE } = await import('./agent.js');
+  const texte = await relire({ modele: MODELE, mentionner: mentionDe });
+  if (texte && groupe) await envoyer(groupe.nom, texte);
+}
+
+/** Un projet Claude Code : la tâche se ferme quand la branche est là. */
+async function lancerDesign(tache) {
+  const { realiser } = await import('./design.js');
+  try {
+    const resultat = await realiser(tache.demande, { journal: (m) => Records.update(ENTITE_TACHE, tache.id, { etape: m }) });
+    Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', resultat, fini_le: new Date().toISOString() });
+  } catch (e) {
+    Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: e?.message || String(e) }, fini_le: new Date().toISOString() });
+  }
 }
 
 /** AK se propose : un dossier incomplet, dit une fois, aux heures de bureau. */

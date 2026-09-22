@@ -108,6 +108,11 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { jour: { type: 'string' } }, required: ['jour'] },
   },
   {
+    name: 'lancer_design',
+    description: "Confie un changement de la plateforme Klocka elle-même à Claude Code (« redesign la page K-Zoning », « ajoute un filtre par ville sur Mes projets ») : il travaille sur une copie du dépôt, vérifie lint et build, et rend une branche à relire. Tâche de fond de cinq à trente minutes ; AK donnera la branche dans le chat. Reformule la demande en une consigne précise : quelle page, quoi changer, ce qu'il ne faut pas toucher.",
+    input_schema: { type: 'object', properties: { demande: { type: 'string' } }, required: ['demande'] },
+  },
+  {
     name: 'retenir',
     description: "Retient un fait durable ou une préférence pour les prochaines fois (« le Devred c'est Firminy », « Max veut pas de Monday sans demander », « le client Dupont a 300 k »). Pas les demandes du moment, pas ce qui est déjà dans la plateforme.",
     input_schema: { type: 'object', properties: { sujet: { type: 'string', description: 'de qui ou de quoi : une personne, un dossier, un client, l\'équipe' }, fait: { type: 'string' } }, required: ['fait'] },
@@ -289,6 +294,12 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, me
   }
   if (name === 'bloquer_rdv') return bloquerRendezVous(input);
   if (name === 'agenda') return { jour: input.jour, rendez_vous: await agendaDuJour(input.jour) };
+  if (name === 'lancer_design') {
+    const { designActif } = await import('./design.js');
+    if (!designActif()) return { ok: false, error: "Les projets Claude Code ne sont pas activés sur ce serveur (AK_DESIGN)." };
+    fond({ genre: 'design', libelle: `le projet « ${String(input.demande).slice(0, 80)} »`, demande: String(input.demande) });
+    return { ok: true, note: 'Claude Code s\'y met sur une copie du dépôt ; AK donnera la branche dans le chat quand c\'est prêt.' };
+  }
   if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null });
   if (name === 'oublier') return oublier(input.id);
   if (name === 'souvenirs') return { souvenirs: souvenirs().map((s) => ({ id: s.id, sujet: s.sujet, fait: s.fait })) };
@@ -405,6 +416,13 @@ export function texteDeFin(tache) {
     });
     const ou = tache.deal_id ? ' rangé dans le dossier' : '';
     return `c'est bon, ${tache.libelle}${ou} :\n${lignes.join('\n')}`;
+  }
+  if (tache.genre === 'design') {
+    const r = tache.resultat || {};
+    if (tache.etat === 'ratee') return `dsl, ${tache.libelle} a planté : ${r.erreur || 'sans détail'}`;
+    if (!r.branche) return `${tache.libelle} : Claude Code n'a rien changé. ${String(r.resume || '').slice(0, 300)}`;
+    const verifs = Object.entries(r.verifications || {}).map(([k, v]) => `${k} ${v === true ? 'ok' : 'KO'}`).join(', ');
+    return `c'est bon, ${tache.libelle} est prêt sur la branche ${r.branche}${r.poussee ? ' (poussée)' : ' (pas poussée, à récupérer sur le serveur)'} : ${r.fichiers.length} fichier${r.fichiers.length > 1 ? 's' : ''}, ${verifs}. à relire avant de fusionner.\n${String(r.resume || '').slice(0, 600)}`;
   }
   if (tache.genre === 'alx') {
     const r = tache.resultat || {};

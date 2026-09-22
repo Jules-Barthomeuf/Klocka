@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee } from "@/lib/dictee";
+import { useOreille } from "@/lib/oreille";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 import { AvisReponse } from "@/components/MessageIA";
 import { J } from "@/design/jetons";
@@ -201,6 +202,10 @@ export default function AssistantFlottant() {
   // envoie. La page Note, elle, envoie dès qu'on se tait — ici on est au
   // bureau, on peut se relire.
   const dictee = useDictee({ onTexte: (t) => { setTexte(t); setOuvert(true); } });
+  // L'oreille d'AK : le bureau parle, il écoute, il retient ce qui compte.
+  // Un bouton, un point rouge tant que ça tourne, et rien de gardé ici.
+  const oreille = useOreille();
+  useEffect(() => { if (oreille.erreur) toast.error(oreille.erreur); }, [oreille.erreur]);
 
   return (
     <div
@@ -420,9 +425,14 @@ export default function AssistantFlottant() {
           libelle="Envoyer"
           gauche={
             dictee.supporte ? (
+              <>
+              <BoutonBarre onClick={(e) => { e.stopPropagation(); oreille.ecoute ? oreille.arreter() : oreille.demarrer(); }} alerte={oreille.ecoute} title={oreille.ecoute ? `AK écoute le bureau (${oreille.envoyes} phrases) : arrêter` : "AK écoute le bureau"}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8.5a6 6 0 0 1 12 0c0 3-2 4.5-3 6.5s-1 4-3 4-2.5-1.5-2.5-3" /><path d="M9 8.5a3 3 0 0 1 6 0" /></svg>
+              </BoutonBarre>
               <BoutonBarre onClick={(e) => { e.stopPropagation(); dictee.ecoute ? dictee.arreter() : dictee.demarrer(); }} alerte={dictee.ecoute} title={dictee.ecoute ? "Arrêter" : "Dicter"}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></svg>
               </BoutonBarre>
+              </>
             ) : null
           }
         />

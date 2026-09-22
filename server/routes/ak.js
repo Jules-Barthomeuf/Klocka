@@ -36,6 +36,23 @@ export function monterAk(app) {
     ok(res, { lecons: lecons(100), souvenirs: souvenirs(100) });
   }));
 
+  // L'oreille : le navigateur envoie ce qu'il entend, AK relit toutes les
+  // quelques minutes. Réservé à l'équipe : personne d'autre n'a de micro ici.
+  app.post('/api/ak/oreille', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const { deposer } = await import('../ak/oreille.js');
+    const r = deposer({ texte: req.body?.texte, par: user.full_name || user.email });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.get('/api/ak/oreille', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { enAttente } = await import('../ak/oreille.js');
+    const { Records } = await import('../db.js');
+    ok(res, { en_attente: enAttente().length, lectures: Records.list('AkEcouteLecture').slice(0, 20) });
+  }));
+
   // Les espaces où le compte est membre : pour régler AK_ESPACE sans deviner.
   app.get('/api/ak/espaces', wrap(async (req, res) => {
     if (!admin(req, res)) return;

@@ -314,16 +314,27 @@ async function ecouterLeBureau(suivis) {
   if (texte && groupe) await envoyer(groupe.nom, texte);
 }
 
-/** Une LOI : le PDF, posé dans le chat et, si le dossier a un Drive, rangé dedans. */
+/**
+ * Une LOI : le Word devient un Google Doc sur le Drive (dans le dossier du
+ * deal s'il en a un), ouvert d'un clic depuis le chat ; le fichier est aussi
+ * posé dans le chat pour ceux qui préfèrent Word.
+ */
 async function lancerLoi(tache) {
   const { produire } = await import('./loi.js');
   try {
     const r = await produire(tache.champs, { format: tache.format || 'docx' });
-    let drive = null;
-    if (tache.deal_id) {
+    let doc = null; let drive = null;
+    if (r.format === 'docx') {
+      try {
+        const { uploaderEnDoc } = await import('../google-drive.js');
+        const { COMPTE } = await import('./chat.js');
+        const deal = tache.deal_id ? Records.findBy('Deal', 'deal_id', tache.deal_id) : null;
+        doc = (await uploaderEnDoc(COMPTE, { nom: r.nom.replace(/\.docx$/i, ''), buffer: fs.readFileSync(r.chemin), parentId: deal?.drive_folder_id || null })).doc_url;
+      } catch (e) { drive = `le Drive a refusé : ${e?.message || e}`; }
+    } else if (tache.deal_id) {
       try { const { rangerSurLeDrive } = await import('./outils.js'); const d = await rangerSurLeDrive({ deal_id: tache.deal_id, chemin: r.chemin, nom: r.nom }); drive = d.ok ? d.dossier_url : null; } catch { drive = null; }
     }
-    Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', resultat: { ...r, drive }, fini_le: new Date().toISOString() });
+    Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', resultat: { ...r, doc, drive }, fini_le: new Date().toISOString() });
   } catch (e) {
     Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: e?.message || String(e) }, fini_le: new Date().toISOString() });
   }

@@ -245,6 +245,48 @@ export async function uploaderEnSlides(compteEmail, { nom, buffer }) {
 }
 
 /**
+ * Téléverse un Word en le convertissant en Google Doc (modifiable en ligne,
+ * à plusieurs). Rangé dans le dossier Drive donné, sinon dans
+ * « Klocka Projets/Lettres d'intention ».
+ * @returns {{ id, doc_url }}
+ */
+export async function uploaderEnDoc(compteEmail, { nom, buffer, parentId = null }) {
+  const account = compteDrive(compteEmail);
+  const token = await accessTokenFor(account);
+
+  let parent = parentId;
+  if (!parent) {
+    // Le Drive partagé quand le compte y a accès ; sinon le Drive du compte
+    // lui-même : une lettre qu'on peut ouvrir vaut mieux qu'une lettre bien
+    // rangée nulle part.
+    try {
+      const { dossier: racine, driveId } = await assurerDossierProjets(token);
+      parent = (await assurerDossier(token, "Lettres d'intention", racine.id, driveId)).id;
+    } catch {
+      parent = (await assurerDossier(token, "Lettres d'intention")).id;
+    }
+  }
+
+  const boundary = `klocka${Date.now()}`;
+  // Le mimeType Google du meta déclenche la conversion DOCX → Doc.
+  const meta = JSON.stringify({ name: nom, mimeType: 'application/vnd.google-apps.document', parents: [parent] });
+  const corps = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n` +
+        `--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`
+    ),
+    buffer,
+    Buffer.from(`\r\n--${boundary}--`),
+  ]);
+  const fichier = await driveFetch(token, `${DRIVE_UPLOAD}&fields=id,name`, {
+    method: 'POST',
+    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body: corps,
+  });
+  return { id: fichier.id, doc_url: `https://docs.google.com/document/d/${fichier.id}/edit` };
+}
+
+/**
  * Les fichiers du Drive qu'on peut importer dans un dossier : ceux du dossier
  * du deal s'il existe, sinon les documents récents du compte. Les Google Docs
  * natifs sont exclus : seuls les fichiers binaires se rapatrient tels quels.

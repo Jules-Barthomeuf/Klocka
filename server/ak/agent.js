@@ -109,7 +109,7 @@ const OUTILS_AK = [
   },
   {
     name: 'rediger_loi',
-    description: "Rédige une lettre d'intention d'achat (LOI) sur le modèle de la maison, en Word (docx, modifiable ; PDF si on le demande), et la pose dans le chat pour relecture. Si un dossier est donné, l'adresse, la surface, le locataire, le bail et le prix en viennent ; le reste est demandé. Ne rédige que quand tous les champs requis sont là : sinon l'outil rend la liste de ce qui manque, et tu la demandes en une ligne.",
+    description: "Rédige une lettre d'intention d'achat (LOI) sur le modèle de la maison et l'ouvre en Google Doc sur le Drive (modifiable ; PDF si on le demande), lien posé dans le chat pour relecture. Si un dossier est donné, l'adresse, la surface, le locataire, le bail et le prix en viennent ; le reste est demandé. Ne rédige que quand tous les champs requis sont là : sinon l'outil rend la liste de ce qui manque, et tu la demandes en une ligne.",
     input_schema: {
       type: 'object',
       properties: {
@@ -482,7 +482,9 @@ export function texteDeFin(tache) {
   }
   if (tache.genre === 'loi') {
     if (tache.etat === 'ratee') return `dsl, ${tache.libelle} a planté : ${tache.resultat?.erreur || 'sans détail'}`;
-    return `voilà ${tache.libelle} en ${tache.resultat?.format === 'pdf' ? 'PDF' : 'Word'}, à relire et retoucher avant envoi${tache.resultat?.drive ? ` (aussi sur le Drive : ${tache.resultat.drive})` : ''}`;
+    const r = tache.resultat || {};
+    if (r.doc) return `voilà ${tache.libelle}, à relire et retoucher avant envoi : ${r.doc}`;
+    return `voilà ${tache.libelle} en ${r.format === 'pdf' ? 'PDF' : 'Word'}, à relire et retoucher avant envoi${r.drive ? ` (${r.drive})` : ''}`;
   }
   if (tache.genre === 'design') {
     const r = tache.resultat || {};

@@ -11,12 +11,8 @@ import "moment/locale/fr";
 moment.locale("fr");
 import { motion } from "framer-motion";
 import { useCasesProjet, PanneauPiece, VueBail, BandesCases, TableauAG, dateFr } from "./CasesProjet";
-import StreetViewRue from "./StreetViewRue";
 import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
-import EnvironnementIndicateurs from "./EnvironnementIndicateurs";
-import CarteCessions from "./CarteCessions";
-import VilleSecteurIA, { useAnalyseIA } from "./SecteurAnalyseIA";
 import { J } from "@/design/jetons";
 import MarcheProjet from "./MarcheProjet";
 import BienProjet from "./BienProjet";
@@ -55,21 +51,6 @@ function KpiStrip({ items, className = "" }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function KVRow({ label, value, accent = undefined, champ = undefined, typeChamp = undefined }) {
-  const edition = useEdition();
-  if (estMasque(edition, champ)) return null;
-  if (value == null || value === "") return null;
-  return (
-    <div className="flex justify-between gap-4 py-2.5 text-sm border-t border-encre/[0.12]">
-      <span className="text-ardoise flex-shrink-0">{label}</span>
-      <span className={`text-right flex items-center justify-end gap-1 ${accent || "text-encre"}`}>
-        <ValeurEditable champ={champ} type={typeChamp || "number"}>{value}</ValeurEditable>
-        <BoutonMasquer champ={champ} />
-      </span>
     </div>
   );
 }
@@ -131,58 +112,16 @@ function NotesBlock({ notes }) {
   );
 }
 
-// Échelle A→G façon maquette : barres fines grises, classe active en teal
-function GradeScale({ active, valueLabel }) {
-  return (
-    <div className="space-y-1.5">
-      {["A", "B", "C", "D", "E", "F", "G"].map((g, idx) => {
-        const isActive = active === g;
-        return (
-          <div key={g} className="flex items-center gap-3">
-            <span className={`w-5 text-center flex-shrink-0 ${isActive ? "text-[18px] text-encre" : "text-[12.5px] text-bord-vif"}`}>{g}</span>
-            <div className="h-[9px] flex-shrink-0" style={{ width: `${26 + idx * 10}%`, backgroundColor: isActive ? J["menthe"] : J["trait"] }} />
-            {isActive && valueLabel && <span className="text-[12.5px] text-menthe-clair whitespace-nowrap">{valueLabel}</span>}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// Fourchette bas / médian / haut sur filet fin
-function RangeScale({ bas, median, haut, unit = "€", champBas, champMedian, champHaut }) {
-  const b = bas || 0;
-  const h = haut || (median ? median * 2 : 0);
-  const m = median || 0;
-  const range = h - b;
-  const pos = range > 0 && m > 0 ? Math.max(0, Math.min(100, ((m - b) / range) * 100)) : 50;
-  const fmtN = (v) => (v ? v.toLocaleString("fr-FR") : "—");
-  return (
-    <div>
-      <div className="relative h-[3px] bg-trait">
-        {m > 0 && <div className="absolute w-[9px] h-[9px] rounded-full bg-menthe-clair" style={{ left: `${pos}%`, top: "50%", transform: "translate(-50%, -50%)" }} />}
-      </div>
-      <div className="flex justify-between mt-2.5 text-[12.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
-        <span className="text-ardoise"><ValeurEditable champ={champBas}>{`${fmtN(b)} ${unit}`}</ValeurEditable></span>
-        <span className="text-encre"><ValeurEditable champ={champMedian}>{`${fmtN(m)} ${unit}`}</ValeurEditable></span>
-        <span className="text-ardoise"><ValeurEditable champ={champHaut}>{`${fmtN(h)} ${unit}`}</ValeurEditable></span>
-      </div>
-    </div>
-  );
-}
-
 // Shared project display used by the client detail page and the public share page.
 // `isAdmin` / `showAsClient` control admin-only bits; `isPublic` disables navigation to
 // internal tools (simulator/comparator) for anonymous visitors.
 // `apercuOnglet` : mode aperçu de l'éditeur admin — rend UNIQUEMENT le contenu
-// de l'onglet demandé (secteur, marche, bien, locataire, bail, copropriete,
-// diagnostique, documents_projet), sans hero, sans barre d'onglets ni rail IA.
+// de l'onglet demandé (marche, bien, locataire, bail, copropriete,
+// documents_projet), sans hero, sans barre d'onglets ni rail IA.
 // `modeEdition` + `onChamp` : éditeur admin — les chiffres deviennent des
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null }) {
   const navigate = useNavigate();
-  // Analyse IA (avis projet + chiffres ville/secteur), mutualisée en un appel.
-  const { analyse, villeData, secteurData, loading: analyseLoading, error: analyseError, refresh: refreshAnalyse } = useAnalyseIA(project);
   const [selectedImage, setSelectedImage] = useState(null);
   // Le carrousel du hero : le rang de la photo montrée, et les adresses qui ne
   // répondent plus (un hébergeur disparu ne doit pas condamner les suivantes).
@@ -196,11 +135,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const [streetView, setStreetView] = useState(false);
   // La pièce ouverte à droite quand on clique une case.
   const [piece, setPiece] = useState(null);
-  // La localisation bascule entre la carte et Street View.
-  const [rueLocalisation, setRueLocalisation] = useState(false);
   const cases = useCasesProjet(project, isPublic);
   const enPlace = cases?.locataire?.find((c) => c.id === "en_place");
-  const [ongletChoisi, setOngletActif] = useState("secteur");
+  const [ongletChoisi, setOngletActif] = useState("marche");
   // Le panneau d'édition choisit la section : la page la suit.
   useEffect(() => { if (ongletDemande) setOngletActif(ongletDemande); }, [ongletDemande]);
   const ongletActif = apercuOnglet || ongletChoisi;
@@ -514,13 +451,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           {!apercuOnglet && (
           <TabsList className="w-full min-w-0 flex justify-start flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden gap-x-7 gap-y-2 max-md:gap-x-5 bg-transparent border-0 mb-10 max-md:mb-6 rounded-none px-0 h-auto pt-1 pb-6 max-md:pb-4 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
-              { v: "secteur", l: "Secteur" },
               { v: "marche", l: "Marché" },
               { v: "bien", l: "Bien" },
               { v: "locataire", l: "Locataire" },
               { v: "bail", l: "Analyse du bail" },
               { v: "copropriete", l: "Copropriété" },
-              { v: "diagnostique", l: "Diagnostique" },
               { v: "documents_projet", l: "Documents" },
               // Onglets ajoutés par l'éditeur (simulateur…) : la barre les
               // affiche, leur contenu est rendu par le parent.
@@ -533,100 +468,19 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           </TabsList>
           )}
 
-          <TabsContent value="secteur" className="space-y-6 max-md:space-y-4">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <div className="mb-8 max-md:mb-5">
-                <h2 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">Secteur</h2>
-                <div className="mt-6 max-md:mt-5">
-                  <VilleSecteurIA
-                    analyse={analyse}
-                    villeData={villeData}
-                    secteurData={secteurData}
-                    loading={analyseLoading}
-                    error={analyseError}
-                    refresh={refreshAnalyse}
-                    project={project}
-                    isPublic={isPublic}
-                    prixM2Revient={prixM2Revient}
-                    loyerM2={loyerM2}
-                  />
-                </div>
-              </div>
-
-              {(mapUrl || project.transactions_fonds) && (
-                <div className="mb-10 max-md:mb-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <SectionLabel tone="teal">Localisation</SectionLabel>
-                    {mapsKey && (project.adresse_complete || (project.latitude && project.longitude)) && (
-                      <button type="button" onClick={() => setRueLocalisation((v) => !v)}
-                        className="-mt-1.5 mb-3 text-[12.5px] px-4 py-1.5 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif transition-colors">
-                        {rueLocalisation ? "Revenir à la carte" : "Street View"}
-                      </button>
-                    )}
-                  </div>
-                  {rueLocalisation ? (
-                    <div className="relative h-[420px] max-md:h-[260px] overflow-hidden bg-surface">
-                      <StreetViewRue project={project} />
-                    </div>
-                  ) : project.transactions_fonds ? (
-                    <CarteCessions
-                      resultat={project.transactions_fonds}
-                      titre={project.titre}
-                      adresse={project.adresse_complete}
-                      lat={project.latitude}
-                      lon={project.longitude}
-                    />
-                  ) : (
-                  <div className="relative h-[420px] max-md:h-[260px] overflow-hidden bg-surface">
-                    <iframe src={mapUrl} className="w-full h-full" style={{ border: 0, filter: 'saturate(0.85) contrast(1.04)' }} allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du secteur" />
-                    <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-encre/[0.13]" />
-                    <div className="max-md:hidden absolute left-6 bottom-6 max-w-[340px] bg-fond/[0.86] backdrop-blur-sm px-5 py-4">
-                      {project.adresse_complete && (
-                        <>
-                          <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise">Adresse</div>
-                          <div className="text-[13.5px] leading-[1.6] text-encre mt-1">{project.adresse_complete}</div>
-                        </>
-                      )}
-                      {project.surface_m2 > 0 && (
-                        <div className="text-[12.5px] text-craie mt-2.5" style={{ fontVariantNumeric: 'tabular-nums' }}>{project.surface_m2} m² exploités</div>
-                      )}
-                      {googleMapsLink && (
-                        <a href={googleMapsLink} target="_blank" rel="noopener noreferrer"
-                          className="pointer-events-auto inline-flex items-center gap-2 mt-4 text-[11px] tracking-[0.18em] uppercase text-menthe-clair hover:text-encre transition-colors">
-                          Ouvrir dans Google Maps <span aria-hidden="true">→</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  )}
-                  <div className="md:hidden">
-                    <KVRow champ="adresse_complete" typeChamp="text" label="Adresse" value={project.adresse_complete} />
-                    <KVRow label="Surface" value={project.surface_m2 > 0 ? `${project.surface_m2} m²` : null} champ="surface_m2" />
-                    {googleMapsLink && (
-                      <KVRow label="Carte" value={<a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="text-menthe-clair">Ouvrir dans Google Maps</a>} />
-                    )}
-                  </div>
-                </div>
-              )}
-              <EnvironnementIndicateurs project={project} />
-              <NotesBlock notes={project.notes_secteur} />
-              <ChampsPersonnalises zone="secteur" project={project} />
-            </motion.div>
-          </TabsContent>
-
           <TabsContent value="marche">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <TabHeader
-                title="Marché"
-              />
+              <TabHeader title="Marché" />
 
               <MarcheProjet project={project} isPublic={isPublic} prixM2Revient={prixM2Revient} loyerM2={loyerM2} />
 
-              <NotesBlock notes={project.notes_marche} />
+              <NotesBlock notes={[...(project.notes_secteur || []), ...(project.notes_marche || [])]} />
 
-              {!project.marche_prix_m2_median && !project.marche_offre_moyenne && !project.marche_baux_moyenne
-                && (!project.marche_secteurs || project.marche_secteurs.length === 0)
-                && (!project.notes_marche || project.notes_marche.length === 0) && <EmptyTab />}
+              {!project.ville_habitants_agglo && !project.ville_revenu_median && !project.adresse_complete
+                && !project.marche_prix_m2_median && !project.marche_offre_moyenne && !project.marche_baux_moyenne
+                && !project.notes_secteur?.length && !project.notes_marche?.length && <EmptyTab />}
+              {/* Les champs ajoutés dans l'ancien onglet Secteur vivent ici désormais. */}
+              <ChampsPersonnalises zone="secteur" project={project} />
               <ChampsPersonnalises zone="marche" project={project} />
             </motion.div>
           </TabsContent>
@@ -762,49 +616,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 && !project.activites_autorisees && !project.activites_interdites
                 && !project.synthese_assemblee_generale && <EmptyTab />}
               <ChampsPersonnalises zone="copropriete" project={project} />
-            </motion.div>
-          </TabsContent>
-
-          <TabsContent value="diagnostique">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <TabHeader
-                title="Diagnostique"
-              />
-
-              {(project.dpe_note || project.ges_note) && (
-                <div className="grid md:grid-cols-2 gap-x-12 gap-y-10 mb-10 max-md:mb-6">
-                  {project.dpe_note && (
-                    <div>
-                      <SectionLabel tone="teal">Diagnostic de performance énergétique</SectionLabel>
-                      <GradeScale active={project.dpe_note} valueLabel={project.dpe_consommation > 0 ? `${fmtNum(project.dpe_consommation)} kWh/m²/an` : null} />
-                    </div>
-                  )}
-                  {project.ges_note && (
-                    <div>
-                      <SectionLabel tone="teal">Émissions de gaz à effet de serre</SectionLabel>
-                      <GradeScale active={project.ges_note} valueLabel={project.ges_emission > 0 ? `${fmtNum(project.ges_emission)} kg CO₂/m²/an` : null} />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="grid md:grid-cols-2 gap-x-12">
-                <div>
-                  <KVRow champ="dpe_note" typeChamp="text" label="Classe énergie" value={project.dpe_note ? `Classe ${project.dpe_note}` : null} accent="text-menthe-clair" />
-                  <KVRow label="Consommation" value={project.dpe_consommation > 0 ? `${fmtNum(project.dpe_consommation)} kWh/m²/an` : null} champ="dpe_consommation" />
-                </div>
-                <div>
-                  <KVRow champ="ges_note" typeChamp="text" label="Classe GES" value={project.ges_note ? `Classe ${project.ges_note}` : null} accent="text-menthe-clair" />
-                  <KVRow label="Émissions" value={project.ges_emission > 0 ? `${fmtNum(project.ges_emission)} kg CO₂/m²/an` : null} champ="ges_emission" />
-                </div>
-              </div>
-
-              <NotesBlock notes={project.notes_diagnostique} />
-
-              {!project.dpe_note && !project.ges_note && (!project.notes_diagnostique || project.notes_diagnostique.length === 0) && (
-                <EmptyTab text="Aucune donnée de diagnostic disponible pour ce projet." />
-              )}
-              <ChampsPersonnalises zone="diagnostique" project={project} />
             </motion.div>
           </TabsContent>
 

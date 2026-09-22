@@ -3,7 +3,7 @@
 const MOIS_PAR_AN = 12;
 
 /** Le nombre de mois entiers entre deux dates, dans l'ordre. */
-function moisEntre(de, a) {
+export function moisEntre(de, a) {
   const d = new Date(de);
   const f = new Date(a);
   if (Number.isNaN(d.getTime()) || Number.isNaN(f.getTime())) return null;

@@ -47,13 +47,13 @@ export default function AdminProjets() {
     return params.get('action') === 'create';
   });
   const [editingProject, setEditingProject] = useState(null);
-  const [activeTab, setActiveTab] = useState("secteur");
+  const [activeTab, setActiveTab] = useState("marche");
   // Aperçu « page projet » — rafraîchi sur Entrée, Enregistrer ou fermeture du panneau.
   const [apercuProjet, setApercuProjet] = useState(null);
   // Onglet courant de la page projet, à gauche.
   // Assigner un client sans ouvrir le panneau : le bouton vit dans la barre.
   const [assignerOuvert, setAssignerOuvert] = useState(false);
-  const [ongletPage, setOngletPage] = useState("secteur");
+  const [ongletPage, setOngletPage] = useState("marche");
   // Historique des modifications faites sur la page, pour le retour en arrière.
   const [historique, setHistorique] = useState([]);
   // Ce qu'on a annulé et qu'on peut refaire. Toute modification neuve la vide :
@@ -813,14 +813,14 @@ export default function AdminProjets() {
   // Les champs de droite suivent l'onglet de gauche, dès l'ouverture : on
   // regarde une partie de la page, on a ses champs sous la main.
   const FORM_PAR_ONGLET = {
-    bien: "informations", secteur: "secteur", marche: "marche", locataire: "locataire",
-    bail: "bail", copropriete: "copropriete", diagnostique: "diagnostique",
+    bien: "informations", marche: "marche", locataire: "locataire",
+    bail: "bail", copropriete: "copropriete",
     documents_projet: "docs_projet", simulateur: "simulateur", images: "images",
   };
   const PAGE_PAR_FORM = {
-    general: "secteur", secteur: "secteur", marche: "marche", informations: "bien",
+    general: "marche", secteur: "marche", marche: "marche", informations: "bien",
     locataire: "locataire", bail: "bail", copropriete: "copropriete",
-    diagnostique: "diagnostique", docs_projet: "documents_projet",
+    diagnostique: "marche", docs_projet: "documents_projet",
     images: "images", simulateur: "simulateur",
   };
   // Vrai le temps d'un aller : le clic vient du panneau de droite, la page de
@@ -906,7 +906,7 @@ export default function AdminProjets() {
   // L'assistant traduit une demande en langage naturel (« ajoute Hauteur sous
   // plafond dans l'onglet Bien, comme les chiffres du haut ») en champs
   // personnalisés, placés dans l'onglet demandé et dans le style demandé.
-  const ZONES_ASSISTANT = "secteur, marche, bien, locataire, bail, copropriete, diagnostique, documents_projet";
+  const ZONES_ASSISTANT = "marche, bien, locataire, bail, copropriete, documents_projet";
   const lancerAssistant = async () => {
     if (!assistantPrompt.trim()) return;
     setAssistantEnCours(true);
@@ -1054,10 +1054,10 @@ export default function AdminProjets() {
   ];
   // Onglets de la page projet, dans l'ordre de la barre.
   const ONGLETS_PAGE = [
-    { value: "secteur", label: "Secteur" }, { value: "marche", label: "Marché" },
+    { value: "marche", label: "Marché" },
     { value: "bien", label: "Bien" }, { value: "locataire", label: "Locataire" },
     { value: "bail", label: "Analyse du bail" }, { value: "copropriete", label: "Copropriété" },
-    { value: "diagnostique", label: "Diagnostique" }, { value: "documents_projet", label: "Documents" },
+    { value: "documents_projet", label: "Documents" },
   ];
   const projetAffiche = apercuProjet || editingProject || null;
 

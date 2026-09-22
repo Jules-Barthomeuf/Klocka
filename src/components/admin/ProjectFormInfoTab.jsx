@@ -50,6 +50,16 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
         <div className="mt-1.5 text-[11px] text-brume">d&apos;après les ventes publiées ou l&apos;acte</div>
       </div>
       <div className={fieldWrap}>
+        <div className={flabel}>Prix de la dernière vente</div>
+        <input type="number" value={formData.derniere_vente_prix || ""} onChange={nombre("derniere_vente_prix")} placeholder="480000" className={`${fieldInput} text-[15px]`} />
+        <div className="mt-1.5 text-[11px] text-brume">en euros, affiché à côté de l&apos;année</div>
+      </div>
+      <div className={fieldWrap}>
+        <div className={flabel}>Détenu depuis</div>
+        <input type="number" value={formData.detenu_depuis || ""} onChange={nombre("detenu_depuis")} placeholder="2014" className={`${fieldInput} text-[15px]`} />
+        <div className="mt-1.5 text-[11px] text-brume">l&apos;année ; à défaut, celle de la dernière vente</div>
+      </div>
+      <div className={fieldWrap}>
         <div className={flabel}>Surface m²</div>
         <input type="number" value={formData.surface_m2 || ""} onChange={nombre("surface_m2")} placeholder="60" className={`${fieldInput} text-[15px]`} />
       </div>

@@ -1,11 +1,13 @@
 import React from "react";
-import { ChiffresStrip, nf } from "./SecteurChiffres";
+import { nf, InfoDot } from "./SecteurChiffres";
 import { useEdition, estMasque } from "./EditionEnPlace";
-import { dureeDepuis, dureeJusque, dateLongue } from "./durees";
+import { dureeDepuis, dureeJusque, dateLongue, moisEntre } from "./durees";
 
-// Le locataire, en six cases, dans le registre de Marché.
+// Le locataire : à gauche l'anneau du bail restant à courir, à droite le bail
+// en place (loyer annuel, en place depuis, échéance, soit par mois), puis
+// qui exploite (le nom, et le profil en pastilles).
 //
-// Les six sont toujours là, remplies ou non : on voit ce qu'il reste à
+// Les cases sont toujours là, remplies ou non : on voit ce qu'il reste à
 // trouver. Chacune se retire de la page d'une croix, depuis le panneau ; la
 // liste des cases retirées vit dans le projet (champs_masques), comme pour
 // les autres champs.
@@ -18,6 +20,10 @@ export const CASES_LOCATAIRE = [
   ["loc.nom", "Nom du locataire"],
   ["loc.profil", "Profil"],
 ];
+
+// Un bail commercial court neuf ans : c'est la durée qu'on prend pour
+// l'anneau quand le dossier ne dit pas depuis quand le locataire est là.
+const MOIS_BAIL = 108;
 
 /** Les six valeurs, calculées une fois pour la page et le panneau. */
 export function valeursLocataire(project) {
@@ -32,38 +38,112 @@ export function valeursLocataire(project) {
   };
 }
 
+/** Pure : la part du bail qui reste à courir, entre 0 et 1, ou null. */
+export function partRestante(project, maintenant = new Date()) {
+  if (!project.echeance_bail) return null;
+  const restant = moisEntre(maintenant, project.echeance_bail);
+  if (restant == null) return null;
+  const total = project.locataire_depuis ? moisEntre(project.locataire_depuis, project.echeance_bail) : null;
+  const duree = total > 0 ? total : MOIS_BAIL;
+  return Math.max(0, Math.min(1, restant / duree));
+}
+
+/** « Juin 2021 » : le mois et l'année, sans le jour. */
+const moisAnnee = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const t = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
+
+/** Le profil en pastilles : « Indépendant, SARL · 2 associés » en devient deux. */
+export const pastillesProfil = (texte) => String(texte || "").split(/\s*[,;|\n]\s*/).map((p) => p.trim()).filter(Boolean);
+
+function Anneau({ part, texte }) {
+  const r = 46;
+  const c = 2 * Math.PI * r;
+  const visible = part == null ? 0 : part;
+  return (
+    <div className="relative w-[220px] h-[220px] max-md:w-[180px] max-md:h-[180px] mx-auto">
+      <svg viewBox="0 0 110 110" className="w-full h-full -rotate-90">
+        <circle cx="55" cy="55" r={r} fill="none" strokeWidth="5" className="stroke-encre/[0.14]" />
+        <circle cx="55" cy="55" r={r} fill="none" strokeWidth="5" strokeLinecap="round" className="stroke-menthe transition-[stroke-dashoffset] duration-700"
+          strokeDasharray={c} strokeDashoffset={c * (1 - visible)} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+        <div className={`text-[22px] max-md:text-[18px] font-light leading-tight ${texte ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{texte || "—"}</div>
+        <div className="text-[9.5px] tracking-[0.22em] uppercase text-ardoise mt-1.5">restant<br />à courir</div>
+      </div>
+    </div>
+  );
+}
+
+function Case({ valeur, label, info }) {
+  return (
+    <div>
+      <div className={`text-[26px] max-md:text-[20px] font-light leading-none ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</div>
+      <div className="text-[11px] text-ardoise mt-2 flex items-center gap-1.5">{label}<InfoDot texte={info} /></div>
+    </div>
+  );
+}
+
 export default function LocataireProjet({ project }) {
   const edition = useEdition();
   const valeurs = valeursLocataire(project);
-  const visibles = CASES_LOCATAIRE.filter(([cle]) => !estMasque(edition, cle));
-  if (!visibles.length) return null;
+  const visible = (cle) => !estMasque(edition, cle);
+  const loyer = Number(project.sim_loyer_initial_ht) || Number(project.loyer_annuel_ht) || 0;
+  const parMois = loyer > 0 ? Math.round(loyer / 12) : 0;
 
-  const strip = (cles) => (
-    <ChiffresStrip chiffres={cles.map(([cle, label]) => ({
-      valeur: valeurs[cle] || "—",
-      label,
-      accent: valeurs[cle] ? undefined : "text-brume",
-      info: cle === "loc.restant" ? "Du jour où vous lisez ceci à l'échéance du bail." : cle === "loc.profil" ? "Qui exploite : ce qu'on sait de la personne ou de l'équipe derrière l'enseigne." : null,
-    }))} />
-  );
+  const bail = [
+    visible("loc.loyer") && { valeur: valeurs["loc.loyer"], label: "Loyer annuel HT/HC" },
+    visible("loc.depuis") && { valeur: moisAnnee(project.locataire_depuis), label: "En place depuis", info: valeurs["loc.depuis"] ? `Soit ${valeurs["loc.depuis"]}.` : null },
+    visible("loc.echeance") && { valeur: valeurs["loc.echeance"], label: "Échéance du bail" },
+    visible("loc.loyer") && { valeur: parMois > 0 ? `${nf.format(parMois)} €` : null, label: "Soit par mois" },
+  ].filter(Boolean);
+  const anneau = visible("loc.restant");
+  const exploite = visible("loc.nom") || visible("loc.profil");
+  if (!bail.length && !anneau && !exploite) return null;
 
-  const gauche = visibles.filter(([cle]) => ["loc.loyer", "loc.depuis", "loc.restant", "loc.echeance"].includes(cle));
-  const droite = visibles.filter(([cle]) => ["loc.nom", "loc.profil"].includes(cle));
+  const pastilles = pastillesProfil(project.profil_locataire);
 
   return (
-    <div>
-      {gauche.length > 0 && (
-        <>
-          <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-ardoise">Le bail en place</div>
-          {strip(gauche)}
-        </>
-      )}
-      {droite.length > 0 && (
-        <div className="mt-8 max-md:mt-6">
-          <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-ardoise">Qui exploite</div>
-          {strip(droite)}
+    <div className={`grid gap-10 max-md:gap-6 ${anneau ? "md:grid-cols-[240px_minmax(0,1fr)]" : ""}`}>
+      {anneau && (
+        <div className="flex items-center">
+          <Anneau part={partRestante(project)} texte={valeurs["loc.restant"]} />
         </div>
       )}
+      <div className="min-w-0">
+        {bail.length > 0 && (
+          <div>
+            <div className="text-[10.5px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-encre/[0.12]">Le bail en place</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6 py-6">
+              {bail.map((c) => <Case key={c.label} {...c} />)}
+            </div>
+          </div>
+        )}
+        {exploite && (
+          <div className={bail.length ? "border-t border-encre/[0.12] pt-6" : ""}>
+            <div className="text-[10.5px] tracking-[0.2em] uppercase text-ardoise mb-3">Qui exploite</div>
+            <div className="flex items-start justify-between gap-6 flex-wrap">
+              {visible("loc.nom") && (
+                <div>
+                  <div className={`text-[22px] max-md:text-[18px] font-light leading-tight ${valeurs["loc.nom"] ? "text-encre" : "text-brume"}`}>{valeurs["loc.nom"] || "—"}</div>
+                  <div className="text-[11px] text-ardoise mt-1.5">Nom du locataire</div>
+                </div>
+              )}
+              {visible("loc.profil") && (
+                <div className="flex flex-wrap gap-2 md:justify-end">
+                  {pastilles.length ? pastilles.map((p) => (
+                    <span key={p} className="text-[11.5px] px-3.5 py-1.5 rounded-full border border-bord-doux text-craie">{p}</span>
+                  )) : <span className="text-[11.5px] px-3.5 py-1.5 rounded-full border border-bord-doux text-brume">Profil —</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
